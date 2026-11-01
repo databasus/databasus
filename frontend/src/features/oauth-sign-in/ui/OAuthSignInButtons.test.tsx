@@ -21,10 +21,12 @@ describe('OAuthSignInButtons', () => {
       const navigate = vi.spyOn(window.location, 'assign').mockImplementation(() => {});
       const { user } = renderScreen(<OAuthSignInButtons />);
       const button = screen.getByRole('button', { name: `Continue with ${provider}` });
+
       await user.click(button);
       const firstAttempt = JSON.parse(sessionStorage.getItem('databasus_oauth_sign_in_attempt')!);
       await user.click(button);
       const secondAttempt = JSON.parse(sessionStorage.getItem('databasus_oauth_sign_in_attempt')!);
+
       expect(secondAttempt.state).toMatch(/^[a-f0-9]{64}$/);
       expect(secondAttempt.state).not.toBe(firstAttempt.state);
       expect(Object.keys(secondAttempt).sort()).toEqual([
@@ -45,6 +47,7 @@ describe('OAuthSignInButtons', () => {
     async (failure) => {
       const navigate = vi.spyOn(window.location, 'assign').mockImplementation(() => {});
       const { user } = renderScreen(<OAuthSignInButtons />);
+
       if (failure === 'randomness')
         vi.spyOn(crypto, 'getRandomValues').mockImplementation(() => {
           throw new Error('unavailable');
@@ -53,7 +56,9 @@ describe('OAuthSignInButtons', () => {
         vi.spyOn(sessionStorage, 'setItem').mockImplementation(() => {
           throw new Error('unavailable');
         });
+
       await user.click(screen.getByRole('button', { name: 'Continue with GitHub' }));
+
       expect(await screen.findByRole('alert')).toBeTruthy();
       expect(navigate).not.toHaveBeenCalled();
     },

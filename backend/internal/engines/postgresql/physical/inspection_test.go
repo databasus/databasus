@@ -16,9 +16,11 @@ func TestInspectionPing(t *testing.T) {
 			t.Parallel()
 			proxy, isStalled := startStallableSourceProxy(t, server.endpoint)
 			proxyServer := testServer{endpoint: proxy, image: server.image, version: server.version}
+
 			inspection := proxyServer.openInspection(t, getAdminRole())
 			require.NoError(t, inspection.Ping(t.Context()))
 			isStalled.Store(true)
+
 			ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
 			defer cancel()
 			startedAt := time.Now()

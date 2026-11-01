@@ -71,6 +71,7 @@ func (s *Service) CreateAgent(ctx context.Context, actor users.Actor, name strin
 			[]apierror.FieldError{{Field: "name", Detail: "must contain 1 to 255 characters"}},
 		)
 	}
+
 	token := newPlainToken()
 	agent := Agent{
 		ID:                uuid.New(),
@@ -84,12 +85,14 @@ func (s *Service) CreateAgent(ctx context.Context, actor users.Actor, name strin
 		CreatedAt:         s.clock.Now(),
 		DeletedAt:         nil,
 	}
+
 	err := s.transactor.Transaction(ctx, func(ctx context.Context) error {
 		if err := s.repository.insert(ctx, agent); err != nil {
 			return err
 		}
 		return s.record(ctx, actor, "verification agent created: "+agent.Name)
 	})
+
 	return CreatedAgent{Agent: agent, Token: token}, err
 }
 
@@ -110,11 +113,13 @@ func (s *Service) ListPage(ctx context.Context, query ListQuery) (Page, error) {
 	if query.Limit != nil {
 		limit = *query.Limit
 	}
+
 	if limit < 1 || limit > 100 {
 		return Page{}, apierror.NewInvalidFieldsProblem(
 			[]apierror.FieldError{{Field: "limit", Detail: "must be between 1 and 100"}},
 		)
 	}
+
 	var after *database.TimeCursor
 	if query.After != nil {
 		cursor, err := database.DecodeTimeCursor(*query.After)
@@ -123,16 +128,19 @@ func (s *Service) ListPage(ctx context.Context, query ListQuery) (Page, error) {
 		}
 		after = &cursor
 	}
+
 	agents, err := s.repository.page(ctx, limit+1, after)
 	if err != nil {
 		return Page{}, err
 	}
+
 	page := Page{Agents: agents[:min(len(agents), limit)], NextCursor: nil}
 	if len(agents) > limit {
 		lastAgent := agents[limit-1]
 		cursor := database.TimeCursor{Time: lastAgent.CreatedAt, ID: lastAgent.ID}.Encode()
 		page.NextCursor = &cursor
 	}
+
 	return page, nil
 }
 
@@ -164,12 +172,14 @@ func (s *Service) AuthenticateAgent(ctx context.Context, credentials AgentCreden
 	if err != nil {
 		return Agent{}, s.refuseAgent(ctx, "invalid_uuid")
 	}
+
 	isAllowed, err := s.rateLimiter.RecordAttemptAndCheckIsAllowed(ctx, ratelimit.Attempt{
 		Scope: "verification-agent-id", Identifier: id.String(), Limit: 10, Window: time.Second,
 	})
 	if err != nil {
 		return Agent{}, fmt.Errorf("check agent rate limit: %w", err)
 	}
+
 	if !isAllowed {
 		s.logger.WarnContext(
 			ctx,
@@ -182,6 +192,7 @@ func (s *Service) AuthenticateAgent(ctx context.Context, credentials AgentCreden
 	if credentials.Token == "" {
 		return Agent{}, s.refuseAgent(ctx, "missing_token")
 	}
+
 	agent, isFound, err := s.repository.get(ctx, id)
 	if err != nil {
 		return Agent{}, fmt.Errorf("authenticate agent: %w", err)
@@ -190,6 +201,7 @@ func (s *Service) AuthenticateAgent(ctx context.Context, credentials AgentCreden
 		subtle.ConstantTimeCompare([]byte(agent.TokenHash), []byte(hashAgentToken(credentials.Token))) != 1 {
 		return Agent{}, s.refuseAgent(ctx, "invalid_credentials")
 	}
+
 	return agent, nil
 }
 
@@ -199,6 +211,7 @@ func (s *Service) RecordHeartbeat(ctx context.Context, id uuid.UUID, capacity Ag
 			[]apierror.FieldError{{Field: "capacity", Detail: "must be nonnegative"}},
 		)
 	}
+
 	now := s.clock.Now()
 	isUpdated, err := s.repository.update(
 		ctx,
@@ -217,6 +230,7 @@ func (s *Service) RecordHeartbeat(ctx context.Context, id uuid.UUID, capacity Ag
 	if !isUpdated {
 		return time.Time{}, ErrInvalidAgentToken
 	}
+
 	return now, nil
 }
 
@@ -236,6 +250,7 @@ func (s *Service) updateAgentAndRecordAudit(ctx context.Context, change agentCha
 		if !isFound || agent.IsDeleted() {
 			return ErrAgentNotFound
 		}
+
 		isUpdated, err := s.repository.update(ctx, change.AgentID, change.Fields)
 		if err != nil {
 			return err
@@ -243,6 +258,7 @@ func (s *Service) updateAgentAndRecordAudit(ctx context.Context, change agentCha
 		if !isUpdated {
 			return ErrAgentNotFound
 		}
+
 		return s.record(ctx, change.Actor, change.MessagePrefix+agent.Name)
 	})
 }

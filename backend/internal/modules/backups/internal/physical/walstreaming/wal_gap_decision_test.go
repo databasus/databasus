@@ -93,6 +93,7 @@ func TestWalGapSequence(t *testing.T) {
 				Claim:       &catalog.WalSegment{TimelineID: 1, StartLSN: segmentStartLSN(30)},
 			},
 		)
+
 		require.NotNil(t, higher)
 		require.NotNil(t, lower)
 		assert.Equal(t, walChainGap{Start: segmentStartLSN(31), End: segmentStartLSN(40)}, *higher)

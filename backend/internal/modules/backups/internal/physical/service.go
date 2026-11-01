@@ -71,9 +71,11 @@ func (s *Service) authorizeDatabase(
 	if err != nil {
 		return databases.Database{}, err
 	}
+
 	if len(listedDatabases) == 0 {
 		return databases.Database{}, ErrDatabaseNotFound
 	}
+
 	backupDatabase := listedDatabases[0]
 	if err := s.workspaces.Authorize(ctx, actor, backupDatabase.WorkspaceID, action); err != nil {
 		var problem *apierror.Problem
@@ -82,6 +84,7 @@ func (s *Service) authorizeDatabase(
 		}
 		return databases.Database{}, err
 	}
+
 	if backupDatabase.Type != databases.TypePostgresqlPhysical {
 		return databases.Database{}, ErrNotPhysicalDatabase
 	}

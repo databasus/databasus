@@ -41,11 +41,13 @@ describe('NotifierComponent', () => {
       settings: { type: 'DISCORD', channelWebhookUrl: webhookUrl },
     };
     const rename = mockApi.pending('put', '/notifiers/{notifierId}');
+
     mockServer.use(
       mockApi.get('/notifiers/{notifierId}', 200, usedNotifier),
       mockApi.post('/notifier-tests', 200, { isDelivered: true }),
       rename.handler,
     );
+
     const view = renderScreen(
       <NotifierComponent
         notifierId={usedNotifier.id}
@@ -160,6 +162,7 @@ describe('NotifierComponent', () => {
         }),
         pendingOperation.handler,
       );
+
       const view = renderScreen(
         <div id="blocks-component-root">
           <NotifierComponent
@@ -172,6 +175,7 @@ describe('NotifierComponent', () => {
         </div>,
       );
       await screen.findByText(usedNotifier.name);
+
       if (operation === 'test')
         fireEvent.click(screen.getByRole('button', { name: 'Send test notification' }));
       else if (operation === 'rename') {
@@ -257,6 +261,7 @@ describe('NotifierComponent', () => {
       status: 200,
       body: renamed,
     });
+
     mockServer.use(
       mockApi.get('/notifiers/{notifierId}', 200, usedNotifier),
       pendingRename.handler,

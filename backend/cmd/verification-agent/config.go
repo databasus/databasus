@@ -16,6 +16,7 @@ func loadConfig(ctx context.Context, options configLoadOptions) (*config.Config,
 	if err != nil {
 		return nil, err
 	}
+
 	warning, err := config.EnsurePrivateFile(path, options.chmod)
 	if err != nil {
 		return nil, err
@@ -23,6 +24,7 @@ func loadConfig(ctx context.Context, options configLoadOptions) (*config.Config,
 	if warning != nil {
 		warnConfigPermissions(ctx, *warning, configWarningOutput{log: options.log, stderr: options.stderr})
 	}
+
 	cfg := &config.Config{}
 	if options.flags == nil {
 		cfg.LoadFromJSON(ctx, options.log)

@@ -70,9 +70,11 @@ func TestStreamBaseBackup(t *testing.T) {
 		t.Parallel()
 		spec := newBaseBackupTestSpec(t)
 		writeBaseBackupStub(t, spec, baseBackupSuccessScript(writeBaseBackupTar(t)))
+
 		var output bytes.Buffer
 		backup, err := NewSource(Settings{}).StreamBaseBackup(t.Context(), spec, &output)
 		require.NoError(t, err)
+
 		assert.Equal(t, "0/3000060", backup.StartLSN.String())
 		assert.Equal(t, "0/3000220", backup.StopLSN.String())
 		assert.Equal(t, 1, backup.TimelineID)
@@ -94,6 +96,7 @@ func TestStreamBaseBackup(t *testing.T) {
 			t.Parallel()
 			spec := newBaseBackupTestSpec(t)
 			writeBaseBackupStub(t, spec, scenario.script)
+
 			_, err := NewSource(Settings{}).StreamBaseBackup(t.Context(), spec, io.Discard)
 			var failure *BaseBackupError
 			require.ErrorAs(t, err, &failure)
@@ -147,10 +150,12 @@ func TestStreamBaseBackup(t *testing.T) {
 		spec := newBaseBackupTestSpec(t)
 		pidPath := filepath.Join(t.TempDir(), "pid")
 		writeBaseBackupStub(t, spec, fmt.Sprintf("trap '' INT\necho $$ > %q\nwhile true; do sleep 0.1; done", pidPath))
+
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
 		finished := make(chan error, 1)
 		go func() { _, err := NewSource(Settings{}).StreamBaseBackup(ctx, spec, io.Discard); finished <- err }()
+
 		toolPID := waitForToolPID(t, pidPath)
 		startedAt := time.Now()
 		cancel()
@@ -175,6 +180,7 @@ func TestBaseBackupClientArguments(t *testing.T) {
 			spec.IncrementalManifestPath = "/tmp/parent.manifest"
 			envPath := filepath.Join(t.TempDir(), "env")
 			stub := writeBaseBackupStub(t, spec, fmt.Sprintf("env > %q\nexit 1", envPath))
+
 			settings := Settings{
 				Host:     "cluster.internal",
 				Port:     41000,
@@ -207,6 +213,7 @@ func TestBaseBackupClientArguments(t *testing.T) {
 				},
 				stub.GetLastArgs(t),
 			)
+
 			env, err := os.ReadFile(envPath)
 			require.NoError(t, err)
 			assert.Contains(t, string(env), "PGPASSFILE=/tmp/pgpass")
@@ -248,12 +255,14 @@ func TestBaseBackupTiming(t *testing.T) {
 			spec.FirstByteTimeout = 10 * time.Minute
 			spec.StallTimeout = time.Minute
 			pidPath := filepath.Join(t.TempDir(), "pid")
+
 			script := fmt.Sprintf("echo $$ > %q\n", pidPath)
 			if hasBytes {
 				script += "printf x\n"
 			}
 			script += "while true; do sleep 0.1; done"
 			writeBaseBackupStub(t, spec, script)
+
 			var reports atomic.Int64
 			spec.ProgressListener = func(_ float64, _ int64) { reports.Add(1) }
 			completed := make(chan error, 1)
@@ -261,6 +270,7 @@ func TestBaseBackupTiming(t *testing.T) {
 				_, err := NewSource(Settings{}).StreamBaseBackup(t.Context(), spec, io.Discard)
 				completed <- err
 			}()
+
 			waitForToolPID(t, pidPath)
 			if hasBytes {
 				testwait.Until(t, "progress reports the streamed byte", func(context.Context) error {
@@ -282,6 +292,7 @@ func TestBaseBackupTiming(t *testing.T) {
 				)
 				manualClock.source.Advance(10 * time.Minute)
 			}
+
 			var streamErr error
 			testwait.Until(t, "watcher ends the stalled stream", func(context.Context) error {
 				select {

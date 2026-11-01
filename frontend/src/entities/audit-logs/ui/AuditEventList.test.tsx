@@ -36,6 +36,7 @@ describe('AuditEventList', () => {
           }}
         />,
       );
+
       expect(screen.getByText(event.message)).toBeTruthy();
       expect(screen.getByText('<Owner> (owner@example.com)')).toBeTruthy();
       expect(screen.getByText('{{workspace}} <primary>')).toBeTruthy();
@@ -58,6 +59,7 @@ describe('AuditEventList', () => {
         ]);
     },
   );
+
   it('hides authors and uses the selected short timestamp when the user view omits that column', () => {
     renderScreen(
       <AuditEventList
@@ -74,6 +76,7 @@ describe('AuditEventList', () => {
         }}
       />,
     );
+
     expect(screen.getAllByRole('columnheader').map((column) => column.textContent)).toEqual([
       'Message',
       'Workspace',
@@ -87,6 +90,7 @@ describe('AuditEventList', () => {
       ),
     ).toBeTruthy();
   });
+
   it.each([
     { emptyKey: 'auditLogs.empty' as const, text: 'No audit logs found.' },
     { emptyKey: 'users.auditLogs.empty' as const, text: 'No audit logs found for this user.' },

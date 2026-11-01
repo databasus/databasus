@@ -47,15 +47,18 @@ describe('workspaceApi.listAllWorkspaces', () => {
           : HttpResponse.json(buildProblem('internal', 500), { status: 500 });
       }),
     );
+
     await expect(workspaceApi.listAllWorkspaces()).rejects.toMatchObject({
       code: 'internal',
       status: 500,
     });
+
     const requests = mockServer.getRequests();
     expect(requests.map((request) => new URL(request.url).pathname)).toEqual([
       '/api/v1/workspaces',
       '/api/v1/workspaces',
     ]);
+
     const queries = requests.map((request) => new URL(request.url).searchParams);
     expect(queries.map((query) => query.get('after'))).toEqual([null, 'second-page']);
     expect(queries.map((query) => query.get('limit'))).toEqual(['100', '100']);

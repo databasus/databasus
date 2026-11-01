@@ -23,6 +23,7 @@ export const useAuthOperation = () => {
     operation: AuthIntent;
     session: { token: string; userId: string };
   }) => isCurrent(operation) && acceptAuthSession({ intent: operation, session });
+
   const intent = useRef<AuthIntent | undefined>(undefined);
   const isMounted = useRef(false);
   useEffect(() => {
@@ -32,5 +33,6 @@ export const useAuthOperation = () => {
       if (intent.current) abandonAuthIntent(intent.current);
     };
   }, []);
+
   return { start, isCurrent, accept };
 };

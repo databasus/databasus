@@ -36,11 +36,14 @@ describe('SignUpComponent', () => {
       body: { token: 'new-session', userId: 'new-owner', email: 'owner@example.com' },
     });
     server.use(registration.handler);
+
     renderScreen(<SignUpComponent isClaimingInstance />);
     submitRegistration();
     await waitFor(() => expect(server.getRequests()).toHaveLength(1));
+
     fireEvent.click(screen.getByRole('button', { name: /Sign up/ }));
     expect(server.getRequests()).toHaveLength(1);
+
     registration.release();
     await waitFor(() => expect(getSessionSnapshot().token).toBe('new-session'));
     expect(await server.getRequests()[0].json()).toMatchObject({
@@ -49,6 +52,7 @@ describe('SignUpComponent', () => {
       password: 'registration-password',
     });
   });
+
   it('preserves input and translates persistent errors when the language changes after refusal', async () => {
     server.use(mockApi.post('/users', 403, buildProblem('permission_denied', 403)));
     const { user } = renderScreen(
@@ -57,14 +61,17 @@ describe('SignUpComponent', () => {
         <LanguageSelectorComponent />
       </>,
     );
+
     submitRegistration();
     await screen.findByText('You do not have permission to do this.');
     await user.click(screen.getByRole('button', { name: /Language/ }));
     await user.click(await screen.findByRole('menuitem', { name: /Español/ }));
+
     expect(await screen.findByText(DICTIONARIES.es.errors.permissionDenied)).toBeTruthy();
     expect(screen.getByDisplayValue('New owner')).toBeTruthy();
     expect(screen.getByDisplayValue('owner@example.com')).toBeTruthy();
   });
+
   it('validates beside the associated field without sending a request when the name is empty', async () => {
     renderScreen(<SignUpComponent />);
     fireEvent.click(screen.getByRole('button', { name: 'Sign up' }));
@@ -74,6 +81,7 @@ describe('SignUpComponent', () => {
     );
     expect(server.getRequests()).toHaveLength(0);
   });
+
   it('accepts no late session after registration is abandoned', async () => {
     const registration = mockApi.delayed({
       method: 'post',
@@ -82,17 +90,21 @@ describe('SignUpComponent', () => {
       body: { token: 'obsolete-session', userId: 'obsolete-owner', email: 'owner@example.com' },
     });
     server.use(registration.handler);
+
     const view = renderScreen(<SignUpComponent />);
     submitRegistration();
     await waitFor(() => expect(server.getRequests()).toHaveLength(1));
+
     view.rerender(<div>Registration closed</div>);
     const processed = new Promise<void>((resolve) =>
       server.events.on('response:mocked', () => resolve()),
     );
+
     await act(async () => {
       registration.release();
       await processed;
     });
+
     expect(getSessionSnapshot().token).toBeUndefined();
   });
 });

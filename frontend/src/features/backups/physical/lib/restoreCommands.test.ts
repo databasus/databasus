@@ -105,6 +105,7 @@ describe('buildManualSteps', () => {
   const configCheckTitleKey = 'backups.physical.restore.manualSteps.checkConfig';
   const wireUpRecoveryTitleKey = 'backups.physical.restore.manualSteps.wireUpRecovery';
   const recoveryParametersTitleKey = 'backups.physical.restore.manualSteps.recoveryParameters';
+
   const base = {
     bundleUrl,
     outputDir: './databasus-restore',
@@ -208,6 +209,7 @@ describe('buildManualSteps', () => {
       environment: 'host',
       hasWal: false,
     });
+
     const pg17CheckStep = pg17Steps.find((step) => step.titleKey === configCheckTitleKey);
     const pg18CheckStep = pg18Steps.find((step) => step.titleKey === configCheckTitleKey);
 

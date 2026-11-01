@@ -49,11 +49,13 @@ func seedSource(t *testing.T, endpoint containers.Endpoint, isTimescale bool) ap
 		t.Cleanup(func() { _ = connection.Close(t.Context()) })
 		return connection
 	}
+
 	admin := connect(containers.PostgresDatabase)
 	databaseName := "agent_" + enginetest.NewUniqueSuffix()
 	_, err := admin.Exec(t.Context(), "CREATE DATABASE "+databaseName)
 	require.NoError(t, err)
 	source := connect(databaseName)
+
 	statements := ordinaryTables
 	if isTimescale {
 		role := "ts_app_" + enginetest.NewUniqueSuffix()
@@ -67,6 +69,7 @@ SELECT add_retention_policy('public.sensor_data',INTERVAL '1000 years');
 INSERT INTO public.sensor_data SELECT ts,1,23.5 FROM generate_series('2024-01-01'::timestamptz,'2024-03-01'::timestamptz,interval '1 hour') AS ts;
 RESET ROLE;`, role)
 	}
+
 	_, err = source.Exec(t.Context(), statements)
 	require.NoError(t, err)
 	return apiclient.PostgresqlLogicalSettings{

@@ -57,6 +57,7 @@ func TestCreateDatabase(t *testing.T) {
 			assert.Empty(t, response.JSON201.NotifierIds)
 			assert.Nil(t, response.JSON201.LastBackupTime)
 			assert.Nil(t, response.JSON201.LastBackupErrorMessage)
+
 			createdLogical := getLogicalSettings(t, *response.JSON201)
 			assert.Equal(t, server.Host, createdLogical.Host)
 			assert.Equal(t, server.Port, createdLogical.Port)
@@ -200,6 +201,7 @@ func TestUpdateDatabase(t *testing.T) {
 			assert.Equal(t, "Orders renamed", getDatabase(t, tm.owner, createdDatabase.Id).Name)
 			assert.Equal(t, containers.PostgresPassword,
 				tm.app.DecryptSecret(t, getStoredPassword(t, tm, "databases_postgresql_logical", createdDatabase.Id)))
+
 			testResponse, err := tm.owner.Client.TestDatabaseWithResponse(t.Context(), createdDatabase.Id)
 			require.NoError(t, err)
 			require.Equal(t, http.StatusOK, testResponse.StatusCode(), string(testResponse.Body))

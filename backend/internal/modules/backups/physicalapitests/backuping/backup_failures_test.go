@@ -20,22 +20,26 @@ func TestPhysicalBackupFailures(t *testing.T) {
 		func(t *testing.T) {
 			team := newBackupTeam(t, backupTeamSpec{IsPhysicalReplicationDenied: true})
 			backup := team.runBackup(t, "full")
+
 			require.Equal(t, "ERROR", backup.Status)
 			require.NotNil(t, backup.FailMessage)
 			assert.Contains(t, *backup.FailMessage, "exit status 1")
 			assert.Contains(t, *backup.FailMessage, "FATAL")
 			assert.NotContains(t, *backup.FailMessage, "assets/tools")
+
 			team.assertNoRunningBackup(t)
 			team.assertTerminalDetails(t, backup, "PG_BASEBACKUP_FAILED")
 		},
 	)
 	t.Run("records a failed full when the source becomes unreachable", func(t *testing.T) {
 		team := newBackupTeam(t, backupTeamSpec{})
+
 		team.App.ExecuteSQL(
 			t,
 			"UPDATE databases_postgresql_physical SET host='127.0.0.1',port=1 WHERE database_id=?",
 			team.Database.Id,
 		)
+
 		backup := team.runBackup(t, "full")
 		require.Equal(t, "ERROR", backup.Status)
 		require.NotNil(t, backup.FailMessage)
@@ -49,11 +53,13 @@ func TestPhysicalBackupFailures(t *testing.T) {
 			team := newBackupTeam(t, backupTeamSpec{})
 			full := team.runBackup(t, "full")
 			require.Equal(t, "COMPLETED", full.Status)
+
 			team.App.ExecuteSQL(
 				t,
 				"UPDATE databases_postgresql_physical SET host='127.0.0.1',port=1 WHERE database_id=?",
 				team.Database.Id,
 			)
+
 			backup := team.runBackup(t, "incremental")
 			require.Equal(t, "ERROR", backup.Status)
 			team.assertNoRunningBackup(t)
@@ -64,26 +70,31 @@ func TestPhysicalBackupFailures(t *testing.T) {
 		team := newBackupTeam(t, backupTeamSpec{})
 		full := team.runBackup(t, "full")
 		require.Equal(t, "COMPLETED", full.Status)
+
 		source := team.openSource(t)
 		_, err := source.Exec(t.Context(), "ALTER SYSTEM SET summarize_wal=off")
 		require.NoError(t, err)
 		_, err = source.Exec(t.Context(), "SELECT pg_reload_conf()")
 		require.NoError(t, err)
+
 		backup := team.runBackup(t, "incremental")
 		require.Equal(t, "CHAIN_BROKEN", backup.Status)
 		team.assertTerminalDetails(t, backup, "SUMMARIZER_OFF")
 		team.assertNoRunningBackup(t)
+
 		var incremental apptest.PhysicalIncrementalBackupSeed
 		team.App.QuerySQL(t, &incremental, "SELECT * FROM backups_physical WHERE id=?", backup.ID)
 		assert.Nil(t, incremental.FileName)
 	})
 	t.Run("breaks the full chain when the saved system identifier belongs to another cluster", func(t *testing.T) {
 		team := newBackupTeam(t, backupTeamSpec{})
+
 		team.App.ExecuteSQL(
 			t,
 			"UPDATE databases_postgresql_physical SET system_identifier='1' WHERE database_id=?",
 			team.Database.Id,
 		)
+
 		backup := team.runBackup(t, "full")
 		require.Equal(t, "CHAIN_BROKEN", backup.Status)
 		team.assertTerminalDetails(t, backup, "SYSTEM_IDENTIFIER_MISMATCH")
@@ -93,6 +104,7 @@ func TestPhysicalBackupFailures(t *testing.T) {
 		team := newBackupTeam(t, backupTeamSpec{})
 		full := team.runBackup(t, "full")
 		require.Equal(t, "COMPLETED", full.Status)
+
 		team.App.ExecuteSQL(t, "UPDATE backups_physical SET manifest_file_name=NULL WHERE id=?", full.ID)
 		backup := team.runBackup(t, "incremental")
 		require.Equal(t, "CHAIN_BROKEN", backup.Status)
@@ -103,6 +115,7 @@ func TestPhysicalBackupFailures(t *testing.T) {
 		team := newBackupTeam(t, backupTeamSpec{})
 		full := team.runBackup(t, "full")
 		require.Equal(t, "COMPLETED", full.Status)
+
 		var manifest string
 		team.App.QuerySQL(t, &manifest, "SELECT manifest_file_name FROM backups_physical WHERE id=?", full.ID)
 		team.App.PublishStorageFile(
@@ -110,6 +123,7 @@ func TestPhysicalBackupFailures(t *testing.T) {
 			storages.StoredFileReference{StorageID: team.StorageID, FileName: manifest},
 			strings.NewReader("corrupted manifest"),
 		)
+
 		incremental := team.runBackup(t, "incremental")
 		require.Equal(t, "CHAIN_BROKEN", incremental.Status)
 		team.assertTerminalDetails(t, incremental, "MANIFEST_CORRUPTED")

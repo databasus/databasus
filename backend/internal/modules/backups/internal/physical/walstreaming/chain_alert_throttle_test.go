@@ -18,6 +18,7 @@ func TestChainAlertThrottle(t *testing.T) {
 			Now:         now,
 			MinInterval: time.Hour,
 		}
+
 		assert.True(t, throttle.RecordIfDue(incident))
 		assert.False(t, throttle.RecordIfDue(incident))
 		incident.Key.Kind = chainAlertSlotRebuilt
@@ -32,6 +33,7 @@ func TestChainAlertThrottle(t *testing.T) {
 			Now:         time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 			MinInterval: time.Hour,
 		}
+
 		assert.True(t, throttle.RecordIfDue(incident))
 		incident.Now = incident.Now.Add(time.Hour - time.Nanosecond)
 		assert.False(t, throttle.RecordIfDue(incident))

@@ -26,9 +26,11 @@ describe('AdvancedSettingsToggleComponent', () => {
     const { user } = renderScreen(<Disclosure />);
     const disclosure = screen.getByRole('button', { name: 'Advanced' });
     disclosure.focus();
+
     await user.keyboard('{Enter}');
     expect(disclosure.getAttribute('aria-expanded')).toBe('true');
     expect(document.getElementById(disclosure.getAttribute('aria-controls')!)).not.toBeNull();
+
     await user.keyboard(' ');
     expect(disclosure.getAttribute('aria-expanded')).toBe('false');
   });

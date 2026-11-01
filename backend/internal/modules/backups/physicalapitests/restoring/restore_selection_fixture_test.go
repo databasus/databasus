@@ -54,10 +54,12 @@ func (catalog *catalogFixture) seedRestoreFull(t *testing.T, spec restoreFullSpe
 			StopLSN:    spec.StopLSN,
 		},
 	)
+
 	full.ID = uuid.New()
 	full.CreatedAt = spec.CompletedAt.Add(-time.Minute)
 	full.CompletedAt = &spec.CompletedAt
 	full.ManifestFileName = new(*full.FileName + ".manifest")
+
 	blob := zstdTar(t, map[string]string{"PG_VERSION": "17\n", "base/1/1259": "heap-bytes"})
 	full.BackupSizeMb = new(float64(len(blob)) / (1024 * 1024))
 	catalog.publish(t, *full.FileName, blob)
@@ -88,10 +90,12 @@ func (catalog *catalogFixture) seedRestoreIncremental(
 			StopLSN:                   lsnAt(spec.Segment + 1),
 		},
 	)
+
 	incremental.ID = uuid.New()
 	incremental.CreatedAt = spec.CompletedAt.Add(-time.Minute)
 	incremental.CompletedAt = &spec.CompletedAt
 	incremental.ManifestFileName = new(*incremental.FileName + ".manifest")
+
 	blob := zstdTar(t, map[string]string{"PG_VERSION": "17\n"})
 	incremental.BackupSizeMb = new(float64(len(blob)) / (1024 * 1024))
 	catalog.publish(t, *incremental.FileName, blob)
@@ -154,10 +158,12 @@ func (catalog *catalogFixture) downloadRestore(t *testing.T, spec restoreRequest
 	if spec.BackupID != nil {
 		request = apptest.PhysicalBackupTokenRequest(*spec.BackupID)
 	}
+
 	status := spec.StatusCode
 	if status == 0 {
 		status = http.StatusCreated
 	}
+
 	var token restoreTokenResponse
 	catalog.call(
 		t,
@@ -168,6 +174,7 @@ func (catalog *catalogFixture) downloadRestore(t *testing.T, spec restoreRequest
 			Destination:   &token,
 		},
 	)
+
 	if status != http.StatusCreated {
 		return nil
 	}
@@ -208,12 +215,14 @@ func assertRestoreArtifacts(
 		assert.Equal(t, incrementalID.String(), entries[fmt.Sprintf("incr-%d/backup_manifest", index+1)])
 	}
 	assert.NotContains(t, entries, fmt.Sprintf("incr-%d/backup_manifest", len(incrementalIDs)+1))
+
 	walNames := []string{}
 	for name := range entries {
 		if len(name) > 4 && name[:4] == "wal/" {
 			walNames = append(walNames, name)
 		}
 	}
+
 	includedWalNames := []string{}
 	for _, segment := range walSegments {
 		includedWalNames = append(includedWalNames, fmt.Sprintf("wal/0000000100000000%08X.zst", segment))

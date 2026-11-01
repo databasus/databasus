@@ -19,6 +19,7 @@ test('preserves auth input and reflows its translated refusal with 200% text at 
       GOOGLE_CLIENT_ID: 'synthetic-google-client',
     };
   });
+
   await openAccount({ page, locale: 'es', theme: 'dark', isSignedIn: false });
   const dictionary = DICTIONARIES.es;
   await page
@@ -28,10 +29,12 @@ test('preserves auth input and reflows its translated refusal with 200% text at 
     .getByLabel(dictionary.common.fields.password, { exact: true })
     .fill('synthetic-password');
   await page.getByRole('button', { name: dictionary.users.signIn.submit, exact: true }).click();
+
   await expect(
     page.getByText(dictionary.errors.humanVerificationFailed, { exact: true }),
   ).toBeVisible();
   await enlargeText(page.locator('body'));
+
   for (const name of [
     dictionary.users.signIn.submit,
     dictionary.users.oauth.continueWithGithub,
@@ -41,5 +44,6 @@ test('preserves auth input and reflows its translated refusal with 200% text at 
     await action.scrollIntoViewIfNeeded();
     await expect(action).toBeInViewport();
   }
+
   await assertAccountReflow(page.locator('body'));
 });

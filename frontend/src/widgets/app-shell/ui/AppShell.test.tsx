@@ -17,12 +17,14 @@ describe('AppShell', () => {
         HttpResponse.json({ stargazers_count: 1 }),
       ),
     );
+
     const viewport = new EventTarget() as EventTarget & { height: number };
     viewport.height = 600;
     const addListener = vi.spyOn(viewport, 'addEventListener');
     const removeListener = vi.spyOn(viewport, 'removeEventListener');
     const previous = Object.getOwnPropertyDescriptor(window, 'visualViewport');
     Object.defineProperty(window, 'visualViewport', { configurable: true, value: viewport });
+
     const view = renderScreen(
       <AppShell
         workspaceSelector={<div>Workspace selector</div>}
@@ -34,15 +36,19 @@ describe('AppShell', () => {
       </AppShell>,
       { isStrictMode: true },
     );
+
     try {
       const boundary = screen.getByRole('banner').parentElement!;
       expect(boundary.style.height).toBe('600px');
+
       act(() => {
         viewport.height = 420;
         viewport.dispatchEvent(new Event('resize'));
       });
+
       expect(boundary.style.height).toBe('420px');
       expect(screen.getByDisplayValue('Retained input')).toBeTruthy();
+
       view.unmount();
       expect(addListener.mock.calls.filter((call) => call[0] === 'resize')).toHaveLength(2);
       expect(removeListener.mock.calls.filter((call) => call[0] === 'resize')).toHaveLength(2);

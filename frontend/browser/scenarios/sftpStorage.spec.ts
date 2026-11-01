@@ -59,6 +59,7 @@ for (const authMethods of [
       if (authMethods.includes('PASSWORD'))
         await expect(page.getByText('Password', { exact: true })).toBeVisible();
       else await expect(page.getByText('Password', { exact: true })).toHaveCount(0);
+
       await page.getByText('SFTP archive', { exact: true }).last().locator('img').click();
       await page.getByPlaceholder('Enter name...').fill('Renamed SFTP archive');
       await page.getByRole('button', { name: 'Save', exact: true }).click();
@@ -67,6 +68,7 @@ for (const authMethods of [
         .toBe(1);
       const rename = boundary.requests.find((request) => request.method === 'PUT');
       expect(rename?.body).toEqual({ name: 'Renamed SFTP archive', settings: storage.settings });
+
       await page
         .getByText('Storage settings', { exact: true })
         .locator('..')
@@ -76,6 +78,7 @@ for (const authMethods of [
       await expect(page.getByText('A private key is saved. Leave blank to keep it.')).toBeVisible();
       if (authMethods.includes('PASSWORD'))
         await expect(page.getByLabel('Password', { exact: true })).toHaveValue('');
+
       await page.setViewportSize({ width: 320, height: 1000 });
       const form = page.locator('.ant-form');
       const accessibility = await new AxeBuilder({ page })
@@ -91,6 +94,7 @@ for (const authMethods of [
       }));
       expect(geometry.width).toBeLessThanOrEqual(geometry.client + 1);
       expect(geometry.right).toBeLessThanOrEqual(geometry.viewport);
+
       const method = page.getByRole('combobox', { name: 'Auth method', exact: true });
       await method.focus();
       await expect(method).toBeFocused();
@@ -103,6 +107,7 @@ for (const authMethods of [
         ).toBeDisabled();
         await expect(page.getByText('Enter a password for this method.')).toBeVisible();
       }
+
       await page.getByLabel('Password', { exact: true }).fill('replacement-password');
       await page.getByRole('button', { name: 'Test connection', exact: true }).click();
       await page.getByRole('button', { name: 'Save', exact: true }).click();
@@ -116,6 +121,7 @@ for (const authMethods of [
       expect(
         (switchRequest.body as components['schemas']['StorageUpdate']).settings,
       ).not.toHaveProperty('privateKey');
+
       const testRequest = boundary.requests.find((request) => request.path === '/storage-tests');
       expect(testRequest?.body).toMatchObject({
         storageId: storage.id,

@@ -19,6 +19,7 @@ export function AuthCallbackPage() {
   useEffect(() => {
     let isAttached = true;
     setFailure(undefined);
+
     const scrubbed = new URL(window.location.href);
     for (const name of ['code', 'state', 'error', 'error_description', 'error_uri'])
       scrubbed.searchParams.delete(name);
@@ -27,6 +28,7 @@ export function AuthCallbackPage() {
       '',
       scrubbed.pathname + scrubbed.search + scrubbed.hash,
     );
+
     void callback
       .Start()
       .then((session) => {
@@ -35,6 +37,7 @@ export function AuthCallbackPage() {
       .catch((failure) => {
         if (isAttached && callback.IsCurrent()) setFailure(failure);
       });
+
     return () => {
       isAttached = false;
     };

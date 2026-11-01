@@ -11,6 +11,7 @@ func (s *Store) RequestDeletionBatch(ctx context.Context, request DeletionBatchR
 	if !s.repository.IsInTransaction(ctx) {
 		return DeletionBatch{}, ErrTransactionRequired
 	}
+
 	references := []StoredFileReference{}
 	for _, reference := range deduplicateReferences(request.References) {
 		if reference.FileName != "" {
@@ -18,6 +19,7 @@ func (s *Store) RequestDeletionBatch(ctx context.Context, request DeletionBatchR
 		}
 	}
 	request.References = references
+
 	now := s.clock.Now().UTC().Truncate(time.Microsecond)
 	batch := DeletionBatch{
 		ID:              request.ID,
@@ -31,6 +33,7 @@ func (s *Store) RequestDeletionBatch(ctx context.Context, request DeletionBatchR
 		batch.Status = CleanupCompleted
 		batch.CompletedAt = &now
 	}
+
 	isInserted, err := s.batches.Insert(ctx, batch)
 	if err != nil {
 		return DeletionBatch{}, err
@@ -42,9 +45,11 @@ func (s *Store) RequestDeletionBatch(ctx context.Context, request DeletionBatchR
 		}
 		return batches[0], nil
 	}
+
 	if err := s.batches.InsertItems(ctx, request, now); err != nil {
 		return DeletionBatch{}, err
 	}
+
 	return batch, nil
 }
 

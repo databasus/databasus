@@ -28,8 +28,10 @@ func TestSystemAgentDownload(t *testing.T) {
 					0o755,
 				),
 			)
+
 			application := apptest.New(t, apptest.WithAgentBinariesDir(directory))
 			client := application.NewClient(t)
+
 			response, err := client.DownloadVerificationAgentWithResponse(
 				t.Context(),
 				&apiclient.DownloadVerificationAgentParams{Arch: architecture},
@@ -43,6 +45,7 @@ func TestSystemAgentDownload(t *testing.T) {
 				"attachment; filename=databasus-verification-agent",
 				response.HTTPResponse.Header.Get("Content-Disposition"),
 			)
+
 			version, err := client.GetVersionWithResponse(t.Context())
 			require.NoError(t, err)
 			assert.Equal(t, version.JSON200.Version, response.HTTPResponse.Header.Get("X-Databasus-Version"))
@@ -52,18 +55,21 @@ func TestSystemAgentDownload(t *testing.T) {
 		directory := t.TempDir()
 		application := apptest.New(t, apptest.WithAgentBinariesDir(directory))
 		client := application.NewClient(t)
+
 		missing, err := client.DownloadVerificationAgentWithResponse(
 			t.Context(),
 			&apiclient.DownloadVerificationAgentParams{Arch: apiclient.AgentArchitectureAmd64},
 		)
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusNotFound, missing.StatusCode())
+
 		invalid, err := client.DownloadVerificationAgentWithResponse(
 			t.Context(),
 			&apiclient.DownloadVerificationAgentParams{Arch: "riscv64"},
 		)
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusBadRequest, invalid.StatusCode())
+
 		request, err := http.NewRequestWithContext(
 			t.Context(),
 			http.MethodGet,
@@ -101,9 +107,11 @@ func TestAgentDiscoveryAfterHeartbeatRefusal(t *testing.T) {
 				0o755,
 			),
 		)
+
 		application := apptest.New(t, apptest.WithAgentBinariesDir(directory))
 		admin := application.CreateAdmin(t)
 		agent := application.CreateVerificationAgent(t, admin)
+
 		request, err := http.NewRequestWithContext(
 			t.Context(),
 			http.MethodPost,
@@ -119,6 +127,7 @@ func TestAgentDiscoveryAfterHeartbeatRefusal(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, refused.Body.Close())
 		require.Equal(t, http.StatusBadRequest, refused.StatusCode)
+
 		client := application.NewClient(t)
 		version, err := client.GetVersionWithResponse(t.Context())
 		require.NoError(t, err)
@@ -128,6 +137,7 @@ func TestAgentDiscoveryAfterHeartbeatRefusal(t *testing.T) {
 			&apiclient.DownloadVerificationAgentParams{Arch: apiclient.AgentArchitectureAmd64},
 		)
 		require.NoError(t, err)
+
 		assert.Equal(t, http.StatusOK, binary.StatusCode())
 		assert.Equal(t, "updated agent", string(binary.Body))
 		assert.Nil(t, application.ListVerificationAgents(t, admin)[0].LastSeenAt)

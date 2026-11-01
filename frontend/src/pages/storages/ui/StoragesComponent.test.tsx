@@ -138,6 +138,7 @@ describe('StoragesComponent', () => {
     const sentUpdates: ApiComponents['schemas']['StorageUpdate'][] = [];
     let listRequests = 0;
     let persistedStorage = initialStorage;
+
     mockServer.use(
       http.get(`*${API_BASE_PATH}/storages`, () => {
         listRequests++;

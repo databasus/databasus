@@ -259,6 +259,7 @@ describe('DatabasesComponent', () => {
         buildBackupConfig(usersDatabase, archiveStorage),
       ],
     };
+
     mockServer.use(
       mockApi.get('/databases', 200, { items: [ordersDatabase, usersDatabase, draftDatabase] }),
       mockApi.get('/storage-switches', 200, { items: [] }),
@@ -321,6 +322,7 @@ describe('DatabasesComponent', () => {
       [alphaDatabase, bravoDatabase, charlieDatabase],
       [alphaDatabase, charlieDatabase],
     );
+
     mockServer.use(
       mockApi.get('/storage-switches', 200, { items: [] }),
       http.get(`*${API_BASE_PATH}/databases/:databaseId`, ({ params }) =>
@@ -385,6 +387,7 @@ describe('DatabasesComponent', () => {
       mockApi.get('/storages', 200, { items: [] }),
     );
     declarePendingDetailRequests();
+
     renderDatabasesScreen();
     await findDatabaseCard('Alpha');
     const refreshFailed = new Promise<void>((resolve) =>
@@ -410,6 +413,7 @@ describe('DatabasesComponent', () => {
     const pendingAlpha = createPendingApiResponse();
     localStorage.setItem(SELECTED_DATABASE_PREFERENCE_KEY, alphaDatabase.id);
     declareListResponses([alphaDatabase, bravoDatabase]);
+
     mockServer.use(
       mockApi.get('/storage-switches', 200, { items: [] }),
       http.get(`*${API_BASE_PATH}/databases/:databaseId`, ({ params }) =>
@@ -460,6 +464,7 @@ describe('DatabasesComponent', () => {
       mockApi.put('/databases/{databaseId}', 200, renamedDatabase),
       ...declareSettingsRequests(),
     );
+
     const { user } = renderDatabasesScreen();
     await user.click(await screen.findByText('Config'));
     const nameTitle = await screen.findByText('Shop', { selector: 'div.text-xl' });
@@ -486,6 +491,7 @@ describe('DatabasesComponent', () => {
       mockApi.post('/limited-user-checks', 200, { isAdvisable: false, privileges: [] }),
       ...declareSettingsRequests(),
     );
+
     const { user } = renderDatabasesScreen();
     await user.click(await screen.findByText('Config'));
     openSettingsSection(await screen.findByText('Database settings'));
@@ -510,6 +516,7 @@ describe('DatabasesComponent', () => {
       mockApi.put('/databases/{databaseId}', 403, buildProblem('permission_denied', 403)),
       ...declareSettingsRequests(),
     );
+
     const { user } = renderDatabasesScreen();
     await user.click(await screen.findByText('Config'));
     openSettingsSection(await screen.findByText('Database settings'));
@@ -543,6 +550,7 @@ describe('DatabasesComponent', () => {
         limitedUserCheck,
         ...declareSettingsRequests(),
       );
+
       const { user } = renderDatabasesScreen();
       await user.click(await screen.findByText('Config'));
       openSettingsSection(await screen.findByText('Database settings'));
@@ -592,6 +600,7 @@ describe('DatabasesComponent', () => {
     const archiveStorage = buildStorage('Archive');
     const backupConfig = { ...buildBackupConfig(ordersDatabase, archiveStorage), storageId: null };
     let storedBackupConfig: BackupConfig = backupConfig;
+
     mockServer.use(
       mockApi.get('/databases', 200, { items: [ordersDatabase] }),
       http.get(`*${API_BASE_PATH}/backup-configs`, () =>
@@ -614,6 +623,7 @@ describe('DatabasesComponent', () => {
       mockApi.pending('get', '/verification-configs/{databaseId}').handler,
       mockApi.get('/notifiers', 200, { items: [] }),
     );
+
     const { user } = renderDatabasesScreen();
     await user.click(await screen.findByText('Config'));
     openSettingsSection(await screen.findByText('Backup config'));
@@ -644,6 +654,7 @@ describe('DatabasesComponent', () => {
       mockApi.get('/notifiers', 200, { items: [alertsNotifier] }),
       ...declareSettingsRequests().slice(0, -1),
     );
+
     const { user } = renderDatabasesScreen();
     await user.click(await screen.findByText('Config'));
     openSettingsSection(await screen.findByText('Notifiers settings'));
@@ -671,6 +682,7 @@ describe('DatabasesComponent', () => {
       mockApi.post('/databases/{databaseId}/copy', 201, copiedDatabase),
       ...declareSettingsRequests(),
     );
+
     const { user } = renderDatabasesScreen();
     await user.click(await screen.findByText('Config'));
 
@@ -696,6 +708,7 @@ describe('DatabasesComponent', () => {
       mockApi.post('/databases/{databaseId}/copy', 403, buildProblem('permission_denied', 403)),
       ...declareSettingsRequests(),
     );
+
     const { user } = renderDatabasesScreen();
     await user.click(await screen.findByText('Config'));
 

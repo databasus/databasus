@@ -21,8 +21,10 @@ func TestPhysicalBackupCompression(t *testing.T) {
 		require.NoError(t, err)
 		bundleRoot, err := clienttools.FindBundleRoot(workingDirectory)
 		require.NoError(t, err)
+
 		realClientTools := pgshared.ClientTools{Root: bundleRoot}
 		realExecutable := realClientTools.GetExecutable(pgshared.Version17, pgshared.ExecutablePgBasebackup)
+
 		stubClientTools := pgshared.ClientTools{Root: t.TempDir()}
 		stub := toolstub.Write(t,
 			stubClientTools.GetExecutable(pgshared.Version17, pgshared.ExecutablePgBasebackup),
@@ -33,6 +35,7 @@ func TestPhysicalBackupCompression(t *testing.T) {
     fi
 done
 exec '` + strings.ReplaceAll(realExecutable, "'", "'\"'\"'") + `' "$@"`})
+
 		team := newBackupTeam(t, backupTeamSpec{ClientToolsDir: stubClientTools.Root})
 		for backupNumber := range 2 {
 			full := team.runBackup(t, "full")

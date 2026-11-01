@@ -28,15 +28,18 @@ func TestTransferPhysicalBackupStorage(t *testing.T) {
 				team.Owner,
 				apptest.StorageUse{DatabaseID: team.Database.Id, StorageID: team.StorageID},
 			)
+
 			firstFull := team.runBackup(t, "full")
 			require.Equal(t, "COMPLETED", firstFull.Status)
 			incremental := team.runBackup(t, "incremental")
 			require.Equal(t, "COMPLETED", incremental.Status)
 			secondFull := team.runBackup(t, "full")
 			require.Equal(t, "COMPLETED", secondFull.Status)
+
 			if isSourceUnreachable {
 				sourceStorage.MakeUnavailable(t, team.Owner)
 			}
+
 			targetWorkspace := apptest.CreateWorkspace(t, team.Owner, "Switched physical backups")
 			target := apptest.CreateStorageNamespace(t, team.Owner, targetWorkspace.Id)
 			apptest.TransferToStorage(t, team.Owner, apptest.StorageSwitchTransfer{
@@ -49,6 +52,7 @@ func TestTransferPhysicalBackupStorage(t *testing.T) {
 			require.Equal(t, "COMPLETED", newFull.Status)
 			require.Equal(t, "FULL", newFull.Type)
 			assert.NotContains(t, []uuid.UUID{firstFull.ID, incremental.ID, secondFull.ID}, newFull.ID)
+
 			var fileName string
 			team.App.QuerySQL(
 				t,
@@ -57,6 +61,7 @@ func TestTransferPhysicalBackupStorage(t *testing.T) {
 				newFull.ID,
 				target.StorageID,
 			)
+
 			target.RequireFile(t, fileName)
 		})
 	}

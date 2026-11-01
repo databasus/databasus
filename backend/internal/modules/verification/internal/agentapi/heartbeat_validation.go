@@ -17,6 +17,7 @@ func GetHeartbeatValidationMiddleware(hooks *apierror.Hooks) gin.HandlerFunc {
 			ctx.Next()
 			return
 		}
+
 		body, err := io.ReadAll(ctx.Request.Body)
 		if err != nil {
 			hooks.HandleRequestError(ctx, err)
@@ -27,6 +28,7 @@ func GetHeartbeatValidationMiddleware(hooks *apierror.Hooks) gin.HandlerFunc {
 			hooks.HandleRequestError(ctx, err)
 			return
 		}
+
 		memory, hasMemory := fields["maxRamMb"]
 		if !hasMemory || bytes.Equal(bytes.TrimSpace(memory), []byte("null")) {
 			hooks.HandleHandlerError(
@@ -37,6 +39,7 @@ func GetHeartbeatValidationMiddleware(hooks *apierror.Hooks) gin.HandlerFunc {
 			)
 			return
 		}
+
 		ctx.Request.Body = io.NopCloser(bytes.NewReader(body))
 		ctx.Next()
 	}

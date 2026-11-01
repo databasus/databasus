@@ -23,6 +23,7 @@ func TestPhysicalWalResumeAfterSlotAdvance(t *testing.T) {
 		team.waitForReceiver(t)
 		source := team.openSource(t)
 		generateWal(t, source, 1)
+
 		var queuedWalName string
 		require.NoError(
 			t,
@@ -30,6 +31,7 @@ func TestPhysicalWalResumeAfterSlotAdvance(t *testing.T) {
 		)
 		_, err := source.Exec(t.Context(), "SELECT pg_switch_wal()")
 		require.NoError(t, err)
+
 		testwait.Until(t, "the selected WAL segment reaches the failed upload queue", func(context.Context) error {
 			var failedWrites int
 			team.App.QuerySQL(
@@ -44,6 +46,7 @@ func TestPhysicalWalResumeAfterSlotAdvance(t *testing.T) {
 			}
 			return nil
 		})
+
 		var slotName string
 		team.App.QuerySQL(
 			t,
@@ -59,6 +62,7 @@ func TestPhysicalWalResumeAfterSlotAdvance(t *testing.T) {
 			slotName,
 		)
 		require.NoError(t, err)
+
 		testwait.Until(
 			t,
 			"the refused receiver ends its session without removing the queue",
@@ -78,11 +82,13 @@ func TestPhysicalWalResumeAfterSlotAdvance(t *testing.T) {
 			)
 			return err
 		})
+
 		generateWal(t, source, 4*16*1024*1024)
 		_, err = source.Exec(t.Context(), "CHECKPOINT")
 		require.NoError(t, err)
 		_, err = source.Exec(t.Context(), "SELECT pg_create_physical_replication_slot($1,true)", slotName)
 		require.NoError(t, err)
+
 		var isSlotAhead bool
 		require.NoError(
 			t,
@@ -90,11 +96,13 @@ func TestPhysicalWalResumeAfterSlotAdvance(t *testing.T) {
 				Scan(&isSlotAhead),
 		)
 		require.True(t, isSlotAhead)
+
 		_, err = source.Exec(t.Context(), "ALTER ROLE "+pgx.Identifier{roleName}.Sanitize()+" LOGIN")
 		require.NoError(t, err)
 		team.App.RestartModules(t)
 		team.waitForReceiver(t)
 		team.recoverStorage(t)
+
 		testwait.Until(
 			t,
 			"the old queued segment is archived despite the newer resume floor",
@@ -113,6 +121,7 @@ func TestPhysicalWalResumeAfterSlotAdvance(t *testing.T) {
 				return nil
 			},
 		)
+
 		rotateWal(t, source)
 		team.waitForWal(t, 2)
 	})

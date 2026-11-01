@@ -144,12 +144,14 @@ func (s *Scheduler) scheduleBackup(
 	if !canStart {
 		return
 	}
+
 	isDispatched := false
 	defer func() {
 		if !isDispatched {
 			run.Finish()
 		}
 	}()
+
 	logger = logger.With(slog.Any("backup_id", backupID))
 
 	decision, claimed, err := s.claimAndInsert(ctx, backupConfig, backupID)
@@ -258,11 +260,13 @@ func (s *Scheduler) claimAndInsert(
 		if !latestConfig.IsBackupsEnabled || latestConfig.StorageID == nil {
 			return nil
 		}
+
 		backupConfig = latestConfig
 		state, err := s.loadSchedulingState(ctx, s.logger, now, backupConfig)
 		if err != nil {
 			return err
 		}
+
 		choice := decidePhysicalBackup(state, backupConfig, now)
 		if choice.shouldClearIncrementalRequest {
 			if err := s.configs.ClearIncrementalBackupRequest(
@@ -273,6 +277,7 @@ func (s *Scheduler) claimAndInsert(
 				return err
 			}
 		}
+
 		if !choice.canSchedule {
 			return nil
 		}
@@ -289,6 +294,7 @@ func (s *Scheduler) claimAndInsert(
 				backup.ParentBackupID = backup.RootFullBackupID
 			}
 		}
+
 		claimed, err = s.lifecycle.Start(ctx, backup)
 		return err
 	})

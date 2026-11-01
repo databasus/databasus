@@ -78,11 +78,13 @@ func (s *Store) WriteFile(
 	// belongs to a writer that is already in the set.
 	s.joinLiveWrites(pendingID)
 	defer s.leaveLiveWrites(pendingID)
+
 	if err := s.writeProtection.ProtectWrite(ctx, writeProtectionRequest{
 		PendingDeletionID: pendingID, Reference: reference, CancelWrite: cancelWrite,
 	}); err != nil {
 		return WriteReceipt{}, err
 	}
+
 	defer func() {
 		if err := s.writeProtection.ReleaseWrite(ctx, pendingID); err != nil {
 			s.logger.ErrorContext(ctx, "failed to release storage file write protection", slog.Any("error", err))

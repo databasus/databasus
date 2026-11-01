@@ -520,15 +520,18 @@ func TestHeartbeatRetries(t *testing.T) {
 			assert.Equal(t, "Bearer agent-token", request.Header.Get("Authorization"))
 			assert.Equal(t, "no-cache", request.Header.Get("Cache-Control"))
 			assert.Equal(t, "no-cache", request.Header.Get("Pragma"))
+
 			var heartbeat agentclient.HeartbeatRequest
 			if !assert.NoError(t, json.NewDecoder(request.Body).Decode(&heartbeat)) {
 				return
 			}
 			assert.Equal(t, 512, heartbeat.MaxRAMMb)
+
 			if calls.Add(1) < 3 {
 				writer.WriteHeader(http.StatusServiceUnavailable)
 				return
 			}
+
 			writer.Header().Set("Content-Type", "application/json")
 			assert.NoError(
 				t,
@@ -537,6 +540,7 @@ func TestHeartbeatRetries(t *testing.T) {
 			)
 		}))
 		t.Cleanup(server.Close)
+
 		client := NewClient(
 			Deps{
 				Host:    server.URL,
@@ -545,6 +549,7 @@ func TestHeartbeatRetries(t *testing.T) {
 				Logger:  slog.New(slog.DiscardHandler),
 			},
 		)
+
 		response, err := client.Heartbeat(
 			t.Context(),
 			agentclient.HeartbeatRequest{MaxRAMMb: 512, CurrentVerificationIDs: []uuid.UUID{}},
@@ -564,6 +569,7 @@ func TestDownloadBackupStreaming(t *testing.T) {
 			<-request.Context().Done()
 		}))
 		t.Cleanup(server.Close)
+
 		client := NewClient(
 			Deps{
 				Host:    server.URL,
@@ -572,11 +578,13 @@ func TestDownloadBackupStreaming(t *testing.T) {
 				Logger:  slog.New(slog.DiscardHandler),
 			},
 		)
+
 		ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 		defer cancel()
 		stream, err := client.DownloadBackup(ctx, uuid.New())
 		require.NoError(t, err)
 		defer func() { require.NoError(t, stream.Close()) }()
+
 		signature := make([]byte, 5)
 		_, err = io.ReadFull(stream, signature)
 		require.NoError(t, err)

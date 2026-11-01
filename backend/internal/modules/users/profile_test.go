@@ -135,9 +135,11 @@ func TestChangeUserPassword(t *testing.T) {
 		for _, password := range []string{"replacement-one", "replacement-two", "replacement-three"} {
 			changed := changeUserPassword(t, sessionClients[len(sessionClients)-1], admin.UserID, password)
 			require.Equal(t, http.StatusNoContent, changed.StatusCode(), string(changed.Body))
+
 			session := requireCompletedSignIn(t, signIn(t, app, admin.Email, password))
 			currentClient := app.NewSessionClient(t, session.Token)
 			require.Equal(t, http.StatusOK, getUser(t, currentClient, admin.UserID).StatusCode())
+
 			for _, previousClient := range sessionClients {
 				response := getUser(t, previousClient, admin.UserID)
 				requireProblem(t, response.StatusCode(), response.Body, http.StatusUnauthorized,
@@ -157,6 +159,7 @@ func TestChangeUserPassword(t *testing.T) {
 		changed := changeUserPassword(t, admin.Client, admin.UserID, "replacement-password")
 		require.Equal(t, http.StatusInternalServerError, changed.StatusCode(), string(changed.Body))
 		require.Equal(t, http.StatusOK, getUser(t, admin.Client, admin.UserID).StatusCode())
+
 		reusedPending := startTwoFactorSignIn(t, app, admin.Email)
 		require.Equal(t, pendingSignIn.PendingSignInId, reusedPending.PendingSignInId)
 		verified := verifySignInCode(t, app, pendingSignIn.PendingSignInId, code)

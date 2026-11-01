@@ -67,15 +67,18 @@ func (a *App) InsertPhysicalIncrementalBackup(
 	if seed.Status == "COMPLETED" && seed.CompletedAt == nil {
 		seed.CompletedAt = new(seed.CreatedAt)
 	}
+
 	parentID := seed.ParentIncrementalBackupID
 	if parentID == nil {
 		parentID = &seed.RootFullBackupID
 	}
+
 	row := struct {
 		PhysicalIncrementalBackupSeed `gorm:"embedded"`
 		Kind                          string     `gorm:"column:kind"`
 		ParentBackupID                *uuid.UUID `gorm:"column:parent_backup_id"`
 	}{PhysicalIncrementalBackupSeed: seed, Kind: "INCREMENTAL", ParentBackupID: parentID}
+
 	a.insertPhysicalCatalogRow(tb, "backups_physical", &row)
 	seed = row.PhysicalIncrementalBackupSeed
 	return seed

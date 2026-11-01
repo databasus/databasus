@@ -67,6 +67,7 @@ func verifyBackup(t *testing.T, scenario backupScenario) {
 	versionResponse, err := team.Owner.Client.GetVersionWithResponse(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, serverVersion, versionResponse.JSON200.Version)
+
 	settings := seedSource(t, scenario.endpoint, scenario.isTimescale)
 	if scenario.isPublicOnly {
 		settings.IncludeSchemas = []string{"public"}
@@ -76,14 +77,17 @@ func verifyBackup(t *testing.T, scenario backupScenario) {
 	if scenario.isBroken {
 		encryption = apiclient.BackupEncryptionNONE
 	}
+
 	backup := team.BackUp(t, database.Id, encryption)
 	if scenario.isBroken {
 		team.App.DamageLocalBackup(t, backup.Id, []byte("not a pg_dump archive\n"))
 	}
+
 	credentials := team.App.CreateVerificationAgent(t, team.Admin)
 	engine := newEngine(t, credentials.Agent.ID)
 	gate := newGateway(t, team.App.URL, gatewayOptions{isClaimHeld: scenario.isRetry, diskCapMb: scenario.diskCapMb})
 	agent := newAgentProcess(t, currentBinaryDirectory)
+
 	var verificationID uuid.UUID
 	if scenario.isRetry {
 		agent.start(t, gate.url, credentials)
@@ -95,6 +99,7 @@ func verifyBackup(t *testing.T, scenario backupScenario) {
 		verificationID = team.App.EnqueueVerification(t, team.Owner, backup.Id)
 		agent.start(t, gate.url, credentials)
 	}
+
 	verification := waitForVerification(t, team.App, team.Owner, verificationID)
 	if scenario.isBroken || scenario.diskCapMb > 0 {
 		require.Equal(t, "FAILED", verification.Status, fmt.Sprint(verification.FailMessage))
@@ -132,6 +137,7 @@ func verifyBackup(t *testing.T, scenario backupScenario) {
 			assert.Equal(t, int64(5), tableRows["t_b"])
 		}
 	}
+
 	requireNoLeftovers(t, engine, credentials.Agent.ID)
 }
 

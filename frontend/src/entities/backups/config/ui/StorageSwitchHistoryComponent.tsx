@@ -28,8 +28,10 @@ export const StorageSwitchHistoryComponent = ({
 
   const loadMore = async () => {
     if (!nextCursor) return;
+
     const scope = scopeGeneration.current;
     setIsLoading(true);
+
     try {
       const page = await storageSwitchApi.listStorageSwitches({
         workspaceId,

@@ -15,6 +15,7 @@ func RunOrphanSweep(t *testing.T, image string) {
 		t,
 		physicalSourceSpec{Image: image, BackupType: apiclient.PhysicalBackupTypeFULLINCREMENTALWALSTREAM},
 	)
+
 	conn := openConnAt(t, team.Settings.Host, team.Settings.Port)
 	createMarkerTable(t, conn)
 	insertMarker(t, conn, markerRow{Phase: "before-full", Payload: "row-in-base-backup"})
@@ -27,6 +28,7 @@ func RunOrphanSweep(t *testing.T, image string) {
 	insertMarker(t, conn, markerRow{Phase: "after-target", Payload: "row-after-target"})
 	generateWalActivity(t, conn, 64*1024*1024)
 	team.waitForTargetTimeReplayable(t, targetTime)
+
 	team.App.RunJobPass(t, "backups_physical_cleaner")
 	assert.NotEmpty(t, team.restoreToken(t, &targetTime))
 }

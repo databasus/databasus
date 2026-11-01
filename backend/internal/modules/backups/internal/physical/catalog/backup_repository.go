@@ -158,10 +158,12 @@ func (r *BackupRepository) GetOwnershipSpan(ctx context.Context, full *Backup) (
 	if full.StartLSN == nil {
 		return LSNRange{}, errors.New("cannot determine WAL ownership without FULL start_lsn")
 	}
+
 	successor, isFound, err := r.FindNextCompletedFull(ctx, full)
 	if err != nil {
 		return LSNRange{}, err
 	}
+
 	end := LSNMax
 	if isFound && successor.StartLSN != nil {
 		end = *successor.StartLSN
@@ -361,6 +363,7 @@ func (r *BackupRepository) GetLatestCompletedFullBackups(
 	if len(databaseIDs) == 0 {
 		return indexed, nil
 	}
+
 	var backups []Backup
 	err := database.Conn(ctx, r.db).Raw(`SELECT DISTINCT ON (database_id) * FROM backups_physical
  WHERE database_id IN ? AND kind = 'FULL' AND status = ?
@@ -368,9 +371,11 @@ func (r *BackupRepository) GetLatestCompletedFullBackups(
 	if err != nil {
 		return nil, err
 	}
+
 	for _, backup := range backups {
 		indexed[backup.DatabaseID] = backup
 	}
+
 	return indexed, nil
 }
 
@@ -384,6 +389,7 @@ func (r *BackupRepository) markTerminal(
 	columns["error_reason"] = backup.ErrorReason
 	columns["fail_message"] = backup.FailMessage
 	columns["completed_at"] = backup.CompletedAt
+
 	transition := database.Conn(ctx, r.db).Model(&Backup{}).
 		Where("id = ? AND status = ?", backup.ID, BackupStatusInProgress).Updates(columns)
 	if transition.Error != nil {

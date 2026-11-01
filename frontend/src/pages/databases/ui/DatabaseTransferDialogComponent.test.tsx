@@ -187,6 +187,7 @@ describe('DatabaseTransferDialogComponent', () => {
         }),
       ),
     );
+
     const onTransferred = vi.fn();
     renderScreen(
       <DatabaseTransferDialogComponent
@@ -340,6 +341,7 @@ describe('DatabaseTransferDialogComponent', () => {
         onTransferred={onTransferred}
       />,
     );
+
     await chooseTargetWorkspace();
     await waitFor(() => expect(screen.getAllByRole('combobox')).toHaveLength(2));
     await chooseSelectOption(screen.getAllByRole('combobox')[1], targetStorage.name);
@@ -477,6 +479,7 @@ describe('DatabaseTransferDialogComponent', () => {
         mockApi.get('/storage-switches', 200, { items: [acceptedSwitch] }),
         pendingTransfer.handler,
       );
+
       const onTransferred = vi.fn();
       const onClose = vi.fn();
       const { user: interaction } = renderScreen(

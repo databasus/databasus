@@ -48,6 +48,7 @@ func TestRemoveBackupVerifications(t *testing.T) {
 			settings,
 			apiclient.BackupEncryptionNONE,
 		)
+
 		tm.app.Clock.Advance(2 * time.Hour)
 		keptBackup := completeRestorableBackup(t, tm.owner, database.databaseID)
 		keptVerificationID := tm.app.EnqueueVerification(t, tm.owner, keptBackup.Id)

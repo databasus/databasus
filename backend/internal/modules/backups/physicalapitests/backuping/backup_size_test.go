@@ -18,8 +18,10 @@ func TestPhysicalBackupWithoutClusterSize(t *testing.T) {
 		source := team.openSource(t)
 		_, err := source.Exec(t.Context(), "REVOKE EXECUTE ON FUNCTION pg_database_size(name) FROM PUBLIC")
 		require.NoError(t, err)
+
 		full := team.runBackup(t, "full")
 		require.Equal(t, "COMPLETED", full.Status)
+
 		var stored apptest.PhysicalFullBackupSeed
 		team.App.QuerySQL(t, &stored, "SELECT * FROM backups_physical WHERE id=?", full.ID)
 		assert.Nil(t, stored.RawSizeMb)

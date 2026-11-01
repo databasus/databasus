@@ -23,6 +23,7 @@ func TestJobSnapshots(t *testing.T) {
 		isBlocked := false
 		started := make(chan struct{})
 		release := make(chan struct{})
+
 		runner := NewRunner(RunnerDeps{Logger: slog.New(slog.DiscardHandler), Clock: manualClock}, Job{
 			Name: "work", Interval: time.Minute, Run: func(context.Context, time.Time) error {
 				if isBlocked {
@@ -33,16 +34,19 @@ func TestJobSnapshots(t *testing.T) {
 				return passError
 			},
 		}, newIdleJob("alphabetical"))
+
 		snapshots := runner.GetSnapshots()
 		require.Equal(t, "alphabetical", snapshots[0].Name)
 		require.Nil(t, snapshots[1].LastCompletedAt)
 		require.Equal(t, manualClock.Now(), snapshots[1].ActivatedAt)
+
 		require.ErrorIs(t, runner.RunPass(t.Context(), "work"), passError)
 		completedAt := manualClock.Now()
 		isBlocked = true
 		var passes sync.WaitGroup
 		passes.Go(func() { assert.ErrorIs(t, runner.RunPass(t.Context(), "work"), passError) })
 		<-started
+
 		snapshots = runner.GetSnapshots()
 		assert.True(t, snapshots[1].IsRunning)
 		assert.Equal(t, PassFailed, snapshots[1].LastOutcome)
@@ -50,6 +54,7 @@ func TestJobSnapshots(t *testing.T) {
 		require.ErrorIs(t, snapshots[1].LastError, passError)
 		*snapshots[1].LastCompletedAt = time.Time{}
 		assert.Equal(t, completedAt, *runner.GetSnapshots()[1].LastCompletedAt)
+
 		close(release)
 		passes.Wait()
 		assert.False(t, runner.GetSnapshots()[1].IsRunning)
@@ -89,13 +94,16 @@ func TestJobSnapshots(t *testing.T) {
 			},
 		})
 		require.Error(t, runner.RunPass(t.Context(), "recovering"))
+
 		panickedPass := runner.GetSnapshots()[0]
 		require.Equal(t, PassPanicked, panickedPass.LastOutcome)
 		require.Error(t, panickedPass.LastError)
 		require.NotNil(t, panickedPass.LastCompletedAt)
+
 		manualClock.Advance(time.Minute)
 		shouldPanic = false
 		require.NoError(t, runner.RunPass(t.Context(), "recovering"))
+
 		recoveredPass := runner.GetSnapshots()[0]
 		require.NotNil(t, recoveredPass.LastCompletedAt)
 		assert.True(t, recoveredPass.LastCompletedAt.After(*panickedPass.LastCompletedAt))

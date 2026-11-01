@@ -25,12 +25,14 @@ func newEngine(t *testing.T, agentID uuid.UUID) *client.Client {
 	if host := getEngineHost(); host != "" {
 		options = append(options, client.WithHost(host))
 	}
+
 	engine, err := client.New(options...)
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, engine.Close()) })
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.WithoutCancel(t.Context()), time.Minute)
 		defer cancel()
+
 		containers, err := engine.ContainerList(
 			ctx,
 			client.ContainerListOptions{All: true, Filters: agentFilter(agentID)},
@@ -44,6 +46,7 @@ func newEngine(t *testing.T, agentID uuid.UUID) *client.Client {
 			)
 			require.NoError(t, err)
 		}
+
 		networks, err := engine.NetworkList(ctx, client.NetworkListOptions{Filters: agentFilter(agentID)})
 		require.NoError(t, err)
 		for _, network := range networks.Items {
@@ -51,6 +54,7 @@ func newEngine(t *testing.T, agentID uuid.UUID) *client.Client {
 			require.NoError(t, err)
 		}
 	})
+
 	return engine
 }
 
@@ -106,15 +110,19 @@ func readContainerStatus(t *testing.T, engine *client.Client, containerID string
 		client.ExecCreateOptions{Cmd: []string{"cat", "/proc/1/status"}, AttachStdout: true, AttachStderr: true},
 	)
 	require.NoError(t, err)
+
 	attached, err := engine.ExecAttach(t.Context(), execution.ID, client.ExecAttachOptions{})
 	require.NoError(t, err)
 	defer attached.Close()
+
 	var contents bytes.Buffer
 	_, err = stdcopy.StdCopy(&contents, &contents, attached.Reader)
 	require.NoError(t, err)
+
 	inspection, err := engine.ExecInspect(t.Context(), execution.ID, client.ExecInspectOptions{})
 	require.NoError(t, err)
 	require.Zero(t, inspection.ExitCode)
+
 	return contents.String()
 }
 

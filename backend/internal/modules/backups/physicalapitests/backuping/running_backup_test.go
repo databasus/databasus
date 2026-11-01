@@ -29,8 +29,10 @@ func TestCancelRunningPhysicalBackup(t *testing.T) {
 			team.StorageID,
 		)
 		require.Len(t, lockedStorageIDs, 1)
+
 		team.trigger(t, "full")
 		team.App.RunJobPass(t, "backups_physical_scheduler")
+
 		var backup backupRow
 		var slotName string
 		team.App.QuerySQL(
@@ -39,6 +41,7 @@ func TestCancelRunningPhysicalBackup(t *testing.T) {
 			"SELECT backup_slot_name FROM databases_postgresql_physical WHERE database_id=?",
 			team.Database.Id,
 		)
+
 		testwait.Until(t, "the full starts while its storage write waits", func(context.Context) error {
 			rows := team.listBackups(t)
 			if len(rows) != 1 || rows[0].Status != "IN_PROGRESS" {
@@ -55,6 +58,7 @@ func TestCancelRunningPhysicalBackup(t *testing.T) {
 			backup = rows[0]
 			return nil
 		})
+
 		var runningBackupID string
 		team.App.QuerySQL(
 			t,
@@ -63,18 +67,21 @@ func TestCancelRunningPhysicalBackup(t *testing.T) {
 			team.Database.Id,
 		)
 		assert.Equal(t, backup.ID.String(), runningBackupID)
+
 		status, body := team.App.CallPhysicalAPI(
 			t,
 			team.Owner,
 			apptest.PhysicalCancelRequest(backup.ID),
 		)
 		require.Equal(t, http.StatusAccepted, status, "%s", body)
+
 		storageLock.Rollback(t)
 		team.App.WaitForPhysicalBackups(t)
 		rows := team.listBackups(t)
 		require.Len(t, rows, 1)
 		assert.Equal(t, "CANCELED", rows[0].Status)
 		team.assertNoRunningBackup(t)
+
 		var count int
 		require.NoError(
 			t,
@@ -82,9 +89,11 @@ func TestCancelRunningPhysicalBackup(t *testing.T) {
 				Scan(&count),
 		)
 		assert.Zero(t, count)
+
 		// A canceled upload can retain its unspent receipt until the file commit window expires.
 		team.App.Clock.Advance(3 * time.Second)
 		team.App.RunJobPass(t, "storage_file_deletion")
+
 		var files []struct{ FileName *string }
 		team.App.QuerySQL(t, &files, "SELECT file_name FROM backups_physical WHERE id=?", backup.ID)
 		if files[0].FileName != nil {

@@ -30,16 +30,19 @@ func TestSegmentUploadDispatcher(t *testing.T) {
 			}
 		}, func(count int) { highestCount = max(highestCount, count) })
 		defer func() { cancel(); dispatcher.waitForUploads(t.Context()) }()
+
 		segments := []queuedWalSegment{}
 		for segmentNo := uint64(100); segmentNo < 108; segmentNo++ {
 			segments = append(segments, queuedWalSegment{walFilename: walName(1, segmentNo)})
 		}
 		pending := dispatcher.startUploads(ctx, slog.New(slog.DiscardHandler), segments)
+
 		firstStarted := []string{<-started, <-started, <-started, <-started}
 		slices.Sort(firstStarted)
 		assert.Equal(t, []string{walName(1, 100), walName(1, 101), walName(1, 102), walName(1, 103)}, firstStarted)
 		require.Len(t, pending, 4)
 		assert.Equal(t, 4, dispatcher.getRunningBackupCount())
+
 		release <- struct{}{}
 		dispatcher.markFinished(<-dispatcher.finishedUploads)
 		pending = dispatcher.startUploads(ctx, slog.New(slog.DiscardHandler), pending)
@@ -63,6 +66,7 @@ func TestSegmentUploadDispatcher(t *testing.T) {
 				}
 			}, func(int) {})
 			defer func() { cancel(); dispatcher.waitForUploads(t.Context()) }()
+
 			segments := []queuedWalSegment{}
 			for _, segmentNo := range []uint64{110, 111, 112, 113, 115, 114} {
 				segments = append(
@@ -74,11 +78,14 @@ func TestSegmentUploadDispatcher(t *testing.T) {
 					},
 				)
 			}
+
 			sortQueuedWalSegments(segments)
 			pending := dispatcher.startUploads(ctx, slog.New(slog.DiscardHandler), segments)
+
 			for range 4 {
 				<-started
 			}
+
 			release <- struct{}{}
 			dispatcher.markFinished(<-dispatcher.finishedUploads)
 			dispatcher.startUploads(ctx, slog.New(slog.DiscardHandler), pending)
@@ -96,12 +103,15 @@ func TestSegmentUploadDispatcher(t *testing.T) {
 		captured := &capturedLog{}
 		logger := slog.New(slog.NewTextHandler(captured, nil))
 		segment := queuedWalSegment{walFilename: walName(1, 150), localPath: "receivewal/segment"}
+
 		dispatcher.startUploads(ctx, logger, []queuedWalSegment{segment})
 		assert.Equal(t, segment.localPath, <-started)
 		segment.localPath = "pending-upload/segment"
+
 		for range 3 {
 			assert.Empty(t, dispatcher.startUploads(ctx, logger, []queuedWalSegment{segment}))
 		}
+
 		assert.Equal(t, 1, dispatcher.getRunningBackupCount())
 		assert.Empty(t, started)
 		assert.Empty(t, captured.String())
@@ -114,10 +124,12 @@ func TestSegmentUploadDispatcher(t *testing.T) {
 		)
 		defer dispatcher.waitForUploads(t.Context())
 		segments := []queuedWalSegment{{walFilename: walName(1, 71), localPath: "pending-upload/segment"}}
+
 		for range 2 {
 			dispatcher.startUploads(t.Context(), slog.New(slog.DiscardHandler), segments)
 			dispatcher.markFinished(<-dispatcher.finishedUploads)
 		}
+
 		assert.Equal(t, int64(2), attempts.Load())
 	})
 }
@@ -132,6 +144,7 @@ func TestRecoverQueuedWalSegments(t *testing.T) {
 		for segmentNo := uint64(130); segmentNo < 136; segmentNo++ {
 			segments = append(segments, queuedWalSegment{walFilename: walName(1, segmentNo)})
 		}
+
 		completed := make(chan struct{})
 		go func() {
 			defer close(completed)
@@ -149,11 +162,13 @@ func TestRecoverQueuedWalSegments(t *testing.T) {
 				},
 			})
 		}()
+
 		for range 4 {
 			<-arrived
 		}
 		close(release)
 		<-completed
+
 		assert.Len(t, recovered, 6)
 		assert.Equal(t, 4, slices.Max(counts))
 	})
@@ -163,6 +178,7 @@ func TestRecoverQueuedWalSegments(t *testing.T) {
 		for index := range segments {
 			segments[index].walFilename = walName(1, uint64(140+index))
 		}
+
 		recoverQueuedWalSegments(
 			t.Context(),
 			slog.New(slog.DiscardHandler),
@@ -172,6 +188,7 @@ func TestRecoverQueuedWalSegments(t *testing.T) {
 				Upload:                  func(context.Context, string, string) error { attempts.Add(1); return errors.New("storage unavailable") },
 			},
 		)
+
 		assert.Equal(t, int64(5), attempts.Load())
 	})
 }
@@ -182,10 +199,12 @@ func TestQueuedWalSegments(t *testing.T) {
 		writeWalFile(t, watchDir, walName(1, 50))
 		newestPath := writeWalFile(t, watchDir, walName(1, 53))
 		require.NoError(t, os.Remove(newestPath))
+
 		segments := listQueuedWalSegments(watchDir, testWalSegmentSize)
 		sortQueuedWalSegments(segments)
 		supervisor := &Streamer{}
 		supervisor.setLowestQueuedSegment(segments)
+
 		assert.Equal(t, segmentStart(1, 50), supervisor.getLowestQueuedSegment())
 	})
 	t.Run("counts a short segment as the lowest queued position when it awaits restreaming", func(t *testing.T) {
@@ -195,12 +214,15 @@ func TestQueuedWalSegments(t *testing.T) {
 		writeSegmentOfSize(t, watchDir, walName(1, 60), testWalSegmentSize/2)
 		writeWalFile(t, pendingDir, walName(1, 61))
 		writeSegmentOfSize(t, watchDir, "00000002.history", 64)
+
 		segments := listQueuedWalSegments(watchDir, testWalSegmentSize)
 		sortQueuedWalSegments(segments)
+
 		require.Len(t, segments, 2)
 		assert.False(t, segments[0].isComplete)
 		assert.True(t, segments[1].isComplete)
 		assert.Equal(t, filepath.Join(pendingDir, walName(1, 61)), segments[1].localPath)
+
 		supervisor := &Streamer{}
 		supervisor.setLowestQueuedSegment(segments)
 		assert.Equal(t, segmentStart(1, 60), supervisor.getLowestQueuedSegment())

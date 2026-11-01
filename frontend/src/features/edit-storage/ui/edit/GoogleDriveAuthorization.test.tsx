@@ -100,6 +100,7 @@ describe('GoogleDriveAuthorization', () => {
         return HttpResponse.json(token);
       }),
     );
+
     renderScreen(editor(), { isStrictMode: true });
     const state = authorization.start();
 
@@ -139,6 +140,7 @@ describe('GoogleDriveAuthorization', () => {
               ),
         ),
       );
+
       renderScreen(editor('workspace-id', savedStorage));
 
       expect(
@@ -169,6 +171,7 @@ describe('GoogleDriveAuthorization', () => {
   it('retains an earlier draft token when reconnection is refused', async () => {
     const authorization = setUpAuthorization();
     mockServer.use(mockApi.post('/storage-tests', 200, { isConnected: true }));
+
     renderScreen(
       <EditStorageComponent
         workspaceId="workspace-id"
@@ -179,6 +182,7 @@ describe('GoogleDriveAuthorization', () => {
         draft={{ ...draft, settings: { ...draft.settings, tokenJson: JSON.stringify(token) } }}
       />,
     );
+
     const state = authorization.start('Reconnect');
     act(() => authorization.send(state, { type: 'refusal', state }));
 
@@ -277,12 +281,14 @@ describe('GoogleDriveAuthorization', () => {
     const pending = createPendingApiResponse();
     const fetchObservation = vi.spyOn(globalThis, 'fetch');
     let exchanges = 0;
+
     mockServer.use(
       http.post('https://oauth2.googleapis.com/token', () => {
         exchanges++;
         return exchanges === 1 ? pending.response : HttpResponse.json(token);
       }),
     );
+
     const screenView = renderScreen(editor());
     authorization.deliver(authorization.start());
 
@@ -350,6 +356,7 @@ describe('GoogleDriveAuthorization', () => {
           : HttpResponse.json({ isConnected: true });
       }),
     );
+
     renderScreen(editor('workspace-id', savedStorage));
 
     fireEvent.change(screen.getByLabelText('Client Secret'), {
@@ -392,6 +399,7 @@ describe('GoogleDriveAuthorization', () => {
     );
     renderScreen(editor());
     const state = authorization.start();
+
     act(() => {
       authorization.send(state, { type: 'code', state: 'a'.repeat(64), code: 'wrong' });
       authorization.send(state, { type: 'code', state, code: 'wrong' }, 'https://other.example');

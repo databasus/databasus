@@ -101,6 +101,7 @@ func TestNew(t *testing.T) {
 			databaseDsn := testdb.OpenEmpty(t)
 			migrateBeforeLegacyKeyTableRename(t, databaseDsn)
 			insertLegacyMasterKey(t, databaseDsn, "secret_keys", legacyMasterKey)
+
 			legacyKeyFile := filepath.Join(t.TempDir(), "legacy.key")
 			writeKeyFile(t, legacyKeyFile, legacyMasterKey)
 			legacyKey, err := crypto.OpenOrCreateMasterKey(legacyKeyFile)
@@ -115,6 +116,7 @@ func TestNew(t *testing.T) {
 			t.Cleanup(createdApp.Close)
 			assertKeyFileContent(t, environment.Config.SecretKeyPath, legacyMasterKey)
 			assert.Empty(t, listLegacyMasterKeys(t, databaseDsn))
+
 			appKey, err := crypto.OpenOrCreateMasterKey(createdApp.environment.Config.SecretKeyPath)
 			require.NoError(t, err)
 			decryptedValue, err := crypto.NewFieldEncryptor(appKey).Decrypt(encryptedValue)

@@ -28,17 +28,20 @@ func TestHealthcheckPhysicalProbe(t *testing.T) {
 			SshTunnel:  enginetest.NewDisabledSSHTunnelSettings(),
 			BackupType: apiclient.PhysicalBackupTypeFULL,
 		})
+
 		healthchecks := healthcheckTeam{Team: team, Database: userDatabase}
 		healthchecks.pass(t)
 		attempts := healthchecks.getAttempts(t)
 		require.Len(t, attempts, 1)
 		assert.Equal(t, new(apiclient.DatabaseHealthStatusAVAILABLE), attempts[0].Status)
+
 		team.App.ExecuteSQL(
 			t,
 			"UPDATE databases_postgresql_physical SET port = ? WHERE database_id = ?",
 			closedPort(t),
 			userDatabase.Id,
 		)
+
 		team.App.Clock.Advance(time.Minute)
 		healthchecks.pass(t)
 		attempts = healthchecks.getAttempts(t)

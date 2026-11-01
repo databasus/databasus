@@ -13,6 +13,7 @@ const assertEditorReflow = async (editor: Locator) => {
     )
       .filter((element) => element.getClientRects().length > 0)
       .map((element) => ({ text: element.textContent, bounds: element.getBoundingClientRect() }));
+
     const overlaps: string[] = [];
     for (let first = 0; first < bounds.length; first++)
       for (let second = first + 1; second < bounds.length; second++) {
@@ -28,6 +29,7 @@ const assertEditorReflow = async (editor: Locator) => {
         )
           overlaps.push(`${left.text} / ${right.text}`);
       }
+
     return {
       overlaps,
       hasOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
@@ -55,10 +57,12 @@ const openEditor = async ({
     },
     { locale, theme },
   );
+
   await page.goto('/');
   const dictionary = DICTIONARIES[locale];
   const menu = page.getByRole('button', { name: dictionary.app.navigation.menu, exact: true });
   if (await menu.isVisible()) await menu.click();
+
   await page
     .getByRole('button', { name: dictionary.app.navigation.notifiers, exact: true })
     .click();
@@ -69,6 +73,7 @@ const openEditor = async ({
     .getByRole('button', { name: dictionary.common.actions.edit, exact: true })
     .last()
     .click();
+
   const editor = page.getByRole('region', {
     name: dictionary.notifiers.config.settingsTitle,
     exact: true,
@@ -76,6 +81,7 @@ const openEditor = async ({
   await expect(editor.getByLabel(dictionary.notifiers.email.smtpHost, { exact: true })).toHaveValue(
     'smtp.example.com',
   );
+
   await page.evaluate(() => document.fonts.ready);
   return editor;
 };
@@ -88,9 +94,11 @@ test('tests and saves explicitly while preserving an omitted stored SMTP passwor
   await editor.getByRole('textbox', { name: 'SMTP host', exact: true }).fill('new.example.com');
   await editor.getByRole('button', { name: 'Send test notification', exact: true }).click();
   await editor.getByRole('button', { name: 'Save', exact: true }).click();
+
   await expect
     .poll(() => boundary.requests.filter((request) => request.method === 'PUT').length)
     .toBe(1);
+
   const update = boundary.requests.find((request) => request.method === 'PUT')!;
   expect(update.body).toMatchObject({ settings: { smtpHost: 'new.example.com' } });
   expect((update.body as { settings: object }).settings).not.toHaveProperty('smtpPassword');
@@ -106,8 +114,10 @@ test('preserves values, expanded settings and successful testing across locale a
   await disclosure.focus();
   await page.keyboard.press('Space');
   await expect(disclosure).toHaveAttribute('aria-expanded', 'true');
+
   await editor.getByRole('button', { name: 'Send test notification', exact: true }).click();
   await expect(editor.getByRole('button', { name: 'Save', exact: true })).toBeVisible();
+
   const language = page.getByRole('button', { name: /Language:/ });
   await language.focus();
   await page.keyboard.press('ArrowDown');
@@ -122,6 +132,7 @@ test('preserves values, expanded settings and successful testing across locale a
   await expect(
     page.getByRole('menuitem', { name: DICTIONARIES.ru.language.nativeName, exact: true }),
   ).toBeFocused();
+
   await page.keyboard.press('Enter');
   const russianLanguage = page.getByRole('button', {
     name: DICTIONARIES.ru.app.languageControl.title.replace(
@@ -138,6 +149,7 @@ test('preserves values, expanded settings and successful testing across locale a
   await page.keyboard.press('Escape');
   await expect(russianLanguage).toBeFocused();
   await expect(russianLanguage).toHaveAttribute('aria-expanded', 'false');
+
   const russianEditor = page.getByRole('region', {
     name: DICTIONARIES.ru.notifiers.config.settingsTitle,
     exact: true,
@@ -148,6 +160,7 @@ test('preserves values, expanded settings and successful testing across locale a
   await expect(
     russianEditor.getByRole('button', { name: DICTIONARIES.ru.common.actions.save, exact: true }),
   ).toBeVisible();
+
   const theme = page.getByRole('button', {
     name: new RegExp(DICTIONARIES.ru.app.theme.title.split(':')[0]),
   });
@@ -155,6 +168,7 @@ test('preserves values, expanded settings and successful testing across locale a
   await page.keyboard.press('Enter');
   await page.getByRole('menuitem', { name: new RegExp(DICTIONARIES.ru.app.theme.dark) }).click();
   await expect(page.locator('html')).toHaveClass('dark');
+
   expect(boundary.requests.filter((request) => request.path === '/notifier-tests')).toHaveLength(1);
   await expect(
     russianEditor.getByRole('button', {
@@ -187,6 +201,7 @@ test.describe('SMTP delivery failure', () => {
     const editor = await openEditor({ page });
     await editor.getByRole('textbox', { name: 'SMTP host', exact: true }).fill('draft.example.com');
     await editor.getByRole('button', { name: 'Send test notification', exact: true }).click();
+
     await expect(editor.getByRole('alert')).toContainText(diagnostic);
     expect(await editor.getByRole('alert').locator('img').count()).toBe(0);
     await expect(editor.getByRole('textbox', { name: 'SMTP host', exact: true })).toHaveValue(
@@ -207,20 +222,24 @@ test('exposes SMTP fields, associated validation and shared keyboard focus witho
   await target.press('Tab');
   await expect(target).toHaveAttribute('aria-invalid', 'true');
   await expect(target).toHaveAccessibleDescription(/valid email/);
+
   const disclosure = editor.getByRole('button', { name: 'Advanced settings', exact: true });
   await disclosure.focus();
   await page.keyboard.press('Enter');
   await expect(disclosure).toBeFocused();
   await expect(disclosure).toHaveCSS('outline-style', 'solid');
+
   const results = await new AxeBuilder({ page })
     .include('section[aria-label="Notifier settings"]')
     .analyze();
   expect(results.violations).toEqual([]);
+
   await page.getByRole('button', { name: /Language:/ }).focus();
   await page.keyboard.press('ArrowDown');
   await page
     .getByRole('menuitem', { name: DICTIONARIES.ru.language.nativeName, exact: true })
     .click();
+
   const translatedTarget = page.getByLabel(DICTIONARIES.ru.notifiers.email.targetEmail, {
     exact: true,
   });
@@ -237,13 +256,16 @@ test('contains confirmation focus and restores it to the invoking remove control
   await editor.getByRole('button', { name: 'Cancel', exact: true }).click();
   const remove = page.getByRole('button', { name: 'Remove', exact: true });
   await remove.click();
+
   const dialog = page.getByRole('dialog', { name: 'Confirmation' });
   await expect(dialog).toBeVisible();
   await dialog.getByRole('button', { name: 'Cancel', exact: true }).focus();
+
   for (let index = 0; index < 6; index++) {
     await page.keyboard.press('Tab');
     expect(await dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true);
   }
+
   await page.keyboard.press('Escape');
   await expect(dialog).not.toBeVisible();
   await expect(remove).toBeFocused();
@@ -265,25 +287,30 @@ for (const reference of [
     await page.setViewportSize({ width: reference.width, height: 1200 });
     const editor = await openEditor({ page, locale: reference.locale, theme: reference.theme });
     const dictionary = DICTIONARIES[reference.locale];
+
     if (reference.hasError) {
       const target = editor.getByLabel(dictionary.notifiers.email.targetEmail, { exact: true });
       await target.fill('invalid');
       await target.press('Tab');
       await expect(target).toHaveAttribute('aria-invalid', 'true');
     }
+
     await expect(editor).toHaveScreenshot(`${reference.name}.png`);
     const layout = await page.evaluate(() => ({
       width: document.documentElement.clientWidth,
       scrollWidth: document.documentElement.scrollWidth,
     }));
     expect(layout.scrollWidth).toBeLessThanOrEqual(layout.width);
+
     expect(
       boundary.requests.some((request) => /fonts\.(?:googleapis|gstatic)/.test(request.path)),
     ).toBe(false);
     expect(await page.evaluate(() => document.fonts.check('16px Jost'))).toBe(true);
+
     const fonts = boundary.resourceUrls.filter((url) => url.includes('.woff2'));
     expect(fonts.length).toBeGreaterThan(0);
     expect(fonts.every((url) => new URL(url).origin === new URL(page.url()).origin)).toBe(true);
+
     const cdp = await page.context().newCDPSession(page);
     await cdp.send('DOM.enable');
     await cdp.send('CSS.enable');
@@ -293,11 +320,13 @@ for (const reference of [
       selector: 'section label[for$="-smtpHost"]',
     });
     const rendered = await cdp.send('CSS.getPlatformFontsForNode', { nodeId });
+
     expect(
       rendered.fonts.some(
         (font) => font.isCustomFont && font.familyName.includes('Jost') && font.glyphCount > 0,
       ),
     ).toBe(true);
+
     if (reference.locale === 'zh')
       expect(rendered.fonts.some((font) => !font.isCustomFont && font.glyphCount > 0)).toBe(true);
     await testInfo.attach('rendered-fonts', {
@@ -305,20 +334,24 @@ for (const reference of [
       contentType: 'application/json',
     });
     await cdp.detach();
+
     if (reference.width === 320) {
       await editor
         .getByRole('button', { name: dictionary.notifiers.advancedSettings, exact: true })
         .click();
+
       const target = editor.getByLabel(dictionary.notifiers.email.targetEmail, { exact: true });
       const originalSize = parseFloat(
         await target.evaluate((element) => getComputedStyle(element).fontSize),
       );
+
       await page.evaluate(() => {
         const originalSizes = Array.from(
           document.querySelectorAll<HTMLElement>('section[aria-label] *'),
         ).map((element) => ({ element, size: parseFloat(getComputedStyle(element).fontSize) }));
         for (const { element, size } of originalSizes) element.style.fontSize = `${size * 2}px`;
       });
+
       await expect(target).toHaveCSS('font-size', `${originalSize * 2}px`);
       const overlappingLabels = await editor.locator('label[for]').evaluateAll((labels) =>
         labels
@@ -363,12 +396,14 @@ test('expires an existing success notice at its original deadline and uses the s
   await expect(
     page.getByText(DICTIONARIES.en.notifiers.testNotification.sent.title, { exact: true }),
   ).toBeVisible();
+
   await page.clock.runFor(2_000);
   await page.getByRole('button', { name: /Language:/ }).focus();
   await page.keyboard.press('ArrowDown');
   await page
     .getByRole('menuitem', { name: DICTIONARIES.ru.language.nativeName, exact: true })
     .click();
+
   await expect(
     page.getByText(DICTIONARIES.en.notifiers.testNotification.sent.title, { exact: true }),
   ).toBeVisible();
@@ -376,6 +411,7 @@ test('expires an existing success notice at its original deadline and uses the s
   await expect(
     page.getByText(DICTIONARIES.en.notifiers.testNotification.sent.title, { exact: true }),
   ).not.toBeVisible();
+
   const russianEditor = page.getByRole('region', {
     name: DICTIONARIES.ru.notifiers.config.settingsTitle,
     exact: true,
@@ -389,6 +425,7 @@ test('expires an existing success notice at its original deadline and uses the s
   await expect(
     page.getByText(DICTIONARIES.ru.notifiers.testNotification.sent.title, { exact: true }),
   ).toBeVisible();
+
   await russianEditor
     .getByRole('button', { name: DICTIONARIES.ru.common.actions.cancel, exact: true })
     .click();
@@ -406,6 +443,7 @@ for (const locale of ['fr', 'zh'] as const) {
     const editor = await openEditor({ page, locale });
     const dictionary = DICTIONARIES[locale];
     const target = editor.getByLabel(dictionary.notifiers.email.targetEmail, { exact: true });
+
     await editor
       .getByLabel(dictionary.notifiers.email.smtpHost, { exact: true })
       .fill('changed.example.com');
@@ -415,6 +453,7 @@ for (const locale of ['fr', 'zh'] as const) {
       exact: true,
     });
     await expect(error).toBeVisible();
+
     const originalSize = parseFloat(
       await target.evaluate((element) => getComputedStyle(element).fontSize),
     );
@@ -425,6 +464,7 @@ for (const locale of ['fr', 'zh'] as const) {
       for (const { element, size } of sizes) element.style.fontSize = `${size * 2}px`;
     });
     await expect(target).toHaveCSS('font-size', `${originalSize * 2}px`);
+
     await error.scrollIntoViewIfNeeded();
     await expect(error).toBeInViewport();
     const testControl = editor.getByRole('button', {
@@ -435,18 +475,21 @@ for (const locale of ['fr', 'zh'] as const) {
     await testControl.scrollIntoViewIfNeeded();
     await expect(testControl).toBeInViewport();
     await assertEditorReflow(editor);
+
     await target.fill('ops@example.com');
     await target.press('Tab');
     await expect(error).not.toBeVisible();
     await testControl.scrollIntoViewIfNeeded();
     await expect(testControl).toBeInViewport();
     await testControl.click();
+
     const save = editor.getByRole('button', { name: dictionary.common.actions.save, exact: true });
     await expect(save).toBeVisible();
     await save.scrollIntoViewIfNeeded();
     await expect(save).toBeInViewport();
     await assertEditorReflow(editor);
     await save.click();
+
     await expect
       .poll(() => boundary.requests.filter((request) => request.method === 'PUT').length)
       .toBe(1);
@@ -464,9 +507,11 @@ test('keeps the sidebar open with restored control focus when a nested menu is d
   await page
     .getByRole('button', { name: DICTIONARIES.en.app.navigation.menu, exact: true })
     .click();
+
   const sidebar = page.getByRole('dialog');
   await expect(sidebar).toBeVisible();
   await page.mouse.move(319, 1100);
+
   for (const { name, firstItem } of [
     { name: /Language:/, firstItem: DICTIONARIES.en.language.nativeName },
     { name: /Theme:/, firstItem: DICTIONARIES.en.app.theme.light },
@@ -474,6 +519,7 @@ test('keeps the sidebar open with restored control focus when a nested menu is d
     const control = sidebar.getByRole('button', { name });
     await control.focus();
     await page.keyboard.press('ArrowDown');
+
     const menu = page.getByRole('menu').filter({
       has: page.getByRole('menuitem', { name: firstItem, exact: true }),
     });
@@ -481,6 +527,7 @@ test('keeps the sidebar open with restored control focus when a nested menu is d
     await expect
       .poll(() => menu.evaluate((element) => element.contains(document.activeElement)))
       .toBe(true);
+
     await page.keyboard.press('Escape');
     await expect(control).toHaveAttribute('aria-expanded', 'false');
     await expect(sidebar).toBeVisible();
@@ -506,10 +553,12 @@ test('preserves the open sidebar and notifier draft when language is selected at
   await editor
     .getByRole('button', { name: DICTIONARIES.en.notifiers.advancedSettings, exact: true })
     .click();
+
   await page
     .getByRole('button', { name: DICTIONARIES.en.app.navigation.menu, exact: true })
     .click();
   await page.mouse.move(319, 1100);
+
   const sidebar = page.getByRole('dialog');
   const language = sidebar.getByRole('button', { name: /Language:/ });
   await language.focus();
@@ -520,6 +569,7 @@ test('preserves the open sidebar and notifier draft when language is selected at
   await expect
     .poll(() => menu.evaluate((element) => element.contains(document.activeElement)))
     .toBe(true);
+
   await page.keyboard.press('Home');
   await expect(
     page.getByRole('menuitem', { name: DICTIONARIES.en.language.nativeName, exact: true }),
@@ -529,6 +579,7 @@ test('preserves the open sidebar and notifier draft when language is selected at
     page.getByRole('menuitem', { name: DICTIONARIES.ru.language.nativeName, exact: true }),
   ).toBeFocused();
   await page.keyboard.press('Enter');
+
   const dictionary = DICTIONARIES.ru;
   await expect(sidebar).toBeVisible();
   await expect(page.locator('.ant-drawer-open').filter({ has: sidebar })).toBeVisible();
@@ -547,6 +598,7 @@ test('preserves the open sidebar and notifier draft when language is selected at
       exact: true,
     }),
   ).toBeFocused();
+
   await sidebar.getByRole('button', { name: dictionary.common.actions.close, exact: true }).click();
   const translatedEditor = page.getByRole('region', {
     name: dictionary.notifiers.config.settingsTitle,
@@ -561,6 +613,7 @@ test('preserves the open sidebar and notifier draft when language is selected at
       exact: true,
     }),
   ).toHaveAttribute('aria-expanded', 'true');
+
   expect(
     boundary.requests.filter(
       (request) => request.path === '/notifier-tests' || request.method === 'PUT',

@@ -41,6 +41,7 @@ func (team *walTeam) attachWebhook(t *testing.T, inbox *webhookInbox) uuid.UUID 
 	t.Helper()
 	server := httptest.NewServer(inbox)
 	t.Cleanup(server.Close)
+
 	var settings apiclient.NotifierSettings
 	require.NoError(
 		t,
@@ -54,8 +55,10 @@ func (team *walTeam) attachWebhook(t *testing.T, inbox *webhookInbox) uuid.UUID 
 			},
 		),
 	)
+
 	notifier := apptest.CreateNotifier(t, team.Owner, team.Database.WorkspaceId, settings)
 	team.Database.NotifierIds = append(team.Database.NotifierIds, notifier.Id)
+
 	response, err := team.Owner.Client.UpdateDatabaseWithResponse(
 		t.Context(),
 		team.Database.Id,
@@ -76,8 +79,10 @@ func (team *walTeam) setNotifications(t *testing.T, triggers ...apiclient.Notifi
 	settings, err := config.Settings.AsPhysicalBackupSettings()
 	require.NoError(t, err)
 	settings.NotificationTriggers = triggers
+
 	var backupSettings apiclient.BackupSettings
 	require.NoError(t, backupSettings.FromPhysicalBackupSettings(settings))
+
 	response, err := team.Owner.Client.UpdateBackupConfigWithResponse(
 		t.Context(),
 		team.Database.Id,

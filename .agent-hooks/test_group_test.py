@@ -18,6 +18,7 @@ class BackendShardRunnerTest(unittest.TestCase):
         self.directory = Path(temporary_directory.name)
         executable_directory = self.directory / "bin"
         executable_directory.mkdir()
+
         self.environment = {
             **os.environ,
             "PATH": f"{executable_directory}:{os.environ['PATH']}",
@@ -25,6 +26,7 @@ class BackendShardRunnerTest(unittest.TestCase):
             "TMPDIR": str(self.directory),
             "LIBEDIT_SHIM_DIR": str(self.directory / "libedit"),
         }
+
         self.write_executable(executable_directory / "mise", """#!/usr/bin/env bash
 case "$*" in
     *backend:test-group-packages*) echo './fake' ;;
@@ -93,6 +95,7 @@ with (directory / 'rendezvous').open('rb') as rendezvous:
     def test_stops_its_child_and_removes_temporary_logs_after_interruption(self):
         (self.directory / "interrupt").touch()
         os.mkfifo(self.directory / "started")
+
         process = subprocess.Popen(
             ["bash", str(ROOT / "mise-tasks/backend/test-group")],
             cwd=ROOT / "backend",
@@ -102,6 +105,7 @@ with (directory / 'rendezvous').open('rb') as rendezvous:
             text=True,
         )
         self.addCleanup(lambda: process.kill() if process.poll() is None else None)
+
         started_descriptor = os.open(self.directory / "started", os.O_RDONLY | os.O_NONBLOCK)
         self.addCleanup(os.close, started_descriptor)
         with selectors.DefaultSelector() as readiness:

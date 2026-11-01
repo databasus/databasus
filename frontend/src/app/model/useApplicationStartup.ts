@@ -21,12 +21,14 @@ export function useApplicationStartup() {
     const isCurrent = () => isSessionCurrent() && revision.current.IsCurrent(requestRevision);
     setIsLoading(true);
     setError(undefined);
+
     void diskApi
       .getDiskUsage()
       .then((disk) => {
         if (isCurrent()) setDiskUsage(disk);
       })
       .catch(() => {});
+
     try {
       const [currentUser, currentSettings, accessibleWorkspaces] = await Promise.all([
         userApi.getCurrentUser(),
@@ -142,6 +144,7 @@ export function useApplicationStartup() {
     (isAdmin ||
       (!!selectedWorkspace.currentUserRole &&
         selectedWorkspace.currentUserRole !== WorkspaceRole.VIEWER));
+
   return {
     user,
     settings,

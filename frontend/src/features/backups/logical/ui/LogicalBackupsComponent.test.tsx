@@ -201,6 +201,7 @@ describe('LogicalBackupsComponent', () => {
     ) {
       followedLinks.push({ href: this.href, download: this.download });
     });
+
     mockServer.use(
       mockApi.get('/backup-configs/{databaseId}', 200, backupConfigOfDatabase),
       mockBackupPages([{ items: [buildBackup('completed-backup', 'COMPLETED')] }], []),
@@ -232,6 +233,7 @@ describe('LogicalBackupsComponent', () => {
         mockBackupPages([{ items: [buildBackup('completed-backup', 'COMPLETED')] }], []),
         mockApi.post('/verifications', 409, buildProblem(code, 409)),
       );
+
       renderBackupList();
       await screen.findAllByText('Successful');
       fireEvent.click(screen.getAllByRole('img', { name: 'safety' })[0]);

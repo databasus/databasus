@@ -47,6 +47,7 @@ export const checkProjectDependencies = (
     const target = relative(root, dependency.target).split(sep).join('/');
     const importer = getLocation(source);
     const imported = getLocation(target);
+
     if (!LAYERS.includes(importer.layer) || !LAYERS.includes(imported.layer)) continue;
     const isHigher = LAYERS.indexOf(imported.layer) < LAYERS.indexOf(importer.layer);
     const isCrossSlice =
@@ -56,6 +57,7 @@ export const checkProjectDependencies = (
     if ((isHigher || isCrossSlice) && !coveredForbiddenOccurrences.has(dependency)) {
       findings.push({ rule: 'project/forbidden-dependency', source, target });
     }
+
     if (
       imported.slice !== null &&
       imported.slice !== importer.slice &&

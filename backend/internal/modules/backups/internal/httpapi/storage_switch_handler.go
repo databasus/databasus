@@ -34,6 +34,7 @@ func (h *Handler) ListStorageSwitches(
 	if err != nil {
 		return nil, err
 	}
+
 	page, err := h.switches.ListStorageSwitches(
 		ctx,
 		actor,
@@ -47,6 +48,7 @@ func (h *Handler) ListStorageSwitches(
 	if err != nil {
 		return nil, err
 	}
+
 	items := make([]StorageSwitch, 0, len(page.Items))
 	for _, outcome := range page.Items {
 		items = append(items, toStorageSwitch(outcome))

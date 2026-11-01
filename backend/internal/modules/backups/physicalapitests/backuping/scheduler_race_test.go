@@ -27,14 +27,17 @@ func TestSchedulePhysicalBackupDuringOrphanCleanup(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			team := newBackupState(t)
 			team.setSchedules(t, true)
+
 			transaction := team.App.BeginSQLTransaction(t)
 			transaction.ExecuteSQL(
 				t,
 				"SELECT pg_advisory_xact_lock(hashtextextended('physical-backup:' || ?::text,0))",
 				team.Database.Id,
 			)
+
 			finished := make(chan struct{}, 1)
 			go func() { team.App.RunJobPass(t, "backups_physical_scheduler"); finished <- struct{}{} }()
+
 			testwait.Until(t, "the scheduler waits on the held orphan cleanup lock", func(context.Context) error {
 				var waiting int64
 				team.App.QuerySQL(
@@ -47,6 +50,7 @@ func TestSchedulePhysicalBackupDuringOrphanCleanup(t *testing.T) {
 				}
 				return nil
 			})
+
 			assert.Empty(t, team.listBackups(t))
 			var runningBackups int64
 			team.App.QuerySQL(
@@ -56,6 +60,7 @@ func TestSchedulePhysicalBackupDuringOrphanCleanup(t *testing.T) {
 				team.Database.Id,
 			)
 			assert.Zero(t, runningBackups)
+
 			concurrentFullID := uuid.New()
 			if testCase.isFullCompletedWhileWaiting || testCase.isMismatchRecordedWhileWaiting {
 				status := "COMPLETED"
@@ -77,12 +82,14 @@ func TestSchedulePhysicalBackupDuringOrphanCleanup(t *testing.T) {
 					team.App.Clock.Now(),
 				)
 			}
+
 			transaction.Commit(t)
 			select {
 			case <-finished:
 			case <-t.Context().Done():
 				t.Fatal("scheduler did not finish after orphan cleanup committed")
 			}
+
 			if testCase.isFullCompletedWhileWaiting || testCase.isMismatchRecordedWhileWaiting {
 				backups := team.listBackups(t)
 				require.Len(t, backups, 1)
@@ -90,6 +97,7 @@ func TestSchedulePhysicalBackupDuringOrphanCleanup(t *testing.T) {
 				team.assertNoRunningBackup(t)
 				return
 			}
+
 			testwait.Until(t, "the dispatched full has a terminal outcome", func(context.Context) error {
 				backups := team.listBackups(t)
 				if len(backups) != 1 || backups[0].Status == "IN_PROGRESS" {
@@ -98,6 +106,7 @@ func TestSchedulePhysicalBackupDuringOrphanCleanup(t *testing.T) {
 				assert.Equal(t, "FULL", backups[0].Type)
 				return nil
 			})
+
 			team.assertNoRunningBackup(t)
 		})
 	}

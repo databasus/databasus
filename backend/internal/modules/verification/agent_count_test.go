@@ -22,6 +22,7 @@ func TestVerificationAgentCount(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, empty.JSON200)
 		assert.Zero(t, empty.JSON200.AgentCount)
+
 		unauthenticated, err := app.NewClient(t).GetVerificationAgentCountWithResponse(t.Context())
 		require.NoError(t, err)
 		requireProblem(
@@ -38,6 +39,7 @@ func TestVerificationAgentCount(t *testing.T) {
 		deleted, err := admin.Client.DeleteVerificationAgentWithResponse(t.Context(), deletedAgent.Agent.ID)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusNoContent, deleted.StatusCode())
+
 		count, err := member.Client.GetVerificationAgentCountWithResponse(t.Context())
 		require.NoError(t, err)
 		require.NotNil(t, count.JSON200)

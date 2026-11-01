@@ -13,6 +13,7 @@ describe('mockApi', () => {
       mockApi.get('/workspaces', 200, { items: [] }),
       mockApi.delete('/workspaces/{workspaceId}', 204, undefined),
     );
+
     expect(await (await fetch(`http://localhost${API_BASE_PATH}/workspaces`)).json()).toEqual({
       items: [],
     });
@@ -21,6 +22,7 @@ describe('mockApi', () => {
         await fetch(`http://localhost${API_BASE_PATH}/workspaces/id`, { method: 'DELETE' })
       ).text(),
     ).toBe('');
+
     server.use(mockApi.get('/workspaces', 403, buildProblem('permission_denied', 403)));
     expect((await fetch(`http://localhost${API_BASE_PATH}/workspaces`)).status).toBe(403);
   });
@@ -28,8 +30,10 @@ describe('mockApi', () => {
   it('exposes network failures, malformed bodies and controlled response release', async () => {
     server.use(mockApi.network('get', '/workspaces'));
     await expect(fetch('http://localhost/api/v1/workspaces')).rejects.toThrow();
+
     server.use(mockApi.malformed({ method: 'get', path: '/workspaces', status: 200, body: '{' }));
     await expect((await fetch('http://localhost/api/v1/workspaces')).json()).rejects.toThrow();
+
     const response = mockApi.delayed({
       method: 'get',
       path: '/workspaces',
@@ -37,6 +41,7 @@ describe('mockApi', () => {
       body: { items: [] },
     });
     server.use(response.handler);
+
     const request = fetch('http://localhost/api/v1/workspaces');
     response.release();
     expect(await (await request).json()).toEqual({ items: [] });
@@ -103,6 +108,7 @@ it('starts clean after cleanup rejects the unowned handler', async () => {
   expect(await (await fetch('http://localhost/api/v1/workspaces')).json()).toEqual({ items: [] });
 });`,
     });
+
     expect(child.code).not.toBe(0);
     expect(child.output).toContain(
       'HTTP cleanup timed out: pending handlers must use createPendingApiResponse',
@@ -130,6 +136,7 @@ it('starts clean after the failed request scenario', async () => {
   expect(await (await fetch('http://localhost/api/v1/workspaces')).json()).toEqual({ items: [] });
 });`,
     });
+
     expect(child.code).not.toBe(0);
     expect(child.output).toContain('deliberate pending fixture failure');
     expect(child.output).toContain('1 failed | 1 passed');

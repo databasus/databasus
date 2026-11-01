@@ -49,6 +49,7 @@ func (s *BackupLifecycle) Start(ctx context.Context, backup *Backup) (bool, erro
 		); err != nil {
 			return err
 		}
+
 		backup.Status = BackupStatusInProgress
 		var err error
 		isInserted, err = s.backups.InsertRunning(ctx, backup)
@@ -121,6 +122,7 @@ func (s *BackupLifecycle) transition(ctx context.Context, spec backupTransition)
 				); err != nil {
 					return err
 				}
+
 				if err := s.databases.RecordBackupSuccess(
 					ctx,
 					spec.Backup.DatabaseID,
@@ -128,19 +130,23 @@ func (s *BackupLifecycle) transition(ctx context.Context, spec backupTransition)
 				); err != nil {
 					return err
 				}
+
 				var err error
 				isChanged, err = s.backups.MarkCompleted(ctx, spec.Backup)
 				if err != nil {
 					return err
 				}
+
 				if !isChanged {
 					return errBackupSuperseded
 				}
+
 				return s.storages.ConfirmFileWrites(ctx, spec.Receipts)
 			})
 			if err == nil {
 				return nil
 			}
+
 			if !errors.Is(err, errBackupSuperseded) && !errors.Is(err, config.ErrStaleStoragePublication) {
 				return err
 			}
@@ -153,6 +159,7 @@ func (s *BackupLifecycle) transition(ctx context.Context, spec backupTransition)
 		case BackupStatusInProgress:
 			panic("terminal backup transition requires a terminal status")
 		}
+
 		if err != nil && !errors.Is(err, errBackupSuperseded) {
 			return err
 		}

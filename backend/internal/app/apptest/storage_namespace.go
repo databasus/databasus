@@ -25,6 +25,7 @@ func CreateStorageNamespace(t *testing.T, owner Session, workspaceID uuid.UUID) 
 
 	endpoint := containers.StartMinio(t)
 	address := fmt.Sprintf("%s:%d", endpoint.Host, endpoint.Port)
+
 	client, err := minio.New(address, &minio.Options{
 		Creds:  credentials.NewStaticV4(containers.MinioRootUser, containers.MinioRootPassword, ""),
 		Region: containers.MinioRegion,
@@ -66,11 +67,13 @@ func (namespace StorageNamespace) setEndpoint(t *testing.T, owner Session, endpo
 	response, err := owner.Client.GetStorageWithResponse(t.Context(), namespace.StorageID)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, response.StatusCode(), "%s", response.Body)
+
 	s3Settings, err := response.JSON200.Settings.AsS3StorageSettings()
 	require.NoError(t, err)
 	s3Settings.S3Endpoint = &endpoint
 	var settings apiclient.StorageSettings
 	require.NoError(t, settings.FromS3StorageSettings(s3Settings))
+
 	updated, err := owner.Client.UpdateStorageWithResponse(t.Context(), namespace.StorageID, apiclient.StorageUpdate{
 		Name: response.JSON200.Name, Settings: settings,
 	})

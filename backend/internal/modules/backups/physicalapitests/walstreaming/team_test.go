@@ -47,9 +47,11 @@ func newWalTeam(t *testing.T, spec walTeamSpec) *walTeam {
 	if image == "" {
 		image = "postgres:17"
 	}
+
 	var source containers.Endpoint
 	tunnel := apiclient.SshTunnelSettings{IsEnabled: false}
 	var connectionEndpoint containers.Endpoint
+
 	switch {
 	case spec.SourceEndpoint != nil:
 		source = *spec.SourceEndpoint
@@ -66,19 +68,23 @@ func newWalTeam(t *testing.T, spec walTeamSpec) *walTeam {
 		source = containers.StartPhysicalPostgres(t, image, spec.SourceOptions...)
 		connectionEndpoint = source
 	}
+
 	timings := backups.ProductionWalStreamTimings()
 	timings.ForcedRotationInterval = 2 * time.Second
 	if spec.Timings != nil {
 		timings = *spec.Timings
 	}
+
 	options := []apptest.Option{apptest.WithWalStreamTimings(timings)}
 	if !spec.IsWithoutLoops {
 		options = append(options, apptest.WithPhysicalBackupLoops())
 	}
+
 	testApp := apptest.New(t, options...)
 	owner := testApp.CreateAdmin(t)
 	workspace := apptest.CreateWorkspace(t, owner, "WAL streaming API")
 	storageID := testApp.CreateLocalStorage(t, owner, workspace.Id)
+
 	var settings apiclient.DatabaseSettings
 	physicalSettings := apiclient.PostgresqlPhysicalSettings{
 		Type:       apiclient.PostgresqlPhysicalSettingsTypePOSTGRESPHYSICAL,
@@ -90,12 +96,14 @@ func newWalTeam(t *testing.T, spec walTeamSpec) *walTeam {
 		SshTunnel:  tunnel,
 		BackupType: apiclient.PhysicalBackupTypeFULLINCREMENTALWALSTREAM,
 	}
+
 	if spec.IsMtls {
 		physicalSettings.SslMode = apiclient.PostgresqlSslModeVerifyCa
 		physicalSettings.SslClientCert = new(readMtlsFile(t, "client.crt"))
 		physicalSettings.SslClientKey = new(readMtlsFile(t, "client.key"))
 		physicalSettings.SslRootCert = new(readMtlsFile(t, "ca.crt"))
 	}
+
 	require.NoError(t, settings.FromPostgresqlPhysicalSettings(physicalSettings))
 	database := apptest.CreateDatabase(t, owner, workspace.Id, settings)
 	return &walTeam{
@@ -153,6 +161,7 @@ func (team *walTeam) openSource(t *testing.T) *pgx.Conn {
 			directory,
 		)
 	}
+
 	connection, err := pgx.Connect(t.Context(), dsn)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = connection.Close(context.WithoutCancel(t.Context())) })
@@ -250,8 +259,10 @@ func generateWal(t *testing.T, source *pgx.Conn, minimum int64) {
 	t.Helper()
 	_, err := source.Exec(t.Context(), "CREATE TABLE IF NOT EXISTS wal_api_activity(payload text)")
 	require.NoError(t, err)
+
 	var start string
 	require.NoError(t, source.QueryRow(t.Context(), "SELECT pg_current_wal_lsn()::text").Scan(&start))
+
 	for {
 		_, err = source.Exec(
 			t.Context(),

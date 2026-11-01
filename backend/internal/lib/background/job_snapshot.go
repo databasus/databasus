@@ -40,6 +40,7 @@ func (r *Runner) GetSnapshots() []JobSnapshot {
 			snapshot.LastCompletedAt = &completedAt
 		}
 		job.snapshotMutex.RUnlock()
+
 		snapshots = append(snapshots, snapshot)
 	}
 	slices.SortFunc(snapshots, func(first, second JobSnapshot) int {

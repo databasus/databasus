@@ -21,9 +21,11 @@ func TestLateWalStoragePublication(t *testing.T) {
 		team := newWalTeam(t, walTeamSpec{})
 		oldStorage := apptest.CreateStorageNamespace(t, team.Owner, team.Database.WorkspaceId)
 		team.StorageID = oldStorage.StorageID
+
 		otherInstance := team.App.StartConcurrentInstance(t)
 		otherOwner := team.Owner
 		otherOwner.Client = otherInstance.NewSessionClient(t, team.Owner.Token)
+
 		team.enable(t)
 		team.waitForReceiver(t)
 		source := team.openSource(t)
@@ -31,6 +33,7 @@ func TestLateWalStoragePublication(t *testing.T) {
 		team.waitForWal(t, 1)
 		team.App.WaitForPhysicalBackups(t)
 		team.App.PausePhysicalJobs(t)
+
 		registrationLock := team.App.BeginSQLTransaction(t)
 		lockKey := "storage-registration-" + uuid.NewString()
 		registrationLock.ExecuteSQL(t, "SELECT pg_advisory_xact_lock(hashtextextended(?,0))", lockKey)
@@ -43,6 +46,7 @@ func TestLateWalStoragePublication(t *testing.T) {
 			t,
 			`CREATE TRIGGER hold_wal_registration BEFORE INSERT ON storages_pending_deletions FOR EACH ROW EXECUTE FUNCTION hold_wal_registration()`,
 		)
+
 		rotateWal(t, source)
 		testwait.Until(t, "the old WAL writer pauses before registering its next file", func(context.Context) error {
 			var waiting int
@@ -54,6 +58,7 @@ func TestLateWalStoragePublication(t *testing.T) {
 			}
 			return nil
 		})
+
 		targetWorkspace := apptest.CreateWorkspace(t, otherOwner, "Late WAL files")
 		target := apptest.CreateStorageNamespace(t, otherOwner, targetWorkspace.Id)
 		operation := apptest.TransferToStorage(
@@ -65,6 +70,7 @@ func TestLateWalStoragePublication(t *testing.T) {
 				StorageID:   target.StorageID,
 			},
 		)
+
 		registrationLock.Commit(t)
 		var lateFiles []string
 		testwait.Until(
@@ -83,6 +89,7 @@ func TestLateWalStoragePublication(t *testing.T) {
 		for _, fileName := range lateFiles {
 			oldStorage.RequireFile(t, fileName)
 		}
+
 		var oldSegments int
 		team.App.QuerySQL(
 			t,
@@ -92,9 +99,11 @@ func TestLateWalStoragePublication(t *testing.T) {
 			oldStorage.StorageID,
 		)
 		assert.Zero(t, oldSegments)
+
 		outcome := apptest.GetStorageSwitch(t, team.Owner, operation.Id)
 		assert.Equal(t, operation.Total, outcome.Total)
 		assert.Equal(t, operation.CleanupDeadline, outcome.CleanupDeadline)
+
 		team.App.ResumePhysicalJobs(t)
 		testwait.Until(t, "independent cleanup removes the late writer files", func(context.Context) error {
 			team.App.RunJobPass(t, "storage_file_deletion")
@@ -111,6 +120,7 @@ func TestLateWalStoragePublication(t *testing.T) {
 			}
 			return nil
 		})
+
 		outcome = apptest.GetStorageSwitch(t, team.Owner, operation.Id)
 		assert.Equal(t, operation.Total, outcome.Total)
 		assert.Equal(t, operation.CleanupDeadline, outcome.CleanupDeadline)
@@ -123,28 +133,34 @@ func TestLateWalStoragePublication(t *testing.T) {
 		otherInstance := team.App.StartConcurrentInstance(t)
 		otherOwner := team.Owner
 		otherOwner.Client = otherInstance.NewSessionClient(t, team.Owner.Token)
+
 		team.enable(t)
 		team.waitForReceiver(t)
 		source := team.openSource(t)
 		rotateWal(t, source)
+
 		var oldFileName string
 		select {
 		case oldFileName = <-held.Started:
 		case <-t.Context().Done():
 			t.Fatal("the old WAL upload did not reach storage")
 		}
+
 		team.App.WaitForPhysicalBackups(t)
 		team.App.PausePhysicalJobs(t)
+
 		targetWorkspace := apptest.CreateWorkspace(t, otherOwner, "Concurrent WAL switch")
 		target := apptest.CreateStorageNamespace(t, otherOwner, targetWorkspace.Id)
 		operation := apptest.TransferToStorage(t, otherOwner, apptest.StorageSwitchTransfer{
 			DatabaseID: team.Database.Id, WorkspaceID: targetWorkspace.Id, StorageID: target.StorageID,
 		})
+
 		require.True(
 			t,
 			team.live(t).IsStreamerRunning,
 			"the accepting instance cannot cancel another instance's process",
 		)
+
 		var acceptedGeneration int
 		team.App.QuerySQL(
 			t,
@@ -153,6 +169,7 @@ func TestLateWalStoragePublication(t *testing.T) {
 			oldStorage.StorageID,
 			oldFileName,
 		)
+
 		var captured int
 		team.App.QuerySQL(
 			t,
@@ -174,15 +191,18 @@ func TestLateWalStoragePublication(t *testing.T) {
 			oldFileName,
 		)
 		require.Equal(t, "PENDING", capturedStatus, "a peer's active upload must remain protected from deletion")
+
 		outcomeWhileWriting := apptest.GetStorageSwitch(t, otherOwner, operation.Id)
 		assert.Equal(t, operation.Total, outcomeWhileWriting.Total)
 		assert.Positive(t, outcomeWhileWriting.Pending)
+
 		held.Release()
 		select {
 		case <-held.Finished:
 		case <-t.Context().Done():
 			t.Fatal("the held WAL upload did not finish")
 		}
+
 		testwait.Until(t, "the old upload is discarded without confirming its receipt", func(context.Context) error {
 			var generation int
 			team.App.QuerySQL(
@@ -217,6 +237,7 @@ func TestLateWalStoragePublication(t *testing.T) {
 				return nil
 			},
 		)
+
 		_, storageErr := oldStorage.Client.StatObject(
 			t.Context(),
 			oldStorage.Bucket,
@@ -225,6 +246,7 @@ func TestLateWalStoragePublication(t *testing.T) {
 		)
 		require.Error(t, storageErr)
 		assert.Equal(t, "NoSuchKey", minio.ToErrorResponse(storageErr).Code)
+
 		rotateWal(t, source)
 		observationEnds := time.Now().Add(5 * time.Second)
 		testwait.Until(
@@ -246,6 +268,7 @@ func TestLateWalStoragePublication(t *testing.T) {
 				return nil
 			},
 		)
+
 		require.True(t, team.live(t).IsStreamerRunning)
 		team.App.ResumePhysicalJobs(t)
 		rotateWal(t, source)
@@ -272,6 +295,7 @@ func TestLateWalStoragePublication(t *testing.T) {
 		for _, fileName := range newFiles {
 			target.RequireFile(t, fileName)
 		}
+
 		outcome := apptest.GetStorageSwitch(t, team.Owner, operation.Id)
 		assert.Equal(t, operation.Total, outcome.Total)
 		assert.Equal(t, operation.CleanupDeadline, outcome.CleanupDeadline)

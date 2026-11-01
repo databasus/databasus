@@ -113,6 +113,7 @@ func (a *App) GetVerification(tb testing.TB, member Session, id uuid.UUID) Verif
 	if response.JSON200 == nil {
 		tb.Fatalf("get verification: %d %s", response.StatusCode(), response.Body)
 	}
+
 	verification := response.JSON200
 	stats := make([]VerificationTableStat, len(verification.TableStats))
 	for index, stat := range verification.TableStats {

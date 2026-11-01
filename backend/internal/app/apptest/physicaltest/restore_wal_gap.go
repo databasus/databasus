@@ -25,6 +25,7 @@ func RunWalGap(t *testing.T, image string) {
 	team.enableBackups(t, true)
 	chain := team.waitForChain(t, 0)
 	team.streamPostFullSegments(t, conn, walArchiveSpec{Chain: chain, Count: 3})
+
 	var segmentIDs []uuid.UUID
 	team.App.QuerySQL(
 		t,
@@ -36,6 +37,7 @@ func RunWalGap(t *testing.T, image string) {
 	)
 	require.GreaterOrEqual(t, len(segmentIDs), 3)
 	team.App.ExecuteSQL(t, `DELETE FROM backups_physical_wal_segments WHERE id = ?`, segmentIDs[len(segmentIDs)/2])
+
 	testwait.Until(t, "the removed WAL segment appears as a gap", func(context.Context) error {
 		for _, wal := range team.listBackups(t, "WAL") {
 			if wal.HasGapBefore {
@@ -44,6 +46,7 @@ func RunWalGap(t *testing.T, image string) {
 		}
 		return fmt.Errorf("no WAL range reports a gap")
 	})
+
 	targetTime := sourceTime(t, conn)
 	var response apiclient.Problem
 	team.call(

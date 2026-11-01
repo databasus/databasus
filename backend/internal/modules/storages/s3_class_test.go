@@ -54,8 +54,10 @@ func TestS3StorageClassConnection(t *testing.T) {
 
 			writeHeaders := proxy.GetWriteHeaders()
 			require.Len(t, writeHeaders, 1, "a nonretryable rejection must not send another class")
+
 			savedSettings, err := getStorage(t, tm.owner, storage.Id).Settings.AsS3StorageSettings()
 			require.NoError(t, err)
+
 			if scenario.storageClass == nil || *scenario.storageClass == "" {
 				assert.NotContains(t, writeHeaders[0], "X-Amz-Storage-Class")
 				assert.Nil(t, savedSettings.S3StorageClass)

@@ -35,6 +35,7 @@ func TestLoadConfig(t *testing.T) {
 		require.NoError(t, os.Chmod(path, 0o644))
 		account, err := user.Current()
 		require.NoError(t, err)
+
 		for range 2 {
 			var stderr bytes.Buffer
 			handler := &warningHandler{}
@@ -45,14 +46,17 @@ func TestLoadConfig(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, "private-agent-token", cfg.Token)
 			require.Len(t, handler.records, 1)
+
 			record := handler.records[0]
 			var logOutput bytes.Buffer
 			logOutput.WriteString(record.Message)
 			record.Attrs(
 				func(attribute slog.Attr) bool { logOutput.WriteString(" " + attribute.Value.String()); return true },
 			)
+
 			assert.True(t, strings.HasPrefix(stderr.String(), "WARNING:"))
 			assert.True(t, strings.HasPrefix(record.Message, "warning:"))
+
 			for _, output := range []string{stderr.String(), logOutput.String()} {
 				for _, detail := range []string{
 					path, "0644", account.Username, os.ErrPermission.Error(),
@@ -72,13 +76,16 @@ func TestLoadConfig(t *testing.T) {
 			os.WriteFile("databasus-verification.json", []byte(`{"token":"private-agent-token"}`), 0o644),
 		)
 		require.NoError(t, os.Chmod("databasus-verification.json", 0o644))
+
 		var stderr bytes.Buffer
 		handler := &warningHandler{}
 		cfg, err := loadConfig(t.Context(), configLoadOptions{log: slog.New(handler), stderr: &stderr, chmod: os.Chmod})
 		require.NoError(t, err)
+
 		assert.Equal(t, "private-agent-token", cfg.Token)
 		assert.Empty(t, stderr.String())
 		assert.Empty(t, handler.records)
+
 		fileInfo, err := os.Stat("databasus-verification.json")
 		require.NoError(t, err)
 		assert.Equal(t, os.FileMode(0o600), fileInfo.Mode().Perm())

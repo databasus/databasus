@@ -17,11 +17,13 @@ export const checkFrontendArchitecture = async (root: string): Promise<Architect
   const diagnostics = await linter.run(root);
   const dependencies = getFrontendDependencies(root);
   const coveredForbiddenOccurrences = new Set<ReturnType<typeof getFrontendDependencies>[number]>();
+
   const primaryFindings = diagnostics
     .filter((diagnostic) => diagnostic.severity === 'error')
     .map((diagnostic) => {
       const startLine = diagnostic.location.start?.line;
       const startColumn = diagnostic.location.start?.column ?? 1;
+
       const dependency = dependencies
         .filter(
           (item) =>
@@ -37,8 +39,10 @@ export const checkFrontendArchitecture = async (root: string): Promise<Architect
             Math.abs(left.column - (diagnostic.location.start?.column ?? 0)) -
             Math.abs(right.column - (diagnostic.location.start?.column ?? 0)),
         )[0];
+
       if (dependency && diagnostic.ruleName === 'fsd/forbidden-imports')
         coveredForbiddenOccurrences.add(dependency);
+
       return {
         rule: diagnostic.ruleName,
         source: relative(root, diagnostic.location.path).split(sep).join('/'),
@@ -47,6 +51,7 @@ export const checkFrontendArchitecture = async (root: string): Promise<Architect
           : diagnostic.message.split(root).join('<source>'),
       };
     });
+
   const missingFindings = checkProjectDependencies(root, dependencies, coveredForbiddenOccurrences);
   return [...primaryFindings, ...missingFindings];
 };

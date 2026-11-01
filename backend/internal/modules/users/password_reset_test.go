@@ -137,8 +137,10 @@ func TestCompletePasswordReset(t *testing.T) {
 		pending := startTwoFactorSignIn(t, app, admin.Email)
 		pendingCode := readLatestMailedCode(t, app, admin.Email)
 		resetCode := requestResetCode(t, app, admin.Email)
+
 		completed := completePasswordReset(t, app, admin.Email, resetCode, resetPassword)
 		require.Equal(t, http.StatusNoContent, completed.StatusCode(), string(completed.Body))
+
 		verified := verifySignInCode(t, app, pending.PendingSignInId, pendingCode)
 		requireProblem(
 			t,
@@ -147,6 +149,7 @@ func TestCompletePasswordReset(t *testing.T) {
 			http.StatusGone,
 			apiclient.ProblemCodePendingSignInNotUsable,
 		)
+
 		freshPending := requireCodeRequired(t, signIn(t, app, admin.Email, resetPassword))
 		freshVerified := verifySignInCode(
 			t,

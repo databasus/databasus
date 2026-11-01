@@ -149,6 +149,7 @@ func (s *Service) collectActiveDatabases(
 			logicalIDs = append(logicalIDs, database.DatabaseID)
 		}
 	}
+
 	logicalBackups, err := s.deps.Backups.GetLatestCompletedLogicalBackups(ctx, logicalIDs)
 	if err != nil {
 		return nil, err
@@ -157,8 +158,10 @@ func (s *Service) collectActiveDatabases(
 	if err != nil {
 		return nil, err
 	}
+
 	for _, database := range allDatabases {
 		logicalBackup, hasLogicalBackup := logicalBackups[database.DatabaseID]
+
 		isActive := false
 		switch {
 		case database.HealthStatus != nil:
@@ -171,6 +174,7 @@ func (s *Service) collectActiveDatabases(
 		if !isActive {
 			continue
 		}
+
 		entry := buildDatabaseEntry(database)
 		if backupMethods[database.Type] == backups.MethodPhysical {
 			if backup, hasBackup := physicalBackups[database.DatabaseID]; hasBackup {
@@ -189,6 +193,7 @@ func (s *Service) collectActiveDatabases(
 				entry.RawSizeMb = int64(math.Ceil(logicalBackup.BackupRawDbSizeMb))
 			}
 		}
+
 		if config, hasConfig := enabledConfigsByDatabaseID[database.DatabaseID]; hasConfig {
 			entry.Verification = buildVerificationEntry(config)
 		}

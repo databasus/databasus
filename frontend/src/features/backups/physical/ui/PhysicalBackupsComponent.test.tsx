@@ -53,6 +53,7 @@ describe('PhysicalBackupsComponent', () => {
   it('keeps the current usage when an old refresh answers after the replacement list loads', async () => {
     const oldRefresh = createPendingApiResponse();
     let oldRequestCount = 0;
+
     server.use(
       mockApi.get('/backup-configs/{databaseId}', 200, config),
       http.get('*/api/v1/physical-backups', ({ request }) => {
@@ -65,15 +66,18 @@ describe('PhysicalBackupsComponent', () => {
           : oldRefresh.response;
       }),
     );
+
     vi.useFakeTimers();
     const view = renderScreen(
       <PhysicalBackupsComponent database={database} isCanManageDBs={false} />,
     );
+
     await waitForCondition(() => expect(screen.getByText(usageText(10))).toBeTruthy());
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1_000);
     });
     await waitForCondition(() => expect(oldRequestCount).toBe(2));
+
     view.rerender(
       <PhysicalBackupsComponent
         database={{ ...database, id: 'new-database' }}
@@ -81,15 +85,18 @@ describe('PhysicalBackupsComponent', () => {
       />,
     );
     await waitForCondition(() => expect(screen.getByText(usageText(30))).toBeTruthy());
+
     const oldResponseProcessed = new Promise<void>((resolve) => {
       server.events.on('response:mocked', ({ request }) => {
         if (new URL(request.url).searchParams.get('databaseId') === 'old-database') resolve();
       });
     });
+
     await act(async () => {
       oldRefresh.respond(HttpResponse.json({ items: [], totalUsageMb: 20 }));
       await oldResponseProcessed;
     });
+
     expect(screen.getByText(usageText(30))).toBeTruthy();
     expect(screen.queryByText(usageText(20))).toBeNull();
   });

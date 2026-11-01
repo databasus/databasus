@@ -19,7 +19,9 @@ func TestDatabaseEntry(t *testing.T) {
 			database := databases.TelemetryEntry{Type: databaseType}
 			database.Version = "server-version"
 			database.IsSSHTunnelEnabled = true
+
 			entry := buildDatabaseEntry(database)
+
 			assert.Equal(t, string(databaseType), entry.Type)
 			assert.Equal(t, "server-version", entry.Version)
 			assert.True(t, entry.IsSSHTunnelEnabled)
@@ -31,6 +33,7 @@ func TestDatabaseEntry(t *testing.T) {
 		encoded, err := json.Marshal(buildVerificationEntry(config))
 		require.NoError(t, err)
 		assert.NotContains(t, string(encoded), "intervalType")
+
 		encoded, err = json.Marshal(DatabaseEntry{Type: "MYSQL", Version: "8.4"})
 		require.NoError(t, err)
 		for _, field := range []string{"backupType", "backupSizeMb", "rawSizeMb", "verification"} {

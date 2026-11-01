@@ -122,8 +122,10 @@ test('renders WAL plots with positive measured dimensions and deterministic seri
     localStorage.setItem('databasus-locale', 'en');
     localStorage.setItem('databasus-theme', 'light');
   });
+
   await page.goto('/');
   await page.getByText('Monitoring', { exact: true }).click();
+
   const plot = page.locator('.recharts-surface').first();
   await expect(plot).toBeVisible();
   const box = await plot.boundingBox();

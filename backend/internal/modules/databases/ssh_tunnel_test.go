@@ -56,6 +56,7 @@ func TestDatabaseSSHTunnel(t *testing.T) {
 			assert.Equal(t, topology.Database.Host, createdLogical.Host)
 			assert.Equal(t, topology.Database.Port, createdLogical.Port)
 			assert.True(t, createdLogical.SshTunnel.IsEnabled)
+
 			readResponse, err := tm.owner.Client.GetDatabaseWithResponse(t.Context(), createdDatabase.Id)
 			require.NoError(t, err)
 			require.Equal(t, http.StatusOK, readResponse.StatusCode(), string(readResponse.Body))
@@ -65,6 +66,7 @@ func TestDatabaseSSHTunnel(t *testing.T) {
 			assert.Nil(t, readTunnel.PrivateKey)
 			assert.Nil(t, readTunnel.PrivateKeyPassphrase)
 			assert.Equal(t, new(containers.SSHBastionUsername), readTunnel.Username)
+
 			testResponse, err := tm.owner.Client.TestDatabaseWithResponse(t.Context(), createdDatabase.Id)
 			require.NoError(t, err)
 			require.Equal(t, http.StatusOK, testResponse.StatusCode(), string(testResponse.Body))
@@ -92,6 +94,7 @@ func TestDatabaseSSHTunnel(t *testing.T) {
 		logical.SshTunnel.Password = nil
 		logical.SshTunnel.PrivateKey = new(readBastionTestKey(t))
 		createdDatabase := tm.createDatabaseNamed(t, "Switching auth", fromLogicalSettings(t, logical))
+
 		switchedLogical := getLogicalSettings(t, createdDatabase)
 		switchedLogical.SshTunnel.AuthType = new(apiclient.SshAuthTypePASSWORD)
 		switchedLogical.SshTunnel.Password = new(containers.SSHBastionPassword)
@@ -118,6 +121,7 @@ func TestDatabaseSSHTunnel(t *testing.T) {
 		assert.Equal(t, new(topology.Bastion.Host), copiedTunnel.Host)
 		assert.Equal(t, new(topology.Bastion.Port), copiedTunnel.Port)
 		assert.Equal(t, new(containers.SSHBastionUsername), copiedTunnel.Username)
+
 		testResponse, err := tm.owner.Client.TestDatabaseWithResponse(t.Context(), copiedDatabase.Id)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, testResponse.StatusCode(), string(testResponse.Body))

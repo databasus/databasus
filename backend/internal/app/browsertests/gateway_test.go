@@ -23,6 +23,7 @@ func newGateway(t *testing.T, spec gatewaySpec) *httptest.Server {
 	backend, err := url.Parse(spec.backendURL)
 	require.NoError(t, err)
 	proxy := httputil.NewSingleHostReverseProxy(backend)
+
 	routes := http.NewServeMux()
 	routes.Handle("/api/", proxy)
 	routes.HandleFunc("/runtime-config.js", func(writer http.ResponseWriter, _ *http.Request) {
@@ -30,6 +31,7 @@ func newGateway(t *testing.T, spec gatewaySpec) *httptest.Server {
 		writer.Header().Set("Cache-Control", "no-store")
 		_, _ = writer.Write([]byte(`window.__RUNTIME_CONFIG__ = {IS_EMAIL_CONFIGURED: "true"};`))
 	})
+
 	files := http.FileServer(http.Dir(spec.outputDirectory))
 	routes.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 		candidate := filepath.Join(spec.outputDirectory, filepath.Clean("/"+request.URL.Path))
@@ -39,6 +41,7 @@ func newGateway(t *testing.T, spec gatewaySpec) *httptest.Server {
 		}
 		http.ServeFile(writer, request, filepath.Join(spec.outputDirectory, "index.html"))
 	})
+
 	gateway := httptest.NewServer(routes)
 	t.Cleanup(gateway.Close)
 	return gateway
@@ -57,6 +60,7 @@ func TestGateway(t *testing.T) {
 				0o600,
 			),
 		)
+
 		backend := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 			assert.Equal(t, "/api/v1/probe", request.URL.Path)
 			writer.WriteHeader(http.StatusAccepted)
@@ -68,12 +72,14 @@ func TestGateway(t *testing.T) {
 			require.NoError(t, err)
 			return http.DefaultClient.Do(request)
 		}
+
 		for _, path := range []string{"/", "/auth/callback", "/storages/google-oauth", "/unknown"} {
 			response, err := getResponse(gateway.URL + path)
 			require.NoError(t, err)
 			require.Equal(t, http.StatusOK, response.StatusCode)
 			require.NoError(t, response.Body.Close())
 		}
+
 		response, err := getResponse(gateway.URL + "/runtime-config.js")
 		require.NoError(t, err)
 		require.Equal(t, "application/javascript", response.Header.Get("Content-Type"))
@@ -82,9 +88,11 @@ func TestGateway(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusAccepted, response.StatusCode)
 		require.NoError(t, response.Body.Close())
+
 		other := newGateway(t, gatewaySpec{backendURL: backend.URL, outputDirectory: directory})
 		require.NotEqual(t, gateway.URL, other.URL)
 		gateway.Close()
+
 		response, err = getResponse(gateway.URL)
 		if response != nil {
 			require.NoError(t, response.Body.Close())

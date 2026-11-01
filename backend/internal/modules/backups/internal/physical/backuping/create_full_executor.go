@@ -69,6 +69,7 @@ func (uc *FullExecutor) Execute(ctx context.Context, spec FullBackupSpec) (execu
 				result.CompletedAt = spec.Clock.Now()
 			}
 		}()
+
 		streamResult, err := streamWithCodecFallback(ctx, streamAttemptSpec{
 			Common:                  spec.CommonBackupSpec,
 			BackupID:                spec.Backup.ID,

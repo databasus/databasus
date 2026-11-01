@@ -18,6 +18,7 @@ func TestSystemDiskUsage(t *testing.T) {
 		application := apptest.New(t)
 		admin := application.CreateAdmin(t)
 		member := application.CreateNonAdminUser(t, admin)
+
 		for _, session := range []apptest.Session{admin, member} {
 			response, err := session.Client.GetDiskUsageWithResponse(t.Context())
 			require.NoError(t, err)
@@ -26,11 +27,13 @@ func TestSystemDiskUsage(t *testing.T) {
 			assert.GreaterOrEqual(t, response.JSON200.UsedSpaceBytes, int64(0))
 			assert.LessOrEqual(t, response.JSON200.FreeSpaceBytes, response.JSON200.TotalSpaceBytes)
 		}
+
 		for _, client := range []*apiclient.ClientWithResponses{application.NewClient(t), application.NewSessionClient(t, "invalid")} {
 			response, err := client.GetDiskUsageWithResponse(t.Context())
 			require.NoError(t, err)
 			assert.Equal(t, http.StatusUnauthorized, response.StatusCode())
 		}
+
 		request, err := http.NewRequestWithContext(
 			t.Context(),
 			http.MethodGet,

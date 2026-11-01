@@ -69,6 +69,7 @@ func (b *Backuper) MakeBackup(ctx context.Context, backupID uuid.UUID, isCallNot
 	if !isFound || backup.Status != catalog.BackupStatusInProgress {
 		return
 	}
+
 	ctx = logging.With(ctx, slog.Any("database_id", backup.DatabaseID))
 	if err := background.RunRecovering(ctx, func(ctx context.Context) error {
 		if backup.Kind == catalog.BackupKindFull {
@@ -90,13 +91,16 @@ type backupRunSpec struct {
 func (b *Backuper) registerRun(spec backupRunSpec) (registeredBackupRun, bool) {
 	b.liveRunsMutex.Lock()
 	defer b.liveRunsMutex.Unlock()
+
 	if _, isRunning := b.liveDatabaseIDs[spec.DatabaseID]; isRunning {
 		return registeredBackupRun{}, false
 	}
+
 	b.liveDatabaseIDs[spec.DatabaseID] = struct{}{}
 	runCtx, cancel, finish := runcontext.New(b.appCtx, runcontext.Limits{Shutdown: runcontext.ErrBackupShutdown})
 	runCtx = logging.With(runCtx, slog.Any("backup_id", spec.BackupID))
 	b.taskCancellationRegistry.Register(spec.BackupID, cancel)
+
 	var finishOnce sync.Once
 	return registeredBackupRun{Context: runCtx, BackupID: spec.BackupID, Finish: func() {
 		finishOnce.Do(func() {
@@ -521,6 +525,7 @@ func (b *Backuper) persistResult(
 	if backup.ManifestFileName == nil {
 		backup.ManifestFileName = nilOrPtr(backupResult.ManifestFileName)
 	}
+
 	var err error
 	var isChanged bool
 	switch backupResult.Status {
@@ -604,11 +609,13 @@ func (b *Backuper) finalizeWithStatus(
 			ManifestFileName: derefString(backup.ManifestFileName),
 		},
 	)
+
 	cleanupCtx := context.WithoutCancel(ctx)
 	if err := b.persistResult(cleanupCtx, backup, backupResult, nil); err != nil {
 		b.logger.ErrorContext(cleanupCtx, "failed to record physical backup failure", slog.Any("error", err))
 		return
 	}
+
 	if errors.Is(context.Cause(ctx), runcontext.ErrBackupShutdown) {
 		backupConfig, err := b.configs.GetPhysicalBackupConfig(cleanupCtx, backup.DatabaseID)
 		if err != nil {

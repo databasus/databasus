@@ -17,6 +17,7 @@ func TestHealthcheckProbe(t *testing.T) {
 		team := newHealthcheckTeam(t)
 		failedMessages := recordNotifications(t, team, apiclient.NotificationCategoryHEALTHCHECKFAILED)
 		recoveryMessages := recordNotifications(t, team, apiclient.NotificationCategoryHEALTHCHECKSUCCESS)
+
 		var port int
 		team.App.QuerySQL(
 			t,
@@ -24,6 +25,7 @@ func TestHealthcheckProbe(t *testing.T) {
 			"SELECT port FROM databases_postgresql_logical WHERE database_id = ?",
 			team.Database.Id,
 		)
+
 		team.makeUnreachable(t)
 		for attempt := 1; attempt <= 4; attempt++ {
 			team.pass(t)
@@ -39,6 +41,7 @@ func TestHealthcheckProbe(t *testing.T) {
 			assert.Empty(t, recoveryMessages)
 			team.App.Clock.Advance(time.Minute)
 		}
+
 		assert.Contains(t, <-failedMessages, team.Database.Name)
 		team.App.ExecuteSQL(
 			t,
@@ -46,11 +49,13 @@ func TestHealthcheckProbe(t *testing.T) {
 			port,
 			team.Database.Id,
 		)
+
 		team.pass(t)
 		assert.Equal(t, new(apiclient.DatabaseHealthStatusAVAILABLE), team.getHealthStatus(t))
 		assert.Empty(t, failedMessages)
 		require.Len(t, recoveryMessages, 1)
 		assert.Contains(t, <-recoveryMessages, "online")
+
 		team.App.Clock.Advance(time.Minute)
 		team.pass(t)
 		assert.Empty(t, failedMessages)
@@ -65,6 +70,7 @@ func TestHealthcheckProbe(t *testing.T) {
 			"SELECT port FROM databases_postgresql_logical WHERE database_id = ?",
 			team.Database.Id,
 		)
+
 		team.makeUnreachable(t)
 		team.pass(t)
 		team.App.Clock.Advance(time.Minute)
@@ -80,6 +86,7 @@ func TestHealthcheckProbe(t *testing.T) {
 			team.App.Clock.Advance(time.Minute)
 			team.pass(t)
 		}
+
 		assert.Equal(t, new(apiclient.DatabaseHealthStatusAVAILABLE), team.getHealthStatus(t))
 		assert.Len(t, team.getAttempts(t), 4)
 	})
@@ -88,6 +95,7 @@ func TestHealthcheckProbe(t *testing.T) {
 		messages := recordNotifications(t, team)
 		team.pass(t)
 		assert.Empty(t, messages)
+
 		input := configInput(team.getConfig(t))
 		input.IsHealthcheckEnabled = false
 		team.saveConfig(t, input)
@@ -95,6 +103,7 @@ func TestHealthcheckProbe(t *testing.T) {
 		team.App.Clock.Advance(time.Minute)
 		team.pass(t)
 		assert.Len(t, team.getAttempts(t), 1)
+
 		input.IsHealthcheckEnabled = true
 		team.saveConfig(t, input)
 		team.pass(t)
@@ -107,9 +116,11 @@ func TestHealthcheckProbe(t *testing.T) {
 		input := configInput(team.getConfig(t))
 		input.FailedAttemptsBeforeUnavailable = 1
 		team.saveConfig(t, input)
+
 		team.makeUnreachable(t)
 		team.pass(t)
 		assert.Equal(t, new(apiclient.DatabaseHealthStatusUNAVAILABLE), team.getHealthStatus(t))
+
 		input.IsHealthcheckEnabled = false
 		team.saveConfig(t, input)
 		assert.Nil(t, team.getHealthStatus(t))
@@ -124,6 +135,7 @@ func TestHealthcheckProbe(t *testing.T) {
 		input.FailedAttemptsBeforeUnavailable = 1
 		input.IsNotificationEnabled = false
 		team.saveConfig(t, input)
+
 		team.makeUnreachable(t)
 		team.pass(t)
 		assert.Equal(t, new(apiclient.DatabaseHealthStatusUNAVAILABLE), team.getHealthStatus(t))
@@ -135,12 +147,15 @@ func TestHealthcheckProbe(t *testing.T) {
 		input.IntervalMinutes = 5
 		team.saveConfig(t, input)
 		team.pass(t)
+
 		team.App.Clock.Advance(4 * time.Minute)
 		team.pass(t)
 		assert.Len(t, team.getAttempts(t), 1)
+
 		team.App.Clock.Advance(59 * time.Second)
 		team.pass(t)
 		assert.Len(t, team.getAttempts(t), 2)
+
 		team.App.Clock.Advance(5 * time.Minute)
 		team.pass(t)
 		assert.Len(t, team.getAttempts(t), 3)
@@ -151,6 +166,7 @@ func TestHealthcheckProbe(t *testing.T) {
 		team.App.Clock.Advance(7 * 24 * time.Hour)
 		team.pass(t)
 		assert.Len(t, team.getAttempts(t), 2)
+
 		team.App.Clock.Advance(24 * time.Hour)
 		team.pass(t)
 		attempts := team.getAttempts(t)
@@ -163,10 +179,12 @@ func TestHealthcheckProbe(t *testing.T) {
 		input := configInput(team.getConfig(t))
 		input.FailedAttemptsBeforeUnavailable = 1
 		team.saveConfig(t, input)
+
 		team.App.ExecuteSQL(
 			t,
 			"ALTER TABLE databases ADD CONSTRAINT ck_healthcheck_status_failure CHECK (health_status <> 'UNAVAILABLE')",
 		)
+
 		team.makeUnreachable(t)
 		team.pass(t)
 		assert.Empty(t, team.getAttempts(t))

@@ -33,6 +33,7 @@ func TestVerificationAgentHealth(t *testing.T) {
 			app := apptest.New(t)
 			admin := app.CreateAdmin(t)
 			agent := app.CreateVerificationAgent(t, admin)
+
 			if scenario.isOld {
 				app.Clock.Advance(6 * time.Minute)
 			}
@@ -48,9 +49,11 @@ func TestVerificationAgentHealth(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, http.StatusNoContent, deleted.StatusCode())
 			}
+
 			app.RunJobPass(t, "backups_logical_scheduler")
 			response, err := app.NewClient(t).GetInstanceHealthWithResponse(t.Context())
 			require.NoError(t, err)
+
 			var checks []apiclient.HealthCheck
 			if response.JSON200 != nil {
 				checks = response.JSON200.Checks
@@ -58,6 +61,7 @@ func TestVerificationAgentHealth(t *testing.T) {
 				require.NotNil(t, response.ApplicationproblemJSON503, string(response.Body))
 				checks = response.ApplicationproblemJSON503.Checks
 			}
+
 			assert.NotContains(t, string(response.Body), agent.Token)
 			assert.NotContains(t, string(response.Body), agent.Agent.ID.String())
 

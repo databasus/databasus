@@ -40,6 +40,7 @@ describe('StorageSwitchHistoryComponent', () => {
   it('discovers a pending switch after reload and polls until the remaining files are reported', async () => {
     let statusReads = 0;
     const scheduled = vi.spyOn(globalThis, 'setTimeout');
+
     mockServer.use(
       http.get(`*${API_BASE_PATH}/storage-switches`, ({ request }) => {
         const query = new URL(request.url).searchParams;
@@ -55,12 +56,14 @@ describe('StorageSwitchHistoryComponent', () => {
         return HttpResponse.json(completed);
       }),
     );
+
     const view = renderScreen(
       <StorageSwitchHistoryComponent
         workspaceId={operation.workspaceId}
         databaseId={operation.databaseId}
       />,
     );
+
     expect(
       await screen.findByText('Storage switched. Old files are being cleaned up.'),
     ).toBeTruthy();
@@ -74,6 +77,7 @@ describe('StorageSwitchHistoryComponent', () => {
     ).toBeTruthy();
     expect(screen.getByText('Files: 3. Pending: 0. Deleted: 2. Remaining: 1.')).toBeTruthy();
     expect(statusReads).toBe(2);
+
     view.unmount();
     scheduled.mockRestore();
   });
@@ -94,12 +98,14 @@ describe('StorageSwitchHistoryComponent', () => {
         return HttpResponse.json(completed);
       }),
     );
+
     renderScreen(
       <StorageSwitchHistoryComponent
         workspaceId={operation.workspaceId}
         initialOperation={operation}
       />,
     );
+
     fireEvent.click(await screen.findByRole('button', { name: 'Retry status' }));
     expect(screen.getByText('Files: 3. Pending: 3. Deleted: 0. Remaining: 0.')).toBeTruthy();
     expect(await screen.findByText('Files: 3. Pending: 0. Deleted: 2. Remaining: 1.')).toBeTruthy();
@@ -123,7 +129,9 @@ describe('StorageSwitchHistoryComponent', () => {
         );
       }),
     );
+
     renderScreen(<StorageSwitchHistoryComponent workspaceId={operation.workspaceId} />);
+
     expect(await screen.findByText('Database: deleted-database')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Show more' }));
     expect(await screen.findByText('Database: another-deleted-database')).toBeTruthy();
@@ -136,13 +144,16 @@ describe('StorageSwitchHistoryComponent', () => {
     const scheduled = vi.spyOn(globalThis, 'setTimeout');
     const cleared = vi.spyOn(globalThis, 'clearTimeout');
     mockServer.use(mockApi.get('/storage-switches', 200, { items: [operation] }));
+
     const view = renderScreen(
       <StorageSwitchHistoryComponent workspaceId={operation.workspaceId} />,
     );
     await screen.findByText('Storage switched. Old files are being cleaned up.');
+
     const pollIndex = scheduled.mock.calls.findIndex((call) => call[1] === 2000);
     expect(pollIndex).toBeGreaterThanOrEqual(0);
     const pollTimer = scheduled.mock.results[pollIndex].value;
+
     view.unmount();
     expect(cleared).toHaveBeenCalledWith(pollTimer);
     scheduled.mockRestore();

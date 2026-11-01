@@ -33,6 +33,7 @@ func TestCreateNotifier(t *testing.T) {
 		assert.Equal(t, "Ops chat", response.JSON201.Name)
 		assert.Equal(t, tm.workspace.Id, response.JSON201.WorkspaceId)
 		assert.Equal(t, "Ops chat", getNotifier(t, tm.owner, response.JSON201.Id).Name)
+
 		createdTelegram, err := response.JSON201.Settings.AsTelegramNotifierSettings()
 		require.NoError(t, err)
 		assert.Equal(t, apiclient.TelegramNotifierSettingsTypeTELEGRAM, createdTelegram.Type)

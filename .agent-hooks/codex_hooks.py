@@ -23,6 +23,7 @@ def get_project_hooks(executable, root):
         try:
             process.stdin.write(("\n".join(json.dumps(request) for request in requests) + "\n").encode())
             process.stdin.flush()
+
             deadline = time.monotonic() + 10
             pending = b""
             answers = {}
@@ -37,6 +38,7 @@ def get_project_hooks(executable, root):
                     pending += chunk
                     if len(pending) > 1024 * 1024:
                         raise ValueError("app-server response exceeded the inspection limit")
+
                     while b"\n" in pending:
                         line, pending = pending.split(b"\n", 1)
                         response = json.loads(line)
@@ -45,6 +47,7 @@ def get_project_hooks(executable, root):
                         if 2 in answers and 3 in answers:
                             features = answers[3]["config"].get("features") or {}
                             return answers[2]["data"], features.get("hooks", True)
+
             raise ValueError("hooks/list did not answer within 10 seconds")
         finally:
             process.terminate()
@@ -66,17 +69,20 @@ def check_project_hooks(executable, root):
             for event, groups in configuration["hooks"].items()
             for group in groups for hook in group["hooks"]
         ]
+
         entries, is_enabled = get_project_hooks(executable, root)
         if not is_enabled:
             print("Codex project hooks: features.hooks is disabled")
             return False
         if not configured_hooks or any(entry.get("errors") for entry in entries):
             raise ValueError("project hook configuration is empty or invalid")
+
         loaded_hooks = {
             (hook["eventName"], hook["command"]): hook
             for entry in entries for hook in entry["hooks"]
             if Path(hook["sourcePath"]) == configuration_path
         }
+
         failures = []
         for event, command in configured_hooks:
             hook = loaded_hooks.get((event, command))
@@ -86,6 +92,7 @@ def check_project_hooks(executable, root):
                 failures.append(f"{event}: disabled")
             elif hook["trustStatus"] != "trusted":
                 failures.append(f"{event}: {hook['trustStatus']}")
+
         if failures:
             print("Codex project hooks: " + "; ".join(failures))
             print("Open Codex in this project and use /hooks to inspect and approve its hooks; also check project trust and features.hooks.")

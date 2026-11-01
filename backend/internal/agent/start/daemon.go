@@ -131,6 +131,7 @@ func pollProcess(ctx context.Context, spec processPoll) error {
 	defer ticker.Stop()
 	deadline := time.NewTimer(spec.duration)
 	defer deadline.Stop()
+
 	for {
 		isAlive := isProcessAlive(spec.pid)
 		if !isAlive {
@@ -139,6 +140,7 @@ func pollProcess(ctx context.Context, spec processPoll) error {
 			}
 			return nil
 		}
+
 		select {
 		case <-ctx.Done():
 			return ctx.Err()

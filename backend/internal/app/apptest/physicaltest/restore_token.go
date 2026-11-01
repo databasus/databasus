@@ -46,6 +46,7 @@ func (team Team) downloadRestoreBundle(t *testing.T, targetTime *time.Time) stri
 	response := team.App.OpenPhysicalAPI(t, apptest.Session{}, apptest.PhysicalDownloadRequest(token))
 	defer func() { _ = response.Body.Close() }()
 	require.Equal(t, http.StatusOK, response.StatusCode)
+
 	destination, err := os.Create(hostPath)
 	require.NoError(t, err)
 	defer func() { _ = destination.Close() }()

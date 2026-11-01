@@ -209,6 +209,7 @@ class TestScriptTestCase(unittest.TestCase):
         script = self.start_script()
         _, errors = script.communicate(timeout=30)
         self.assertEqual(script.returncode, 0, errors)
+
         selection = self.find_call("go selection")
         self.assertIn("databasus-backend/internal/lib/ordinary", selection[1])
         self.assertNotIn("browsertests", selection[1])
@@ -283,6 +284,7 @@ class TestScriptTestCase(unittest.TestCase):
         self.assertNotEqual(exit_status, 0)
         docker_calls = [recorded_call[1] for recorded_call in self.read_calls() if recorded_call[1].startswith("docker")]
         listing_calls = [docker_call for docker_call in docker_calls if " ps " in docker_call or " ls " in docker_call]
+
         self.assertIn(f"docker ps -aq --filter {RUN_LABEL_FILTER}{run_id}", listing_calls)
         self.assertIn(f"docker network ls -q --filter {RUN_LABEL_FILTER}{run_id}", listing_calls)
         self.assertIn(f"docker volume ls -q --filter {RUN_LABEL_FILTER}{run_id}", listing_calls)
@@ -298,10 +300,12 @@ class TestScriptTestCase(unittest.TestCase):
             start_new_session=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
         )
         self.addCleanup(self.stop_script, package_run)
+
         self.wait_for_call("go test")
         script = self.start_script()
         exit_status, _, stderr = self.finish_script(script)
         self.assertEqual(exit_status, 0, stderr)
+
         self.assertIsNone(package_run.poll())
         self.assertIsNone(self.find_call("go run"))
         self.assertFalse(any("cleanup_test_db" in call for _, call in self.read_calls()))

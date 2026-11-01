@@ -66,10 +66,12 @@ export function EditStorageComponent({
         placement: 'bottomRight',
       }),
   });
+
   useEffect(
     () => () => notices.destroy(noticeId),
     [notices, noticeId, workspaceId, editingStorage?.id],
   );
+
   const {
     name,
     settings,
@@ -81,6 +83,7 @@ export function EditStorageComponent({
     save,
     testConnection,
   } = form;
+
   const isTestingConnection = form.isTesting;
   const isTestConnectionSuccess = form.isTested;
   const connectionError = form.error?.kind === 'connection' ? form.error.diagnostic : undefined;

@@ -55,6 +55,7 @@ func (s *Source) ReceiveWal(ctx context.Context, spec WalReceiverSpec) WalReceiv
 		)
 		return WalReceiverExit{Disposition: WalReceiverRetryable}
 	}
+
 	creds, err := pgshared.WriteCredentialFilesToTempDir(s.settings.GetCredentialSpec(), s.settings.Password)
 	if err != nil {
 		spec.Logger.ErrorContext(ctx, "write pg_receivewal credentials", slog.Any("error", err))
@@ -96,7 +97,9 @@ func (s *Source) ReceiveWal(ctx context.Context, spec WalReceiverSpec) WalReceiv
 	if spec.OnStarted != nil {
 		spec.OnStarted()
 	}
+
 	spec.Logger.InfoContext(ctx, "pg_receivewal started", slog.String("watch_dir", spec.WatchDir))
+
 	waitErr := running.Wait()
 	ranFor := spec.Clock.Now().Sub(startedAt)
 	if ctx.Err() != nil {

@@ -16,6 +16,7 @@ describe('Style baseline comparison', () => {
       owner: 'notifiers',
       removalMilestone: '4',
     }));
+
     expect(
       compareStyleBaseline({ findings: check({ content: `\n\n${content}` }), baseline }),
     ).toEqual([]);

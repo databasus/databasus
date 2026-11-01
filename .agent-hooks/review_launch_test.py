@@ -16,7 +16,9 @@ class ReviewLaunchTest(unittest.TestCase):
                 with self.subTest(client=client, missing=missing):
                     repository = fixtures.HookRepository(self, missing_tools=missing, is_path_isolated=True)
                     repository.environment["AGENT_REVIEW_CLIENT"] = client
+
                     process = repository.run_doctor()
+
                     self.assertEqual(process.returncode, 1 if client in missing else 0, process.stdout + process.stderr)
                     self.assertIn(f"Review client: {client}", process.stdout)
                     self.assertIn(f"{client}:", process.stdout)
@@ -35,7 +37,9 @@ class ReviewLaunchTest(unittest.TestCase):
                             launcher.set_mise_answer("ls", stdout=fixtures.MISSING_OPENSPEC_LINE)
                         if failure == "success":
                             launcher.set_mise_answer("exec", stdout="{}")
+
                         process = launcher.run(action, "--client", client)
+
                         if failure == "success":
                             self.assertEqual(process.returncode, 0, process.stderr)
                             [call] = launcher.mise_calls("exec")
@@ -64,18 +68,22 @@ class ReviewLaunchTest(unittest.TestCase):
                         f"{key} = {json.dumps(value)}" for key, value in task.items()) + "\n"
                     repository.write("mise.toml", task_config)
                     repository.complete_tasks()
+
                     repository.environment["MISE_TRUSTED_CONFIG_PATHS"] = str(repository.root)
                     repository.environment["MISE_YES"] = "1"
                     repository.environment.pop("AGENT_REVIEW_CLIENT", None)
                     if inherited is not None:
                         repository.environment["AGENT_REVIEW_CLIENT"] = inherited
+
                     arguments = [mise_path, "run", action]
                     if action == "review":
                         arguments.append(CHANGE_NAME)
                     if explicit is not None:
                         arguments.extend(["--client", explicit])
+
                     process = subprocess.run(arguments, cwd=repository.root, env=repository.environment,
                                              stdin=subprocess.DEVNULL, text=True, capture_output=True)
+
                     self.assertEqual(process.returncode, 0 if selected else 2, process.stdout + process.stderr)
                     if selected:
                         self.assertIn(f"Review client: {selected}", process.stdout)

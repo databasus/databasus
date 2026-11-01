@@ -33,6 +33,7 @@ func TestWarnConfigPermissions(t *testing.T) {
 			}, configWarningOutput{
 				log: slog.New(slog.NewTextHandler(&logOutput, nil)), stderr: &stderr,
 			})
+
 			for _, output := range []string{stderr.String(), logOutput.String()} {
 				for _, detail := range []string{
 					"/agent/databasus-verification.json", "0644", "file-owner", os.ErrPermission.Error(),
@@ -46,6 +47,7 @@ func TestWarnConfigPermissions(t *testing.T) {
 					assert.NotContains(t, output, "chown")
 				}
 			}
+
 			require.Contains(t, logOutput.String(), "warning: agent config file is readable by other users")
 			assert.Contains(t, stderr.String(), "WARNING:")
 		})

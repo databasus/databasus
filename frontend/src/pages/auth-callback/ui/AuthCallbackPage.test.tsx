@@ -39,10 +39,12 @@ describe('AuthCallbackPage', () => {
         '',
         `/auth/callback?code=private-code&state=${state}&error_description=private-description`,
       );
+
       renderScreen(<AuthCallbackPage />, {
         route: `/auth/callback?code=private-code&state=${state}`,
         isStrictMode: true,
       });
+
       await waitFor(() => expect(getSessionSnapshot().token).toBe(session.token));
       expect(server.getRequests()).toHaveLength(1);
       expect(await server.getRequests()[0].json()).toEqual({
@@ -53,6 +55,7 @@ describe('AuthCallbackPage', () => {
       expect(window.location.search).toBe('');
     },
   );
+
   it.each([
     { name: 'missing code', query: `state=${state}`, record: {} },
     { name: 'missing state', query: 'code=private-code', record: {} },
@@ -86,6 +89,7 @@ describe('AuthCallbackPage', () => {
     expect(server.getRequests()).toHaveLength(0);
     expect(getSessionSnapshot().token).toBeUndefined();
   });
+
   it.each(['missing', 'malformed', 'consumed'])(
     'offers recovery when attempt metadata is %s',
     async (mode) => {
@@ -101,6 +105,7 @@ describe('AuthCallbackPage', () => {
       expect(server.getRequests()).toHaveLength(0);
     },
   );
+
   it('requires a new attempt when the provider exchange is refused', async () => {
     storeAttempt();
     server.use(mockApi.post('/github-sessions', 403, buildProblem('permission_denied', 403)));
@@ -108,11 +113,13 @@ describe('AuthCallbackPage', () => {
       route: `/auth/callback?code=private-code&state=${state}`,
       isStrictMode: true,
     });
+
     await screen.findByText('You do not have permission to do this.');
     view.rerender(<AuthCallbackPage />);
     expect(server.getRequests()).toHaveLength(1);
     expect(sessionStorage.getItem(attemptKey)).toBeNull();
   });
+
   it.each([
     { mode: 'unmount', isRefused: false },
     { mode: 'replacement', isRefused: false },
@@ -131,14 +138,17 @@ describe('AuthCallbackPage', () => {
           })
         : mockApi.delayed({ method: 'post', path: '/github-sessions', status: 200, body: session });
       server.use(exchange.handler);
+
       const view = renderScreen(<AuthCallbackPage />, {
         route: `/auth/callback?code=private-code&state=${state}`,
         isStrictMode: true,
       });
       await waitFor(() => expect(server.getRequests()).toHaveLength(1));
+
       const provider = document.querySelector('.ant-app');
       if (mode === 'unmount') view.rerender(<div>Callback closed</div>);
       else activateSession({ token: 'new-session', userId: 'new-owner' });
+
       const responded = new Promise<void>((resolve) =>
         server.events.on('response:mocked', () => resolve()),
       );
@@ -146,6 +156,7 @@ describe('AuthCallbackPage', () => {
         exchange.release();
         await responded;
       });
+
       expect(getSessionSnapshot().token).toBe(mode === 'unmount' ? undefined : 'new-session');
       expect(document.querySelector('.ant-app')).toBe(provider);
       expect(screen.queryByText(DICTIONARIES.en.app.oauthCallback.failedTitle)).toBeNull();
@@ -193,14 +204,17 @@ it.each([false, true])(
       body: { ...session, token: 'replacement-session' },
     });
     server.use(oldExchange.handler, replacementExchange.handler);
+
     const view = renderScreen(<ReplaceableCallback />, {
       route: `/auth/callback?code=old-code&state=${state}`,
       isStrictMode: true,
     });
     await waitFor(() => expect(server.getRequests()).toHaveLength(1));
+
     storeAttempt({ state: 'b'.repeat(64), provider: 'google' });
     await view.user.click(screen.getByRole('button', { name: 'Open replacement callback' }));
     await waitFor(() => expect(server.getRequests()).toHaveLength(2));
+
     const processed = new Promise<void>((resolve) =>
       server.events.on('response:mocked', () => resolve()),
     );
@@ -208,10 +222,12 @@ it.each([false, true])(
       oldExchange.release();
       await processed;
     });
+
     expect(getSessionSnapshot().token).toBeUndefined();
     expect(screen.queryByText(DICTIONARIES.en.app.oauthCallback.failedTitle)).toBeNull();
     expect(screen.queryByText(DICTIONARIES.en.errors.permissionDenied)).toBeNull();
     expect(screen.getByText(DICTIONARIES.en.app.oauthCallback.completing)).toBeTruthy();
+
     replacementExchange.release();
     await waitFor(() => expect(getSessionSnapshot().token).toBe('replacement-session'));
     expect(server.getRequests()).toHaveLength(2);

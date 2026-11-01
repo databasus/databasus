@@ -21,6 +21,7 @@ func TestHealthcheckAttemptList(t *testing.T) {
 		team := newHealthcheckTeam(t)
 		now := team.App.Clock.Now()
 		attemptIDs := make([]uuid.UUID, 5)
+
 		for index := range attemptIDs {
 			attemptIDs[index] = uuid.New()
 			team.App.ExecuteSQL(
@@ -31,12 +32,14 @@ func TestHealthcheckAttemptList(t *testing.T) {
 				now.Add(time.Duration(index-4)*time.Hour),
 			)
 		}
+
 		team.App.ExecuteSQL(t, "UPDATE healthcheck_attempts SET created_at = ? WHERE id = ?", now, attemptIDs[3])
 		params := apiclient.ListHealthcheckAttemptsParams{
 			DatabaseId: team.Database.Id,
 			Since:      now.Add(-4 * time.Hour),
 			Limit:      new(2),
 		}
+
 		listed := []apiclient.HealthcheckAttempt{}
 		for {
 			response, err := team.Owner.Client.ListHealthcheckAttemptsWithResponse(t.Context(), &params)
@@ -51,6 +54,7 @@ func TestHealthcheckAttemptList(t *testing.T) {
 			params.After = response.JSON200.NextCursor
 			require.Less(t, len(listed), 7)
 		}
+
 		require.Len(t, listed, 5)
 		ids := map[uuid.UUID]bool{}
 		for index, attempt := range listed {
@@ -65,6 +69,7 @@ func TestHealthcheckAttemptList(t *testing.T) {
 				)
 			}
 		}
+
 		params.Since = now.Add(-time.Hour)
 		params.Limit = nil
 		params.After = nil
@@ -80,6 +85,7 @@ func TestHealthcheckAttemptList(t *testing.T) {
 	t.Run("rejects a request with an invalid page size or cursor", func(t *testing.T) {
 		team := newHealthcheckTeam(t)
 		missingCursor := (database.TimeCursor{Time: team.App.Clock.Now(), ID: uuid.New()}).Encode()
+
 		for _, params := range []apiclient.ListHealthcheckAttemptsParams{
 			{DatabaseId: team.Database.Id, Since: time.Unix(0, 0).UTC(), After: new("foreign")},
 			{DatabaseId: team.Database.Id, Since: time.Unix(0, 0).UTC(), After: &missingCursor},
@@ -98,6 +104,7 @@ func TestHealthcheckAttemptList(t *testing.T) {
 				},
 			)
 		}
+
 		response, err := team.Owner.Client.ListHealthcheckAttemptsWithResponse(
 			t.Context(),
 			&apiclient.ListHealthcheckAttemptsParams{DatabaseId: team.Database.Id},

@@ -34,6 +34,7 @@ describe('usePagedList', () => {
     server.use(mockApi.get('/workspaces', 200, { items: [workspace('Old')], nextCursor: 'old' }));
     const view = renderScreen(<PagedListScreen />);
     await screen.findByText('Old');
+
     const replacement = mockApi.delayed({
       method: 'get',
       path: '/workspaces',
@@ -44,13 +45,16 @@ describe('usePagedList', () => {
       },
     });
     server.use(replacement.handler);
+
     view.rerender(<PagedListScreen resetKey="second" />);
     await waitFor(() => expect(server.getRequests()).toHaveLength(2));
     fireEvent.scroll(screen.getByTestId('scroll-list'));
     expect(server.getRequests()).toHaveLength(2);
+
     await finishResponse(replacement.release);
     expect(await screen.findByText('New')).toBeTruthy();
     expect(screen.queryByText('Old')).toBeNull();
+
     server.use(mockApi.get('/workspaces', 200, { items: [workspace('Last')] }));
     fireEvent.scroll(screen.getByTestId('scroll-list'));
     await screen.findByText('Last');
@@ -74,6 +78,7 @@ describe('usePagedList', () => {
               status: 500,
               body: buildProblem('internal', 500),
             });
+
       server.use(response.handler);
       const onError = vi.fn();
       const onPublish = vi.fn();
@@ -81,9 +86,11 @@ describe('usePagedList', () => {
       await waitFor(() => expect(server.getRequests()).toHaveLength(1));
       const scrollContainer = screen.getByTestId('scroll-list');
       const removeListener = vi.spyOn(scrollContainer, 'removeEventListener');
+
       view.unmount();
       const publications = onPublish.mock.calls.length;
       await finishResponse(response.release);
+
       expect(onError).not.toHaveBeenCalled();
       expect(onPublish).toHaveBeenCalledTimes(publications);
       expect(removeListener).toHaveBeenCalledWith('scroll', expect.any(Function));
@@ -98,11 +105,13 @@ describe('usePagedList', () => {
     const view = renderScreen(<PagedListScreen onPublish={onPublish} />);
     await screen.findByText('First');
     const callbacks = onPublish.mock.calls[0][0];
+
     const onError = vi.fn();
     view.rerender(<PagedListScreen onPublish={onPublish} onError={onError} />);
     server.use(mockApi.get('/workspaces', 500, buildProblem('internal', 500)));
     fireEvent.click(screen.getByRole('button', { name: 'Reload' }));
     await waitFor(() => expect(onError).toHaveBeenCalledOnce());
+
     const current = onPublish.mock.lastCall![0];
     expect(current.reload).toBe(callbacks.reload);
     expect(current.refreshFirstPage).toBe(callbacks.refreshFirstPage);
@@ -120,14 +129,18 @@ describe('usePagedList', () => {
           : HttpResponse.json({ items: [workspace('Active')] });
       }),
     );
+
     const onError = vi.fn();
     renderScreen(<PagedListScreen onError={onError} />, { isStrictMode: true });
+
     expect(await screen.findByText('Active')).toBeTruthy();
     expect(screen.getByText('Ready:Idle')).toBeTruthy();
     expect(requestCount).toBe(2);
+
     await finishResponse(() =>
       abandoned.respond(HttpResponse.json(buildProblem('internal', 500), { status: 500 })),
     );
+
     expect(onError).not.toHaveBeenCalled();
     expect(screen.getByText('Active')).toBeTruthy();
   });

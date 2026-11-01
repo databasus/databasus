@@ -41,14 +41,18 @@ func TestTimescaleShutdownServer(t *testing.T) {
 	if configPath == "" {
 		return
 	}
+
 	encodedConfig, err := os.ReadFile(configPath)
 	require.NoError(t, err)
+
 	var serverConfig timescaleServerConfig
 	require.NoError(t, json.Unmarshal(encodedConfig, &serverConfig))
+
 	environment, err := app.NewEnvironment(t.Context(), serverConfig.Config, clock.NewSystem())
 	require.NoError(t, err)
 	application, err := app.New(t.Context(), environment)
 	require.NoError(t, err)
+
 	stopCtx, stopListening := shutdown.ListenForStopSignal(t.Context())
 	defer stopListening()
 	require.NoError(t, application.Serve(stopCtx, serverConfig.Address))
@@ -68,10 +72,12 @@ func startTimescaleServer(t *testing.T, serverConfig config.Config) *timescaleSe
 	require.NoError(t, err)
 	address := listener.Addr().String()
 	require.NoError(t, listener.Close())
+
 	encodedConfig, err := json.Marshal(timescaleServerConfig{Config: serverConfig, Address: address})
 	require.NoError(t, err)
 	configPath := filepath.Join(t.TempDir(), "server.json")
 	require.NoError(t, os.WriteFile(configPath, encodedConfig, 0o600))
+
 	executable, err := os.Executable()
 	require.NoError(t, err)
 	command := exec.CommandContext(
@@ -83,11 +89,13 @@ func startTimescaleServer(t *testing.T, serverConfig config.Config) *timescaleSe
 		timescaleServerConfigArgument+configPath,
 	)
 	command.Env = append(command.Environ(), "GORACE=atexit_sleep_ms=0")
+
 	outputPath := filepath.Join(t.TempDir(), "server.log")
 	output, err := os.Create(outputPath)
 	require.NoError(t, err)
 	command.Stdout = output
 	command.Stderr = output
+
 	process := &timescaleServerProcess{
 		command:    command,
 		URL:        "http://" + address,
@@ -95,8 +103,10 @@ func startTimescaleServer(t *testing.T, serverConfig config.Config) *timescaleSe
 		done:       make(chan struct{}),
 		err:        nil,
 	}
+
 	require.NoError(t, command.Start())
 	go func() { process.err = command.Wait(); _ = output.Close(); close(process.done) }()
+
 	t.Cleanup(func() {
 		_ = command.Process.Kill()
 		<-process.done
@@ -105,6 +115,7 @@ func startTimescaleServer(t *testing.T, serverConfig config.Config) *timescaleSe
 			t.Log(string(log))
 		}
 	})
+
 	testwait.Until(t, "the server process accepts requests", func(ctx context.Context) error {
 		select {
 		case <-process.done:
@@ -126,6 +137,7 @@ func startTimescaleServer(t *testing.T, serverConfig config.Config) *timescaleSe
 		}
 		return nil
 	})
+
 	return process
 }
 

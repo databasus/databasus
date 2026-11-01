@@ -14,6 +14,7 @@ const mockServer = setUpMockApi();
 describe('ApplicationScreen', () => {
   it('shows the returned disk capacity and percentage when the system disk endpoint responds', async () => {
     activateSession({ token: 'session-token', userId: 'user-id' });
+
     mockServer.use(
       mockApi.get('/system/disk-usages', 200, {
         usedSpaceBytes: 90 * 1024 ** 3,
@@ -43,6 +44,7 @@ describe('ApplicationScreen', () => {
         HttpResponse.json({ tag_name: 'v0.0.0' }),
       ),
     );
+
     renderScreen(
       <ThemeProvider>
         <ApplicationScreen />

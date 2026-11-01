@@ -243,6 +243,7 @@ class HookRepository:
         self.quick_effort = "medium" if self.review_client == "codex" else "low"
         if hasattr(test_case, "review_client"):
             missing_tools = (*missing_tools, "claude" if self.review_client == "codex" else "codex")
+
         self.root = base / "repo"
         self.stubs_dir = base / "stubs"
         bin_dir = base / "bin"
@@ -268,6 +269,7 @@ class HookRepository:
             self.environment["PATH"] = f"{bin_dir}{os.pathsep}{system_dir}"
         else:
             self.environment["PATH"] = f"{bin_dir}{os.pathsep}{os.environ['PATH']}"
+
         self.environment["AGENT_REVIEW_CLIENT"] = self.review_client
         self.environment["CODEX_HOME"] = str(base / "codex-home")
         self.environment["REVIEW_GATE_STUBS"] = str(self.stubs_dir)
@@ -276,8 +278,10 @@ class HookRepository:
         self.git("init", "--quiet")
         self.git("config", "user.email", "test@example.com")
         self.git("config", "user.name", "test")
+
         self.write("README.md", "test repository\n")
         self.write_change(spec_names=("widgets",), tasks="- [x] 1.1 Build\n- [ ] 1.2 Verify\n")
+
         self.git("add", ".")
         self.git("commit", "--quiet", "-m", "init")
 
@@ -361,6 +365,7 @@ class HookRepository:
         full_review = review_gate.FULL_REVIEWS[action]
         shrunk_review = replace(full_review, reviewer=replace(full_review.reviewer, timeout_seconds=reviewer_timeout_seconds))
         stdout = io.StringIO()
+
         with (
             mock.patch.dict(os.environ, self.environment, clear=True),
             mock.patch.dict(review_gate.FULL_REVIEWS, {action: shrunk_review}),
@@ -373,6 +378,7 @@ class HookRepository:
             mock.patch.object(sys, "stdout", stdout),
         ):
             review_gate.main()
+
         return json.loads(stdout.getvalue())
 
     def submit_prompt(self, prompt, session_id="session-1"):
@@ -469,12 +475,15 @@ class ReviewClientSelectionTest(unittest.TestCase):
                     repository.environment.pop("AGENT_REVIEW_CLIENT", None)
                     if inherited is not None:
                         repository.environment["AGENT_REVIEW_CLIENT"] = inherited
+
                     arguments = [sys.executable, str(HOOK_PATH), action]
                     if explicit is not None:
                         arguments.extend(["--client", explicit])
+
                     process = subprocess.run(arguments, cwd=repository.root, env=repository.environment,
                                              input=json.dumps({"session_id": "selection"}),
                                              text=True, capture_output=True)
+
                     self.assertEqual(process.returncode, 0 if is_valid else 2, process.stderr)
                     if not is_valid:
                         self.assertIn("--client codex or --client claude", process.stderr)
@@ -758,11 +767,13 @@ class HookConfigurationTest(unittest.TestCase):
         for event in self.codex_hooks:
             claude_hooks = self.get_hooks(self.claude_hooks, event)
             codex_hooks = self.get_hooks(self.codex_hooks, event)
+
             self.assertEqual(
                 [shlex.split(hook["command"])[-3] for hook in claude_hooks],
                 [shlex.split(hook["command"])[-3] for hook in codex_hooks],
                 event,
             )
+
             for claude_hook, codex_hook in zip(claude_hooks, codex_hooks, strict=True):
                 action = shlex.split(claude_hook["command"])[-3]
                 with self.subTest(event=event, action=action):
@@ -798,6 +809,7 @@ class HookConfigurationTest(unittest.TestCase):
         shutil.copytree(HOOK_PATH.parent, repository.root / ".agent-hooks", ignore=shutil.ignore_patterns("__pycache__"))
         repository.git("add", ".agent-hooks")
         repository.git("commit", "--quiet", "-m", "Add hook configuration fixture")
+
         repository.environment.pop("CLAUDE_PROJECT_DIR", None)
         mise_stub = Path(repository.environment["PATH"].split(os.pathsep)[0]) / "mise"
         mise_stub.write_text(
@@ -806,15 +818,18 @@ class HookConfigurationTest(unittest.TestCase):
             "if sys.argv[3] == 'exec':\n"
             "    os.execv(sys.executable, [sys.executable, *sys.argv[6:]])\n"
         )
+
         return repository
 
     def run_client_hook(self, repository, action, payload, client="codex", event_override=None):
         event = event_override or {"session-start": "SessionStart", "snapshot": "UserPromptSubmit"}.get(action, "Stop")
         configuration = self.codex_hooks if client == "codex" else self.claude_hooks
         hook = next(hook for hook in self.get_hooks(configuration, event) if hook["command"].endswith(f" {action} --client {client}"))
+
         repository.environment["CLAUDE_PROJECT_DIR"] = str(repository.root)
         subdirectory = repository.root / "nested folder"
         subdirectory.mkdir(exist_ok=True)
+
         process = subprocess.run(
             ["bash", "-c", hook["command"]],
             cwd=subdirectory,
@@ -824,6 +839,7 @@ class HookConfigurationTest(unittest.TestCase):
             capture_output=True,
             check=True,
         )
+
         return json.loads(process.stdout) if process.stdout.strip() else None
 
     def test_runs_every_tracked_hook_from_nested_directory_with_inherited_other_client(self):
@@ -841,6 +857,7 @@ class HookConfigurationTest(unittest.TestCase):
                             self.assertIsNone(response)
                         else:
                             self.assertEqual(response, {})
+
             self.assertTrue((repository.root / ".git/agent-review-hooks/codex-session.json").is_file())
 
     def test_runs_codex_reviewers_with_required_effort_when_codex_finishes_changes(self):
@@ -868,8 +885,10 @@ class HookConfigurationTest(unittest.TestCase):
         repository = self.create_repository()
         repository.write("existing.md", "Existing user edit\n")
         self.run_client_hook(repository, "snapshot", {"prompt": "Add widgets"})
+
         request_path = repository.root / ".git/agent-review-hooks/codex-session.json"
         original_request = json.loads(request_path.read_text())
+
         repository.write("src/widgets.py", "WIDGETS = []\n")
         self.run_client_hook(repository, "snapshot", {"prompt": f"{review_gate.AUTOMATIC_REVIEW_PREFIX} Fix the widgets"})
 
@@ -1171,7 +1190,9 @@ class ArchitectureGateTest(unittest.TestCase):
         repository = HookRepository(self)
         repository.submit_prompt("Improve a screen")
         repository.write("frontend/src/pages/Settings.tsx", "export {};\n")
+
         repository.stop("architecture")
+
         [call] = repository.reviewer_calls()
         self.assertIn('`docs/architecture.md`: "Frontend"', call["prompt"])
         self.assertIn('`frontend/AGENTS.md`: the applicable frontend conventions', call["prompt"])
@@ -1360,7 +1381,9 @@ class CodeShapeGateTest(unittest.TestCase):
         repository = HookRepository(self)
         repository.submit_prompt("Add a widget")
         repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
+
         repository.stop("code-shape")
+
         [call] = repository.reviewer_calls()
         return call["prompt"]
 
@@ -1571,6 +1594,7 @@ class ImplementationGateReviewTest(ShortReplyAssertions, SummaryAssertions, unit
         [call] = [call for call in repository.reviewer_calls() if "\nRole: architecture\n" in call["prompt"]]
         prompt = call["prompt"]
         architecture_role = prompt[prompt.index("### Role: architecture") : prompt.index("### Role: documentation and tasks")]
+
         self.assertIn("Read `docs/architecture.md` completely", architecture_role)
         self.assertIn("including parts committed or written in earlier requests", architecture_role)
         self.assertIn(
@@ -1606,6 +1630,7 @@ class ImplementationGateReviewTest(ShortReplyAssertions, SummaryAssertions, unit
         [call] = [call for call in repository.reviewer_calls() if "\nRole: tests\n" in call["prompt"]]
         prompt = call["prompt"]
         tests_role = prompt[prompt.index("### Role: tests") : prompt.index("### Role: repeat review")]
+
         self.assertIn("`.agents/skills/testing/SKILL.md`", tests_role)
         self.assertIn("The test fails without the behavior it pins.", tests_role)
         self.assertIn("A bug fix has a test that reproduces the bug and fails on the code before the fix.", tests_role)
@@ -1736,9 +1761,11 @@ class ImplementationGateRepeatTest(SummaryAssertions, unittest.TestCase):
         repository.write("src/widgets.py", "WIDGETS = []\n")
         repository.write("src/gadgets.py", "GADGETS = []\n")
         repository.complete_tasks()
+
         repository.stop("implementation")
         snapshot_path = repository.root / ".git/agent-review-hooks/session-1.json"
         original_snapshot = snapshot_path.read_bytes()
+
         repository.submit_prompt("AUTOMATIC REVIEW: implementation\nFix the findings")
         self.assertEqual(snapshot_path.read_bytes(), original_snapshot)
         repository.clear_calls()
@@ -1856,10 +1883,12 @@ class ManualReviewTest(unittest.TestCase):
         process = self.run_review(repository)
 
         self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+
         efforts = sorted(get_effort(call) for call in repository.reviewer_calls())
         self.assertEqual(efforts, sorted([repository.quick_effort] * 3 + [repository.full_effort] * 4))
         quick_prompts = [call["prompt"] for call in repository.reviewer_calls() if get_effort(call) == repository.quick_effort]
         self.assertTrue(all("started `mise run review` by hand" in prompt for prompt in quick_prompts))
+
         self.assertEqual(repository.check_calls(), [])
         self.assertIn("Quick check `code-shape`: accepted.", process.stdout)
         self.assertIn("Full implementation review accepted the change.", process.stdout)
@@ -1954,7 +1983,9 @@ class ManualReviewTest(unittest.TestCase):
                 repository.complete_tasks()
                 if failure != "missing":
                     repository.set_reviewer_failure(failure)
+
                 process = self.run_review(repository)
+
                 self.assertEqual(process.returncode, 1, process.stdout + process.stderr)
                 self.assertIn(f"Review client: {self.review_client}", process.stdout)
                 self.assertIn(self.review_client if failure == "missing" else failure, process.stdout)
@@ -2026,6 +2057,7 @@ class ProposalGateStartTest(unittest.TestCase):
                 repository = HookRepository(self)
                 repository.submit_prompt(request)
                 repository.write_proposal()
+
                 self.assertEqual(repository.stop("proposal"), {})
                 self.assertEqual(len(repository.reviewer_calls()), 6)
                 self.assertEqual(repository.calls("openspec")[0]["arguments"][0], "status")
@@ -2270,6 +2302,7 @@ class ProposalGateReviewTest(ShortReplyAssertions, SummaryAssertions, unittest.T
         [call] = [call for call in repository.reviewer_calls() if "\nRole: tasks\n" in call["prompt"]]
         prompt = call["prompt"]
         tasks_role = prompt[prompt.index("### Role: tasks") : prompt.index("### Role: repeat review")]
+
         self.assertIn(
             "tasks add or change tests in a backend package, a verification agent package or the frontend has a `## Change verification` section",
             tasks_role,
@@ -2373,9 +2406,11 @@ class ProposalGateRepeatTest(ShortReplyAssertions, SummaryAssertions, unittest.T
         repository.set_reviewer_result({"findings": [finding("gap", "The answer for an empty list is missing.", file="specs/gadgets/spec.md:8")]})
         repository.submit_prompt("Write a spec")
         repository.write_proposal()
+
         repository.stop("proposal")
         snapshot_path = repository.root / ".git/agent-review-hooks/session-1.json"
         original_snapshot = snapshot_path.read_bytes()
+
         repository.submit_prompt("AUTOMATIC REVIEW: proposal\nFix the findings")
         self.assertEqual(snapshot_path.read_bytes(), original_snapshot)
         repository.clear_calls()
@@ -2468,8 +2503,10 @@ class QuickGatesDuringProposalReviewTest(unittest.TestCase):
         repository.set_reviewer_result({"ok": False, "reason": "service.go mixes two concepts."})
         repository.submit_prompt("Add a widget")
         repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
+
         self.assertEqual(repository.stop("code-shape")["decision"], "block")
         repository.clear_calls()
+
         (repository.root / "backend/internal/features/widgets/service.go").unlink()
         repository.write_proposal()
 

@@ -23,17 +23,21 @@ func TestPhysicalBackupRunOverlap(t *testing.T) {
 		t.Run("waits for the old process before completing the next full after "+action, func(t *testing.T) {
 			isStorageSwitch := action == "switch" || action == "delete then switch" ||
 				action == "delete then clear then switch"
+
 			team := newBackupTeam(t, backupTeamSpec{})
 			sourceStorageID := team.StorageID
+
 			backup, releaseStorage := startHeldPhysicalStream(t, team, "full")
 			resume := apptest.SuspendPhysicalBackupProcess(t, backup.ID)
 			releaseStorage()
+
 			var acceptedTotal int64
 			var acceptedSwitch struct{ ID uuid.UUID }
 			var attemptFiles []string
 			team.App.QuerySQL(t, &attemptFiles, "SELECT file_name FROM backups_physical WHERE id=?", backup.ID)
 			require.Len(t, attemptFiles, 1)
 			require.NotEmpty(t, attemptFiles[0])
+
 			switch action {
 			case "switch", "delete then switch", "delete then clear then switch":
 				if action != "switch" {
@@ -46,6 +50,7 @@ func TestPhysicalBackupRunOverlap(t *testing.T) {
 					require.Equal(t, http.StatusOK, cleared.StatusCode(), "%s", cleared.Body)
 					require.Nil(t, apptest.GetBackupConfig(t, team.Owner, team.Database.Id).StorageId)
 				}
+
 				targetWorkspace := apptest.CreateWorkspace(t, team.Owner, "Switched running backup")
 				target := apptest.CreateStorageNamespace(t, team.Owner, targetWorkspace.Id)
 				operation := apptest.TransferToStorage(
@@ -61,11 +66,13 @@ func TestPhysicalBackupRunOverlap(t *testing.T) {
 				if action == "delete then clear then switch" {
 					assert.Nil(t, operation.PreviousStorageId)
 				}
+
 				moved, err := team.Owner.Client.GetDatabaseWithResponse(t.Context(), team.Database.Id)
 				require.NoError(t, err)
 				require.NotNil(t, moved.JSON200)
 				assert.Equal(t, targetWorkspace.Id, moved.JSON200.WorkspaceId)
 				assert.Equal(t, &target.StorageID, apptest.GetBackupConfig(t, team.Owner, team.Database.Id).StorageId)
+
 				team.App.QuerySQL(
 					t,
 					&acceptedSwitch,
@@ -78,8 +85,10 @@ func TestPhysicalBackupRunOverlap(t *testing.T) {
 					"SELECT total FROM storages_deletion_batches WHERE id=(SELECT deletion_batch_id FROM backups_storage_switches WHERE id=?)",
 					acceptedSwitch.ID,
 				)
+
 				team.StorageID = target.StorageID
 				require.Empty(t, team.listBackups(t))
+
 				var capturedFiles []string
 				team.App.QuerySQL(
 					t,
@@ -87,6 +96,7 @@ func TestPhysicalBackupRunOverlap(t *testing.T) {
 					`SELECT file_name FROM storages_deletion_batch_items WHERE batch_id=(SELECT deletion_batch_id FROM backups_storage_switches WHERE id=?)`,
 					acceptedSwitch.ID,
 				)
+
 				for _, suffix := range []string{"", ".metadata", ".manifest"} {
 					assert.Contains(t, capturedFiles, attemptFiles[0]+suffix)
 				}
@@ -104,6 +114,7 @@ func TestPhysicalBackupRunOverlap(t *testing.T) {
 				team.App.Clock.Advance(48 * time.Hour)
 				setBackupsEnabled(t, team, true)
 			}
+
 			beforePass := team.listBackups(t)
 			team.App.RunJobPass(t, "backups_physical_scheduler")
 			require.Equal(
@@ -112,6 +123,7 @@ func TestPhysicalBackupRunOverlap(t *testing.T) {
 				team.listBackups(t),
 				"the scheduler must insert nothing while the stopped process is alive",
 			)
+
 			resume()
 			var nextBackup backupRow
 			testwait.Until(
@@ -132,6 +144,7 @@ func TestPhysicalBackupRunOverlap(t *testing.T) {
 					return fmt.Errorf("the old run has not ended yet")
 				},
 			)
+
 			assert.Equal(t, "FULL", nextBackup.Type)
 			if isStorageSwitch {
 				var settledTotal int64
@@ -154,6 +167,7 @@ func TestPhysicalBackupRunOverlap(t *testing.T) {
 			if action != "delete" && !isStorageSwitch {
 				assert.Equal(t, "CANCELED", findPhysicalBackup(t, team, backup).Status)
 			}
+
 			var pendingFiles []string
 			team.App.QuerySQL(
 				t,

@@ -22,6 +22,7 @@ func TestIncrementalPhysicalBackupAfterWalGap(t *testing.T) {
 			team := newWalTeam(t, walTeamSpec{})
 			team.enable(t)
 			team.waitForReceiver(t)
+
 			var full backupRow
 			testwait.Until(t, "the initial full backup completes", func(context.Context) error {
 				for _, backup := range team.listBackups(t) {
@@ -32,10 +33,12 @@ func TestIncrementalPhysicalBackupAfterWalGap(t *testing.T) {
 				}
 				return fmt.Errorf("no completed full")
 			})
+
 			source := team.openSource(t)
 			for range 4 {
 				rotateWal(t, source)
 			}
+
 			var segmentIDs []string
 			testwait.Until(t, "at least three committed WAL segments follow the full", func(context.Context) error {
 				team.App.QuerySQL(
@@ -50,11 +53,13 @@ func TestIncrementalPhysicalBackupAfterWalGap(t *testing.T) {
 				}
 				return nil
 			})
+
 			team.App.ExecuteSQL(
 				t,
 				"DELETE FROM backups_physical_wal_segments WHERE id=?",
 				segmentIDs[len(segmentIDs)/2],
 			)
+
 			var page struct {
 				Backups []struct {
 					HasGapBefore bool `json:"hasGapBefore"`
@@ -66,11 +71,13 @@ func TestIncrementalPhysicalBackupAfterWalGap(t *testing.T) {
 				http.StatusOK,
 				&page,
 			)
+
 			hasGap := false
 			for _, backup := range page.Backups {
 				hasGap = hasGap || backup.HasGapBefore
 			}
 			require.True(t, hasGap)
+
 			team.call(
 				t,
 				apptest.PhysicalStartRequest(team.Database.Id, "INCREMENTAL"),
@@ -79,6 +86,7 @@ func TestIncrementalPhysicalBackupAfterWalGap(t *testing.T) {
 			)
 			team.App.RunJobPass(t, "backups_physical_scheduler")
 			team.App.WaitForPhysicalBackups(t)
+
 			hasIncremental := false
 			for _, backup := range team.listBackups(t) {
 				if backup.Type == "INCREMENTAL" {

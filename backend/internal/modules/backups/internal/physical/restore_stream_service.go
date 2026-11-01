@@ -25,6 +25,7 @@ func (s *Service) OpenRestoreStream(ctx context.Context, token string) (RestoreS
 	if err != nil {
 		return RestoreStream{}, toRestoreProblem(err)
 	}
+
 	var restoreSet *chains.RestoreSet
 	if restoreToken.BackupID != nil {
 		restoreSet, err = s.chains.ResolveRestoreSetForBackup(
@@ -43,15 +44,18 @@ func (s *Service) OpenRestoreStream(ctx context.Context, token string) (RestoreS
 	} else {
 		restoreSet, err = s.chains.ResolveRestoreSet(ctx, restoreToken.DatabaseID, restoreToken.TargetTime)
 	}
+
 	if err != nil {
 		_ = userStream.Release(context.WithoutCancel(ctx))
 		return RestoreStream{}, toRestoreProblem(err)
 	}
+
 	streamCtx, cancel := context.WithCancel(ctx)
 	stopShutdown := context.AfterFunc(s.appCtx, cancel)
 	s.runs.Go(streamCtx, "physical_restore_stream_heartbeat", func(ctx context.Context) error {
 		ticker := time.NewTicker(download.UserStreamHeartbeatInterval)
 		defer ticker.Stop()
+
 		for {
 			select {
 			case <-ctx.Done():
@@ -63,6 +67,7 @@ func (s *Service) OpenRestoreStream(ctx context.Context, token string) (RestoreS
 			}
 		}
 	})
+
 	var closeOnce sync.Once
 	return RestoreStream{
 		DatabaseID: restoreToken.DatabaseID,

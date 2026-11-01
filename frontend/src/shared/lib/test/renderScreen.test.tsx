@@ -47,6 +47,7 @@ describe('renderScreen', () => {
     'provides the real locale, %s theme and router entry',
     (theme) => {
       renderScreen(<ContextScreen />, { locale: 'fr', theme, route: '/settings?tab=profile' });
+
       expect(screen.getByText(`fr:${theme}:/settings?tab=profile`)).toBeTruthy();
       expect(document.documentElement.classList.contains('dark')).toBe(theme === 'dark');
       expect(document.documentElement.lang).toBe('fr');
@@ -65,11 +66,13 @@ describe('renderScreen', () => {
 
   it('retains an unsaved draft when the language changes through a real provider', async () => {
     const { user } = renderScreen(<ContextScreen />, { locale: 'en', theme: 'light' });
+
     await user.type(
       screen.getByRole('textbox', { name: DICTIONARIES.en.common.actions.save }),
       'Unfinished settings',
     );
     await user.click(screen.getByRole('button', { name: 'Switch language' }));
+
     expect(screen.getByText('es:light:/')).toBeTruthy();
     expect(
       (
@@ -80,6 +83,7 @@ describe('renderScreen', () => {
     ).toBe('Unfinished settings');
     expect(document.documentElement.lang).toBe('es');
     expect(localStorage.getItem('databasus-locale')).toBe('es');
+
     await user.click(screen.getByRole('button', { name: 'Notify' }));
     expect(
       screen.getByText(DICTIONARIES.es.common.actions.save, {
@@ -93,6 +97,7 @@ describe('renderScreen', () => {
     const removeListener = vi.spyOn(media, 'removeEventListener');
     vi.spyOn(window, 'matchMedia').mockReturnValue(media);
     vi.useFakeTimers();
+
     const SubscriptionScreen = () => {
       useEffect(() => {
         const timer = setInterval(() => {}, 1_000);
@@ -100,11 +105,13 @@ describe('renderScreen', () => {
       }, []);
       return <div />;
     };
+
     const view = renderScreen(<SubscriptionScreen />, { theme: 'dark', locale: 'fr' });
     expect(vi.getTimerCount()).toBeGreaterThan(0);
     view.unmount();
     expect(removeListener).toHaveBeenCalledWith('change', expect.any(Function));
     expect(vi.getTimerCount()).toBe(0);
+
     sessionStorage.setItem('test-only', 'discard');
     vi.stubGlobal('screenTestGlobal', 'discard');
   });

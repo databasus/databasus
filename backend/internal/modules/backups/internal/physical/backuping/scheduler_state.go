@@ -31,27 +31,33 @@ func (s *Scheduler) loadSchedulingState(
 ) (schedulingState, error) {
 	state := schedulingState{}
 	var err error
+
 	state.lastFull, _, err = s.backupRepo.FindLastFullAnyStatusByDatabase(ctx, config.DatabaseID)
 	if err != nil || config.ForceFullRequestedAt != nil {
 		return state, err
 	}
+
 	state.hasUnresolvedMismatch, err = s.repository.HasUnresolvedSystemIdentifierMismatch(ctx, config.DatabaseID)
 	if err != nil || state.hasUnresolvedMismatch {
 		return state, err
 	}
+
 	state.lastIncremental, _, err = s.backupRepo.FindLastIncrementalByDatabase(ctx, config.DatabaseID)
 	if err != nil {
 		return state, err
 	}
+
 	if !decidePhysicalBackupFromNewest(state, config, now).needsChain {
 		return state, nil
 	}
+
 	chain, err := s.chainViewService.FindLastExtendableChainByDatabase(ctx, config.DatabaseID)
 	if err != nil {
 		state.chainError = err
 		logger.ErrorContext(ctx, "failed to find extendable chain", slog.Any("error", err))
 		return state, nil
 	}
+
 	if chain != nil {
 		state.extendableRootID = &chain.RootFull.ID
 		state.incrementalParentID, state.parentError = s.resolveIncrParent(ctx, chain.RootFull.ID)
@@ -60,6 +66,7 @@ func (s *Scheduler) loadSchedulingState(
 		}
 		return state, nil
 	}
+
 	state.recentFullBackups, state.recentFullsError = s.backupRepo.FindNewestFullAnyStatusByDatabase(
 		ctx,
 		config.DatabaseID,

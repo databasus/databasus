@@ -94,6 +94,7 @@ describe('Database notifier creation composition', () => {
       const onSaved = vi.fn();
       const onTransferred = vi.fn();
       const editedDatabase = { ...database, notifierIds: [currentNotifier.id] };
+
       server.use(
         creation.handler,
         mockApi.post('/notifier-tests', 200, { isDelivered: true }),
@@ -137,6 +138,7 @@ describe('Database notifier creation composition', () => {
             onTransferred={onTransferred}
           />
         );
+
       const view = renderScreen(renderParent(), { isStrictMode: true });
 
       if (composition === 'transfer') {
@@ -239,6 +241,7 @@ describe('Database notifier creation composition', () => {
       let listedNotifiers: Notifier[] = [];
       let listRequests = 0;
       let hasPersisted = false;
+
       server.use(
         creation.handler,
         mockApi.post('/notifier-tests', 200, { isDelivered: true }),
@@ -262,6 +265,7 @@ describe('Database notifier creation composition', () => {
         }),
         mockApi.get('/storages', 200, { items: [] }),
       );
+
       const view = renderScreen(
         composition === 'selection' ? (
           <EditDatabaseNotifiersComponent
@@ -352,6 +356,7 @@ describe('Database notifier creation composition', () => {
         name: 'Target disk',
         settings: { type: 'LOCAL' as const },
       };
+
       server.use(
         mockApi.get('/workspaces', 200, {
           items: [
@@ -381,6 +386,7 @@ describe('Database notifier creation composition', () => {
         }),
         mockApi.post('/databases/{databaseId}/transfer', 204, undefined),
       );
+
       const onSaved = vi.fn();
       const onTransferred = vi.fn();
       const view = renderScreen(

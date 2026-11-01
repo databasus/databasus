@@ -37,6 +37,7 @@ func TestCopyDatabase(t *testing.T) {
 				DatabaseID: originalDatabase.Id,
 				StorageID:  storageID,
 			})
+
 			require.NoError(t, tm.app.RecordBackupSuccess(
 				t.Context(), originalDatabase.Id, time.Now().UTC()))
 			unavailable := databases.HealthStatusUnavailable
@@ -56,6 +57,7 @@ func TestCopyDatabase(t *testing.T) {
 			assert.ElementsMatch(t, []string{"Orders", "Orders (Copy)"},
 				getListedDatabaseNames(t, tm.owner, tm.workspace.Id))
 			assert.Equal(t, &storageID, apptest.GetBackupConfig(t, tm.owner, copiedDatabase.Id).StorageId)
+
 			testResponse, err := tm.owner.Client.TestDatabaseWithResponse(t.Context(), copiedDatabase.Id)
 			require.NoError(t, err)
 			require.Equal(t, http.StatusOK, testResponse.StatusCode(), string(testResponse.Body))
@@ -84,11 +86,13 @@ func TestCopyDatabase(t *testing.T) {
 		assert.Equal(t, originalPhysical.BackupType, copiedPhysical.BackupType)
 		assert.Equal(t, originalPhysical.Version, copiedPhysical.Version)
 		assert.Nil(t, copiedDatabase.LastBackupTime)
+
 		originalSlots := getReplicationSlotNames(t, tm, originalDatabase.Id)
 		copiedSlots := getReplicationSlotNames(t, tm, copiedDatabase.Id)
 		assert.NotEmpty(t, copiedSlots.ReplicationSlotName)
 		assert.NotEqual(t, originalSlots.ReplicationSlotName, copiedSlots.ReplicationSlotName)
 		assert.NotEqual(t, originalSlots.BackupSlotName, copiedSlots.BackupSlotName)
+
 		var copiedConfigCount int
 		tm.app.QuerySQL(t, &copiedConfigCount,
 			"SELECT COUNT(*) FROM backups_configs WHERE database_id = ?", copiedDatabase.Id)

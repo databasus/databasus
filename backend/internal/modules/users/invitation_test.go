@@ -89,7 +89,9 @@ func TestInviteUser(t *testing.T) {
 		var invitedVersion string
 		app.QuerySQL(t, &invitedVersion, "SELECT password_version FROM users WHERE email = ?", invitedEmail)
 		require.NotEqual(t, uuid.Nil.String(), invitedVersion)
+
 		invitedUser := app.SignUp(t, invitedEmail)
+
 		var activeVersion string
 		app.QuerySQL(t, &activeVersion, "SELECT password_version FROM users WHERE email = ?", invitedEmail)
 		require.NotEqual(t, invitedVersion, activeVersion)
@@ -116,10 +118,12 @@ func TestInviteUser(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, membersResponse.StatusCode(), string(membersResponse.Body))
 		require.Len(t, membersResponse.JSON200.Items, 2)
+
 		invitedMember := membersResponse.JSON200.Items[0]
 		if invitedMember.UserId != invitedUser.UserID {
 			invitedMember = membersResponse.JSON200.Items[1]
 		}
+
 		assert.Equal(t, invitedUser.UserID, invitedMember.UserId)
 		assert.Equal(t, apiclient.WorkspaceRoleWORKSPACEMEMBER, invitedMember.Role)
 		assert.False(t, invitedMember.IsInvited)

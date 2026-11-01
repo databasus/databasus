@@ -21,11 +21,13 @@ func TestArchivePhysicalWal(t *testing.T) {
 				team := newWalTeam(t, walTeamSpec{Image: "postgres:" + version})
 				team.enable(t)
 				team.waitForReceiver(t)
+
 				source := team.openSource(t)
 				for range 3 {
 					rotateWal(t, source)
 				}
 				team.waitForWal(t, 1)
+
 				var artifacts []struct {
 					FileName         string
 					DatabaseID       string
@@ -43,10 +45,12 @@ func TestArchivePhysicalWal(t *testing.T) {
 					assert.True(t, team.App.IsLocalStorageFilePresent(t, artifact.FileName))
 					assert.Positive(t, artifact.CompressedSizeMb)
 				}
+
 				database, err := team.Owner.Client.GetDatabaseWithResponse(t.Context(), team.Database.Id)
 				require.NoError(t, err)
 				require.NotNil(t, database.JSON200)
 				assert.NotNil(t, database.JSON200.LastBackupTime)
+
 				testwait.Until(t, "the live route reports archive progress", func(context.Context) error {
 					reading := team.live(t)
 					if reading.Current == nil || reading.Current.ArchiveProgressLSN == nil ||
@@ -70,6 +74,7 @@ func TestArchivePhysicalWalAfterRestart(t *testing.T) {
 		source := team.openSource(t)
 		rotateWal(t, source)
 		team.waitForWal(t, 1)
+
 		var firstStarted string
 		team.App.QuerySQL(
 			t,
@@ -85,6 +90,7 @@ func TestArchivePhysicalWalAfterRestart(t *testing.T) {
 			team.Database.Id,
 		)
 		assert.True(t, team.App.IsWalQueueDirectoryPresent(t, team.Database.Id))
+
 		team.App.RestartModules(t)
 		team.waitForReceiver(t)
 		testwait.Until(t, "the streamer has a new session", func(context.Context) error {
@@ -100,6 +106,7 @@ func TestArchivePhysicalWalAfterRestart(t *testing.T) {
 			}
 			return nil
 		})
+
 		var count int
 		require.NoError(
 			t,
@@ -107,6 +114,7 @@ func TestArchivePhysicalWalAfterRestart(t *testing.T) {
 				Scan(&count),
 		)
 		assert.Equal(t, 1, count)
+
 		rotateWal(t, source)
 		team.waitForWal(t, 2)
 		assert.True(t, team.App.IsWalQueueDirectoryPresent(t, team.Database.Id))

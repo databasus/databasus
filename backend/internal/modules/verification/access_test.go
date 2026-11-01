@@ -21,6 +21,7 @@ func TestVerificationAccess(t *testing.T) {
 		verification := team.start(t, backup.Id)
 		viewer := team.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 		original := team.config(t)
+
 		config, err := viewer.Client.GetVerificationConfigWithResponse(t.Context(), team.Database.Id)
 		require.NoError(t, err)
 		require.NotNil(t, config.JSON200, string(config.Body))
@@ -34,6 +35,7 @@ func TestVerificationAccess(t *testing.T) {
 		read, err := viewer.Client.GetVerificationWithResponse(t.Context(), verification.Id)
 		require.NoError(t, err)
 		require.NotNil(t, read.JSON200, string(read.Body))
+
 		changedConfig := configInput(original)
 		changedConfig.IsAutomaticVerificationEnabled = !original.IsAutomaticVerificationEnabled
 		saved, err := viewer.Client.UpdateVerificationConfigWithResponse(
@@ -43,6 +45,7 @@ func TestVerificationAccess(t *testing.T) {
 		)
 		require.NoError(t, err)
 		requireProblem(t, saved.StatusCode(), saved.Body, http.StatusForbidden, apiclient.ProblemCodePermissionDenied)
+
 		started, err := viewer.Client.StartVerificationWithResponse(
 			t.Context(),
 			apiclient.StartVerificationInput{BackupId: backup.Id},
@@ -55,6 +58,7 @@ func TestVerificationAccess(t *testing.T) {
 			http.StatusForbidden,
 			apiclient.ProblemCodePermissionDenied,
 		)
+
 		canceled, err := viewer.Client.CancelVerificationWithResponse(t.Context(), verification.Id)
 		require.NoError(t, err)
 		requireProblem(
@@ -64,6 +68,7 @@ func TestVerificationAccess(t *testing.T) {
 			http.StatusForbidden,
 			apiclient.ProblemCodePermissionDenied,
 		)
+
 		assert.Equal(t, original, team.config(t))
 		assert.Len(t, team.list(t), 1)
 		assert.Equal(t, apiclient.VerificationStatusPENDING, team.read(t, verification.Id).Status)
@@ -74,12 +79,14 @@ func TestVerificationAccess(t *testing.T) {
 		verification := team.start(t, backup.Id)
 		stranger := team.App.SignUp(t, apptest.NewTestEmail("stranger"))
 		original := team.config(t)
+
 		config, err := stranger.Client.GetVerificationConfigWithResponse(t.Context(), team.Database.Id)
 		require.NoError(t, err)
 		missingConfig, err := stranger.Client.GetVerificationConfigWithResponse(t.Context(), uuid.New())
 		require.NoError(t, err)
 		requireProblem(t, config.StatusCode(), config.Body, http.StatusNotFound, apiclient.ProblemCodeNotFound)
 		assert.JSONEq(t, string(config.Body), string(missingConfig.Body))
+
 		changedConfig := configInput(original)
 		changedConfig.IsAutomaticVerificationEnabled = !original.IsAutomaticVerificationEnabled
 		saved, err := stranger.Client.UpdateVerificationConfigWithResponse(
@@ -89,6 +96,7 @@ func TestVerificationAccess(t *testing.T) {
 		)
 		require.NoError(t, err)
 		requireProblem(t, saved.StatusCode(), saved.Body, http.StatusNotFound, apiclient.ProblemCodeNotFound)
+
 		started, err := stranger.Client.StartVerificationWithResponse(
 			t.Context(),
 			apiclient.StartVerificationInput{BackupId: backup.Id},
@@ -101,12 +109,14 @@ func TestVerificationAccess(t *testing.T) {
 		require.NoError(t, err)
 		requireProblem(t, started.StatusCode(), started.Body, http.StatusNotFound, apiclient.ProblemCodeNotFound)
 		assert.JSONEq(t, string(started.Body), string(missingStart.Body))
+
 		read, err := stranger.Client.GetVerificationWithResponse(t.Context(), verification.Id)
 		require.NoError(t, err)
 		missingRead, err := stranger.Client.GetVerificationWithResponse(t.Context(), uuid.New())
 		require.NoError(t, err)
 		requireProblem(t, read.StatusCode(), read.Body, http.StatusNotFound, apiclient.ProblemCodeNotFound)
 		assert.JSONEq(t, string(read.Body), string(missingRead.Body))
+
 		listed, err := stranger.Client.ListVerificationsWithResponse(
 			t.Context(),
 			&apiclient.ListVerificationsParams{DatabaseId: team.Database.Id, Limit: nil, After: nil},
@@ -116,6 +126,7 @@ func TestVerificationAccess(t *testing.T) {
 		canceled, err := stranger.Client.CancelVerificationWithResponse(t.Context(), verification.Id)
 		require.NoError(t, err)
 		requireProblem(t, canceled.StatusCode(), canceled.Body, http.StatusNotFound, apiclient.ProblemCodeNotFound)
+
 		assert.Equal(t, original, team.config(t))
 		assert.Len(t, team.list(t), 1)
 		assert.Equal(t, apiclient.VerificationStatusPENDING, team.read(t, verification.Id).Status)
@@ -151,6 +162,7 @@ func TestVerificationAccess(t *testing.T) {
 			http.StatusUnauthorized,
 			apiclient.ProblemCodeUnauthenticated,
 		)
+
 		saved, err := client.UpdateVerificationConfigWithResponse(
 			t.Context(),
 			team.Database.Id,
@@ -164,6 +176,7 @@ func TestVerificationAccess(t *testing.T) {
 		)
 		require.NoError(t, err)
 		requireProblem(t, start.StatusCode(), start.Body, http.StatusUnauthorized, apiclient.ProblemCodeUnauthenticated)
+
 		read, err := client.GetVerificationWithResponse(t.Context(), verification.Id)
 		require.NoError(t, err)
 		requireProblem(t, read.StatusCode(), read.Body, http.StatusUnauthorized, apiclient.ProblemCodeUnauthenticated)
@@ -173,6 +186,7 @@ func TestVerificationAccess(t *testing.T) {
 		)
 		require.NoError(t, err)
 		requireProblem(t, list.StatusCode(), list.Body, http.StatusUnauthorized, apiclient.ProblemCodeUnauthenticated)
+
 		cancel, err := client.CancelVerificationWithResponse(t.Context(), verification.Id)
 		require.NoError(t, err)
 		requireProblem(

@@ -27,12 +27,14 @@ func (team *backupTeam) useUnreachableStorage(t *testing.T) {
 			},
 		),
 	)
+
 	response, err := team.Owner.Client.CreateStorageWithResponse(
 		t.Context(),
 		apiclient.StorageCreate{Name: "Unavailable S3", WorkspaceId: team.Database.WorkspaceId, Settings: settings},
 	)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusCreated, response.StatusCode(), "%s", response.Body)
+
 	team.StorageID = response.JSON201.Id
 	apptest.SaveBackupConfigWithStorage(
 		t,
@@ -47,8 +49,10 @@ func TestPhysicalBackupStorageFailure(t *testing.T) {
 	t.Run("reports storage upload failure when the S3 endpoint cannot be reached", func(t *testing.T) {
 		team := newBackupTeam(t, backupTeamSpec{})
 		team.useUnreachableStorage(t)
+
 		backup := team.runBackup(t, "full")
 		require.Equal(t, "ERROR", backup.Status)
+
 		team.assertTerminalDetails(t, backup, "STORAGE_UPLOAD_FAILED")
 		team.assertNoRunningBackup(t)
 		assert.NotNil(t, backup.FailMessage)

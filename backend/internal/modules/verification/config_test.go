@@ -26,6 +26,7 @@ func TestVerificationConfig(t *testing.T) {
 			[]apiclient.VerificationNotificationTrigger{apiclient.VerificationNotificationTriggerVERIFICATIONFAILED},
 			config.NotificationTriggers,
 		)
+
 		var configCount int64
 		team.App.QuerySQL(
 			t,
@@ -51,6 +52,7 @@ func TestVerificationConfig(t *testing.T) {
 			apiclient.VerificationNotificationTriggerVERIFICATIONSUCCESS,
 			apiclient.VerificationNotificationTriggerVERIFICATIONFAILED,
 		}
+
 		saved := team.saveConfig(t, config)
 		assert.Equal(t, config, configInput(saved))
 		assert.Equal(t, config, configInput(team.config(t)))
@@ -68,6 +70,7 @@ func TestVerificationConfig(t *testing.T) {
 			TimeOfDay:      nil,
 			Weekday:        nil,
 		}
+
 		response, err := team.Owner.Client.UpdateVerificationConfigWithResponse(t.Context(), team.Database.Id, config)
 		require.NoError(t, err)
 		requireProblem(
@@ -96,6 +99,7 @@ func TestVerificationConfig(t *testing.T) {
 					Weekday:        nil,
 				}
 				config.NotificationTriggers = []apiclient.VerificationNotificationTrigger{}
+
 				saved := team.saveConfig(t, config)
 				assert.Empty(t, saved.NotificationTriggers)
 			},
@@ -111,6 +115,7 @@ func TestVerificationConfig(t *testing.T) {
 			} else {
 				config.NotificationTriggers = []apiclient.VerificationNotificationTrigger{"UNKNOWN"}
 			}
+
 			response, err := team.Owner.Client.UpdateVerificationConfigWithResponse(
 				t.Context(),
 				team.Database.Id,

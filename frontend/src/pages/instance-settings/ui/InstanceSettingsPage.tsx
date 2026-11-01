@@ -77,6 +77,7 @@ export function InstanceSettingsPage({ onSettingsChanged }: Props) {
         }
         return retained;
       });
+
       onSettingsChanged?.(updatedSettings);
       message.success(i18n.t('settings.updated'));
     } catch (error: unknown) {

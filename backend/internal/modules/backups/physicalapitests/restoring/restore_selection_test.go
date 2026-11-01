@@ -93,6 +93,7 @@ func TestSelectPhysicalRestoreArtifacts(t *testing.T) {
 		seedFullTwoIncrementals(t, catalog, timeline)
 		catalog.seedRestoreWal(t, restoreWalSpec{Segment: 2, ReceivedAt: timeline.at(12)})
 		catalog.seedRestoreWal(t, restoreWalSpec{Segment: 4, ReceivedAt: timeline.at(30)})
+
 		var problem apiclient.Problem
 		catalog.call(
 			t,
@@ -103,6 +104,7 @@ func TestSelectPhysicalRestoreArtifacts(t *testing.T) {
 				Destination:   &problem,
 			},
 		)
+
 		assert.Equal(t, apiclient.ProblemCodeTargetTimeUnreachable, problem.Code)
 		assert.Contains(t, problem.Detail, "0/3000000")
 	})

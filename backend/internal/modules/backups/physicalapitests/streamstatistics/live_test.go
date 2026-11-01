@@ -39,10 +39,12 @@ func TestGetWalStreamLive(t *testing.T) {
 		source := containers.StartPhysicalPostgres(t, "postgres:17")
 		timings := backups.ProductionWalStreamTimings()
 		timings.ForcedRotationInterval = 2 * time.Second
+
 		testApp := apptest.New(t, apptest.WithPhysicalBackupLoops(), apptest.WithWalStreamTimings(timings))
 		owner := testApp.CreateAdmin(t)
 		workspace := apptest.CreateWorkspace(t, owner, "Live WAL stream")
 		storageID := testApp.CreateLocalStorage(t, owner, workspace.Id)
+
 		password := "testpassword"
 		var settings apiclient.DatabaseSettings
 		require.NoError(t, settings.FromPostgresqlPhysicalSettings(apiclient.PostgresqlPhysicalSettings{
@@ -52,6 +54,7 @@ func TestGetWalStreamLive(t *testing.T) {
 			SshTunnel:  apiclient.SshTunnelSettings{IsEnabled: false},
 			BackupType: apiclient.PhysicalBackupTypeFULLINCREMENTALWALSTREAM,
 		}))
+
 		database := apptest.CreateDatabase(t, owner, workspace.Id, settings)
 		apptest.SaveBackupConfigWithStorage(t, owner, apptest.StorageUse{DatabaseID: database.Id, StorageID: storageID})
 
@@ -76,6 +79,7 @@ func TestGetWalStreamLive(t *testing.T) {
 		assert.NotNil(t, firstReading.Current.SlotLagBytes)
 		assert.GreaterOrEqual(t, firstReading.Current.LocalQueueBytes, int64(0))
 		assert.Positive(t, firstReading.Current.LocalQueuePauseBytes)
+
 		secondReading := getLiveStream(t, testApp, owner, database.Id)
 		require.NotNil(t, secondReading.Current)
 		assert.True(t, secondReading.Current.MeasuredAt.After(firstReading.Current.MeasuredAt))
@@ -102,6 +106,7 @@ func TestGetWalStreamLive(t *testing.T) {
 				)
 				assert.Equal(t, testCase.expectedStatus, status, "%s", body)
 				assert.NotContains(t, string(body), "localQueueBytes")
+
 				var problem apiclient.Problem
 				require.NoError(t, json.Unmarshal(body, &problem))
 				assert.Equal(t, testCase.code, problem.Code)

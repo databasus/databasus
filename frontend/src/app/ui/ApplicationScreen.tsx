@@ -29,6 +29,7 @@ export const ApplicationScreen = () => {
   const [selectedTab, setSelectedTab] = useState<MainTab>('databases');
   const [isCreateWorkspaceDialogOpen, setShowCreateWorkspaceDialog] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   const handleCreateWorkspace = () => {
     if (!canCreateWorkspace || !isCurrent()) return;
 
@@ -45,6 +46,7 @@ export const ApplicationScreen = () => {
         workspaceCreationInvoker.current.focus({ preventScroll: true });
     });
   };
+
   const { t } = useTranslation();
   const { formatNumber } = useLocale();
   const startup = useApplicationStartup();
@@ -62,11 +64,13 @@ export const ApplicationScreen = () => {
     canCreateWorkspace,
     canManageWorkspace,
   } = startup;
+
   const isNewGitHubVersionAvailable = useIsNewGitHubVersionAvailable();
   useEffect(() => {
     if (!isAdmin && (selectedTab === 'users' || selectedTab === 'databasus-settings'))
       setSelectedTab('databases');
   }, [isAdmin, selectedTab]);
+
   const tabs: SidebarTab[] = [
     {
       text: t('app.navigation.databases'),

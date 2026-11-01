@@ -83,13 +83,16 @@ func (s *Service) StartVerification(ctx context.Context, actor users.Actor, back
 	if !isFound {
 		return nil, ErrBackupNotFound
 	}
+
 	database, err := s.authorizeDatabase(ctx, actor, backup.DatabaseID, workspaces.ActionEditContent)
 	if err != nil {
 		return nil, hideNotFound(err, ErrBackupNotFound)
 	}
+
 	if backup.Status != backups.LogicalBackupStatusCompleted {
 		return nil, ErrBackupNotCompleted
 	}
+
 	verification := s.newPending(backup, VerificationTriggerManual)
 	err = s.transactor.Transaction(ctx, func(ctx context.Context) error {
 		existing, err := s.verificationRepository.GetActiveForDatabase(ctx, backup.DatabaseID)
@@ -161,15 +164,18 @@ func (s *Service) ListVerifications(ctx context.Context, actor users.Actor, quer
 	if _, err := s.authorizeDatabase(ctx, actor, query.DatabaseID, workspaces.ActionView); err != nil {
 		return Page{}, err
 	}
+
 	limit := 20
 	if query.Limit != nil {
 		limit = *query.Limit
 	}
+
 	if limit < 1 || limit > 100 {
 		return Page{}, apierror.NewInvalidFieldsProblem(
 			[]apierror.FieldError{{Field: "limit", Detail: "must be between 1 and 100"}},
 		)
 	}
+
 	var after *database.TimeCursor
 	if query.After != nil {
 		cursor, err := database.DecodeTimeCursor(*query.After)
@@ -178,6 +184,7 @@ func (s *Service) ListVerifications(ctx context.Context, actor users.Actor, quer
 		}
 		after = &cursor
 	}
+
 	verifications, err := s.verificationRepository.ListPage(
 		ctx,
 		VerificationPageQuery{DatabaseID: query.DatabaseID, Limit: limit + 1, After: after},
@@ -185,6 +192,7 @@ func (s *Service) ListVerifications(ctx context.Context, actor users.Actor, quer
 	if err != nil {
 		return Page{}, err
 	}
+
 	page := Page{Verifications: verifications[:min(len(verifications), limit)], NextCursor: nil}
 	if len(verifications) > limit {
 		lastVerification := verifications[limit-1]

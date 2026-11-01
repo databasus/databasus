@@ -16,11 +16,13 @@ func TestBuildSlotBreakSample(t *testing.T) {
 		observedAt := startedAt.Add(time.Minute)
 		slot := &pgphysical.Slot{}
 		supervisor.receiverRunStartedAtUnixNano.Store(startedAt.UnixNano())
+
 		runningSample := supervisor.buildSlotBreakSample(slot, observedAt)
 		assert.Same(t, slot, runningSample.SlotState)
 		assert.Equal(t, int64(1024), runningSample.WalLagThresholdBytes)
 		assert.Equal(t, startedAt, runningSample.ReceiverRunStartedAt)
 		assert.Equal(t, observedAt, runningSample.ObservedAt)
+
 		supervisor.receiverRunStartedAtUnixNano.Store(0)
 		stoppedSample := supervisor.buildSlotBreakSample(slot, observedAt)
 		assert.True(t, stoppedSample.ReceiverRunStartedAt.IsZero())

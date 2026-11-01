@@ -37,6 +37,7 @@ func TestTelemetryShutdown(t *testing.T) {
 		}))
 		t.Cleanup(receiver.Close)
 		defer close(release)
+
 		environment := newTestEnvironment(t, testdb.Open(t))
 		manualClock := clock.NewManual(time.Now().UTC())
 		environment.Clock = manualClock
@@ -49,6 +50,7 @@ func TestTelemetryShutdown(t *testing.T) {
 		application.clientToolsChecker = clienttools.NewChecker(nil)
 		require.NoError(t, application.RunJobPass(t.Context(), "telemetry_ping"))
 		manualClock.Advance(time.Minute)
+
 		serveContext, stop := context.WithCancel(t.Context())
 		serveErrors := make(chan error, 1)
 		serveDone := make(chan struct{})
@@ -71,12 +73,14 @@ func TestTelemetryShutdown(t *testing.T) {
 			t.Fatal("telemetry delivery did not start")
 		}
 		stop()
+
 		select {
 		case err := <-serveErrors:
 			require.NoError(t, err)
 		case <-time.After(10 * time.Second):
 			t.Fatal("application did not stop during telemetry delivery")
 		}
+
 		waitContext, cancelWait := context.WithTimeout(t.Context(), time.Second)
 		defer cancelWait()
 		require.NoError(t, application.runner.Wait(waitContext))
@@ -85,6 +89,7 @@ func TestTelemetryShutdown(t *testing.T) {
 		case <-time.After(time.Second):
 			t.Fatal("receiver did not observe delivery cancellation")
 		}
+
 		hasTelemetrySnapshot := false
 		for _, job := range application.runner.GetSnapshots() {
 			if job.Name == "telemetry_ping" {

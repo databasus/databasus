@@ -33,12 +33,14 @@ func newAgentProcess(t *testing.T, binaryDirectory string) *agentProcess {
 	contents, err := os.ReadFile(filepath.Join(binaryDirectory, binaryName()))
 	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(binary, contents, 0o755))
+
 	agent := &agentProcess{
 		directory:  directory,
 		binary:     binary,
 		outputPath: filepath.Join(directory, "output.log"),
 		engineHost: getEngineHost(),
 	}
+
 	t.Cleanup(func() {
 		if t.Failed() {
 			for _, name := range []string{"output.log", "databasus-verification.log", "databasus-verification.daemon.log"} {
@@ -47,6 +49,7 @@ func newAgentProcess(t *testing.T, binaryDirectory string) *agentProcess {
 			}
 		}
 	})
+
 	return agent
 }
 
@@ -71,16 +74,19 @@ func (a *agentProcess) start(t *testing.T, host string, credentials apptest.Crea
 	t.Helper()
 	output, err := os.OpenFile(a.outputPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	require.NoError(t, err)
+
 	ctx, cancel := context.WithCancel(t.Context())
 	spec := a.spec(agentArguments("run", host, credentials))
 	spec.Stdout = output
 	spec.Stderr = output
+
 	running, err := process.Start(ctx, spec)
 	if err != nil {
 		cancel()
 		_ = output.Close()
 		t.Fatal(err)
 	}
+
 	t.Cleanup(func() { cancel(); _ = running.Wait(); require.NoError(t, output.Close()) })
 }
 

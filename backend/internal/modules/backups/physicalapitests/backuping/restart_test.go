@@ -44,15 +44,18 @@ func TestRecoverPhysicalBackupAfterRestart(t *testing.T) {
 					strings.NewReader("partial physical backup"),
 				)
 			}
+
 			team.App.RestartModules(t)
 			backups := team.listBackups(t)
 			require.Len(t, backups, 1)
 			assert.Equal(t, "ERROR", backups[0].Status)
 			team.assertTerminalDetails(t, backups[0], "APPLICATION_RESTART")
 			team.assertNoRunningBackup(t)
+
 			var stored apptest.PhysicalFullBackupSeed
 			team.App.QuerySQL(t, &stored, "SELECT * FROM backups_physical WHERE id=?", full.ID)
 			require.NotNil(t, stored.FailMessage)
+
 			if testCase.hasArtifact {
 				require.NotNil(t, stored.FileName)
 				assert.Equal(t, fileName, *stored.FileName)
@@ -61,6 +64,7 @@ func TestRecoverPhysicalBackupAfterRestart(t *testing.T) {
 			} else {
 				assert.Nil(t, stored.FileName)
 			}
+
 			nextFull := team.runBackup(t, "full")
 			require.Equal(t, "COMPLETED", nextFull.Status)
 			assert.Equal(t, "FULL", nextFull.Type)

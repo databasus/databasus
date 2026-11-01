@@ -29,6 +29,7 @@ describe('getAntdTheme', () => {
     (mode) => {
       const tokens = theme.getDesignToken(getAntdTheme(mode));
       const background = getLuminance({ color: tokens.colorBgContainer });
+
       for (const color of [
         tokens.colorText,
         tokens.colorTextSecondary,
@@ -44,6 +45,7 @@ describe('getAntdTheme', () => {
           (Math.max(background, foreground) + 0.05) / (Math.min(background, foreground) + 0.05),
         ).toBeGreaterThanOrEqual(4.5);
       }
+
       const border = getLuminance({ color: tokens.colorBorder });
       expect(
         (Math.max(background, border) + 0.05) / (Math.min(background, border) + 0.05),

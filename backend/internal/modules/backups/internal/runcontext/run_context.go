@@ -18,15 +18,18 @@ type Limits struct {
 func New(appCtx context.Context, limits Limits) (context.Context, func(), func()) {
 	runCtx, cancelRun := context.WithCancelCause(context.WithoutCancel(appCtx))
 	stopWatchingShutdown := context.AfterFunc(appCtx, func() { cancelRun(limits.Shutdown) })
+
 	stopTimeLimit := func() {}
 	if limits.TimeLimit > 0 {
 		timer := time.AfterFunc(limits.TimeLimit, func() { cancelRun(limits.Timeout) })
 		stopTimeLimit = func() { timer.Stop() }
 	}
+
 	context.AfterFunc(runCtx, func() {
 		stopWatchingShutdown()
 		stopTimeLimit()
 	})
+
 	return runCtx, func() { cancelRun(errCancelRequested) }, func() { cancelRun(errRunEnded) }
 }
 

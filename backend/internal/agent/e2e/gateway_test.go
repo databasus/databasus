@@ -40,6 +40,7 @@ func newGateway(t *testing.T, backendURL string, options gatewayOptions) *gatewa
 			if response.StatusCode != http.StatusOK || !strings.HasSuffix(response.Request.URL.Path, "/claim") {
 				return nil
 			}
+
 			var claim map[string]json.RawMessage
 			var body io.Reader = response.Body
 			if response.Header.Get("Content-Encoding") == "gzip" {
@@ -50,6 +51,7 @@ func newGateway(t *testing.T, backendURL string, options gatewayOptions) *gatewa
 				defer func() { _ = compressed.Close() }()
 				body = compressed
 			}
+
 			err := json.NewDecoder(body).Decode(&claim)
 			_ = response.Body.Close()
 			if err != nil {
@@ -60,6 +62,7 @@ func newGateway(t *testing.T, backendURL string, options gatewayOptions) *gatewa
 			if err != nil {
 				return err
 			}
+
 			response.Header.Del("Content-Encoding")
 			response.Body = io.NopCloser(bytes.NewReader(contents))
 			response.ContentLength = int64(len(contents))
@@ -67,6 +70,7 @@ func newGateway(t *testing.T, backendURL string, options gatewayOptions) *gatewa
 			return nil
 		}
 	}
+
 	claims := make(chan struct{})
 	stream := make(chan struct{})
 	var claimOnce, streamOnce, requestedOnce sync.Once
@@ -76,12 +80,14 @@ func newGateway(t *testing.T, backendURL string, options gatewayOptions) *gatewa
 		releaseStream:   func() { streamOnce.Do(func() { close(stream) }) },
 		streamRequested: make(chan struct{}),
 	}
+
 	if !options.isClaimHeld {
 		gate.releaseClaims()
 	}
 	if !options.isStreamHeld {
 		gate.releaseStream()
 	}
+
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		var release <-chan struct{}
 		if strings.HasSuffix(request.URL.Path, "/claim") && request.Method == http.MethodPost {
@@ -100,8 +106,10 @@ func newGateway(t *testing.T, backendURL string, options gatewayOptions) *gatewa
 				return
 			}
 		}
+
 		proxy.ServeHTTP(writer, request)
 	}))
+
 	gate.url = server.URL
 	t.Cleanup(server.Close)
 	return gate

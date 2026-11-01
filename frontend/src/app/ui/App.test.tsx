@@ -12,6 +12,7 @@ const mockServer = setUpMockApi();
 
 const openProfile = async (isTwoFactorAuthRequired: boolean) => {
   activateSession({ token: 'old-session', userId: 'owner-id' });
+
   mockServer.use(
     mockApi.get('/sign-in-options', 200, { hasAnyUser: true }),
     mockApi.get('/system/disk-usages', 200, {
@@ -42,6 +43,7 @@ const openProfile = async (isTwoFactorAuthRequired: boolean) => {
       HttpResponse.json({ tag_name: 'v0.0.0' }),
     ),
   );
+
   renderApp();
   fireEvent.click(await screen.findByAltText('Profile'));
   await screen.findByDisplayValue('owner@example.com');
@@ -62,6 +64,7 @@ describe('App password change', () => {
           sessionRequestCount++;
       };
       mockServer.events.on('request:start', onRequest);
+
       mockServer.use(
         mockApi.put('/users/{userId}/password', 204, undefined),
         mockApi.post(
@@ -81,6 +84,7 @@ describe('App password change', () => {
               },
         ),
       );
+
       try {
         await openProfile(isTwoFactorAuthRequired);
         fireEvent.click(screen.getByRole('button', { name: 'Change password' }));
@@ -102,6 +106,7 @@ describe('App password change', () => {
     mockServer.use(
       mockApi.put('/users/{userId}/password', 403, buildProblem('permission_denied', 403)),
     );
+
     await openProfile(true);
     fireEvent.click(screen.getByRole('button', { name: 'Change password' }));
     expect(await screen.findByText('You do not have permission to do this.')).toBeTruthy();
@@ -126,11 +131,13 @@ describe('App routes', () => {
         ),
       );
       window.history.replaceState(null, '', path);
+
       try {
         renderApp();
         if (path.startsWith('/auth/callback')) {
           fireEvent.click(await screen.findByRole('button', { name: 'Return to sign in' }));
         }
+
         expect(await screen.findByRole('button', { name: 'Sign in' })).toBeTruthy();
         expect(window.location.pathname).toBe('/');
         expect(window.location.search).toBe('');
@@ -160,6 +167,7 @@ it('rejects an unbound legacy storage callback without requests or draft reconst
     '',
     `/storages/google-oauth?code=synthetic-code&state=${state}`,
   );
+
   try {
     renderApp();
     expect(window.location.search).toBe('');

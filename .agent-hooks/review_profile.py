@@ -13,6 +13,7 @@ EXECUTION_POLICY_VERSION = 1
 def get_review_profile_identity(root, profile):
     hooks_dir = Path(__file__).resolve().parent
     inputs = set(hooks_dir.glob("*-prompt.md")) | set(hooks_dir.glob("*.schema.json"))
+
     if profile.client == "codex":
         codex_home = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))
         inputs.add(codex_home / "config.toml")
@@ -21,6 +22,7 @@ def get_review_profile_identity(root, profile):
         inputs.add(Path("/etc/codex/requirements.toml"))
         for directory in (root, *root.parents):
             inputs.add(directory / ".codex/config.toml")
+
     digests = {}
     for path in sorted(inputs):
         try:

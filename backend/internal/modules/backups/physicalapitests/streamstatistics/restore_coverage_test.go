@@ -172,6 +172,7 @@ func TestGetPhysicalRestoreCoverage(t *testing.T) {
 
 		seedCoverageFull(t, catalog, 0, clock.at(0))
 		seedCoverageSegment(t, catalog, 1, clock.at(5))
+
 		uploadingSegment := newWalSeed(
 			walSeedSpec{
 				DatabaseID:  catalog.DatabaseID,
@@ -185,6 +186,7 @@ func TestGetPhysicalRestoreCoverage(t *testing.T) {
 		uploadingSegment.FileName = nil
 		uploadingSegment.ReceivedAt = clock.at(10)
 		catalog.insertWal(t, uploadingSegment)
+
 		seedCoverageSegment(t, catalog, 3, clock.at(15))
 
 		coverage := getRestoreCoverage(t, catalog)

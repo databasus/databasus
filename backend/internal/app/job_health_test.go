@@ -28,6 +28,7 @@ func TestJobHealth(t *testing.T) {
 			},
 			storages.ProductionFileTimings(),
 		)
+
 		assert.Len(t, policies, 4)
 		assert.Equal(t, 5*time.Minute, policies["ordinary"].MaxPassDuration)
 		assert.Equal(t, 101*time.Minute, policies["storage_file_deletion"].MaxPassDuration)
@@ -41,12 +42,14 @@ func TestJobHealth(t *testing.T) {
 		snapshot := background.JobSnapshot{ActivatedAt: activatedAt, Interval: time.Minute}
 		assert.False(t, isJobStale(snapshot, policy, activatedAt.Add(5*time.Minute-time.Nanosecond)))
 		assert.True(t, isJobStale(snapshot, policy, activatedAt.Add(5*time.Minute)))
+
 		completedAt := activatedAt.Add(8 * time.Minute)
 		snapshot.LastCompletedAt = &completedAt
 		snapshot.LastOutcome = background.PassFailed
 		assert.False(t, isJobStale(snapshot, policy, completedAt))
 		assert.False(t, isJobStale(snapshot, policy, completedAt.Add(6*time.Minute-time.Nanosecond)))
 		assert.True(t, isJobStale(snapshot, policy, completedAt.Add(6*time.Minute)))
+
 		snapshot.IsRunning = true
 		snapshot.LastStartedAt = &completedAt
 		assert.False(t, isJobStale(snapshot, policy, completedAt.Add(4*time.Minute)))

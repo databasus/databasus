@@ -161,6 +161,7 @@ func TestTestNotifierSettings(t *testing.T) {
 		require.Len(t, botAPIRequests, 1)
 		assert.Equal(t, "/bot"+telegramBotToken+"/sendMessage", botAPIRequests[0].Path)
 		assert.Equal(t, "777", getFormValue(t, botAPIRequests[0].Body, "chat_id"))
+
 		storedTelegram, err := getNotifier(t, tm.owner, createdNotifier.Id).Settings.AsTelegramNotifierSettings()
 		require.NoError(t, err)
 		assert.Equal(t, "123456", storedTelegram.TargetChatId)

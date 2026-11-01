@@ -182,6 +182,7 @@ func TestBinary(t *testing.T) {
 		require.Equal(t, 0, createRun.exitCode, createRun.output)
 
 		requireVersionAnswers(t, serverAddress)
+
 		client := apiclient.New(t, "http://"+serverAddress)
 		password := operatorPassword
 		signedIn, err := client.SignInWithResponse(
@@ -197,9 +198,11 @@ func TestBinary(t *testing.T) {
 		resetRun := runBinary(t, host, environment, "--new-password=rotated-password-456", "--email="+email)
 
 		require.Equal(t, 0, resetRun.exitCode, resetRun.output)
+
 		refused, err := previousClient.GetUserWithResponse(t.Context(), session.UserId)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusUnauthorized, refused.StatusCode(), string(refused.Body))
+
 		password = "rotated-password-456"
 		freshSignIn, err := client.SignInWithResponse(
 			t.Context(),
@@ -213,6 +216,7 @@ func TestBinary(t *testing.T) {
 		readUser, err := freshClient.GetUserWithResponse(t.Context(), freshSession.UserId)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, readUser.StatusCode(), string(readUser.Body))
+
 		requireVersionAnswers(t, serverAddress)
 	})
 

@@ -12,6 +12,7 @@ class CodexHooksDoctorTest(unittest.TestCase):
         repository.write(".codex/hooks.json", json.dumps({"hooks": {"Stop": [{"hooks": [
             {"type": "command", "command": command},
         ]}]}}))
+
         repository.set_stub("codex", {"hooks_response": {"data": [{
             "cwd": str(repository.root), "warnings": [], "errors": [], "hooks": [{
                 "sourcePath": str(repository.root / ".codex/hooks.json"),
@@ -19,6 +20,7 @@ class CodexHooksDoctorTest(unittest.TestCase):
                 "enabled": is_enabled, "trustStatus": trust_status,
             }],
         }]}})
+
         return repository
 
     def test_reports_unapproved_hooks_instead_of_a_healthy_environment(self):

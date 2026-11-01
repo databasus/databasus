@@ -34,10 +34,12 @@ func TestWalForcedRotation(t *testing.T) {
 		func(t *testing.T) {
 			team := newWalTeam(t, walTeamSpec{})
 			roleName := team.useReplicationRole(t)
+
 			inbox := &webhookInbox{}
 			team.attachWebhook(t, inbox)
 			team.setNotifications(t, apiclient.NotificationTriggerCHAINBROKEN)
 			team.waitForReceiver(t)
+
 			source := team.openSource(t)
 			_, err := source.Exec(
 				t.Context(),
@@ -45,6 +47,7 @@ func TestWalForcedRotation(t *testing.T) {
 			)
 			require.NoError(t, err)
 			generateWal(t, source, 4096)
+
 			testwait.Until(t, "a chain risk webhook reports refused rotation", func(context.Context) error {
 				for _, message := range inbox.getMessages() {
 					if strings.Contains(message, "WAL_ROTATION_DENIED") {
@@ -60,6 +63,7 @@ func TestWalForcedRotation(t *testing.T) {
 				}
 				return nil
 			})
+
 			rotateWal(t, source)
 			team.waitForWal(t, 1)
 			assert.True(t, team.live(t).IsStreamerRunning)
@@ -74,8 +78,10 @@ func TestWalArchiveStaleness(t *testing.T) {
 		timings := backups.ProductionWalStreamTimings()
 		timings.ForcedRotationInterval = time.Second
 		timings.ArchiveStalenessThreshold = 2 * time.Second
+
 		team := newWalTeam(t, walTeamSpec{Timings: &timings})
 		team.useUnavailableStorage(t)
+
 		inbox := &webhookInbox{}
 		team.attachWebhook(t, inbox)
 		team.setNotifications(t, apiclient.NotificationTriggerCHAINBROKEN)
@@ -90,9 +96,11 @@ func TestWalArchiveStaleness(t *testing.T) {
 			}
 			return fmt.Errorf("no stale archive notification")
 		})
+
 		statistics := team.statistics(t)
 		require.NotNil(t, statistics.Current)
 		assert.NotNil(t, statistics.Current.ArchiveStalledSince)
+
 		team.recoverStorage(t)
 		team.waitForWal(t, 1)
 	})

@@ -48,6 +48,7 @@ func (r *storageSwitchRepository) list(ctx context.Context, query ListQuery, lim
 		}
 		rows = rows.Where("(created_at,id) < (?,?)", cursor.Time, cursor.ID)
 	}
+
 	var operations []StorageSwitch
 	err := rows.Order("created_at DESC, id DESC").Limit(limit).Find(&operations).Error
 	return operations, err

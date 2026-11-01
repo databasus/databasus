@@ -313,6 +313,7 @@ describe('CreateDatabaseComponent', () => {
     );
     renderWizard();
     await reachNotifierStep('Archive');
+
     const notifiers = await screen.findByRole('combobox', { name: 'Notifiers' });
     fireEvent.mouseDown(notifiers);
     fireEvent.click(
@@ -475,6 +476,7 @@ describe('CreateDatabaseComponent', () => {
         mockServer.use(mockApi.post('/database-tests', 200, { isConnected: true }));
         renderWizard();
         stubClipboard(async () => connectionString);
+
         await reachConnectionStep();
         await fillConnectionExceptPassword();
         fireEvent.change(getInputByPlaceholder(/password$/), { target: { value: 'secret' } });
@@ -569,6 +571,7 @@ describe('CreateDatabaseComponent', () => {
         body: { isConnected: true },
       });
       mockServer.use(test.handler);
+
       renderWizard();
       enterBaseInfo('MySQL');
       await fillConnectionExceptPassword();
@@ -587,6 +590,7 @@ describe('CreateDatabaseComponent', () => {
       declareWizardRequests();
       renderWizard();
       await reachPostgresBackupType('Logical')();
+
       await fillConnectionExceptPassword();
       fireEvent.change(getInputByPlaceholder(/password$/), { target: { value: 'secret' } });
       await chooseSslMode(/^Require/);
@@ -594,6 +598,7 @@ describe('CreateDatabaseComponent', () => {
       fireEvent.change(screen.getAllByPlaceholderText('-----BEGIN CERTIFICATE-----')[0], {
         target: { value: 'typed-client-cert' },
       });
+
       fireEvent.click(getTestButton());
       fireEvent.click(await screen.findByRole('button', { name: 'Continue' }));
       await screen.findByText('Storage');
@@ -611,12 +616,14 @@ describe('CreateDatabaseComponent', () => {
       declareWizardRequests();
       renderWizard();
       await reachPostgresBackupType('Physical')();
+
       await fillConnectionExceptPassword();
       fireEvent.change(getInputByPlaceholder(/password$/), { target: { value: 'secret' } });
       await chooseSslMode(/^Require/);
       fireEvent.change(screen.getAllByPlaceholderText('-----BEGIN CERTIFICATE-----')[0], {
         target: { value: 'typed-client-cert' },
       });
+
       fireEvent.click(getTestButton());
       fireEvent.click(await screen.findByRole('button', { name: 'Continue' }));
       await screen.findByText('Storage');
@@ -673,6 +680,7 @@ describe('CreateDatabaseComponent', () => {
           error: 'dial tcp: connection refused',
         }),
       );
+
       renderWizard();
       enterBaseInfo('MySQL');
       await fillConnectionExceptPassword();

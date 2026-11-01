@@ -20,6 +20,7 @@ func TestBackupConfigEnumValidation(t *testing.T) {
 			databaseID := tm.insertLogicalDatabase(t)
 			storageID := tm.createLocalStorage(t)
 			originalConfig := saveLogicalBackupConfig(t, tm.owner, databaseID, storageID)
+
 			logical := newLogicalBackupSettings()
 			switch field {
 			case "schedule":
@@ -29,6 +30,7 @@ func TestBackupConfigEnumValidation(t *testing.T) {
 			case "notificationTriggers":
 				logical.NotificationTriggers = []apiclient.LogicalNotificationTrigger{"WAL_GAP"}
 			}
+
 			config := newLogicalBackupConfigInput(t, &storageID, logical)
 			if field == "encryption" {
 				config.Encryption = "AES"

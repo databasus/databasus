@@ -40,6 +40,7 @@ func (s *Service) SwitchStorage(
 	}
 	scope := storageSwitchScope{WorkspaceID: assignment.WorkspaceID, IsTransfer: true}
 	var saved SavedBackupConfig
+
 	switch typed := previous.(type) {
 	case LogicalBackupConfig:
 		typed.StorageID = &assignment.StorageID

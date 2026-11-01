@@ -50,6 +50,7 @@ describe('WorkspaceSettingsComponent', () => {
   it('retains newer name input when the submitted rename finishes', async () => {
     server.use(mockApi.get('/workspaces/{workspaceId}', 200, workspace));
     mockChildren();
+
     const pendingRename = mockApi.delayed({
       method: 'put',
       path: '/workspaces/{workspaceId}',
@@ -57,6 +58,7 @@ describe('WorkspaceSettingsComponent', () => {
       body: { ...workspace, name: 'Submitted' },
     });
     server.use(pendingRename.handler);
+
     const onRenamed = vi.fn();
     renderScreen(
       <WorkspaceSettingsComponent
@@ -137,6 +139,7 @@ describe('WorkspaceSettingsComponent', () => {
           : mockApi.delete('/workspaces/{workspaceId}', 404, buildProblem('not_found', 404)),
       );
       mockChildren();
+
       const onUnavailable = vi.fn();
       const onRenamed = vi.fn();
       const onDeleted = vi.fn();
@@ -186,12 +189,14 @@ describe('WorkspaceSettingsComponent', () => {
           : operation === 'rename'
             ? mockApi.pending('put', '/workspaces/{workspaceId}')
             : mockApi.pending('delete', '/workspaces/{workspaceId}');
+
       server.use(
         mockApi.get('/workspaces/{workspaceId}', 200, workspace),
         mockApi.get('/databases', 200, { items: [] }),
       );
       server.use(pending.handler);
       mockChildren();
+
       const onRenamed = vi.fn();
       const onDeleted = vi.fn();
       const onUnavailable = vi.fn();

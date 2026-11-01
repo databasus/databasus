@@ -76,9 +76,11 @@ export class PagedListController<TItem, TCursor, TMetadata = undefined> {
     this.refreshRequest = request;
     const generation = this.generation;
     const isCurrent = () => this.isCurrentGeneration(generation) && this.refreshRequest === request;
+
     try {
       const firstPage = await this.options.fetchPage(undefined);
       if (!isCurrent()) return;
+
       const list = mergeRefreshedFirstPage(this.state.list, firstPage, this.options.getItemKey);
       const isPendingCursorInvalid =
         list === firstPage &&
@@ -123,6 +125,7 @@ export class PagedListController<TItem, TCursor, TMetadata = undefined> {
     const generation = this.generation;
     const isCurrent = () =>
       this.isCurrentGeneration(generation) && this.nextPageRequest === request;
+
     this.updateState({ isLoadingMore: true });
     try {
       const nextPage = await this.options.fetchPage(cursor);

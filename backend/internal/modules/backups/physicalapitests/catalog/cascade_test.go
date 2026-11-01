@@ -22,6 +22,7 @@ func TestCascadePhysicalBackup(t *testing.T) {
 		second := catalog.seedCascadeIncremental(t, full.ID, 2)
 		history := catalog.seedHistory(t, 1)
 		successor := catalog.seedCascadeFull(t, cascadeFullSpec{Segment: 10, TimelineID: 2})
+
 		names := []string{
 			*full.FileName,
 			*full.ManifestFileName,
@@ -43,8 +44,10 @@ func TestCascadePhysicalBackup(t *testing.T) {
 			segments = append(segments, wal)
 			names = append(names, *wal.FileName, *wal.FileName+".metadata")
 		}
+
 		catalog.publishNames(t, names...)
 		catalog.deleteFull(t, full.ID)
+
 		catalog.assertFullGone(t, full.ID)
 		catalog.assertIncrementalGone(t, first.ID)
 		catalog.assertIncrementalGone(t, second.ID)
@@ -62,7 +65,9 @@ func TestCascadePhysicalBackup(t *testing.T) {
 		owned := catalog.seedCascadeWal(t, cascadeWalSpec{Segment: 1})
 		boundary := catalog.seedCascadeWal(t, cascadeWalSpec{Segment: 4})
 		catalog.publishNames(t, *owned.FileName, *boundary.FileName)
+
 		catalog.deleteFull(t, full.ID)
+
 		catalog.assertWalGone(t, owned.ID)
 		catalog.assertWalPresent(t, boundary.ID)
 		assert.True(t, catalog.App.IsLocalStorageFilePresent(t, *boundary.FileName))
@@ -71,6 +76,7 @@ func TestCascadePhysicalBackup(t *testing.T) {
 		catalog := newCatalog(t)
 		predecessor := catalog.seedCascadeFull(t, cascadeFullSpec{Age: time.Hour})
 		successor := catalog.seedCascadeFull(t, cascadeFullSpec{Segment: 2, Age: 55 * time.Minute})
+
 		segments := []*apptest.PhysicalWalSegmentSeed{}
 		for index := 1; index <= 3; index++ {
 			wal := catalog.seedCascadeWal(
@@ -80,12 +86,14 @@ func TestCascadePhysicalBackup(t *testing.T) {
 			catalog.publishNames(t, *wal.FileName)
 			segments = append(segments, wal)
 		}
+
 		catalog.deleteFull(t, successor.ID)
 		for _, wal := range segments {
 			catalog.assertWalPresent(t, wal.ID)
 			assert.True(t, catalog.App.IsLocalStorageFilePresent(t, *wal.FileName))
 		}
 		catalog.assertFullPresent(t, predecessor.ID)
+
 		var token struct {
 			Token string `json:"token"`
 		}
@@ -130,7 +138,9 @@ func TestCascadePhysicalBackup(t *testing.T) {
 				ErrorReason:      new("SUMMARIZER_OFF"),
 			},
 		)
+
 		catalog.deleteFull(t, full.ID)
+
 		catalog.assertFullGone(t, full.ID)
 		catalog.assertIncrementalGone(t, incremental.ID)
 	})
@@ -140,10 +150,12 @@ func TestCascadePhysicalBackup(t *testing.T) {
 		catalog = cleaner.catalogFixture
 		configureRetentionSchedule(&cleaner.Config)
 		cleaner.Config.Retention.ChainsCount = 1
+
 		full := cleaner.seedChainFull(t, chainFullSpec{StartSegment: 0, AgeHours: 20})
 		cleaner.seedChainFull(t, chainFullSpec{StartSegment: 100, AgeHours: 10})
 		active := cleaner.seedChainFull(t, chainFullSpec{StartSegment: 200, AgeHours: 0})
 		catalog.App.ExecuteSQL(t, "UPDATE backups_physical SET backup_size_mb=1 WHERE id=?", active.ID)
+
 		segments := []*apptest.PhysicalWalSegmentSeed{}
 		for index := 1; index <= 5; index++ {
 			wal := newWalSeed(
@@ -160,7 +172,9 @@ func TestCascadePhysicalBackup(t *testing.T) {
 			wal.ReceivedAt = time.Now().UTC().Add(-80 * time.Hour)
 			segments = append(segments, catalog.insertWal(t, wal))
 		}
+
 		cleaner.clean(t, apiclient.PhysicalRetentionPolicyCHAINS)
+
 		catalog.assertFullPresent(t, full.ID)
 		remaining := 0
 		for _, wal := range segments {
@@ -184,7 +198,9 @@ func TestCascadePhysicalBackup(t *testing.T) {
 			time.Now().UTC().Add(-74*time.Hour),
 			incremental.ID,
 		)
+
 		catalog.keepFullPass(t)
+
 		catalog.assertFullPresent(t, full.ID)
 		catalog.assertIncrementalGone(t, incremental.ID)
 		catalog.assertWalGone(t, wal.ID)
@@ -195,6 +211,7 @@ func TestCascadePhysicalBackup(t *testing.T) {
 		history := catalog.seedHistory(t, 1)
 		names := []string{*full.FileName, *full.ManifestFileName, *full.FileName + ".metadata", history.FileName}
 		catalog.publishNames(t, names...)
+
 		response, err := catalog.Owner.Client.DeleteDatabaseWithResponse(t.Context(), catalog.DatabaseID)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusNoContent, response.StatusCode(), "%s", response.Body)

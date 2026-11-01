@@ -58,13 +58,16 @@ func (a protocolAgent) sendInvalidHeartbeat(id string) (int, []byte) {
 		strings.NewReader(`{}`),
 	)
 	require.NoError(a.test, err)
+
 	request.Header.Set("Authorization", "Bearer "+a.credentials.Token)
 	request.Header.Set("Content-Type", "application/json")
+
 	response, err := http.DefaultClient.Do(request)
 	require.NoError(a.test, err)
 	defer func() { require.NoError(a.test, response.Body.Close()) }()
 	body, err := io.ReadAll(response.Body)
 	require.NoError(a.test, err)
+
 	return response.StatusCode, body
 }
 

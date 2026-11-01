@@ -30,6 +30,7 @@ func TestBaseBackupProgress(t *testing.T) {
 			filepath.Join(gateDir, "finish"),
 		}
 		tarPath := writeBaseBackupTar(t)
+
 		var script strings.Builder
 		_, err := fmt.Fprintf(&script, "echo $$ > %q\n", pidPath)
 		require.NoError(t, err)
@@ -46,6 +47,7 @@ func TestBaseBackupProgress(t *testing.T) {
 			"echo 'write-ahead log start point: 0/3000060 on timeline 1' >&2\necho 'write-ahead log end point: 0/3000220' >&2",
 		)
 		require.NoError(t, err)
+
 		writeBaseBackupStub(t, spec, script.String())
 		type progressReport struct {
 			sizeMb    float64
@@ -53,6 +55,7 @@ func TestBaseBackupProgress(t *testing.T) {
 		}
 		reports := make(chan progressReport, 10)
 		spec.ProgressListener = func(sizeMb float64, elapsedMs int64) { reports <- progressReport{sizeMb: sizeMb, elapsedMs: elapsedMs} }
+
 		completed := make(chan BaseBackupResult, 1)
 		failures := make(chan error, 1)
 		go func() {
@@ -60,6 +63,7 @@ func TestBaseBackupProgress(t *testing.T) {
 			completed <- backup
 			failures <- err
 		}()
+
 		waitForToolPID(t, pidPath)
 		manualClock.Advance(time.Second)
 		require.NoError(t, os.WriteFile(gates[0], nil, 0o600))
@@ -72,9 +76,11 @@ func TestBaseBackupProgress(t *testing.T) {
 		assert.InEpsilon(t, 2*firstReport.sizeMb, secondReport.sizeMb, 1e-9)
 		assert.Equal(t, int64(3000), secondReport.elapsedMs)
 		require.NoError(t, os.WriteFile(gates[2], nil, 0o600))
+
 		backup := <-completed
 		require.NoError(t, <-failures)
 		assert.Equal(t, int64(1536), backup.StreamedSize)
+
 		for len(reports) > 0 {
 			<-reports
 		}

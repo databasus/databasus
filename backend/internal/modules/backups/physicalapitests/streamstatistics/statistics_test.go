@@ -762,9 +762,11 @@ func TestGetWalStreamStatistics(t *testing.T) {
 						NewestAt:   time.Now().UTC().Add(-3 * time.Hour),
 					},
 				)
+
 				testCase.stopStreaming(t, catalog)
 				response := getWalStreamStatistics(t, catalog, "DAY")
 				assert.Equal(t, "NOT_STREAMING", response.Health.Level)
+
 				pointsWithValues := 0
 				for _, point := range response.Series.Points {
 					if point.ArchiveBytesPerSecond != nil {

@@ -21,6 +21,7 @@ func recordNotifications(
 	if len(categories) == 0 {
 		categories = []apiclient.NotificationCategory{apiclient.NotificationCategoryALL}
 	}
+
 	messages := make(chan string, 10)
 	endpoint := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		body, err := io.ReadAll(request.Body)
@@ -30,6 +31,7 @@ func recordNotifications(
 		writer.WriteHeader(http.StatusNoContent)
 	}))
 	t.Cleanup(endpoint.Close)
+
 	var settings apiclient.NotifierSettings
 	require.NoError(
 		t,
@@ -44,10 +46,12 @@ func recordNotifications(
 			},
 		),
 	)
+
 	notifier := apptest.CreateNotifier(t, team.Owner, team.Workspace.Id, settings)
 	current, err := team.Owner.Client.GetDatabaseWithResponse(t.Context(), team.Database.Id)
 	require.NoError(t, err)
 	require.NotNil(t, current.JSON200, string(current.Body))
+
 	updated, err := team.Owner.Client.UpdateDatabaseWithResponse(
 		t.Context(),
 		team.Database.Id,

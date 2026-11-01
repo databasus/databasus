@@ -23,6 +23,7 @@ func TestVerificationClaimBudget(t *testing.T) {
 			"UPDATE backups_logical SET backup_size_mb=9000,backup_raw_db_size_mb=1 WHERE id=?",
 			backup.Id,
 		)
+
 		smaller := team.backup(t)
 		team.App.WaitForBackupRuns(t)
 		team.App.ExecuteSQL(
@@ -31,11 +32,13 @@ func TestVerificationClaimBudget(t *testing.T) {
 			smaller.Id,
 		)
 		candidate := team.start(t, smaller.Id)
+
 		agent := team.App.CreateVerificationAgent(t, team.Admin)
 		status, body := newProtocolAgent(t, team.App, agent).claimVerification(claimBody(5))
 		require.Equal(t, http.StatusOK, status, string(body))
 		assert.Equal(t, apiclient.VerificationStatusRUNNING, team.read(t, candidate.Id).Status)
 		assert.Equal(t, apiclient.VerificationStatusPENDING, team.read(t, oversized.Id).Status)
+
 		team.App.ExecuteSQL(
 			t,
 			"UPDATE backups_logical SET backup_size_mb=4000,backup_raw_db_size_mb=1 WHERE id=?",
@@ -51,6 +54,7 @@ func TestVerificationClaimBudget(t *testing.T) {
 		verification := team.start(t, backup.Id)
 		owner := team.App.CreateVerificationAgent(t, team.Admin)
 		other := team.App.CreateVerificationAgent(t, team.Admin)
+
 		assert.Equal(t, verification.Id, claim(t, team, owner))
 		status, body := newProtocolAgent(t, team.App, other).claimVerification(claimBody(25))
 		assert.Equal(t, http.StatusNoContent, status, string(body))
@@ -61,6 +65,7 @@ func TestVerificationClaimBudget(t *testing.T) {
 		backup := team.backup(t)
 		team.App.ExecuteSQL(t, "UPDATE backups_logical SET timescaledb_version='2.25.0' WHERE id=?", backup.Id)
 		team.start(t, backup.Id)
+
 		agent := team.App.CreateVerificationAgent(t, team.Admin)
 		status, body := newProtocolAgent(t, team.App, agent).claimVerification(claimBody(25))
 		require.Equal(t, http.StatusOK, status, string(body))

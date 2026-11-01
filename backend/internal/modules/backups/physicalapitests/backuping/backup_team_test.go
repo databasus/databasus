@@ -47,12 +47,14 @@ func newBackupTeam(t *testing.T, spec backupTeamSpec) *backupTeam {
 	if image == "" {
 		image = "postgres:17"
 	}
+
 	var source containers.Endpoint
 	if spec.IsMtls {
 		source = containers.StartPhysicalPostgresMtls(t, mtlsDirectory(t))
 	} else if !spec.IsBastioned {
 		source = containers.StartPhysicalPostgres(t, image)
 	}
+
 	connectionEndpoint := source
 	tunnel := apiclient.SshTunnelSettings{IsEnabled: false}
 	if spec.IsBastioned {
@@ -61,14 +63,17 @@ func newBackupTeam(t *testing.T, spec backupTeamSpec) *backupTeam {
 		connectionEndpoint = enginetest.OpenForwardedEndpoint(t, topology)
 		tunnel = enginetest.NewBastionSSHTunnelSettings(topology)
 	}
+
 	testApp := apptest.New(t, apptest.WithClientToolsDir(spec.ClientToolsDir))
 	owner := testApp.CreateAdmin(t)
 	workspace := apptest.CreateWorkspace(t, owner, "Physical backup API")
 	storageID := testApp.CreateLocalStorage(t, owner, workspace.Id)
+
 	backupType := spec.BackupType
 	if backupType == "" {
 		backupType = apiclient.PhysicalBackupTypeFULLINCREMENTAL
 	}
+
 	password := "testpassword"
 	var databaseSettings apiclient.DatabaseSettings
 	physicalSettings := apiclient.PostgresqlPhysicalSettings{
@@ -81,14 +86,17 @@ func newBackupTeam(t *testing.T, spec backupTeamSpec) *backupTeam {
 		SshTunnel:  tunnel,
 		BackupType: backupType,
 	}
+
 	if spec.IsMtls {
 		physicalSettings.SslMode = apiclient.PostgresqlSslModeVerifyCa
 		physicalSettings.SslClientCert = new(readMtlsFile(t, "client.crt"))
 		physicalSettings.SslClientKey = new(readMtlsFile(t, "client.key"))
 		physicalSettings.SslRootCert = new(readMtlsFile(t, "ca.crt"))
 	}
+
 	require.NoError(t, databaseSettings.FromPostgresqlPhysicalSettings(physicalSettings))
 	database := apptest.CreateDatabase(t, owner, workspace.Id, databaseSettings)
+
 	team := &backupTeam{
 		App:       testApp,
 		Owner:     owner,
@@ -97,6 +105,7 @@ func newBackupTeam(t *testing.T, spec backupTeamSpec) *backupTeam {
 		Source:    connectionEndpoint,
 		IsMtls:    spec.IsMtls,
 	}
+
 	config := apptest.GetBackupConfig(t, owner, database.Id)
 	settings, err := config.Settings.AsPhysicalBackupSettings()
 	require.NoError(t, err)
@@ -104,12 +113,15 @@ func newBackupTeam(t *testing.T, spec backupTeamSpec) *backupTeam {
 	if backupType != apiclient.PhysicalBackupTypeFULL {
 		settings.IncrementalBackupSchedule = &apiclient.Schedule{Type: apiclient.ScheduleTypeHOURLY}
 	}
+
 	var backupSettings apiclient.BackupSettings
 	require.NoError(t, backupSettings.FromPhysicalBackupSettings(settings))
+
 	encryption := apiclient.BackupEncryptionNONE
 	if spec.IsEncrypted {
 		encryption = apiclient.BackupEncryptionENCRYPTED
 	}
+
 	response, err := owner.Client.UpdateBackupConfigWithResponse(
 		t.Context(),
 		database.Id,
@@ -122,6 +134,7 @@ func newBackupTeam(t *testing.T, spec backupTeamSpec) *backupTeam {
 	)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, response.StatusCode(), "%s", response.Body)
+
 	if spec.IsSummarizerDisabled {
 		connection := team.openSource(t)
 		_, err := connection.Exec(t.Context(), "ALTER SYSTEM SET summarize_wal=off")
@@ -132,6 +145,7 @@ func newBackupTeam(t *testing.T, spec backupTeamSpec) *backupTeam {
 	if spec.IsPhysicalReplicationDenied {
 		team.denyPhysicalReplication(t)
 	}
+
 	return team
 }
 
@@ -153,9 +167,11 @@ func (team *backupTeam) openSource(t *testing.T) *pgx.Conn {
 			directory,
 		)
 	}
+
 	connection, err := pgx.Connect(t.Context(), dsn)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = connection.Close(t.Context()) })
+
 	return connection
 }
 
@@ -200,8 +216,10 @@ func (team *backupTeam) runBackup(t *testing.T, backupType string) backupRow {
 	for _, backup := range team.listBackups(t) {
 		before[backup.ID] = true
 	}
+
 	team.trigger(t, backupType)
 	team.App.RunJobPass(t, "backups_physical_scheduler")
+
 	var terminal backupRow
 	testwait.Until(t, "the scheduler publishes a terminal backup", func(context.Context) error {
 		for _, backup := range team.listBackups(t) {
@@ -212,7 +230,9 @@ func (team *backupTeam) runBackup(t *testing.T, backupType string) backupRow {
 		}
 		return fmt.Errorf("no new terminal backup")
 	})
+
 	team.App.WaitForPhysicalBackups(t)
+
 	return terminal
 }
 

@@ -24,12 +24,14 @@ func (s *Service) IssueRestoreToken(
 		}
 		databaseID = resolvedDatabaseID
 	}
+
 	if _, err := s.authorizeDatabase(ctx, actor, databaseID, workspaces.ActionView); err != nil {
 		if subject.BackupID != nil {
 			err = toBackupAccessProblem(err)
 		}
 		return restorestream.IssuedToken{}, err
 	}
+
 	if subject.BackupID != nil {
 		if _, err := s.chains.ResolveRestoreSetForBackup(ctx, databaseID, *subject.BackupID); err != nil {
 			return restorestream.IssuedToken{}, toRestoreProblem(err)
@@ -39,6 +41,7 @@ func (s *Service) IssueRestoreToken(
 			return restorestream.IssuedToken{}, toRestoreProblem(err)
 		}
 	}
+
 	return s.restoreTokenService.IssueToken(
 		ctx,
 		restorestream.Token{

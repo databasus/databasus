@@ -30,6 +30,7 @@ export function EditEmailNotifierComponent({ settings, isSaved, onChange }: Prop
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
   const { t } = useTranslation();
   const fieldPrefix = useId();
+
   const invalidFields = {
     isTargetEmailInvalid: !/^.+@[^\s@]+$/.test(settings.targetEmail ?? ''),
     isSmtpHostInvalid: !settings.smtpHost?.trim(),

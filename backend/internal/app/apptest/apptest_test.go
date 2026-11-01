@@ -183,6 +183,7 @@ func TestPhysicalBackupLoops(t *testing.T) {
 		source := containers.StartPhysicalPostgres(t, "postgres:17")
 		owner, backupDatabase := enablePhysicalBackupLoops(t, testApp, source)
 		testApp.WaitForPhysicalBackups(t)
+
 		backupConfig := GetBackupConfig(t, owner, backupDatabase.Id)
 		require.NotNil(t, backupConfig.StorageId)
 		segment := testApp.InsertPhysicalWalSegment(
@@ -198,6 +199,7 @@ func TestPhysicalBackupLoops(t *testing.T) {
 				ReceivedAt:  time.Now().Add(-2 * time.Hour),
 			},
 		)
+
 		observationEnds := time.Now().Add(time.Minute + time.Second)
 		testwait.Until(t, "a cleaner interval passes without deleting orphan WAL", func(context.Context) error {
 			var segmentCount int
@@ -214,6 +216,7 @@ func TestPhysicalBackupLoops(t *testing.T) {
 			return nil
 		})
 		testApp.RunJobPass(t, "backups_physical_cleaner")
+
 		var segmentCount int
 		testApp.QuerySQL(t, &segmentCount, "SELECT count(*) FROM backups_physical_wal_segments WHERE id=?", segment.ID)
 		assert.Zero(t, segmentCount)
@@ -234,6 +237,7 @@ func TestPhysicalBackupLoops(t *testing.T) {
 			}
 			require.NoError(t, json.Unmarshal(body, &listed))
 			require.Empty(t, listed.Backups)
+
 			var slotCount int
 			conn, err := pgx.Connect(
 				t.Context(),
@@ -300,6 +304,7 @@ func TestPhysicalBackupLoops(t *testing.T) {
 			releaseJob := make(chan struct{})
 			startedJob := make(chan struct{})
 			t.Cleanup(func() { close(releaseJob) })
+
 			testApp := New(
 				recordingTest,
 				func(applied *settings) { applied.physicalBackupStopTimeout = 100 * time.Millisecond },
@@ -316,6 +321,7 @@ func TestPhysicalBackupLoops(t *testing.T) {
 					},
 				},
 			)
+
 			loopsCtx, cancel := context.WithCancel(t.Context())
 			testApp.cancelPhysicalLoops = cancel
 			testApp.physicalRunner.Start(loopsCtx)
@@ -336,6 +342,7 @@ func enablePhysicalBackupLoops(t *testing.T, testApp *App, source containers.End
 	workspace := CreateWorkspace(t, owner, "Physical backups")
 	storageID := testApp.CreateLocalStorage(t, owner, workspace.Id)
 	password := "testpassword"
+
 	var settings apiclient.DatabaseSettings
 	require.NoError(t, settings.FromPostgresqlPhysicalSettings(apiclient.PostgresqlPhysicalSettings{
 		Type: apiclient.PostgresqlPhysicalSettingsTypePOSTGRESPHYSICAL,
@@ -343,6 +350,7 @@ func enablePhysicalBackupLoops(t *testing.T, testApp *App, source containers.End
 		SslMode: apiclient.PostgresqlSslModeDisable, SshTunnel: apiclient.SshTunnelSettings{IsEnabled: false},
 		BackupType: apiclient.PhysicalBackupTypeFULLINCREMENTALWALSTREAM,
 	}))
+
 	database := CreateDatabase(t, owner, workspace.Id, settings)
 	backupConfig := GetBackupConfig(t, owner, database.Id)
 	response, err := owner.Client.UpdateBackupConfigWithResponse(
@@ -372,6 +380,7 @@ func getActivePhysicalReplicationSlotCount(t *testing.T, source containers.Endpo
 	)
 	require.NoError(t, err)
 	defer func() { require.NoError(t, conn.Close(context.WithoutCancel(t.Context()))) }()
+
 	var activeSlotCount int
 	require.NoError(
 		t,
@@ -561,6 +570,7 @@ func TestWalStreamTimings(t *testing.T) {
 				return fmt.Errorf("the initial full backup has not completed")
 			},
 		)
+
 		conn := openPhysicalSource(t, source)
 		var quietWalFilename string
 		require.NoError(
@@ -569,6 +579,7 @@ func TestWalStreamTimings(t *testing.T) {
 		)
 		_, err := conn.Exec(t.Context(), "CREATE TABLE quiet_source (id int)")
 		require.NoError(t, err)
+
 		rotationStartedAt := time.Now()
 		rotationTimeout := 10 * timings.ForcedRotationInterval
 		testwait.Until(t, "forced rotation archives a segment from the quiet source", func(context.Context) error {

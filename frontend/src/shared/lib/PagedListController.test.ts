@@ -224,12 +224,15 @@ describe('PagedListController', () => {
       .mockResolvedValueOnce({ items: rows('old'), nextCursor: 'old-cursor' })
       .mockReturnValueOnce(firstPage.promise);
     const { controller } = createController(fetchPage);
+
     await controller.reload();
     const reload = controller.reload();
     await controller.loadNextPage();
     await controller.refreshFirstPage();
+
     expect(fetchPage).toHaveBeenCalledTimes(2);
     expect(controller.getState().list).toEqual({ items: [] });
+
     firstPage.resolvePage({ items: rows('new'), nextCursor: 'new-cursor' });
     await reload;
     expect(getLoadedIds(controller)).toEqual(['new']);
@@ -245,15 +248,19 @@ describe('PagedListController', () => {
       .mockResolvedValueOnce({ items: rows('new'), nextCursor: 'new-cursor' })
       .mockReturnValueOnce(newPage.promise);
     const { controller } = createController(fetchPage);
+
     await controller.reload();
     const oldNext = controller.loadNextPage();
     await controller.reload();
     const newNext = controller.loadNextPage();
+
     oldPage.resolvePage({ items: rows('stale') });
     await oldNext;
     expect(controller.getState().isLoadingMore).toBe(true);
+
     await controller.loadNextPage();
     expect(fetchPage).toHaveBeenCalledTimes(4);
+
     newPage.resolvePage({ items: rows('current') });
     await newNext;
     expect(getLoadedIds(controller)).toEqual(['new', 'current']);
@@ -269,15 +276,18 @@ describe('PagedListController', () => {
       .mockResolvedValueOnce({ items: rows('new') })
       .mockReturnValueOnce(newPage.promise);
     const { controller } = createController(fetchPage);
+
     await controller.reload();
     const oldRefresh = controller.refreshFirstPage();
     await controller.reload();
     const newRefresh = controller.refreshFirstPage();
+
     expect(fetchPage).toHaveBeenCalledTimes(4);
     oldPage.resolvePage({ items: rows('stale') });
     await oldRefresh;
     await controller.refreshFirstPage();
     expect(fetchPage).toHaveBeenCalledTimes(4);
+
     newPage.resolvePage({ items: rows('current') });
     await newRefresh;
     expect(getLoadedIds(controller)).toEqual(['current']);
@@ -289,12 +299,14 @@ describe('PagedListController', () => {
       .mockRejectedValueOnce(new Error('unavailable'))
       .mockResolvedValueOnce({ items: rows('recovered') });
     const { controller, onError } = createController(fetchPage);
+
     await controller.reload();
     expect(controller.getState().isLoading).toBe(false);
     await controller.refreshFirstPage();
     await controller.loadNextPage();
     expect(fetchPage).toHaveBeenCalledTimes(1);
     expect(onError).toHaveBeenCalledOnce();
+
     await controller.reload();
     expect(getLoadedIds(controller)).toEqual(['recovered']);
   });
@@ -309,13 +321,16 @@ describe('PagedListController', () => {
       .mockReturnValueOnce(oldNextPage.promise)
       .mockResolvedValueOnce({ items: rows('current') });
     const { controller, onError } = createController(fetchPage);
+
     const oldReload = controller.reload();
     await controller.reload();
     const oldNext = controller.loadNextPage();
     await controller.reload();
+
     oldPage.rejectPage(new Error('old first'));
     oldNextPage.rejectPage(new Error('old next'));
     await Promise.all([oldReload, oldNext]);
+
     expect(onError).not.toHaveBeenCalled();
     expect(getLoadedIds(controller)).toEqual(['current']);
   });
@@ -331,9 +346,11 @@ describe('PagedListController', () => {
         .mockReturnValueOnce(refreshPage.promise)
         .mockReturnValueOnce(nextPage.promise);
       const { controller } = createController(fetchPage);
+
       await controller.reload();
       const refresh = controller.refreshFirstPage();
       const next = controller.loadNextPage();
+
       const finishRefresh = async () => {
         refreshPage.resolvePage({
           items: [{ id: 'new' }, { id: 'a', status: 'completed' }],
@@ -348,6 +365,7 @@ describe('PagedListController', () => {
         });
         await next;
       };
+
       if (first === 'refresh') {
         await finishRefresh();
         await finishNext();
@@ -355,6 +373,7 @@ describe('PagedListController', () => {
         await finishNext();
         await finishRefresh();
       }
+
       expect(getLoadedIds(controller)).toEqual(['new', 'a', 'b', 'c', 'd']);
       expect(controller.getState().list.items.find((row) => row.id === 'a')?.status).toBe(
         'completed',
@@ -374,9 +393,11 @@ describe('PagedListController', () => {
         .mockReturnValueOnce(nextPage.promise)
         .mockReturnValueOnce(refreshPage.promise);
       const { controller } = createController(fetchPage);
+
       await controller.reload();
       const next = controller.loadNextPage();
       const refresh = controller.refreshFirstPage();
+
       const finishRefresh = async () => {
         refreshPage.resolvePage({
           items: [{ id: 'a' }, { id: 'b', status: 'completed' }],
@@ -388,6 +409,7 @@ describe('PagedListController', () => {
         nextPage.resolvePage({ items: rows('c', 'd'), nextCursor: 'after-d' });
         await next;
       };
+
       if (first === 'refresh') {
         await finishRefresh();
         expect(controller.getState().isLoadingMore).toBe(true);
@@ -398,6 +420,7 @@ describe('PagedListController', () => {
         await finishNext();
         await finishRefresh();
       }
+
       expect(getLoadedIds(controller)).toEqual(['a', 'b', 'c', 'd']);
       expect(controller.getState().list.nextCursor).toBe('after-d');
       expect(controller.getState().list.items.find((row) => row.id === 'b')?.status).toBe(
@@ -414,9 +437,11 @@ describe('PagedListController', () => {
       .mockResolvedValueOnce({ items: rows('new-a', 'new-b'), nextCursor: 'new-cursor' })
       .mockResolvedValueOnce({ items: rows('old-a', 'old-b') });
     const { controller } = createController(fetchPage);
+
     await controller.reload();
     await controller.refreshFirstPage();
     expect(getLoadedIds(controller)).toEqual(['new-a', 'new-b']);
+
     await controller.loadNextPage();
     expect(fetchPage).toHaveBeenLastCalledWith('new-cursor');
     expect(getLoadedIds(controller)).toEqual(['new-a', 'new-b', 'old-a', 'old-b']);
@@ -433,9 +458,11 @@ describe('PagedListController', () => {
         .mockReturnValueOnce(refreshPage.promise)
         .mockReturnValueOnce(nextPage.promise);
       const { controller } = createController(fetchPage);
+
       await controller.reload();
       const refresh = controller.refreshFirstPage();
       const next = controller.loadNextPage();
+
       const finishRefresh = async () => {
         refreshPage.resolvePage({ items: rows('a') });
         await refresh;
@@ -444,6 +471,7 @@ describe('PagedListController', () => {
         nextPage.resolvePage({ items: rows('c') });
         await next;
       };
+
       if (first === 'refresh') {
         await finishRefresh();
         await finishNext();
@@ -451,6 +479,7 @@ describe('PagedListController', () => {
         await finishNext();
         await finishRefresh();
       }
+
       expect(getLoadedIds(controller)).toEqual(['a']);
       expect(controller.getState().list.nextCursor).toBeUndefined();
     },
@@ -465,12 +494,15 @@ describe('PagedListController', () => {
         { fetchPage: () => page.promise, getItemKey: (row) => row.id, onError },
         onStateChange,
       );
+
       const reload = controller.reload();
       controller.deactivate();
       const publications = onStateChange.mock.calls.length;
+
       if (outcome === 'success') page.resolvePage({ items: rows('late') });
       else page.rejectPage(new Error('late error'));
       await reload;
+
       expect(onStateChange).toHaveBeenCalledTimes(publications);
       expect(onError).not.toHaveBeenCalled();
     },

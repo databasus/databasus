@@ -49,18 +49,21 @@ func writePhysicalBackup(t *testing.T, api *apiClient, source physicalSourceSpec
 	if err != nil {
 		return "", nil, fmt.Errorf("create the physical database: %w", err)
 	}
+
 	databaseID := createdDatabase.ID
 	var config map[string]any
 	err = api.get(t.Context(), "/backup-configs/physical/database/"+databaseID, &config)
 	if err != nil {
 		return "", nil, err
 	}
+
 	config["isBackupsEnabled"] = true
 	config["storage"] = map[string]any{"id": source.storageID}
 	err = api.post(t.Context(), "/backup-configs/physical/save", config, nil)
 	if err != nil {
 		return "", nil, fmt.Errorf("enable physical backups: %w", err)
 	}
+
 	err = api.post(
 		t.Context(),
 		"/backups/physical/database/"+databaseID+"/trigger",
@@ -70,6 +73,7 @@ func writePhysicalBackup(t *testing.T, api *apiClient, source physicalSourceSpec
 	if err != nil {
 		return "", nil, err
 	}
+
 	var fullBackup previousPhysicalBackup
 	err = testwait.Poll(t, "the previous release's full backup to finish", func(ctx context.Context) error {
 		var page previousPhysicalBackupPage
@@ -91,6 +95,7 @@ func writePhysicalBackup(t *testing.T, api *apiClient, source physicalSourceSpec
 	if err != nil {
 		return "", nil, err
 	}
+
 	if fullBackup.Status != "COMPLETED" {
 		return "", nil, fmt.Errorf(
 			"physical full backup %s ended with %s: %s",
@@ -99,6 +104,7 @@ func writePhysicalBackup(t *testing.T, api *apiClient, source physicalSourceSpec
 			getOptionalValue(fullBackup.FailMessage),
 		)
 	}
+
 	err = api.post(
 		t.Context(),
 		"/backups/physical/database/"+databaseID+"/trigger",
@@ -108,6 +114,7 @@ func writePhysicalBackup(t *testing.T, api *apiClient, source physicalSourceSpec
 	if err != nil {
 		return "", nil, err
 	}
+
 	var incrementalBackup previousPhysicalBackup
 	err = testwait.Poll(t, "the previous release's incremental backup to finish", func(ctx context.Context) error {
 		var page previousPhysicalBackupPage
@@ -129,6 +136,7 @@ func writePhysicalBackup(t *testing.T, api *apiClient, source physicalSourceSpec
 	if err != nil {
 		return "", nil, err
 	}
+
 	if incrementalBackup.Status != "COMPLETED" {
 		return "", nil, fmt.Errorf(
 			"physical incremental backup %s ended with %s: %s",
@@ -137,6 +145,7 @@ func writePhysicalBackup(t *testing.T, api *apiClient, source physicalSourceSpec
 			getOptionalValue(incrementalBackup.FailMessage),
 		)
 	}
+
 	if incrementalBackup.RootFullBackupID != fullBackup.ID || incrementalBackup.ParentIncrementalBackupID != "" {
 		return "", nil, fmt.Errorf(
 			"physical incremental backup %s does not directly extend full backup %s",
@@ -144,10 +153,12 @@ func writePhysicalBackup(t *testing.T, api *apiClient, source physicalSourceSpec
 			fullBackup.ID,
 		)
 	}
+
 	items := []upgradecheck.Item{
 		physicalFullBackupItem(fullBackup.GetSnapshot()),
 		physicalIncrementalBackupItem(incrementalBackup.GetSnapshot()),
 	}
+
 	var forcedWalFilename string
 	err = executeOnSourceDatabase(t.Context(), source.hostPort, sourceDatabaseName, func(connection *pgx.Conn) error {
 		_, writeErr := connection.Exec(
@@ -167,6 +178,7 @@ func writePhysicalBackup(t *testing.T, api *apiClient, source physicalSourceSpec
 	if err != nil {
 		return "", nil, err
 	}
+
 	err = testwait.Poll(
 		t,
 		"the previous release to archive WAL after its incremental backup",

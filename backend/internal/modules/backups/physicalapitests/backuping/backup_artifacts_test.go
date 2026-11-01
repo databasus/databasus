@@ -22,20 +22,24 @@ func TestPhysicalBackupArtifacts(t *testing.T) {
 				full := team.runBackup(t, "full")
 				require.Equal(t, "COMPLETED", full.Status)
 				assert.Equal(t, "FULL", full.Type)
+
 				database, err := team.Owner.Client.GetDatabaseWithResponse(t.Context(), team.Database.Id)
 				require.NoError(t, err)
 				require.NotNil(t, database.JSON200)
 				require.NotNil(t, database.JSON200.LastBackupTime)
 				assert.True(t, full.CreatedAt.Equal(*database.JSON200.LastBackupTime))
 				team.assertArtifacts(t, full)
+
 				first := team.runBackup(t, "incremental")
 				require.Equal(t, "COMPLETED", first.Status)
 				assert.Equal(t, "INCREMENTAL", first.Type)
 				team.assertArtifacts(t, first)
+
 				second := team.runBackup(t, "incremental")
 				require.Equal(t, "COMPLETED", second.Status)
 				team.assertArtifacts(t, second)
 				team.assertNoRunningBackup(t)
+
 				var incremental struct {
 					RootFullBackupID uuid.UUID
 					ParentBackupID   *uuid.UUID
@@ -52,6 +56,7 @@ func TestPhysicalBackupArtifacts(t *testing.T) {
 		full := team.runBackup(t, "full")
 		require.Equal(t, "COMPLETED", full.Status)
 		team.assertArtifacts(t, full)
+
 		var stored apptest.PhysicalFullBackupSeed
 		team.App.QuerySQL(t, &stored, "SELECT * FROM backups_physical WHERE id=?", full.ID)
 		require.NotNil(t, stored.RawSizeMb)
@@ -74,9 +79,11 @@ func (team *backupTeam) assertArtifacts(t *testing.T, backup backupRow) {
 		BackupSizeMb           *float64
 		BackupDurationMs       *int64
 	}
+
 	table := "backups_physical"
 	team.App.QuerySQL(t, &artifacts, "SELECT * FROM "+table+" WHERE id=?", backup.ID)
 	require.Len(t, artifacts, 1)
+
 	artifact := artifacts[0]
 	require.NotNil(t, artifact.FileName)
 	require.NotNil(t, artifact.ManifestFileName)
@@ -89,6 +96,7 @@ func (team *backupTeam) assertArtifacts(t *testing.T, backup backupRow) {
 	assert.Positive(t, *artifact.BackupSizeMb)
 	require.NotNil(t, artifact.BackupDurationMs)
 	assert.Positive(t, *artifact.BackupDurationMs)
+
 	if artifact.Encryption == "ENCRYPTED" {
 		require.NotNil(t, artifact.EncryptionSalt)
 		require.NotNil(t, artifact.EncryptionIv)

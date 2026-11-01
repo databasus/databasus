@@ -23,11 +23,13 @@ func newBackupState(t *testing.T) *backupTeam {
 	workspace := apptest.CreateWorkspace(t, owner, "Physical scheduler states")
 	databaseID := testApp.InsertPhysicalDatabase(t, workspace.Id)
 	storageID := testApp.CreateLocalStorage(t, owner, workspace.Id)
+
 	response, err := owner.Client.GetDatabaseWithResponse(t.Context(), databaseID)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, response.StatusCode())
 	team := &backupTeam{App: testApp, Owner: owner, Database: *response.JSON200, StorageID: storageID}
 	apptest.SaveBackupConfigWithStorage(t, owner, apptest.StorageUse{DatabaseID: databaseID, StorageID: storageID})
+
 	return team
 }
 
@@ -97,6 +99,7 @@ func (team *backupTeam) setSchedules(t *testing.T, isFullOnly bool) {
 			team.Database.Id,
 		)
 	}
+
 	config := apptest.GetBackupConfig(t, team.Owner, team.Database.Id)
 	settings, err := config.Settings.AsPhysicalBackupSettings()
 	require.NoError(t, err)
@@ -104,6 +107,7 @@ func (team *backupTeam) setSchedules(t *testing.T, isFullOnly bool) {
 		Type:      apiclient.ScheduleTypeDAILY,
 		TimeOfDay: new(fmt.Sprintf("%02d:00", (time.Now().UTC().Hour()+12)%24)),
 	}
+
 	if !isFullOnly {
 		settings.IncrementalBackupSchedule = &apiclient.Schedule{Type: apiclient.ScheduleTypeHOURLY}
 	} else {
@@ -116,8 +120,10 @@ func (team *backupTeam) setSchedules(t *testing.T, isFullOnly bool) {
 			Count:  7,
 		}
 	}
+
 	var backupSettings apiclient.BackupSettings
 	require.NoError(t, backupSettings.FromPhysicalBackupSettings(settings))
+
 	response, err := team.Owner.Client.UpdateBackupConfigWithResponse(
 		t.Context(),
 		team.Database.Id,
@@ -138,7 +144,9 @@ func (team *backupTeam) runAutomaticBackup(t *testing.T) backupRow {
 	for _, backup := range team.listBackups(t) {
 		before[backup.ID] = true
 	}
+
 	team.App.RunJobPass(t, "backups_physical_scheduler")
+
 	var terminal backupRow
 	testwait.Until(t, "the automatic scheduler backup reaches a terminal state", func(context.Context) error {
 		for _, backup := range team.listBackups(t) {
@@ -149,6 +157,7 @@ func (team *backupTeam) runAutomaticBackup(t *testing.T) backupRow {
 		}
 		return fmt.Errorf("no new terminal backup")
 	})
+
 	return terminal
 }
 

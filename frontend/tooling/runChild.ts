@@ -33,6 +33,7 @@ export const runChild = (
       detached: shouldStopProcessGroup,
       stdio: 'inherit',
     });
+
     let deadline: ReturnType<typeof setTimeout> | undefined;
     const stop = () => {
       if (!child.pid) return;
@@ -47,12 +48,14 @@ export const runChild = (
         }, 10_000);
       } catch {}
     };
+
     signal?.addEventListener('abort', stop, { once: true });
     if (signal?.aborted) stop();
     const cleanup = () => {
       signal?.removeEventListener('abort', stop);
       if (deadline) clearTimeout(deadline);
     };
+
     child.once('error', (error) => {
       cleanup();
       reject(error);

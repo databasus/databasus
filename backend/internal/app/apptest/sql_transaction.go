@@ -18,11 +18,13 @@ func (a *App) BeginSQLTransaction(tb testing.TB) *SQLTransaction {
 	if err != nil {
 		tb.Fatalf("open the database of the test application: %v", err)
 	}
+
 	transaction := db.WithContext(tb.Context()).Begin()
 	if transaction.Error != nil {
 		closeConnections(db)
 		tb.Fatalf("begin a transaction of the test application: %v", transaction.Error)
 	}
+
 	tb.Cleanup(func() {
 		transaction.Rollback()
 		closeConnections(db)

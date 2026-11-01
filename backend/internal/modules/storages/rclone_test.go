@@ -47,6 +47,7 @@ func TestRcloneStorage(t *testing.T) {
 			listedStorages := listStorages(t, tm.owner, tm.workspace.Id)
 			require.Len(t, listedStorages, 1)
 			assert.Equal(t, createdStorage.Id, listedStorages[0].Id)
+
 			listedRclone, err := listedStorages[0].Settings.AsRcloneStorageSettings()
 			require.NoError(t, err)
 			assert.Nil(t, listedRclone.ConfigContent)

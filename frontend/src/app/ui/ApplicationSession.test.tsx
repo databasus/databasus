@@ -132,6 +132,7 @@ describe('Application session isolation', () => {
         mockApi.get('/notifiers/{notifierId}', 200, notifier),
       );
       server.use(obsoleteOperation.handler);
+
       renderApp();
       await screen.findByRole('button', { name: 'Add database' });
       fireEvent.click(screen.getByRole('button', { name: 'Notifiers' }));
@@ -143,8 +144,10 @@ describe('Application session isolation', () => {
           server.getRequests().some((request) => new URL(request.url).pathname === requestPath),
         ).toBe(true),
       );
+
       act(() => invalidateSession());
       await screen.findByRole('button', { name: 'Sign in' });
+
       server.use(
         mockApi.get('/users/{userId}', 200, {
           ...account,
@@ -156,6 +159,7 @@ describe('Application session isolation', () => {
       act(() => activateSession({ token: 'replacement-session', userId: 'replacement-owner' }));
       fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
       await screen.findByDisplayValue('replacement@example.com');
+
       const processed = observeListResponse(requestPath.replace('/api/v1', ''));
       await act(async () => {
         obsoleteOperation.respond(
@@ -165,6 +169,7 @@ describe('Application session isolation', () => {
         );
         await processed;
       });
+
       expect(alert).not.toHaveBeenCalled();
       expect(getSessionSnapshot().token).toBe('replacement-session');
       expect(screen.getByDisplayValue('replacement@example.com')).toBeTruthy();
@@ -184,6 +189,7 @@ describe('Application session isolation', () => {
       const alert = vi.spyOn(window, 'alert').mockImplementation(() => {});
       const obsoleteList = mockApi.pending('get', path);
       if (path === '/databases') server.use(obsoleteList.handler);
+
       renderApp();
       const listTab = await screen.findByRole('button', { name: tab });
       if (path !== '/databases') {
@@ -191,6 +197,7 @@ describe('Application session isolation', () => {
         server.use(obsoleteList.handler);
         fireEvent.click(listTab);
       }
+
       await waitFor(() =>
         expect(
           server
@@ -198,14 +205,17 @@ describe('Application session isolation', () => {
             .some((request) => new URL(request.url).pathname === `/api/v1${path}`),
         ).toBe(true),
       );
+
       act(() => invalidateSession());
       await screen.findByRole('button', { name: 'Sign in' });
+
       const replacementAccount = {
         ...account,
         id: 'replacement-owner',
         email: 'replacement@example.com',
         name: 'Replacement owner',
       };
+
       server.use(
         mockApi.get(path, 200, { items: [] }),
         mockApi.get('/users/{userId}', 200, replacementAccount),
@@ -216,6 +226,7 @@ describe('Application session isolation', () => {
         fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
         await screen.findByDisplayValue(replacementAccount.email);
       }
+
       const processed = observeListResponse(path);
       await act(async () => {
         obsoleteList.respond(
@@ -226,6 +237,7 @@ describe('Application session isolation', () => {
         );
         await processed;
       });
+
       expect(alert).not.toHaveBeenCalled();
       expect(getSessionSnapshot().token).toBe(
         hasReplacementSession ? 'replacement-session' : undefined,
@@ -248,6 +260,7 @@ describe('Application session isolation', () => {
         ++listReadCount === 1 ? obsoleteSetup.response : HttpResponse.json({ items: [] }),
       );
       if (path === '/databases') server.use(listHandler);
+
       renderApp({ isStrictMode: true });
       if (path !== '/databases') {
         await screen.findByRole('button', { name: 'Add database' });
@@ -256,6 +269,7 @@ describe('Application session isolation', () => {
       }
       await screen.findByRole('button', { name: action });
       expect(listReadCount).toBe(2);
+
       const processed = observeListResponse(path);
       await act(async () => {
         obsoleteSetup.respond(
@@ -263,6 +277,7 @@ describe('Application session isolation', () => {
         );
         await processed;
       });
+
       expect(alert).not.toHaveBeenCalled();
       expect(screen.getByRole('button', { name: action })).toBeTruthy();
       expect(getSessionSnapshot().token).toBe('origin-session');

@@ -82,6 +82,7 @@ export const useNotifierDraft = ({
     setIsTesting(false);
     setTestedSettingsRevision(undefined);
     setError(undefined);
+
     const changedDraft = { ...latestDraft.current, settings };
     latestDraft.current = changedDraft;
     setDraft(changedDraft);
@@ -101,6 +102,7 @@ export const useNotifierDraft = ({
     const sessionRevision = session.GetCurrent();
     const settingsRevision = settings.GetCurrent();
     const testRevision = test.Invalidate();
+
     const request = Symbol();
     activeTest.current = request;
     setIsTesting(true);
@@ -161,6 +163,7 @@ export const useNotifierDraft = ({
     const session = revisions.current.session;
     const sessionRevision = session.GetCurrent();
     const submittedRevision = revisions.current.draft.GetCurrent();
+
     const request = Symbol();
     activeSave.current = request;
     setIsSaving(true);
@@ -182,9 +185,11 @@ export const useNotifierDraft = ({
 
       savedIdRef.current = savedNotifier.id;
       setSavedNotifierId(savedNotifier.id);
+
       const acknowledgedDraft = { name: savedNotifier.name, settings: savedNotifier.settings };
       baselineRef.current = acknowledgedDraft;
       setBaseline(acknowledgedDraft);
+
       const currentDraft = revisions.current.draft.IsCurrent(submittedRevision)
         ? acknowledgedDraft
         : {
@@ -199,6 +204,7 @@ export const useNotifierDraft = ({
               savedSettings: savedNotifier.settings,
             }),
           };
+
       latestDraft.current = currentDraft;
       setDraft(currentDraft);
       callbacks.current.onPersisted(savedNotifier);
@@ -239,6 +245,7 @@ export const useNotifierDraft = ({
     revisions.current.draft.Invalidate();
     activeSave.current = undefined;
     activeTest.current = undefined;
+
     const initialDraft = createDraft(editingNotifier);
     latestDraft.current = initialDraft;
     baselineRef.current = initialDraft;

@@ -25,10 +25,12 @@ func TestCancelPhysicalWorkAfterConfigSave(t *testing.T) {
 		full := catalog.insertFull(t, newInProgressFull(inProgressFullSpec{
 			DatabaseID: catalog.DatabaseID, StorageID: catalog.StorageID, TimelineID: 1,
 		}))
+
 		fileName := "completed-" + full.ID.String()
 		catalog.App.ExecuteSQL(t, "UPDATE backups_physical SET file_name=? WHERE id=?", fileName, full.ID)
 		catalog.publishNames(t, fileName, fileName+".metadata", fileName+".manifest")
 		config := apptest.GetBackupConfig(t, catalog.Owner, catalog.DatabaseID)
+
 		transaction := catalog.App.BeginSQLTransaction(t)
 		transaction.ExecuteSQL(t, "SELECT id FROM backups_physical WHERE id=? FOR UPDATE", full.ID)
 		type saveOutcome struct {
@@ -44,6 +46,7 @@ func TestCancelPhysicalWorkAfterConfigSave(t *testing.T) {
 				})
 			outcomes <- saveOutcome{response: response, err: err}
 		}()
+
 		testwait.Until(t, "disabling backups waits on the backup row", func(context.Context) error {
 			var waiting int64
 			catalog.App.QuerySQL(t, &waiting, `SELECT count(*) FROM pg_stat_activity
@@ -53,10 +56,12 @@ func TestCancelPhysicalWorkAfterConfigSave(t *testing.T) {
 			}
 			return nil
 		})
+
 		transaction.ExecuteSQL(t, `UPDATE backups_physical
 			SET status='COMPLETED', start_lsn='0/1000000', stop_lsn='0/2000000', completed_at=? WHERE id=?`,
 			catalog.App.Clock.Now(), full.ID)
 		transaction.Commit(t)
+
 		select {
 		case outcome := <-outcomes:
 			require.NoError(t, outcome.err)
@@ -64,9 +69,11 @@ func TestCancelPhysicalWorkAfterConfigSave(t *testing.T) {
 		case <-t.Context().Done():
 			t.Fatal("the configuration save did not finish after the backup completed")
 		}
+
 		page := getBackups(t, catalog, "")
 		require.Len(t, page.Backups, 1)
 		assert.Equal(t, "COMPLETED", page.Backups[0].Status)
+
 		var pendingFiles []string
 		catalog.App.QuerySQL(
 			t,
@@ -83,6 +90,7 @@ func TestCancelPhysicalWorkAfterConfigSave(t *testing.T) {
 		catalog.saveStorageConfig(t, catalog.StorageID)
 		catalog.seedRunningBackupAndStreamer(t)
 		config := apptest.GetBackupConfig(t, catalog.Owner, catalog.DatabaseID)
+
 		response, err := catalog.Owner.Client.UpdateBackupConfigWithResponse(
 			t.Context(),
 			catalog.DatabaseID,
@@ -95,6 +103,7 @@ func TestCancelPhysicalWorkAfterConfigSave(t *testing.T) {
 		)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, response.StatusCode(), "%s", response.Body)
+
 		assert.Nil(t, catalog.getRunningBackupID(t))
 		page := getBackups(t, catalog, "")
 		require.Len(t, page.Backups, 1)

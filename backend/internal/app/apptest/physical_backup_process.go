@@ -23,6 +23,7 @@ func SuspendPhysicalBackupProcess(t *testing.T, backupID uuid.UUID) func() {
 		if err != nil {
 			return err
 		}
+
 		for _, entry := range processes {
 			processID, err := strconv.Atoi(entry.Name())
 			if err != nil {
@@ -33,9 +34,11 @@ func SuspendPhysicalBackupProcess(t *testing.T, backupID uuid.UUID) func() {
 				!strings.Contains(string(arguments), backupID.String()) {
 				continue
 			}
+
 			if err := syscall.Kill(processID, syscall.SIGSTOP); err != nil {
 				return err
 			}
+
 			resume = func() {
 				currentArguments, err := os.ReadFile(filepath.Join("/proc", entry.Name(), "cmdline"))
 				if err == nil && string(currentArguments) == string(arguments) {

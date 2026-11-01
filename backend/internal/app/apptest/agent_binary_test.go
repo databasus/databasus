@@ -27,6 +27,7 @@ func TestDownloadAgentBinary(t *testing.T) {
 				0o755,
 			),
 		)
+
 		app := apptest.New(t, apptest.WithAgentBinariesDir(directory))
 		request, err := http.NewRequestWithContext(
 			t.Context(),
@@ -35,11 +36,13 @@ func TestDownloadAgentBinary(t *testing.T) {
 			nil,
 		)
 		require.NoError(t, err)
+
 		response, err := http.DefaultClient.Do(request)
 		require.NoError(t, err)
 		defer func() { require.NoError(t, response.Body.Close()) }()
 		contents, err := io.ReadAll(response.Body)
 		require.NoError(t, err)
+
 		assert.Equal(t, http.StatusOK, response.StatusCode)
 		assert.Equal(t, "test agent", string(contents))
 		assert.Equal(t, getTestVersion(t, app), response.Header.Get("X-Databasus-Version"))

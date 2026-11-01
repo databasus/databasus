@@ -20,6 +20,7 @@ for (const context of [
     await page.setViewportSize({ width: 320, height: 900 });
     await openAccount({ page, ...context });
     await openAccountTab({ page, locale: context.locale, tab: 'profile' });
+
     const dictionary = DICTIONARIES[context.locale];
     const region = page.getByRole('main');
     await region
@@ -31,6 +32,7 @@ for (const context of [
     await expect(
       region.getByText(dictionary.errors.humanVerificationFailed, { exact: true }),
     ).toBeVisible();
+
     await region.getByLabel(dictionary.common.fields.password, { exact: true }).fill('short');
     await region
       .getByLabel(dictionary.users.profile.changePassword.confirmPassword, { exact: true })
@@ -40,11 +42,13 @@ for (const context of [
       exact: true,
     });
     await change.click();
+
     await expect(
       region.getByText(dictionary.users.validation.passwordTooShort.replace('{{minLength}}', '8'), {
         exact: true,
       }),
     ).toBeVisible();
+
     await enlargeText(region);
     await assertAccountReflow(region);
     for (const name of [dictionary.users.profile.saveChanges, dictionary.users.profile.logout]) {
@@ -54,6 +58,7 @@ for (const context of [
       await action.focus();
       await expect(action).toBeFocused();
     }
+
     await change.scrollIntoViewIfNeeded();
     await expect(change).toBeInViewport();
     await assertAccountReflow(region);
@@ -65,11 +70,13 @@ test('retains newer profile input and a single pending save when locale and them
 }) => {
   await openAccount({ page });
   await openAccountTab({ page, locale: 'en', tab: 'profile' });
+
   let releaseSave: () => void = () => {};
   const pending = new Promise<void>((resolve) => {
     releaseSave = resolve;
   });
   let saveCount = 0;
+
   await page.route('**/api/v1/users/owner-id', async (route) => {
     if (route.request().method() !== 'PUT') {
       await route.fallback();
@@ -90,6 +97,7 @@ test('retains newer profile input and a single pending save when locale and them
       }),
     });
   });
+
   try {
     await page.getByRole('textbox', { name: 'Name', exact: true }).fill('Submitted profile');
     await page.getByRole('button', { name: 'Save changes', exact: true }).click();
@@ -99,6 +107,7 @@ test('retains newer profile input and a single pending save when locale and them
     await page
       .getByRole('menuitem', { name: DICTIONARIES.fr.language.nativeName, exact: true })
       .click();
+
     const dictionary = DICTIONARIES.fr;
     await page
       .getByRole('button', {
@@ -107,6 +116,7 @@ test('retains newer profile input and a single pending save when locale and them
       })
       .click();
     await page.getByRole('menuitem', { name: dictionary.app.theme.dark, exact: true }).click();
+
     await expect(
       page.getByRole('button', { name: dictionary.users.profile.saveChanges, exact: true }),
     ).toBeDisabled();
@@ -132,11 +142,13 @@ test('keeps pending profile actions reachable when text is enlarged to 200% at 3
   await openAccount({ page, locale: 'ru', theme: 'dark' });
   await openAccountTab({ page, locale: 'ru', tab: 'profile' });
   const dictionary = DICTIONARIES.ru;
+
   let releaseSave: () => void = () => {};
   const pending = new Promise<void>((resolve) => {
     releaseSave = resolve;
   });
   let saveCount = 0;
+
   await page.route('**/api/v1/users/owner-id', async (route) => {
     if (route.request().method() !== 'PUT') {
       await route.fallback();
@@ -157,6 +169,7 @@ test('keeps pending profile actions reachable when text is enlarged to 200% at 3
       }),
     });
   });
+
   try {
     const region = page.getByRole('main');
     const name = region.getByRole('textbox', { name: dictionary.users.fields.name, exact: true });
@@ -167,12 +180,14 @@ test('keeps pending profile actions reachable when text is enlarged to 200% at 3
     });
     await save.click();
     await expect.poll(() => saveCount).toBe(1);
+
     await name.fill('Newer narrow profile');
     await enlargeText(region);
     await assertAccountReflow(region);
     await save.scrollIntoViewIfNeeded();
     await expect(save).toBeInViewport();
     await expect(save).toBeDisabled();
+
     const logout = region.getByRole('button', {
       name: dictionary.users.profile.logout,
       exact: true,
@@ -181,6 +196,7 @@ test('keeps pending profile actions reachable when text is enlarged to 200% at 3
     await expect(logout).toBeInViewport();
     await logout.focus();
     await expect(logout).toBeFocused();
+
     expect(saveCount).toBe(1);
     releaseSave();
     await expect(page.getByText(dictionary.users.profile.updated, { exact: true })).toBeVisible();

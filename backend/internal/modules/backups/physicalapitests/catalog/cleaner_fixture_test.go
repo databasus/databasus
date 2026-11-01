@@ -37,6 +37,7 @@ func (catalog *cleanerCatalog) clean(t *testing.T, policy apiclient.PhysicalRete
 	t.Helper()
 	settings := catalog.Config
 	settings.Retention.Policy = policy
+
 	switch policy {
 	case apiclient.PhysicalRetentionPolicyCHAINS:
 		settings.Retention.FullBackups = nil
@@ -51,6 +52,7 @@ func (catalog *cleanerCatalog) clean(t *testing.T, policy apiclient.PhysicalRete
 		settings.Retention.ChainsCount = 0
 	case apiclient.PhysicalRetentionPolicyCHAINSANDFULLBACKUPS:
 	}
+
 	var backupSettings apiclient.BackupSettings
 	require.NoError(t, backupSettings.FromPhysicalBackupSettings(settings))
 	response, err := catalog.Owner.Client.UpdateBackupConfigWithResponse(
@@ -65,6 +67,7 @@ func (catalog *cleanerCatalog) clean(t *testing.T, policy apiclient.PhysicalRete
 	)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, response.StatusCode(), "%s", response.Body)
+
 	catalog.App.RunJobPass(t, "backups_physical_cleaner")
 }
 
@@ -86,6 +89,7 @@ func (catalog *cleanerCatalog) seedChainFull(t *testing.T, spec chainFullSpec) *
 			StopLSN:    cleanerLSN(spec.StartSegment + 1),
 		},
 	)
+
 	age := time.Duration(spec.AgeHours) * time.Hour
 	if !catalog.hasRecentChains {
 		age += 48*time.Hour + 10*time.Minute
@@ -94,6 +98,7 @@ func (catalog *cleanerCatalog) seedChainFull(t *testing.T, spec chainFullSpec) *
 	full.CreatedAt = timestamp
 	full.CompletedAt = &timestamp
 	full.BackupSizeMb = new(1000.0)
+
 	return catalog.insertFull(t, full)
 }
 

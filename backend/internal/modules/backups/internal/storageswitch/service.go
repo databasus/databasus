@@ -38,6 +38,7 @@ func (s *Service) Accept(ctx context.Context, acceptance Acceptance) (*Outcome, 
 		TargetStorageID:   acceptance.TargetStorageID,
 		DeletionBatchID:   uuid.New(),
 	}
+
 	cleanup, err := s.storages.RequestDeletionBatch(
 		ctx,
 		storages.DeletionBatchRequest{ID: operation.DeletionBatchID, References: acceptance.References},
@@ -45,9 +46,11 @@ func (s *Service) Accept(ctx context.Context, acceptance Acceptance) (*Outcome, 
 	if err != nil {
 		return nil, err
 	}
+
 	operation.CreatedAt = cleanup.CreatedAt
 	if err := s.repository.insert(ctx, operation); err != nil {
 		return nil, err
 	}
+
 	return &Outcome{Operation: operation, Cleanup: cleanup}, nil
 }

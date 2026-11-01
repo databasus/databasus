@@ -32,6 +32,7 @@ func (team Team) streamPostFullSegments(t *testing.T, conn *pgx.Conn, spec walAr
 				segmentCount += int((parseLSN(t, wal.StopLSN) - startLSN + (16*1024*1024 - 1)) / (16 * 1024 * 1024))
 			}
 		}
+
 		if segmentCount < spec.Count {
 			return fmt.Errorf("only %d of %d post-backup WAL segments archived", segmentCount, spec.Count)
 		}
@@ -49,6 +50,7 @@ func (team Team) waitForReplayableThroughLSN(t *testing.T, chain []backupRow, th
 		slices.SortFunc(walRows, func(first, second backupRow) int {
 			return cmp.Compare(parseLSN(t, first.StartLSN), parseLSN(t, second.StartLSN))
 		})
+
 		for _, wal := range walRows {
 			if wal.TimelineID != tip.TimelineID || parseLSN(t, wal.StopLSN) <= reachable {
 				continue
@@ -58,6 +60,7 @@ func (team Team) waitForReplayableThroughLSN(t *testing.T, chain []backupRow, th
 			}
 			reachable = parseLSN(t, wal.StopLSN)
 		}
+
 		if reachable < throughLSN {
 			return fmt.Errorf("WAL reaches %X, target %X; rows %+v", reachable, throughLSN, walRows)
 		}

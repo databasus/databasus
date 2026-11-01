@@ -19,6 +19,7 @@ func TestInspectionSlot(t *testing.T) {
 			inspection := server.openInspection(t, getAdminRole())
 			slotName := newSlotName()
 			require.NoError(t, inspection.CreateSlot(t.Context(), slotName))
+
 			positionBeforeInspect, err := inspection.GetCurrentWalLSN(t.Context())
 			require.NoError(t, err)
 			slot, err := inspection.GetSlot(t.Context(), slotName)
@@ -28,12 +29,14 @@ func TestInspectionSlot(t *testing.T) {
 			require.NotNil(t, slot.LagBytes)
 			assert.Nil(t, slot.SafeWalSizeBytes)
 			assert.GreaterOrEqual(t, *slot.CurrentLSN, positionBeforeInspect)
+
 			adminConn := server.connectAs(t, getAdminRole())
 			execStatements(t, adminConn, "ALTER SYSTEM SET max_slot_wal_keep_size = '100GB'", "SELECT pg_reload_conf()")
 			t.Cleanup(func() {
 				_, _ = adminConn.Exec(context.WithoutCancel(t.Context()), "ALTER SYSTEM RESET max_slot_wal_keep_size")
 				_, _ = adminConn.Exec(context.WithoutCancel(t.Context()), "SELECT pg_reload_conf()")
 			})
+
 			testwait.Until(t, "slot allowance is visible", func(ctx context.Context) error {
 				slot, err := inspection.GetSlot(ctx, slotName)
 				if err != nil {

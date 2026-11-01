@@ -24,6 +24,7 @@ export const getFrontendDependencies = (root: string): FrontendDependency[] => {
     join(dirname(root), 'tsconfig.app.json'),
     join(dirname(root), 'tsconfig.json'),
   ].find(existsSync);
+
   const options = configPath
     ? ts.parseJsonConfigFileContent(
         ts.readConfigFile(configPath, ts.sys.readFile).config,
@@ -32,6 +33,7 @@ export const getFrontendDependencies = (root: string): FrontendDependency[] => {
       ).options
     : { moduleResolution: ts.ModuleResolutionKind.Bundler, paths: { '@/*': [join(root, '*')] } };
   const dependencies: FrontendDependency[] = [];
+
   for (const source of getSourceFiles(root)) {
     const content = ts.createSourceFile(
       source,
@@ -39,6 +41,7 @@ export const getFrontendDependencies = (root: string): FrontendDependency[] => {
       ts.ScriptTarget.Latest,
       true,
     );
+
     const visit = (node: ts.Node) => {
       const moduleSpecifier =
         ts.isImportDeclaration(node) || ts.isExportDeclaration(node)
@@ -48,6 +51,7 @@ export const getFrontendDependencies = (root: string): FrontendDependency[] => {
             : ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword
               ? node.arguments[0]
               : undefined;
+
       if (moduleSpecifier && ts.isStringLiteralLike(moduleSpecifier)) {
         const target = ts.resolveModuleName(moduleSpecifier.text, source, options, ts.sys)
           .resolvedModule?.resolvedFileName;
@@ -57,6 +61,7 @@ export const getFrontendDependencies = (root: string): FrontendDependency[] => {
           );
           const start = content.getLineAndCharacterOfPosition(node.getStart(content));
           const end = content.getLineAndCharacterOfPosition(node.getEnd());
+
           dependencies.push({
             startLine: start.line + 1,
             startColumn: start.character + 1,
@@ -69,8 +74,10 @@ export const getFrontendDependencies = (root: string): FrontendDependency[] => {
           });
         }
       }
+
       ts.forEachChild(node, visit);
     };
+
     visit(content);
   }
   return dependencies;

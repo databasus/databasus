@@ -31,6 +31,7 @@ func TestClaimPhysicalWalStreamer(t *testing.T) {
 			if status == "RUNNING" {
 				heartbeat = time.Now().UTC()
 			}
+
 			readConfig := apptest.GetBackupConfig(t, team.Owner, team.Database.Id)
 			saved, saveErr := team.Owner.Client.UpdateBackupConfigWithResponse(
 				t.Context(),
@@ -55,14 +56,17 @@ func TestClaimPhysicalWalStreamer(t *testing.T) {
 				},
 			)
 			team.enable(t)
+
 			if status == "RUNNING" {
 				nonStreaming := team.addDatabase(t)
+
 				settings, err := nonStreaming.Database.Settings.AsPostgresqlPhysicalSettings()
 				require.NoError(t, err)
 				settings.Password = new("testpassword")
 				settings.BackupType = apiclient.PhysicalBackupTypeFULLINCREMENTAL
 				var databaseSettings apiclient.DatabaseSettings
 				require.NoError(t, databaseSettings.FromPostgresqlPhysicalSettings(settings))
+
 				response, err := team.Owner.Client.UpdateDatabaseWithResponse(
 					t.Context(),
 					nonStreaming.Database.Id,
@@ -70,10 +74,12 @@ func TestClaimPhysicalWalStreamer(t *testing.T) {
 				)
 				require.NoError(t, err)
 				require.Equal(t, http.StatusOK, response.StatusCode())
+
 				nonStreaming.enable(t)
 				other := team.addDatabase(t)
 				other.enable(t)
 				other.waitForReceiver(t)
+
 				testwait.Until(
 					t,
 					"the other streamer records a sample after the supervisor has reconciled",
@@ -84,9 +90,11 @@ func TestClaimPhysicalWalStreamer(t *testing.T) {
 						return nil
 					},
 				)
+
 				assert.False(t, nonStreaming.live(t).IsStreamerRunning)
 				assert.Nil(t, nonStreaming.statistics(t).Current)
 				assert.False(t, team.live(t).IsStreamerRunning)
+
 				var persisted time.Time
 				team.App.QuerySQL(
 					t,
@@ -98,6 +106,7 @@ func TestClaimPhysicalWalStreamer(t *testing.T) {
 				return
 			}
 			team.waitForReceiver(t)
+
 			var persisted []struct {
 				Status    string
 				StartedAt time.Time
@@ -108,6 +117,7 @@ func TestClaimPhysicalWalStreamer(t *testing.T) {
 				"SELECT status,started_at FROM backups_physical_wal_streamers WHERE database_id=?",
 				team.Database.Id,
 			)
+
 			require.Len(t, persisted, 1)
 			assert.Equal(t, "RUNNING", persisted[0].Status)
 			assert.True(t, persisted[0].StartedAt.After(started))
@@ -129,6 +139,7 @@ func TestRecoverStalePhysicalWalStreamer(t *testing.T) {
 				LastHeartbeatAt: time.Now().UTC().Add(-time.Hour),
 			},
 		)
+
 		team.App.RestartModules(t)
 		var status string
 		team.App.QuerySQL(
@@ -148,6 +159,7 @@ func TestPhysicalWalClaimOwnership(t *testing.T) {
 		team := newWalTeam(t, walTeamSpec{})
 		team.enable(t)
 		team.waitForReceiver(t)
+
 		claimID := uuid.New()
 		team.App.ExecuteSQL(
 			t,
@@ -156,6 +168,7 @@ func TestPhysicalWalClaimOwnership(t *testing.T) {
 			time.Now().UTC(),
 			team.Database.Id,
 		)
+
 		team.App.RestartModules(t)
 		var persisted []struct {
 			ClaimID uuid.UUID

@@ -26,6 +26,7 @@ func TestTelemetryReport(t *testing.T) {
 		receiver := &telemetryReceiver{status: http.StatusOK}
 		server := httptest.NewServer(receiver)
 		t.Cleanup(server.Close)
+
 		team := enginetest.NewTeam(
 			t,
 			apptest.WithTelemetry(
@@ -36,6 +37,7 @@ func TestTelemetryReport(t *testing.T) {
 			),
 		)
 		team.App.Clock.Advance(team.App.Clock.Now().Truncate(time.Microsecond).Sub(team.App.Clock.Now()))
+
 		source := containers.StartPhysicalPostgres(t, "postgres:18")
 		logical := team.CreateDatabase(t, apiclient.PostgresqlLogicalSettings{
 			Host:      source.Host,
@@ -66,6 +68,7 @@ func TestTelemetryReport(t *testing.T) {
 			SshTunnel:  enginetest.NewDisabledSSHTunnelSettings(),
 			BackupType: apiclient.PhysicalBackupTypeFULL,
 		})
+
 		for _, databaseID := range []uuid.UUID{logical.Id, secondLogical.Id, physical.Id} {
 			team.App.ExecuteSQL(t, "UPDATE databases SET health_status = 'AVAILABLE' WHERE id = ?", databaseID)
 		}
@@ -129,6 +132,7 @@ func TestTelemetryReport(t *testing.T) {
 				BackupSizeMb: new(800.0),
 			},
 		)
+
 		config, err := team.Owner.Client.UpdateVerificationConfigWithResponse(
 			t.Context(),
 			logical.Id,
@@ -144,11 +148,13 @@ func TestTelemetryReport(t *testing.T) {
 		)
 		require.NoError(t, err)
 		require.NotNil(t, config.JSON200, string(config.Body))
+
 		agent := team.App.CreateVerificationAgent(t, team.Admin)
 		heartbeat, err := team.App.NewAgentClient(t, agent).
 			RecordHeartbeatWithResponse(t.Context(), agent.Agent.ID, agentclient.HeartbeatRequest{MaxCPU: 2, MaxRAMMb: 512, MaxDiskGb: 7, MaxConcurrentJobs: 3, CurrentVerificationIDs: []uuid.UUID{}})
 		require.NoError(t, err)
 		require.NotNil(t, heartbeat.JSON200)
+
 		team.App.RunJobPass(t, "telemetry_ping")
 		team.App.Clock.Advance(time.Minute)
 		team.App.RunJobPass(t, "telemetry_ping")
@@ -157,6 +163,7 @@ func TestTelemetryReport(t *testing.T) {
 		entries, isArray := reports[0]["databases"].([]any)
 		require.True(t, isArray)
 		require.Len(t, entries, 3)
+
 		hasLogicalSize, hasPhysicalSize, hasMissingSize := false, false, false
 		for _, rawEntry := range entries {
 			entry, isObject := rawEntry.(map[string]any)
@@ -194,14 +201,17 @@ func TestTelemetryReport(t *testing.T) {
 			},
 			reports[0]["verificationAgents"],
 		)
+
 		encoded, err := json.Marshal(reports[0])
 		require.NoError(t, err)
 		for _, privateValue := range []string{logical.Id.String(), physical.Id.String(), logical.Name, team.Workspace.Id.String(), containers.PostgresPassword, agent.Token, source.Host} {
 			assert.NotContains(t, string(encoded), privateValue)
 		}
+
 		team.App.ExecuteSQL(t, "UPDATE databases SET health_status = 'UNAVAILABLE' WHERE id = ?", logical.Id)
 		team.App.Clock.Advance(25 * time.Hour)
 		team.App.RunJobPass(t, "telemetry_ping")
+
 		availabilityReports := receiver.getReports()
 		require.Len(t, availabilityReports, 2)
 		availableEntries, isAvailableArray := availabilityReports[1]["databases"].([]any)
@@ -215,6 +225,7 @@ func TestTelemetryReport(t *testing.T) {
 				assert.NotContains(t, entry, "verification")
 			}
 		}
+
 		team.App.RunJobPass(t, "telemetry_ping")
 		reportAt := team.App.Clock.Now().Add(25 * time.Hour)
 		boundary := reportAt.Add(-7 * 24 * time.Hour)
@@ -235,6 +246,7 @@ func TestTelemetryReport(t *testing.T) {
 		boundaryEntry, isBoundaryObject := boundaryEntries[0].(map[string]any)
 		require.True(t, isBoundaryObject)
 		assert.Equal(t, "POSTGRES_LOGICAL", boundaryEntry["type"])
+
 		reportAt = team.App.Clock.Now().Add(25 * time.Hour)
 		boundary = reportAt.Add(-7 * 24 * time.Hour)
 		team.App.ExecuteSQL(

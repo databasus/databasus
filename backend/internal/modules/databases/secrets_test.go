@@ -207,6 +207,7 @@ func TestDatabaseSecrets(t *testing.T) {
 				storedPassword := getStoredPassword(t, tm, lifecycleCase.settingsTable, createdDatabase.Id)
 				assert.True(t, strings.HasPrefix(storedPassword, "enc:"))
 				assert.Equal(t, lifecycleCase.storedPassword, tm.app.DecryptSecret(t, storedPassword))
+
 				storedTunnel := getStoredSSHTunnel(t, tm, lifecycleCase.settingsTable, createdDatabase.Id)
 				assert.Equal(t, movedSSHTunnelHost, storedTunnel.SSHHost)
 				assert.Equal(t, string(apiclient.SshAuthTypePRIVATEKEY), storedTunnel.SSHAuthType)
@@ -216,6 +217,7 @@ func TestDatabaseSecrets(t *testing.T) {
 				assert.Equal(t, "tunnel-passphrase-value",
 					tm.app.DecryptSecret(t, storedTunnel.SSHPrivateKeyPassphrase))
 				assert.Equal(t, "With secrets renamed", getDatabase(t, tm.owner, createdDatabase.Id).Name)
+
 				for _, responseBody := range [][]byte{
 					response.Body,
 					getRawDatabase(t, tm, createdDatabase),

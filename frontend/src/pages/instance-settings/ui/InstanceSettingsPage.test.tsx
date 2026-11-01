@@ -46,15 +46,18 @@ describe('InstanceSettingsPage', () => {
       });
       server.use(save.handler);
       await openSettings(callback);
+
       fireEvent.click(externalToggle());
       fireEvent.click(screen.getByRole('button', { name: DICTIONARIES.en.settings.saveChanges }));
       await waitFor(() =>
         expect(server.getRequests().some((request) => request.method === 'PUT')).toBe(true),
       );
+
       fireEvent.click(externalToggle());
       if (!shouldDiffer) fireEvent.click(externalToggle());
       save.release();
       await screen.findByText(DICTIONARIES.en.settings.updated);
+
       expect(callback).toHaveBeenCalledWith({ ...settings, isAllowExternalRegistrations: true });
       expect(externalToggle().getAttribute('aria-checked')).toBe(String(!shouldDiffer));
       expect(!!screen.queryByRole('button', { name: DICTIONARIES.en.settings.saveChanges })).toBe(
@@ -62,6 +65,7 @@ describe('InstanceSettingsPage', () => {
       );
     },
   );
+
   it('restores the acknowledged baseline when reset is selected', async () => {
     await openSettings();
     fireEvent.click(externalToggle());
@@ -69,14 +73,18 @@ describe('InstanceSettingsPage', () => {
     expect(externalToggle().getAttribute('aria-checked')).toBe('false');
     expect(screen.queryByRole('button', { name: DICTIONARIES.en.settings.saveChanges })).toBeNull();
   });
+
   it('retains the draft and safe failure when saving is refused', async () => {
     server.use(mockApi.put('/instance-settings', 403, buildProblem('permission_denied', 403)));
     await openSettings();
+
     fireEvent.click(externalToggle());
     fireEvent.click(screen.getByRole('button', { name: DICTIONARIES.en.settings.saveChanges }));
     await screen.findByText('You do not have permission to do this.');
+
     expect(externalToggle().getAttribute('aria-checked')).toBe('true');
   });
+
   it.each([
     { reason: 'unmount', isRefused: false },
     { reason: 'session replacement', isRefused: false },
@@ -99,13 +107,16 @@ describe('InstanceSettingsPage', () => {
             status: 200,
             body: { ...settings, isAllowExternalRegistrations: true },
           });
+
       server.use(save.handler);
       const view = await openSettings(callback);
+
       fireEvent.click(externalToggle());
       fireEvent.click(screen.getByRole('button', { name: DICTIONARIES.en.settings.saveChanges }));
       await waitFor(() =>
         expect(server.getRequests().some((request) => request.method === 'PUT')).toBe(true),
       );
+
       if (reason === 'unmount') view.rerender(<div>Settings closed</div>);
       else activateSession({ token: 'new-session', userId: 'new-owner' });
       const responded = new Promise<void>((resolve) =>
@@ -115,6 +126,7 @@ describe('InstanceSettingsPage', () => {
         save.release();
         await responded;
       });
+
       expect(callback).not.toHaveBeenCalled();
       expect(screen.queryByText('You do not have permission to do this.')).toBeNull();
       expect(screen.queryByText(DICTIONARIES.en.settings.updated)).toBeNull();
@@ -148,10 +160,12 @@ it('recovers the settings form when the initial request is retried after a refus
     mockApi.get('/verification-agents', 200, { items: [] }),
     mockApi.get('/audit-events', 200, { items: [] }),
   );
+
   const { user } = renderScreen(<InstanceSettingsPage />);
   const retry = await screen.findByRole('button', { name: 'Retry' });
   server.use(mockApi.get('/instance-settings', 200, settings));
   await user.click(retry);
+
   expect(
     await screen.findByRole('switch', {
       name: DICTIONARIES.en.settings.externalRegistrations.title,
@@ -173,12 +187,14 @@ it('retains settings edits and translates the refusal when language changes duri
     mockApi.get('/audit-events', 200, { items: [] }),
     save.handler,
   );
+
   const { user } = renderScreen(
     <>
       <LanguageThemeControlComponent />
       <InstanceSettingsPage />
     </>,
   );
+
   await user.click(
     await screen.findByRole('switch', {
       name: DICTIONARIES.en.settings.externalRegistrations.title,
@@ -188,10 +204,12 @@ it('retains settings edits and translates the refusal when language changes duri
   await waitFor(() =>
     expect(server.getRequests().filter((request) => request.method === 'PUT')).toHaveLength(1),
   );
+
   await user.click(screen.getByRole('button', { name: /Language:/ }));
   await user.click(
     await screen.findByRole('menuitem', { name: DICTIONARIES.ru.language.nativeName }),
   );
+
   const toggle = screen.getByRole('switch', {
     name: DICTIONARIES.ru.settings.externalRegistrations.title,
   });
@@ -202,8 +220,10 @@ it('retains settings edits and translates the refusal when language changes duri
       .hasAttribute('disabled'),
   ).toBe(true);
   expect(server.getRequests().filter((request) => request.method === 'PUT')).toHaveLength(1);
+
   save.release();
   await screen.findByText(DICTIONARIES.ru.errors.permissionDenied);
+
   expect(toggle.getAttribute('aria-checked')).toBe('true');
   expect(
     screen

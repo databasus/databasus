@@ -32,6 +32,7 @@ func (s *Streamer) spawnAndSupervise(ctx context.Context, logger *slog.Logger) r
 		s.restartLatch.ClearReceiver()
 		s.receiverRunStartedAtUnixNano.Store(0)
 	}()
+
 	source := pgphysical.NewSource(s.spec.SourceDB.Engine)
 	receiver := source.ReceiveWal(procCtx, pgphysical.WalReceiverSpec{
 		ClientTools: s.spec.ClientTools, Version: s.spec.SourceDB.Version,
@@ -39,6 +40,7 @@ func (s *Streamer) spawnAndSupervise(ctx context.Context, logger *slog.Logger) r
 		WatchDir:        s.watchDir, SlotName: s.slotName, Clock: s.spec.Clock, Logger: logger,
 		OnStarted: func() { s.receiverRunStartedAtUnixNano.Store(s.spec.Clock.Now().UnixNano()) },
 	})
+
 	if ctx.Err() != nil {
 		return receiverRunResult{Exit: receiverCtxCancelled, RanFor: receiver.RanFor}
 	}

@@ -11,12 +11,14 @@ export const runBrowserE2E = async (frontendRoot: string): Promise<number> => {
   const runRoot = await mkdtemp(join(tmpdir(), 'databasus-browser-e2e-'));
   const controller = new AbortController();
   let isInterrupted = false;
+
   const interrupt = () => {
     isInterrupted = true;
     controller.abort();
   };
   process.on('SIGINT', interrupt);
   process.on('SIGTERM', interrupt);
+
   console.log(`Browser E2E owner: ${runId}; directory: ${runRoot}`);
   let exitCode = 1;
   let failure: unknown;
@@ -39,18 +41,21 @@ export const runBrowserE2E = async (frontendRoot: string): Promise<number> => {
     failure = error;
     exitCode = isInterrupted ? 130 : 1;
   }
+
   try {
     await removeBrowserContainer(`databasus-browser-e2e-${runId}`);
   } catch (error) {
     failure ??= error;
     exitCode = exitCode || 1;
   }
+
   try {
     await rm(runRoot, { recursive: true, force: true });
   } catch (error) {
     failure ??= error;
     exitCode = exitCode || 1;
   }
+
   try {
     const evidence = join(frontendRoot, 'browser-results', `e2e-${runId}`);
     await mkdir(evidence, { recursive: true });

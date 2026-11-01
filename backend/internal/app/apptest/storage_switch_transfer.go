@@ -24,6 +24,7 @@ func TransferToStorage(t *testing.T, owner Session, target StorageSwitchTransfer
 		Type:      apiclient.StorageSwitchedOnTransferTypeSWITCHTOSTORAGE,
 		StorageId: target.StorageID,
 	}))
+
 	response, err := owner.Client.TransferDatabaseWithResponse(
 		t.Context(),
 		target.DatabaseID,

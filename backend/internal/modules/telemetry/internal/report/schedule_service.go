@@ -17,6 +17,7 @@ func (s *Service) runPass(ctx context.Context, now time.Time) error {
 	if s.deps.IsDisabled {
 		return nil
 	}
+
 	if s.nextDueAt == nil {
 		dueAt := now.Add(time.Minute)
 		s.nextDueAt = &dueAt
@@ -28,6 +29,7 @@ func (s *Service) runPass(ctx context.Context, now time.Time) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+
 	err := s.buildAndSend(ctx)
 	delay := 24*time.Hour + time.Duration(rand.Int64N(int64(20*time.Minute))) - 10*time.Minute
 	if err != nil {
@@ -36,7 +38,9 @@ func (s *Service) runPass(ctx context.Context, now time.Time) error {
 	} else {
 		s.backoff = time.Minute
 	}
+
 	dueAt := s.deps.Clock.Now().UTC().Add(delay)
 	s.nextDueAt = &dueAt
+
 	return err
 }

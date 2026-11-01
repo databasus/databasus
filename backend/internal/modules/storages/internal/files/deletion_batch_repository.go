@@ -104,6 +104,7 @@ func (r *DeletionBatchRepository) ClaimFile(
 	if err := r.Expire(ctx, now); err != nil {
 		return 0, err
 	}
+
 	var hasActiveAttempt bool
 	if err := database.Conn(ctx, r.db).Raw(`SELECT EXISTS (
 		SELECT 1 FROM storages_deletion_batch_items WHERE storage_id=? AND file_name=?
@@ -114,6 +115,7 @@ func (r *DeletionBatchRepository) ClaimFile(
 	if hasActiveAttempt {
 		return 0, nil
 	}
+
 	var deadlines []time.Time
 	err := database.Conn(ctx, r.db).Raw(`UPDATE storages_deletion_batch_items AS item
 		SET attempt_generation=?,attempt_expires_at=least(?,batch.cleanup_deadline)
@@ -123,6 +125,7 @@ func (r *DeletionBatchRepository) ClaimFile(
 	if err != nil {
 		return 0, fmt.Errorf("claim deletion batch file: %w", err)
 	}
+
 	if len(deadlines) == 0 {
 		var isOrdinary bool
 		if err := database.Conn(ctx, r.db).
@@ -135,6 +138,7 @@ func (r *DeletionBatchRepository) ClaimFile(
 			return 0, nil
 		}
 	}
+
 	remaining := pending.NotBefore.Sub(now)
 	for _, deadline := range deadlines {
 		remaining = min(remaining, deadline.Sub(now))
@@ -159,11 +163,13 @@ func (r *DeletionBatchRepository) Expire(ctx context.Context, now time.Time) err
 	if err := r.lockOutcomes(ctx); err != nil {
 		return err
 	}
+
 	if err := database.Conn(ctx, r.db).Exec(`UPDATE storages_deletion_batch_items SET failed_attempts=failed_attempts+1,
  status=CASE WHEN failed_attempts+1>=5 THEN 'REMAINING' ELSE 'PENDING' END,
  attempt_generation=NULL,attempt_expires_at=NULL WHERE status='PENDING' AND attempt_expires_at<=?`, now).Error; err != nil {
 		return fmt.Errorf("settle expired batch attempts: %w", err)
 	}
+
 	err := database.Conn(ctx, r.db).Exec(`UPDATE storages_deletion_batch_items AS item
 		SET status='REMAINING',attempt_generation=NULL,attempt_expires_at=NULL
 		FROM storages_deletion_batches AS batch WHERE item.batch_id=batch.id AND item.status='PENDING' AND batch.cleanup_deadline<=?`, now).Error
@@ -202,6 +208,7 @@ func (r *DeletionBatchRepository) SettleStorage(
 	if err := r.lockOutcomes(ctx); err != nil {
 		return err
 	}
+
 	if len(confirmedFiles) > 0 {
 		err := database.Conn(ctx, r.db).
 			Exec(`UPDATE storages_deletion_batch_items AS item SET status='DELETED',attempt_generation=NULL,attempt_expires_at=NULL
@@ -212,6 +219,7 @@ func (r *DeletionBatchRepository) SettleStorage(
 			return fmt.Errorf("confirm drained batch files: %w", err)
 		}
 	}
+
 	if err := database.Conn(ctx, r.db).
 		Exec(`UPDATE storages_deletion_batch_items SET status='REMAINING',attempt_generation=NULL,attempt_expires_at=NULL WHERE storage_id=? AND status='PENDING'`, storageID).
 		Error; err != nil {

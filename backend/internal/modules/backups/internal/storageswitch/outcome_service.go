@@ -37,6 +37,7 @@ func (s *Service) ListStorageSwitches(ctx context.Context, actor users.Actor, qu
 	if err := s.workspaces.Authorize(ctx, actor, query.WorkspaceID, workspaces.ActionView); err != nil {
 		return Page{}, err
 	}
+
 	limit := 20
 	if query.Limit != nil {
 		limit = *query.Limit
@@ -46,10 +47,12 @@ func (s *Service) ListStorageSwitches(ctx context.Context, actor users.Actor, qu
 			[]apierror.FieldError{{Field: "limit", Detail: "must be between 1 and 100"}},
 		)
 	}
+
 	operations, err := s.repository.list(ctx, query, limit+1)
 	if err != nil {
 		return Page{}, err
 	}
+
 	page := Page{}
 	if len(operations) > limit {
 		operations = operations[:limit]
@@ -66,10 +69,12 @@ func (s *Service) getOutcomes(ctx context.Context, operations []StorageSwitch) (
 	for _, operation := range operations {
 		batchIDs = append(batchIDs, operation.DeletionBatchID)
 	}
+
 	batches, err := s.storages.GetDeletionBatches(ctx, batchIDs)
 	if err != nil {
 		return nil, err
 	}
+
 	outcomes := make([]Outcome, 0, len(operations))
 	for _, operation := range operations {
 		isFound := false

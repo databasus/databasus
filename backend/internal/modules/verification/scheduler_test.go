@@ -41,9 +41,11 @@ func TestVerificationScheduler(t *testing.T) {
 			team.backup(t)
 			team.App.Clock.Advance(time.Second)
 			latest := team.backup(t)
+
 			team.enableSchedule(t, apiclient.VerificationScheduleTypeINTERVAL)
 			team.runScheduler(t)
 			team.runScheduler(t)
+
 			verifications := team.list(t)
 			require.Len(t, verifications, 1)
 			assert.Equal(t, latest.Id, verifications[0].BackupId)
@@ -54,8 +56,10 @@ func TestVerificationScheduler(t *testing.T) {
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		manual := team.start(t, backup.Id)
+
 		team.enableSchedule(t, apiclient.VerificationScheduleTypeINTERVAL)
 		team.runScheduler(t)
+
 		assert.Len(t, team.list(t), 2)
 		assert.Equal(t, apiclient.VerificationStatusPENDING, team.read(t, manual.Id).Status)
 	})
@@ -66,11 +70,14 @@ func TestVerificationScheduler(t *testing.T) {
 		team.runScheduler(t)
 		verifications := team.list(t)
 		require.Len(t, verifications, 1)
+
 		canceled, err := team.Owner.Client.CancelVerificationWithResponse(t.Context(), verifications[0].Id)
 		require.NoError(t, err)
 		require.NotNil(t, canceled.JSON200)
+
 		team.runScheduler(t)
 		assert.Len(t, team.list(t), 1)
+
 		team.App.Clock.Advance(time.Hour)
 		team.runScheduler(t)
 		assert.Len(t, team.list(t), 2)
@@ -86,8 +93,10 @@ func TestVerificationScheduler(t *testing.T) {
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		verification := team.start(t, backup.Id)
+
 		team.App.Clock.Advance(24*time.Hour + time.Second)
 		team.runScheduler(t)
+
 		persisted := team.read(t, verification.Id)
 		assert.Equal(t, apiclient.VerificationStatusFAILED, persisted.Status)
 		assert.Equal(t, 1, persisted.AttemptCount)
@@ -99,16 +108,19 @@ func TestVerificationScheduler(t *testing.T) {
 		verification := team.start(t, backup.Id)
 		agent := team.App.CreateVerificationAgent(t, team.Admin)
 		claim(t, team, agent)
+
 		deleted, err := team.Admin.Client.DeleteVerificationAgentWithResponse(t.Context(), agent.Agent.ID)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusNoContent, deleted.StatusCode())
 		assert.Empty(t, team.App.ListVerificationAgents(t, team.Admin))
 		status, _ := newProtocolAgent(t, team.App, agent).recordHeartbeat(agent.Agent.ID, heartbeatBody(nil))
 		assert.Equal(t, http.StatusUnauthorized, status)
+
 		team.runScheduler(t)
 		persisted := team.read(t, verification.Id)
 		assert.Equal(t, apiclient.VerificationStatusPENDING, persisted.Status)
 		assert.Equal(t, 2, persisted.AttemptCount)
+
 		team.App.Clock.Advance(24*time.Hour + time.Second)
 		team.runScheduler(t)
 		assert.Equal(t, apiclient.VerificationStatusFAILED, team.read(t, verification.Id).Status)
@@ -123,17 +135,21 @@ func TestVerificationScheduler(t *testing.T) {
 				backup := team.backup(t)
 				verification := team.start(t, backup.Id)
 				agent := team.App.CreateVerificationAgent(t, team.Admin)
+
 				status, body := newProtocolAgent(t, team.App, agent).recordHeartbeat(agent.Agent.ID, heartbeatBody(nil))
 				require.Equal(t, http.StatusOK, status, string(body))
 				claim(t, team, agent)
+
 				team.App.ExecuteSQL(
 					t,
 					"UPDATE verification_runs SET attempt_count=? WHERE id=?",
 					attempts,
 					verification.Id,
 				)
+
 				team.App.Clock.Advance(5*time.Minute + time.Second)
 				team.runScheduler(t)
+
 				persisted := team.read(t, verification.Id)
 				if attempts < 3 {
 					assert.Equal(t, apiclient.VerificationStatusPENDING, persisted.Status)
@@ -151,6 +167,7 @@ func TestVerificationScheduler(t *testing.T) {
 				backup := team.backup(t)
 				verification := team.start(t, backup.Id)
 				team.saveConfig(t, configInput(team.config(t)))
+
 				team.App.ExecuteSQL(
 					t,
 					"UPDATE verification_runs SET trigger=?, status=? WHERE id=?",
@@ -158,6 +175,7 @@ func TestVerificationScheduler(t *testing.T) {
 					status,
 					verification.Id,
 				)
+
 				team.runScheduler(t)
 				assert.Equal(t, apiclient.VerificationStatusCANCELED, team.read(t, verification.Id).Status)
 			})
@@ -168,6 +186,7 @@ func TestVerificationScheduler(t *testing.T) {
 			team := newVerificationTeam(t)
 			backup := team.backup(t)
 			verification := team.start(t, backup.Id)
+
 			team.App.ExecuteSQL(t, "UPDATE verification_runs SET status=? WHERE id=?", status, verification.Id)
 			team.runScheduler(t)
 			assert.Equal(t, apiclient.VerificationStatus(status), team.read(t, verification.Id).Status)
@@ -185,14 +204,17 @@ func TestAfterBackupVerification(t *testing.T) {
 		team.App.WaitForBackupRuns(t)
 		firstVerifications := team.list(t)
 		require.Len(t, firstVerifications, 1)
+
 		manual := team.start(t, first.Id)
 		team.App.Clock.Advance(time.Second)
 		latest := team.backup(t)
 		team.App.WaitForBackupRuns(t)
+
 		verifications := team.list(t)
 		require.Len(t, verifications, 3)
 		assert.Equal(t, apiclient.VerificationStatusCANCELED, team.read(t, firstVerifications[0].Id).Status)
 		assert.Equal(t, apiclient.VerificationStatusPENDING, team.read(t, manual.Id).Status)
+
 		var pendingAutomatic []apiclient.Verification
 		for _, verification := range verifications {
 			if verification.Trigger == apiclient.VerificationTriggerAFTERBACKUP &&
@@ -212,8 +234,10 @@ func TestAfterBackupVerification(t *testing.T) {
 				config.IsAutomaticVerificationEnabled = isEnabled
 				config.ScheduleType = apiclient.VerificationScheduleTypeINTERVAL
 				team.saveConfig(t, config)
+
 				team.backup(t)
 				team.App.WaitForBackupRuns(t)
+
 				assert.Empty(t, team.list(t))
 			},
 		)

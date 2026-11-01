@@ -69,6 +69,7 @@ func (s *Service) SaveConfig(ctx context.Context, actor users.Actor, config Conf
 	if err != nil {
 		return Config{}, err
 	}
+
 	if config.ScheduleType != VerificationScheduleInterval && config.ScheduleType != VerificationScheduleAfterBackup {
 		return Config{}, invalidField(
 			apierror.FieldError{Field: "scheduleType", Detail: "must be INTERVAL or AFTER_BACKUP"},
@@ -86,6 +87,7 @@ func (s *Service) SaveConfig(ctx context.Context, actor users.Actor, config Conf
 			)
 		}
 	}
+
 	err = s.transactor.Transaction(ctx, func(ctx context.Context) error {
 		if err := s.repository.save(ctx, config, s.clock.Now()); err != nil {
 			return err

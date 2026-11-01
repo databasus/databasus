@@ -43,6 +43,7 @@ func (s *Service) claimVerification(
 	if err != nil {
 		return nil, err
 	}
+
 	var assignment *VerificationAssignment
 	err = s.transactor.Transaction(ctx, func(ctx context.Context) error {
 		pending, err := s.verificationRepository.LockOldestPendingTop100(ctx)
@@ -53,6 +54,7 @@ func (s *Service) claimVerification(
 		if err != nil {
 			return err
 		}
+
 		databaseIDs := make([]uuid.UUID, len(candidates))
 		for index, candidate := range candidates {
 			databaseIDs[index] = candidate.Verification.DatabaseID
@@ -65,10 +67,12 @@ func (s *Service) claimVerification(
 		if err != nil {
 			return err
 		}
+
 		databasesByID := make(map[uuid.UUID]databases.Database, len(foundDatabases))
 		for _, database := range foundDatabases {
 			databasesByID[database.ID] = database
 		}
+
 		for _, candidate := range candidates {
 			if !EvaluateDiskAdmission(capacity, runningBackups, candidate.Backup).IsFit {
 				continue

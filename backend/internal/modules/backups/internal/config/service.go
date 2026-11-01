@@ -270,6 +270,7 @@ func (s *Service) SaveBackupConfig(
 		if _, err := s.LockBackupConfig(ctx, databaseID); err != nil {
 			return err
 		}
+
 		configDatabase, err := s.getDatabase(ctx, databaseID)
 		if err != nil {
 			return err
@@ -277,12 +278,15 @@ func (s *Service) SaveBackupConfig(
 		if err := s.authorizeDatabase(ctx, actor, configDatabase, workspaces.ActionEditContent); err != nil {
 			return err
 		}
+
 		backupTypes, err := s.databases.GetPhysicalBackupTypes(ctx, []uuid.UUID{databaseID})
 		if err != nil {
 			return err
 		}
+
 		backupType, isPhysical := backupTypes[databaseID]
 		scope := storageSwitchScope{WorkspaceID: configDatabase.WorkspaceID}
+
 		switch typedConfig := savedConfig.(type) {
 		case LogicalBackupConfig:
 			if isPhysical {
@@ -376,9 +380,11 @@ func (s *Service) saveLogicalBackupConfig(
 		if err != nil {
 			return err
 		}
+
 		if err := s.repository.upsertLogical(ctx, savedConfig); err != nil {
 			return err
 		}
+
 		if operation != nil {
 			return s.repository.incrementStorageGeneration(ctx, savedConfig.DatabaseID)
 		}
@@ -459,6 +465,7 @@ func (s *Service) savePhysicalBackupConfig(
 		if previousConfig != nil {
 			previousStorageID = previousConfig.StorageID
 		}
+
 		operation, err = s.acceptStorageSwitch(
 			ctx,
 			storageSwitchSave{Scope: scope, PreviousStorageID: previousStorageID, Config: savedConfig},
@@ -466,14 +473,17 @@ func (s *Service) savePhysicalBackupConfig(
 		if err != nil {
 			return err
 		}
+
 		if err := s.repository.upsertPhysical(ctx, savedConfig); err != nil {
 			return err
 		}
+
 		if operation != nil || !isSameStorage(previousStorageID, savedConfig.StorageID) {
 			if err := s.repository.incrementStorageGeneration(ctx, savedConfig.DatabaseID); err != nil {
 				return err
 			}
 		}
+
 		if operation != nil {
 			if err := s.databases.ResetBackupHistory(ctx, savedConfig.DatabaseID); err != nil {
 				return err
@@ -485,6 +495,7 @@ func (s *Service) savePhysicalBackupConfig(
 				return err
 			}
 		}
+
 		return database.AfterCommit(ctx, func(ctx context.Context) {
 			if err := s.physicalConfigSaved.ReactToSavedConfig(ctx, previousConfig, savedConfig); err != nil {
 				s.logger.ErrorContext(ctx, "failed to react to saved physical config", slog.Any("error", err))

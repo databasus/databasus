@@ -49,16 +49,19 @@ func TestVerificationProtocol(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		agent := app.CreateVerificationAgent(t, admin)
+
 		for range 2 {
 			status, body := newProtocolAgent(t, app, agent).recordHeartbeat(agent.Agent.ID, heartbeatBody(nil))
 			require.Equal(t, http.StatusOK, status, string(body))
 			app.Clock.Advance(time.Second)
 		}
+
 		listed, err := admin.Client.ListVerificationAgentsWithResponse(t.Context(), nil)
 		require.NoError(t, err)
 		require.NotNil(t, listed.JSON200)
 		require.Len(t, listed.JSON200.Items, 1)
 		persisted := listed.JSON200.Items[0]
+
 		assert.Equal(t, 4, persisted.MaxCpu)
 		assert.Equal(t, 8192, persisted.MaxRamMb)
 		assert.Equal(t, 10, persisted.MaxDiskGb)
@@ -69,11 +72,14 @@ func TestVerificationProtocol(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		agent := app.CreateVerificationAgent(t, admin)
+
 		rotated, err := admin.Client.RotateVerificationAgentTokenWithResponse(t.Context(), agent.Agent.ID)
 		require.NoError(t, err)
 		require.NotNil(t, rotated.JSON200)
+
 		status, _ := newProtocolAgent(t, app, agent).recordHeartbeat(agent.Agent.ID, heartbeatBody(nil))
 		assert.Equal(t, http.StatusUnauthorized, status)
+
 		agent.Token = rotated.JSON200.Token
 		status, body := newProtocolAgent(t, app, agent).recordHeartbeat(agent.Agent.ID, heartbeatBody(nil))
 		assert.Equal(t, http.StatusOK, status, string(body))
@@ -82,6 +88,7 @@ func TestVerificationProtocol(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		agent := app.CreateVerificationAgent(t, admin)
+
 		var refusedDetail string
 		for index, token := range []string{"", "invalid", admin.Token} {
 			invalid := agent
@@ -97,6 +104,7 @@ func TestVerificationProtocol(t *testing.T) {
 			}
 			assert.Equal(t, refusedDetail, problem.Detail)
 		}
+
 		status, body := newProtocolAgent(t, app, agent).sendInvalidHeartbeat("invalid")
 		malformedIDProblem := requireAgentProblem(
 			t,
@@ -104,10 +112,12 @@ func TestVerificationProtocol(t *testing.T) {
 			agentclient.Problem{Status: http.StatusUnauthorized, Code: agentclient.ProblemCodeUnauthenticated},
 		)
 		assert.Equal(t, refusedDetail, malformedIDProblem.Detail)
+
 		negative := heartbeatBody(nil)
 		negative.MaxRAMMb = -1
 		status, _ = newProtocolAgent(t, app, agent).recordHeartbeat(agent.Agent.ID, negative)
 		assert.Equal(t, http.StatusBadRequest, status)
+
 		agentClient := app.NewSessionClient(t, agent.Token)
 		listed, err := agentClient.ListVerificationAgentsWithResponse(t.Context(), nil)
 		require.NoError(t, err)
@@ -118,6 +128,7 @@ func TestVerificationProtocol(t *testing.T) {
 			http.StatusUnauthorized,
 			apiclient.ProblemCodeUnauthenticated,
 		)
+
 		otherAgent := app.CreateVerificationAgent(t, admin)
 		status, _ = newProtocolAgent(t, app, agent).recordHeartbeat(otherAgent.Agent.ID, heartbeatBody(nil))
 		assert.Equal(t, http.StatusUnauthorized, status)
@@ -126,6 +137,7 @@ func TestVerificationProtocol(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		agent := app.CreateVerificationAgent(t, admin)
+
 		for range 12 {
 			status, body := newProtocolAgent(t, app, agent).sendInvalidHeartbeat("not-an-id")
 			requireAgentProblem(
@@ -138,6 +150,7 @@ func TestVerificationProtocol(t *testing.T) {
 			status, body := newProtocolAgent(t, app, agent).recordHeartbeat(agent.Agent.ID, heartbeatBody(nil))
 			require.Equal(t, http.StatusOK, status, string(body))
 		}
+
 		status, body := newProtocolAgent(t, app, agent).recordHeartbeat(agent.Agent.ID, heartbeatBody(nil))
 		requireAgentProblem(
 			t,
@@ -151,10 +164,12 @@ func TestVerificationProtocol(t *testing.T) {
 		team.App.ExecuteSQL(t, "UPDATE backups_logical SET backup_raw_db_size_mb=0.01 WHERE id=?", backup.Id)
 		verification := team.start(t, backup.Id)
 		agent := team.App.CreateVerificationAgent(t, team.Admin)
+
 		status, body := newProtocolAgent(t, team.App, agent).claimVerification(claimBody(5))
 		require.Equal(t, http.StatusOK, status, string(body))
 		var assignment map[string]json.RawMessage
 		require.NoError(t, json.Unmarshal(body, &assignment))
+
 		assert.JSONEq(
 			t,
 			`{"type":"POSTGRES_LOGICAL","postgresqlLogical":{"version":"18"}}`,
@@ -169,6 +184,7 @@ func TestVerificationProtocol(t *testing.T) {
 		backup := team.backup(t)
 		verification := team.start(t, backup.Id)
 		agent := team.App.CreateVerificationAgent(t, team.Admin)
+
 		status, body := newProtocolAgent(t, team.App, agent).claimVerification(claimBody(1))
 		assert.Equal(t, http.StatusNoContent, status, string(body))
 		assert.Equal(t, apiclient.VerificationStatusPENDING, team.read(t, verification.Id).Status)
@@ -179,6 +195,7 @@ func TestVerificationProtocol(t *testing.T) {
 		verification := team.start(t, backup.Id)
 		agent := team.App.CreateVerificationAgent(t, team.Admin)
 		assert.Equal(t, verification.Id, claim(t, team, agent))
+
 		report := agentclient.VerificationReport{
 			Status:                  "COMPLETED",
 			PgRestoreExitCode:       new(1),
@@ -192,8 +209,10 @@ func TestVerificationProtocol(t *testing.T) {
 				{SchemaName: "public", Name: "second", RowCount: 9},
 			},
 		}
+
 		status, body := newProtocolAgent(t, team.App, agent).reportVerification(verification.Id, report)
 		require.Equal(t, http.StatusNoContent, status, string(body))
+
 		completed := team.read(t, verification.Id)
 		assert.Equal(t, apiclient.VerificationStatusCOMPLETED, completed.Status)
 		require.Len(t, completed.TableStats, 2)
@@ -202,6 +221,7 @@ func TestVerificationProtocol(t *testing.T) {
 		assert.Equal(t, int64(123), *completed.RestoreDurationMs)
 		assert.Equal(t, int64(45), *completed.VerifyDurationMs)
 		assert.Equal(t, int64(1024*1024*1024), *completed.RestoredDatabaseSizeBytes)
+
 		listed, err := team.Owner.Client.ListVerificationsWithResponse(
 			t.Context(),
 			&apiclient.ListVerificationsParams{DatabaseId: team.Database.Id, Limit: nil, After: nil},
@@ -215,9 +235,11 @@ func TestVerificationProtocol(t *testing.T) {
 		verification := team.start(t, backup.Id)
 		agent := team.App.CreateVerificationAgent(t, team.Admin)
 		claim(t, team, agent)
+
 		canceled, err := team.Owner.Client.CancelVerificationWithResponse(t.Context(), verification.Id)
 		require.NoError(t, err)
 		require.NotNil(t, canceled.JSON200)
+
 		status, body := newProtocolAgent(
 			t,
 			team.App,
@@ -229,6 +251,7 @@ func TestVerificationProtocol(t *testing.T) {
 			agentResponse{Status: status, Body: body},
 			agentclient.Problem{Status: http.StatusGone, Code: agentclient.ProblemCodeVerificationGone},
 		)
+
 		status, _ = newProtocolAgent(
 			t,
 			team.App,
@@ -242,16 +265,19 @@ func TestVerificationProtocol(t *testing.T) {
 		verification := team.start(t, backup.Id)
 		agent := team.App.CreateVerificationAgent(t, team.Admin)
 		claim(t, team, agent)
+
 		canceled, err := team.Owner.Client.CancelVerificationWithResponse(t.Context(), verification.Id)
 		require.NoError(t, err)
 		require.NotNil(t, canceled.JSON200)
 		assert.Equal(t, apiclient.VerificationStatusCANCELED, canceled.JSON200.Status)
+
 		status, body := newProtocolAgent(
 			t,
 			team.App,
 			agent,
 		).recordHeartbeat(agent.Agent.ID, heartbeatBody([]uuid.UUID{verification.Id}))
 		require.Equal(t, http.StatusOK, status, string(body))
+
 		var heartbeat struct {
 			AbortIDs []uuid.UUID `json:"abortVerificationIds"`
 		}

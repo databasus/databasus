@@ -35,13 +35,16 @@ describe('UserAuditLogsSidebar', () => {
       body: { items: [{ ...auditEvent, message: 'Obsolete account event' }] },
     });
     server.use(previousUserEvents.handler);
+
     const view = renderScreen(<UserAuditLogsSidebar user={firstUser} />);
     await waitFor(() => expect(server.getRequests()).toHaveLength(1));
+
     server.use(
       mockApi.get('/audit-events', 200, { items: [auditEvent], nextCursor: 'second-cursor' }),
     );
     view.rerender(<UserAuditLogsSidebar user={secondUser} />);
     await screen.findByText(auditEvent.message);
+
     const processed = new Promise<void>((resolve) =>
       server.events.on('response:mocked', () => resolve()),
     );
@@ -49,9 +52,11 @@ describe('UserAuditLogsSidebar', () => {
       previousUserEvents.release();
       await processed;
     });
+
     expect(screen.queryByText('Obsolete account event')).toBeNull();
     fireEvent.scroll(view.container.querySelector('.overflow-y-auto')!);
     await waitFor(() => expect(server.getRequests()).toHaveLength(3));
+
     expect(
       server.getRequests().map((request) => new URL(request.url).searchParams.get('authorUserId')),
     ).toEqual(['first-user', 'second-user', 'second-user']);

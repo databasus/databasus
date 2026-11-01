@@ -61,6 +61,7 @@ func readVerificationItems(
 		}
 		path = "/verification-agents?limit=100&after=" + url.QueryEscape(*page.NextCursor)
 	}
+
 	items := make([]upgradecheck.Item, 0, len(agents)+2)
 	for _, agent := range agents {
 		items = append(
@@ -72,14 +73,17 @@ func readVerificationItems(
 			},
 		)
 	}
+
 	var config currentVerificationConfig
 	if err := api.get(ctx, "/verification-configs/"+references.databaseID, &config); err != nil {
 		return nil, fmt.Errorf("read verification config after upgrade: %w", err)
 	}
+
 	weekday := ""
 	if config.Schedule.Weekday != nil {
 		weekday = strconv.Itoa(*config.Schedule.Weekday)
 	}
+
 	items = append(
 		items,
 		upgradecheck.Item{Kind: "verification config", Name: references.databaseID, Values: map[string]string{
@@ -89,6 +93,7 @@ func readVerificationItems(
 			"sendNotificationsOn": strings.Join(slices.Sorted(slices.Values(config.NotificationTriggers)), ","),
 		}},
 	)
+
 	var verification currentVerification
 	if err := api.get(ctx, "/verifications/"+references.verificationID, &verification); err != nil {
 		return nil, fmt.Errorf("read manual verification after upgrade: %w", err)

@@ -150,6 +150,7 @@ const installGoogle = async (context: BrowserContext, isRefused = false) => {
     if (request.url() === 'https://oauth2.googleapis.com/token')
       tokenHeaders.push(request.headers());
   });
+
   await context.addInitScript(() => {
     const messages: unknown[] = [];
     Object.assign(window, { storageAuthorizationMessages: messages });
@@ -164,6 +165,7 @@ const installGoogle = async (context: BrowserContext, isRefused = false) => {
       return postMessage.call(this, message);
     };
   });
+
   await context.route(
     (url) => url.origin === 'https://accounts.google.com' && url.pathname === '/o/oauth2/v2/auth',
     async (route) => {
@@ -178,6 +180,7 @@ const installGoogle = async (context: BrowserContext, isRefused = false) => {
         isRefused ? 'error' : 'code',
         isRefused ? 'access_denied' : 'synthetic-code',
       );
+
       await route.fulfill({
         contentType: 'text/html',
         body: `<button id="continue">Continue</button><script>
@@ -187,6 +190,7 @@ const installGoogle = async (context: BrowserContext, isRefused = false) => {
       });
     },
   );
+
   return { authorizationUrls, tokenHeaders, relayedMessages };
 };
 
@@ -197,6 +201,7 @@ const openNestedEditor = async (page: Page) => {
     localStorage.setItem('databasus-locale', 'en');
     localStorage.setItem('databasus-theme', 'light');
   });
+
   await page.goto('/');
   await page.getByText('Config', { exact: true }).click();
   await page.getByText('Backup config', { exact: true }).locator('..').locator('img').click();
@@ -204,6 +209,7 @@ const openNestedEditor = async (page: Page) => {
   const storagePicker = page.locator('.ant-select').filter({ hasText: 'Existing archive' });
   await storagePicker.click();
   await page.getByText('Create new storage', { exact: true }).click();
+
   const editor = page.getByRole('dialog', { name: 'Add storage' });
   await editor.getByRole('combobox', { name: 'Type', exact: true }).focus();
   await page.keyboard.press('ArrowDown');
@@ -211,6 +217,7 @@ const openNestedEditor = async (page: Page) => {
   await editor.getByPlaceholder('My Storage', { exact: true }).fill('Drive draft');
   await editor.getByLabel('Client ID', { exact: true }).fill('public-client');
   await editor.getByLabel('Client Secret', { exact: true }).fill(secret);
+
   return { editor, storagePicker };
 };
 
@@ -222,11 +229,13 @@ const assertContainment = async (page: Page, google: Awaited<ReturnType<typeof i
       .storageAuthorizationMessages,
     url: location.href,
   }));
+
   const retained = JSON.stringify({
     browserState,
     authorizationUrls: google.authorizationUrls,
     messages: google.relayedMessages,
   });
+
   for (const credential of [secret, tokens.access_token, tokens.refresh_token, 'Drive draft']) {
     expect(retained).not.toContain(credential);
   }
@@ -240,6 +249,7 @@ test('authorizes the nested editor without opener and preserves the surrounding 
   const google = await installGoogle(context);
   const { editor, storagePicker } = await openNestedEditor(page);
   const workspace = await page.getByTitle('Test workspace', { exact: true }).textContent();
+
   const popupPromise = page.waitForEvent('popup');
   await editor.getByRole('button', { name: 'Authorize', exact: true }).click();
   const popup = await popupPromise;
@@ -249,6 +259,7 @@ test('authorizes the nested editor without opener and preserves the surrounding 
   await popup.getByRole('button', { name: 'Continue' }).click();
   await expect(editor.getByText('Authorized', { exact: true })).toBeVisible();
   await closed;
+
   expect(google.tokenHeaders).toHaveLength(1);
   await expect
     .poll(
@@ -258,12 +269,14 @@ test('authorizes the nested editor without opener and preserves the surrounding 
     )
     .toBe(1);
   expect(google.tokenHeaders[0]).not.toHaveProperty('authorization');
+
   const state = new URL(google.authorizationUrls[0]).searchParams.get('state')!;
   await page.evaluate(async (state) => {
     const channel = new BroadcastChannel(`databasus-storage-authorization:${state}`);
     channel.postMessage({ type: 'code', state, code: 'duplicate-code' });
     channel.close();
   }, state);
+
   await expect(editor.getByText('Authorized', { exact: true })).toBeVisible();
   expect(
     boundary.requests.filter((request) => request.method !== 'GET' && request.path !== '/token'),
@@ -274,6 +287,7 @@ test('authorizes the nested editor without opener and preserves the surrounding 
     code: 'synthetic-code',
     redirect_uri: `${new URL(page.url()).origin}/storages/google-oauth`,
   });
+
   await assertContainment(page, google);
   await expect(page.getByPlaceholder('0 2 * * *')).toHaveValue('15 3 * * *');
   await expect(storagePicker.locator('.ant-select-selection-item')).toHaveAttribute(
@@ -282,11 +296,13 @@ test('authorizes the nested editor without opener and preserves the surrounding 
   );
   expect(await page.getByTitle('Test workspace', { exact: true }).textContent()).toBe(workspace);
   await expect(editor.getByPlaceholder('My Storage')).toHaveValue('Drive draft');
+
   await editor.getByRole('button', { name: 'Test connection' }).click();
   await editor.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(editor).not.toBeVisible();
   await expect(page.getByPlaceholder('0 2 * * *')).toHaveValue('15 3 * * *');
   expect(await page.getByTitle('Test workspace', { exact: true }).textContent()).toBe(workspace);
+
   expect(
     boundary.requests.filter(
       (request) => request.method === 'POST' && request.path === '/storages',
@@ -303,14 +319,17 @@ test('keeps the prior storage selection and config draft after canceling an auth
 }) => {
   const google = await installGoogle(context);
   const { editor } = await openNestedEditor(page);
+
   const popupPromise = page.waitForEvent('popup');
   await editor.getByRole('button', { name: 'Authorize', exact: true }).click();
   const popup = await popupPromise;
   await popup.getByRole('button', { name: 'Continue' }).click();
   await expect(editor.getByText('Authorized', { exact: true })).toBeVisible();
+
   await editor.getByRole('button', { name: 'Close', exact: true }).click();
   await expect(page.getByPlaceholder('0 2 * * *')).toHaveValue('15 3 * * *');
   await expect(page.locator('.ant-select').filter({ hasText: 'Existing archive' })).toBeVisible();
+
   expect(
     boundary.requests.filter((request) => request.method !== 'GET' && request.path !== '/token'),
   ).toHaveLength(0);
@@ -332,6 +351,7 @@ for (const failure of ['refusal', 'missing refresh', 'canceled', 'replaced', 'bl
         }),
       );
     const { editor } = await openNestedEditor(page);
+
     if (failure === 'blocked popup') {
       await page.evaluate(() => {
         window.open = () => null;
@@ -357,6 +377,7 @@ for (const failure of ['refusal', 'missing refresh', 'canceled', 'replaced', 'bl
         await popup.close();
       } else await expect(editor.getByRole('alert')).toBeVisible();
     }
+
     await expect(editor.getByPlaceholder('My Storage')).toHaveValue('Drive draft');
     await expect(editor.getByRole('button', { name: 'Test connection' })).toBeDisabled();
     expect(
@@ -373,6 +394,7 @@ test('clears an orphan callback and stops waiting after its editor was closed', 
   await installGoogle(context);
   const callback = await context.newPage();
   await callback.goto(`/storages/google-oauth?state=${'b'.repeat(64)}&code=orphan-code`);
+
   await expect(callback.getByRole('alert')).toContainText('start authorization again', {
     timeout: 7000,
   });
@@ -384,17 +406,20 @@ test('clears an orphan callback and stops waiting after its editor was closed', 
 test('keeps authorization controls accessible at a narrow width', async ({ page, context }) => {
   await installGoogle(context);
   const { editor } = await openNestedEditor(page);
+
   await page.setViewportSize({ width: 320, height: 900 });
   await editor.evaluate(async (element) => {
     await Promise.allSettled(
       element.getAnimations({ subtree: true }).map((animation) => animation.finished),
     );
   });
+
   const accessibility = await new AxeBuilder({ page })
     .include('[role="dialog"]')
     .withTags(['wcag2a', 'wcag2aa'])
     .analyze();
   expect(accessibility.violations).toEqual([]);
+
   const width = await editor.evaluate((element) => ({
     width: element.scrollWidth,
     viewport: innerWidth,

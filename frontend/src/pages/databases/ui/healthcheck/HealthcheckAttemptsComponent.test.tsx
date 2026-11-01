@@ -86,14 +86,17 @@ describe('HealthcheckAttemptsComponent', () => {
         });
       }),
     );
+
     const { container } = renderScreen(<HealthcheckAttemptsComponent database={database} />);
     await waitFor(() => expect(hasRequestedOldPage).toBe(true));
+
     hasChangedPeriod = true;
     fireEvent.mouseDown(screen.getByRole('combobox'));
     fireEvent.click(await screen.findByText('7 days'));
     await waitFor(() =>
       expect(container.querySelectorAll('[data-status="AVAILABLE"]')).toHaveLength(1),
     );
+
     await act(async () => {
       oldPage.respond(HttpResponse.json({ items: [attempt('old-last', 'UNAVAILABLE')] }));
       await oldPage.response;

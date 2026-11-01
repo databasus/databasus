@@ -103,6 +103,7 @@ func (s *Streamer) inspectSourceSlot(ctx context.Context, logger *slog.Logger) s
 
 	state, err := conn.GetSlot(probeCtx, s.slotName)
 	probe := classifySlotInspection(slotInspection{State: state, Error: err})
+
 	if probe.Outcome == slotProbeOutcomeUnreachable {
 		inspectionError := err
 		if inspectionError == nil {

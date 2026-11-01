@@ -107,6 +107,7 @@ export function useGoogleDriveAuthorization(options: GoogleDriveAuthorizationOpt
         fail('storages.edit.googleDrive.missingRefreshToken');
         return;
       }
+
       latestOptions.current.onChange({
         ...latestOptions.current.settings,
         tokenJson: JSON.stringify(token),
@@ -145,6 +146,7 @@ export function useGoogleDriveAuthorization(options: GoogleDriveAuthorizationOpt
           if (isCurrentAttempt(attempt)) fail('storages.edit.googleDrive.expired');
         }, ATTEMPT_LIFETIME),
       };
+
       activeAttempt.current = attempt;
       channel.onmessage = (event: MessageEvent<unknown>) => {
         if (
@@ -167,6 +169,7 @@ export function useGoogleDriveAuthorization(options: GoogleDriveAuthorizationOpt
         if (event.data.type === 'refusal') fail('storages.edit.googleDrive.refused');
         else void exchange(attempt, event.data.code);
       };
+
       const authorizationUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
       authorizationUrl.search = new URLSearchParams({
         client_id: current.settings.clientId,

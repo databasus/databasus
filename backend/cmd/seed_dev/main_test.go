@@ -321,13 +321,16 @@ func setUpSeedTest(t *testing.T) (seedFixture, seedParams) {
 	t.Helper()
 	logicalSource := containers.StartPostgres(t, "postgres:16")
 	walSource := containers.StartPhysicalPostgres(t, "postgres:18")
+
 	testApp := apptest.New(t)
 	admin := testApp.CreateAdmin(t)
+
 	response, err := admin.Client.UpdateInstanceSettingsWithResponse(t.Context(), apiclient.InstanceSettingsUpdate{
 		IsAllowExternalRegistrations: true, IsAllowMemberInvitations: true, IsMemberAllowedToCreateWorkspaces: true,
 	})
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, response.StatusCode())
+
 	params := buildTestSeedParams(testApp.URL)
 	params.LogicalSource = postgresSource{
 		Host:     logicalSource.Host,
@@ -342,6 +345,7 @@ func setUpSeedTest(t *testing.T) (seedFixture, seedParams) {
 		Username: containers.PostgresUsername,
 		Password: containers.PostgresPassword,
 	}
+
 	return seedFixture{router: testApp, admin: admin}, params
 }
 
@@ -539,6 +543,7 @@ func TestSeedOverlap(t *testing.T) {
 		secondParams.Email = firstParams.Email
 		require.NotEqual(t, firstParams.LogicalSource.Port, secondParams.LogicalSource.Port)
 		require.NotEqual(t, firstParams.WalSource.Port, secondParams.WalSource.Port)
+
 		var seeds sync.WaitGroup
 		for _, seed := range []struct {
 			fixture seedFixture
@@ -550,6 +555,7 @@ func TestSeedOverlap(t *testing.T) {
 			})
 		}
 		seeds.Wait()
+
 		for _, seed := range []struct {
 			fixture seedFixture
 			params  seedParams
@@ -570,18 +576,22 @@ func TestSeedOverlap(t *testing.T) {
 				workspaceID,
 				seed.params.WalDatabaseName,
 			)
+
 			require.NotEqual(t, uuid.Nil, logicalID)
 			require.NotEqual(t, uuid.Nil, physicalID)
+
 			waitForLogicalBackups(
 				t,
 				seedDatabase{app: seed.fixture.router, token: session.Token, databaseID: logicalID},
 			)
+
 			response, err := seed.fixture.router.NewSessionClient(t, session.Token).
 				ListLogicalBackupsWithResponse(t.Context(), &apiclient.ListLogicalBackupsParams{DatabaseId: logicalID})
 			require.NoError(t, err)
 			require.NotNil(t, response.JSON200)
 			require.NotEmpty(t, response.JSON200.Items)
 			assert.Equal(t, apiclient.LogicalBackupStatusCOMPLETED, response.JSON200.Items[0].Status)
+
 			var requestCount int
 			seed.fixture.router.QuerySQL(
 				t,

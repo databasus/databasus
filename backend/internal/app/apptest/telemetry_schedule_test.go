@@ -31,9 +31,11 @@ func TestTelemetrySchedule(t *testing.T) {
 			http.Redirect(writer, request, "/accepted", http.StatusFound)
 		}))
 		t.Cleanup(server.Close)
+
 		application := apptest.New(t, apptest.WithTelemetry(apptest.TelemetrySettings{
 			ReceiverURL: server.URL, IdentityPath: filepath.Join(t.TempDir(), "identity.json"),
 		}))
+
 		application.RunJobPass(t, "telemetry_ping")
 		application.Clock.Advance(time.Minute)
 		require.Error(t, application.RunJobPassWithContext(t.Context(), "telemetry_ping"))
@@ -63,6 +65,7 @@ func TestTelemetrySchedule(t *testing.T) {
 		application.RunJobPass(t, "telemetry_ping")
 		application.Clock.Advance(time.Minute)
 		delay := time.Minute
+
 		for attempt := 1; attempt <= 14; attempt++ {
 			require.Error(t, application.RunJobPassWithContext(t.Context(), "telemetry_ping"))
 			require.Len(t, receiver.getReports(), attempt)
@@ -72,6 +75,7 @@ func TestTelemetrySchedule(t *testing.T) {
 			application.Clock.Advance(time.Nanosecond)
 			delay = min(delay*2, 24*time.Hour)
 		}
+
 		receiver.mutex.Lock()
 		receiver.status = http.StatusCreated
 		receiver.mutex.Unlock()
@@ -80,6 +84,7 @@ func TestTelemetrySchedule(t *testing.T) {
 		application.Clock.Advance(24*time.Hour - 10*time.Minute - time.Nanosecond)
 		application.RunJobPass(t, "telemetry_ping")
 		require.Len(t, receiver.getReports(), 15)
+
 		receiver.mutex.Lock()
 		receiver.status = http.StatusBadGateway
 		receiver.mutex.Unlock()
@@ -156,6 +161,7 @@ func TestTelemetrySchedule(t *testing.T) {
 		)
 		application.RunJobPass(t, "telemetry_ping")
 		application.Clock.Advance(time.Minute)
+
 		passContext, cancel := context.WithCancel(t.Context())
 		completed := make(chan error, 1)
 		go func() { completed <- application.RunJobPassWithContext(passContext, "telemetry_ping") }()

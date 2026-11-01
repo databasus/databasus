@@ -37,6 +37,7 @@ func TestTransferDatabase(t *testing.T) {
 		assert.Equal(t, &storageID, apptest.GetBackupConfig(t, tm.owner, databaseID).StorageId)
 		assert.Contains(t, listLogicalBackupIDs(t, tm.owner, databaseID), backup.id)
 		assert.True(t, tm.app.IsLocalStorageFilePresent(t, backup.fileName))
+
 		tm.app.Clock.Advance(time.Hour)
 		tm.app.RunJobPass(t, storageFileDeletionJobName)
 		assert.Contains(t, listLogicalBackupIDs(t, tm.owner, databaseID), backup.id)

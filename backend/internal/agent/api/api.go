@@ -78,6 +78,7 @@ func NewClient(deps Deps) *Client {
 		}
 		return err != nil || response.StatusCode >= 500 || response.StatusCode == http.StatusTooManyRequests, nil
 	}
+
 	client := &Client{
 		timeAfterFn:       time.After,
 		host:              strings.TrimRight(deps.Host, "/"),
@@ -102,6 +103,7 @@ func (c *Client) FetchServerVersion(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("create version request: %w", err)
 	}
 	c.setStreamHeaders(request)
+
 	response, err := c.retryHTTP.Do(request)
 	if err != nil {
 		return "", err
@@ -110,6 +112,7 @@ func (c *Client) FetchServerVersion(ctx context.Context) (string, error) {
 		return "", responseError(response, "fetch server version")
 	}
 	defer func() { _ = response.Body.Close() }()
+
 	var version struct {
 		Version string `json:"version"`
 	}

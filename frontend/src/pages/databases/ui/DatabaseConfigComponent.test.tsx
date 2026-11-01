@@ -246,6 +246,7 @@ describe('DatabaseConfigComponent', () => {
       mockApi.pending('get', '/backup-configs/{databaseId}').handler,
       mockApi.pending('get', '/healthcheck-configs/{databaseId}').handler,
     );
+
     const view = renderScreen(
       <DatabaseConfigComponent
         database={{
@@ -352,6 +353,7 @@ describe('DatabaseConfigComponent', () => {
       mockApi.pending('get', '/healthcheck-configs/{databaseId}').handler,
       mockApi.get('/notifiers', 200, { items: [] }),
     );
+
     const otherDatabase = { ...savedDatabase, id: 'other-database-id', name: 'Other' };
     const renderConfig = (database: Database) => (
       <DatabaseConfigComponent
@@ -369,6 +371,7 @@ describe('DatabaseConfigComponent', () => {
     view.rerender(renderConfig(otherDatabase));
     view.rerender(renderConfig(savedDatabase));
     await screen.findByText('Shop');
+
     const earlierLoadsFailed = new Promise<void>((resolve) => {
       let failedLoads = 0;
       mockServer.events.on('response:mocked', ({ response }) => {
@@ -614,6 +617,7 @@ describe('DatabaseConfigComponent', () => {
       mockApi.pending('get', '/healthcheck-configs/{databaseId}').handler,
       mockApi.pending('get', '/verification-configs/{databaseId}').handler,
     );
+
     const view = renderScreen(
       <DatabaseConfigComponent
         database={buildSavedDatabase(DatabaseType.POSTGRES_PHYSICAL)}
@@ -688,6 +692,7 @@ describe('DatabaseConfigComponent', () => {
         ],
         onDatabaseChanged,
       );
+
       await openConnectionSection();
       clickTest();
       await clickSave();
@@ -713,6 +718,7 @@ describe('DatabaseConfigComponent', () => {
         ],
         onDatabaseChanged,
       );
+
       await openConnectionSection();
       clickTest();
       await clickSave();
@@ -741,6 +747,7 @@ describe('DatabaseConfigComponent', () => {
         ],
         onDatabaseChanged,
       );
+
       await openConnectionSection();
       clickTest();
       await clickSave();
@@ -764,6 +771,7 @@ describe('DatabaseConfigComponent', () => {
         ],
         onDatabaseChanged,
       );
+
       await openConnectionSection();
       clickTest();
       await clickSave();
@@ -858,6 +866,7 @@ describe('DatabaseConfigComponent', () => {
         mockApi.pending('get', '/storages').handler,
         mockApi.pending('get', '/healthcheck-configs/{databaseId}').handler,
       );
+
       const view = renderScreen(renderConfig(firstDatabase));
       await openConnectionSection();
       clickTest();
@@ -979,6 +988,7 @@ describe('DatabaseConfigComponent', () => {
         status: 200,
         body: buildSavedDatabase(DatabaseType.MYSQL),
       });
+
       renderSavedDatabaseConfig(buildSavedDatabase(DatabaseType.MYSQL), [
         mockApi.post('/database-tests', 200, { isConnected: true }),
         update.handler,
@@ -1026,6 +1036,7 @@ describe('DatabaseConfigComponent', () => {
           isCanManageDBs
         />
       );
+
       mockServer.use(
         mockApi.post('/database-tests', 200, { isConnected: true }),
         ...handlers,
@@ -1065,6 +1076,7 @@ describe('DatabaseConfigComponent', () => {
             status: 403,
             body: buildProblem('permission_denied', 403),
           });
+
           const { rerenderOtherDatabase } = renderHeldSave([refusedUpdate.handler]);
           await openConnectionSection();
           clickTest();
@@ -1092,6 +1104,7 @@ describe('DatabaseConfigComponent', () => {
             status,
             body,
           } as Parameters<typeof mockApi.delayed>[0]);
+
           const { rerenderOtherDatabase } = renderHeldSave([
             mockApi.put('/databases/{databaseId}', 200, buildSavedDatabase(DatabaseType.MYSQL)),
             limitedUserCheck.handler,
@@ -1119,6 +1132,7 @@ describe('DatabaseConfigComponent', () => {
         body: buildSavedDatabase(DatabaseType.MYSQL),
       });
       const onDatabaseChanged = vi.fn();
+
       renderSavedDatabaseConfig(
         buildSavedDatabase(DatabaseType.MYSQL),
         [mockApi.post('/database-tests', 200, { isConnected: true }), update.handler],

@@ -79,6 +79,7 @@ describe('RestoresComponent', () => {
         return HttpResponse.json(startedRestore, { status: 202 });
       }),
     );
+
     const receivedOptions: RestoreTargetFormOptions[] = [];
     renderScreen(
       <RestoresComponent

@@ -31,6 +31,7 @@ func (namespace StorageNamespace) HoldNextUpload(t *testing.T, owner Session, pr
 	require.NoError(t, err)
 	upstream, err := url.Parse(*settings.S3Endpoint)
 	require.NoError(t, err)
+
 	proxy := httputil.NewSingleHostReverseProxy(upstream)
 	started := make(chan string, 1)
 	finished := make(chan struct{})
@@ -38,6 +39,7 @@ func (namespace StorageNamespace) HoldNextUpload(t *testing.T, owner Session, pr
 	var releaseOnce sync.Once
 	var isHeld atomic.Bool
 	release := func() { releaseOnce.Do(func() { close(released) }) }
+
 	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		fileName := path.Base(request.URL.Path)
 		if request.Method == http.MethodPut && strings.HasPrefix(fileName, prefix) &&
@@ -57,10 +59,12 @@ func (namespace StorageNamespace) HoldNextUpload(t *testing.T, owner Session, pr
 				return
 			}
 		}
+
 		proxy.ServeHTTP(response, request)
 	}))
 	t.Cleanup(server.Close)
 	t.Cleanup(release)
+
 	namespace.setEndpoint(t, owner, server.URL)
 	return HeldStorageUpload{Started: started, Finished: finished, Release: release}
 }

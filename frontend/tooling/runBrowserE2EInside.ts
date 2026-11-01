@@ -29,6 +29,7 @@ try {
     for (const input of ['package.json', 'pnpm-lock.yaml'])
       await cp(join(frontendRoot, input), join(context, input));
     await cp(join(frontendRoot, 'browser/Dockerfile'), join(context, 'Dockerfile'));
+
     const exitCode = await runChild(
       'docker',
       [
@@ -48,6 +49,7 @@ try {
       { signal: controller.signal },
     );
     if (exitCode) throw new Error(`Browser dependency build failed: ${exitCode}`);
+
     const excluded = new Set([
       'node_modules',
       'dist',
@@ -62,6 +64,7 @@ try {
     });
     await mkdir(join(runRoot, 'home'), { recursive: true });
   }
+
   const phase = process.argv[2];
   if (!['build', 'run'].includes(phase)) throw new Error('Unknown internal browser phase');
   if (phase === 'run') {
@@ -74,6 +77,7 @@ try {
     });
     if (!readiness.ok) throw new Error(`E2E readiness failure: HTTP ${readiness.status}`);
   }
+
   process.exitCode = await runChild(
     'docker',
     [

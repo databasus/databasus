@@ -20,6 +20,7 @@ export const createOAuthSignInAttempt = (provider: OAuthProvider): OAuthSignInAt
     createdAt: Date.now(),
     redirectUri: getOAuthRedirectUri(),
   };
+
   sessionStorage.setItem(ATTEMPT_KEY, JSON.stringify(attempt));
   beginAuthIntent();
   return attempt;
@@ -29,6 +30,7 @@ export const consumeOAuthSignInAttempt = (state: string | null): OAuthSignInAtte
   const raw = sessionStorage.getItem(ATTEMPT_KEY);
   if (!raw || !state) throw new Error('OAuth sign-in attempt is missing');
   const attempt: OAuthSignInAttempt = JSON.parse(raw);
+
   if (
     !attempt ||
     typeof attempt.state !== 'string' ||
@@ -41,6 +43,7 @@ export const consumeOAuthSignInAttempt = (state: string | null): OAuthSignInAtte
     attempt.redirectUri !== getOAuthRedirectUri()
   )
     throw new Error('OAuth sign-in attempt is invalid');
+
   sessionStorage.removeItem(ATTEMPT_KEY);
   return attempt;
 };

@@ -12,9 +12,11 @@ func holdStorageWrites(t *testing.T, team *backupTeam) func() {
 	t.Helper()
 	installStorageWriteBarrier(t, team.App)
 	storageLock := team.App.BeginSQLTransaction(t)
+
 	var storageIDs []string
 	storageLock.QuerySQL(t, &storageIDs, "SELECT id FROM storages WHERE id=? FOR NO KEY UPDATE", team.StorageID)
 	require.Len(t, storageIDs, 1)
+
 	return func() { storageLock.Rollback(t) }
 }
 

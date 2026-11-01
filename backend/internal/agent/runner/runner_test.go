@@ -414,6 +414,7 @@ func TestRun(t *testing.T) {
 		verificationRunner.group = background.New(background.Deps{
 			Logger: slog.New(slog.NewTextHandler(&logOutput, nil)),
 		})
+
 		ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 		defer cancel()
 
@@ -422,11 +423,13 @@ func TestRun(t *testing.T) {
 		require.ErrorAs(t, err, &panicError)
 		assert.Equal(t, "restore panic", panicError.Value)
 		assert.NotEmpty(t, panicError.Stack)
+
 		jobContainer, isFakeContainer := spawner.container.(*fakeContainer)
 		require.True(t, isFakeContainer)
 		assert.True(t, jobContainer.terminated)
 		assert.Empty(t, registrar.registered)
 		assert.Empty(t, verificationRunner.pool.slots)
+
 		require.NoError(t, verificationRunner.group.Wait(ctx))
 		assert.Contains(t, logOutput.String(), "background goroutine panicked")
 		assert.Contains(t, logOutput.String(), "verification_job")
@@ -455,16 +458,19 @@ func TestRun(t *testing.T) {
 			require.NoError(t, ctx.Err(), "job cancellation must precede the parent deadline")
 			assert.Less(t, time.Since(startedAt), 5*time.Second)
 			assert.True(t, restorer.isBlockedRestoreCancelled.Load())
+
 			select {
 			case <-restorer.blockedRestoreFinished:
 			default:
 				t.Error("Run returned before the blocked restore finished")
 			}
+
 			jobContainers := spawner.snapshot()
 			require.Len(t, jobContainers, 2)
 			for _, jobContainer := range jobContainers {
 				assert.True(t, jobContainer.terminated.Load(), "Run must wait for every container's cleanup")
 			}
+
 			assert.Empty(t, registrar.registered)
 			assert.Empty(t, verificationRunner.pool.slots)
 		})

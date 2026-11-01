@@ -16,12 +16,14 @@ const runFixture = async ({
   const root = join(directory, 'frontend');
   const markers = join(directory, 'containers');
   const binary = join(directory, 'bin');
+
   try {
     await Promise.all([
       mkdir(join(root, 'browser'), { recursive: true }),
       mkdir(markers),
       mkdir(binary),
     ]);
+
     for (const file of [
       'browser/Dockerfile',
       'browser/environment.json',
@@ -30,6 +32,7 @@ const runFixture = async ({
     ])
       await cp(resolve(file), join(root, file));
     await cp(resolve('../mise.toml'), join(directory, 'mise.toml'));
+
     const docker = `#!${process.execPath}
 const fs = require('node:fs');
 const path = require('node:path');
@@ -48,11 +51,13 @@ if(process.env.FIXTURE_MODE === 'success') process.exit(0);
 http.createServer((request,response)=>response.end()).listen(0,'127.0.0.1');
 `;
     await writeFile(join(binary, 'docker'), docker, { mode: 0o755 });
+
     const entry = join(directory, 'fixture.mjs');
     await writeFile(
       entry,
       `import { runBrowser } from ${JSON.stringify(pathToFileURL(resolve('tooling/runBrowser.ts')).href)}; process.exitCode = await runBrowser({ frontendRoot: ${JSON.stringify(root)}, args: ['--project=ui'] });`,
     );
+
     const child = spawn(process.execPath, [entry], {
       env: {
         ...process.env,
@@ -62,9 +67,11 @@ http.createServer((request,response)=>response.end()).listen(0,'127.0.0.1');
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
+
     let output = '';
     let runRoot: string | undefined;
     const deadline = setTimeout(() => child.kill('SIGTERM'), 10_000);
+
     try {
       const exitCode = await new Promise<number | null>((resolveExit, reject) => {
         child.once('error', reject);
@@ -81,9 +88,11 @@ http.createServer((request,response)=>response.end()).listen(0,'127.0.0.1');
         });
         child.once('exit', resolveExit);
       });
+
       expect(await readdir(markers)).toEqual([]);
       expect(runRoot).toBeTruthy();
       await expect(readdir(runRoot!)).rejects.toMatchObject({ code: 'ENOENT' });
+
       return { exitCode, output };
     } finally {
       clearTimeout(deadline);

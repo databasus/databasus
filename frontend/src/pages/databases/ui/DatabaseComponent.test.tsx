@@ -159,6 +159,7 @@ describe('DatabaseComponent', () => {
     const showAlert = vi.fn();
     vi.stubGlobal('alert', showAlert);
     server.use(http.get('*/api/v1/databases/:databaseId', () => pendingDatabase.response));
+
     const view = renderScreen(<DatabaseComponent {...databaseScreenProps} databaseId="shop-id" />);
     await waitForCondition(() => expect(server.getRequests()).toHaveLength(1));
     const responseProcessed = new Promise<void>((resolve) =>
@@ -222,6 +223,7 @@ describe('DatabaseComponent', () => {
       mockApi.pending('get', '/healthcheck-attempts').handler,
     );
     declareDatabaseDependencies();
+
     const { user } = renderScreen(
       <DatabaseComponent {...databaseScreenProps} databaseId="shop-id" />,
     );
@@ -272,6 +274,7 @@ describe('DatabaseComponent', () => {
         return HttpResponse.json(storedHealthcheckConfig);
       }),
     );
+
     const { user } = await renderShopSettings();
     await screen.findByText('1');
     openSettingsSection('Healthcheck settings');
@@ -309,6 +312,7 @@ describe('DatabaseComponent', () => {
         screen.getByRole('button', { name: /Test connection$/ }).hasAttribute('disabled'),
       ).toBe(false),
     );
+
     expect(screen.getByText(/connection refused/)).toBeTruthy();
     expect(
       screen.getByText(DICTIONARIES.en.databases.config.lastBackupError.clearedByNextBackup),
@@ -346,6 +350,7 @@ describe('DatabaseComponent', () => {
         return HttpResponse.json(storedVerificationConfig);
       }),
     );
+
     const { user } = await renderShopSettings({
       ...shopDatabase,
       settings: createDefaultDatabaseSettings(DatabaseType.POSTGRES_LOGICAL),
@@ -377,6 +382,7 @@ describe('DatabaseComponent', () => {
       mockApi.pending('get', '/healthcheck-attempts').handler,
     );
     declareDatabaseDependencies();
+
     const view = renderScreen(
       <DatabaseComponent {...databaseScreenProps} databaseId={shopDatabase.id} />,
     );

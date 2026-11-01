@@ -84,11 +84,13 @@ func TestDeletePhysicalWalSegment(t *testing.T) {
 		catalog := newCatalog(t)
 		_, _, segment := seedOneOfEachType(t, catalog)
 		before := getBackups(t, catalog, "")
+
 		status, body := catalog.App.CallPhysicalAPI(t, catalog.Owner, apptest.PhysicalDeleteRequest(segment.ID))
 		require.Equal(t, http.StatusNotFound, status, "%s", body)
 		var problem apiclient.Problem
 		require.NoError(t, json.Unmarshal(body, &problem))
 		assert.Equal(t, apiclient.ProblemCodeNotFound, problem.Code)
+
 		after := getBackups(t, catalog, "")
 		assert.Equal(t, before, after)
 	})
@@ -107,10 +109,12 @@ func TestOldPhysicalBackupPath(t *testing.T) {
 		)
 		require.NoError(t, err)
 		request.Header.Set("Authorization", "Bearer "+catalog.Owner.Token)
+
 		response, err := http.DefaultClient.Do(request)
 		require.NoError(t, err)
 		defer func() { _ = response.Body.Close() }()
 		require.Equal(t, http.StatusNotFound, response.StatusCode)
+
 		var problem apiclient.Problem
 		require.NoError(t, json.NewDecoder(response.Body).Decode(&problem))
 		assert.Equal(t, apiclient.ProblemCodeNotFound, problem.Code)
@@ -148,10 +152,12 @@ func TestPhysicalBackupWorkspacePrivacy(t *testing.T) {
 				assert.Equal(t, status, missingStatus)
 				assert.JSONEq(t, string(missingBody), string(body))
 			}
+
 			assert.Equal(t, backupRequests{}, catalog.getBackupRequests(t))
 			runningBackupID := catalog.getRunningBackupID(t)
 			require.NotNil(t, runningBackupID)
 			assert.Equal(t, running.ID, *runningBackupID)
+
 			page := getBackups(t, catalog, "")
 			require.Len(t, page.Backups, 4)
 			assert.Contains(t, collectBackupIDs(page), full.ID)
@@ -199,12 +205,14 @@ func TestPhysicalFilteredPaging(t *testing.T) {
 				full.ID,
 			)
 			additional := catalog.insertFulls(t, fullsSeedSpec{Count: 2, FirstCreatedAt: base})
+
 			first := getBackups(t, catalog, "?type=FULL&limit=2")
 			require.Len(t, first.Backups, 2)
 			require.NotEmpty(t, first.NextCursor)
 			second := getBackups(t, catalog, "?type=FULL&limit=2&after="+first.NextCursor)
 			require.Len(t, second.Backups, 1)
 			assert.Empty(t, second.NextCursor)
+
 			assert.Equal(t, []uuid.UUID{full.ID, additional[1].ID}, collectBackupIDs(first))
 			assert.Equal(t, []uuid.UUID{additional[0].ID}, collectBackupIDs(second))
 		},
@@ -213,17 +221,20 @@ func TestPhysicalFilteredPaging(t *testing.T) {
 		catalog := newCatalog(t)
 		base := time.Now().UTC().Add(-time.Hour)
 		backups := catalog.insertFulls(t, fullsSeedSpec{Count: 5, FirstCreatedAt: base})
+
 		query := "?limit=2&createdBefore=" + url.QueryEscape(base.Add(3*time.Minute).Format(time.RFC3339Nano))
 		first := getBackups(t, catalog, query)
 		require.Len(t, first.Backups, 2)
 		second := getBackups(t, catalog, query+"&after="+first.NextCursor)
 		require.Len(t, second.Backups, 1)
+
 		assert.Empty(t, second.NextCursor)
 		assert.Equal(t, []uuid.UUID{backups[2].ID, backups[1].ID, backups[0].ID}, collectBackupIDs(first, second))
 	})
 	t.Run("keeps the status filter on every page when completed and failed backups are mixed", func(t *testing.T) {
 		catalog := newCatalog(t)
 		catalog.insertFulls(t, fullsSeedSpec{Count: 2, FirstCreatedAt: time.Now().Add(-time.Hour)})
+
 		failedIDs := []uuid.UUID{}
 		for index := range 2 {
 			failed := newFullSeed(
@@ -239,6 +250,7 @@ func TestPhysicalFilteredPaging(t *testing.T) {
 			persisted := catalog.insertFull(t, failed)
 			failedIDs = append(failedIDs, persisted.ID)
 		}
+
 		first := getBackups(t, catalog, "?status=ERROR&limit=1")
 		require.Len(t, first.Backups, 1)
 		second := getBackups(t, catalog, "?status=ERROR&limit=1&after="+first.NextCursor)

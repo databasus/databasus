@@ -44,6 +44,7 @@ describe('backupConfigApi.transferDatabase', () => {
       remaining: 0,
     };
     server.use(mockApi.post('/databases/{databaseId}/transfer', 202, storageSwitch));
+
     await expect(backupConfigApi.transferDatabase('shop-id', transfer)).resolves.toEqual(
       storageSwitch,
     );

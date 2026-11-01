@@ -21,6 +21,7 @@ func (h *Handler) GetAuthenticationMiddleware(hooks *apierror.Hooks) gin.Handler
 		if !hasBearerPrefix {
 			token = ""
 		}
+
 		agent, err := h.agents.AuthenticateAgent(
 			ctx.Request.Context(),
 			agents.AgentCredentials{AgentID: ctx.Param("agentId"), Token: token},
@@ -30,6 +31,7 @@ func (h *Handler) GetAuthenticationMiddleware(hooks *apierror.Hooks) gin.Handler
 			ctx.Abort()
 			return
 		}
+
 		requestContext := context.WithValue(ctx.Request.Context(), agentKey{}, &agent)
 		ctx.Request = ctx.Request.WithContext(logging.With(requestContext, slog.String("agent_id", agent.ID.String())))
 		ctx.Next()

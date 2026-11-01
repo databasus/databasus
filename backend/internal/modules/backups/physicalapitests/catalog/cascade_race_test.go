@@ -35,6 +35,7 @@ func TestCascadePhysicalBackupDuringClaim(t *testing.T) {
 				catalog.seedCascadeFull(t, cascadeFullSpec{Segment: 10, Age: 60 * time.Hour})
 				catalog.configureFullRetention(t)
 			}
+
 			transaction := catalog.App.BeginSQLTransaction(t)
 			transaction.ExecuteSQL(
 				t,
@@ -73,11 +74,13 @@ func TestCascadePhysicalBackupDuringClaim(t *testing.T) {
 				}
 				return nil
 			})
+
 			select {
 			case <-outcomes:
 				t.Fatal("the cascade finished before the running full committed")
 			default:
 			}
+
 			activeFullID := uuid.New()
 			transaction.ExecuteSQL(
 				t,
@@ -88,6 +91,7 @@ func TestCascadePhysicalBackupDuringClaim(t *testing.T) {
 				time.Now().UTC(),
 			)
 			transaction.Commit(t)
+
 			select {
 			case outcome := <-outcomes:
 				require.NoError(t, outcome.err)
@@ -97,6 +101,7 @@ func TestCascadePhysicalBackupDuringClaim(t *testing.T) {
 			case <-t.Context().Done():
 				t.Fatal("the cascade did not finish after the running full committed")
 			}
+
 			catalog.assertWalPresent(t, wal.ID)
 			assert.True(t, catalog.App.IsLocalStorageFilePresent(t, *wal.FileName))
 			if testCase.shouldKeepFull {
@@ -115,6 +120,7 @@ func (catalog *catalogFixture) configureFullRetention(t *testing.T) {
 		"UPDATE databases_postgresql_physical SET backup_type='FULL' WHERE database_id=?",
 		catalog.DatabaseID,
 	)
+
 	config := apptest.GetBackupConfig(t, catalog.Owner, catalog.DatabaseID)
 	settings, err := config.Settings.AsPhysicalBackupSettings()
 	require.NoError(t, err)
@@ -127,6 +133,7 @@ func (catalog *catalogFixture) configureFullRetention(t *testing.T) {
 		Policy: apiclient.FullBackupsRetentionPolicyLASTN,
 		Count:  20,
 	}
+
 	var backupSettings apiclient.BackupSettings
 	require.NoError(t, backupSettings.FromPhysicalBackupSettings(settings))
 	response, err := catalog.Owner.Client.UpdateBackupConfigWithResponse(

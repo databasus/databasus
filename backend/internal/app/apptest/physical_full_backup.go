@@ -61,10 +61,12 @@ func (a *App) InsertPhysicalFullBackup(tb testing.TB, seed PhysicalFullBackupSee
 	if seed.Status == "COMPLETED" && seed.CompletedAt == nil {
 		seed.CompletedAt = new(seed.CreatedAt)
 	}
+
 	row := struct {
 		PhysicalFullBackupSeed `gorm:"embedded"`
 		Kind                   string `gorm:"column:kind"`
 	}{PhysicalFullBackupSeed: seed, Kind: "FULL"}
+
 	a.insertPhysicalCatalogRow(tb, "backups_physical", &row)
 	seed = row.PhysicalFullBackupSeed
 	return seed

@@ -45,8 +45,10 @@ func TestPhysicalBackupOverMtls(t *testing.T) {
 		require.NoError(t, err)
 		settings.SslClientCert = nil
 		settings.SslClientKey = nil
+
 		var update apiclient.DatabaseSettings
 		require.NoError(t, update.FromPostgresqlPhysicalSettings(settings))
+
 		response, err := team.Owner.Client.UpdateDatabaseWithResponse(
 			t.Context(),
 			team.Database.Id,

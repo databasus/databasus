@@ -189,6 +189,7 @@ export const NotifierComponent = ({
     setDeliveryError(undefined);
     setError(undefined);
     setNotifier(undefined);
+
     notifierApi
       .getNotifier(notifierId)
       .then((loadedNotifier) => {

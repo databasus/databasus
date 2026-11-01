@@ -78,11 +78,13 @@ export function useStorageDraft(options: Options) {
     const settingsRevision = revisions.current.settings.GetCurrent();
     const testRevision = revisions.current.test.Invalidate();
     const request = Symbol();
+
     const isActive = () =>
       isCurrentSession(session) &&
       revisions.current.context.IsCurrent(contextRevision) &&
       revisions.current.settings.IsCurrent(settingsRevision) &&
       revisions.current.test.IsCurrent(testRevision);
+
     activeTest.current = request;
     setIsTesting(true);
     setError(undefined);
@@ -122,6 +124,7 @@ export function useStorageDraft(options: Options) {
 
     const session = getSessionSnapshot();
     const contextRevision = revisions.current.context.GetCurrent();
+
     const request = Symbol();
     activeSave.current = request;
     setIsSaving(true);
@@ -137,11 +140,13 @@ export function useStorageDraft(options: Options) {
       persistedId.current = saved.id;
       setStorageId(saved.id);
       setSavedSettings(saved.settings);
+
       const acknowledged: StorageDraft = {
         storageId: saved.id,
         name: saved.name,
         settings: saved.settings,
       };
+
       const merged: StorageDraft = {
         storageId: saved.id,
         name: currentDraft.current.name === submitted.name ? saved.name : currentDraft.current.name,

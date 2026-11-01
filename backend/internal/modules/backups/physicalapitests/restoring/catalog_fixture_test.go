@@ -30,9 +30,11 @@ func newCatalog(t *testing.T) *catalogFixture {
 	owner := testApp.CreateNonAdminUser(t, admin)
 	workspace := apptest.CreateWorkspace(t, owner, "Physical catalog")
 	databaseID := testApp.InsertPhysicalDatabase(t, workspace.Id)
+
 	database, err := owner.Client.GetDatabaseWithResponse(t.Context(), databaseID)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, database.StatusCode())
+
 	return &catalogFixture{
 		App: testApp, Owner: owner, Admin: admin, DatabaseName: database.JSON200.Name, WorkspaceID: workspace.Id,
 		DatabaseID: databaseID,
@@ -60,6 +62,7 @@ func (catalog *catalogFixture) call(t *testing.T, call catalogCall) catalogRespo
 		call.Request,
 	)
 	defer func() { _ = response.Body.Close() }()
+
 	body, err := io.ReadAll(response.Body)
 	require.NoError(t, err)
 	require.Equal(t, call.StatusCode, response.StatusCode, "%s", body)

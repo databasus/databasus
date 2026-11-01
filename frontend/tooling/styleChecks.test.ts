@@ -86,8 +86,10 @@ describe('Style ownership checks', () => {
       const palette = join(root, 'palette.ts');
       const control = join(root, 'Control.tsx');
       const content = `import { danger } from './palette'; export const control = <div style={{ color: danger }} />;`;
+
       writeFileSync(palette, `export const danger = 'red';`);
       writeFileSync(control, content);
+
       const program = ts.createProgram([palette, control], { jsx: ts.JsxEmit.ReactJSX });
       expect(
         checkStyleSource({ source: 'shared/ui/Control.tsx', fileName: control, content, program }),

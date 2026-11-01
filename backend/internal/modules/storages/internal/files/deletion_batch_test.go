@@ -45,8 +45,10 @@ func TestDeletionBatch(t *testing.T) {
 			files := newTestFiles(t)
 			reference := StoredFileReference{StorageID: files.createStorage(t), FileName: "repeated.dump"}
 			batch := files.requestBatch(t, reference)
+
 			files.provider.setDeleteErr(errors.New("provider unavailable"))
 			files.provider.onDelete = func() { files.requestDeletions(t, reference) }
+
 			for attempt := range 5 {
 				files.runPass(t)
 				var failedAttempts int
@@ -56,6 +58,7 @@ func TestDeletionBatch(t *testing.T) {
 				assert.Equal(t, attempt+1, failedAttempts)
 				files.clock.Advance(time.Second)
 			}
+
 			terminal := files.getBatch(t, batch.ID)
 			assert.Equal(t, CleanupWithRemainders, terminal.Status)
 			assert.EqualValues(t, 1, terminal.Remaining)
@@ -66,6 +69,7 @@ func TestDeletionBatch(t *testing.T) {
 		files := newTestFiles(t)
 		reference := StoredFileReference{StorageID: files.createStorage(t), FileName: "active.dump"}
 		batch := files.requestBatch(t, reference)
+
 		files.provider.setDeleteErr(errors.New("provider unavailable"))
 		providerCalls := 0
 		files.provider.onDelete = func() {
@@ -75,8 +79,10 @@ func TestDeletionBatch(t *testing.T) {
 				files.runPass(t)
 			}
 		}
+
 		files.runPass(t)
 		assert.Equal(t, 1, providerCalls)
+
 		var failedAttempts int
 		require.NoError(t, files.db.WithContext(t.Context()).Raw(
 			"SELECT failed_attempts FROM storages_deletion_batch_items WHERE batch_id=?", batch.ID).
@@ -90,10 +96,12 @@ func TestDeletionBatch(t *testing.T) {
 		reference := StoredFileReference{StorageID: files.createStorage(t), FileName: "old.dump"}
 		batch := files.requestBatch(t, reference)
 		files.provider.setDeleteErr(errors.New("unreachable"))
+
 		for range 3 {
 			files.runPass(t)
 			files.clock.Advance(time.Minute)
 		}
+
 		files.job = NewDeletionJob(
 			files.store,
 			Deps{
@@ -108,10 +116,12 @@ func TestDeletionBatch(t *testing.T) {
 				Uploads:         files.uploads,
 			},
 		)
+
 		for range 2 {
 			files.runPass(t)
 			files.clock.Advance(time.Minute)
 		}
+
 		terminal := files.getBatch(t, batch.ID)
 		assert.Equal(t, CleanupWithRemainders, terminal.Status)
 		assert.True(t, batch.CleanupDeadline.Equal(terminal.CleanupDeadline))
@@ -122,12 +132,14 @@ func TestDeletionBatch(t *testing.T) {
 		reference := StoredFileReference{StorageID: files.createStorage(t), FileName: "old.dump"}
 		batch := files.requestBatch(t, reference)
 		files.clock.Advance(24*time.Hour - time.Second)
+
 		files.provider.onDeleteContext = func(ctx context.Context) {
 			deadline, hasDeadline := ctx.Deadline()
 			require.True(t, hasDeadline)
 			assert.LessOrEqual(t, time.Until(deadline), time.Second)
 			files.clock.Advance(time.Second)
 		}
+
 		files.runPass(t)
 		assert.Equal(t, CleanupPending, files.getBatch(t, batch.ID).Status)
 		files.runPass(t)
@@ -160,6 +172,7 @@ func TestDeletionBatch(t *testing.T) {
 		reference := StoredFileReference{StorageID: files.createStorage(t), FileName: "old.dump"}
 		batch := files.requestBatch(t, reference)
 		files.clock.Advance(time.Hour)
+
 		require.NoError(t, files.inTransaction(t, func(ctx context.Context) error {
 			repeated, err := files.store.RequestDeletionBatch(
 				ctx,
@@ -171,6 +184,7 @@ func TestDeletionBatch(t *testing.T) {
 			assert.Equal(t, batch, repeated)
 			return err
 		}))
+
 		files.runPass(t)
 		assert.Equal(t, []string{reference.FileName}, files.provider.getDeleted())
 	})
@@ -181,15 +195,18 @@ func TestDeletionBatch(t *testing.T) {
 		files.requestDeletions(t, reference)
 		batch := files.requestBatch(t, reference)
 		files.provider.setDeleteErr(errors.New("provider unavailable"))
+
 		for range 5 {
 			files.runPass(t)
 			files.clock.Advance(time.Minute)
 		}
+
 		terminal := files.getBatch(t, batch.ID)
 		assert.Equal(t, CleanupWithRemainders, terminal.Status)
 		assert.EqualValues(t, 1, terminal.Remaining)
 		_, isPending := files.findPending(t, reference)
 		require.True(t, isPending)
+
 		files.provider.setDeleteErr(nil)
 		files.runPass(t)
 		assert.Equal(t, terminal, files.getBatch(t, batch.ID))
@@ -202,14 +219,17 @@ func TestDeletionBatch(t *testing.T) {
 		reference := StoredFileReference{StorageID: files.createStorage(t), FileName: "old.dump"}
 		batch := files.requestBatch(t, reference)
 		files.provider.setDeleteErr(errors.New("provider unavailable"))
+
 		for range 5 {
 			files.runPass(t)
 			files.clock.Advance(time.Minute)
 		}
+
 		terminal := files.getBatch(t, batch.ID)
 		assert.Equal(t, CleanupWithRemainders, terminal.Status)
 		_, isPending := files.findPending(t, reference)
 		assert.False(t, isPending)
+
 		files.provider.setDeleteErr(nil)
 		files.runPass(t)
 		assert.Empty(t, files.provider.getDeleted())
@@ -219,6 +239,7 @@ func TestDeletionBatch(t *testing.T) {
 		files := newTestFiles(t)
 		reference := StoredFileReference{StorageID: files.createStorage(t), FileName: "live.dump"}
 		var batch DeletionBatch
+
 		files.provider.onSave = func() {
 			batch = files.requestBatch(t, reference)
 			files.clock.Advance(24*time.Hour - time.Nanosecond)
@@ -229,8 +250,10 @@ func TestDeletionBatch(t *testing.T) {
 			assert.Equal(t, CleanupWithRemainders, files.getBatch(t, batch.ID).Status)
 			assert.Empty(t, files.provider.getDeleted())
 		}
+
 		_, err := files.store.WriteFile(t.Context(), reference, strings.NewReader("payload"))
 		require.ErrorIs(t, err, ErrFileTakenForDeletion)
+
 		terminal := files.getBatch(t, batch.ID)
 		files.runPass(t)
 		assert.Equal(t, []string{reference.FileName}, files.provider.getDeleted())
@@ -244,6 +267,7 @@ func TestDeletionBatch(t *testing.T) {
 		files.provider.onDelete = func() { files.clock.Advance(testTimings().AttemptLease) }
 		files.runPass(t)
 		assert.Equal(t, CleanupPending, files.getBatch(t, batch.ID).Status)
+
 		files.provider.onDelete = nil
 		files.runPass(t)
 		assert.Equal(t, CleanupCompleted, files.getBatch(t, batch.ID).Status)

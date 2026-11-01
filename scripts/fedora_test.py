@@ -20,6 +20,7 @@ class LibeditShimTestCase(unittest.TestCase):
             )
             ldconfig.chmod(0o755)
             shim_directory = workspace / "shim"
+
             checked = subprocess.run(
                 [
                     "bash", "-euo", "pipefail", "-c",
@@ -36,6 +37,7 @@ class LibeditShimTestCase(unittest.TestCase):
                 text=True,
                 check=False,
             )
+
             self.assertEqual(checked.returncode, 0, checked.stderr)
             self.assertEqual(checked.stdout, "/existing/native/libraries")
             self.assertFalse(shim_directory.exists())

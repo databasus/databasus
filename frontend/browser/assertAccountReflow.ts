@@ -44,11 +44,13 @@ export const assertAccountReflow = async (region: Locator) => {
         (element) =>
           `${element.tagName.toLowerCase()}: ${element.textContent?.trim().slice(0, 100)}`,
       );
+
     const clippedLabels: string[] = [];
     for (const button of root.querySelectorAll('button')) {
       if (!button.getClientRects().length) continue;
       const bounds = button.getBoundingClientRect();
       const textNodes = document.createTreeWalker(button, NodeFilter.SHOW_TEXT);
+
       let text: Node | null;
       while ((text = textNodes.nextNode())) {
         if (!text.textContent?.trim()) continue;

@@ -56,6 +56,7 @@ func TestReceiveWal(t *testing.T) {
 				spec.ClientTools.GetExecutable(spec.Version, pgshared.ExecutablePgReceivewal),
 				toolstub.Spec{Script: fmt.Sprintf("echo '%s' >&2; exit 1", scenario.stderr)},
 			)
+
 			receiver := NewSource(Settings{}).ReceiveWal(t.Context(), spec)
 			assert.Equal(t, scenario.disposition, receiver.Disposition)
 			if scenario.disposition == WalReceiverFatal {
@@ -89,11 +90,13 @@ func TestReceiveWal(t *testing.T) {
 			spec.ClientTools.GetExecutable(spec.Version, pgshared.ExecutablePgReceivewal),
 			toolstub.Spec{Script: fmt.Sprintf("trap '' INT\necho $$ > %q\nwhile true; do sleep 0.1; done", pidPath)},
 		)
+
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
 		completed := make(chan WalReceiverExit, 1)
 		go func() { completed <- NewSource(Settings{}).ReceiveWal(ctx, spec) }()
 		receiverPID := waitForToolPID(t, pidPath)
+
 		startedAt := time.Now()
 		cancel()
 		receiver := <-completed
@@ -120,6 +123,7 @@ func TestWalReceiverClientArguments(t *testing.T) {
 				spec.ClientTools.GetExecutable(spec.Version, pgshared.ExecutablePgReceivewal),
 				toolstub.Spec{Script: fmt.Sprintf("env > %q", envPath)},
 			)
+
 			settings := Settings{Host: "cluster.internal", Port: 41000, Username: "replicator"}
 			if hasTunnel {
 				settings.HostAddr = "127.0.0.1"
@@ -144,6 +148,7 @@ func TestWalReceiverClientArguments(t *testing.T) {
 				},
 				stub.GetLastArgs(t),
 			)
+
 			env, err := os.ReadFile(envPath)
 			require.NoError(t, err)
 			assert.Contains(t, string(env), "PGAPPNAME="+spec.ApplicationName)

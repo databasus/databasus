@@ -10,6 +10,7 @@ describe('inspectApiRequest', () => {
       path: '/workspaces/{workspaceId}',
     });
     expect(workspace.params.workspaceId).toBe('workspace-id');
+
     const createWorkspace = await inspectApiRequest(
       new Request('http://localhost/api/v1/workspaces', {
         method: 'POST',
@@ -18,11 +19,13 @@ describe('inspectApiRequest', () => {
       { method: 'post', path: '/workspaces' },
     );
     expect(createWorkspace.body.name).toBe('Research');
+
     const databases = await inspectApiRequest(
       new Request('http://localhost/api/v1/databases?workspaceId=workspace-id'),
       { method: 'get', path: '/databases' },
     );
     expect(databases.query.get('workspaceId')).toBe('workspace-id');
+
     await expect(
       inspectApiRequest(request, { method: 'get', path: '/system/version' }),
     ).rejects.toThrow('Request does not match');

@@ -29,6 +29,7 @@ func TestSaveBackupConfigRacingDatabaseTransfer(t *testing.T) {
 					}
 					sourceStorageID := tm.createLocalStorage(t)
 					formerStorageID := tm.createLocalStorage(t)
+
 					backupConfig := apptest.GetBackupConfig(t, tm.owner, databaseID)
 					configInput := apiclient.BackupConfigInput{
 						IsBackupsEnabled: false, StorageId: &sourceStorageID,
@@ -36,6 +37,7 @@ func TestSaveBackupConfigRacingDatabaseTransfer(t *testing.T) {
 					}
 					initial := updateBackupConfig(t, tm.owner, databaseID, configInput)
 					require.Equal(t, http.StatusOK, initial.StatusCode(), "%s", initial.Body)
+
 					destination := tm.createWorkspace(t)
 					transferStorageID := tm.app.CreateLocalStorage(t, tm.owner, destination.Id)
 					destinationStorageID := tm.app.CreateLocalStorage(t, tm.owner, destination.Id)
@@ -43,16 +45,19 @@ func TestSaveBackupConfigRacingDatabaseTransfer(t *testing.T) {
 					if scenario == "former member" {
 						actor = tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER)
 					}
+
 					configInput.StorageId = &destinationStorageID
 					if scenario == "former storage" || scenario == "former member" {
 						configInput.StorageId = &formerStorageID
 					}
+
 					storageLock := tm.app.LockStorageRow(t, transferStorageID)
 					transferInput := newDatabaseTransfer(
 						t,
 						destination.Id,
 						newStorageSwitchedOnTransfer(t, transferStorageID),
 					)
+
 					transferred := make(chan struct {
 						Response *apiclient.TransferDatabaseResponse
 						Err      error
@@ -68,7 +73,9 @@ func TestSaveBackupConfigRacingDatabaseTransfer(t *testing.T) {
 							Err      error
 						}{Response: response, Err: err}
 					}()
+
 					waitForBlockedConfigRequests(t, tm, 1)
+
 					saved := make(chan struct {
 						Response *apiclient.UpdateBackupConfigResponse
 						Err      error
@@ -84,9 +91,11 @@ func TestSaveBackupConfigRacingDatabaseTransfer(t *testing.T) {
 							Err      error
 						}{Response: response, Err: err}
 					}()
+
 					waitForBlockedConfigRequests(t, tm, 2)
 					storageLock.Commit(t)
 					transferOutcome, saveOutcome := <-transferred, <-saved
+
 					require.NoError(t, transferOutcome.Err)
 					require.Equal(
 						t,
@@ -96,6 +105,7 @@ func TestSaveBackupConfigRacingDatabaseTransfer(t *testing.T) {
 						transferOutcome.Response.Body,
 					)
 					require.NoError(t, saveOutcome.Err)
+
 					if scenario == "destination storage" {
 						require.Equal(
 							t,
@@ -119,6 +129,7 @@ func TestSaveBackupConfigRacingDatabaseTransfer(t *testing.T) {
 						assert.Equal(t, status, saveOutcome.Response.StatusCode(), "%s", saveOutcome.Response.Body)
 						assert.Equal(t, &transferStorageID, apptest.GetBackupConfig(t, tm.owner, databaseID).StorageId)
 					}
+
 					formerHistory, err := tm.owner.Client.ListStorageSwitchesWithResponse(t.Context(),
 						&apiclient.ListStorageSwitchesParams{WorkspaceId: tm.workspace.Id, DatabaseId: &databaseID})
 					require.NoError(t, err)

@@ -18,10 +18,12 @@ func TestPhysicalIncrementalRetryBudget(t *testing.T) {
 		team := newBackupTeam(t, backupTeamSpec{})
 		full := team.runBackup(t, "full")
 		require.Equal(t, "COMPLETED", full.Status)
+
 		inbox := &webhookInbox{}
 		team.attachWebhook(t, inbox, apiclient.NotificationCategoryBACKUPFAILED)
 		team.setNotifications(t, apiclient.NotificationTriggerCHAINBROKEN)
 		team.setSchedules(t, false)
+
 		team.App.ExecuteSQL(
 			t,
 			"UPDATE backups_physical SET created_at=?,completed_at=? WHERE id=?",
@@ -34,9 +36,11 @@ func TestPhysicalIncrementalRetryBudget(t *testing.T) {
 			"UPDATE databases_postgresql_physical SET host='127.0.0.1',port=1 WHERE database_id=?",
 			team.Database.Id,
 		)
+
 		first := team.runAutomaticBackup(t)
 		require.Equal(t, "ERROR", first.Status)
 		team.assertTerminalDetails(t, first, "NETWORK_FAILURE")
+
 		team.App.ExecuteSQL(
 			t,
 			"UPDATE backups_physical SET created_at=?,completed_at=? WHERE id=?",
@@ -44,9 +48,11 @@ func TestPhysicalIncrementalRetryBudget(t *testing.T) {
 			time.Now().UTC().Add(-3*time.Hour),
 			first.ID,
 		)
+
 		second := team.runAutomaticBackup(t)
 		require.Equal(t, "ERROR", second.Status)
 		team.assertTerminalDetails(t, second, "NETWORK_FAILURE")
+
 		team.App.ExecuteSQL(
 			t,
 			"UPDATE backups_physical SET created_at=?,completed_at=? WHERE id=?",
@@ -54,11 +60,13 @@ func TestPhysicalIncrementalRetryBudget(t *testing.T) {
 			time.Now().UTC().Add(-2*time.Hour),
 			second.ID,
 		)
+
 		third := team.runAutomaticBackup(t)
 		team.App.WaitForPhysicalBackups(t)
 		require.Equal(t, "CHAIN_BROKEN", third.Status)
 		team.assertTerminalDetails(t, third, "NETWORK_FAILURE")
 		team.assertNoRunningBackup(t)
+
 		team.App.WaitForNotificationDeliveries(t)
 		require.Len(t, inbox.getMessages(), 1)
 		assert.Contains(t, inbox.getMessages()[0], "chain-broken")
@@ -67,8 +75,10 @@ func TestPhysicalIncrementalRetryBudget(t *testing.T) {
 		team := newBackupTeam(t, backupTeamSpec{})
 		full := team.runBackup(t, "full")
 		require.Equal(t, "COMPLETED", full.Status)
+
 		first := team.runBackup(t, "incremental")
 		require.Equal(t, "COMPLETED", first.Status)
+
 		team.setSchedules(t, false)
 		team.App.ExecuteSQL(
 			t,
@@ -84,6 +94,7 @@ func TestPhysicalIncrementalRetryBudget(t *testing.T) {
 			time.Now().UTC().Add(-4*time.Hour),
 			first.ID,
 		)
+
 		for _, age := range []time.Duration{5 * time.Hour, 2 * time.Hour} {
 			team.App.InsertPhysicalIncrementalBackup(
 				t,
@@ -98,11 +109,13 @@ func TestPhysicalIncrementalRetryBudget(t *testing.T) {
 				},
 			)
 		}
+
 		team.App.ExecuteSQL(
 			t,
 			"UPDATE databases_postgresql_physical SET host='127.0.0.1',port=1 WHERE database_id=?",
 			team.Database.Id,
 		)
+
 		backup := team.runAutomaticBackup(t)
 		assert.Equal(t, "ERROR", backup.Status)
 		team.assertNoRunningBackup(t)

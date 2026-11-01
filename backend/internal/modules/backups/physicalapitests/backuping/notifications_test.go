@@ -17,8 +17,10 @@ func TestPhysicalBackupNotifications(t *testing.T) {
 		inbox := &webhookInbox{}
 		team.attachWebhook(t, inbox, apiclient.NotificationCategoryBACKUPSUCCESS)
 		team.setNotifications(t, apiclient.NotificationTriggerCHAINBROKEN)
+
 		backup := team.runBackup(t, "full")
 		require.Equal(t, "COMPLETED", backup.Status)
+
 		team.App.WaitForNotificationDeliveries(t)
 		assert.Empty(t, inbox.getMessages())
 	})
@@ -29,8 +31,10 @@ func TestPhysicalBackupNotifications(t *testing.T) {
 		team.attachWebhook(t, first, apiclient.NotificationCategoryBACKUPSUCCESS)
 		team.attachWebhook(t, second, apiclient.NotificationCategoryBACKUPSUCCESS)
 		team.setNotifications(t, apiclient.NotificationTriggerBACKUPSUCCESS)
+
 		backup := team.runBackup(t, "full")
 		require.Equal(t, "COMPLETED", backup.Status)
+
 		team.App.WaitForNotificationDeliveries(t)
 		require.Len(t, first.getMessages(), 1)
 		require.Len(t, second.getMessages(), 1)
@@ -46,8 +50,10 @@ func TestPhysicalBackupNotifications(t *testing.T) {
 			"UPDATE databases_postgresql_physical SET host='127.0.0.1',port=1 WHERE database_id=?",
 			team.Database.Id,
 		)
+
 		backup := team.runBackup(t, "full")
 		require.Equal(t, "ERROR", backup.Status)
+
 		team.App.WaitForNotificationDeliveries(t)
 		require.Len(t, inbox.getMessages(), 1)
 		assert.Contains(t, inbox.getMessages()[0], "failed")
@@ -62,8 +68,10 @@ func TestPhysicalBackupNotifications(t *testing.T) {
 			"UPDATE databases_postgresql_physical SET system_identifier='1' WHERE database_id=?",
 			team.Database.Id,
 		)
+
 		backup := team.runBackup(t, "full")
 		require.Equal(t, "CHAIN_BROKEN", backup.Status)
+
 		team.App.WaitForNotificationDeliveries(t)
 		require.Len(t, inbox.getMessages(), 1)
 		assert.Contains(t, inbox.getMessages()[0], "chain-broken")
@@ -80,8 +88,10 @@ func TestPhysicalBackupNotifications(t *testing.T) {
 			"UPDATE databases_postgresql_physical SET host='127.0.0.1',port=1 WHERE database_id=?",
 			team.Database.Id,
 		)
+
 		backup := team.runBackup(t, "incremental")
 		require.Equal(t, "ERROR", backup.Status)
+
 		team.App.WaitForNotificationDeliveries(t)
 		require.Len(t, inbox.getMessages(), 1)
 		assert.Contains(t, inbox.getMessages()[0], "INCR failed")

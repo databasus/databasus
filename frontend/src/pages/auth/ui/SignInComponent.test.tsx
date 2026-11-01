@@ -81,18 +81,22 @@ it('publishes neither a session nor a code transition after the sign-in page is 
     body: { outcome: 'CODE_REQUIRED', pendingSignInId: 'obsolete', email: 'owner@example.com' },
   });
   mockServer.use(response.handler);
+
   const onCodeRequired = vi.fn();
   const view = renderScreen(<SignInComponent onCodeRequired={onCodeRequired} />);
   submitPasswordSignIn();
   await waitFor(() => expect(mockServer.getRequests()).toHaveLength(1));
+
   view.rerender(<div>Sign in closed</div>);
   const processed = new Promise<void>((resolve) =>
     mockServer.events.on('response:mocked', () => resolve()),
   );
+
   await act(async () => {
     response.release();
     await processed;
   });
+
   expect(onCodeRequired).not.toHaveBeenCalled();
   expect(getSessionSnapshot().token).toBeUndefined();
 });
@@ -106,6 +110,7 @@ it('preserves the bootstrap login when the existing administrator has no email a
       email: 'admin',
     }),
   );
+
   renderScreen(<SignInComponent />);
   fireEvent.change(screen.getByRole('textbox', { name: 'Your email' }), {
     target: { value: 'admin' },
@@ -114,6 +119,7 @@ it('preserves the bootstrap login when the existing administrator has no email a
     target: { value: 'bootstrap-password' },
   });
   fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+
   await waitFor(() => expect(getSessionSnapshot().token).toBe('bootstrap-session'));
   expect(await mockServer.getRequests()[0].json()).toMatchObject({ email: 'admin' });
 });

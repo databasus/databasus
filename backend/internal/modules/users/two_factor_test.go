@@ -117,6 +117,7 @@ func TestTwoFactorSignIn(t *testing.T) {
 			pending := startTwoFactorSignIn(t, app, admin.Email)
 			verified := verifySignInCode(t, app, pending.PendingSignInId, readLatestMailedCode(t, app, admin.Email))
 			require.Equal(t, http.StatusOK, verified.StatusCode(), string(verified.Body))
+
 			currentClient := app.NewSessionClient(t, verified.JSON200.Token)
 			changed := changeUserPassword(t, currentClient, admin.UserID, apptest.TestPassword)
 			require.Equal(t, http.StatusNoContent, changed.StatusCode(), string(changed.Body))
@@ -415,8 +416,10 @@ func TestResendSignInCode(t *testing.T) {
 		app, admin := newTwoFactorApp(t)
 		pending := startTwoFactorSignIn(t, app, admin.Email)
 		code := readLatestMailedCode(t, app, admin.Email)
+
 		changed := changeUserPassword(t, admin.Client, admin.UserID, "replacement-password")
 		require.Equal(t, http.StatusNoContent, changed.StatusCode(), string(changed.Body))
+
 		resent := resendSignInCode(t, app, pending.PendingSignInId)
 		requireProblem(
 			t,
@@ -425,6 +428,7 @@ func TestResendSignInCode(t *testing.T) {
 			http.StatusGone,
 			apiclient.ProblemCodePendingSignInNotUsable,
 		)
+
 		verified := verifySignInCode(t, app, pending.PendingSignInId, code)
 		requireProblem(
 			t,
@@ -433,6 +437,7 @@ func TestResendSignInCode(t *testing.T) {
 			http.StatusGone,
 			apiclient.ProblemCodePendingSignInNotUsable,
 		)
+
 		freshPending := requireCodeRequired(t, signIn(t, app, admin.Email, "replacement-password"))
 		require.NotEqual(t, pending.PendingSignInId, freshPending.PendingSignInId)
 		freshVerified := verifySignInCode(

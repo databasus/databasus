@@ -13,6 +13,7 @@ const getCallbackResponse = (): StorageAuthorizationResponse | undefined => {
   const state = parameters.get('state');
   const code = parameters.get('code');
   const error = parameters.get('error');
+
   if (
     !isStorageAuthorizationState(state) ||
     parameters.getAll('state').length !== 1 ||

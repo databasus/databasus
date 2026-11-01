@@ -29,6 +29,7 @@ func watchByteStall(ctx context.Context, spec byteStallSpec) {
 				lastProgressAt = now
 				continue
 			}
+
 			budget := spec.Backup.StallTimeout
 			if current == 0 {
 				budget = spec.Backup.FirstByteTimeout

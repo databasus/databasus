@@ -53,8 +53,10 @@ it.each([false, true])(
         });
     mockServer.use(pending.handler);
     const view = renderScreen(<MailServer isEmailConfigured />);
+
     await view.user.click(screen.getByRole('button', { name: 'Send test email' }));
     await waitFor(() => expect(mockServer.getRequests()).toHaveLength(1));
+
     view.rerender(<div>Mail settings closed</div>);
     const processed = new Promise<void>((resolve) => {
       const onResponse = () => {
@@ -67,6 +69,7 @@ it.each([false, true])(
       pending.release();
       await processed;
     });
+
     expect(document.querySelector('.ant-message-notice')).toBeNull();
     expect(screen.queryByText('You do not have permission to do this.')).toBeNull();
   },

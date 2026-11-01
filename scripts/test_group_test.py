@@ -30,7 +30,9 @@ class PackageCoverageTest(unittest.TestCase):
         for group in groups:
             packages = subprocess.check_output(["bash", str(ROOT / "mise-tasks/backend/test-group-packages")], cwd=ROOT / "backend", env={**os.environ, "usage_group": group}, text=True).splitlines()
             selections[group] = set(packages)
+
         all_packages = subprocess.check_output(["go", "list", "./internal/...", "./cmd/..."], cwd=ROOT / "backend", text=True).splitlines()
+
         self.assertEqual(set(all_packages), set().union(*selections.values()))
         self.assertEqual(len(all_packages), sum(len(packages) for packages in selections.values()))
         self.assertEqual(selections["browser-e2e"], {"databasus-backend/internal/app/browsertests"})
@@ -49,10 +51,12 @@ class ShardFixture(unittest.TestCase):
         self.logs.mkdir()
         self.calls = self.workspace / "calls"
         self.calls.touch()
+
         (self.workspace / "scripts").mkdir()
         (self.workspace / "scripts/fedora.sh").write_text("apply_libedit_shim() { :; }\n")
         for name in ("test-group", "test-group-packages", "test-group-tests"):
             shutil.copy(ROOT / "mise-tasks/backend" / name, self.workspace / name)
+
         self.environment = {**os.environ, "PATH": f"{self.bin}:{os.environ['PATH']}",
                             "TMPDIR": str(self.logs), "CALLS": str(self.calls), "GOFLAGS": ""}
 
@@ -117,12 +121,15 @@ sys.exit(status)
         release = self.workspace / "release"
         self.environment.update(HOLD=str(release), HOLD_ALL="1")
         process = self.start("physical-api-1-of-3 physical-api-2-of-3 physical-api-3-of-3")
+
         self.wait_for(lambda: len([record for record in self.records() if record["event"] == "start"]) == 3)
         self.assertFalse(any(record["event"] == "end" for record in self.records()))
         self.assertIsNone(process.poll())
+
         release.touch()
         output, errors = process.communicate(timeout=TIMEOUT)
         self.assertEqual(process.returncode, 0, errors)
+
         starts = [record for record in self.records() if record["event"] == "start"]
         self.assertEqual(len(starts), 3)
         self.assertEqual(len({record["args"][-1] for record in starts}), 3)
@@ -133,6 +140,7 @@ sys.exit(status)
             self.assertIn("-race", record["args"])
             self.assertIn("-failfast", record["args"])
             self.assertIn(record["args"][-1], output)
+
         self.assertEqual(len([record for record in self.records() if record["event"] == "end"]), 3)
         self.assertEqual(list(self.logs.iterdir()), [])
 
@@ -149,11 +157,14 @@ sys.exit(status)
         release = self.workspace / "release"
         self.environment.update(FAIL="1", HOLD=str(release))
         process = self.start("physical-1-of-3 physical-2-of-3")
+
         self.wait_for(lambda: any(record.get("status") == 1 for record in self.records()))
         self.wait_for(lambda: len([record for record in self.records() if record["event"] == "start"]) == 2)
         self.assertIsNone(process.poll())
+
         release.touch()
         output, _ = process.communicate(timeout=TIMEOUT)
+
         self.assertNotEqual(process.returncode, 0)
         self.assertIn("physical-1-of-3", output)
         self.assertIn("physical-2-of-3", output)
@@ -166,17 +177,20 @@ sys.exit(status)
         self.wait_for(lambda: len([record for record in self.records() if record["event"] == "start"]) == 1)
         neighbour_pid = next(record["pid"] for record in self.records() if record["event"] == "start")
         neighbour_logs = set(self.logs.iterdir())
+
         interrupted = self.start("physical-2-of-3")
         self.wait_for(lambda: len([record for record in self.records() if record["event"] == "start"]) == 2)
         interrupted_pid = next(record["pid"] for record in self.records() if record["event"] == "start" and record["args"][-1].endswith("physical-2-of-3"))
         interrupted.send_signal(signal.SIGTERM)
         interrupted.communicate(timeout=TIMEOUT)
+
         self.assertNotEqual(interrupted.returncode, 0)
         self.assertIsNone(neighbour.poll())
         os.kill(neighbour_pid, 0)
         self.assertEqual(set(self.logs.iterdir()), neighbour_logs)
         with self.assertRaises(ProcessLookupError):
             os.kill(interrupted_pid, 0)
+
         release.touch()
         _, errors = neighbour.communicate(timeout=TIMEOUT)
         self.assertEqual(neighbour.returncode, 0, errors)
@@ -190,6 +204,7 @@ class RealShardSelectionTest(ShardFixture):
             "beta": ["TestRepeated", "TestPlainBeta", "TestAnother"],
             "gamma": ["TestHeavy", "TestPlainGamma"],
         }
+
         package_directories = {}
         for name, tests in fixture_tests.items():
             directory = self.backend / "internal/modules/backups/physicalapitests" / name
@@ -200,6 +215,7 @@ class RealShardSelectionTest(ShardFixture):
         (self.backend / "test-shard-weights.txt").write_text("10 TestHeavy\n7 TestWeighted\n")
         self.environment["FIXTURE_PACKAGES"] = json.dumps(package_directories)
         self.environment["PACKAGE_SELECTOR"] = str(self.workspace / "test-group-packages")
+
         self.stub("go", '''import json, os, sys
 arguments = sys.argv[1:]
 with open(os.environ["CALLS"], "a") as calls:
@@ -217,6 +233,7 @@ if sys.argv[1:4] != ["run", "--quiet", "backend:test-group-packages"]:
     sys.exit("unexpected dispatch")
 sys.exit(subprocess.call(["bash", os.environ["PACKAGE_SELECTOR"]], env={**os.environ, "usage_group": sys.argv[4]}))
 ''')
+
         patterns = []
         for shard in range(1, 4):
             selection = subprocess.run(["bash", str(self.workspace / "test-group-tests")], cwd=self.backend,
@@ -224,6 +241,7 @@ sys.exit(subprocess.call(["bash", os.environ["PACKAGE_SELECTOR"]], env={**os.env
                 capture_output=True, text=True, timeout=TIMEOUT)
             self.assertEqual(selection.returncode, 0, selection.stderr)
             patterns.append(re.compile(selection.stdout.strip()))
+
         inventory = [(package, test) for package, directory in package_directories.items()
                      for source in Path(directory).glob("*_test.go")
                      for test in re.findall(r"^func (Test\w+)\(", source.read_text(), re.MULTILINE)
@@ -237,6 +255,7 @@ sys.exit(subprocess.call(["bash", os.environ["PACKAGE_SELECTOR"]], env={**os.env
             self.assertTrue(any(pattern.fullmatch(test) for _, test in inventory))
             self.assertFalse(pattern.fullmatch("TestMain"))
             self.assertFalse(pattern.fullmatch("TestAbsent"))
+
         self.assertEqual(len(self.records()), 6)
         for record in self.records():
             self.assertNotIn("-tags", record["args"])

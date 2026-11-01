@@ -12,6 +12,7 @@ func TestSaveToJSON(t *testing.T) {
 		t.Chdir(t.TempDir())
 		cfg := &Config{Token: "private-token"}
 		require.NoError(t, cfg.SaveToJSON())
+
 		fileInfo, err := os.Stat(configFileName)
 		require.NoError(t, err)
 		require.Equal(t, os.FileMode(0o600), fileInfo.Mode().Perm())
@@ -21,6 +22,7 @@ func TestSaveToJSON(t *testing.T) {
 		require.NoError(t, os.WriteFile(configFileName, []byte("{}"), 0o600))
 		cfg := &Config{Token: "private-token"}
 		require.NoError(t, cfg.SaveToJSON())
+
 		fileInfo, err := os.Stat(configFileName)
 		require.NoError(t, err)
 		require.Equal(t, os.FileMode(0o600), fileInfo.Mode().Perm())
@@ -42,16 +44,20 @@ func TestEnsurePrivateFile(t *testing.T) {
 			t.Chdir(t.TempDir())
 			require.NoError(t, os.WriteFile(configFileName, []byte("{}"), 0o600))
 			require.NoError(t, os.Chmod(configFileName, scenario.mode))
+
 			hasChmod := false
 			warning, err := EnsurePrivateFile(configFileName, func(path string, mode os.FileMode) error {
 				hasChmod = true
 				return os.Chmod(path, mode)
 			})
 			require.NoError(t, err)
+
 			require.Nil(t, warning)
 			require.Equal(t, scenario.shouldChmod, hasChmod)
+
 			fileInfo, err := os.Stat(configFileName)
 			require.NoError(t, err)
+
 			privateMode := scenario.mode
 			if scenario.shouldChmod {
 				privateMode = 0o600
@@ -63,8 +69,10 @@ func TestEnsurePrivateFile(t *testing.T) {
 		t.Chdir(t.TempDir())
 		require.NoError(t, os.WriteFile(configFileName, []byte("{}"), 0o644))
 		require.NoError(t, os.Chmod(configFileName, 0o644))
+
 		warning, err := EnsurePrivateFile(configFileName, func(string, os.FileMode) error { return os.ErrPermission })
 		require.NoError(t, err)
+
 		require.NotNil(t, warning)
 		require.ErrorIs(t, warning.Err, os.ErrPermission)
 		require.Equal(t, configFileName, warning.Path)

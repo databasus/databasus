@@ -225,6 +225,7 @@ func TestDecidePhysicalBackup(t *testing.T) {
 					choice.decision.reason,
 				)
 			}
+
 			newestChoice := decidePhysicalBackupFromNewest(state, config, now)
 			if newestChoice.needsChain {
 				assert.Equal(t, choice, decidePhysicalBackupWithChain(state, config, now))
@@ -263,14 +264,17 @@ func TestDecidePhysicalBackupAfterReload(t *testing.T) {
 			state := schedulingState{
 				lastFull: &catalog.Backup{CreatedAt: now.Add(-2 * time.Hour), Status: catalog.BackupStatusCompleted},
 			}
+
 			beforeLock := decidePhysicalBackupFromNewest(state, backupConfig, now)
 			require.True(t, beforeLock.canSchedule)
 			require.Equal(t, catalog.BackupTypeFull, beforeLock.decision.kind)
+
 			if scenario.hasNewFull {
 				state.lastFull = &catalog.Backup{CreatedAt: now, Status: catalog.BackupStatusCompleted}
 			}
 			state.hasUnresolvedMismatch = scenario.hasMismatch
 			underLock := decidePhysicalBackupFromNewest(state, backupConfig, now)
+
 			assert.False(t, underLock.canSchedule)
 			assert.False(t, underLock.needsChain)
 		})

@@ -37,6 +37,7 @@ func TestRestoreOutcome(t *testing.T) {
 		failedRestore := requireStartedRestore(t, tm.owner, database.backup.Id,
 			server.newRestoreTarget(t, server.newTargetSpec(t)))
 		waitForRestoreStatus(t, tm.owner, failedRestore.Id, apiclient.RestoreStatusFAILED)
+
 		showBackupFile()
 		tm.app.Clock.Advance(time.Second)
 		completedRestore := requireStartedRestore(t, tm.owner, database.backup.Id,

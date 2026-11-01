@@ -77,6 +77,7 @@ func TestReadLiveTimeline(t *testing.T) {
 				)
 				primaryServer := testServer{endpoint: primary, image: image, version: ""}
 				standbyServer := testServer{endpoint: standby, image: image, version: ""}
+
 				primaryConn := primaryServer.connectAs(t, getAdminRole())
 				standbyConn := standbyServer.connectAs(t, getAdminRole())
 				execStatements(
@@ -95,6 +96,7 @@ func TestReadLiveTimeline(t *testing.T) {
 					}
 					return nil
 				})
+
 				inspection := standbyServer.openInspection(t, getAdminRole())
 				slotName := newSlotName()
 				require.NoError(t, inspection.CreateSlot(t.Context(), slotName))
@@ -109,6 +111,7 @@ func TestReadLiveTimeline(t *testing.T) {
 					t,
 					standbyServer.newSource(getAdminRole()).DropSlot(t.Context(), newTestLogger(t), slotName),
 				)
+
 				var isPromoted bool
 				require.NoError(
 					t,
@@ -123,6 +126,7 @@ func TestReadLiveTimeline(t *testing.T) {
 						Scan(&controlFileTimelineID),
 				)
 				require.Equal(t, 1, controlFileTimelineID)
+
 				liveTimeline, systemIdentifier, err := inspection.ReadLiveTimeline(t.Context())
 				require.NoError(t, err)
 				require.Equal(t, 2, liveTimeline)
@@ -139,9 +143,11 @@ func TestReadLiveTimeline(t *testing.T) {
 			image:    "postgres:16",
 			version:  "",
 		}
+
 		inspection := server.openInspection(t, getAdminRole())
 		_, err := inspection.InspectCluster(t.Context())
 		require.ErrorIs(t, err, ErrUnsupportedVersion)
+
 		timeline, systemIdentifier, err := inspection.ReadLiveTimeline(t.Context())
 		require.NoError(t, err)
 		require.Equal(t, 1, timeline)

@@ -53,17 +53,20 @@ func (s *Service) IssueToken(ctx context.Context, subject Token) (IssuedToken, e
 	if err := s.refuseWhileStreamHeld(ctx, subject.UserID); err != nil {
 		return IssuedToken{}, err
 	}
+
 	token := generateSecureToken()
 	expiresAt := s.clock.Now().Add(TokenLifetime)
 	if err := s.store.issue(ctx, token, subject); err != nil {
 		return IssuedToken{}, err
 	}
+
 	s.logger.InfoContext(
 		ctx,
 		"generated restore token",
 		slog.Any("database_id", subject.DatabaseID),
 		slog.Any("user_id", subject.UserID),
 	)
+
 	return IssuedToken{Token: token, ExpiresAt: expiresAt}, nil
 }
 

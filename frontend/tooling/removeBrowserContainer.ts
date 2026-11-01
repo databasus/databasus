@@ -10,6 +10,7 @@ export const removeBrowserContainer = async (container: string): Promise<void> =
   } catch (error) {
     removalFailure = error;
   }
+
   const { stdout } = await execute(
     'docker',
     ['container', 'ls', '--all', '--filter', `name=^/${container}$`, '--format', '{{.ID}}'],

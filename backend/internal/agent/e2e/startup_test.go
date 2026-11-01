@@ -20,16 +20,20 @@ func TestAgentStartup(t *testing.T) {
 		admin := app.CreateAdmin(t)
 		credentials := app.CreateVerificationAgent(t, admin)
 		engine := newEngine(t, credentials.Agent.ID)
+
 		createStrayContainer(t, engine, credentials.Agent.ID)
 		createNetwork(t, engine, credentials.Agent.ID, uuid.New())
+
 		otherAgentID := uuid.New()
 		otherEngine := newEngine(t, otherAgentID)
 		otherNetworkID := createNetwork(t, otherEngine, otherAgentID, uuid.New())
+
 		gate := newGateway(t, app.URL, gatewayOptions{})
 		agent := newAgentProcess(t, currentBinaryDirectory)
 		agent.start(t, gate.url, credentials)
 		waitForHeartbeat(t, app, admin, credentials.Agent.ID, time.Time{})
 		requireNoLeftovers(t, engine, credentials.Agent.ID)
+
 		networks, err := otherEngine.NetworkList(
 			t.Context(),
 			client.NetworkListOptions{Filters: agentFilter(otherAgentID)},

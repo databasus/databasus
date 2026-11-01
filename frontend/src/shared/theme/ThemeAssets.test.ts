@@ -8,11 +8,13 @@ describe('Theme assets', () => {
     const source = JSON.parse(readFileSync(new URL('source.json', fontRoot), 'utf8')) as {
       assets: { file: string; bytes: number; sha256: string }[];
     };
+
     for (const asset of source.assets) {
       const bytes = readFileSync(new URL(asset.file, fontRoot));
       expect(bytes.length).toBe(asset.bytes);
       expect(createHash('sha256').update(bytes).digest('hex')).toBe(asset.sha256);
     }
+
     expect(readFileSync(new URL('LICENSE', fontRoot), 'utf8')).toContain('SIL OPEN FONT LICENSE');
     const html = readFileSync(new URL('../../../index.html', import.meta.url), 'utf8');
     expect(html).not.toMatch(/fonts\.google|maximum-scale|user-scalable=no/);

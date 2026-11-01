@@ -354,6 +354,7 @@ describe('EditNotifierComponent', () => {
               }}
             />,
           );
+
         const responded = new Promise<void>((resolve) =>
           server.events.on('response:mocked', () => resolve()),
         );
@@ -420,6 +421,7 @@ describe('EditNotifierComponent', () => {
             return HttpResponse.json({ ...emailNotifier, name: update.name });
           }),
         );
+
         renderScreen(<EditNotifierComponent {...props} editingNotifier={emailNotifier} />, {
           locale: 'en',
         });
@@ -453,6 +455,7 @@ describe('EditNotifierComponent', () => {
         status: 200,
         body: emailNotifier,
       });
+
       server.use(response.handler, mockApi.post('/notifier-tests', 200, { isDelivered: true }));
       const view = renderScreen(
         <EditNotifierComponent
@@ -475,6 +478,7 @@ describe('EditNotifierComponent', () => {
           editingNotifier={{ ...emailNotifier, id: 'new-id', name: 'New session' }}
         />,
       );
+
       const responded = new Promise<void>((resolve) =>
         server.events.on('response:mocked', () => resolve()),
       );
@@ -533,6 +537,7 @@ describe('EditNotifierComponent', () => {
         response.release();
         await responded;
       });
+
       renderScreen(<EditNotifierComponent {...props} editingNotifier={emailNotifier} />, {
         locale: 'en',
         isStrictMode: true,
@@ -566,6 +571,7 @@ describe('EditNotifierComponent', () => {
 
         if (operation === 'save')
           server.use(mockApi.post('/notifier-tests', 200, { isDelivered: true }));
+
         const view = renderScreen(
           <EditNotifierComponent
             {...props}
@@ -625,6 +631,7 @@ describe('EditNotifierComponent', () => {
         status: 200,
         body: { ...emailNotifier, name: 'Submitted' },
       });
+
       server.use(response.handler, mockApi.post('/notifier-tests', 200, { isDelivered: true }));
       const view = renderScreen(
         <EditNotifierComponent
@@ -702,6 +709,7 @@ describe('EditNotifierComponent', () => {
       server.use(mockApi.post('/notifier-tests', 200, { isDelivered: true }), pending.handler);
       const onPersisted = vi.fn();
       const onChanged = vi.fn();
+
       renderScreen(
         <EditNotifierComponent
           {...props}
@@ -723,9 +731,11 @@ describe('EditNotifierComponent', () => {
       );
 
       act(() => activateSession({ token: 'replacement-session', userId: 'new-owner' }));
+
       const feedbackBefore = screen.queryAllByRole('alert').map((element) => element.textContent);
       const pendingFetch =
         fetchObservation.mock.results[fetchObservation.mock.results.length - 1].value;
+
       await act(async () => {
         pending.respond(
           isSuccess
@@ -753,6 +763,7 @@ describe('EditNotifierComponent', () => {
       name: 'Submitted',
       settings: { ...emailSettings, smtpHost: 'normalized.example.com' },
     };
+
     const save = mockApi.pending('put', '/notifiers/{notifierId}');
     server.use(mockApi.post('/notifier-tests', 200, { isDelivered: true }), save.handler);
     const onChanged = vi.fn();

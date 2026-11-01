@@ -28,6 +28,7 @@ func recordNotifications(t *testing.T, team verificationTeam) <-chan string {
 		writer.WriteHeader(http.StatusNoContent)
 	}))
 	t.Cleanup(endpoint.Close)
+
 	var settings apiclient.NotifierSettings
 	require.NoError(
 		t,
@@ -42,6 +43,7 @@ func recordNotifications(t *testing.T, team verificationTeam) <-chan string {
 			},
 		),
 	)
+
 	notifier := apptest.CreateNotifier(t, team.Owner, team.Workspace.Id, settings)
 	updated, err := team.Owner.Client.UpdateDatabaseWithResponse(
 		t.Context(),
@@ -79,6 +81,7 @@ func TestVerificationNotifications(t *testing.T) {
 			backup := team.backup(t)
 			team.App.WaitForBackupRuns(t)
 			team.App.ExecuteSQL(t, "UPDATE backups_logical SET backup_raw_db_size_mb=1 WHERE id=?", backup.Id)
+
 			messages := recordNotifications(t, team)
 			config := configInput(team.config(t))
 			config.NotificationTriggers = []apiclient.VerificationNotificationTrigger{}
@@ -90,6 +93,7 @@ func TestVerificationNotifications(t *testing.T) {
 				config.NotificationTriggers = append(config.NotificationTriggers, trigger)
 			}
 			team.saveConfig(t, config)
+
 			verification := team.start(t, backup.Id)
 			agent := team.App.CreateVerificationAgent(t, team.Admin)
 			claim(t, team, agent)
@@ -99,9 +103,11 @@ func TestVerificationNotifications(t *testing.T) {
 				scenario.attempts,
 				verification.Id,
 			)
+
 			status, body := newProtocolAgent(t, team.App, agent).reportVerification(verification.Id, scenario.report)
 			require.Equal(t, http.StatusNoContent, status, string(body))
 			team.App.WaitForNotificationDeliveries(t)
+
 			persisted := team.read(t, verification.Id)
 			if scenario.isEnabled && persisted.Status != apiclient.VerificationStatusPENDING {
 				require.Len(t, messages, 1)
@@ -131,6 +137,7 @@ func TestVerificationSilentAgentNotification(t *testing.T) {
 		team.saveConfig(t, configInput(team.config(t)))
 		verification := team.start(t, backup.Id)
 		agent := team.App.CreateVerificationAgent(t, team.Admin)
+
 		for attempt := 1; attempt <= 3; attempt++ {
 			status, body := newProtocolAgent(t, team.App, agent).recordHeartbeat(agent.Agent.ID, heartbeatBody(nil))
 			require.Equal(t, http.StatusOK, status, string(body))
@@ -138,6 +145,7 @@ func TestVerificationSilentAgentNotification(t *testing.T) {
 			team.App.Clock.Advance(6 * time.Minute)
 			team.runScheduler(t)
 			team.App.WaitForNotificationDeliveries(t)
+
 			if attempt < 3 {
 				assert.Empty(t, messages)
 			} else {

@@ -28,12 +28,14 @@ func TestTimescaleArchiveFailure(t *testing.T) {
 			fixture := startBlockedTimescaleRestore(t, endpoint)
 			fixture.proxy.isHolding.Store(true)
 			require.NoError(t, fixture.archiveLock.Rollback())
+
 			testwait.Until(t, "the archive fails and cleanup connects", func(context.Context) error {
 				if fixture.proxy.heldCount.Load() == 0 {
 					return fmt.Errorf("cleanup has not connected")
 				}
 				return nil
 			})
+
 			if scenario.isShutdown {
 				fixture.process.Stop(t)
 			} else {
@@ -42,6 +44,7 @@ func TestTimescaleArchiveFailure(t *testing.T) {
 				require.Equal(t, http.StatusAccepted, response.StatusCode())
 				fixture.proxy.Release()
 			}
+
 			var finishedRestore apiclient.Restore
 			testwait.Until(t, "the restore records its archive failure", func(ctx context.Context) error {
 				response, err := fixture.team.Owner.Client.GetRestoreWithResponse(ctx, fixture.restoreID)
@@ -54,6 +57,7 @@ func TestTimescaleArchiveFailure(t *testing.T) {
 				finishedRestore = *response.JSON200
 				return nil
 			})
+
 			assert.Equal(t, apiclient.RestoreStatusFAILED, finishedRestore.Status)
 			require.NotNil(t, finishedRestore.FailMessage)
 			assert.Contains(t, *finishedRestore.FailMessage, "cleanup_rows")
@@ -64,6 +68,7 @@ func TestTimescaleArchiveFailure(t *testing.T) {
 				scenario.isShutdown,
 				isTimescaleTargetRestoring(t, fixture.server, fixture.targetDatabaseName),
 			)
+
 			if !scenario.isShutdown {
 				fixture.process.Stop(t)
 			}

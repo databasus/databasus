@@ -39,8 +39,10 @@ func (catalog *catalogFixture) insertStreamableFull(
 		},
 	)
 	full.ManifestFileName = new(*full.FileName + ".manifest")
+
 	blob := zstdTar(t, files)
 	full.BackupSizeMb = new(float64(len(blob)) / (1024 * 1024))
+
 	catalog.App.PublishStorageFile(
 		t,
 		storages.StoredFileReference{StorageID: catalog.StorageID, FileName: *full.FileName},
@@ -59,6 +61,7 @@ func (catalog *catalogFixture) holdRestoreStream(t *testing.T) {
 	largeHeap := make([]byte, 32*1024*1024)
 	_, err := rand.Read(largeHeap)
 	require.NoError(t, err)
+
 	full := catalog.insertStreamableFull(t, map[string]string{"PG_VERSION": "17\n", "base/1/1259": string(largeHeap)})
 	var token restoreTokenResponse
 	catalog.call(
@@ -70,6 +73,7 @@ func (catalog *catalogFixture) holdRestoreStream(t *testing.T) {
 			Destination:   &token,
 		},
 	)
+
 	response := catalog.App.OpenPhysicalAPI(
 		t, apptest.Session{},
 		apptest.PhysicalDownloadRequest(token.Token),

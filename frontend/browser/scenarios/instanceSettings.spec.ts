@@ -20,6 +20,7 @@ for (const context of [
     await page.setViewportSize({ width: 320, height: 900 });
     await openAccount({ page, ...context });
     await openAccountTab({ page, locale: context.locale, tab: 'databasusSettings' });
+
     const dictionary = DICTIONARIES[context.locale],
       region = page.getByRole('main');
     await region
@@ -28,15 +29,18 @@ for (const context of [
     await region
       .getByRole('button', { name: dictionary.settings.saveChanges, exact: true })
       .click();
+
     await expect(
       region.getByText(dictionary.errors.humanVerificationFailed, { exact: true }),
     ).toBeVisible();
     await enlargeText(region);
+
     for (const name of [dictionary.settings.saveChanges, dictionary.settings.reset]) {
       const action = region.getByRole('button', { name, exact: true });
       await action.scrollIntoViewIfNeeded();
       await expect(action).toBeInViewport();
     }
+
     await assertAccountReflow(region);
   });
 }

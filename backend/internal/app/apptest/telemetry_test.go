@@ -74,6 +74,7 @@ func TestTelemetry(t *testing.T) {
 				admin := application.CreateAdmin(t)
 				workspace := apptest.CreateWorkspace(t, admin, "private workspace")
 				application.CreateLocalStorage(t, admin, workspace.Id)
+
 				var storageSettings apiclient.StorageSettings
 				require.NoError(t, storageSettings.FromS3StorageSettings(apiclient.S3StorageSettings{
 					Type: apiclient.S3StorageSettingsTypeS3, S3Bucket: "private-bucket",
@@ -81,6 +82,7 @@ func TestTelemetry(t *testing.T) {
 				}))
 				apptest.CreateStorage(t, admin, workspace.Id, storageSettings)
 				application.CreateLocalStorage(t, admin, workspace.Id)
+
 				var notifierSettings apiclient.NotifierSettings
 				require.NoError(t, notifierSettings.FromWebhookNotifierSettings(apiclient.WebhookNotifierSettings{
 					Type:               apiclient.WebhookNotifierSettingsTypeWEBHOOK,
@@ -96,6 +98,7 @@ func TestTelemetry(t *testing.T) {
 					TargetEmail: "private-recipient@example.com",
 				}))
 				apptest.CreateNotifier(t, admin, workspace.Id, notifierSettings)
+
 				initialCount := len(receiver.getReports())
 				application.RunJobPass(t, "telemetry_ping")
 				application.Clock.Advance(time.Minute - time.Nanosecond)
@@ -106,6 +109,7 @@ func TestTelemetry(t *testing.T) {
 				}
 				application.Clock.Advance(time.Nanosecond)
 				application.RunJobPass(t, "telemetry_ping")
+
 				reports := receiver.getReports()
 				require.Len(t, reports, initialCount+1)
 				report := reports[initialCount]
@@ -122,6 +126,7 @@ func TestTelemetry(t *testing.T) {
 					assert.Equal(t, instanceID, report["instanceID"])
 					assert.Equal(t, installedAt, report["installedAt"])
 				}
+
 				instanceID = report["instanceID"]
 				installedAt = "2020-01-01"
 				encoded, err := json.Marshal(report)
@@ -129,6 +134,7 @@ func TestTelemetry(t *testing.T) {
 				assert.NotContains(t, string(encoded), "private workspace")
 				assert.NotContains(t, string(encoded), admin.Token)
 				assert.NotContains(t, string(encoded), "private-")
+
 				identity, err := os.Stat(identityPath)
 				require.NoError(t, err)
 				assert.Equal(t, os.FileMode(0o600), identity.Mode().Perm())

@@ -67,6 +67,7 @@ func TestReadStorageSwitch(t *testing.T) {
 			oldStorageID, targetStorageID := tm.createLocalStorage(t), tm.createLocalStorage(t)
 			saveLogicalBackupConfig(t, tm.owner, databaseID, oldStorageID)
 			backup := insertLogicalBackupInStorage(t, tm, databaseID, oldStorageID, "COMPLETED")
+
 			operation := acceptLogicalStorageSwitch(
 				t,
 				tm,
@@ -75,6 +76,7 @@ func TestReadStorageSwitch(t *testing.T) {
 			assert.Equal(t, apiclient.StorageSwitchStatusCLEANUPPENDING, operation.Status)
 			assert.Equal(t, &oldStorageID, operation.PreviousStorageId)
 			require.Positive(t, operation.Total)
+
 			otherDatabaseID := tm.insertLogicalDatabase(t)
 			saveLogicalBackupConfig(t, tm.owner, otherDatabaseID, oldStorageID)
 			otherOperation := acceptLogicalStorageSwitch(t, tm, logicalStorageSwitchSpec{
@@ -82,9 +84,11 @@ func TestReadStorageSwitch(t *testing.T) {
 			})
 			tm.app.RestartModules(t)
 			assert.Equal(t, operation.Total, getStorageSwitch(t, tm.owner, operation.Id).Pending)
+
 			deleted, err := tm.owner.Client.DeleteDatabaseWithResponse(t.Context(), databaseID)
 			require.NoError(t, err)
 			require.Equal(t, http.StatusNoContent, deleted.StatusCode(), "%s", deleted.Body)
+
 			pending := getStorageSwitch(t, tm.owner, operation.Id)
 			assert.Equal(t, apiclient.StorageSwitchStatusCLEANUPPENDING, pending.Status)
 			pendingHistory, err := tm.owner.Client.ListStorageSwitchesWithResponse(t.Context(),
@@ -94,14 +98,17 @@ func TestReadStorageSwitch(t *testing.T) {
 			require.Len(t, pendingHistory.JSON200.Items, 1)
 			assert.Equal(t, pending, pendingHistory.JSON200.Items[0])
 			assert.NotEqual(t, otherOperation.Id, pendingHistory.JSON200.Items[0].Id)
+
 			tm.app.RunJobPass(t, storageFileDeletionJobName)
 			completed := getStorageSwitch(t, tm.owner, operation.Id)
 			assert.Equal(t, apiclient.StorageSwitchStatusCOMPLETED, completed.Status)
 			assert.Equal(t, operation.Total, completed.Deleted)
 			assert.False(t, tm.app.IsLocalStorageFilePresent(t, backup.fileName))
+
 			removed, err := tm.owner.Client.DeleteStorageWithResponse(t.Context(), oldStorageID)
 			require.NoError(t, err)
 			require.Equal(t, http.StatusNoContent, removed.StatusCode(), "%s", removed.Body)
+
 			tm.app.RestartModules(t)
 			assert.Equal(t, completed, getStorageSwitch(t, tm.owner, operation.Id))
 			page, err := tm.owner.Client.ListStorageSwitchesWithResponse(
@@ -120,6 +127,7 @@ func TestReadStorageSwitch(t *testing.T) {
 		databaseID := tm.insertLogicalDatabase(t)
 		target := tm.createWorkspace(t)
 		storageID := tm.app.CreateLocalStorage(t, tm.owner, target.Id)
+
 		response := requestDatabaseTransfer(
 			t,
 			tm.owner,
@@ -128,6 +136,7 @@ func TestReadStorageSwitch(t *testing.T) {
 		)
 		require.Equal(t, http.StatusAccepted, response.StatusCode(), "%s", response.Body)
 		require.NotNil(t, response.JSON202)
+
 		operation := getStorageSwitch(t, tm.owner, response.JSON202.Id)
 		assert.Equal(t, target.Id, operation.WorkspaceId)
 		assert.Nil(t, operation.PreviousStorageId)
@@ -143,6 +152,7 @@ func TestReadStorageSwitch(t *testing.T) {
 		databaseID := tm.insertLogicalDatabase(t)
 		oldStorageID, targetStorageID := tm.createLocalStorage(t), tm.createLocalStorage(t)
 		saveLogicalBackupConfig(t, tm.owner, databaseID, oldStorageID)
+
 		operation := acceptLogicalStorageSwitch(
 			t,
 			tm,
@@ -150,6 +160,7 @@ func TestReadStorageSwitch(t *testing.T) {
 		)
 		assert.Equal(t, operation.Id, getStorageSwitch(t, tm.admin, operation.Id).Id)
 		assert.Equal(t, operation.Id, getStorageSwitch(t, viewer, operation.Id).Id)
+
 		for _, client := range []*apiclient.ClientWithResponses{outsider.Client, tm.app.NewClient(t)} {
 			status := http.StatusNotFound
 			if client != outsider.Client {
@@ -165,6 +176,7 @@ func TestReadStorageSwitch(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, status, page.StatusCode(), "%s", page.Body)
 		}
+
 		adminPage, err := tm.admin.Client.ListStorageSwitchesWithResponse(
 			t.Context(),
 			&apiclient.ListStorageSwitchesParams{WorkspaceId: tm.workspace.Id},
@@ -172,6 +184,7 @@ func TestReadStorageSwitch(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, adminPage.StatusCode(), "%s", adminPage.Body)
 		require.Len(t, adminPage.JSON200.Items, 1)
+
 		nextWorkspace := tm.createWorkspace(t)
 		destinationViewer := tm.app.CreateNonAdminUser(t, tm.admin)
 		apptest.AddWorkspaceMember(
@@ -181,6 +194,7 @@ func TestReadStorageSwitch(t *testing.T) {
 			destinationViewer.Email,
 			apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER,
 		)
+
 		response := requestDatabaseTransfer(
 			t,
 			tm.owner,
@@ -188,6 +202,7 @@ func TestReadStorageSwitch(t *testing.T) {
 			newDatabaseTransfer(t, nextWorkspace.Id, newStorageMovedWithDatabase(t)),
 		)
 		require.Equal(t, http.StatusNoContent, response.StatusCode(), "%s", response.Body)
+
 		assert.Equal(t, operation.Id, getStorageSwitch(t, viewer, operation.Id).Id)
 		read, err := destinationViewer.Client.GetStorageSwitchWithResponse(t.Context(), operation.Id)
 		require.NoError(t, err)
@@ -210,6 +225,7 @@ func TestReadStorageSwitch(t *testing.T) {
 			tm,
 			logicalStorageSwitchSpec{DatabaseID: databaseID, StorageID: targetStorageID},
 		)
+
 		tm.app.ExecuteSQL(t, "ALTER TABLE storages_deletion_batches RENAME TO unavailable_deletion_batches")
 		read, err := tm.owner.Client.GetStorageSwitchWithResponse(t.Context(), operation.Id)
 		page, pageErr := tm.owner.Client.ListStorageSwitchesWithResponse(
@@ -217,6 +233,7 @@ func TestReadStorageSwitch(t *testing.T) {
 			&apiclient.ListStorageSwitchesParams{WorkspaceId: tm.workspace.Id},
 		)
 		tm.app.ExecuteSQL(t, "ALTER TABLE unavailable_deletion_batches RENAME TO storages_deletion_batches")
+
 		require.NoError(t, err)
 		require.NoError(t, pageErr)
 		assert.Equal(t, http.StatusInternalServerError, read.StatusCode())
@@ -239,6 +256,7 @@ func TestListStorageSwitches(t *testing.T) {
 		}
 		saveLogicalBackupConfig(t, tm.owner, databaseID, storages[0])
 		operations := []apiclient.StorageSwitch{}
+
 		for _, storageID := range storages[1:] {
 			operations = append(
 				operations,
@@ -250,6 +268,7 @@ func TestListStorageSwitches(t *testing.T) {
 			)
 		}
 		sort.Slice(operations, func(i, j int) bool { return operations[i].Id.String() > operations[j].Id.String() })
+
 		var after *string
 		for _, operation := range operations {
 			page, err := tm.owner.Client.ListStorageSwitchesWithResponse(
@@ -268,6 +287,7 @@ func TestListStorageSwitches(t *testing.T) {
 			after = page.JSON200.NextCursor
 		}
 		assert.Nil(t, after)
+
 		for _, params := range []apiclient.ListStorageSwitchesParams{{WorkspaceId: tm.workspace.Id, After: new("broken")}, {WorkspaceId: tm.workspace.Id, Limit: new(0)}} {
 			response, err := tm.owner.Client.ListStorageSwitchesWithResponse(t.Context(), &params)
 			require.NoError(t, err)
@@ -285,6 +305,7 @@ func TestStorageSwitchAttribution(t *testing.T) {
 		storageA, storageB, storageC := tm.createLocalStorage(t), tm.createLocalStorage(t), tm.createLocalStorage(t)
 		saveLogicalBackupConfig(t, tm.owner, databaseID, storageA)
 		insertLogicalBackupInStorage(t, tm, databaseID, storageA, "COMPLETED")
+
 		first := acceptLogicalStorageSwitch(
 			t,
 			tm,
@@ -303,6 +324,7 @@ func TestStorageSwitchAttribution(t *testing.T) {
 		)
 		assert.Equal(t, &storageB, second.PreviousStorageId)
 		assert.Equal(t, first.Total, second.Total)
+
 		tm.app.RunJobPass(t, storageFileDeletionJobName)
 		assert.Equal(t, apiclient.StorageSwitchStatusCLEANUPPENDING, getStorageSwitch(t, tm.owner, first.Id).Status)
 		assert.Equal(t, apiclient.StorageSwitchStatusCOMPLETED, getStorageSwitch(t, tm.owner, second.Id).Status)
@@ -311,6 +333,7 @@ func TestStorageSwitchAttribution(t *testing.T) {
 		remaining := getStorageSwitch(t, tm.owner, first.Id)
 		assert.Equal(t, apiclient.StorageSwitchStatusCOMPLETEDWITHREMAINDERS, remaining.Status)
 		assert.Equal(t, first.Total, remaining.Remaining)
+
 		removed, err := tm.owner.Client.DeleteStorageWithResponse(t.Context(), storageA)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusNoContent, removed.StatusCode(), "%s", removed.Body)
@@ -323,6 +346,7 @@ func TestStorageSwitchAttribution(t *testing.T) {
 		storageID := tm.createLocalStorage(t)
 		saveLogicalBackupConfig(t, tm.owner, databaseID, storageID)
 		insertLogicalBackupInStorage(t, tm, databaseID, storageID, "COMPLETED")
+
 		cleared := updateBackupConfig(
 			t,
 			tm.owner,
@@ -337,6 +361,7 @@ func TestStorageSwitchAttribution(t *testing.T) {
 		)
 		assert.Nil(t, operation.PreviousStorageId)
 		assert.Positive(t, operation.Total)
+
 		tm.app.RunJobPass(t, storageFileDeletionJobName)
 		assert.Equal(t, operation.Total, getStorageSwitch(t, tm.owner, operation.Id).Deleted)
 	})
@@ -354,6 +379,7 @@ func TestTransferDatabaseRacingTargetStorageTransfer(t *testing.T) {
 			oldBackup := insertLogicalBackupInStorage(t, tm, databaseID, sourceStorageID, "COMPLETED")
 			targetWorkspace, otherWorkspace := tm.createWorkspace(t), tm.createWorkspace(t)
 			targetStorageID := tm.app.CreateLocalStorage(t, tm.owner, targetWorkspace.Id)
+
 			type moveOutcome struct {
 				Status int
 				Err    error
@@ -361,6 +387,7 @@ func TestTransferDatabaseRacingTargetStorageTransfer(t *testing.T) {
 			switched, moved := make(chan moveOutcome, 1), make(chan moveOutcome, 1)
 			start := make(chan struct{})
 			transfer := newDatabaseTransfer(t, targetWorkspace.Id, newStorageSwitchedOnTransfer(t, targetStorageID))
+
 			go func() {
 				<-start
 				response, err := tm.owner.Client.TransferDatabaseWithResponse(
@@ -387,10 +414,12 @@ func TestTransferDatabaseRacingTargetStorageTransfer(t *testing.T) {
 				}
 				moved <- moveOutcome{Status: response.StatusCode()}
 			}()
+
 			close(start)
 			switchOutcome, storageMove := <-switched, <-moved
 			require.NoError(t, switchOutcome.Err)
 			require.NoError(t, storageMove.Err)
+
 			if switchOutcome.Status == http.StatusAccepted {
 				assert.Equal(t, http.StatusConflict, storageMove.Status)
 				requireConfigStorage(t, tm, databaseID, targetStorageID)

@@ -76,6 +76,7 @@ for (const domain of ['storages', 'notifiers'] as const) {
             items: [workspace, { ...workspace, id: 'target-id', name: 'Target workspace' }],
           }),
         );
+
         const selectionKey = `${domain === 'storages' ? 'selectedStorageId' : 'selectedNotifierId'}_${workspace.id}`;
         const view = renderScreen(<ResourceScreen workspace={workspace} />);
 
@@ -164,6 +165,7 @@ for (const domain of ['storages', 'notifiers'] as const) {
           lastSendError: null,
         }));
         const currentItems = domain === 'storages' ? currentStorages : currentNotifiers;
+
         server.use(oldList.handler);
         const onUnavailable = vi.fn();
         const view = renderScreen(
@@ -273,11 +275,13 @@ for (const domain of ['storages', 'notifiers'] as const) {
           ? mockApi.get('/storages', 200, { items: [] })
           : mockApi.get('/notifiers', 200, { items: [] }),
       );
+
       const onUnavailable = vi.fn();
       const view = renderScreen(
         <ResourceScreen workspace={workspace} onUnavailable={onUnavailable} />,
       );
       await screen.findByText(emptyText);
+
       server.use(
         domain === 'storages'
           ? mockApi.get('/storages', 404, buildProblem('not_found', 404))

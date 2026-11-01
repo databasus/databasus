@@ -29,10 +29,12 @@ func startRestoreProxy(t *testing.T, target containers.Endpoint) *restoreProxy {
 	require.NoError(t, err)
 	address, isTCPAddress := listener.Addr().(*net.TCPAddr)
 	require.True(t, isTCPAddress)
+
 	proxy := &restoreProxy{
 		endpoint:  containers.Endpoint{Host: "127.0.0.1", Port: address.Port},
 		isHolding: atomic.Bool{}, heldCount: atomic.Int64{}, release: make(chan struct{}), releaseOnce: sync.Once{},
 	}
+
 	var connections sync.WaitGroup
 	acceptDone := make(chan struct{})
 	go func() {
@@ -46,6 +48,7 @@ func startRestoreProxy(t *testing.T, target containers.Endpoint) *restoreProxy {
 				defer func() { _ = connection.Close() }()
 				stopClosing := context.AfterFunc(ctx, func() { _ = connection.Close() })
 				defer stopClosing()
+
 				if proxy.isHolding.Load() {
 					proxy.heldCount.Add(1)
 					select {
@@ -54,6 +57,7 @@ func startRestoreProxy(t *testing.T, target containers.Endpoint) *restoreProxy {
 						return
 					}
 				}
+
 				upstream, err := (&net.Dialer{}).DialContext(
 					ctx,
 					"tcp",
@@ -65,6 +69,7 @@ func startRestoreProxy(t *testing.T, target containers.Endpoint) *restoreProxy {
 				defer func() { _ = upstream.Close() }()
 				stopUpstream := context.AfterFunc(ctx, func() { _ = upstream.Close() })
 				defer stopUpstream()
+
 				copied := make(chan struct{})
 				go func() { _, _ = io.Copy(upstream, connection); _ = upstream.Close(); close(copied) }()
 				_, _ = io.Copy(connection, upstream)
@@ -73,6 +78,7 @@ func startRestoreProxy(t *testing.T, target containers.Endpoint) *restoreProxy {
 			})
 		}
 	}()
+
 	t.Cleanup(func() { cancel(); _ = listener.Close(); <-acceptDone; connections.Wait() })
 	return proxy
 }

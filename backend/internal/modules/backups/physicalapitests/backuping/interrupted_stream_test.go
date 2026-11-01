@@ -31,19 +31,23 @@ func terminateFullBackupStream(t *testing.T, isHoldingConnectionTerminated bool)
 	if isHoldingConnectionTerminated {
 		roleName = team.useReplicationRole(t)
 	}
+
 	source := team.openSource(t)
 	_, seedErr := source.Exec(
 		t.Context(),
 		"CREATE TABLE interrupted_backup_payload AS SELECT string_agg(md5(random()::text),'') AS payload FROM generate_series(1,1000000) entry GROUP BY entry/32",
 	)
 	require.NoError(t, seedErr)
+
 	installStorageWriteBarrier(t, team.App)
 	storageLock := team.App.BeginSQLTransaction(t)
 	var storageIDs []string
 	storageLock.QuerySQL(t, &storageIDs, "SELECT id FROM storages WHERE id=? FOR NO KEY UPDATE", team.StorageID)
 	require.Len(t, storageIDs, 1)
+
 	team.trigger(t, "full")
 	team.App.RunJobPass(t, "backups_physical_scheduler")
+
 	var walsenderPID int
 	testwait.Until(
 		t,
@@ -72,6 +76,7 @@ func terminateFullBackupStream(t *testing.T, isHoldingConnectionTerminated bool)
 			return rows.Err()
 		},
 	)
+
 	var fileNames []string
 	team.App.QuerySQL(
 		t,
@@ -80,6 +85,7 @@ func terminateFullBackupStream(t *testing.T, isHoldingConnectionTerminated bool)
 		team.Database.Id,
 	)
 	require.Len(t, fileNames, 1)
+
 	var err error
 	if isHoldingConnectionTerminated {
 		_, err = source.Exec(
@@ -90,19 +96,23 @@ func terminateFullBackupStream(t *testing.T, isHoldingConnectionTerminated bool)
 	} else {
 		_, err = source.Exec(t.Context(), "SELECT pg_terminate_backend($1)", walsenderPID)
 	}
+
 	require.NoError(t, err)
 	storageLock.Rollback(t)
 	team.App.WaitForPhysicalBackups(t)
+
 	backups := team.listBackups(t)
 	require.Len(t, backups, 1)
 	assert.Equal(t, "ERROR", backups[0].Status)
 	team.assertTerminalDetails(t, backups[0], "PG_BASEBACKUP_FAILED")
 	team.assertNoRunningBackup(t)
+
 	team.App.RunJobPass(t, "storage_file_deletion")
 	for _, fileName := range fileNames {
 		assert.False(t, team.App.IsLocalStorageFilePresent(t, fileName))
 		assert.False(t, team.App.IsLocalStorageFilePresent(t, fileName+".manifest"))
 	}
+
 	var slots int
 	require.NoError(
 		t,

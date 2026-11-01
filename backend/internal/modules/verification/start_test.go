@@ -32,9 +32,11 @@ func TestStartVerification(t *testing.T) {
 				"UPDATE databases_postgresql_logical SET port=1 WHERE database_id=?",
 				team.Database.Id,
 			)
+
 			backup := team.StartBackup(t, team.Database.Id)
 			failed := team.WaitForBackupOutcome(t, backup.Id)
 			require.Equal(t, apiclient.LogicalBackupStatusFAILED, failed.Status)
+
 			response, err := team.Owner.Client.StartVerificationWithResponse(
 				t.Context(),
 				apiclient.StartVerificationInput{BackupId: backup.Id},
@@ -47,6 +49,7 @@ func TestStartVerification(t *testing.T) {
 				http.StatusConflict,
 				apiclient.ProblemCodeBackupNotCompleted,
 			)
+
 			assert.Empty(t, team.list(t))
 		},
 	)
@@ -55,6 +58,7 @@ func TestStartVerification(t *testing.T) {
 			team := newVerificationTeam(t)
 			backup := team.backup(t)
 			verification := team.start(t, backup.Id)
+
 			if status == apiclient.VerificationStatusRUNNING {
 				team.App.ExecuteSQL(
 					t,
@@ -63,6 +67,7 @@ func TestStartVerification(t *testing.T) {
 					verification.Id,
 				)
 			}
+
 			response, err := team.Owner.Client.StartVerificationWithResponse(
 				t.Context(),
 				apiclient.StartVerificationInput{BackupId: backup.Id},
@@ -75,6 +80,7 @@ func TestStartVerification(t *testing.T) {
 				http.StatusConflict,
 				apiclient.ProblemCodeAlreadyRunning,
 			)
+
 			assert.Len(t, team.list(t), 1)
 		})
 	}
@@ -83,7 +89,9 @@ func TestStartVerification(t *testing.T) {
 		backup := team.backup(t)
 		automatic := team.start(t, backup.Id)
 		team.App.ExecuteSQL(t, "UPDATE verification_runs SET trigger='SCHEDULED' WHERE id=?", automatic.Id)
+
 		manual := team.start(t, backup.Id)
+
 		assert.Equal(t, apiclient.VerificationTriggerMANUAL, manual.Trigger)
 		assert.Len(t, team.list(t), 2)
 		assert.Equal(t, apiclient.VerificationStatusPENDING, team.read(t, automatic.Id).Status)
@@ -99,6 +107,7 @@ func TestStartVerificationConcurrentRequests(t *testing.T) {
 		start := make(chan struct{})
 		statuses := make(chan int, 16)
 		failures := make(chan error, 16)
+
 		for range 16 {
 			go func() {
 				<-start
@@ -114,6 +123,7 @@ func TestStartVerificationConcurrentRequests(t *testing.T) {
 				statuses <- response.StatusCode()
 			}()
 		}
+
 		close(start)
 		acceptedCount := 0
 		for range 16 {
@@ -124,10 +134,12 @@ func TestStartVerificationConcurrentRequests(t *testing.T) {
 				assert.Equal(t, http.StatusConflict, status)
 			}
 		}
+
 		close(failures)
 		for err := range failures {
 			require.NoError(t, err)
 		}
+
 		assert.Equal(t, 1, acceptedCount)
 		assert.Len(t, team.list(t), 1)
 	})

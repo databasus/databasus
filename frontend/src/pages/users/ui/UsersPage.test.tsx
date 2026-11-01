@@ -33,6 +33,7 @@ describe('UsersPage', () => {
           ? mockApi.get('/users', 200, { items: [] })
           : mockApi.get('/users', 500, buildProblem('internal', 500)),
       );
+
       const { user } = renderScreen(<UsersPage />, { locale });
       const search = screen.getByRole('textbox', { name: dictionary.users.list.searchPlaceholder });
       if (query) {
@@ -40,10 +41,12 @@ describe('UsersPage', () => {
         mockServer.use(mockApi.get('/users', 500, buildProblem('internal', 500)));
         await user.type(search, query);
       }
+
       await screen.findByText(dictionary.errors.internal);
       const retry = await screen.findByRole('button', { name: dictionary.common.actions.retry });
       expect(screen.queryByText(dictionary.users.list.empty)).toBeNull();
       expect(screen.queryByText(dictionary.users.list.loaded.replace('{{count}}', '0'))).toBeNull();
+
       const failedRequestCount = mockServer.getRequests().length;
       const failedRequest = new URL(mockServer.getRequests()[failedRequestCount - 1].url);
       const retriedPage = mockApi.delayed({
@@ -53,8 +56,10 @@ describe('UsersPage', () => {
         body: { items: [buildUser('member@example.com')] },
       });
       mockServer.use(retriedPage.handler);
+
       await user.click(retry);
       await waitFor(() => expect(mockServer.getRequests()).toHaveLength(failedRequestCount + 1));
+
       expect(new URL(mockServer.getRequests()[failedRequestCount].url).search).toBe(
         failedRequest.search,
       );
@@ -63,6 +68,7 @@ describe('UsersPage', () => {
       expect(failedRequest.searchParams.has('after')).toBe(false);
       expect((search as HTMLInputElement).value).toBe(query);
       expect(screen.queryByText(dictionary.users.list.empty)).toBeNull();
+
       retriedPage.release();
       await screen.findByText(/member@example.com/);
       expect(screen.queryByText(dictionary.errors.internal)).toBeNull();
@@ -110,8 +116,10 @@ describe('UsersPage asynchronous ownership', () => {
     async (status) => {
       const earlier = mockApi.pending('get', '/users');
       mockServer.use(earlier.handler);
+
       const { container, user } = renderScreen(<UsersPage />);
       await waitFor(() => expect(mockServer.getRequests()).toHaveLength(1));
+
       mockServer.use(
         mockApi.get('/users', 200, {
           items: [buildUser('current@example.com')],
@@ -123,6 +131,7 @@ describe('UsersPage asynchronous ownership', () => {
         'current',
       );
       await screen.findByText(/current@example.com/);
+
       const response = processedResponse();
       await act(async () => {
         earlier.respond(
@@ -135,8 +144,10 @@ describe('UsersPage asynchronous ownership', () => {
         );
         await response;
       });
+
       expect(screen.queryByText(/obsolete@example.com/)).toBeNull();
       expect(screen.queryByText(DICTIONARIES.en.errors.internal)).toBeNull();
+
       fireEvent.scroll(container.querySelector('.overflow-y-auto')!);
       await waitFor(() => expect(mockServer.getRequests()).toHaveLength(3));
       const pageUrl = new URL(mockServer.getRequests()[2].url);
@@ -151,6 +162,7 @@ describe('UsersPage asynchronous ownership', () => {
     mockServer.use(mockApi.get('/users', 200, { items: [firstUser], nextCursor: 'old-cursor' }));
     const { container, user } = renderScreen(<UsersPage />);
     await screen.findByText(/first@example.com/);
+
     const oldPage = mockApi.delayed({
       method: 'get',
       path: '/users',
@@ -161,12 +173,14 @@ describe('UsersPage asynchronous ownership', () => {
     const scroller = container.querySelector('.overflow-y-auto')!;
     fireEvent.scroll(scroller);
     await waitFor(() => expect(mockServer.getRequests()).toHaveLength(2));
+
     const newSearch = mockApi.pending('get', '/users');
     mockServer.use(newSearch.handler);
     await user.type(screen.getByRole('textbox', { name: 'Search by email or name...' }), 'new');
     await waitFor(() => expect(mockServer.getRequests()).toHaveLength(3));
     fireEvent.scroll(scroller);
     expect(mockServer.getRequests()).toHaveLength(3);
+
     const response = processedResponse();
     await act(async () => {
       oldPage.release();
@@ -177,6 +191,7 @@ describe('UsersPage asynchronous ownership', () => {
         HttpResponse.json({ items: [buildUser('new@example.com'), buildUser('new@example.com')] }),
       );
     });
+
     await screen.findByText(/new@example.com/);
     expect(screen.queryByText(/obsolete@example.com/)).toBeNull();
     expect(screen.getAllByRole('switch')).toHaveLength(1);
@@ -187,6 +202,7 @@ describe('UsersPage asynchronous ownership', () => {
     mockServer.use(mockApi.get('/users', 200, { items: [account], nextCursor: 'next' }));
     const { container, user } = renderScreen(<UsersPage />);
     const toggle = await screen.findByRole('switch');
+
     const page = mockApi.delayed({
       method: 'get',
       path: '/users',
@@ -200,6 +216,7 @@ describe('UsersPage asynchronous ownership', () => {
       body: { ...account, status: 'INACTIVE' },
     });
     mockServer.use(page.handler, mutation.handler);
+
     fireEvent.scroll(container.querySelector('.overflow-y-auto')!);
     await waitFor(() => expect(mockServer.getRequests()).toHaveLength(2));
     await user.click(toggle);
@@ -207,9 +224,11 @@ describe('UsersPage asynchronous ownership', () => {
     await user.click(toggle);
     expect(mockServer.getRequests().filter((request) => request.method === 'POST')).toHaveLength(1);
     expect(toggle.getAttribute('aria-checked')).toBe('true');
+
     mutation.release();
     await screen.findByText('User deactivated successfully');
     expect(toggle.getAttribute('aria-checked')).toBe('false');
+
     page.release();
     await screen.findByText(/second@example.com/);
     expect(
@@ -231,12 +250,14 @@ describe('UsersPage asynchronous ownership', () => {
       );
       const { user } = renderScreen(<UsersPage />);
       await screen.findByText(/member@example.com/);
+
       if (action === 'status') await user.click(screen.getByRole('switch'));
       else {
         await user.click(screen.getByRole('combobox'));
         await user.click(await screen.findByText('Admin'));
       }
       await screen.findByText('You do not have permission to do this.');
+
       expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('true');
       expect(screen.getByRole('combobox').hasAttribute('disabled')).toBe(false);
       expect(document.querySelector('.ant-select-selection-item')?.textContent).toBe('Member');
@@ -253,15 +274,18 @@ describe('UsersPage asynchronous ownership', () => {
       body: { ...account, status: 'INACTIVE' },
     });
     mockServer.use(mockApi.get('/users', 200, { items: [account] }), mutation.handler);
+
     const view = renderScreen(<UsersPage />);
     await view.user.click(await screen.findByRole('switch'));
     await waitFor(() => expect(mockServer.getRequests()).toHaveLength(2));
+
     view.rerender(<div>Users closed</div>);
     const response = processedResponse();
     await act(async () => {
       mutation.release();
       await response;
     });
+
     expect(screen.queryByText('User deactivated successfully')).toBeNull();
     expect(screen.getByText('Users closed')).toBeTruthy();
   });
@@ -274,13 +298,16 @@ it('acknowledges role and activation from returned users when each action succee
     mockApi.post('/users/{userId}/activate', 200, { ...account, status: 'ACTIVE' }),
     mockApi.put('/users/{userId}/role', 200, { ...account, status: 'ACTIVE', role: 'ADMIN' }),
   );
+
   const { user } = renderScreen(<UsersPage />);
   await user.click(await screen.findByRole('switch'));
   await screen.findByText('User activated successfully');
   expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('true');
+
   await user.click(screen.getByRole('combobox'));
   await user.click(await screen.findByText('Admin'));
   await screen.findByText('User role changed successfully');
+
   expect(document.querySelector('.ant-select-selection-item')?.textContent).toBe('Admin');
   expect(
     await mockServer
@@ -319,11 +346,13 @@ it.each([
         ? mockApi.pending('post', '/users/{userId}/deactivate')
         : mockApi.pending('put', '/users/{userId}/role');
     mockServer.use(mutation.handler);
+
     const { user } = renderScreen(<UsersPage />);
     await screen.findByText(/Initial/);
     const search = screen.getByRole('textbox', { name: 'Search by email or name...' });
     fireEvent.change(search, { target: { value: 'a' } });
     await screen.findByText(/First A/);
+
     if (action === 'status') await user.click(screen.getByRole('switch'));
     else {
       await user.click(screen.getByRole('combobox'));
@@ -332,10 +361,12 @@ it.each([
     await waitFor(() =>
       expect(mockServer.getRequests().some((request) => request.method !== 'GET')).toBe(true),
     );
+
     fireEvent.change(search, { target: { value: 'b' } });
     await screen.findByText(/Current B/);
     fireEvent.change(search, { target: { value: 'a' } });
     await screen.findByText(/Current A/);
+
     const processed = processedResponse();
     await act(async () => {
       mutation.respond(
@@ -353,6 +384,7 @@ it.each([
       );
       await processed;
     });
+
     await waitFor(() => expect(screen.getByRole('switch').hasAttribute('disabled')).toBe(false));
     expect(screen.getByText(/Current A/)).toBeTruthy();
     expect(screen.queryByText(/Obsolete A/)).toBeNull();

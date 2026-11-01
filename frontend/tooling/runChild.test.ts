@@ -11,6 +11,7 @@ it('waits for descendant shutdown after an interrupted process-group driver exit
   const descendantPath = join(directory, 'descendant.mjs');
   const driverPath = join(directory, 'driver.mjs');
   const releasePath = join(directory, 'release');
+
   await writeFile(
     descendantPath,
     `
@@ -33,6 +34,7 @@ server.listen(0, '127.0.0.1', () => writeFileSync(directory + '/ready.json', JSO
     driverPath,
     `import { spawn } from 'node:child_process'; spawn(process.execPath, [${JSON.stringify(descendantPath)}], { stdio: 'inherit' });`,
   );
+
   const controller = new AbortController();
   let hasCompleted = false;
   const shutdown = runChild(process.execPath, [driverPath], {
@@ -42,6 +44,7 @@ server.listen(0, '127.0.0.1', () => writeFileSync(directory + '/ready.json', JSO
     hasCompleted = true;
     return exitCode;
   });
+
   let driverPid: number | undefined;
   try {
     const ownedProcess = await waitForCondition(
@@ -52,13 +55,16 @@ server.listen(0, '127.0.0.1', () => writeFileSync(directory + '/ready.json', JSO
         },
     );
     driverPid = ownedProcess.driverPid;
+
     controller.abort();
     await waitForCondition(async () =>
       expect(await readFile(join(directory, 'stopping'), 'utf8')).toBe('cleanup started'),
     );
     await waitForCondition(() => expect(() => process.kill(ownedProcess.driverPid, 0)).toThrow());
+
     expect(hasCompleted).toBe(false);
     expect((await fetch(ownedProcess.address)).status).toBe(200);
+
     await writeFile(releasePath, 'finish cleanup');
     expect(await shutdown).toBe(130);
     await expect(fetch(ownedProcess.address)).rejects.toBeTruthy();

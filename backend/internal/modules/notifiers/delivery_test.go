@@ -122,6 +122,7 @@ func TestDeliveryOutcome(t *testing.T) {
 
 			return nil
 		})
+
 		updateResponse := updateNotifier(t, tm.owner, webhookNotifier.Id, apiclient.NotifierUpdate{
 			Name:     "Renamed during delivery",
 			Settings: newWebhookSettings(t, newPostWebhook(newEndpoint.URL)),
@@ -148,6 +149,7 @@ func TestDeliveryOutcome(t *testing.T) {
 				writer.WriteHeader(int(endpointStatus.Load()))
 			}))
 			t.Cleanup(switchingEndpoint.Close)
+
 			webhookNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
 				newWebhookSettings(t, newPostWebhook(switchingEndpoint.URL)))
 

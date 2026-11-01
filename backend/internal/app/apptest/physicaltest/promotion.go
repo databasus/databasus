@@ -36,6 +36,7 @@ func RunTimelineHistory(t *testing.T, image string) {
 	team.enableBackups(t, true)
 	chain := team.waitForChain(t, 0)
 	team.streamPostFullSegments(t, primaryConn, walArchiveSpec{Chain: chain, Count: 2})
+
 	promoteStandby(t, standbyConn)
 	insertMarker(t, standbyConn, markerRow{Phase: "tl2-row", Payload: "row-on-tl2"})
 	generateWalActivity(t, standbyConn, 16*1024*1024)
@@ -83,12 +84,14 @@ func RunPromotionReanchorsChain(t *testing.T, image string) {
 	team.enableBackups(t, true)
 	initialChain := team.waitForChain(t, 0)
 	initialFullID := initialChain[0].ID
+
 	promoteStandby(t, standbyConn)
 	insertMarker(t, standbyConn, markerRow{Phase: "after-promotion", Payload: "row-after-promotion"})
 	generateWalActivity(t, standbyConn, 16*1024*1024)
 	team.waitForTimelineHistory(t, 2)
 	team.triggerIncremental(t)
 	team.waitForReanchoredFull(t, initialFullID, 2)
+
 	team.App.RunJobPass(t, "backups_physical_cleaner")
 	bundle := team.downloadRestoreBundle(t, nil)
 	reconstructCluster(t, target, restoreSpec{App: team.App, Image: image, BundlePath: bundle, TargetTime: nil})
@@ -110,12 +113,14 @@ func (team Team) waitForReanchoredFull(t *testing.T, staleFullID uuid.UUID, time
 			`SELECT status, COALESCE(error_reason, '') AS error_reason FROM backups_physical WHERE root_full_backup_id = ?`,
 			staleFullID,
 		)
+
 		hasTimelineRefusal := false
 		for _, incremental := range incrementals {
 			if incremental.Status == "CHAIN_BROKEN" && incremental.ErrorReason == "TIMELINE_SWITCH_DETECTED" {
 				hasTimelineRefusal = true
 			}
 		}
+
 		fulls := team.listBackups(t, "FULL")
 		completedFullCount := 0
 		hasReplacementFull := false
@@ -127,6 +132,7 @@ func (team Team) waitForReanchoredFull(t *testing.T, staleFullID uuid.UUID, time
 				completedFullCount++
 			}
 		}
+
 		if hasTimelineRefusal && completedFullCount >= 2 && hasReplacementFull {
 			return nil
 		}

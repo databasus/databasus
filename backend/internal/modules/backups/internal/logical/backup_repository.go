@@ -325,9 +325,11 @@ func (r *backupRepository) listLatestCompleted(
 	if err != nil {
 		return nil, fmt.Errorf("list latest completed logical backups: %w", err)
 	}
+
 	byDatabaseID := make(map[uuid.UUID]LogicalBackup, len(backups))
 	for _, backup := range backups {
 		byDatabaseID[backup.DatabaseID] = backup
 	}
+
 	return byDatabaseID, nil
 }

@@ -149,6 +149,7 @@ describe('Composed backup storage creation', () => {
         mockApi.post('/storage-tests', 200, { isConnected: true }),
         mockApi.post('/storages', 201, storage),
       );
+
       const existingStorage = { ...storage, id: 'existing-storage', name: 'Existing archive' };
       const onSelect = vi.fn();
       const props = { workspaceId: storage.workspaceId, canClear: true, onSelect };

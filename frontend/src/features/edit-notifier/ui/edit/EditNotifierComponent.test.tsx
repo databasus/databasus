@@ -116,6 +116,7 @@ describe('EditNotifierComponent', () => {
     fireEvent.change(screen.getByDisplayValue('https://hooks.example.com/backups'), {
       target: { value: 'https://hooks.example.com/changed' },
     });
+
     const responded = new Promise<void>((resolve) =>
       mockServer.events.on('response:mocked', () => resolve()),
     );

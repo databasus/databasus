@@ -75,6 +75,7 @@ func (team *Team) useReplicationOnlyUser(t *testing.T) {
 	team.Settings.Username = limitedUser.Username
 	team.Settings.Password = &limitedUser.Password
 	team.Database = team.UpdateDatabaseSettings(t, team.Database, team.Settings)
+
 	conn := openConnAt(t, team.Settings.Host, team.Settings.Port)
 	var isReplication, isSuperuser, canCreateRole, canCreateDatabase, canBypassRLS bool
 	require.NoError(
@@ -82,6 +83,7 @@ func (team *Team) useReplicationOnlyUser(t *testing.T) {
 		conn.QueryRow(t.Context(), `SELECT rolreplication, rolsuper, rolcreaterole, rolcreatedb, rolbypassrls FROM pg_roles WHERE rolname = $1`, limitedUser.Username).
 			Scan(&isReplication, &isSuperuser, &canCreateRole, &canCreateDatabase, &canBypassRLS),
 	)
+
 	require.True(t, isReplication)
 	require.False(t, isSuperuser)
 	require.False(t, canCreateRole)
@@ -111,8 +113,10 @@ func (team Team) enableBackups(t *testing.T, isWalStream bool) {
 	if isWalStream {
 		physicalSettings.WalLagThresholdBytes = 64 * 1024 * 1024
 	}
+
 	var settings apiclient.BackupSettings
 	require.NoError(t, settings.FromPhysicalBackupSettings(physicalSettings))
+
 	response, err := team.Owner.Client.UpdateBackupConfigWithResponse(
 		t.Context(),
 		team.Database.Id,

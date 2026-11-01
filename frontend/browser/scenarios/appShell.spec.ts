@@ -16,11 +16,13 @@ test('keeps desktop header actions reachable when the entire shell uses 200% tex
   await page.setViewportSize({ width: 769, height: 900 });
   await openAccount({ page, locale: 'ru', theme: 'dark' });
   await openAccountTab({ page, locale: 'ru', tab: 'profile' });
+
   const dictionary = DICTIONARIES.ru;
   const name = page.getByRole('textbox', { name: dictionary.users.fields.name, exact: true });
   await name.fill('Retained desktop shell draft');
   await enlargeText(page.locator('body'));
   await assertAccountReflow(page.locator('body'));
+
   const header = page.getByRole('banner');
   for (const action of [
     header.getByRole('link', { name: dictionary.app.navigation.docs, exact: true }),
@@ -38,6 +40,7 @@ test('keeps desktop header actions reachable when the entire shell uses 200% tex
     await action.focus();
     await expect(action).toBeFocused();
   }
+
   await expect(name).toHaveValue('Retained desktop shell draft');
 });
 
@@ -47,12 +50,14 @@ test('keeps workspace creation and navigation reachable when the entire shell us
   await page.setViewportSize({ width: 320, height: 900 });
   await openAccount({ page, locale: 'ru', theme: 'dark' });
   await openAccountTab({ page, locale: 'ru', tab: 'profile' });
+
   const dictionary = DICTIONARIES.ru;
   const name = page.getByRole('textbox', { name: dictionary.users.fields.name, exact: true });
   await name.fill('Retained shell draft');
   const shell = page.locator('body');
   await enlargeText(shell);
   await assertAccountReflow(shell);
+
   const create = page.getByRole('button', {
     name: dictionary.app.workspaceSelection.createNew,
     exact: true,
@@ -61,6 +66,7 @@ test('keeps workspace creation and navigation reachable when the entire shell us
   await expect(create).toBeInViewport();
   await create.focus();
   await create.press('Enter');
+
   const creation = page.getByRole('dialog', {
     name: dictionary.workspaces.create.title,
     exact: true,
@@ -69,9 +75,11 @@ test('keeps workspace creation and navigation reachable when the entire shell us
   await expect
     .poll(() => creation.evaluate((dialog) => dialog.contains(document.activeElement)))
     .toBe(true);
+
   await page.keyboard.press('Escape');
   await expect(creation).not.toBeVisible();
   await expect(create).toBeFocused();
+
   const menu = page.getByRole('button', { name: dictionary.app.navigation.menu, exact: true });
   await menu.focus();
   await menu.press('Enter');
@@ -84,18 +92,21 @@ test('keeps navigation reachable when the viewport crosses the 768px boundary', 
 }) => {
   await page.setViewportSize({ width: 768, height: 900 });
   await openAccount({ page });
+
   const dictionary = DICTIONARIES.en;
   const menu = page.getByRole('button', { name: dictionary.app.navigation.menu, exact: true });
   await expect(menu).toBeVisible();
   await openAccountTab({ page, locale: 'en', tab: 'profile' });
   const name = page.getByRole('textbox', { name: dictionary.users.fields.name, exact: true });
   await name.fill('Retained boundary draft');
+
   await page.setViewportSize({ width: 769, height: 900 });
   await expect(menu).not.toBeVisible();
   await expect(
     page.getByRole('button', { name: dictionary.app.navigation.users, exact: true }),
   ).toBeVisible();
   await expect(name).toHaveValue('Retained boundary draft');
+
   await page.setViewportSize({ width: 768, height: 900 });
   await expect(menu).toBeVisible();
   await openAccountTab({ page, locale: 'en', tab: 'users' });
@@ -111,6 +122,7 @@ test('retains the profile draft and sidebar when language is selected with the k
   await openAccount({ page });
   await openAccountTab({ page, locale: 'en', tab: 'profile' });
   await page.getByRole('textbox', { name: 'Name', exact: true }).fill('Retained narrow draft');
+
   const menu = page.getByRole('button', { name: DICTIONARIES.en.app.navigation.menu, exact: true });
   await menu.click();
   const sidebar = page.getByRole('dialog');
@@ -119,6 +131,7 @@ test('retains the profile draft and sidebar when language is selected with the k
   await expect
     .poll(() => page.getByRole('menu').evaluate((menu) => menu.contains(document.activeElement)))
     .toBe(true);
+
   await page.keyboard.press('Home');
   await page.keyboard.press('ArrowDown');
   await expect(
@@ -132,6 +145,7 @@ test('retains the profile draft and sidebar when language is selected with the k
     ),
     exact: true,
   });
+
   await expect(sidebar).toBeVisible();
   await expect(
     sidebar.getByRole('button', { name: DICTIONARIES.ru.app.navigation.profile, exact: true }),
@@ -141,11 +155,13 @@ test('retains the profile draft and sidebar when language is selected with the k
   await expect
     .poll(() => page.getByRole('menu').evaluate((menu) => menu.contains(document.activeElement)))
     .toBe(true);
+
   await page.keyboard.press('Escape');
   await expect(sidebar).toBeVisible();
   await expect(language).toBeFocused();
   await language.press('Escape');
   await expect(sidebar).not.toBeVisible();
+
   await expect(
     page.getByRole('button', { name: DICTIONARIES.ru.app.navigation.menu, exact: true }),
   ).toBeFocused();

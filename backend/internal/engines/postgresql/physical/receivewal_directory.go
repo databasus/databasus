@@ -78,14 +78,17 @@ func GetWalSegmentFiles(directory string, segmentSizeBytes int64) []WalSegmentFi
 		if entry.IsDir() {
 			continue
 		}
+
 		timeline, segmentNo, err := walmath.ParseWALFilename(entry.Name(), uint64(segmentSizeBytes))
 		if err != nil {
 			continue
 		}
+
 		info, err := entry.Info()
 		if err != nil {
 			continue
 		}
+
 		startLSN := walmath.WalSegmentNo(segmentNo).FirstLSN(uint64(segmentSizeBytes))
 		segments = append(segments, WalSegmentFile{
 			Filename:   entry.Name(),

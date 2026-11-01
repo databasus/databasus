@@ -21,6 +21,7 @@ func TestVerificationReportRetries(t *testing.T) {
 		backup := team.backup(t)
 		verification := team.start(t, backup.Id)
 		agent := team.App.CreateVerificationAgent(t, team.Admin)
+
 		for attempt := 1; attempt <= 3; attempt++ {
 			claim(t, team, agent)
 			status, body := newProtocolAgent(
@@ -56,8 +57,10 @@ func TestVerificationReportRetries(t *testing.T) {
 			verification := team.start(t, backup.Id)
 			agent := team.App.CreateVerificationAgent(t, team.Admin)
 			claim(t, team, agent)
+
 			status, body := newProtocolAgent(t, team.App, agent).reportVerification(verification.Id, failure.report)
 			require.Equal(t, http.StatusNoContent, status, string(body))
+
 			persisted := team.read(t, verification.Id)
 			assert.Equal(t, apiclient.VerificationStatusFAILED, persisted.Status)
 			assert.Equal(t, 1, persisted.AttemptCount)
@@ -90,6 +93,7 @@ func TestVerificationHeartbeatReconciliation(t *testing.T) {
 			verification := team.start(t, backup.Id)
 			agent := team.App.CreateVerificationAgent(t, team.Admin)
 			claim(t, team, agent)
+
 			team.App.ExecuteSQL(
 				t,
 				"UPDATE verification_runs SET attempt_count=? WHERE id=?",
@@ -97,10 +101,12 @@ func TestVerificationHeartbeatReconciliation(t *testing.T) {
 				verification.Id,
 			)
 			team.App.Clock.Advance(scenario.age)
+
 			var ids []uuid.UUID
 			if scenario.isReported {
 				ids = []uuid.UUID{verification.Id}
 			}
+
 			status, body := newProtocolAgent(t, team.App, agent).recordHeartbeat(agent.Agent.ID, heartbeatBody(ids))
 			require.Equal(t, http.StatusOK, status, string(body))
 			assert.Equal(t, scenario.status, team.read(t, verification.Id).Status)
@@ -113,6 +119,7 @@ func TestVerificationHeartbeatReconciliation(t *testing.T) {
 		agent := team.App.CreateVerificationAgent(t, team.Admin)
 		other := team.App.CreateVerificationAgent(t, team.Admin)
 		claim(t, team, agent)
+
 		status, body := newProtocolAgent(
 			t,
 			team.App,
@@ -121,6 +128,7 @@ func TestVerificationHeartbeatReconciliation(t *testing.T) {
 		require.Equal(t, http.StatusOK, status, string(body))
 		assert.Contains(t, string(body), verification.Id.String())
 		assert.Equal(t, apiclient.VerificationStatusRUNNING, team.read(t, verification.Id).Status)
+
 		team.App.ExecuteSQL(
 			t,
 			"UPDATE verification_runs SET status='COMPLETED',finished_at=? WHERE id=?",
@@ -128,6 +136,7 @@ func TestVerificationHeartbeatReconciliation(t *testing.T) {
 			verification.Id,
 		)
 		team.App.Clock.Advance(2 * time.Minute)
+
 		status, body = newProtocolAgent(
 			t,
 			team.App,
@@ -151,6 +160,7 @@ func TestVerificationMixedHeartbeat(t *testing.T) {
 		agent := team.App.CreateVerificationAgent(t, team.Admin)
 		claim(t, team, agent)
 		claim(t, team, agent)
+
 		team.App.Clock.Advance(91 * time.Second)
 		status, body := newProtocolAgent(
 			t,
@@ -158,6 +168,7 @@ func TestVerificationMixedHeartbeat(t *testing.T) {
 			agent,
 		).recordHeartbeat(agent.Agent.ID, heartbeatBody([]uuid.UUID{second.Id}))
 		require.Equal(t, http.StatusOK, status, string(body))
+
 		assert.Equal(t, apiclient.VerificationStatusPENDING, team.read(t, first.Id).Status)
 		assert.Equal(t, apiclient.VerificationStatusRUNNING, team.read(t, second.Id).Status)
 	})

@@ -64,6 +64,7 @@ func RunStoreContract(t *testing.T, createStore StoreFactory) {
 		var createdCount atomic.Int64
 		operationErrors := make(chan error, callerCount)
 		var waitGroup sync.WaitGroup
+
 		for callerIndex := range callerCount {
 			waitGroup.Go(func() {
 				isCreated, err := store.CreateIfAbsent(t.Context(), cache.Entry{
@@ -75,11 +76,14 @@ func RunStoreContract(t *testing.T, createStore StoreFactory) {
 				}
 			})
 		}
+
 		waitGroup.Wait()
 		close(operationErrors)
+
 		for operationError := range operationErrors {
 			require.NoError(t, operationError)
 		}
+
 		assert.Equal(t, int64(1), createdCount.Load())
 	})
 
@@ -94,6 +98,7 @@ func RunStoreContract(t *testing.T, createStore StoreFactory) {
 		var consumedCount atomic.Int64
 		operationErrors := make(chan error, callerCount)
 		var waitGroup sync.WaitGroup
+
 		for range callerCount {
 			waitGroup.Go(func() {
 				payload, isFound, err := store.ReadAndDelete(t.Context(), "token")
@@ -104,11 +109,14 @@ func RunStoreContract(t *testing.T, createStore StoreFactory) {
 				}
 			})
 		}
+
 		waitGroup.Wait()
 		close(operationErrors)
+
 		for operationError := range operationErrors {
 			require.NoError(t, operationError)
 		}
+
 		assert.Equal(t, int64(1), consumedCount.Load())
 	})
 }

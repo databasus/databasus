@@ -27,11 +27,13 @@ func TestGetLatestCompletedLogicalBackups(t *testing.T) {
 			CpuCount: 1, SslClientCert: nil, SslClientKey: nil, SslRootCert: nil,
 			IncludeSchemas: nil, ExcludeTables: nil, ExcludeTableData: nil, IsSkipUserMappings: false, Version: nil,
 		})
+
 		firstBackup := tm.BackUp(t, database.Id, apiclient.BackupEncryptionNONE)
 		tm.App.Clock.Advance(time.Minute)
 		latestBackup := tm.BackUp(t, database.Id, apiclient.BackupEncryptionNONE)
 		tm.App.ExecuteSQL(t, "UPDATE databases_postgresql_logical SET port = 1 WHERE database_id = ?", database.Id)
 		tm.App.Clock.Advance(time.Minute)
+
 		started, err := tm.Owner.Client.StartLogicalBackupWithResponse(
 			t.Context(),
 			apiclient.LogicalBackupStart{DatabaseId: database.Id},
@@ -40,11 +42,13 @@ func TestGetLatestCompletedLogicalBackups(t *testing.T) {
 		require.NotNil(t, started.JSON202)
 		failedBackup := tm.WaitForBackupOutcome(t, started.JSON202.Id)
 		require.Equal(t, apiclient.LogicalBackupStatusFAILED, failedBackup.Status)
+
 		emptyDatabaseID := tm.App.InsertDatabase(t, tm.Workspace.Id)
 		completedBackups := tm.App.GetLatestCompletedLogicalBackups(
 			t,
 			[]uuid.UUID{database.Id, emptyDatabaseID, uuid.New()},
 		)
+
 		require.Len(t, completedBackups, 1)
 		assert.Equal(t, latestBackup.Id, completedBackups[database.Id].ID)
 		assert.NotEqual(t, firstBackup.Id, completedBackups[database.Id].ID)

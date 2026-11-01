@@ -21,6 +21,7 @@ func TestVerificationDatabaseEvents(t *testing.T) {
 				if isSaved {
 					team.enableSchedule(t, apiclient.VerificationScheduleTypeINTERVAL)
 				}
+
 				original := team.config(t)
 				copied, err := team.Owner.Client.CopyDatabaseWithResponse(t.Context(), team.Database.Id)
 				require.NoError(t, err)
@@ -29,6 +30,7 @@ func TestVerificationDatabaseEvents(t *testing.T) {
 				require.NoError(t, err)
 				require.NotNil(t, read.JSON200)
 				assert.Equal(t, configInput(original), configInput(*read.JSON200))
+
 				var count int64
 				team.App.QuerySQL(
 					t,
@@ -36,6 +38,7 @@ func TestVerificationDatabaseEvents(t *testing.T) {
 					"SELECT count(*) FROM verification_configs WHERE database_id=?",
 					copied.JSON201.Id,
 				)
+
 				if isSaved {
 					assert.Equal(t, int64(1), count)
 				} else {
@@ -49,12 +52,14 @@ func TestVerificationDatabaseEvents(t *testing.T) {
 		backup := team.backup(t)
 		verification := team.start(t, backup.Id)
 		team.saveConfig(t, configInput(team.config(t)))
+
 		deletedBackup, err := team.Owner.Client.DeleteLogicalBackupWithResponse(t.Context(), backup.Id)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusNoContent, deletedBackup.StatusCode(), string(deletedBackup.Body))
 		read, err := team.Owner.Client.GetVerificationWithResponse(t.Context(), verification.Id)
 		require.NoError(t, err)
 		requireProblem(t, read.StatusCode(), read.Body, http.StatusNotFound, apiclient.ProblemCodeNotFound)
+
 		deletedDatabase, err := team.Owner.Client.DeleteDatabaseWithResponse(t.Context(), team.Database.Id)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusNoContent, deletedDatabase.StatusCode(), string(deletedDatabase.Body))

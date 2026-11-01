@@ -24,6 +24,7 @@ func TestTelemetryCollectionCaps(t *testing.T) {
 		receiver := &telemetryReceiver{status: http.StatusOK}
 		server := httptest.NewServer(receiver)
 		t.Cleanup(server.Close)
+
 		team := enginetest.NewTeam(
 			t,
 			apptest.WithTelemetry(
@@ -33,6 +34,7 @@ func TestTelemetryCollectionCaps(t *testing.T) {
 				},
 			),
 		)
+
 		source := containers.StartPostgres(t, "postgres:18")
 		var notifierSettings apiclient.NotifierSettings
 		require.NoError(t, notifierSettings.FromWebhookNotifierSettings(apiclient.WebhookNotifierSettings{
@@ -42,6 +44,7 @@ func TestTelemetryCollectionCaps(t *testing.T) {
 			Headers:            []apiclient.WebhookHeader{},
 			AcceptedCategories: []apiclient.NotificationCategory{apiclient.NotificationCategoryALL},
 		}))
+
 		for index := range 201 {
 			database := team.CreateDatabase(t, apiclient.PostgresqlLogicalSettings{
 				Host:      source.Host,
@@ -63,9 +66,11 @@ func TestTelemetryCollectionCaps(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, agent.JSON201, string(agent.Body))
 		}
+
 		team.App.RunJobPass(t, "telemetry_ping")
 		team.App.Clock.Advance(time.Minute)
 		team.App.RunJobPass(t, "telemetry_ping")
+
 		reports := receiver.getReports()
 		require.Len(t, reports, 1)
 		for _, collection := range []string{"databases", "storages", "notifiers", "verificationAgents"} {

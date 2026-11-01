@@ -65,6 +65,7 @@ func RunSlotLifecycle(t *testing.T, image string) {
 	require.Empty(t, getDatabaseSlots(t, conn, true))
 	team.enableBackups(t, true)
 	waitForSlotPresent(t, conn)
+
 	team.deleteDatabase(t)
 	requireDatabaseSlotsGone(t, conn)
 }
@@ -81,6 +82,7 @@ func RunDeleteStreamingDatabase(t *testing.T, image string) {
 	team.waitForChain(t, 0)
 	waitForSlotPresent(t, conn)
 	generateWalActivity(t, conn, 64*1024*1024)
+
 	team.deleteDatabase(t)
 	requireDatabaseSlotsGone(t, conn)
 }

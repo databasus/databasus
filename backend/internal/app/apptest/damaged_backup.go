@@ -17,6 +17,7 @@ func (a *App) DamageLocalBackup(tb testing.TB, backupID uuid.UUID, damagedBytes 
 	if len(backups) != 1 || backups[0].FileName == "" {
 		tb.Fatal("the backup has no stored file")
 	}
+
 	if err := os.WriteFile(
 		filepath.Join(a.dataFolder, backups[0].FileName),
 		damagedBytes,

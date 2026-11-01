@@ -28,18 +28,22 @@ func (s *Service) acceptStorageSwitch(
 	if common.StorageID == nil || (!scope.IsTransfer && isSameStorage(previousStorageID, common.StorageID)) {
 		return nil, nil
 	}
+
 	lastSelectedStorageID, hasLastSelectedStorage, err := s.repository.getLastSelectedStorageID(ctx, common.DatabaseID)
 	if err != nil {
 		return nil, err
 	}
+
 	var unfinishedStorageID *uuid.UUID
 	if hasLastSelectedStorage {
 		unfinishedStorageID = &lastSelectedStorageID
 	}
+
 	removeHistory := s.logicalBackups
 	if savedConfig.GetMethod() == MethodPhysical {
 		removeHistory = s.physicalBackups
 	}
+
 	history, err := removeHistory(
 		ctx,
 		HistoryRemoval{
@@ -51,9 +55,11 @@ func (s *Service) acceptStorageSwitch(
 	if err != nil {
 		return nil, err
 	}
+
 	if previousStorageID == nil && !scope.IsTransfer && !history.HasHistory && len(history.References) == 0 {
 		return nil, nil
 	}
+
 	return s.switches.Accept(
 		ctx,
 		storageswitch.Acceptance{

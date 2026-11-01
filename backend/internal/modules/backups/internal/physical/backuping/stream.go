@@ -41,6 +41,7 @@ func runStream(ctx context.Context, spec streamSpec) (streamOutcome, error) {
 	defer cancelStream(nil)
 	storageReader, storageWriter := io.Pipe()
 	defer func() { _ = storageReader.Close() }()
+
 	finalWriter, encryptionWriter, encSalt, encNonce, err := setupEncryption(
 		storageWriter,
 		p.Encryption,
@@ -60,12 +61,14 @@ func runStream(ctx context.Context, spec streamSpec) (streamOutcome, error) {
 		Source:    storageReader,
 		OnFailure: cancelStream,
 	})
+
 	backup, streamErr := p.Source.StreamBaseBackup(streamCtx, spec.Backup, finalWriter)
 	if encryptionWriter != nil {
 		_ = encryptionWriter.Close()
 	}
 	_ = storageWriter.Close()
 	saveErr := <-fileWrite.Errors
+
 	if ctx.Err() != nil {
 		reason := catalog.BackupErrorCanceledByUser
 

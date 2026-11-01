@@ -33,6 +33,7 @@ func (team *walTeam) useUnavailableStorage(t *testing.T) {
 			},
 		),
 	)
+
 	response, err := team.Owner.Client.CreateStorageWithResponse(
 		t.Context(),
 		apiclient.StorageCreate{Name: "Unavailable WAL S3", WorkspaceId: team.Workspace.Id, Settings: settings},
@@ -46,6 +47,7 @@ func (team *walTeam) recoverStorage(t *testing.T) *minio.Client {
 	t.Helper()
 	endpoint := containers.StartMinio(t)
 	address := fmt.Sprintf("%s:%d", endpoint.Host, endpoint.Port)
+
 	client, err := minio.New(
 		address,
 		&minio.Options{
@@ -59,6 +61,7 @@ func (team *walTeam) recoverStorage(t *testing.T) *minio.Client {
 		t,
 		client.MakeBucket(t.Context(), "backups", minio.MakeBucketOptions{Region: containers.MinioRegion}),
 	)
+
 	var settings apiclient.StorageSettings
 	require.NoError(
 		t,
@@ -73,6 +76,7 @@ func (team *walTeam) recoverStorage(t *testing.T) *minio.Client {
 			},
 		),
 	)
+
 	response, err := team.Owner.Client.UpdateStorageWithResponse(
 		t.Context(),
 		team.StorageID,
@@ -93,6 +97,7 @@ func TestRecoverQueuedPhysicalWal(t *testing.T) {
 		team.waitForReceiver(t)
 		source := team.openSource(t)
 		rotateWal(t, source)
+
 		var claimedSegments []struct {
 			ID          uuid.UUID
 			WalFilename string
@@ -142,9 +147,11 @@ func TestRecoverQueuedPhysicalWal(t *testing.T) {
 				return nil
 			},
 		)
+
 		assert.True(t, team.App.IsWalQueueDirectoryPresent(t, team.Database.Id))
 		client := team.recoverStorage(t)
 		team.waitForWal(t, 1)
+
 		var files []string
 		team.App.QuerySQL(
 			t,
@@ -161,6 +168,7 @@ func TestRecoverQueuedPhysicalWal(t *testing.T) {
 			require.NoError(t, err)
 			assert.Positive(t, sidecar.Size)
 		}
+
 		testwait.Until(t, "successful uploads drain the staging queue", func(context.Context) error {
 			reading := team.live(t)
 			if reading.Current == nil || reading.Current.LocalQueueBytes != 0 {

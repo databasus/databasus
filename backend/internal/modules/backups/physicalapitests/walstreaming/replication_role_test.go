@@ -31,12 +31,14 @@ func (team *walTeam) useReplicationRole(t *testing.T) string {
 		"GRANT EXECUTE ON FUNCTION pg_switch_wal() TO "+pgx.Identifier{roleName}.Sanitize(),
 	)
 	require.NoError(t, err)
+
 	settings, err := team.Database.Settings.AsPostgresqlPhysicalSettings()
 	require.NoError(t, err)
 	settings.Username = roleName
 	settings.Password = new("replication-test-password")
 	var databaseSettings apiclient.DatabaseSettings
 	require.NoError(t, databaseSettings.FromPostgresqlPhysicalSettings(settings))
+
 	response, err := team.Owner.Client.UpdateDatabaseWithResponse(
 		t.Context(),
 		team.Database.Id,

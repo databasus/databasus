@@ -282,6 +282,7 @@ func (a *App) RestartModules(tb testing.TB) {
 	hasPhysicalLoops := a.physicalRunner != nil
 	waitCtx, cancelWait := context.WithTimeout(context.WithoutCancel(tb.Context()), app.ShutdownDrainTimeout)
 	defer cancelWait()
+
 	a.stopModules()
 	if hasPhysicalLoops {
 		if err := a.stopPhysicalWork(waitCtx); err != nil {
@@ -294,6 +295,7 @@ func (a *App) RestartModules(tb testing.TB) {
 	if err := a.app.WaitForNotificationDeliveries(waitCtx); err != nil {
 		tb.Fatalf("wait for notification deliveries before restarting modules: %v", err)
 	}
+
 	a.stopModules = startModules(tb, a.app)
 	if hasPhysicalLoops {
 		a.startPhysicalLoops(tb)
@@ -321,6 +323,7 @@ func (a *App) WaitForPhysicalBackups(tb testing.TB) {
 		tb.Fatalf("open physical backup catalog connection: %v", err)
 	}
 	defer func() { _ = sqlDB.Close() }()
+
 	testwait.Until(tb, "physical backups record their outcome", func(ctx context.Context) error {
 		var runningCount int64
 		err := db.WithContext(ctx).
@@ -404,6 +407,7 @@ func (a *App) stop(tb testing.TB) {
 			tb.Errorf("stop physical backup loops and runs: %v", err)
 		}
 	}
+
 	a.stopModules()
 	waitCtx, cancelWait := context.WithTimeout(context.WithoutCancel(tb.Context()), backupRunsWaitTimeout)
 	defer cancelWait()

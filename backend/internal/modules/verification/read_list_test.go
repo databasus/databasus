@@ -25,6 +25,7 @@ func TestListVerifications(t *testing.T) {
 			require.NotNil(t, canceled.JSON200, string(canceled.Body))
 			team.App.Clock.Advance(time.Second)
 		}
+
 		first, err := team.Owner.Client.ListVerificationsWithResponse(
 			t.Context(),
 			&apiclient.ListVerificationsParams{DatabaseId: team.Database.Id, Limit: new(2), After: nil},
@@ -36,6 +37,7 @@ func TestListVerifications(t *testing.T) {
 		assert.Equal(t, verifications[1].Id, first.JSON200.Items[1].Id)
 		require.NotNil(t, first.JSON200.NextCursor)
 		assert.NotContains(t, string(first.Body), "tableStats")
+
 		last, err := team.Owner.Client.ListVerificationsWithResponse(
 			t.Context(),
 			&apiclient.ListVerificationsParams{

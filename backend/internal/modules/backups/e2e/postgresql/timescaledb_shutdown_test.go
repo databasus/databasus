@@ -33,6 +33,7 @@ func TestTimescaleRestoreShutdown(t *testing.T) {
 		t.Run(scenario.name, func(t *testing.T) {
 			fixture := startBlockedTimescaleRestore(t, endpoint)
 			fixture.proxy.isHolding.Store(scenario.isCleanupStalled)
+
 			if scenario.isCanceledBeforeShutdown {
 				cancelResponse, err := fixture.client.CancelRestoreWithResponse(t.Context(), fixture.restoreID)
 				require.NoError(t, err)
@@ -58,10 +59,12 @@ func TestTimescaleRestoreShutdown(t *testing.T) {
 					require.False(t, isTimescaleTargetRestoring(t, fixture.server, fixture.targetDatabaseName))
 				}
 			}
+
 			fixture.process.Stop(t)
 			restoreResponse, err := fixture.team.Owner.Client.GetRestoreWithResponse(t.Context(), fixture.restoreID)
 			require.NoError(t, err)
 			require.Equal(t, http.StatusOK, restoreResponse.StatusCode())
+
 			if scenario.isCanceledBeforeShutdown {
 				assert.Equal(t, apiclient.RestoreStatusCANCELED, restoreResponse.JSON200.Status)
 			} else {
@@ -69,16 +72,19 @@ func TestTimescaleRestoreShutdown(t *testing.T) {
 				require.NotNil(t, restoreResponse.JSON200.FailMessage)
 				assert.Contains(t, *restoreResponse.JSON200.FailMessage, "restore interrupted by application shutdown")
 			}
+
 			assert.Equal(
 				t,
 				scenario.isCleanupStalled,
 				isTimescaleTargetRestoring(t, fixture.server, fixture.targetDatabaseName),
 			)
+
 			if scenario.isCleanupStalled {
 				log, err := os.ReadFile(fixture.process.outputPath)
 				require.NoError(t, err)
 				assert.Contains(t, string(log), "target database may be left in restoring mode")
 			}
+
 			fixture.proxy.Release()
 		})
 	}
@@ -101,38 +107,46 @@ func TestTimescaleRestoreForcedShutdown(t *testing.T) {
 		tm := enginetest.NewTeam(t)
 		database := tm.CreateDatabase(t, server.newSettings())
 		backup := tm.BackUp(t, database.Id, apiclient.BackupEncryptionNONE)
+
 		var backupFileName string
 		tm.App.QuerySQL(t, &backupFileName, "SELECT file_name FROM backups_logical WHERE id = ?", backup.Id)
 		backupPath := tm.App.GetLocalStorageFilePath(backupFileName)
 		require.NoError(t, os.Remove(backupPath))
 		require.NoError(t, syscall.Mkfifo(backupPath, 0o600))
+
 		// A real FIFO keeps the storage read blocked even after the restore context ends.
 		archive, err := os.OpenFile(backupPath, os.O_RDWR, 0o600)
 		require.NoError(t, err)
 		defer func() { _ = archive.Close() }()
+
 		targetName, _ := server.createRestoreDatabase(t, "forced_cleanup_target")
 		process := startTimescaleServer(t, tm.App.GetServerConfig())
 		client := apiclient.New(t, process.URL, apiclient.WithSessionToken(tm.Owner.Token))
+
 		response, err := client.StartRestoreWithResponse(t.Context(), apiclient.RestoreStart{
 			BackupId: backup.Id, Target: toPostgresqlRestoreTarget(t, server.newTarget(targetName)),
 		})
 		require.NoError(t, err)
 		require.Equal(t, http.StatusAccepted, response.StatusCode(), string(response.Body))
+
 		testwait.Until(t, "pre-restore completes before the blocked archive read", func(context.Context) error {
 			if !isTimescaleTargetRestoring(t, server, targetName) {
 				return fmt.Errorf("restoring mode is not enabled")
 			}
 			return nil
 		})
+
 		process.Stop(t)
 		assert.True(t, isTimescaleTargetRestoring(t, server, targetName))
 		log, err := os.ReadFile(process.outputPath)
 		require.NoError(t, err)
 		assert.Contains(t, string(log), "shutdown steps did not finish within the drain limit")
 		assert.Contains(t, string(log), "backup runs")
+
 		unfinished, err := tm.Owner.Client.GetRestoreWithResponse(t.Context(), response.JSON202.Id)
 		require.NoError(t, err)
 		require.Equal(t, apiclient.RestoreStatusINPROGRESS, unfinished.JSON200.Status)
+
 		restarted := startTimescaleServer(t, tm.App.GetServerConfig())
 		recovered, err := tm.Owner.Client.GetRestoreWithResponse(t.Context(), response.JSON202.Id)
 		require.NoError(t, err)

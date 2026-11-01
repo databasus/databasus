@@ -26,17 +26,20 @@ func TestDeleteDatabaseWithPhysicalBackups(t *testing.T) {
 				physicalServer,
 				apiclient.PhysicalBackupTypeFULLINCREMENTALWALSTREAM,
 			)
+
 			storageID := tm.createLocalStorage(t)
 			fullID := insertCompletedPhysicalFullBackup(t, tm, physicalDatabase.Id, storageID)
 			fullFileName := "full-" + fullID.String()
 			fileNames := []string{fullFileName, "full-manifest"}
 			artifactFileNames := []string{fullFileName, "wal-first", "wal-second", "timeline-history"}
+
 			tm.app.ExecuteSQL(
 				t,
 				"UPDATE backups_physical SET manifest_file_name = ? WHERE id = ?",
 				"full-manifest",
 				fullID,
 			)
+
 			parentIncrementalID := &fullID
 			for range 2 {
 				incrementalID := uuid.New()
@@ -49,10 +52,12 @@ func TestDeleteDatabaseWithPhysicalBackups(t *testing.T) {
 				artifactFileNames = append(artifactFileNames, fileName)
 				parentIncrementalID = &incrementalID
 			}
+
 			tm.app.ExecuteSQL(t, `INSERT INTO backups_physical
 				(id,database_id,storage_id,timeline_id,kind,status,root_full_backup_id,parent_backup_id)
 				VALUES (?,?,?,1,'INCREMENTAL','IN_PROGRESS',?,?)`,
 				uuid.New(), physicalDatabase.Id, storageID, fullID, parentIncrementalID)
+
 			for _, segment := range []struct {
 				fileName string
 				startLSN string
@@ -65,15 +70,18 @@ func TestDeleteDatabaseWithPhysicalBackups(t *testing.T) {
     VALUES (?, ?, 1, ?, ?, ?::pg_lsn, ?::pg_lsn)`, physicalDatabase.Id, storageID, segment.fileName, segment.fileName, segment.startLSN, segment.endLSN)
 				fileNames = append(fileNames, segment.fileName)
 			}
+
 			tm.app.ExecuteSQL(t, `INSERT INTO backups_physical_wal_history_files
    (database_id, storage_id, timeline_id, file_name, history_filename)
    VALUES (?, ?, 2, 'timeline-history', '00000002.history')`, physicalDatabase.Id, storageID)
 			fileNames = append(fileNames, "timeline-history")
+
 			tm.app.ExecuteSQL(
 				t,
 				`INSERT INTO backups_physical_wal_streamers (database_id, status) VALUES (?, 'RUNNING')`,
 				physicalDatabase.Id,
 			)
+
 			tm.app.ExecuteSQL(t, `INSERT INTO backups_physical_wal_stream_samples
    (database_id, sampled_at, session_started_at, source_state, archived_segments, archived_wal_bytes,
    archived_stored_bytes, wal_segment_size_bytes, highest_concurrent_uploads, local_queue_bytes,
@@ -84,6 +92,7 @@ func TestDeleteDatabaseWithPhysicalBackups(t *testing.T) {
 
 			require.NoError(t, err)
 			require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
+
 			for _, table := range []string{"backups_physical", "backups_physical_wal_segments", "backups_physical_wal_history_files", "backups_physical_wal_streamers", "backups_physical_wal_stream_samples"} {
 				assert.Zero(
 					t,

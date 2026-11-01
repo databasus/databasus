@@ -18,6 +18,7 @@ func TestCancelVerification(t *testing.T) {
 		backup := team.backup(t)
 		verification := team.start(t, backup.Id)
 		agent := team.App.CreateVerificationAgent(t, team.Admin)
+
 		refused, err := team.App.NewSessionClient(t, agent.Token).
 			CancelVerificationWithResponse(t.Context(), verification.Id)
 		require.NoError(t, err)
@@ -29,6 +30,7 @@ func TestCancelVerification(t *testing.T) {
 			apiclient.ProblemCodeUnauthenticated,
 		)
 		assert.Equal(t, apiclient.VerificationStatusPENDING, team.read(t, verification.Id).Status)
+
 		response, err := team.Owner.Client.CancelVerificationWithResponse(t.Context(), verification.Id)
 		require.NoError(t, err)
 		require.NotNil(t, response.JSON200, string(response.Body))
@@ -40,6 +42,7 @@ func TestCancelVerification(t *testing.T) {
 			team := newVerificationTeam(t)
 			backup := team.backup(t)
 			verification := team.start(t, backup.Id)
+
 			team.App.ExecuteSQL(
 				t,
 				"UPDATE verification_runs SET status=?,finished_at=? WHERE id=?",
@@ -47,6 +50,7 @@ func TestCancelVerification(t *testing.T) {
 				team.App.Clock.Now(),
 				verification.Id,
 			)
+
 			response, err := team.Owner.Client.CancelVerificationWithResponse(t.Context(), verification.Id)
 			require.NoError(t, err)
 			requireProblem(

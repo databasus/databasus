@@ -27,6 +27,7 @@ func TestBudget(t *testing.T) {
 				ContextSpec{Timeout: 30 * time.Second, Reserve: time.Second},
 			)
 			defer cancelCleanup()
+
 			require.NoError(t, cleanupCtx.Err())
 			assert.Equal(t, "restore", cleanupCtx.Value(contextKey{}))
 			<-cleanupCtx.Done()
@@ -61,12 +62,14 @@ func TestBudget(t *testing.T) {
 			)
 			defer cancelFirst()
 			<-firstCleanup.Done()
+
 			lateCleanup, cancelLate := budget.NewContext(
 				t.Context(),
 				ContextSpec{Timeout: 30 * time.Second, Reserve: time.Second},
 			)
 			defer cancelLate()
 			require.Error(t, lateCleanup.Err())
+
 			outcomeCtx, cancelOutcome := budget.NewContext(
 				t.Context(),
 				ContextSpec{Timeout: 30 * time.Second, Reserve: 0},

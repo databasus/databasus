@@ -89,6 +89,7 @@ func TestTriggerPhysicalBackup(t *testing.T) {
 			catalog.Owner,
 			apptest.StorageUse{DatabaseID: catalog.DatabaseID, StorageID: catalog.StorageID},
 		)
+
 		catalog.call(
 			t,
 			catalogCall{
@@ -97,6 +98,7 @@ func TestTriggerPhysicalBackup(t *testing.T) {
 				StatusCode:    http.StatusAccepted,
 			},
 		)
+
 		var requested []struct{ ForceFullRequestedAt *time.Time }
 		catalog.App.QuerySQL(
 			t,
@@ -110,6 +112,7 @@ func TestTriggerPhysicalBackup(t *testing.T) {
 		catalog := newCatalog(t)
 		apptest.SaveBackupConfigWithStorage(t, catalog.Owner,
 			apptest.StorageUse{DatabaseID: catalog.DatabaseID, StorageID: catalog.StorageID})
+
 		var problem apiclient.Problem
 		catalog.call(
 			t,
@@ -120,6 +123,7 @@ func TestTriggerPhysicalBackup(t *testing.T) {
 				Destination:   &problem,
 			},
 		)
+
 		assert.Equal(t, apiclient.ProblemCodeNoExtendableChain, problem.Code)
 		assert.Equal(t, backupRequests{}, catalog.getBackupRequests(t))
 	})

@@ -19,6 +19,7 @@ func TestDeletePhysicalReplicationSlots(t *testing.T) {
 		t.Run(scenario, func(t *testing.T) {
 			team := newWalTeam(t, walTeamSpec{IsWithoutLoops: true, IsBastioned: !isUnreachable})
 			source := team.openSource(t)
+
 			var names []struct {
 				BackupSlotName      string
 				ReplicationSlotName string
@@ -30,11 +31,13 @@ func TestDeletePhysicalReplicationSlots(t *testing.T) {
 				team.Database.Id,
 			)
 			require.Len(t, names, 1)
+
 			slots := []string{names[0].BackupSlotName, names[0].ReplicationSlotName}
 			for _, slot := range slots {
 				_, err := source.Exec(t.Context(), "SELECT pg_create_physical_replication_slot($1,true)", slot)
 				require.NoError(t, err)
 			}
+
 			if isUnreachable {
 				team.App.ExecuteSQL(
 					t,
@@ -42,9 +45,11 @@ func TestDeletePhysicalReplicationSlots(t *testing.T) {
 					team.Database.Id,
 				)
 			}
+
 			response, err := team.Owner.Client.DeleteDatabaseWithResponse(t.Context(), team.Database.Id)
 			require.NoError(t, err)
 			require.Equal(t, http.StatusNoContent, response.StatusCode(), "%s", response.Body)
+
 			var databases int
 			team.App.QuerySQL(t, &databases, "SELECT count(*) FROM databases WHERE id=?", team.Database.Id)
 			assert.Zero(t, databases)

@@ -39,6 +39,7 @@ func TestRunConsoleCommand(t *testing.T) {
 		assert.True(t, hasAuditRecordContaining(t, testApp, "First account on the instance now administers it: "+email))
 		assert.Contains(t, getAdminLine(t, testApp, email), "bootstrap administrator")
 		require.NoError(t, signIn(t, client, email, consolePassword))
+
 		signedUpEmail := newConsoleEmail()
 		signUp(t, client, signedUpEmail)
 		signedUpUser, isFound, err := testApp.usersModule.GetUserByEmail(t.Context(), signedUpEmail)

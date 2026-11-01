@@ -11,6 +11,7 @@ func (s *Service) GetHealth(ctx context.Context) (GetInstanceHealthResponseObjec
 	now := s.clock.Now().UTC()
 	jobs := s.getJobs(now)
 	checks := []HealthCheck{s.checkDisk(ctx), s.checkDatabase(ctx), s.checkTools(ctx), s.checkAgents(ctx)}
+
 	isHealthy := true
 	for _, check := range checks {
 		if check.Outcome == HealthCheckOutcomeFAILED {
@@ -31,6 +32,7 @@ func (s *Service) GetHealth(ctx context.Context) (GetInstanceHealthResponseObjec
 			)
 		}
 	}
+
 	if isHealthy {
 		return healthResponse{
 			response: GetInstanceHealth200JSONResponse{Status: HealthReportStatusHEALTHY, Checks: checks, Jobs: jobs},
@@ -55,6 +57,7 @@ func (s *Service) checkDisk(ctx context.Context) HealthCheck {
 		FailureCode:     nil,
 		StaleAgentCount: nil,
 	}
+
 	usage, err := s.inspectDisk(s.dataDirectory)
 	if err != nil {
 		s.logCheckFailure(ctx, check.Name, err)
@@ -78,8 +81,10 @@ func (s *Service) checkDatabase(ctx context.Context) HealthCheck {
 		FailureCode:     nil,
 		StaleAgentCount: nil,
 	}
+
 	checkContext, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
+
 	if err := s.connectivity.check(checkContext); err != nil {
 		s.logCheckFailure(ctx, check.Name, err)
 		return failCheck(check, HealthCheckFailureCodeCONNECTIONFAILED)
@@ -108,13 +113,16 @@ func (s *Service) checkAgents(ctx context.Context) HealthCheck {
 		FailureCode:     nil,
 		StaleAgentCount: nil,
 	}
+
 	checkContext, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
+
 	staleAgents, err := s.verification.ListStaleAgents(checkContext)
 	if err != nil {
 		s.logCheckFailure(ctx, check.Name, err)
 		return failCheck(check, HealthCheckFailureCodeQUERYFAILED)
 	}
+
 	check.StaleAgentCount = new(len(staleAgents))
 	if len(staleAgents) > 0 {
 		for _, agent := range staleAgents {

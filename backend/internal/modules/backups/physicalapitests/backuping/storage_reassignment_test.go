@@ -50,21 +50,25 @@ func TestReassignPhysicalStorage(t *testing.T) {
 				team := newBackupTeam(t, backupTeamSpec{})
 				full := team.runBackup(t, "full")
 				require.Equal(t, "COMPLETED", full.Status)
+
 				cleared := team.saveStorage(t, storageConfigSave{IsEnabled: !isDisabled})
 				require.Equal(t, http.StatusOK, cleared.StatusCode(), "%s", cleared.Body)
 				require.Len(t, team.listBackups(t), 1)
 				if !isSameStorage {
 					team.StorageID = apptest.CreateStorageNamespace(t, team.Owner, team.Database.WorkspaceId).StorageID
 				}
+
 				assigned := team.saveStorage(t, storageConfigSave{StorageID: &team.StorageID, IsEnabled: !isDisabled})
 				require.Equal(t, http.StatusAccepted, assigned.StatusCode(), "%s", assigned.Body)
 				require.Empty(t, team.listBackups(t))
+
 				if isDisabled {
 					assert.False(t, apptest.GetBackupConfig(t, team.Owner, team.Database.Id).IsBackupsEnabled)
 					team.App.RunJobPass(t, "backups_physical_scheduler")
 					require.Empty(t, team.listBackups(t))
 					setBackupsEnabled(t, team, true)
 				}
+
 				replacement := team.runAutomaticBackup(t)
 				assert.Equal(t, "FULL", replacement.Type)
 				assert.Equal(t, "COMPLETED", replacement.Status)
@@ -79,15 +83,20 @@ func TestEnableSwitchedPhysicalStorage(t *testing.T) {
 	t.Run("starts a fresh full when a disabled switch preserves a target chain", func(t *testing.T) {
 		team := newBackupTeam(t, backupTeamSpec{})
 		full := team.runBackup(t, "full")
+
 		targetStorageID := team.App.CreateLocalStorage(t, team.Owner, team.Database.WorkspaceId)
 		team.App.ExecuteSQL(t, "UPDATE backups_physical SET storage_id=? WHERE id=?", targetStorageID, full.ID)
+
 		switched := team.saveStorage(t, storageConfigSave{StorageID: &targetStorageID, IsEnabled: false})
 		require.Equal(t, http.StatusAccepted, switched.StatusCode(), "%s", switched.Body)
+
 		team.App.RunJobPass(t, "backups_physical_scheduler")
 		require.Len(t, team.listBackups(t), 1)
+
 		setBackupsEnabled(t, team, true)
 		team.App.RunJobPass(t, "backups_physical_scheduler")
 		team.App.WaitForPhysicalBackups(t)
+
 		backups := team.listBackups(t)
 		require.Len(t, backups, 2)
 		for _, backup := range backups {
@@ -110,11 +119,13 @@ func TestRollbackRunningPhysicalStorageSwitch(t *testing.T) {
 			t,
 			`CREATE TRIGGER refuse_switch_files BEFORE INSERT ON storages_deletion_batch_items FOR EACH ROW EXECUTE FUNCTION refuse_switch_files()`,
 		)
+
 		targetStorageID := team.App.CreateLocalStorage(t, team.Owner, team.Database.WorkspaceId)
 		response := team.saveStorage(t, storageConfigSave{StorageID: &targetStorageID, IsEnabled: true})
 		require.Equal(t, http.StatusInternalServerError, response.StatusCode(), "%s", response.Body)
 		assert.Equal(t, &team.StorageID, apptest.GetBackupConfig(t, team.Owner, team.Database.Id).StorageId)
 		assert.Equal(t, "IN_PROGRESS", findPhysicalBackup(t, team, backup).Status)
+
 		releaseStorage()
 		team.App.WaitForPhysicalBackups(t)
 		assert.Equal(t, "COMPLETED", findPhysicalBackup(t, team, backup).Status)

@@ -27,13 +27,16 @@ describe('VerificationAgentsComponent', () => {
         token: 'issued-once-token',
       }),
     );
+
     renderScreen(<VerificationAgentsComponent />);
     fireEvent.click(await screen.findByRole('button', { name: /Create/ }));
     const dialog = await screen.findByRole('dialog');
+
     fireEvent.change(within(dialog).getByPlaceholderText('Agent name'), {
       target: { value: 'My agent' },
     });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Create' }));
+
     expect(await screen.findByText('issued-once-token')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: "I've saved the token" }));
     await waitFor(() => expect(screen.queryByText('issued-once-token')).toBeNull());
@@ -58,6 +61,7 @@ describe('VerificationAgentsComponent', () => {
         ],
       }),
     );
+
     renderScreen(<VerificationAgentsComponent />);
     expect(await screen.findByText(label)).toBeTruthy();
   });
@@ -81,6 +85,7 @@ it.each([
       maxConcurrentJobs: 0,
       createdAt: '2026-10-27T10:00:00Z',
     };
+
     mockServer.use(mockApi.get('/verification-agents', 200, { items: [agent] }));
     vi.spyOn(window, 'setInterval');
     const view = renderScreen(<VerificationAgentsComponent />);
@@ -90,6 +95,7 @@ it.each([
         ? mockApi.pending('delete', '/verification-agents/{agentId}')
         : mockApi.pending('get', '/verification-agents');
     mockServer.use(pending.handler);
+
     if (operation === 'delete') {
       await view.user.click(screen.getByRole('button', { name: 'delete' }));
       await view.user.click(await screen.findByRole('button', { name: 'Delete' }));
@@ -99,9 +105,11 @@ it.each([
       act(() => tick());
     }
     await waitFor(() => expect(mockServer.getRequests()).toHaveLength(2));
+
     act(() => activateSession({ token: 'new-session', userId: 'new-owner' }));
     const provider = document.querySelector('.ant-app');
     if (operation === 'delete') view.rerender(<div>New account</div>);
+
     const processed = new Promise<void>((resolve) => {
       const onResponse = () => {
         mockServer.events.removeListener('response:mocked', onResponse);
@@ -109,6 +117,7 @@ it.each([
       };
       mockServer.events.on('response:mocked', onResponse);
     });
+
     await act(async () => {
       pending.respond(
         isRefused
@@ -119,6 +128,7 @@ it.each([
       );
       await processed;
     });
+
     expect(document.querySelector('.ant-app')).toBe(provider);
     expect(document.querySelector('.ant-message-notice')).toBeNull();
     expect(screen.queryByText('Obsolete agent')).toBeNull();

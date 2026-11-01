@@ -31,6 +31,7 @@ func (s *Service) createScheduledRuns(ctx context.Context, logger *slog.Logger) 
 	if err != nil {
 		return err
 	}
+
 	databaseIDs := make([]uuid.UUID, len(enabledConfigs))
 	for index, config := range enabledConfigs {
 		databaseIDs[index] = config.DatabaseID
@@ -47,10 +48,12 @@ func (s *Service) createScheduledRuns(ctx context.Context, logger *slog.Logger) 
 	if err != nil {
 		return err
 	}
+
 	databasesByID := make(map[uuid.UUID]databases.Database, len(foundDatabases))
 	for _, database := range foundDatabases {
 		databasesByID[database.ID] = database
 	}
+
 	for _, config := range enabledConfigs {
 		database, isFound := databasesByID[config.DatabaseID]
 		backup, hasBackup := latestBackups[config.DatabaseID]

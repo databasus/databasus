@@ -23,6 +23,7 @@ func StartS3ClassProxy(t *testing.T, targetURL string, isRejectWrites bool) *S3C
 
 	target, err := url.Parse(targetURL)
 	require.NoError(t, err)
+
 	forwarder := httputil.NewSingleHostReverseProxy(target)
 	proxy := &S3ClassProxy{}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -46,6 +47,7 @@ func StartS3ClassProxy(t *testing.T, targetURL string, isRejectWrites bool) *S3C
 
 		forwarder.ServeHTTP(w, r)
 	}))
+
 	t.Cleanup(server.Close)
 	proxy.URL = server.URL
 

@@ -36,11 +36,13 @@ func startBlockedTimescaleRestore(t *testing.T, endpoint containers.Endpoint) bl
 		"CREATE TABLE cleanup_rows(id integer); INSERT INTO cleanup_rows VALUES (1)",
 	)
 	require.NoError(t, err)
+
 	tm := enginetest.NewTeam(t)
 	settings := server.newSettings()
 	settings.Database = &sourceName
 	database := tm.CreateDatabase(t, settings)
 	backup := tm.BackUp(t, database.Id, apiclient.BackupEncryptionNONE)
+
 	targetName, targetDB := server.createRestoreDatabase(t, "cleanup_target")
 	_, err = targetDB.ExecContext(t.Context(), "CREATE TABLE cleanup_rows(id integer)")
 	require.NoError(t, err)
@@ -49,9 +51,11 @@ func startBlockedTimescaleRestore(t *testing.T, endpoint containers.Endpoint) bl
 	t.Cleanup(func() { _ = lock.Rollback() })
 	_, err = lock.ExecContext(t.Context(), "LOCK TABLE cleanup_rows IN ACCESS EXCLUSIVE MODE")
 	require.NoError(t, err)
+
 	proxy := startRestoreProxy(t, endpoint)
 	process := startTimescaleServer(t, tm.App.GetServerConfig())
 	client := apiclient.New(t, process.URL, apiclient.WithSessionToken(tm.Owner.Token))
+
 	target := server.newTarget(targetName)
 	target.Host = proxy.endpoint.Host
 	target.Port = proxy.endpoint.Port
@@ -62,6 +66,7 @@ func startBlockedTimescaleRestore(t *testing.T, endpoint containers.Endpoint) bl
 	require.NoError(t, err)
 	require.Equal(t, http.StatusAccepted, response.StatusCode(), string(response.Body))
 	restoreID := response.JSON202.Id
+
 	testwait.Until(t, "the archive waits for the target table lock", func(ctx context.Context) error {
 		var isWaiting bool
 		err := server.admin.GetContext(

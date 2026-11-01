@@ -141,6 +141,7 @@ func (r *Runner) runPass(ctx context.Context, job *scheduledJob) (passError erro
 		slog.String("job_name", job.job.Name),
 		slog.String("job_id", uuid.NewString()),
 	)
+
 	now := r.clock.Now().UTC()
 	job.snapshotMutex.Lock()
 	job.snapshot.IsRunning = true
@@ -182,6 +183,7 @@ func (r *Runner) completePass(job *scheduledJob, err error) {
 	case err != nil:
 		outcome = PassFailed
 	}
+
 	completedAt := r.clock.Now().UTC()
 	job.snapshotMutex.Lock()
 	job.snapshot.IsRunning = false

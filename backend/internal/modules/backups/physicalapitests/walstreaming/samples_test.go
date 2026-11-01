@@ -29,11 +29,13 @@ func TestPhysicalWalSamples(t *testing.T) {
 					FailingSince: new(time.Now().UTC().Add(-time.Hour)),
 				},
 			)
+
 			team.enable(t)
 			team.waitForReceiver(t)
 			source := team.openSource(t)
 			rotateWal(t, source)
 			team.waitForWal(t, 1)
+
 			var first streamStatistics
 			testwait.Until(
 				t,
@@ -49,6 +51,7 @@ func TestPhysicalWalSamples(t *testing.T) {
 					return nil
 				},
 			)
+
 			assert.Equal(t, "REACHABLE", first.Current.SourceState)
 			assert.Nil(t, first.Current.SourceWrittenBytes)
 			assert.NotNil(t, first.Current.SourceCurrentLSN)
@@ -62,6 +65,7 @@ func TestPhysicalWalSamples(t *testing.T) {
 			assert.NotNil(t, first.Current.SegmentWriteAvgMillis)
 			assert.NotNil(t, first.Current.SegmentWriteMaxMillis)
 			assert.Nil(t, first.Streamer.FailingSince)
+
 			generateWal(t, source, 4096)
 			testwait.Until(t, "the next sample reports new source writes", func(context.Context) error {
 				next := team.statistics(t)
@@ -82,6 +86,7 @@ func TestPhysicalWalSamples(t *testing.T) {
 			team.enable(t)
 			team.waitForReceiver(t)
 			source := team.openSource(t)
+
 			setLogin := func(isAllowed bool) {
 				command := " NOLOGIN"
 				if isAllowed {
@@ -90,6 +95,7 @@ func TestPhysicalWalSamples(t *testing.T) {
 				_, err := source.Exec(t.Context(), "ALTER ROLE "+pgx.Identifier{role}.Sanitize()+command)
 				require.NoError(t, err)
 			}
+
 			setLogin(false)
 			var first streamStatistics
 			testwait.Until(t, "the source outage appears in a persisted sample", func(context.Context) error {
@@ -100,9 +106,11 @@ func TestPhysicalWalSamples(t *testing.T) {
 				}
 				return nil
 			})
+
 			assert.Nil(t, first.Current.SourceCurrentLSN)
 			assert.Nil(t, first.Current.SlotLagBytes)
 			assert.Nil(t, first.Current.SourceWrittenBytes)
+
 			setLogin(true)
 			team.App.RestartModules(t)
 			team.waitForReceiver(t)
@@ -120,6 +128,7 @@ func TestPhysicalWalSamples(t *testing.T) {
 				assert.Nil(t, next.Current.SourceWrittenBytes)
 				return nil
 			})
+
 			setLogin(true)
 		},
 	)

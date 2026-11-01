@@ -20,6 +20,7 @@ func TestWalStreamShutdown(t *testing.T) {
 		team.enable(t)
 		team.waitForReceiver(t)
 		team.App.WaitForPhysicalBackups(t)
+
 		source := team.openSource(t)
 		var initialSlot string
 		require.NoError(
@@ -27,11 +28,14 @@ func TestWalStreamShutdown(t *testing.T) {
 			source.QueryRow(t.Context(), "SELECT slot_name FROM pg_replication_slots WHERE slot_name LIKE 'databasus_slot_%' AND active").
 				Scan(&initialSlot),
 		)
+
 		initialStatistics := team.statistics(t)
 		require.NotNil(t, initialStatistics.Streamer.SessionStartedAt)
+
 		team.App.RestartModules(t)
 		resumeCtx, cancelResume := context.WithTimeout(t.Context(), 30*time.Second)
 		defer cancelResume()
+
 		testwait.Until(
 			t,
 			"the same replication slot and its statistics resume before the old heartbeat becomes stale",
@@ -67,6 +71,7 @@ func TestWalStreamShutdown(t *testing.T) {
 		team.enable(t)
 		team.waitForReceiver(t)
 		team.App.WaitForPhysicalBackups(t)
+
 		source := team.openSource(t)
 		var initialSlot string
 		require.NoError(
@@ -74,6 +79,7 @@ func TestWalStreamShutdown(t *testing.T) {
 			source.QueryRow(t.Context(), "SELECT slot_name FROM pg_replication_slots WHERE slot_name LIKE 'databasus_slot_%' AND active").
 				Scan(&initialSlot),
 		)
+
 		team.disable(t)
 		team.App.RunJobPass(t, "backups_physical_wal_stream_manager")
 		testwait.Until(t, "the statistics report a stopped streamer", func(context.Context) error {
@@ -82,6 +88,7 @@ func TestWalStreamShutdown(t *testing.T) {
 			}
 			return nil
 		})
+
 		var slotExists bool
 		require.NoError(
 			t,

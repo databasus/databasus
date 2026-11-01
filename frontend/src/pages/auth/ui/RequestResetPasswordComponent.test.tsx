@@ -35,16 +35,20 @@ describe('RequestResetPasswordComponent', () => {
       body: undefined,
     });
     server.use(delivery.handler);
+
     renderScreen(<RequestResetPasswordComponent onSwitchToResetPassword={onReset} />);
     submitRequest();
     await waitFor(() => expect(server.getRequests()).toHaveLength(1));
+
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     const processed = observeResponse();
     await act(async () => {
       delivery.release();
       await processed;
     });
+
     expect(screen.getByText('If the email exists, a reset code has been sent')).toBeTruthy();
+
     const repeatedDelivery = mockApi.delayed({
       method: 'post',
       path: '/password-resets',
@@ -52,6 +56,7 @@ describe('RequestResetPasswordComponent', () => {
       body: undefined,
     });
     server.use(repeatedDelivery.handler);
+
     const submit = screen.getByRole('button', { name: 'Send reset code' });
     expect(submit.hasAttribute('disabled')).toBe(true);
     const email = screen.getByRole('textbox', { name: 'Your email' });
@@ -61,13 +66,16 @@ describe('RequestResetPasswordComponent', () => {
     expect(screen.getByText('If the email exists, a reset code has been sent')).toBeTruthy();
     expect(server.getRequests()).toHaveLength(1);
     expect(onReset).not.toHaveBeenCalled();
+
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1999);
     });
     expect(onReset).not.toHaveBeenCalled();
+
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1);
     });
+
     expect(onReset).toHaveBeenCalledExactlyOnceWith('owner@example.com');
     expect(server.getRequests()).toHaveLength(1);
     repeatedDelivery.release();
@@ -77,18 +85,22 @@ describe('RequestResetPasswordComponent', () => {
     const onReset = vi.fn();
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     server.use(mockApi.post('/password-resets', 204, undefined));
+
     renderScreen(<RequestResetPasswordComponent onSwitchToResetPassword={onReset} />);
     const processed = observeResponse();
     await act(async () => {
       submitRequest();
       await processed;
     });
+
     expect(screen.getByText('If the email exists, a reset code has been sent')).toBeTruthy();
+
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2000);
     });
     expect(onReset).toHaveBeenCalledExactlyOnceWith('owner@example.com');
   });
+
   it('retains the email with an explicit correction path when the server refuses delivery', async () => {
     server.use(mockApi.post('/password-resets', 403, buildProblem('permission_denied', 403)));
     renderScreen(<RequestResetPasswordComponent />);
@@ -99,27 +111,33 @@ describe('RequestResetPasswordComponent', () => {
       false,
     );
   });
+
   it('cancels delayed navigation when the successful request page is unmounted', async () => {
     const onReset = vi.fn();
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     server.use(mockApi.post('/password-resets', 204, undefined));
     const view = renderScreen(<RequestResetPasswordComponent onSwitchToResetPassword={onReset} />);
+
     const processed = observeResponse();
     await act(async () => {
       submitRequest();
       await processed;
     });
+
     expect(screen.getByText('If the email exists, a reset code has been sent')).toBeTruthy();
     view.rerender(<div>Reset request closed</div>);
+
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1999);
     });
     expect(vi.getTimerCount()).toBe(0);
+
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1);
     });
     expect(onReset).not.toHaveBeenCalled();
   });
+
   it('prevents repeated delivery and ignores a late response after navigation', async () => {
     const onReset = vi.fn();
     const request = mockApi.delayed({
@@ -129,11 +147,13 @@ describe('RequestResetPasswordComponent', () => {
       body: undefined,
     });
     server.use(request.handler);
+
     const view = renderScreen(<RequestResetPasswordComponent onSwitchToResetPassword={onReset} />);
     submitRequest();
     await waitFor(() => expect(server.getRequests()).toHaveLength(1));
     fireEvent.click(screen.getByRole('button', { name: /Send reset code/ }));
     expect(server.getRequests()).toHaveLength(1);
+
     view.rerender(<div>Reset request closed</div>);
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     const processed = observeResponse();
@@ -141,10 +161,12 @@ describe('RequestResetPasswordComponent', () => {
       request.release();
       await processed;
     });
+
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1999);
     });
     expect(vi.getTimerCount()).toBe(0);
+
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1);
     });

@@ -21,10 +21,12 @@ func (team Team) seedChainAndStreamPastTarget(
 	chain = team.buildIncremental(t, sourceConn, incrementalSpec{ParentStopLSN: chainTipStopLSN(t, chain), Count: 1})
 	insertMarker(t, sourceConn, markerRow{Phase: "after-incr1", Payload: "row-between-incr1-and-incr2"})
 	chain = team.buildIncremental(t, sourceConn, incrementalSpec{ParentStopLSN: chainTipStopLSN(t, chain), Count: 2})
+
 	insertMarker(t, sourceConn, markerRow{Phase: "before-target", Payload: "row-replayed-up-to-target"})
 	generateWalActivity(t, sourceConn, 64*1024*1024)
 	targetTime = targetTimeWithMargin(t, sourceConn)
 	insertMarker(t, sourceConn, markerRow{Phase: "after-target", Payload: "row-after-target-must-be-absent"})
+
 	afterTargetLSN := currentLSN(t, sourceConn)
 	generateWalActivity(t, sourceConn, 64*1024*1024)
 	team.waitForReplayableThroughLSN(t, chain, afterTargetLSN)

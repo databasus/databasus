@@ -23,9 +23,11 @@ func TestSegmentBounds(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			timeline, start, end, err := segmentBounds(testCase.filename, testCase.segmentSize)
 			require.NoError(t, err)
+
 			assert.Equal(t, 1, timeline)
 			assert.Equal(t, testCase.start, start)
 			assert.Equal(t, start+walmath.LSN(testCase.segmentSize), end)
+
 			_, nextStart, _, err := segmentBounds(testCase.nextFilename, testCase.segmentSize)
 			require.NoError(t, err)
 			assert.Equal(t, end, nextStart)

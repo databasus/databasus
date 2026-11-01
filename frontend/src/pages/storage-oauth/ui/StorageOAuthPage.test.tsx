@@ -39,8 +39,10 @@ const openCallback = (query: string, isStrictMode = false) => {
       }
     },
   );
+
   window.history.replaceState(null, '', `/storages/google-oauth?${query}`);
   const screenView = renderScreen(<StorageOAuthPage />, { isStrictMode });
+
   return { ...screenView, messages, channels };
 };
 
@@ -65,10 +67,12 @@ describe('StorageOAuthPage', () => {
   it('relays only code and state across setup replay and waits for a valid acknowledgment', () => {
     vi.useFakeTimers();
     const callback = openCallback(`state=${state}&code=synthetic-code`, true);
+
     expect(callback.messages).toEqual(
       Array(2).fill({ type: 'code', state, code: 'synthetic-code' }),
     );
     expect(callback.channels[0].isClosed).toBe(true);
+
     const channel = callback.channels[callback.channels.length - 1];
     act(() => {
       channel.onmessage?.(
@@ -84,6 +88,7 @@ describe('StorageOAuthPage', () => {
         }),
       );
     });
+
     expect(screen.getByRole('status')).toBeTruthy();
     act(() =>
       channel.onmessage?.(
@@ -93,6 +98,7 @@ describe('StorageOAuthPage', () => {
         }),
       ),
     );
+
     expect(screen.getByText('Authorization received. Return to the storage editor.')).toBeTruthy();
     expect(window.close).toHaveBeenCalledTimes(1);
     expect(callback.channels.every((channel) => channel.isClosed)).toBe(true);
@@ -104,9 +110,12 @@ describe('StorageOAuthPage', () => {
     const callback = openCallback(
       `state=${state}&error=access_denied&error_description=private-provider-text`,
     );
+
     expect(callback.messages).toEqual([{ type: 'refusal', state }]);
+
     act(() => vi.advanceTimersByTime(4999));
     expect(screen.getByRole('status')).toBeTruthy();
+
     act(() => vi.advanceTimersByTime(1));
     expect(screen.getByRole('alert').textContent).toContain('start authorization again');
     expect(screen.queryByText('private-provider-text')).toBeNull();

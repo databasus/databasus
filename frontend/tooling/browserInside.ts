@@ -24,6 +24,7 @@ try {
   const baseURL = `http://127.0.0.1:${address.port}`;
   if (!(await fetch(baseURL, { signal: AbortSignal.timeout(10000) })).ok)
     throw new Error('Production preview readiness failed');
+
   process.env.BROWSER_BASE_URL = baseURL;
   await verifyBrowserProbes();
   process.exitCode = await runChild('pnpm', ['exec', 'playwright', 'test', '--project=ui']);

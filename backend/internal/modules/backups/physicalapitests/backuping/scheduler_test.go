@@ -17,6 +17,7 @@ func TestSchedulePhysicalBackup(t *testing.T) {
 			team.setSchedules(t, true)
 			team.seedFull(t, schedulerFullSpec{Age: time.Minute})
 			team.trigger(t, "auto")
+
 			var requests struct {
 				IsFullRequested        bool
 				IsIncrementalRequested bool
@@ -25,8 +26,10 @@ func TestSchedulePhysicalBackup(t *testing.T) {
 				`SELECT force_full_requested_at IS NOT NULL AS is_full_requested,
                         force_incremental_requested_at IS NOT NULL AS is_incremental_requested
                  FROM backups_configs_physical WHERE database_id=?`, team.Database.Id)
+
 			assert.True(t, requests.IsFullRequested)
 			assert.False(t, requests.IsIncrementalRequested)
+
 			backup := team.runAutomaticBackup(t)
 			assert.Equal(t, "FULL", backup.Type)
 		},
@@ -141,14 +144,17 @@ func TestSchedulePhysicalBackup(t *testing.T) {
 	})
 	t.Run("clears an incremental request and falls back to full when no chain is extendable", func(t *testing.T) {
 		team := newBackupState(t)
+
 		team.App.ExecuteSQL(
 			t,
 			"UPDATE backups_configs_physical SET force_incremental_requested_at=? WHERE database_id=?",
 			time.Now().UTC(),
 			team.Database.Id,
 		)
+
 		backup := team.runAutomaticBackup(t)
 		assert.Equal(t, "FULL", backup.Type)
+
 		var pendingRequests int64
 		team.App.QuerySQL(
 			t,
@@ -162,13 +168,16 @@ func TestSchedulePhysicalBackup(t *testing.T) {
 		team := newBackupState(t)
 		team.setSchedules(t, true)
 		team.seedFull(t, schedulerFullSpec{Age: time.Minute})
+
 		team.App.ExecuteSQL(
 			t,
 			"UPDATE backups_configs_physical SET force_incremental_requested_at=? WHERE database_id=?",
 			time.Now().UTC(),
 			team.Database.Id,
 		)
+
 		team.assertNoScheduledBackup(t)
+
 		var pendingRequests int64
 		team.App.QuerySQL(
 			t,

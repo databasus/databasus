@@ -20,6 +20,7 @@ func TestHealthcheckAccess(t *testing.T) {
 		team := newHealthcheckTeam(t)
 		viewer := team.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 		original := team.getConfig(t)
+
 		read, err := viewer.Client.GetHealthcheckConfigWithResponse(t.Context(), team.Database.Id)
 		require.NoError(t, err)
 		require.NotNil(t, read.JSON200, string(read.Body))
@@ -29,6 +30,7 @@ func TestHealthcheckAccess(t *testing.T) {
 		)
 		require.NoError(t, err)
 		require.NotNil(t, list.JSON200, string(list.Body))
+
 		input := configInput(original)
 		input.IsHealthcheckEnabled = false
 		save, err := viewer.Client.UpdateHealthcheckConfigWithResponse(t.Context(), team.Database.Id, input)
@@ -42,6 +44,7 @@ func TestHealthcheckAccess(t *testing.T) {
 				Code:       apiclient.ProblemCodePermissionDenied,
 			},
 		)
+
 		assert.Equal(t, original, team.getConfig(t))
 	})
 	t.Run(
@@ -50,6 +53,7 @@ func TestHealthcheckAccess(t *testing.T) {
 			team := newHealthcheckTeam(t)
 			stranger := team.App.SignUp(t, apptest.NewTestEmail("stranger"))
 			original := team.getConfig(t)
+
 			read, err := stranger.Client.GetHealthcheckConfigWithResponse(t.Context(), team.Database.Id)
 			require.NoError(t, err)
 			missing, err := stranger.Client.GetHealthcheckConfigWithResponse(t.Context(), uuid.New())
@@ -64,6 +68,7 @@ func TestHealthcheckAccess(t *testing.T) {
 				},
 			)
 			assert.JSONEq(t, string(missing.Body), string(read.Body))
+
 			input := configInput(original)
 			input.IntervalMinutes = 10
 			save, err := stranger.Client.UpdateHealthcheckConfigWithResponse(
@@ -81,6 +86,7 @@ func TestHealthcheckAccess(t *testing.T) {
 					Code:       apiclient.ProblemCodeNotFound,
 				},
 			)
+
 			list, err := stranger.Client.ListHealthcheckAttemptsWithResponse(
 				t.Context(),
 				&apiclient.ListHealthcheckAttemptsParams{DatabaseId: team.Database.Id, Since: time.Unix(0, 0).UTC()},
@@ -95,6 +101,7 @@ func TestHealthcheckAccess(t *testing.T) {
 					Code:       apiclient.ProblemCodeNotFound,
 				},
 			)
+
 			assert.Equal(t, original, team.getConfig(t))
 		},
 	)
@@ -105,6 +112,7 @@ func TestHealthcheckAccess(t *testing.T) {
 		save, err := team.Admin.Client.UpdateHealthcheckConfigWithResponse(t.Context(), team.Database.Id, input)
 		require.NoError(t, err)
 		require.NotNil(t, save.JSON200, string(save.Body))
+
 		read, err := team.Admin.Client.GetHealthcheckConfigWithResponse(t.Context(), team.Database.Id)
 		require.NoError(t, err)
 		require.NotNil(t, read.JSON200, string(read.Body))
@@ -114,11 +122,13 @@ func TestHealthcheckAccess(t *testing.T) {
 		)
 		require.NoError(t, err)
 		require.NotNil(t, list.JSON200, string(list.Body))
+
 		assert.Equal(t, input, configInput(team.getConfig(t)))
 	})
 	t.Run("requires a session for every operation", func(t *testing.T) {
 		team := newHealthcheckTeam(t)
 		client := team.App.NewClient(t)
+
 		read, err := client.GetHealthcheckConfigWithResponse(t.Context(), team.Database.Id)
 		require.NoError(t, err)
 		requireProblem(
@@ -130,6 +140,7 @@ func TestHealthcheckAccess(t *testing.T) {
 				Code:       apiclient.ProblemCodeUnauthenticated,
 			},
 		)
+
 		save, err := client.UpdateHealthcheckConfigWithResponse(
 			t.Context(),
 			team.Database.Id,
@@ -145,6 +156,7 @@ func TestHealthcheckAccess(t *testing.T) {
 				Code:       apiclient.ProblemCodeUnauthenticated,
 			},
 		)
+
 		list, err := client.ListHealthcheckAttemptsWithResponse(
 			t.Context(),
 			&apiclient.ListHealthcheckAttemptsParams{DatabaseId: team.Database.Id, Since: time.Unix(0, 0).UTC()},

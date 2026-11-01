@@ -23,14 +23,17 @@ const fixtures: string[] = [];
 const createProject = (files: Record<string, string>) => {
   const directory = mkdtempSync(join(tmpdir(), 'databasus-fsd-'));
   fixtures.push(directory);
+
   const write = ({ path, content }: FixtureFileOptions) => {
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, content);
   };
+
   write({
     path: join(directory, 'tsconfig.json'),
     content: JSON.stringify({ compilerOptions: { baseUrl: '.', paths: { '@/*': ['src/*'] } } }),
   });
+
   for (const [path, content] of Object.entries(files))
     write({ path: join(directory, 'src', path), content });
   return join(directory, 'src');
@@ -171,6 +174,7 @@ describe('frontend architecture', () => {
       target: 'entities/database/model/connection.ts',
     };
     const entry = { ...finding, count: 1, owner: 'databases', milestone: 5 };
+
     expect(compareArchitectureBaseline([finding], [entry])).toEqual([]);
     expect(compareArchitectureBaseline([finding, finding], [entry])).toEqual([
       expect.stringContaining('Increased'),
@@ -209,12 +213,14 @@ describe('frontend architecture', () => {
     async (separator) => {
       const imports = "import {database} from '@/entities/database';";
       const reexports = "export {database} from '@/entities/database';";
+
       const findings = await checkFrontendArchitecture(
         createProject({
           ...domain,
           'shared/api/client.ts': imports + separator + reexports,
         }),
       );
+
       const violations = findings.filter(
         (finding) =>
           finding.source === 'shared/api/client.ts' && finding.rule.includes('forbidden'),

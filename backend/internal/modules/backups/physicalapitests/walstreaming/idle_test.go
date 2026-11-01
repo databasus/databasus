@@ -22,6 +22,7 @@ func TestIdlePhysicalWalSource(t *testing.T) {
 			team.enable(t)
 			team.waitForReceiver(t)
 			source := team.openSource(t)
+
 			var slot string
 			team.App.QuerySQL(
 				t,
@@ -34,6 +35,7 @@ func TestIdlePhysicalWalSource(t *testing.T) {
 				return source.QueryRow(ctx, "SELECT active_pid FROM pg_replication_slots WHERE slot_name=$1 AND active_pid IN (SELECT pid FROM pg_stat_activity WHERE application_name LIKE 'databasus%')", slot).
 					Scan(&receiverPID)
 			})
+
 			startedAt := time.Now().UTC()
 			testwait.Until(t, "samples cover 150 seconds of an idle source", func(ctx context.Context) error {
 				var activePID int

@@ -30,9 +30,11 @@ func TestRunPass(t *testing.T) {
 		assert.Equal(t, context.DeadlineExceeded.Error(), *pending.LastError)
 		assert.Equal(t, files.clock.Now().Add(testTimings().RetryBaseDelay), pending.NotBefore.UTC())
 		assert.Equal(t, 1, pending.AttemptCount)
+
 		files.runPass(t)
 		pending, _ = files.findPending(t, reference)
 		assert.Equal(t, 1, pending.AttemptCount)
+
 		files.clock.Advance(testTimings().RetryBaseDelay)
 		files.runPass(t)
 		pending, _ = files.findPending(t, reference)

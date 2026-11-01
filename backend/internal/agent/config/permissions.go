@@ -26,9 +26,11 @@ func EnsurePrivateFile(path string, chmod func(string, os.FileMode) error) (*Per
 	if err != nil {
 		return nil, fmt.Errorf("read config file permissions: %w", err)
 	}
+
 	if fileInfo.Mode().Perm()&0o077 == 0 {
 		return nil, nil
 	}
+
 	if err := chmod(path, 0o600); err != nil {
 		owner := "unknown"
 		ownerUID := -1

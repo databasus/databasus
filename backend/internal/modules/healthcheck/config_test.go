@@ -34,16 +34,19 @@ func TestHealthcheckConfig(t *testing.T) {
 			FailedAttemptsBeforeUnavailable: 2,
 			AttemptRetentionDays:            30,
 		}
+
 		response, err := member.Client.UpdateHealthcheckConfigWithResponse(t.Context(), team.Database.Id, input)
 		require.NoError(t, err)
 		require.NotNil(t, response.JSON200, string(response.Body))
 		assert.Equal(t, input, configInput(*response.JSON200))
 		assert.Equal(t, input, configInput(team.getConfig(t)))
+
 		events := apptest.ListAllAuditEvents(
 			t,
 			team.Owner,
 			apiclient.ListAuditEventsParams{WorkspaceId: &team.Workspace.Id},
 		)
+
 		hasConfigEvent := false
 		for _, event := range events {
 			if event.Message == "Healthcheck config updated for database '"+team.Database.Name+"'" {
@@ -57,6 +60,7 @@ func TestHealthcheckConfig(t *testing.T) {
 		original := team.getConfig(t)
 		for _, field := range []string{"interval", "threshold", "retention"} {
 			input := configInput(original)
+
 			switch field {
 			case "interval":
 				input.IntervalMinutes = 0
@@ -65,6 +69,7 @@ func TestHealthcheckConfig(t *testing.T) {
 			case "retention":
 				input.AttemptRetentionDays = 0
 			}
+
 			response, err := team.Owner.Client.UpdateHealthcheckConfigWithResponse(t.Context(), team.Database.Id, input)
 			require.NoError(t, err)
 			requireProblem(
@@ -86,6 +91,7 @@ func TestHealthcheckConfig(t *testing.T) {
 			t,
 			"ALTER TABLE lib_audit_events ADD CONSTRAINT ck_healthcheck_audit_failure CHECK (message NOT LIKE 'Healthcheck config%')",
 		)
+
 		input := configInput(original)
 		input.IsHealthcheckEnabled = false
 		response, err := team.Owner.Client.UpdateHealthcheckConfigWithResponse(t.Context(), team.Database.Id, input)
@@ -99,12 +105,14 @@ func TestHealthcheckConfig(t *testing.T) {
 				Code:       apiclient.ProblemCodeInternal,
 			},
 		)
+
 		assert.Equal(t, original, team.getConfig(t))
 		assert.Equal(t, new(apiclient.DatabaseHealthStatusAVAILABLE), team.getHealthStatus(t))
 	})
 	t.Run("returns internal without creating a config when its row is missing", func(t *testing.T) {
 		team := newHealthcheckTeam(t)
 		team.App.ExecuteSQL(t, "DELETE FROM healthcheck_configs WHERE database_id = ?", team.Database.Id)
+
 		response, err := team.Owner.Client.GetHealthcheckConfigWithResponse(t.Context(), team.Database.Id)
 		require.NoError(t, err)
 		requireProblem(
@@ -116,6 +124,7 @@ func TestHealthcheckConfig(t *testing.T) {
 				Code:       apiclient.ProblemCodeInternal,
 			},
 		)
+
 		var count int64
 		team.App.QuerySQL(t, &count, "SELECT count(*) FROM healthcheck_configs WHERE database_id = ?", team.Database.Id)
 		assert.Zero(t, count)

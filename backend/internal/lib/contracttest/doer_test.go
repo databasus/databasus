@@ -164,16 +164,20 @@ func TestContractCheckingBinaryResponse(t *testing.T) {
 			<-request.Context().Done()
 		}))
 		t.Cleanup(server.Close)
+
 		router, err := httpserver.NewContractRouter([]byte(contractWithBinary))
 		require.NoError(t, err)
 		doer := &Doer{tb: t, contractRouter: router, httpClient: server.Client()}
+
 		ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 		defer cancel()
 		request, err := http.NewRequestWithContext(ctx, http.MethodGet, server.URL+"/api/v1/archives", nil)
 		require.NoError(t, err)
+
 		response, err := doer.Do(request)
 		require.NoError(t, err)
 		defer func() { _ = response.Body.Close() }()
+
 		firstByte := make([]byte, 1)
 		_, err = response.Body.Read(firstByte)
 		require.NoError(t, err)
@@ -191,15 +195,18 @@ func TestContractCheckingBinaryHeaders(t *testing.T) {
 			_, _ = writer.Write([]byte("archive"))
 		}))
 		t.Cleanup(server.Close)
+
 		router, err := httpserver.NewContractRouter([]byte(contractWithBinary))
 		require.NoError(t, err)
 		recorder := &failureRecorder{TB: t, failures: nil, mutex: sync.Mutex{}}
 		doer := &Doer{tb: recorder, contractRouter: router, httpClient: server.Client()}
 		request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, server.URL+"/api/v1/archives", nil)
 		require.NoError(t, err)
+
 		response, err := doer.Do(request)
 		require.NoError(t, err)
 		require.NoError(t, response.Body.Close())
+
 		failures := recorder.getFailures()
 		require.Len(t, failures, 1)
 		assert.Contains(t, failures[0], "X-Archive-Id")

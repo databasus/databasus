@@ -21,6 +21,7 @@ const validateHandler = (handler: unknown) => {
   if (!pathname.startsWith('/') || /[ *+?(){}]/.test(pathname)) {
     throw new Error(`HTTP mocks require a finite pathname: ${handler.info.path}`);
   }
+
   const origin =
     handler.info.path.startsWith('*') || handler.info.path.startsWith('/')
       ? undefined
@@ -82,16 +83,19 @@ export const setUpMockApi = () => {
           ).matches
         );
       });
+
       if (!isDeclared) {
         unexpectedRequests.push(`${request.method} ${request.url}`);
         return;
       }
+
       let finish = () => {};
       const settled = new Promise<void>((resolve) => {
         finish = resolve;
       });
       inFlight.set(requestId, { settled, finish, request });
     });
+
     const finishRequest = ({ requestId }: { requestId: string }) => {
       inFlight.get(requestId)?.finish();
       inFlight.delete(requestId);
@@ -105,6 +109,7 @@ export const setUpMockApi = () => {
     const cleanupErrors: unknown[] = [];
     const violations: string[] = [];
     let cleanupTimer: ReturnType<typeof setTimeout> | undefined;
+
     try {
       try {
         if (typeof document !== 'undefined') cleanup();
@@ -137,6 +142,7 @@ export const setUpMockApi = () => {
       inFlight.clear();
       vi.unstubAllGlobals();
     }
+
     if (violations.length)
       cleanupErrors.push(new Error(`Unexpected HTTP requests:\n${violations.join('\n')}`));
     if (cleanupErrors.length === 1) throw cleanupErrors[0];

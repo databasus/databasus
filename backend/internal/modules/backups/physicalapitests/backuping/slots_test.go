@@ -39,6 +39,7 @@ func TestPhysicalBackupSlots(t *testing.T) {
 					if kind == "incremental" {
 						require.Equal(t, "COMPLETED", team.runBackup(t, "full").Status)
 					}
+
 					source := team.openSource(t)
 					slotName, _ := team.slotNames(t)
 					lock := team.App.BeginSQLTransaction(t)
@@ -50,8 +51,10 @@ func TestPhysicalBackupSlots(t *testing.T) {
 						team.StorageID,
 					)
 					require.Len(t, storageIDs, 1)
+
 					team.trigger(t, kind)
 					team.App.RunJobPass(t, "backups_physical_scheduler")
+
 					testwait.Until(
 						t,
 						"the running backup reserves WAL with its physical slot",
@@ -68,10 +71,12 @@ func TestPhysicalBackupSlots(t *testing.T) {
 							return nil
 						},
 					)
+
 					lock.Rollback(t)
 					team.App.WaitForPhysicalBackups(t)
 					rows := team.listBackups(t)
 					require.Equal(t, "COMPLETED", rows[0].Status)
+
 					var count int
 					require.NoError(
 						t,
@@ -79,6 +84,7 @@ func TestPhysicalBackupSlots(t *testing.T) {
 							Scan(&count),
 					)
 					assert.Zero(t, count)
+
 					team.assertNoRunningBackup(t)
 				},
 			)
@@ -90,6 +96,7 @@ func TestPhysicalBackupSlots(t *testing.T) {
 		slotName, _ := team.slotNames(t)
 		_, err := source.Exec(t.Context(), "SELECT pg_create_physical_replication_slot($1,true)", slotName)
 		require.NoError(t, err)
+
 		for range 2 {
 			require.Equal(t, "COMPLETED", team.runBackup(t, "full").Status)
 			var count int
@@ -103,12 +110,14 @@ func TestPhysicalBackupSlots(t *testing.T) {
 	})
 	t.Run("reuses the slot after a failed full when its source becomes reachable", func(t *testing.T) {
 		team := newBackupTeam(t, backupTeamSpec{})
+
 		team.App.ExecuteSQL(
 			t,
 			"UPDATE databases_postgresql_physical SET host='127.0.0.1',port=1 WHERE database_id=?",
 			team.Database.Id,
 		)
 		require.Equal(t, "ERROR", team.runBackup(t, "full").Status)
+
 		team.App.ExecuteSQL(
 			t,
 			"UPDATE databases_postgresql_physical SET host=?,port=? WHERE database_id=?",
@@ -116,6 +125,7 @@ func TestPhysicalBackupSlots(t *testing.T) {
 			team.Source.Port,
 			team.Database.Id,
 		)
+
 		require.Equal(t, "COMPLETED", team.runBackup(t, "full").Status)
 		team.assertNoRunningBackup(t)
 	})
@@ -133,11 +143,14 @@ func TestPhysicalBackupSlotStartupCleanup(t *testing.T) {
 			team := newBackupTeam(t, backupTeamSpec{IsBastioned: isBastioned})
 			source := team.openSource(t)
 			backupSlot, streamerSlot := team.slotNames(t)
+
 			for _, slot := range []string{backupSlot, streamerSlot, "unrelated_physical_test_slot"} {
 				_, err := source.Exec(t.Context(), "SELECT pg_create_physical_replication_slot($1,true)", slot)
 				require.NoError(t, err)
 			}
+
 			team.App.RestartModules(t)
+
 			var slots []string
 			rows, err := source.Query(t.Context(), "SELECT slot_name FROM pg_replication_slots")
 			require.NoError(t, err)
@@ -148,6 +161,7 @@ func TestPhysicalBackupSlotStartupCleanup(t *testing.T) {
 				slots = append(slots, slot)
 			}
 			require.NoError(t, rows.Err())
+
 			assert.ElementsMatch(t, []string{streamerSlot, "unrelated_physical_test_slot"}, slots)
 		})
 	}
@@ -157,12 +171,15 @@ func TestPhysicalBackupSlotStartupCleanup(t *testing.T) {
 		slotName, _ := team.slotNames(t)
 		_, err := source.Exec(t.Context(), "SELECT pg_create_physical_replication_slot($1,true)", slotName)
 		require.NoError(t, err)
+
 		team.App.ExecuteSQL(
 			t,
 			"UPDATE databases_postgresql_physical SET host='127.0.0.1',port=1 WHERE database_id=?",
 			team.Database.Id,
 		)
+
 		team.App.RestartModules(t)
+
 		var count int
 		require.NoError(
 			t,
@@ -170,6 +187,7 @@ func TestPhysicalBackupSlotStartupCleanup(t *testing.T) {
 				Scan(&count),
 		)
 		assert.Equal(t, 1, count)
+
 		team.App.ExecuteSQL(
 			t,
 			"UPDATE databases_postgresql_physical SET host=?,port=? WHERE database_id=?",
@@ -177,6 +195,7 @@ func TestPhysicalBackupSlotStartupCleanup(t *testing.T) {
 			team.Source.Port,
 			team.Database.Id,
 		)
+
 		team.App.RestartModules(t)
 		require.NoError(
 			t,

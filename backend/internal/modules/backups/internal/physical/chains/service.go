@@ -159,9 +159,11 @@ func (s *Service) DeleteIncrementalCascade(
 		if !isFound {
 			return nil
 		}
+
 		if _, _, err := s.backupRepository.FindByIDForUpdate(ctx, *target.RootFullBackupID); err != nil {
 			return err
 		}
+
 		chain, err := s.backupRepository.FindAllByRootFull(ctx, *target.RootFullBackupID)
 		if err != nil {
 			return err

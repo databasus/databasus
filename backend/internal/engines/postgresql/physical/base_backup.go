@@ -55,6 +55,7 @@ func (s *Source) StreamBaseBackup(
 	if _, err := exec.LookPath(toolPath); err != nil {
 		return BaseBackupResult{}, fmt.Errorf("pg_basebackup binary not found at %s: %w", toolPath, err)
 	}
+
 	streamCtx, cancelStream := context.WithCancelCause(ctx)
 	defer cancelStream(nil)
 	group := background.New(background.Deps{Logger: spec.Logger})
@@ -64,6 +65,7 @@ func (s *Source) StreamBaseBackup(
 	var files []manifestFileEntry
 	var manifestErr error
 	manifestDone := make(chan struct{})
+
 	group.Go(streamCtx, "base backup manifest", func(ctx context.Context) error {
 		defer close(manifestDone)
 		defer func() { _ = manifestReader.Close() }()
@@ -78,6 +80,7 @@ func (s *Source) StreamBaseBackup(
 		}
 		return nil
 	})
+
 	group.Go(streamCtx, "base backup stall watcher", func(ctx context.Context) error {
 		watchByteStall(ctx, byteStallSpec{Counter: counter, Backup: spec, StartedAt: startedAt, OnStall: func() {
 			spec.Logger.WarnContext(ctx, "byte-stall timeout tripped; terminating pg_basebackup")
@@ -85,6 +88,7 @@ func (s *Source) StreamBaseBackup(
 		}})
 		return nil
 	})
+
 	if spec.ProgressListener != nil {
 		group.Go(streamCtx, "base backup progress", func(ctx context.Context) error {
 			reportProgress(ctx, progressSpec{Counter: counter, Backup: spec, StartedAt: startedAt})
@@ -98,18 +102,21 @@ func (s *Source) StreamBaseBackup(
 		Stdout: io.MultiWriter(counter, manifestWriter), Stderr: &stderr,
 		StopSignal: syscall.SIGINT, KillAfter: clientToolKillAfter,
 	})
+
 	var runErr error
 	if startErr != nil {
 		runErr = startErr
 	} else {
 		runErr = running.Wait()
 	}
+
 	_ = manifestWriter.Close()
 	<-manifestDone
 	cause := context.Cause(streamCtx)
 	cancelStream(nil)
 	_ = group.Wait(context.WithoutCancel(ctx))
 	stderrBytes := stderr.Bytes()
+
 	failure := &BaseBackupError{Kind: BaseBackupToolFailed, Cause: getClientExitError(runErr), Stderr: stderrBytes}
 	switch {
 	case errors.Is(cause, errByteStall):

@@ -20,6 +20,7 @@ beforeEach(() => {
   const language = document.documentElement.getAttribute('lang');
   const classes = document.documentElement.className;
   const dayjsLocale = dayjs.locale();
+
   restoreDocument = () => {
     restoreStorage(localStorage, localEntries);
     restoreStorage(sessionStorage, sessionEntries);

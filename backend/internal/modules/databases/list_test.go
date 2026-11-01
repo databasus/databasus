@@ -34,6 +34,7 @@ func TestListDatabases(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, http.StatusOK, firstPage.StatusCode(), string(firstPage.Body))
 			require.NotNil(t, firstPage.JSON200.NextCursor)
+
 			nextPage, err := tm.owner.Client.ListDatabasesWithResponse(t.Context(), &apiclient.ListDatabasesParams{
 				WorkspaceId: tm.workspace.Id,
 				NotifierId:  nil,

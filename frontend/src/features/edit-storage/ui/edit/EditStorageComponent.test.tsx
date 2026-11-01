@@ -212,12 +212,14 @@ it.each(
     const fetchObservation = vi.spyOn(globalThis, 'fetch');
     const alert = vi.spyOn(window, 'alert').mockImplementation(() => {});
     let testRequests = 0;
+
     mockServer.use(
       http.post(`*${API_BASE_PATH}/storage-tests`, () => {
         testRequests++;
         return testRequests === 1 ? previousTest.response : currentTest.response;
       }),
     );
+
     const screenView = renderSavedStorageForm(savedS3Storage);
 
     fireEvent.click(screen.getByRole('button', { name: /Test connection/ }));
@@ -352,6 +354,7 @@ describe('SFTP credentials', () => {
     const sentUpdates: ApiComponents['schemas']['StorageUpdate'][] = [];
     let testRequests = 0;
     const storage = savedSftpStorage(['PASSWORD']);
+
     mockServer.use(
       http.post(`*${API_BASE_PATH}/storage-tests`, () => {
         testRequests++;
@@ -362,6 +365,7 @@ describe('SFTP credentials', () => {
         return sentUpdates.length === 1 ? pendingSave.response : HttpResponse.json(storage);
       }),
     );
+
     const { user } = renderSavedStorageForm(storage);
     const passwordInput = screen.getByLabelText('Password', { exact: true });
 
@@ -526,6 +530,7 @@ describe('SFTP credentials', () => {
   ])('$scenario', async ({ hasNewerInput }) => {
     const pendingSave = createPendingApiResponse();
     const requests: ApiComponents['schemas']['StorageUpdate'][] = [];
+
     mockServer.use(
       mockApi.post('/storage-tests', 200, { isConnected: true }),
       http.put(`*${API_BASE_PATH}/storages/sftp-id`, async ({ request }) => {
@@ -535,6 +540,7 @@ describe('SFTP credentials', () => {
           : HttpResponse.json(savedSftpStorage(['PASSWORD', 'PRIVATE_KEY']));
       }),
     );
+
     const { user } = renderSavedStorageForm(savedSftpStorage(['PASSWORD', 'PRIVATE_KEY']));
 
     await user.type(screen.getByLabelText('Password', { exact: true }), 'submitted-password');
@@ -623,6 +629,7 @@ it.each(
     const onChanged = vi.fn();
     const fetchObservation = vi.spyOn(globalThis, 'fetch');
     let saveRequests = 0;
+
     const editor = (storage: Storage, workspaceId = 'workspace-id') => (
       <EditStorageComponent
         workspaceId={workspaceId}
@@ -633,6 +640,7 @@ it.each(
         onClose={() => {}}
       />
     );
+
     mockServer.use(
       mockApi.post('/storage-tests', 200, { isConnected: true }),
       http.put(`*${API_BASE_PATH}/storages/sftp-id`, () => {
@@ -640,6 +648,7 @@ it.each(
         return pendingSave.response;
       }),
     );
+
     const storage = savedSftpStorage(['PRIVATE_KEY']);
     const view = renderScreen(editor(storage));
 

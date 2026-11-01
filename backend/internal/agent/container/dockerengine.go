@@ -247,6 +247,7 @@ func (e *DockerEngine) Exec(
 	if stdin != nil {
 		copyErr := make(chan error, 1)
 		group := background.New(background.Deps{Logger: e.log})
+
 		group.Go(ctx, "container_exec_stdin", func(ctx context.Context) error {
 			err := background.RunRecovering(ctx, func(context.Context) error {
 				_, err := io.Copy(attached.Conn, stdin)
@@ -256,6 +257,7 @@ func (e *DockerEngine) Exec(
 			copyErr <- err
 			return err
 		})
+
 		_ = group.Wait(context.WithoutCancel(ctx))
 
 		if cErr := <-copyErr; cErr != nil {

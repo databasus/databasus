@@ -16,6 +16,7 @@ export const verifyBrowserProbes = async () => {
       config,
       `import configuration from ${JSON.stringify(applicationConfigUrl)}; export default { ...configuration, projects: configuration.projects.filter(project => project.name === 'ui').map(project => ({ ...project, testDir: ${JSON.stringify(directory)} })), testDir: ${JSON.stringify(directory)}, testMatch: 'probe.spec.mjs', outputDir: ${JSON.stringify(join(directory, 'artifacts'))}, snapshotPathTemplate: ${JSON.stringify(join(directory, 'references/{arg}{ext}'))} };`,
     );
+
     const fixtureUrl = pathToFileURL(resolve('browser/browserTest.ts')).href;
     await writeFile(
       join(directory, 'probe.spec.mjs'),
@@ -58,6 +59,7 @@ test('isolated harness failure probe', async ({ page }) => {
   }
 });`,
     );
+
     const probe = async ({
       mode,
       isUpdate = false,
@@ -88,6 +90,7 @@ test('isolated harness failure probe', async ({ page }) => {
           throw error;
       }
     };
+
     await probe({ mode: 'scenario', diagnostic: 'deliberate scenario failure' });
     await probe({ mode: 'unexpected', diagnostic: 'Unexpected HTTP request: GET' });
     await probe({
@@ -108,6 +111,7 @@ test('isolated harness failure probe', async ({ page }) => {
     });
     await probe({ mode: 'popup-error', diagnostic: 'Page error: deliberate popup failure' });
     await probe({ mode: 'page-error', diagnostic: 'Page error: deliberate page failure' });
+
     const reference = join(directory, 'references/probe.png');
     await probe({ mode: 'missing', diagnostic: "snapshot doesn't exist" });
     try {
@@ -116,10 +120,12 @@ test('isolated harness failure probe', async ({ page }) => {
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
     }
+
     await probe({ mode: 'stable', isUpdate: true });
     const digest = createHash('sha256')
       .update(await readFile(reference))
       .digest('hex');
+
     await probe({ mode: 'changed', diagnostic: 'toHaveScreenshot' });
     if (
       digest !==
@@ -129,6 +135,7 @@ test('isolated harness failure probe', async ({ page }) => {
     )
       throw new Error('An ordinary changed-reference run overwrote the expected image');
     await probe({ mode: 'stable' });
+
     console.log(
       'Browser harness probes passed: scenario, caught unexpected API/non-API HTTP and XHR, first popup requests, page and popup errors, missing/changed immutable references and following-run isolation.',
     );

@@ -131,6 +131,7 @@ func TestParentDeath(t *testing.T) {
 		toolPath := filepath.Join(t.TempDir(), "tool")
 		toolstub.Write(t, toolPath, toolstub.Spec{Script: "echo $$; exec sleep 600"})
 		parentOutput := &lockedBuffer{}
+
 		parent := exec.CommandContext(
 			t.Context(),
 			os.Args[0],
@@ -141,6 +142,7 @@ func TestParentDeath(t *testing.T) {
 		parent.Stdout = parentOutput
 		require.NoError(t, parent.Start())
 		t.Cleanup(func() { _ = parent.Process.Kill() })
+
 		var toolPID int
 		testwait.Until(t, "parent reports the tool pid", func(context.Context) error {
 			var err error
@@ -148,6 +150,7 @@ func TestParentDeath(t *testing.T) {
 			return err
 		})
 		t.Cleanup(func() { _ = syscall.Kill(toolPID, syscall.SIGKILL) })
+
 		require.NoError(t, parent.Process.Kill())
 		require.Error(t, parent.Wait())
 		testwait.Until(t, "tool exits after its parent dies", func(context.Context) error {

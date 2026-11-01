@@ -79,6 +79,7 @@ func RunCounterContract(t *testing.T, createCounter CounterFactory) {
 		var allowedCount atomic.Int64
 		operationErrors := make(chan error, callerCount)
 		var waitGroup sync.WaitGroup
+
 		for range callerCount {
 			waitGroup.Go(func() {
 				isAllowed, err := counter.RecordAttemptAndCheckIsAllowed(t.Context(), attempt)
@@ -88,11 +89,14 @@ func RunCounterContract(t *testing.T, createCounter CounterFactory) {
 				}
 			})
 		}
+
 		waitGroup.Wait()
 		close(operationErrors)
+
 		for operationError := range operationErrors {
 			require.NoError(t, operationError)
 		}
+
 		assert.Equal(t, int64(1), allowedCount.Load())
 	})
 }

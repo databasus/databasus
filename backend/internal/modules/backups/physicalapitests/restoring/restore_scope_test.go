@@ -28,9 +28,11 @@ func TestPhysicalRestoreWalScope(t *testing.T) {
 					CompletedAt: timeline.at(0),
 				},
 			)
+
 			for _, segment := range []int{3, 4, 5} {
 				catalog.seedRestoreWal(t, restoreWalSpec{Segment: segment, ReceivedAt: timeline.at(segment)})
 			}
+
 			otherDatabaseID := catalog.App.InsertPhysicalDatabase(t, catalog.WorkspaceID)
 			otherTimeline := newWalSeed(
 				walSeedSpec{
@@ -54,6 +56,7 @@ func TestPhysicalRestoreWalScope(t *testing.T) {
 				},
 			)
 			catalog.insertWal(t, foreign)
+
 			entries := catalog.downloadRestore(t, restoreRequest{})
 			assertRestoreArtifacts(t, entries, full.ID, nil, 4, 5)
 			for _, segment := range []int{4, 5} {

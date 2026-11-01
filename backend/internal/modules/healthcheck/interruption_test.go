@@ -18,6 +18,7 @@ func holdProbe(t *testing.T, team healthcheckTeam) (<-chan net.Conn, chan<- stru
 	listener, err := new(net.ListenConfig).Listen(t.Context(), "tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = listener.Close() })
+
 	accepted := make(chan net.Conn, 1)
 	release := make(chan struct{})
 	go func() {
@@ -32,6 +33,7 @@ func holdProbe(t *testing.T, team healthcheckTeam) (<-chan net.Conn, chan<- stru
 		case <-t.Context().Done():
 		}
 	}()
+
 	address, isTCP := listener.Addr().(*net.TCPAddr)
 	require.True(t, isTCP)
 	team.App.ExecuteSQL(
@@ -52,6 +54,7 @@ func TestHealthcheckInterruption(t *testing.T) {
 		config := configInput(team.getConfig(t))
 		config.FailedAttemptsBeforeUnavailable = 1
 		team.saveConfig(t, config)
+
 		accepted, release := holdProbe(t, team)
 		finished := make(chan error, 1)
 		go func() { finished <- team.App.RunJobPassWithContext(t.Context(), "healthcheck_probe") }()
@@ -60,9 +63,11 @@ func TestHealthcheckInterruption(t *testing.T) {
 		case <-time.After(10 * time.Second):
 			t.Fatal("probe did not connect")
 		}
+
 		config.IsHealthcheckEnabled = false
 		team.saveConfig(t, config)
 		require.Nil(t, team.getHealthStatus(t))
+
 		close(release)
 		select {
 		case err := <-finished:
@@ -70,6 +75,7 @@ func TestHealthcheckInterruption(t *testing.T) {
 		case <-time.After(10 * time.Second):
 			t.Fatal("disabled database probe did not finish")
 		}
+
 		team.App.WaitForNotificationDeliveries(t)
 		assert.Empty(t, team.getAttempts(t))
 		assert.Nil(t, team.getHealthStatus(t))
@@ -80,8 +86,10 @@ func TestHealthcheckInterruption(t *testing.T) {
 		messages := recordNotifications(t, team)
 		accepted, release := holdProbe(t, team)
 		defer close(release)
+
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
+
 		finished := make(chan error, 1)
 		go func() { finished <- team.App.RunJobPassWithContext(ctx, "healthcheck_probe") }()
 		select {
@@ -89,6 +97,7 @@ func TestHealthcheckInterruption(t *testing.T) {
 		case <-time.After(10 * time.Second):
 			t.Fatal("probe did not connect")
 		}
+
 		cancel()
 		select {
 		case err := <-finished:
@@ -96,6 +105,7 @@ func TestHealthcheckInterruption(t *testing.T) {
 		case <-time.After(10 * time.Second):
 			t.Fatal("cancelled pass did not wait for its probes to end")
 		}
+
 		team.App.WaitForNotificationDeliveries(t)
 		assert.Empty(t, team.getAttempts(t))
 		assert.Equal(t, new(apiclient.DatabaseHealthStatusAVAILABLE), team.getHealthStatus(t))
@@ -105,6 +115,7 @@ func TestHealthcheckInterruption(t *testing.T) {
 		team := newHealthcheckTeam(t)
 		messages := recordNotifications(t, team)
 		accepted, release := holdProbe(t, team)
+
 		finished := make(chan error, 1)
 		go func() { finished <- team.App.RunJobPassWithContext(t.Context(), "healthcheck_probe") }()
 		select {
@@ -112,9 +123,11 @@ func TestHealthcheckInterruption(t *testing.T) {
 		case <-time.After(10 * time.Second):
 			t.Fatal("probe did not connect")
 		}
+
 		response, err := team.Owner.Client.DeleteDatabaseWithResponse(t.Context(), team.Database.Id)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
+
 		close(release)
 		select {
 		case err := <-finished:
@@ -122,6 +135,7 @@ func TestHealthcheckInterruption(t *testing.T) {
 		case <-time.After(10 * time.Second):
 			t.Fatal("deleted database probe did not finish")
 		}
+
 		team.App.WaitForNotificationDeliveries(t)
 		for _, table := range []string{"healthcheck_configs", "healthcheck_attempts"} {
 			var count int64

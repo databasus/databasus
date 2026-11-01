@@ -27,24 +27,30 @@ func TestPhysicalBackupShutdown(t *testing.T) {
 				if kind == "incremental" {
 					require.Equal(t, "COMPLETED", team.runBackup(t, "full").Status)
 				}
+
 				failures, successes := &webhookInbox{}, &webhookInbox{}
 				team.attachWebhook(t, failures, apiclient.NotificationCategoryBACKUPFAILED)
 				team.attachWebhook(t, successes, apiclient.NotificationCategoryBACKUPSUCCESS)
 				team.setNotifications(t, apiclient.NotificationTriggerBACKUPFAILED)
+
 				backup, releaseStorage := startHeldPhysicalStream(t, team, kind)
 				team.App.RestartModules(t)
 				releaseStorage()
+
 				listed := findPhysicalBackup(t, team, backup)
 				assert.Equal(t, "ERROR", listed.Status)
 				require.NotNil(t, listed.FailMessage)
 				assert.Equal(t, shutdownFailMessage, *listed.FailMessage)
 				team.assertTerminalDetails(t, listed, "APPLICATION_RESTART")
 				team.assertNoRunningBackup(t)
+
 				team.App.WaitForNotificationDeliveries(t)
 				require.Len(t, failures.getMessages(), 1)
 				assert.Contains(t, failures.getMessages()[0], shutdownFailMessage)
 				assert.Empty(t, successes.getMessages())
+
 				team.App.RunJobPass(t, "storage_file_deletion")
+
 				var artifacts []struct {
 					FileName         *string
 					ManifestFileName *string
@@ -56,6 +62,7 @@ func TestPhysicalBackupShutdown(t *testing.T) {
 					"SELECT file_name, manifest_file_name FROM "+table+" WHERE id=?",
 					backup.ID,
 				)
+
 				require.Len(t, artifacts, 1)
 				require.NotNil(t, artifacts[0].FileName)
 				assert.False(t, team.App.IsLocalStorageFilePresent(t, *artifacts[0].FileName))
@@ -70,10 +77,12 @@ func TestPhysicalBackupShutdown(t *testing.T) {
 			if kind == "incremental" {
 				require.Equal(t, "COMPLETED", team.runBackup(t, "full").Status)
 			}
+
 			backup, releaseStorage := startHeldPhysicalStream(t, team, kind)
 			cancelPhysicalBackup(t, team, backup)
 			releaseStorage()
 			team.App.WaitForPhysicalBackups(t)
+
 			listed := findPhysicalBackup(t, team, backup)
 			assert.Equal(t, "CANCELED", listed.Status)
 			require.NotNil(t, listed.FailMessage)
@@ -108,11 +117,14 @@ func TestCancelDispatchedPhysicalBackup(t *testing.T) {
 		releaseStorage := holdStorageWrites(t, team)
 		team.trigger(t, "full")
 		team.App.RunJobPass(t, "backups_physical_scheduler")
+
 		backups := team.listBackups(t)
 		require.Len(t, backups, 1)
+
 		cancelPhysicalBackup(t, team, backups[0])
 		releaseStorage()
 		team.App.WaitForPhysicalBackups(t)
+
 		listed := findPhysicalBackup(t, team, backups[0])
 		assert.Contains(t, []string{"ERROR", "CANCELED"}, listed.Status)
 		team.assertNoRunningBackup(t)
@@ -127,9 +139,11 @@ func startHeldPhysicalStream(t *testing.T, team *backupTeam, kind string) (backu
 		"CREATE TABLE shutdown_backup_payload AS SELECT string_agg(md5(random()::text),'') AS payload FROM generate_series(1,1000000) entry GROUP BY entry/32",
 	)
 	require.NoError(t, err)
+
 	releaseStorage := holdStorageWrites(t, team)
 	team.trigger(t, kind)
 	team.App.RunJobPass(t, "backups_physical_scheduler")
+
 	var backup backupRow
 	testwait.Until(t, "pg_basebackup streams the held physical backup", func(ctx context.Context) error {
 		var activeCount int
@@ -148,6 +162,7 @@ func startHeldPhysicalStream(t *testing.T, team *backupTeam, kind string) (backu
 		}
 		return fmt.Errorf("no in-progress physical backup")
 	})
+
 	return backup, releaseStorage
 }
 

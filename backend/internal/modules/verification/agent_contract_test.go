@@ -25,10 +25,12 @@ func TestVerificationHeartbeatMemory(t *testing.T) {
 			application := apptest.New(t)
 			admin := application.CreateAdmin(t)
 			agent := application.CreateVerificationAgent(t, admin)
+
 			heartbeat := heartbeatBody(nil)
 			heartbeat.MaxRAMMb = memoryMb
 			status, body := newProtocolAgent(t, application, agent).recordHeartbeat(agent.Agent.ID, heartbeat)
 			require.Equal(t, http.StatusOK, status, string(body))
+
 			agents := application.ListVerificationAgents(t, admin)
 			require.Len(t, agents, 1)
 			assert.Equal(t, memoryMb, agents[0].MaxRAMMb)
@@ -59,8 +61,10 @@ func TestVerificationHeartbeatMemory(t *testing.T) {
 				agent,
 			).recordHeartbeat(agent.Agent.ID, heartbeatBody(nil))
 			require.Equal(t, http.StatusOK, status, string(responseBody))
+
 			beforeRefusal := application.ListVerificationAgents(t, admin)[0]
 			application.Clock.Advance(time.Minute)
+
 			request, err := http.NewRequestWithContext(
 				t.Context(),
 				http.MethodPost,
@@ -73,10 +77,12 @@ func TestVerificationHeartbeatMemory(t *testing.T) {
 			response, err := http.DefaultClient.Do(request)
 			require.NoError(t, err)
 			defer func() { require.NoError(t, response.Body.Close()) }()
+
 			require.Equal(t, http.StatusBadRequest, response.StatusCode)
 			var problem agentclient.Problem
 			require.NoError(t, json.NewDecoder(response.Body).Decode(&problem))
 			assert.Equal(t, agentclient.ProblemCodeInvalidRequest, problem.Code)
+
 			afterRefusal := application.ListVerificationAgents(t, admin)[0]
 			assert.Equal(t, beforeRefusal, afterRefusal)
 		})
@@ -112,6 +118,7 @@ func TestVerificationAgentAuthentication(t *testing.T) {
 				}
 				assert.Equal(t, firstDetail, problem.Detail)
 			}
+
 			status, body := newProtocolAgent(t, app, agent).recordHeartbeat(uuid.New(), heartbeatBody(nil))
 			unknown := requireAgentProblem(
 				t,
@@ -119,10 +126,12 @@ func TestVerificationAgentAuthentication(t *testing.T) {
 				agentclient.Problem{Status: http.StatusUnauthorized, Code: agentclient.ProblemCodeUnauthenticated},
 			)
 			assert.Equal(t, firstDetail, unknown.Detail)
+
 			listed := app.ListVerificationAgents(t, admin)
 			for _, persistedAgent := range listed {
 				assert.Nil(t, persistedAgent.LastSeenAt)
 			}
+
 			deleted, err := admin.Client.DeleteVerificationAgentWithResponse(t.Context(), agent.Agent.ID)
 			require.NoError(t, err)
 			require.Equal(t, http.StatusNoContent, deleted.StatusCode())
@@ -146,6 +155,7 @@ func TestVerificationAgentCapacityValidation(t *testing.T) {
 		agent := app.CreateVerificationAgent(t, admin)
 		status, body := newProtocolAgent(t, app, agent).recordHeartbeat(agent.Agent.ID, heartbeatBody(nil))
 		require.Equal(t, http.StatusOK, status, string(body))
+
 		for _, heartbeat := range []agentclient.HeartbeatRequest{
 			{MaxRAMMb: -1}, {MaxCPU: -1}, {MaxDiskGb: -1}, {MaxConcurrentJobs: -1},
 		} {
@@ -156,6 +166,7 @@ func TestVerificationAgentCapacityValidation(t *testing.T) {
 				agentclient.Problem{Status: http.StatusBadRequest, Code: agentclient.ProblemCodeInvalidRequest},
 			)
 		}
+
 		listed, err := admin.Client.ListVerificationAgentsWithResponse(t.Context(), nil)
 		require.NoError(t, err)
 		require.NotNil(t, listed.JSON200)
@@ -197,6 +208,7 @@ func TestVerificationAgentReportValidation(t *testing.T) {
 			verification := team.start(t, backup.Id)
 			agent := team.App.CreateVerificationAgent(t, team.Admin)
 			claim(t, team, agent)
+
 			response, err := team.App.NewAgentClient(t, agent).
 				ReportVerificationWithResponse(t.Context(), agent.Agent.ID, verification.Id, scenario.report)
 			require.NoError(t, err)
@@ -205,6 +217,7 @@ func TestVerificationAgentReportValidation(t *testing.T) {
 				agentResponse{Status: response.StatusCode(), Body: response.Body},
 				agentclient.Problem{Status: http.StatusBadRequest, Code: agentclient.ProblemCodeInvalidRequest},
 			)
+
 			assert.Equal(t, apiclient.VerificationStatusRUNNING, team.read(t, verification.Id).Status)
 		})
 	}
@@ -221,6 +234,7 @@ func TestVerificationAgentGone(t *testing.T) {
 			agent := team.App.CreateVerificationAgent(t, team.Admin)
 			claim(t, team, agent)
 			verificationID := verification.Id
+
 			switch state {
 			case "cancelled":
 				response, err := team.Owner.Client.CancelVerificationWithResponse(t.Context(), verificationID)
@@ -249,6 +263,7 @@ func TestVerificationAgentGone(t *testing.T) {
 				).reportVerification(verificationID, agentclient.VerificationReport{Status: agentclient.VerificationReportStatusCOMPLETED})
 				require.Equal(t, http.StatusNoContent, status, string(body))
 			}
+
 			client := team.App.NewAgentClient(t, agent)
 			stream, err := client.StreamVerificationBackupWithResponse(t.Context(), agent.Agent.ID, verificationID)
 			require.NoError(t, err)
@@ -257,6 +272,7 @@ func TestVerificationAgentGone(t *testing.T) {
 				agentResponse{Status: stream.StatusCode(), Body: stream.Body},
 				agentclient.Problem{Status: http.StatusGone, Code: agentclient.ProblemCodeVerificationGone},
 			)
+
 			for _, status := range []agentclient.VerificationReportStatus{agentclient.VerificationReportStatusCOMPLETED, agentclient.VerificationReportStatusFAILED} {
 				report, err := client.ReportVerificationWithResponse(
 					t.Context(),
@@ -271,6 +287,7 @@ func TestVerificationAgentGone(t *testing.T) {
 					agentclient.Problem{Status: http.StatusGone, Code: agentclient.ProblemCodeVerificationGone},
 				)
 			}
+
 			if state == "cancelled" {
 				assert.Equal(t, apiclient.VerificationStatusCANCELED, team.read(t, verification.Id).Status)
 			}
@@ -293,6 +310,7 @@ func TestVerificationBackupStreamFailure(t *testing.T) {
 		claim(t, team, agent)
 		team.App.WaitForBackupRuns(t)
 		team.App.RemoveLocalBackupFile(t, backup.Id)
+
 		response, err := team.App.NewAgentClient(t, agent).
 			StreamVerificationBackupWithResponse(t.Context(), agent.Agent.ID, verification.Id)
 		require.NoError(t, err)
@@ -301,6 +319,7 @@ func TestVerificationBackupStreamFailure(t *testing.T) {
 			agentResponse{Status: response.StatusCode(), Body: response.Body},
 			agentclient.Problem{Status: http.StatusInternalServerError, Code: agentclient.ProblemCodeInternal},
 		)
+
 		persistedVerification := team.read(t, verification.Id)
 		assert.Equal(t, apiclient.VerificationStatusRUNNING, persistedVerification.Status)
 		require.NotNil(t, persistedVerification.AgentId)

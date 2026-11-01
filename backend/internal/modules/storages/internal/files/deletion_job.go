@@ -79,6 +79,7 @@ func (j *DeletionJob) RunPass(ctx context.Context, now time.Time) error {
 	if err != nil {
 		return err
 	}
+
 	claimed, err := j.claimDue(ctx, now)
 	if err != nil {
 		return err
@@ -109,6 +110,7 @@ func (j *DeletionJob) PrepareDrain(
 	if err != nil {
 		return DrainRequest{}, err
 	}
+
 	remainingFileNames, err := j.batches.ListRemainingFiles(ctx, storageID)
 	if err != nil {
 		return DrainRequest{}, err
@@ -146,6 +148,7 @@ func (j *DeletionJob) DrainFiles(ctx context.Context, request DrainRequest) []st
 
 			continue
 		}
+
 		canDelete, protectionErr := j.store.writeProtection.TryLockFileForDeletion(ctx, pending.GetReference())
 		if protectionErr != nil || !canDelete {
 			remainingFileNames = append(remainingFileNames, pending.FileName)
@@ -254,6 +257,7 @@ func (j *DeletionJob) attemptDeletion(ctx context.Context, pending PendingDeleti
 		if lockErr != nil {
 			return lockErr
 		}
+
 		if batchErr := j.batches.FailFile(ctx, pending, now); batchErr != nil {
 			return batchErr
 		}
@@ -263,6 +267,7 @@ func (j *DeletionJob) attemptDeletion(ctx context.Context, pending PendingDeleti
 			}
 			return j.batches.RemoveUnownedPending(ctx)
 		}
+
 		var updateErr error
 		isRescheduled, updateErr = j.repository.RescheduleIfGeneration(
 			ctx,
@@ -277,9 +282,11 @@ func (j *DeletionJob) attemptDeletion(ctx context.Context, pending PendingDeleti
 		if updateErr != nil {
 			return updateErr
 		}
+
 		if batchErr := j.batches.Expire(ctx, now); batchErr != nil {
 			return batchErr
 		}
+
 		return j.batches.RemoveUnownedPending(ctx)
 	})
 	if rescheduleErr != nil {
@@ -310,9 +317,11 @@ func (j *DeletionJob) releaseDeletedFile(ctx context.Context, pending PendingDel
 		if lockErr != nil || !isCurrent {
 			return lockErr
 		}
+
 		if batchErr := j.batches.CompleteFile(ctx, pending, now); batchErr != nil {
 			return batchErr
 		}
+
 		var deleteErr error
 		isReleased, deleteErr = j.repository.CompleteIfGeneration(ctx, pending.ID, pending.Generation)
 		return deleteErr

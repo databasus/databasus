@@ -25,8 +25,10 @@ class ReviewProfileStateTest(unittest.TestCase):
                 with self.subTest(client=client, gate=gate):
                     repository = self.prepare(gate)
                     repository.environment["AGENT_REVIEW_CLIENT"] = client
+
                     repository.stop(gate, session_id="first")
                     repository.clear_calls()
+
                     self.assertEqual(repository.stop(gate, session_id="second"), {})
                     self.assertEqual(repository.reviewer_calls(), [])
                     snapshots = [repository.root / f".git/agent-review-hooks/{session}.json" for session in ("first", "second")]
@@ -39,10 +41,12 @@ class ReviewProfileStateTest(unittest.TestCase):
                     repository = self.prepare(gate)
                     category = "bug" if gate == "implementation" else "gap"
                     repository.set_reviewer_result({"findings": [finding(category, "Private Claude finding")] if has_findings else []})
+
                     repository.stop(gate, session_id="first")
                     repository.environment["AGENT_REVIEW_CLIENT"] = "codex"
                     repository.clear_calls()
                     response = repository.stop(gate, session_id="second")
+
                     self.assertNotIn("could not run", response.get("reason", ""))
                     calls = repository.reviewer_calls()
                     self.assertEqual(len(calls), 4 if gate == "implementation" else 6)
@@ -57,6 +61,7 @@ class ReviewProfileStateTest(unittest.TestCase):
             repository.environment["AGENT_REVIEW_CLIENT"] = "codex"
             repository.submit_prompt("Explain widgets", session_id="fresh")
             repository.clear_calls()
+
             self.assertEqual(repository.stop(gate, session_id="fresh"), {})
             self.assertEqual(repository.calls(), [])
 
@@ -69,10 +74,12 @@ class ReviewProfileStateTest(unittest.TestCase):
                     config_path = (Path(repository.environment["CODEX_HOME"]) if location == "home" else repository.root / ".codex") / "config.toml"
                     config_path.parent.mkdir(parents=True, exist_ok=True)
                     config_path.write_text('model = "first-model"\n')
+
                     repository.stop(gate, session_id="first")
                     config_path.write_text('model = "second-model"\n')
                     repository.clear_calls()
                     repository.stop(gate, session_id="second")
+
                     self.assertEqual(len(repository.reviewer_calls()), 4 if gate == "implementation" else 6)
                     state_dir = repository.root / ".git/agent-review-hooks/codex"
                     self.assertEqual(len(list(state_dir.glob(f"*/{gate}/*.json"))), 2)
@@ -93,14 +100,18 @@ class ReviewProfileStateTest(unittest.TestCase):
                 hooks_dir = repository.root / ".agent-hooks"
                 shutil.copytree(HOOK_PATH.parent, hooks_dir, ignore=shutil.ignore_patterns("__pycache__"))
                 script_path = hooks_dir / "review_gate.py"
+
                 repository.set_reviewer_result({"findings": [finding("bug", "Old profile finding")]})
                 self.stop_script(repository, script_path)
+
                 contract_path = hooks_dir / relative_path
                 text = contract_path.read_text()
                 contract_path.write_text(text.replace(original, replacement) if original else text + replacement)
+
                 repository.set_reviewer_result({"findings": []})
                 repository.clear_calls()
                 self.stop_script(repository, script_path)
+
                 self.assertEqual(len(repository.reviewer_calls()), 4)
                 self.assertFalse(any("\nRole: repeat review\n" in call["prompt"] for call in repository.reviewer_calls()))
 
@@ -117,6 +128,7 @@ class ReviewProfileStateTest(unittest.TestCase):
             old_path.parent.mkdir(parents=True)
             old_text = json.dumps({"accepted": "anything", "findings": [finding("bug", "Old unscoped finding")]})
             old_path.write_text(old_text)
+
             repository.stop(gate, session_id="first")
             self.assertEqual(len(repository.reviewer_calls()), 4 if gate == "implementation" else 6)
             self.assertFalse(any("\nRole: repeat review\n" in call["prompt"] for call in repository.reviewer_calls()))
@@ -126,13 +138,17 @@ class ReviewProfileStateTest(unittest.TestCase):
         repository = self.prepare("proposal")
         repository.set_reviewer_result({"findings": [finding("gap", "Claude proposal finding")]})
         repository.stop("proposal", session_id="first")
+
         repository.environment["AGENT_REVIEW_CLIENT"] = "codex"
         repository.clear_calls()
+
         self.assertEqual(repository.stop("diff", session_id="second"), {})
         self.assertEqual(repository.reviewer_calls(), [])
+
         response = repository.stop("proposal", session_id="second")
         self.assertNotIn("Claude proposal finding", response.get("reason", ""))
         self.assertEqual(len(repository.reviewer_calls()), 6)
+
         repository.clear_calls()
         self.assertEqual(repository.stop("proposal", session_id="second"), {})
         self.assertEqual(repository.calls(), [])
@@ -146,14 +162,17 @@ class ReviewProfileStateTest(unittest.TestCase):
                     repository = self.prepare("implementation")
                     repository.environment["AGENT_REVIEW_CLIENT"] = client
                     repository.set_stub(client, {"result": {"findings": [finding("spec_mismatch", "Correct the delta spec")]}})
+
                     response = repository.stop("implementation", session_id="first")
                     self.assertIn("Correct the delta spec", response["reason"])
+
                     if scenario == "other-client":
                         repository.environment["AGENT_REVIEW_CLIENT"] = "codex" if client == "claude" else "claude"
                     elif scenario == "changed-profile":
                         config_path = Path(repository.environment["CODEX_HOME"]) / "config.toml"
                         config_path.parent.mkdir(parents=True, exist_ok=True)
                         config_path.write_text('model = "another-model"\n')
+
                     repository.set_stub(client, {})
                     repository.clear_calls()
                     repository.write(f"openspec/changes/{CHANGE_NAME}/specs/widgets/spec.md", "# widgets\n\nAnswers 400.\n")

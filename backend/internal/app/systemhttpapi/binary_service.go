@@ -19,6 +19,7 @@ func (s *Service) DownloadAgent(
 			[]apierror.FieldError{{Field: "arch", Detail: "must be amd64 or arm64"}},
 		)
 	}
+
 	binaryPath := filepath.Join(s.binaryDirectory, "databasus-verification-agent-linux-"+string(architecture))
 	binary, err := os.Open(binaryPath)
 	if errors.Is(err, os.ErrNotExist) {
@@ -31,6 +32,7 @@ func (s *Service) DownloadAgent(
 	if err != nil {
 		return nil, fmt.Errorf("open verification agent binary: %w", err)
 	}
+
 	info, err := binary.Stat()
 	if err != nil {
 		_ = binary.Close()

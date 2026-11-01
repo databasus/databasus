@@ -130,6 +130,7 @@ export function ProfilePage({ onUserChanged }: Props) {
       const submitted = { name: editName, email: editEmail };
       const acknowledged = await userApi.updateUserInfo(submitted);
       if (!isCurrent()) return;
+
       setUser(acknowledged);
       setEditName((current) => (current === submitted.name ? acknowledged.name : current));
       setEditEmail((current) => (current === submitted.email ? acknowledged.email : current));

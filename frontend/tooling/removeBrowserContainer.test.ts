@@ -24,14 +24,17 @@ if (${JSON.stringify(mode)} === 'removal-refused') console.log('owned-container-
 `,
       { mode: 0o755 },
     );
+
     const entry = join(directory, 'cleanup.mjs');
     await writeFile(
       entry,
       `import { removeBrowserContainer } from ${JSON.stringify(pathToFileURL(resolve('tooling/removeBrowserContainer.ts')).href)}; await removeBrowserContainer('owned-probe');`,
     );
+
     const cleanup = execute(process.execPath, [entry], {
       env: { ...process.env, PATH: `${directory}:${process.env.PATH}` },
     });
+
     if (isSuccessful) await expect(cleanup).resolves.toMatchObject({ stdout: '' });
     else
       await expect(cleanup).rejects.toMatchObject({

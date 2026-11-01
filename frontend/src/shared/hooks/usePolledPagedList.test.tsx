@@ -19,25 +19,31 @@ describe('usePolledPagedList', () => {
     });
     server.use(firstPage.handler);
     vi.useFakeTimers();
+
     const controlledView = renderScreen(<PolledPagedListScreen />);
     await waitForCondition(() => expect(server.getRequests()).toHaveLength(1));
+
     await act(async () => {
       await vi.advanceTimersByTimeAsync(3_000);
     });
     expect(server.getRequests()).toHaveLength(1);
+
     await act(async () => {
       firstPage.release();
     });
     await waitForCondition(() => expect(screen.getByText('Ready:Idle')).toBeTruthy());
+
     server.use(mockApi.get('/workspaces', 200, { items: [] }));
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1_000);
     });
     await waitForCondition(() => expect(server.getRequests()).toHaveLength(2));
+
     const removeListener = vi.spyOn(screen.getByTestId('scroll-list'), 'removeEventListener');
     controlledView.unmount();
     expect(removeListener).toHaveBeenCalledWith('scroll', expect.any(Function));
     expect(vi.getTimerCount()).toBe(0);
+
     await act(async () => {
       await vi.advanceTimersByTimeAsync(5_000);
     });

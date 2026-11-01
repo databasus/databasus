@@ -29,24 +29,29 @@ func decidePhysicalBackupFromNewest(
 		choice.canSchedule = true
 		return choice
 	}
+
 	if state.hasUnresolvedMismatch {
 		return choice
 	}
+
 	if decision, canReplace := decideImmediateReplacementFull(state.lastFull, state.lastIncremental); canReplace {
 		choice.decision, choice.canSchedule = decision, true
 		return choice
 	}
+
 	isFullDue := config.FullBackupSchedule.IsDue(now, createdAtOrNil(state.lastFull))
 	if config.ForceIncrementalRequestedAt != nil && isIncrementalEnabled(config) {
 		choice.needsChain = true
 		return choice
 	}
+
 	choice.shouldClearIncrementalRequest = config.ForceIncrementalRequestedAt != nil
 	if isFullDue {
 		choice.decision = backupDecision{kind: catalog.BackupTypeFull, reason: "full cadence is due"}
 		choice.canSchedule = true
 		return choice
 	}
+
 	choice.needsChain = isIncrementalEnabled(config) &&
 		config.IncrementalBackupSchedule.IsDue(now, newestCreatedAt(state.lastFull, state.lastIncremental))
 	return choice
@@ -73,11 +78,13 @@ func decidePhysicalBackupWithChain(
 			return choice
 		}
 	}
+
 	if config.FullBackupSchedule.IsDue(now, createdAtOrNil(state.lastFull)) {
 		choice.decision = backupDecision{kind: catalog.BackupTypeFull, reason: "full cadence is due"}
 		choice.canSchedule = true
 		return choice
 	}
+
 	if !isIncrementalEnabled(config) ||
 		!config.IncrementalBackupSchedule.IsDue(
 			now,
@@ -85,6 +92,7 @@ func decidePhysicalBackupWithChain(
 		) || state.chainError != nil {
 		return choice
 	}
+
 	if state.extendableRootID == nil {
 		if isChainBrokenBySummarizerOff(state.lastIncremental) || state.recentFullsError != nil ||
 			hasNoRecentCompletedFull(state.recentFullBackups) {
@@ -105,6 +113,7 @@ func decidePhysicalBackupWithChain(
 			incrParentIncrID:     state.incrementalParentID,
 		}
 	}
+
 	choice.canSchedule = true
 	return choice
 }

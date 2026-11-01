@@ -320,6 +320,7 @@ describe('WorkspaceMembersComponent', () => {
       const administrator = buildMember('administrator@example.com', 'WORKSPACE_ADMIN');
       const colleague = buildMember('colleague@example.com', 'WORKSPACE_MEMBER');
       mockMemberList([workspaceOwner, currentMember, administrator, colleague]);
+
       const { user: interaction } = renderScreen(
         <WorkspaceMembersComponent
           selectedWorkspace={{ ...selectedWorkspace, currentUserRole: role }}

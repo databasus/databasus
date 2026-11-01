@@ -194,6 +194,7 @@ export const StorageComponent = ({
     setConnectionError(undefined);
     setStorage(undefined);
     setEditStorage(undefined);
+
     storageApi
       .getStorage(storageId)
       .then((loadedStorage) => {

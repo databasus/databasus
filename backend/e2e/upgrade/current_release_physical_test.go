@@ -40,6 +40,7 @@ func checkPhysicalBackup(ctx context.Context, api *apiClient, written writtenUpg
 	if err != nil {
 		return fmt.Errorf("list physical backups after the upgrade: %w", err)
 	}
+
 	listedItems := []upgradecheck.Item{}
 	for _, backup := range page.Backups {
 		snapshot := physicalBackupSnapshot(backup)
@@ -56,9 +57,11 @@ func checkPhysicalBackup(ctx context.Context, api *apiClient, written writtenUpg
 			listedItems = append(listedItems, segments...)
 		}
 	}
+
 	if err = upgradecheck.Compare(written.physicalItems, listedItems); err != nil {
 		return err
 	}
+
 	var token currentPhysicalRestoreToken
 	err = api.post(
 		ctx,
@@ -69,6 +72,7 @@ func checkPhysicalBackup(ctx context.Context, api *apiClient, written writtenUpg
 	if err != nil {
 		return fmt.Errorf("issue a physical restore token after the upgrade: %w", err)
 	}
+
 	request, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodGet,
@@ -78,6 +82,7 @@ func checkPhysicalBackup(ctx context.Context, api *apiClient, written writtenUpg
 	if err != nil {
 		return err
 	}
+
 	response, err := api.httpClient.Do(request)
 	if err != nil {
 		return err
@@ -86,6 +91,7 @@ func checkPhysicalBackup(ctx context.Context, api *apiClient, written writtenUpg
 	if response.StatusCode != http.StatusOK {
 		return fmt.Errorf("physical restore stream answered %d", response.StatusCode)
 	}
+
 	archive := tar.NewReader(response.Body)
 	hasFullBackup, hasIncrementalBackup, hasPreUpgradeWAL := false, false, false
 	for {
@@ -96,6 +102,7 @@ func checkPhysicalBackup(ctx context.Context, api *apiClient, written writtenUpg
 		if readErr != nil {
 			return fmt.Errorf("read the physical restore archive: %w", readErr)
 		}
+
 		if strings.HasPrefix(entry.Name, "full/") && entry.Size > 0 {
 			hasFullBackup = true
 		}
@@ -107,13 +114,16 @@ func checkPhysicalBackup(ctx context.Context, api *apiClient, written writtenUpg
 				hasPreUpgradeWAL = true
 			}
 		}
+
 		if _, readErr = io.Copy(io.Discard, archive); readErr != nil {
 			return fmt.Errorf("read the physical restore entry %s: %w", entry.Name, readErr)
 		}
 	}
+
 	if _, err = io.Copy(io.Discard, response.Body); err != nil {
 		return fmt.Errorf("finish the physical restore stream: %w", err)
 	}
+
 	if !hasFullBackup || !hasIncrementalBackup || !hasPreUpgradeWAL {
 		return fmt.Errorf(
 			"physical restore stream: full backup present = %t, incremental backup present = %t, pre-upgrade WAL present = %t",

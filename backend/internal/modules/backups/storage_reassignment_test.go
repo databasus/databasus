@@ -30,6 +30,7 @@ func TestReassignLogicalBackupStorage(t *testing.T) {
 			}
 			saveLogicalBackupConfig(t, tm.owner, databaseID, oldStorageID)
 			oldBackup := insertLogicalBackupInStorage(t, tm, databaseID, oldStorageID, "COMPLETED")
+
 			cleared := updateBackupConfig(
 				t,
 				tm.owner,
@@ -43,6 +44,7 @@ func TestReassignLogicalBackupStorage(t *testing.T) {
 				t,
 				countRows(t, tm, "SELECT count(*) FROM backups_storage_switches WHERE database_id=?", databaseID),
 			)
+
 			saveLogicalBackupConfig(t, tm.owner, databaseID, targetStorageID)
 			assert.Zero(t, countLogicalBackups(t, tm, databaseID))
 			assert.Equal(
@@ -55,6 +57,7 @@ func TestReassignLogicalBackupStorage(t *testing.T) {
 					databaseID,
 				),
 			)
+
 			tm.app.RunJobPass(t, storageFileDeletionJobName)
 			assert.False(t, tm.app.IsLocalStorageFilePresent(t, oldBackup.fileName))
 		})
@@ -90,6 +93,7 @@ func TestRefuseLogicalStorageSwitchDuringWork(t *testing.T) {
 					)
 					require.Equal(t, http.StatusOK, response.StatusCode(), "%s", response.Body)
 				}
+
 				storageID := tm.createLocalStorage(t)
 				response := updateBackupConfig(
 					t,
@@ -97,6 +101,7 @@ func TestRefuseLogicalStorageSwitchDuringWork(t *testing.T) {
 					database.databaseID,
 					newLogicalBackupConfigInput(t, &storageID, newLogicalBackupSettings()),
 				)
+
 				requireProblem(t, response.StatusCode(), response.Body, http.StatusConflict, apiclient.ProblemCodeInUse)
 				assert.Contains(t, listLogicalBackupIDs(t, tm.owner, database.databaseID), database.backup.Id)
 				assert.Zero(
@@ -130,6 +135,7 @@ func TestRollbackStorageSwitch(t *testing.T) {
 			targetWorkspace := tm.createWorkspace(t)
 			targetStorageID := tm.app.CreateLocalStorage(t, tm.owner, targetWorkspace.Id)
 			transfer := newDatabaseTransfer(t, targetWorkspace.Id, newStorageSwitchedOnTransfer(t, targetStorageID))
+
 			problemStatus := http.StatusInternalServerError
 			problemCode := apiclient.ProblemCodeInternal
 			if shouldFailNotifier {
@@ -146,8 +152,10 @@ func TestRollbackStorageSwitch(t *testing.T) {
 					`CREATE TRIGGER refuse_switch_deletion BEFORE INSERT ON storages_deletion_batch_items FOR EACH ROW EXECUTE FUNCTION refuse_switch_deletion()`,
 				)
 			}
+
 			response := requestDatabaseTransfer(t, tm.owner, databaseID, transfer)
 			requireProblem(t, response.StatusCode(), response.Body, problemStatus, problemCode)
+
 			databaseResponse, err := tm.owner.Client.GetDatabaseWithResponse(t.Context(), databaseID)
 			require.NoError(t, err)
 			require.Equal(t, http.StatusOK, databaseResponse.StatusCode())
@@ -174,6 +182,7 @@ func TestRollbackReassignedLogicalStorage(t *testing.T) {
 		oldStorageID, targetStorageID := tm.createLocalStorage(t), tm.createLocalStorage(t)
 		saveLogicalBackupConfig(t, tm.owner, databaseID, oldStorageID)
 		backup := insertLogicalBackupInStorage(t, tm, databaseID, oldStorageID, "COMPLETED")
+
 		cleared := updateBackupConfig(
 			t,
 			tm.owner,
@@ -182,6 +191,7 @@ func TestRollbackReassignedLogicalStorage(t *testing.T) {
 		)
 		require.Equal(t, http.StatusOK, cleared.StatusCode(), "%s", cleared.Body)
 		tm.app.RefuseStorageDeletionBatches(t)
+
 		assigned := updateBackupConfig(
 			t,
 			tm.owner,
@@ -189,6 +199,7 @@ func TestRollbackReassignedLogicalStorage(t *testing.T) {
 			newLogicalBackupConfigInput(t, &targetStorageID, newLogicalBackupSettings()),
 		)
 		require.Equal(t, http.StatusInternalServerError, assigned.StatusCode(), "%s", assigned.Body)
+
 		assert.Nil(t, apptest.GetBackupConfig(t, tm.owner, databaseID).StorageId)
 		assert.Contains(t, listLogicalBackupIDs(t, tm.owner, databaseID), backup.id)
 		assert.Zero(

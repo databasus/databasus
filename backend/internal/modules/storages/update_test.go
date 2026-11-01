@@ -137,6 +137,7 @@ func TestS3StorageClass(t *testing.T) {
 				Name:        "Offsite",
 				Settings:    newS3Settings(t, s3Settings),
 			})
+
 			savedSettings, err := getStorage(t, tm.owner, storage.Id).Settings.AsS3StorageSettings()
 			require.NoError(t, err)
 			require.NotNil(t, savedSettings.S3StorageClass)

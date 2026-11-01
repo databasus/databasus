@@ -69,6 +69,7 @@ func Drain(ctx context.Context, spec DrainSpec) {
 			unfinishedNames = append(unfinishedNames, stepName)
 		}
 		stepsMutex.Unlock()
+
 		slices.Sort(unfinishedNames)
 		spec.Logger.WarnContext(drainCtx, "shutdown steps did not finish within the drain limit",
 			slog.Time("drain_deadline", spec.Deadline), slog.Any("unfinished_steps", unfinishedNames))

@@ -104,17 +104,20 @@ describe('AuthPage', () => {
         email: 'owner@example.com',
       }),
     );
+
     const requests: Request[] = [];
     const recordRequest = ({ request }: { request: Request }) => {
       if (request.method === 'POST') requests.push(request.clone());
     };
     mockServer.events.on('request:start', recordRequest);
+
     try {
       renderScreen(
         <ThemeProvider>
           <AuthPage />
         </ThemeProvider>,
       );
+
       const signInButton = await screen.findByRole('button', { name: 'Sign in' });
       fireEvent.change(screen.getByPlaceholderText('your@email.com'), {
         target: { value: 'owner@example.com' },
@@ -122,17 +125,21 @@ describe('AuthPage', () => {
       fireEvent.change(screen.getByPlaceholderText('********'), {
         target: { value: 'replacement-password' },
       });
+
       expect(signInButton.hasAttribute('disabled')).toBe(true);
       await answerChallenge();
       fireEvent.click(signInButton);
       await screen.findByPlaceholderText('123456');
+
       expect(getSessionSnapshot().token).toBeUndefined();
       expect(getSessionSnapshot().userId).toBeUndefined();
       expect(screen.getByRole('button', { name: 'Sign in' }).hasAttribute('disabled')).toBe(true);
+
       await answerChallenge();
       fireEvent.change(screen.getByPlaceholderText('123456'), { target: { value: '123456' } });
       fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
       await waitFor(() => expect(getSessionSnapshot().token).toBe('completed-session'));
+
       expect(getSessionSnapshot().userId).toBe('owner-id');
       expect(requests).toHaveLength(2);
       expect(await requests[0].json()).toMatchObject({
@@ -158,11 +165,13 @@ describe('AuthPage', () => {
         email: 'owner@example.com',
       }),
     );
+
     renderScreen(
       <ThemeProvider>
         <AuthPage />
       </ThemeProvider>,
     );
+
     await screen.findByRole('button', { name: 'Sign in' });
     fireEvent.click(screen.getByRole('button', { name: 'Forgot password?' }));
     fireEvent.change(screen.getByPlaceholderText('your@email.com'), {
@@ -171,6 +180,7 @@ describe('AuthPage', () => {
     await answerChallenge();
     fireEvent.click(screen.getByRole('button', { name: 'Send reset code' }));
     await screen.findByPlaceholderText('123456');
+
     fireEvent.click(screen.getByRole('button', { name: 'Back to sign in' }));
     fireEvent.change(screen.getByPlaceholderText('your@email.com'), {
       target: { value: 'owner@example.com' },
@@ -178,9 +188,11 @@ describe('AuthPage', () => {
     fireEvent.change(screen.getByPlaceholderText('********'), {
       target: { value: 'replacement-password' },
     });
+
     await answerChallenge();
     fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
     await screen.findByPlaceholderText('123456');
+
     fireEvent.click(screen.getByRole('button', { name: 'Back to sign in' }));
     expect(screen.getByPlaceholderText('********')).toBeTruthy();
   });
@@ -193,6 +205,7 @@ it('recovers the current authentication page when loading sign-in options fails'
       HttpResponse.json({ stargazers_count: 1 }),
     ),
   );
+
   const view = renderScreen(<AuthPage />);
   const retry = await screen.findByRole('button', { name: 'Retry' });
   mockServer.use(mockApi.get('/sign-in-options', 200, { hasAnyUser: true }));
@@ -216,6 +229,7 @@ it('verifies the replacement attempt without activating a session before success
       email: 'owner@example.com',
     }),
   );
+
   const verification = mockApi.delayed({
     method: 'post',
     path: '/pending-sign-ins/{pendingSignInId}/verify',
@@ -223,6 +237,7 @@ it('verifies the replacement attempt without activating a session before success
     body: { userId: 'owner-id', token: 'verified-replacement', email: 'owner@example.com' },
   });
   mockServer.use(verification.handler);
+
   const { user } = renderScreen(<AuthPage />, { isStrictMode: true });
   await screen.findByRole('button', { name: 'Sign in' });
   fireEvent.change(screen.getByPlaceholderText('your@email.com'), {
@@ -231,6 +246,7 @@ it('verifies the replacement attempt without activating a session before success
   fireEvent.change(screen.getByPlaceholderText('********'), {
     target: { value: 'correct-password' },
   });
+
   await answerChallenge();
   await user.click(screen.getByRole('button', { name: 'Sign in' }));
   await screen.findByPlaceholderText('123456');
@@ -238,9 +254,11 @@ it('verifies the replacement attempt without activating a session before success
   await user.click(screen.getByRole('button', { name: 'Send another code' }));
   await screen.findByText(DICTIONARIES.en.users.signInCode.codeResent);
   expect(getSessionSnapshot().token).toBeUndefined();
+
   await answerChallenge();
   fireEvent.change(screen.getByPlaceholderText('123456'), { target: { value: '123456' } });
   await user.click(screen.getByRole('button', { name: 'Sign in' }));
+
   await waitFor(() =>
     expect(
       mockServer
@@ -248,10 +266,12 @@ it('verifies the replacement attempt without activating a session before success
         .some((request) => request.url.endsWith('/replacement-pending/verify')),
     ).toBe(true),
   );
+
   expect(
     mockServer.getRequests().some((request) => request.url.endsWith('/original-pending/verify')),
   ).toBe(false);
   expect(getSessionSnapshot().token).toBeUndefined();
+
   verification.release();
   await waitFor(() => expect(getSessionSnapshot().token).toBe('verified-replacement'));
 });

@@ -642,6 +642,7 @@ describe('Restore target composition', () => {
       }),
     );
     renderRestoreFlow(tunneledPostgresqlDatabase, postgresqlBackup);
+
     await enterTarget();
     fireEvent.click(screen.getByText('Advanced settings'));
     fireEvent.click(
@@ -683,6 +684,7 @@ describe('Restore target composition', () => {
     });
     renderBackupListWithRestore();
     mockServer.use(restoreStart.handler);
+
     await openRestoreDialog();
     await enterTarget();
     startEnteredRestore();
@@ -709,6 +711,7 @@ describe('Restore target composition', () => {
     });
     mockServer.use(mockApi.get('/restores', 200, { items: [] }), restoreStart.handler);
     renderRestoreFlow(backedUpDatabase, completedBackup);
+
     await enterTarget();
     startEnteredRestore();
     await waitFor(() =>

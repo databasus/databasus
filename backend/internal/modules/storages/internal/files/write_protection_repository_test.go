@@ -23,14 +23,18 @@ func TestCrossInstanceWriteProtection(t *testing.T) {
 				Clock: files.clock, Timings: testTimings(), Uploads: files.uploads,
 			}
 			peer := NewDeletionJob(NewStore(peerDeps), peerDeps)
+
 			reference := StoredFileReference{StorageID: files.createStorage(t), FileName: "peer-upload.dump"}
 			ctx, cancelWrite := context.WithCancel(t.Context())
 			defer cancelWrite()
+
 			var batch DeletionBatch
 			var terminal DeletionBatch
+
 			files.provider.onSave = func() {
 				batch = files.requestBatch(t, reference)
 				files.requestDeletions(t, reference)
+
 				if scenario == "canceled upload" {
 					cancelWrite()
 				}
@@ -42,6 +46,7 @@ func TestCrossInstanceWriteProtection(t *testing.T) {
 					require.NoError(t, err)
 					assert.Equal(t, []string{reference.FileName}, peer.DrainFiles(t.Context(), request))
 				}
+
 				require.NoError(t, peer.RunPass(t.Context(), files.clock.Now()))
 				assert.Empty(t, files.provider.getDeleted())
 				terminal = files.getBatch(t, batch.ID)
@@ -50,16 +55,20 @@ func TestCrossInstanceWriteProtection(t *testing.T) {
 				} else {
 					assert.Equal(t, CleanupPending, terminal.Status)
 				}
+
 				var failedAttempts int
 				require.NoError(t, files.db.WithContext(t.Context()).Raw(
 					"SELECT failed_attempts FROM storages_deletion_batch_items WHERE batch_id=?", batch.ID).
 					Scan(&failedAttempts).Error)
 				assert.Zero(t, failedAttempts)
 			}
+
 			_, writeErr := files.store.WriteFile(ctx, reference, strings.NewReader("payload"))
 			require.Error(t, writeErr)
+
 			require.NoError(t, peer.RunPass(t.Context(), files.clock.Now()))
 			assert.Equal(t, []string{reference.FileName}, files.provider.getDeleted())
+
 			if scenario == "elapsed cleanup deadline" {
 				assert.Equal(t, terminal, files.getBatch(t, batch.ID))
 			} else {
@@ -76,6 +85,7 @@ func TestWriteProtectionConnection(t *testing.T) {
 		files := newTestFiles(t)
 		storageID := files.createStorage(t)
 		startedWrites := 0
+
 		files.provider.onSave = func() {
 			startedWrites++
 			if startedWrites == 1 {
@@ -90,12 +100,14 @@ func TestWriteProtectionConnection(t *testing.T) {
 				files.execute(t, "SELECT pg_terminate_backend(?)", sessionPID)
 			}
 		}
+
 		_, err := files.store.WriteFile(t.Context(), StoredFileReference{
 			StorageID: storageID, FileName: "interrupted-first.dump",
 		}, strings.NewReader("first"))
 		require.ErrorIs(t, err, ErrWriteProtectionLost)
 		assert.Empty(t, files.store.writeProtection.activeWrites)
 		assert.Nil(t, files.store.writeProtection.connection)
+
 		files.provider.onSave = nil
 		_, err = files.store.WriteFile(t.Context(), StoredFileReference{
 			StorageID: storageID, FileName: "after-disconnect.dump",
@@ -107,6 +119,7 @@ func TestWriteProtectionConnection(t *testing.T) {
 		files := newTestFiles(t)
 		storageID := files.createStorage(t)
 		startedWrites := 0
+
 		files.provider.onSave = func() {
 			startedWrites++
 			if startedWrites == 1 {
@@ -121,6 +134,7 @@ func TestWriteProtectionConnection(t *testing.T) {
 				assert.Equal(t, 1, pool.Stats().InUse)
 			}
 		}
+
 		_, err := files.store.WriteFile(t.Context(), StoredFileReference{
 			StorageID: storageID, FileName: "first.dump",
 		}, strings.NewReader("first"))

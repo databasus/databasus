@@ -14,9 +14,11 @@ func (team *walTeam) addDatabase(t *testing.T) *walTeam {
 	settings, err := team.Database.Settings.AsPostgresqlPhysicalSettings()
 	require.NoError(t, err)
 	settings.Password = new("testpassword")
+
 	var databaseSettings apiclient.DatabaseSettings
 	require.NoError(t, databaseSettings.FromPostgresqlPhysicalSettings(settings))
 	database := apptest.CreateDatabase(t, team.Owner, team.Workspace.Id, databaseSettings)
+
 	second := *team
 	second.Database = database
 	return &second
@@ -28,16 +30,19 @@ func TestIndependentPhysicalWalStreams(t *testing.T) {
 	t.Run("archives both databases into independent catalog rows and storage keys on one source", func(t *testing.T) {
 		first := newWalTeam(t, walTeamSpec{})
 		second := first.addDatabase(t)
+
 		first.enable(t)
 		second.enable(t)
 		first.waitForReceiver(t)
 		second.waitForReceiver(t)
+
 		source := first.openSource(t)
 		for range 3 {
 			rotateWal(t, source)
 		}
 		first.waitForWal(t, 1)
 		second.waitForWal(t, 1)
+
 		var databaseIDs []string
 		first.App.QuerySQL(
 			t,

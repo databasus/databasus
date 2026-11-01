@@ -20,6 +20,7 @@ export const runBrowser = async ({
   const isUpdatingReferences = args.includes('--update-references');
   if (args.some((argument) => !['--project=ui', '--update-references'].includes(argument)))
     throw new Error('Unsupported browser argument; use the documented UI entry points.');
+
   const environment = JSON.parse(
     await readFile(join(frontendRoot, 'browser/environment.json'), 'utf8'),
   );
@@ -29,6 +30,7 @@ export const runBrowser = async ({
     !mise.includes(`pnpm = "${environment.pnpmVersion}"`)
   )
     throw new Error('Browser tool versions disagree with mise.toml');
+
   const inputs = [
     'browser/Dockerfile',
     'browser/environment.json',
@@ -38,6 +40,7 @@ export const runBrowser = async ({
   const identity = createHash('sha256');
   for (const input of inputs) identity.update(await readFile(join(frontendRoot, input)));
   const image = `databasus-browser-ui:${identity.digest('hex').slice(0, 24)}`;
+
   const runId = randomUUID();
   const container = `databasus-browser-ui-${runId}`;
   const temporaryRoot = await mkdtemp(join(tmpdir(), 'databasus-browser-ui-'));
@@ -46,18 +49,21 @@ export const runBrowser = async ({
   let isInterrupted = false;
   let resultStatus = 1;
   let operationError: unknown;
+
   const interrupt = () => {
     isInterrupted = true;
     controller.abort();
   };
   process.on('SIGINT', interrupt);
   process.on('SIGTERM', interrupt);
+
   try {
     const context = join(temporaryRoot, 'image');
     await mkdir(context);
     for (const input of ['package.json', 'pnpm-lock.yaml'])
       await cp(join(frontendRoot, input), join(context, input));
     await cp(join(frontendRoot, 'browser/Dockerfile'), join(context, 'Dockerfile'));
+
     const built = await runChild(
       'docker',
       [
@@ -94,6 +100,7 @@ export const runBrowser = async ({
       console.log(
         `Browser environment: ${environment.playwrightImage}; Node ${environment.nodeVersion}; pnpm ${environment.pnpmVersion}; run ${runId}`,
       );
+
       const status = await runChild(
         'docker',
         [
@@ -141,6 +148,7 @@ export const runBrowser = async ({
     } catch (error) {
       operationError ??= error;
     }
+
     const artifacts = join(frontendRoot, 'browser-results', runId);
     try {
       await mkdir(artifacts, { recursive: true });
@@ -149,11 +157,13 @@ export const runBrowser = async ({
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT')
         console.error('Could not retain browser artifacts:', error);
     }
+
     try {
       await rm(temporaryRoot, { recursive: true, force: true });
     } catch (error) {
       operationError ??= error;
     }
+
     process.off('SIGINT', interrupt);
     process.off('SIGTERM', interrupt);
   }

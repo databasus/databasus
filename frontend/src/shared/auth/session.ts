@@ -47,8 +47,10 @@ const publishSession = (identity?: { token: string; userId: string }) => {
     globalThis.localStorage?.removeItem(TOKEN_KEY);
     globalThis.localStorage?.removeItem(USER_KEY);
   }
+
   globalThis.localStorage?.removeItem('selected_workspace_id');
   globalThis.sessionStorage?.removeItem('databasus_oauth_sign_in_attempt');
+
   snapshot = { token: identity?.token, userId: identity?.userId, generation };
   intentRevision++;
   for (const listener of listeners) listener();

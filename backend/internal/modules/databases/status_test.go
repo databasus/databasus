@@ -40,6 +40,7 @@ func TestDatabaseStatusUpdates(t *testing.T) {
 		createdDatabase := tm.createDatabaseNamed(t, "Orders", fromLogicalSettings(t, newLogicalSettings(server)))
 		update := toUpdate(createdDatabase)
 		update.Name = "Orders renamed"
+
 		response := updateDatabase(t, tm.owner, createdDatabase.Id, update)
 		require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
 		unavailable := databases.HealthStatusUnavailable

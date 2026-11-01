@@ -91,6 +91,7 @@ describe('DatabaseConnectionForm', () => {
         error: 'no pg_hba.conf entry',
       }),
     );
+
     const onConnectionErrorChange = vi.fn();
     const Form = () => (
       <DatabaseConnectionForm
@@ -101,6 +102,7 @@ describe('DatabaseConnectionForm', () => {
         onConnectionErrorChange={onConnectionErrorChange}
       />
     );
+
     const view = renderScreen(<Form />);
 
     clickTest();
@@ -121,6 +123,7 @@ describe('DatabaseConnectionForm', () => {
         error: 'no pg_hba.conf entry',
       }),
     );
+
     const onConnectionErrorChange = vi.fn();
     renderScreen(
       <DatabaseConnectionForm
@@ -131,6 +134,7 @@ describe('DatabaseConnectionForm', () => {
         onConnectionErrorChange={onConnectionErrorChange}
       />,
     );
+
     clickTest();
     await screen.findByText('Replication is not allowed from this host');
     expect(screen.getByText(/^Add the line below to pg_hba\.conf/)).toBeTruthy();
@@ -218,11 +222,13 @@ describe('DatabaseConnectionForm', () => {
     mockServer.use(
       mockApi.post('/database-tests', 200, { isConnected: false, error: 'dial tcp: refused' }),
     );
+
     const LanguageSwitch = () => {
       const { setLocale } = useLocale();
 
       return <button onClick={() => setLocale('ru')}>Switch language</button>;
     };
+
     renderScreen(
       <>
         <LanguageSwitch />
@@ -234,6 +240,7 @@ describe('DatabaseConnectionForm', () => {
         />
       </>,
     );
+
     clickTest();
     await screen.findByText('The database could not be reached: dial tcp: refused');
 
@@ -273,6 +280,7 @@ describe('DatabaseConnectionForm', () => {
           finishSubmission = resolve;
         }),
     );
+
     renderEditableForm(buildEditDraft(savedMysqlSettings), onSubmit);
     clickTest();
     const submitButton = await screen.findByRole('button', { name: 'Submit draft' });

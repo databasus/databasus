@@ -37,6 +37,7 @@ func (team Team) waitForChain(t *testing.T, incrementalCount int) []backupRow {
 	var chain []backupRow
 	testwait.Until(t, "the physical backup chain completes", func(context.Context) error {
 		chain = team.listChain(t)
+
 		hasCompletedFull := false
 		completedIncrementals := 0
 		for _, backup := range chain {
@@ -56,6 +57,7 @@ func (team Team) waitForChain(t *testing.T, incrementalCount int) []backupRow {
 				completedIncrementals++
 			}
 		}
+
 		if !hasCompletedFull || completedIncrementals != incrementalCount {
 			return fmt.Errorf(
 				"chain has completed FULL=%v and %d of %d incrementals: %+v",
@@ -85,6 +87,7 @@ func (team Team) buildIncremental(t *testing.T, conn *pgx.Conn, spec incremental
 	require.NoError(t, err)
 	forceWalRotation(t, conn)
 	waitForWalSummaries(t, conn, spec.ParentStopLSN)
+
 	team.triggerIncremental(t)
 	return team.waitForChain(t, spec.Count)
 }

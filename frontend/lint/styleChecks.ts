@@ -182,6 +182,7 @@ export const checkStyleSource = ({
   const findings: StyleFinding[] = [];
   const add = (rule: StyleFinding['rule'], construct: string) =>
     findings.push({ rule, source, construct: construct.trim().replace(/\s+/g, ' ') });
+
   const checkUtilities = ({
     classes,
     construct,
@@ -200,15 +201,18 @@ export const checkStyleSource = ({
         .split(/:(?![^[]*\])/)
         .at(-1)!
         .replace(/^!|!$/g, '');
+
       const arbitrary =
         base.match(
           /^(?:text|bg|border(?:-[xytrblse])?|ring(?:-offset)?|outline|decoration|divide|placeholder|fill|stroke|shadow|accent|caret|from|via|to)-\[(.+)\](?:\/[\d.]+)?$/,
         )?.[1] ?? base.match(/^\[(?:color|background|border-color):(.+)\]$/)?.[1];
+
       if (
         paletteUtility.test(base) ||
         (arbitrary && hasDirectColor(arbitrary.replaceAll('_', ' ')))
       )
         add('direct-color', `${construct}:${utility}`);
+
       if (
         /^(?:outline-none|outline-hidden|ring-0|outline-0)$/.test(base) &&
         !branches.every(
@@ -220,6 +224,7 @@ export const checkStyleSource = ({
         add('invisible-focus', `${construct}:${utility}`);
     }
   };
+
   if (source.endsWith('.css')) {
     const sheet = postcss.parse(content, { from: source });
     const getConditions = (node: postcss.Node): string[] => {
@@ -231,9 +236,11 @@ export const checkStyleSource = ({
         }
       return conditions;
     };
+
     sheet.walkAtRules('apply', (rule) =>
       checkUtilities({ classes: rule.params.split(/\s+/).filter(Boolean), construct: 'apply' }),
     );
+
     sheet.walkDecls((declaration) => {
       if (hasDirectColor(declaration.value))
         add('direct-color', `${declaration.prop}:${declaration.value}`);
@@ -243,6 +250,7 @@ export const checkStyleSource = ({
         const conditions = getConditions(declaration);
         const baseDeclarations: { property: string; value: string; isImportant?: boolean }[] = [];
         const focusDeclarations: { property: string; value: string; isImportant?: boolean }[] = [];
+
         sheet.walkRules((rule) => {
           const candidateConditions = getConditions(rule);
           if (!candidateConditions.every((condition, index) => conditions[index] === condition))
@@ -253,6 +261,7 @@ export const checkStyleSource = ({
               : [`${baseSelector}:focus`, `${baseSelector}:focus-visible`].includes(rule.selector)
                 ? focusDeclarations
                 : undefined;
+
           if (declarations)
             rule.walkDecls((candidate) => {
               if (candidate.parent === rule)
@@ -263,12 +272,15 @@ export const checkStyleSource = ({
                 });
             });
         });
+
         if (!hasVisibleFocusReplacement([...baseDeclarations, ...focusDeclarations]))
           add('invisible-focus', `${selector}{${declaration.prop}:${declaration.value}}`);
       }
     });
+
     return findings;
   }
+
   const compiled =
     program ??
     ts.createProgram(
@@ -300,11 +312,13 @@ export const checkStyleSource = ({
       isImportant: boolean;
     }
   >();
+
   const collectMutations = (node: ts.Node) => {
     let target: ts.Node | undefined;
     let property: string | undefined;
     let value: ts.Node | undefined;
     let isImportant = false;
+
     if (
       ts.isBinaryExpression(node) &&
       node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
@@ -332,10 +346,12 @@ export const checkStyleSource = ({
       value = node.arguments[1];
       isImportant = getStrings(node.arguments[2], checker).includes('important');
     }
+
     if (target && property && value) {
       const values = getStyleExpressionBranches(value, checker).map((branch) =>
         branch.length ? branch.join('') : undefined,
       );
+
       let scope = node;
       while (
         scope.parent &&
@@ -349,10 +365,13 @@ export const checkStyleSource = ({
         !ts.isIterationStatement(scope, false)
       )
         scope = scope.parent;
+
       mutations.set(node, { target: target.getText(file), scope, property, values, isImportant });
     }
+
     ts.forEachChild(node, collectMutations);
   };
+
   collectMutations(file);
   const visit = (node: ts.Node) => {
     const mutation = mutations.get(node);
@@ -361,6 +380,7 @@ export const checkStyleSource = ({
         for (const value of mutation.values)
           if (value !== undefined && hasDirectColor(value))
             add('direct-color', `style.${mutation.property}:${value}`);
+
       const property = mutation.property.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
       if (
         mutation.values.some((value) => value !== undefined && isFocusRemoval({ property, value }))
@@ -379,8 +399,10 @@ export const checkStyleSource = ({
           add('invisible-focus', `style.${mutation.property}:${mutation.values.join(' ')}`);
       }
     }
+
     if (ts.isJsxAttribute(node)) {
       const attribute = node.name.getText(file);
+
       if (
         (attribute === 'style' || attribute === 'styles' || /Style$/.test(attribute)) &&
         node.initializer &&
@@ -389,6 +411,7 @@ export const checkStyleSource = ({
       ) {
         const objects = getStyleObjects(node.initializer.expression, checker);
         const properties = new Set(objects.flat());
+
         for (const property of properties) {
           const name = getStylePropertyName(property);
           if (colorProperty.test(name))
@@ -397,6 +420,7 @@ export const checkStyleSource = ({
               getStyleValue(property),
             );
         }
+
         const failedProperties = new Map<StyleProperty, string[]>();
         for (const object of objects) {
           const properties = object.filter(
@@ -418,6 +442,7 @@ export const checkStyleSource = ({
             ),
           }));
           if (hasVisibleFocusInEveryBranch(assignments)) continue;
+
           properties.forEach((property, index) => {
             const assignment = assignments[index];
             const removals = assignment.values.filter(
@@ -427,9 +452,11 @@ export const checkStyleSource = ({
             if (removals.length) failedProperties.set(property, removals);
           });
         }
+
         for (const [property, removals] of failedProperties)
           add('invisible-focus', `${getStylePropertyName(property)}:${removals.join(' ')}`);
       }
+
       if (colorProperty.test(attribute)) checkColor(attribute, node.initializer);
       if (attribute === 'className') {
         const classes = getStrings(node.initializer, checker)
@@ -441,6 +468,7 @@ export const checkStyleSource = ({
         checkUtilities({ classes, construct: 'class', branches });
       }
     }
+
     ts.forEachChild(node, visit);
   };
   visit(file);

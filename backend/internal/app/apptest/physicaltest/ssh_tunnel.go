@@ -47,6 +47,7 @@ func RunTunnelRestore(t *testing.T, image string) {
 	bundle := team.downloadRestoreBundle(t, &targetTime)
 	reconstructCluster(t, target, restoreSpec{App: team.App, Image: image, BundlePath: bundle, TargetTime: &targetTime})
 	startRestoredCluster(t, target, image)
+
 	assert.ElementsMatch(t, survivingPhases, queryRestoredMarkerRows(t, target))
 }
 
@@ -99,10 +100,12 @@ func RunBastionOutage(t *testing.T, image string) {
 	slotName := waitForSlotPresent(t, conn)
 	backupsBeforeOutage := len(team.waitForChain(t, 0))
 	statisticsBeforeOutage := team.getStreamStatistics(t)
+
 	stopTimeout := 10 * time.Second
 	require.NoError(t, topology.BastionContainer.Stop(t.Context(), &stopTimeout))
 	stoppedAt := time.Now()
 	team.watchBastionOutage(t, stoppedAt, statisticsBeforeOutage)
+
 	require.NoError(t, topology.BastionContainer.Start(t.Context()))
 	waitForBastionAuthenticating(t, topology.Bastion)
 	resumedEndpoint := enginetest.OpenForwardedEndpoint(t, topology)
@@ -113,6 +116,7 @@ func RunBastionOutage(t *testing.T, image string) {
 		slotName,
 		"the original WAL slot must survive the outage",
 	)
+
 	segmentsBeforeResume := team.getCommittedWalSegmentCount(t)
 	generateWalActivity(t, resumedConn, 64*1024*1024)
 	testwait.Until(t, "WAL archiving resumes through the bastion", func(context.Context) error {
@@ -132,6 +136,7 @@ func (team Team) watchBastionOutage(t *testing.T, stoppedAt time.Time, before st
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 	hasNoticedOutage := false
+
 	for {
 		statistics := team.getStreamStatistics(t)
 		require.Equal(t, "RUNNING", statistics.Streamer.State, "the streamer must stay owned throughout the outage")
@@ -139,6 +144,7 @@ func (team Team) watchBastionOutage(t *testing.T, stoppedAt time.Time, before st
 			(statistics.Current != nil && (statistics.Current.SourceState == "UNREACHABLE" || (before.Current != nil && statistics.Current.ReceiverRestarts > before.Current.ReceiverRestarts))) {
 			hasNoticedOutage = true
 		}
+
 		select {
 		case <-observation.C:
 			// Statistics can lag an outage until a sample completes, so the observation

@@ -37,6 +37,7 @@ func TestInstanceHealth(t *testing.T) {
 		assert.Equal(t, "*", response.HTTPResponse.Header.Get("Access-Control-Allow-Origin"))
 		assert.Len(t, response.JSON200.Checks, 4)
 		require.Len(t, response.JSON200.Jobs, len(application.jobs))
+
 		names := make([]string, 0, len(response.JSON200.Jobs))
 		for _, job := range response.JSON200.Jobs {
 			names = append(names, job.Name)
@@ -68,12 +69,14 @@ func TestInstanceHealth(t *testing.T) {
 				}
 				return diskusage.Usage{TotalBytes: 100, UsedBytes: scenario.used, FreeBytes: 100 - scenario.used}, nil
 			}
+
 			client := newHealthClient(t, application)
 			response, err := client.GetInstanceHealthWithResponse(t.Context())
 			require.NoError(t, err)
 			assert.Equal(t, scenario.expectedStatus, response.StatusCode(), string(response.Body))
 			assert.Equal(t, "*", response.HTTPResponse.Header.Get("Access-Control-Allow-Origin"))
 			assert.NotContains(t, string(response.Body), "private/password/path")
+
 			if scenario.failureCode != "" {
 				require.NotNil(t, response.ApplicationproblemJSON503)
 				assert.Equal(t, apiclient.ProblemCodeInstanceUnhealthy, response.ApplicationproblemJSON503.Code)
@@ -95,11 +98,13 @@ func TestInstanceHealth(t *testing.T) {
 				},
 			},
 		)
+
 		client := newHealthClient(t, application)
 		application.Close()
 		response, err := client.GetInstanceHealthWithResponse(t.Context())
 		require.NoError(t, err)
 		require.NotNil(t, response.ApplicationproblemJSON503, string(response.Body))
+
 		failedChecks := 0
 		for _, check := range response.ApplicationproblemJSON503.Checks {
 			if check.Outcome == apiclient.HealthCheckOutcomeFAILED {
@@ -108,6 +113,7 @@ func TestInstanceHealth(t *testing.T) {
 		}
 		assert.Equal(t, 3, failedChecks)
 		assert.NotContains(t, string(response.Body), application.environment.Config.DatabaseDsn)
+
 		version, err := client.GetVersionWithResponse(t.Context())
 		require.NoError(t, err)
 		require.NotNil(t, version.JSON200)
@@ -117,6 +123,7 @@ func TestInstanceHealth(t *testing.T) {
 		application.clientToolsChecker = clienttools.NewChecker(nil)
 		manualClock := clock.NewManual(time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC))
 		application.environment.Clock = manualClock
+
 		job := background.Job{
 			Name:     "controlled_work",
 			Interval: time.Second,
@@ -130,12 +137,14 @@ func TestInstanceHealth(t *testing.T) {
 			[]background.Job{job},
 			application.environment.StorageFileTimings,
 		)
+
 		client := newHealthClient(t, application)
 		manualClock.Advance(5 * time.Minute)
 		response, err := client.GetInstanceHealthWithResponse(t.Context())
 		require.NoError(t, err)
 		require.NotNil(t, response.ApplicationproblemJSON503)
 		assert.True(t, response.ApplicationproblemJSON503.Jobs[0].IsStale)
+
 		require.Error(t, application.RunJobPass(t.Context(), job.Name))
 		recovered, err := client.GetInstanceHealthWithResponse(t.Context())
 		require.NoError(t, err)
@@ -173,6 +182,7 @@ func TestHealthClientTools(t *testing.T) {
 					},
 				},
 			)
+
 			response, err := newHealthClient(t, application).GetInstanceHealthWithResponse(t.Context())
 			require.NoError(t, err)
 			assert.Equal(t, scenario.expectedStatus, response.StatusCode(), string(response.Body))
@@ -187,9 +197,11 @@ func TestHealthRunningJob(t *testing.T) {
 		application.clientToolsChecker = clienttools.NewChecker(nil)
 		manualClock := clock.NewManual(time.Now().UTC())
 		application.environment.Clock = manualClock
+
 		started := make(chan struct{})
 		release := make(chan struct{})
 		isBlocked := false
+
 		job := background.Job{Name: "controlled", Interval: time.Second, Run: func(context.Context, time.Time) error {
 			if isBlocked {
 				close(started)
@@ -205,11 +217,13 @@ func TestHealthRunningJob(t *testing.T) {
 			[]background.Job{job},
 			application.environment.StorageFileTimings,
 		)
+
 		require.Error(t, application.RunJobPass(t.Context(), job.Name))
 		isBlocked = true
 		completed := make(chan error, 1)
 		go func() { completed <- application.RunJobPass(t.Context(), job.Name) }()
 		<-started
+
 		client := newHealthClient(t, application)
 		requestContext, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 		defer cancel()
@@ -228,6 +242,7 @@ func TestHealthRunningJob(t *testing.T) {
 func TestInstanceHealthDiagnostics(t *testing.T) {
 	t.Run("logs measurements and identifiers with the request when several monitoring checks fail", func(t *testing.T) {
 		application := newTestApp(t)
+
 		var records bytes.Buffer
 		application.logger = logging.NewWithSinks(slog.NewJSONHandler(&records, nil)).GetLogger()
 		application.clientToolsChecker = clienttools.NewChecker(nil)
@@ -236,6 +251,7 @@ func TestInstanceHealthDiagnostics(t *testing.T) {
 		}
 		manualClock := clock.NewManual(time.Now().UTC())
 		application.environment.Clock = manualClock
+
 		job := background.Job{
 			Name:     "stalled_work",
 			Interval: time.Second,
@@ -249,10 +265,12 @@ func TestInstanceHealthDiagnostics(t *testing.T) {
 			[]background.Job{job},
 			application.environment.StorageFileTimings,
 		)
+
 		client := newHealthClient(t, application)
 		signedUp, err := requestSignUp(t.Context(), client, newConsoleEmail())
 		require.NoError(t, err)
 		require.NotNil(t, signedUp.JSON201, string(signedUp.Body))
+
 		createdAgent, err := client.CreateVerificationAgentWithResponse(
 			t.Context(),
 			apiclient.VerificationAgentInput{Name: "private agent"},
@@ -272,6 +290,7 @@ func TestInstanceHealthDiagnostics(t *testing.T) {
 				agentID,
 			).Error,
 		)
+
 		manualClock.Advance(5 * time.Minute)
 		response, err := client.GetInstanceHealthWithResponse(t.Context())
 		require.NoError(t, err)
@@ -280,6 +299,7 @@ func TestInstanceHealthDiagnostics(t *testing.T) {
 		require.NotEmpty(t, requestID)
 		assert.NotContains(t, string(response.Body), agentID.String())
 		assert.NotContains(t, string(response.Body), "private agent")
+
 		diagnostics := make(map[string]map[string]any)
 		for line := range strings.SplitSeq(strings.TrimSpace(records.String()), "\n") {
 			var record map[string]any
@@ -288,6 +308,7 @@ func TestInstanceHealthDiagnostics(t *testing.T) {
 			require.True(t, isMessage)
 			diagnostics[message] = record
 		}
+
 		for _, message := range []string{"instance disk usage exceeds health limit", "verification agent is stale", "background job is stale"} {
 			require.Contains(t, diagnostics, message)
 			assert.Equal(t, requestID, diagnostics[message]["request_id"])

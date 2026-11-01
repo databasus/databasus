@@ -140,11 +140,14 @@ describe('getApiClient', () => {
       body: buildProblem('unauthenticated', 401),
     });
     mockServer.use(refusal.handler);
+
     const oldRequest = getApiClient().GET('/system/version');
     await waitForCondition(() => expect(mockServer.getRequests()).toHaveLength(1));
+
     activateSession({ token: 'new-session', userId: 'new-owner' });
     refusal.release();
     await oldRequest;
+
     expect(getSessionSnapshot().token).toBe('new-session');
     expect(window.location.reload).not.toHaveBeenCalled();
   });
@@ -188,6 +191,7 @@ it('publishes one invalidation when concurrent authorized requests receive refus
     status: 401,
     body: buildProblem('unauthenticated', 401),
   });
+
   mockServer.use(versionRefusal.handler, diskRefusal.handler);
   const onSession = vi.fn();
   const dispose = subscribeSession(onSession);
@@ -195,9 +199,11 @@ it('publishes one invalidation when concurrent authorized requests receive refus
     const versionRequest = getApiClient().GET('/system/version');
     const diskRequest = getApiClient().GET('/system/disk-usages');
     await waitForCondition(() => expect(mockServer.getRequests()).toHaveLength(2));
+
     versionRefusal.release();
     diskRefusal.release();
     await Promise.all([versionRequest, diskRequest]);
+
     expect(getSessionSnapshot().token).toBeUndefined();
     expect(onSession).toHaveBeenCalledOnce();
   } finally {

@@ -27,8 +27,10 @@ func TestBrowser(t *testing.T) {
 		if runID == "" {
 			runID = uuid.NewString()
 		}
+
 		ctx, stop := signal.NotifyContext(t.Context(), syscall.SIGINT, syscall.SIGTERM)
 		defer stop()
+
 		runBrowserChild(
 			t,
 			browserChild{
@@ -42,6 +44,7 @@ func TestBrowser(t *testing.T) {
 				password:     "",
 			},
 		)
+
 		application := apptest.New(t)
 		admin := application.CreateAdmin(t)
 		gateway := newGateway(
@@ -50,6 +53,7 @@ func TestBrowser(t *testing.T) {
 		)
 		t.Logf("Browser owner PID: %d", os.Getpid())
 		t.Logf("Browser gateway ready: %s", gateway.URL)
+
 		runBrowserChild(
 			t,
 			browserChild{

@@ -37,15 +37,18 @@ func writeVerificationData(
 	); err != nil {
 		return "", nil, fmt.Errorf("create the verification agent: %w", err)
 	}
+
 	config := map[string]any{
 		"isScheduledVerificationEnabled": true,
 		"scheduleType":                   "INTERVAL",
 		"verificationInterval":           map[string]any{"type": "WEEKLY", "weekday": 3, "timeOfDay": "03:30"},
 		"sendNotificationsOn":            []string{"VERIFICATION_SUCCESS"},
 	}
+
 	if err := api.send(ctx, http.MethodPut, "/verification-config/"+source.databaseID, config, nil); err != nil {
 		return "", nil, fmt.Errorf("save the verification config: %w", err)
 	}
+
 	var verification previousVerification
 	if err := api.post(
 		ctx,

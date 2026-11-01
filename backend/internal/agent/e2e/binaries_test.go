@@ -28,18 +28,22 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 	defer func() { _ = os.RemoveAll(directory) }()
+
 	//nolint:forbidigo // TestMain has no testing.T context; both builds share a bounded lifetime.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
+
 	loadedConfig, _, err := config.Load(
 		config.LoadSpec{IsDatabaseRequired: false, RootDirectory: "", PublishedDatabaseDsnPath: ""},
 	)
 	if err != nil {
 		panic(err)
 	}
+
 	serverVersion = loadedConfig.AppVersion
 	currentBinaryDirectory = filepath.Join(directory, "current")
 	olderBinaryDirectory = filepath.Join(directory, "older")
+
 	for _, binary := range []struct {
 		directory string
 		version   string
@@ -47,6 +51,7 @@ func TestMain(m *testing.M) {
 		if err := os.MkdirAll(binary.directory, 0o755); err != nil {
 			panic(err)
 		}
+
 		command := exec.CommandContext(
 			ctx,
 			"go",
@@ -57,12 +62,14 @@ func TestMain(m *testing.M) {
 			filepath.Join(binary.directory, binaryName()),
 			"./cmd/verification-agent",
 		)
+
 		command.Dir = "../../.."
 		command.Env = append(command.Environ(), "CGO_ENABLED=0")
 		if output, err := command.CombinedOutput(); err != nil {
 			panic(fmt.Sprintf("build agent %s: %v\n%s", binary.version, err, output))
 		}
 	}
+
 	m.Run()
 }
 

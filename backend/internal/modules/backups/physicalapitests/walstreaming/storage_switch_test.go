@@ -27,11 +27,13 @@ func TestTransferPhysicalWalStorage(t *testing.T) {
 			team := newWalTeam(t, walTeamSpec{})
 			team.enable(t)
 			team.waitForReceiver(t)
+
 			source := team.openSource(t)
 			rotateWal(t, source)
 			team.waitForWal(t, 1)
 			team.App.WaitForPhysicalBackups(t)
 			previous := team.listBackups(t)
+
 			if isStorageCleared {
 				backupConfig := apptest.GetBackupConfig(t, team.Owner, team.Database.Id)
 				cleared, err := team.Owner.Client.UpdateBackupConfigWithResponse(
@@ -46,6 +48,7 @@ func TestTransferPhysicalWalStorage(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, http.StatusOK, cleared.StatusCode(), "%s", cleared.Body)
 			}
+
 			targetWorkspace := apptest.CreateWorkspace(t, team.Owner, "Transferred WAL")
 			target := apptest.CreateStorageNamespace(t, team.Owner, targetWorkspace.Id)
 
@@ -57,10 +60,12 @@ func TestTransferPhysicalWalStorage(t *testing.T) {
 				assert.Nil(t, operation.PreviousStorageId)
 			}
 			assert.Positive(t, operation.Total)
+
 			moved, err := team.Owner.Client.GetDatabaseWithResponse(t.Context(), team.Database.Id)
 			require.NoError(t, err)
 			require.NotNil(t, moved.JSON200)
 			assert.Equal(t, targetWorkspace.Id, moved.JSON200.WorkspaceId)
+
 			var attributedFiles int
 			team.App.QuerySQL(
 				t,
@@ -75,6 +80,7 @@ func TestTransferPhysicalWalStorage(t *testing.T) {
 					assert.NotEqual(t, old.ID, retained.ID)
 				}
 			}
+
 			var oldSegments int
 			team.App.QuerySQL(
 				t,
@@ -84,6 +90,7 @@ func TestTransferPhysicalWalStorage(t *testing.T) {
 				team.StorageID,
 			)
 			require.Zero(t, oldSegments, "old WAL history must leave the catalog at acceptance")
+
 			rotateWal(t, source)
 			var fileNames []string
 			testwait.Until(t, "the new namespace receives WAL", func(context.Context) error {
@@ -127,11 +134,13 @@ func TestReassignPhysicalWalStorage(t *testing.T) {
 			team := newWalTeam(t, walTeamSpec{})
 			team.enable(t)
 			team.waitForReceiver(t)
+
 			source := team.openSource(t)
 			rotateWal(t, source)
 			team.waitForWal(t, 1)
 			team.App.WaitForPhysicalBackups(t)
 			previous := team.listBackups(t)
+
 			backupConfig := apptest.GetBackupConfig(t, team.Owner, team.Database.Id)
 			cleared, err := team.Owner.Client.UpdateBackupConfigWithResponse(
 				t.Context(),
@@ -144,6 +153,7 @@ func TestReassignPhysicalWalStorage(t *testing.T) {
 			)
 			require.NoError(t, err)
 			require.Equal(t, http.StatusOK, cleared.StatusCode(), "%s", cleared.Body)
+
 			targetStorageID := team.StorageID
 			var target *apptest.StorageNamespace
 			if !isSameStorage {
@@ -151,6 +161,7 @@ func TestReassignPhysicalWalStorage(t *testing.T) {
 				target = &namespace
 				targetStorageID = namespace.StorageID
 			}
+
 			assigned, err := team.Owner.Client.UpdateBackupConfigWithResponse(
 				t.Context(),
 				team.Database.Id,
@@ -164,6 +175,7 @@ func TestReassignPhysicalWalStorage(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, http.StatusAccepted, assigned.StatusCode(), "%s", assigned.Body)
 			require.Nil(t, assigned.JSON202.PreviousStorageId)
+
 			rotateWal(t, source)
 			var files []string
 			testwait.Until(t, "fresh FULL and WAL appear after reassignment", func(context.Context) error {
@@ -189,6 +201,7 @@ func TestReassignPhysicalWalStorage(t *testing.T) {
 				}
 				return nil
 			})
+
 			if target != nil {
 				for _, file := range files {
 					target.RequireFile(t, file)

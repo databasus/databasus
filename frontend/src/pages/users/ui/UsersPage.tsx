@@ -50,6 +50,7 @@ export function UsersPage() {
     const requestQueryRevision = queryRevision.current.GetCurrent();
     setProcessingUsers((current) => withUserId(current, toggledUser.id));
     setFailure(undefined);
+
     try {
       const changedUser = isUserActive(toggledUser)
         ? await userManagementApi.deactivateUser(toggledUser.id)
@@ -74,6 +75,7 @@ export function UsersPage() {
     const requestQueryRevision = queryRevision.current.GetCurrent();
     setChangingRoleUsers((current) => withUserId(current, userId));
     setFailure(undefined);
+
     try {
       const changedUser = await userManagementApi.changeUserRole(userId, newRole);
       if (!isCurrent() || !queryRevision.current.IsCurrent(requestQueryRevision)) return;
@@ -170,10 +172,12 @@ export function UsersPage() {
   const drawerInvoker = useRef<HTMLElement | null>(null);
   const currentQuery = useRef(searchQuery);
   const queryRevision = useRef(new RequestRevision());
+
   if (currentQuery.current !== searchQuery) {
     currentQuery.current = searchQuery;
     queryRevision.current.Invalidate();
   }
+
   const acknowledgedUsers = useMemo(() => new Map<string, User>(), [searchQuery]);
   const {
     items: users,

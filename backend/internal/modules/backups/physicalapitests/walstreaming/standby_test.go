@@ -28,6 +28,7 @@ func TestPhysicalWalSourceInRecovery(t *testing.T) {
 					standby.Port,
 					team.Database.Id,
 				)
+
 				team.enable(t)
 				testwait.Until(
 					t,
@@ -44,6 +45,7 @@ func TestPhysicalWalSourceInRecovery(t *testing.T) {
 						return nil
 					},
 				)
+
 				statistics := team.statistics(t)
 				require.NotEmpty(t, statistics.Streamer.State)
 			},

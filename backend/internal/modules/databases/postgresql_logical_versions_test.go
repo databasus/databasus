@@ -28,6 +28,7 @@ func TestGetPostgresqlLogicalVersions(t *testing.T) {
 				"unreadable-ciphertext",
 				savedDatabase.Id,
 			)
+
 			versions := tm.app.GetPostgresqlLogicalVersions(t, []uuid.UUID{savedDatabase.Id, mysqlID, uuid.New()})
 			assert.Equal(t, map[uuid.UUID]string{savedDatabase.Id: "18"}, versions)
 			assert.Empty(t, tm.app.GetPostgresqlLogicalVersions(t, nil))

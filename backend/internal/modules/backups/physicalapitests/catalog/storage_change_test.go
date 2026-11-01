@@ -23,6 +23,7 @@ func TestChangePhysicalBackupStorage(t *testing.T) {
 			}))
 			oldWal := catalog.seedCascadeWal(t, cascadeWalSpec{Segment: 1, TimelineID: 1})
 			oldHistory := catalog.seedHistory(t, 1)
+
 			secondStorageID := catalog.App.CreateLocalStorage(t, catalog.Owner, catalog.WorkspaceID)
 			secondCatalog := *catalog
 			secondCatalog.StorageID = secondStorageID
@@ -30,9 +31,11 @@ func TestChangePhysicalBackupStorage(t *testing.T) {
 			unneededTargetWal := secondCatalog.seedCascadeWal(t, cascadeWalSpec{Segment: 2, TimelineID: 2})
 			boundaryWal := secondCatalog.seedCascadeWal(t, cascadeWalSpec{Segment: 4, TimelineID: 2})
 			targetHistory := secondCatalog.seedHistory(t, 2)
+
 			response := catalog.saveStorageSelection(t, &secondStorageID)
 			require.Equal(t, http.StatusAccepted, response.StatusCode(), "%s", response.Body)
 			require.NotNil(t, response.JSON202)
+
 			catalog.assertFullGone(t, running.ID)
 			catalog.assertFullPresent(t, surviving.ID)
 			catalog.assertWalGone(t, oldWal.ID)
@@ -40,6 +43,7 @@ func TestChangePhysicalBackupStorage(t *testing.T) {
 			catalog.assertHistoryPresent(t, oldHistory.ID, false)
 			catalog.assertWalPresent(t, boundaryWal.ID)
 			catalog.assertHistoryPresent(t, targetHistory.ID, true)
+
 			var capturedFiles []string
 			catalog.App.QuerySQL(
 				t,
@@ -61,8 +65,10 @@ func TestChangePhysicalBackupStorage(t *testing.T) {
 		newStorageID := catalog.App.CreateLocalStorage(t, catalog.Owner, catalog.WorkspaceID)
 		catalog.saveStorageConfig(t, catalog.StorageID)
 		full, incremental, wal := seedOneOfEachType(t, catalog)
+
 		catalog.saveStorageConfig(t, newStorageID)
 		assert.Empty(t, getBackups(t, catalog, "").Backups)
+
 		pending := catalog.pendingFiles(t, catalog.StorageID)
 		for _, name := range []string{*full.FileName, *incremental.FileName, *wal.FileName} {
 			assert.Contains(t, pending, name)
@@ -88,7 +94,9 @@ func TestChangePhysicalBackupStorage(t *testing.T) {
 		catalog := newCatalog(t)
 		catalog.saveStorageConfig(t, catalog.StorageID)
 		full, incremental, wal := seedOneOfEachType(t, catalog)
+
 		catalog.saveStorageConfig(t, catalog.StorageID)
+
 		catalog.assertFullPresent(t, full.ID)
 		catalog.assertIncrementalPresent(t, incremental.ID)
 		catalog.assertWalPresent(t, wal.ID)
@@ -99,6 +107,7 @@ func TestChangePhysicalBackupStorage(t *testing.T) {
 		catalog.saveStorageConfig(t, catalog.StorageID)
 		full, incremental, wal := seedOneOfEachType(t, catalog)
 		targetStorageID := catalog.App.CreateLocalStorage(t, catalog.Owner, catalog.WorkspaceID)
+
 		catalog.App.ExecuteSQL(
 			t,
 			`CREATE FUNCTION refuse_switch_cleanup() RETURNS trigger AS $$ BEGIN RAISE EXCEPTION 'cleanup refused'; END $$ LANGUAGE plpgsql`,
@@ -107,6 +116,7 @@ func TestChangePhysicalBackupStorage(t *testing.T) {
 			t,
 			`CREATE TRIGGER refuse_switch_cleanup BEFORE INSERT ON storages_deletion_batch_items FOR EACH ROW EXECUTE FUNCTION refuse_switch_cleanup()`,
 		)
+
 		backupConfig := apptest.GetBackupConfig(t, catalog.Owner, catalog.DatabaseID)
 		response, err := catalog.Owner.Client.UpdateBackupConfigWithResponse(
 			t.Context(),
@@ -120,6 +130,7 @@ func TestChangePhysicalBackupStorage(t *testing.T) {
 		)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusInternalServerError, response.StatusCode(), "%s", response.Body)
+
 		assert.Equal(t, &catalog.StorageID, apptest.GetBackupConfig(t, catalog.Owner, catalog.DatabaseID).StorageId)
 		catalog.assertFullPresent(t, full.ID)
 		catalog.assertIncrementalPresent(t, incremental.ID)
@@ -150,6 +161,7 @@ func (catalog *catalogFixture) saveStorageSelection(
 	configureRetentionSchedule(&settings)
 	var backupSettings apiclient.BackupSettings
 	require.NoError(t, backupSettings.FromPhysicalBackupSettings(settings))
+
 	response, err := catalog.Owner.Client.UpdateBackupConfigWithResponse(
 		t.Context(),
 		catalog.DatabaseID,
@@ -176,14 +188,17 @@ func TestReassignUnfinishedPhysicalFiles(t *testing.T) {
 			catalog := newCatalog(t)
 			secondStorageID := catalog.App.CreateLocalStorage(t, catalog.Owner, catalog.WorkspaceID)
 			catalog.saveStorageConfig(t, secondStorageID)
+
 			oldFile := catalog.DatabaseID.String() + "-late-first-storage"
 			unfinishedFile := catalog.DatabaseID.String() + "-unfinished-second-storage"
 			catalog.App.WriteUnpublishedFile(t, catalog.StorageID, oldFile)
 			catalog.App.WriteUnpublishedFile(t, secondStorageID, unfinishedFile)
+
 			cleared := catalog.saveStorageSelection(t, nil)
 			require.Equal(t, http.StatusOK, cleared.StatusCode(), "%s", cleared.Body)
 			catalog.App.RestartModules(t)
 			assert.Nil(t, apptest.GetBackupConfig(t, catalog.Owner, catalog.DatabaseID).StorageId)
+
 			var operation apiclient.StorageSwitch
 			if isTransfer {
 				workspace := apptest.CreateWorkspace(t, catalog.Owner, "Reassigned unfinished physical files")
@@ -198,8 +213,10 @@ func TestReassignUnfinishedPhysicalFiles(t *testing.T) {
 				require.NotNil(t, assigned.JSON202)
 				operation = *assigned.JSON202
 			}
+
 			assert.Nil(t, operation.PreviousStorageId)
 			assert.EqualValues(t, 1, operation.Total)
+
 			var capturedFiles []struct {
 				StorageID uuid.UUID
 				FileName  string
@@ -231,6 +248,7 @@ func TestRollbackReassignedPhysicalStorage(t *testing.T) {
 		catalog := newCatalog(t)
 		catalog.saveStorageConfig(t, catalog.StorageID)
 		full, incremental, wal := seedOneOfEachType(t, catalog)
+
 		backupConfig := apptest.GetBackupConfig(t, catalog.Owner, catalog.DatabaseID)
 		cleared, err := catalog.Owner.Client.UpdateBackupConfigWithResponse(
 			t.Context(),
@@ -243,6 +261,7 @@ func TestRollbackReassignedPhysicalStorage(t *testing.T) {
 		)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, cleared.StatusCode(), "%s", cleared.Body)
+
 		catalog.App.RefuseStorageDeletionBatches(t)
 		targetStorageID := catalog.App.CreateLocalStorage(t, catalog.Owner, catalog.WorkspaceID)
 		assigned, err := catalog.Owner.Client.UpdateBackupConfigWithResponse(
@@ -257,11 +276,13 @@ func TestRollbackReassignedPhysicalStorage(t *testing.T) {
 		)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusInternalServerError, assigned.StatusCode(), "%s", assigned.Body)
+
 		assert.Nil(t, apptest.GetBackupConfig(t, catalog.Owner, catalog.DatabaseID).StorageId)
 		catalog.assertFullPresent(t, full.ID)
 		catalog.assertIncrementalPresent(t, incremental.ID)
 		catalog.assertWalPresent(t, wal.ID)
 		assert.Empty(t, catalog.pendingFiles(t, catalog.StorageID))
+
 		var operations, batches int
 		catalog.App.QuerySQL(
 			t,

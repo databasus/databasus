@@ -298,6 +298,7 @@ func TestManageAdmins(t *testing.T) {
 			apiclient.ProblemCodePermissionDenied)
 		requireProblem(t, ownRoleChange.StatusCode(), ownRoleChange.Body, http.StatusForbidden,
 			apiclient.ProblemCodePermissionDenied)
+
 		readUser := getUser(t, bootstrapAdmin.Client, bootstrapAdmin.UserID)
 		require.Equal(t, http.StatusOK, readUser.StatusCode(), string(readUser.Body))
 		assert.Equal(t, apiclient.UserRoleADMIN, readUser.JSON200.Role)

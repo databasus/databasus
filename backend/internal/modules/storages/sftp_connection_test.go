@@ -261,6 +261,7 @@ func TestSftpConnectionIdentity(t *testing.T) {
 			require.Equal(t, http.StatusOK, switched.StatusCode(), string(switched.Body))
 
 			storageTeam.app.WriteUnpublishedFile(t, createdStorage.Id, "new-key-session-file")
+
 			serverLogs, err := server.Container.Logs(t.Context())
 			require.NoError(t, err)
 			defer func() { _ = serverLogs.Close() }()

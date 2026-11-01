@@ -116,11 +116,13 @@ func GetDatabase() *gorm.DB { return nil }
 			root := t.TempDir()
 			configPath, err := filepath.Abs("../../.golangci.yml")
 			require.NoError(t, err)
+
 			require.NoError(t, os.WriteFile(filepath.Join(root, "go.mod"), moduleDefinition, 0o600))
 			require.NoError(t, os.WriteFile(filepath.Join(root, "go.sum"), moduleChecksums, 0o600))
 			sourcePath := filepath.Join(root, scenario.filePath)
 			require.NoError(t, os.MkdirAll(filepath.Dir(sourcePath), 0o755))
 			require.NoError(t, os.WriteFile(sourcePath, []byte(scenario.source), 0o600))
+
 			command := exec.CommandContext(
 				t.Context(),
 				"golangci-lint",
@@ -132,11 +134,13 @@ func GetDatabase() *gorm.DB { return nil }
 			)
 			command.Dir = root
 			command.Env = append(command.Environ(), "GOFLAGS=")
+
 			formatter := exec.CommandContext(t.Context(), "golangci-lint", "fmt", "--config", configPath, "./...")
 			formatter.Dir = root
 			formatter.Env = command.Env
 			formattedOutput, formatError := formatter.CombinedOutput()
 			require.NoError(t, formatError, string(formattedOutput))
+
 			output, lintError := command.CombinedOutput()
 			if scenario.diagnostic == "" {
 				require.NoError(t, lintError, string(output))

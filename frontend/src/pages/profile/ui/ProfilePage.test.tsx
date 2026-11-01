@@ -50,15 +50,19 @@ describe('ProfilePage', () => {
       const session = getSessionSnapshot();
       const name = screen.getByRole('textbox', { name: 'Name' });
       const email = screen.getByRole('textbox', { name: 'Email' });
+
       await user.clear(name);
       await user.type(name, 'Correction owner');
       await user.clear(email);
       await user.type(email, 'correction@example.com');
+
       const invalidField = screen.getByRole('textbox', { name: field });
       await user.clear(invalidField);
       if (value) await user.type(invalidField, value);
+
       await user.click(screen.getByRole('button', { name: 'Save changes' }));
       await screen.findByText(message);
+
       expect(invalidField.getAttribute('aria-invalid')).toBe('true');
       expect(
         document.getElementById(invalidField.getAttribute('aria-describedby')!)?.textContent,
@@ -107,8 +111,10 @@ describe('ProfilePage', () => {
       const session = getSessionSnapshot();
       const password = screen.getByLabelText('Password', { exact: true });
       const confirm = screen.getByLabelText('Confirm New Password', { exact: true });
+
       if (newPassword) await user.type(password, newPassword);
       if (confirmation) await user.type(confirm, confirmation);
+
       await user.click(screen.getByRole('button', { name: 'Change password' }));
       await screen.findByText(message);
       const invalidControl = screen.getByLabelText(invalidField, { exact: true });
@@ -116,6 +122,7 @@ describe('ProfilePage', () => {
       expect(
         document.getElementById(invalidControl.getAttribute('aria-describedby')!)?.textContent,
       ).toBe(message);
+
       expect((password as HTMLInputElement).value).toBe(newPassword);
       expect((confirm as HTMLInputElement).value).toBe(confirmation);
       expect(getSessionSnapshot()).toBe(session);
@@ -184,6 +191,7 @@ describe('ProfilePage', () => {
     });
     mockServer.use(save.handler);
     await openProfile();
+
     fireEvent.change(screen.getByPlaceholderText('Enter your name'), {
       target: { value: 'Submitted' },
     });
@@ -191,11 +199,13 @@ describe('ProfilePage', () => {
     await waitFor(() =>
       expect(mockServer.getRequests().some((request) => request.method === 'PUT')).toBe(true),
     );
+
     fireEvent.change(screen.getByPlaceholderText('Enter your name'), {
       target: { value: 'Newer' },
     });
     save.release();
     await screen.findByText('Profile updated successfully');
+
     expect(screen.getByDisplayValue('Newer')).toBeTruthy();
     expect(await screen.findByRole('button', { name: 'Save changes' })).toBeTruthy();
   });
@@ -216,6 +226,7 @@ describe('ProfilePage', () => {
       body: acknowledgement,
     });
     mockServer.use(save.handler);
+
     await openProfile();
     fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), {
       target: { value: 'Submitted' },
@@ -228,10 +239,12 @@ describe('ProfilePage', () => {
       target: { value: 'Normalized' },
     });
     save.release();
+
     await screen.findByText('Profile updated successfully');
     expect(screen.getByDisplayValue('Normalized')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Save changes' })).toBeNull();
   });
+
   it('removes save eligibility when the draft returns to the acknowledged values', async () => {
     await openProfile();
     fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), {
@@ -241,9 +254,11 @@ describe('ProfilePage', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Owner' } });
     expect(screen.queryByRole('button', { name: 'Save changes' })).toBeNull();
   });
+
   it('preserves correction values when the profile save is refused', async () => {
     mockServer.use(mockApi.put('/users/{userId}', 403, buildProblem('permission_denied', 403)));
     await openProfile();
+
     fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), {
       target: { value: 'Correction' },
     });
@@ -251,6 +266,7 @@ describe('ProfilePage', () => {
     await screen.findByText('You do not have permission to do this.');
     expect(screen.getByDisplayValue('Correction')).toBeTruthy();
   });
+
   it.each([
     { operation: 'save', isRefused: false },
     { operation: 'password', isRefused: false },
@@ -289,15 +305,18 @@ describe('ProfilePage', () => {
             });
       mockServer.use(pending.handler);
       const view = await openProfile(callback);
+
       if (operation === 'save') {
         fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), {
           target: { value: 'Changed' },
         });
         fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
       } else submitPasswordChange();
+
       await waitFor(() =>
         expect(mockServer.getRequests().some((request) => request.method === 'PUT')).toBe(true),
       );
+
       const provider = document.querySelector('.ant-app');
       view.rerender(<div>Profile closed</div>);
       const responded = new Promise<void>((resolve) =>
@@ -307,6 +326,7 @@ describe('ProfilePage', () => {
         pending.release();
         await responded;
       });
+
       expect(document.querySelector('.ant-app')).toBe(provider);
       expect(callback).not.toHaveBeenCalled();
       expect(screen.queryByText('You do not have permission to do this.')).toBeNull();
@@ -317,11 +337,13 @@ describe('ProfilePage', () => {
       expect(getSessionSnapshot().token).toBe('old-session');
     },
   );
+
   it('recovers the current profile when the initial request fails and is retried', async () => {
     activateSession({ token: 'current', userId: 'owner-id' });
     mockServer.use(mockApi.get('/users/{userId}', 500, buildProblem('internal', 500)));
     renderScreen(<ProfilePage />);
     const retry = await screen.findByRole('button', { name: 'Retry' });
+
     mockServer.use(
       mockApi.get('/users/{userId}', 200, {
         id: 'owner-id',
@@ -333,6 +355,7 @@ describe('ProfilePage', () => {
       }),
     );
     fireEvent.click(retry);
+
     expect(await screen.findByDisplayValue('Owner')).toBeTruthy();
   });
 });
@@ -357,6 +380,7 @@ it.each([false, true])(
     mockServer.use(save.handler);
     const onUserChanged = vi.fn();
     const { user } = await openProfile(onUserChanged);
+
     fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), {
       target: { value: '  Normalized name  ' },
     });
@@ -364,12 +388,14 @@ it.each([false, true])(
     await waitFor(() =>
       expect(mockServer.getRequests().some((request) => request.method === 'PUT')).toBe(true),
     );
+
     if (hasNewerEmail)
       fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), {
         target: { value: 'newer@example.com' },
       });
     save.release();
     await screen.findByText('Profile updated successfully');
+
     expect(screen.getByRole('textbox', { name: 'Name' }).getAttribute('value')).toBe(
       'Normalized name',
     );

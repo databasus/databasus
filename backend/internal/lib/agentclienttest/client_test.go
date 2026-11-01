@@ -29,11 +29,13 @@ func TestNew(t *testing.T) {
 				_, _ = writer.Write([]byte(testCase.body))
 			}))
 			t.Cleanup(server.Close)
+
 			recorder := &failureRecorder{TB: t}
 			client := New(recorder, server.URL, "agent-token")
 			response, err := client.StreamVerificationBackup(t.Context(), uuid.New(), uuid.New())
 			require.NoError(t, err)
 			require.NoError(t, response.Body.Close())
+
 			if !testCase.hasFailure {
 				assert.Empty(t, recorder.failures)
 				return

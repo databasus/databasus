@@ -46,11 +46,13 @@ describe('StorageComponent', () => {
     const renamed = { ...storage, name: 'Renamed archive' };
     const changedStorage = { ...renamed, settings: { ...storage.settings, s3Bucket: 'bucket-b' } };
     const rename = mockApi.pending('put', '/storages/{storageId}');
+
     mockServer.use(
       mockApi.get('/storages/{storageId}', 200, storage),
       mockApi.post('/storage-tests', 200, { isConnected: true }),
       rename.handler,
     );
+
     const view = renderStorage();
     await screen.findByText(storage.name);
 
@@ -215,6 +217,7 @@ describe('StorageComponent', () => {
       status: 200,
       body: renamed,
     });
+
     mockServer.use(
       mockApi.get('/storages/{storageId}', 200, localStorageOfWorkspace),
       pendingRename.handler,
@@ -308,6 +311,7 @@ describe('StorageComponent', () => {
           isSkipTlsVerify: false,
         },
       };
+
       const oldTest = mockApi.pending('post', '/storages/{storageId}/test');
       mockServer.use(
         mockApi.get('/storages/{storageId}', 200, storage),
@@ -373,6 +377,7 @@ describe('StorageComponent', () => {
     async (isConnected) => {
       const pendingTest = mockApi.pending('post', '/storages/{storageId}/test');
       const renamedStorage = { ...localStorageOfWorkspace, name: 'Renamed backups' };
+
       mockServer.use(
         mockApi.get('/storages/{storageId}', 200, localStorageOfWorkspace),
         mockApi.put('/storages/{storageId}', 200, renamedStorage),

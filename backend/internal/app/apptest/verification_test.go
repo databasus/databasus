@@ -25,11 +25,13 @@ func TestVerificationHelpers(t *testing.T) {
 		agents := team.App.ListVerificationAgents(t, team.Admin)
 		require.Len(t, agents, 1)
 		assert.Equal(t, agent.Agent.ID, agents[0].ID)
+
 		verificationID := team.App.EnqueueVerification(t, team.Owner, backup.Id)
 		verification := team.App.GetVerification(t, team.Owner, verificationID)
 		assert.Equal(t, verificationID, verification.ID)
 		assert.Equal(t, "PENDING", verification.Status)
 		assert.Equal(t, 1, verification.AttemptCount)
+
 		read, err := team.Owner.Client.GetVerificationWithResponse(t.Context(), verificationID)
 		require.NoError(t, err)
 		require.NotNil(t, read.JSON200)
@@ -47,6 +49,7 @@ func TestVerificationHelpers(t *testing.T) {
 		)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusCreated, token.StatusCode(), string(token.Body))
+
 		response, err := team.Owner.Client.DownloadLogicalBackup(
 			t.Context(),
 			backup.Id,
@@ -58,6 +61,7 @@ func TestVerificationHelpers(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, response.StatusCode)
 		assert.Equal(t, damagedBytes, contents)
+
 		persistedBackup, err := team.Owner.Client.GetLogicalBackupWithResponse(t.Context(), backup.Id)
 		require.NoError(t, err)
 		require.NotNil(t, persistedBackup.JSON200)

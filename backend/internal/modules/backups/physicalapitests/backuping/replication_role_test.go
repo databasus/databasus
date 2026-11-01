@@ -30,12 +30,14 @@ func (team *backupTeam) useReplicationRole(t *testing.T) string {
 	require.NoError(t, err)
 	_, err = source.Exec(t.Context(), "GRANT pg_monitor TO "+pgx.Identifier{roleName}.Sanitize())
 	require.NoError(t, err)
+
 	settings, err := team.Database.Settings.AsPostgresqlPhysicalSettings()
 	require.NoError(t, err)
 	settings.Username = roleName
 	settings.Password = new("replication-test-password")
 	var databaseSettings apiclient.DatabaseSettings
 	require.NoError(t, databaseSettings.FromPostgresqlPhysicalSettings(settings))
+
 	response, err := team.Owner.Client.UpdateDatabaseWithResponse(
 		t.Context(),
 		team.Database.Id,
@@ -48,6 +50,7 @@ func (team *backupTeam) useReplicationRole(t *testing.T) string {
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, response.StatusCode(), "%s", response.Body)
 	team.Database = *response.JSON200
+
 	return roleName
 }
 
@@ -58,6 +61,7 @@ func (team *backupTeam) denyPhysicalReplication(t *testing.T) {
 	require.NoError(t, source.QueryRow(t.Context(), "SHOW hba_file").Scan(&hbaPath))
 	var previousLoad time.Time
 	require.NoError(t, source.QueryRow(t.Context(), "SELECT pg_conf_load_time()").Scan(&previousLoad))
+
 	_, err := source.Exec(
 		t.Context(),
 		"COPY (SELECT hba_line FROM (VALUES ('local all all trust'),('host all all all scram-sha-256')) AS lines(hba_line)) TO '"+strings.ReplaceAll(
@@ -67,8 +71,10 @@ func (team *backupTeam) denyPhysicalReplication(t *testing.T) {
 		)+"'",
 	)
 	require.NoError(t, err)
+
 	_, err = source.Exec(t.Context(), "SELECT pg_reload_conf()")
 	require.NoError(t, err)
+
 	testwait.Until(t, "PostgreSQL reloads the physical replication rejection", func(context.Context) error {
 		var loadedAt time.Time
 		if err := source.QueryRow(t.Context(), "SELECT pg_conf_load_time()").Scan(&loadedAt); err != nil {

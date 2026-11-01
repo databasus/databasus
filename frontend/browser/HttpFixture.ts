@@ -41,6 +41,7 @@ export const validateHttpFixtures = (fixtures: HttpFixture[]) => {
       throw new Error(
         `HTTP fixtures require an explicit method and finite pathname: ${fixture.method} ${fixture.path}`,
       );
+
     const identity = `${fixture.method} ${fixture.path}`;
     if (identities.has(identity)) throw new Error(`Duplicate HTTP fixture: ${identity}`);
     identities.add(identity);
@@ -65,10 +66,12 @@ export const installHttpFixtures = async ({
     observedPage.on('pageerror', (error) => pageErrors.push(error.message));
   observePage(page);
   context.on('page', observePage);
+
   await context.route('**/*', async (route) => {
     const request = route.request();
     const url = new URL(request.url());
     const applicationOrigin = new URL(process.env.BROWSER_BASE_URL!).origin;
+
     if (
       url.origin === applicationOrigin &&
       !/^\/api(?:\/|$)/.test(url.pathname) &&
@@ -79,6 +82,7 @@ export const installHttpFixtures = async ({
         ))
     )
       return route.continue();
+
     const pathname = url.pathname.replace(/^\/api\/v1/, '');
     const fixture = fixtures.find(
       (candidate) =>
@@ -91,6 +95,7 @@ export const installHttpFixtures = async ({
               `^${candidate.path.replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace(/\{[^}]+\}/g, '[^/]+')}$`,
             ).test(pathname)),
     );
+
     requests.push({
       method: request.method(),
       path: pathname,
@@ -115,6 +120,7 @@ export const installHttpFixtures = async ({
       body: fixture.body === undefined ? undefined : JSON.stringify(fixture.body),
     });
   });
+
   return {
     requests,
     resourceUrls,

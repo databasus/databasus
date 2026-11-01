@@ -21,11 +21,13 @@ func TestPhysicalWalBackpressure(t *testing.T) {
 			timings := backups.ProductionWalStreamTimings()
 			timings.ForcedRotationInterval = 0
 			timings.LocalQueuePauseBytes = 3 * 16 * 1024 * 1024
+
 			team := newWalTeam(t, walTeamSpec{Timings: &timings})
 			team.useUnavailableStorage(t)
 			team.enable(t)
 			team.waitForReceiver(t)
 			source := team.openSource(t)
+
 			var slot string
 			team.App.QuerySQL(
 				t,
@@ -33,6 +35,7 @@ func TestPhysicalWalBackpressure(t *testing.T) {
 				"SELECT replication_slot_name FROM databases_postgresql_physical WHERE database_id=?",
 				team.Database.Id,
 			)
+
 			waitForSourceFlush := func(targetLSN string, canStopAtPause bool) {
 				testwait.Until(
 					t,
@@ -56,6 +59,7 @@ func TestPhysicalWalBackpressure(t *testing.T) {
 					},
 				)
 			}
+
 			for {
 				queuedBytes := team.live(t).Current.LocalQueueBytes
 				if queuedBytes >= timings.LocalQueuePauseBytes {
@@ -72,6 +76,7 @@ func TestPhysicalWalBackpressure(t *testing.T) {
 					return nil
 				})
 			}
+
 			testwait.Until(t, "back pressure pauses the receiver while S3 is unavailable", func(context.Context) error {
 				reading := team.live(t)
 				if reading.Current == nil || reading.Current.IsReceiverRunning ||
@@ -80,6 +85,7 @@ func TestPhysicalWalBackpressure(t *testing.T) {
 				}
 				return nil
 			})
+
 			var pauseSample streamStatistics
 			generateWal(t, source, 1024*1024)
 			var sourceLSN string
@@ -93,6 +99,7 @@ func TestPhysicalWalBackpressure(t *testing.T) {
 				lagBeforeRecovery = *reading.Current.SlotLagBytes
 				return nil
 			})
+
 			team.recoverStorage(t)
 			team.waitForReceiver(t)
 			waitForSourceFlush(sourceLSN, false)
@@ -106,6 +113,7 @@ func TestPhysicalWalBackpressure(t *testing.T) {
 					return nil
 				},
 			)
+
 			rotateWal(t, source)
 			testwait.Until(t, "the source slot lag drains after the receiver resumes", func(context.Context) error {
 				reading := team.live(t)
@@ -122,8 +130,10 @@ func TestPhysicalWalBackpressure(t *testing.T) {
 				}
 				return nil
 			})
+
 			require.Equal(t, 1, pauseSample.Current.ReceiverPauses)
 			assert.Zero(t, pauseSample.Current.ReceiverRestarts)
+
 			var terminated int
 			require.NoError(
 				t,
@@ -143,6 +153,7 @@ func TestPhysicalWalBackpressure(t *testing.T) {
 					return nil
 				},
 			)
+
 			team.waitForReceiver(t)
 			team.waitForWal(t, 1)
 			assert.True(t, team.App.IsWalQueueDirectoryPresent(t, team.Database.Id))

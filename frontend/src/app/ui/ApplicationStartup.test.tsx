@@ -57,10 +57,12 @@ describe('Application startup', () => {
     async (path) => {
       seed();
       server.use(mockApi.get(path, 500, buildProblem('internal', 500)));
+
       renderScreen(<ApplicationScreen />);
       const retry = await screen.findByRole('button', { name: 'Retry' });
       expect(screen.queryByRole('button', { name: 'Users' })).toBeNull();
       expect(screen.queryByRole('button', { name: 'Create workspace' })).toBeNull();
+
       server.use(
         mockApi.get('/users/{userId}', 200, user),
         mockApi.get('/instance-settings', 200, settings),
@@ -70,15 +72,19 @@ describe('Application startup', () => {
       expect(await screen.findByRole('button', { name: 'Profile' })).toBeTruthy();
     },
   );
+
   it('opens permitted account screens when supplementary disk data fails', async () => {
     seed();
     server.use(mockApi.get('/system/disk-usages', 500, buildProblem('internal', 500)));
+
     renderScreen(<ApplicationScreen />);
     fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
+
     expect(await screen.findByDisplayValue('owner@example.com')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Users' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Databasus settings' })).toBeNull();
   });
+
   it('rejects previous account startup after logout and activation of another account', async () => {
     seed();
     const oldUser = mockApi.delayed({
@@ -92,15 +98,18 @@ describe('Application startup', () => {
     localStorage.setItem('databasus-theme', 'dark');
     localStorage.setItem('databasus-locale', 'en');
     renderApp();
+
     await waitFor(() =>
       expect(server.getRequests().some((request) => request.url.endsWith('/users/owner-id'))).toBe(
         true,
       ),
     );
+
     act(() => {
       invalidateSession();
     });
     await screen.findByRole('button', { name: 'Sign in' });
+
     server.use(
       mockApi.get('/users/{userId}', 200, {
         ...user,
@@ -114,6 +123,7 @@ describe('Application startup', () => {
     });
     fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
     await screen.findByDisplayValue('another@example.com');
+
     const responded = new Promise<void>((resolve) =>
       server.events.on('response:mocked', () => resolve()),
     );
@@ -121,6 +131,7 @@ describe('Application startup', () => {
       oldUser.release();
       await responded;
     });
+
     expect(screen.queryByDisplayValue('owner@example.com')).toBeNull();
     expect(localStorage.getItem('selected_workspace_id')).toBeNull();
     expect(localStorage.getItem('databasus-theme')).toBe('dark');
@@ -152,8 +163,10 @@ it.each(['ADMIN', 'MEMBER'] as const)(
       mockApi.get('/workspaces', 200, { items: [workspace] }),
     );
     localStorage.setItem('selected_workspace_id', 'unavailable-workspace');
+
     renderScreen(<ApplicationScreen />);
     await screen.findByRole('button', { name: 'Profile' });
+
     await waitFor(() =>
       expect(
         server
@@ -161,6 +174,7 @@ it.each(['ADMIN', 'MEMBER'] as const)(
           .some((request) => new URL(request.url).pathname.endsWith('/databases')),
       ).toBe(true),
     );
+
     expect(localStorage.getItem('selected_workspace_id')).toBe(workspace.id);
     expect(!!screen.queryByRole('button', { name: 'Add database' })).toBe(role === 'ADMIN');
     expect(
@@ -179,11 +193,13 @@ it('selects a newly created workspace when the instance allows member creation',
     }),
     mockApi.post('/workspaces', 201, { ...workspace, currentUserRole: 'WORKSPACE_OWNER' }),
   );
+
   const view = renderScreen(<ApplicationScreen />);
   await view.user.click((await screen.findAllByRole('button', { name: 'Create workspace' }))[0]);
   await view.user.click(
     within(await screen.findByRole('dialog')).getByRole('button', { name: 'Create workspace' }),
   );
+
   await waitFor(() => expect(localStorage.getItem('selected_workspace_id')).toBe(workspace.id));
   expect(await screen.findByRole('combobox')).toBeTruthy();
   expect(await screen.findByRole('button', { name: 'Add database' })).toBeTruthy();
@@ -201,14 +217,17 @@ it('retains retried startup when an older essential request finishes later', asy
     oldAccount.handler,
     mockApi.get('/instance-settings', 500, buildProblem('internal', 500)),
   );
+
   renderScreen(<ApplicationScreen />);
   await screen.findByRole('button', { name: 'Retry' });
+
   server.use(
     mockApi.get('/users/{userId}', 200, { ...user, role: 'ADMIN' }),
     mockApi.get('/instance-settings', 200, settings),
   );
   fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
   await screen.findByRole('button', { name: 'Users' });
+
   const processed = new Promise<void>((resolve) =>
     server.events.on('response:mocked', () => resolve()),
   );
@@ -216,6 +235,7 @@ it('retains retried startup when an older essential request finishes later', asy
     oldAccount.release();
     await processed;
   });
+
   expect(screen.getByRole('button', { name: 'Users' })).toBeTruthy();
 });
 
@@ -229,20 +249,25 @@ it('updates account capabilities without replacing a newer profile draft after a
     body: { ...user, name: 'Accepted member' },
   });
   server.use(save.handler);
+
   const view = renderScreen(<ApplicationScreen />);
   await view.user.click(await screen.findByRole('button', { name: 'Profile' }));
   await screen.findByDisplayValue('owner@example.com');
+
   fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), {
     target: { value: 'Submitted profile' },
   });
   await view.user.click(screen.getByRole('button', { name: 'Save changes' }));
+
   await waitFor(() =>
     expect(server.getRequests().some((request) => request.method === 'PUT')).toBe(true),
   );
+
   fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), {
     target: { value: 'Newer profile' },
   });
   save.release();
+
   await screen.findByText('Profile updated successfully');
   expect(screen.queryByRole('button', { name: 'Users' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Databasus settings' })).toBeNull();
@@ -261,6 +286,7 @@ it('retains an acknowledged workspace-creation policy when profile acceptance ch
     }),
     mockApi.put('/users/{userId}', 200, { ...user, name: 'Member profile' }),
   );
+
   const view = renderScreen(<ApplicationScreen />);
   await view.user.click(await screen.findByRole('button', { name: 'Databasus settings' }));
   await view.user.click(
@@ -268,6 +294,7 @@ it('retains an acknowledged workspace-creation policy when profile acceptance ch
   );
   await view.user.click(screen.getByRole('button', { name: 'Save Changes' }));
   await screen.findByText('Settings updated successfully');
+
   await view.user.click(screen.getByRole('button', { name: 'Profile' }));
   await screen.findByDisplayValue('owner@example.com');
   fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), {
@@ -275,6 +302,7 @@ it('retains an acknowledged workspace-creation policy when profile acceptance ch
   });
   await view.user.click(screen.getByRole('button', { name: 'Save changes' }));
   await screen.findByText('Profile updated successfully');
+
   expect(screen.queryByRole('button', { name: 'Users' })).toBeNull();
   expect(screen.getByRole('button', { name: 'Create workspace' })).toBeTruthy();
 });
@@ -299,16 +327,19 @@ it.each([false, true])(
       mockApi.get('/audit-events', 200, { items: [] }),
       mockApi.delete('/workspaces/{workspaceId}', 204, undefined),
     );
+
     renderApp();
     fireEvent.click(await screen.findByRole('button', { name: 'Settings' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Delete workspace' }));
     const confirmation = await screen.findByRole('dialog');
+
     const deletionCheck = mockApi.delayed({
       method: 'get',
       path: '/databases',
       status: 200,
       body: { items: [] },
     });
+
     if (hasConfirmed) {
       server.use(deletionCheck.handler);
       fireEvent.click(within(confirmation).getByRole('button', { name: 'Delete Workspace' }));
@@ -320,9 +351,11 @@ it.each([false, true])(
         ).toHaveLength(2),
       );
     }
+
     await act(async () => refusal.release());
     await screen.findByRole('button', { name: 'Sign in' });
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
     if (hasConfirmed) {
       const processed = new Promise<void>((resolve) => {
         const onResponse = () => {
@@ -336,6 +369,7 @@ it.each([false, true])(
         await processed;
       });
     }
+
     expect(server.getRequests().filter((request) => request.method === 'DELETE')).toHaveLength(0);
     expect(screen.queryByText('Workspace deleted successfully')).toBeNull();
   },
@@ -350,6 +384,7 @@ it('keeps account navigation usable when production release information fails', 
       () => new HttpResponse(null, { status: 503 }),
     ),
   );
+
   const failedRelease = new Promise<void>((resolve) => {
     const onResponse = ({ response, request }: { response: Response; request: Request }) => {
       if (!request.url.endsWith('/releases/latest')) return;
@@ -359,6 +394,7 @@ it('keeps account navigation usable when production release information fails', 
     };
     server.events.on('response:mocked', onResponse);
   });
+
   const view = renderScreen(<ApplicationScreen />);
   await failedRelease;
   await view.user.click(await screen.findByRole('button', { name: 'Profile' }));
@@ -377,9 +413,11 @@ it('accepts only the active startup after root StrictMode repeats setup', async 
         : HttpResponse.json({ ...user, name: 'Replay owner' }),
     ),
   );
+
   const view = renderScreen(<ApplicationScreen />, { isStrictMode: true });
   await view.user.click(await screen.findByRole('button', { name: 'Profile' }));
   await screen.findByDisplayValue('Replay owner');
+
   const processed = new Promise<void>((resolve) => {
     const onResponse = () => {
       server.events.removeListener('response:mocked', onResponse);
@@ -387,10 +425,12 @@ it('accepts only the active startup after root StrictMode repeats setup', async 
     };
     server.events.on('response:mocked', onResponse);
   });
+
   await act(async () => {
     firstSetup.respond(HttpResponse.json({ ...user, name: 'Obsolete owner', role: 'ADMIN' }));
     await processed;
   });
+
   expect(screen.queryByDisplayValue('Obsolete owner')).toBeNull();
   expect(screen.getByDisplayValue('Replay owner')).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Users' })).toBeNull();

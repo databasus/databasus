@@ -41,6 +41,7 @@ func TestChangePhysicalWalConfiguration(t *testing.T) {
 		source := team.openSource(t)
 		rotateWal(t, source)
 		team.waitForWal(t, 1)
+
 		oldStorage := team.StorageID
 		var previousSegmentIDs []string
 		team.App.QuerySQL(
@@ -50,6 +51,7 @@ func TestChangePhysicalWalConfiguration(t *testing.T) {
 			team.Database.Id,
 			oldStorage,
 		)
+
 		team.StorageID = team.App.CreateLocalStorage(t, team.Owner, team.Workspace.Id)
 		team.enable(t)
 		team.waitForReceiver(t)
@@ -71,6 +73,7 @@ func TestChangePhysicalWalConfiguration(t *testing.T) {
 			}
 			return nil
 		})
+
 		var remainingSegmentIDs []string
 		team.App.QuerySQL(
 			t,
@@ -100,12 +103,14 @@ func TestFailingPhysicalWalSessions(t *testing.T) {
 			} else {
 				team.setNotifications(t)
 			}
+
 			team.App.ExecuteSQL(
 				t,
 				"UPDATE databases_postgresql_physical SET host='127.0.0.1',port=1 WHERE database_id=?",
 				team.Database.Id,
 			)
 			team.enable(t)
+
 			first := team.waitForFailedSession(t, streamStatistics{})
 			second := team.waitForFailedSession(t, first)
 			assert.True(t, first.Streamer.FailingSince.Equal(*second.Streamer.FailingSince))
@@ -119,6 +124,7 @@ func TestFailingPhysicalWalSessions(t *testing.T) {
 			team.App.RestartModules(t)
 			third := team.waitForFailedSession(t, second)
 			assert.True(t, first.Streamer.FailingSince.Equal(*third.Streamer.FailingSince))
+
 			team.disable(t)
 			team.App.RestartModules(t)
 			team.App.WaitForNotificationDeliveries(t)

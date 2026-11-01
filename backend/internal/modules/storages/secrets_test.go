@@ -43,6 +43,7 @@ func TestCreateStorage(t *testing.T) {
 		assert.NotContains(t, string(response.Body), "enc:")
 		assert.Equal(t, "Offsite", response.JSON201.Name)
 		assert.Equal(t, tm.workspace.Id, response.JSON201.WorkspaceId)
+
 		createdS3, err := response.JSON201.Settings.AsS3StorageSettings()
 		require.NoError(t, err)
 		assert.Equal(t, "backups", createdS3.S3Bucket)
@@ -84,6 +85,7 @@ func TestListStorages(t *testing.T) {
 		assert.NotContains(t, string(response.Body), "sftp-password-value")
 		assert.NotContains(t, string(response.Body), "original-private-key")
 		require.Len(t, response.JSON200.Items, 1)
+
 		listedSftp, err := response.JSON200.Items[0].Settings.AsSftpStorageSettings()
 		require.NoError(t, err)
 		assert.Equal(t, "sftp.example.com", listedSftp.Host)

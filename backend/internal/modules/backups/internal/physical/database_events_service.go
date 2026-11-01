@@ -12,6 +12,7 @@ func (s *Service) OnDatabaseDeleting(ctx context.Context, event databases.Databa
 	if err != nil {
 		return err
 	}
+
 	if err := database.AfterCommit(ctx, func(_ context.Context) {
 		if runningBackup != nil {
 			s.cancellations.Cancel(runningBackup.ID)
@@ -20,9 +21,11 @@ func (s *Service) OnDatabaseDeleting(ctx context.Context, event databases.Databa
 	}); err != nil {
 		return err
 	}
+
 	if err := s.chains.OnDatabaseDeleting(ctx, event); err != nil {
 		return err
 	}
+
 	return s.onDatabaseDeletingDropSlots(ctx, event)
 }
 

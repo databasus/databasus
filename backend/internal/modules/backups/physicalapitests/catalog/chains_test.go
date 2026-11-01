@@ -30,6 +30,7 @@ func TestPhysicalBackupChains(t *testing.T) {
 			"UPDATE backups_physical SET status='CHAIN_BROKEN',error_reason='SUMMARIES_EXPIRED' WHERE id=?",
 			incremental.ID,
 		)
+
 		catalog.triggerIncremental(t, http.StatusConflict)
 		catalog.assertFullPresent(t, full.ID)
 	})
@@ -38,6 +39,7 @@ func TestPhysicalBackupChains(t *testing.T) {
 		catalog.seedCascadeFull(t, cascadeFullSpec{})
 		catalog.seedCascadeWal(t, cascadeWalSpec{Segment: 1})
 		catalog.seedCascadeWal(t, cascadeWalSpec{Segment: 4})
+
 		catalog.triggerIncremental(t, http.StatusAccepted)
 		page := getBackups(t, catalog, "?type=WAL")
 		require.Len(t, page.Backups, 2)
@@ -75,6 +77,7 @@ func TestPhysicalBackupChains(t *testing.T) {
 		catalog = cleaner.catalogFixture
 		configureRetentionSchedule(&cleaner.Config)
 		cleaner.Config.Retention.ChainsCount = 1
+
 		older := cleaner.seedChainFull(t, chainFullSpec{StartSegment: 0, AgeHours: 40})
 		newer := cleaner.seedChainFull(t, chainFullSpec{StartSegment: 4, AgeHours: 20})
 		cleaner.seedChainFull(t, chainFullSpec{StartSegment: 8, AgeHours: 0})
@@ -86,6 +89,7 @@ func TestPhysicalBackupChains(t *testing.T) {
 			incremental.ID,
 		)
 		catalog.seedCascadeWal(t, cascadeWalSpec{Segment: 1, Age: 60 * time.Hour})
+
 		cleaner.clean(t, apiclient.PhysicalRetentionPolicyCHAINS)
 		catalog.assertFullPresent(t, older.ID)
 		catalog.assertFullGone(t, newer.ID)
@@ -95,8 +99,10 @@ func TestPhysicalBackupChains(t *testing.T) {
 		catalog.seedCascadeFull(t, cascadeFullSpec{Segment: 4})
 		orphan := catalog.seedCascadeWal(t, cascadeWalSpec{Segment: 1})
 		anchored := catalog.seedCascadeWal(t, cascadeWalSpec{Segment: 5})
+
 		catalog.saveStorageConfig(t, catalog.StorageID)
 		catalog.App.RunJobPass(t, "backups_physical_cleaner")
+
 		catalog.assertWalGone(t, orphan.ID)
 		catalog.assertWalPresent(t, anchored.ID)
 	})
@@ -125,6 +131,7 @@ func TestPhysicalBackupChains(t *testing.T) {
 		catalog = cleaner.catalogFixture
 		configureRetentionSchedule(&cleaner.Config)
 		cleaner.Config.Retention.ChainsCount = 1
+
 		older := cleaner.seedChainFull(t, chainFullSpec{StartSegment: 0, AgeHours: 40})
 		newer := cleaner.seedChainFull(t, chainFullSpec{StartSegment: 4, AgeHours: 20})
 		cleaner.seedChainFull(t, chainFullSpec{StartSegment: 8, AgeHours: 0})
@@ -135,6 +142,7 @@ func TestPhysicalBackupChains(t *testing.T) {
 			time.Now().UTC().Add(-60*time.Hour),
 			incremental.ID,
 		)
+
 		cleaner.clean(t, apiclient.PhysicalRetentionPolicyCHAINS)
 		catalog.assertFullPresent(t, older.ID)
 		catalog.assertFullGone(t, newer.ID)
@@ -144,11 +152,13 @@ func TestPhysicalBackupChains(t *testing.T) {
 		older := catalog.seedCascadeFull(t, cascadeFullSpec{Age: time.Hour})
 		newer := catalog.seedCascadeFull(t, cascadeFullSpec{Segment: 4})
 		incremental := catalog.seedCascadeIncremental(t, newer.ID, 5)
+
 		catalog.App.ExecuteSQL(
 			t,
 			"UPDATE backups_physical SET status='CHAIN_BROKEN',error_reason='SUMMARIES_EXPIRED' WHERE id=?",
 			incremental.ID,
 		)
+
 		catalog.triggerIncremental(t, http.StatusConflict)
 		page := getBackups(t, catalog, "?type=FULL")
 		require.Len(t, page.Backups, 2)
@@ -160,6 +170,7 @@ func TestPhysicalBackupChains(t *testing.T) {
 		for _, segment := range []int{0, 4, 8} {
 			catalog.seedCascadeFull(t, cascadeFullSpec{Segment: segment, Offset: 0x28})
 		}
+
 		segments := catalog.insertContiguousWal(
 			t,
 			contiguousWalSpec{
@@ -169,8 +180,10 @@ func TestPhysicalBackupChains(t *testing.T) {
 				FirstReceivedAt: time.Now().UTC().Add(-time.Hour),
 			},
 		)
+
 		catalog.saveStorageConfig(t, catalog.StorageID)
 		catalog.App.RunJobPass(t, "backups_physical_cleaner")
+
 		for _, wal := range segments {
 			catalog.assertWalPresent(t, wal.ID)
 		}
@@ -181,6 +194,7 @@ func TestPhysicalBackupChains(t *testing.T) {
 		successor := catalog.seedCascadeFull(t, cascadeFullSpec{Segment: 4})
 		before := catalog.seedCascadeWal(t, cascadeWalSpec{Segment: 3})
 		after := catalog.seedCascadeWal(t, cascadeWalSpec{Segment: 4})
+
 		catalog.deleteFull(t, predecessor.ID)
 		catalog.assertWalGone(t, before.ID)
 		catalog.assertWalPresent(t, after.ID)
@@ -213,6 +227,7 @@ func TestPhysicalBackupChains(t *testing.T) {
 				},
 			),
 		)
+
 		catalog.deleteFull(t, full.ID)
 		catalog.assertWalPresent(t, otherTimeline.ID)
 		catalog.assertWalPresent(t, foreign.ID)

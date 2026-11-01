@@ -39,12 +39,14 @@ func NewWriteProtectionRepository(db *gorm.DB) *WriteProtectionRepository {
 func (r *WriteProtectionRepository) ProtectWrite(ctx context.Context, request writeProtectionRequest) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
+
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 	if r.failure != nil {
 		return r.failure
 	}
+
 	if r.connection == nil {
 		pool, err := r.db.DB()
 		if err != nil {
@@ -56,6 +58,7 @@ func (r *WriteProtectionRepository) ProtectWrite(ctx context.Context, request wr
 		}
 		r.connection = connection
 	}
+
 	guardCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
 	defer cancel()
 	var isProtected bool
@@ -72,15 +75,19 @@ func (r *WriteProtectionRepository) ProtectWrite(ctx context.Context, request wr
 		r.closeIdleConnection()
 		return ErrFileNameAlreadyRegistered
 	}
+
 	r.activeWrites[request.PendingDeletionID] = request
+
 	return nil
 }
 
 func (r *WriteProtectionRepository) ReleaseWrite(ctx context.Context, id uuid.UUID) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
+
 	guardCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
 	defer cancel()
+
 	err := r.failure
 	if err == nil {
 		var isReleased bool
@@ -92,12 +99,15 @@ func (r *WriteProtectionRepository) ReleaseWrite(ctx context.Context, id uuid.UU
 			err = ErrWriteProtectionLost
 		}
 	}
+
 	delete(r.activeWrites, id)
+
 	if err != nil {
 		r.failProtection(err)
 		err = r.failure
 	}
 	r.closeIdleConnection()
+
 	return err
 }
 

@@ -406,6 +406,7 @@ func TestPhysicalBackupMemberChanges(t *testing.T) {
 					Request:       apptest.PhysicalCancelRequest(running.ID),
 					Authorization: "Bearer " + member.Token, StatusCode: http.StatusAccepted,
 				})
+
 				assert.Nil(t, catalog.getRunningBackupID(t))
 				page := getBackups(t, catalog, "")
 				require.Len(t, page.Backups, 1)

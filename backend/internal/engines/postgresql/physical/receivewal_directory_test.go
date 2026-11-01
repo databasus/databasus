@@ -91,6 +91,7 @@ func TestGetWalSegmentFiles(t *testing.T) {
 		const segmentSize = uint64(1024 * 1024)
 		completeName := walmath.WalSegmentNo(257).GetFilename(2, segmentSize)
 		tornName := walmath.WalSegmentNo(258).GetFilename(2, segmentSize)
+
 		writeSegmentOfSize(t, filepath.Join(directory, completeName), int64(segmentSize))
 		writeSegmentOfSize(t, filepath.Join(directory, tornName), int64(segmentSize/2))
 		writeSegmentOfSize(t, filepath.Join(directory, completeName+".partial"), int64(segmentSize))
@@ -106,8 +107,10 @@ func TestGetWalSegmentFiles(t *testing.T) {
 		require.Equal(t, walmath.LSN(257*segmentSize), segments[0].StartLSN)
 		require.Equal(t, walmath.LSN(258*segmentSize), segments[0].EndLSN)
 		require.True(t, segments[0].IsComplete)
+
 		require.Equal(t, tornName, segments[1].Filename)
 		require.False(t, segments[1].IsComplete)
+
 		require.True(t, IsPartialWalFile(completeName+".partial"))
 		require.False(t, IsPartialWalFile(completeName))
 		require.True(t, IsTimelineHistoryFile("00000002.history"))

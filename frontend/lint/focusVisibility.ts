@@ -60,6 +60,7 @@ export const hasVisibleFocusReplacement = (declarations: FocusDeclaration[]): bo
   let style = 'none';
   let color = 'currentColor';
   let shadow = 'none';
+
   for (const declaration of declarations.toSorted(
     (left, right) => Number(!!left.isImportant) - Number(!!right.isImportant),
   )) {
@@ -79,10 +80,12 @@ export const hasVisibleFocusReplacement = (declarations: FocusDeclaration[]): bo
     else if (declaration.property === 'outline-color') color = declaration.value;
     else if (declaration.property === 'box-shadow') shadow = declaration.value;
   }
+
   const hasOutlineWidth = /^(?:thin|medium|thick)$/.test(width) || parseFloat(width) > 0;
   const hasOutlineStyle = /^(?:auto|solid|dashed|dotted|double|groove|ridge|inset|outset)$/.test(
     style,
   );
+
   return (
     (hasOutlineWidth && hasOutlineStyle && !hasTransparentPaint(color)) ||
     isVisibleFocusStyle({ property: 'box-shadow', value: shadow })
@@ -135,6 +138,7 @@ export const hasVisibleFocusUtility = ({
     .split(/:(?![^[]*\])/)
     .slice(0, -1)
     .filter((condition) => !['focus', 'focus-visible'].includes(condition));
+
   const applicable = classes.filter((utility) =>
     utility
       .split(/:(?![^[]*\])/)
@@ -142,6 +146,7 @@ export const hasVisibleFocusUtility = ({
       .filter((condition) => !['focus', 'focus-visible'].includes(condition))
       .every((condition) => removedConditions.includes(condition)),
   );
+
   const importantRemovals = applicable.filter(
     (utility) =>
       isImportantUtility(utility) && /^outline-(?:none|hidden)$/.test(getUtility(utility)),
@@ -150,6 +155,7 @@ export const hasVisibleFocusUtility = ({
   for (const state of ['focus:', 'focus-visible:']) {
     const stateClasses = applicable.filter((utility) => utility.includes(state));
     const utilities = stateClasses.map(getUtility);
+
     const hasImportantOutlineWidth = stateClasses.some(
       (utility) =>
         isImportantUtility(utility) &&
@@ -165,8 +171,10 @@ export const hasVisibleFocusUtility = ({
           !removal.includes(state) &&
           stateClasses.some((utility) => isImportantUtility(utility) && hasOutlineStyle(utility)),
       );
+
     for (const kind of ['outline', 'ring']) {
       if (kind === 'outline' && !hasEffectiveOutlineStyle) continue;
+
       const related = utilities.filter(
         (utility) => utility.startsWith(`${kind}-`) || utility === kind,
       );
@@ -179,6 +187,7 @@ export const hasVisibleFocusUtility = ({
         )
       )
         continue;
+
       if (
         related.some(
           (utility) =>
@@ -189,6 +198,7 @@ export const hasVisibleFocusUtility = ({
         )
       )
         return true;
+
       if (
         related.some((utility) => {
           const arbitrary = utility.match(/^outline-\[(.+)\]$/)?.[1];

@@ -33,8 +33,10 @@ class CodexReviewerTest(unittest.TestCase):
     def test_accepts_only_final_answer_with_child_restrictions(self):
         repository = self.prepare()
         repository.environment["CLAUDECODE"] = "parent-session"
+
         response = repository.stop("diff")
         self.assertEqual(response, {})
+
         [call] = repository.reviewer_calls()
         arguments = call["arguments"]
         self.assertEqual(call["name"], "codex")
@@ -63,12 +65,15 @@ class CodexReviewerTest(unittest.TestCase):
         plugin_id = 'plugin.with.dots@market'
         repository = self.prepare({"servers": [{"name": server_name}],
                                    "plugins": {"installed": [{"pluginId": plugin_id}]}})
+
         self.assertEqual(repository.stop("diff"), {})
         [call] = repository.reviewer_calls()
+
         overrides = {}
         for argument in call["arguments"]:
             if argument.startswith(("mcp_servers=", "plugins=")):
                 overrides.update(tomllib.loads(argument))
+
         self.assertEqual(overrides, {"mcp_servers": {server_name: {"enabled": False}},
                                      "plugins": {plugin_id: {"enabled": False}}})
         self.assert_answers_removed(repository)
@@ -91,6 +96,7 @@ class CodexReviewerTest(unittest.TestCase):
         ):
             with self.subTest(config=config):
                 repository = self.prepare(config)
+
                 response = repository.stop("diff")
                 self.assertEqual(response["decision"], "block")
                 self.assertIn(reason, response["reason"])
@@ -115,7 +121,9 @@ class CodexReviewerTest(unittest.TestCase):
                     else:
                         repository.write_proposal()
                     repository.set_stub("codex", {"result": answer})
+
                     response = repository.stop(gate)
+
                     self.assertIn("schema", response["reason"])
                     self.assert_answers_removed(repository)
 
@@ -123,6 +131,7 @@ class CodexReviewerTest(unittest.TestCase):
         repository = HookRepository(self, missing_tools=("codex",))
         repository.submit_prompt("Implement widgets")
         repository.write("src/widgets.py", "WIDGETS = []\n")
+
         response = repository.stop("diff")
         self.assertIn("codex", response["reason"])
         self.assertEqual(repository.reviewer_calls(), [])
@@ -141,12 +150,14 @@ class CodexReviewerTest(unittest.TestCase):
                 repository = self.prepare(config)
                 payload = {"cwd": str(repository.root), "session_id": "session-1", "hook_event_name": "Stop"}
                 output = io.StringIO()
+
                 with mock.patch.dict(os.environ, repository.environment, clear=True), \
                      mock.patch.object(sys, "argv", ["review_gate.py", "diff"]), \
                      mock.patch.object(sys, "stdin", io.StringIO(json.dumps(payload))), \
                      mock.patch.object(sys, "stdout", output), \
                      mock.patch.object(review_gate, "QUICK_REVIEWER", replace(review_gate.QUICK_REVIEWER, timeout_seconds=0.5)):
                     review_gate.main()
+
                 self.assertIn("timed out", json.loads(output.getvalue())["reason"])
                 self.assertEqual(repository.calls("claude"), [])
                 self.assert_answers_removed(repository)

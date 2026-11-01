@@ -26,6 +26,7 @@ func TestPhysicalBackupTimeAfterWal(t *testing.T) {
 		rotateWal(t, source)
 		team.waitForWal(t, 1)
 		team.App.WaitForPhysicalBackups(t)
+
 		backupLock := team.App.BeginSQLTransaction(t)
 		backupLock.ExecuteSQL(
 			t,
@@ -34,12 +35,14 @@ func TestPhysicalBackupTimeAfterWal(t *testing.T) {
 		)
 		var backupLockOwner int
 		backupLock.QuerySQL(t, &backupLockOwner, "SELECT pg_backend_pid()")
+
 		team.call(
 			t,
 			apptest.PhysicalStartRequest(team.Database.Id, "FULL"),
 			http.StatusAccepted,
 			nil,
 		)
+
 		scheduled := make(chan struct{}, 1)
 		go func() { team.App.RunJobPass(t, "backups_physical_scheduler"); scheduled <- struct{}{} }()
 		testwait.Until(t, "the next full waits after choosing its start time", func(context.Context) error {
@@ -53,6 +56,7 @@ func TestPhysicalBackupTimeAfterWal(t *testing.T) {
 			}
 			return nil
 		})
+
 		fullWaitingAt := time.Now().UTC()
 		rotateWal(t, source)
 		testwait.Until(t, "a real WAL upload commits after the full chose its start time", func(context.Context) error {
@@ -66,6 +70,7 @@ func TestPhysicalBackupTimeAfterWal(t *testing.T) {
 			}
 			return nil
 		})
+
 		settings, err := team.Database.Settings.AsPostgresqlPhysicalSettings()
 		require.NoError(t, err)
 		settings.Password = new("testpassword")
@@ -79,23 +84,27 @@ func TestPhysicalBackupTimeAfterWal(t *testing.T) {
 		)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, updated.StatusCode(), "%s", updated.Body)
+
 		testwait.Until(t, "the receiver stops after WAL archiving is turned off", func(context.Context) error {
 			if team.live(t).IsStreamerRunning {
 				return fmt.Errorf("streamer has not stopped")
 			}
 			return nil
 		})
+
 		database, err := team.Owner.Client.GetDatabaseWithResponse(t.Context(), team.Database.Id)
 		require.NoError(t, err)
 		require.NotNil(t, database.JSON200)
 		require.NotNil(t, database.JSON200.LastBackupTime)
 		walTime := *database.JSON200.LastBackupTime
+
 		backupLock.Commit(t)
 		select {
 		case <-scheduled:
 		case <-t.Context().Done():
 			t.Fatal("scheduler did not finish after the backup lock was released")
 		}
+
 		team.App.WaitForPhysicalBackups(t)
 		database, err = team.Owner.Client.GetDatabaseWithResponse(t.Context(), team.Database.Id)
 		require.NoError(t, err)

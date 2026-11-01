@@ -25,11 +25,13 @@ func TestIncrementalBackupWithPendingWalSummaries(t *testing.T) {
 				full := team.runBackup(t, "full")
 				require.Equal(t, "COMPLETED", full.Status)
 				source := team.openSource(t)
+
 				if isWriting {
 					_, err := source.Exec(t.Context(), "CREATE TABLE pending_summary_writes(payload text)")
 					require.NoError(t, err)
 					var start string
 					require.NoError(t, source.QueryRow(t.Context(), "SELECT pg_current_wal_lsn()::text").Scan(&start))
+
 					for {
 						_, err = source.Exec(
 							t.Context(),
@@ -47,6 +49,7 @@ func TestIncrementalBackupWithPendingWalSummaries(t *testing.T) {
 						}
 					}
 				}
+
 				incremental := team.runBackup(t, "incremental")
 				require.Equal(t, "COMPLETED", incremental.Status)
 				team.assertArtifacts(t, incremental)
@@ -59,6 +62,7 @@ func TestIncrementalBackupWithPendingWalSummaries(t *testing.T) {
 		full := team.runBackup(t, "full")
 		require.Equal(t, "COMPLETED", full.Status)
 		source := team.openSource(t)
+
 		testwait.Until(t, "the source publishes its first WAL summary", func(ctx context.Context) error {
 			var count int
 			err := source.QueryRow(ctx, "SELECT count(*) FROM pg_available_wal_summaries()").Scan(&count)
@@ -70,6 +74,7 @@ func TestIncrementalBackupWithPendingWalSummaries(t *testing.T) {
 			}
 			return nil
 		})
+
 		team.App.ExecuteSQL(t, "UPDATE backups_physical SET stop_lsn='0/1' WHERE id=?", full.ID)
 		incremental := team.runBackup(t, "incremental")
 		assert.Equal(t, "CHAIN_BROKEN", incremental.Status)

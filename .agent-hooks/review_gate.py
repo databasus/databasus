@@ -353,6 +353,7 @@ def parse_verification_command(line):
                 shard = re.fullmatch(r"(?:physical|logical|physical-api)-([1-9][0-9]*)-of-([1-9][0-9]*)", argument)
                 if shard is None or int(shard[1]) > int(shard[2]):
                     raise ChangeVerificationError(f"the argument `{argument}` must name a shard of physical, logical or physical-api")
+
         return Check(form.directory, tuple(words))
     raise ChangeVerificationError(f"`{line}` is not an allowed command")
 
@@ -447,11 +448,13 @@ def get_workspace_fingerprint(root):
     for relative_path in get_untracked_paths(root):
         path = root / relative_path
         digest.update(relative_path.encode())
+
         if path.is_symlink():
             digest.update(os.readlink(path).encode())
             continue
         if not path.is_file():
             continue
+
         try:
             with path.open("rb") as source:
                 for chunk in iter(lambda: source.read(1024 * 1024), b""):
@@ -534,6 +537,7 @@ def snapshot(session):
             "prompt": prompt,
         },
     )
+
     for gate in GATES:
         try:
             session.gate_path(gate).unlink()
@@ -1496,17 +1500,20 @@ def main():
     parser.add_argument("change", nargs="?", help="the OpenSpec change that `review` checks; all implemented ones when omitted")
     parser.add_argument("--client")
     arguments = parser.parse_intermixed_args()
+
     try:
         REVIEW_PROFILE = get_review_profile(arguments.client)
         get_review_profile_identity.cache_clear()
     except ValueError as error:
         parser.error(str(error))
+
     if os.environ.get(REVIEWER_ACTIVE_ENV) == "1":
         if arguments.action in ("doctor", "review"):
             print("Nested review action skipped inside an active reviewer.")
         else:
             emit({})
         return
+
     if arguments.action == "doctor":
         sys.exit(check_environment())
     if arguments.change and arguments.action != "review":

@@ -27,12 +27,14 @@ import { http, HttpResponse } from 'msw';
 import { setUpMockApi, mockApi } from ${JSON.stringify(join(frontendRoot, 'src/shared/lib/test/mockApi.ts'))};
 const server = setUpMockApi();\n${scenario}`,
     );
+
     // The fixture lives outside src so the regular suite cannot collect intentional failures.
     const config = join(directory, 'vitest.config.mjs');
     await writeFile(
       config,
       `export default { root: ${JSON.stringify(frontendRoot)}, test: { include: [${JSON.stringify(fixture)}], exclude: [], environment: ${JSON.stringify(environment)}, maxWorkers: 1, fileParallelism: false } };`,
     );
+
     // The child inherits the parent's color settings; assertions read the plain summary text.
     try {
       const output = await runFile(

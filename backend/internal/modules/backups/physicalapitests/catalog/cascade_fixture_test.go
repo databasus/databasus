@@ -31,6 +31,7 @@ func (catalog *catalogFixture) seedCascadeFull(t *testing.T, spec cascadeFullSpe
 	if timelineID == 0 {
 		timelineID = 1
 	}
+
 	start := catalogLSN(spec.Segment) + spec.Offset
 	full := newFullSeed(
 		fullSeedSpec{
@@ -41,6 +42,7 @@ func (catalog *catalogFixture) seedCascadeFull(t *testing.T, spec cascadeFullSpe
 			StopLSN:    start + fixtureLSN(segmentBytes),
 		},
 	)
+
 	full.CreatedAt = time.Now().UTC().Add(-spec.Age)
 	full.CompletedAt = new(full.CreatedAt.Add(time.Minute))
 	full.ManifestFileName = new(*full.FileName + ".manifest")
@@ -59,6 +61,7 @@ func (catalog *catalogFixture) seedCascadeWal(t *testing.T, spec cascadeWalSpec)
 	if timelineID == 0 {
 		timelineID = 1
 	}
+
 	wal := newWalSeed(
 		walSeedSpec{
 			DatabaseID:  catalog.DatabaseID,
@@ -157,6 +160,7 @@ func (catalog *catalogFixture) keepFullPass(t *testing.T) {
 		Policy: apiclient.FullBackupsRetentionPolicyLASTN,
 		Count:  20,
 	}
+
 	cleaner := cleanerCatalog{catalogFixture: catalog, Config: settings}
 	cleaner.clean(t, apiclient.PhysicalRetentionPolicyFULLBACKUPS)
 }

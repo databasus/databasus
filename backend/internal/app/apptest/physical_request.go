@@ -41,6 +41,7 @@ func PhysicalListRequest(databaseID uuid.UUID, query string) PhysicalRequest {
 		if err != nil {
 			return nil, err
 		}
+
 		params := apiclient.ListPhysicalBackupsParams{DatabaseId: databaseID}
 		if values.Has("limit") {
 			limit, err := strconv.Atoi(values.Get("limit"))
@@ -73,6 +74,7 @@ func PhysicalListRequest(databaseID uuid.UUID, query string) PhysicalRequest {
 			}
 			params.Status = &statuses
 		}
+
 		return client.ListPhysicalBackups(ctx, &params)
 	}
 }

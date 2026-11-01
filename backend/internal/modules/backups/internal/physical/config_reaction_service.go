@@ -34,20 +34,24 @@ func (s *Service) RemoveBackupsForStorageChange(
 	if err != nil {
 		return config.RemovedBackupHistory{}, err
 	}
+
 	pendingFiles, err := s.storages.GetPendingFileReferences(ctx, removal.DatabaseID.String()+"-")
 	if err != nil {
 		return config.RemovedBackupHistory{}, err
 	}
+
 	history, err := s.chains.RemoveBackupsForStorageChange(ctx, removal)
 	if err != nil {
 		return config.RemovedBackupHistory{}, err
 	}
+
 	for _, pending := range pendingFiles {
 		isOldWrite := removal.UnfinishedStorageID != nil && pending.StorageID == *removal.UnfinishedStorageID
 		if isOldWrite {
 			history.References = append(history.References, pending)
 		}
 	}
+
 	cancelOldStreamer := s.streams.GetStreamerCancellation(removal.DatabaseID)
 	if err := database.AfterCommit(ctx, func(context.Context) {
 		if runningBackup != nil {
@@ -59,6 +63,7 @@ func (s *Service) RemoveBackupsForStorageChange(
 	}); err != nil {
 		return config.RemovedBackupHistory{}, err
 	}
+
 	return history, nil
 }
 

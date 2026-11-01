@@ -43,6 +43,7 @@ describe('EditStorageComponent', () => {
       mockApi.post('/storage-tests', 200, { isConnected: true }),
       mockApi.put('/storages/{storageId}', 200, { ...local, name: 'Newer' }),
     );
+
     const onPersisted = vi.fn();
     const onChanged = vi.fn();
     renderScreen(
@@ -167,6 +168,7 @@ describe('EditStorageComponent', () => {
         isVirtualHostedStyle: false,
         isSkipTlsVerify: false,
       };
+
       const createdStorage: Storage = { ...local, settings: storedSettings };
       const creation = mockApi.delayed({
         method: 'post',
@@ -174,7 +176,9 @@ describe('EditStorageComponent', () => {
         status: 201,
         body: createdStorage,
       });
+
       server.use(creation.handler, mockApi.post('/storage-tests', 200, { isConnected: true }));
+
       const onPersisted = vi.fn();
       const onChanged = vi.fn();
       renderScreen(
@@ -222,6 +226,7 @@ describe('EditStorageComponent', () => {
       body: local,
     });
     server.use(creation.handler, mockApi.post('/storage-tests', 200, { isConnected: true }));
+
     const previousCompletion = vi.fn();
     const currentCompletion = vi.fn();
     const currentPersistence = vi.fn();
@@ -262,8 +267,10 @@ describe('EditStorageComponent', () => {
     const firstRequest = mockApi.pending('post', '/storages');
     const secondRequest = mockApi.pending('post', '/storages');
     server.use(mockApi.post('/storage-tests', 200, { isConnected: true }), firstRequest.handler);
+
     const firstCompleted = vi.fn();
     const secondCompleted = vi.fn();
+
     renderScreen(
       <>
         <section aria-label="First editor">
@@ -279,6 +286,7 @@ describe('EditStorageComponent', () => {
       </>,
       { isStrictMode: true },
     );
+
     const first = within(screen.getByRole('region', { name: 'First editor' }));
     const second = within(screen.getByRole('region', { name: 'Second editor' }));
 

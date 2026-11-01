@@ -98,6 +98,7 @@ func TestSessionPasswordVersion(t *testing.T) {
 			admin := app.CreateAdmin(t)
 			masterKey, err := crypto.OpenOrCreateMasterKey(app.GetServerConfig().SecretKeyPath)
 			require.NoError(t, err)
+
 			claims := jwt.MapClaims{
 				"sub": admin.UserID.String(), "exp": app.Clock.Now().Add(time.Hour).Unix(),
 				"passwordCreationTime": app.Clock.Now().Unix(),
@@ -107,6 +108,7 @@ func TestSessionPasswordVersion(t *testing.T) {
 			}
 			token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(masterKey.GetSecret()))
 			require.NoError(t, err)
+
 			response := getUser(t, app.NewSessionClient(t, token), admin.UserID)
 			requireProblem(
 				t,

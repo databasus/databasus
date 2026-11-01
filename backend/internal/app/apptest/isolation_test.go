@@ -60,6 +60,7 @@ func TestApplicationIsolation(t *testing.T) {
 					bytes.NewBufferString("neighbour"),
 				),
 			)
+
 			assert.False(t, neighbour.IsLocalStorageStagingFilePresent(t, "inflight.backup"))
 			assert.NotEqual(t, survivor.databaseDsn, neighbour.databaseDsn)
 			assert.NotEqual(t, survivor.tempFolder, neighbour.tempFolder)
@@ -70,6 +71,7 @@ func TestApplicationIsolation(t *testing.T) {
 				filepath.Join(neighbour.dataFolder, "wal-queue"),
 			)
 			assert.NotEqual(t, survivor.secretKeyPath, neighbour.secretKeyPath)
+
 			survivorKey, err := os.ReadFile(survivor.secretKeyPath)
 			require.NoError(t, err)
 			neighbourKey, err := os.ReadFile(neighbour.secretKeyPath)
@@ -85,6 +87,7 @@ func TestApplicationIsolation(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, streamWriter.Close())
 		require.NoError(t, <-writeOutcome)
+
 		streamedContent, err := os.ReadFile(survivor.GetLocalStorageFilePath("inflight.backup"))
 		require.NoError(t, err)
 		assert.Equal(t, "started finished", string(streamedContent))
