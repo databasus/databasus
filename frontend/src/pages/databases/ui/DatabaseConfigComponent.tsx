@@ -17,7 +17,6 @@ import {
   EditPhysicalBackupConfigComponent,
   ShowPhysicalBackupConfigComponent,
 } from '@/features/backups/physical';
-import { EditDatabaseSpecificDataComponent } from '@/features/database-connection';
 import {
   EditVerificationConfigComponent,
   ShowVerificationConfigComponent,
@@ -31,6 +30,7 @@ import { ConfirmationComponent } from '../../../shared/ui';
 import { BackupStorageSelection } from './BackupStorageSelection';
 import { DatabaseSettingsSection } from './DatabaseSettingsSection';
 import { DatabaseTransferDialogComponent } from './DatabaseTransferDialogComponent';
+import { EditDatabaseConnectionSection } from './EditDatabaseConnectionSection';
 import { EditDatabaseNotifiersComponent } from './EditDatabaseNotifiersComponent';
 import { EditHealthcheckConfigComponent, ShowHealthcheckConfigComponent } from './healthcheck';
 import { ShowDatabaseNotifiersComponent } from './show/ShowDatabaseNotifiersComponent';
@@ -287,14 +287,11 @@ export const DatabaseConfigComponent = ({
           onEdit={() => startEdit('connection')}
         >
           {editingSection === 'connection' ? (
-            <EditDatabaseSpecificDataComponent
+            <EditDatabaseConnectionSection
+              key={database.id}
               database={database}
-              isShowCancelButton
-              isShowBackButton={false}
-              onBack={() => {}}
-              onCancel={closeSection}
-              isSaveToApi={true}
-              onSaved={acceptSavedDatabase}
+              onDatabaseSaved={onDatabaseChanged}
+              onClose={closeSection}
             />
           ) : (
             <ShowDatabaseSpecificDataComponent database={database} />

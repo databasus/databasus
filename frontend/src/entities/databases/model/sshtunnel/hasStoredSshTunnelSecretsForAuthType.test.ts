@@ -17,32 +17,23 @@ const enabledTunnel = (): SshTunnelSettings => ({
 
 describe('hasStoredSshTunnelSecretsForAuthType', () => {
   it('is true for a saved database whose tunnel is enabled', () => {
-    expect(
-      hasStoredSshTunnelSecretsForAuthType(enabledTunnel(), SshTunnelAuthType.PASSWORD, 'db-1'),
-    ).toBe(true);
+    expect(hasStoredSshTunnelSecretsForAuthType(enabledTunnel(), SshTunnelAuthType.PASSWORD)).toBe(
+      true,
+    );
   });
 
   it('is false once the user picks the other auth type', () => {
     expect(
-      hasStoredSshTunnelSecretsForAuthType(enabledTunnel(), SshTunnelAuthType.PRIVATE_KEY, 'db-1'),
-    ).toBe(false);
-  });
-
-  it('is false while the database is still being created', () => {
-    expect(
-      hasStoredSshTunnelSecretsForAuthType(enabledTunnel(), SshTunnelAuthType.PASSWORD, undefined),
+      hasStoredSshTunnelSecretsForAuthType(enabledTunnel(), SshTunnelAuthType.PRIVATE_KEY),
     ).toBe(false);
   });
 
   it('is false for a saved database that never had a tunnel', () => {
-    expect(
-      hasStoredSshTunnelSecretsForAuthType(undefined, SshTunnelAuthType.PASSWORD, 'db-1'),
-    ).toBe(false);
+    expect(hasStoredSshTunnelSecretsForAuthType(undefined, SshTunnelAuthType.PASSWORD)).toBe(false);
     expect(
       hasStoredSshTunnelSecretsForAuthType(
         { ...enabledTunnel(), isEnabled: false },
         SshTunnelAuthType.PASSWORD,
-        'db-1',
       ),
     ).toBe(false);
   });

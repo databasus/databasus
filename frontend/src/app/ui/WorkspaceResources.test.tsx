@@ -129,14 +129,14 @@ for (const domain of ['storages', 'notifiers'] as const) {
         if (isLastResource) {
           await screen.findByText(emptyText);
 
-          expect(localStorage.getItem(selectionKey)).toBeNull();
+          await waitFor(() => expect(localStorage.getItem(selectionKey)).toBeNull());
         } else {
           await waitFor(() =>
             expect(
               screen.getByRole('button', { name: resources[0].name }).getAttribute('aria-pressed'),
             ).toBe('true'),
           );
-          expect(localStorage.getItem(selectionKey)).toBe(resources[0].id);
+          await waitFor(() => expect(localStorage.getItem(selectionKey)).toBe(resources[0].id));
         }
 
         expect(screen.queryByRole('button', { name: removedResource.name })).toBeNull();

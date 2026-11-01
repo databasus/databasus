@@ -5,13 +5,13 @@ import {
   ExclamationCircleOutlined,
   SyncOutlined,
 } from '@ant-design/icons';
-import { Alert, App, Button, Modal, Spin, Tooltip } from 'antd';
+import { App, Button, Modal, Spin, Tooltip } from 'antd';
 import dayjs from 'dayjs';
-import { useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import type { LogicalBackup } from '../../../entities/backups/logical';
-import type { Database } from '../../../entities/databases';
+import type { Database, RestoreTargetDraft } from '../../../entities/databases';
 import {
   type PostgresqlRestoreOptions,
   RESTORE_STATUS_LABEL_KEYS,
@@ -19,27 +19,37 @@ import {
   RestoreStatus,
   restoreApi,
 } from '../../../entities/restores';
+import { useSessionGuard } from '../../../shared/auth';
 import { translateApiError, useLocale } from '../../../shared/i18n';
 import { ClipboardHelper } from '../../../shared/lib/ClipboardHelper';
 import { getUserTimeFormat } from '../../../shared/time';
 import { ConfirmationComponent } from '../../../shared/ui';
-import { EditDatabaseSpecificDataComponent } from '../../database-connection';
 import { createRestoreTargetDraft } from './createRestoreTargetDraft';
+import type { RestoreTargetFormOptions } from './RestoreTargetFormOptions';
 import { toRestoreTarget } from './toRestoreTarget';
 
 interface Props {
   database: Database;
   backup: LogicalBackup;
+  renderRestoreTargetForm: (options: RestoreTargetFormOptions) => ReactNode;
 }
 
-export const RestoresComponent = ({ database, backup }: Props) => {
+const NO_RESTORE_OPTIONS: PostgresqlRestoreOptions = {
+  isExcludeExtensions: false,
+  isRestoreOwnership: false,
+  isRestorePrivileges: false,
+};
+
+export const RestoresComponent = ({ database, backup, renderRestoreTargetForm }: Props) => {
   const { t } = useTranslation();
   const { formatRelativeTime } = useLocale();
   const { message } = App.useApp();
+  const isActive = useSessionGuard();
 
-  const [editingDatabase, setEditingDatabase] = useState<Database>(
-    createRestoreTargetDraft(database),
+  const [targetDraft, setTargetDraft] = useState(() =>
+    createRestoreTargetDraft(database.settings.type),
   );
+  const [restoreOptions, setRestoreOptions] = useState(NO_RESTORE_OPTIONS);
 
   const [restores, setRestores] = useState<Restore[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,7 +57,6 @@ export const RestoresComponent = ({ database, backup }: Props) => {
   const [showingRestoreError, setShowingRestoreError] = useState<Restore | undefined>();
 
   const [isShowRestore, setIsShowRestore] = useState(false);
-  const [restoreStartError, setRestoreStartError] = useState<unknown>();
 
   const [cancellingRestoreId, setCancellingRestoreId] = useState<string | undefined>();
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
@@ -87,23 +96,15 @@ export const RestoresComponent = ({ database, backup }: Props) => {
     });
   };
 
-  const startRestore = async (
-    targetDatabase: Database,
-    restoreOptions: PostgresqlRestoreOptions | undefined,
-  ) => {
-    const target = toRestoreTarget(targetDatabase.settings, restoreOptions);
-    if (!target) {
-      return;
-    }
+  const startRestore = async (submittedDraft: RestoreTargetDraft) => {
+    const startedRestore = await restoreApi.startRestore(
+      backup.id,
+      toRestoreTarget(submittedDraft, restoreOptions),
+    );
+    if (!isActive()) return;
 
-    setRestoreStartError(undefined);
-
-    try {
-      showRestore(await restoreApi.startRestore(backup.id, target));
-      setIsShowRestore(false);
-    } catch (e) {
-      setRestoreStartError(e);
-    }
+    showRestore(startedRestore);
+    setIsShowRestore(false);
   };
 
   const cancelRestore = async (restoreId: string) => {
@@ -133,7 +134,7 @@ export const RestoresComponent = ({ database, backup }: Props) => {
     (restore) => restore.status === RestoreStatus.IN_PROGRESS,
   );
 
-  if (isShowRestore) {
+  if (isShowRestore && targetDraft) {
     return (
       <>
         <div className="my-5 text-sm">
@@ -143,28 +144,14 @@ export const RestoresComponent = ({ database, backup }: Props) => {
           {t('restores.targetDatabase.notInUseHint')}
         </div>
 
-        <EditDatabaseSpecificDataComponent
-          database={editingDatabase}
-          onCancel={() => setIsShowRestore(false)}
-          isShowBackButton={false}
-          onBack={() => setIsShowRestore(false)}
-          saveButtonText={t('restores.targetDatabase.submit')}
-          isSaveToApi={false}
-          onSaved={(database, restoreOptions) => {
-            setEditingDatabase({ ...database });
-            return startRestore(database, restoreOptions);
-          }}
-          isRestoreMode={true}
-        />
-
-        {restoreStartError !== undefined && (
-          <Alert
-            className="mt-3"
-            type="error"
-            showIcon
-            message={translateApiError(restoreStartError, t)}
-          />
-        )}
+        {renderRestoreTargetForm({
+          draft: targetDraft,
+          onDraftChange: setTargetDraft,
+          restoreOptions,
+          onRestoreOptionsChange: setRestoreOptions,
+          submitLabel: t('restores.targetDatabase.submit'),
+          onSubmit: startRestore,
+        })}
       </>
     );
   }
@@ -177,18 +164,17 @@ export const RestoresComponent = ({ database, backup }: Props) => {
         </div>
       ) : (
         <>
-          <Button
-            className="w-full"
-            type="primary"
-            disabled={isRestoreInProgress}
-            loading={isRestoreInProgress}
-            onClick={() => {
-              setRestoreStartError(undefined);
-              setIsShowRestore(true);
-            }}
-          >
-            {t('restores.targetDatabase.select')}
-          </Button>
+          {targetDraft && (
+            <Button
+              className="w-full"
+              type="primary"
+              disabled={isRestoreInProgress}
+              loading={isRestoreInProgress}
+              onClick={() => setIsShowRestore(true)}
+            >
+              {t('restores.targetDatabase.select')}
+            </Button>
+          )}
 
           {restores.length === 0 && (
             <div className="my-5 text-center text-gray-400">{t('restores.list.empty')}</div>

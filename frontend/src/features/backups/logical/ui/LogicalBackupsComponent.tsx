@@ -42,7 +42,7 @@ import {
 import { formatDuration } from '../../../../shared/lib';
 import { getUserTimeFormat } from '../../../../shared/time';
 import { ConfirmationComponent } from '../../../../shared/ui';
-import { RestoresComponent } from '../../../restores';
+import { RestoresComponent, type RestoreTargetFormOptions } from '../../../restores';
 import { isLogicalBackupListedByFilter } from '../model/isLogicalBackupListedByFilter';
 import { VERIFICATION_STATUS_BADGE_STYLES } from '../model/verificationStatusBadgeStyles';
 import { LogicalBackupsFiltersPanelComponent } from './LogicalBackupsFiltersPanelComponent';
@@ -65,6 +65,7 @@ interface Props {
   isDirectlyUnderTab?: boolean;
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
   onNavigateToVerifications?: () => void;
+  renderRestoreTargetForm: (options: RestoreTargetFormOptions) => React.ReactNode;
 }
 
 // The file is served with Content-Disposition, so following the link downloads it and leaves the
@@ -110,6 +111,7 @@ export const LogicalBackupsComponent = ({
   isDirectlyUnderTab,
   scrollContainerRef,
   onNavigateToVerifications,
+  renderRestoreTargetForm,
 }: Props) => {
   const { t } = useTranslation();
   const { locale, formatNumber, formatRelativeTime } = useLocale();
@@ -708,6 +710,7 @@ export const LogicalBackupsComponent = ({
           <RestoresComponent
             database={database}
             backup={backups.find((b) => b.id === showingRestoresBackupId) as LogicalBackup}
+            renderRestoreTargetForm={renderRestoreTargetForm}
           />
         </Modal>
       )}

@@ -1,7 +1,7 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
-import { HttpResponse, http } from 'msw';
+import { HttpResponse, type RequestHandler, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { BackupConfig } from '../../../entities/backups/config';
@@ -521,6 +521,69 @@ describe('DatabasesComponent', () => {
 
     await waitFor(() => expect(countRequests(`/databases/${shopDatabase.id}`, 'PUT')).toBe(1));
     expect(screen.getByDisplayValue('replica.example.com')).toBeTruthy();
+  });
+
+  describe('a connection saved on the path of the limited user suggestion', () => {
+    const SAVED_HOST = 'saved.example.com';
+
+    const saveWithLimitedUserCheck = async (limitedUserCheck: RequestHandler) => {
+      const shopDatabase = buildDatabase('Shop', 'AVAILABLE', DatabaseType.MYSQL);
+      const savedDatabase = {
+        ...shopDatabase,
+        name: 'Renamed Shop',
+        settings: { ...shopDatabase.settings, host: SAVED_HOST },
+      } as Database;
+      declareListResponses([shopDatabase], [savedDatabase]);
+      mockServer.use(
+        mockApi.get('/storage-switches', 200, { items: [] }),
+        mockApi.get('/databases/{databaseId}', 200, shopDatabase),
+        mockApi.post('/database-tests', 200, { isConnected: true }),
+        mockApi.put('/databases/{databaseId}', 200, savedDatabase),
+        limitedUserCheck,
+        ...declareSettingsRequests(),
+      );
+      const { user } = renderDatabasesScreen();
+      await user.click(await screen.findByText('Config'));
+      openSettingsSection(await screen.findByText('Database settings'));
+      await user.click(await screen.findByRole('button', { name: 'Test connection' }));
+      await user.click(await screen.findByRole('button', { name: 'Save' }));
+
+      return { user };
+    };
+
+    const advisingCheck = () =>
+      mockApi.post('/limited-user-checks', 200, { isAdvisable: true, privileges: ['ALL'] });
+
+    it('shows the saved values on the card and after Cancel when the suggestion is closed', async () => {
+      const { user } = await saveWithLimitedUserCheck(advisingCheck());
+      await screen.findByText('Create a read-only user for Databasus?');
+
+      fireEvent.click(document.querySelector('.ant-modal-close')!);
+
+      expect(await findDatabaseCard('Renamed Shop')).toBeTruthy();
+      await user.click(await screen.findByRole('button', { name: 'Cancel' }));
+      expect(await screen.findByText(SAVED_HOST)).toBeTruthy();
+    });
+
+    it('shows the saved values when the suggestion is skipped', async () => {
+      const { user } = await saveWithLimitedUserCheck(advisingCheck());
+
+      await user.click(await screen.findByRole('button', { name: 'Skip' }));
+      await user.click(await screen.findByRole('button', { name: 'Yes, I accept risks' }));
+
+      expect(await findDatabaseCard('Renamed Shop')).toBeTruthy();
+      expect(await screen.findByText(SAVED_HOST)).toBeTruthy();
+    });
+
+    it('shows the reason and the saved values when the check fails', async () => {
+      await saveWithLimitedUserCheck(
+        mockApi.post('/limited-user-checks', 403, buildProblem('permission_denied', 403)),
+      );
+
+      expect(await screen.findByText('You do not have permission to do this.')).toBeTruthy();
+      expect(await findDatabaseCard('Renamed Shop')).toBeTruthy();
+      expect(await screen.findByText(SAVED_HOST)).toBeTruthy();
+    });
   });
 
   it('shows the newly chosen storage on the card after the backup configuration is saved', async () => {

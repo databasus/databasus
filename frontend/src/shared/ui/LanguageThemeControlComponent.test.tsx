@@ -15,7 +15,9 @@ describe('LanguageThemeControlComponent', () => {
     expect(language.getAttribute('aria-expanded')).toBe('true');
     const menu = await screen.findByRole('menu');
     await waitFor(() => expect(menu.contains(document.activeElement)).toBe(true));
-    await user.click(screen.getByRole('menuitem', { name: DICTIONARIES.es.language.nativeName }));
+    // A pointer on the menu would start the hover delay of the dropdown, and its timer would reopen
+    // the menu right after the Escape below.
+    fireEvent.click(screen.getByRole('menuitem', { name: DICTIONARIES.es.language.nativeName }));
     expect(document.documentElement.lang).toBe('es');
     expect(screen.getAllByRole('button')).toHaveLength(2);
     expect(document.activeElement).toBe(language);

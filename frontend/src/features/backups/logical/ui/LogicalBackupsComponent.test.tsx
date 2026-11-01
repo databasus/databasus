@@ -96,6 +96,7 @@ function ScrollingDatabasePage() {
         database={backedUpDatabase}
         isCanManageDBs={true}
         scrollContainerRef={scrollContainerRef}
+        renderRestoreTargetForm={() => null}
       />
     </div>
   );

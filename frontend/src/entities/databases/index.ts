@@ -8,6 +8,13 @@ export {
   type PostgresqlLogicalSettings,
   type PostgresqlPhysicalSettings,
 } from './model/ProviderDatabaseSettings';
+export {
+  type DatabaseConnectionDraft,
+  type DatabaseCreateDraft,
+  type DatabaseEditDraft,
+  type RestoreTargetDraft,
+  type RestoreTargetSettings,
+} from './model/DatabaseConnectionDraft';
 export { type DatabaseCreate } from './model/DatabaseCreate';
 export { type DatabaseUpdate } from './model/DatabaseUpdate';
 export { type DatabaseSettingsTarget } from './model/DatabaseSettingsTarget';
@@ -15,7 +22,8 @@ export { type DatabaseTestResult } from './model/DatabaseTestResult';
 export { type LimitedUser, type LimitedUserCheck } from './model/LimitedUser';
 export { DatabaseType } from './model/DatabaseType';
 export { HealthStatus } from './model/HealthStatus';
-export { changeDatabaseType } from './model/changeDatabaseType';
+export { changeDatabaseCreateDraftType } from './model/changeDatabaseCreateDraftType';
+export { toDatabaseSettingsTarget } from './model/toDatabaseSettingsTarget';
 export { createDefaultDatabaseSettings } from './model/createDefaultDatabaseSettings';
 export { getDatabaseLogoFromType } from './model/getDatabaseLogoFromType';
 export { isPostgresType } from './model/isPostgresType';
@@ -43,8 +51,7 @@ export { isSshTunnelReadyToTest } from './model/sshtunnel/isSshTunnelReadyToTest
 export { hasStoredSshTunnelSecretsForAuthType } from './model/sshtunnel/hasStoredSshTunnelSecretsForAuthType';
 export { disableSrvWhenTunneled } from './model/mongodb/disableSrvWhenTunneled';
 export { MongodbConnectionStringParser } from './model/mongodb/MongodbConnectionStringParser';
-export { MariadbConnectionStringParser } from './model/mariadb/MariadbConnectionStringParser';
-export { MySqlConnectionStringParser } from './model/mysql/MySqlConnectionStringParser';
+export { MySqlCompatibleConnectionStringParser } from './model/mysql/MySqlCompatibleConnectionStringParser';
 export { PostgresqlConnectionStringParser } from './model/postgresql/PostgresqlConnectionStringParser';
 export { HEALTH_STATUS_LABEL_KEYS } from './model/HealthStatusLabelKeys';
 export { DATABASE_TYPE_LABEL_KEYS } from './model/DatabaseTypeLabelKeys';

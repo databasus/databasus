@@ -1,19 +1,12 @@
-import { type DatabaseSettings, DatabaseType } from '../../../entities/databases';
+import { DatabaseType, type RestoreTargetDraft } from '../../../entities/databases';
 import type { PostgresqlRestoreOptions, RestoreTarget } from '../../../entities/restores';
 
-const NO_RESTORE_OPTIONS: PostgresqlRestoreOptions = {
-  isExcludeExtensions: false,
-  isRestoreOwnership: false,
-  isRestorePrivileges: false,
-};
-
 // The target server of a restore is entered in the same form as the database's settings, so the
-// target takes the variant of the engine the backup came from. A physical backup is restored by
-// other means and has no target.
+// target takes the variant of the engine the backup came from.
 export const toRestoreTarget = (
-  settings: DatabaseSettings,
-  postgresqlRestoreOptions: PostgresqlRestoreOptions = NO_RESTORE_OPTIONS,
-): RestoreTarget | undefined => {
+  { settings }: RestoreTargetDraft,
+  postgresqlRestoreOptions: PostgresqlRestoreOptions,
+): RestoreTarget => {
   const password = settings.password?.trim() ?? '';
 
   switch (settings.type) {
@@ -71,7 +64,5 @@ export const toRestoreTarget = (
         cpuCount: settings.cpuCount,
         sshTunnel: settings.sshTunnel,
       };
-    case DatabaseType.POSTGRES_PHYSICAL:
-      return undefined;
   }
 };

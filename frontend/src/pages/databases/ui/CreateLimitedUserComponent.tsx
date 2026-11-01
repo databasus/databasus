@@ -4,11 +4,15 @@ import { Trans, useTranslation } from 'react-i18next';
 
 import {
   DATABASE_TYPE_LABEL_KEYS,
-  type Database,
+  type DatabaseCreateDraft,
+  type DatabaseEditDraft,
   DatabaseType,
+  type LimitedUser,
   type LimitedUserCheck,
   databaseApi,
+  toDatabaseSettingsTarget,
 } from '../../../entities/databases';
+import { useSessionGuard } from '../../../shared/auth';
 import {
   TransByKey,
   type TranslationKey,
@@ -16,15 +20,14 @@ import {
   translateApiError,
   useLocale,
 } from '../../../shared/i18n';
-import { toDatabaseSettingsTarget } from './toDatabaseSettingsTarget';
 
 interface Props {
-  database: Database;
-  onReadOnlyUserUpdated: (database: Database) => void;
+  draft: DatabaseCreateDraft | DatabaseEditDraft;
+  onLimitedUserCreated: (limitedUser: LimitedUser) => void;
 
   onGoBack: () => void;
   onSkipped: () => void;
-  onReadOnlyUserNotSuggested: () => void;
+  onLimitedUserNotSuggested: () => void;
 }
 
 const PRIVILEGES_TRUNCATE_LENGTH = 50;
@@ -63,16 +66,17 @@ const REPLICATION_ONLY_USER_COPY_KEYS: RestrictedUserCopyKeys = {
   skipQuestion: 'databases.readOnlyUser.replicationOnly.skipQuestion',
 };
 
-export const CreateReadOnlyComponent = ({
-  database,
-  onReadOnlyUserUpdated,
+export const CreateLimitedUserComponent = ({
+  draft,
+  onLimitedUserCreated,
   onGoBack,
   onSkipped,
-  onReadOnlyUserNotSuggested,
+  onLimitedUserNotSuggested,
 }: Props) => {
   const { t } = useTranslation();
   const { locale } = useLocale();
   const { message } = App.useApp();
+  const isActive = useSessionGuard();
 
   const [isCheckingReadOnlyUserSuggestion, setIsCheckingReadOnlyUserSuggestion] = useState(false);
   const [isCreatingReadOnlyUser, setIsCreatingReadOnlyUser] = useState(false);
@@ -80,10 +84,10 @@ export const CreateReadOnlyComponent = ({
   const [privileges, setPrivileges] = useState<string[]>([]);
   const [isPrivilegesExpanded, setIsPrivilegesExpanded] = useState(false);
 
-  const isPhysicalPostgres = database.settings.type === DatabaseType.POSTGRES_PHYSICAL;
-  const isMongodb = database.settings.type === DatabaseType.MONGODB;
-  const databaseTypeName = t(DATABASE_TYPE_LABEL_KEYS[database.settings.type]);
-  const settingsTarget = toDatabaseSettingsTarget(database, database.settings);
+  const isPhysicalPostgres = draft.settings.type === DatabaseType.POSTGRES_PHYSICAL;
+  const isMongodb = draft.settings.type === DatabaseType.MONGODB;
+  const databaseTypeName = t(DATABASE_TYPE_LABEL_KEYS[draft.settings.type]);
+  const settingsTarget = toDatabaseSettingsTarget(draft);
   const userKindKeys = isPhysicalPostgres
     ? REPLICATION_ONLY_USER_COPY_KEYS
     : READ_ONLY_USER_COPY_KEYS;
@@ -92,7 +96,7 @@ export const CreateReadOnlyComponent = ({
     try {
       return await databaseApi.checkLimitedUser(settingsTarget);
     } catch (e) {
-      message.error(translateApiError(e, t));
+      if (isActive()) message.error(translateApiError(e, t));
       return null;
     }
   };
@@ -116,6 +120,7 @@ export const CreateReadOnlyComponent = ({
 
     try {
       const limitedUser = await databaseApi.createLimitedUser(settingsTarget);
+      if (!isActive()) return;
 
       if (isPhysicalPostgres && !limitedUser.isForcedWalRotationAvailable) {
         message.warning(
@@ -124,16 +129,9 @@ export const CreateReadOnlyComponent = ({
         );
       }
 
-      onReadOnlyUserUpdated({
-        ...database,
-        settings: {
-          ...database.settings,
-          username: limitedUser.username,
-          password: limitedUser.password,
-        },
-      });
+      onLimitedUserCreated(limitedUser);
     } catch (e) {
-      message.error(translateApiError(e, t));
+      if (isActive()) message.error(translateApiError(e, t));
     }
 
     setIsCreatingReadOnlyUser(false);
@@ -153,12 +151,14 @@ export const CreateReadOnlyComponent = ({
       setIsCheckingReadOnlyUserSuggestion(true);
 
       const limitedUserCheck = await fetchLimitedUserCheck();
+      if (!isActive()) return;
+
       setPrivileges(limitedUserCheck?.privileges || []);
 
       // A failed check must not silently advance the wizard - keep the screen so the user
       // still gets the choice.
       if (limitedUserCheck && !limitedUserCheck.isAdvisable) {
-        onReadOnlyUserNotSuggested();
+        onLimitedUserNotSuggested();
       }
 
       setIsCheckingReadOnlyUserSuggestion(false);
@@ -197,7 +197,7 @@ export const CreateReadOnlyComponent = ({
                   href={getWebsitePageUrl('security', locale)}
                   target="_blank"
                   rel="noreferrer"
-                  className="!text-blue-600 dark:!text-blue-400"
+                  className="text-accent underline"
                 />
               ),
             }}
@@ -231,7 +231,7 @@ export const CreateReadOnlyComponent = ({
               >
                 {getPrivilegesDisplay()}
                 {shouldShowExpandToggle() && (
-                  <span className="ml-1 text-xs text-blue-600 hover:opacity-80">
+                  <span className="ml-1 text-xs text-accent hover:opacity-80">
                     {isPrivilegesExpanded
                       ? t('databases.readOnlyUser.collapse')
                       : t('databases.readOnlyUser.expand')}

@@ -74,20 +74,6 @@ export const ShowPhysicalBackupConfigComponent = ({ database }: Props): JSX.Elem
     return texts.map((text) => translateLocalizedText(text, t)).join(listSeparator);
   };
 
-  const loadBackupConfig = async () => {
-    try {
-      const loadedBackupConfig = toPhysicalBackupConfigInput(
-        await backupConfigApi.getBackupConfig(database.id),
-      );
-      setBackupConfig(loadedBackupConfig);
-
-      const storageId = loadedBackupConfig?.storageId;
-      setStorage(storageId ? await storageApi.getStorage(storageId) : undefined);
-    } catch (e) {
-      alert(translateApiError(e, t));
-    }
-  };
-
   const timeFormat = useMemo(() => {
     const is12Hour = getIs12Hour();
     return { use12Hours: is12Hour, format: is12Hour ? 'h:mm A' : 'HH:mm' };
@@ -153,10 +139,30 @@ export const ShowPhysicalBackupConfigComponent = ({ database }: Props): JSX.Elem
   };
 
   useEffect(() => {
-    if (database.id) {
-      loadBackupConfig();
-    }
-  }, [database]);
+    let isActive = true;
+
+    const loadBackupConfig = async () => {
+      try {
+        const loadedBackupConfig = toPhysicalBackupConfigInput(
+          await backupConfigApi.getBackupConfig(database.id),
+        );
+        if (!isActive) return;
+        setBackupConfig(loadedBackupConfig);
+
+        const storageId = loadedBackupConfig?.storageId;
+        const loadedStorage = storageId ? await storageApi.getStorage(storageId) : undefined;
+        if (isActive) setStorage(loadedStorage);
+      } catch (e) {
+        if (isActive) alert(translateApiError(e, t));
+      }
+    };
+
+    if (database.id) void loadBackupConfig();
+
+    return () => {
+      isActive = false;
+    };
+  }, [database.id, t]);
 
   if (!backupConfig) return <div />;
 

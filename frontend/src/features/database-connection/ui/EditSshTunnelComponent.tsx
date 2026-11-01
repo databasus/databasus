@@ -1,6 +1,5 @@
-import { InfoCircleOutlined } from '@ant-design/icons';
-import { Button, Checkbox, Input, InputNumber, Select, Tooltip } from 'antd';
-import { useState } from 'react';
+import { Button, Checkbox, Input, InputNumber, Select } from 'antd';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -9,17 +8,21 @@ import {
   SshTunnelAuthType,
   type SshTunnelSettings,
   createEmptySshTunnelSettings,
+  hasStoredSshTunnelSecretsForAuthType,
   setSshTunnelAuthTypeAndClearUnusedSecrets,
 } from '../../../entities/databases';
+import { ConnectionFieldRow } from './ConnectionFieldRow';
+import { ConnectionFieldTooltip } from './ConnectionFieldTooltip';
 
 interface Props {
   sshTunnel: SshTunnelSettings;
-  hasStoredSecrets: boolean;
+  savedSshTunnel?: SshTunnelSettings;
   onChange: (sshTunnel: SshTunnelSettings) => void;
 }
 
-export const EditSshTunnelComponent = ({ sshTunnel, hasStoredSecrets, onChange }: Props) => {
+export const EditSshTunnelComponent = ({ sshTunnel, savedSshTunnel, onChange }: Props) => {
   const { t } = useTranslation();
+  const controlId = useId();
   const [isReplacingSecrets, setIsReplacingSecrets] = useState(false);
 
   const updateField = <Field extends keyof SshTunnelSettings>(
@@ -39,68 +42,77 @@ export const EditSshTunnelComponent = ({ sshTunnel, hasStoredSecrets, onChange }
   };
 
   const renderStoredSecrets = () => (
-    <div className="mb-3 flex w-full items-center">
-      <div className="min-w-[150px] pr-2">{t('databases.sshTunnel.credentials')}</div>
-      <div className="flex items-center">
+    <ConnectionFieldRow label={t('databases.sshTunnel.credentials')}>
+      <div className="mb-2 flex items-center">
         <span className="mr-3">*************</span>
         <Button size="small" onClick={startReplacingSecrets}>
           {t('databases.actions.replace')}
         </Button>
       </div>
-    </div>
+    </ConnectionFieldRow>
   );
 
   const renderPassword = () => (
-    <div className="mb-3 flex w-full items-center">
-      <div className="min-w-[150px] pr-2">{t('databases.sshTunnel.password')}</div>
+    <ConnectionFieldRow
+      label={t('databases.sshTunnel.password')}
+      controlId={`${controlId}-password`}
+    >
       <Input.Password
+        id={`${controlId}-password`}
         value={currentTunnel.password}
         onChange={(e) => updateField('password', e.target.value)}
         size="small"
-        className="max-w-[200px] grow"
+        className="mb-2 w-full max-w-[200px]"
         placeholder={t('databases.sshTunnel.passwordPlaceholder')}
         autoComplete="off"
         data-1p-ignore
         data-lpignore="true"
         data-form-type="other"
       />
-    </div>
+    </ConnectionFieldRow>
   );
 
   const renderPrivateKey = () => (
     <>
-      <div className="mb-1 flex w-full items-start">
-        <div className="min-w-[150px] pr-2 leading-6">{t('databases.sshTunnel.privateKey')}</div>
+      <ConnectionFieldRow
+        label={t('databases.sshTunnel.privateKey')}
+        controlId={`${controlId}-private-key`}
+        isTopAligned
+      >
         <Input.TextArea
+          id={`${controlId}-private-key`}
           value={currentTunnel.privateKey}
           onChange={(e) => updateField('privateKey', e.target.value)}
           size="small"
-          className="max-w-[200px] grow"
+          className="w-full max-w-[200px]"
           // eslint-disable-next-line i18next/no-literal-string -- key format example, not copy
           placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
           autoSize={{ minRows: 2, maxRows: 5 }}
         />
-      </div>
+      </ConnectionFieldRow>
 
-      <div className="mb-3 flex w-full items-center">
-        <div className="min-w-[150px] pr-2">{t('databases.sshTunnel.keyPassphrase')}</div>
+      <ConnectionFieldRow
+        label={t('databases.sshTunnel.keyPassphrase')}
+        controlId={`${controlId}-passphrase`}
+      >
         <Input.Password
+          id={`${controlId}-passphrase`}
           value={currentTunnel.privateKeyPassphrase}
           onChange={(e) => updateField('privateKeyPassphrase', e.target.value)}
           size="small"
-          className="max-w-[200px] grow"
+          className="mb-2 w-full max-w-[200px]"
           placeholder={t('databases.sshTunnel.keyPassphrasePlaceholder')}
           autoComplete="off"
           data-1p-ignore
           data-lpignore="true"
           data-form-type="other"
         />
-      </div>
+      </ConnectionFieldRow>
     </>
   );
 
   const renderCredentials = () => {
-    if (hasStoredSecrets && !isReplacingSecrets) return renderStoredSecrets();
+    if (hasStoredSecrets && !isReplacingSecrets && !hasTypedSecrets) return renderStoredSecrets();
 
     return currentTunnel.authType === SshTunnelAuthType.PRIVATE_KEY
       ? renderPrivateKey()
@@ -110,65 +122,79 @@ export const EditSshTunnelComponent = ({ sshTunnel, hasStoredSecrets, onChange }
   // A saved database without a tunnel comes back as only the switch, so enabling it starts from
   // the defaults.
   const currentTunnel = { ...createEmptySshTunnelSettings(), ...sshTunnel };
+  const hasStoredSecrets = hasStoredSshTunnelSecretsForAuthType(
+    savedSshTunnel,
+    currentTunnel.authType,
+  );
+  // This component leaves the screen with the advanced settings, so the typed value itself tells
+  // that a replacement is under way when it comes back.
+  const hasTypedSecrets =
+    !!currentTunnel.password || !!currentTunnel.privateKey || !!currentTunnel.privateKeyPassphrase;
 
   return (
     <>
-      <div className="mb-1 flex w-full items-center">
-        <div className="min-w-[150px] pr-2">{t('databases.sshTunnel.title')}</div>
-        <Checkbox
-          checked={currentTunnel.isEnabled}
-          onChange={(e) => updateField('isEnabled', e.target.checked)}
-        >
-          <Tooltip className="cursor-pointer" title={t('databases.sshTunnel.tooltip')}>
-            <InfoCircleOutlined style={{ color: 'gray' }} />
-          </Tooltip>
-        </Checkbox>
-      </div>
+      <ConnectionFieldRow label={t('databases.sshTunnel.title')} controlId={`${controlId}-enabled`}>
+        <div className="flex items-center">
+          <Checkbox
+            id={`${controlId}-enabled`}
+            checked={currentTunnel.isEnabled}
+            onChange={(e) => updateField('isEnabled', e.target.checked)}
+          />
+
+          <ConnectionFieldTooltip title={t('databases.sshTunnel.tooltip')} />
+        </div>
+      </ConnectionFieldRow>
 
       {currentTunnel.isEnabled && (
         <>
-          <div className="mb-1 flex w-full items-center">
-            <div className="min-w-[150px] pr-2">{t('databases.sshTunnel.host')}</div>
-            <Input
-              value={currentTunnel.host}
-              onChange={(e) => updateField('host', e.target.value)}
-              size="small"
-              className="max-w-[200px] grow"
-              // eslint-disable-next-line i18next/no-literal-string -- example hostname
-              placeholder="bastion.example.com"
-            />
+          <ConnectionFieldRow label={t('databases.sshTunnel.host')} controlId={`${controlId}-host`}>
+            <div className="flex w-full items-center">
+              <Input
+                id={`${controlId}-host`}
+                value={currentTunnel.host}
+                onChange={(e) => updateField('host', e.target.value)}
+                size="small"
+                className="w-full max-w-[200px]"
+                // eslint-disable-next-line i18next/no-literal-string -- example hostname
+                placeholder="bastion.example.com"
+              />
 
-            <Tooltip className="cursor-pointer" title={t('databases.sshTunnel.hostTooltip')}>
-              <InfoCircleOutlined className="ml-2" style={{ color: 'gray' }} />
-            </Tooltip>
-          </div>
+              <ConnectionFieldTooltip title={t('databases.sshTunnel.hostTooltip')} />
+            </div>
+          </ConnectionFieldRow>
 
-          <div className="mb-1 flex w-full items-center">
-            <div className="min-w-[150px] pr-2">{t('databases.sshTunnel.port')}</div>
+          <ConnectionFieldRow label={t('databases.sshTunnel.port')} controlId={`${controlId}-port`}>
             <InputNumber
+              id={`${controlId}-port`}
               value={currentTunnel.port}
               onChange={(value) => updateField('port', value ?? DEFAULT_SSH_PORT)}
               size="small"
-              className="max-w-[200px] grow"
+              className="w-full max-w-[200px]"
               min={1}
               max={65535}
             />
-          </div>
+          </ConnectionFieldRow>
 
-          <div className="mb-1 flex w-full items-center">
-            <div className="min-w-[150px] pr-2">{t('databases.sshTunnel.username')}</div>
+          <ConnectionFieldRow
+            label={t('databases.sshTunnel.username')}
+            controlId={`${controlId}-username`}
+          >
             <Input
+              id={`${controlId}-username`}
               value={currentTunnel.username}
               onChange={(e) => updateField('username', e.target.value)}
               size="small"
-              className="max-w-[200px] grow"
+              className="w-full max-w-[200px]"
               placeholder={t('databases.sshTunnel.usernamePlaceholder')}
             />
-          </div>
+          </ConnectionFieldRow>
 
-          <div className="mb-1 flex w-full items-center">
-            <div className="min-w-[150px] pr-2">{t('databases.sshTunnel.authType')}</div>
+          <ConnectionFieldRow
+            label={t('databases.sshTunnel.authType')}
+            controlId={`${controlId}-auth-type`}
+          >
             <Select
+              id={`${controlId}-auth-type`}
               value={currentTunnel.authType}
               onChange={changeAuthType}
               options={Object.values(SshTunnelAuthType).map((authType) => ({
@@ -176,9 +202,9 @@ export const EditSshTunnelComponent = ({ sshTunnel, hasStoredSecrets, onChange }
                 value: authType,
               }))}
               size="small"
-              className="max-w-[200px] grow"
+              className="w-full max-w-[200px]"
             />
-          </div>
+          </ConnectionFieldRow>
 
           {renderCredentials()}
         </>

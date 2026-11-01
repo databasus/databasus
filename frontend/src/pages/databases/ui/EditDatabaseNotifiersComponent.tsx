@@ -18,7 +18,7 @@ interface Props {
   onCancel: () => void;
 
   isShowBackButton: boolean;
-  onBack: () => void;
+  onBack: (notifierIds: string[]) => void;
 
   isShowSaveOnlyForUnsaved: boolean;
   saveButtonText?: string;
@@ -197,7 +197,12 @@ export const EditDatabaseNotifiersComponent = ({
         )}
 
         {isShowBackButton && (
-          <Button className="mr-auto" type="primary" ghost onClick={() => onBack()}>
+          <Button
+            className="mr-auto"
+            type="primary"
+            ghost
+            onClick={() => onBack(editingDatabase?.notifierIds ?? database.notifierIds)}
+          >
             {t('common.actions.back')}
           </Button>
         )}

@@ -9,7 +9,6 @@ import type { SshTunnelSettings } from './SshTunnelSettings';
 export function hasStoredSshTunnelSecretsForAuthType(
   savedSshTunnel: SshTunnelSettings | undefined,
   editedAuthType: SshTunnelAuthType | undefined,
-  databaseId: string | undefined,
 ): boolean {
-  return !!databaseId && !!savedSshTunnel?.isEnabled && savedSshTunnel.authType === editedAuthType;
+  return !!savedSshTunnel?.isEnabled && savedSshTunnel.authType === editedAuthType;
 }

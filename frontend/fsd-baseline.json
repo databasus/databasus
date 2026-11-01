@@ -8,14 +8,6 @@
     "milestone": 7
   },
   {
-    "rule": "fsd/forbidden-imports",
-    "source": "features/restores/ui/RestoresComponent.tsx",
-    "target": "features/database-connection/index.ts",
-    "count": 1,
-    "owner": "restores",
-    "milestone": 5
-  },
-  {
     "rule": "fsd/public-api",
     "source": "entities/backups",
     "target": "This slice is missing a public API.",

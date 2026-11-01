@@ -8,6 +8,7 @@ import {
   WalStreamMonitoringComponent,
   isMonitoringTabShown,
 } from '@/features/backups/physical';
+import { DatabaseConnectionForm } from '@/features/database-connection';
 import { VerificationsComponent } from '@/features/verification/runs';
 
 import { type Database, DatabaseType, databaseApi } from '../../../entities/databases';
@@ -161,6 +162,7 @@ export const DatabaseComponent = ({
               isDirectlyUnderTab={!isHealthcheckVisible}
               scrollContainerRef={scrollContainerRef}
               onNavigateToVerifications={() => setCurrentTab('verifications')}
+              renderRestoreTargetForm={(options) => <DatabaseConnectionForm {...options} />}
             />
           )}
         </>

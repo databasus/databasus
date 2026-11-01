@@ -2,12 +2,12 @@ import { Button } from 'antd';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type Database, DatabaseType } from '../../../entities/databases';
+import { DatabaseType } from '../../../entities/databases';
 import type { TranslationKey } from '../../../shared/i18n';
 
 interface Props {
-  database: Database;
-  saveButtonText?: string;
+  type: DatabaseType;
+  continueButtonText: string;
   onBack: () => void;
   onSelected: (type: DatabaseType) => void;
 }
@@ -30,14 +30,14 @@ const backupTypeOptions: {
 ];
 
 export const ChoosePostgresBackupTypeComponent = ({
-  database,
-  saveButtonText,
+  type,
+  continueButtonText,
   onBack,
   onSelected,
 }: Props) => {
   const { t } = useTranslation();
   const [selectedType, setSelectedType] = useState<DatabaseType>(
-    database.settings.type === DatabaseType.POSTGRES_PHYSICAL
+    type === DatabaseType.POSTGRES_PHYSICAL
       ? DatabaseType.POSTGRES_PHYSICAL
       : DatabaseType.POSTGRES_LOGICAL,
   );
@@ -54,19 +54,15 @@ export const ChoosePostgresBackupTypeComponent = ({
             <div
               key={option.type}
               onClick={() => setSelectedType(option.type)}
-              className={`flex cursor-pointer flex-col gap-2 rounded-xl border p-3 transition hover:border-blue-400 ${
-                isSelected
-                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/40'
-                  : 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800'
+              className={`flex cursor-pointer flex-col gap-2 rounded-xl border p-3 transition hover:border-accent ${
+                isSelected ? 'border-accent bg-hover' : 'border-border bg-surface'
               }`}
             >
               <div className="flex items-center gap-2">
                 <span className="font-semibold">{t(option.titleKey)}</span>
               </div>
 
-              <span className="text-sm leading-snug text-gray-500 dark:text-gray-400">
-                {t(option.descriptionKey)}
-              </span>
+              <span className="text-sm leading-snug text-muted">{t(option.descriptionKey)}</span>
             </div>
           );
         })}
@@ -78,7 +74,7 @@ export const ChoosePostgresBackupTypeComponent = ({
         </Button>
 
         <Button type="primary" onClick={() => onSelected(selectedType)}>
-          {saveButtonText || t('common.actions.continue')}
+          {continueButtonText}
         </Button>
       </div>
     </div>

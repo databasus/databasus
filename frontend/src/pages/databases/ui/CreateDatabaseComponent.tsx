@@ -1,12 +1,10 @@
+import { App, Button } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { EditLogicalBackupConfigComponent } from '@/features/backups/logical';
 import { EditPhysicalBackupConfigComponent } from '@/features/backups/physical';
-import {
-  CreateReadOnlyComponent,
-  EditDatabaseSpecificDataComponent,
-} from '@/features/database-connection';
+import { DatabaseConnectionForm } from '@/features/database-connection';
 
 import {
   type LogicalBackupConfigInput,
@@ -17,8 +15,9 @@ import { logicalBackupApi } from '../../../entities/backups/logical';
 import { physicalBackupsApi } from '../../../entities/backups/physical';
 import {
   type Database,
+  type DatabaseCreateDraft,
   DatabaseType,
-  changeDatabaseType,
+  changeDatabaseCreateDraftType,
   createDefaultDatabaseSettings,
   databaseApi,
   isPostgresType,
@@ -26,6 +25,7 @@ import {
 import { translateApiError } from '../../../shared/i18n';
 import { BackupStorageSelection } from './BackupStorageSelection';
 import { ChoosePostgresBackupTypeComponent } from './ChoosePostgresBackupTypeComponent';
+import { CreateLimitedUserComponent } from './CreateLimitedUserComponent';
 import { EditDatabaseBaseInfoComponent } from './EditDatabaseBaseInfoComponent';
 import { EditDatabaseNotifiersComponent } from './EditDatabaseNotifiersComponent';
 
@@ -37,13 +37,22 @@ interface Props {
   onWideStepChange?: (isWideStep: boolean) => void;
 }
 
-// The wizard fills a Database before it exists; an empty ID marks it as not created yet.
-const createInitialDatabase = (workspaceId: string): Database => ({
-  id: '',
-  name: '',
+const createInitialDraft = (workspaceId: string): DatabaseCreateDraft => ({
+  scenario: 'create',
   workspaceId,
-  settings: createDefaultDatabaseSettings(DatabaseType.POSTGRES_LOGICAL),
+  name: '',
   notifierIds: [],
+  settings: createDefaultDatabaseSettings(DatabaseType.POSTGRES_LOGICAL),
+  hasUserChosenSslMode: false,
+});
+
+// The backup config and notifier editors take a Database and read an empty ID as not created yet.
+const toUnsavedDatabase = (draft: DatabaseCreateDraft): Database => ({
+  id: '',
+  name: draft.name,
+  workspaceId: draft.workspaceId,
+  settings: draft.settings,
+  notifierIds: draft.notifierIds,
 });
 
 export const CreateDatabaseComponent = ({
@@ -54,12 +63,13 @@ export const CreateDatabaseComponent = ({
   onWideStepChange,
 }: Props) => {
   const { t } = useTranslation();
+  const { message } = App.useApp();
   const [isCreating, setIsCreating] = useState(false);
   const [backupConfig, setBackupConfig] = useState<LogicalBackupConfigInput | undefined>();
   const [physicalBackupConfig, setPhysicalBackupConfig] = useState<
     PhysicalBackupConfigInput | undefined
   >();
-  const [database, setDatabase] = useState<Database>(createInitialDatabase(workspaceId));
+  const [draft, setDraft] = useState(() => createInitialDraft(workspaceId));
 
   const [step, setStep] = useState<
     | 'base-info'
@@ -70,24 +80,24 @@ export const CreateDatabaseComponent = ({
     | 'notifiers'
   >('base-info');
 
-  // A backup configuration belongs to one database type, so a type change starts it over.
-  const acceptDatabaseType = (typedDatabase: Database) => {
-    if (typedDatabase.settings.type !== database.settings.type) {
-      setBackupConfig(undefined);
-      setPhysicalBackupConfig(undefined);
-    }
+  // Settings and a backup configuration belong to one database type, so only a type that differs
+  // when the user continues starts them over.
+  const acceptDatabaseType = (type: DatabaseType) => {
+    if (type === draft.settings.type) return draft;
 
-    setDatabase(typedDatabase);
+    setBackupConfig(undefined);
+    setPhysicalBackupConfig(undefined);
+
+    return changeDatabaseCreateDraftType(draft, type);
   };
 
-  const createDatabase = async (database: Database) => {
+  const createDatabase = async (draftToCreate: DatabaseCreateDraft) => {
     if (isPhysical ? !physicalBackupConfig : !backupConfig) return;
 
     setIsCreating(true);
 
     try {
-      const createdDatabase = await databaseApi.createDatabase(database);
-      setDatabase({ ...createdDatabase });
+      const createdDatabase = await databaseApi.createDatabase(draftToCreate);
 
       if (isPhysical && physicalBackupConfig) {
         await backupConfigApi.updateBackupConfig(createdDatabase.id, physicalBackupConfig);
@@ -106,7 +116,7 @@ export const CreateDatabaseComponent = ({
       onCreated(createdDatabase);
       onClose();
     } catch (error) {
-      alert(translateApiError(error, t));
+      message.error(translateApiError(error, t));
     }
 
     setIsCreating(false);
@@ -118,22 +128,19 @@ export const CreateDatabaseComponent = ({
     onWideStepChange?.(step === 'create-limited-user');
   }, [step]);
 
-  const isPhysical = database.settings.type === DatabaseType.POSTGRES_PHYSICAL;
-  const isPostgres = isPostgresType(database.settings.type);
+  const isPhysical = draft.settings.type === DatabaseType.POSTGRES_PHYSICAL;
+  const isPostgres = isPostgresType(draft.settings.type);
 
   if (step === 'base-info') {
     return (
       <div>
         <EditDatabaseBaseInfoComponent
-          database={database}
-          isShowName
-          isShowEngine
-          isSaveToApi={false}
-          saveButtonText={t('common.actions.continue')}
-          onCancel={() => onClose()}
-          onSaved={(db) => {
-            acceptDatabaseType(db);
-            setStep(isPostgresType(db.settings.type) ? 'postgres-backup-type' : 'db-settings');
+          name={draft.name}
+          type={draft.settings.type}
+          continueButtonText={t('common.actions.continue')}
+          onContinue={(name, type) => {
+            setDraft({ ...acceptDatabaseType(type), name });
+            setStep(isPostgresType(type) ? 'postgres-backup-type' : 'db-settings');
           }}
         />
       </div>
@@ -143,11 +150,11 @@ export const CreateDatabaseComponent = ({
   if (step === 'postgres-backup-type') {
     return (
       <ChoosePostgresBackupTypeComponent
-        database={database}
-        saveButtonText={t('common.actions.continue')}
+        type={draft.settings.type}
+        continueButtonText={t('common.actions.continue')}
         onBack={() => setStep('base-info')}
         onSelected={(type) => {
-          acceptDatabaseType(changeDatabaseType(database, type));
+          setDraft(acceptDatabaseType(type));
           setStep('db-settings');
         }}
       />
@@ -156,34 +163,44 @@ export const CreateDatabaseComponent = ({
 
   if (step === 'db-settings') {
     return (
-      <EditDatabaseSpecificDataComponent
-        database={database}
-        isShowCancelButton={false}
-        onCancel={() => onClose()}
-        isShowBackButton
-        onBack={() => setStep(isPostgres ? 'postgres-backup-type' : 'base-info')}
-        saveButtonText={t('common.actions.continue')}
-        isSaveToApi={false}
+      <DatabaseConnectionForm
+        draft={draft}
+        onDraftChange={setDraft}
+        submitLabel={t('common.actions.continue')}
+        secondaryActions={
+          <Button
+            className="mr-auto"
+            type="primary"
+            ghost
+            onClick={() => setStep(isPostgres ? 'postgres-backup-type' : 'base-info')}
+          >
+            {t('common.actions.back')}
+          </Button>
+        }
         onConnectionErrorChange={onConnectionErrorChange}
-        onSaved={(database) => {
-          setDatabase({ ...database });
-          setStep('create-limited-user');
-        }}
+        onSubmit={() => setStep('create-limited-user')}
       />
     );
   }
 
   if (step === 'create-limited-user') {
     return (
-      <CreateReadOnlyComponent
-        database={database}
-        onReadOnlyUserUpdated={(database) => {
-          setDatabase({ ...database });
+      <CreateLimitedUserComponent
+        draft={draft}
+        onLimitedUserCreated={(limitedUser) => {
+          setDraft({
+            ...draft,
+            settings: {
+              ...draft.settings,
+              username: limitedUser.username,
+              password: limitedUser.password,
+            },
+          });
           setStep('backup-config');
         }}
         onGoBack={() => setStep('db-settings')}
         onSkipped={() => setStep('backup-config')}
-        onReadOnlyUserNotSuggested={() => setStep('backup-config')}
+        onLimitedUserNotSuggested={() => setStep('backup-config')}
       />
     );
   }
@@ -193,7 +210,7 @@ export const CreateDatabaseComponent = ({
       return (
         <EditPhysicalBackupConfigComponent
           renderStorageSelection={(options) => <BackupStorageSelection {...options} />}
-          database={database}
+          database={toUnsavedDatabase(draft)}
           initialConfig={physicalBackupConfig}
           isShowCancelButton={false}
           onCancel={() => onClose()}
@@ -212,7 +229,7 @@ export const CreateDatabaseComponent = ({
     return (
       <EditLogicalBackupConfigComponent
         renderStorageSelection={(options) => <BackupStorageSelection {...options} />}
-        database={database}
+        database={toUnsavedDatabase(draft)}
         initialConfig={backupConfig}
         isShowCancelButton={false}
         onCancel={() => onClose()}
@@ -235,20 +252,24 @@ export const CreateDatabaseComponent = ({
 
     return (
       <EditDatabaseNotifiersComponent
-        database={database}
+        database={toUnsavedDatabase(draft)}
         isShowCancelButton={false}
         workspaceId={workspaceId}
         onCancel={() => onClose()}
         isShowBackButton
-        onBack={() => setStep('backup-config')}
+        onBack={(notifierIds) => {
+          setDraft({ ...draft, notifierIds });
+          setStep('backup-config');
+        }}
         isShowSaveOnlyForUnsaved={false}
         saveButtonText={t('databases.create.complete')}
         isSaveToApi={false}
-        onSaved={(database) => {
+        onSaved={({ notifierIds }) => {
           if (isCreating) return;
 
-          setDatabase({ ...database });
-          createDatabase(database);
+          const completedDraft = { ...draft, notifierIds };
+          setDraft(completedDraft);
+          createDatabase(completedDraft);
         }}
       />
     );

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { API_BASE_PATH, type ApiComponents } from '../../../shared/api';
 import { buildProblem, setUpMockApi } from '../../../shared/lib/test/mockApi';
 import { createDefaultDatabaseSettings } from '../model/createDefaultDatabaseSettings';
+import type { DatabaseCreateDraft, DatabaseEditDraft } from '../model/DatabaseConnectionDraft';
 import { DatabaseType } from '../model/DatabaseType';
 import { databaseApi } from './databaseApi';
 
@@ -78,5 +79,76 @@ describe('databaseApi.listAllDatabases', () => {
       'workspace-id',
     ]);
     expect(queries.map((query) => query.get('notifierId'))).toEqual(['notifier-id', 'notifier-id']);
+  });
+});
+
+describe('databaseApi with connection drafts', () => {
+  const savedSettings = {
+    ...createDefaultDatabaseSettings(DatabaseType.POSTGRES_LOGICAL),
+    host: 'db.example.com',
+    username: 'backup',
+    database: 'orders',
+    password: undefined,
+    sslClientCert: 'saved-client-cert',
+  };
+
+  const recordBody = (method: 'post' | 'put', path: string) => {
+    const sentBodies: unknown[] = [];
+    mockServer.use(
+      http[method](`*${API_BASE_PATH}${path}`, async ({ request }) => {
+        sentBodies.push(await request.json());
+        return HttpResponse.json(buildDatabase('Orders'));
+      }),
+    );
+
+    return sentBodies;
+  };
+
+  it('creates a database with the editable fields of a create draft', async () => {
+    const createDraft: DatabaseCreateDraft = {
+      scenario: 'create',
+      workspaceId: 'workspace-id',
+      name: 'Orders',
+      notifierIds: ['notifier-id'],
+      settings: { ...savedSettings, password: 'typed-secret', sslClientCert: '' },
+      hasUserChosenSslMode: true,
+    };
+    const sentBodies = recordBody('post', '/databases');
+
+    await databaseApi.createDatabase(createDraft);
+
+    expect(sentBodies).toHaveLength(1);
+    expect(sentBodies[0]).toMatchObject({
+      workspaceId: 'workspace-id',
+      name: 'Orders',
+      notifierIds: ['notifier-id'],
+      settings: { host: 'db.example.com', password: 'typed-secret' },
+    });
+    expect(sentBodies[0]).not.toHaveProperty('scenario');
+    expect(sentBodies[0]).not.toHaveProperty('hasUserChosenSslMode');
+    expect((sentBodies[0] as { settings: object }).settings).not.toHaveProperty('sslClientCert');
+  });
+
+  it('leaves empty secrets out when updating from an edit draft', async () => {
+    const editDraft: DatabaseEditDraft = {
+      scenario: 'edit',
+      workspaceId: 'workspace-id',
+      databaseId: 'database-id',
+      name: 'Orders',
+      notifierIds: [],
+      savedSettings,
+      settings: { ...savedSettings, password: '', sslClientCert: '', sslClientKey: '' },
+      hasUserChosenSslMode: true,
+    };
+    const sentBodies = recordBody('put', '/databases/database-id');
+
+    await databaseApi.updateDatabase(editDraft.databaseId, editDraft);
+
+    const sentSettings = (sentBodies[0] as { settings: object }).settings;
+    expect(sentBodies[0]).not.toHaveProperty('savedSettings');
+    expect(sentBodies[0]).not.toHaveProperty('databaseId');
+    expect(sentSettings).not.toHaveProperty('password');
+    expect(sentSettings).not.toHaveProperty('sslClientCert');
+    expect(sentSettings).not.toHaveProperty('sslClientKey');
   });
 });

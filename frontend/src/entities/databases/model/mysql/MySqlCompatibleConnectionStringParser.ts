@@ -1,4 +1,5 @@
 import type { LocalizedText } from '../../../../shared/i18n';
+import { DatabaseType } from '../DatabaseType';
 
 export type ParseResult = {
   host: string;
@@ -14,29 +15,47 @@ export type ParseError = {
   format?: string;
 };
 
-export class MariadbConnectionStringParser {
+type MySqlCompatibleType = typeof DatabaseType.MYSQL | typeof DatabaseType.MARIADB;
+
+// MariaDB also accepts MySQL strings, while MySQL refuses the MariaDB schemes.
+const URI_SCHEME_PATTERNS: Record<MySqlCompatibleType, string> = {
+  [DatabaseType.MYSQL]: 'mysql',
+  // eslint-disable-next-line i18next/no-literal-string -- URI schemes, not copy
+  [DatabaseType.MARIADB]: '(?:mariadb|mysql)',
+};
+
+const JDBC_FORMAT_HINTS: Record<MySqlCompatibleType, string> = {
+  [DatabaseType.MYSQL]: 'jdbc:mysql://host:port/database?user=x&password=y',
+  [DatabaseType.MARIADB]: 'jdbc:mariadb://host:port/database?user=x&password=y',
+};
+
+export class MySqlCompatibleConnectionStringParser {
   /**
-   * Parses a MariaDB connection string in various formats.
+   * Parses a MySQL or MariaDB connection string in various formats.
    *
-   * Supported formats:
-   * 1. Standard MariaDB URI: mariadb://user:pass@host:port/db
-   * 2. MySQL URI (compatible): mysql://user:pass@host:port/db
-   * 3. JDBC format: jdbc:mariadb://host:port/db?user=x&password=y
-   * 4. JDBC MySQL format: jdbc:mysql://host:port/db?user=x&password=y
-   * 5. Key-value format: host=x port=3306 database=db user=u password=p
-   * 6. With SSL params: mariadb://user:pass@host:port/db?ssl=true or ?sslMode=REQUIRED
-   * 7. SkySQL: mariadb://user:pass@xxx.skysql.net:5001/db?ssl=true
+   * Supported formats, where a MariaDB string may also use the mariadb scheme:
+   * 1. Standard MySQL URI: mysql://user:pass@host:port/db
+   * 2. JDBC format: jdbc:mysql://host:port/db?user=x&password=y
+   * 3. Key-value format: host=x port=3306 database=db user=u password=p
+   * 4. With SSL params: mysql://user:pass@host:port/db?ssl=true or ?sslMode=REQUIRED
+   * 5. AWS RDS: mysql://user:pass@xxx.rds.amazonaws.com:3306/db
+   * 6. PlanetScale: mysql://user:pass@xxx.connect.psdb.cloud/db?sslaccept=strict
+   * 7. DigitalOcean: mysql://user:pass@xxx.ondigitalocean.com:25060/db?ssl-mode=REQUIRED
+   * 8. Azure MySQL: mysql://user@servername:pass@xxx.mysql.database.azure.com:3306/db
+   * 9. Railway: mysql://user:pass@xxx.railway.app:port/db
+   * 10. SkySQL: mariadb://user:pass@xxx.skysql.net:5001/db?ssl=true
    */
-  static parse(connectionString: string): ParseResult | ParseError {
+  static parse(connectionString: string, type: MySqlCompatibleType): ParseResult | ParseError {
     const trimmed = connectionString.trim();
+    const schemePattern = URI_SCHEME_PATTERNS[type];
 
     if (!trimmed) {
       return { error: { key: 'databases.connectionString.errors.empty' } };
     }
 
     // Try JDBC format first (starts with jdbc:)
-    if (trimmed.startsWith('jdbc:mariadb://') || trimmed.startsWith('jdbc:mysql://')) {
-      return this.parseJdbc(trimmed);
+    if (new RegExp(`^jdbc:${schemePattern}://`).test(trimmed)) {
+      return this.parseJdbc(trimmed, type);
     }
 
     // Try key-value format (contains key=value pairs without ://)
@@ -44,8 +63,8 @@ export class MariadbConnectionStringParser {
       return this.parseKeyValue(trimmed);
     }
 
-    // Try URI format (mariadb:// or mysql://)
-    if (trimmed.startsWith('mariadb://') || trimmed.startsWith('mysql://')) {
+    // Try URI format
+    if (new RegExp(`^${schemePattern}://`).test(trimmed)) {
       return this.parseUri(trimmed);
     }
 
@@ -55,6 +74,8 @@ export class MariadbConnectionStringParser {
   }
 
   private static isKeyValueFormat(str: string): boolean {
+    // Key-value format has key=value pairs separated by spaces
+    // Must contain at least host= or database= to be considered key-value format
     return (
       !str.includes('://') &&
       (str.includes('host=') || str.includes('database=')) &&
@@ -65,8 +86,9 @@ export class MariadbConnectionStringParser {
   private static parseUri(connectionString: string): ParseResult | ParseError {
     try {
       // Handle Azure format where username contains @: user@server:pass
+      // Azure format: mysql://user@servername:password@host:port/db
       const azureMatch = connectionString.match(
-        /^(?:mariadb|mysql):\/\/([^@:]+)@([^:]+):([^@]+)@([^:/?]+):?(\d+)?\/([^?]+)(?:\?(.*))?$/,
+        /^[a-z]+:\/\/([^@:]+)@([^:]+):([^@]+)@([^:/?]+):?(\d+)?\/([^?]+)(?:\?(.*))?$/,
       );
 
       if (azureMatch) {
@@ -90,9 +112,10 @@ export class MariadbConnectionStringParser {
       const port = url.port ? parseInt(url.port, 10) : 3306;
       const username = decodeURIComponent(url.username);
       const password = decodeURIComponent(url.password);
-      const database = decodeURIComponent(url.pathname.slice(1));
+      const database = decodeURIComponent(url.pathname.slice(1)); // Remove leading /
       const isHttps = this.checkSslMode(url.search);
 
+      // Validate required fields
       if (!host) {
         return { error: { key: 'databases.connectionString.errors.hostMissing' } };
       }
@@ -125,16 +148,20 @@ export class MariadbConnectionStringParser {
     }
   }
 
-  private static parseJdbc(connectionString: string): ParseResult | ParseError {
+  private static parseJdbc(
+    connectionString: string,
+    type: MySqlCompatibleType,
+  ): ParseResult | ParseError {
     try {
-      const jdbcRegex = /^jdbc:(?:mariadb|mysql):\/\/([^:/?]+):?(\d+)?\/([^?]+)(?:\?(.*))?$/;
+      // JDBC format: jdbc:mysql://host:port/database?user=x&password=y
+      const jdbcRegex = /^jdbc:[a-z]+:\/\/([^:/?]+):?(\d+)?\/([^?]+)(?:\?(.*))?$/;
       const match = connectionString.match(jdbcRegex);
 
       if (!match) {
         return {
           error: {
             key: 'databases.connectionString.errors.jdbc.invalidFormat',
-            params: { expectedFormat: 'jdbc:mariadb://host:port/database?user=x&password=y' },
+            params: { expectedFormat: JDBC_FORMAT_HINTS[type] },
           },
           format: 'JDBC',
         };
@@ -186,8 +213,11 @@ export class MariadbConnectionStringParser {
 
   private static parseKeyValue(connectionString: string): ParseResult | ParseError {
     try {
+      // Key-value format: host=x port=3306 database=db user=u password=p
+      // Values can be quoted with single quotes: password='my pass'
       const params: Record<string, string> = {};
 
+      // Match key=value or key='quoted value'
       const regex = /(\w+)=(?:'([^']*)'|(\S+))/g;
       let match;
 
@@ -257,6 +287,7 @@ export class MariadbConnectionStringParser {
       queryString.startsWith('?') ? queryString.slice(1) : queryString,
     );
 
+    // Check various MySQL SSL parameter names
     const ssl = params.get('ssl');
     const sslMode = params.get('sslMode');
     const sslModeHyphen = params.get('ssl-mode');
@@ -276,6 +307,8 @@ export class MariadbConnectionStringParser {
     if (!sslValue) return false;
 
     const lowercased = sslValue.toLowerCase();
+
+    // These values indicate SSL is enabled
     // eslint-disable-next-line i18next/no-literal-string -- connection string parameter values
     const enabledValues = ['true', 'required', 'verify_ca', 'verify_identity', 'yes', '1'];
     return enabledValues.includes(lowercased);
