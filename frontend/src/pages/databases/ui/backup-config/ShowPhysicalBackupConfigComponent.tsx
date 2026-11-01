@@ -1,13 +1,11 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
-import { Tooltip } from 'antd';
+import { Alert, Button, Tooltip } from 'antd';
 import { type JSX, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
   type PhysicalBackupConfigInput,
-  backupConfigApi,
   StorageSwitchHistoryComponent,
-  toPhysicalBackupConfigInput,
   BACKUP_ENCRYPTION_LABEL_KEYS,
 } from '../../../../entities/backup-configs';
 import type { Database } from '../../../../entities/databases';
@@ -33,6 +31,7 @@ import { PHYSICAL_RETENTION_POLICY_LABEL_KEYS } from '../../model/physical-backu
 
 interface Props {
   database: Database;
+  backupConfig: PhysicalBackupConfigInput;
 }
 
 const getGfsRetentionTexts = (retention: FullBackupsRetention): LocalizedText[] => {
@@ -57,11 +56,15 @@ const getGfsRetentionTexts = (retention: FullBackupsRetention): LocalizedText[] 
   return texts;
 };
 
-export const ShowPhysicalBackupConfigComponent = ({ database }: Props): JSX.Element => {
+export const ShowPhysicalBackupConfigComponent = ({
+  database,
+  backupConfig,
+}: Props): JSX.Element => {
   const { t } = useTranslation();
   const listSeparator = t('common.listSeparator');
-  const [backupConfig, setBackupConfig] = useState<PhysicalBackupConfigInput>();
   const [storage, setStorage] = useState<Storage>();
+  const [storageLoadError, setStorageLoadError] = useState<unknown>();
+  const [storageLoadAttempt, setStorageLoadAttempt] = useState(0);
 
   const describeGfsRetention = (retention: FullBackupsRetention): string => {
     const texts = getGfsRetentionTexts(retention);
@@ -101,7 +104,7 @@ export const ShowPhysicalBackupConfigComponent = ({ database }: Props): JSX.Elem
         {schedule.type === ScheduleType.CRON && (
           <div className="mb-1 flex w-full items-center">
             <div className="min-w-[180px] pr-2">{t('schedules.cronExpression')}</div>
-            <code className="rounded bg-gray-100 px-2 py-0.5 text-sm dark:bg-gray-700">
+            <code className="rounded bg-code px-2 py-0.5 text-sm">
               {schedule.cronExpression || ''}
             </code>
           </div>
@@ -119,31 +122,26 @@ export const ShowPhysicalBackupConfigComponent = ({ database }: Props): JSX.Elem
 
   useEffect(() => {
     let isActive = true;
+    const { storageId } = backupConfig;
 
-    const loadBackupConfig = async () => {
-      try {
-        const loadedBackupConfig = toPhysicalBackupConfigInput(
-          await backupConfigApi.getBackupConfig(database.id),
-        );
-        if (!isActive) return;
-        setBackupConfig(loadedBackupConfig);
+    setStorage(undefined);
+    setStorageLoadError(undefined);
 
-        const storageId = loadedBackupConfig?.storageId;
-        const loadedStorage = storageId ? await storageApi.getStorage(storageId) : undefined;
+    if (!storageId) return;
+
+    storageApi
+      .getStorage(storageId)
+      .then((loadedStorage) => {
         if (isActive) setStorage(loadedStorage);
-      } catch (e) {
-        if (isActive) alert(translateApiError(e, t));
-      }
-    };
-
-    if (database.id) void loadBackupConfig();
+      })
+      .catch((error: unknown) => {
+        if (isActive) setStorageLoadError(error);
+      });
 
     return () => {
       isActive = false;
     };
-  }, [database.id, t]);
-
-  if (!backupConfig) return <div />;
+  }, [backupConfig.storageId, storageLoadAttempt]);
 
   const { settings } = backupConfig;
   const { retention } = settings;
@@ -158,7 +156,7 @@ export const ShowPhysicalBackupConfigComponent = ({ database }: Props): JSX.Elem
       <StorageSwitchHistoryComponent workspaceId={database.workspaceId} databaseId={database.id} />
       <div className="mb-1 flex w-full items-center">
         <div className="min-w-[180px] pr-2">{t('backups.config.backupsEnabled')}</div>
-        <div className={backupConfig.isBackupsEnabled ? '' : 'font-bold text-red-600'}>
+        <div className={backupConfig.isBackupsEnabled ? '' : 'font-bold text-danger'}>
           {backupConfig.isBackupsEnabled ? t('common.answers.yes') : t('common.answers.no')}
         </div>
       </div>
@@ -202,7 +200,7 @@ export const ShowPhysicalBackupConfigComponent = ({ database }: Props): JSX.Elem
                   <span className="flex items-center gap-1">
                     {describeGfsRetention(fullBackupsRetention)}
                     <Tooltip title={t('backups.physical.config.gfsTooltip')}>
-                      <InfoCircleOutlined style={{ color: 'gray' }} />
+                      <InfoCircleOutlined className="text-muted" />
                     </Tooltip>
                   </span>
                 )}
@@ -223,6 +221,20 @@ export const ShowPhysicalBackupConfigComponent = ({ database }: Props): JSX.Elem
               )}
             </div>
           </div>
+
+          {storageLoadError !== undefined && (
+            <Alert
+              className="mb-1"
+              type="error"
+              showIcon
+              message={translateApiError(storageLoadError, t)}
+              action={
+                <Button onClick={() => setStorageLoadAttempt((attempt) => attempt + 1)}>
+                  {t('common.actions.retry')}
+                </Button>
+              }
+            />
+          )}
 
           <div className="mb-1 flex w-full items-center">
             <div className="min-w-[180px] pr-2">{t('backups.config.encryption')}</div>

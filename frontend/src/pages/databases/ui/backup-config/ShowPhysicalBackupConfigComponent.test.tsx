@@ -2,7 +2,10 @@
 import { screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { BackupConfig } from '../../../../entities/backup-configs';
+import {
+  type BackupConfig,
+  toPhysicalBackupConfigInput,
+} from '../../../../entities/backup-configs';
 import {
   type Database,
   DatabaseType,
@@ -57,12 +60,14 @@ describe('ShowPhysicalBackupConfigComponent', () => {
   });
 
   it('shows a saved weekday 0 as Sunday', async () => {
-    mockServer.use(
-      mockApi.get('/backup-configs/{databaseId}', 200, config),
-      mockApi.get('/storage-switches', 200, { items: [] }),
-    );
+    mockServer.use(mockApi.get('/storage-switches', 200, { items: [] }));
 
-    renderScreen(<ShowPhysicalBackupConfigComponent database={database} />);
+    renderScreen(
+      <ShowPhysicalBackupConfigComponent
+        database={database}
+        backupConfig={toPhysicalBackupConfigInput(config)!}
+      />,
+    );
 
     expect(await screen.findByText('Sun')).toBeTruthy();
     expect(screen.getByText('Weekday')).toBeTruthy();

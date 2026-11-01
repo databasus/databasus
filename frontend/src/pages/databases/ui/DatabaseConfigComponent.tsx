@@ -13,19 +13,20 @@ import {
   type BackupConfig,
   backupConfigApi,
   toLogicalBackupConfigInput,
+  toPhysicalBackupConfigInput,
 } from '../../../entities/backup-configs';
 import { type Database, DatabaseType, databaseApi } from '../../../entities/databases';
 import { translateApiError } from '../../../shared/i18n';
 import { ToastHelper } from '../../../shared/toast';
 import { ConfirmationComponent } from '../../../shared/ui';
 import { EditLogicalBackupConfigSection } from './backup-config/EditLogicalBackupConfigSection';
-import { EditPhysicalBackupConfigComponent } from './backup-config/EditPhysicalBackupConfigComponent';
+import { EditPhysicalBackupConfigSection } from './backup-config/EditPhysicalBackupConfigSection';
 import { ShowLogicalBackupConfigComponent } from './backup-config/ShowLogicalBackupConfigComponent';
 import { ShowPhysicalBackupConfigComponent } from './backup-config/ShowPhysicalBackupConfigComponent';
 import { DatabaseSettingsSection } from './DatabaseSettingsSection';
 import { DatabaseTransferDialogComponent } from './DatabaseTransferDialogComponent';
 import { EditDatabaseConnectionSection } from './EditDatabaseConnectionSection';
-import { EditDatabaseNotifiersComponent } from './EditDatabaseNotifiersComponent';
+import { EditDatabaseNotifiersSection } from './EditDatabaseNotifiersSection';
 import { EditHealthcheckConfigComponent, ShowHealthcheckConfigComponent } from './healthcheck';
 import { ShowDatabaseNotifiersComponent } from './show/ShowDatabaseNotifiersComponent';
 import { ShowDatabaseSpecificDataComponent } from './show/ShowDatabaseSpecificDataComponent';
@@ -185,7 +186,10 @@ export const DatabaseConfigComponent = ({
   const isLogicalDatabase = database.settings.type === DatabaseType.POSTGRES_LOGICAL;
   const isSectionEditable = isCanManageDBs && editingSection === undefined;
   const isNameUnsaved = nameDraft !== database.name;
-  const logicalBackupConfig = backupConfig && toLogicalBackupConfigInput(backupConfig);
+  const physicalBackupConfig =
+    isPhysicalDatabase && backupConfig ? toPhysicalBackupConfigInput(backupConfig) : undefined;
+  const logicalBackupConfig =
+    !isPhysicalDatabase && backupConfig ? toLogicalBackupConfigInput(backupConfig) : undefined;
 
   return (
     <div className="relative w-full rounded-tr-md rounded-br-md rounded-bl-md bg-surface p-3 shadow sm:p-5">
@@ -303,14 +307,11 @@ export const DatabaseConfigComponent = ({
         >
           {editingSection === 'backup-config' ? (
             isPhysicalDatabase ? (
-              <EditPhysicalBackupConfigComponent
+              <EditPhysicalBackupConfigSection
+                key={database.id}
                 database={database}
-                isShowCancelButton
                 onCancel={closeSection}
-                isSaveToApi={true}
                 onSaved={acceptSavedBackupConfig}
-                isShowBackButton={false}
-                onBack={() => {}}
               />
             ) : (
               <EditLogicalBackupConfigSection
@@ -320,8 +321,11 @@ export const DatabaseConfigComponent = ({
                 onSaved={acceptSavedBackupConfig}
               />
             )
-          ) : isPhysicalDatabase ? (
-            <ShowPhysicalBackupConfigComponent database={database} />
+          ) : physicalBackupConfig ? (
+            <ShowPhysicalBackupConfigComponent
+              database={database}
+              backupConfig={physicalBackupConfig}
+            />
           ) : logicalBackupConfig ? (
             <ShowLogicalBackupConfigComponent
               database={database}
@@ -366,16 +370,10 @@ export const DatabaseConfigComponent = ({
           onEdit={() => startEdit('notifiers')}
         >
           {editingSection === 'notifiers' ? (
-            <EditDatabaseNotifiersComponent
-              workspaceId={database.workspaceId}
+            <EditDatabaseNotifiersSection
+              key={database.id}
               database={database}
-              isShowCancelButton
-              isShowBackButton={false}
-              isShowSaveOnlyForUnsaved={true}
-              onBack={() => {}}
               onCancel={closeSection}
-              isSaveToApi={true}
-              saveButtonText={t('common.actions.save')}
               onSaved={acceptSavedDatabase}
             />
           ) : (

@@ -1312,11 +1312,15 @@ describe('completing the wizard', () => {
     const FULL_ONLY = /^Full backups only/;
     const FULL_AND_INCREMENTAL = /^Full \+ incremental(?! \+)/;
 
-    const reachNotifierStepWithIncrementalBackups = async () => {
+    const reachPhysicalBackupStepWithIncrementalBackups = async () => {
       enterBaseInfo('PostgreSQL');
       await choosePostgresBackupType('Physical');
       await chooseBackupType(FULL_AND_INCREMENTAL);
       await enterConnection();
+    };
+
+    const reachNotifierStepWithIncrementalBackups = async () => {
+      await reachPhysicalBackupStepWithIncrementalBackups();
       await continueToNotifiers('Archive');
     };
 
@@ -1341,6 +1345,32 @@ describe('completing the wizard', () => {
         incrementalBackupSchedule: null,
         walLagThresholdBytes: 0,
       });
+    });
+
+    it('shows the entered values after Back from the step and returning', async () => {
+      declareWizardRequests();
+      renderWizard();
+      await reachPhysicalBackupStepWithIncrementalBackups();
+      await chooseStorage('Archive');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+      await enterConnection();
+
+      expect(await getChosenStorageText()).toContain('Archive');
+    });
+
+    it('shows the defaults of the new type after Back without continuing and another type', async () => {
+      declareWizardRequests();
+      renderWizard();
+      await reachPhysicalBackupStepWithIncrementalBackups();
+      await chooseStorage('Archive');
+
+      await goBackToStep(1);
+      await chooseBackupType(FULL_ONLY);
+      await enterConnection();
+
+      expect(await getChosenStorageText()).not.toContain('Archive');
+      expect(screen.queryByText('Incremental backup cadence')).toBeNull();
     });
 
     it('keeps the entered configuration when the original type is chosen again before continuing', async () => {

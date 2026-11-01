@@ -215,6 +215,25 @@ const transferSelectedDatabase = async (user: ReturnType<typeof renderScreen>['u
 const findDatabaseCard = (name: string) =>
   screen.findByRole('button', { name: new RegExp(`^${name}`) });
 
+const reachPhysicalWizardBackupStep = async (user: ReturnType<typeof renderScreen>['user']) => {
+  await user.click(await screen.findByRole('button', { name: 'Add database' }));
+  fireEvent.change(await screen.findByPlaceholderText('My favourite DB'), {
+    target: { value: 'Created' },
+  });
+  fireEvent.click(screen.getByText('PostgreSQL'));
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.click(await screen.findByText('Physical'));
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.change(await screen.findByPlaceholderText(/host$/), {
+    target: { value: 'db.example.com' },
+  });
+  fireEvent.change(screen.getByPlaceholderText(/username$/), { target: { value: 'backup' } });
+  fireEvent.change(screen.getByPlaceholderText(/password$/), { target: { value: 'secret' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Test connection' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Continue' }));
+  await screen.findByText('Storage');
+};
+
 const reachWizardBackupStep = async (user: ReturnType<typeof renderScreen>['user']) => {
   await user.click(await screen.findByRole('button', { name: 'Add database' }));
   fireEvent.change(await screen.findByPlaceholderText('My favourite DB'), {
@@ -798,30 +817,36 @@ describe('DatabasesComponent', () => {
 });
 
 describe('DatabasesComponent during the backup step of the wizard', () => {
-  it('keeps the entered values when the page becomes visible and the list refreshes', async () => {
-    const shopDatabase = buildDatabase('Shop');
-    declareListResponses([shopDatabase], [shopDatabase, buildDatabase('Refreshed')]);
-    declarePendingDetailRequests();
-    mockServer.use(
-      mockApi.post('/database-tests', 200, { isConnected: true }),
-      mockApi.post('/limited-user-checks', 200, { isAdvisable: false, privileges: [] }),
-    );
-    const { user } = renderDatabasesScreen();
-    await reachWizardBackupStep(user);
-    const successTrigger = screen.getAllByRole('checkbox')[0] as HTMLInputElement;
-    const isInitiallyChecked = successTrigger.checked;
-    fireEvent.click(successTrigger);
+  it.each([
+    { kind: 'logical', reachBackupStep: reachWizardBackupStep },
+    { kind: 'physical', reachBackupStep: reachPhysicalWizardBackupStep },
+  ])(
+    'keeps the entered $kind values when the page becomes visible and the list refreshes',
+    async ({ reachBackupStep }) => {
+      const shopDatabase = buildDatabase('Shop');
+      declareListResponses([shopDatabase], [shopDatabase, buildDatabase('Refreshed')]);
+      declarePendingDetailRequests();
+      mockServer.use(
+        mockApi.post('/database-tests', 200, { isConnected: true }),
+        mockApi.post('/limited-user-checks', 200, { isAdvisable: false, privileges: [] }),
+      );
+      const { user } = renderDatabasesScreen();
+      await reachBackupStep(user);
+      const successTrigger = screen.getAllByRole('checkbox')[0] as HTMLInputElement;
+      const isInitiallyChecked = successTrigger.checked;
+      fireEvent.click(successTrigger);
 
-    act(() => {
-      document.dispatchEvent(new Event('visibilitychange'));
-    });
-    await findDatabaseCard('Refreshed');
+      act(() => {
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+      await findDatabaseCard('Refreshed');
 
-    expect(document.querySelector('.ant-modal .ant-spin')).toBeNull();
-    expect((screen.getAllByRole('checkbox')[0] as HTMLInputElement).checked).toBe(
-      !isInitiallyChecked,
-    );
-  });
+      expect(document.querySelector('.ant-modal .ant-spin')).toBeNull();
+      expect((screen.getAllByRole('checkbox')[0] as HTMLInputElement).checked).toBe(
+        !isInitiallyChecked,
+      );
+    },
+  );
 });
 
 describe('DatabasesComponent with a late rename', () => {

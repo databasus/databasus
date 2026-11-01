@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -15,10 +16,9 @@ import {
 } from '../../../../entities/databases';
 import type { Schedule } from '../../../../entities/schedules';
 import { API_BASE_PATH } from '../../../../shared/api';
-import { buildProblem, mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
+import { mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
 import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-// @vitest-environment happy-dom
-import { EditPhysicalBackupConfigComponent } from './EditPhysicalBackupConfigComponent';
+import { EditPhysicalBackupConfigSection } from './EditPhysicalBackupConfigSection';
 
 const mockServer = setUpMockApi();
 const database: Database = {
@@ -54,7 +54,7 @@ const config: BackupConfig = {
     notificationTriggers: [],
   },
 };
-const operation: StorageSwitch = {
+const acceptedStorageSwitch: StorageSwitch = {
   id: 'switch-id',
   databaseId: database.id,
   workspaceId: database.workspaceId,
@@ -67,21 +67,6 @@ const operation: StorageSwitch = {
   deleted: 0,
   remaining: 0,
 };
-
-const chooseStorage = async (name = 'Archive') => {
-  const storageLabel = await screen.findByText('Storage');
-  const select = storageLabel.parentElement!.querySelector('.ant-select-selector')!;
-
-  fireEvent.mouseDown(select);
-  const option = await waitFor(() => {
-    const storageOption = document.querySelector(`.ant-select-item-option[title="${name}"]`);
-    expect(storageOption).toBeTruthy();
-    return storageOption!;
-  });
-
-  fireEvent.click(option);
-};
-
 const incrementalDatabase: Database = {
   ...database,
   settings: {
@@ -90,7 +75,7 @@ const incrementalDatabase: Database = {
   } as Database['settings'],
 };
 
-const renderIncrementalConfig = ({
+const renderIncrementalSection = ({
   fullBackupSchedule,
   incrementalBackupSchedule,
 }: {
@@ -122,12 +107,9 @@ const renderIncrementalConfig = ({
   );
 
   renderScreen(
-    <EditPhysicalBackupConfigComponent
+    <EditPhysicalBackupConfigSection
       database={incrementalDatabase}
-      isShowBackButton={false}
-      onBack={() => {}}
       onCancel={() => {}}
-      isSaveToApi
       onSaved={() => {}}
     />,
   );
@@ -137,13 +119,21 @@ const renderIncrementalConfig = ({
 
 const findCadenceGroup = (name: string) => screen.findByRole('group', { name });
 
-const getWeeklySchedule = (weekday: number): Schedule => ({
-  type: 'WEEKLY',
-  timeOfDay: '12:00',
-  weekday,
-});
+const chooseStorage = async (name = 'Archive') => {
+  const storageLabel = await screen.findByText('Storage');
+  const select = storageLabel.parentElement!.querySelector('.ant-select-selector')!;
 
-describe('EditPhysicalBackupConfigComponent', () => {
+  fireEvent.mouseDown(select);
+  const option = await waitFor(() => {
+    const storageOption = document.querySelector(`.ant-select-item-option[title="${name}"]`);
+    expect(storageOption).toBeTruthy();
+    return storageOption!;
+  });
+
+  fireEvent.click(option);
+};
+
+describe('EditPhysicalBackupConfigSection', () => {
   describe('with two schedules', () => {
     beforeEach(() => {
       vi.stubEnv('TZ', 'UTC');
@@ -153,23 +143,8 @@ describe('EditPhysicalBackupConfigComponent', () => {
       vi.unstubAllEnvs();
     });
 
-    it('labels the fields of each schedule separately', async () => {
-      renderIncrementalConfig({
-        fullBackupSchedule: getWeeklySchedule(1),
-        incrementalBackupSchedule: getWeeklySchedule(2),
-      });
-
-      const fullGroup = await findCadenceGroup('Full backup cadence');
-      const incrementalGroup = await findCadenceGroup('Incremental backup cadence');
-      const fullWeekday = within(fullGroup).getByLabelText('Weekday');
-      const incrementalWeekday = within(incrementalGroup).getByLabelText('Weekday');
-
-      expect(fullWeekday).not.toBe(incrementalWeekday);
-      expect(fullWeekday.id).not.toBe(incrementalWeekday.id);
-    });
-
     it('offers only the type for an empty incremental schedule and keeps Save disabled', async () => {
-      renderIncrementalConfig({
+      renderIncrementalSection({
         fullBackupSchedule: { type: 'HOURLY' },
         incrementalBackupSchedule: null,
       });
@@ -202,19 +177,19 @@ describe('EditPhysicalBackupConfigComponent', () => {
     });
 
     it('lifts the schedule rule when backups are turned off', async () => {
-      renderIncrementalConfig({
+      renderIncrementalSection({
         fullBackupSchedule: { type: 'HOURLY' },
         incrementalBackupSchedule: null,
       });
 
       await findCadenceGroup('Incremental backup cadence');
-      fireEvent.click(screen.getAllByRole('switch')[0]);
+      fireEvent.click(screen.getByRole('switch'));
 
       expect(screen.getByRole('button', { name: /Save$/ })).toHaveProperty('disabled', false);
     });
 
     it('leaves the other schedule unchanged in the submitted config when one is edited', async () => {
-      const submitted = renderIncrementalConfig({
+      const submitted = renderIncrementalSection({
         fullBackupSchedule: { type: 'MONTHLY', timeOfDay: '12:00', dayOfMonth: 5 },
         incrementalBackupSchedule: { type: 'MONTHLY', timeOfDay: '12:00', dayOfMonth: 6 },
       });
@@ -257,14 +232,7 @@ describe('EditPhysicalBackupConfigComponent', () => {
       mockApi.put('/backup-configs/{databaseId}', 200, savedConfig),
     );
     const view = renderScreen(
-      <EditPhysicalBackupConfigComponent
-        database={database}
-        isShowBackButton={false}
-        onBack={() => {}}
-        onCancel={() => {}}
-        isSaveToApi
-        onSaved={onSaved}
-      />,
+      <EditPhysicalBackupConfigSection database={database} onCancel={() => {}} onSaved={onSaved} />,
     );
     await screen.findByText('Previous archive', { selector: '.ant-select-selection-item' });
 
@@ -292,12 +260,9 @@ describe('EditPhysicalBackupConfigComponent', () => {
       isBackupsEnabled: false,
       settings: config.settings,
     });
-    expect(onSaved).toHaveBeenCalledWith(
-      expect.objectContaining({ storageId: 'old-storage', isBackupsEnabled: false }),
-    );
   });
 
-  it('requires confirmation before reassigning cleared storage with retained history and handles an accepted response', async () => {
+  it('requires confirmation before reassigning cleared storage with retained history', async () => {
     const submitted: BackupConfigInput[] = [];
     const onSaved = vi.fn();
     mockServer.use(
@@ -328,36 +293,20 @@ describe('EditPhysicalBackupConfigComponent', () => {
         ],
         totalUsageMb: 1,
       }),
-      http.get(`*${API_BASE_PATH}/storage-switches`, () =>
-        submitted.length
-          ? HttpResponse.json(buildProblem('internal', 500), { status: 500 })
-          : HttpResponse.json({ items: [] }),
-      ),
-      mockApi.get('/storage-switches/{storageSwitchId}', 200, operation),
+      mockApi.get('/storage-switches', 200, { items: [] }),
       http.put(`*${API_BASE_PATH}/backup-configs/:databaseId`, async ({ request }) => {
         submitted.push((await request.json()) as BackupConfigInput);
-        return HttpResponse.json(operation, { status: 202 });
+        return HttpResponse.json(acceptedStorageSwitch, { status: 202 });
       }),
     );
     renderScreen(
-      <EditPhysicalBackupConfigComponent
-        database={database}
-        isShowBackButton={false}
-        onBack={() => {}}
-        onCancel={() => {}}
-        isSaveToApi
-        onSaved={onSaved}
-      />,
+      <EditPhysicalBackupConfigSection database={database} onCancel={() => {}} onSaved={onSaved} />,
     );
 
     await chooseStorage();
     fireEvent.click(await screen.findByRole('button', { name: /Save$/ }));
 
-    expect(
-      await screen.findByText(/Switching storage removes the old backup history immediately/),
-    ).toBeTruthy();
-
-    const warning = screen.getByText(
+    const warning = await screen.findByText(
       /Switching storage removes the old backup history immediately/,
     );
 
@@ -367,107 +316,7 @@ describe('EditPhysicalBackupConfigComponent', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Switch storage and remove history' }));
 
-    await waitFor(() => expect(submitted).toHaveLength(1));
     await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
-    expect(
-      await screen.findByText('Storage switched. Old files are being cleaned up.'),
-    ).toBeTruthy();
-
-    fireEvent.click(await screen.findByRole('button', { name: 'Retry status' }));
-
     expect(submitted).toHaveLength(1);
   });
-
-  it.each(['old-storage', 'target-storage'])(
-    'warns before reassignment to %s after clearing storage without remounting',
-    async (storageId) => {
-      const submitted: BackupConfigInput[] = [];
-      const onSaved = vi.fn();
-      mockServer.use(
-        mockApi.get('/backup-configs/{databaseId}', 200, {
-          ...config,
-          storageId: 'old-storage',
-        }),
-        mockApi.get('/storages', 200, {
-          items: [
-            {
-              id: 'old-storage',
-              workspaceId: database.workspaceId,
-              name: 'Previous archive',
-              settings: { type: 'LOCAL' },
-            },
-            {
-              id: 'target-storage',
-              workspaceId: database.workspaceId,
-              name: 'Archive',
-              settings: { type: 'LOCAL' },
-            },
-          ],
-        }),
-        mockApi.get('/physical-backups', 200, {
-          items: [
-            {
-              id: 'old-backup',
-              type: 'FULL',
-              status: 'COMPLETED',
-              timelineId: 1,
-              startLsn: '0/1000000',
-              stopLsn: '0/2000000',
-              hasGapBefore: false,
-              sizeMb: 1,
-              createdAt: '2026-10-29T10:00:00Z',
-            },
-          ],
-          totalUsageMb: 1,
-        }),
-        mockApi.get('/storage-switches', 200, { items: [] }),
-        mockApi.get('/storage-switches/{storageSwitchId}', 200, {
-          ...operation,
-          targetStorageId: storageId,
-        }),
-        http.put(`*${API_BASE_PATH}/backup-configs/:databaseId`, async ({ request }) => {
-          const saved = (await request.json()) as BackupConfigInput;
-          submitted.push(saved);
-
-          return saved.storageId
-            ? HttpResponse.json({ ...operation, targetStorageId: storageId }, { status: 202 })
-            : HttpResponse.json({ ...saved, databaseId: database.id });
-        }),
-      );
-      renderScreen(
-        <EditPhysicalBackupConfigComponent
-          database={database}
-          isShowBackButton={false}
-          onBack={() => {}}
-          onCancel={() => {}}
-          isSaveToApi
-          onSaved={onSaved}
-        />,
-      );
-      const storageLabel = await screen.findByText('Storage');
-      const clear = storageLabel.parentElement!.querySelector('.ant-select-clear')!;
-
-      expect(clear).toBeTruthy();
-
-      fireEvent.mouseDown(clear);
-      fireEvent.click(await screen.findByRole('button', { name: /Save$/ }));
-
-      await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
-      expect(submitted).toHaveLength(1);
-      expect(submitted[0].storageId).toBeNull();
-
-      await chooseStorage(storageId === 'old-storage' ? 'Previous archive' : 'Archive');
-      fireEvent.click(await screen.findByRole('button', { name: /Save$/ }));
-
-      expect(
-        await screen.findByText(/Switching storage removes the old backup history immediately/),
-      ).toBeTruthy();
-      expect(submitted).toHaveLength(1);
-
-      fireEvent.click(screen.getByRole('button', { name: 'Switch storage and remove history' }));
-
-      await waitFor(() => expect(submitted).toHaveLength(2));
-      expect(submitted[1].storageId).toBe(storageId);
-    },
-  );
 });

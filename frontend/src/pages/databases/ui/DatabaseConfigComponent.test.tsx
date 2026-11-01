@@ -1,6 +1,6 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { HttpResponse, type RequestHandler, http } from 'msw';
-import { type Mock, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   type BackupConfig,
@@ -1231,14 +1231,43 @@ describe('DatabaseConfigComponent backup configuration', () => {
       kind: 'logical',
       database: logicalDatabase,
       config: buildLogicalConfig(),
-      expectRefusalShown: () => expect(screen.getByText(REFUSAL_REASON)).toBeTruthy(),
+      backupHistory: mockApi.get('/logical-backups', 200, {
+        items: [
+          {
+            id: 'old-backup',
+            databaseId: logicalDatabase.id,
+            storageId: 'old-storage',
+            status: 'COMPLETED',
+            sizeMb: 1,
+            rawDatabaseSizeMb: 1,
+            durationMs: 1,
+            encryption: 'NONE',
+            verificationStatus: 'NOT_VERIFIED',
+            createdAt: '2026-10-29T10:00:00Z',
+          },
+        ],
+      }),
     },
     {
       kind: 'physical',
       database: physicalDatabase,
       config: physicalConfig,
-      expectRefusalShown: (showAlert: Mock) =>
-        expect(showAlert).toHaveBeenCalledWith(REFUSAL_REASON),
+      backupHistory: mockApi.get('/physical-backups', 200, {
+        items: [
+          {
+            id: 'old-backup',
+            type: 'FULL',
+            status: 'COMPLETED',
+            timelineId: 1,
+            startLsn: '0/1000000',
+            stopLsn: '0/2000000',
+            hasGapBefore: false,
+            sizeMb: 1,
+            createdAt: '2026-10-29T10:00:00Z',
+          },
+        ],
+        totalUsageMb: 1,
+      }),
     },
   ];
 
@@ -1293,83 +1322,77 @@ describe('DatabaseConfigComponent backup configuration', () => {
   const COUNT_POLICY = /^Count/;
   const TIME_PERIOD_POLICY = /^Time period/;
 
-  describe.each(BACKUP_EDITORS)(
-    'of the $kind editor',
-    ({ database, config, expectRefusalShown }) => {
-      it('disables Cancel during a pending save', async () => {
-        const saveCall = vi.spyOn(backupConfigApi, 'updateBackupConfig');
-        const save = mockApi.delayed({
-          method: 'put',
-          path: '/backup-configs/{databaseId}',
-          status: 200,
-          body: config,
-        });
-        const { container } = renderSavedDatabaseConfig(database, [
+  describe.each(BACKUP_EDITORS)('of the $kind editor', ({ database, config }) => {
+    it('disables Cancel during a pending save', async () => {
+      const saveCall = vi.spyOn(backupConfigApi, 'updateBackupConfig');
+      const save = mockApi.delayed({
+        method: 'put',
+        path: '/backup-configs/{databaseId}',
+        status: 200,
+        body: config,
+      });
+      const { container } = renderSavedDatabaseConfig(database, [
+        mockApi.get('/backup-configs/{databaseId}', 200, config),
+        save.handler,
+        ...declareBackupConfigRequests(),
+      ]);
+      const saveButton = await openBackupSection();
+      toggleSuccessTrigger();
+
+      fireEvent.click(saveButton);
+      await waitFor(() => expect(saveCall).toHaveBeenCalled());
+
+      expect(screen.getByRole('button', { name: 'Cancel' })).toHaveProperty('disabled', true);
+      expect(container.querySelectorAll(EDIT_ICON_SELECTOR)).toHaveLength(0);
+
+      await releaseAndSettle(saveCall, save.release);
+    });
+
+    it('keeps the form, shows the reason and reports no save when the server refuses', async () => {
+      const showAlert = vi.fn();
+      vi.stubGlobal('alert', showAlert);
+      const saveCall = vi.spyOn(backupConfigApi, 'updateBackupConfig');
+      const onDatabaseChanged = vi.fn();
+      renderSavedDatabaseConfig(
+        database,
+        [
           mockApi.get('/backup-configs/{databaseId}', 200, config),
-          save.handler,
+          mockApi.put('/backup-configs/{databaseId}', 403, buildProblem('permission_denied', 403)),
           ...declareBackupConfigRequests(),
-        ]);
-        const saveButton = await openBackupSection();
-        toggleSuccessTrigger();
+        ],
+        onDatabaseChanged,
+      );
+      const saveButton = await openBackupSection();
+      toggleSuccessTrigger();
+      const isEnteredTriggerChecked = (screen.getAllByRole('checkbox')[0] as HTMLInputElement)
+        .checked;
 
-        fireEvent.click(saveButton);
-        await waitFor(() => expect(saveCall).toHaveBeenCalled());
-
-        expect(screen.getByRole('button', { name: 'Cancel' })).toHaveProperty('disabled', true);
-        expect(container.querySelectorAll(EDIT_ICON_SELECTOR)).toHaveLength(0);
-
-        await releaseAndSettle(saveCall, save.release);
+      fireEvent.click(saveButton);
+      await waitFor(() => expect(saveCall).toHaveBeenCalled());
+      await act(async () => {
+        await Promise.allSettled([saveCall.mock.results[0].value]);
       });
 
-      it('keeps the form, shows the reason and reports no save when the server refuses', async () => {
-        const showAlert = vi.fn();
-        vi.stubGlobal('alert', showAlert);
-        const saveCall = vi.spyOn(backupConfigApi, 'updateBackupConfig');
-        const onDatabaseChanged = vi.fn();
-        renderSavedDatabaseConfig(
-          database,
-          [
-            mockApi.get('/backup-configs/{databaseId}', 200, config),
-            mockApi.put(
-              '/backup-configs/{databaseId}',
-              403,
-              buildProblem('permission_denied', 403),
-            ),
-            ...declareBackupConfigRequests(),
-          ],
-          onDatabaseChanged,
-        );
-        const saveButton = await openBackupSection();
-        toggleSuccessTrigger();
-        const isEnteredTriggerChecked = (screen.getAllByRole('checkbox')[0] as HTMLInputElement)
-          .checked;
+      expect(screen.getByText(REFUSAL_REASON)).toBeTruthy();
+      expect(showAlert).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: 'Cancel' })).toHaveProperty('disabled', false);
+      expect((screen.getAllByRole('checkbox')[0] as HTMLInputElement).checked).toBe(
+        isEnteredTriggerChecked,
+      );
+      expect(onDatabaseChanged).not.toHaveBeenCalled();
+    });
+  });
 
-        fireEvent.click(saveButton);
-        await waitFor(() => expect(saveCall).toHaveBeenCalled());
-        await act(async () => {
-          await Promise.allSettled([saveCall.mock.results[0].value]);
-        });
-
-        expectRefusalShown(showAlert);
-        expect(screen.getByRole('button', { name: 'Cancel' })).toHaveProperty('disabled', false);
-        expect((screen.getAllByRole('checkbox')[0] as HTMLInputElement).checked).toBe(
-          isEnteredTriggerChecked,
-        );
-        expect(onDatabaseChanged).not.toHaveBeenCalled();
-      });
-    },
-  );
-
-  describe('when the logical section cannot load', () => {
+  describe.each(BACKUP_EDITORS)('when the $kind section cannot load', ({ database, config }) => {
     const openFailedSection = async () => {
       const showAlert = vi.fn();
       vi.stubGlobal('alert', showAlert);
       const configLoad = { isFailing: false };
-      renderSavedDatabaseConfig(logicalDatabase, [
+      renderSavedDatabaseConfig(database, [
         http.get(`*${API_BASE_PATH}/backup-configs/:databaseId`, () =>
           configLoad.isFailing
             ? HttpResponse.json(buildProblem('internal', 500), { status: 500 })
-            : HttpResponse.json(buildLogicalConfig()),
+            : HttpResponse.json(config),
         ),
         ...declareBackupConfigRequests(),
       ]);
@@ -1408,36 +1431,39 @@ describe('DatabaseConfigComponent backup configuration', () => {
     });
   });
 
-  it('shows one error and one retry when the settings tab cannot load a logical config', async () => {
-    const showAlert = vi.fn();
-    vi.stubGlobal('alert', showAlert);
-    let isConfigFailing = true;
-    renderSavedDatabaseConfig(logicalDatabase, [
-      http.get(`*${API_BASE_PATH}/backup-configs/:databaseId`, () =>
-        isConfigFailing
-          ? HttpResponse.json(buildProblem('internal', 500), { status: 500 })
-          : HttpResponse.json(buildLogicalConfig()),
-      ),
-      ...declareBackupConfigRequests(),
-    ]);
+  it.each(BACKUP_EDITORS)(
+    'shows one error and one retry when the settings tab cannot load a $kind config',
+    async ({ database, config }) => {
+      const showAlert = vi.fn();
+      vi.stubGlobal('alert', showAlert);
+      let isConfigFailing = true;
+      renderSavedDatabaseConfig(database, [
+        http.get(`*${API_BASE_PATH}/backup-configs/:databaseId`, () =>
+          isConfigFailing
+            ? HttpResponse.json(buildProblem('internal', 500), { status: 500 })
+            : HttpResponse.json(config),
+        ),
+        ...declareBackupConfigRequests(),
+      ]);
 
-    const retryButton = await screen.findByRole('button', { name: 'Retry' });
-    await waitFor(() =>
-      expect(
-        screen.getAllByText('An internal server error occurred. Please try again later.'),
-      ).toHaveLength(1),
-    );
+      const retryButton = await screen.findByRole('button', { name: 'Retry' });
+      await waitFor(() =>
+        expect(
+          screen.getAllByText('An internal server error occurred. Please try again later.'),
+        ).toHaveLength(1),
+      );
 
-    expect(screen.getAllByRole('button', { name: 'Retry' })).toHaveLength(1);
-    expect(showAlert).not.toHaveBeenCalled();
+      expect(screen.getAllByRole('button', { name: 'Retry' })).toHaveLength(1);
+      expect(showAlert).not.toHaveBeenCalled();
 
-    isConfigFailing = false;
-    fireEvent.click(retryButton);
+      isConfigFailing = false;
+      fireEvent.click(retryButton);
 
-    expect(await screen.findByText('Backups enabled')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
-    expect(showAlert).not.toHaveBeenCalled();
-  });
+      expect(await screen.findByText('Backups enabled')).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+      expect(showAlert).not.toHaveBeenCalled();
+    },
+  );
 
   it('shows one error and one retry when the section opens after the settings tab could not load', async () => {
     renderSavedDatabaseConfig(logicalDatabase, [
@@ -1460,41 +1486,44 @@ describe('DatabaseConfigComponent backup configuration', () => {
     expect(screen.getAllByRole('button', { name: 'Retry' })).toHaveLength(1);
   });
 
-  it('shows the reason with a retry when the configuration view cannot load its storage', async () => {
-    const showAlert = vi.fn();
-    vi.stubGlobal('alert', showAlert);
-    let isStorageFailing = true;
-    renderSavedDatabaseConfig(logicalDatabase, [
-      mockApi.get('/backup-configs/{databaseId}', 200, {
-        ...buildLogicalConfig(),
-        storageId: 'archive-storage-id',
-      }),
-      http.get(`*${API_BASE_PATH}/storages/:storageId`, () =>
-        isStorageFailing
-          ? HttpResponse.json(buildProblem('internal', 500), { status: 500 })
-          : HttpResponse.json({
-              id: 'archive-storage-id',
-              workspaceId: logicalDatabase.workspaceId,
-              name: 'Archive',
-              settings: { type: 'LOCAL' },
-            }),
-      ),
-      ...declareBackupConfigRequests(),
-    ]);
+  it.each(BACKUP_EDITORS)(
+    'shows the reason with a retry when the $kind configuration view cannot load its storage',
+    async ({ database, config }) => {
+      const showAlert = vi.fn();
+      vi.stubGlobal('alert', showAlert);
+      let isStorageFailing = true;
+      renderSavedDatabaseConfig(database, [
+        mockApi.get('/backup-configs/{databaseId}', 200, {
+          ...config,
+          storageId: 'archive-storage-id',
+        }),
+        http.get(`*${API_BASE_PATH}/storages/:storageId`, () =>
+          isStorageFailing
+            ? HttpResponse.json(buildProblem('internal', 500), { status: 500 })
+            : HttpResponse.json({
+                id: 'archive-storage-id',
+                workspaceId: database.workspaceId,
+                name: 'Archive',
+                settings: { type: 'LOCAL' },
+              }),
+        ),
+        ...declareBackupConfigRequests(),
+      ]);
 
-    const retryButton = await screen.findByRole('button', { name: 'Retry' });
+      const retryButton = await screen.findByRole('button', { name: 'Retry' });
 
-    expect(screen.getByText('Backups enabled')).toBeTruthy();
-    expect(
-      screen.getByText('An internal server error occurred. Please try again later.'),
-    ).toBeTruthy();
-    expect(showAlert).not.toHaveBeenCalled();
+      expect(screen.getByText('Backups enabled')).toBeTruthy();
+      expect(
+        screen.getByText('An internal server error occurred. Please try again later.'),
+      ).toBeTruthy();
+      expect(showAlert).not.toHaveBeenCalled();
 
-    isStorageFailing = false;
-    fireEvent.click(retryButton);
+      isStorageFailing = false;
+      fireEvent.click(retryButton);
 
-    expect(await screen.findByText('Archive')).toBeTruthy();
-  });
+      expect(await screen.findByText('Archive')).toBeTruthy();
+    },
+  );
 
   it('keeps entered GFS values through a switch to another policy and back', async () => {
     await renderLogicalSection(buildLogicalConfig({}, { policy: 'GFS', gfsDays: 7 }));
@@ -1590,144 +1619,342 @@ describe('DatabaseConfigComponent backup configuration', () => {
     expect(screen.getByText('Retry backup if failed')).toBeTruthy();
   });
 
-  describe('after a storage was cleared', () => {
-    const renderConfigWithStoredStorage = (targetStorageId: string) => {
-      let storedConfig: BackupConfig = { ...buildLogicalConfig(), storageId: 'old-storage' };
-      const submitted: BackupConfigInput[] = [];
-      const buildStorage = (id: string, name: string) => ({
-        id,
-        workspaceId: logicalDatabase.workspaceId,
-        name,
-        settings: { type: 'LOCAL' as const },
-      });
-      renderSavedDatabaseConfig(logicalDatabase, [
-        http.get(`*${API_BASE_PATH}/backup-configs/:databaseId`, () =>
-          HttpResponse.json(storedConfig),
-        ),
-        http.put(`*${API_BASE_PATH}/backup-configs/:databaseId`, async ({ request }) => {
-          const saved = (await request.json()) as BackupConfigInput;
-          submitted.push(saved);
-          storedConfig = { ...storedConfig, storageId: saved.storageId };
-
-          return HttpResponse.json(storedConfig);
-        }),
-        mockApi.get('/storages', 200, {
-          items: [
-            buildStorage('old-storage', 'Previous archive'),
-            buildStorage('target-storage', 'Archive'),
-          ],
-        }),
-        http.get(`*${API_BASE_PATH}/storages/:storageId`, ({ params }) =>
-          HttpResponse.json(buildStorage(String(params.storageId), 'Shown archive')),
-        ),
-        mockApi.get('/storage-switches', 200, { items: [] }),
-        mockApi.get('/logical-backups', 200, {
-          items: [
-            {
-              id: 'old-backup',
-              databaseId: logicalDatabase.id,
-              storageId: 'old-storage',
-              status: 'COMPLETED',
-              sizeMb: 1,
-              rawDatabaseSizeMb: 1,
-              durationMs: 1,
-              encryption: 'NONE',
-              verificationStatus: 'NOT_VERIFIED',
-              createdAt: '2026-10-29T10:00:00Z',
-            },
-          ],
-        }),
-      ]);
-
-      return {
-        submitted,
-        targetName: targetStorageId === 'old-storage' ? 'Previous archive' : 'Archive',
-      };
-    };
-
-    it.each(['old-storage', 'target-storage'])(
-      'warns before reassignment to %s when the section opens again',
-      async (storageId) => {
-        const { submitted, targetName } = renderConfigWithStoredStorage(storageId);
-        await screen.findByText('Backups enabled');
-
-        await openBackupSection();
-        const storageField = (await screen.findByText('Storage')).parentElement!;
-        await waitFor(() => expect(storageField.querySelector('.ant-select-clear')).toBeTruthy());
-
-        fireEvent.mouseDown(storageField.querySelector('.ant-select-clear')!);
-        fireEvent.click(await screen.findByRole('button', { name: /Save$/ }));
-        await waitFor(() => expect(submitted).toHaveLength(1));
-
-        expect(submitted[0].storageId).toBeNull();
-
-        await waitFor(() => expect(screen.queryByRole('button', { name: /Save$/ })).toBeNull());
-        await screen.findByText('Backups enabled');
-
-        await openBackupSection();
-        const reopenedField = (await screen.findByText('Storage')).parentElement!;
-        fireEvent.mouseDown(reopenedField.querySelector('.ant-select-selector')!);
-        const option = await waitFor(() => {
-          const storageOption = document.querySelector(
-            `.ant-select-item-option[title="${targetName}"]`,
-          );
-          expect(storageOption).toBeTruthy();
-          return storageOption!;
+  describe.each(BACKUP_EDITORS)(
+    'after a storage was cleared in the $kind section',
+    ({ database, config, backupHistory }) => {
+      const renderConfigWithStoredStorage = (targetStorageId: string) => {
+        let storedConfig: BackupConfig = { ...config, storageId: 'old-storage' };
+        const submitted: BackupConfigInput[] = [];
+        const buildStorage = ({ id, name }: { id: string; name: string }) => ({
+          id,
+          workspaceId: database.workspaceId,
+          name,
+          settings: { type: 'LOCAL' as const },
         });
-        fireEvent.click(option);
+        renderSavedDatabaseConfig(database, [
+          http.get(`*${API_BASE_PATH}/backup-configs/:databaseId`, () =>
+            HttpResponse.json(storedConfig),
+          ),
+          http.put(`*${API_BASE_PATH}/backup-configs/:databaseId`, async ({ request }) => {
+            const saved = (await request.json()) as BackupConfigInput;
+            submitted.push(saved);
+            storedConfig = { ...storedConfig, storageId: saved.storageId };
 
-        fireEvent.click(await screen.findByRole('button', { name: /Save$/ }));
+            return HttpResponse.json(storedConfig);
+          }),
+          mockApi.get('/storages', 200, {
+            items: [
+              buildStorage({ id: 'old-storage', name: 'Previous archive' }),
+              buildStorage({ id: 'target-storage', name: 'Archive' }),
+            ],
+          }),
+          http.get(`*${API_BASE_PATH}/storages/:storageId`, ({ params }) =>
+            HttpResponse.json(
+              buildStorage({ id: String(params.storageId), name: 'Shown archive' }),
+            ),
+          ),
+          mockApi.get('/storage-switches', 200, { items: [] }),
+          backupHistory,
+        ]);
 
-        expect(
-          await screen.findByText(/Switching storage removes the old backup history immediately/),
-        ).toBeTruthy();
-        expect(submitted).toHaveLength(1);
+        return {
+          submitted,
+          targetName: targetStorageId === 'old-storage' ? 'Previous archive' : 'Archive',
+        };
+      };
 
-        fireEvent.click(screen.getByRole('button', { name: 'Switch storage and remove history' }));
+      it.each(['old-storage', 'target-storage'])(
+        'warns before reassignment to %s when the section opens again',
+        async (storageId) => {
+          const { submitted, targetName } = renderConfigWithStoredStorage(storageId);
+          await screen.findByText('Backups enabled');
 
-        await waitFor(() => expect(submitted).toHaveLength(2));
-        expect(submitted[1].storageId).toBe(storageId);
-      },
-    );
-  });
+          await openBackupSection();
+          const storageField = (await screen.findByText('Storage')).parentElement!;
+          await waitFor(() => expect(storageField.querySelector('.ant-select-clear')).toBeTruthy());
 
-  it('shows an accepted storage switch in the configuration view after a save', async () => {
-    const acceptedSwitch = {
-      id: 'switch-id',
-      databaseId: logicalDatabase.id,
-      workspaceId: logicalDatabase.workspaceId,
-      targetStorageId: 'target-storage',
-      status: 'CLEANUP_PENDING' as const,
-      createdAt: '2026-10-30T10:00:00Z',
-      cleanupDeadline: '2026-10-31T10:00:00Z',
-      total: 2,
-      pending: 2,
-      deleted: 0,
-      remaining: 0,
+          fireEvent.mouseDown(storageField.querySelector('.ant-select-clear')!);
+          fireEvent.click(await screen.findByRole('button', { name: /Save$/ }));
+          await waitFor(() => expect(submitted).toHaveLength(1));
+
+          expect(submitted[0].storageId).toBeNull();
+
+          await waitFor(() => expect(screen.queryByRole('button', { name: /Save$/ })).toBeNull());
+          await screen.findByText('Backups enabled');
+
+          await openBackupSection();
+          const reopenedField = (await screen.findByText('Storage')).parentElement!;
+          fireEvent.mouseDown(reopenedField.querySelector('.ant-select-selector')!);
+          const option = await waitFor(() => {
+            const storageOption = document.querySelector(
+              `.ant-select-item-option[title="${targetName}"]`,
+            );
+            expect(storageOption).toBeTruthy();
+            return storageOption!;
+          });
+          fireEvent.click(option);
+
+          fireEvent.click(await screen.findByRole('button', { name: /Save$/ }));
+
+          expect(
+            await screen.findByText(/Switching storage removes the old backup history immediately/),
+          ).toBeTruthy();
+          expect(submitted).toHaveLength(1);
+
+          fireEvent.click(
+            screen.getByRole('button', { name: 'Switch storage and remove history' }),
+          );
+
+          await waitFor(() => expect(submitted).toHaveLength(2));
+          expect(submitted[1].storageId).toBe(storageId);
+        },
+      );
+    },
+  );
+
+  it.each(BACKUP_EDITORS)(
+    'shows an accepted storage switch in the $kind configuration view after a save',
+    async ({ database, config }) => {
+      const acceptedSwitch = {
+        id: 'switch-id',
+        databaseId: database.id,
+        workspaceId: database.workspaceId,
+        targetStorageId: 'target-storage',
+        status: 'CLEANUP_PENDING' as const,
+        createdAt: '2026-10-30T10:00:00Z',
+        cleanupDeadline: '2026-10-31T10:00:00Z',
+        total: 2,
+        pending: 2,
+        deleted: 0,
+        remaining: 0,
+      };
+      let isSwitchAccepted = false;
+      renderSavedDatabaseConfig(database, [
+        mockApi.get('/backup-configs/{databaseId}', 200, config),
+        http.put(`*${API_BASE_PATH}/backup-configs/:databaseId`, () => {
+          isSwitchAccepted = true;
+          return HttpResponse.json(acceptedSwitch, { status: 202 });
+        }),
+        http.get(`*${API_BASE_PATH}/storage-switches`, () =>
+          HttpResponse.json({ items: isSwitchAccepted ? [acceptedSwitch] : [] }),
+        ),
+        mockApi.get('/storage-switches/{storageSwitchId}', 200, acceptedSwitch),
+        mockApi.get('/logical-backups', 200, { items: [] }),
+        mockApi.get('/physical-backups', 200, { items: [], totalUsageMb: 0 }),
+        mockApi.get('/storages', 200, { items: [] }),
+      ]);
+      await screen.findByText('Backups enabled');
+      const saveButton = await openBackupSection();
+      toggleSuccessTrigger();
+
+      fireEvent.click(saveButton);
+
+      expect(
+        await screen.findByText('Storage switched. Old files are being cleaned up.'),
+      ).toBeTruthy();
+    },
+  );
+
+  describe('of the physical section', () => {
+    const incrementalDatabase = buildSavedDatabase(DatabaseType.POSTGRES_PHYSICAL, {
+      backupType: 'FULL_INCREMENTAL',
+    });
+    const walStreamDatabase = buildSavedDatabase(DatabaseType.POSTGRES_PHYSICAL, {
+      backupType: 'FULL_INCREMENTAL_WAL_STREAM',
+    });
+    const gfsRetention = {
+      policy: 'GFS' as const,
+      count: 0,
+      gfsHours: 0,
+      gfsDays: 7,
+      gfsWeeks: 4,
+      gfsMonths: 0,
+      gfsYears: 0,
     };
-    let isSwitchAccepted = false;
-    renderSavedDatabaseConfig(logicalDatabase, [
-      mockApi.get('/backup-configs/{databaseId}', 200, buildLogicalConfig()),
-      http.put(`*${API_BASE_PATH}/backup-configs/:databaseId`, () => {
-        isSwitchAccepted = true;
-        return HttpResponse.json(acceptedSwitch, { status: 202 });
-      }),
-      http.get(`*${API_BASE_PATH}/storage-switches`, () =>
-        HttpResponse.json({ items: isSwitchAccepted ? [acceptedSwitch] : [] }),
-      ),
-      mockApi.get('/storage-switches/{storageSwitchId}', 200, acceptedSwitch),
-      mockApi.get('/logical-backups', 200, { items: [] }),
-      mockApi.get('/storages', 200, { items: [] }),
-    ]);
-    await screen.findByText('Backups enabled');
-    const saveButton = await openBackupSection();
-    toggleSuccessTrigger();
 
-    fireEvent.click(saveButton);
+    type PhysicalSettings = Extract<BackupConfig['settings'], { type: 'PHYSICAL' }>;
 
-    expect(
-      await screen.findByText('Storage switched. Old files are being cleaned up.'),
-    ).toBeTruthy();
+    const buildPhysicalConfig = (settings: Partial<PhysicalSettings> = {}): BackupConfig => ({
+      databaseId: incrementalDatabase.id,
+      storageId: null,
+      isBackupsEnabled: true,
+      encryption: 'NONE',
+      settings: {
+        type: 'PHYSICAL',
+        fullBackupSchedule: { type: 'HOURLY' },
+        incrementalBackupSchedule: { type: 'HOURLY' },
+        retention: {
+          policy: 'CHAINS_AND_FULL_BACKUPS',
+          chainsCount: 3,
+          fullBackups: gfsRetention,
+        },
+        walLagThresholdBytes: 0,
+        notificationTriggers: ['BACKUP_FAILED'],
+        ...settings,
+      },
+    });
+
+    const renderPhysicalSection = async (
+      config: BackupConfig,
+      database: Database = incrementalDatabase,
+    ) => {
+      const submitted: BackupConfigInput[] = [];
+      renderSavedDatabaseConfig(database, [
+        mockApi.get('/backup-configs/{databaseId}', 200, config),
+        http.put(`*${API_BASE_PATH}/backup-configs/:databaseId`, async ({ request }) => {
+          submitted.push((await request.json()) as BackupConfigInput);
+
+          return HttpResponse.json(config);
+        }),
+        ...declareBackupConfigRequests(),
+      ]);
+      await screen.findByText('Backups enabled');
+
+      return { saveButton: await openBackupSection(), submitted };
+    };
+
+    const chooseOptionOf = async ({
+      fieldLabel,
+      optionText,
+    }: {
+      fieldLabel: string;
+      optionText: string;
+    }) => {
+      fireEvent.mouseDown(
+        screen.getByText(fieldLabel).parentElement!.querySelector('.ant-select-selector')!,
+      );
+      const option = await waitFor(() => {
+        const matchingOption = Array.from(
+          document.querySelectorAll('.ant-select-item-option'),
+        ).find((element) => element.textContent === optionText);
+        expect(matchingOption).toBeTruthy();
+        return matchingOption!;
+      });
+
+      fireEvent.click(option);
+    };
+
+    const chooseFullBackupsPolicy = (optionText: string) =>
+      chooseOptionOf({ fieldLabel: 'Full backups', optionText });
+    const chooseRetention = (optionText: string) =>
+      chooseOptionOf({ fieldLabel: 'Retention', optionText });
+
+    it('disables Save again when an edit is reverted', async () => {
+      const { saveButton } = await renderPhysicalSection(buildPhysicalConfig());
+
+      setRetentionValue('Daily', '8');
+      expect(saveButton).toHaveProperty('disabled', false);
+
+      setRetentionValue('Daily', '7');
+      expect(saveButton).toHaveProperty('disabled', true);
+    });
+
+    it('keeps Save disabled when a policy is tried and abandoned on a chains-only config', async () => {
+      const { saveButton } = await renderPhysicalSection(
+        buildPhysicalConfig({
+          retention: { policy: 'CHAINS', chainsCount: 3, fullBackups: null },
+        }),
+      );
+
+      await chooseRetention('Keep last N chains and full backups');
+      expect(saveButton).toHaveProperty('disabled', false);
+
+      await chooseRetention('Keep last N chains');
+      expect(saveButton).toHaveProperty('disabled', true);
+    });
+
+    it('disables Save for all-zero GFS periods with backups off', async () => {
+      const { saveButton } = await renderPhysicalSection(buildPhysicalConfig());
+
+      fireEvent.click(screen.getByRole('switch'));
+      setRetentionValue('Daily', '0');
+      setRetentionValue('Weekly', '0');
+
+      expect(saveButton).toHaveProperty('disabled', true);
+
+      setRetentionValue('Yearly', '1');
+
+      expect(saveButton).toHaveProperty('disabled', false);
+    });
+
+    it('shows the entered values after a switch of the full-backup policy and back', async () => {
+      await renderPhysicalSection(buildPhysicalConfig());
+
+      setRetentionValue('Daily', '9');
+      await chooseFullBackupsPolicy('Count');
+      setRetentionValue('Most recent full backups', '5');
+      await chooseFullBackupsPolicy('GFS');
+
+      expect(getRetentionInput('Daily').value).toBe('9');
+
+      await chooseFullBackupsPolicy('Count');
+
+      expect(getRetentionInput('Most recent full backups').value).toBe('5');
+    });
+
+    it('sends no full-backup retention for chains only', async () => {
+      const config = buildPhysicalConfig();
+      const { saveButton, submitted } = await renderPhysicalSection(config);
+
+      await chooseRetention('Keep last N chains');
+      fireEvent.click(saveButton);
+      await waitFor(() => expect(submitted).toHaveLength(1));
+
+      expect(submitted[0]).toEqual({
+        isBackupsEnabled: true,
+        storageId: null,
+        encryption: 'NONE',
+        settings: {
+          ...config.settings,
+          retention: { policy: 'CHAINS', chainsCount: 3, fullBackups: null },
+        },
+      });
+    });
+
+    it('sends the count and zero GFS periods for a last-N retention over stored GFS periods', async () => {
+      const config = buildPhysicalConfig();
+      const { saveButton, submitted } = await renderPhysicalSection(config);
+
+      await chooseFullBackupsPolicy('Count');
+      setRetentionValue('Most recent full backups', '5');
+      fireEvent.click(saveButton);
+      await waitFor(() => expect(submitted).toHaveLength(1));
+
+      expect(submitted[0]).toEqual({
+        isBackupsEnabled: true,
+        storageId: null,
+        encryption: 'NONE',
+        settings: {
+          ...config.settings,
+          retention: {
+            policy: 'CHAINS_AND_FULL_BACKUPS',
+            chainsCount: 3,
+            fullBackups: {
+              policy: 'LAST_N',
+              count: 5,
+              gfsHours: 0,
+              gfsDays: 0,
+              gfsWeeks: 0,
+              gfsMonths: 0,
+              gfsYears: 0,
+            },
+          },
+        },
+      });
+    });
+
+    it('sends the stored WAL lag threshold of a WAL streaming database unchanged', async () => {
+      const { saveButton, submitted } = await renderPhysicalSection(
+        buildPhysicalConfig({ walLagThresholdBytes: 4096 }),
+        walStreamDatabase,
+      );
+
+      setRetentionValue('Daily', '8');
+      fireEvent.click(saveButton);
+      await waitFor(() => expect(submitted).toHaveLength(1));
+
+      expect(submitted[0].settings).toMatchObject({ walLagThresholdBytes: 4096 });
+    });
   });
 
   it('removes the advanced settings toggle when backups are turned off', async () => {

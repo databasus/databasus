@@ -12,8 +12,9 @@ import type { Notifier } from '../../../entities/notifiers';
 import { API_BASE_PATH } from '../../../shared/api';
 import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
 import { renderScreen } from '../../../shared/lib/test/renderScreen';
+import { CreateDatabaseNotifiersStep } from './CreateDatabaseNotifiersStep';
 import { DatabaseTransferDialogComponent } from './DatabaseTransferDialogComponent';
-import { EditDatabaseNotifiersComponent } from './EditDatabaseNotifiersComponent';
+import { EditDatabaseNotifiersSection } from './EditDatabaseNotifiersSection';
 
 const server = setUpMockApi();
 
@@ -121,15 +122,10 @@ describe('Database notifier creation composition', () => {
       );
       const renderParent = (workspaceId = 'target-id') =>
         composition === 'selection' ? (
-          <EditDatabaseNotifiersComponent
-            database={editedDatabase}
+          <CreateDatabaseNotifiersStep
             workspaceId={workspaceId}
-            isShowBackButton={false}
-            onBack={() => {}}
-            onCancel={() => {}}
-            isShowSaveOnlyForUnsaved={false}
-            isSaveToApi={false}
-            onSaved={onSaved}
+            initialNotifierIds={editedDatabase.notifierIds}
+            onContinue={onSaved}
           />
         ) : (
           <DatabaseTransferDialogComponent
@@ -268,15 +264,10 @@ describe('Database notifier creation composition', () => {
 
       const view = renderScreen(
         composition === 'selection' ? (
-          <EditDatabaseNotifiersComponent
-            database={database}
+          <CreateDatabaseNotifiersStep
             workspaceId="target-id"
-            isShowBackButton={false}
-            onBack={() => {}}
-            onCancel={() => {}}
-            isShowSaveOnlyForUnsaved={false}
-            isSaveToApi={false}
-            onSaved={() => {}}
+            initialNotifierIds={database.notifierIds}
+            onContinue={() => {}}
           />
         ) : (
           <DatabaseTransferDialogComponent
@@ -391,16 +382,7 @@ describe('Database notifier creation composition', () => {
       const onTransferred = vi.fn();
       const view = renderScreen(
         composition === 'selection' ? (
-          <EditDatabaseNotifiersComponent
-            database={database}
-            workspaceId={targetWorkspaceId}
-            isShowBackButton={false}
-            onBack={() => {}}
-            onCancel={() => {}}
-            isShowSaveOnlyForUnsaved={false}
-            isSaveToApi
-            onSaved={onSaved}
-          />
+          <EditDatabaseNotifiersSection database={database} onCancel={() => {}} onSaved={onSaved} />
         ) : (
           <DatabaseTransferDialogComponent
             database={database}

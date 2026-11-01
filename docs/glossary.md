@@ -80,6 +80,8 @@ This is the project's common language. Each concept has one term in the document
 | Download token | download token, `createDownloadToken` | A single-use token that lets the browser download one logical backup. |
 | Restore target | restore target, `RestoreTarget` | The database a restore writes into, given with its connection settings and restore options. |
 | Connection draft | `DatabaseConnectionDraft`: `DatabaseCreateDraft`, `DatabaseEditDraft`, `RestoreTargetDraft` | The connection settings being entered in the interface for a new database, a saved database or a restore target, before any of them is sent. |
+| Physical backup config draft | `PhysicalBackupConfigDraft` | The physical backup config being entered in the interface. Unlike `PhysicalBackupConfigInput`, it always holds a full-backup retention and keeps the values of the policies not chosen, so switching back shows them. Only the input is sent. |
+| Physical database backup type | `PhysicalDatabaseBackupType`: `FULL`, `FULL_INCREMENTAL`, `FULL_INCREMENTAL_WAL_STREAM` | The backup strategy chosen for a physical database, which decides the schedules and retention its config may use. A list item's `PhysicalBackupType` instead names what one stored backup is. |
 | User stream | user stream, `backups.UserStream` | The one heavy download a user may run at a time: a backup download or a physical restore stream. |
 | Cancellation registry | cancellation registry, `background.CancellationRegistry` | The cancel functions of running work, keyed by its ID. |
 | Restore token | restore token, `createPhysicalRestoreToken` | A single-use token that lets a user download one physical restore set. |
