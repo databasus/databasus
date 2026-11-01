@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 
 interface Props {
   list: ReactNode;
@@ -6,9 +6,17 @@ interface Props {
   backAction?: ReactNode;
   isMobile: boolean;
   hasSelection: boolean;
+  detailScrollRef?: Ref<HTMLDivElement>;
 }
 
-export function ResourceListDetail({ list, detail, backAction, isMobile, hasSelection }: Props) {
+export function ResourceListDetail({
+  list,
+  detail,
+  backAction,
+  isMobile,
+  hasSelection,
+  detailScrollRef,
+}: Props) {
   return (
     <div className="flex min-h-0 min-w-0 flex-1">
       {(!isMobile || !hasSelection) && (
@@ -17,7 +25,9 @@ export function ResourceListDetail({ list, detail, backAction, isMobile, hasSele
       {hasSelection && (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {isMobile && <div className="mb-2 shrink-0">{backAction}</div>}
-          <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">{detail}</div>
+          <div ref={detailScrollRef} className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+            {detail}
+          </div>
         </div>
       )}
     </div>

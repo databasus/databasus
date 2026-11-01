@@ -1,6 +1,6 @@
 import { MenuOutlined } from '@ant-design/icons';
 import { Button } from 'antd';
-import { useEffect, useRef, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useIsMobile, useScreenHeight } from '@/shared/hooks';
@@ -15,7 +15,6 @@ interface Props {
   children: ReactNode;
   isSidebarOpen: boolean;
   onOpenSidebar: () => void;
-  onContentHeight: (height: number) => void;
 }
 
 export const AppShell = ({
@@ -25,22 +24,11 @@ export const AppShell = ({
   children,
   isSidebarOpen,
   onOpenSidebar,
-  onContentHeight,
 }: Props) => {
   const { t } = useTranslation();
   const { locale } = useLocale();
   const height = useScreenHeight();
   const isMobile = useIsMobile();
-  const contentRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const element = contentRef.current;
-    if (!element) return;
-    const measure = () => onContentHeight(element.getBoundingClientRect().height);
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [onContentHeight]);
   return (
     <div
       className="flex min-h-0 min-w-0 flex-col gap-2 bg-page p-2 text-content md:gap-3 md:p-3"
@@ -87,9 +75,7 @@ export const AppShell = ({
       </header>
       <div className="relative flex min-h-0 min-w-0 flex-1 gap-2 md:gap-3">
         {sidebar}
-        <main ref={contentRef} className="flex min-h-0 min-w-0 flex-1 flex-col">
-          {children}
-        </main>
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</main>
       </div>
     </div>
   );

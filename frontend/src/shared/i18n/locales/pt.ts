@@ -370,10 +370,7 @@ export const pt: typeof en = {
       lastBackupError: {
         title: 'Erro no último backup',
         errorLabel: 'Erro:',
-        clearHint: 'Para limpar este erro, faça uma das opções:',
-        clearByTestingConnection:
-          '- teste a conexão pelo botão abaixo (mesmo que você já tenha alterado as configurações);',
-        clearByNextBackup: '- aguarde o próximo backup terminar sem erros;',
+        clearedByNextBackup: 'O erro desaparece após o próximo backup bem-sucedido.',
       },
       sections: {
         database: 'Configurações do banco de dados',

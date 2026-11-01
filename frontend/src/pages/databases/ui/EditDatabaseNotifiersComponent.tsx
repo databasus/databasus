@@ -2,7 +2,6 @@ import { Alert, Button, Modal, Select, Spin } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { DatabaseNotifierEditorOptions } from '@/features/databases';
 import { EditNotifierComponent } from '@/features/edit-notifier';
 import { useSessionGuard } from '@/shared/auth';
 import { RequestRevision } from '@/shared/lib/RequestRevision';
@@ -10,6 +9,22 @@ import { RequestRevision } from '@/shared/lib/RequestRevision';
 import { type Database, databaseApi } from '../../../entities/databases';
 import { type Notifier, notifierApi } from '../../../entities/notifiers';
 import { translateApiError } from '../../../shared/i18n';
+
+interface Props {
+  database: Database;
+  workspaceId: string;
+
+  isShowCancelButton?: boolean;
+  onCancel: () => void;
+
+  isShowBackButton: boolean;
+  onBack: () => void;
+
+  isShowSaveOnlyForUnsaved: boolean;
+  saveButtonText?: string;
+  isSaveToApi: boolean;
+  onSaved: (database: Database) => void;
+}
 
 export const EditDatabaseNotifiersComponent = ({
   database,
@@ -25,7 +40,7 @@ export const EditDatabaseNotifiersComponent = ({
   saveButtonText,
   isSaveToApi,
   onSaved,
-}: DatabaseNotifierEditorOptions) => {
+}: Props) => {
   const { t } = useTranslation();
   const [editingDatabase, setEditingDatabase] = useState<Database>();
   const [isUnsaved, setIsUnsaved] = useState(false);

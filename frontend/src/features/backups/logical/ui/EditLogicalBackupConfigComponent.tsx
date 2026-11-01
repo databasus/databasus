@@ -59,6 +59,8 @@ import { ConfirmationComponent } from '../../../../shared/ui';
 interface Props {
   renderStorageSelection: (options: StorageSelectionOptions) => ReactNode;
   database: Database;
+  // Seeds an unsaved database's editor, so going back in the creation wizard keeps the entered config.
+  initialConfig?: LogicalBackupConfigInput;
 
   isShowBackButton: boolean;
   onBack: () => void;
@@ -105,6 +107,7 @@ const createDefaultLogicalBackupConfig = (): LogicalBackupConfigInput => ({
 export const EditLogicalBackupConfigComponent = ({
   renderStorageSelection,
   database,
+  initialConfig,
 
   isShowBackButton,
   onBack,
@@ -239,7 +242,7 @@ export const EditLogicalBackupConfigComponent = ({
           setIsUnsaved(false);
           setIsSaving(false);
         } else {
-          setBackupConfig(createDefaultLogicalBackupConfig());
+          setBackupConfig(initialConfig ?? createDefaultLogicalBackupConfig());
         }
       } catch (e) {
         alert(translateApiError(e, t));

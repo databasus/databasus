@@ -7,6 +7,33 @@ import { apiResponse } from './HttpFixture';
 import { openAccount } from './openAccount';
 import { openWorkspaceScreen } from './openWorkspaceScreen';
 
+export const assertSingleScrollOwner = async (container: Locator) => {
+  const ownership = await container.evaluate((element) => {
+    const competingScrollers: string[] = [];
+    let ancestor = element.parentElement;
+
+    while (ancestor) {
+      if (
+        /^(auto|scroll)$/.test(getComputedStyle(ancestor).overflowY) &&
+        ancestor.scrollHeight > ancestor.clientHeight + 1
+      )
+        competingScrollers.push(ancestor.tagName);
+
+      ancestor = ancestor.parentElement;
+    }
+
+    const outer = document.scrollingElement!;
+
+    return {
+      competingScrollers,
+      hasPageOverflow: outer.scrollHeight > outer.clientHeight + 1,
+      pageScrollTop: outer.scrollTop,
+    };
+  });
+
+  expect(ownership).toEqual({ competingScrollers: [], hasPageOverflow: false, pageScrollTop: 0 });
+};
+
 const assertBoundedScroll = async ({
   container,
   finalControl,
@@ -33,30 +60,7 @@ const assertBoundedScroll = async ({
   await expect(finalControl).toBeFocused();
   await expect.poll(() => container.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
 
-  const ownership = await container.evaluate((element) => {
-    const competingScrollers: string[] = [];
-    let ancestor = element.parentElement;
-
-    while (ancestor) {
-      if (
-        /^(auto|scroll)$/.test(getComputedStyle(ancestor).overflowY) &&
-        ancestor.scrollHeight > ancestor.clientHeight + 1
-      )
-        competingScrollers.push(ancestor.tagName);
-
-      ancestor = ancestor.parentElement;
-    }
-
-    const outer = document.scrollingElement!;
-
-    return {
-      competingScrollers,
-      hasPageOverflow: outer.scrollHeight > outer.clientHeight + 1,
-      pageScrollTop: outer.scrollTop,
-    };
-  });
-
-  expect(ownership).toEqual({ competingScrollers: [], hasPageOverflow: false, pageScrollTop: 0 });
+  await assertSingleScrollOwner(container);
 };
 
 export const registerResourceScrollScenarios = (resource: 'storages' | 'notifiers') => {

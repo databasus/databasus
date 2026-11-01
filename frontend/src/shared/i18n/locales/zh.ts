@@ -345,9 +345,7 @@ export const zh: typeof en = {
       lastBackupError: {
         title: '上次备份出错',
         errorLabel: '错误：',
-        clearHint: '清除此错误（任选其一）：',
-        clearByTestingConnection: '- 用下方按钮测试连接（即使你已经修改了设置）；',
-        clearByNextBackup: '- 等待下一次备份成功完成；',
+        clearedByNextBackup: '下一次备份成功完成后，此错误会自动清除。',
       },
       sections: {
         database: '数据库设置',

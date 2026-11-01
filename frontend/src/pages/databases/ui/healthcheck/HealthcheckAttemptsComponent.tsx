@@ -120,7 +120,7 @@ export const HealthcheckAttemptsComponent = ({ database, onVisibilityChange }: P
   }
 
   return (
-    <div className="mb-5 w-full rounded-tr-md rounded-br-md rounded-bl-md bg-white p-3 shadow sm:p-5 dark:bg-gray-800">
+    <div className="mb-5 w-full rounded-tr-md rounded-br-md rounded-bl-md bg-surface p-3 shadow sm:p-5">
       <h2 className="text-lg font-bold sm:text-xl">{t('healthcheck.attempts.title')}</h2>
 
       <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:flex-row sm:items-center">
@@ -157,14 +157,14 @@ export const HealthcheckAttemptsComponent = ({ database, onVisibilityChange }: P
                   data-status={healthcheckAttempt.status}
                   className={`h-[8px] w-[8px] cursor-pointer rounded-[2px] ${
                     healthcheckAttempt.status === HealthStatus.AVAILABLE
-                      ? 'bg-green-500'
-                      : 'bg-red-500'
+                      ? 'bg-success'
+                      : 'bg-danger'
                   }`}
                 />
               </Tooltip>
             ))
           ) : (
-            <div className="text-xs text-gray-400">{t('healthcheck.attempts.empty')}</div>
+            <div className="text-xs text-muted">{t('healthcheck.attempts.empty')}</div>
           )}
         </div>
       )}

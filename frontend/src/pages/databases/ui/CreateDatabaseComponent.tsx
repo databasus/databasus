@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { EditLogicalBackupConfigComponent } from '@/features/backups/logical';
+import { EditPhysicalBackupConfigComponent } from '@/features/backups/physical';
+import {
+  ChoosePostgresBackupTypeComponent,
+  CreateReadOnlyComponent,
+  EditDatabaseBaseInfoComponent,
+  EditDatabaseSpecificDataComponent,
+} from '@/features/databases';
+
 import {
   type LogicalBackupConfigInput,
   type PhysicalBackupConfigInput,
@@ -17,18 +26,12 @@ import {
   isPostgresType,
 } from '../../../entities/databases';
 import { translateApiError } from '../../../shared/i18n';
-import { EditLogicalBackupConfigComponent } from '../../backups/logical';
-import { EditPhysicalBackupConfigComponent } from '../../backups/physical';
-import type { DatabaseResourceComposition } from '../model/DatabaseResourceComposition';
-import { ChoosePostgresBackupTypeComponent } from './edit/ChoosePostgresBackupTypeComponent';
-import { CreateReadOnlyComponent } from './edit/CreateReadOnlyComponent';
-import { EditDatabaseBaseInfoComponent } from './edit/EditDatabaseBaseInfoComponent';
-import { EditDatabaseSpecificDataComponent } from './edit/EditDatabaseSpecificDataComponent';
+import { BackupStorageSelection } from './BackupStorageSelection';
+import { EditDatabaseNotifiersComponent } from './EditDatabaseNotifiersComponent';
 
 interface Props {
-  resourceComposition: DatabaseResourceComposition;
   workspaceId: string;
-  onCreated: (databaseId: string) => void;
+  onCreated: (database: Database) => void;
   onClose: () => void;
   onConnectionErrorChange?: (hasConnectionError: boolean) => void;
   onWideStepChange?: (isWideStep: boolean) => void;
@@ -44,14 +47,12 @@ const createInitialDatabase = (workspaceId: string): Database => ({
 });
 
 export const CreateDatabaseComponent = ({
-  resourceComposition,
   workspaceId,
   onCreated,
   onClose,
   onConnectionErrorChange,
   onWideStepChange,
 }: Props) => {
-  const EditDatabaseNotifiersComponent = resourceComposition.renderNotifiers;
   const { t } = useTranslation();
   const [isCreating, setIsCreating] = useState(false);
   const [backupConfig, setBackupConfig] = useState<LogicalBackupConfigInput | undefined>();
@@ -69,14 +70,15 @@ export const CreateDatabaseComponent = ({
     | 'notifiers'
   >('base-info');
 
-  const isPhysical = database.settings.type === DatabaseType.POSTGRES_PHYSICAL;
-  const isPostgres = isPostgresType(database.settings.type);
+  // A backup configuration belongs to one database type, so a type change starts it over.
+  const acceptDatabaseType = (typedDatabase: Database) => {
+    if (typedDatabase.settings.type !== database.settings.type) {
+      setBackupConfig(undefined);
+      setPhysicalBackupConfig(undefined);
+    }
 
-  // The read-only user step explains its choice in long sentences and puts three buttons in one
-  // row, which the narrow wizard width cannot hold.
-  useEffect(() => {
-    onWideStepChange?.(step === 'create-limited-user');
-  }, [step]);
+    setDatabase(typedDatabase);
+  };
 
   const createDatabase = async (database: Database) => {
     if (isPhysical ? !physicalBackupConfig : !backupConfig) return;
@@ -101,7 +103,7 @@ export const CreateDatabaseComponent = ({
         }
       }
 
-      onCreated(createdDatabase.id);
+      onCreated(createdDatabase);
       onClose();
     } catch (error) {
       alert(translateApiError(error, t));
@@ -109,6 +111,15 @@ export const CreateDatabaseComponent = ({
 
     setIsCreating(false);
   };
+
+  // The read-only user step explains its choice in long sentences and puts three buttons in one
+  // row, which the narrow wizard width cannot hold.
+  useEffect(() => {
+    onWideStepChange?.(step === 'create-limited-user');
+  }, [step]);
+
+  const isPhysical = database.settings.type === DatabaseType.POSTGRES_PHYSICAL;
+  const isPostgres = isPostgresType(database.settings.type);
 
   if (step === 'base-info') {
     return (
@@ -121,7 +132,7 @@ export const CreateDatabaseComponent = ({
           saveButtonText={t('common.actions.continue')}
           onCancel={() => onClose()}
           onSaved={(db) => {
-            setDatabase(db);
+            acceptDatabaseType(db);
             setStep(isPostgresType(db.settings.type) ? 'postgres-backup-type' : 'db-settings');
           }}
         />
@@ -136,7 +147,7 @@ export const CreateDatabaseComponent = ({
         saveButtonText={t('common.actions.continue')}
         onBack={() => setStep('base-info')}
         onSelected={(type) => {
-          setDatabase(changeDatabaseType(database, type));
+          acceptDatabaseType(changeDatabaseType(database, type));
           setStep('db-settings');
         }}
       />
@@ -181,7 +192,7 @@ export const CreateDatabaseComponent = ({
     if (isPhysical) {
       return (
         <EditPhysicalBackupConfigComponent
-          renderStorageSelection={resourceComposition.renderStorageSelection}
+          renderStorageSelection={(options) => <BackupStorageSelection {...options} />}
           database={database}
           initialConfig={physicalBackupConfig}
           isShowCancelButton={false}
@@ -200,8 +211,9 @@ export const CreateDatabaseComponent = ({
 
     return (
       <EditLogicalBackupConfigComponent
-        renderStorageSelection={resourceComposition.renderStorageSelection}
+        renderStorageSelection={(options) => <BackupStorageSelection {...options} />}
         database={database}
+        initialConfig={backupConfig}
         isShowCancelButton={false}
         onCancel={() => onClose()}
         isShowBackButton

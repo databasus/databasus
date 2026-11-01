@@ -18,7 +18,7 @@ import { API_BASE_PATH } from '../../../shared/api';
 import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
 import { renderScreen } from '../../../shared/lib/test/renderScreen';
 // @vitest-environment happy-dom
-import { databaseResourceComposition } from './databaseResourceComposition';
+import { BackupStorageSelection } from './BackupStorageSelection';
 
 const mockServer = setUpMockApi();
 const database: Database = {
@@ -124,7 +124,7 @@ describe('EditLogicalBackupConfigComponent', () => {
     );
     renderScreen(
       <EditLogicalBackupConfigComponent
-        renderStorageSelection={databaseResourceComposition.renderStorageSelection}
+        renderStorageSelection={(options) => <BackupStorageSelection {...options} />}
         database={database}
         isShowBackButton={false}
         onBack={() => {}}
@@ -219,7 +219,7 @@ describe('EditLogicalBackupConfigComponent', () => {
       );
       renderScreen(
         <EditLogicalBackupConfigComponent
-          renderStorageSelection={databaseResourceComposition.renderStorageSelection}
+          renderStorageSelection={(options) => <BackupStorageSelection {...options} />}
           database={database}
           isShowBackButton={false}
           onBack={() => {}}

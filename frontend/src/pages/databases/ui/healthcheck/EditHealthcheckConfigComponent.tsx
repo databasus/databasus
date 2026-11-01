@@ -38,18 +38,23 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
   };
 
   useEffect(() => {
+    let isActive = true;
     setIsLoading(true);
     healthcheckConfigApi
       .getHealthcheckConfig(databaseId)
       .then((config) => {
-        setHealthcheckConfig(config);
+        if (isActive) setHealthcheckConfig(config);
       })
       .catch((error) => {
-        alert(translateApiError(error, t));
+        if (isActive) alert(translateApiError(error, t));
       })
       .finally(() => {
-        setIsLoading(false);
+        if (isActive) setIsLoading(false);
       });
+
+    return () => {
+      isActive = false;
+    };
   }, [databaseId]);
 
   if (isLoading) {
@@ -77,7 +82,7 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
         />
 
         <Tooltip className="cursor-pointer" title={t('healthcheck.config.tooltips.enable')}>
-          <InfoCircleOutlined className="ml-2" style={{ color: 'gray' }} />
+          <InfoCircleOutlined className="ml-2 text-muted" />
         </Tooltip>
       </div>
 
@@ -104,7 +109,7 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
               className="cursor-pointer"
               title={t('healthcheck.config.tooltips.notifyWhenUnavailable')}
             >
-              <InfoCircleOutlined className="ml-2" style={{ color: 'gray' }} />
+              <InfoCircleOutlined className="ml-2 text-muted" />
             </Tooltip>
           </div>
 
@@ -134,7 +139,7 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
               className="cursor-pointer"
               title={t('healthcheck.config.tooltips.checkIntervalMinutes')}
             >
-              <InfoCircleOutlined className="ml-2" style={{ color: 'gray' }} />
+              <InfoCircleOutlined className="ml-2 text-muted" />
             </Tooltip>
           </div>
 
@@ -164,7 +169,7 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
               className="cursor-pointer"
               title={t('healthcheck.config.tooltips.attemptsBeforeDown')}
             >
-              <InfoCircleOutlined className="ml-2" style={{ color: 'gray' }} />
+              <InfoCircleOutlined className="ml-2 text-muted" />
             </Tooltip>
           </div>
 
@@ -194,7 +199,7 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
               className="cursor-pointer"
               title={t('healthcheck.config.tooltips.attemptRetentionDays')}
             >
-              <InfoCircleOutlined className="ml-2" style={{ color: 'gray' }} />
+              <InfoCircleOutlined className="ml-2 text-muted" />
             </Tooltip>
           </div>
         </>

@@ -3,7 +3,7 @@ import { execFile } from 'node:child_process';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { promisify } from 'node:util';
+import { promisify, stripVTControlCharacters } from 'node:util';
 
 const frontendRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..');
 const runFile = promisify(execFile);
@@ -33,13 +33,14 @@ const server = setUpMockApi();\n${scenario}`,
       config,
       `export default { root: ${JSON.stringify(frontendRoot)}, test: { include: [${JSON.stringify(fixture)}], exclude: [], environment: ${JSON.stringify(environment)}, maxWorkers: 1, fileParallelism: false } };`,
     );
+    // The child inherits the parent's color settings; assertions read the plain summary text.
     try {
       const output = await runFile(
         process.execPath,
         [join(frontendRoot, 'node_modules/vitest/vitest.mjs'), 'run', '--config', config],
         { cwd: frontendRoot, timeout: 20_000 },
       );
-      return { code: 0, output: output.stdout + output.stderr };
+      return { code: 0, output: stripVTControlCharacters(output.stdout + output.stderr) };
     } catch (error) {
       const failure = error as Error & {
         code?: number;
@@ -48,7 +49,10 @@ const server = setUpMockApi();\n${scenario}`,
         killed?: boolean;
       };
       if (failure.killed || typeof failure.code !== 'number') throw error;
-      return { code: failure.code, output: `${failure.stdout}${failure.stderr}` };
+      return {
+        code: failure.code,
+        output: stripVTControlCharacters(`${failure.stdout}${failure.stderr}`),
+      };
     }
   } finally {
     await rm(directory, { recursive: true, force: true });

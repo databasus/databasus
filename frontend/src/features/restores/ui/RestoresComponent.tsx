@@ -23,7 +23,7 @@ import { translateApiError, useLocale } from '../../../shared/i18n';
 import { ClipboardHelper } from '../../../shared/lib/ClipboardHelper';
 import { getUserTimeFormat } from '../../../shared/time';
 import { ConfirmationComponent } from '../../../shared/ui';
-import { EditDatabaseSpecificDataComponent } from '../../databases/ui/edit/EditDatabaseSpecificDataComponent';
+import { EditDatabaseSpecificDataComponent } from '../../databases';
 import { createRestoreTargetDraft } from './createRestoreTargetDraft';
 import { toRestoreTarget } from './toRestoreTarget';
 

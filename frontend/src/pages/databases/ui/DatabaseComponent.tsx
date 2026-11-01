@@ -1,35 +1,37 @@
-import { Spin } from 'antd';
-import { useEffect, useEffectEvent, useRef, useState } from 'react';
+import { Alert, Button, Spin } from 'antd';
+import { type RefObject, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type Database, DatabaseType, databaseApi } from '../../../entities/databases';
-import { translateApiError } from '../../../shared/i18n';
-import { LogicalBackupsComponent } from '../../backups/logical';
+import { LogicalBackupsComponent } from '@/features/backups/logical';
 import {
   PhysicalBackupsComponent,
   WalStreamMonitoringComponent,
   isMonitoringTabShown,
-} from '../../backups/physical';
-import { VerificationsComponent } from '../../verification/runs';
-import type { DatabaseResourceComposition } from '../model/DatabaseResourceComposition';
+} from '@/features/backups/physical';
+import { VerificationsComponent } from '@/features/verification/runs';
+
+import { type Database, DatabaseType, databaseApi } from '../../../entities/databases';
+import { translateApiError } from '../../../shared/i18n';
 import { DatabaseConfigComponent } from './DatabaseConfigComponent';
 import { HealthcheckAttemptsComponent } from './healthcheck';
 
 interface Props {
-  resourceComposition: DatabaseResourceComposition;
-  contentHeight: number;
+  scrollContainerRef: RefObject<HTMLDivElement | null>;
   databaseId: string;
   onDatabaseChanged: (database: Database) => void;
   onDatabaseDeleted: () => void;
+  onDatabaseCopied: (copiedDatabase: Database) => void;
+  onDatabaseTransferred: () => void;
   isCanManageDBs: boolean;
 }
 
 export const DatabaseComponent = ({
-  resourceComposition,
-  contentHeight,
+  scrollContainerRef,
   databaseId,
   onDatabaseChanged,
   onDatabaseDeleted,
+  onDatabaseCopied,
+  onDatabaseTransferred,
   isCanManageDBs,
 }: Props) => {
   const { t } = useTranslation();
@@ -38,59 +40,71 @@ export const DatabaseComponent = ({
   >('backups');
 
   const [database, setDatabase] = useState<Database | undefined>();
-  const [editDatabase, setEditDatabase] = useState<Database | undefined>();
-
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-
+  const [loadError, setLoadError] = useState<unknown>();
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [isHealthcheckVisible, setIsHealthcheckVisible] = useState(false);
 
   const handleHealthcheckVisibilityChange = (isVisible: boolean) => {
     setIsHealthcheckVisible(isVisible);
   };
 
+  const acceptChangedDatabase = (changedDatabase: Database) => {
+    setDatabase(changedDatabase);
+    onDatabaseChanged(changedDatabase);
+  };
+
   const isLogicalDatabase = database?.settings.type === DatabaseType.POSTGRES_LOGICAL;
   const isPhysicalDatabase = database?.settings.type === DatabaseType.POSTGRES_PHYSICAL;
   const isMonitoringShown = database !== undefined && isMonitoringTabShown(database);
 
-  const showLoadError = useEffectEvent((error: unknown) => alert(translateApiError(error, t)));
-
   useEffect(() => {
     let isActive = true;
     setDatabase(undefined);
-    setEditDatabase(undefined);
+    setLoadError(undefined);
     databaseApi
       .getDatabase(databaseId)
       .then((loadedDatabase) => {
         if (isActive) setDatabase(loadedDatabase);
       })
       .catch((error) => {
-        if (isActive) showLoadError(error);
+        if (isActive) setLoadError(error);
       });
     return () => {
       isActive = false;
     };
-  }, [databaseId]);
+  }, [databaseId, loadAttempt]);
+
+  if (loadError !== undefined) {
+    return (
+      <Alert
+        type="error"
+        showIcon
+        message={translateApiError(loadError, t)}
+        action={
+          <Button onClick={() => setLoadAttempt((attempt) => attempt + 1)}>
+            {t('common.actions.retry')}
+          </Button>
+        }
+      />
+    );
+  }
 
   if (!database) {
     return <Spin />;
   }
 
   return (
-    <div
-      className="w-full overflow-y-auto"
-      style={{ maxHeight: contentHeight }}
-      ref={scrollContainerRef}
-    >
+    <div className="w-full">
       <div className="flex">
         <div
-          className={`mr-2 cursor-pointer rounded-tl-md rounded-tr-md px-6 py-2 ${currentTab === 'config' ? 'bg-white dark:bg-gray-800' : 'bg-gray-200 dark:bg-gray-700'}`}
+          className={`mr-2 cursor-pointer rounded-tl-md rounded-tr-md px-6 py-2 ${currentTab === 'config' ? 'bg-surface' : 'bg-hover'}`}
           onClick={() => setCurrentTab('config')}
         >
           {t('databases.tabs.config')}
         </div>
 
         <div
-          className={`mr-2 cursor-pointer rounded-tl-md rounded-tr-md px-6 py-2 ${currentTab === 'backups' ? 'bg-white dark:bg-gray-800' : 'bg-gray-200 dark:bg-gray-700'}`}
+          className={`mr-2 cursor-pointer rounded-tl-md rounded-tr-md px-6 py-2 ${currentTab === 'backups' ? 'bg-surface' : 'bg-hover'}`}
           onClick={() => setCurrentTab('backups')}
         >
           {t('databases.tabs.backups')}
@@ -98,7 +112,7 @@ export const DatabaseComponent = ({
 
         {isLogicalDatabase && (
           <div
-            className={`mr-2 cursor-pointer rounded-tl-md rounded-tr-md px-6 py-2 ${currentTab === 'verifications' ? 'bg-white dark:bg-gray-800' : 'bg-gray-200 dark:bg-gray-700'}`}
+            className={`mr-2 cursor-pointer rounded-tl-md rounded-tr-md px-6 py-2 ${currentTab === 'verifications' ? 'bg-surface' : 'bg-hover'}`}
             onClick={() => setCurrentTab('verifications')}
           >
             {t('databases.tabs.verifications')}
@@ -107,7 +121,7 @@ export const DatabaseComponent = ({
 
         {isMonitoringShown && (
           <div
-            className={`mr-2 cursor-pointer rounded-tl-md rounded-tr-md px-6 py-2 ${currentTab === 'monitoring' ? 'bg-white dark:bg-gray-800' : 'bg-gray-200 dark:bg-gray-700'}`}
+            className={`mr-2 cursor-pointer rounded-tl-md rounded-tr-md px-6 py-2 ${currentTab === 'monitoring' ? 'bg-surface' : 'bg-hover'}`}
             onClick={() => setCurrentTab('monitoring')}
           >
             {t('databases.tabs.monitoring')}
@@ -117,13 +131,11 @@ export const DatabaseComponent = ({
 
       {currentTab === 'config' && (
         <DatabaseConfigComponent
-          resourceComposition={resourceComposition}
           database={database}
-          setDatabase={setDatabase}
-          onDatabaseChanged={onDatabaseChanged}
+          onDatabaseChanged={acceptChangedDatabase}
           onDatabaseDeleted={onDatabaseDeleted}
-          editDatabase={editDatabase}
-          setEditDatabase={setEditDatabase}
+          onDatabaseCopied={onDatabaseCopied}
+          onDatabaseTransferred={onDatabaseTransferred}
           isCanManageDBs={isCanManageDBs}
         />
       )}

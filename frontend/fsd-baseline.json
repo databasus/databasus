@@ -9,72 +9,8 @@
   },
   {
     "rule": "fsd/forbidden-imports",
-    "source": "features/databases/ui/CreateDatabaseComponent.tsx",
-    "target": "features/backups/logical/index.ts",
-    "count": 1,
-    "owner": "databases",
-    "milestone": 5
-  },
-  {
-    "rule": "fsd/forbidden-imports",
-    "source": "features/databases/ui/CreateDatabaseComponent.tsx",
-    "target": "features/backups/physical/index.ts",
-    "count": 1,
-    "owner": "databases",
-    "milestone": 5
-  },
-  {
-    "rule": "fsd/forbidden-imports",
-    "source": "features/databases/ui/DatabaseComponent.tsx",
-    "target": "features/backups/logical/index.ts",
-    "count": 1,
-    "owner": "databases",
-    "milestone": 5
-  },
-  {
-    "rule": "fsd/forbidden-imports",
-    "source": "features/databases/ui/DatabaseComponent.tsx",
-    "target": "features/backups/physical/index.ts",
-    "count": 1,
-    "owner": "databases",
-    "milestone": 5
-  },
-  {
-    "rule": "fsd/forbidden-imports",
-    "source": "features/databases/ui/DatabaseComponent.tsx",
-    "target": "features/verification/runs/index.ts",
-    "count": 1,
-    "owner": "databases",
-    "milestone": 5
-  },
-  {
-    "rule": "fsd/forbidden-imports",
-    "source": "features/databases/ui/DatabaseConfigComponent.tsx",
-    "target": "features/backups/logical/index.ts",
-    "count": 1,
-    "owner": "databases",
-    "milestone": 5
-  },
-  {
-    "rule": "fsd/forbidden-imports",
-    "source": "features/databases/ui/DatabaseConfigComponent.tsx",
-    "target": "features/backups/physical/index.ts",
-    "count": 1,
-    "owner": "databases",
-    "milestone": 5
-  },
-  {
-    "rule": "fsd/forbidden-imports",
-    "source": "features/databases/ui/DatabaseConfigComponent.tsx",
-    "target": "features/verification/config/index.ts",
-    "count": 1,
-    "owner": "databases",
-    "milestone": 5
-  },
-  {
-    "rule": "fsd/forbidden-imports",
     "source": "features/restores/ui/RestoresComponent.tsx",
-    "target": "features/databases/ui/edit/EditDatabaseSpecificDataComponent.tsx",
+    "target": "features/databases/index.ts",
     "count": 1,
     "owner": "restores",
     "milestone": 5
@@ -141,14 +77,6 @@
     "target": "entities/databases/model/postgresql/ConnectionStringParser.ts",
     "count": 1,
     "owner": "databases",
-    "milestone": 5
-  },
-  {
-    "rule": "project/private-slice-import",
-    "source": "features/restores/ui/RestoresComponent.tsx",
-    "target": "features/databases/ui/edit/EditDatabaseSpecificDataComponent.tsx",
-    "count": 1,
-    "owner": "restores",
     "milestone": 5
   }
 ]

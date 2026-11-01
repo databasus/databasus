@@ -372,10 +372,8 @@ export const es: typeof en = {
       lastBackupError: {
         title: 'Error en la última copia de seguridad',
         errorLabel: 'Error:',
-        clearHint: 'Para quitar este error, haga una de estas dos cosas:',
-        clearByTestingConnection:
-          '- pruebe la conexión con el botón de abajo (aunque ya haya cambiado los ajustes);',
-        clearByNextBackup: '- espere a que la siguiente copia de seguridad termine sin errores;',
+        clearedByNextBackup:
+          'El error desaparecerá cuando la siguiente copia de seguridad termine sin errores.',
       },
       sections: {
         database: 'Ajustes de la base de datos',

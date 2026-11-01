@@ -27,7 +27,6 @@ import { CreateWorkspaceDialogComponent } from './CreateWorkspaceDialogComponent
 
 export const ApplicationScreen = () => {
   const [selectedTab, setSelectedTab] = useState<MainTab>('databases');
-  const [contentHeight, setContentHeight] = useState(0);
   const [isCreateWorkspaceDialogOpen, setShowCreateWorkspaceDialog] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const handleCreateWorkspace = () => {
@@ -178,7 +177,6 @@ export const ApplicationScreen = () => {
         }
         isSidebarOpen={isSidebarOpen}
         onOpenSidebar={() => setIsSidebarOpen(true)}
-        onContentHeight={setContentHeight}
       >
         {isLoading ? (
           <div className="flex flex-1 items-center justify-center">
@@ -206,7 +204,6 @@ export const ApplicationScreen = () => {
                   <>
                     {selectedTab === 'databases' && (
                       <DatabasesPage
-                        contentHeight={contentHeight}
                         workspace={selectedWorkspace}
                         isCanManageDBs={canManageWorkspace}
                         key={`databases-${selectedWorkspace.id}`}

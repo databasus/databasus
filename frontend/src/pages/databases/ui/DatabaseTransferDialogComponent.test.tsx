@@ -326,6 +326,36 @@ describe('DatabaseTransferDialogComponent', () => {
     });
   });
 
+  it('keeps the dialog and its choices open when the transfer is refused', async () => {
+    mockTransferOperations([buildBackupConfig(transferredDatabase.id)]);
+    mockServer.use(
+      mockApi.post('/databases/{databaseId}/transfer', 403, buildProblem('permission_denied', 403)),
+    );
+    const onTransferred = vi.fn();
+    renderScreen(
+      <DatabaseTransferDialogComponent
+        database={transferredDatabase}
+        currentStorageId={currentStorage.id}
+        onClose={() => {}}
+        onTransferred={onTransferred}
+      />,
+    );
+    await chooseTargetWorkspace();
+    await waitFor(() => expect(screen.getAllByRole('combobox')).toHaveLength(2));
+    await chooseSelectOption(screen.getAllByRole('combobox')[1], targetStorage.name);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Transfer' }));
+
+    expect(await screen.findByText('You do not have permission to do this.')).toBeTruthy();
+    expect(screen.getAllByRole('combobox')[0].closest('.ant-select')!.textContent).toContain(
+      targetWorkspace.name,
+    );
+    expect(screen.getAllByRole('combobox')[1].closest('.ant-select')!.textContent).toContain(
+      targetStorage.name,
+    );
+    expect(onTransferred).not.toHaveBeenCalled();
+  });
+
   it('shows cleanup progress in the target workspace after an accepted switch', async () => {
     mockTransferOperations([buildBackupConfig(transferredDatabase.id)]);
     mockServer.use(

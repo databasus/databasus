@@ -22,10 +22,19 @@ export const ShowDatabaseNotifiersComponent = ({ database }: Props) => {
   const [workspaceNotifiers, setWorkspaceNotifiers] = useState<Notifier[]>();
 
   useEffect(() => {
+    let isActive = true;
     notifierApi
       .listAllNotifiers(database.workspaceId)
-      .then(setWorkspaceNotifiers)
-      .catch((e) => alert(translateApiError(e, t)));
+      .then((listedNotifiers) => {
+        if (isActive) setWorkspaceNotifiers(listedNotifiers);
+      })
+      .catch((e) => {
+        if (isActive) alert(translateApiError(e, t));
+      });
+
+    return () => {
+      isActive = false;
+    };
   }, [database.workspaceId]);
 
   if (!workspaceNotifiers) return <Spin size="small" />;
@@ -51,7 +60,7 @@ export const ShowDatabaseNotifiersComponent = ({ database }: Props) => {
               </div>
             ))
           ) : (
-            <div className="text-gray-500 dark:text-gray-400">{t('databases.notifiers.empty')}</div>
+            <div className="text-muted">{t('databases.notifiers.empty')}</div>
           )}
         </div>
       </div>

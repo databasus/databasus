@@ -363,10 +363,7 @@ export const ru: typeof en = {
       lastBackupError: {
         title: 'Ошибка последнего бекапа',
         errorLabel: 'Ошибка:',
-        clearHint: 'Чтобы убрать эту ошибку, сделайте одно из двух:',
-        clearByTestingConnection:
-          '- проверьте подключение кнопкой ниже (даже если вы уже изменили настройки);',
-        clearByNextBackup: '- дождитесь следующего бекапа без ошибок;',
+        clearedByNextBackup: 'Ошибка исчезнет после следующего успешного бекапа.',
       },
       sections: {
         database: 'Настройки базы данных',

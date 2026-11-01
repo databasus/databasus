@@ -35,12 +35,23 @@ export const ShowVerificationConfigComponent = ({ databaseId }: Props) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let isActive = true;
     setIsLoading(true);
     verificationConfigApi
       .getByDatabaseId(databaseId)
-      .then(setConfig)
-      .catch((error: unknown) => alert(translateApiError(error, t)))
-      .finally(() => setIsLoading(false));
+      .then((loadedConfig) => {
+        if (isActive) setConfig(loadedConfig);
+      })
+      .catch((error: unknown) => {
+        if (isActive) alert(translateApiError(error, t));
+      })
+      .finally(() => {
+        if (isActive) setIsLoading(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
   }, [databaseId]);
 
   if (isLoading) {

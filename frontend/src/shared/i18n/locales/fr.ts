@@ -369,10 +369,7 @@ export const fr: typeof en = {
       lastBackupError: {
         title: 'Erreur de la dernière sauvegarde',
         errorLabel: 'Erreur :',
-        clearHint: 'Pour effacer cette erreur (au choix) :',
-        clearByTestingConnection:
-          '- testez la connexion avec le bouton ci-dessous (même si vous avez déjà modifié les paramètres) ;',
-        clearByNextBackup: '- attendez que la prochaine sauvegarde se termine sans erreur ;',
+        clearedByNextBackup: 'L’erreur disparaîtra après la prochaine sauvegarde réussie.',
       },
       sections: {
         database: 'Paramètres de la base de données',

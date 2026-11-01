@@ -361,10 +361,7 @@ export const en = {
       lastBackupError: {
         title: 'Last backup error',
         errorLabel: 'The error:',
-        clearHint: 'To clean this error (choose any):',
-        clearByTestingConnection:
-          '- test connection via button below (even if you updated settings);',
-        clearByNextBackup: '- wait until the next backup is done without errors;',
+        clearedByNextBackup: 'The error clears after the next successful backup.',
       },
       sections: {
         database: 'Database settings',

@@ -29,7 +29,6 @@ describe('AppShell', () => {
         sidebar={<nav>Navigation</nav>}
         isSidebarOpen={false}
         onOpenSidebar={() => {}}
-        onContentHeight={() => {}}
       >
         <input aria-label="Draft" defaultValue="Retained input" />
       </AppShell>,
