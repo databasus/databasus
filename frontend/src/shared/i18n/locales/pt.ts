@@ -1540,9 +1540,6 @@ export const pt: typeof en = {
       },
       config: {
         interval: 'Intervalo de backup',
-        weekday: 'Dia da semana do backup',
-        dayOfMonth: 'Dia do mês do backup',
-        timeOfDay: 'Horário do backup',
         encryptionTooltip:
           'Se o backup for criptografado, os arquivos de backup no seu armazenamento (S3, local, etc.) não podem ser usados diretamente. Você pode restaurar os backups pelo Databasus ou baixá-los descriptografados pelo botão "Baixar".',
         retentionPolicy: 'Política de retenção',

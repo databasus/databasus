@@ -107,7 +107,7 @@
     "rule": "direct-color",
     "source": "pages/databases/ui/backup-config/EditLogicalBackupConfigComponent.tsx",
     "construct": "color:gray",
-    "count": 6,
+    "count": 5,
     "owner": "pages/databases",
     "removalMilestone": "6"
   },
@@ -115,7 +115,7 @@
     "rule": "direct-color",
     "source": "pages/databases/ui/backup-config/EditLogicalBackupConfigComponent.tsx",
     "construct": "class:text-gray-600",
-    "count": 9,
+    "count": 7,
     "owner": "pages/databases",
     "removalMilestone": "6"
   },
@@ -123,15 +123,7 @@
     "rule": "direct-color",
     "source": "pages/databases/ui/backup-config/EditLogicalBackupConfigComponent.tsx",
     "construct": "class:dark:text-gray-400",
-    "count": 9,
-    "owner": "pages/databases",
-    "removalMilestone": "6"
-  },
-  {
-    "rule": "direct-color",
-    "source": "pages/databases/ui/backup-config/EditLogicalBackupConfigComponent.tsx",
-    "construct": "class:text-red-500",
-    "count": 2,
+    "count": 7,
     "owner": "pages/databases",
     "removalMilestone": "6"
   },
@@ -564,38 +556,6 @@
     "source": "features/backups/physical/ui/PhysicalBackupsFiltersPanelComponent.tsx",
     "construct": "class:dark:text-gray-400",
     "count": 3,
-    "owner": "features/backups",
-    "removalMilestone": "7"
-  },
-  {
-    "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalIntervalEditor.tsx",
-    "construct": "color:gray",
-    "count": 1,
-    "owner": "features/backups",
-    "removalMilestone": "7"
-  },
-  {
-    "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalIntervalEditor.tsx",
-    "construct": "class:text-gray-600",
-    "count": 2,
-    "owner": "features/backups",
-    "removalMilestone": "7"
-  },
-  {
-    "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalIntervalEditor.tsx",
-    "construct": "class:dark:text-gray-400",
-    "count": 2,
-    "owner": "features/backups",
-    "removalMilestone": "7"
-  },
-  {
-    "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalIntervalEditor.tsx",
-    "construct": "class:text-red-500",
-    "count": 2,
     "owner": "features/backups",
     "removalMilestone": "7"
   },

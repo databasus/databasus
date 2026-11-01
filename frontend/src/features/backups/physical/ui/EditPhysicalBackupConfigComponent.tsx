@@ -10,12 +10,9 @@ import {
   BackupSettingsType,
   type PhysicalBackupConfigInput,
   type PhysicalBackupSettings,
-  type Schedule,
-  ScheduleType,
   backupConfigApi,
   StorageSwitchHistoryComponent,
   type StorageSwitch,
-  isScheduleFilled,
   toPhysicalBackupConfigInput,
   BACKUP_ENCRYPTION_OPTION_LABEL_KEYS,
   BackupEncryption,
@@ -33,9 +30,14 @@ import {
   DatabaseType,
   PhysicalDatabaseBackupType,
 } from '../../../../entities/databases';
+import {
+  type Schedule,
+  ScheduleEditor,
+  ScheduleType,
+  isScheduleComplete,
+} from '../../../../entities/schedules';
 import { translateApiError } from '../../../../shared/i18n';
 import { ConfirmationComponent } from '../../../../shared/ui';
-import { PhysicalIntervalEditor } from './PhysicalIntervalEditor';
 
 interface Props {
   renderStorageSelection: (options: StorageSelectionOptions) => ReactNode;
@@ -81,9 +83,6 @@ const DEFAULT_FULL_BACKUPS_RETENTION: FullBackupsRetention = {
   gfsMonths: 12,
   gfsYears: 3,
 };
-
-const mergeSchedule = (schedule: Schedule | null, patch: Partial<Schedule>): Schedule =>
-  ({ ...(schedule ?? {}), ...patch }) as Schedule;
 
 // The contract forbids the retention part the selected policy doesn't use: CHAINS carries no full
 // backups retention and FULL_BACKUPS keeps no chains. The editor keeps both filled so the values
@@ -157,35 +156,16 @@ export const EditPhysicalBackupConfigComponent = ({
     setIsUnsaved(true);
   };
 
-  const updateFullBackupSchedule = (patch: Partial<Schedule>) => {
+  const updateFullBackupSchedule = (fullBackupSchedule: Schedule) => {
     setBackupConfig((prev) =>
-      prev
-        ? {
-            ...prev,
-            settings: {
-              ...prev.settings,
-              fullBackupSchedule: mergeSchedule(prev.settings.fullBackupSchedule, patch),
-            },
-          }
-        : prev,
+      prev ? { ...prev, settings: { ...prev.settings, fullBackupSchedule } } : prev,
     );
     setIsUnsaved(true);
   };
 
-  const updateIncrementalBackupSchedule = (patch: Partial<Schedule>) => {
+  const updateIncrementalBackupSchedule = (incrementalBackupSchedule: Schedule) => {
     setBackupConfig((prev) =>
-      prev
-        ? {
-            ...prev,
-            settings: {
-              ...prev.settings,
-              incrementalBackupSchedule: mergeSchedule(
-                prev.settings.incrementalBackupSchedule,
-                patch,
-              ),
-            },
-          }
-        : prev,
+      prev ? { ...prev, settings: { ...prev.settings, incrementalBackupSchedule } } : prev,
     );
     setIsUnsaved(true);
   };
@@ -350,8 +330,8 @@ export const EditPhysicalBackupConfigComponent = ({
     !backupConfig.isBackupsEnabled ||
     ((isSaveToApi || Boolean(backupConfig.storageId)) &&
       Boolean(backupConfig.encryption) &&
-      isScheduleFilled(settings.fullBackupSchedule) &&
-      (!isIncrementalAllowed || isScheduleFilled(settings.incrementalBackupSchedule)) &&
+      isScheduleComplete(settings.fullBackupSchedule) &&
+      (!isIncrementalAllowed || isScheduleComplete(settings.incrementalBackupSchedule)) &&
       isChainsCountValid &&
       isFullRetentionValid);
 
@@ -372,7 +352,7 @@ export const EditPhysicalBackupConfigComponent = ({
 
       {backupConfig.isBackupsEnabled && (
         <>
-          <PhysicalIntervalEditor
+          <ScheduleEditor
             label={t('backups.physical.config.fullBackupCadence')}
             schedule={settings.fullBackupSchedule}
             onChange={updateFullBackupSchedule}
@@ -380,7 +360,7 @@ export const EditPhysicalBackupConfigComponent = ({
 
           {isIncrementalAllowed && (
             <>
-              <PhysicalIntervalEditor
+              <ScheduleEditor
                 label={t('backups.physical.config.incrementalBackupCadence')}
                 schedule={settings.incrementalBackupSchedule}
                 onChange={updateIncrementalBackupSchedule}

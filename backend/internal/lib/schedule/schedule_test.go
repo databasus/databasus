@@ -779,6 +779,52 @@ func TestIsDueForCronSchedule(t *testing.T) {
 		assert.False(t, isDue)
 	})
 
+	t.Run("is not due with a last run when the cron expression has no date to run on", func(t *testing.T) {
+		t.Parallel()
+
+		februaryThirtyFirst := "0 0 31 2 *"
+		undatedSchedule := &Schedule{
+			Type:           TypeCron,
+			CronExpression: &februaryThirtyFirst,
+		}
+
+		now := time.Date(2024, 1, 15, 10, 0, 0, 0, time.UTC)
+		lastRun := now.Add(-time.Minute)
+
+		assert.False(t, undatedSchedule.IsDue(now, &lastRun))
+	})
+
+	t.Run("is not due without a last run when the cron expression has no date to run on", func(t *testing.T) {
+		t.Parallel()
+
+		februaryThirtyFirst := "0 0 31 2 *"
+		undatedSchedule := &Schedule{
+			Type:           TypeCron,
+			CronExpression: &februaryThirtyFirst,
+		}
+
+		now := time.Date(2024, 1, 15, 10, 0, 0, 0, time.UTC)
+
+		assert.False(t, undatedSchedule.IsDue(now, nil))
+	})
+
+	t.Run("is due at the cron time with a time zone prefix", func(t *testing.T) {
+		t.Parallel()
+
+		zonedCron := "TZ=Europe/Moscow 0 2 * * *"
+		zonedSchedule := &Schedule{
+			Type:           TypeCron,
+			CronExpression: &zonedCron,
+		}
+
+		lastRun := time.Date(2024, 1, 14, 0, 0, 0, 0, time.UTC)
+		beforeSlot := time.Date(2024, 1, 14, 22, 59, 0, 0, time.UTC)
+		atSlot := time.Date(2024, 1, 14, 23, 0, 0, 0, time.UTC)
+
+		assert.False(t, zonedSchedule.IsDue(beforeSlot, &lastRun))
+		assert.True(t, zonedSchedule.IsDue(atSlot, &lastRun))
+	})
+
 	t.Run("is not due with an empty cron expression", func(t *testing.T) {
 		t.Parallel()
 
@@ -1032,6 +1078,46 @@ func TestValidate(t *testing.T) {
 		}
 		err := testedSchedule.Validate()
 		assert.ErrorIs(t, err, ErrInvalidCronExpression)
+	})
+
+	for _, undatedCron := range []string{"0 0 31 2 *", "0 0 31 2,4 *"} {
+		t.Run("fails for a cron schedule with no date to run on with "+undatedCron, func(t *testing.T) {
+			t.Parallel()
+
+			testedSchedule := &Schedule{
+				Type:           TypeCron,
+				CronExpression: &undatedCron,
+			}
+
+			err := testedSchedule.Validate()
+			assert.ErrorIs(t, err, ErrInvalidCronExpression)
+		})
+	}
+
+	t.Run("passes for a cron schedule with a date only in leap years", func(t *testing.T) {
+		t.Parallel()
+
+		februaryTwentyNinth := "0 0 29 2 *"
+		testedSchedule := &Schedule{
+			Type:           TypeCron,
+			CronExpression: &februaryTwentyNinth,
+		}
+
+		err := testedSchedule.Validate()
+		assert.NoError(t, err)
+	})
+
+	t.Run("passes for a cron schedule with a time zone prefix", func(t *testing.T) {
+		t.Parallel()
+
+		zonedCron := "TZ=Europe/Moscow 0 2 * * *"
+		testedSchedule := &Schedule{
+			Type:           TypeCron,
+			CronExpression: &zonedCron,
+		}
+
+		err := testedSchedule.Validate()
+		assert.NoError(t, err)
 	})
 
 	t.Run("passes for a cron schedule with a daily expression", func(t *testing.T) {

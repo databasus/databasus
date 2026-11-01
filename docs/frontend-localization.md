@@ -41,7 +41,7 @@ The interface ships in English, Russian, Spanish, Portuguese (Brazilian), Chines
 
 ### Clock format and date order
 
-`shared/time/getUserTimeFormat.ts` and `shared/time/utils.ts` read `navigator.language` on purpose. The 12- or 24-hour clock and the day/month order are regional conventions, not properties of a language: English is written with both clocks. The browser reports the user's region, while the language selection only says which words to use. Those reads stay; a bare `toLocaleString()` does not, because digit grouping follows the selected language.
+`shared/time/getUserTimeFormat.ts` reads `navigator.language` on purpose. The 12- or 24-hour clock and the day/month order are regional conventions, not properties of a language: English is written with both clocks. The browser reports the user's region, while the language selection only says which words to use. Those reads stay; a bare `toLocaleString()` does not, because digit grouping follows the selected language.
 
 ---
 

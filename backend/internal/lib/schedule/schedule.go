@@ -21,7 +21,7 @@ const (
 
 // Schedule names when a recurring run is due. TimeOfDay is "15:04" in UTC, Weekday is 0 to 7 with both 0
 // and 7 meaning Sunday, and DayOfMonth is 1 to 31. In a month without that day, a monthly schedule runs on
-// the month's last day.
+// the month's last day. A cron expression must match a calendar date, so February 31 is refused.
 type Schedule struct {
 	Type           Type
 	TimeOfDay      *string
@@ -77,15 +77,23 @@ func (s Schedule) Validate() error {
 		if _, err := parseCron(*s.CronExpression); err != nil {
 			return fmt.Errorf("%w: %w", ErrInvalidCronExpression, err)
 		}
+
+		if s.isCronWithoutRunDate() {
+			return fmt.Errorf("%w: it has no date to run on", ErrInvalidCronExpression)
+		}
 	}
 
 	return nil
 }
 
 // IsDue reports whether a run is due at now after the last run at lastRun. A schedule that never ran is
-// due at once. A slot that passed without a run is caught up, but a weekly or monthly slot only within its
-// own week or month.
+// due at once, unless its cron expression has no date to run on, which is never due. A slot that passed
+// without a run is caught up, but a weekly or monthly slot only within its own week or month.
 func (s Schedule) IsDue(now time.Time, lastRun *time.Time) bool {
+	if s.isCronWithoutRunDate() {
+		return false
+	}
+
 	if lastRun == nil {
 		return true
 	}
@@ -199,6 +207,23 @@ func (s Schedule) isCronDue(now, lastRun time.Time) bool {
 	}
 
 	return !now.Before(cronSchedule.Next(lastRun))
+}
+
+// isCronWithoutRunDate looks from a fixed leap year, because whether a day exists in a month does not depend
+// on the moment and February 29 falls inside the parser's five-year search from there.
+func (s Schedule) isCronWithoutRunDate() bool {
+	if s.Type != TypeCron || s.CronExpression == nil {
+		return false
+	}
+
+	cronSchedule, err := parseCron(*s.CronExpression)
+	if err != nil {
+		return false
+	}
+
+	searchStart := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
+
+	return cronSchedule.Next(searchStart).IsZero()
 }
 
 func (s Schedule) atTimeOfDay(day time.Time) time.Time {

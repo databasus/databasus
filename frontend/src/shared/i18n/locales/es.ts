@@ -1550,9 +1550,6 @@ export const es: typeof en = {
       },
       config: {
         interval: 'Intervalo de copia de seguridad',
-        weekday: 'Día de la semana de la copia',
-        dayOfMonth: 'Día del mes de la copia',
-        timeOfDay: 'Hora de la copia',
         encryptionTooltip:
           'Si la copia de seguridad está cifrada, sus archivos en el almacenamiento (S3, local, etc.) no se pueden usar directamente. Puede restaurar las copias a través de Databasus o descargarlas sin cifrar con el botón "Descargar".',
         retentionPolicy: 'Política de retención',

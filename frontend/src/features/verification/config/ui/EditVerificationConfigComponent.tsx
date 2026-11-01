@@ -11,17 +11,20 @@ import {
   Tooltip,
 } from 'antd';
 import { CronExpressionParser } from 'cron-parser';
-import dayjs, { type Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
+import { INTERVAL_TYPE_LABEL_KEYS, IntervalType } from '../../../../entities/intervals';
 import {
-  INTERVAL_TYPE_LABEL_KEYS,
-  type Interval,
-  IntervalType,
+  type Schedule,
   WEEKDAYS,
   WEEKDAY_LABEL_KEYS,
-} from '../../../../entities/intervals';
+  getLocalScheduleParts,
+  withLocalDayOfMonth,
+  withLocalTimeOfDay,
+  withLocalWeekday,
+} from '../../../../entities/schedules';
 import {
   type VerificationConfig,
   VERIFICATION_NOTIFICATION_TYPE_LABEL_KEYS,
@@ -30,14 +33,7 @@ import {
   verificationConfigApi,
 } from '../../../../entities/verification/config';
 import { getWebsitePageUrl, translateApiError, useLocale } from '../../../../shared/i18n';
-import { getUserTimeFormat } from '../../../../shared/time';
-import {
-  getUserTimeFormat as getIs12Hour,
-  getLocalDayOfMonth,
-  getLocalWeekday,
-  getUtcDayOfMonth,
-  getUtcWeekday,
-} from '../../../../shared/time/utils';
+import { getUserClockFormat, getUserTimeFormat } from '../../../../shared/time';
 
 interface Props {
   databaseId: string;
@@ -57,14 +53,8 @@ export const EditVerificationConfigComponent = ({ databaseId, onClose }: Props) 
     setIsUnsaved(true);
   };
 
-  const saveInterval = (patch: Partial<Interval>) => {
-    setConfig((prev) => {
-      if (!prev) return prev;
-
-      const updatedInterval = { ...prev.schedule, ...patch } as Interval;
-      return { ...prev, schedule: updatedInterval };
-    });
-    setIsUnsaved(true);
+  const updateSchedule = (schedule: Schedule) => {
+    updateConfig({ schedule });
   };
 
   const selectSchedule = (value: string) => {
@@ -131,25 +121,16 @@ export const EditVerificationConfigComponent = ({ databaseId, onClose }: Props) 
 
   if (!config) return <div />;
 
-  const is12Hour = getIs12Hour();
-  const timeFormat = { use12Hours: is12Hour, format: is12Hour ? 'h:mm A' : 'HH:mm' };
+  const timeFormat = getUserClockFormat();
   const dateTimeFormat = getUserTimeFormat();
 
   const { schedule } = config;
 
-  const localTime: Dayjs | undefined = schedule?.timeOfDay
-    ? dayjs.utc(schedule.timeOfDay, 'HH:mm').local()
-    : undefined;
-
-  const displayedWeekday: number | undefined =
-    schedule?.type === IntervalType.WEEKLY && schedule.weekday && schedule.timeOfDay
-      ? getLocalWeekday(schedule.weekday, schedule.timeOfDay)
-      : schedule?.weekday;
-
-  const displayedDayOfMonth: number | undefined =
-    schedule?.type === IntervalType.MONTHLY && schedule.dayOfMonth && schedule.timeOfDay
-      ? getLocalDayOfMonth(schedule.dayOfMonth, schedule.timeOfDay)
-      : schedule?.dayOfMonth;
+  const {
+    localTime,
+    weekday: displayedWeekday,
+    dayOfMonth: displayedDayOfMonth,
+  } = getLocalScheduleParts(schedule);
 
   const isAfterBackup = config.scheduleType === VerificationScheduleType.AFTER_BACKUP;
 
@@ -234,11 +215,9 @@ export const EditVerificationConfigComponent = ({ databaseId, onClose }: Props) 
               </div>
               <Select
                 value={displayedWeekday}
-                onChange={(localWeekday) => {
-                  if (!localWeekday) return;
-                  const ref = localTime ?? dayjs();
-                  saveInterval({ weekday: getUtcWeekday(localWeekday, ref) });
-                }}
+                onChange={(localWeekday) =>
+                  updateSchedule(withLocalWeekday(schedule, localWeekday))
+                }
                 size="small"
                 className="w-full max-w-[200px] grow"
                 options={WEEKDAYS.map((weekday) => ({
@@ -260,8 +239,8 @@ export const EditVerificationConfigComponent = ({ databaseId, onClose }: Props) 
                 value={displayedDayOfMonth}
                 onChange={(localDom) => {
                   if (!localDom) return;
-                  const ref = localTime ?? dayjs();
-                  saveInterval({ dayOfMonth: getUtcDayOfMonth(localDom, ref) });
+
+                  updateSchedule(withLocalDayOfMonth(schedule, localDom));
                 }}
                 size="small"
                 className="w-full max-w-[200px] grow"
@@ -278,7 +257,9 @@ export const EditVerificationConfigComponent = ({ databaseId, onClose }: Props) 
                 <div className="flex items-center">
                   <Input
                     value={schedule?.cronExpression || ''}
-                    onChange={(e) => saveInterval({ cronExpression: e.target.value })}
+                    onChange={(e) =>
+                      updateSchedule({ ...schedule, cronExpression: e.target.value })
+                    }
                     placeholder="0 4 * * 0"
                     size="small"
                     className="w-full max-w-[200px] grow"
@@ -356,18 +337,8 @@ export const EditVerificationConfigComponent = ({ databaseId, onClose }: Props) 
                   className="w-full max-w-[200px] grow"
                   onChange={(pickedTime) => {
                     if (!pickedTime) return;
-                    const patch: Partial<Interval> = {
-                      timeOfDay: pickedTime.utc().format('HH:mm'),
-                    };
 
-                    if (schedule?.type === IntervalType.WEEKLY && displayedWeekday) {
-                      patch.weekday = getUtcWeekday(displayedWeekday, pickedTime);
-                    }
-                    if (schedule?.type === IntervalType.MONTHLY && displayedDayOfMonth) {
-                      patch.dayOfMonth = getUtcDayOfMonth(displayedDayOfMonth, pickedTime);
-                    }
-
-                    saveInterval(patch);
+                    updateSchedule(withLocalTimeOfDay(schedule, pickedTime));
                   }}
                 />
               </div>

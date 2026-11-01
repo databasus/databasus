@@ -1,6 +1,7 @@
 package verification_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"testing"
 
@@ -83,6 +84,40 @@ func TestVerificationConfig(t *testing.T) {
 		assert.Contains(t, string(response.Body), "schedule")
 		assert.Equal(t, original, team.config(t))
 	})
+
+	t.Run("keeps the saved config when an enabled cron schedule has no date to run on", func(t *testing.T) {
+		team := newVerificationTeam(t)
+		original := team.config(t)
+		config := configInput(original)
+		config.IsAutomaticVerificationEnabled = true
+		config.ScheduleType = apiclient.VerificationScheduleTypeINTERVAL
+		config.Schedule = apiclient.Schedule{
+			Type:           apiclient.ScheduleTypeCRON,
+			CronExpression: new("0 0 31 2 *"),
+			DayOfMonth:     nil,
+			TimeOfDay:      nil,
+			Weekday:        nil,
+		}
+
+		response, err := team.Owner.Client.UpdateVerificationConfigWithResponse(t.Context(), team.Database.Id, config)
+		require.NoError(t, err)
+
+		requireProblem(
+			t,
+			response.StatusCode(),
+			response.Body,
+			http.StatusBadRequest,
+			apiclient.ProblemCodeInvalidRequest,
+		)
+
+		var problem apiclient.Problem
+		require.NoError(t, json.Unmarshal(response.Body, &problem), string(response.Body))
+		require.NotNil(t, problem.Errors, string(response.Body))
+		require.Len(t, *problem.Errors, 1)
+		assert.Equal(t, "schedule", (*problem.Errors)[0].Field)
+		assert.Equal(t, original, team.config(t))
+	})
+
 	for _, scheduleType := range []apiclient.VerificationScheduleType{apiclient.VerificationScheduleTypeINTERVAL, apiclient.VerificationScheduleTypeAFTERBACKUP} {
 		t.Run(
 			"saves empty notifications without validating an unused schedule with "+string(scheduleType),

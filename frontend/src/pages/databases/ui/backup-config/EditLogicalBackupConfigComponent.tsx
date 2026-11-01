@@ -1,46 +1,27 @@
 import { DownOutlined, InfoCircleOutlined, UpOutlined } from '@ant-design/icons';
-import {
-  Button,
-  Checkbox,
-  Input,
-  InputNumber,
-  Select,
-  Spin,
-  Switch,
-  TimePicker,
-  Tooltip,
-} from 'antd';
-import { CronExpressionParser } from 'cron-parser';
-import dayjs, { Dayjs } from 'dayjs';
-import { useEffect, useMemo, useState } from 'react';
+import { Button, Checkbox, InputNumber, Select, Spin, Switch, Tooltip } from 'antd';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
   BackupSettingsType,
   type LogicalBackupConfigInput,
   type LogicalBackupSettings,
-  SCHEDULE_TYPE_LABEL_KEYS,
-  type Schedule,
-  ScheduleType,
   backupConfigApi,
   StorageSwitchHistoryComponent,
   type StorageSwitch,
-  isScheduleFilled,
   toLogicalBackupConfigInput,
   BACKUP_ENCRYPTION_OPTION_LABEL_KEYS,
   BackupEncryption,
 } from '../../../../entities/backup-configs';
 import type { Database } from '../../../../entities/databases';
-import { WEEKDAYS, WEEKDAY_LABEL_KEYS } from '../../../../entities/intervals';
-import { translateApiError, useLocale } from '../../../../shared/i18n';
-import { getUserTimeFormat } from '../../../../shared/time';
 import {
-  getUserTimeFormat as getIs12Hour,
-  getLocalDayOfMonth,
-  getLocalWeekday,
-  getUtcDayOfMonth,
-  getUtcWeekday,
-} from '../../../../shared/time/utils';
+  type Schedule,
+  ScheduleEditor,
+  ScheduleType,
+  isScheduleComplete,
+} from '../../../../entities/schedules';
+import { translateApiError } from '../../../../shared/i18n';
 import { ConfirmationComponent } from '../../../../shared/ui';
 import { LogicalNotificationTrigger } from '../../model/LogicalNotificationTrigger';
 import { LOGICAL_NOTIFICATION_TRIGGER_LABEL_KEYS } from '../../model/LogicalNotificationTriggerLabelKeys';
@@ -97,6 +78,22 @@ const createDefaultLogicalBackupConfig = (): LogicalBackupConfigInput => ({
   },
 });
 
+const getRetentionForSchedule = (
+  { schedule, retention }: LogicalBackupSettings,
+  nextSchedule: Schedule,
+): LogicalRetention => {
+  const isDailyOrLonger =
+    nextSchedule.type === ScheduleType.DAILY ||
+    nextSchedule.type === ScheduleType.WEEKLY ||
+    nextSchedule.type === ScheduleType.MONTHLY;
+  const shouldResetGfsHours =
+    nextSchedule.type !== schedule.type &&
+    isDailyOrLonger &&
+    retention.policy === LogicalRetentionPolicy.GFS;
+
+  return shouldResetGfsHours ? { ...retention, gfsHours: 24 } : retention;
+};
+
 export const EditLogicalBackupConfigComponent = ({
   database,
   initialConfig,
@@ -111,7 +108,6 @@ export const EditLogicalBackupConfigComponent = ({
   onSaved,
 }: Props) => {
   const { t } = useTranslation();
-  const { formatRelativeTime } = useLocale();
   const [backupConfig, setBackupConfig] = useState<LogicalBackupConfigInput>();
   const [isUnsaved, setIsUnsaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -126,13 +122,6 @@ export const EditLogicalBackupConfigComponent = ({
   const hasAdvancedValues = !!backupConfig?.settings.isRetryIfFailed;
   const [isShowAdvanced, setShowAdvanced] = useState(hasAdvancedValues);
   const [isShowGfsHint, setShowGfsHint] = useState(false);
-
-  const timeFormat = useMemo(() => {
-    const is12 = getIs12Hour();
-    return { use12Hours: is12, format: is12 ? 'h:mm A' : 'HH:mm' };
-  }, []);
-
-  const dateTimeFormat = useMemo(() => getUserTimeFormat(), []);
 
   const updateBackupConfig = (patch: Partial<LogicalBackupConfigInput>) => {
     setBackupConfig((prev) => (prev ? { ...prev, ...patch } : prev));
@@ -158,12 +147,16 @@ export const EditLogicalBackupConfigComponent = ({
     setIsUnsaved(true);
   };
 
-  const updateSchedule = (patch: Partial<Schedule>) => {
+  const changeSchedule = (nextSchedule: Schedule) => {
     setBackupConfig((prev) =>
       prev
         ? {
             ...prev,
-            settings: { ...prev.settings, schedule: { ...prev.settings.schedule, ...patch } },
+            settings: {
+              ...prev.settings,
+              schedule: nextSchedule,
+              retention: getRetentionForSchedule(prev.settings, nextSchedule),
+            },
           }
         : prev,
     );
@@ -259,21 +252,6 @@ export const EditLogicalBackupConfigComponent = ({
   const { settings } = backupConfig;
   const { schedule, retention } = settings;
 
-  // UTC → local conversions for display
-  const localTime: Dayjs | undefined = schedule.timeOfDay
-    ? dayjs.utc(schedule.timeOfDay, 'HH:mm').local()
-    : undefined;
-
-  const displayedWeekday: number | undefined =
-    schedule.type === ScheduleType.WEEKLY && schedule.weekday && schedule.timeOfDay
-      ? getLocalWeekday(schedule.weekday, schedule.timeOfDay)
-      : schedule.weekday;
-
-  const displayedDayOfMonth: number | undefined =
-    schedule.type === ScheduleType.MONTHLY && schedule.dayOfMonth && schedule.timeOfDay
-      ? getLocalDayOfMonth(schedule.dayOfMonth, schedule.timeOfDay)
-      : schedule.dayOfMonth;
-
   const retentionPolicy = retention.policy;
 
   const isShowGfsHours =
@@ -295,16 +273,6 @@ export const EditLogicalBackupConfigComponent = ({
     }
   })();
 
-  const weekdayOptions = WEEKDAYS.map((weekday) => ({
-    value: weekday,
-    label: t(WEEKDAY_LABEL_KEYS[weekday]),
-  }));
-
-  const scheduleTypeOptions = Object.values(ScheduleType).map((scheduleType) => ({
-    value: scheduleType,
-    label: t(SCHEDULE_TYPE_LABEL_KEYS[scheduleType]),
-  }));
-
   const retentionPolicyOptions = RETENTION_POLICY_ORDER.map((policy) => ({
     value: policy,
     label: t(LOGICAL_RETENTION_POLICY_LABEL_KEYS[policy]),
@@ -325,7 +293,7 @@ export const EditLogicalBackupConfigComponent = ({
     (isRetentionValid &&
       (isSaveToApi || Boolean(backupConfig.storageId)) &&
       Boolean(backupConfig.encryption) &&
-      isScheduleFilled(schedule));
+      isScheduleComplete(schedule));
 
   return (
     <div>
@@ -346,175 +314,11 @@ export const EditLogicalBackupConfigComponent = ({
 
       {backupConfig.isBackupsEnabled && (
         <>
-          <div className="mt-4 mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-            <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
-              {t('backups.logical.config.interval')}
-            </div>
-            <Select
-              value={schedule.type}
-              onChange={(v) => {
-                updateSchedule({ type: v });
-
-                const isDailyOrMore =
-                  v === ScheduleType.DAILY ||
-                  v === ScheduleType.WEEKLY ||
-                  v === ScheduleType.MONTHLY;
-
-                if (isDailyOrMore && retentionPolicy === LogicalRetentionPolicy.GFS) {
-                  updateRetention({ gfsHours: 24 });
-                }
-              }}
-              size="small"
-              className="w-full max-w-[200px] grow"
-              options={scheduleTypeOptions}
-            />
-          </div>
-
-          {schedule.type === ScheduleType.WEEKLY && (
-            <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-              <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
-                {t('backups.logical.config.weekday')}
-              </div>
-              <Select
-                value={displayedWeekday}
-                onChange={(localWeekday) => {
-                  if (!localWeekday) return;
-
-                  const ref = localTime ?? dayjs();
-                  updateSchedule({ weekday: getUtcWeekday(localWeekday, ref) });
-                }}
-                size="small"
-                className="w-full max-w-[200px] grow"
-                options={weekdayOptions}
-              />
-            </div>
-          )}
-
-          {schedule.type === ScheduleType.MONTHLY && (
-            <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-              <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
-                {t('backups.logical.config.dayOfMonth')}
-              </div>
-              <InputNumber
-                min={1}
-                max={31}
-                value={displayedDayOfMonth}
-                onChange={(localDom) => {
-                  if (!localDom) return;
-
-                  const ref = localTime ?? dayjs();
-                  updateSchedule({ dayOfMonth: getUtcDayOfMonth(localDom, ref) });
-                }}
-                size="small"
-                className="w-full max-w-[200px] grow"
-              />
-            </div>
-          )}
-
-          {schedule.type === ScheduleType.CRON && (
-            <>
-              <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-                <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
-                  {t('backups.config.schedule.cronExpression')}
-                </div>
-                <div className="flex items-center">
-                  <Input
-                    value={schedule.cronExpression || ''}
-                    onChange={(e) => updateSchedule({ cronExpression: e.target.value })}
-                    placeholder="0 2 * * *"
-                    size="small"
-                    className="w-full max-w-[200px] grow"
-                  />
-                  <Tooltip
-                    className="cursor-pointer"
-                    title={
-                      <div>
-                        <div className="font-bold">
-                          {t('backups.config.schedule.cronHelp.format')}
-                        </div>
-                        <div className="mt-1">{t('backups.config.schedule.cronHelp.examples')}</div>
-                        <div>
-                          {'•'} 0 2 * * * - {t('backups.config.schedule.cronHelp.dailyAt2am')}
-                        </div>
-                        <div>
-                          {'•'} 0 */6 * * * - {t('backups.config.schedule.cronHelp.every6Hours')}
-                        </div>
-                        <div>
-                          {'•'} 0 3 * * 1 - {t('backups.config.schedule.cronHelp.mondaysAt3am')}
-                        </div>
-                        <div>
-                          {'•'} 30 4 1,15 * * - {t('backups.config.schedule.cronHelp.twiceAMonth')}
-                        </div>
-                      </div>
-                    }
-                  >
-                    <InfoCircleOutlined className="ml-2" style={{ color: 'gray' }} />
-                  </Tooltip>
-                </div>
-              </div>
-              {schedule.cronExpression &&
-                (() => {
-                  try {
-                    const interval = CronExpressionParser.parse(schedule.cronExpression, {
-                      tz: 'UTC',
-                    });
-                    const nextRun = interval.next().toDate();
-                    return (
-                      <div className="mb-1 flex w-full flex-col items-start text-xs text-gray-600 sm:flex-row sm:items-center dark:text-gray-400">
-                        <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2" />
-                        <div className="text-gray-600 dark:text-gray-400">
-                          {t('backups.config.schedule.nextRun', {
-                            time: dayjs(nextRun).local().format(dateTimeFormat.format),
-                          })}
-                          <br />({formatRelativeTime(nextRun)})
-                        </div>
-                      </div>
-                    );
-                  } catch {
-                    return (
-                      <div className="mb-1 flex w-full flex-col items-start text-red-500 sm:flex-row sm:items-center">
-                        <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2" />
-                        <div className="text-red-500">
-                          {t('backups.config.schedule.invalidCron')}
-                        </div>
-                      </div>
-                    );
-                  }
-                })()}
-            </>
-          )}
-
-          {schedule.type !== ScheduleType.HOURLY && schedule.type !== ScheduleType.CRON && (
-            <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-              <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
-                {t('backups.logical.config.timeOfDay')}
-              </div>
-              <TimePicker
-                value={localTime}
-                format={timeFormat.format}
-                use12Hours={timeFormat.use12Hours}
-                allowClear={false}
-                size="small"
-                className="w-full max-w-[200px] grow"
-                onChange={(pickedTime) => {
-                  if (!pickedTime) return;
-
-                  const patch: Partial<Schedule> = {
-                    timeOfDay: pickedTime.utc().format('HH:mm'),
-                  };
-
-                  if (schedule.type === ScheduleType.WEEKLY && displayedWeekday) {
-                    patch.weekday = getUtcWeekday(displayedWeekday, pickedTime);
-                  }
-                  if (schedule.type === ScheduleType.MONTHLY && displayedDayOfMonth) {
-                    patch.dayOfMonth = getUtcDayOfMonth(displayedDayOfMonth, pickedTime);
-                  }
-
-                  updateSchedule(patch);
-                }}
-              />
-            </div>
-          )}
+          <ScheduleEditor
+            label={t('backups.logical.config.interval')}
+            schedule={schedule}
+            onChange={changeSchedule}
+          />
 
           <div className="mb-3" />
         </>

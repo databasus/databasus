@@ -4,12 +4,8 @@ import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import {
-  INTERVAL_TYPE_LABEL_KEYS,
-  IntervalType,
-  WEEKDAY_LABEL_KEYS,
-  type Weekday,
-} from '../../../../entities/intervals';
+import { INTERVAL_TYPE_LABEL_KEYS, IntervalType } from '../../../../entities/intervals';
+import { WEEKDAY_LABEL_KEYS, getLocalScheduleParts } from '../../../../entities/schedules';
 import {
   type VerificationConfig,
   VERIFICATION_NOTIFICATION_TYPE_LABEL_KEYS,
@@ -17,12 +13,7 @@ import {
   verificationConfigApi,
 } from '../../../../entities/verification/config';
 import { translateApiError, useLocale } from '../../../../shared/i18n';
-import { getUserTimeFormat } from '../../../../shared/time';
-import {
-  getUserTimeFormat as getIs12Hour,
-  getLocalDayOfMonth,
-  getLocalWeekday,
-} from '../../../../shared/time/utils';
+import { getUserClockFormat, getUserTimeFormat } from '../../../../shared/time';
 
 interface Props {
   databaseId: string;
@@ -60,27 +51,18 @@ export const ShowVerificationConfigComponent = ({ databaseId }: Props) => {
 
   if (!config) return <div />;
 
-  const is12Hour = getIs12Hour();
-  const timeFormat = { use12Hours: is12Hour, format: is12Hour ? 'h:mm A' : 'HH:mm' };
+  const timeFormat = getUserClockFormat();
   const dateTimeFormat = getUserTimeFormat();
 
   const { schedule } = config;
 
-  const localTime = schedule?.timeOfDay
-    ? dayjs.utc(schedule.timeOfDay, 'HH:mm').local()
-    : undefined;
+  const {
+    localTime,
+    weekday: displayedWeekday,
+    dayOfMonth: displayedDayOfMonth,
+  } = getLocalScheduleParts(schedule);
 
   const formattedTime = localTime ? localTime.format(timeFormat.format) : '';
-
-  const displayedWeekday: number | undefined =
-    schedule?.type === IntervalType.WEEKLY && schedule.weekday && schedule.timeOfDay
-      ? getLocalWeekday(schedule.weekday, schedule.timeOfDay)
-      : schedule?.weekday;
-
-  const displayedDayOfMonth: number | undefined =
-    schedule?.type === IntervalType.MONTHLY && schedule.dayOfMonth && schedule.timeOfDay
-      ? getLocalDayOfMonth(schedule.dayOfMonth, schedule.timeOfDay)
-      : schedule?.dayOfMonth;
 
   const isAfterBackup = config.scheduleType === VerificationScheduleType.AFTER_BACKUP;
 
@@ -109,9 +91,7 @@ export const ShowVerificationConfigComponent = ({ databaseId }: Props) => {
           {!isAfterBackup && schedule?.type === IntervalType.WEEKLY && (
             <div className="mb-1 flex w-full items-center">
               <div className="min-w-[180px] pr-2">{t('verification.config.weekday')}</div>
-              <div>
-                {displayedWeekday ? t(WEEKDAY_LABEL_KEYS[displayedWeekday as Weekday]) : ''}
-              </div>
+              <div>{displayedWeekday ? t(WEEKDAY_LABEL_KEYS[displayedWeekday]) : ''}</div>
             </div>
           )}
 

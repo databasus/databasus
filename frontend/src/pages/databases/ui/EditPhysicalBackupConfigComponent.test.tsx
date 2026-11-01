@@ -1,12 +1,13 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { EditPhysicalBackupConfigComponent } from '@/features/backups/physical';
 
 import type {
   BackupConfig,
   BackupConfigInput,
+  PhysicalBackupSettings,
   StorageSwitch,
 } from '../../../entities/backup-configs';
 import {
@@ -14,6 +15,7 @@ import {
   DatabaseType,
   createDefaultDatabaseSettings,
 } from '../../../entities/databases';
+import type { Schedule } from '../../../entities/schedules';
 import { API_BASE_PATH } from '../../../shared/api';
 import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
 import { renderScreen } from '../../../shared/lib/test/renderScreen';
@@ -82,7 +84,162 @@ const chooseStorage = async (name = 'Archive') => {
   fireEvent.click(option);
 };
 
+const incrementalDatabase: Database = {
+  ...database,
+  settings: {
+    ...createDefaultDatabaseSettings(DatabaseType.POSTGRES_PHYSICAL),
+    backupType: 'FULL_INCREMENTAL',
+  } as Database['settings'],
+};
+
+const renderIncrementalConfig = ({
+  fullBackupSchedule,
+  incrementalBackupSchedule,
+}: {
+  fullBackupSchedule: Schedule;
+  incrementalBackupSchedule: Schedule | null;
+}) => {
+  const submitted: BackupConfigInput[] = [];
+
+  mockServer.use(
+    mockApi.get('/backup-configs/{databaseId}', 200, {
+      ...config,
+      storageId: 'old-storage',
+      settings: {
+        ...config.settings,
+        fullBackupSchedule,
+        incrementalBackupSchedule,
+        retention: { policy: 'CHAINS', chainsCount: 3, fullBackups: null },
+      },
+    } as BackupConfig),
+    mockApi.get('/storages', 200, { items: [] }),
+    mockApi.get('/physical-backups', 200, { items: [], totalUsageMb: 0 }),
+    mockApi.get('/storage-switches', 200, { items: [] }),
+    http.put(`*${API_BASE_PATH}/backup-configs/:databaseId`, async ({ request }) => {
+      const saved = (await request.json()) as BackupConfigInput;
+      submitted.push(saved);
+
+      return HttpResponse.json({ ...saved, databaseId: database.id });
+    }),
+  );
+
+  renderScreen(
+    <EditPhysicalBackupConfigComponent
+      renderStorageSelection={(options) => <BackupStorageSelection {...options} />}
+      database={incrementalDatabase}
+      isShowBackButton={false}
+      onBack={() => {}}
+      onCancel={() => {}}
+      isSaveToApi
+      onSaved={() => {}}
+    />,
+  );
+
+  return submitted;
+};
+
+const findCadenceGroup = (name: string) => screen.findByRole('group', { name });
+
+const getWeeklySchedule = (weekday: number): Schedule => ({
+  type: 'WEEKLY',
+  timeOfDay: '12:00',
+  weekday,
+});
+
 describe('EditPhysicalBackupConfigComponent', () => {
+  describe('with two schedules', () => {
+    beforeEach(() => {
+      vi.stubEnv('TZ', 'UTC');
+    });
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('labels the fields of each schedule separately', async () => {
+      renderIncrementalConfig({
+        fullBackupSchedule: getWeeklySchedule(1),
+        incrementalBackupSchedule: getWeeklySchedule(2),
+      });
+
+      const fullGroup = await findCadenceGroup('Full backup cadence');
+      const incrementalGroup = await findCadenceGroup('Incremental backup cadence');
+      const fullWeekday = within(fullGroup).getByLabelText('Weekday');
+      const incrementalWeekday = within(incrementalGroup).getByLabelText('Weekday');
+
+      expect(fullWeekday).not.toBe(incrementalWeekday);
+      expect(fullWeekday.id).not.toBe(incrementalWeekday.id);
+    });
+
+    it('offers only the type for an empty incremental schedule and keeps Save disabled', async () => {
+      renderIncrementalConfig({
+        fullBackupSchedule: { type: 'HOURLY' },
+        incrementalBackupSchedule: null,
+      });
+
+      const incrementalGroup = await findCadenceGroup('Incremental backup cadence');
+
+      expect(within(incrementalGroup).queryByLabelText('Time of day')).toBeNull();
+      expect(within(incrementalGroup).queryByLabelText('Weekday')).toBeNull();
+
+      fireEvent.click(screen.getAllByRole('checkbox')[0]);
+
+      expect(screen.getByRole('button', { name: /Save$/ })).toHaveProperty('disabled', true);
+
+      fireEvent.mouseDown(
+        within(incrementalGroup)
+          .getByRole('combobox', { name: 'Incremental backup cadence' })
+          .closest('.ant-select')!
+          .querySelector('.ant-select-selector')!,
+      );
+
+      const hourlyOption = await waitFor(() => {
+        const visibleOption = document.querySelector('.ant-select-item-option[title="Hourly"]');
+        expect(visibleOption).toBeTruthy();
+        return visibleOption!;
+      });
+
+      fireEvent.click(hourlyOption);
+
+      expect(screen.getByRole('button', { name: /Save$/ })).toHaveProperty('disabled', false);
+    });
+
+    it('lifts the schedule rule when backups are turned off', async () => {
+      renderIncrementalConfig({
+        fullBackupSchedule: { type: 'HOURLY' },
+        incrementalBackupSchedule: null,
+      });
+
+      await findCadenceGroup('Incremental backup cadence');
+      fireEvent.click(screen.getAllByRole('switch')[0]);
+
+      expect(screen.getByRole('button', { name: /Save$/ })).toHaveProperty('disabled', false);
+    });
+
+    it('leaves the other schedule unchanged in the submitted config when one is edited', async () => {
+      const submitted = renderIncrementalConfig({
+        fullBackupSchedule: { type: 'MONTHLY', timeOfDay: '12:00', dayOfMonth: 5 },
+        incrementalBackupSchedule: { type: 'MONTHLY', timeOfDay: '12:00', dayOfMonth: 6 },
+      });
+      const fullGroup = await findCadenceGroup('Full backup cadence');
+
+      fireEvent.change(within(fullGroup).getByLabelText('Day of month'), {
+        target: { value: '7' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /Save$/ }));
+      await waitFor(() => expect(submitted).toHaveLength(1));
+
+      const submittedSettings = submitted[0].settings as PhysicalBackupSettings;
+
+      expect(submittedSettings.fullBackupSchedule.dayOfMonth).toBe(7);
+      expect(submittedSettings.incrementalBackupSchedule).toEqual({
+        type: 'MONTHLY',
+        timeOfDay: '12:00',
+        dayOfMonth: 6,
+      });
+    });
+  });
+
   it('retains the storage selection and configuration draft when nested storage creation is canceled', async () => {
     const savedConfig = { ...config, storageId: 'old-storage', isBackupsEnabled: false };
     const onSaved = vi.fn();

@@ -23,6 +23,7 @@ import {
 import { type TranslationKey, useLocale } from '../../../../../shared/i18n';
 import { formatBytes } from '../../../../../shared/lib';
 import { useTheme } from '../../../../../shared/theme';
+import { getUserClockFormat } from '../../../../../shared/time';
 import { WAL_STREAM_CHART_COLORS } from '../lib/chartColors';
 import {
   getBinaryAxisTicks,
@@ -33,7 +34,6 @@ import {
   hasEnoughChartPoints,
   toChartRows,
 } from '../lib/chartRows';
-import { getClockFormat } from '../lib/clockFormat';
 import { formatBytesPerSecond } from '../lib/monitoringTextValues';
 import type { WalStreamChartRow } from '../model/WalStreamChartRow';
 
@@ -112,7 +112,7 @@ const PERIODS = [
 ];
 
 const getTimeTickFormat = (period: WalStreamStatisticsPeriod): string => {
-  const clockFormat = getClockFormat();
+  const clockFormat = getUserClockFormat().format;
 
   // eslint-disable-next-line i18next/no-literal-string -- dayjs format token, not copy
   return period === WalStreamStatisticsPeriod.WEEK ? `ddd ${clockFormat}` : clockFormat;

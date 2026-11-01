@@ -52,6 +52,19 @@ func TestVerificationScheduler(t *testing.T) {
 			assert.Equal(t, apiclient.VerificationTriggerSCHEDULED, verifications[0].Trigger)
 		},
 	)
+
+	t.Run("creates no verification when the stored cron expression has no date to run on", func(t *testing.T) {
+		team := newVerificationTeam(t)
+		team.backup(t)
+		team.enableSchedule(t, apiclient.VerificationScheduleTypeINTERVAL)
+		team.App.ExecuteSQL(t, `UPDATE verification_configs
+			SET interval_type = 'CRON', cron_expression = '0 0 31 2 *' WHERE database_id = ?`, team.Database.Id)
+
+		team.runScheduler(t)
+
+		assert.Empty(t, team.list(t))
+	})
+
 	t.Run("keeps manual work and creates scheduled work when an interval is due", func(t *testing.T) {
 		team := newVerificationTeam(t)
 		backup := team.backup(t)

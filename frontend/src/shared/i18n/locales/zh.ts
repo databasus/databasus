@@ -1458,9 +1458,6 @@ export const zh: typeof en = {
       },
       config: {
         interval: '备份周期',
-        weekday: '每周备份日',
-        dayOfMonth: '每月备份日',
-        timeOfDay: '备份时间',
         encryptionTooltip:
           '备份加密后，存储（S3、本地等）中的备份文件无法直接使用。你可以通过 Databasus 恢复备份，或用“下载”按钮下载解密后的文件。',
         retentionPolicy: '保留策略',

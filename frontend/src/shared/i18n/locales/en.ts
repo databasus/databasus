@@ -1515,9 +1515,6 @@ export const en = {
       },
       config: {
         interval: 'Backup interval',
-        weekday: 'Backup weekday',
-        dayOfMonth: 'Backup day of month',
-        timeOfDay: 'Backup time of day',
         encryptionTooltip:
           "If backup is encrypted, backup files in your storage (S3, local, etc.) cannot be used directly. You can restore backups through Databasus or download them unencrypted via the 'Download' button.",
         retentionPolicy: 'Retention policy',

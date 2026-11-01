@@ -12,6 +12,8 @@ import (
 	containers "databasus-backend/internal/lib/testcontainers"
 )
 
+const cronWithoutRunDate = "0 0 31 2 *"
+
 func TestSavePhysicalBackupConfig(t *testing.T) {
 	t.Parallel()
 
@@ -44,6 +46,145 @@ func TestSavePhysicalBackupConfig(t *testing.T) {
 		)
 		assert.Zero(t, countRows(t, tm,
 			"SELECT COUNT(*) FROM backups_configs WHERE database_id = ?", physicalDatabase.Id))
+	})
+
+	t.Run("refuses a full schedule with no date to run on and keeps the config", func(t *testing.T) {
+		tm := newTeam(t)
+		physicalDatabase := tm.createPhysicalDatabase(t, physicalServer, apiclient.PhysicalBackupTypeFULLINCREMENTAL)
+		storageID := tm.createLocalStorage(t)
+		savedSettings := newIncrementalBackupSettings()
+		saveResponse := updateBackupConfig(t, tm.owner, physicalDatabase.Id,
+			newPhysicalBackupConfigInput(t, &storageID, savedSettings))
+		require.Equal(t, http.StatusOK, saveResponse.StatusCode(), string(saveResponse.Body))
+		undatedSettings := newIncrementalBackupSettings()
+		undatedSettings.FullBackupSchedule = newCronSchedule(cronWithoutRunDate)
+
+		response := updateBackupConfig(t, tm.owner, physicalDatabase.Id,
+			newPhysicalBackupConfigInput(t, &storageID, undatedSettings))
+
+		requireInvalidField(t, response.StatusCode(), response.Body, "settings.fullBackupSchedule.cronExpression")
+		assert.Equal(
+			t,
+			savedSettings,
+			getPhysicalSettings(t, *getBackupConfig(t, tm.owner, physicalDatabase.Id).JSON200),
+		)
+	})
+
+	t.Run("refuses an incremental schedule with no date to run on and keeps the config", func(t *testing.T) {
+		tm := newTeam(t)
+		physicalDatabase := tm.createPhysicalDatabase(t, physicalServer, apiclient.PhysicalBackupTypeFULLINCREMENTAL)
+		storageID := tm.createLocalStorage(t)
+		savedSettings := newIncrementalBackupSettings()
+		saveResponse := updateBackupConfig(t, tm.owner, physicalDatabase.Id,
+			newPhysicalBackupConfigInput(t, &storageID, savedSettings))
+		require.Equal(t, http.StatusOK, saveResponse.StatusCode(), string(saveResponse.Body))
+		undatedSchedule := newCronSchedule(cronWithoutRunDate)
+		undatedSettings := newIncrementalBackupSettings()
+		undatedSettings.IncrementalBackupSchedule = &undatedSchedule
+
+		response := updateBackupConfig(t, tm.owner, physicalDatabase.Id,
+			newPhysicalBackupConfigInput(t, &storageID, undatedSettings))
+
+		requireInvalidField(
+			t,
+			response.StatusCode(),
+			response.Body,
+			"settings.incrementalBackupSchedule.cronExpression",
+		)
+		assert.Equal(
+			t,
+			savedSettings,
+			getPhysicalSettings(t, *getBackupConfig(t, tm.owner, physicalDatabase.Id).JSON200),
+		)
+	})
+
+	t.Run("reads a stored incremental schedule with no date to run on as the built daily schedule", func(t *testing.T) {
+		tm := newTeam(t)
+		physicalDatabase := tm.createPhysicalDatabase(t, physicalServer, apiclient.PhysicalBackupTypeFULLINCREMENTAL)
+		storageID := tm.createLocalStorage(t)
+		weekday := 1
+		weeklyFullSettings := newIncrementalBackupSettings()
+		weeklyFullSettings.FullBackupSchedule = apiclient.Schedule{
+			Type:           apiclient.ScheduleTypeWEEKLY,
+			TimeOfDay:      new("03:15"),
+			Weekday:        &weekday,
+			DayOfMonth:     nil,
+			CronExpression: nil,
+		}
+		saveResponse := updateBackupConfig(t, tm.owner, physicalDatabase.Id,
+			newPhysicalBackupConfigInput(t, &storageID, weeklyFullSettings))
+		require.Equal(t, http.StatusOK, saveResponse.StatusCode(), string(saveResponse.Body))
+		tm.app.ExecuteSQL(t, `UPDATE backups_configs_physical
+			SET incremental_interval_type = 'CRON', incremental_cron_expression = ? WHERE database_id = ?`,
+			cronWithoutRunDate, physicalDatabase.Id)
+
+		readSettings := getPhysicalSettings(t, *getBackupConfig(t, tm.owner, physicalDatabase.Id).JSON200)
+
+		builtSchedule := newDailySchedule("03:15")
+		assert.Equal(t, &builtSchedule, readSettings.IncrementalBackupSchedule)
+	})
+
+	t.Run(
+		"reads a stored incremental schedule with no date to run on as no schedule under an hourly full schedule",
+		func(t *testing.T) {
+			tm := newTeam(t)
+			physicalDatabase := tm.createPhysicalDatabase(t, physicalServer,
+				apiclient.PhysicalBackupTypeFULLINCREMENTAL)
+			storageID := tm.createLocalStorage(t)
+			everyTenMinutes := newCronSchedule("*/10 * * * *")
+			hourlyFullSettings := newIncrementalBackupSettings()
+			hourlyFullSettings.FullBackupSchedule = apiclient.Schedule{
+				Type:           apiclient.ScheduleTypeHOURLY,
+				TimeOfDay:      nil,
+				Weekday:        nil,
+				DayOfMonth:     nil,
+				CronExpression: nil,
+			}
+			hourlyFullSettings.IncrementalBackupSchedule = &everyTenMinutes
+			saveResponse := updateBackupConfig(t, tm.owner, physicalDatabase.Id,
+				newPhysicalBackupConfigInput(t, &storageID, hourlyFullSettings))
+			require.Equal(t, http.StatusOK, saveResponse.StatusCode(), string(saveResponse.Body))
+			tm.app.ExecuteSQL(t, `UPDATE backups_configs_physical
+			SET incremental_cron_expression = ? WHERE database_id = ?`, cronWithoutRunDate, physicalDatabase.Id)
+
+			readSettings := getPhysicalSettings(t, *getBackupConfig(t, tm.owner, physicalDatabase.Id).JSON200)
+
+			assert.Nil(t, readSettings.IncrementalBackupSchedule)
+		},
+	)
+
+	t.Run("refuses a backup type change while the stored full schedule has no date to run on", func(t *testing.T) {
+		tm := newTeam(t)
+		physicalDatabase := tm.createPhysicalDatabase(t, physicalServer, apiclient.PhysicalBackupTypeFULLINCREMENTAL)
+		storageID := tm.createLocalStorage(t)
+		cronFullSettings := newIncrementalBackupSettings()
+		cronFullSettings.FullBackupSchedule = newCronSchedule("0 3 * * 1")
+		saveResponse := updateBackupConfig(t, tm.owner, physicalDatabase.Id,
+			newPhysicalBackupConfigInput(t, &storageID, cronFullSettings))
+		require.Equal(t, http.StatusOK, saveResponse.StatusCode(), string(saveResponse.Body))
+		tm.app.ExecuteSQL(t, `UPDATE backups_configs_physical SET full_cron_expression = ? WHERE database_id = ?`,
+			cronWithoutRunDate, physicalDatabase.Id)
+
+		response := updatePhysicalBackupType(t, tm, physicalDatabase, apiclient.PhysicalBackupTypeFULL)
+
+		requireProblem(
+			t,
+			response.StatusCode(),
+			response.Body,
+			http.StatusBadRequest,
+			apiclient.ProblemCodeInvalidRequest,
+		)
+
+		databaseResponse, err := tm.owner.Client.GetDatabaseWithResponse(t.Context(), physicalDatabase.Id)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, databaseResponse.StatusCode(), string(databaseResponse.Body))
+
+		storedSettings, err := databaseResponse.JSON200.Settings.AsPostgresqlPhysicalSettings()
+		require.NoError(t, err)
+		assert.Equal(t, apiclient.PhysicalBackupTypeFULLINCREMENTAL, storedSettings.BackupType)
+		assert.Equal(t, 1, countRows(t, tm, `SELECT COUNT(*) FROM backups_configs_physical
+			WHERE database_id = ? AND full_cron_expression = ? AND incremental_interval_type = 'HOURLY'`,
+			physicalDatabase.Id, cronWithoutRunDate))
 	})
 
 	t.Run("refuses a storage ID that no storage has and creates no storage", func(t *testing.T) {
@@ -173,6 +314,16 @@ func TestSavePhysicalBackupConfig(t *testing.T) {
 	)
 }
 
+func newCronSchedule(expression string) apiclient.Schedule {
+	return apiclient.Schedule{
+		Type:           apiclient.ScheduleTypeCRON,
+		TimeOfDay:      nil,
+		Weekday:        nil,
+		DayOfMonth:     nil,
+		CronExpression: &expression,
+	}
+}
+
 func newDailySchedule(timeOfDay string) apiclient.Schedule {
 	return apiclient.Schedule{
 		Type:           apiclient.ScheduleTypeDAILY,
@@ -232,6 +383,18 @@ func switchPhysicalBackupType(
 ) {
 	t.Helper()
 
+	response := updatePhysicalBackupType(t, tm, physicalDatabase, backupType)
+	require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
+}
+
+func updatePhysicalBackupType(
+	t *testing.T,
+	tm team,
+	physicalDatabase apiclient.Database,
+	backupType apiclient.PhysicalBackupType,
+) *apiclient.UpdateDatabaseResponse {
+	t.Helper()
+
 	physicalSettings, err := physicalDatabase.Settings.AsPostgresqlPhysicalSettings()
 	require.NoError(t, err)
 
@@ -247,5 +410,6 @@ func switchPhysicalBackupType(
 			Settings:    settings,
 		})
 	require.NoError(t, err)
-	require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
+
+	return response
 }

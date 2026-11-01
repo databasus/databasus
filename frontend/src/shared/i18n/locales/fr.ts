@@ -1557,9 +1557,6 @@ export const fr: typeof en = {
       },
       config: {
         interval: 'Intervalle de sauvegarde',
-        weekday: 'Jour de la semaine',
-        dayOfMonth: 'Jour du mois',
-        timeOfDay: 'Heure de la sauvegarde',
         encryptionTooltip:
           'Si la sauvegarde est chiffrée, les fichiers de sauvegarde dans votre stockage (S3, local, etc.) ne sont pas utilisables directement. Vous pouvez restaurer les sauvegardes via Databasus ou les télécharger déchiffrées avec le bouton « Télécharger ».',
         retentionPolicy: 'Politique de rétention',

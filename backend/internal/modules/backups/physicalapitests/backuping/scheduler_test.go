@@ -116,6 +116,45 @@ func TestSchedulePhysicalBackup(t *testing.T) {
 			team.assertNoScheduledBackup(t)
 		},
 	)
+
+	t.Run("starts an incremental once the built daily slot passes when the stored cron has no date to run on",
+		func(t *testing.T) {
+			team := newBackupState(t)
+			team.seedFull(t, schedulerFullSpec{Age: 3 * time.Hour, ManifestFileName: new("root.manifest")})
+			team.setSchedules(t, false)
+			team.storeUndatedIncrementalCronWithDailySlotTwoHoursAgo(t)
+
+			backup := team.runAutomaticBackup(t)
+
+			assert.Equal(t, "INCREMENTAL", backup.Type)
+		},
+	)
+
+	t.Run("schedules nothing before the built daily slot when the stored cron has no date to run on",
+		func(t *testing.T) {
+			team := newBackupState(t)
+			team.seedFull(t, schedulerFullSpec{Age: time.Hour, ManifestFileName: new("root.manifest")})
+			team.setSchedules(t, false)
+			team.storeUndatedIncrementalCronWithDailySlotTwoHoursAgo(t)
+
+			team.assertNoScheduledBackup(t)
+		},
+	)
+
+	t.Run("schedules nothing when the stored incremental cron has no date under an hourly full schedule",
+		func(t *testing.T) {
+			team := newBackupState(t)
+			team.seedFull(t, schedulerFullSpec{Age: 10 * time.Minute, ManifestFileName: new("root.manifest")})
+			team.setSchedules(t, false)
+			team.App.ExecuteSQL(t, `UPDATE backups_configs_physical
+				SET full_interval_type = 'HOURLY',
+					incremental_interval_type = 'CRON', incremental_cron_expression = '0 0 31 2 *'
+				WHERE database_id = ?`, team.Database.Id)
+
+			team.assertNoScheduledBackup(t)
+		},
+	)
+
 	t.Run("schedules nothing when a full only database has a recent full", func(t *testing.T) {
 		team := newBackupState(t)
 		team.setSchedules(t, true)

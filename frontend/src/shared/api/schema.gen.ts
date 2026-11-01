@@ -3224,7 +3224,7 @@ export interface components {
             weekday?: number;
             /** @description The day of a monthly schedule. In a month without this day, the schedule runs on the month's last day. */
             dayOfMonth?: number;
-            /** @description The five-field cron expression of a cron schedule */
+            /** @description The five-field cron expression of a cron schedule; an expression with no date to run on, such as February 31, is refused */
             cronExpression?: string;
         };
         /**

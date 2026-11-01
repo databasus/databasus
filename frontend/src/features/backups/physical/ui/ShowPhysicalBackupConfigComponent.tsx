@@ -1,14 +1,10 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { Tooltip } from 'antd';
-import dayjs from 'dayjs';
-import { type JSX, useEffect, useMemo, useState } from 'react';
+import { type JSX, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
   type PhysicalBackupConfigInput,
-  SCHEDULE_TYPE_LABEL_KEYS,
-  type Schedule,
-  ScheduleType,
   backupConfigApi,
   StorageSwitchHistoryComponent,
   toPhysicalBackupConfigInput,
@@ -22,18 +18,20 @@ import {
   PhysicalRetentionPolicy,
 } from '../../../../entities/backups/physical';
 import type { Database } from '../../../../entities/databases';
-import { WEEKDAY_LABEL_KEYS, type Weekday } from '../../../../entities/intervals';
+import {
+  SCHEDULE_TYPE_LABEL_KEYS,
+  type Schedule,
+  ScheduleType,
+  WEEKDAY_LABEL_KEYS,
+  getLocalScheduleParts,
+} from '../../../../entities/schedules';
 import { type Storage, getStorageLogoFromType, storageApi } from '../../../../entities/storages';
 import {
   type LocalizedText,
   translateApiError,
   translateLocalizedText,
 } from '../../../../shared/i18n';
-import {
-  getUserTimeFormat as getIs12Hour,
-  getLocalDayOfMonth,
-  getLocalWeekday,
-} from '../../../../shared/time/utils';
+import { getUserClockFormat } from '../../../../shared/time';
 
 interface Props {
   database: Database;
@@ -74,29 +72,12 @@ export const ShowPhysicalBackupConfigComponent = ({ database }: Props): JSX.Elem
     return texts.map((text) => translateLocalizedText(text, t)).join(listSeparator);
   };
 
-  const timeFormat = useMemo(() => {
-    const is12Hour = getIs12Hour();
-    return { use12Hours: is12Hour, format: is12Hour ? 'h:mm A' : 'HH:mm' };
-  }, []);
-
   // Time of day, weekday and day of month are stored in UTC and shown in local time.
   const renderSchedule = (label: string, schedule: Schedule | null): JSX.Element | null => {
     if (!schedule) return null;
 
-    const localTime = schedule.timeOfDay
-      ? dayjs.utc(schedule.timeOfDay, 'HH:mm').local()
-      : undefined;
-    const formattedTime = localTime ? localTime.format(timeFormat.format) : '';
-
-    const displayedWeekday =
-      schedule.type === ScheduleType.WEEKLY && schedule.weekday && schedule.timeOfDay
-        ? getLocalWeekday(schedule.weekday, schedule.timeOfDay)
-        : schedule.weekday;
-
-    const displayedDayOfMonth =
-      schedule.type === ScheduleType.MONTHLY && schedule.dayOfMonth && schedule.timeOfDay
-        ? getLocalDayOfMonth(schedule.dayOfMonth, schedule.timeOfDay)
-        : schedule.dayOfMonth;
+    const { localTime, weekday, dayOfMonth } = getLocalScheduleParts(schedule);
+    const formattedTime = localTime ? localTime.format(getUserClockFormat().format) : '';
 
     return (
       <>
@@ -108,14 +89,14 @@ export const ShowPhysicalBackupConfigComponent = ({ database }: Props): JSX.Elem
         {schedule.type === ScheduleType.WEEKLY && (
           <div className="mb-1 flex w-full items-center">
             <div className="min-w-[180px] pr-2">{t('backups.config.schedule.weekday')}</div>
-            <div>{displayedWeekday ? t(WEEKDAY_LABEL_KEYS[displayedWeekday as Weekday]) : ''}</div>
+            <div>{weekday ? t(WEEKDAY_LABEL_KEYS[weekday]) : ''}</div>
           </div>
         )}
 
         {schedule.type === ScheduleType.MONTHLY && (
           <div className="mb-1 flex w-full items-center">
             <div className="min-w-[180px] pr-2">{t('backups.config.schedule.dayOfMonth')}</div>
-            <div>{displayedDayOfMonth || ''}</div>
+            <div>{dayOfMonth || ''}</div>
           </div>
         )}
 

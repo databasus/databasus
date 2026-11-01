@@ -154,6 +154,46 @@ func TestSaveBackupConfig(t *testing.T) {
 		)
 	})
 
+	for _, undatedCron := range []string{"0 0 31 2 *", "0 0 31 2,4 *"} {
+		t.Run("refuses a cron schedule with no date to run on and keeps the config with "+undatedCron,
+			func(t *testing.T) {
+				tm := newTeam(t)
+				databaseID := tm.insertLogicalDatabase(t)
+				storageID := tm.createLocalStorage(t)
+				saveLogicalBackupConfig(t, tm.owner, databaseID, storageID)
+				undatedSettings := newLogicalBackupSettings()
+				undatedSettings.Schedule = newCronSchedule(undatedCron)
+
+				response := updateBackupConfig(t, tm.owner, databaseID,
+					newLogicalBackupConfigInput(t, &storageID, undatedSettings))
+
+				requireInvalidField(t, response.StatusCode(), response.Body, "settings.schedule.cronExpression")
+				assert.Equal(
+					t,
+					newLogicalBackupSettings(),
+					getLogicalSettings(t, *getBackupConfig(t, tm.owner, databaseID).JSON200),
+				)
+			})
+	}
+
+	t.Run("saves a cron schedule with a date only in leap years", func(t *testing.T) {
+		tm := newTeam(t)
+		databaseID := tm.insertLogicalDatabase(t)
+		storageID := tm.createLocalStorage(t)
+		leapDaySettings := newLogicalBackupSettings()
+		leapDaySettings.Schedule = newCronSchedule("0 0 29 2 *")
+
+		response := updateBackupConfig(t, tm.owner, databaseID,
+			newLogicalBackupConfigInput(t, &storageID, leapDaySettings))
+
+		require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
+		assert.Equal(
+			t,
+			leapDaySettings,
+			getLogicalSettings(t, *getBackupConfig(t, tm.owner, databaseID).JSON200),
+		)
+	})
+
 	t.Run("names a storage of the database's workspace and leaves the storage as it was", func(t *testing.T) {
 		tm := newTeam(t)
 		databaseID := tm.insertLogicalDatabase(t)

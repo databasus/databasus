@@ -1525,7 +1525,7 @@ type RetentionPeriod string
 
 // Schedule When recurring work runs; times of day are in UTC
 type Schedule struct {
-	// CronExpression The five-field cron expression of a cron schedule
+	// CronExpression The five-field cron expression of a cron schedule; an expression with no date to run on, such as February 31, is refused
 	CronExpression *string `json:"cronExpression,omitempty"`
 
 	// DayOfMonth The day of a monthly schedule. In a month without this day, the schedule runs on the month's last day.

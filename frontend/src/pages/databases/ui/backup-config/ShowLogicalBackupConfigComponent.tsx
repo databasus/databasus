@@ -1,33 +1,30 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { Tooltip } from 'antd';
-import dayjs from 'dayjs';
-import { useMemo } from 'react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
   type LogicalBackupConfigInput,
   type LogicalBackupSettings,
-  SCHEDULE_TYPE_LABEL_KEYS,
-  ScheduleType,
   backupConfigApi,
   StorageSwitchHistoryComponent,
   toLogicalBackupConfigInput,
   BACKUP_ENCRYPTION_LABEL_KEYS,
 } from '../../../../entities/backup-configs';
 import type { Database } from '../../../../entities/databases';
-import { WEEKDAY_LABEL_KEYS, type Weekday } from '../../../../entities/intervals';
+import {
+  SCHEDULE_TYPE_LABEL_KEYS,
+  ScheduleType,
+  WEEKDAY_LABEL_KEYS,
+  getLocalScheduleParts,
+} from '../../../../entities/schedules';
 import { type Storage, getStorageLogoFromType, storageApi } from '../../../../entities/storages';
 import {
   type LocalizedText,
   translateApiError,
   translateLocalizedText,
 } from '../../../../shared/i18n';
-import {
-  getUserTimeFormat as getIs12Hour,
-  getLocalDayOfMonth,
-  getLocalWeekday,
-} from '../../../../shared/time/utils';
+import { getUserClockFormat } from '../../../../shared/time';
 import { LOGICAL_NOTIFICATION_TRIGGER_LABEL_KEYS } from '../../model/LogicalNotificationTriggerLabelKeys';
 import { LogicalRetentionPolicy } from '../../model/LogicalRetentionPolicy';
 import { RETENTION_PERIOD_LABEL_KEYS } from '../../model/RetentionPeriodLabelKeys';
@@ -71,14 +68,6 @@ export const ShowLogicalBackupConfigComponent = ({ database }: Props) => {
     return texts.map((text) => translateLocalizedText(text, t)).join(listSeparator);
   };
 
-  const timeFormat = useMemo(() => {
-    const is12Hour = getIs12Hour();
-    return {
-      use12Hours: is12Hour,
-      format: is12Hour ? 'h:mm A' : 'HH:mm',
-    };
-  }, []);
-
   useEffect(() => {
     let isActive = true;
     const loadBackupConfig = async () => {
@@ -105,19 +94,8 @@ export const ShowLogicalBackupConfigComponent = ({ database }: Props) => {
 
   const { schedule, retention } = backupConfig.settings;
 
-  const localTime = schedule.timeOfDay ? dayjs.utc(schedule.timeOfDay, 'HH:mm').local() : undefined;
-
-  const formattedTime = localTime ? localTime.format(timeFormat.format) : '';
-
-  const displayedWeekday: number | undefined =
-    schedule.type === ScheduleType.WEEKLY && schedule.weekday && schedule.timeOfDay
-      ? getLocalWeekday(schedule.weekday, schedule.timeOfDay)
-      : schedule.weekday;
-
-  const displayedDayOfMonth: number | undefined =
-    schedule.type === ScheduleType.MONTHLY && schedule.dayOfMonth && schedule.timeOfDay
-      ? getLocalDayOfMonth(schedule.dayOfMonth, schedule.timeOfDay)
-      : schedule.dayOfMonth;
+  const { localTime, weekday, dayOfMonth } = getLocalScheduleParts(schedule);
+  const formattedTime = localTime ? localTime.format(getUserClockFormat().format) : '';
 
   const retentionPolicy = retention.policy;
 
@@ -140,17 +118,15 @@ export const ShowLogicalBackupConfigComponent = ({ database }: Props) => {
 
           {schedule.type === ScheduleType.WEEKLY && (
             <div className="mb-1 flex w-full items-center">
-              <div className="min-w-[150px] pr-2">{t('backups.logical.config.weekday')}</div>
-              <div>
-                {displayedWeekday ? t(WEEKDAY_LABEL_KEYS[displayedWeekday as Weekday]) : ''}
-              </div>
+              <div className="min-w-[150px] pr-2">{t('backups.config.schedule.weekday')}</div>
+              <div>{weekday ? t(WEEKDAY_LABEL_KEYS[weekday]) : ''}</div>
             </div>
           )}
 
           {schedule.type === ScheduleType.MONTHLY && (
             <div className="mb-1 flex w-full items-center">
-              <div className="min-w-[150px] pr-2">{t('backups.logical.config.dayOfMonth')}</div>
-              <div>{displayedDayOfMonth || ''}</div>
+              <div className="min-w-[150px] pr-2">{t('backups.config.schedule.dayOfMonth')}</div>
+              <div>{dayOfMonth || ''}</div>
             </div>
           )}
 
@@ -167,7 +143,7 @@ export const ShowLogicalBackupConfigComponent = ({ database }: Props) => {
 
           {schedule.type !== ScheduleType.HOURLY && schedule.type !== ScheduleType.CRON && (
             <div className="mb-1 flex w-full items-center">
-              <div className="min-w-[150px] pr-2">{t('backups.logical.config.timeOfDay')}</div>
+              <div className="min-w-[150px] pr-2">{t('backups.config.schedule.timeOfDay')}</div>
               <div>{formattedTime}</div>
             </div>
           )}

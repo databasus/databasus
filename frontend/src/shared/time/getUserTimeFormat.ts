@@ -57,6 +57,12 @@ export const getUserTimeFormat = () => {
   };
 };
 
+export const getUserClockFormat = () => {
+  const is12Hour = getIs12HourFormat();
+
+  return { use12Hours: is12Hour, format: is12Hour ? 'h:mm A' : 'HH:mm' };
+};
+
 export const getUserShortTimeFormat = () => {
   const { shortDateFormat } = getLocaleDateFormat();
   const is12Hour = getIs12HourFormat();

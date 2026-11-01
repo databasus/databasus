@@ -138,6 +138,17 @@ func (team *backupTeam) setSchedules(t *testing.T, isFullOnly bool) {
 	require.Equal(t, http.StatusOK, response.StatusCode(), "%s", response.Body)
 }
 
+// storeUndatedIncrementalCronWithDailySlotTwoHoursAgo places what the API refuses. The full schedule's time
+// of day becomes the time of the daily schedule the backend builds in place of the stored expression.
+func (team *backupTeam) storeUndatedIncrementalCronWithDailySlotTwoHoursAgo(t *testing.T) {
+	t.Helper()
+
+	team.App.ExecuteSQL(t, `UPDATE backups_configs_physical
+		SET full_interval_type = 'CRON', full_cron_expression = '0 0 29 2 *', full_time_of_day = ?,
+			incremental_interval_type = 'CRON', incremental_cron_expression = '0 0 31 2 *'
+		WHERE database_id = ?`, time.Now().UTC().Add(-2*time.Hour).Format("15:04"), team.Database.Id)
+}
+
 func (team *backupTeam) runAutomaticBackup(t *testing.T) backupRow {
 	t.Helper()
 	before := map[uuid.UUID]bool{}

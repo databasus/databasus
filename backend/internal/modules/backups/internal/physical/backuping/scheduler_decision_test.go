@@ -63,6 +63,36 @@ func TestDecidePhysicalBackup(t *testing.T) {
 			expectedKind: catalog.BackupTypeFull,
 		},
 		{
+			name: "schedules an incremental when a daily incremental schedule passed its slot",
+			change: func(state *schedulingState, config *config.PhysicalBackupConfig, now time.Time) {
+				state.lastFull.CreatedAt = now.Add(-24 * time.Hour)
+				config.IncrementalBackupSchedule = &schedule.Schedule{
+					Type:      schedule.TypeDaily,
+					TimeOfDay: new("04:00"),
+				}
+			},
+			expectedKind: catalog.BackupTypeIncremental,
+		},
+		{
+			name: "schedules nothing without an incremental schedule when the full cadence is not due",
+			change: func(_ *schedulingState, config *config.PhysicalBackupConfig, _ time.Time) {
+				config.IncrementalBackupSchedule = nil
+			},
+		},
+		{
+			name: "schedules no first full when the stored full cron has no date to run on",
+			change: func(state *schedulingState, config *config.PhysicalBackupConfig, _ time.Time) {
+				state.lastFull = nil
+				state.extendableRootID = nil
+				state.recentFullBackups = nil
+				config.IncrementalBackupSchedule = nil
+				config.FullBackupSchedule = schedule.Schedule{
+					Type:           schedule.TypeCron,
+					CronExpression: new("0 0 31 2 *"),
+				}
+			},
+		},
+		{
 			name: "reanchors a broken chain when only the incremental cadence is due",
 			change: func(state *schedulingState, _ *config.PhysicalBackupConfig, _ time.Time) {
 				state.extendableRootID = nil

@@ -49,6 +49,18 @@ func TestLogicalBackupScheduler(t *testing.T) {
 		waitForRestorableBackupStatus(t, tm.owner, listedBackupIDs[0], apiclient.LogicalBackupStatusCOMPLETED)
 	})
 
+	t.Run("starts no backup when a stored cron expression has no date to run on", func(t *testing.T) {
+		tm := newTeam(t)
+		source := newBackupSourceDatabase(t, tm, server)
+		tm.app.ExecuteSQL(t, `UPDATE backups_configs_logical
+			SET interval_type = 'CRON', cron_expression = ? WHERE database_id = ?`,
+			cronWithoutRunDate, source.databaseID)
+
+		tm.app.RunJobPass(t, logicalBackupSchedulerJobName)
+
+		assert.Empty(t, listLogicalBackupIDs(t, tm.owner, source.databaseID))
+	})
+
 	t.Run("stops retrying after the configured tries until the schedule makes the next backup due", func(t *testing.T) {
 		tm := newTeam(t)
 		databaseID, storageID := createDroppedSourceDatabase(t, tm, server)
