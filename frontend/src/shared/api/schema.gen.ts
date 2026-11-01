@@ -3222,7 +3222,7 @@ export interface components {
             timeOfDay?: string;
             /** @description The day of a weekly schedule; 1 is Monday, and both 0 and 7 are Sunday */
             weekday?: number;
-            /** @description The day of a monthly schedule */
+            /** @description The day of a monthly schedule. In a month without this day, the schedule runs on the month's last day. */
             dayOfMonth?: number;
             /** @description The five-field cron expression of a cron schedule */
             cronExpression?: string;

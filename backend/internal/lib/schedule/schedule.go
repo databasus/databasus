@@ -20,7 +20,8 @@ const (
 )
 
 // Schedule names when a recurring run is due. TimeOfDay is "15:04" in UTC, Weekday is 0 to 7 with both 0
-// and 7 meaning Sunday, and DayOfMonth is 1 to 31.
+// and 7 meaning Sunday, and DayOfMonth is 1 to 31. In a month without that day, a monthly schedule runs on
+// the month's last day.
 type Schedule struct {
 	Type           Type
 	TimeOfDay      *string
@@ -82,7 +83,8 @@ func (s Schedule) Validate() error {
 }
 
 // IsDue reports whether a run is due at now after the last run at lastRun. A schedule that never ran is
-// due at once. A slot that passed without a run is caught up.
+// due at once. A slot that passed without a run is caught up, but a weekly or monthly slot only within its
+// own week or month.
 func (s Schedule) IsDue(now time.Time, lastRun *time.Time) bool {
 	if lastRun == nil {
 		return true
@@ -176,7 +178,9 @@ func (s Schedule) isMonthlyDue(now, lastRun time.Time) bool {
 		return lastRun.Before(getStartOfMonth(now))
 	}
 
-	thisMonthSlot := s.atTimeOfDay(time.Date(now.Year(), now.Month(), *s.DayOfMonth, 0, 0, 0, 0, now.Location()))
+	slotDay := min(*s.DayOfMonth, getDaysInMonth(now))
+
+	thisMonthSlot := s.atTimeOfDay(time.Date(now.Year(), now.Month(), slotDay, 0, 0, 0, 0, now.Location()))
 	if now.Before(thisMonthSlot) {
 		return false
 	}
@@ -234,4 +238,8 @@ func getStartOfWeek(moment time.Time) time.Time {
 
 func getStartOfMonth(moment time.Time) time.Time {
 	return time.Date(moment.Year(), moment.Month(), 1, 0, 0, 0, 0, moment.Location())
+}
+
+func getDaysInMonth(moment time.Time) int {
+	return getStartOfMonth(moment).AddDate(0, 1, -1).Day()
 }

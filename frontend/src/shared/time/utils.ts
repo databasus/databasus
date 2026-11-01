@@ -1,4 +1,9 @@
 import dayjs, { Dayjs } from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+import utc from 'dayjs/plugin/utc';
+
+dayjs.extend(utc);
+dayjs.extend(customParseFormat);
 
 // Detect whether the user's locale prefers 12-hour time
 export const getUserTimeFormat = () => {
@@ -28,15 +33,35 @@ export const getUtcWeekday = (localWeekday: number, localTime: Dayjs): number =>
   return ((utc.day() + 6) % 7) + 1;
 };
 
-// UTC day-of-month (1–31) + HH:mm → local day-of-month (1–31)
-export const getLocalDayOfMonth = (utcDom: number, utcTime: string): number => {
-  const [h, m] = utcTime.split(':').map(Number);
-  const local = dayjs.utc().date(utcDom).hour(h).minute(m).local();
-  return local.date();
+const MINUTES_IN_DAY = 24 * 60;
+const DAYS_IN_MONTHLY_CYCLE = 31;
+
+// A monthly day wraps on a 31-day cycle instead of a calendar month, so the length of the current
+// month never changes a stored day and every day survives being shown and saved again.
+const shiftDayOfMonth = ({
+  dayOfMonth,
+  minutesAfterStartOfDay,
+}: {
+  dayOfMonth: number;
+  minutesAfterStartOfDay: number;
+}): number => {
+  const dayShift = Math.floor(minutesAfterStartOfDay / MINUTES_IN_DAY);
+
+  return ((dayOfMonth + dayShift - 1 + DAYS_IN_MONTHLY_CYCLE) % DAYS_IN_MONTHLY_CYCLE) + 1;
 };
 
-// Local day-of-month + local time → UTC day-of-month (1–31)
-export const getUtcDayOfMonth = (localDom: number, localTime: Dayjs): number => {
-  const utc = localTime.date(localDom).utc();
-  return utc.date();
+export const getLocalDayOfMonth = (utcDayOfMonth: number, utcTime: string): number => {
+  const [h, m] = utcTime.split(':').map(Number);
+  const utcOffset = dayjs.utc(utcTime, 'HH:mm').local().utcOffset();
+
+  return shiftDayOfMonth({
+    dayOfMonth: utcDayOfMonth,
+    minutesAfterStartOfDay: h * 60 + m + utcOffset,
+  });
 };
+
+export const getUtcDayOfMonth = (localDayOfMonth: number, localTime: Dayjs): number =>
+  shiftDayOfMonth({
+    dayOfMonth: localDayOfMonth,
+    minutesAfterStartOfDay: localTime.hour() * 60 + localTime.minute() - localTime.utcOffset(),
+  });

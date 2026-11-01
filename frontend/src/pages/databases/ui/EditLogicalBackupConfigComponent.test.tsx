@@ -1,12 +1,13 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { EditLogicalBackupConfigComponent } from '@/features/backups/logical';
 
 import type {
   BackupConfig,
   BackupConfigInput,
+  LogicalBackupConfigInput,
   StorageSwitch,
 } from '../../../entities/backups/config';
 import {
@@ -28,28 +29,29 @@ const database: Database = {
   settings: createDefaultDatabaseSettings(DatabaseType.POSTGRES_LOGICAL),
   notifierIds: [],
 };
+const logicalSettings: LogicalBackupConfigInput['settings'] = {
+  type: 'LOGICAL',
+  schedule: { type: 'HOURLY' },
+  retention: {
+    policy: 'COUNT',
+    count: 5,
+    period: 'WEEK',
+    gfsHours: 0,
+    gfsDays: 0,
+    gfsWeeks: 0,
+    gfsMonths: 0,
+    gfsYears: 0,
+  },
+  isRetryIfFailed: false,
+  maxFailedTriesCount: 1,
+  notificationTriggers: [],
+};
 const config: BackupConfig = {
   databaseId: database.id,
   storageId: null,
   isBackupsEnabled: true,
   encryption: 'NONE',
-  settings: {
-    type: 'LOGICAL',
-    schedule: { type: 'HOURLY' },
-    retention: {
-      policy: 'COUNT',
-      count: 5,
-      period: 'WEEK',
-      gfsHours: 0,
-      gfsDays: 0,
-      gfsWeeks: 0,
-      gfsMonths: 0,
-      gfsYears: 0,
-    },
-    isRetryIfFailed: false,
-    maxFailedTriesCount: 1,
-    notificationTriggers: [],
-  },
+  settings: logicalSettings,
 };
 const operation: StorageSwitch = {
   id: 'switch-id',
@@ -254,4 +256,96 @@ describe('EditLogicalBackupConfigComponent', () => {
       expect(submitted[1].storageId).toBe(storageId);
     },
   );
+
+  describe('with a monthly schedule in November', () => {
+    const getFieldInput = async (label: string) => {
+      const fieldLabel = await screen.findByText(label);
+
+      return fieldLabel.parentElement!.querySelector('input')!;
+    };
+
+    const renderMonthlyConfig = (dayOfMonth: number) => {
+      const submitted: LogicalBackupConfigInput[] = [];
+
+      mockServer.use(
+        mockApi.get('/backup-configs/{databaseId}', 200, {
+          ...config,
+          settings: {
+            ...logicalSettings,
+            schedule: { type: 'MONTHLY', timeOfDay: '12:00', dayOfMonth },
+          },
+        }),
+        mockApi.get('/logical-backups', 200, { items: [] }),
+        mockApi.get('/storage-switches', 200, { items: [] }),
+        http.put(`*${API_BASE_PATH}/backup-configs/:databaseId`, async ({ request }) => {
+          const saved = (await request.json()) as LogicalBackupConfigInput;
+          submitted.push(saved);
+
+          return HttpResponse.json({ ...saved, databaseId: database.id });
+        }),
+      );
+
+      renderScreen(
+        <EditLogicalBackupConfigComponent
+          renderStorageSelection={() => null}
+          database={database}
+          isShowBackButton={false}
+          onBack={() => {}}
+          onCancel={() => {}}
+          isSaveToApi
+          onSaved={() => {}}
+        />,
+      );
+
+      return submitted;
+    };
+
+    const saveAndGetSubmittedSchedule = async (submitted: LogicalBackupConfigInput[]) => {
+      fireEvent.click(await screen.findByRole('button', { name: /Save$/ }));
+      await waitFor(() => expect(submitted).toHaveLength(1));
+
+      return submitted[0].settings.schedule;
+    };
+
+    beforeEach(() => {
+      vi.stubEnv('TZ', 'UTC');
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-15T12:00:00Z'));
+    });
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('shows day 31 when a loaded config is on day 31', async () => {
+      renderMonthlyConfig(31);
+
+      const dayInput = await getFieldInput('Backup day of month');
+
+      expect(dayInput.value).toBe('31');
+    });
+
+    it('submits day 31 when the user chooses day 31', async () => {
+      const submitted = renderMonthlyConfig(10);
+      const dayInput = await getFieldInput('Backup day of month');
+
+      fireEvent.change(dayInput, { target: { value: '31' } });
+      const submittedSchedule = await saveAndGetSubmittedSchedule(submitted);
+
+      expect(submittedSchedule.dayOfMonth).toBe(31);
+    });
+
+    it('submits day 31 when the user changes only the time', async () => {
+      const submitted = renderMonthlyConfig(31);
+      const timeInput = await getFieldInput('Backup time of day');
+
+      fireEvent.mouseDown(timeInput);
+      fireEvent.change(timeInput, { target: { value: '1:00 PM' } });
+      fireEvent.keyDown(timeInput, { key: 'Enter' });
+      const submittedSchedule = await saveAndGetSubmittedSchedule(submitted);
+
+      expect(submittedSchedule.timeOfDay).toBe('13:00');
+      expect(submittedSchedule.dayOfMonth).toBe(31);
+    });
+  });
 });

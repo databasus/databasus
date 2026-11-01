@@ -3594,7 +3594,7 @@ type Schedule struct {
 	// CronExpression The five-field cron expression of a cron schedule
 	CronExpression *string `json:"cronExpression,omitempty"`
 
-	// DayOfMonth The day of a monthly schedule
+	// DayOfMonth The day of a monthly schedule. In a month without this day, the schedule runs on the month's last day.
 	DayOfMonth *int `json:"dayOfMonth,omitempty"`
 
 	// TimeOfDay The time of day as `HH:MM`, required for daily, weekly and monthly schedules

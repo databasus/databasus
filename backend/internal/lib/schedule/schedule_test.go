@@ -520,6 +520,140 @@ func TestIsDueForMonthlySchedule(t *testing.T) {
 			assert.True(t, isDue)
 		},
 	)
+
+	octoberSlot := time.Date(2026, 10, 31, 8, 0, 0, 0, time.UTC)
+	novemberSlot := time.Date(2026, 11, 30, 8, 0, 0, 0, time.UTC)
+
+	testCases := []struct {
+		name          string
+		dayOfMonth    int
+		now           time.Time
+		lastRun       time.Time
+		expectedIsDue bool
+	}{
+		{
+			name:          "is not due on the last day before the time when day 31 is past the end of the month",
+			dayOfMonth:    31,
+			now:           time.Date(2026, 11, 30, 7, 59, 0, 0, time.UTC),
+			lastRun:       octoberSlot,
+			expectedIsDue: false,
+		},
+		{
+			name:          "is due on the last day at the time when day 31 is past the end of the month",
+			dayOfMonth:    31,
+			now:           novemberSlot,
+			lastRun:       octoberSlot,
+			expectedIsDue: true,
+		},
+		{
+			name:          "is due on a late pass on the last day when day 31 is past the end of the month",
+			dayOfMonth:    31,
+			now:           time.Date(2026, 11, 30, 10, 0, 0, 0, time.UTC),
+			lastRun:       octoberSlot,
+			expectedIsDue: true,
+		},
+		{
+			name:          "is not due on December 1 after a run on the November slot",
+			dayOfMonth:    31,
+			now:           time.Date(2026, 12, 1, 8, 0, 0, 0, time.UTC),
+			lastRun:       novemberSlot,
+			expectedIsDue: false,
+		},
+		{
+			name:          "is not due on December 30 after a run on the November slot",
+			dayOfMonth:    31,
+			now:           time.Date(2026, 12, 30, 8, 0, 0, 0, time.UTC),
+			lastRun:       novemberSlot,
+			expectedIsDue: false,
+		},
+		{
+			name:          "is due on December 31 at the time after a run on the November slot",
+			dayOfMonth:    31,
+			now:           time.Date(2026, 12, 31, 8, 0, 0, 0, time.UTC),
+			lastRun:       novemberSlot,
+			expectedIsDue: true,
+		},
+		{
+			name:          "is not due on December 1 when the November slot was missed",
+			dayOfMonth:    31,
+			now:           time.Date(2026, 12, 1, 8, 0, 0, 0, time.UTC),
+			lastRun:       octoberSlot,
+			expectedIsDue: false,
+		},
+		{
+			name:          "is not due on December 30 when the November slot was missed",
+			dayOfMonth:    31,
+			now:           time.Date(2026, 12, 30, 8, 0, 0, 0, time.UTC),
+			lastRun:       octoberSlot,
+			expectedIsDue: false,
+		},
+		{
+			name:          "is due on December 31 at the time when the November slot was missed",
+			dayOfMonth:    31,
+			now:           time.Date(2026, 12, 31, 8, 0, 0, 0, time.UTC),
+			lastRun:       octoberSlot,
+			expectedIsDue: true,
+		},
+		{
+			name:          "is due at the November slot after a manual run on November 5",
+			dayOfMonth:    31,
+			now:           novemberSlot,
+			lastRun:       time.Date(2026, 11, 5, 10, 0, 0, 0, time.UTC),
+			expectedIsDue: true,
+		},
+		{
+			name:          "is due on February 28 at the time with day 30 in a common year",
+			dayOfMonth:    30,
+			now:           time.Date(2026, 2, 28, 8, 0, 0, 0, time.UTC),
+			lastRun:       time.Date(2026, 1, 30, 8, 0, 0, 0, time.UTC),
+			expectedIsDue: true,
+		},
+		{
+			name:          "is not due on February 28 with day 30 in a leap year",
+			dayOfMonth:    30,
+			now:           time.Date(2028, 2, 28, 8, 0, 0, 0, time.UTC),
+			lastRun:       time.Date(2028, 1, 30, 8, 0, 0, 0, time.UTC),
+			expectedIsDue: false,
+		},
+		{
+			name:          "is due on February 29 at the time with day 30 in a leap year",
+			dayOfMonth:    30,
+			now:           time.Date(2028, 2, 29, 8, 0, 0, 0, time.UTC),
+			lastRun:       time.Date(2028, 1, 30, 8, 0, 0, 0, time.UTC),
+			expectedIsDue: true,
+		},
+		{
+			name:          "is not due on October 30 with day 31 in a month that has it",
+			dayOfMonth:    31,
+			now:           time.Date(2026, 10, 30, 8, 0, 0, 0, time.UTC),
+			lastRun:       time.Date(2026, 9, 30, 8, 0, 0, 0, time.UTC),
+			expectedIsDue: false,
+		},
+		{
+			name:          "is due on October 31 at the time with day 31 in a month that has it",
+			dayOfMonth:    31,
+			now:           octoberSlot,
+			lastRun:       time.Date(2026, 9, 30, 8, 0, 0, 0, time.UTC),
+			expectedIsDue: true,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			timeOfDay := "08:00"
+			testedSchedule := Schedule{
+				Type:       TypeMonthly,
+				TimeOfDay:  &timeOfDay,
+				DayOfMonth: &testCase.dayOfMonth,
+			}
+
+			isDue := testedSchedule.IsDue(testCase.now, &testCase.lastRun)
+
+			assert.Equal(t, testCase.expectedIsDue, isDue)
+		})
+	}
 }
 
 func TestIsDueForCronSchedule(t *testing.T) {

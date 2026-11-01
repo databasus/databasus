@@ -5764,7 +5764,7 @@ components:
           type: integer
           minimum: 1
           maximum: 31
-          description: The day of a monthly schedule
+          description: The day of a monthly schedule. In a month without this day, the schedule runs on the month's last day.
         cronExpression:
           type: string
           description: The five-field cron expression of a cron schedule
