@@ -4,12 +4,13 @@ import utc from 'dayjs/plugin/utc';
 import { HttpResponse, type RequestHandler, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { BackupConfig } from '../../../entities/backup-configs';
+import { type BackupConfig } from '../../../entities/backup-configs';
 import {
   type Database,
   DatabaseType,
   type HealthStatus,
   createDefaultDatabaseSettings,
+  databaseApi,
 } from '../../../entities/databases';
 import type { Storage } from '../../../entities/storages';
 import type { Workspace } from '../../../entities/workspaces';
@@ -17,6 +18,7 @@ import { API_BASE_PATH, type ApiComponents } from '../../../shared/api';
 import { waitForCondition } from '../../../shared/lib/test/conditionWait';
 import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
 import { createPendingApiResponse } from '../../../shared/lib/test/pendingApiResponse';
+import { releaseAndSettle } from '../../../shared/lib/test/releaseAndSettle';
 import { renderScreen } from '../../../shared/lib/test/renderScreen';
 // @vitest-environment happy-dom
 import { DatabasesComponent } from './DatabasesComponent';
@@ -212,6 +214,24 @@ const transferSelectedDatabase = async (user: ReturnType<typeof renderScreen>['u
 
 const findDatabaseCard = (name: string) =>
   screen.findByRole('button', { name: new RegExp(`^${name}`) });
+
+const reachWizardBackupStep = async (user: ReturnType<typeof renderScreen>['user']) => {
+  await user.click(await screen.findByRole('button', { name: 'Add database' }));
+  fireEvent.change(await screen.findByPlaceholderText('My favourite DB'), {
+    target: { value: 'Created' },
+  });
+  fireEvent.click(screen.getByText('MySQL'));
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.change(await screen.findByPlaceholderText(/host$/), {
+    target: { value: 'db.example.com' },
+  });
+  fireEvent.change(screen.getByPlaceholderText(/username$/), { target: { value: 'backup' } });
+  fireEvent.change(screen.getByPlaceholderText(/password$/), { target: { value: 'secret' } });
+  fireEvent.change(screen.getByPlaceholderText(/database name$/), { target: { value: 'shop' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Test connection' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Continue' }));
+  await screen.findByText('Storage');
+};
 
 describe('DatabasesComponent', () => {
   it('lists unavailable databases first when the server lists them after available ones', async () => {
@@ -778,24 +798,6 @@ describe('DatabasesComponent', () => {
 });
 
 describe('DatabasesComponent during the backup step of the wizard', () => {
-  const reachWizardBackupStep = async (user: ReturnType<typeof renderDatabasesScreen>['user']) => {
-    await user.click(await screen.findByRole('button', { name: 'Add database' }));
-    fireEvent.change(await screen.findByPlaceholderText('My favourite DB'), {
-      target: { value: 'Created' },
-    });
-    fireEvent.click(screen.getByText('MySQL'));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.change(await screen.findByPlaceholderText(/host$/), {
-      target: { value: 'db.example.com' },
-    });
-    fireEvent.change(screen.getByPlaceholderText(/username$/), { target: { value: 'backup' } });
-    fireEvent.change(screen.getByPlaceholderText(/password$/), { target: { value: 'secret' } });
-    fireEvent.change(screen.getByPlaceholderText(/database name$/), { target: { value: 'shop' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Test connection' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Continue' }));
-    await screen.findByText('Storage');
-  };
-
   it('keeps the entered values when the page becomes visible and the list refreshes', async () => {
     const shopDatabase = buildDatabase('Shop');
     declareListResponses([shopDatabase], [shopDatabase, buildDatabase('Refreshed')]);
@@ -865,5 +867,219 @@ describe('DatabasesComponent with a late rename', () => {
     expect((await findDatabaseCard('Bravo')).getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByText('Bravo', { selector: 'div.text-xl' })).toBeTruthy();
     expect(screen.queryByText('Storefront', { selector: 'div.text-xl' })).toBeNull();
+  });
+});
+
+describe('DatabasesComponent with the creation wizard', () => {
+  const shopDatabase = buildDatabase('Shop');
+  const createdDatabase = {
+    ...buildDatabase('Created', 'AVAILABLE', DatabaseType.MYSQL),
+    id: 'created-id',
+  };
+  const archiveStorage = buildStorage('Archive');
+  const SCHEDULED_BACKUPS_DISABLED =
+    'Scheduled backups are disabled (you can enable it back in the backup configuration)';
+
+  const declareWizardServer = () => {
+    const wizardServer = {
+      isCreated: false,
+      isBackupConfigRefused: false,
+      storedBackupConfig: undefined as BackupConfig | undefined,
+    };
+    const getStoredBackupConfig = (databaseId: string): BackupConfig => {
+      if (databaseId === shopDatabase.id) return buildBackupConfig(shopDatabase, archiveStorage);
+
+      return (
+        wizardServer.storedBackupConfig ?? {
+          ...buildBackupConfig(createdDatabase, archiveStorage),
+          isBackupsEnabled: false,
+          storageId: null,
+        }
+      );
+    };
+
+    mockServer.use(
+      http.get(`*${API_BASE_PATH}/databases`, ({ request }) => {
+        if (new URL(request.url).searchParams.get('workspaceId') !== workspace.id)
+          return HttpResponse.json({ items: [] });
+
+        return HttpResponse.json({
+          items: wizardServer.isCreated ? [shopDatabase, createdDatabase] : [shopDatabase],
+        });
+      }),
+      http.get(`*${API_BASE_PATH}/backup-configs`, () =>
+        HttpResponse.json({
+          items: wizardServer.storedBackupConfig ? [wizardServer.storedBackupConfig] : [],
+        }),
+      ),
+      mockApi.get('/storages', 200, { items: [archiveStorage] }),
+      mockApi.get('/storage-switches', 200, { items: [] }),
+      http.get(`*${API_BASE_PATH}/databases/:databaseId`, ({ params }) =>
+        HttpResponse.json(
+          params.databaseId === createdDatabase.id ? createdDatabase : shopDatabase,
+        ),
+      ),
+      http.get(`*${API_BASE_PATH}/backup-configs/:databaseId`, ({ params }) =>
+        HttpResponse.json(getStoredBackupConfig(params.databaseId as string)),
+      ),
+      mockApi.get('/logical-backups', 200, { items: [] }),
+      mockApi.get('/storages/{storageId}', 200, archiveStorage),
+      mockApi.pending('get', '/healthcheck-configs/{databaseId}').handler,
+      mockApi.pending('get', '/healthcheck-attempts').handler,
+      mockApi.pending('get', '/verification-configs/{databaseId}').handler,
+      mockApi.get('/notifiers', 200, { items: [] }),
+      mockApi.post('/database-tests', 200, { isConnected: true }),
+      mockApi.post('/limited-user-checks', 200, { isAdvisable: false, privileges: [] }),
+      http.post(`*${API_BASE_PATH}/databases`, () => {
+        wizardServer.isCreated = true;
+
+        return HttpResponse.json(createdDatabase, { status: 201 });
+      }),
+      http.put(`*${API_BASE_PATH}/backup-configs/:databaseId`, () => {
+        if (wizardServer.isBackupConfigRefused)
+          return HttpResponse.json(buildProblem('permission_denied', 403), { status: 403 });
+
+        wizardServer.storedBackupConfig = buildBackupConfig(createdDatabase, archiveStorage);
+
+        return HttpResponse.json(wizardServer.storedBackupConfig);
+      }),
+      http.post(`*${API_BASE_PATH}/logical-backups`, () =>
+        HttpResponse.json({ id: 'backup-id' }, { status: 202 }),
+      ),
+    );
+
+    return wizardServer;
+  };
+
+  const reachWizardCompletion = async (user: ReturnType<typeof renderScreen>['user']) => {
+    await reachWizardBackupStep(user);
+    await chooseStorage('Archive');
+    fireEvent.click(await screen.findByRole('button', { name: 'Continue' }));
+
+    return screen.findByRole('button', { name: 'Complete' });
+  };
+
+  const closeWizard = () => fireEvent.click(document.querySelector('.ant-modal-close')!);
+
+  const refreshInBackground = () =>
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+  const expectCardPressed = async (name: string, isPressed: boolean) =>
+    waitFor(async () =>
+      expect((await findDatabaseCard(name)).getAttribute('aria-pressed')).toBe(String(isPressed)),
+    );
+
+  it('does not select the created database while the wizard is open', async () => {
+    declareWizardServer();
+    const backupConfigSave = mockApi.pending('put', '/backup-configs/{databaseId}');
+    mockServer.use(backupConfigSave.handler);
+    const { user } = renderDatabasesScreen();
+
+    fireEvent.click(await reachWizardCompletion(user));
+    await waitFor(() => expect(countRequests('/backup-configs/created-id', 'PUT')).toBe(1));
+    refreshInBackground();
+
+    await expectCardPressed('Created', false);
+    await expectCardPressed('Shop', true);
+    expect(countRequests('/databases/created-id')).toBe(0);
+    expect(countRequests('/backup-configs/created-id')).toBe(0);
+  });
+
+  it('selects the created database after the wizard finishes and shows what the server saved', async () => {
+    declareWizardServer();
+    const { user } = renderDatabasesScreen();
+    await findDatabaseCard('Shop');
+
+    fireEvent.click(await reachWizardCompletion(user));
+
+    await expectCardPressed('Created', true);
+    expect(await within(await findDatabaseCard('Created')).findByText('Archive')).toBeTruthy();
+    expect(await screen.findByText('No backups yet')).toBeTruthy();
+    expect(screen.queryByText(SCHEDULED_BACKUPS_DISABLED)).toBeNull();
+    expect(document.querySelector('.ant-modal')).toBeNull();
+  });
+
+  it('lists and selects the created database when the user closes the wizard after a failure', async () => {
+    const wizardServer = declareWizardServer();
+    wizardServer.isBackupConfigRefused = true;
+    const { user } = renderDatabasesScreen();
+
+    fireEvent.click(await reachWizardCompletion(user));
+    await screen.findByText(/The database was created/);
+    closeWizard();
+
+    await expectCardPressed('Created', true);
+    await expectCardPressed('Shop', false);
+  });
+
+  const openAndCancelWizard = async (user: ReturnType<typeof renderScreen>['user']) => {
+    await user.click(await screen.findByRole('button', { name: 'Add database' }));
+    await screen.findByPlaceholderText('My favourite DB');
+    closeWizard();
+    await waitFor(() => expect(screen.queryByPlaceholderText('My favourite DB')).toBeNull());
+  };
+
+  it('keeps the chosen database selected when a later wizard is cancelled', async () => {
+    const wizardServer = declareWizardServer();
+    wizardServer.isBackupConfigRefused = true;
+    const { user } = renderDatabasesScreen();
+
+    fireEvent.click(await reachWizardCompletion(user));
+    await screen.findByText(/The database was created/);
+    closeWizard();
+    await expectCardPressed('Created', true);
+    await user.click(await findDatabaseCard('Shop'));
+    await expectCardPressed('Shop', true);
+    await openAndCancelWizard(user);
+
+    await expectCardPressed('Shop', true);
+    await expectCardPressed('Created', false);
+  });
+
+  it('forgets the created database when the workspace changes while the wizard is open', async () => {
+    const wizardServer = declareWizardServer();
+    wizardServer.isBackupConfigRefused = true;
+    const { user, rerender } = renderDatabasesScreen();
+
+    fireEvent.click(await reachWizardCompletion(user));
+    await screen.findByText(/The database was created/);
+    rerender(<DatabasesComponent workspace={transferTargetWorkspace} isCanManageDBs />);
+    await waitFor(() => expect(screen.queryByRole('button', { name: /^Shop/ })).toBeNull());
+
+    expect(screen.queryByRole('button', { name: /^Created/ })).toBeNull();
+
+    rerender(<DatabasesComponent workspace={workspace} isCanManageDBs />);
+    await findDatabaseCard('Shop');
+    await openAndCancelWizard(user);
+
+    await expectCardPressed('Shop', true);
+    await expectCardPressed('Created', false);
+  });
+
+  it('leaves the selection alone and lists the database on a later refresh when its create answer comes after the wizard closed', async () => {
+    const wizardServer = declareWizardServer();
+    const creation = mockApi.pending('post', '/databases');
+    mockServer.use(creation.handler);
+    const createCall = vi.spyOn(databaseApi, 'createDatabase');
+    const { user } = renderDatabasesScreen();
+
+    fireEvent.click(await reachWizardCompletion(user));
+    await waitFor(() => expect(createCall).toHaveBeenCalledTimes(1));
+    closeWizard();
+    wizardServer.isCreated = true;
+    await releaseAndSettle(createCall, () =>
+      creation.respond(HttpResponse.json(createdDatabase, { status: 201 })),
+    );
+    await openAndCancelWizard(user);
+
+    await expectCardPressed('Shop', true);
+    expect(screen.queryByRole('button', { name: /^Created/ })).toBeNull();
+
+    refreshInBackground();
+
+    await expectCardPressed('Created', false);
+    await expectCardPressed('Shop', true);
   });
 });

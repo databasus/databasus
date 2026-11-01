@@ -10,7 +10,7 @@ import { LogicalBackupConfigFields } from './LogicalBackupConfigFields';
 interface Props {
   workspaceId: string;
   initialConfig?: LogicalBackupConfigInput;
-  onBack: (config: LogicalBackupConfigInput) => void;
+  onBack?: (config: LogicalBackupConfigInput) => void;
   onContinue: (config: LogicalBackupConfigInput) => void;
 }
 
@@ -35,9 +35,11 @@ export const CreateLogicalBackupConfigStep = ({
       />
 
       <div className="mt-5 flex">
-        <Button className="mr-1" type="primary" ghost onClick={() => onBack(draft)}>
-          {t('common.actions.back')}
-        </Button>
+        {onBack && (
+          <Button className="mr-1" type="primary" ghost onClick={() => onBack(draft)}>
+            {t('common.actions.back')}
+          </Button>
+        )}
 
         <Button
           type="primary"

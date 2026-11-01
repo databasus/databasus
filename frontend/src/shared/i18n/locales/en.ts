@@ -341,6 +341,9 @@ export const en = {
       title: 'Add database for backup',
       namePlaceholder: 'My favourite DB',
       creating: 'Creating database...',
+      finishing: 'Finishing database setup...',
+      createdButNotFinished:
+        'The database was created, but its setup did not finish. Reason: {{reason}}',
       complete: 'Complete',
       backupType: {
         title: 'Choose backup type',

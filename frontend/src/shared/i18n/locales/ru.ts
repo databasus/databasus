@@ -343,6 +343,8 @@ export const ru: typeof en = {
       title: 'Добавить базу данных для бекапа',
       namePlaceholder: 'Моя любимая БД',
       creating: 'Создаем базу данных...',
+      finishing: 'Завершаем настройку базы данных...',
+      createdButNotFinished: 'База данных создана, но настройка не завершена. Причина: {{reason}}',
       complete: 'Завершить',
       backupType: {
         title: 'Выберите тип бекапа',

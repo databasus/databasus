@@ -351,6 +351,9 @@ export const es: typeof en = {
       title: 'Añadir una base de datos para copias de seguridad',
       namePlaceholder: 'Mi base de datos favorita',
       creating: 'Creando la base de datos...',
+      finishing: 'Terminando de configurar la base de datos...',
+      createdButNotFinished:
+        'La base de datos se creó, pero su configuración no terminó. Motivo: {{reason}}',
       complete: 'Finalizar',
       backupType: {
         title: 'Elija el tipo de copia de seguridad',

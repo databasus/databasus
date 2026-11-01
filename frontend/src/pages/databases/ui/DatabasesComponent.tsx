@@ -130,6 +130,16 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs }: Props) => {
     loadDatabases(true);
   };
 
+  // Selecting at creation would mount the screen behind the wizard, and its single configuration read
+  // would then show the backups as disabled, so the database joins the list when the wizard closes.
+  const closeWizardAndAcceptCreatedDatabase = () => {
+    const database = databaseCreatedInWizard.current;
+    databaseCreatedInWizard.current = undefined;
+
+    setIsShowAddDatabase(false);
+    if (database) acceptAddedDatabase(database);
+  };
+
   const removeSelected = () => {
     if (!selectedDatabaseId) return;
 
@@ -146,6 +156,7 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs }: Props) => {
   const isCurrent = useSessionGuard();
   const loadRevision = useRef(new RequestRevision());
   const detailScrollRef = useRef<HTMLDivElement>(null);
+  const databaseCreatedInWizard = useRef<Database | undefined>(undefined);
   const databases = collection.workspaceId === workspace.id ? collection.items : [];
   const selection = useScopedSelection({
     // eslint-disable-next-line i18next/no-literal-string -- browser preference key
@@ -163,6 +174,7 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs }: Props) => {
   useEffect(() => {
     setCollection(createEmptyCollection(workspace.id));
     setIsShowAddDatabase(false);
+    databaseCreatedInWizard.current = undefined;
     setSearchQuery('');
     loadDatabases();
 
@@ -280,7 +292,7 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs }: Props) => {
           title={t('databases.create.title')}
           footer={<div />}
           open
-          onCancel={() => setIsShowAddDatabase(false)}
+          onCancel={closeWizardAndAcceptCreatedDatabase}
           maskClosable={false}
           closable={!hasConnectionError}
           width={hasConnectionError || isWideStep ? 640 : 420}
@@ -290,10 +302,9 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs }: Props) => {
           <CreateDatabaseComponent
             workspaceId={workspace.id}
             onCreated={(database) => {
-              acceptAddedDatabase(database);
-              setIsShowAddDatabase(false);
+              databaseCreatedInWizard.current = database;
             }}
-            onClose={() => setIsShowAddDatabase(false)}
+            onClose={closeWizardAndAcceptCreatedDatabase}
             onConnectionErrorChange={setHasConnectionError}
             onWideStepChange={setIsWideStep}
           />

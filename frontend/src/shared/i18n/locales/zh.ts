@@ -326,6 +326,8 @@ export const zh: typeof en = {
       title: '添加要备份的数据库',
       namePlaceholder: '我最爱的数据库',
       creating: '正在创建数据库…',
+      finishing: '正在完成数据库设置…',
+      createdButNotFinished: '数据库已创建，但设置尚未完成。原因：{{reason}}',
       complete: '完成',
       backupType: {
         title: '选择备份类型',

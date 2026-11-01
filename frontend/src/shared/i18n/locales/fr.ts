@@ -349,6 +349,9 @@ export const fr: typeof en = {
       title: 'Ajouter une base de données à sauvegarder',
       namePlaceholder: 'Ma base préférée',
       creating: 'Création de la base de données...',
+      finishing: 'Finalisation de la configuration de la base de données...',
+      createdButNotFinished:
+        "La base de données a été créée, mais sa configuration n'est pas terminée. Motif : {{reason}}",
       complete: 'Terminer',
       backupType: {
         title: 'Choisissez le type de sauvegarde',

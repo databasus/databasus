@@ -104,6 +104,20 @@ describe('CreateLogicalBackupConfigStep', () => {
     expect(screen.queryByText('Retry backup if failed')).toBeNull();
   });
 
+  it('offers no Back without a way to go back', async () => {
+    declareStorages();
+    renderScreen(
+      <CreateLogicalBackupConfigStep
+        workspaceId="workspace-id"
+        initialConfig={enteredConfig}
+        onContinue={() => {}}
+      />,
+    );
+    await screen.findByText('Entered archive');
+
+    expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
+  });
+
   it('hands over the draft on Back and on Continue', async () => {
     declareStorages();
     const onBack = vi.fn();

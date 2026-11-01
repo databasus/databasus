@@ -5,13 +5,22 @@ import utc from 'dayjs/plugin/utc';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
-import { type Database, databaseApi } from '../../../entities/databases';
+import { backupConfigApi } from '../../../entities/backup-configs';
+import {
+  type Database,
+  DatabaseType,
+  createDefaultDatabaseSettings,
+  databaseApi,
+} from '../../../entities/databases';
 import type { Storage } from '../../../entities/storages';
 import { API_BASE_PATH, type ApiComponents } from '../../../shared/api';
-import { mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
+import { useLocale } from '../../../shared/i18n';
+import { ru } from '../../../shared/i18n/locales/ru';
+import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
 import { releaseAndSettle } from '../../../shared/lib/test/releaseAndSettle';
 import { renderScreen } from '../../../shared/lib/test/renderScreen';
 import { stubClipboard } from '../../../shared/lib/test/stubClipboard';
+import { logicalBackupApi } from '../api/logicalBackupApi';
 import { CreateDatabaseComponent } from './CreateDatabaseComponent';
 
 dayjs.extend(utc);
@@ -784,5 +793,567 @@ describe('the backup configuration step of the wizard', () => {
     await screen.findByText('Storage');
 
     expect(getFirstCheckbox().checked).toBe(!isInitiallyChecked);
+  });
+});
+
+describe('completing the wizard', () => {
+  const REFUSAL_REASON = 'You do not have permission to do this.';
+  const CREATED_DATABASE_MESSAGE = /The database was created/;
+
+  const buildCreatedDatabase = (type: DatabaseType, notifierIds: string[] = []): Database => ({
+    id: 'created-id',
+    workspaceId: 'workspace-id',
+    name: 'Shop',
+    settings: {
+      ...createDefaultDatabaseSettings(type),
+      host: 'db.example.com',
+      username: 'backup',
+      database: 'shop',
+    } as Database['settings'],
+    notifierIds,
+  });
+
+  const refuseRequest = () =>
+    HttpResponse.json(buildProblem('permission_denied', 403), { status: 403 });
+
+  const declareCompletionServer = (type: DatabaseType) => {
+    const completionServer = {
+      isCreationRefused: false,
+      isBackupConfigRefused: false,
+      isBackupStartRefused: false,
+      sentBackupConfigs: [] as ApiComponents['schemas']['BackupConfigInput'][],
+      sentNotifierIds: [] as string[][],
+    };
+    const startBackup = () =>
+      completionServer.isBackupStartRefused
+        ? refuseRequest()
+        : HttpResponse.json({ id: 'backup-id' }, { status: 202 });
+
+    declareWizardRequests();
+    mockServer.use(
+      http.post(`*${API_BASE_PATH}/databases`, async ({ request }) => {
+        if (completionServer.isCreationRefused) return refuseRequest();
+
+        const { notifierIds } = (await request.json()) as { notifierIds: string[] };
+
+        return HttpResponse.json(buildCreatedDatabase(type, notifierIds), { status: 201 });
+      }),
+      http.put(`*${API_BASE_PATH}/databases/:databaseId`, async ({ request }) => {
+        const { notifierIds } = (await request.json()) as { notifierIds: string[] };
+        completionServer.sentNotifierIds.push(notifierIds);
+
+        return HttpResponse.json(buildCreatedDatabase(type, notifierIds));
+      }),
+      http.put(`*${API_BASE_PATH}/backup-configs/:databaseId`, async ({ request }) => {
+        completionServer.sentBackupConfigs.push(
+          (await request.json()) as ApiComponents['schemas']['BackupConfigInput'],
+        );
+
+        return completionServer.isBackupConfigRefused ? refuseRequest() : HttpResponse.json({});
+      }),
+      http.post(`*${API_BASE_PATH}/logical-backups`, startBackup),
+      http.post(`*${API_BASE_PATH}/physical-backups`, startBackup),
+    );
+
+    return completionServer;
+  };
+
+  const countRequests = ({ method, path }: { method: string; path: string }) =>
+    mockServer
+      .getRequests()
+      .filter(
+        (request) => request.method === method && new URL(request.url).pathname.endsWith(path),
+      ).length;
+
+  const renderCompletableWizard = () => {
+    const onCreated = vi.fn();
+    const onClose = vi.fn();
+    const view = renderScreen(
+      <CreateDatabaseComponent
+        workspaceId="workspace-id"
+        onCreated={onCreated}
+        onClose={onClose}
+      />,
+    );
+
+    return { ...view, onCreated, onClose };
+  };
+
+  const clickComplete = async () =>
+    fireEvent.click(await screen.findByRole('button', { name: 'Complete' }));
+
+  const reachPhysicalNotifierStep = async () => {
+    enterBaseInfo('PostgreSQL');
+    await choosePostgresBackupType('Physical');
+    await enterConnection();
+    await continueToNotifiers('Archive');
+  };
+
+  const buildNotifier = (name: string) => ({
+    id: `${name.toLowerCase()}-id`,
+    workspaceId: 'workspace-id',
+    name,
+    lastSendError: null,
+    settings: { type: 'DISCORD' as const },
+  });
+
+  const declareNotifiers = () =>
+    mockServer.use(
+      mockApi.get('/notifiers', 200, { items: [buildNotifier('Alerts'), buildNotifier('Pager')] }),
+    );
+
+  const toggleNotifier = async (name: string) => {
+    fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Notifiers' }));
+    fireEvent.click(
+      await waitFor(() => {
+        const notifierOption = document.querySelector(`.ant-select-item-option[title="${name}"]`);
+        expect(notifierOption).toBeTruthy();
+        return notifierOption!;
+      }),
+    );
+  };
+
+  const findCreatedDatabaseMessage = () => screen.findByText(CREATED_DATABASE_MESSAGE);
+
+  describe.each([
+    {
+      kind: 'logical',
+      type: DatabaseType.MYSQL,
+      backupStartPath: '/logical-backups',
+      reachCompletionStep: () => reachNotifierStep('Archive'),
+    },
+    {
+      kind: 'physical',
+      type: DatabaseType.POSTGRES_PHYSICAL,
+      backupStartPath: '/physical-backups',
+      reachCompletionStep: reachPhysicalNotifierStep,
+    },
+  ])('of a $kind database', ({ type, backupStartPath, reachCompletionStep }) => {
+    it('sends each request once and closes after the last one when everything succeeds', async () => {
+      const completionServer = declareCompletionServer(type);
+      const backupStart = mockApi.pending('post', backupStartPath as '/logical-backups');
+      mockServer.use(backupStart.handler);
+      const { onCreated, onClose } = renderCompletableWizard();
+      await reachCompletionStep();
+
+      await clickComplete();
+      await waitFor(() => expect(countRequests({ method: 'POST', path: backupStartPath })).toBe(1));
+
+      expect(onClose).not.toHaveBeenCalled();
+
+      backupStart.respond(HttpResponse.json({ id: 'backup-id' }, { status: 202 }));
+
+      await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+      expect(onCreated).toHaveBeenCalledTimes(1);
+      expect(countRequests({ method: 'POST', path: '/databases' })).toBe(1);
+      expect(completionServer.sentBackupConfigs).toHaveLength(1);
+      expect(completionServer.sentNotifierIds).toHaveLength(0);
+    });
+
+    it('creates once and sends the configuration again when Complete follows a refused configuration', async () => {
+      const completionServer = declareCompletionServer(type);
+      completionServer.isBackupConfigRefused = true;
+      const { onClose } = renderCompletableWizard();
+      await reachCompletionStep();
+
+      await clickComplete();
+      await findCreatedDatabaseMessage();
+      completionServer.isBackupConfigRefused = false;
+      await clickComplete();
+
+      await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+      expect(countRequests({ method: 'POST', path: '/databases' })).toBe(1);
+      expect(completionServer.sentBackupConfigs).toHaveLength(2);
+      expect(countRequests({ method: 'POST', path: backupStartPath })).toBe(1);
+    });
+
+    it('sends only the backup start again when Complete follows a failed backup start', async () => {
+      const completionServer = declareCompletionServer(type);
+      completionServer.isBackupStartRefused = true;
+      const { onClose } = renderCompletableWizard();
+      await reachCompletionStep();
+
+      await clickComplete();
+      await findCreatedDatabaseMessage();
+      completionServer.isBackupStartRefused = false;
+      await clickComplete();
+
+      await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+      expect(countRequests({ method: 'POST', path: '/databases' })).toBe(1);
+      expect(completionServer.sentBackupConfigs).toHaveLength(1);
+      expect(countRequests({ method: 'POST', path: backupStartPath })).toBe(2);
+    });
+
+    it('offers no way to the connection step and saves a changed configuration for the created database after a refused configuration', async () => {
+      const completionServer = declareCompletionServer(type);
+      completionServer.isBackupConfigRefused = true;
+      const { onClose } = renderCompletableWizard();
+      await reachCompletionStep();
+
+      await clickComplete();
+      await findCreatedDatabaseMessage();
+      await goBackToStep(1);
+      await getChosenStorageText();
+
+      expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
+
+      completionServer.isBackupConfigRefused = false;
+      await continueToNotifiers('Nightly');
+      await clickComplete();
+
+      await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+      expect(countRequests({ method: 'POST', path: '/databases' })).toBe(1);
+      expect(countRequests({ method: 'PUT', path: '/backup-configs/created-id' })).toBe(2);
+      expect(completionServer.sentBackupConfigs[1].storageId).toBe(nightlyStorage.id);
+    });
+
+    it('offers no way to the configuration step after a failed backup start', async () => {
+      const completionServer = declareCompletionServer(type);
+      completionServer.isBackupStartRefused = true;
+      renderCompletableWizard();
+      await reachCompletionStep();
+
+      await clickComplete();
+      await findCreatedDatabaseMessage();
+
+      expect(await screen.findByRole('button', { name: 'Complete' })).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
+    });
+
+    it('sends changed notifiers to the created database through an update with no second create', async () => {
+      const completionServer = declareCompletionServer(type);
+      declareNotifiers();
+      completionServer.isBackupStartRefused = true;
+      const { onClose } = renderCompletableWizard();
+      await reachCompletionStep();
+
+      await clickComplete();
+      await findCreatedDatabaseMessage();
+      await toggleNotifier('Alerts');
+      completionServer.isBackupStartRefused = false;
+      await clickComplete();
+
+      await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+      expect(countRequests({ method: 'POST', path: '/databases' })).toBe(1);
+      expect(completionServer.sentNotifierIds).toEqual([['alerts-id']]);
+      expect(completionServer.sentBackupConfigs).toHaveLength(1);
+    });
+  });
+
+  describe('when notifiers are chosen', () => {
+    it('sends no update on a retry when the selection made before the first Complete is unchanged', async () => {
+      const completionServer = declareCompletionServer(DatabaseType.MYSQL);
+      declareNotifiers();
+      completionServer.isBackupConfigRefused = true;
+      const { onClose } = renderCompletableWizard();
+      await reachNotifierStep('Archive');
+      await toggleNotifier('Alerts');
+
+      await clickComplete();
+      await findCreatedDatabaseMessage();
+      completionServer.isBackupConfigRefused = false;
+      await clickComplete();
+
+      await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+      expect(completionServer.sentNotifierIds).toHaveLength(0);
+    });
+
+    it('sends the new selection when one notifier is swapped for another before a retry', async () => {
+      const completionServer = declareCompletionServer(DatabaseType.MYSQL);
+      declareNotifiers();
+      completionServer.isBackupStartRefused = true;
+      const { onClose } = renderCompletableWizard();
+      await reachNotifierStep('Archive');
+      await toggleNotifier('Alerts');
+
+      await clickComplete();
+      await findCreatedDatabaseMessage();
+      await toggleNotifier('Alerts');
+      await toggleNotifier('Pager');
+      completionServer.isBackupStartRefused = false;
+      await clickComplete();
+
+      await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+      expect(completionServer.sentNotifierIds).toEqual([['pager-id']]);
+    });
+
+    it('does not repeat an update that succeeded before a refused configuration', async () => {
+      const completionServer = declareCompletionServer(DatabaseType.MYSQL);
+      declareNotifiers();
+      completionServer.isBackupConfigRefused = true;
+      const { onClose } = renderCompletableWizard();
+      await reachNotifierStep('Archive');
+
+      await clickComplete();
+      await findCreatedDatabaseMessage();
+      await toggleNotifier('Alerts');
+      await clickComplete();
+      await waitFor(() => expect(completionServer.sentBackupConfigs).toHaveLength(2));
+      await findCreatedDatabaseMessage();
+      completionServer.isBackupConfigRefused = false;
+      await clickComplete();
+
+      await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+      expect(completionServer.sentNotifierIds).toEqual([['alerts-id']]);
+    });
+  });
+
+  describe('when the wizard closes during its requests', () => {
+    it('sends no later request and reports nothing when the create request answers after the wizard closed', async () => {
+      declareCompletionServer(DatabaseType.MYSQL);
+      const creation = mockApi.pending('post', '/databases');
+      mockServer.use(creation.handler);
+      const createCall = vi.spyOn(databaseApi, 'createDatabase');
+      const backupConfigCall = vi.spyOn(backupConfigApi, 'updateBackupConfig');
+      const { onCreated, onClose, unmount } = renderCompletableWizard();
+      await reachNotifierStep('Archive');
+
+      await clickComplete();
+      await waitFor(() => expect(createCall).toHaveBeenCalledTimes(1));
+      unmount();
+      await releaseAndSettle(createCall, () =>
+        creation.respond(
+          HttpResponse.json(buildCreatedDatabase(DatabaseType.MYSQL), { status: 201 }),
+        ),
+      );
+
+      expect(backupConfigCall).not.toHaveBeenCalled();
+      expect(onCreated).not.toHaveBeenCalled();
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it('sends no later request and calls nothing when the save request answers after the wizard closed', async () => {
+      declareCompletionServer(DatabaseType.MYSQL);
+      const backupConfigSave = mockApi.pending('put', '/backup-configs/{databaseId}');
+      mockServer.use(backupConfigSave.handler);
+      const backupConfigCall = vi.spyOn(backupConfigApi, 'updateBackupConfig');
+      const backupStartCall = vi.spyOn(logicalBackupApi, 'startLogicalBackup');
+      const { onClose, unmount } = renderCompletableWizard();
+      await reachNotifierStep('Archive');
+
+      await clickComplete();
+      await waitFor(() => expect(backupConfigCall).toHaveBeenCalledTimes(1));
+      unmount();
+      await releaseAndSettle(backupConfigCall, () =>
+        backupConfigSave.respond(HttpResponse.json({})),
+      );
+
+      expect(backupStartCall).not.toHaveBeenCalled();
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      {
+        answer: 'accepted',
+        buildAnswer: () => HttpResponse.json({}),
+      },
+      {
+        answer: 'refused',
+        buildAnswer: refuseRequest,
+      },
+    ])(
+      'leaves a newly opened wizard on its first step with no feedback when the save request is $answer late',
+      async ({ buildAnswer }) => {
+        declareCompletionServer(DatabaseType.MYSQL);
+        const backupConfigSave = mockApi.pending('put', '/backup-configs/{databaseId}');
+        mockServer.use(backupConfigSave.handler);
+        const backupConfigCall = vi.spyOn(backupConfigApi, 'updateBackupConfig');
+        const backupStartCall = vi.spyOn(logicalBackupApi, 'startLogicalBackup');
+        const onClose = vi.fn();
+        const { rerender } = renderScreen(
+          <CreateDatabaseComponent
+            key="first-wizard"
+            workspaceId="workspace-id"
+            onCreated={() => {}}
+            onClose={onClose}
+          />,
+        );
+        await reachNotifierStep('Archive');
+
+        await clickComplete();
+        await waitFor(() => expect(backupConfigCall).toHaveBeenCalledTimes(1));
+        rerender(
+          <CreateDatabaseComponent
+            key="second-wizard"
+            workspaceId="workspace-id"
+            onCreated={() => {}}
+            onClose={onClose}
+          />,
+        );
+        await releaseAndSettle(backupConfigCall, () => backupConfigSave.respond(buildAnswer()));
+
+        expect(backupStartCall).not.toHaveBeenCalled();
+        expect(onClose).not.toHaveBeenCalled();
+        expect(screen.queryByText(REFUSAL_REASON)).toBeNull();
+        expect(screen.queryByText(CREATED_DATABASE_MESSAGE)).toBeNull();
+        expect((screen.getByPlaceholderText('My favourite DB') as HTMLInputElement).value).toBe('');
+      },
+    );
+
+    it('shows no error when the wizard closes before the create request is refused', async () => {
+      declareCompletionServer(DatabaseType.MYSQL);
+      const creation = mockApi.pending('post', '/databases');
+      mockServer.use(creation.handler);
+      const createCall = vi.spyOn(databaseApi, 'createDatabase');
+      const { rerender } = renderCompletableWizard();
+      await reachNotifierStep('Archive');
+
+      await clickComplete();
+      await waitFor(() => expect(createCall).toHaveBeenCalledTimes(1));
+      rerender(<div />);
+      await releaseAndSettle(createCall, () => creation.respond(refuseRequest()));
+
+      expect(screen.queryByText(REFUSAL_REASON)).toBeNull();
+    });
+  });
+
+  describe('when a request fails', () => {
+    it('shows the reason on the notifier step and keeps the message after going to the configuration step and returning', async () => {
+      const completionServer = declareCompletionServer(DatabaseType.MYSQL);
+      declareNotifiers();
+      completionServer.isBackupConfigRefused = true;
+      renderCompletableWizard();
+      await reachNotifierStep('Archive');
+      await toggleNotifier('Alerts');
+
+      await clickComplete();
+
+      const message = await findCreatedDatabaseMessage();
+      expect(message.textContent).toContain(REFUSAL_REASON);
+      const notifiers = await screen.findByRole('combobox', { name: 'Notifiers' });
+      await waitFor(() =>
+        expect(notifiers.closest('.ant-select')!.textContent).toContain('Alerts'),
+      );
+
+      await goBackToStep(1);
+
+      expect(await getChosenStorageText()).toContain('Archive');
+      expect(screen.getByText(CREATED_DATABASE_MESSAGE)).toBeTruthy();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+      expect(await findCreatedDatabaseMessage()).toBeTruthy();
+    });
+
+    it('says that a retry is finishing the setup rather than creating a database', async () => {
+      const completionServer = declareCompletionServer(DatabaseType.MYSQL);
+      completionServer.isBackupStartRefused = true;
+      renderCompletableWizard();
+      await reachNotifierStep('Archive');
+
+      await clickComplete();
+      await findCreatedDatabaseMessage();
+      mockServer.use(mockApi.pending('post', '/logical-backups').handler);
+      await clickComplete();
+
+      expect(await screen.findByText('Finishing database setup...')).toBeTruthy();
+      expect(screen.queryByText('Creating database...')).toBeNull();
+      expect(screen.queryByText(CREATED_DATABASE_MESSAGE)).toBeNull();
+    });
+
+    it('translates the kept message when the language changes', async () => {
+      const LanguageSwitch = () => {
+        const { setLocale } = useLocale();
+
+        return <button onClick={() => setLocale('ru')}>Switch language</button>;
+      };
+      const completionServer = declareCompletionServer(DatabaseType.MYSQL);
+      completionServer.isBackupConfigRefused = true;
+      renderScreen(
+        <>
+          <LanguageSwitch />
+          <CreateDatabaseComponent
+            workspaceId="workspace-id"
+            onCreated={() => {}}
+            onClose={() => {}}
+          />
+        </>,
+      );
+      await reachNotifierStep('Archive');
+
+      await clickComplete();
+      await findCreatedDatabaseMessage();
+      fireEvent.click(screen.getByRole('button', { name: 'Switch language' }));
+
+      const [russianMessageStart] = ru.databases.create.createdButNotFinished.split('{{reason}}');
+      expect(
+        await screen.findByText((content) => content.startsWith(russianMessageStart)),
+      ).toBeTruthy();
+      expect(screen.queryByText(CREATED_DATABASE_MESSAGE)).toBeNull();
+    });
+
+    it('shows the reason, mentions no created database and leaves every earlier step reachable when the creation is refused', async () => {
+      const completionServer = declareCompletionServer(DatabaseType.MYSQL);
+      completionServer.isCreationRefused = true;
+      renderCompletableWizard();
+      await reachNotifierStep('Archive');
+
+      await clickComplete();
+
+      expect(await screen.findByText(REFUSAL_REASON)).toBeTruthy();
+      expect(screen.queryByText(CREATED_DATABASE_MESSAGE)).toBeNull();
+      expect(completionServer.sentBackupConfigs).toHaveLength(0);
+
+      await goBackToStep(1);
+      expect(await getChosenStorageText()).toContain('Archive');
+
+      await goBackToStep(1);
+      expect(await screen.findByPlaceholderText(/host$/)).toBeTruthy();
+
+      await goBackToStep(1);
+      expect(await screen.findByPlaceholderText('My favourite DB')).toBeTruthy();
+    });
+  });
+
+  describe('when the physical backup type changes', () => {
+    const chooseBackupType = async (backupType: RegExp) =>
+      fireEvent.click(await screen.findByRole('radio', { name: backupType }));
+
+    const FULL_ONLY = /^Full backups only/;
+    const FULL_AND_INCREMENTAL = /^Full \+ incremental(?! \+)/;
+
+    const reachNotifierStepWithIncrementalBackups = async () => {
+      enterBaseInfo('PostgreSQL');
+      await choosePostgresBackupType('Physical');
+      await chooseBackupType(FULL_AND_INCREMENTAL);
+      await enterConnection();
+      await continueToNotifiers('Archive');
+    };
+
+    it('starts the configuration over with the defaults of the new type and sends them', async () => {
+      const completionServer = declareCompletionServer(DatabaseType.POSTGRES_PHYSICAL);
+      const { onClose } = renderCompletableWizard();
+      await reachNotifierStepWithIncrementalBackups();
+
+      await goBackToStep(2);
+      await chooseBackupType(FULL_ONLY);
+      await enterConnection();
+
+      expect(await getChosenStorageText()).not.toContain('Archive');
+      expect(screen.queryByText('Incremental backup cadence')).toBeNull();
+
+      await continueToNotifiers('Nightly');
+      await clickComplete();
+
+      await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+      expect(completionServer.sentBackupConfigs[0].settings).toMatchObject({
+        retention: { policy: 'FULL_BACKUPS', chainsCount: 0 },
+        incrementalBackupSchedule: null,
+        walLagThresholdBytes: 0,
+      });
+    });
+
+    it('keeps the entered configuration when the original type is chosen again before continuing', async () => {
+      declareCompletionServer(DatabaseType.POSTGRES_PHYSICAL);
+      renderCompletableWizard();
+      await reachNotifierStepWithIncrementalBackups();
+
+      await goBackToStep(2);
+      await chooseBackupType(FULL_ONLY);
+      await chooseBackupType(FULL_AND_INCREMENTAL);
+      await enterConnection();
+
+      expect(await getChosenStorageText()).toContain('Archive');
+    });
   });
 });

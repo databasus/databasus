@@ -1,4 +1,4 @@
-import { App, Button } from 'antd';
+import { Alert, App, Button } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -10,18 +10,19 @@ import {
   type PhysicalBackupConfigInput,
   backupConfigApi,
 } from '../../../entities/backup-configs';
-import { physicalBackupsApi } from '../../../entities/backups/physical';
 import {
   type Database,
   type DatabaseCreateDraft,
   DatabaseType,
+  type PhysicalDatabaseBackupType,
   changeDatabaseCreateDraftType,
   createDefaultDatabaseSettings,
   databaseApi,
   isPostgresType,
 } from '../../../entities/databases';
+import { useSessionGuard } from '../../../shared/auth';
 import { translateApiError } from '../../../shared/i18n';
-import { logicalBackupApi } from '../api/logicalBackupApi';
+import { startFirstBackup } from '../model/startFirstBackup';
 import { CreateLogicalBackupConfigStep } from './backup-config/CreateLogicalBackupConfigStep';
 import { BackupStorageSelection } from './BackupStorageSelection';
 import { ChoosePostgresBackupTypeComponent } from './ChoosePostgresBackupTypeComponent';
@@ -56,6 +57,15 @@ const toUnsavedDatabase = (draft: DatabaseCreateDraft): Database => ({
   notifierIds: draft.notifierIds,
 });
 
+const getPhysicalBackupType = (
+  draft: DatabaseCreateDraft,
+): PhysicalDatabaseBackupType | undefined =>
+  draft.settings.type === DatabaseType.POSTGRES_PHYSICAL ? draft.settings.backupType : undefined;
+
+const hasSameNotifiers = (database: Database, notifierIds: string[]) =>
+  database.notifierIds.length === notifierIds.length &&
+  notifierIds.every((notifierId) => database.notifierIds.includes(notifierId));
+
 export const CreateDatabaseComponent = ({
   workspaceId,
   onCreated,
@@ -65,10 +75,16 @@ export const CreateDatabaseComponent = ({
 }: Props) => {
   const { t } = useTranslation();
   const { message } = App.useApp();
-  const [isCreating, setIsCreating] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [createdDatabase, setCreatedDatabase] = useState<Database>();
+  const [isBackupConfigAcknowledged, setIsBackupConfigAcknowledged] = useState(false);
+  const [completionError, setCompletionError] = useState<unknown>();
   const [backupConfig, setBackupConfig] = useState<LogicalBackupConfigInput | undefined>();
   const [physicalBackupConfig, setPhysicalBackupConfig] = useState<
     PhysicalBackupConfigInput | undefined
+  >();
+  const [acceptedPhysicalBackupType, setAcceptedPhysicalBackupType] = useState<
+    PhysicalDatabaseBackupType | undefined
   >();
   const [draft, setDraft] = useState(() => createInitialDraft(workspaceId));
 
@@ -92,36 +108,66 @@ export const CreateDatabaseComponent = ({
     return changeDatabaseCreateDraftType(draft, type);
   };
 
-  const createDatabase = async (draftToCreate: DatabaseCreateDraft) => {
-    if (isPhysical ? !physicalBackupConfig : !backupConfig) return;
+  // A physical backup configuration holds schedules and retention of one backup type, so only a type
+  // that differs when the user continues starts it over.
+  const resetPhysicalBackupConfigIfTypeChanged = () => {
+    if (getPhysicalBackupType(draft) !== acceptedPhysicalBackupType) {
+      setPhysicalBackupConfig(undefined);
+    }
+  };
 
-    setIsCreating(true);
+  // Every step records its result before the next one starts, so a retry repeats only unfinished
+  // work. A closed wizard starts no later step and reports nothing.
+  const completeWizard = async (completedDraft: DatabaseCreateDraft) => {
+    const backupConfigToSave = isPhysical ? physicalBackupConfig : backupConfig;
+    if (!backupConfigToSave) return;
+
+    setIsCompleting(true);
+    setCompletionError(undefined);
+
+    let database = createdDatabase;
 
     try {
-      const createdDatabase = await databaseApi.createDatabase(draftToCreate);
+      if (!database) {
+        database = await databaseApi.createDatabase(completedDraft);
+        if (!isCurrent()) return;
 
-      if (isPhysical && physicalBackupConfig) {
-        await backupConfigApi.updateBackupConfig(createdDatabase.id, physicalBackupConfig);
-
-        if (physicalBackupConfig.isBackupsEnabled) {
-          await physicalBackupsApi.triggerPhysicalBackup(createdDatabase.id, 'AUTO');
-        }
-      } else if (backupConfig) {
-        await backupConfigApi.updateBackupConfig(createdDatabase.id, backupConfig);
-
-        if (backupConfig.isBackupsEnabled) {
-          await logicalBackupApi.startLogicalBackup(createdDatabase.id);
-        }
+        setCreatedDatabase(database);
+        onCreated(database);
       }
 
-      onCreated(createdDatabase);
+      if (!hasSameNotifiers(database, completedDraft.notifierIds)) {
+        database = await databaseApi.updateDatabase(database.id, {
+          ...database,
+          notifierIds: completedDraft.notifierIds,
+        });
+        if (!isCurrent()) return;
+
+        setCreatedDatabase(database);
+      }
+
+      if (!isBackupConfigAcknowledged) {
+        await backupConfigApi.updateBackupConfig(database.id, backupConfigToSave);
+        if (!isCurrent()) return;
+
+        setIsBackupConfigAcknowledged(true);
+      }
+
+      await startFirstBackup(database.id, backupConfigToSave);
+      if (!isCurrent()) return;
+
       onClose();
     } catch (error) {
-      message.error(translateApiError(error, t));
+      if (!isCurrent()) return;
+
+      if (database) setCompletionError(error);
+      else message.error(translateApiError(error, t));
     }
 
-    setIsCreating(false);
+    setIsCompleting(false);
   };
+
+  const isCurrent = useSessionGuard();
 
   // The read-only user step explains its choice in long sentences and puts three buttons in one
   // row, which the narrow wizard width cannot hold.
@@ -131,6 +177,16 @@ export const CreateDatabaseComponent = ({
 
   const isPhysical = draft.settings.type === DatabaseType.POSTGRES_PHYSICAL;
   const isPostgres = isPostgresType(draft.settings.type);
+  const completionAlert = completionError !== undefined && (
+    <Alert
+      className="mb-5"
+      type="error"
+      showIcon
+      message={t('databases.create.createdButNotFinished', {
+        reason: translateApiError(completionError, t),
+      })}
+    />
+  );
 
   if (step === 'base-info') {
     return (
@@ -179,7 +235,10 @@ export const CreateDatabaseComponent = ({
           </Button>
         }
         onConnectionErrorChange={onConnectionErrorChange}
-        onSubmit={() => setStep('create-limited-user')}
+        onSubmit={() => {
+          resetPhysicalBackupConfigIfTypeChanged();
+          setStep('create-limited-user');
+        }}
       />
     );
   }
@@ -207,69 +266,82 @@ export const CreateDatabaseComponent = ({
   }
 
   if (step === 'backup-config') {
-    if (isPhysical) {
-      return (
-        <EditPhysicalBackupConfigComponent
-          renderStorageSelection={(options) => <BackupStorageSelection {...options} />}
-          database={toUnsavedDatabase(draft)}
-          initialConfig={physicalBackupConfig}
-          isShowCancelButton={false}
-          onCancel={() => onClose()}
-          isShowBackButton
-          onBack={() => setStep('db-settings')}
-          saveButtonText={t('common.actions.continue')}
-          isSaveToApi={false}
-          onSaved={(physicalBackupConfig) => {
-            setPhysicalBackupConfig(physicalBackupConfig);
-            setStep('notifiers');
-          }}
-        />
-      );
-    }
-
     return (
-      <CreateLogicalBackupConfigStep
-        workspaceId={draft.workspaceId}
-        initialConfig={backupConfig}
-        onBack={(config) => {
-          setBackupConfig(config);
-          setStep('db-settings');
-        }}
-        onContinue={(config) => {
-          setBackupConfig(config);
-          setStep('notifiers');
-        }}
-      />
+      <>
+        {completionAlert}
+
+        {isPhysical ? (
+          <EditPhysicalBackupConfigComponent
+            renderStorageSelection={(options) => <BackupStorageSelection {...options} />}
+            database={toUnsavedDatabase(draft)}
+            initialConfig={physicalBackupConfig}
+            isShowCancelButton={false}
+            onCancel={() => onClose()}
+            isShowBackButton={!createdDatabase}
+            onBack={() => setStep('db-settings')}
+            saveButtonText={t('common.actions.continue')}
+            isSaveToApi={false}
+            onSaved={(savedPhysicalBackupConfig) => {
+              setPhysicalBackupConfig(savedPhysicalBackupConfig);
+              setAcceptedPhysicalBackupType(getPhysicalBackupType(draft));
+              setStep('notifiers');
+            }}
+          />
+        ) : (
+          <CreateLogicalBackupConfigStep
+            workspaceId={draft.workspaceId}
+            initialConfig={backupConfig}
+            onBack={
+              createdDatabase
+                ? undefined
+                : (config) => {
+                    setBackupConfig(config);
+                    setStep('db-settings');
+                  }
+            }
+            onContinue={(config) => {
+              setBackupConfig(config);
+              setStep('notifiers');
+            }}
+          />
+        )}
+      </>
     );
   }
 
   if (step === 'notifiers') {
-    if (isCreating) {
-      return <div>{t('databases.create.creating')}</div>;
+    if (isCompleting) {
+      return (
+        <div>{t(createdDatabase ? 'databases.create.finishing' : 'databases.create.creating')}</div>
+      );
     }
 
     return (
-      <EditDatabaseNotifiersComponent
-        database={toUnsavedDatabase(draft)}
-        isShowCancelButton={false}
-        workspaceId={workspaceId}
-        onCancel={() => onClose()}
-        isShowBackButton
-        onBack={(notifierIds) => {
-          setDraft({ ...draft, notifierIds });
-          setStep('backup-config');
-        }}
-        isShowSaveOnlyForUnsaved={false}
-        saveButtonText={t('databases.create.complete')}
-        isSaveToApi={false}
-        onSaved={({ notifierIds }) => {
-          if (isCreating) return;
+      <>
+        {completionAlert}
 
-          const completedDraft = { ...draft, notifierIds };
-          setDraft(completedDraft);
-          createDatabase(completedDraft);
-        }}
-      />
+        <EditDatabaseNotifiersComponent
+          database={toUnsavedDatabase(draft)}
+          isShowCancelButton={false}
+          workspaceId={workspaceId}
+          onCancel={() => onClose()}
+          isShowBackButton={!isBackupConfigAcknowledged}
+          onBack={(notifierIds) => {
+            setDraft({ ...draft, notifierIds });
+            setStep('backup-config');
+          }}
+          isShowSaveOnlyForUnsaved={false}
+          saveButtonText={t('databases.create.complete')}
+          isSaveToApi={false}
+          onSaved={({ notifierIds }) => {
+            if (isCompleting) return;
+
+            const completedDraft = { ...draft, notifierIds };
+            setDraft(completedDraft);
+            void completeWizard(completedDraft);
+          }}
+        />
+      </>
     );
   }
 };

@@ -349,6 +349,9 @@ export const pt: typeof en = {
       title: 'Adicionar banco de dados para backup',
       namePlaceholder: 'Meu banco favorito',
       creating: 'Criando o banco de dados...',
+      finishing: 'Concluindo a configuração do banco de dados...',
+      createdButNotFinished:
+        'O banco de dados foi criado, mas a configuração não foi concluída. Motivo: {{reason}}',
       complete: 'Concluir',
       backupType: {
         title: 'Escolha o tipo de backup',
