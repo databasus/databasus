@@ -776,3 +776,94 @@ describe('DatabasesComponent', () => {
     expect(countRequests('/databases')).toBe(1);
   });
 });
+
+describe('DatabasesComponent during the backup step of the wizard', () => {
+  const reachWizardBackupStep = async (user: ReturnType<typeof renderDatabasesScreen>['user']) => {
+    await user.click(await screen.findByRole('button', { name: 'Add database' }));
+    fireEvent.change(await screen.findByPlaceholderText('My favourite DB'), {
+      target: { value: 'Created' },
+    });
+    fireEvent.click(screen.getByText('MySQL'));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.change(await screen.findByPlaceholderText(/host$/), {
+      target: { value: 'db.example.com' },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/username$/), { target: { value: 'backup' } });
+    fireEvent.change(screen.getByPlaceholderText(/password$/), { target: { value: 'secret' } });
+    fireEvent.change(screen.getByPlaceholderText(/database name$/), { target: { value: 'shop' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Test connection' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Continue' }));
+    await screen.findByText('Storage');
+  };
+
+  it('keeps the entered values when the page becomes visible and the list refreshes', async () => {
+    const shopDatabase = buildDatabase('Shop');
+    declareListResponses([shopDatabase], [shopDatabase, buildDatabase('Refreshed')]);
+    declarePendingDetailRequests();
+    mockServer.use(
+      mockApi.post('/database-tests', 200, { isConnected: true }),
+      mockApi.post('/limited-user-checks', 200, { isAdvisable: false, privileges: [] }),
+    );
+    const { user } = renderDatabasesScreen();
+    await reachWizardBackupStep(user);
+    const successTrigger = screen.getAllByRole('checkbox')[0] as HTMLInputElement;
+    const isInitiallyChecked = successTrigger.checked;
+    fireEvent.click(successTrigger);
+
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await findDatabaseCard('Refreshed');
+
+    expect(document.querySelector('.ant-modal .ant-spin')).toBeNull();
+    expect((screen.getAllByRole('checkbox')[0] as HTMLInputElement).checked).toBe(
+      !isInitiallyChecked,
+    );
+  });
+});
+
+describe('DatabasesComponent with a late rename', () => {
+  it('keeps the other selected database shown while the list shows the new name', async () => {
+    const shopDatabase = buildDatabase('Shop');
+    const bravoDatabase = buildDatabase('Bravo');
+    const renamedDatabase = { ...shopDatabase, name: 'Storefront' };
+    const pendingRename = createPendingApiResponse();
+    let isRenamed = false;
+    localStorage.setItem(SELECTED_DATABASE_PREFERENCE_KEY, shopDatabase.id);
+    mockServer.use(
+      http.get(`*${API_BASE_PATH}/databases`, () =>
+        HttpResponse.json({ items: [isRenamed ? renamedDatabase : shopDatabase, bravoDatabase] }),
+      ),
+      mockApi.get('/backup-configs', 200, { items: [] }),
+      mockApi.get('/storages', 200, { items: [] }),
+      mockApi.get('/storage-switches', 200, { items: [] }),
+      http.get(`*${API_BASE_PATH}/databases/:databaseId`, ({ params }) =>
+        HttpResponse.json(params.databaseId === bravoDatabase.id ? bravoDatabase : shopDatabase),
+      ),
+      http.put(`*${API_BASE_PATH}/databases/:databaseId`, () => pendingRename.response),
+      ...declareSettingsRequests(),
+    );
+
+    const { user } = renderDatabasesScreen();
+    await user.click(await screen.findByText('Config'));
+    const nameTitle = await screen.findByText('Shop', { selector: 'div.text-xl' });
+    fireEvent.click(nameTitle.querySelector(EDIT_ICON_SELECTOR)!.parentElement!);
+    const nameInput = screen.getByPlaceholderText('Enter name...');
+    await user.clear(nameInput);
+    await user.type(nameInput, 'Storefront');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(countRequests(`/databases/${shopDatabase.id}`, 'PUT')).toBe(1));
+
+    await user.click(await findDatabaseCard('Bravo'));
+    await screen.findByText('Bravo', { selector: 'div.text-xl' });
+    isRenamed = true;
+    await act(async () => {
+      pendingRename.respond(HttpResponse.json(renamedDatabase));
+    });
+
+    expect(await findDatabaseCard('Storefront')).toBeTruthy();
+    expect((await findDatabaseCard('Bravo')).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByText('Bravo', { selector: 'div.text-xl' })).toBeTruthy();
+    expect(screen.queryByText('Storefront', { selector: 'div.text-xl' })).toBeNull();
+  });
+});

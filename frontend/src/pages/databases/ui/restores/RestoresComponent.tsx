@@ -1,13 +1,5 @@
-import {
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  CopyOutlined,
-  ExclamationCircleOutlined,
-  SyncOutlined,
-} from '@ant-design/icons';
-import { App, Button, Modal, Spin, Tooltip } from 'antd';
-import dayjs from 'dayjs';
-import { useEffect, useRef, useState } from 'react';
+import { Alert, App, Button, Spin } from 'antd';
+import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { DatabaseConnectionForm } from '@/features/database-connection';
@@ -15,24 +7,26 @@ import { DatabaseConnectionForm } from '@/features/database-connection';
 import type { Database, RestoreTargetDraft } from '../../../../entities/databases';
 import {
   type PostgresqlRestoreOptions,
-  RESTORE_STATUS_LABEL_KEYS,
   type Restore,
   RestoreStatus,
   restoreApi,
 } from '../../../../entities/restores';
 import { useSessionGuard } from '../../../../shared/auth';
-import { translateApiError, useLocale } from '../../../../shared/i18n';
-import { ClipboardHelper } from '../../../../shared/lib/ClipboardHelper';
-import { getUserTimeFormat } from '../../../../shared/time';
+import { usePolledPagedList } from '../../../../shared/hooks';
+import { translateApiError } from '../../../../shared/i18n';
 import { ConfirmationComponent } from '../../../../shared/ui';
 import type { LogicalBackup } from '../../model/LogicalBackup';
 import { createRestoreTargetDraft } from './createRestoreTargetDraft';
+import { RestoreCard } from './RestoreCard';
+import { RestoreErrorDialog } from './RestoreErrorDialog';
 import { toRestoreTarget } from './toRestoreTarget';
 
 interface Props {
   database: Database;
   backup: LogicalBackup;
 }
+
+const RESTORES_REFRESH_MS = 1_000;
 
 const NO_RESTORE_OPTIONS: PostgresqlRestoreOptions = {
   isExcludeExtensions: false,
@@ -42,7 +36,6 @@ const NO_RESTORE_OPTIONS: PostgresqlRestoreOptions = {
 
 export const RestoresComponent = ({ database, backup }: Props) => {
   const { t } = useTranslation();
-  const { formatRelativeTime } = useLocale();
   const { message } = App.useApp();
   const isActive = useSessionGuard();
 
@@ -50,51 +43,27 @@ export const RestoresComponent = ({ database, backup }: Props) => {
     createRestoreTargetDraft(database.settings.type),
   );
   const [restoreOptions, setRestoreOptions] = useState(NO_RESTORE_OPTIONS);
-
-  const [restores, setRestores] = useState<Restore[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const [showingRestoreError, setShowingRestoreError] = useState<Restore | undefined>();
-
   const [isShowRestore, setIsShowRestore] = useState(false);
 
+  const [showingRestoreError, setShowingRestoreError] = useState<Restore | undefined>();
   const [cancellingRestoreId, setCancellingRestoreId] = useState<string | undefined>();
-  const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
   const [restoreToCancelId, setRestoreToCancelId] = useState<string | undefined>();
 
-  const isReloadInProgress = useRef(false);
-
-  const loadRestores = async () => {
-    if (isReloadInProgress.current) {
-      return;
-    }
-
-    isReloadInProgress.current = true;
-
-    try {
-      setRestores(await restoreApi.listAllRestores(backup.id));
-    } catch (e) {
-      alert(translateApiError(e, t));
-    }
-
-    isReloadInProgress.current = false;
-  };
-
-  // The restore a request answered with is shown at once, before the next poll lists it.
-  const showRestore = (answeredRestore: Restore) => {
-    setRestores((loadedRestores) => {
-      const isLoaded = loadedRestores.some(
-        (loadedRestore) => loadedRestore.id === answeredRestore.id,
-      );
-      if (!isLoaded) {
-        return [answeredRestore, ...loadedRestores];
-      }
-
-      return loadedRestores.map((loadedRestore) =>
-        loadedRestore.id === answeredRestore.id ? answeredRestore : loadedRestore,
-      );
-    });
-  };
+  const {
+    items: restores,
+    isLoading,
+    firstLoadError,
+    reload: reloadRestores,
+    refreshFirstPage: refreshRestores,
+    replaceOrPrependItem: showRestore,
+  } = usePolledPagedList({
+    fetchPage: async () => ({ items: await restoreApi.listAllRestores(backup.id) }),
+    getItemKey: (restore: Restore) => restore.id,
+    refreshIntervalMs: RESTORES_REFRESH_MS,
+    resetKey: backup.id,
+    // The listing has no next page, and the screen shows a failed first page itself.
+    onError: () => {},
+  });
 
   const startRestore = async (submittedDraft: RestoreTargetDraft) => {
     const startedRestore = await restoreApi.startRestore(
@@ -109,26 +78,19 @@ export const RestoresComponent = ({ database, backup }: Props) => {
 
   const cancelRestore = async (restoreId: string) => {
     setCancellingRestoreId(restoreId);
+
     try {
-      showRestore(await restoreApi.cancelRestore(restoreId));
-      await loadRestores();
-    } catch (e) {
-      alert(translateApiError(e, t));
-    } finally {
-      setCancellingRestoreId(undefined);
+      const cancelledRestore = await restoreApi.cancelRestore(restoreId);
+      if (!isActive()) return;
+
+      showRestore(cancelledRestore);
+      await refreshRestores();
+    } catch (error) {
+      if (isActive()) message.error(translateApiError(error, t));
     }
+
+    setCancellingRestoreId(undefined);
   };
-
-  useEffect(() => {
-    setIsLoading(true);
-    loadRestores().finally(() => setIsLoading(false));
-
-    const interval = setInterval(() => {
-      loadRestores();
-    }, 1_000);
-
-    return () => clearInterval(interval);
-  }, [backup.id]);
 
   const isRestoreInProgress = restores.some(
     (restore) => restore.status === RestoreStatus.IN_PROGRESS,
@@ -156,207 +118,81 @@ export const RestoresComponent = ({ database, backup }: Props) => {
     );
   }
 
-  return (
-    <div className="mt-5">
-      {isLoading ? (
+  const renderRestoreList = () => {
+    if (isLoading) {
+      return (
         <div className="flex w-full justify-center">
           <Spin />
         </div>
-      ) : (
-        <>
-          {targetDraft && (
-            <Button
-              className="w-full"
-              type="primary"
-              disabled={isRestoreInProgress}
-              loading={isRestoreInProgress}
-              onClick={() => setIsShowRestore(true)}
-            >
-              {t('restores.targetDatabase.select')}
-            </Button>
-          )}
+      );
+    }
 
-          {restores.length === 0 && (
-            <div className="my-5 text-center text-gray-400">{t('restores.list.empty')}</div>
-          )}
+    if (firstLoadError !== undefined) {
+      return (
+        <Alert
+          type="error"
+          showIcon
+          message={translateApiError(firstLoadError, t)}
+          action={
+            <Button onClick={() => void reloadRestores()}>{t('common.actions.retry')}</Button>
+          }
+        />
+      );
+    }
 
-          <div className="mt-5">
-            {restores.map((restore) => {
-              let restoreDurationMs = 0;
-              if (restore.status === RestoreStatus.IN_PROGRESS) {
-                restoreDurationMs = Date.now() - new Date(restore.createdAt).getTime();
-              } else {
-                restoreDurationMs = restore.durationMs;
-              }
+    return (
+      <>
+        {targetDraft && (
+          <Button
+            className="w-full"
+            type="primary"
+            disabled={isRestoreInProgress}
+            loading={isRestoreInProgress}
+            onClick={() => setIsShowRestore(true)}
+          >
+            {t('restores.targetDatabase.select')}
+          </Button>
+        )}
 
-              const minutes = Math.floor(restoreDurationMs / 60000);
-              const seconds = Math.floor((restoreDurationMs % 60000) / 1000);
-              const milliseconds = restoreDurationMs % 1000;
-              // eslint-disable-next-line i18next/no-literal-string -- unit letters stay English in every language
-              const duration = `${minutes}m ${seconds}s ${milliseconds}ms`;
+        {restores.length === 0 && (
+          <div className="my-5 text-center text-muted">{t('restores.list.empty')}</div>
+        )}
 
-              const backupDurationMs = backup.durationMs;
-              const expectedRestoreDurationMs = backupDurationMs * 5;
-              // eslint-disable-next-line i18next/no-literal-string -- unit letters stay English in every language
-              const expectedRestoreDuration = `${Math.floor(expectedRestoreDurationMs / 60000)}m ${Math.floor((expectedRestoreDurationMs % 60000) / 1000)}s`;
+        <div className="mt-5">
+          {restores.map((restore) => (
+            <RestoreCard
+              key={restore.id}
+              restore={restore}
+              backupDurationMs={backup.durationMs}
+              isCancelling={cancellingRestoreId === restore.id}
+              isCancelDisabled={Boolean(cancellingRestoreId)}
+              onCancel={() => setRestoreToCancelId(restore.id)}
+              onShowError={() => setShowingRestoreError(restore)}
+            />
+          ))}
+        </div>
+      </>
+    );
+  };
 
-              return (
-                <div key={restore.id} className="mb-1 rounded border border-gray-200 p-3 text-sm">
-                  <div className="mb-1 flex items-center justify-between">
-                    <div className="flex flex-1">
-                      <div className="w-[75px] min-w-[75px] pr-2">{t('common.fields.status')}</div>
-
-                      {restore.status === RestoreStatus.FAILED && (
-                        <Tooltip title={t('restores.card.errorDetailsTooltip')}>
-                          <div
-                            className="flex cursor-pointer items-center text-red-600 underline"
-                            onClick={() => setShowingRestoreError(restore)}
-                          >
-                            <ExclamationCircleOutlined
-                              className="mr-2"
-                              style={{ fontSize: 16, color: '#ff0000' }}
-                            />
-
-                            <div>{t(RESTORE_STATUS_LABEL_KEYS[restore.status])}</div>
-                          </div>
-                        </Tooltip>
-                      )}
-
-                      {restore.status === RestoreStatus.COMPLETED && (
-                        <div className="flex items-center">
-                          <CheckCircleOutlined
-                            className="mr-2"
-                            style={{ fontSize: 16, color: '#008000' }}
-                          />
-
-                          <div>{t(RESTORE_STATUS_LABEL_KEYS[restore.status])}</div>
-                        </div>
-                      )}
-
-                      {restore.status === RestoreStatus.CANCELED && (
-                        <div className="flex items-center text-gray-500">
-                          <CloseCircleOutlined
-                            className="mr-2"
-                            style={{ fontSize: 16, color: '#808080' }}
-                          />
-
-                          <div>{t(RESTORE_STATUS_LABEL_KEYS[restore.status])}</div>
-                        </div>
-                      )}
-
-                      {restore.status === RestoreStatus.IN_PROGRESS && (
-                        <div className="flex items-center font-bold text-blue-600">
-                          <SyncOutlined spin />
-                          <span className="ml-2">
-                            {t(RESTORE_STATUS_LABEL_KEYS[restore.status])}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {restore.status === RestoreStatus.IN_PROGRESS && (
-                      <div className="ml-2">
-                        {cancellingRestoreId === restore.id ? (
-                          <SyncOutlined spin style={{ fontSize: 16 }} />
-                        ) : (
-                          <Tooltip title={t('restores.card.cancelTooltip')}>
-                            <CloseCircleOutlined
-                              className="cursor-pointer"
-                              onClick={() => {
-                                if (cancellingRestoreId) return;
-                                setRestoreToCancelId(restore.id);
-                                setShowCancelConfirmation(true);
-                              }}
-                              style={{
-                                color: '#ff0000',
-                                fontSize: 16,
-                                opacity: cancellingRestoreId ? 0.2 : 1,
-                              }}
-                            />
-                          </Tooltip>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mb-1 flex">
-                    <div className="w-[75px] min-w-[75px] pr-2">{t('restores.card.startedAt')}</div>
-                    <div>
-                      {dayjs.utc(restore.createdAt).local().format(getUserTimeFormat().format)} (
-                      {formatRelativeTime(dayjs.utc(restore.createdAt).local())})
-                    </div>
-                  </div>
-
-                  {restore.status === RestoreStatus.IN_PROGRESS && (
-                    <div className="flex">
-                      <div className="w-[75px] min-w-[75px] pr-2">
-                        {t('restores.card.duration')}
-                      </div>
-                      <div>
-                        <div>{duration}</div>
-                        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                          {t('restores.card.expectedDurationHint')}
-                          <br />
-                          <br />
-                          {t('restores.card.expectedDurationLimit', {
-                            duration: expectedRestoreDuration,
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </>
-      )}
+  return (
+    <div className="mt-5">
+      {renderRestoreList()}
 
       {showingRestoreError && (
-        <Modal
-          title={t('restores.errorDetails.title')}
-          open={!!showingRestoreError}
-          onCancel={() => setShowingRestoreError(undefined)}
-          maskClosable={false}
-          footer={
-            <Button
-              icon={<CopyOutlined />}
-              onClick={() => {
-                ClipboardHelper.copyToClipboard(showingRestoreError.failMessage || '');
-                message.success(t('restores.errorDetails.copied'));
-              }}
-            >
-              {t('common.actions.copy')}
-            </Button>
-          }
-        >
-          {showingRestoreError.failMessage?.includes('must be owner of extension') && (
-            <div className="mb-4 rounded border border-yellow-300 bg-yellow-50 p-3 text-sm dark:border-yellow-600 dark:bg-yellow-900/30">
-              <Trans
-                i18nKey="restores.errorDetails.excludeExtensionsTip"
-                components={{ bold: <strong /> }}
-              />
-            </div>
-          )}
-          <div className="overflow-y-auto text-sm whitespace-pre-wrap" style={{ height: '400px' }}>
-            {showingRestoreError.failMessage}
-          </div>
-        </Modal>
+        <RestoreErrorDialog
+          restore={showingRestoreError}
+          onClose={() => setShowingRestoreError(undefined)}
+        />
       )}
 
-      {showCancelConfirmation && (
+      {restoreToCancelId && (
         <ConfirmationComponent
           onConfirm={() => {
-            setShowCancelConfirmation(false);
-            if (restoreToCancelId) {
-              cancelRestore(restoreToCancelId);
-            }
             setRestoreToCancelId(undefined);
+            void cancelRestore(restoreToCancelId);
           }}
-          onDecline={() => {
-            setShowCancelConfirmation(false);
-            setRestoreToCancelId(undefined);
-          }}
+          onDecline={() => setRestoreToCancelId(undefined)}
           description={
             <>
               <div>

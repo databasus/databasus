@@ -1456,6 +1456,7 @@ export const pt: typeof en = {
       },
     },
     filters: {
+      toggle: 'Filtros',
       allTypes: 'Todos os tipos',
       allStatuses: 'Todos os status',
       before: 'Antes de',

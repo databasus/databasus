@@ -1,14 +1,12 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
-import { Tooltip } from 'antd';
+import { Alert, Button, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
   type LogicalBackupConfigInput,
   type LogicalBackupSettings,
-  backupConfigApi,
   StorageSwitchHistoryComponent,
-  toLogicalBackupConfigInput,
   BACKUP_ENCRYPTION_LABEL_KEYS,
 } from '../../../../entities/backup-configs';
 import type { Database } from '../../../../entities/databases';
@@ -31,6 +29,7 @@ import { RETENTION_PERIOD_LABEL_KEYS } from '../../model/RetentionPeriodLabelKey
 
 interface Props {
   database: Database;
+  backupConfig: LogicalBackupConfigInput;
 }
 
 const getGfsRetentionTexts = (retention: LogicalBackupSettings['retention']): LocalizedText[] => {
@@ -55,11 +54,12 @@ const getGfsRetentionTexts = (retention: LogicalBackupSettings['retention']): Lo
   return texts;
 };
 
-export const ShowLogicalBackupConfigComponent = ({ database }: Props) => {
+export const ShowLogicalBackupConfigComponent = ({ database, backupConfig }: Props) => {
   const { t } = useTranslation();
   const listSeparator = t('common.listSeparator');
-  const [backupConfig, setBackupConfig] = useState<LogicalBackupConfigInput>();
   const [storage, setStorage] = useState<Storage>();
+  const [storageLoadError, setStorageLoadError] = useState<unknown>();
+  const [storageLoadAttempt, setStorageLoadAttempt] = useState(0);
 
   const describeGfsRetention = (retention: LogicalBackupSettings['retention']): string => {
     const texts = getGfsRetentionTexts(retention);
@@ -70,27 +70,26 @@ export const ShowLogicalBackupConfigComponent = ({ database }: Props) => {
 
   useEffect(() => {
     let isActive = true;
-    const loadBackupConfig = async () => {
-      try {
-        const loadedBackupConfig = toLogicalBackupConfigInput(
-          await backupConfigApi.getBackupConfig(database.id),
-        );
-        if (!isActive) return;
-        setBackupConfig(loadedBackupConfig);
-        const storageId = loadedBackupConfig?.storageId;
-        const loadedStorage = storageId ? await storageApi.getStorage(storageId) : undefined;
+    const { storageId } = backupConfig;
+
+    setStorage(undefined);
+    setStorageLoadError(undefined);
+
+    if (!storageId) return;
+
+    storageApi
+      .getStorage(storageId)
+      .then((loadedStorage) => {
         if (isActive) setStorage(loadedStorage);
-      } catch (error) {
-        if (isActive) alert(translateApiError(error, t));
-      }
-    };
-    if (database.id) void loadBackupConfig();
+      })
+      .catch((error: unknown) => {
+        if (isActive) setStorageLoadError(error);
+      });
+
     return () => {
       isActive = false;
     };
-  }, [database.id, t]);
-
-  if (!backupConfig) return <div />;
+  }, [backupConfig.storageId, storageLoadAttempt]);
 
   const { schedule, retention } = backupConfig.settings;
 
@@ -104,7 +103,7 @@ export const ShowLogicalBackupConfigComponent = ({ database }: Props) => {
       <StorageSwitchHistoryComponent workspaceId={database.workspaceId} databaseId={database.id} />
       <div className="mb-1 flex w-full items-center">
         <div className="min-w-[150px] pr-2">{t('backups.config.backupsEnabled')}</div>
-        <div className={backupConfig.isBackupsEnabled ? '' : 'font-bold text-red-600'}>
+        <div className={backupConfig.isBackupsEnabled ? '' : 'font-bold text-danger'}>
           {backupConfig.isBackupsEnabled ? t('common.answers.yes') : t('common.answers.no')}
         </div>
       </div>
@@ -135,7 +134,7 @@ export const ShowLogicalBackupConfigComponent = ({ database }: Props) => {
               <div className="min-w-[150px] pr-2">
                 {t('backups.config.schedule.cronExpression')}
               </div>
-              <code className="rounded bg-gray-100 px-2 py-0.5 text-sm dark:bg-gray-700">
+              <code className="rounded bg-code px-2 py-0.5 text-sm">
                 {schedule.cronExpression || ''}
               </code>
             </div>
@@ -183,7 +182,7 @@ export const ShowLogicalBackupConfigComponent = ({ database }: Props) => {
                 <span className="flex items-center gap-1">
                   {describeGfsRetention(retention)}
                   <Tooltip title={t('backups.logical.config.retention.gfsTooltip')}>
-                    <InfoCircleOutlined style={{ color: 'gray' }} />
+                    <InfoCircleOutlined className="text-muted" />
                   </Tooltip>
                 </span>
               )}
@@ -204,6 +203,20 @@ export const ShowLogicalBackupConfigComponent = ({ database }: Props) => {
             </div>
           </div>
 
+          {storageLoadError !== undefined && (
+            <Alert
+              className="mb-1"
+              type="error"
+              showIcon
+              message={translateApiError(storageLoadError, t)}
+              action={
+                <Button onClick={() => setStorageLoadAttempt((attempt) => attempt + 1)}>
+                  {t('common.actions.retry')}
+                </Button>
+              }
+            />
+          )}
+
           <div className="mb-1 flex w-full items-center">
             <div className="min-w-[150px] pr-2">{t('backups.config.encryption')}</div>
             <div>{t(BACKUP_ENCRYPTION_LABEL_KEYS[backupConfig.encryption])}</div>
@@ -212,7 +225,7 @@ export const ShowLogicalBackupConfigComponent = ({ database }: Props) => {
               className="cursor-pointer"
               title={t('backups.logical.config.encryptionTooltip')}
             >
-              <InfoCircleOutlined className="ml-2" style={{ color: 'gray' }} />
+              <InfoCircleOutlined className="ml-2 text-muted" />
             </Tooltip>
           </div>
 

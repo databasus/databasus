@@ -22,7 +22,7 @@ import {
 } from '../../../entities/databases';
 import { translateApiError } from '../../../shared/i18n';
 import { logicalBackupApi } from '../api/logicalBackupApi';
-import { EditLogicalBackupConfigComponent } from './backup-config/EditLogicalBackupConfigComponent';
+import { CreateLogicalBackupConfigStep } from './backup-config/CreateLogicalBackupConfigStep';
 import { BackupStorageSelection } from './BackupStorageSelection';
 import { ChoosePostgresBackupTypeComponent } from './ChoosePostgresBackupTypeComponent';
 import { CreateLimitedUserComponent } from './CreateLimitedUserComponent';
@@ -46,7 +46,8 @@ const createInitialDraft = (workspaceId: string): DatabaseCreateDraft => ({
   hasUserChosenSslMode: false,
 });
 
-// The backup config and notifier editors take a Database and read an empty ID as not created yet.
+// The physical backup config and notifier editors take a Database and read an empty ID as not
+// created yet.
 const toUnsavedDatabase = (draft: DatabaseCreateDraft): Database => ({
   id: '',
   name: draft.name,
@@ -227,17 +228,15 @@ export const CreateDatabaseComponent = ({
     }
 
     return (
-      <EditLogicalBackupConfigComponent
-        database={toUnsavedDatabase(draft)}
+      <CreateLogicalBackupConfigStep
+        workspaceId={draft.workspaceId}
         initialConfig={backupConfig}
-        isShowCancelButton={false}
-        onCancel={() => onClose()}
-        isShowBackButton
-        onBack={() => setStep('db-settings')}
-        saveButtonText={t('common.actions.continue')}
-        isSaveToApi={false}
-        onSaved={(backupConfig) => {
-          setBackupConfig(backupConfig);
+        onBack={(config) => {
+          setBackupConfig(config);
+          setStep('db-settings');
+        }}
+        onContinue={(config) => {
+          setBackupConfig(config);
           setStep('notifiers');
         }}
       />

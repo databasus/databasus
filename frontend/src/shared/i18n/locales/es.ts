@@ -1466,6 +1466,7 @@ export const es: typeof en = {
       },
     },
     filters: {
+      toggle: 'Filtros',
       allTypes: 'Todos los tipos',
       allStatuses: 'Todos los estados',
       before: 'Antes de',

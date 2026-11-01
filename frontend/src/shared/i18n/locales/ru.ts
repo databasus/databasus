@@ -1439,6 +1439,7 @@ export const ru: typeof en = {
       },
     },
     filters: {
+      toggle: 'Фильтры',
       allTypes: 'Все типы',
       allStatuses: 'Все статусы',
       before: 'До',

@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { HttpResponse, http } from 'msw';
 import { useRef } from 'react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   type Database,
@@ -13,7 +13,9 @@ import {
 } from '../../../../entities/databases';
 import type { Verification } from '../../../../entities/verification/runs';
 import { API_BASE_PATH } from '../../../../shared/api';
-import { mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
+import { advanceClockUntil } from '../../../../shared/lib/test/advanceClockUntil';
+import { waitForCondition } from '../../../../shared/lib/test/conditionWait';
+import { buildProblem, mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
 import { renderScreen } from '../../../../shared/lib/test/renderScreen';
 import { VerificationsComponent } from './VerificationsComponent';
 
@@ -72,5 +74,64 @@ describe('VerificationsComponent', () => {
     // The list also polls its first page, so polls may fall between these two requests.
     expect(cursors[0]).toBeNull();
     expect(cursors.filter((cursor) => cursor !== null)).toEqual(['next-verifications']);
+  });
+
+  describe('with a failing refresh', () => {
+    const failedResponse = () => HttpResponse.json(buildProblem('internal', 500), { status: 500 });
+
+    it('shows no alert, keeps the rows and requests again when polls fail', async () => {
+      const showAlert = vi.fn();
+      vi.stubGlobal('alert', showAlert);
+      let listRequests = 0;
+      mockServer.use(
+        mockApi.get('/verification-agent-counts', 200, { agentCount: 1 }),
+        http.get(`*${API_BASE_PATH}/verifications`, () =>
+          ++listRequests === 1
+            ? HttpResponse.json({ items: [verification('listed', 'MANUAL')] })
+            : failedResponse(),
+        ),
+      );
+      vi.useFakeTimers();
+      renderScreen(<ScrollingVerifications />);
+      await waitForCondition(() => screen.getAllByText('Manual'));
+
+      await advanceClockUntil(() => expect(listRequests).toBeGreaterThanOrEqual(3));
+
+      expect(showAlert).not.toHaveBeenCalled();
+      expect(screen.getAllByText('Manual')).toHaveLength(2);
+    });
+
+    it('shows no alert and refreshes again when the refresh after a successful cancel fails', async () => {
+      const showAlert = vi.fn();
+      vi.stubGlobal('alert', showAlert);
+      const running: Verification = { ...verification('running', 'MANUAL'), status: 'RUNNING' };
+      let isCancelled = false;
+      let refreshesAfterCancel = 0;
+      mockServer.use(
+        mockApi.get('/verification-agent-counts', 200, { agentCount: 1 }),
+        http.get(`*${API_BASE_PATH}/verifications`, () => {
+          if (!isCancelled) return HttpResponse.json({ items: [running] });
+
+          refreshesAfterCancel += 1;
+          return refreshesAfterCancel === 1
+            ? failedResponse()
+            : HttpResponse.json({ items: [{ ...running, trigger: 'AFTER_BACKUP' }] });
+        }),
+        http.post(`*${API_BASE_PATH}/verifications/:verificationId/cancel`, () => {
+          isCancelled = true;
+          return HttpResponse.json(running);
+        }),
+      );
+      vi.useFakeTimers();
+      renderScreen(<ScrollingVerifications />);
+      await waitForCondition(() => screen.getAllByText('Manual'));
+
+      fireEvent.click(screen.getAllByRole('img', { name: 'close-circle' })[0]);
+
+      await advanceClockUntil(() => expect(screen.getAllByText('After backup')).toHaveLength(2));
+
+      expect(refreshesAfterCancel).toBeGreaterThanOrEqual(2);
+      expect(showAlert).not.toHaveBeenCalled();
+    });
   });
 });

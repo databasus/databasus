@@ -36,6 +36,7 @@ import {
   ScheduleType,
   isScheduleComplete,
 } from '../../../../entities/schedules';
+import { useSessionGuard } from '../../../../shared/auth';
 import { translateApiError } from '../../../../shared/i18n';
 import { ConfirmationComponent } from '../../../../shared/ui';
 
@@ -117,6 +118,7 @@ export const EditPhysicalBackupConfigComponent = ({
   onSaved,
 }: Props): JSX.Element => {
   const { t } = useTranslation();
+  const isActive = useSessionGuard();
   const [backupConfig, setBackupConfig] = useState<PhysicalBackupConfigInput>();
   const [fullBackupsRetention, setFullBackupsRetention] = useState<FullBackupsRetention>(
     DEFAULT_FULL_BACKUPS_RETENTION,
@@ -206,13 +208,21 @@ export const EditPhysicalBackupConfigComponent = ({
       setIsSaving(true);
       try {
         const saved = await backupConfigApi.updateBackupConfig(database.id, configToSave);
+        if (!isActive()) return;
+
         if ('targetStorageId' in saved) setAcceptedSwitch(saved);
         setSavedStorageId(configToSave.storageId);
-        setHasHistory(
-          await backupConfigApi.hasBackupHistory(database.id, true).catch(() => undefined),
-        );
+
+        const hasSavedHistory = await backupConfigApi
+          .hasBackupHistory(database.id, true)
+          .catch(() => undefined);
+        if (!isActive()) return;
+
+        setHasHistory(hasSavedHistory);
         setIsUnsaved(false);
       } catch (e) {
+        if (!isActive()) return;
+
         alert(translateApiError(e, t));
         setIsSaving(false);
         return;
@@ -260,6 +270,8 @@ export const EditPhysicalBackupConfigComponent = ({
   });
 
   useEffect(() => {
+    let isCurrentLoad = true;
+
     const run = async () => {
       setIsLoading(true);
 
@@ -270,22 +282,32 @@ export const EditPhysicalBackupConfigComponent = ({
           const loadedBackupConfig = toPhysicalBackupConfigInput(
             await backupConfigApi.getBackupConfig(database.id),
           );
+          if (!isCurrentLoad) return;
+
           if (loadedBackupConfig) showBackupConfig(loadedBackupConfig);
-          setHasHistory(await backupConfigApi.hasBackupHistory(database.id, true));
+
+          const hasLoadedHistory = await backupConfigApi.hasBackupHistory(database.id, true);
+          if (!isCurrentLoad) return;
+
+          setHasHistory(hasLoadedHistory);
           setIsUnsaved(false);
           setIsSaving(false);
         } else {
           showBackupConfig(initialConfig ?? buildDefaultConfig());
         }
       } catch (e) {
-        alert(translateApiError(e, t));
+        if (isCurrentLoad) alert(translateApiError(e, t));
       } finally {
-        setIsLoading(false);
+        if (isCurrentLoad) setIsLoading(false);
       }
     };
 
     run();
-  }, [database]);
+
+    return () => {
+      isCurrentLoad = false;
+    };
+  }, [database.id]);
 
   if (isLoading) {
     return (
@@ -665,7 +687,7 @@ export const EditPhysicalBackupConfigComponent = ({
         )}
 
         {isShowCancelButton && (
-          <Button danger ghost className="mr-1" onClick={onCancel}>
+          <Button danger ghost className="mr-1" disabled={isSaving} onClick={onCancel}>
             {t('common.actions.cancel')}
           </Button>
         )}

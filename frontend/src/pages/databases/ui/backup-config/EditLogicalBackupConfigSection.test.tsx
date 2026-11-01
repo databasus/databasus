@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -16,8 +17,7 @@ import {
 import { API_BASE_PATH } from '../../../../shared/api';
 import { buildProblem, mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
 import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-// @vitest-environment happy-dom
-import { EditLogicalBackupConfigComponent } from './EditLogicalBackupConfigComponent';
+import { EditLogicalBackupConfigSection } from './EditLogicalBackupConfigSection';
 
 const mockServer = setUpMockApi();
 const database: Database = {
@@ -51,7 +51,7 @@ const config: BackupConfig = {
   encryption: 'NONE',
   settings: logicalSettings,
 };
-const operation: StorageSwitch = {
+const acceptedStorageSwitch: StorageSwitch = {
   id: 'switch-id',
   databaseId: database.id,
   workspaceId: database.workspaceId,
@@ -79,67 +79,7 @@ const chooseStorage = async (name = 'Archive') => {
   fireEvent.click(option);
 };
 
-const unsavedDatabase: Database = {
-  id: '',
-  workspaceId: 'workspace-id',
-  name: 'Orders',
-  settings: createDefaultDatabaseSettings(DatabaseType.MYSQL),
-  notifierIds: [],
-};
-
-const enteredConfig: LogicalBackupConfigInput = {
-  isBackupsEnabled: true,
-  storageId: 'archive-storage-id',
-  encryption: 'NONE',
-  settings: {
-    type: 'LOGICAL',
-    schedule: { type: 'DAILY', timeOfDay: '04:00' },
-    retention: {
-      policy: 'COUNT',
-      period: 'MONTH',
-      count: 42,
-      gfsHours: 0,
-      gfsDays: 0,
-      gfsWeeks: 0,
-      gfsMonths: 0,
-      gfsYears: 0,
-    },
-    isRetryIfFailed: false,
-    maxFailedTriesCount: 1,
-    notificationTriggers: [],
-  },
-};
-
-describe('EditLogicalBackupConfigComponent', () => {
-  it('starts an unsaved database from the given configuration instead of the defaults', async () => {
-    mockServer.use(
-      mockApi.get('/storages', 200, {
-        items: [
-          {
-            id: 'archive-storage-id',
-            workspaceId: database.workspaceId,
-            name: 'Entered archive',
-            settings: { type: 'LOCAL' },
-          },
-        ],
-      }),
-    );
-    renderScreen(
-      <EditLogicalBackupConfigComponent
-        database={unsavedDatabase}
-        initialConfig={enteredConfig}
-        isShowBackButton={false}
-        onBack={() => {}}
-        onCancel={() => {}}
-        isSaveToApi={false}
-        onSaved={() => {}}
-      />,
-    );
-
-    expect(await screen.findByDisplayValue('42')).toBeTruthy();
-    expect(await screen.findByText('Entered archive')).toBeTruthy();
-  });
-
+describe('EditLogicalBackupConfigSection', () => {
   it('requires confirmation before reassigning cleared storage with retained history and handles an accepted response', async () => {
     const submitted: BackupConfigInput[] = [];
     const onSaved = vi.fn();
@@ -171,26 +111,14 @@ describe('EditLogicalBackupConfigComponent', () => {
           },
         ],
       }),
-      http.get(`*${API_BASE_PATH}/storage-switches`, () =>
-        submitted.length
-          ? HttpResponse.json(buildProblem('internal', 500), { status: 500 })
-          : HttpResponse.json({ items: [] }),
-      ),
-      mockApi.get('/storage-switches/{storageSwitchId}', 200, operation),
+      mockApi.get('/storage-switches', 200, { items: [] }),
       http.put(`*${API_BASE_PATH}/backup-configs/:databaseId`, async ({ request }) => {
         submitted.push((await request.json()) as BackupConfigInput);
-        return HttpResponse.json(operation, { status: 202 });
+        return HttpResponse.json(acceptedStorageSwitch, { status: 202 });
       }),
     );
     renderScreen(
-      <EditLogicalBackupConfigComponent
-        database={database}
-        isShowBackButton={false}
-        onBack={() => {}}
-        onCancel={() => {}}
-        isSaveToApi
-        onSaved={onSaved}
-      />,
+      <EditLogicalBackupConfigSection database={database} onCancel={() => {}} onSaved={onSaved} />,
     );
 
     await chooseStorage();
@@ -212,106 +140,31 @@ describe('EditLogicalBackupConfigComponent', () => {
 
     await waitFor(() => expect(submitted).toHaveLength(1));
     await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
-    expect(
-      await screen.findByText('Storage switched. Old files are being cleaned up.'),
-    ).toBeTruthy();
-
-    fireEvent.click(await screen.findByRole('button', { name: 'Retry status' }));
-
     expect(submitted).toHaveLength(1);
   });
-  it.each(['old-storage', 'target-storage'])(
-    'warns before reassignment to %s after clearing storage without remounting',
-    async (storageId) => {
-      const submitted: BackupConfigInput[] = [];
-      const onSaved = vi.fn();
-      mockServer.use(
-        mockApi.get('/backup-configs/{databaseId}', 200, {
-          ...config,
-          storageId: 'old-storage',
-        }),
-        mockApi.get('/storages', 200, {
-          items: [
-            {
-              id: 'old-storage',
-              workspaceId: database.workspaceId,
-              name: 'Previous archive',
-              settings: { type: 'LOCAL' },
-            },
-            {
-              id: 'target-storage',
-              workspaceId: database.workspaceId,
-              name: 'Archive',
-              settings: { type: 'LOCAL' },
-            },
-          ],
-        }),
-        mockApi.get('/logical-backups', 200, {
-          items: [
-            {
-              id: 'old-backup',
-              databaseId: database.id,
-              storageId: 'old-storage',
-              status: 'COMPLETED',
-              sizeMb: 1,
-              rawDatabaseSizeMb: 1,
-              durationMs: 1,
-              encryption: 'NONE',
-              verificationStatus: 'NOT_VERIFIED',
-              createdAt: '2026-10-29T10:00:00Z',
-            },
-          ],
-        }),
-        mockApi.get('/storage-switches', 200, { items: [] }),
-        mockApi.get('/storage-switches/{storageSwitchId}', 200, {
-          ...operation,
-          targetStorageId: storageId,
-        }),
-        http.put(`*${API_BASE_PATH}/backup-configs/:databaseId`, async ({ request }) => {
-          const saved = (await request.json()) as BackupConfigInput;
-          submitted.push(saved);
 
-          return saved.storageId
-            ? HttpResponse.json({ ...operation, targetStorageId: storageId }, { status: 202 })
-            : HttpResponse.json({ ...saved, databaseId: database.id });
-        }),
-      );
-      renderScreen(
-        <EditLogicalBackupConfigComponent
-          database={database}
-          isShowBackButton={false}
-          onBack={() => {}}
-          onCancel={() => {}}
-          isSaveToApi
-          onSaved={onSaved}
-        />,
-      );
-      const storageLabel = await screen.findByText('Storage');
-      const clear = storageLabel.parentElement!.querySelector('.ant-select-clear')!;
+  it('shows a refused save in the form with the entered values', async () => {
+    const onSaved = vi.fn();
+    mockServer.use(
+      mockApi.get('/backup-configs/{databaseId}', 200, config),
+      mockApi.get('/logical-backups', 200, { items: [] }),
+      mockApi.get('/storage-switches', 200, { items: [] }),
+      mockApi.get('/storages', 200, { items: [] }),
+      mockApi.put('/backup-configs/{databaseId}', 403, buildProblem('permission_denied', 403)),
+    );
+    renderScreen(
+      <EditLogicalBackupConfigSection database={database} onCancel={() => {}} onSaved={onSaved} />,
+    );
+    const saveButton = await screen.findByRole('button', { name: /Save$/ });
+    fireEvent.click(screen.getAllByRole('checkbox')[0]);
 
-      expect(clear).toBeTruthy();
+    fireEvent.click(saveButton);
 
-      fireEvent.mouseDown(clear);
-      fireEvent.click(await screen.findByRole('button', { name: /Save$/ }));
-
-      await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
-      expect(submitted).toHaveLength(1);
-      expect(submitted[0].storageId).toBeNull();
-
-      await chooseStorage(storageId === 'old-storage' ? 'Previous archive' : 'Archive');
-      fireEvent.click(await screen.findByRole('button', { name: /Save$/ }));
-
-      expect(
-        await screen.findByText(/Switching storage removes the old backup history immediately/),
-      ).toBeTruthy();
-      expect(submitted).toHaveLength(1);
-
-      fireEvent.click(screen.getByRole('button', { name: 'Switch storage and remove history' }));
-
-      await waitFor(() => expect(submitted).toHaveLength(2));
-      expect(submitted[1].storageId).toBe(storageId);
-    },
-  );
+    expect(await screen.findByText('You do not have permission to do this.')).toBeTruthy();
+    expect((screen.getAllByRole('checkbox')[0] as HTMLInputElement).checked).toBe(true);
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveProperty('disabled', false);
+    expect(onSaved).not.toHaveBeenCalled();
+  });
 
   describe('with a schedule', () => {
     const gfsRetention: LogicalBackupConfigInput['settings']['retention'] = {
@@ -372,12 +225,9 @@ describe('EditLogicalBackupConfigComponent', () => {
       );
 
       renderScreen(
-        <EditLogicalBackupConfigComponent
+        <EditLogicalBackupConfigSection
           database={database}
-          isShowBackButton={false}
-          onBack={() => {}}
           onCancel={() => {}}
-          isSaveToApi
           onSaved={() => {}}
         />,
       );

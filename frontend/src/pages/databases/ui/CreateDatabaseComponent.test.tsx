@@ -697,3 +697,92 @@ describe('CreateDatabaseComponent', () => {
     });
   });
 });
+
+describe('the backup configuration step of the wizard', () => {
+  const reachLogicalBackupStep = async () => {
+    enterBaseInfo('MySQL');
+    await enterConnection();
+    await screen.findByText('Storage');
+  };
+
+  const reachPhysicalBackupStep = async () => {
+    enterBaseInfo('PostgreSQL');
+    await choosePostgresBackupType('Physical');
+    await enterConnection();
+    await screen.findByText('Storage');
+  };
+
+  const renderRerenderableWizard = () => {
+    const wizard = () => (
+      <CreateDatabaseComponent workspaceId="workspace-id" onCreated={() => {}} onClose={() => {}} />
+    );
+    const view = renderScreen(wizard());
+
+    return { ...view, rerenderWizard: () => view.rerender(wizard()) };
+  };
+
+  const getFirstCheckbox = () => screen.getAllByRole('checkbox')[0] as HTMLInputElement;
+
+  describe.each([
+    { kind: 'logical', reachBackupStep: reachLogicalBackupStep },
+    { kind: 'physical', reachBackupStep: reachPhysicalBackupStep },
+  ])('of a $kind database', ({ reachBackupStep }) => {
+    it('keeps the input without a spinner when the wizard rerenders', async () => {
+      declareWizardRequests();
+      const { rerenderWizard } = renderRerenderableWizard();
+      await reachBackupStep();
+      const isInitiallyChecked = getFirstCheckbox().checked;
+      fireEvent.click(getFirstCheckbox());
+
+      rerenderWizard();
+
+      expect(document.querySelector('.ant-spin')).toBeNull();
+      expect(getFirstCheckbox().checked).toBe(!isInitiallyChecked);
+    });
+
+    it('keeps storage creation open when the wizard rerenders', async () => {
+      declareWizardRequests();
+      const { rerenderWizard, user } = renderRerenderableWizard();
+      await reachBackupStep();
+      await user.click(await screen.findByRole('button', { name: 'Create new storage' }));
+      const dialog = within(await screen.findByRole('dialog', { name: 'Add storage' }));
+      await user.type(dialog.getByRole('textbox', { name: 'Name' }), 'Nested archive');
+
+      rerenderWizard();
+
+      expect(
+        (
+          within(screen.getByRole('dialog', { name: 'Add storage' })).getByRole('textbox', {
+            name: 'Name',
+          }) as HTMLInputElement
+        ).value,
+      ).toBe('Nested archive');
+    });
+
+    it('offers Continue without a change after going back from the notifier step', async () => {
+      declareWizardRequests();
+      renderWizard();
+      await reachBackupStep();
+      await continueToNotifiers('Archive');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+      await getChosenStorageText();
+
+      expect(screen.getByRole('button', { name: 'Continue' })).toHaveProperty('disabled', false);
+    });
+  });
+
+  it('keeps logical input after going back to the connection step and returning', async () => {
+    declareWizardRequests();
+    renderWizard();
+    await reachLogicalBackupStep();
+    const isInitiallyChecked = getFirstCheckbox().checked;
+    fireEvent.click(getFirstCheckbox());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    await enterConnection();
+    await screen.findByText('Storage');
+
+    expect(getFirstCheckbox().checked).toBe(!isInitiallyChecked);
+  });
+});

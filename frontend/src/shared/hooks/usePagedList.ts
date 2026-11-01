@@ -77,6 +77,7 @@ export function usePagedList<TItem, TCursor, TMetadata = undefined>({
     metadata: state.list.metadata,
     isLoading: state.isLoading,
     isLoadingMore: state.isLoadingMore,
+    firstLoadError: state.firstLoadError,
     hasMore: state.list.nextCursor !== undefined,
     reload,
     refreshFirstPage,

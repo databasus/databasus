@@ -1171,18 +1171,21 @@ class DiffGateTest(unittest.TestCase):
         self.assertEqual(get_effort(call), repository.quick_effort)
         self.assertEqual(call["effort_env"], repository.quick_effort)
 
-    def test_stops_agent_after_fourth_rejection(self):
+    def test_stops_agent_after_revision_limit(self):
         repository = HookRepository(self)
         repository.set_reviewer_result({"ok": False, "reason": "No test for an empty list."})
         repository.submit_prompt("Add a widget")
 
         responses = []
-        for attempt in range(4):
+        for attempt in range(review_gate.MAX_REVISIONS + 1):
             repository.write("src/widgets.py", f"WIDGETS = [{attempt}]\n")
             responses.append(repository.stop("diff"))
 
-        self.assertEqual([response.get("decision") for response in responses[:3]], ["block", "block", "block"])
-        self.assertIs(responses[3]["continue"], False)
+        self.assertEqual(
+            [response.get("decision") for response in responses[:-1]],
+            ["block"] * review_gate.MAX_REVISIONS,
+        )
+        self.assertIs(responses[-1]["continue"], False)
 
 
 class ArchitectureGateTest(unittest.TestCase):
@@ -1812,20 +1815,24 @@ class ImplementationGateRepeatTest(SummaryAssertions, unittest.TestCase):
         self.assertEqual(summary_response, {})
         self.assertEqual(repository.calls(), [])
 
-    def test_stops_agent_with_remaining_findings_after_third_block(self):
+    def test_stops_agent_with_remaining_findings_after_repeat_limit(self):
         repository = HookRepository(self)
         self.block_with_bug(repository)
-        repository.write("src/widgets.py", "WIDGETS = ()\n")
-        second_response = repository.stop("implementation")
-        repository.write("src/widgets.py", "WIDGETS = (1,)\n")
+        repeat_responses = []
+        for attempt in range(review_gate.MAX_FULL_REVIEW_REVISIONS):
+            repository.write("src/widgets.py", f"WIDGETS = ({attempt},)\n")
+            repeat_responses.append(repository.stop("implementation"))
 
-        third_response = repository.stop("implementation")
+        last_response = repeat_responses[-1]
 
-        self.assertEqual(second_response["decision"], "block")
-        self.assertIs(third_response["continue"], False)
-        self.assertIn("Race between the check and the write.", third_response["stopReason"])
-        self.assertIn("the change is not accepted", third_response["stopReason"])
-        self.assertIn("`mise run review`", third_response["stopReason"])
+        self.assertEqual(
+            [response.get("decision") for response in repeat_responses[:-1]],
+            ["block"] * (review_gate.MAX_FULL_REVIEW_REVISIONS - 1),
+        )
+        self.assertIs(last_response["continue"], False)
+        self.assertIn("Race between the check and the write.", last_response["stopReason"])
+        self.assertIn("the change is not accepted", last_response["stopReason"])
+        self.assertIn("`mise run review`", last_response["stopReason"])
 
 
 def get_effort(call):
@@ -2472,19 +2479,23 @@ class ProposalGateRepeatTest(ShortReplyAssertions, SummaryAssertions, unittest.T
         self.assertIn("List every scope finding separately: what the user loses and what they save", response["reason"])
         self.assert_asks_for_summary_without_review(response["reason"])
 
-    def test_stops_agent_with_remaining_findings_after_third_block(self):
+    def test_stops_agent_with_remaining_findings_after_repeat_limit(self):
         repository = HookRepository(self)
         self.block_with_gap(repository)
-        repository.write(f"openspec/changes/{PROPOSAL_NAME}/design.md", "# Design\n\nSecond attempt.\n")
-        second_response = repository.stop("proposal")
-        repository.write(f"openspec/changes/{PROPOSAL_NAME}/design.md", "# Design\n\nThird attempt.\n")
+        repeat_responses = []
+        for attempt in range(review_gate.MAX_FULL_REVIEW_REVISIONS):
+            repository.write(f"openspec/changes/{PROPOSAL_NAME}/design.md", f"# Design\n\nAttempt {attempt}.\n")
+            repeat_responses.append(repository.stop("proposal"))
 
-        third_response = repository.stop("proposal")
+        last_response = repeat_responses[-1]
 
-        self.assertEqual(second_response["decision"], "block")
-        self.assertIs(third_response["continue"], False)
-        self.assertIn("Full proposal review", third_response["stopReason"])
-        self.assertIn("The answer for an empty list is missing.", third_response["stopReason"])
+        self.assertEqual(
+            [response.get("decision") for response in repeat_responses[:-1]],
+            ["block"] * (review_gate.MAX_FULL_REVIEW_REVISIONS - 1),
+        )
+        self.assertIs(last_response["continue"], False)
+        self.assertIn("Full proposal review", last_response["stopReason"])
+        self.assertIn("The answer for an empty list is missing.", last_response["stopReason"])
 
 
 class QuickGatesDuringProposalReviewTest(unittest.TestCase):

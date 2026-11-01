@@ -1473,6 +1473,7 @@ export const fr: typeof en = {
       },
     },
     filters: {
+      toggle: 'Filtres',
       allTypes: 'Tous les types',
       allStatuses: 'Tous les statuts',
       before: 'Avant le',

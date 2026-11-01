@@ -5,7 +5,7 @@ import {
   DeleteOutlined,
   InfoCircleOutlined,
 } from '@ant-design/icons';
-import { Alert, Button, Input } from 'antd';
+import { Alert, Button, Input, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -18,12 +18,16 @@ import {
   ShowVerificationConfigComponent,
 } from '@/features/verification/config';
 
-import { backupConfigApi } from '../../../entities/backup-configs';
+import {
+  type BackupConfig,
+  backupConfigApi,
+  toLogicalBackupConfigInput,
+} from '../../../entities/backup-configs';
 import { type Database, DatabaseType, databaseApi } from '../../../entities/databases';
 import { translateApiError } from '../../../shared/i18n';
 import { ToastHelper } from '../../../shared/toast';
 import { ConfirmationComponent } from '../../../shared/ui';
-import { EditLogicalBackupConfigComponent } from './backup-config/EditLogicalBackupConfigComponent';
+import { EditLogicalBackupConfigSection } from './backup-config/EditLogicalBackupConfigSection';
 import { ShowLogicalBackupConfigComponent } from './backup-config/ShowLogicalBackupConfigComponent';
 import { BackupStorageSelection } from './BackupStorageSelection';
 import { DatabaseSettingsSection } from './DatabaseSettingsSection';
@@ -71,7 +75,7 @@ export const DatabaseConfigComponent = ({
   const [isRemoving, setIsRemoving] = useState(false);
   const [isShowCopyConfirm, setIsShowCopyConfirm] = useState(false);
   const [isShowTransferDialog, setIsShowTransferDialog] = useState(false);
-  const [currentStorageId, setCurrentStorageId] = useState<string | undefined>();
+  const [backupConfig, setBackupConfig] = useState<BackupConfig | undefined>();
   const [backupConfigError, setBackupConfigError] = useState<unknown>();
   const [backupConfigLoadAttempt, setBackupConfigLoadAttempt] = useState(0);
 
@@ -168,11 +172,12 @@ export const DatabaseConfigComponent = ({
 
   useEffect(() => {
     let isActive = true;
+    setBackupConfig(undefined);
     setBackupConfigError(undefined);
     backupConfigApi
       .getBackupConfig(database.id)
       .then((loadedBackupConfig) => {
-        if (isActive) setCurrentStorageId(loadedBackupConfig.storageId ?? undefined);
+        if (isActive) setBackupConfig(loadedBackupConfig);
       })
       .catch((error) => {
         if (isActive) setBackupConfigError(error);
@@ -186,6 +191,7 @@ export const DatabaseConfigComponent = ({
   const isLogicalDatabase = database.settings.type === DatabaseType.POSTGRES_LOGICAL;
   const isSectionEditable = isCanManageDBs && editingSection === undefined;
   const isNameUnsaved = nameDraft !== database.name;
+  const logicalBackupConfig = backupConfig && toLogicalBackupConfigInput(backupConfig);
 
   return (
     <div className="relative w-full rounded-tr-md rounded-br-md rounded-bl-md bg-surface p-3 shadow sm:p-5">
@@ -245,7 +251,7 @@ export const DatabaseConfigComponent = ({
         </div>
       )}
 
-      {backupConfigError !== undefined && (
+      {backupConfigError !== undefined && editingSection !== 'backup-config' && (
         <Alert
           className="mb-4"
           type="error"
@@ -314,20 +320,22 @@ export const DatabaseConfigComponent = ({
                 onBack={() => {}}
               />
             ) : (
-              <EditLogicalBackupConfigComponent
+              <EditLogicalBackupConfigSection
+                key={database.id}
                 database={database}
-                isShowCancelButton
                 onCancel={closeSection}
-                isSaveToApi={true}
                 onSaved={acceptSavedBackupConfig}
-                isShowBackButton={false}
-                onBack={() => {}}
               />
             )
           ) : isPhysicalDatabase ? (
             <ShowPhysicalBackupConfigComponent database={database} />
+          ) : logicalBackupConfig ? (
+            <ShowLogicalBackupConfigComponent
+              database={database}
+              backupConfig={logicalBackupConfig}
+            />
           ) : (
-            <ShowLogicalBackupConfigComponent database={database} />
+            backupConfigError === undefined && <Spin />
           )}
         </DatabaseSettingsSection>
       </div>
@@ -452,7 +460,7 @@ export const DatabaseConfigComponent = ({
       {isShowTransferDialog && (
         <DatabaseTransferDialogComponent
           database={database}
-          currentStorageId={currentStorageId}
+          currentStorageId={backupConfig?.storageId ?? undefined}
           onClose={() => setIsShowTransferDialog(false)}
           onTransferred={() => {
             setIsShowTransferDialog(false);

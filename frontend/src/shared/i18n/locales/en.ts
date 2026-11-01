@@ -1431,6 +1431,7 @@ export const en = {
       },
     },
     filters: {
+      toggle: 'Filters',
       allTypes: 'All types',
       allStatuses: 'All statuses',
       before: 'Before',

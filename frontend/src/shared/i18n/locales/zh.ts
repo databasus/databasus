@@ -1380,6 +1380,7 @@ export const zh: typeof en = {
       },
     },
     filters: {
+      toggle: '筛选',
       allTypes: '全部类型',
       allStatuses: '全部状态',
       before: '早于',

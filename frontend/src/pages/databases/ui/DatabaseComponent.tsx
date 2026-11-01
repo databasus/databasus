@@ -49,13 +49,19 @@ export const DatabaseComponent = ({
   };
 
   const acceptChangedDatabase = (changedDatabase: Database) => {
-    setDatabase(changedDatabase);
+    setDatabase((shownDatabase) =>
+      shownDatabase?.id === changedDatabase.id ? changedDatabase : shownDatabase,
+    );
     onDatabaseChanged(changedDatabase);
   };
 
   const isLogicalDatabase = database?.settings.type === DatabaseType.POSTGRES_LOGICAL;
   const isPhysicalDatabase = database?.settings.type === DatabaseType.POSTGRES_PHYSICAL;
   const isMonitoringShown = database !== undefined && isMonitoringTabShown(database);
+  const isCurrentTabOffered =
+    (currentTab !== 'verifications' || isLogicalDatabase) &&
+    (currentTab !== 'monitoring' || isMonitoringShown);
+  const shownTab = isCurrentTabOffered ? currentTab : 'backups';
 
   useEffect(() => {
     let isActive = true;
@@ -97,14 +103,14 @@ export const DatabaseComponent = ({
     <div className="w-full">
       <div className="flex">
         <div
-          className={`mr-2 cursor-pointer rounded-tl-md rounded-tr-md px-6 py-2 ${currentTab === 'config' ? 'bg-surface' : 'bg-hover'}`}
+          className={`mr-2 cursor-pointer rounded-tl-md rounded-tr-md px-6 py-2 ${shownTab === 'config' ? 'bg-surface' : 'bg-hover'}`}
           onClick={() => setCurrentTab('config')}
         >
           {t('databases.tabs.config')}
         </div>
 
         <div
-          className={`mr-2 cursor-pointer rounded-tl-md rounded-tr-md px-6 py-2 ${currentTab === 'backups' ? 'bg-surface' : 'bg-hover'}`}
+          className={`mr-2 cursor-pointer rounded-tl-md rounded-tr-md px-6 py-2 ${shownTab === 'backups' ? 'bg-surface' : 'bg-hover'}`}
           onClick={() => setCurrentTab('backups')}
         >
           {t('databases.tabs.backups')}
@@ -112,7 +118,7 @@ export const DatabaseComponent = ({
 
         {isLogicalDatabase && (
           <div
-            className={`mr-2 cursor-pointer rounded-tl-md rounded-tr-md px-6 py-2 ${currentTab === 'verifications' ? 'bg-surface' : 'bg-hover'}`}
+            className={`mr-2 cursor-pointer rounded-tl-md rounded-tr-md px-6 py-2 ${shownTab === 'verifications' ? 'bg-surface' : 'bg-hover'}`}
             onClick={() => setCurrentTab('verifications')}
           >
             {t('databases.tabs.verifications')}
@@ -121,7 +127,7 @@ export const DatabaseComponent = ({
 
         {isMonitoringShown && (
           <div
-            className={`mr-2 cursor-pointer rounded-tl-md rounded-tr-md px-6 py-2 ${currentTab === 'monitoring' ? 'bg-surface' : 'bg-hover'}`}
+            className={`mr-2 cursor-pointer rounded-tl-md rounded-tr-md px-6 py-2 ${shownTab === 'monitoring' ? 'bg-surface' : 'bg-hover'}`}
             onClick={() => setCurrentTab('monitoring')}
           >
             {t('databases.tabs.monitoring')}
@@ -129,7 +135,7 @@ export const DatabaseComponent = ({
         )}
       </div>
 
-      {currentTab === 'config' && (
+      {shownTab === 'config' && (
         <DatabaseConfigComponent
           database={database}
           onDatabaseChanged={acceptChangedDatabase}
@@ -140,7 +146,7 @@ export const DatabaseComponent = ({
         />
       )}
 
-      {currentTab === 'backups' && (
+      {shownTab === 'backups' && (
         <>
           <HealthcheckAttemptsComponent
             database={database}
@@ -166,7 +172,7 @@ export const DatabaseComponent = ({
         </>
       )}
 
-      {currentTab === 'monitoring' && isMonitoringShown && (
+      {shownTab === 'monitoring' && (
         <WalStreamMonitoringComponent
           database={database}
           isCanManageDBs={isCanManageDBs}
@@ -175,7 +181,7 @@ export const DatabaseComponent = ({
         />
       )}
 
-      {currentTab === 'verifications' && isLogicalDatabase && (
+      {shownTab === 'verifications' && (
         <VerificationsComponent
           database={database}
           isCanManageDBs={isCanManageDBs}

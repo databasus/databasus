@@ -182,7 +182,7 @@ const renderBackupListWithRestore = () => {
 
 const openRestoreDialog = async () => {
   const restoreIcon = await waitFor(() => {
-    const icon = document.querySelector('.anticon-cloud-upload');
+    const icon = screen.getAllByRole('button', { name: 'Restore from backup' })[0];
     expect(icon).toBeTruthy();
 
     return icon!;
@@ -717,5 +717,47 @@ describe('Restore target composition', () => {
 
     expect(screen.queryByText('In progress')).toBeNull();
     expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('keeps every entered value when a start is refused as not found', async () => {
+    declareRestoreList();
+    mockServer.use(mockApi.post('/restores', 404, buildProblem('not_found', 404)));
+    renderRestoreFlow(backedUpDatabase, completedBackup);
+
+    await enterTarget();
+    startEnteredRestore();
+
+    expect(
+      await screen.findByText('The requested item was not found. It may have been deleted.'),
+    ).toBeTruthy();
+    expect((screen.getByPlaceholderText(/host$/) as HTMLInputElement).value).toBe(
+      'restore-target.example.com',
+    );
+    expect((screen.getByPlaceholderText(/username$/) as HTMLInputElement).value).toBe('restorer');
+    expect((screen.getByPlaceholderText(/password$/) as HTMLInputElement).value).toBe(
+      'target-secret',
+    );
+    expect((screen.getByPlaceholderText(/database name$/) as HTMLInputElement).value).toBe(
+      'restored',
+    );
+    expect(screen.getByRole('button', { name: /Restore to this DB$/ })).toBeTruthy();
+  });
+
+  it('shows a started restore at once while the list does not name it yet', async () => {
+    let listRequests = 0;
+    mockServer.use(
+      http.get(`*${API_BASE_PATH}/restores`, () =>
+        ++listRequests === 1
+          ? HttpResponse.json({ items: [] })
+          : createPendingApiResponse().response,
+      ),
+      mockApi.post('/restores', 202, startedRestore),
+    );
+    renderRestoreFlow(backedUpDatabase, completedBackup);
+
+    await enterTarget();
+    startEnteredRestore();
+
+    expect(await screen.findByText('In progress')).toBeTruthy();
   });
 });

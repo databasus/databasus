@@ -1,16 +1,21 @@
 // @vitest-environment happy-dom
-import { act, screen } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { BackupConfig } from '../../../../entities/backup-configs';
 import { DatabaseType, createDefaultDatabaseSettings } from '../../../../entities/databases';
 import { DICTIONARIES } from '../../../../shared/i18n';
+import { advanceClockUntil } from '../../../../shared/lib/test/advanceClockUntil';
 import { waitForCondition } from '../../../../shared/lib/test/conditionWait';
-import { mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
+import { buildProblem, mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
 import { createPendingApiResponse } from '../../../../shared/lib/test/pendingApiResponse';
 import { renderScreen } from '../../../../shared/lib/test/renderScreen';
 import { PhysicalBackupsComponent } from './PhysicalBackupsComponent';
+
+dayjs.extend(utc);
 
 const server = setUpMockApi();
 const database = {
@@ -99,5 +104,86 @@ describe('PhysicalBackupsComponent', () => {
 
     expect(screen.getByText(usageText(30))).toBeTruthy();
     expect(screen.queryByText(usageText(20))).toBeNull();
+  });
+
+  describe('with a failing refresh', () => {
+    const physicalBackup = {
+      id: 'running-backup',
+      databaseId: database.id,
+      storageId: 'storage-id',
+      kind: 'FULL',
+      status: 'IN_PROGRESS',
+      sizeMb: 12,
+      durationMs: 3_000,
+      encryption: 'NONE',
+      createdAt: '2026-10-27T10:00:00Z',
+    };
+
+    const failedResponse = () => HttpResponse.json(buildProblem('internal', 500), { status: 500 });
+
+    const countListRequests = () =>
+      server.getRequests().filter((request) => request.url.includes('/physical-backups?')).length;
+
+    it('shows no alert, keeps the rows and requests again when polls fail', async () => {
+      const showAlert = vi.fn();
+      vi.stubGlobal('alert', showAlert);
+      let listRequests = 0;
+      server.use(
+        mockApi.get('/backup-configs/{databaseId}', 200, config),
+        http.get('*/api/v1/physical-backups', () =>
+          ++listRequests === 1
+            ? HttpResponse.json({ items: [physicalBackup], totalUsageMb: 10 })
+            : failedResponse(),
+        ),
+      );
+      vi.useFakeTimers();
+      renderScreen(<PhysicalBackupsComponent database={database} isCanManageDBs={false} />);
+      await waitForCondition(() => screen.getByText(usageText(10)));
+      const shownRunningBackups = screen.getAllByText('In progress').length;
+
+      await advanceClockUntil(() => expect(countListRequests()).toBeGreaterThanOrEqual(3));
+
+      expect(showAlert).not.toHaveBeenCalled();
+      expect(screen.getByText(usageText(10))).toBeTruthy();
+      expect(shownRunningBackups).toBeGreaterThan(0);
+      expect(screen.getAllByText('In progress')).toHaveLength(shownRunningBackups);
+    });
+
+    it('shows no alert and refreshes again when the refresh after a successful cancel fails', async () => {
+      const showAlert = vi.fn();
+      vi.stubGlobal('alert', showAlert);
+      let isCancelled = false;
+      let refreshesAfterCancel = 0;
+      server.use(
+        mockApi.get('/backup-configs/{databaseId}', 200, config),
+        http.get('*/api/v1/physical-backups', () => {
+          if (!isCancelled) {
+            return HttpResponse.json({ items: [physicalBackup], totalUsageMb: 10 });
+          }
+
+          refreshesAfterCancel += 1;
+          return refreshesAfterCancel === 1
+            ? failedResponse()
+            : HttpResponse.json({
+                items: [{ ...physicalBackup, status: 'CANCELED' }],
+                totalUsageMb: 20,
+              });
+        }),
+        http.post('*/api/v1/physical-backups/:backupId/cancel', () => {
+          isCancelled = true;
+          return HttpResponse.json({ ...physicalBackup, status: 'CANCELED' }, { status: 202 });
+        }),
+      );
+      vi.useFakeTimers();
+      renderScreen(<PhysicalBackupsComponent database={database} isCanManageDBs />);
+      await waitForCondition(() => screen.getByText(usageText(10)));
+
+      fireEvent.click(screen.getAllByRole('img', { name: 'close-circle' })[0]);
+
+      await advanceClockUntil(() => screen.getByText(usageText(20)));
+
+      expect(refreshesAfterCancel).toBeGreaterThanOrEqual(2);
+      expect(showAlert).not.toHaveBeenCalled();
+    });
   });
 });

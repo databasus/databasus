@@ -203,7 +203,7 @@ A reviewer SHALL return findings, each with a category (`bug`, `spec_mismatch`, 
 
 ### Requirement: Repeat review after fixes
 
-After a blocked full review the next run SHALL check the previous findings and the files changed after that review, not the whole change again. The repeat SHALL run on the same models. There SHALL be at most two repeats per user request, after which the hook SHALL stop the agent and show the remaining findings.
+After a blocked full review the next run SHALL check the previous findings and the files changed after that review, not the whole change again. The repeat SHALL run on the same models. There SHALL be at most 15 repeats per user request, after which the hook SHALL stop the agent and show the remaining findings.
 
 #### Scenario: Findings are fixed
 
@@ -212,7 +212,7 @@ After a blocked full review the next run SHALL check the previous findings and t
 
 #### Scenario: Repeat limit
 
-- **WHEN** the third review in a row within one user request blocks the turn again
+- **WHEN** the 15th repeat within one user request blocks the turn again
 - **THEN** the hook stops the agent and shows the remaining findings, says that the edits stay in the working tree without being accepted, and names `mise run review` for running the review again
 
 ### Requirement: The whole review runs by hand

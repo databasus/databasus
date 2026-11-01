@@ -125,7 +125,7 @@ A reviewer SHALL return findings, each with a category, a path and a description
 - **THEN** the turn is blocked, and the agent renames the operation in the change's artifacts without asking the user
 
 ### Requirement: Repeat and summary of the full proposal review
-After a blocked review the next run SHALL check the previous findings and the change's files that changed after that review, not the whole proposal again. The block text SHALL require the agent to finish the turn again with one short line about its fixes that names every rejected finding with the reason, and to leave the summary for the user until the review accepts the proposal. There SHALL be at most two repeats per user request, after which the hook SHALL stop the agent and show the remaining findings. When the review accepts the proposal after at least one block in this request, or returns `scope` findings, the hook SHALL block the turn once and ask the agent to write the user a summary of the proposal as if there had been no review: what is proposed and which decisions were made, without review rounds, findings or the fixes made for them, and separately each option to cut the feature with what the user loses and saves. The next turn without edits to the change's files MUST NOT be blocked.
+After a blocked review the next run SHALL check the previous findings and the change's files that changed after that review, not the whole proposal again. The block text SHALL require the agent to finish the turn again with one short line about its fixes that names every rejected finding with the reason, and to leave the summary for the user until the review accepts the proposal. There SHALL be at most 15 repeats per user request, after which the hook SHALL stop the agent and show the remaining findings. When the review accepts the proposal after at least one block in this request, or returns `scope` findings, the hook SHALL block the turn once and ask the agent to write the user a summary of the proposal as if there had been no review: what is proposed and which decisions were made, without review rounds, findings or the fixes made for them, and separately each option to cut the feature with what the user loses and saves. The next turn without edits to the change's files MUST NOT be blocked.
 
 #### Scenario: A gap blocks the turn
 - **WHEN** the proposal review blocks the turn with a `gap` finding
@@ -144,7 +144,7 @@ After a blocked review the next run SHALL check the previous findings and the ch
 - **THEN** the summary request asks to list that option with what the user loses and saves, and to leave out the review rounds and the fixes made for them
 
 #### Scenario: Repeat limit
-- **WHEN** the third proposal review in a row within one user request blocks the turn again
+- **WHEN** the 15th proposal review repeat within one user request blocks the turn again
 - **THEN** the hook stops the agent and shows the remaining findings
 
 ### Requirement: Quick checks yield to the full proposal review

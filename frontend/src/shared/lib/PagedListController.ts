@@ -1,15 +1,18 @@
 import { type PagedListPage, appendNextPage, mergeRefreshedFirstPage } from './pagedList';
 
+export type PagedListFailedPage = 'first' | 'next';
+
 export interface PagedListOptions<TItem, TCursor, TMetadata = undefined> {
   fetchPage: (cursor: TCursor | undefined) => Promise<PagedListPage<TItem, TCursor, TMetadata>>;
   getItemKey: (item: TItem) => string;
-  onError: (error: unknown) => void;
+  onError: (error: unknown, failedPage: PagedListFailedPage) => void;
 }
 
 export interface PagedListState<TItem, TCursor, TMetadata = undefined> {
   list: PagedListPage<TItem, TCursor, TMetadata>;
   isLoading: boolean;
   isLoadingMore: boolean;
+  firstLoadError?: unknown;
 }
 
 export const createInitialPagedListState = <
@@ -20,6 +23,7 @@ export const createInitialPagedListState = <
   list: { items: [] },
   isLoading: true,
   isLoadingMore: false,
+  firstLoadError: undefined,
 });
 
 export class PagedListController<TItem, TCursor, TMetadata = undefined> {
@@ -65,8 +69,8 @@ export class PagedListController<TItem, TCursor, TMetadata = undefined> {
       this.updateState({ list: firstPage, isLoading: false });
     } catch (error) {
       if (!this.isCurrentGeneration(generation)) return;
-      this.updateState({ isLoading: false });
-      this.options.onError(error);
+      this.updateState({ isLoading: false, firstLoadError: error });
+      this.options.onError(error, 'first');
     }
   }
 
@@ -91,8 +95,8 @@ export class PagedListController<TItem, TCursor, TMetadata = undefined> {
       } else {
         this.updateState({ list });
       }
-    } catch (error) {
-      if (isCurrent()) this.options.onError(error);
+    } catch {
+      // The next refresh tries again, and the shown rows stay until one succeeds.
     } finally {
       if (isCurrent()) this.refreshRequest = undefined;
     }
@@ -134,7 +138,7 @@ export class PagedListController<TItem, TCursor, TMetadata = undefined> {
         list: appendNextPage(this.state.list, nextPage, this.options.getItemKey),
       });
     } catch (error) {
-      if (isCurrent()) this.options.onError(error);
+      if (isCurrent()) this.options.onError(error, 'next');
     } finally {
       if (isCurrent()) {
         this.nextPageRequest = undefined;

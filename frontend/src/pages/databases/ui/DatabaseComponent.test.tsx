@@ -3,17 +3,22 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { http, HttpResponse } from 'msw';
 import { createRef } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { backupConfigApi } from '../../../entities/backup-configs';
 import {
   type Database,
   DatabaseType,
+  PhysicalDatabaseBackupType,
   createDefaultDatabaseSettings,
 } from '../../../entities/databases';
+import { verificationRunsApi } from '../../../entities/verification/runs';
+import { activateSession, invalidateSession } from '../../../shared/auth';
 import { DICTIONARIES, useLocale } from '../../../shared/i18n';
 import { waitForCondition } from '../../../shared/lib/test/conditionWait';
 import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
 import { createPendingApiResponse } from '../../../shared/lib/test/pendingApiResponse';
+import { releaseAndSettle } from '../../../shared/lib/test/releaseAndSettle';
 import { renderScreen } from '../../../shared/lib/test/renderScreen';
 // @vitest-environment happy-dom
 import { DatabaseComponent } from './DatabaseComponent';
@@ -404,5 +409,339 @@ describe('DatabaseComponent', () => {
 
     expect(screen.getByText('Latest shop')).toBeTruthy();
     expect(screen.queryByText('Earlier shop')).toBeNull();
+  });
+});
+
+describe('DatabaseComponent backup configuration answers', () => {
+  afterEach(() => invalidateSession());
+
+  const logicalSettings = {
+    type: 'LOGICAL' as const,
+    schedule: { type: 'DAILY' as const, timeOfDay: '04:00' },
+    retention: {
+      policy: 'TIME_PERIOD' as const,
+      period: 'MONTH' as const,
+      count: 0,
+      gfsHours: 0,
+      gfsDays: 0,
+      gfsWeeks: 0,
+      gfsMonths: 0,
+      gfsYears: 0,
+    },
+    isRetryIfFailed: true,
+    maxFailedTriesCount: 3,
+    notificationTriggers: ['BACKUP_FAILED' as const],
+  };
+  const physicalSettings = {
+    type: 'PHYSICAL' as const,
+    fullBackupSchedule: { type: 'HOURLY' as const },
+    incrementalBackupSchedule: null,
+    retention: {
+      policy: 'FULL_BACKUPS' as const,
+      chainsCount: 0,
+      fullBackups: {
+        policy: 'LAST_N' as const,
+        count: 5,
+        gfsHours: 0,
+        gfsDays: 0,
+        gfsWeeks: 0,
+        gfsMonths: 0,
+        gfsYears: 0,
+      },
+    },
+    walLagThresholdBytes: 0,
+    notificationTriggers: [],
+  };
+
+  const buildScreenDatabase = (id: string, type: DatabaseType): Database => ({
+    id,
+    workspaceId: 'workspace-id',
+    name: id,
+    settings: createDefaultDatabaseSettings(type),
+    notifierIds: [],
+  });
+
+  const getBackupsTab = () => screen.getByText('Backups', { selector: 'div' });
+
+  const EDITOR_KINDS = [
+    { kind: 'logical', type: DatabaseType.POSTGRES_LOGICAL, settings: logicalSettings },
+    { kind: 'physical', type: DatabaseType.POSTGRES_PHYSICAL, settings: physicalSettings },
+  ];
+
+  const declareSavedScreen = (
+    databases: Database[],
+    settings: typeof logicalSettings | typeof physicalSettings,
+  ) => {
+    server.use(
+      http.get('*/api/v1/databases/:databaseId', ({ params }) =>
+        HttpResponse.json(databases.find((database) => database.id === params.databaseId)),
+      ),
+      http.get('*/api/v1/backup-configs/:databaseId', ({ params }) =>
+        HttpResponse.json({
+          databaseId: params.databaseId,
+          storageId: null,
+          isBackupsEnabled: true,
+          encryption: 'NONE',
+          settings,
+        }),
+      ),
+      mockApi.get('/storage-switches', 200, { items: [] }),
+      mockApi.get('/logical-backups', 200, { items: [] }),
+      mockApi.get('/physical-backups', 200, { items: [], totalUsageMb: 0 }),
+      mockApi.pending('get', '/healthcheck-attempts').handler,
+      mockApi.pending('get', '/healthcheck-configs/{databaseId}').handler,
+      mockApi.pending('get', '/verification-configs/{databaseId}').handler,
+      mockApi.get('/notifiers', 200, { items: [] }),
+      mockApi.get('/storages', 200, { items: [] }),
+    );
+  };
+
+  const startHeldSave = async (
+    databases: Database[],
+    settings: typeof logicalSettings | typeof physicalSettings,
+    answer: { status: 200 | 403 },
+  ) => {
+    const saveCall = vi.spyOn(backupConfigApi, 'updateBackupConfig');
+    const historyCall = vi.spyOn(backupConfigApi, 'hasBackupHistory');
+    const save = createPendingApiResponse();
+    const showAlert = vi.fn();
+    const onDatabaseChanged = vi.fn();
+    vi.stubGlobal('alert', showAlert);
+    declareSavedScreen(databases, settings);
+    server.use(http.put('*/api/v1/backup-configs/:databaseId', () => save.response));
+
+    const renderedScreen = (databaseId: string) => (
+      <DatabaseComponent
+        {...databaseScreenProps}
+        databaseId={databaseId}
+        onDatabaseChanged={onDatabaseChanged}
+      />
+    );
+    const view = renderScreen(renderedScreen(databases[0].id));
+
+    await view.user.click(await screen.findByText('Config'));
+    await screen.findByText(databases[0].name);
+    openSettingsSection('Backup config');
+    const saveButton = await screen.findByRole('button', { name: /Save$/ });
+    fireEvent.click(screen.getAllByRole('checkbox')[0]);
+    fireEvent.click(saveButton);
+    await waitFor(() => expect(saveCall).toHaveBeenCalled());
+
+    const settleAnswer = async () => {
+      await act(async () => {
+        save.respond(
+          answer.status === 200
+            ? HttpResponse.json({
+                databaseId: databases[0].id,
+                storageId: null,
+                isBackupsEnabled: true,
+                encryption: 'NONE',
+                settings,
+              })
+            : HttpResponse.json(buildProblem('permission_denied', 403), { status: 403 }),
+        );
+        await Promise.allSettled([saveCall.mock.results[0].value]);
+        await Promise.allSettled(historyCall.mock.results.map((call) => call.value));
+      });
+    };
+
+    return { view, renderedScreen, settleAnswer, showAlert, onDatabaseChanged };
+  };
+
+  describe.each(EDITOR_KINDS)('of the $kind editor', ({ type, settings }) => {
+    it.each([
+      { outcome: 'successful', status: 200 as const },
+      { outcome: 'refused', status: 403 as const },
+    ])(
+      'keeps the new database and reports nothing for a $outcome answer after another database is selected',
+      async ({ status }) => {
+        const firstDatabase = buildScreenDatabase('first-database', type);
+        const secondDatabase = buildScreenDatabase('second-database', type);
+        const { view, renderedScreen, settleAnswer, showAlert, onDatabaseChanged } =
+          await startHeldSave([firstDatabase, secondDatabase], settings, { status });
+
+        view.rerender(renderedScreen(secondDatabase.id));
+        await screen.findByText(secondDatabase.name);
+        await settleAnswer();
+
+        expect(screen.getByText(secondDatabase.name)).toBeTruthy();
+        expect(screen.queryByText(firstDatabase.name)).toBeNull();
+        expect(screen.queryByText('You do not have permission to do this.')).toBeNull();
+        expect(onDatabaseChanged).not.toHaveBeenCalled();
+        expect(showAlert).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([
+      { outcome: 'successful', status: 200 as const },
+      { outcome: 'refused', status: 403 as const },
+    ])('shows no feedback for a $outcome answer after a tab switch', async ({ status }) => {
+      const database = buildScreenDatabase('first-database', type);
+      const { view, settleAnswer, showAlert, onDatabaseChanged } = await startHeldSave(
+        [database],
+        settings,
+        { status },
+      );
+
+      await view.user.click(screen.getByText('Backups'));
+      await screen.findByRole('heading', { name: 'Backups' });
+      await settleAnswer();
+
+      expect(showAlert).not.toHaveBeenCalled();
+      expect(screen.queryByText('You do not have permission to do this.')).toBeNull();
+      expect(getBackupsTab().className).toContain('bg-surface');
+      expect(onDatabaseChanged).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      { outcome: 'successful', status: 200 as const },
+      { outcome: 'refused', status: 403 as const },
+    ])('shows no feedback for a $outcome answer after a session change', async ({ status }) => {
+      activateSession({ token: 'first-token', userId: 'first-user' });
+      const database = buildScreenDatabase('first-database', type);
+      const { settleAnswer, showAlert, onDatabaseChanged } = await startHeldSave(
+        [database],
+        settings,
+        { status },
+      );
+
+      act(() => {
+        invalidateSession();
+      });
+      await settleAnswer();
+
+      expect(showAlert).not.toHaveBeenCalled();
+      expect(screen.queryByText('You do not have permission to do this.')).toBeNull();
+      expect(onDatabaseChanged).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: /Save$/ })).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy();
+    });
+  });
+
+  it('keeps the open tab and shows nothing when a verification start answers after a switch', async () => {
+    const firstDatabase = buildScreenDatabase('first-database', DatabaseType.POSTGRES_LOGICAL);
+    const secondDatabase = buildScreenDatabase('second-database', DatabaseType.POSTGRES_LOGICAL);
+    const startCall = vi.spyOn(verificationRunsApi, 'startVerification');
+    const start = mockApi.delayed({
+      method: 'post',
+      path: '/verifications',
+      status: 202,
+      body: {
+        id: 'verification-id',
+        databaseId: firstDatabase.id,
+        backupId: 'completed-backup',
+        trigger: 'MANUAL',
+        status: 'COMPLETED',
+        attemptCount: 1,
+        createdAt: '2026-10-27T10:00:00Z',
+      },
+    });
+    declareSavedScreen([firstDatabase, secondDatabase], logicalSettings);
+    server.use(
+      http.get('*/api/v1/logical-backups', ({ request }) =>
+        HttpResponse.json({
+          items:
+            new URL(request.url).searchParams.get('databaseId') === firstDatabase.id
+              ? [
+                  {
+                    id: 'completed-backup',
+                    databaseId: firstDatabase.id,
+                    storageId: 'storage-id',
+                    status: 'COMPLETED',
+                    sizeMb: 12,
+                    rawDatabaseSizeMb: 40,
+                    durationMs: 3_000,
+                    encryption: 'NONE',
+                    verificationStatus: 'NOT_VERIFIED',
+                    createdAt: '2026-10-27T10:00:00Z',
+                  },
+                ]
+              : [],
+        }),
+      ),
+      start.handler,
+    );
+    const renderedScreen = (databaseId: string) => (
+      <DatabaseComponent {...databaseScreenProps} databaseId={databaseId} />
+    );
+    const view = renderScreen(renderedScreen(firstDatabase.id));
+    await screen.findAllByText('Successful');
+
+    fireEvent.click(screen.getAllByRole('button', { name: /^Verify restore/ })[0]);
+    fireEvent.click(await screen.findByRole('button', { name: 'Queue check' }));
+    await waitFor(() => expect(startCall).toHaveBeenCalled());
+
+    view.rerender(renderedScreen(secondDatabase.id));
+    await screen.findAllByText('No backups yet');
+    await releaseAndSettle(startCall, start.release);
+
+    expect(getBackupsTab().className).toContain('bg-surface');
+    expect(screen.queryByText('Restore check queued')).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Backups' })).toBeTruthy();
+  });
+
+  describe('when the selected database lacks the open tab', () => {
+    const declareTabRequests = (databases: Database[], settings = logicalSettings) => {
+      declareSavedScreen(databases, settings);
+      server.use(
+        mockApi.pending('get', '/verifications').handler,
+        mockApi.pending('get', '/verification-agent-counts').handler,
+        mockApi.pending('get', '/wal-streams/{databaseId}').handler,
+        mockApi.pending('get', '/wal-streams/{databaseId}/statistics').handler,
+      );
+    };
+
+    const renderSelectedDatabase = (databaseId: string) => (
+      <DatabaseComponent {...databaseScreenProps} databaseId={databaseId} />
+    );
+
+    const expectBackupsTabShown = async () => {
+      expect(await screen.findByRole('button', { name: /Make backup right now/ })).toBeTruthy();
+      expect(getBackupsTab().className).toContain('bg-surface');
+    };
+
+    it('shows the backups of a MySQL database selected on the verifications tab', async () => {
+      const logicalDatabase = buildScreenDatabase('logical', DatabaseType.POSTGRES_LOGICAL);
+      const mysqlDatabase = buildScreenDatabase('mysql', DatabaseType.MYSQL);
+      declareTabRequests([logicalDatabase, mysqlDatabase]);
+      const view = renderScreen(renderSelectedDatabase(logicalDatabase.id));
+      await view.user.click(await screen.findByText('Verifications'));
+
+      view.rerender(renderSelectedDatabase(mysqlDatabase.id));
+
+      await expectBackupsTabShown();
+    });
+
+    it('shows the backups of a database without monitoring selected on the monitoring tab', async () => {
+      const walDatabase: Database = {
+        ...buildScreenDatabase('wal', DatabaseType.POSTGRES_PHYSICAL),
+        settings: {
+          ...createDefaultDatabaseSettings(DatabaseType.POSTGRES_PHYSICAL),
+          backupType: PhysicalDatabaseBackupType.FULL_INCREMENTAL_WAL_STREAM,
+        } as Database['settings'],
+      };
+      const mysqlDatabase = buildScreenDatabase('mysql', DatabaseType.MYSQL);
+      declareTabRequests([walDatabase, mysqlDatabase]);
+      const view = renderScreen(renderSelectedDatabase(walDatabase.id));
+      await view.user.click(await screen.findByText('Monitoring'));
+
+      view.rerender(renderSelectedDatabase(mysqlDatabase.id));
+
+      await expectBackupsTabShown();
+    });
+
+    it('reopens verifications when a logical database is selected again', async () => {
+      const logicalDatabase = buildScreenDatabase('logical', DatabaseType.POSTGRES_LOGICAL);
+      const mysqlDatabase = buildScreenDatabase('mysql', DatabaseType.MYSQL);
+      declareTabRequests([logicalDatabase, mysqlDatabase]);
+      const view = renderScreen(renderSelectedDatabase(logicalDatabase.id));
+      await view.user.click(await screen.findByText('Verifications'));
+
+      view.rerender(renderSelectedDatabase(mysqlDatabase.id));
+      await screen.findByText('Config');
+      view.rerender(renderSelectedDatabase(logicalDatabase.id));
+
+      expect((await screen.findByText('Verifications')).className).toContain('bg-surface');
+    });
   });
 });

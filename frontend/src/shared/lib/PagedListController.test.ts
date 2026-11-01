@@ -196,7 +196,7 @@ describe('PagedListController', () => {
     expect(controller.getState().isLoadingMore).toBe(false);
   });
 
-  it('reports an error from the current list and ignores one from a replaced list', async () => {
+  it('stays silent when a refresh fails for the current list or a replaced list', async () => {
     const staleRefresh = createDeferredPage();
     const fetchPage = vi
       .fn()
@@ -214,9 +214,11 @@ describe('PagedListController', () => {
     await refresh;
     await controller.refreshFirstPage();
 
-    expect(onError).toHaveBeenCalledTimes(1);
-    expect(onError).toHaveBeenCalledWith(new Error('current'));
+    expect(onError).not.toHaveBeenCalled();
+    expect(controller.getState().firstLoadError).toBeUndefined();
+    expect(getLoadedIds(controller)).toEqual(['b']);
   });
+
   it('blocks scroll and polling until the replacement first page succeeds', async () => {
     const firstPage = createDeferredPage();
     const fetchPage = vi
@@ -507,4 +509,102 @@ describe('PagedListController', () => {
       expect(onError).not.toHaveBeenCalled();
     },
   );
+
+  it('stays silent with its rows, cursor and pending next page when a refresh fails', async () => {
+    const nextPage = createDeferredPage();
+    const fetchPage = vi
+      .fn()
+      .mockResolvedValueOnce({ items: rows('a'), nextCursor: 'after-a' })
+      .mockReturnValueOnce(nextPage.promise)
+      .mockRejectedValueOnce(new Error('unavailable'))
+      .mockResolvedValueOnce({ items: rows('fresh'), nextCursor: 'after-a' });
+    const { controller, onError } = createController(fetchPage);
+
+    await controller.reload();
+    const pendingNext = controller.loadNextPage();
+    await controller.refreshFirstPage();
+
+    expect(onError).not.toHaveBeenCalled();
+    expect(getLoadedIds(controller)).toEqual(['a']);
+    expect(controller.getState().list.nextCursor).toBe('after-a');
+    expect(controller.getState().isLoadingMore).toBe(true);
+    expect(controller.getState().firstLoadError).toBeUndefined();
+
+    await controller.refreshFirstPage();
+
+    expect(fetchPage).toHaveBeenCalledTimes(4);
+    expect(getLoadedIds(controller)).toEqual(['fresh']);
+
+    nextPage.resolvePage({ items: rows('b') });
+    await pendingNext;
+
+    expect(getLoadedIds(controller)).toEqual(['fresh', 'b']);
+    expect(controller.getState().isLoadingMore).toBe(false);
+  });
+
+  it('keeps a failed first page until reload clears it', async () => {
+    const failure = new Error('unavailable');
+    const fetchPage = vi
+      .fn()
+      .mockRejectedValueOnce(failure)
+      .mockResolvedValueOnce({ items: rows('recovered') });
+    const { controller, onError } = createController(fetchPage);
+
+    await controller.reload();
+
+    expect(controller.getState().firstLoadError).toBe(failure);
+    expect(onError).toHaveBeenCalledOnce();
+    expect(onError).toHaveBeenCalledWith(failure, 'first');
+
+    const retry = controller.reload();
+
+    expect(controller.getState().firstLoadError).toBeUndefined();
+    expect(controller.getState().isLoading).toBe(true);
+
+    await retry;
+
+    expect(controller.getState().firstLoadError).toBeUndefined();
+    expect(getLoadedIds(controller)).toEqual(['recovered']);
+  });
+
+  it('publishes nothing when an obsolete first page fails', async () => {
+    const oldPage = createDeferredPage();
+    const fetchPage = vi
+      .fn()
+      .mockReturnValueOnce(oldPage.promise)
+      .mockResolvedValueOnce({ items: rows('new') });
+    const { controller, onError } = createController(fetchPage);
+
+    const oldReload = controller.reload();
+    await controller.reload();
+    oldPage.rejectPage(new Error('old first'));
+    await oldReload;
+
+    expect(controller.getState().firstLoadError).toBeUndefined();
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('rejects a current next page once with its rows and cursor before requesting it again', async () => {
+    const failure = new Error('unavailable');
+    const fetchPage = vi
+      .fn()
+      .mockResolvedValueOnce({ items: rows('a'), nextCursor: 'after-a' })
+      .mockRejectedValueOnce(failure)
+      .mockResolvedValueOnce({ items: rows('b') });
+    const { controller, onError } = createController(fetchPage);
+
+    await controller.reload();
+    await controller.loadNextPage();
+
+    expect(onError).toHaveBeenCalledOnce();
+    expect(onError).toHaveBeenCalledWith(failure, 'next');
+    expect(getLoadedIds(controller)).toEqual(['a']);
+    expect(controller.getState().list.nextCursor).toBe('after-a');
+    expect(controller.getState().firstLoadError).toBeUndefined();
+
+    await controller.loadNextPage();
+
+    expect(fetchPage).toHaveBeenLastCalledWith('after-a');
+    expect(getLoadedIds(controller)).toEqual(['a', 'b']);
+  });
 });

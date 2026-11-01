@@ -2,7 +2,7 @@
 import { screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { BackupConfig } from '../../../../entities/backup-configs';
+import { type BackupConfig, toLogicalBackupConfigInput } from '../../../../entities/backup-configs';
 import {
   type Database,
   DatabaseType,
@@ -48,12 +48,14 @@ const renderWeeklyConfig = (weekday: number) => {
     },
   };
 
-  mockServer.use(
-    mockApi.get('/backup-configs/{databaseId}', 200, config),
-    mockApi.get('/storage-switches', 200, { items: [] }),
-  );
+  mockServer.use(mockApi.get('/storage-switches', 200, { items: [] }));
 
-  renderScreen(<ShowLogicalBackupConfigComponent database={database} />);
+  renderScreen(
+    <ShowLogicalBackupConfigComponent
+      database={database}
+      backupConfig={toLogicalBackupConfigInput(config)!}
+    />,
+  );
 };
 
 describe('ShowLogicalBackupConfigComponent', () => {
