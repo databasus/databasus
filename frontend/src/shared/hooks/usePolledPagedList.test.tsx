@@ -2,6 +2,7 @@
 import { act, fireEvent, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+import { waitForCondition } from '../lib/test/conditionWait';
 import { mockApi, setUpMockApi } from '../lib/test/mockApi';
 import { renderScreen } from '../lib/test/renderScreen';
 import { PolledPagedListScreen } from './pagedListScreen.fixture';
@@ -19,7 +20,7 @@ describe('usePolledPagedList', () => {
     server.use(firstPage.handler);
     vi.useFakeTimers();
     const controlledView = renderScreen(<PolledPagedListScreen />);
-    await vi.waitFor(() => expect(server.getRequests()).toHaveLength(1));
+    await waitForCondition(() => expect(server.getRequests()).toHaveLength(1));
     await act(async () => {
       await vi.advanceTimersByTimeAsync(3_000);
     });
@@ -27,12 +28,12 @@ describe('usePolledPagedList', () => {
     await act(async () => {
       firstPage.release();
     });
-    await vi.waitFor(() => expect(screen.getByText('Ready:Idle')).toBeTruthy());
+    await waitForCondition(() => expect(screen.getByText('Ready:Idle')).toBeTruthy());
     server.use(mockApi.get('/workspaces', 200, { items: [] }));
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1_000);
     });
-    await vi.waitFor(() => expect(server.getRequests()).toHaveLength(2));
+    await waitForCondition(() => expect(server.getRequests()).toHaveLength(2));
     const removeListener = vi.spyOn(screen.getByTestId('scroll-list'), 'removeEventListener');
     controlledView.unmount();
     expect(removeListener).toHaveBeenCalledWith('scroll', expect.any(Function));

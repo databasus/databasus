@@ -68,7 +68,6 @@ export function EditNotifierComponent({
         description: t('notifiers.testNotification.sent.description'),
         duration: 4,
         placement: 'bottomRight',
-        pauseOnHover: false,
       }),
   });
 

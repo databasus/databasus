@@ -14,6 +14,7 @@ import {
 import type { Storage } from '../../../entities/storages';
 import type { Workspace } from '../../../entities/workspaces';
 import { API_BASE_PATH, type ApiComponents } from '../../../shared/api';
+import { waitForCondition } from '../../../shared/lib/test/conditionWait';
 import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
 import { createPendingApiResponse } from '../../../shared/lib/test/pendingApiResponse';
 import { renderScreen } from '../../../shared/lib/test/renderScreen';
@@ -341,7 +342,7 @@ describe('DatabasesComponent', () => {
       within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove' }),
     );
 
-    await vi.waitFor(async () =>
+    await waitForCondition(async () =>
       expect((await findDatabaseCard('Alpha')).getAttribute('aria-pressed')).toBe('true'),
     );
     expect(screen.queryByRole('button', { name: /^Bravo/ })).toBeNull();
@@ -424,7 +425,7 @@ describe('DatabasesComponent', () => {
       mockApi.pending('get', '/notifiers').handler,
     );
     const { user } = renderDatabasesScreen();
-    await vi.waitFor(() =>
+    await waitForCondition(() =>
       expect(
         mockServer
           .getRequests()
@@ -678,7 +679,7 @@ describe('DatabasesComponent', () => {
       within(await screen.findByRole('dialog')).getByRole('button', { name: 'Copy' }),
     );
 
-    await vi.waitFor(async () =>
+    await waitForCondition(async () =>
       expect((await findDatabaseCard('Copy of Shop')).getAttribute('aria-pressed')).toBe('true'),
     );
     expect((await findDatabaseCard('Shop')).getAttribute('aria-pressed')).toBe('false');
@@ -723,7 +724,7 @@ describe('DatabasesComponent', () => {
 
     await transferSelectedDatabase(user);
 
-    await vi.waitFor(async () =>
+    await waitForCondition(async () =>
       expect((await findDatabaseCard('Alpha')).getAttribute('aria-pressed')).toBe('true'),
     );
     expect(screen.queryByRole('button', { name: /^Bravo/ })).toBeNull();

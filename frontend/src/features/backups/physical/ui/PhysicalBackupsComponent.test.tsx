@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { BackupConfig } from '../../../../entities/backups/config';
 import { DatabaseType, createDefaultDatabaseSettings } from '../../../../entities/databases';
 import { DICTIONARIES } from '../../../../shared/i18n';
+import { waitForCondition } from '../../../../shared/lib/test/conditionWait';
 import { mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
 import { createPendingApiResponse } from '../../../../shared/lib/test/pendingApiResponse';
 import { renderScreen } from '../../../../shared/lib/test/renderScreen';
@@ -68,18 +69,18 @@ describe('PhysicalBackupsComponent', () => {
     const view = renderScreen(
       <PhysicalBackupsComponent database={database} isCanManageDBs={false} />,
     );
-    await vi.waitFor(() => expect(screen.getByText(usageText(10))).toBeTruthy());
+    await waitForCondition(() => expect(screen.getByText(usageText(10))).toBeTruthy());
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1_000);
     });
-    await vi.waitFor(() => expect(oldRequestCount).toBe(2));
+    await waitForCondition(() => expect(oldRequestCount).toBe(2));
     view.rerender(
       <PhysicalBackupsComponent
         database={{ ...database, id: 'new-database' }}
         isCanManageDBs={false}
       />,
     );
-    await vi.waitFor(() => expect(screen.getByText(usageText(30))).toBeTruthy());
+    await waitForCondition(() => expect(screen.getByText(usageText(30))).toBeTruthy());
     const oldResponseProcessed = new Promise<void>((resolve) => {
       server.events.on('response:mocked', ({ request }) => {
         if (new URL(request.url).searchParams.get('databaseId') === 'old-database') resolve();

@@ -64,7 +64,6 @@ export function EditStorageComponent({
         description: t('storages.connectionTestSucceeded.description'),
         duration: 4,
         placement: 'bottomRight',
-        pauseOnHover: false,
       }),
   });
   useEffect(

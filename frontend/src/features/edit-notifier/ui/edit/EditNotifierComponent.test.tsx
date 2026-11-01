@@ -7,6 +7,7 @@ import type { Notifier, NotifierSettings } from '../../../../entities/notifiers'
 import { API_BASE_PATH, type ApiComponents } from '../../../../shared/api';
 import { DICTIONARIES } from '../../../../shared/i18n';
 import { mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
+import { watchNoticeTimer } from '../../../../shared/lib/test/noticeTimer';
 import { renderScreen } from '../../../../shared/lib/test/renderScreen';
 import { EditNotifierComponent } from './EditNotifierComponent';
 
@@ -85,6 +86,19 @@ describe('EditNotifierComponent', () => {
 
     expect(screen.queryByRole('button', { name: /Send test notification/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /Save/ })).toBeNull();
+  });
+
+  it('leaves no notice timer running after the form unmounts', async () => {
+    mockServer.use(mockApi.post('/notifier-tests', 200, { isDelivered: true }));
+    const noticeTimer = watchNoticeTimer(4_000);
+    const view = renderSavedNotifierForm(savedWebhookNotifier);
+
+    fireEvent.change(screen.getByDisplayValue('Team alerts'), { target: { value: 'Changed' } });
+    fireEvent.click(screen.getByRole('button', { name: /Send test notification/ }));
+    await waitFor(() => expect(noticeTimer.getStartedCount()).toBeGreaterThan(0));
+    view.unmount();
+
+    expect(noticeTimer.getLeftRunningCount()).toBe(0);
   });
 
   it('rejects a successful test when settings change before its response', async () => {

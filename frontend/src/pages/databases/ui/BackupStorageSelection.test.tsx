@@ -63,9 +63,7 @@ describe('Composed backup storage creation', () => {
 
     fireEvent.click(await dialog.findByRole('button', { name: /Save/ }));
 
-    // The save runs through a request and a dialog update, which can outlast the default second of
-    // a waiter in a full parallel run.
-    await waitFor(() => expect(onSelect).toHaveBeenCalledWith(storage.id), { timeout: 5_000 });
+    await waitFor(() => expect(onSelect).toHaveBeenCalledWith(storage.id));
     expect(
       server
         .getRequests()
@@ -74,7 +72,7 @@ describe('Composed backup storage creation', () => {
             request.method === 'POST' && new URL(request.url).pathname.endsWith('/storages'),
         ),
     ).toHaveLength(1);
-  }, 15_000);
+  });
 
   it.each(['cancel', 'workspace', 'unmount'] as const)(
     'rejects a late nested create after %s',

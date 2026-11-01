@@ -71,7 +71,6 @@ export const DatabaseConnectionForm = (props: Props) => {
         description: t('databases.edit.connectionTestPassed.description'),
         duration: 4,
         placement: 'bottomRight',
-        pauseOnHover: false,
       }),
   });
 

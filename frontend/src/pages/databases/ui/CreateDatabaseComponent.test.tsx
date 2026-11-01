@@ -411,7 +411,7 @@ describe('CreateDatabaseComponent', () => {
 
     expect(await getChosenStorageText()).not.toContain('Archive');
     expect(await getChosenStorageText()).not.toContain('Nightly');
-  }, 15_000);
+  });
 
   describe.each(CONNECTION_VARIANTS)(
     'connection step of $variant',

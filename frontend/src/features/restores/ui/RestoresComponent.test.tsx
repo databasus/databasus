@@ -2,6 +2,7 @@
 import { fireEvent, screen } from '@testing-library/react';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
+import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { LogicalBackup } from '../../../entities/backups/logical';
@@ -11,6 +12,7 @@ import {
   createDefaultDatabaseSettings,
 } from '../../../entities/databases';
 import type { Restore } from '../../../entities/restores';
+import { API_BASE_PATH } from '../../../shared/api';
 import { mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
 import { renderScreen } from '../../../shared/lib/test/renderScreen';
 import { RestoresComponent } from './RestoresComponent';
@@ -67,9 +69,15 @@ describe('RestoresComponent', () => {
   });
 
   it('gives the form a restore draft with no database identity and lists a started restore', async () => {
+    // The screen polls the list and shows what it answers, so a started restore has to stay listed.
+    const listedRestores: Restore[] = [];
     mockServer.use(
-      mockApi.get('/restores', 200, { items: [] }),
-      mockApi.post('/restores', 202, startedRestore),
+      http.get(`*${API_BASE_PATH}/restores`, () => HttpResponse.json({ items: listedRestores })),
+      http.post(`*${API_BASE_PATH}/restores`, () => {
+        listedRestores.push(startedRestore);
+
+        return HttpResponse.json(startedRestore, { status: 202 });
+      }),
     );
     const receivedOptions: RestoreTargetFormOptions[] = [];
     renderScreen(

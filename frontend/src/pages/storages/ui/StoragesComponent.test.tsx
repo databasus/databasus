@@ -105,7 +105,7 @@ describe('StoragesComponent', () => {
       privateKey: 'newer-private-key',
       authMethods: ['PASSWORD', 'PRIVATE_KEY'],
     });
-  }, 15_000);
+  });
 
   it.each([
     {
@@ -116,77 +116,71 @@ describe('StoragesComponent', () => {
       isSwitchingMethods: false,
       scenario: 'retains the saved path when renaming after a path change',
     },
-  ])(
-    '$scenario',
-    async ({ isSwitchingMethods }) => {
-      const initialSettings: SftpStorageSettings = {
-        type: 'SFTP',
-        host: 'sftp.example.com',
-        port: 22,
-        username: 'backup',
-        authMethods: ['PASSWORD'],
-        path: 'original-path',
-        isSkipHostKeyVerify: false,
-      };
-      const initialStorage: Storage = { ...storage, settings: initialSettings };
-      const savedStorage: Storage = {
-        ...initialStorage,
-        settings: {
-          ...initialSettings,
-          authMethods: isSwitchingMethods ? ['PRIVATE_KEY'] : ['PASSWORD'],
-          path: isSwitchingMethods ? 'original-path' : 'saved-path',
-        },
-      };
-      const sentUpdates: ApiComponents['schemas']['StorageUpdate'][] = [];
-      let listRequests = 0;
-      let persistedStorage = initialStorage;
-      mockServer.use(
-        http.get(`*${API_BASE_PATH}/storages`, () => {
-          listRequests++;
-          return HttpResponse.json({ items: [persistedStorage] });
-        }),
-        http.get(`*${API_BASE_PATH}/storages/:storageId`, () =>
-          HttpResponse.json(persistedStorage),
-        ),
-        mockApi.post('/storage-tests', 200, { isConnected: true }),
-        http.put(`*${API_BASE_PATH}/storages/sftp-id`, async ({ request }) => {
-          const sentUpdate = (await request.json()) as ApiComponents['schemas']['StorageUpdate'];
-          sentUpdates.push(sentUpdate);
-          persistedStorage = { ...savedStorage, name: sentUpdate.name };
-          return HttpResponse.json(persistedStorage);
-        }),
-      );
-      const { user } = renderStoragesScreen();
-      await openStorageSettings(user);
+  ])('$scenario', async ({ isSwitchingMethods }) => {
+    const initialSettings: SftpStorageSettings = {
+      type: 'SFTP',
+      host: 'sftp.example.com',
+      port: 22,
+      username: 'backup',
+      authMethods: ['PASSWORD'],
+      path: 'original-path',
+      isSkipHostKeyVerify: false,
+    };
+    const initialStorage: Storage = { ...storage, settings: initialSettings };
+    const savedStorage: Storage = {
+      ...initialStorage,
+      settings: {
+        ...initialSettings,
+        authMethods: isSwitchingMethods ? ['PRIVATE_KEY'] : ['PASSWORD'],
+        path: isSwitchingMethods ? 'original-path' : 'saved-path',
+      },
+    };
+    const sentUpdates: ApiComponents['schemas']['StorageUpdate'][] = [];
+    let listRequests = 0;
+    let persistedStorage = initialStorage;
+    mockServer.use(
+      http.get(`*${API_BASE_PATH}/storages`, () => {
+        listRequests++;
+        return HttpResponse.json({ items: [persistedStorage] });
+      }),
+      http.get(`*${API_BASE_PATH}/storages/:storageId`, () => HttpResponse.json(persistedStorage)),
+      mockApi.post('/storage-tests', 200, { isConnected: true }),
+      http.put(`*${API_BASE_PATH}/storages/sftp-id`, async ({ request }) => {
+        const sentUpdate = (await request.json()) as ApiComponents['schemas']['StorageUpdate'];
+        sentUpdates.push(sentUpdate);
+        persistedStorage = { ...savedStorage, name: sentUpdate.name };
+        return HttpResponse.json(persistedStorage);
+      }),
+    );
+    const { user } = renderStoragesScreen();
+    await openStorageSettings(user);
 
-      if (isSwitchingMethods) {
-        await user.click(screen.getByRole('combobox', { name: 'Auth method' }));
-        await user.click(await screen.findByRole('option', { name: 'Private key' }));
-        await user.type(screen.getByRole('textbox', { name: 'Private key' }), 'replacement-key');
-      } else {
-        await user.clear(screen.getByRole('textbox', { name: 'Path' }));
-        await user.type(screen.getByRole('textbox', { name: 'Path' }), 'saved-path');
-      }
+    if (isSwitchingMethods) {
+      await user.click(screen.getByRole('combobox', { name: 'Auth method' }));
+      await user.click(await screen.findByRole('option', { name: 'Private key' }));
+      await user.type(screen.getByRole('textbox', { name: 'Private key' }), 'replacement-key');
+    } else {
+      await user.clear(screen.getByRole('textbox', { name: 'Path' }));
+      await user.type(screen.getByRole('textbox', { name: 'Path' }), 'saved-path');
+    }
 
-      await user.click(screen.getByRole('button', { name: 'Test connection' }));
-      await user.click(await screen.findByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Test connection' }));
+    await user.click(await screen.findByRole('button', { name: 'Save' }));
 
-      await waitFor(() => expect(listRequests).toBe(2));
+    await waitFor(() => expect(listRequests).toBe(2));
 
-      await user.click(screen.getByRole('button', { name: 'Cancel' }));
-      await screen.findByRole('button', { name: 'Test connection' });
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    await screen.findByRole('button', { name: 'Test connection' });
 
-      await user.click(screen.getAllByRole('button', { name: 'Edit' })[0]);
-      await user.clear(screen.getByPlaceholderText('Enter name...'));
-      await user.type(screen.getByPlaceholderText('Enter name...'), 'Renamed archive');
-      await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getAllByRole('button', { name: 'Edit' })[0]);
+    await user.clear(screen.getByPlaceholderText('Enter name...'));
+    await user.type(screen.getByPlaceholderText('Enter name...'), 'Renamed archive');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
 
-      await waitFor(() => expect(sentUpdates).toHaveLength(2));
-      expect(sentUpdates[1]).toEqual({ name: 'Renamed archive', settings: savedStorage.settings });
-      await waitFor(() => expect(screen.getAllByText('Renamed archive')).toHaveLength(2));
-    },
-    15_000,
-  );
+    await waitFor(() => expect(sentUpdates).toHaveLength(2));
+    expect(sentUpdates[1]).toEqual({ name: 'Renamed archive', settings: savedStorage.settings });
+    await waitFor(() => expect(screen.getAllByText('Renamed archive')).toHaveLength(2));
+  });
 
   it('closes the old editing session when another storage is selected', async () => {
     const otherStorage: Storage = {

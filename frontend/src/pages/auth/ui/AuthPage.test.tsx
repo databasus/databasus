@@ -170,7 +170,7 @@ describe('AuthPage', () => {
     });
     await answerChallenge();
     fireEvent.click(screen.getByRole('button', { name: 'Send reset code' }));
-    await screen.findByPlaceholderText('123456', {}, { timeout: 4000 });
+    await screen.findByPlaceholderText('123456');
     fireEvent.click(screen.getByRole('button', { name: 'Back to sign in' }));
     fireEvent.change(screen.getByPlaceholderText('your@email.com'), {
       target: { value: 'owner@example.com' },

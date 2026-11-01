@@ -11,6 +11,7 @@ import {
 import { API_BASE_PATH, type ApiComponents } from '@/shared/api';
 import { useLocale } from '@/shared/i18n';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { watchNoticeTimer } from '@/shared/lib/test/noticeTimer';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
 import { stubClipboard, stubClipboardUnavailable } from '@/shared/lib/test/stubClipboard';
 
@@ -155,6 +156,18 @@ describe('DatabaseConnectionForm', () => {
 
     expect(await screen.findByText('You do not have permission to do this.')).toBeTruthy();
     expect(showAlert).not.toHaveBeenCalled();
+  });
+
+  it('leaves no notice timer running after the form unmounts', async () => {
+    mockServer.use(mockApi.post('/database-tests', 200, { isConnected: true }));
+    const noticeTimer = watchNoticeTimer(4_000);
+    const view = renderEditableForm(buildEditDraft(savedMysqlSettings));
+
+    clickTest();
+    await waitFor(() => expect(noticeTimer.getStartedCount()).toBeGreaterThan(0));
+    view.unmount();
+
+    expect(noticeTimer.getLeftRunningCount()).toBe(0);
   });
 
   it('identifies the password field by its visible label', () => {

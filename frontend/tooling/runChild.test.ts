@@ -1,8 +1,9 @@
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { expect, it, vi } from 'vitest';
+import { expect, it } from 'vitest';
 
+import { waitForCondition } from '../src/shared/lib/test/conditionWait';
 import { runChild } from './runChild';
 
 it('waits for descendant shutdown after an interrupted process-group driver exits', async () => {
@@ -43,7 +44,7 @@ server.listen(0, '127.0.0.1', () => writeFileSync(directory + '/ready.json', JSO
   });
   let driverPid: number | undefined;
   try {
-    const ownedProcess = await vi.waitFor(
+    const ownedProcess = await waitForCondition(
       async () =>
         JSON.parse(await readFile(join(directory, 'ready.json'), 'utf8')) as {
           driverPid: number;
@@ -52,10 +53,10 @@ server.listen(0, '127.0.0.1', () => writeFileSync(directory + '/ready.json', JSO
     );
     driverPid = ownedProcess.driverPid;
     controller.abort();
-    await vi.waitFor(async () =>
+    await waitForCondition(async () =>
       expect(await readFile(join(directory, 'stopping'), 'utf8')).toBe('cleanup started'),
     );
-    await vi.waitFor(() => expect(() => process.kill(ownedProcess.driverPid, 0)).toThrow());
+    await waitForCondition(() => expect(() => process.kill(ownedProcess.driverPid, 0)).toThrow());
     expect(hasCompleted).toBe(false);
     expect((await fetch(ownedProcess.address)).status).toBe(200);
     await writeFile(releasePath, 'finish cleanup');
@@ -72,4 +73,4 @@ server.listen(0, '127.0.0.1', () => writeFileSync(directory + '/ready.json', JSO
     await shutdown.catch(() => {});
     await rm(directory, { recursive: true, force: true });
   }
-}, 20_000);
+});

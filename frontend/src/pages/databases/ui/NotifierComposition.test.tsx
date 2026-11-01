@@ -221,7 +221,6 @@ describe('Database notifier creation composition', () => {
       }
       fetchObservation.mockRestore();
     },
-    15_000,
   );
 
   it.each(
@@ -333,7 +332,6 @@ describe('Database notifier creation composition', () => {
           ),
       ).toHaveLength(1);
     },
-    15_000,
   );
 
   it.each(['selection', 'transfer'] as const)(

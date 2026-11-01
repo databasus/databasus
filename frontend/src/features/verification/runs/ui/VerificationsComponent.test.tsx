@@ -67,6 +67,8 @@ describe('VerificationsComponent', () => {
     fireEvent.scroll(screen.getByTestId('verification-scroll'));
     expect(await screen.findAllByText('Manual')).toHaveLength(2);
     expect(await screen.findAllByText('All restore checks loaded (2 total)')).toHaveLength(2);
-    expect(cursors.slice(0, 2)).toEqual([null, 'next-verifications']);
+    // The list also polls its first page, so polls may fall between these two requests.
+    expect(cursors[0]).toBeNull();
+    expect(cursors.filter((cursor) => cursor !== null)).toEqual(['next-verifications']);
   });
 });

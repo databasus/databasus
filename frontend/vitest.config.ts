@@ -14,5 +14,10 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.test.{ts,tsx}', 'tooling/**/*.test.ts'],
     exclude: [...configDefaults.exclude, 'tooling/runBrowserE2E.test.ts'],
+    setupFiles: ['src/shared/lib/test/conditionWait.ts'],
+    // The only time limit of a test. Its waits follow conditions, so this bounds a hung test and
+    // does not pace a healthy one, however loaded the machine is.
+    testTimeout: 60_000,
+    hookTimeout: 60_000,
   },
 });

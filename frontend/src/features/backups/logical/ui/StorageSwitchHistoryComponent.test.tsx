@@ -70,7 +70,6 @@ describe('StorageSwitchHistoryComponent', () => {
       await screen.findByText(
         'Storage switched successfully, but deletion of some old files could not be confirmed. Remove these files manually from the old storage.',
         {},
-        { timeout: 4000 },
       ),
     ).toBeTruthy();
     expect(screen.getByText('Files: 3. Pending: 0. Deleted: 2. Remaining: 1.')).toBeTruthy();

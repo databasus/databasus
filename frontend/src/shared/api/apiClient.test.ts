@@ -2,6 +2,7 @@ import { HttpResponse, http } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { activateSession, getSessionSnapshot, subscribeSession } from '../auth';
+import { waitForCondition } from '../lib/test/conditionWait';
 import { buildProblem, mockApi, setUpMockApi } from '../lib/test/mockApi';
 import { API_BASE_PATH, getApiClient } from './apiClient';
 import { API_ERROR_CODES } from './ApiError';
@@ -140,7 +141,7 @@ describe('getApiClient', () => {
     });
     mockServer.use(refusal.handler);
     const oldRequest = getApiClient().GET('/system/version');
-    await vi.waitFor(() => expect(mockServer.getRequests()).toHaveLength(1));
+    await waitForCondition(() => expect(mockServer.getRequests()).toHaveLength(1));
     activateSession({ token: 'new-session', userId: 'new-owner' });
     refusal.release();
     await oldRequest;
@@ -193,7 +194,7 @@ it('publishes one invalidation when concurrent authorized requests receive refus
   try {
     const versionRequest = getApiClient().GET('/system/version');
     const diskRequest = getApiClient().GET('/system/disk-usages');
-    await vi.waitFor(() => expect(mockServer.getRequests()).toHaveLength(2));
+    await waitForCondition(() => expect(mockServer.getRequests()).toHaveLength(2));
     versionRefusal.release();
     diskRefusal.release();
     await Promise.all([versionRequest, diskRequest]);

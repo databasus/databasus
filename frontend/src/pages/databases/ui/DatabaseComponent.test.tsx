@@ -11,6 +11,7 @@ import {
   createDefaultDatabaseSettings,
 } from '../../../entities/databases';
 import { DICTIONARIES, useLocale } from '../../../shared/i18n';
+import { waitForCondition } from '../../../shared/lib/test/conditionWait';
 import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
 import { createPendingApiResponse } from '../../../shared/lib/test/pendingApiResponse';
 import { renderScreen } from '../../../shared/lib/test/renderScreen';
@@ -132,7 +133,7 @@ describe('DatabaseComponent', () => {
     );
     declareDatabaseDependencies();
     const view = renderScreen(<DatabaseComponent {...databaseScreenProps} databaseId="old-shop" />);
-    await vi.waitFor(() => expect(server.getRequests()).toHaveLength(1));
+    await waitForCondition(() => expect(server.getRequests()).toHaveLength(1));
 
     view.rerender(<DatabaseComponent {...databaseScreenProps} databaseId="new-shop" />);
     await view.user.click(await screen.findByText('Config'));
@@ -159,7 +160,7 @@ describe('DatabaseComponent', () => {
     vi.stubGlobal('alert', showAlert);
     server.use(http.get('*/api/v1/databases/:databaseId', () => pendingDatabase.response));
     const view = renderScreen(<DatabaseComponent {...databaseScreenProps} databaseId="shop-id" />);
-    await vi.waitFor(() => expect(server.getRequests()).toHaveLength(1));
+    await waitForCondition(() => expect(server.getRequests()).toHaveLength(1));
     const responseProcessed = new Promise<void>((resolve) =>
       server.events.on('response:mocked', () => resolve()),
     );
@@ -379,7 +380,7 @@ describe('DatabaseComponent', () => {
     const view = renderScreen(
       <DatabaseComponent {...databaseScreenProps} databaseId={shopDatabase.id} />,
     );
-    await vi.waitFor(() => expect(shopRequests).toBe(1));
+    await waitForCondition(() => expect(shopRequests).toBe(1));
 
     view.rerender(<DatabaseComponent {...databaseScreenProps} databaseId="other" />);
     view.rerender(<DatabaseComponent {...databaseScreenProps} databaseId={shopDatabase.id} />);

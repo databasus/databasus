@@ -35,5 +35,5 @@ it('observes restored context after failure', () => {
     expect(child.code).not.toBe(0);
     expect(child.output).toContain('deliberate fixture failure');
     expect(child.output).toContain('1 failed | 1 passed');
-  }, 25_000);
+  });
 });

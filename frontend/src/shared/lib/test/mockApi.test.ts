@@ -61,23 +61,19 @@ describe('mockApi', () => {
     expect(child.code).not.toBe(0);
     expect(child.output).toContain('Unexpected HTTP requests:');
     expect(child.output).toContain('GET http://localhost/api/v1/undeclared');
-  }, 25_000);
+  });
 
   it.each([
     "http.all('*/api/v1/workspaces', () => new Promise(() => {}))",
     "http.get('*/api/v1/*', () => new Promise(() => {}))",
     "http.get('*/api/v1/:path+', () => new Promise(() => {}))",
-  ])(
-    'rejects a blanket pending declaration with %s',
-    async (handler) => {
-      const child = await runIsolatedScenario({
-        scenario: `it('declares handler', () => { server.use(${handler}); });`,
-      });
-      expect(child.code).not.toBe(0);
-      expect(child.output).toContain('HTTP mocks require');
-    },
-    25_000,
-  );
+  ])('rejects a blanket pending declaration with %s', async (handler) => {
+    const child = await runIsolatedScenario({
+      scenario: `it('declares handler', () => { server.use(${handler}); });`,
+    });
+    expect(child.code).not.toBe(0);
+    expect(child.output).toContain('HTTP mocks require');
+  });
 
   it('fails when an origin wildcard would consume an extra pathname prefix', async () => {
     const child = await runIsolatedScenario({
@@ -89,7 +85,7 @@ describe('mockApi', () => {
     expect(child.code).not.toBe(0);
     expect(child.output).toContain('Unexpected HTTP requests:');
     expect(child.output).toContain('GET http://localhost/unexpected/api/v1/workspaces');
-  }, 25_000);
+  });
 
   it('clears state even when a raw handler does not settle before the cleanup deadline', async () => {
     const child = await runIsolatedScenario({
@@ -113,7 +109,7 @@ it('starts clean after cleanup rejects the unowned handler', async () => {
     );
     expect(child.output).toContain('1 failed | 1 passed');
     expect(child.output).not.toContain('Hook timed out');
-  }, 25_000);
+  });
 
   it('cleans handlers, pending work and requests after a failing request scenario', async () => {
     const child = await runIsolatedScenario({
@@ -138,7 +134,7 @@ it('starts clean after the failed request scenario', async () => {
     expect(child.output).toContain('deliberate pending fixture failure');
     expect(child.output).toContain('1 failed | 1 passed');
     expect(child.output).not.toContain('Hook timed out');
-  }, 25_000);
+  });
 
   it('isolates handlers, request records and pending work between consecutive tests', async () => {
     const child = await runIsolatedScenario({
@@ -159,5 +155,5 @@ it('starts with clean state and completes a new request', async () => {
     });
     expect(child.output).toContain('2 passed');
     expect(child.code).toBe(0);
-  }, 25_000);
+  });
 });

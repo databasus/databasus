@@ -149,7 +149,7 @@ describe('EditNotifierComponent', () => {
         name: 'Newer name',
         settings: { type: 'EMAIL', smtpHost: 'newer.example.com' },
       });
-    }, 15_000);
+    });
 
     it('unlocks provider selection after a failed creation without an ID', async () => {
       server.use(
@@ -173,7 +173,7 @@ describe('EditNotifierComponent', () => {
 
       expect(screen.queryByRole('button', { name: /Save/ })).toBeNull();
       expect(screen.getByDisplayValue('Operations')).toBeTruthy();
-    }, 15_000);
+    });
 
     it('retains test validity and sends one request per activation when name, locale or theme changes', async () => {
       server.use(mockApi.post('/notifier-tests', 200, { isDelivered: true }));

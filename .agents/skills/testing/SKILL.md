@@ -103,6 +103,7 @@ Write fakes as small hand-written structs. Do not use mock generators, `testify/
 - Never wait for a fixed time. Wait for the condition with `testwait.Until`, up to the test's overall timeout. Never use `time.Sleep` or `Eventually`.
 - For a negative check, such as "no notification was sent", first wait for a sign that the action was processed. Then watch the check's window.
 - When the behavior depends on time, move the test clock.
+- In Vitest, wait with `findBy*`, `waitFor` or, under fake timers and without a document, `waitForCondition` from `shared/lib/test/conditionWait`. Never pass a time limit to one wait or one test; the shared limits only bound a hung test. A slow wait is a race to fix: assert what the screen keeps showing, not a state a poll can replace.
 
 ## Isolation
 

@@ -118,6 +118,16 @@ const startedRestore: Restore = {
   createdAt: '2026-10-27T11:00:00Z',
 };
 
+// The screen polls the list and shows what it answers, so a started restore has to stay listed.
+const declareRestoreList = () => {
+  const listedRestores: Restore[] = [];
+  mockServer.use(
+    http.get(`*${API_BASE_PATH}/restores`, () => HttpResponse.json({ items: listedRestores })),
+  );
+
+  return listedRestores;
+};
+
 // The page composes the restore flow with the connection form, as DatabaseComponent does.
 const renderRestoreFlow = (database: Database, backup: LogicalBackup) =>
   renderScreen(
@@ -288,10 +298,11 @@ describe('Restore target composition', () => {
     'starts the restore into the entered $target.type target without a connection test',
     async ({ sourceDatabase, target }) => {
       const restoreStarts: ApiComponents['schemas']['RestoreStart'][] = [];
+      const listedRestores = declareRestoreList();
       mockServer.use(
-        mockApi.get('/restores', 200, { items: [] }),
         http.post(`*${API_BASE_PATH}/restores`, async ({ request }) => {
           restoreStarts.push((await request.json()) as ApiComponents['schemas']['RestoreStart']);
+          listedRestores.push(startedRestore);
 
           return HttpResponse.json(startedRestore, { status: 202 });
         }),
@@ -350,8 +361,8 @@ describe('Restore target composition', () => {
 
   it('starts the restore with the corrected password after a refused start', async () => {
     const sentPasswords: string[] = [];
+    const listedRestores = declareRestoreList();
     mockServer.use(
-      mockApi.get('/restores', 200, { items: [] }),
       http.post(`*${API_BASE_PATH}/restores`, async ({ request }) => {
         const restoreStart = (await request.json()) as ApiComponents['schemas']['RestoreStart'];
         sentPasswords.push(restoreStart.target.password);
@@ -361,6 +372,8 @@ describe('Restore target composition', () => {
             status: 400,
           });
         }
+
+        listedRestores.push(startedRestore);
 
         return HttpResponse.json(startedRestore, { status: 202 });
       }),
@@ -387,7 +400,8 @@ describe('Restore target composition', () => {
       status: 202,
       body: startedRestore,
     });
-    mockServer.use(mockApi.get('/restores', 200, { items: [] }), restoreStart.handler);
+    const listedRestores = declareRestoreList();
+    mockServer.use(restoreStart.handler);
     renderRestoreFlow(backedUpDatabase, completedBackup);
 
     await enterTarget();
@@ -395,6 +409,7 @@ describe('Restore target composition', () => {
     fireEvent.click(startButton);
     fireEvent.click(startButton);
     await waitFor(() => expect(startButton.className).toContain('ant-btn-loading'));
+    listedRestores.push(startedRestore);
     restoreStart.release();
 
     expect(await screen.findByText('In progress')).toBeTruthy();
@@ -453,10 +468,11 @@ describe('Restore target composition', () => {
 
   it('starts the restore with only entered values and without the member-only connection test', async () => {
     const restoreStarts: ApiComponents['schemas']['RestoreStart'][] = [];
+    const listedRestores = declareRestoreList();
     mockServer.use(
-      mockApi.get('/restores', 200, { items: [] }),
       http.post(`*${API_BASE_PATH}/restores`, async ({ request }) => {
         restoreStarts.push((await request.json()) as ApiComponents['schemas']['RestoreStart']);
+        listedRestores.push(startedRestore);
 
         return HttpResponse.json(startedRestore, { status: 202 });
       }),

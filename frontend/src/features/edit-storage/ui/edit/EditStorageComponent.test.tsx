@@ -10,6 +10,7 @@ import { useLocale } from '../../../../shared/i18n';
 import { en } from '../../../../shared/i18n/locales/en';
 import { ru } from '../../../../shared/i18n/locales/ru';
 import { mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
+import { watchNoticeTimer } from '../../../../shared/lib/test/noticeTimer';
 import { createPendingApiResponse } from '../../../../shared/lib/test/pendingApiResponse';
 import { renderScreen } from '../../../../shared/lib/test/renderScreen';
 import { EditStorageComponent } from './EditStorageComponent';
@@ -70,6 +71,21 @@ describe('EditStorageComponent', () => {
     renderSavedStorageForm(savedS3Storage);
     expect(screen.getByText('S3')).toBeTruthy();
     expect(screen.queryByRole('combobox')).toBeNull();
+  });
+
+  it('leaves no notice timer running after the form unmounts', async () => {
+    mockServer.use(mockApi.post('/storage-tests', 200, { isConnected: true }));
+    const noticeTimer = watchNoticeTimer(4_000);
+    const view = renderSavedStorageForm(savedS3Storage);
+
+    fireEvent.change(screen.getByDisplayValue('Offsite backups'), {
+      target: { value: 'Renamed backups' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Test connection' }));
+    await waitFor(() => expect(noticeTimer.getStartedCount()).toBeGreaterThan(0));
+    view.unmount();
+
+    expect(noticeTimer.getLeftRunningCount()).toBe(0);
   });
 
   it('sends no keys when a renamed S3 storage is saved', async () => {

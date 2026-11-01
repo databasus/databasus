@@ -38,7 +38,7 @@ const server = setUpMockApi();\n${scenario}`,
       const output = await runFile(
         process.execPath,
         [join(frontendRoot, 'node_modules/vitest/vitest.mjs'), 'run', '--config', config],
-        { cwd: frontendRoot, timeout: 20_000 },
+        { cwd: frontendRoot, timeout: 50_000 },
       );
       return { code: 0, output: stripVTControlCharacters(output.stdout + output.stderr) };
     } catch (error) {

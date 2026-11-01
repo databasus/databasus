@@ -115,13 +115,19 @@ describe('LogicalBackupsComponent', () => {
     const requestedCursors: (string | null)[] = [];
     mockServer.use(
       mockApi.get('/backup-configs/{databaseId}', 200, backupConfigOfDatabase),
-      mockBackupPages(
-        [
-          { items: [buildBackup('newest-backup', 'COMPLETED')], nextCursor: 'first-page-cursor' },
-          { items: [buildBackup('oldest-backup', 'FAILED')] },
-        ],
-        requestedCursors,
-      ),
+      http.get(`*${API_BASE_PATH}/logical-backups`, ({ request }) => {
+        const cursor = new URL(request.url).searchParams.get('after');
+        requestedCursors.push(cursor);
+
+        return HttpResponse.json(
+          cursor
+            ? { items: [buildBackup('oldest-backup', 'FAILED')] }
+            : {
+                items: [buildBackup('newest-backup', 'COMPLETED')],
+                nextCursor: 'first-page-cursor',
+              },
+        );
+      }),
     );
     const scrollContainer = renderBackupList();
     await screen.findAllByText('Successful');
@@ -130,31 +136,42 @@ describe('LogicalBackupsComponent', () => {
 
     expect(await screen.findAllByText('Failed')).toHaveLength(2);
     expect(await screen.findAllByText('All backups loaded (2 total)')).toHaveLength(2);
-    expect(requestedCursors.slice(0, 2)).toEqual([null, 'first-page-cursor']);
+    // The list also polls its first page, so polls may fall between these two requests.
+    expect(requestedCursors[0]).toBeNull();
+    expect(requestedCursors.filter((cursor) => cursor !== null)).toEqual(['first-page-cursor']);
   });
 
   it('refreshes the first page and keeps the scrolled tail when the poll answers', async () => {
     const requestedCursors: (string | null)[] = [];
     mockServer.use(
       mockApi.get('/backup-configs/{databaseId}', 200, backupConfigOfDatabase),
-      mockBackupPages(
-        [
-          { items: [buildBackup('newest-backup', 'IN_PROGRESS')], nextCursor: 'first-page-cursor' },
-          { items: [buildBackup('oldest-backup', 'FAILED')] },
-          { items: [buildBackup('newest-backup', 'COMPLETED')], nextCursor: 'first-page-cursor' },
-        ],
-        requestedCursors,
-      ),
+      http.get(`*${API_BASE_PATH}/logical-backups`, ({ request }) => {
+        const cursor = new URL(request.url).searchParams.get('after');
+        requestedCursors.push(cursor);
+
+        if (cursor) return HttpResponse.json({ items: [buildBackup('oldest-backup', 'FAILED')] });
+
+        return HttpResponse.json({
+          items: [
+            buildBackup(
+              'newest-backup',
+              requestedCursors.includes('first-page-cursor') ? 'COMPLETED' : 'IN_PROGRESS',
+            ),
+          ],
+          nextCursor: 'first-page-cursor',
+        });
+      }),
     );
     const scrollContainer = renderBackupList();
     await screen.findAllByText('In progress');
     fireEvent.scroll(scrollContainer);
     await screen.findAllByText('Failed');
 
-    expect(await screen.findAllByText('Successful', {}, { timeout: 3_000 })).toHaveLength(2);
+    expect(await screen.findAllByText('Successful')).toHaveLength(2);
     expect(screen.queryAllByText('In progress')).toHaveLength(0);
     expect(screen.getAllByText('Failed')).toHaveLength(2);
-    expect(requestedCursors.slice(0, 3)).toEqual([null, 'first-page-cursor', null]);
+    expect(requestedCursors.filter((cursor) => cursor !== null)).toEqual(['first-page-cursor']);
+    expect(requestedCursors[requestedCursors.length - 1]).toBeNull();
   });
 
   it('shows the started backup at once when a manual backup is started', async () => {
