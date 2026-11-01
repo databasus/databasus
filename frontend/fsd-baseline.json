@@ -1,18 +1,1 @@
-[
-  {
-    "rule": "fsd/public-api",
-    "source": "entities/verification",
-    "target": "This slice is missing a public API.",
-    "count": 1,
-    "owner": "verification",
-    "milestone": 7
-  },
-  {
-    "rule": "fsd/public-api",
-    "source": "features/verification",
-    "target": "This slice is missing a public API.",
-    "count": 1,
-    "owner": "verification",
-    "milestone": 7
-  }
-]
+[]

@@ -10,15 +10,6 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
-  EditPhysicalBackupConfigComponent,
-  ShowPhysicalBackupConfigComponent,
-} from '@/features/backups/physical';
-import {
-  EditVerificationConfigComponent,
-  ShowVerificationConfigComponent,
-} from '@/features/verification/config';
-
-import {
   type BackupConfig,
   backupConfigApi,
   toLogicalBackupConfigInput,
@@ -28,8 +19,9 @@ import { translateApiError } from '../../../shared/i18n';
 import { ToastHelper } from '../../../shared/toast';
 import { ConfirmationComponent } from '../../../shared/ui';
 import { EditLogicalBackupConfigSection } from './backup-config/EditLogicalBackupConfigSection';
+import { EditPhysicalBackupConfigComponent } from './backup-config/EditPhysicalBackupConfigComponent';
 import { ShowLogicalBackupConfigComponent } from './backup-config/ShowLogicalBackupConfigComponent';
-import { BackupStorageSelection } from './BackupStorageSelection';
+import { ShowPhysicalBackupConfigComponent } from './backup-config/ShowPhysicalBackupConfigComponent';
 import { DatabaseSettingsSection } from './DatabaseSettingsSection';
 import { DatabaseTransferDialogComponent } from './DatabaseTransferDialogComponent';
 import { EditDatabaseConnectionSection } from './EditDatabaseConnectionSection';
@@ -37,6 +29,8 @@ import { EditDatabaseNotifiersComponent } from './EditDatabaseNotifiersComponent
 import { EditHealthcheckConfigComponent, ShowHealthcheckConfigComponent } from './healthcheck';
 import { ShowDatabaseNotifiersComponent } from './show/ShowDatabaseNotifiersComponent';
 import { ShowDatabaseSpecificDataComponent } from './show/ShowDatabaseSpecificDataComponent';
+import { EditVerificationConfigComponent } from './verification/EditVerificationConfigComponent';
+import { ShowVerificationConfigComponent } from './verification/ShowVerificationConfigComponent';
 
 interface Props {
   database: Database;
@@ -310,7 +304,6 @@ export const DatabaseConfigComponent = ({
           {editingSection === 'backup-config' ? (
             isPhysicalDatabase ? (
               <EditPhysicalBackupConfigComponent
-                renderStorageSelection={(options) => <BackupStorageSelection {...options} />}
                 database={database}
                 isShowCancelButton
                 onCancel={closeSection}

@@ -12,7 +12,6 @@ import {
   createDefaultDatabaseSettings,
 } from '../../../../entities/databases';
 import { restoreApi } from '../../../../entities/restores';
-import { verificationRunsApi } from '../../../../entities/verification/runs';
 import { API_BASE_PATH } from '../../../../shared/api';
 import { advanceClockUntil } from '../../../../shared/lib/test/advanceClockUntil';
 import { waitForCondition } from '../../../../shared/lib/test/conditionWait';
@@ -22,6 +21,7 @@ import { createPendingApiResponse } from '../../../../shared/lib/test/pendingApi
 import { releaseAndSettle } from '../../../../shared/lib/test/releaseAndSettle';
 import { renderScreen } from '../../../../shared/lib/test/renderScreen';
 import { logicalBackupApi } from '../../api/logicalBackupApi';
+import { verificationRunsApi } from '../../api/verificationRunsApi';
 import type { LogicalBackup } from '../../model/LogicalBackup';
 import type { LogicalBackupPage } from '../../model/LogicalBackupPage';
 import { LogicalBackupsComponent } from './LogicalBackupsComponent';

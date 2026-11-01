@@ -3,8 +3,8 @@ import {
   type LogicalBackupConfigInput,
   type PhysicalBackupConfigInput,
 } from '../../../entities/backup-configs';
-import { physicalBackupsApi } from '../../../entities/backups/physical';
 import { logicalBackupApi } from '../api/logicalBackupApi';
+import { physicalBackupsApi } from '../api/physicalBackupsApi';
 
 export const startFirstBackup = async (
   databaseId: string,

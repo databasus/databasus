@@ -1,1386 +1,1386 @@
 [
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/EditPhysicalBackupConfigComponent.tsx",
+    "source": "pages/databases/ui/backup-config/EditPhysicalBackupConfigComponent.tsx",
     "construct": "class:text-gray-500",
     "count": 2,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/EditPhysicalBackupConfigComponent.tsx",
+    "source": "pages/databases/ui/backup-config/EditPhysicalBackupConfigComponent.tsx",
     "construct": "class:dark:text-gray-400",
     "count": 10,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/EditPhysicalBackupConfigComponent.tsx",
+    "source": "pages/databases/ui/backup-config/EditPhysicalBackupConfigComponent.tsx",
     "construct": "color:gray",
     "count": 3,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/EditPhysicalBackupConfigComponent.tsx",
+    "source": "pages/databases/ui/backup-config/EditPhysicalBackupConfigComponent.tsx",
     "construct": "class:text-gray-600",
     "count": 8,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalBackupTypeCellComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalBackupTypeCellComponent.tsx",
     "construct": "class:bg-indigo-500/15",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalBackupTypeCellComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalBackupTypeCellComponent.tsx",
     "construct": "class:text-indigo-700",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalBackupTypeCellComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalBackupTypeCellComponent.tsx",
     "construct": "class:ring-indigo-500/40",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalBackupTypeCellComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalBackupTypeCellComponent.tsx",
     "construct": "class:dark:text-indigo-300",
     "count": 2,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalBackupTypeCellComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalBackupTypeCellComponent.tsx",
     "construct": "class:bg-slate-400/10",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalBackupTypeCellComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalBackupTypeCellComponent.tsx",
     "construct": "class:text-slate-600",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalBackupTypeCellComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalBackupTypeCellComponent.tsx",
     "construct": "class:ring-slate-400/30",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalBackupTypeCellComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalBackupTypeCellComponent.tsx",
     "construct": "class:dark:text-slate-300",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalBackupTypeCellComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalBackupTypeCellComponent.tsx",
     "construct": "class:bg-indigo-400/10",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalBackupTypeCellComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalBackupTypeCellComponent.tsx",
     "construct": "class:text-indigo-600",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalBackupTypeCellComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalBackupTypeCellComponent.tsx",
     "construct": "class:ring-indigo-400/30",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalBackupsComponent.tsx",
     "construct": "color:#ff0000",
     "count": 2,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalBackupsComponent.tsx",
     "construct": "color:#155dfc",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalBackupsComponent.tsx",
     "construct": "class:text-gray-500",
     "count": 13,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalBackupsComponent.tsx",
     "construct": "class:dark:text-gray-400",
     "count": 14,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalBackupsComponent.tsx",
     "construct": "class:bg-white",
     "count": 2,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalBackupsComponent.tsx",
     "construct": "class:dark:bg-gray-800",
     "count": 2,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalBackupsComponent.tsx",
     "construct": "class:dark:text-white",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalBackupsComponent.tsx",
     "construct": "class:text-blue-600",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalBackupsComponent.tsx",
     "construct": "class:bg-blue-600",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalBackupsComponent.tsx",
     "construct": "class:text-red-600",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalBackupsComponent.tsx",
     "construct": "class:text-gray-600",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalBackupsComponent.tsx",
     "construct": "class:border-gray-200",
     "count": 2,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalBackupsComponent.tsx",
     "construct": "class:dark:border-gray-700",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalBackupsFiltersPanelComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalBackupsFiltersPanelComponent.tsx",
     "construct": "class:text-gray-500",
     "count": 3,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalBackupsFiltersPanelComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalBackupsFiltersPanelComponent.tsx",
     "construct": "class:dark:text-gray-400",
     "count": 3,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalRestoreComponent.tsx",
     "construct": "class:text-gray-600",
     "count": 3,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalRestoreComponent.tsx",
     "construct": "class:dark:text-gray-300",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalRestoreComponent.tsx",
     "construct": "class:bg-gray-100",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalRestoreComponent.tsx",
     "construct": "class:text-gray-700",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalRestoreComponent.tsx",
     "construct": "class:dark:bg-gray-700",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalRestoreComponent.tsx",
     "construct": "class:dark:text-gray-200",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalRestoreComponent.tsx",
     "construct": "class:dark:text-gray-400",
     "count": 4,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalRestoreComponent.tsx",
     "construct": "class:border-red-300/50",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalRestoreComponent.tsx",
     "construct": "class:bg-red-50",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalRestoreComponent.tsx",
     "construct": "class:text-red-700",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalRestoreComponent.tsx",
     "construct": "class:dark:border-red-600/30",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalRestoreComponent.tsx",
     "construct": "class:dark:bg-red-900/20",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalRestoreComponent.tsx",
     "construct": "class:dark:text-red-400",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalRestoreComponent.tsx",
     "construct": "class:border-gray-200",
     "count": 2,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalRestoreComponent.tsx",
     "construct": "class:text-gray-500",
     "count": 2,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "source": "pages/databases/ui/physical-backups/PhysicalRestoreComponent.tsx",
     "construct": "class:dark:border-gray-700",
     "count": 2,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/ShowPhysicalBackupConfigComponent.tsx",
+    "source": "pages/databases/ui/backup-config/ShowPhysicalBackupConfigComponent.tsx",
     "construct": "class:bg-gray-100",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/ShowPhysicalBackupConfigComponent.tsx",
+    "source": "pages/databases/ui/backup-config/ShowPhysicalBackupConfigComponent.tsx",
     "construct": "class:dark:bg-gray-700",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/ShowPhysicalBackupConfigComponent.tsx",
+    "source": "pages/databases/ui/backup-config/ShowPhysicalBackupConfigComponent.tsx",
     "construct": "class:text-red-600",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/ui/ShowPhysicalBackupConfigComponent.tsx",
+    "source": "pages/databases/ui/backup-config/ShowPhysicalBackupConfigComponent.tsx",
     "construct": "color:gray",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "source": "pages/instance-settings/ui/verification-agents/VerificationAgentsComponent.tsx",
     "construct": "class:bg-gray-900",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/instance-settings",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "source": "pages/instance-settings/ui/verification-agents/VerificationAgentsComponent.tsx",
     "construct": "class:text-gray-100",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/instance-settings",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "source": "pages/instance-settings/ui/verification-agents/VerificationAgentsComponent.tsx",
     "construct": "class:text-gray-400",
     "count": 5,
-    "owner": "features/verification",
+    "owner": "pages/instance-settings",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "source": "pages/instance-settings/ui/verification-agents/VerificationAgentsComponent.tsx",
     "construct": "class:hover:text-white",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/instance-settings",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "source": "pages/instance-settings/ui/verification-agents/VerificationAgentsComponent.tsx",
     "construct": "class:text-gray-500",
     "count": 4,
-    "owner": "features/verification",
+    "owner": "pages/instance-settings",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "source": "pages/instance-settings/ui/verification-agents/VerificationAgentsComponent.tsx",
     "construct": "class:dark:text-gray-400",
     "count": 6,
-    "owner": "features/verification",
+    "owner": "pages/instance-settings",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "source": "pages/instance-settings/ui/verification-agents/VerificationAgentsComponent.tsx",
     "construct": "class:bg-gray-100",
     "count": 2,
-    "owner": "features/verification",
+    "owner": "pages/instance-settings",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "source": "pages/instance-settings/ui/verification-agents/VerificationAgentsComponent.tsx",
     "construct": "class:dark:bg-gray-700",
     "count": 2,
-    "owner": "features/verification",
+    "owner": "pages/instance-settings",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "source": "pages/instance-settings/ui/verification-agents/VerificationAgentsComponent.tsx",
     "construct": "class:hover:text-gray-700",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/instance-settings",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "source": "pages/instance-settings/ui/verification-agents/VerificationAgentsComponent.tsx",
     "construct": "class:dark:hover:text-white",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/instance-settings",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "source": "pages/instance-settings/ui/verification-agents/VerificationAgentsComponent.tsx",
     "construct": "class:text-gray-700",
     "count": 5,
-    "owner": "features/verification",
+    "owner": "pages/instance-settings",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "source": "pages/instance-settings/ui/verification-agents/VerificationAgentsComponent.tsx",
     "construct": "class:dark:text-gray-300",
     "count": 5,
-    "owner": "features/verification",
+    "owner": "pages/instance-settings",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "source": "pages/instance-settings/ui/verification-agents/VerificationAgentsComponent.tsx",
     "construct": "class:dark:text-white",
     "count": 5,
-    "owner": "features/verification",
+    "owner": "pages/instance-settings",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "source": "pages/instance-settings/ui/verification-agents/VerificationAgentsComponent.tsx",
     "construct": "class:text-gray-600",
     "count": 2,
-    "owner": "features/verification",
+    "owner": "pages/instance-settings",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "source": "pages/instance-settings/ui/verification-agents/VerificationAgentsComponent.tsx",
     "construct": "class:text-gray-900",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/instance-settings",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "source": "pages/instance-settings/ui/verification-agents/VerificationAgentsComponent.tsx",
     "construct": "color:green",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/instance-settings",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "source": "pages/instance-settings/ui/verification-agents/VerificationAgentsComponent.tsx",
     "construct": "color:orange",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/instance-settings",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "source": "pages/instance-settings/ui/verification-agents/VerificationAgentsComponent.tsx",
     "construct": "color:red",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/instance-settings",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "source": "pages/instance-settings/ui/verification-agents/VerificationAgentsComponent.tsx",
     "construct": "class:dark:text-gray-500",
     "count": 3,
-    "owner": "features/verification",
+    "owner": "pages/instance-settings",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "source": "pages/instance-settings/ui/verification-agents/VerificationAgentsComponent.tsx",
     "construct": "class:text-amber-600",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/instance-settings",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "source": "pages/instance-settings/ui/verification-agents/VerificationAgentsComponent.tsx",
     "construct": "class:dark:text-amber-400",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/instance-settings",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/config/ui/EditVerificationConfigComponent.tsx",
+    "source": "pages/databases/ui/verification/EditVerificationConfigComponent.tsx",
     "construct": "color:gray",
     "count": 2,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/config/ui/EditVerificationConfigComponent.tsx",
+    "source": "pages/databases/ui/verification/EditVerificationConfigComponent.tsx",
     "construct": "class:text-gray-600",
     "count": 3,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/config/ui/EditVerificationConfigComponent.tsx",
+    "source": "pages/databases/ui/verification/EditVerificationConfigComponent.tsx",
     "construct": "class:dark:text-gray-400",
     "count": 3,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/config/ui/EditVerificationConfigComponent.tsx",
+    "source": "pages/databases/ui/verification/EditVerificationConfigComponent.tsx",
     "construct": "class:text-red-500",
     "count": 2,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/config/ui/ShowVerificationConfigComponent.tsx",
+    "source": "pages/databases/ui/verification/ShowVerificationConfigComponent.tsx",
     "construct": "class:text-gray-500",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/config/ui/ShowVerificationConfigComponent.tsx",
+    "source": "pages/databases/ui/verification/ShowVerificationConfigComponent.tsx",
     "construct": "class:bg-gray-100",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/config/ui/ShowVerificationConfigComponent.tsx",
+    "source": "pages/databases/ui/verification/ShowVerificationConfigComponent.tsx",
     "construct": "class:dark:bg-gray-700",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/config/ui/ShowVerificationConfigComponent.tsx",
+    "source": "pages/databases/ui/verification/ShowVerificationConfigComponent.tsx",
     "construct": "class:text-gray-600",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/config/ui/ShowVerificationConfigComponent.tsx",
+    "source": "pages/databases/ui/verification/ShowVerificationConfigComponent.tsx",
     "construct": "class:dark:text-gray-400",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "source": "pages/databases/ui/verification/VerificationDetailDrawer.tsx",
     "construct": "color:green",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "source": "pages/databases/ui/verification/VerificationDetailDrawer.tsx",
     "construct": "color:red",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "source": "pages/databases/ui/verification/VerificationDetailDrawer.tsx",
     "construct": "color:blue",
     "count": 2,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "source": "pages/databases/ui/verification/VerificationDetailDrawer.tsx",
     "construct": "color:purple",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "source": "pages/databases/ui/verification/VerificationDetailDrawer.tsx",
     "construct": "class:text-gray-500",
     "count": 4,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "source": "pages/databases/ui/verification/VerificationDetailDrawer.tsx",
     "construct": "class:dark:text-gray-400",
     "count": 4,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "source": "pages/databases/ui/verification/VerificationDetailDrawer.tsx",
     "construct": "class:border-gray-100",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "source": "pages/databases/ui/verification/VerificationDetailDrawer.tsx",
     "construct": "class:dark:border-gray-700",
     "count": 2,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "source": "pages/databases/ui/verification/VerificationDetailDrawer.tsx",
     "construct": "class:text-gray-800",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "source": "pages/databases/ui/verification/VerificationDetailDrawer.tsx",
     "construct": "class:dark:text-gray-200",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "source": "pages/databases/ui/verification/VerificationDetailDrawer.tsx",
     "construct": "class:text-gray-400",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "source": "pages/databases/ui/verification/VerificationDetailDrawer.tsx",
     "construct": "class:dark:text-gray-500",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "source": "pages/databases/ui/verification/VerificationDetailDrawer.tsx",
     "construct": "class:border-gray-200",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "source": "pages/databases/ui/verification/VerificationDetailDrawer.tsx",
     "construct": "class:bg-gray-50",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "source": "pages/databases/ui/verification/VerificationDetailDrawer.tsx",
     "construct": "class:text-gray-700",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "source": "pages/databases/ui/verification/VerificationDetailDrawer.tsx",
     "construct": "class:dark:bg-gray-800",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "source": "pages/databases/ui/verification/VerificationDetailDrawer.tsx",
     "construct": "class:dark:text-gray-300",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "source": "pages/databases/ui/verification/VerificationDetailDrawer.tsx",
     "construct": "class:border-red-200",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "source": "pages/databases/ui/verification/VerificationDetailDrawer.tsx",
     "construct": "class:bg-red-50",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "source": "pages/databases/ui/verification/VerificationDetailDrawer.tsx",
     "construct": "class:text-red-700",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "source": "pages/databases/ui/verification/VerificationDetailDrawer.tsx",
     "construct": "class:dark:border-red-900",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "source": "pages/databases/ui/verification/VerificationDetailDrawer.tsx",
     "construct": "class:dark:bg-red-950",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "source": "pages/databases/ui/verification/VerificationDetailDrawer.tsx",
     "construct": "class:dark:text-red-300",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "source": "pages/databases/ui/verification/VerificationDetailDrawer.tsx",
     "construct": "class:dark:text-white",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "source": "pages/databases/ui/verification/VerificationsComponent.tsx",
     "construct": "class:text-green-600",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "source": "pages/databases/ui/verification/VerificationsComponent.tsx",
     "construct": "class:text-red-600",
     "count": 2,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "source": "pages/databases/ui/verification/VerificationsComponent.tsx",
     "construct": "class:text-blue-600",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "source": "pages/databases/ui/verification/VerificationsComponent.tsx",
     "construct": "class:text-gray-600",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "source": "pages/databases/ui/verification/VerificationsComponent.tsx",
     "construct": "class:text-gray-500",
     "count": 12,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "source": "pages/databases/ui/verification/VerificationsComponent.tsx",
     "construct": "color:blue",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "source": "pages/databases/ui/verification/VerificationsComponent.tsx",
     "construct": "color:purple",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "source": "pages/databases/ui/verification/VerificationsComponent.tsx",
     "construct": "class:text-gray-400",
     "count": 2,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "source": "pages/databases/ui/verification/VerificationsComponent.tsx",
     "construct": "color:#ff0000",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "source": "pages/databases/ui/verification/VerificationsComponent.tsx",
     "construct": "color:#155dfc",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "source": "pages/databases/ui/verification/VerificationsComponent.tsx",
     "construct": "class:dark:text-gray-400",
     "count": 9,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "source": "pages/databases/ui/verification/VerificationsComponent.tsx",
     "construct": "class:bg-white",
     "count": 2,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "source": "pages/databases/ui/verification/VerificationsComponent.tsx",
     "construct": "class:dark:bg-gray-800",
     "count": 2,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "source": "pages/databases/ui/verification/VerificationsComponent.tsx",
     "construct": "class:dark:text-white",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "source": "pages/databases/ui/verification/VerificationsComponent.tsx",
     "construct": "class:border-amber-200",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "source": "pages/databases/ui/verification/VerificationsComponent.tsx",
     "construct": "class:bg-amber-50",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "source": "pages/databases/ui/verification/VerificationsComponent.tsx",
     "construct": "class:text-amber-900",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "source": "pages/databases/ui/verification/VerificationsComponent.tsx",
     "construct": "class:dark:border-amber-900/50",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "source": "pages/databases/ui/verification/VerificationsComponent.tsx",
     "construct": "class:dark:bg-amber-950/40",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "source": "pages/databases/ui/verification/VerificationsComponent.tsx",
     "construct": "class:dark:text-amber-200",
     "count": 1,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "source": "pages/databases/ui/verification/VerificationsComponent.tsx",
     "construct": "class:border-gray-200",
     "count": 2,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "source": "pages/databases/ui/verification/VerificationsComponent.tsx",
     "construct": "class:dark:border-gray-700",
     "count": 2,
-    "owner": "features/verification",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/ChangesPathComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/ChangesPathComponent.tsx",
     "construct": "class:bg-gray-300",
     "count": 3,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/ChangesPathComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/ChangesPathComponent.tsx",
     "construct": "class:dark:bg-gray-600",
     "count": 3,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/ChangesPathComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/ChangesPathComponent.tsx",
     "construct": "class:text-gray-400",
     "count": 3,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/ChangesPathComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/ChangesPathComponent.tsx",
     "construct": "class:dark:text-gray-500",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/ChangesPathComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/ChangesPathComponent.tsx",
     "construct": "class:text-gray-600",
     "count": 4,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/ChangesPathComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/ChangesPathComponent.tsx",
     "construct": "class:dark:text-gray-400",
     "count": 4,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/ChangesPathComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/ChangesPathComponent.tsx",
     "construct": "class:border-gray-200",
     "count": 2,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/ChangesPathComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/ChangesPathComponent.tsx",
     "construct": "class:text-gray-900",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/ChangesPathComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/ChangesPathComponent.tsx",
     "construct": "class:dark:border-gray-600",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/ChangesPathComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/ChangesPathComponent.tsx",
     "construct": "class:dark:text-gray-100",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/ChangesPathComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/ChangesPathComponent.tsx",
     "construct": "class:dark:border-gray-700",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/ChangesPathComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/ChangesPathComponent.tsx",
     "construct": "class:text-orange-600",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/ChangesPathComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/ChangesPathComponent.tsx",
     "construct": "class:dark:text-orange-400",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/MonitoringFiguresComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/MonitoringFiguresComponent.tsx",
     "construct": "class:border-gray-200",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/MonitoringFiguresComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/MonitoringFiguresComponent.tsx",
     "construct": "class:dark:border-gray-700",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/MonitoringFiguresComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/MonitoringFiguresComponent.tsx",
     "construct": "class:text-gray-600",
     "count": 2,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/MonitoringFiguresComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/MonitoringFiguresComponent.tsx",
     "construct": "class:dark:text-gray-400",
     "count": 2,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/MonitoringFiguresComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/MonitoringFiguresComponent.tsx",
     "construct": "class:text-gray-400",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/MonitoringFiguresComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/MonitoringFiguresComponent.tsx",
     "construct": "class:dark:text-gray-500",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/MonitoringTipsComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/MonitoringTipsComponent.tsx",
     "construct": "class:text-gray-400",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/MonitoringTipsComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/MonitoringTipsComponent.tsx",
     "construct": "class:dark:text-gray-500",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/MonitoringTipsComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/MonitoringTipsComponent.tsx",
     "construct": "class:text-gray-600",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/MonitoringTipsComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/MonitoringTipsComponent.tsx",
     "construct": "class:dark:text-gray-400",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/PathAmountComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/PathAmountComponent.tsx",
     "construct": "class:text-gray-600",
     "count": 3,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/PathAmountComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/PathAmountComponent.tsx",
     "construct": "class:dark:text-gray-400",
     "count": 3,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/PathAmountComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/PathAmountComponent.tsx",
     "construct": "class:bg-gray-100",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/PathAmountComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/PathAmountComponent.tsx",
     "construct": "class:dark:bg-gray-700",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/PathAmountComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/PathAmountComponent.tsx",
     "construct": "class:text-red-600",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/PathAmountComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/PathAmountComponent.tsx",
     "construct": "class:dark:text-red-400",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/RestoreTimelineComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/RestoreTimelineComponent.tsx",
     "construct": "class:text-gray-600",
     "count": 2,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/RestoreTimelineComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/RestoreTimelineComponent.tsx",
     "construct": "class:dark:text-gray-400",
     "count": 2,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/RestoreTimelineComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/RestoreTimelineComponent.tsx",
     "construct": "class:bg-gray-100",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/RestoreTimelineComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/RestoreTimelineComponent.tsx",
     "construct": "class:dark:bg-gray-700",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/TechnicalDetailsComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/TechnicalDetailsComponent.tsx",
     "construct": "class:border-gray-200",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/TechnicalDetailsComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/TechnicalDetailsComponent.tsx",
     "construct": "class:dark:border-gray-700",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/VerdictBannerComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/VerdictBannerComponent.tsx",
     "construct": "class:text-gray-600",
     "count": 3,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/VerdictBannerComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/VerdictBannerComponent.tsx",
     "construct": "class:dark:text-gray-400",
     "count": 3,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/WalStreamChartsComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/WalStreamChartsComponent.tsx",
     "construct": "class:text-gray-600",
     "count": 4,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/WalStreamChartsComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/WalStreamChartsComponent.tsx",
     "construct": "class:dark:text-gray-400",
     "count": 4,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/WalStreamChartsComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/WalStreamChartsComponent.tsx",
     "construct": "class:border-gray-300",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/WalStreamChartsComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/WalStreamChartsComponent.tsx",
     "construct": "class:dark:border-gray-600",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/WalStreamMonitoringComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/WalStreamMonitoringComponent.tsx",
     "construct": "class:bg-white",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/WalStreamMonitoringComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/WalStreamMonitoringComponent.tsx",
     "construct": "class:dark:bg-gray-800",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/WalStreamMonitoringComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/WalStreamMonitoringComponent.tsx",
     "construct": "class:border-gray-200",
     "count": 3,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/WalStreamMonitoringComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/WalStreamMonitoringComponent.tsx",
     "construct": "class:dark:border-gray-700",
     "count": 3,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/WalStreamRawValuesComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/WalStreamRawValuesComponent.tsx",
     "construct": "class:text-gray-600",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/physical/monitoring/ui/WalStreamRawValuesComponent.tsx",
+    "source": "pages/databases/ui/wal-stream-monitoring/WalStreamRawValuesComponent.tsx",
     "construct": "class:dark:text-gray-400",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "7"
   },
   {

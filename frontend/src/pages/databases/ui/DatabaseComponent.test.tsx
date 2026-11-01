@@ -12,7 +12,6 @@ import {
   PhysicalDatabaseBackupType,
   createDefaultDatabaseSettings,
 } from '../../../entities/databases';
-import { verificationRunsApi } from '../../../entities/verification/runs';
 import { activateSession, invalidateSession } from '../../../shared/auth';
 import { DICTIONARIES, useLocale } from '../../../shared/i18n';
 import { waitForCondition } from '../../../shared/lib/test/conditionWait';
@@ -20,6 +19,7 @@ import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mo
 import { createPendingApiResponse } from '../../../shared/lib/test/pendingApiResponse';
 import { releaseAndSettle } from '../../../shared/lib/test/releaseAndSettle';
 import { renderScreen } from '../../../shared/lib/test/renderScreen';
+import { verificationRunsApi } from '../api/verificationRunsApi';
 // @vitest-environment happy-dom
 import { DatabaseComponent } from './DatabaseComponent';
 

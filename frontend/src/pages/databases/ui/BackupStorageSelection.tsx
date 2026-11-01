@@ -2,23 +2,25 @@ import { Alert, Button, Modal, Select } from 'antd';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import {
-  type Storage,
-  type StorageSelectionOptions,
-  getStorageLogoFromType,
-  storageApi,
-} from '@/entities/storages';
+import { type Storage, getStorageLogoFromType, storageApi } from '@/entities/storages';
 import { EditStorageComponent } from '@/features/edit-storage';
 import { useSessionGuard } from '@/shared/auth';
 import { translateApiError } from '@/shared/i18n';
 import { RequestRevision } from '@/shared/lib/RequestRevision';
+
+interface Props {
+  workspaceId: string;
+  selectedStorageId?: string;
+  canClear: boolean;
+  onSelect: (storageId?: string) => void;
+}
 
 export function BackupStorageSelection({
   workspaceId,
   selectedStorageId,
   canClear,
   onSelect,
-}: StorageSelectionOptions) {
+}: Props) {
   const [storages, setStorages] = useState<Storage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<unknown>();

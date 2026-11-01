@@ -104,7 +104,7 @@ describe('Style ownership checks', () => {
     expect(
       check({
         content: content,
-        source: 'features/backups/physical/monitoring/lib/chartColors.ts',
+        source: 'pages/databases/lib/wal-stream-monitoring/chartColors.ts',
       }),
     ).toEqual([]);
     expect(check({ content: content, source: 'shared/theme/Control.tsx' })).toHaveLength(1);

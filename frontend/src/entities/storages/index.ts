@@ -21,5 +21,3 @@ export { STORAGE_TYPE_LABEL_KEYS } from './models/StorageTypeLabelKeys';
 
 export { SftpAuthMethod } from './models/SftpAuthMethod';
 export { SFTP_AUTH_METHOD_LABEL_KEYS } from './models/SftpAuthMethodLabelKeys';
-
-export type { StorageSelectionOptions } from './ui/StorageSelectionOptions';

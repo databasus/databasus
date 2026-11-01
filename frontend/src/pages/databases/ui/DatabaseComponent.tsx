@@ -2,18 +2,15 @@ import { Alert, Button, Spin } from 'antd';
 import { type RefObject, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import {
-  PhysicalBackupsComponent,
-  WalStreamMonitoringComponent,
-  isMonitoringTabShown,
-} from '@/features/backups/physical';
-import { VerificationsComponent } from '@/features/verification/runs';
-
 import { type Database, DatabaseType, databaseApi } from '../../../entities/databases';
 import { translateApiError } from '../../../shared/i18n';
+import { isMonitoringTabShown } from '../lib/wal-stream-monitoring/monitoringTab';
 import { DatabaseConfigComponent } from './DatabaseConfigComponent';
 import { HealthcheckAttemptsComponent } from './healthcheck';
 import { LogicalBackupsComponent } from './logical-backups/LogicalBackupsComponent';
+import { PhysicalBackupsComponent } from './physical-backups/PhysicalBackupsComponent';
+import { VerificationsComponent } from './verification/VerificationsComponent';
+import { WalStreamMonitoringComponent } from './wal-stream-monitoring/WalStreamMonitoringComponent';
 
 interface Props {
   scrollContainerRef: RefObject<HTMLDivElement | null>;

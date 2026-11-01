@@ -2,10 +2,10 @@ import { App } from 'antd';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { verificationRunsApi } from '../../../../entities/verification/runs';
 import { useSessionGuard } from '../../../../shared/auth';
 import { translateApiError } from '../../../../shared/i18n';
 import { logicalBackupApi } from '../../api/logicalBackupApi';
+import { verificationRunsApi } from '../../api/verificationRunsApi';
 import { isLogicalBackupListedByFilter } from '../../model/isLogicalBackupListedByFilter';
 import type { LogicalBackup } from '../../model/LogicalBackup';
 import type { LogicalBackupListFilter } from '../../model/LogicalBackupListFilter';

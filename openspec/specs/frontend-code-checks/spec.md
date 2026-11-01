@@ -35,19 +35,14 @@ The frontend lint command SHALL reject a new dependency directed upward through 
 - **WHEN** a consumer imports a lower layer through its public entry point using the configured alias
 - **THEN** lint, type checking, tests and production build resolve the dependency consistently
 
-### Requirement: Existing violations form a finite shrinking baseline
+### Requirement: Recorded violations form a finite shrinking baseline
 
-The checks SHALL permit only individually recorded existing findings, each with an owner and a removal milestone. Baseline matching SHALL distinguish the rule, source, dependency or structural location, and occurrence count. The baseline MUST NOT exempt entire layers, slices, files or nested domain groups. New findings, increased occurrence counts and stale entries SHALL fail verification. Unchanged violations SHALL remain recognizable after unrelated line movement.
+The checks SHALL permit only individually recorded existing findings, each with an owner and a removal milestone. Baseline matching SHALL distinguish the rule, source, dependency or structural location, and occurrence count. The baseline MUST NOT exempt entire layers, slices or files. New findings, increased occurrence counts and stale entries SHALL fail verification. Unchanged violations SHALL remain recognizable after unrelated line movement.
 
 #### Scenario: A new violation appears beside an accepted one
 
 - **WHEN** a file containing a recorded violation adds another forbidden dependency or another occurrence of the same dependency
 - **THEN** frontend lint fails
-
-#### Scenario: A dependency inside an existing nested group violates its intended boundary
-
-- **WHEN** code adds an unrecorded dependency between two scenario slices inside a nested domain group
-- **THEN** frontend lint fails even if the enclosing group already has recorded structural findings
 
 #### Scenario: A violation is repaired
 

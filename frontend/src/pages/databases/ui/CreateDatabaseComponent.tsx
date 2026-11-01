@@ -2,7 +2,6 @@ import { Alert, App, Button } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { EditPhysicalBackupConfigComponent } from '@/features/backups/physical';
 import { DatabaseConnectionForm } from '@/features/database-connection';
 
 import {
@@ -24,7 +23,7 @@ import { useSessionGuard } from '../../../shared/auth';
 import { translateApiError } from '../../../shared/i18n';
 import { startFirstBackup } from '../model/startFirstBackup';
 import { CreateLogicalBackupConfigStep } from './backup-config/CreateLogicalBackupConfigStep';
-import { BackupStorageSelection } from './BackupStorageSelection';
+import { EditPhysicalBackupConfigComponent } from './backup-config/EditPhysicalBackupConfigComponent';
 import { ChoosePostgresBackupTypeComponent } from './ChoosePostgresBackupTypeComponent';
 import { CreateLimitedUserComponent } from './CreateLimitedUserComponent';
 import { EditDatabaseBaseInfoComponent } from './EditDatabaseBaseInfoComponent';
@@ -272,7 +271,6 @@ export const CreateDatabaseComponent = ({
 
         {isPhysical ? (
           <EditPhysicalBackupConfigComponent
-            renderStorageSelection={(options) => <BackupStorageSelection {...options} />}
             database={toUnsavedDatabase(draft)}
             initialConfig={physicalBackupConfig}
             isShowCancelButton={false}

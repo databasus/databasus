@@ -5,12 +5,13 @@ import { Trans, useTranslation } from 'react-i18next';
 
 import { getApplicationServer } from '@/constants';
 import { type InstanceSettings, type InstanceSettingsUpdate, settingsApi } from '@/entities/users';
-import { VerificationAgentsComponent } from '@/features/verification/agents';
 import { InstanceAuditLogs } from '@/pages/instance-settings/ui/InstanceAuditLogs';
 import { MailServer } from '@/pages/instance-settings/ui/MailServer';
 import { useSessionGuard } from '@/shared/auth';
 import { getWebsitePageUrl, translateApiError, useLocale } from '@/shared/i18n';
 import { ClipboardHelper } from '@/shared/lib/ClipboardHelper';
+
+import { VerificationAgentsComponent } from './verification-agents/VerificationAgentsComponent';
 
 interface Props {
   onSettingsChanged?: (settings: InstanceSettings) => void;

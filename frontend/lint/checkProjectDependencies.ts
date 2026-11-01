@@ -4,31 +4,11 @@ import type { FrontendDependency } from './frontendDependencies.ts';
 import type { ArchitectureFinding } from './fsd-baseline.ts';
 
 const LAYERS = ['app', 'pages', 'widgets', 'features', 'entities', 'shared'];
-const NESTED_SLICES = [
-  'entities/backups/physical',
-  'entities/verification/agents',
-  'entities/verification/config',
-  'entities/verification/runs',
-  'features/backups/physical',
-  'features/verification/agents',
-  'features/verification/config',
-  'features/verification/runs',
-];
-
-const MIGRATION_GROUPS = new Set(
-  NESTED_SLICES.map((slice) => slice.split('/').slice(0, 2).join('/')),
-);
 
 const getLocation = (path: string) => {
   const parts = path.split('/');
   const layer = parts[0];
-  const slice =
-    layer === 'app' || layer === 'shared'
-      ? null
-      : (NESTED_SLICES.find((boundary) => path.startsWith(boundary + '/')) ??
-        parts
-          .slice(0, MIGRATION_GROUPS.has(parts.slice(0, 2).join('/')) && parts.length > 3 ? 3 : 2)
-          .join('/'));
+  const slice = layer === 'app' || layer === 'shared' ? null : parts.slice(0, 2).join('/');
   return { layer, slice };
 };
 

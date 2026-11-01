@@ -95,11 +95,6 @@ describe('frontend architecture', () => {
       importer: 'shared/api/index.ts',
       content: "export {database} from '@/entities/database';",
     },
-    {
-      name: 'nested group',
-      importer: 'features/backups/physical/index.ts',
-      content: "import {backup} from '@/features/backups/logical';",
-    },
   ] satisfies BoundaryCase[])(
     'rejects $name dependencies when they violate a boundary',
     async ({ importer, content }) => {
@@ -108,7 +103,6 @@ describe('frontend architecture', () => {
         'features/connect/index.ts': 'export const feature = 1;',
         'features/connect/model/action.ts': 'export const action=1;',
         'features/other/model/action.ts': 'export const action=1;',
-        'features/backups/logical/index.ts': 'export const backup=1;',
         [importer]: content,
       });
       const findings = await checkFrontendArchitecture(root);
@@ -228,27 +222,4 @@ describe('frontend architecture', () => {
       expect(violations).toHaveLength(2);
     },
   );
-
-  it('separates new sibling scenarios inside an existing migration group', async () => {
-    const findings = await checkFrontendArchitecture(
-      createProject({
-        'entities/backups/config/index.ts': 'export const config=1;',
-        'entities/backups/archive/index.ts': "export {archive} from './model/archive';",
-        'entities/backups/archive/model/archive.ts':
-          "import {retention} from '../../retention/model/retention'; export const archive=retention;",
-        'entities/backups/retention/index.ts': "export {retention} from './model/retention';",
-        'entities/backups/retention/model/retention.ts': 'export const retention=1;',
-      }),
-    );
-    expect(findings).toContainEqual({
-      rule: 'project/forbidden-dependency',
-      source: 'entities/backups/archive/model/archive.ts',
-      target: 'entities/backups/retention/model/retention.ts',
-    });
-    expect(findings).toContainEqual({
-      rule: 'project/private-slice-import',
-      source: 'entities/backups/archive/model/archive.ts',
-      target: 'entities/backups/retention/model/retention.ts',
-    });
-  });
 });
