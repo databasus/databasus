@@ -10,10 +10,6 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
-  EditLogicalBackupConfigComponent,
-  ShowLogicalBackupConfigComponent,
-} from '@/features/backups/logical';
-import {
   EditPhysicalBackupConfigComponent,
   ShowPhysicalBackupConfigComponent,
 } from '@/features/backups/physical';
@@ -22,11 +18,13 @@ import {
   ShowVerificationConfigComponent,
 } from '@/features/verification/config';
 
-import { backupConfigApi } from '../../../entities/backups/config';
+import { backupConfigApi } from '../../../entities/backup-configs';
 import { type Database, DatabaseType, databaseApi } from '../../../entities/databases';
 import { translateApiError } from '../../../shared/i18n';
 import { ToastHelper } from '../../../shared/toast';
 import { ConfirmationComponent } from '../../../shared/ui';
+import { EditLogicalBackupConfigComponent } from './backup-config/EditLogicalBackupConfigComponent';
+import { ShowLogicalBackupConfigComponent } from './backup-config/ShowLogicalBackupConfigComponent';
 import { BackupStorageSelection } from './BackupStorageSelection';
 import { DatabaseSettingsSection } from './DatabaseSettingsSection';
 import { DatabaseTransferDialogComponent } from './DatabaseTransferDialogComponent';
@@ -317,7 +315,6 @@ export const DatabaseConfigComponent = ({
               />
             ) : (
               <EditLogicalBackupConfigComponent
-                renderStorageSelection={(options) => <BackupStorageSelection {...options} />}
                 database={database}
                 isShowCancelButton
                 onCancel={closeSection}

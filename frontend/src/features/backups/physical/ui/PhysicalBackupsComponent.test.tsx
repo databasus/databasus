@@ -3,7 +3,7 @@ import { act, screen } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { BackupConfig } from '../../../../entities/backups/config';
+import type { BackupConfig } from '../../../../entities/backup-configs';
 import { DatabaseType, createDefaultDatabaseSettings } from '../../../../entities/databases';
 import { DICTIONARIES } from '../../../../shared/i18n';
 import { waitForCondition } from '../../../../shared/lib/test/conditionWait';

@@ -4,7 +4,7 @@ import utc from 'dayjs/plugin/utc';
 import { HttpResponse, type RequestHandler, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { BackupConfig } from '../../../entities/backups/config';
+import type { BackupConfig } from '../../../entities/backup-configs';
 import {
   type Database,
   DatabaseType,

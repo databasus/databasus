@@ -1,21 +1,5 @@
 [
   {
-    "rule": "fsd/forbidden-imports",
-    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
-    "target": "features/restores/index.ts",
-    "count": 1,
-    "owner": "backups",
-    "milestone": 7
-  },
-  {
-    "rule": "fsd/public-api",
-    "source": "entities/backups",
-    "target": "This slice is missing a public API.",
-    "count": 1,
-    "owner": "backups",
-    "milestone": 7
-  },
-  {
     "rule": "fsd/public-api",
     "source": "entities/verification",
     "target": "This slice is missing a public API.",

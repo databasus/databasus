@@ -13,7 +13,7 @@ import {
   backupConfigApi,
   StorageSwitchHistoryComponent,
   type StorageSwitch,
-} from '../../../entities/backups/config';
+} from '../../../entities/backup-configs';
 import { type Database, databaseApi } from '../../../entities/databases';
 import type { Notifier } from '../../../entities/notifiers';
 import { notifierApi } from '../../../entities/notifiers';

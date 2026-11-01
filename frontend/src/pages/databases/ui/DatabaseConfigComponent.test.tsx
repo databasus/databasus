@@ -2,7 +2,7 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { HttpResponse, type RequestHandler, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
-import { backupConfigApi } from '../../../entities/backups/config';
+import { backupConfigApi } from '../../../entities/backup-configs';
 import {
   type Database,
   type DatabaseSettings,

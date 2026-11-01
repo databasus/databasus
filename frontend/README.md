@@ -55,6 +55,6 @@ pnpm format:check
 
 ## Workspace resource screens
 
-Workspace settings, storage and notifier lists/details live in their `src/pages` slices. Reusable editors live in `features/edit-storage` and `features/edit-notifier`. `pages/databases` owns the database list, details, settings and creation wizard, and composes those editors for database transfer, notifier selection and backup-storage configuration. `features/database-connection` holds the connection form, which the page also passes to restore. Workspace creation belongs to app-local UI.
+Workspace settings, storage and notifier lists/details live in their `src/pages` slices. Reusable editors live in `features/edit-storage` and `features/edit-notifier`. `pages/databases` owns the database list, details, settings, creation wizard, logical backup list, logical config editor and restore screens, and composes those editors for database transfer, notifier selection and backup-storage configuration. `features/database-connection` holds the connection form, which the page also uses for the restore target. Workspace creation belongs to app-local UI.
 
 The [architecture](../docs/architecture.md#frontend) describes ownership and asynchronous acceptance. The [testing guide](../docs/testing.md) describes production browser UI checks and the isolated real-API workspace/storage scenario.

@@ -6,7 +6,7 @@ import {
   type BackupConfig,
   backupConfigApi,
   StorageSwitchHistoryComponent,
-} from '../../../entities/backups/config';
+} from '../../../entities/backup-configs';
 import { databaseApi, sortUnavailableDatabasesFirst } from '../../../entities/databases';
 import type { Database } from '../../../entities/databases';
 import { type Storage, storageApi } from '../../../entities/storages';

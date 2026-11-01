@@ -1,330 +1,330 @@
 [
   {
     "rule": "direct-color",
-    "source": "features/restores/ui/RestoresComponent.tsx",
+    "source": "pages/databases/ui/restores/RestoresComponent.tsx",
     "construct": "class:text-gray-400",
     "count": 1,
-    "owner": "features/restores",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/restores/ui/RestoresComponent.tsx",
+    "source": "pages/databases/ui/restores/RestoresComponent.tsx",
     "construct": "class:border-gray-200",
     "count": 1,
-    "owner": "features/restores",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/restores/ui/RestoresComponent.tsx",
+    "source": "pages/databases/ui/restores/RestoresComponent.tsx",
     "construct": "class:text-red-600",
     "count": 1,
-    "owner": "features/restores",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/restores/ui/RestoresComponent.tsx",
+    "source": "pages/databases/ui/restores/RestoresComponent.tsx",
     "construct": "color:#ff0000",
     "count": 2,
-    "owner": "features/restores",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/restores/ui/RestoresComponent.tsx",
+    "source": "pages/databases/ui/restores/RestoresComponent.tsx",
     "construct": "color:#008000",
     "count": 1,
-    "owner": "features/restores",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/restores/ui/RestoresComponent.tsx",
+    "source": "pages/databases/ui/restores/RestoresComponent.tsx",
     "construct": "class:text-gray-500",
     "count": 2,
-    "owner": "features/restores",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/restores/ui/RestoresComponent.tsx",
+    "source": "pages/databases/ui/restores/RestoresComponent.tsx",
     "construct": "color:#808080",
     "count": 1,
-    "owner": "features/restores",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/restores/ui/RestoresComponent.tsx",
+    "source": "pages/databases/ui/restores/RestoresComponent.tsx",
     "construct": "class:text-blue-600",
     "count": 1,
-    "owner": "features/restores",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/restores/ui/RestoresComponent.tsx",
+    "source": "pages/databases/ui/restores/RestoresComponent.tsx",
     "construct": "class:dark:text-gray-400",
     "count": 1,
-    "owner": "features/restores",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/restores/ui/RestoresComponent.tsx",
+    "source": "pages/databases/ui/restores/RestoresComponent.tsx",
     "construct": "class:border-yellow-300",
     "count": 1,
-    "owner": "features/restores",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/restores/ui/RestoresComponent.tsx",
+    "source": "pages/databases/ui/restores/RestoresComponent.tsx",
     "construct": "class:bg-yellow-50",
     "count": 1,
-    "owner": "features/restores",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/restores/ui/RestoresComponent.tsx",
+    "source": "pages/databases/ui/restores/RestoresComponent.tsx",
     "construct": "class:dark:border-yellow-600",
     "count": 1,
-    "owner": "features/restores",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/restores/ui/RestoresComponent.tsx",
+    "source": "pages/databases/ui/restores/RestoresComponent.tsx",
     "construct": "class:dark:bg-yellow-900/30",
     "count": 1,
-    "owner": "features/restores",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/EditLogicalBackupConfigComponent.tsx",
+    "source": "pages/databases/ui/backup-config/EditLogicalBackupConfigComponent.tsx",
     "construct": "color:gray",
     "count": 6,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/EditLogicalBackupConfigComponent.tsx",
+    "source": "pages/databases/ui/backup-config/EditLogicalBackupConfigComponent.tsx",
     "construct": "class:text-gray-600",
     "count": 9,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/EditLogicalBackupConfigComponent.tsx",
+    "source": "pages/databases/ui/backup-config/EditLogicalBackupConfigComponent.tsx",
     "construct": "class:dark:text-gray-400",
     "count": 9,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/EditLogicalBackupConfigComponent.tsx",
+    "source": "pages/databases/ui/backup-config/EditLogicalBackupConfigComponent.tsx",
     "construct": "class:text-red-500",
     "count": 2,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/EditLogicalBackupConfigComponent.tsx",
+    "source": "pages/databases/ui/backup-config/EditLogicalBackupConfigComponent.tsx",
     "construct": "class:text-blue-600",
     "count": 2,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/EditLogicalBackupConfigComponent.tsx",
+    "source": "pages/databases/ui/backup-config/EditLogicalBackupConfigComponent.tsx",
     "construct": "class:hover:text-blue-800",
     "count": 2,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/logical-backups/LogicalBackupsComponent.tsx",
     "construct": "class:!text-blue-600",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/logical-backups/LogicalBackupsComponent.tsx",
     "construct": "class:text-red-600",
     "count": 2,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/logical-backups/LogicalBackupsComponent.tsx",
     "construct": "class:text-green-600",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/logical-backups/LogicalBackupsComponent.tsx",
     "construct": "class:text-blue-600",
     "count": 2,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/logical-backups/LogicalBackupsComponent.tsx",
     "construct": "class:text-gray-600",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/logical-backups/LogicalBackupsComponent.tsx",
     "construct": "color:#ff0000",
     "count": 2,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/logical-backups/LogicalBackupsComponent.tsx",
     "construct": "color:#155dfc",
     "count": 5,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/logical-backups/LogicalBackupsComponent.tsx",
     "construct": "class:text-gray-500",
     "count": 10,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/logical-backups/LogicalBackupsComponent.tsx",
     "construct": "class:dark:text-gray-400",
     "count": 8,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/logical-backups/LogicalBackupsComponent.tsx",
     "construct": "class:dark:text-gray-500",
     "count": 2,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/logical-backups/LogicalBackupsComponent.tsx",
     "construct": "class:bg-white",
     "count": 2,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/logical-backups/LogicalBackupsComponent.tsx",
     "construct": "class:dark:bg-gray-800",
     "count": 2,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/logical-backups/LogicalBackupsComponent.tsx",
     "construct": "class:dark:text-white",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/logical-backups/LogicalBackupsComponent.tsx",
     "construct": "class:bg-blue-600",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/logical-backups/LogicalBackupsComponent.tsx",
     "construct": "class:border-gray-200",
     "count": 2,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "source": "pages/databases/ui/logical-backups/LogicalBackupsComponent.tsx",
     "construct": "class:dark:border-gray-700",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/LogicalBackupsFiltersPanelComponent.tsx",
+    "source": "pages/databases/ui/logical-backups/LogicalBackupsFiltersPanelComponent.tsx",
     "construct": "class:text-gray-500",
     "count": 2,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/LogicalBackupsFiltersPanelComponent.tsx",
+    "source": "pages/databases/ui/logical-backups/LogicalBackupsFiltersPanelComponent.tsx",
     "construct": "class:dark:text-gray-400",
     "count": 2,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/ShowLogicalBackupConfigComponent.tsx",
+    "source": "pages/databases/ui/backup-config/ShowLogicalBackupConfigComponent.tsx",
     "construct": "class:text-red-600",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/ShowLogicalBackupConfigComponent.tsx",
+    "source": "pages/databases/ui/backup-config/ShowLogicalBackupConfigComponent.tsx",
     "construct": "class:bg-gray-100",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/ShowLogicalBackupConfigComponent.tsx",
+    "source": "pages/databases/ui/backup-config/ShowLogicalBackupConfigComponent.tsx",
     "construct": "class:dark:bg-gray-700",
     "count": 1,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {
     "rule": "direct-color",
-    "source": "features/backups/logical/ui/ShowLogicalBackupConfigComponent.tsx",
+    "source": "pages/databases/ui/backup-config/ShowLogicalBackupConfigComponent.tsx",
     "construct": "color:gray",
     "count": 2,
-    "owner": "features/backups",
+    "owner": "pages/databases",
     "removalMilestone": "6"
   },
   {

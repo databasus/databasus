@@ -7,7 +7,7 @@ import type {
   BackupConfig,
   DatabaseTransfer,
   StorageSwitch,
-} from '../../../entities/backups/config';
+} from '../../../entities/backup-configs';
 import {
   type Database,
   DatabaseType,

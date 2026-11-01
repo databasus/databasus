@@ -2,19 +2,18 @@ import { Alert, Button, Spin } from 'antd';
 import { type RefObject, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { LogicalBackupsComponent } from '@/features/backups/logical';
 import {
   PhysicalBackupsComponent,
   WalStreamMonitoringComponent,
   isMonitoringTabShown,
 } from '@/features/backups/physical';
-import { DatabaseConnectionForm } from '@/features/database-connection';
 import { VerificationsComponent } from '@/features/verification/runs';
 
 import { type Database, DatabaseType, databaseApi } from '../../../entities/databases';
 import { translateApiError } from '../../../shared/i18n';
 import { DatabaseConfigComponent } from './DatabaseConfigComponent';
 import { HealthcheckAttemptsComponent } from './healthcheck';
+import { LogicalBackupsComponent } from './logical-backups/LogicalBackupsComponent';
 
 interface Props {
   scrollContainerRef: RefObject<HTMLDivElement | null>;
@@ -162,7 +161,6 @@ export const DatabaseComponent = ({
               isDirectlyUnderTab={!isHealthcheckVisible}
               scrollContainerRef={scrollContainerRef}
               onNavigateToVerifications={() => setCurrentTab('verifications')}
-              renderRestoreTargetForm={(options) => <DatabaseConnectionForm {...options} />}
             />
           )}
         </>

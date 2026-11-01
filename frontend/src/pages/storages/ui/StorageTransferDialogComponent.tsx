@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useSessionGuard } from '@/shared/auth';
 import { RequestRevision } from '@/shared/lib/RequestRevision';
 
-import { backupConfigApi } from '../../../entities/backups/config';
+import { backupConfigApi } from '../../../entities/backup-configs';
 import { type Storage, storageApi } from '../../../entities/storages';
 import { type Workspace, workspaceApi } from '../../../entities/workspaces';
 import { translateApiError } from '../../../shared/i18n';

@@ -12,7 +12,8 @@ import {
   backupConfigApi,
   StorageSwitchHistoryComponent,
   toPhysicalBackupConfigInput,
-} from '../../../../entities/backups/config';
+  BACKUP_ENCRYPTION_LABEL_KEYS,
+} from '../../../../entities/backup-configs';
 import {
   type FullBackupsRetention,
   FullBackupsRetentionPolicy,
@@ -20,7 +21,6 @@ import {
   PHYSICAL_RETENTION_POLICY_LABEL_KEYS,
   PhysicalRetentionPolicy,
 } from '../../../../entities/backups/physical';
-import { BACKUP_ENCRYPTION_LABEL_KEYS } from '../../../../entities/backups/shared';
 import type { Database } from '../../../../entities/databases';
 import { WEEKDAY_LABEL_KEYS, type Weekday } from '../../../../entities/intervals';
 import { type Storage, getStorageLogoFromType, storageApi } from '../../../../entities/storages';

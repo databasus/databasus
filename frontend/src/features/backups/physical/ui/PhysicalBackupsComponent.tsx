@@ -14,7 +14,7 @@ import type { TFunction } from 'i18next';
 import { type JSX, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type BackupConfig, backupConfigApi } from '../../../../entities/backups/config';
+import { type BackupConfig, backupConfigApi } from '../../../../entities/backup-configs';
 import {
   PHYSICAL_BACKUP_STATUS_LABEL_KEYS,
   type PhysicalBackupListItem,

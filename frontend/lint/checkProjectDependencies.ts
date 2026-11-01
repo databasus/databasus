@@ -5,14 +5,10 @@ import type { ArchitectureFinding } from './fsd-baseline.ts';
 
 const LAYERS = ['app', 'pages', 'widgets', 'features', 'entities', 'shared'];
 const NESTED_SLICES = [
-  'entities/backups/config',
-  'entities/backups/logical',
   'entities/backups/physical',
-  'entities/backups/shared',
   'entities/verification/agents',
   'entities/verification/config',
   'entities/verification/runs',
-  'features/backups/logical',
   'features/backups/physical',
   'features/verification/agents',
   'features/verification/config',

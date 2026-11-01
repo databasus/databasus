@@ -3,7 +3,7 @@ import { screen } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
-import type { BackupConfig } from '../../../entities/backups/config';
+import type { BackupConfig } from '../../../entities/backup-configs';
 import type { Storage } from '../../../entities/storages';
 import type { Workspace } from '../../../entities/workspaces';
 import { API_BASE_PATH, type ApiComponents } from '../../../shared/api';

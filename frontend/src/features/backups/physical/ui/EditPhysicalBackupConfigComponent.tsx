@@ -17,7 +17,9 @@ import {
   type StorageSwitch,
   isScheduleFilled,
   toPhysicalBackupConfigInput,
-} from '../../../../entities/backups/config';
+  BACKUP_ENCRYPTION_OPTION_LABEL_KEYS,
+  BackupEncryption,
+} from '../../../../entities/backup-configs';
 import {
   FULL_BACKUPS_RETENTION_POLICY_LABEL_KEYS,
   type FullBackupsRetention,
@@ -26,10 +28,6 @@ import {
   PhysicalNotificationTrigger,
   PhysicalRetentionPolicy,
 } from '../../../../entities/backups/physical';
-import {
-  BACKUP_ENCRYPTION_OPTION_LABEL_KEYS,
-  BackupEncryption,
-} from '../../../../entities/backups/shared';
 import {
   type Database,
   DatabaseType,

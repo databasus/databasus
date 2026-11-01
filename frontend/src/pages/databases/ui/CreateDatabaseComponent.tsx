@@ -2,7 +2,6 @@ import { App, Button } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { EditLogicalBackupConfigComponent } from '@/features/backups/logical';
 import { EditPhysicalBackupConfigComponent } from '@/features/backups/physical';
 import { DatabaseConnectionForm } from '@/features/database-connection';
 
@@ -10,8 +9,7 @@ import {
   type LogicalBackupConfigInput,
   type PhysicalBackupConfigInput,
   backupConfigApi,
-} from '../../../entities/backups/config';
-import { logicalBackupApi } from '../../../entities/backups/logical';
+} from '../../../entities/backup-configs';
 import { physicalBackupsApi } from '../../../entities/backups/physical';
 import {
   type Database,
@@ -23,6 +21,8 @@ import {
   isPostgresType,
 } from '../../../entities/databases';
 import { translateApiError } from '../../../shared/i18n';
+import { logicalBackupApi } from '../api/logicalBackupApi';
+import { EditLogicalBackupConfigComponent } from './backup-config/EditLogicalBackupConfigComponent';
 import { BackupStorageSelection } from './BackupStorageSelection';
 import { ChoosePostgresBackupTypeComponent } from './ChoosePostgresBackupTypeComponent';
 import { CreateLimitedUserComponent } from './CreateLimitedUserComponent';
@@ -228,7 +228,6 @@ export const CreateDatabaseComponent = ({
 
     return (
       <EditLogicalBackupConfigComponent
-        renderStorageSelection={(options) => <BackupStorageSelection {...options} />}
         database={toUnsavedDatabase(draft)}
         initialConfig={backupConfig}
         isShowCancelButton={false}
