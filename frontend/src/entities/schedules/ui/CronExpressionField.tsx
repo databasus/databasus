@@ -24,7 +24,7 @@ export const CronExpressionField = ({ cronExpression, onChange }: Props) => {
     <>
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <label htmlFor={controlId} className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
-          {t('backups.config.schedule.cronExpression')}
+          {t('schedules.cronExpression')}
         </label>
         <div className="flex items-center">
           <Input
@@ -39,12 +39,12 @@ export const CronExpressionField = ({ cronExpression, onChange }: Props) => {
             className="cursor-pointer"
             title={
               <div>
-                <div className="font-bold">{t('backups.config.schedule.cronHelp.format')}</div>
-                <div className="mt-1">{t('backups.config.schedule.cronHelp.examples')}</div>
-                <div>0 2 * * * - {t('backups.config.schedule.cronHelp.dailyAt2am')}</div>
-                <div>0 */6 * * * - {t('backups.config.schedule.cronHelp.every6Hours')}</div>
-                <div>0 3 * * 1 - {t('backups.config.schedule.cronHelp.mondaysAt3am')}</div>
-                <div>30 4 1,15 * * - {t('backups.config.schedule.cronHelp.twiceAMonth')}</div>
+                <div className="font-bold">{t('schedules.cronHelp.format')}</div>
+                <div className="mt-1">{t('schedules.cronHelp.examples')}</div>
+                <div>0 2 * * * - {t('schedules.cronHelp.dailyAt2am')}</div>
+                <div>0 */6 * * * - {t('schedules.cronHelp.every6Hours')}</div>
+                <div>0 3 * * 1 - {t('schedules.cronHelp.mondaysAt3am')}</div>
+                <div>30 4 1,15 * * - {t('schedules.cronHelp.twiceAMonth')}</div>
               </div>
             }
           >
@@ -57,7 +57,7 @@ export const CronExpressionField = ({ cronExpression, onChange }: Props) => {
         <div className="mb-1 flex w-full flex-col items-start text-xs text-muted sm:flex-row sm:items-center">
           <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2" />
           <div>
-            {t('backups.config.schedule.nextRun', {
+            {t('schedules.nextRun', {
               time: dayjs(nextRun).local().format(getUserTimeFormat().format),
             })}
             <br />({formatRelativeTime(nextRun)})
@@ -68,7 +68,7 @@ export const CronExpressionField = ({ cronExpression, onChange }: Props) => {
       {cronExpression && !nextRun && (
         <div className="mb-1 flex w-full flex-col items-start text-danger sm:flex-row sm:items-center">
           <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2" />
-          <div>{t('backups.config.schedule.invalidCron')}</div>
+          <div>{t('schedules.invalidCron')}</div>
         </div>
       )}
     </>

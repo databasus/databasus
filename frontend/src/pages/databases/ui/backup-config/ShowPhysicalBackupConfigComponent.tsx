@@ -86,21 +86,21 @@ export const ShowPhysicalBackupConfigComponent = ({ database }: Props): JSX.Elem
 
         {schedule.type === ScheduleType.WEEKLY && (
           <div className="mb-1 flex w-full items-center">
-            <div className="min-w-[180px] pr-2">{t('backups.config.schedule.weekday')}</div>
+            <div className="min-w-[180px] pr-2">{t('schedules.weekday')}</div>
             <div>{weekday ? t(WEEKDAY_LABEL_KEYS[weekday]) : ''}</div>
           </div>
         )}
 
         {schedule.type === ScheduleType.MONTHLY && (
           <div className="mb-1 flex w-full items-center">
-            <div className="min-w-[180px] pr-2">{t('backups.config.schedule.dayOfMonth')}</div>
+            <div className="min-w-[180px] pr-2">{t('schedules.dayOfMonth')}</div>
             <div>{dayOfMonth || ''}</div>
           </div>
         )}
 
         {schedule.type === ScheduleType.CRON && (
           <div className="mb-1 flex w-full items-center">
-            <div className="min-w-[180px] pr-2">{t('backups.config.schedule.cronExpression')}</div>
+            <div className="min-w-[180px] pr-2">{t('schedules.cronExpression')}</div>
             <code className="rounded bg-gray-100 px-2 py-0.5 text-sm dark:bg-gray-700">
               {schedule.cronExpression || ''}
             </code>
@@ -109,7 +109,7 @@ export const ShowPhysicalBackupConfigComponent = ({ database }: Props): JSX.Elem
 
         {schedule.type !== ScheduleType.HOURLY && schedule.type !== ScheduleType.CRON && (
           <div className="mb-1 flex w-full items-center">
-            <div className="min-w-[180px] pr-2">{t('backups.config.schedule.timeOfDay')}</div>
+            <div className="min-w-[180px] pr-2">{t('schedules.timeOfDay')}</div>
             <div>{formattedTime}</div>
           </div>
         )}

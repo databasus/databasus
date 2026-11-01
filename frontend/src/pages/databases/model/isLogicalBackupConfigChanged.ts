@@ -2,7 +2,7 @@ import type {
   LogicalBackupConfigInput,
   LogicalBackupSettings,
 } from '../../../entities/backup-configs';
-import { type Schedule, ScheduleType } from '../../../entities/schedules';
+import { isScheduleChanged } from '../../../entities/schedules';
 import { isGfsHoursShown } from './isGfsHoursShown';
 import { LogicalRetentionPolicy } from './LogicalRetentionPolicy';
 
@@ -11,34 +11,10 @@ interface LogicalBackupConfigComparison {
   shown: LogicalBackupConfigInput;
 }
 
-interface ScheduleComparison {
-  acknowledged: Schedule;
-  shown: Schedule;
-}
-
 interface NotificationTriggersComparison {
   acknowledged: LogicalBackupSettings['notificationTriggers'];
   shown: LogicalBackupSettings['notificationTriggers'];
 }
-
-const isScheduleChanged = ({ acknowledged, shown }: ScheduleComparison): boolean => {
-  if (acknowledged.type !== shown.type) return true;
-
-  switch (shown.type) {
-    case ScheduleType.HOURLY:
-      return false;
-    case ScheduleType.DAILY:
-      return acknowledged.timeOfDay !== shown.timeOfDay;
-    case ScheduleType.WEEKLY:
-      return acknowledged.timeOfDay !== shown.timeOfDay || acknowledged.weekday !== shown.weekday;
-    case ScheduleType.MONTHLY:
-      return (
-        acknowledged.timeOfDay !== shown.timeOfDay || acknowledged.dayOfMonth !== shown.dayOfMonth
-      );
-    case ScheduleType.CRON:
-      return acknowledged.cronExpression !== shown.cronExpression;
-  }
-};
 
 const isRetentionChanged = (
   acknowledged: LogicalBackupSettings['retention'],

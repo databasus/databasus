@@ -371,6 +371,39 @@ describe('DatabaseComponent', () => {
     expect(countDatabaseRequests()).toBe(1);
   });
 
+  it('returns to the verification view when Cancel closes an editor that could not load', async () => {
+    const verificationConfig = {
+      databaseId: shopDatabase.id,
+      isAutomaticVerificationEnabled: false,
+      scheduleType: 'AFTER_BACKUP' as const,
+      schedule: { type: 'DAILY' as const, timeOfDay: '00:00' },
+      notificationTriggers: [],
+    };
+    let verificationConfigRequests = 0;
+    server.use(
+      mockApi.pending('get', '/healthcheck-configs/{databaseId}').handler,
+      http.get('*/api/v1/verification-configs/:databaseId', () =>
+        ++verificationConfigRequests === 2
+          ? HttpResponse.json(buildProblem('internal', 500), { status: 500 })
+          : HttpResponse.json(verificationConfig),
+      ),
+    );
+
+    const { user } = await renderShopSettings({
+      ...shopDatabase,
+      settings: createDefaultDatabaseSettings(DatabaseType.POSTGRES_LOGICAL),
+    });
+    await screen.findByText('Scheduled verification');
+    openSettingsSection('Restore verification');
+
+    await screen.findByRole('button', { name: 'Retry' });
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    await screen.findByText('Scheduled verification');
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+    expect(verificationConfigRequests).toBe(3);
+  });
+
   it('shows the latest load of a database when an earlier load of it responds last', async () => {
     const earlierShopLoad = createPendingApiResponse();
     let shopRequests = 0;

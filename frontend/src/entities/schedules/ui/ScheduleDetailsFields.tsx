@@ -39,7 +39,7 @@ export const ScheduleDetailsFields = ({ schedule, onChange }: Props) => {
       {schedule.type === ScheduleType.WEEKLY && (
         <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
           <label htmlFor={weekdayControlId} className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
-            {t('backups.config.schedule.weekday')}
+            {t('schedules.weekday')}
           </label>
           <Select
             id={weekdayControlId}
@@ -55,7 +55,7 @@ export const ScheduleDetailsFields = ({ schedule, onChange }: Props) => {
       {schedule.type === ScheduleType.MONTHLY && (
         <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
           <label htmlFor={dayOfMonthControlId} className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
-            {t('backups.config.schedule.dayOfMonth')}
+            {t('schedules.dayOfMonth')}
           </label>
           <InputNumber
             id={dayOfMonthControlId}
@@ -83,7 +83,7 @@ export const ScheduleDetailsFields = ({ schedule, onChange }: Props) => {
       {schedule.type !== ScheduleType.HOURLY && schedule.type !== ScheduleType.CRON && (
         <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
           <label htmlFor={timeOfDayControlId} className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
-            {t('backups.config.schedule.timeOfDay')}
+            {t('schedules.timeOfDay')}
           </label>
           <TimePicker
             id={timeOfDayControlId}

@@ -1,11 +1,16 @@
-import { Spin } from 'antd';
-import { CronExpressionParser } from 'cron-parser';
+import { Alert, Button, Spin } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
-import { Trans, useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 
-import { INTERVAL_TYPE_LABEL_KEYS, IntervalType } from '../../../../entities/intervals';
-import { WEEKDAY_LABEL_KEYS, getLocalScheduleParts } from '../../../../entities/schedules';
+import {
+  SCHEDULE_TYPE_LABEL_KEYS,
+  ScheduleType,
+  WEEKDAY_LABEL_KEYS,
+  getLocalScheduleParts,
+  getNextCronRun,
+} from '../../../../entities/schedules';
+import { useSessionGuard } from '../../../../shared/auth';
 import { translateApiError, useLocale } from '../../../../shared/i18n';
 import { getUserClockFormat, getUserTimeFormat } from '../../../../shared/time';
 import { verificationConfigApi } from '../../api/verificationConfigApi';
@@ -20,55 +25,64 @@ interface Props {
 export const ShowVerificationConfigComponent = ({ databaseId }: Props) => {
   const { t } = useTranslation();
   const { formatRelativeTime } = useLocale();
+  const isActive = useSessionGuard();
+
   const [config, setConfig] = useState<VerificationConfig>();
-  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<unknown>();
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   useEffect(() => {
-    let isActive = true;
-    setIsLoading(true);
+    let isCurrentLoad = true;
+
+    setConfig(undefined);
+    setLoadError(undefined);
+
     verificationConfigApi
       .getByDatabaseId(databaseId)
       .then((loadedConfig) => {
-        if (isActive) setConfig(loadedConfig);
+        if (isCurrentLoad && isActive()) setConfig(loadedConfig);
       })
       .catch((error: unknown) => {
-        if (isActive) alert(translateApiError(error, t));
-      })
-      .finally(() => {
-        if (isActive) setIsLoading(false);
+        if (isCurrentLoad && isActive()) setLoadError(error);
       });
 
     return () => {
-      isActive = false;
+      isCurrentLoad = false;
     };
-  }, [databaseId]);
+  }, [databaseId, loadAttempt]);
 
-  if (isLoading) {
+  if (loadError !== undefined) {
+    return (
+      <Alert
+        type="error"
+        showIcon
+        message={translateApiError(loadError, t)}
+        action={
+          <Button onClick={() => setLoadAttempt((attempt) => attempt + 1)}>
+            {t('common.actions.retry')}
+          </Button>
+        }
+      />
+    );
+  }
+
+  if (!config) {
     return <Spin size="small" />;
   }
 
-  if (!config) return <div />;
-
-  const timeFormat = getUserClockFormat();
-  const dateTimeFormat = getUserTimeFormat();
-
   const { schedule } = config;
 
-  const {
-    localTime,
-    weekday: displayedWeekday,
-    dayOfMonth: displayedDayOfMonth,
-  } = getLocalScheduleParts(schedule);
-
-  const formattedTime = localTime ? localTime.format(timeFormat.format) : '';
+  const { localTime, weekday, dayOfMonth } = getLocalScheduleParts(schedule);
+  const formattedTime = localTime ? localTime.format(getUserClockFormat().format) : '';
+  const nextCronRun = getNextCronRun(schedule.cronExpression ?? '');
 
   const isAfterBackup = config.scheduleType === VerificationScheduleType.AFTER_BACKUP;
 
   return (
     <div>
       <div className="mb-1 flex w-full items-center">
-        <div className="min-w-[180px] pr-2">{t('verification.config.scheduledVerification')}</div>
-        <div className={config.isAutomaticVerificationEnabled ? '' : 'text-gray-500'}>
+        <div className="min-w-[150px] pr-2">{t('verification.config.scheduledVerification')}</div>
+        <div className={config.isAutomaticVerificationEnabled ? '' : 'text-muted'}>
           {config.isAutomaticVerificationEnabled ? t('common.answers.yes') : t('common.answers.no')}
         </div>
       </div>
@@ -76,83 +90,67 @@ export const ShowVerificationConfigComponent = ({ databaseId }: Props) => {
       {config.isAutomaticVerificationEnabled && (
         <>
           <div className="mt-5 mb-1 flex w-full items-center">
-            <div className="min-w-[180px] pr-2">{t('verification.config.interval')}</div>
+            <div className="min-w-[150px] pr-2">{t('verification.config.interval')}</div>
             <div>
               {isAfterBackup
                 ? t('verification.config.afterBackup')
-                : schedule?.type
-                  ? t(INTERVAL_TYPE_LABEL_KEYS[schedule.type])
-                  : ''}
+                : t(SCHEDULE_TYPE_LABEL_KEYS[schedule.type])}
             </div>
           </div>
 
-          {!isAfterBackup && schedule?.type === IntervalType.WEEKLY && (
+          {!isAfterBackup && schedule.type === ScheduleType.WEEKLY && (
             <div className="mb-1 flex w-full items-center">
-              <div className="min-w-[180px] pr-2">{t('verification.config.weekday')}</div>
-              <div>{displayedWeekday ? t(WEEKDAY_LABEL_KEYS[displayedWeekday]) : ''}</div>
+              <div className="min-w-[150px] pr-2">{t('schedules.weekday')}</div>
+              <div>{weekday ? t(WEEKDAY_LABEL_KEYS[weekday]) : ''}</div>
             </div>
           )}
 
-          {!isAfterBackup && schedule?.type === IntervalType.MONTHLY && (
+          {!isAfterBackup && schedule.type === ScheduleType.MONTHLY && (
             <div className="mb-1 flex w-full items-center">
-              <div className="min-w-[180px] pr-2">{t('verification.config.dayOfMonth')}</div>
-              <div>{displayedDayOfMonth || ''}</div>
+              <div className="min-w-[150px] pr-2">{t('schedules.dayOfMonth')}</div>
+              <div>{dayOfMonth || ''}</div>
             </div>
           )}
 
-          {!isAfterBackup && schedule?.type === IntervalType.CRON && (
+          {!isAfterBackup && schedule.type === ScheduleType.CRON && (
             <>
               <div className="mb-1 flex w-full items-center">
-                <div className="min-w-[180px] pr-2">{t('verification.config.cron.expression')}</div>
-                <code className="rounded bg-gray-100 px-2 py-0.5 text-sm dark:bg-gray-700">
-                  {schedule?.cronExpression || ''}
+                <div className="min-w-[150px] pr-2">{t('schedules.cronExpression')}</div>
+                <code className="rounded bg-code px-2 py-0.5 text-sm">
+                  {schedule.cronExpression || ''}
                 </code>
               </div>
-              {schedule?.cronExpression &&
-                (() => {
-                  try {
-                    const interval = CronExpressionParser.parse(schedule.cronExpression, {
-                      tz: 'UTC',
-                    });
-                    const nextRun = interval.next().toDate();
-                    return (
-                      <div className="mb-1 flex w-full items-center text-xs text-gray-600 dark:text-gray-400">
-                        <div className="min-w-[180px] pr-2" />
-                        <div>
-                          <Trans
-                            i18nKey="verification.config.cron.nextRun"
-                            values={{
-                              dateTime: dayjs(nextRun).local().format(dateTimeFormat.format),
-                              relativeTime: formatRelativeTime(nextRun),
-                            }}
-                            components={{ lineBreak: <br /> }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  } catch {
-                    return null;
-                  }
-                })()}
+
+              {nextCronRun && (
+                <div className="mb-1 flex w-full items-center text-xs text-muted">
+                  <div className="min-w-[150px] pr-2" />
+                  <div>
+                    {t('schedules.nextRun', {
+                      time: dayjs(nextCronRun).local().format(getUserTimeFormat().format),
+                    })}
+                    <br />({formatRelativeTime(nextCronRun)})
+                  </div>
+                </div>
+              )}
             </>
           )}
 
           {!isAfterBackup &&
-            schedule?.type !== IntervalType.HOURLY &&
-            schedule?.type !== IntervalType.CRON && (
+            schedule.type !== ScheduleType.HOURLY &&
+            schedule.type !== ScheduleType.CRON && (
               <div className="mb-1 flex w-full items-center">
-                <div className="min-w-[180px] pr-2">{t('verification.config.timeOfDay')}</div>
+                <div className="min-w-[150px] pr-2">{t('schedules.timeOfDay')}</div>
                 <div>{formattedTime}</div>
               </div>
             )}
 
           <div className="mt-5 mb-1 flex w-full items-center">
-            <div className="min-w-[180px] pr-2">{t('verification.config.notifications')}</div>
+            <div className="min-w-[150px] pr-2">{t('verification.config.notifications')}</div>
             <div>
               {config.notificationTriggers.length > 0
                 ? config.notificationTriggers
                     .map((type) => t(VERIFICATION_NOTIFICATION_TYPE_LABEL_KEYS[type]))
-                    .join(', ')
+                    .join(t('common.listSeparator'))
                 : t('verification.config.noNotifications')}
             </div>
           </div>

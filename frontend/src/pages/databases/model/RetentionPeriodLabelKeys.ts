@@ -2,15 +2,15 @@ import type { TranslationKey } from '../../../shared/i18n';
 import { RetentionPeriod } from './RetentionPeriod';
 
 export const RETENTION_PERIOD_LABEL_KEYS: Record<RetentionPeriod, TranslationKey> = {
-  [RetentionPeriod.DAY]: 'intervals.periods.day',
-  [RetentionPeriod.WEEK]: 'intervals.periods.week',
-  [RetentionPeriod.MONTH]: 'intervals.periods.month',
-  [RetentionPeriod.THREE_MONTHS]: 'intervals.periods.threeMonths',
-  [RetentionPeriod.SIX_MONTHS]: 'intervals.periods.sixMonths',
-  [RetentionPeriod.YEAR]: 'intervals.periods.year',
-  [RetentionPeriod.TWO_YEARS]: 'intervals.periods.twoYears',
-  [RetentionPeriod.THREE_YEARS]: 'intervals.periods.threeYears',
-  [RetentionPeriod.FOUR_YEARS]: 'intervals.periods.fourYears',
-  [RetentionPeriod.FIVE_YEARS]: 'intervals.periods.fiveYears',
-  [RetentionPeriod.FOREVER]: 'intervals.periods.forever',
+  [RetentionPeriod.DAY]: 'backups.logical.retentionPeriods.day',
+  [RetentionPeriod.WEEK]: 'backups.logical.retentionPeriods.week',
+  [RetentionPeriod.MONTH]: 'backups.logical.retentionPeriods.month',
+  [RetentionPeriod.THREE_MONTHS]: 'backups.logical.retentionPeriods.threeMonths',
+  [RetentionPeriod.SIX_MONTHS]: 'backups.logical.retentionPeriods.sixMonths',
+  [RetentionPeriod.YEAR]: 'backups.logical.retentionPeriods.year',
+  [RetentionPeriod.TWO_YEARS]: 'backups.logical.retentionPeriods.twoYears',
+  [RetentionPeriod.THREE_YEARS]: 'backups.logical.retentionPeriods.threeYears',
+  [RetentionPeriod.FOUR_YEARS]: 'backups.logical.retentionPeriods.fourYears',
+  [RetentionPeriod.FIVE_YEARS]: 'backups.logical.retentionPeriods.fiveYears',
+  [RetentionPeriod.FOREVER]: 'backups.logical.retentionPeriods.forever',
 };
