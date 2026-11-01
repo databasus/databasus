@@ -1,37 +1,35 @@
 import { CopyOutlined, InfoCircleOutlined } from '@ant-design/icons';
-import { App, Button, Checkbox, Input, InputNumber, Select, Switch, Tooltip } from 'antd';
+import { App, Button, Input, InputNumber, Select, Switch, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import {
   DATABASE_TYPE_LABEL_KEYS,
   type Database,
-  type MariadbSettings,
+  type MongodbSettings,
   DatabaseType,
   databaseApi,
+  disableSrvWhenTunneled,
   hasStoredSshTunnelSecretsForAuthType,
   isSshTunnelReadyToTest,
-} from '../../../../entities/databases';
-import { MariadbConnectionStringParser } from '../../../../entities/databases/model/mariadb/MariadbConnectionStringParser';
+  MongodbConnectionStringParser,
+} from '../../../entities/databases';
 import {
   getWebsitePageUrl,
   translateApiError,
   translateLocalizedText,
   useLocale,
-} from '../../../../shared/i18n';
-import { NAME_LIST_TOKEN_SEPARATORS, normalizeNameList } from '../../../../shared/lib';
-import { ClipboardHelper } from '../../../../shared/lib/ClipboardHelper';
-import { ToastHelper } from '../../../../shared/toast';
-import {
-  AdvancedSettingsToggleComponent,
-  ClipboardPasteModalComponent,
-} from '../../../../shared/ui';
+} from '../../../shared/i18n';
+import { NAME_LIST_TOKEN_SEPARATORS, normalizeNameList } from '../../../shared/lib';
+import { ClipboardHelper } from '../../../shared/lib/ClipboardHelper';
+import { ToastHelper } from '../../../shared/toast';
+import { AdvancedSettingsToggleComponent, ClipboardPasteModalComponent } from '../../../shared/ui';
 import { EditSshTunnelComponent } from './EditSshTunnelComponent';
 import { toDatabaseSettingsTarget } from './toDatabaseSettingsTarget';
 
 interface Props {
   database: Database;
-  settings: MariadbSettings;
+  settings: MongodbSettings;
 
   isShowCancelButton?: boolean;
   onCancel: () => void;
@@ -47,7 +45,7 @@ interface Props {
   isRestoreMode?: boolean;
 }
 
-export const EditMariaDbSpecificDataComponent = ({
+export const EditMongoDbSpecificDataComponent = ({
   database,
   settings,
 
@@ -67,7 +65,7 @@ export const EditMariaDbSpecificDataComponent = ({
   const { locale } = useLocale();
   const { message } = App.useApp();
 
-  const [editingSettings, setEditingSettings] = useState<MariadbSettings>(settings);
+  const [editingSettings, setEditingSettings] = useState<MongodbSettings>(settings);
   const [isSaving, setIsSaving] = useState(false);
 
   const [isConnectionTested, setIsConnectionTested] = useState(false);
@@ -75,9 +73,10 @@ export const EditMariaDbSpecificDataComponent = ({
   const [isConnectionFailed, setIsConnectionFailed] = useState(false);
 
   const hasAdvancedValues =
-    !!settings.isExcludeEvents ||
-    !!settings.isSkipGaleraDisable ||
-    !!settings.excludeTables?.length ||
+    !!settings.authDatabase ||
+    !!settings.isSrv ||
+    !!settings.isDirectConnection ||
+    !!settings.excludeCollections?.length ||
     !!settings.sshTunnel?.isEnabled;
   const [isShowAdvanced, setShowAdvanced] = useState(hasAdvancedValues);
 
@@ -91,26 +90,39 @@ export const EditMariaDbSpecificDataComponent = ({
       return;
     }
 
-    const result = MariadbConnectionStringParser.parse(trimmedText);
+    const result = MongodbConnectionStringParser.parse(trimmedText);
 
     if ('error' in result) {
       message.error(translateLocalizedText(result.error, t));
       return;
     }
 
-    const updatedSettings: MariadbSettings = {
+    const updatedSettings: MongodbSettings = disableSrvWhenTunneled({
       ...editingSettings,
       host: result.host,
       port: result.port,
       username: result.username,
-      password: result.password,
+      password: result.password || '',
       database: result.database,
-      isHttps: result.isHttps,
-    };
+      authDatabase: result.authDatabase,
+      isHttps: result.useTls,
+      isSrv: result.isSrv,
+      isDirectConnection: result.isDirectConnection,
+      cpuCount: 1,
+    });
+
+    if (result.isSrv || result.isDirectConnection) {
+      setShowAdvanced(true);
+    }
 
     setEditingSettings(updatedSettings);
     setIsConnectionTested(false);
-    message.success(t('databases.edit.connectionStringParsed'));
+
+    if (!result.password) {
+      message.warning(t('databases.edit.connectionStringParsedWithoutPassword'));
+    } else {
+      message.success(t('databases.edit.connectionStringParsed'));
+    }
   };
 
   const parseFromClipboard = async () => {
@@ -182,7 +194,9 @@ export const EditMariaDbSpecificDataComponent = ({
     setEditingSettings(settings);
   }, [settings]);
 
-  const engineName = t(DATABASE_TYPE_LABEL_KEYS[DatabaseType.MARIADB]);
+  const engineName = t(DATABASE_TYPE_LABEL_KEYS[DatabaseType.MONGODB]);
+
+  const isSrvConnection = editingSettings.isSrv || false;
 
   const hasStoredSshSecrets = hasStoredSshTunnelSecretsForAuthType(
     settings.sshTunnel,
@@ -195,7 +209,7 @@ export const EditMariaDbSpecificDataComponent = ({
 
   let isAllFieldsFilled = true;
   if (!editingSettings.host) isAllFieldsFilled = false;
-  if (!editingSettings.port) isAllFieldsFilled = false;
+  if (!isSrvConnection && !editingSettings.port) isAllFieldsFilled = false;
   if (!editingSettings.username) isAllFieldsFilled = false;
   if (!database.id && !editingSettings.password) isAllFieldsFilled = false;
   if (!editingSettings.database) isAllFieldsFilled = false;
@@ -261,22 +275,24 @@ export const EditMariaDbSpecificDataComponent = ({
         </div>
       )}
 
-      <div className="mb-1 flex w-full items-center">
-        <div className="min-w-[150px] pr-2">{t('common.fields.port')}</div>
-        <InputNumber
-          type="number"
-          value={editingSettings.port}
-          onChange={(e) => {
-            if (e === null) return;
+      {!isSrvConnection && (
+        <div className="mb-1 flex w-full items-center">
+          <div className="min-w-[150px] pr-2">{t('common.fields.port')}</div>
+          <InputNumber
+            type="number"
+            value={editingSettings.port}
+            onChange={(e) => {
+              if (e === null) return;
 
-            setEditingSettings({ ...editingSettings, port: e });
-            setIsConnectionTested(false);
-          }}
-          size="small"
-          className="max-w-[200px] grow"
-          placeholder={t('databases.edit.placeholders.port', { engine: engineName })}
-        />
-      </div>
+              setEditingSettings({ ...editingSettings, port: e });
+              setIsConnectionTested(false);
+            }}
+            size="small"
+            className="max-w-[200px] grow"
+            placeholder="27017"
+          />
+        </div>
+      )}
 
       <div className="mb-1 flex w-full items-center">
         <div className="min-w-[150px] pr-2">{t('common.fields.username')}</div>
@@ -338,6 +354,27 @@ export const EditMariaDbSpecificDataComponent = ({
         />
       </div>
 
+      <div className="mb-5 flex w-full items-center">
+        <div className="min-w-[150px] pr-2">{t('databases.fields.cpuCount')}</div>
+        <div className="flex items-center">
+          <InputNumber
+            min={1}
+            max={16}
+            value={editingSettings.cpuCount}
+            onChange={(value) => {
+              setEditingSettings({ ...editingSettings, cpuCount: value || 1 });
+              setIsConnectionTested(false);
+            }}
+            size="small"
+            className="max-w-[200px] grow"
+          />
+
+          <Tooltip className="cursor-pointer" title={t('databases.edit.cpuCountTooltip')}>
+            <InfoCircleOutlined className="ml-2" style={{ color: 'gray' }} />
+          </Tooltip>
+        </div>
+      </div>
+
       <AdvancedSettingsToggleComponent
         label={t('databases.edit.advancedSettings')}
         isShowAdvanced={isShowAdvanced}
@@ -350,26 +387,30 @@ export const EditMariaDbSpecificDataComponent = ({
             sshTunnel={editingSettings.sshTunnel}
             hasStoredSecrets={hasStoredSshSecrets}
             onChange={(sshTunnel) => {
-              setEditingSettings({ ...editingSettings, sshTunnel });
+              setEditingSettings(disableSrvWhenTunneled({ ...editingSettings, sshTunnel }));
               setIsConnectionTested(false);
             }}
           />
 
           <div className="mb-1 flex w-full items-center">
-            <div className="min-w-[150px] pr-2">{t('databases.fields.excludeEvents')}</div>
+            <div className="min-w-[150px] pr-2">{t('databases.fields.useSrvConnection')}</div>
             <div className="flex items-center">
-              <Checkbox
-                checked={editingSettings.isExcludeEvents || false}
-                onChange={(e) => {
-                  setEditingSettings({ ...editingSettings, isExcludeEvents: e.target.checked });
+              <Switch
+                checked={editingSettings.isSrv || false}
+                disabled={isTunnelEnabled}
+                onChange={(checked) => {
+                  setEditingSettings({ ...editingSettings, isSrv: checked });
+                  setIsConnectionTested(false);
                 }}
-              >
-                {t('databases.edit.mariadb.skipEvents')}
-              </Checkbox>
-
+                size="small"
+              />
               <Tooltip
                 className="cursor-pointer"
-                title={t('databases.edit.mariadb.skipEventsTooltip')}
+                title={
+                  isTunnelEnabled
+                    ? t('databases.edit.mongodb.srvOverTunnelTooltip')
+                    : t('databases.edit.mongodb.srvTooltip')
+                }
               >
                 <InfoCircleOutlined className="ml-2" style={{ color: 'gray' }} />
               </Tooltip>
@@ -377,20 +418,26 @@ export const EditMariaDbSpecificDataComponent = ({
           </div>
 
           <div className="mb-1 flex w-full items-center">
-            <div className="min-w-[150px] pr-2">{t('databases.fields.galeraReplication')}</div>
+            <div className="min-w-[150px] pr-2">{t('databases.fields.directConnection')}</div>
             <div className="flex items-center">
-              <Checkbox
-                checked={editingSettings.isSkipGaleraDisable || false}
-                onChange={(e) => {
-                  setEditingSettings({ ...editingSettings, isSkipGaleraDisable: e.target.checked });
+              {/* Shown as on but never written: the backend forces it per connection, so the
+                  stored value still applies once the tunnel is switched off. */}
+              <Switch
+                checked={isTunnelEnabled || editingSettings.isDirectConnection || false}
+                disabled={isTunnelEnabled}
+                onChange={(checked) => {
+                  setEditingSettings({ ...editingSettings, isDirectConnection: checked });
+                  setIsConnectionTested(false);
                 }}
-              >
-                {t('databases.edit.mariadb.skipGaleraDisable')}
-              </Checkbox>
-
+                size="small"
+              />
               <Tooltip
                 className="cursor-pointer"
-                title={t('databases.edit.mariadb.skipGaleraDisableTooltip')}
+                title={
+                  isTunnelEnabled
+                    ? t('databases.edit.mongodb.directConnectionOverTunnelTooltip')
+                    : t('databases.edit.mongodb.directConnectionTooltip')
+                }
               >
                 <InfoCircleOutlined className="ml-2" style={{ color: 'gray' }} />
               </Tooltip>
@@ -398,23 +445,41 @@ export const EditMariaDbSpecificDataComponent = ({
           </div>
 
           <div className="mb-1 flex w-full items-center">
-            <div className="min-w-[150px] pr-2">{t('databases.fields.excludeTables')}</div>
+            <div className="min-w-[150px] pr-2">{t('databases.fields.authDatabase')}</div>
+            <Input
+              value={editingSettings.authDatabase}
+              onChange={(e) => {
+                setEditingSettings({ ...editingSettings, authDatabase: e.target.value.trim() });
+                setIsConnectionTested(false);
+              }}
+              size="small"
+              className="max-w-[200px] grow"
+              // eslint-disable-next-line i18next/no-literal-string -- MongoDB's default authentication database
+              placeholder="admin"
+            />
+          </div>
+
+          <div className="mb-1 flex w-full items-center">
+            <div className="min-w-[150px] pr-2">{t('databases.fields.excludeCollections')}</div>
             <Select
               mode="tags"
-              value={editingSettings.excludeTables || []}
+              value={editingSettings.excludeCollections || []}
               onChange={(values) => {
                 setEditingSettings({
                   ...editingSettings,
-                  excludeTables: normalizeNameList(values),
+                  excludeCollections: normalizeNameList(values),
                 });
               }}
               size="small"
               className="max-w-[200px] grow"
-              placeholder={t('databases.edit.excludeTablesPlaceholder')}
+              placeholder={t('databases.edit.mongodb.excludeCollectionsPlaceholder')}
               tokenSeparators={NAME_LIST_TOKEN_SEPARATORS}
             />
 
-            <Tooltip className="cursor-pointer" title={t('databases.edit.excludeTablesTooltip')}>
+            <Tooltip
+              className="cursor-pointer"
+              title={t('databases.edit.mongodb.excludeCollectionsTooltip')}
+            >
               <InfoCircleOutlined className="ml-2" style={{ color: 'gray' }} />
             </Tooltip>
           </div>

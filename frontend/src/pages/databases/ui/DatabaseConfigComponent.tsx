@@ -17,7 +17,7 @@ import {
   EditPhysicalBackupConfigComponent,
   ShowPhysicalBackupConfigComponent,
 } from '@/features/backups/physical';
-import { EditDatabaseSpecificDataComponent } from '@/features/databases';
+import { EditDatabaseSpecificDataComponent } from '@/features/database-connection';
 import {
   EditVerificationConfigComponent,
   ShowVerificationConfigComponent,

@@ -10,7 +10,7 @@
   {
     "rule": "fsd/forbidden-imports",
     "source": "features/restores/ui/RestoresComponent.tsx",
-    "target": "features/databases/index.ts",
+    "target": "features/database-connection/index.ts",
     "count": 1,
     "owner": "restores",
     "milestone": 5
@@ -38,45 +38,5 @@
     "count": 1,
     "owner": "verification",
     "milestone": 7
-  },
-  {
-    "rule": "project/private-slice-import",
-    "source": "features/databases/ui/edit/EditMariaDbSpecificDataComponent.tsx",
-    "target": "entities/databases/model/mariadb/MariadbConnectionStringParser.ts",
-    "count": 1,
-    "owner": "databases",
-    "milestone": 5
-  },
-  {
-    "rule": "project/private-slice-import",
-    "source": "features/databases/ui/edit/EditMongoDbSpecificDataComponent.tsx",
-    "target": "entities/databases/model/mongodb/MongodbConnectionStringParser.ts",
-    "count": 1,
-    "owner": "databases",
-    "milestone": 5
-  },
-  {
-    "rule": "project/private-slice-import",
-    "source": "features/databases/ui/edit/EditMySqlSpecificDataComponent.tsx",
-    "target": "entities/databases/model/mysql/MySqlConnectionStringParser.ts",
-    "count": 1,
-    "owner": "databases",
-    "milestone": 5
-  },
-  {
-    "rule": "project/private-slice-import",
-    "source": "features/databases/ui/edit/EditPostgreSqlLogicalSpecificDataComponent.tsx",
-    "target": "entities/databases/model/postgresql/ConnectionStringParser.ts",
-    "count": 1,
-    "owner": "databases",
-    "milestone": 5
-  },
-  {
-    "rule": "project/private-slice-import",
-    "source": "features/databases/ui/edit/EditPostgreSqlPhysicalSpecificDataComponent.tsx",
-    "target": "entities/databases/model/postgresql/ConnectionStringParser.ts",
-    "count": 1,
-    "owner": "databases",
-    "milestone": 5
   }
 ]

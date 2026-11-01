@@ -2,8 +2,8 @@ import { Button } from 'antd';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type Database, DatabaseType } from '../../../../entities/databases';
-import type { TranslationKey } from '../../../../shared/i18n';
+import { type Database, DatabaseType } from '../../../entities/databases';
+import type { TranslationKey } from '../../../shared/i18n';
 
 interface Props {
   database: Database;

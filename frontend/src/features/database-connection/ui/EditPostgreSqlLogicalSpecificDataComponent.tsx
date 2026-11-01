@@ -12,22 +12,19 @@ import {
   databaseApi,
   hasStoredSshTunnelSecretsForAuthType,
   isSshTunnelReadyToTest,
-} from '../../../../entities/databases';
-import { ConnectionStringParser } from '../../../../entities/databases/model/postgresql/ConnectionStringParser';
-import type { PostgresqlRestoreOptions } from '../../../../entities/restores';
+  PostgresqlConnectionStringParser,
+} from '../../../entities/databases';
+import type { PostgresqlRestoreOptions } from '../../../entities/restores';
 import {
   getWebsitePageUrl,
   translateApiError,
   translateLocalizedText,
   useLocale,
-} from '../../../../shared/i18n';
-import { NAME_LIST_TOKEN_SEPARATORS, normalizeNameList } from '../../../../shared/lib';
-import { ClipboardHelper } from '../../../../shared/lib/ClipboardHelper';
-import { ToastHelper } from '../../../../shared/toast';
-import {
-  AdvancedSettingsToggleComponent,
-  ClipboardPasteModalComponent,
-} from '../../../../shared/ui';
+} from '../../../shared/i18n';
+import { NAME_LIST_TOKEN_SEPARATORS, normalizeNameList } from '../../../shared/lib';
+import { ClipboardHelper } from '../../../shared/lib/ClipboardHelper';
+import { ToastHelper } from '../../../shared/toast';
+import { AdvancedSettingsToggleComponent, ClipboardPasteModalComponent } from '../../../shared/ui';
 import { EditSshTunnelComponent } from './EditSshTunnelComponent';
 import { toDatabaseSettingsTarget } from './toDatabaseSettingsTarget';
 
@@ -137,7 +134,7 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
       return;
     }
 
-    const result = ConnectionStringParser.parse(trimmedText);
+    const result = PostgresqlConnectionStringParser.parse(trimmedText);
 
     if ('error' in result) {
       message.error(translateLocalizedText(result.error, t));

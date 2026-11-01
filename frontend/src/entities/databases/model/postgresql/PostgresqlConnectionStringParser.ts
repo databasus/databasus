@@ -17,7 +17,7 @@ export type ParseError = {
   format?: string;
 };
 
-export class ConnectionStringParser {
+export class PostgresqlConnectionStringParser {
   /**
    * Parses a PostgreSQL connection string in various formats.
    *

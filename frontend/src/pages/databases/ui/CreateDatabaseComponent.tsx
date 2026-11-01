@@ -4,11 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { EditLogicalBackupConfigComponent } from '@/features/backups/logical';
 import { EditPhysicalBackupConfigComponent } from '@/features/backups/physical';
 import {
-  ChoosePostgresBackupTypeComponent,
   CreateReadOnlyComponent,
-  EditDatabaseBaseInfoComponent,
   EditDatabaseSpecificDataComponent,
-} from '@/features/databases';
+} from '@/features/database-connection';
 
 import {
   type LogicalBackupConfigInput,
@@ -27,6 +25,8 @@ import {
 } from '../../../entities/databases';
 import { translateApiError } from '../../../shared/i18n';
 import { BackupStorageSelection } from './BackupStorageSelection';
+import { ChoosePostgresBackupTypeComponent } from './ChoosePostgresBackupTypeComponent';
+import { EditDatabaseBaseInfoComponent } from './EditDatabaseBaseInfoComponent';
 import { EditDatabaseNotifiersComponent } from './EditDatabaseNotifiersComponent';
 
 interface Props {

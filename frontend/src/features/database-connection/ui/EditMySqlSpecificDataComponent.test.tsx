@@ -1,8 +1,8 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-import { type Database, type MysqlSettings } from '../../../../entities/databases';
-import { LocaleProvider } from '../../../../shared/i18n';
+import { type Database, type MysqlSettings } from '../../../entities/databases';
+import { LocaleProvider } from '../../../shared/i18n';
 import { EditMySqlSpecificDataComponent } from './EditMySqlSpecificDataComponent';
 
 // The entity's public API imports its API client, and the client's config

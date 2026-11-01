@@ -1,37 +1,34 @@
 import { CopyOutlined, InfoCircleOutlined } from '@ant-design/icons';
-import { App, Button, Input, InputNumber, Select, Switch, Tooltip } from 'antd';
+import { App, Button, Checkbox, Input, InputNumber, Select, Switch, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import {
   DATABASE_TYPE_LABEL_KEYS,
   type Database,
+  type MariadbSettings,
   DatabaseType,
-  type MysqlSettings,
   databaseApi,
   hasStoredSshTunnelSecretsForAuthType,
   isSshTunnelReadyToTest,
-} from '../../../../entities/databases';
-import { MySqlConnectionStringParser } from '../../../../entities/databases/model/mysql/MySqlConnectionStringParser';
+  MariadbConnectionStringParser,
+} from '../../../entities/databases';
 import {
   getWebsitePageUrl,
   translateApiError,
   translateLocalizedText,
   useLocale,
-} from '../../../../shared/i18n';
-import { NAME_LIST_TOKEN_SEPARATORS, normalizeNameList } from '../../../../shared/lib';
-import { ClipboardHelper } from '../../../../shared/lib/ClipboardHelper';
-import { ToastHelper } from '../../../../shared/toast';
-import {
-  AdvancedSettingsToggleComponent,
-  ClipboardPasteModalComponent,
-} from '../../../../shared/ui';
+} from '../../../shared/i18n';
+import { NAME_LIST_TOKEN_SEPARATORS, normalizeNameList } from '../../../shared/lib';
+import { ClipboardHelper } from '../../../shared/lib/ClipboardHelper';
+import { ToastHelper } from '../../../shared/toast';
+import { AdvancedSettingsToggleComponent, ClipboardPasteModalComponent } from '../../../shared/ui';
 import { EditSshTunnelComponent } from './EditSshTunnelComponent';
 import { toDatabaseSettingsTarget } from './toDatabaseSettingsTarget';
 
 interface Props {
   database: Database;
-  settings: MysqlSettings;
+  settings: MariadbSettings;
 
   isShowCancelButton?: boolean;
   onCancel: () => void;
@@ -47,7 +44,7 @@ interface Props {
   isRestoreMode?: boolean;
 }
 
-export const EditMySqlSpecificDataComponent = ({
+export const EditMariaDbSpecificDataComponent = ({
   database,
   settings,
 
@@ -67,14 +64,18 @@ export const EditMySqlSpecificDataComponent = ({
   const { locale } = useLocale();
   const { message } = App.useApp();
 
-  const [editingSettings, setEditingSettings] = useState<MysqlSettings>(settings);
+  const [editingSettings, setEditingSettings] = useState<MariadbSettings>(settings);
   const [isSaving, setIsSaving] = useState(false);
 
   const [isConnectionTested, setIsConnectionTested] = useState(false);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [isConnectionFailed, setIsConnectionFailed] = useState(false);
 
-  const hasAdvancedValues = !!settings.excludeTables?.length || !!settings.sshTunnel?.isEnabled;
+  const hasAdvancedValues =
+    !!settings.isExcludeEvents ||
+    !!settings.isSkipGaleraDisable ||
+    !!settings.excludeTables?.length ||
+    !!settings.sshTunnel?.isEnabled;
   const [isShowAdvanced, setShowAdvanced] = useState(hasAdvancedValues);
 
   const [isShowPasteModal, setIsShowPasteModal] = useState(false);
@@ -87,14 +88,14 @@ export const EditMySqlSpecificDataComponent = ({
       return;
     }
 
-    const result = MySqlConnectionStringParser.parse(trimmedText);
+    const result = MariadbConnectionStringParser.parse(trimmedText);
 
     if ('error' in result) {
       message.error(translateLocalizedText(result.error, t));
       return;
     }
 
-    setEditingSettings({
+    const updatedSettings: MariadbSettings = {
       ...editingSettings,
       host: result.host,
       port: result.port,
@@ -102,7 +103,9 @@ export const EditMySqlSpecificDataComponent = ({
       password: result.password,
       database: result.database,
       isHttps: result.isHttps,
-    });
+    };
+
+    setEditingSettings(updatedSettings);
     setIsConnectionTested(false);
     message.success(t('databases.edit.connectionStringParsed'));
   };
@@ -176,7 +179,7 @@ export const EditMySqlSpecificDataComponent = ({
     setEditingSettings(settings);
   }, [settings]);
 
-  const engineName = t(DATABASE_TYPE_LABEL_KEYS[DatabaseType.MYSQL]);
+  const engineName = t(DATABASE_TYPE_LABEL_KEYS[DatabaseType.MARIADB]);
 
   const hasStoredSshSecrets = hasStoredSshTunnelSecretsForAuthType(
     settings.sshTunnel,
@@ -193,6 +196,7 @@ export const EditMySqlSpecificDataComponent = ({
   if (!editingSettings.username) isAllFieldsFilled = false;
   if (!database.id && !editingSettings.password) isAllFieldsFilled = false;
   if (!editingSettings.database) isAllFieldsFilled = false;
+
   if (!isSshTunnelReadyToTest(editingSettings.sshTunnel, hasStoredSshSecrets))
     isAllFieldsFilled = false;
 
@@ -319,7 +323,7 @@ export const EditMySqlSpecificDataComponent = ({
         </div>
       )}
 
-      <div className="mb-3 flex w-full items-center">
+      <div className="mb-1 flex w-full items-center">
         <div className="min-w-[150px] pr-2">{t('databases.fields.useHttps')}</div>
         <Switch
           checked={editingSettings.isHttps}
@@ -347,6 +351,48 @@ export const EditMySqlSpecificDataComponent = ({
               setIsConnectionTested(false);
             }}
           />
+
+          <div className="mb-1 flex w-full items-center">
+            <div className="min-w-[150px] pr-2">{t('databases.fields.excludeEvents')}</div>
+            <div className="flex items-center">
+              <Checkbox
+                checked={editingSettings.isExcludeEvents || false}
+                onChange={(e) => {
+                  setEditingSettings({ ...editingSettings, isExcludeEvents: e.target.checked });
+                }}
+              >
+                {t('databases.edit.mariadb.skipEvents')}
+              </Checkbox>
+
+              <Tooltip
+                className="cursor-pointer"
+                title={t('databases.edit.mariadb.skipEventsTooltip')}
+              >
+                <InfoCircleOutlined className="ml-2" style={{ color: 'gray' }} />
+              </Tooltip>
+            </div>
+          </div>
+
+          <div className="mb-1 flex w-full items-center">
+            <div className="min-w-[150px] pr-2">{t('databases.fields.galeraReplication')}</div>
+            <div className="flex items-center">
+              <Checkbox
+                checked={editingSettings.isSkipGaleraDisable || false}
+                onChange={(e) => {
+                  setEditingSettings({ ...editingSettings, isSkipGaleraDisable: e.target.checked });
+                }}
+              >
+                {t('databases.edit.mariadb.skipGaleraDisable')}
+              </Checkbox>
+
+              <Tooltip
+                className="cursor-pointer"
+                title={t('databases.edit.mariadb.skipGaleraDisableTooltip')}
+              >
+                <InfoCircleOutlined className="ml-2" style={{ color: 'gray' }} />
+              </Tooltip>
+            </div>
+          </div>
 
           <div className="mb-1 flex w-full items-center">
             <div className="min-w-[150px] pr-2">{t('databases.fields.excludeTables')}</div>

@@ -8,14 +8,14 @@ import {
   DatabaseType,
   type LimitedUserCheck,
   databaseApi,
-} from '../../../../entities/databases';
+} from '../../../entities/databases';
 import {
   TransByKey,
   type TranslationKey,
   getWebsitePageUrl,
   translateApiError,
   useLocale,
-} from '../../../../shared/i18n';
+} from '../../../shared/i18n';
 import { toDatabaseSettingsTarget } from './toDatabaseSettingsTarget';
 
 interface Props {

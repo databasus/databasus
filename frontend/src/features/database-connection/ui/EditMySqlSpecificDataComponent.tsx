@@ -6,33 +6,29 @@ import { Trans, useTranslation } from 'react-i18next';
 import {
   DATABASE_TYPE_LABEL_KEYS,
   type Database,
-  type MongodbSettings,
   DatabaseType,
+  type MysqlSettings,
   databaseApi,
-  disableSrvWhenTunneled,
   hasStoredSshTunnelSecretsForAuthType,
   isSshTunnelReadyToTest,
-} from '../../../../entities/databases';
-import { MongodbConnectionStringParser } from '../../../../entities/databases/model/mongodb/MongodbConnectionStringParser';
+  MySqlConnectionStringParser,
+} from '../../../entities/databases';
 import {
   getWebsitePageUrl,
   translateApiError,
   translateLocalizedText,
   useLocale,
-} from '../../../../shared/i18n';
-import { NAME_LIST_TOKEN_SEPARATORS, normalizeNameList } from '../../../../shared/lib';
-import { ClipboardHelper } from '../../../../shared/lib/ClipboardHelper';
-import { ToastHelper } from '../../../../shared/toast';
-import {
-  AdvancedSettingsToggleComponent,
-  ClipboardPasteModalComponent,
-} from '../../../../shared/ui';
+} from '../../../shared/i18n';
+import { NAME_LIST_TOKEN_SEPARATORS, normalizeNameList } from '../../../shared/lib';
+import { ClipboardHelper } from '../../../shared/lib/ClipboardHelper';
+import { ToastHelper } from '../../../shared/toast';
+import { AdvancedSettingsToggleComponent, ClipboardPasteModalComponent } from '../../../shared/ui';
 import { EditSshTunnelComponent } from './EditSshTunnelComponent';
 import { toDatabaseSettingsTarget } from './toDatabaseSettingsTarget';
 
 interface Props {
   database: Database;
-  settings: MongodbSettings;
+  settings: MysqlSettings;
 
   isShowCancelButton?: boolean;
   onCancel: () => void;
@@ -48,7 +44,7 @@ interface Props {
   isRestoreMode?: boolean;
 }
 
-export const EditMongoDbSpecificDataComponent = ({
+export const EditMySqlSpecificDataComponent = ({
   database,
   settings,
 
@@ -68,19 +64,14 @@ export const EditMongoDbSpecificDataComponent = ({
   const { locale } = useLocale();
   const { message } = App.useApp();
 
-  const [editingSettings, setEditingSettings] = useState<MongodbSettings>(settings);
+  const [editingSettings, setEditingSettings] = useState<MysqlSettings>(settings);
   const [isSaving, setIsSaving] = useState(false);
 
   const [isConnectionTested, setIsConnectionTested] = useState(false);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [isConnectionFailed, setIsConnectionFailed] = useState(false);
 
-  const hasAdvancedValues =
-    !!settings.authDatabase ||
-    !!settings.isSrv ||
-    !!settings.isDirectConnection ||
-    !!settings.excludeCollections?.length ||
-    !!settings.sshTunnel?.isEnabled;
+  const hasAdvancedValues = !!settings.excludeTables?.length || !!settings.sshTunnel?.isEnabled;
   const [isShowAdvanced, setShowAdvanced] = useState(hasAdvancedValues);
 
   const [isShowPasteModal, setIsShowPasteModal] = useState(false);
@@ -93,39 +84,24 @@ export const EditMongoDbSpecificDataComponent = ({
       return;
     }
 
-    const result = MongodbConnectionStringParser.parse(trimmedText);
+    const result = MySqlConnectionStringParser.parse(trimmedText);
 
     if ('error' in result) {
       message.error(translateLocalizedText(result.error, t));
       return;
     }
 
-    const updatedSettings: MongodbSettings = disableSrvWhenTunneled({
+    setEditingSettings({
       ...editingSettings,
       host: result.host,
       port: result.port,
       username: result.username,
-      password: result.password || '',
+      password: result.password,
       database: result.database,
-      authDatabase: result.authDatabase,
-      isHttps: result.useTls,
-      isSrv: result.isSrv,
-      isDirectConnection: result.isDirectConnection,
-      cpuCount: 1,
+      isHttps: result.isHttps,
     });
-
-    if (result.isSrv || result.isDirectConnection) {
-      setShowAdvanced(true);
-    }
-
-    setEditingSettings(updatedSettings);
     setIsConnectionTested(false);
-
-    if (!result.password) {
-      message.warning(t('databases.edit.connectionStringParsedWithoutPassword'));
-    } else {
-      message.success(t('databases.edit.connectionStringParsed'));
-    }
+    message.success(t('databases.edit.connectionStringParsed'));
   };
 
   const parseFromClipboard = async () => {
@@ -197,9 +173,7 @@ export const EditMongoDbSpecificDataComponent = ({
     setEditingSettings(settings);
   }, [settings]);
 
-  const engineName = t(DATABASE_TYPE_LABEL_KEYS[DatabaseType.MONGODB]);
-
-  const isSrvConnection = editingSettings.isSrv || false;
+  const engineName = t(DATABASE_TYPE_LABEL_KEYS[DatabaseType.MYSQL]);
 
   const hasStoredSshSecrets = hasStoredSshTunnelSecretsForAuthType(
     settings.sshTunnel,
@@ -212,11 +186,10 @@ export const EditMongoDbSpecificDataComponent = ({
 
   let isAllFieldsFilled = true;
   if (!editingSettings.host) isAllFieldsFilled = false;
-  if (!isSrvConnection && !editingSettings.port) isAllFieldsFilled = false;
+  if (!editingSettings.port) isAllFieldsFilled = false;
   if (!editingSettings.username) isAllFieldsFilled = false;
   if (!database.id && !editingSettings.password) isAllFieldsFilled = false;
   if (!editingSettings.database) isAllFieldsFilled = false;
-
   if (!isSshTunnelReadyToTest(editingSettings.sshTunnel, hasStoredSshSecrets))
     isAllFieldsFilled = false;
 
@@ -278,24 +251,22 @@ export const EditMongoDbSpecificDataComponent = ({
         </div>
       )}
 
-      {!isSrvConnection && (
-        <div className="mb-1 flex w-full items-center">
-          <div className="min-w-[150px] pr-2">{t('common.fields.port')}</div>
-          <InputNumber
-            type="number"
-            value={editingSettings.port}
-            onChange={(e) => {
-              if (e === null) return;
+      <div className="mb-1 flex w-full items-center">
+        <div className="min-w-[150px] pr-2">{t('common.fields.port')}</div>
+        <InputNumber
+          type="number"
+          value={editingSettings.port}
+          onChange={(e) => {
+            if (e === null) return;
 
-              setEditingSettings({ ...editingSettings, port: e });
-              setIsConnectionTested(false);
-            }}
-            size="small"
-            className="max-w-[200px] grow"
-            placeholder="27017"
-          />
-        </div>
-      )}
+            setEditingSettings({ ...editingSettings, port: e });
+            setIsConnectionTested(false);
+          }}
+          size="small"
+          className="max-w-[200px] grow"
+          placeholder={t('databases.edit.placeholders.port', { engine: engineName })}
+        />
+      </div>
 
       <div className="mb-1 flex w-full items-center">
         <div className="min-w-[150px] pr-2">{t('common.fields.username')}</div>
@@ -345,7 +316,7 @@ export const EditMongoDbSpecificDataComponent = ({
         </div>
       )}
 
-      <div className="mb-1 flex w-full items-center">
+      <div className="mb-3 flex w-full items-center">
         <div className="min-w-[150px] pr-2">{t('databases.fields.useHttps')}</div>
         <Switch
           checked={editingSettings.isHttps}
@@ -355,27 +326,6 @@ export const EditMongoDbSpecificDataComponent = ({
           }}
           size="small"
         />
-      </div>
-
-      <div className="mb-5 flex w-full items-center">
-        <div className="min-w-[150px] pr-2">{t('databases.fields.cpuCount')}</div>
-        <div className="flex items-center">
-          <InputNumber
-            min={1}
-            max={16}
-            value={editingSettings.cpuCount}
-            onChange={(value) => {
-              setEditingSettings({ ...editingSettings, cpuCount: value || 1 });
-              setIsConnectionTested(false);
-            }}
-            size="small"
-            className="max-w-[200px] grow"
-          />
-
-          <Tooltip className="cursor-pointer" title={t('databases.edit.cpuCountTooltip')}>
-            <InfoCircleOutlined className="ml-2" style={{ color: 'gray' }} />
-          </Tooltip>
-        </div>
       </div>
 
       <AdvancedSettingsToggleComponent
@@ -390,99 +340,29 @@ export const EditMongoDbSpecificDataComponent = ({
             sshTunnel={editingSettings.sshTunnel}
             hasStoredSecrets={hasStoredSshSecrets}
             onChange={(sshTunnel) => {
-              setEditingSettings(disableSrvWhenTunneled({ ...editingSettings, sshTunnel }));
+              setEditingSettings({ ...editingSettings, sshTunnel });
               setIsConnectionTested(false);
             }}
           />
 
           <div className="mb-1 flex w-full items-center">
-            <div className="min-w-[150px] pr-2">{t('databases.fields.useSrvConnection')}</div>
-            <div className="flex items-center">
-              <Switch
-                checked={editingSettings.isSrv || false}
-                disabled={isTunnelEnabled}
-                onChange={(checked) => {
-                  setEditingSettings({ ...editingSettings, isSrv: checked });
-                  setIsConnectionTested(false);
-                }}
-                size="small"
-              />
-              <Tooltip
-                className="cursor-pointer"
-                title={
-                  isTunnelEnabled
-                    ? t('databases.edit.mongodb.srvOverTunnelTooltip')
-                    : t('databases.edit.mongodb.srvTooltip')
-                }
-              >
-                <InfoCircleOutlined className="ml-2" style={{ color: 'gray' }} />
-              </Tooltip>
-            </div>
-          </div>
-
-          <div className="mb-1 flex w-full items-center">
-            <div className="min-w-[150px] pr-2">{t('databases.fields.directConnection')}</div>
-            <div className="flex items-center">
-              {/* Shown as on but never written: the backend forces it per connection, so the
-                  stored value still applies once the tunnel is switched off. */}
-              <Switch
-                checked={isTunnelEnabled || editingSettings.isDirectConnection || false}
-                disabled={isTunnelEnabled}
-                onChange={(checked) => {
-                  setEditingSettings({ ...editingSettings, isDirectConnection: checked });
-                  setIsConnectionTested(false);
-                }}
-                size="small"
-              />
-              <Tooltip
-                className="cursor-pointer"
-                title={
-                  isTunnelEnabled
-                    ? t('databases.edit.mongodb.directConnectionOverTunnelTooltip')
-                    : t('databases.edit.mongodb.directConnectionTooltip')
-                }
-              >
-                <InfoCircleOutlined className="ml-2" style={{ color: 'gray' }} />
-              </Tooltip>
-            </div>
-          </div>
-
-          <div className="mb-1 flex w-full items-center">
-            <div className="min-w-[150px] pr-2">{t('databases.fields.authDatabase')}</div>
-            <Input
-              value={editingSettings.authDatabase}
-              onChange={(e) => {
-                setEditingSettings({ ...editingSettings, authDatabase: e.target.value.trim() });
-                setIsConnectionTested(false);
-              }}
-              size="small"
-              className="max-w-[200px] grow"
-              // eslint-disable-next-line i18next/no-literal-string -- MongoDB's default authentication database
-              placeholder="admin"
-            />
-          </div>
-
-          <div className="mb-1 flex w-full items-center">
-            <div className="min-w-[150px] pr-2">{t('databases.fields.excludeCollections')}</div>
+            <div className="min-w-[150px] pr-2">{t('databases.fields.excludeTables')}</div>
             <Select
               mode="tags"
-              value={editingSettings.excludeCollections || []}
+              value={editingSettings.excludeTables || []}
               onChange={(values) => {
                 setEditingSettings({
                   ...editingSettings,
-                  excludeCollections: normalizeNameList(values),
+                  excludeTables: normalizeNameList(values),
                 });
               }}
               size="small"
               className="max-w-[200px] grow"
-              placeholder={t('databases.edit.mongodb.excludeCollectionsPlaceholder')}
+              placeholder={t('databases.edit.excludeTablesPlaceholder')}
               tokenSeparators={NAME_LIST_TOKEN_SEPARATORS}
             />
 
-            <Tooltip
-              className="cursor-pointer"
-              title={t('databases.edit.mongodb.excludeCollectionsTooltip')}
-            >
+            <Tooltip className="cursor-pointer" title={t('databases.edit.excludeTablesTooltip')}>
               <InfoCircleOutlined className="ml-2" style={{ color: 'gray' }} />
             </Tooltip>
           </div>

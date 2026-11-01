@@ -6,8 +6,8 @@ import {
   type PostgresqlLogicalSettings,
   PostgresSslMode,
   createDefaultDatabaseSettings,
-} from '../../../../entities/databases';
-import { LocaleProvider } from '../../../../shared/i18n';
+} from '../../../entities/databases';
+import { LocaleProvider } from '../../../shared/i18n';
 import { EditPostgreSqlLogicalSpecificDataComponent } from './EditPostgreSqlLogicalSpecificDataComponent';
 
 // The entity's public API imports its API client, and the client's config

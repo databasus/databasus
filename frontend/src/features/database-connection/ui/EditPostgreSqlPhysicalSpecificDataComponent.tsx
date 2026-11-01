@@ -16,20 +16,17 @@ import {
   hasStoredSshTunnelSecretsForAuthType,
   isSshTunnelReadyToTest,
   physicalConnectionErrorContent,
-} from '../../../../entities/databases';
-import { ConnectionStringParser } from '../../../../entities/databases/model/postgresql/ConnectionStringParser';
+  PostgresqlConnectionStringParser,
+} from '../../../entities/databases';
 import {
   TransByKey,
   type TranslationKey,
   translateApiError,
   translateLocalizedText,
-} from '../../../../shared/i18n';
-import { ClipboardHelper } from '../../../../shared/lib/ClipboardHelper';
-import { ToastHelper } from '../../../../shared/toast';
-import {
-  AdvancedSettingsToggleComponent,
-  ClipboardPasteModalComponent,
-} from '../../../../shared/ui';
+} from '../../../shared/i18n';
+import { ClipboardHelper } from '../../../shared/lib/ClipboardHelper';
+import { ToastHelper } from '../../../shared/toast';
+import { AdvancedSettingsToggleComponent, ClipboardPasteModalComponent } from '../../../shared/ui';
 import { EditSshTunnelComponent } from './EditSshTunnelComponent';
 import { toDatabaseSettingsTarget } from './toDatabaseSettingsTarget';
 
@@ -148,7 +145,7 @@ export const EditPostgreSqlPhysicalSpecificDataComponent = ({
       return;
     }
 
-    const result = ConnectionStringParser.parse(trimmedText);
+    const result = PostgresqlConnectionStringParser.parse(trimmedText);
 
     if ('error' in result) {
       message.error(translateLocalizedText(result.error, t));

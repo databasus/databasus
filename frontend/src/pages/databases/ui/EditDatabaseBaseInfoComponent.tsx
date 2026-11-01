@@ -10,8 +10,8 @@ import {
   databaseApi,
   getDatabaseLogoFromType,
   isPostgresType,
-} from '../../../../entities/databases';
-import { translateApiError } from '../../../../shared/i18n';
+} from '../../../entities/databases';
+import { translateApiError } from '../../../shared/i18n';
 
 interface Props {
   database: Database;

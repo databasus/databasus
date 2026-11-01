@@ -42,6 +42,10 @@ export { setSshTunnelAuthTypeAndClearUnusedSecrets } from './model/sshtunnel/set
 export { isSshTunnelReadyToTest } from './model/sshtunnel/isSshTunnelReadyToTest';
 export { hasStoredSshTunnelSecretsForAuthType } from './model/sshtunnel/hasStoredSshTunnelSecretsForAuthType';
 export { disableSrvWhenTunneled } from './model/mongodb/disableSrvWhenTunneled';
+export { MongodbConnectionStringParser } from './model/mongodb/MongodbConnectionStringParser';
+export { MariadbConnectionStringParser } from './model/mariadb/MariadbConnectionStringParser';
+export { MySqlConnectionStringParser } from './model/mysql/MySqlConnectionStringParser';
+export { PostgresqlConnectionStringParser } from './model/postgresql/PostgresqlConnectionStringParser';
 export { HEALTH_STATUS_LABEL_KEYS } from './model/HealthStatusLabelKeys';
 export { DATABASE_TYPE_LABEL_KEYS } from './model/DatabaseTypeLabelKeys';
 export { SSH_TUNNEL_AUTH_TYPE_LABEL_KEYS } from './model/sshtunnel/SshTunnelAuthTypeLabelKeys';

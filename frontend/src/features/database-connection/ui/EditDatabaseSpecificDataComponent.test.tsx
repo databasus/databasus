@@ -7,10 +7,10 @@ import {
   type Database,
   DatabaseType,
   createDefaultDatabaseSettings,
-} from '../../../../entities/databases';
-import { API_BASE_PATH, type ApiComponents } from '../../../../shared/api';
-import { mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
-import { renderScreen } from '../../../../shared/lib/test/renderScreen';
+} from '../../../entities/databases';
+import { API_BASE_PATH, type ApiComponents } from '../../../shared/api';
+import { mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
+import { renderScreen } from '../../../shared/lib/test/renderScreen';
 import { EditDatabaseSpecificDataComponent } from './EditDatabaseSpecificDataComponent';
 
 const mockServer = setUpMockApi();
