@@ -27,7 +27,8 @@ type Deps struct {
 }
 
 // Service needs the right to change the workspace's content for both operations, because each of them
-// connects with the stored secrets of a named database to the host in the request.
+// connects to the host in the request, with the stored secrets of a named database while its resource
+// address stays the stored one.
 type Service struct {
 	databases *userdatabase.Service
 	registry  *providers.Registry

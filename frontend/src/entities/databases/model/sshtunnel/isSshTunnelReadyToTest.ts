@@ -2,8 +2,8 @@ import { SshTunnelAuthType } from './SshTunnelAuthType';
 import type { SshTunnelSettings } from './SshTunnelSettings';
 
 /**
- * Secrets are only required when creating: an existing database keeps the ones already stored, and
- * the edit form never receives them back from the API.
+ * A saved database at an unchanged tunnel address keeps the secrets already stored, which the edit
+ * form never receives back from the API. Every other tunnel needs them entered.
  */
 export function isSshTunnelReadyToTest(
   sshTunnel: SshTunnelSettings | undefined,

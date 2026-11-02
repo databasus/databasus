@@ -91,7 +91,7 @@ test('tests and saves explicitly while preserving an omitted stored SMTP passwor
   boundary,
 }) => {
   const editor = await openEditor({ page });
-  await editor.getByRole('textbox', { name: 'SMTP host', exact: true }).fill('new.example.com');
+  await editor.getByRole('textbox', { name: 'From', exact: true }).fill('new@example.com');
   await editor.getByRole('button', { name: 'Send test notification', exact: true }).click();
   await editor.getByRole('button', { name: 'Save', exact: true }).click();
 
@@ -100,7 +100,7 @@ test('tests and saves explicitly while preserving an omitted stored SMTP passwor
     .toBe(1);
 
   const update = boundary.requests.find((request) => request.method === 'PUT')!;
-  expect(update.body).toMatchObject({ settings: { smtpHost: 'new.example.com' } });
+  expect(update.body).toMatchObject({ settings: { from: 'new@example.com' } });
   expect((update.body as { settings: object }).settings).not.toHaveProperty('smtpPassword');
 });
 

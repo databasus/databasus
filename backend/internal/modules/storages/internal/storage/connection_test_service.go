@@ -57,9 +57,9 @@ func (s *ConnectionTestService) TestStorage(
 	return s.testConnection(ctx, providers.Location{StorageID: storageID, Settings: testedStorageWithSettings.Settings})
 }
 
-// TestSettings needs the right to change the workspace's content, because with a saved storage's ID
-// the test sends that storage's stored secrets wherever the settings point. Every refusal comes before
-// anything leaves the backend, and nothing is saved.
+// TestSettings needs the right to change the workspace's content, because the test connects wherever
+// the settings point, and a saved storage's ID fills in its stored secrets while the resource address
+// stays the stored one. Every refusal comes before anything leaves the backend, and nothing is saved.
 func (s *ConnectionTestService) TestSettings(
 	ctx context.Context,
 	actor users.Actor,

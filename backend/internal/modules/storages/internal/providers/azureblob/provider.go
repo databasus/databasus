@@ -105,7 +105,10 @@ func (p *Provider) MergeStoredSettings(merge providers.SettingsMerge) (providers
 		incomingSettings.AccountName = storedSettings.AccountName
 	}
 
-	if incomingSettings.AccountKey == "" {
+	isAddressChanged := incomingSettings.Endpoint != storedSettings.Endpoint ||
+		incomingSettings.AccountName != storedSettings.AccountName
+
+	if incomingSettings.AccountKey == "" && !isAddressChanged {
 		incomingSettings.AccountKey = storedSettings.AccountKey
 	}
 

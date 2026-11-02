@@ -89,17 +89,56 @@ func TestMergeStoredSshTunnel(t *testing.T) {
 		t.Parallel()
 		incomingSettings := newPasswordTunnelSettings()
 		incomingSettings.Password = ""
-		incomingSettings.Host = "new-bastion.example.com"
+		incomingSettings.Username = "new-user"
 
 		mergedSettings := providers.MergeStoredSSHTunnel(incomingSettings, newPasswordTunnelSettings())
 
 		assert.Equal(t, "stored-password", mergedSettings.Password)
+		assert.Equal(t, "new-user", mergedSettings.Username)
+	})
+
+	t.Run("leaves the password empty when the tunnel moves", func(t *testing.T) {
+		t.Parallel()
+		incomingSettings := newPasswordTunnelSettings()
+		incomingSettings.Password = ""
+		incomingSettings.Host = "new-bastion.example.com"
+
+		mergedSettings := providers.MergeStoredSSHTunnel(incomingSettings, newPasswordTunnelSettings())
+
+		assert.Empty(t, mergedSettings.Password)
 		assert.Equal(t, "new-bastion.example.com", mergedSettings.Host)
+	})
+
+	t.Run("removes the stored passphrase when a moved tunnel gets a new key without one", func(t *testing.T) {
+		t.Parallel()
+		incomingSettings := newPrivateKeyTunnelSettings()
+		incomingSettings.Port = 2200
+		incomingSettings.PrivateKey = "new-private-key"
+		incomingSettings.PrivateKeyPassphrase = ""
+
+		mergedSettings := providers.MergeStoredSSHTunnel(incomingSettings, newPrivateKeyTunnelSettings())
+
+		assert.Equal(t, "new-private-key", mergedSettings.PrivateKey)
+		assert.Empty(t, mergedSettings.PrivateKeyPassphrase)
+	})
+
+	t.Run("removes the stored secrets when the tunnel is turned off", func(t *testing.T) {
+		t.Parallel()
+		incomingSettings := newPrivateKeyTunnelSettings()
+		incomingSettings.IsEnabled = false
+		incomingSettings.PrivateKey = ""
+		incomingSettings.PrivateKeyPassphrase = ""
+
+		mergedSettings := providers.MergeStoredSSHTunnel(incomingSettings, newPrivateKeyTunnelSettings())
+
+		assert.Empty(t, mergedSettings.PrivateKey)
+		assert.Empty(t, mergedSettings.PrivateKeyPassphrase)
 	})
 
 	t.Run("keeps the stored authentication type and its secrets when the incoming type is blank", func(t *testing.T) {
 		t.Parallel()
 		storedSettings := newPrivateKeyTunnelSettings()
+		storedSettings.IsEnabled = false
 
 		mergedSettings := providers.MergeStoredSSHTunnel(providers.SSHTunnelSettings{IsEnabled: false}, storedSettings)
 

@@ -1,3 +1,4 @@
+export { AddressChangedSecretNoticeComponent } from './AddressChangedSecretNoticeComponent';
 export { AdvancedFieldRowComponent } from './AdvancedFieldRowComponent';
 export { AdvancedSettingsToggleComponent } from './AdvancedSettingsToggleComponent';
 export { ClipboardPasteModalComponent } from './ClipboardPasteModalComponent';

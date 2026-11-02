@@ -100,7 +100,7 @@ func TestMergeStoredSettings(t *testing.T) {
 		incomingSettings.Version = ""
 		incomingSettings.Password = ""
 		incomingSettings.TLS.ClientKey = ""
-		incomingSettings.Port = 6543
+		incomingSettings.Username = "new-user"
 
 		mergedSettings, err := newProvider(t).MergeStoredSettings(providers.SettingsMerge{
 			Incoming: incomingSettings,
@@ -113,7 +113,32 @@ func TestMergeStoredSettings(t *testing.T) {
 		assert.Equal(t, "stored-password", logicalSettings.Password)
 		assert.Equal(t, "stored-key", logicalSettings.TLS.ClientKey)
 		assert.Equal(t, pgshared.Version("16"), logicalSettings.Version)
-		assert.Equal(t, 6543, logicalSettings.Port)
+		assert.Equal(t, "new-user", logicalSettings.Username)
+	})
+
+	t.Run("leaves the secrets empty when the port changes", func(t *testing.T) {
+		t.Parallel()
+		storedSettings := newSettings()
+		storedSettings.TLS = providers.PostgresqlTLSSettings{
+			SslMode:    pgshared.SslModeRequire,
+			ClientCert: "stored-cert",
+			ClientKey:  "stored-key",
+		}
+		incomingSettings := storedSettings
+		incomingSettings.Password = ""
+		incomingSettings.TLS.ClientKey = ""
+		incomingSettings.Port = 6543
+
+		mergedSettings, err := newProvider(t).MergeStoredSettings(providers.SettingsMerge{
+			Incoming: incomingSettings,
+			Stored:   storedSettings,
+		})
+
+		require.NoError(t, err)
+		logicalSettings, isSettings := mergedSettings.(Settings)
+		require.True(t, isSettings)
+		assert.Empty(t, logicalSettings.Password)
+		assert.Empty(t, logicalSettings.TLS.ClientKey)
 	})
 
 	t.Run("refuses settings of another type", func(t *testing.T) {

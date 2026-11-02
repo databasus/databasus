@@ -119,7 +119,10 @@ func (p *Provider) MergeStoredSettings(merge providers.SettingsMerge) (providers
 		return nil, err
 	}
 
-	if incomingSettings.Password == "" {
+	isAddressChanged := incomingSettings.Host != storedSettings.Host || incomingSettings.Port != storedSettings.Port ||
+		providers.IsSSHTunnelAddressChanged(incomingSettings.SSHTunnel, storedSettings.SSHTunnel)
+
+	if incomingSettings.Password == "" && !isAddressChanged {
 		incomingSettings.Password = storedSettings.Password
 	}
 
@@ -128,7 +131,11 @@ func (p *Provider) MergeStoredSettings(merge providers.SettingsMerge) (providers
 	incomingSettings.BackupSlotName = storedSettings.BackupSlotName
 	incomingSettings.SystemIdentifier = storedSettings.SystemIdentifier
 	incomingSettings.WalSegmentSizeBytes = storedSettings.WalSegmentSizeBytes
-	incomingSettings.TLS = providers.MergeStoredPostgresqlTLS(incomingSettings.TLS, storedSettings.TLS)
+	incomingSettings.TLS = providers.MergeStoredPostgresqlTLS(
+		incomingSettings.TLS,
+		storedSettings.TLS,
+		isAddressChanged,
+	)
 	incomingSettings.SSHTunnel = providers.MergeStoredSSHTunnel(incomingSettings.SSHTunnel, storedSettings.SSHTunnel)
 
 	return incomingSettings, nil

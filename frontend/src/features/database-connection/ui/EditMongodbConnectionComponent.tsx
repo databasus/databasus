@@ -33,6 +33,7 @@ export const EditMongodbConnectionComponent = ({
   scenario,
   settings,
   savedSshTunnel,
+  isAddressChanged,
   onConnectionChange,
   onNonConnectionChange,
 }: ConnectionEditorProps<MongodbSettings>) => {
@@ -73,6 +74,7 @@ export const EditMongodbConnectionComponent = ({
         controlId={controlId}
         engineName={engineName}
         values={settings}
+        isAddressChanged={isAddressChanged}
         isPortShown={!settings.isSrv}
         // eslint-disable-next-line i18next/no-literal-string -- MongoDB's default port
         portPlaceholder="27017"

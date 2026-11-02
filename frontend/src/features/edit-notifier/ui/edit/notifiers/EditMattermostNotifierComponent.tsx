@@ -3,7 +3,7 @@ import { Checkbox, Input, Select, Tooltip } from 'antd';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { AdvancedSettingsToggleComponent } from '@/shared/ui';
+import { AddressChangedSecretNoticeComponent, AdvancedSettingsToggleComponent } from '@/shared/ui';
 
 import {
   MATTERMOST_DELIVERY_MODE_LABEL_KEYS,
@@ -16,13 +16,20 @@ import { toOptionalValue } from '../../../../../shared/lib';
 interface Props {
   settings: MattermostNotifierSettings;
   isSaved: boolean;
+  isAddressChanged: boolean;
   onChange: (settings: MattermostNotifierSettings) => void;
 }
 
-export function EditMattermostNotifierComponent({ settings, isSaved, onChange }: Props) {
+export function EditMattermostNotifierComponent({
+  settings,
+  isSaved,
+  isAddressChanged,
+  onChange,
+}: Props) {
   const { t } = useTranslation();
   const { locale } = useLocale();
   const optionalRegionId = useId();
+  const botTokenNoticeId = useId();
 
   const [isShowOptional, setIsShowOptional] = useState(
     () =>
@@ -38,6 +45,7 @@ export function EditMattermostNotifierComponent({ settings, isSaved, onChange }:
     onChange({ ...settings, ...changes });
 
   const isWebhookMode = settings.deliveryMode === MattermostDeliveryMode.WEBHOOK;
+  const isBotTokenRequiredAgain = isAddressChanged && !settings.botToken;
 
   return (
     <>
@@ -117,23 +125,29 @@ export function EditMattermostNotifierComponent({ settings, isSaved, onChange }:
             <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
               {t('notifiers.fields.botToken')}
             </div>
-            <Input
-              aria-label={t('notifiers.fields.botToken')}
-              value={settings.botToken ?? ''}
-              onChange={(e) =>
-                updateMattermostSettings({
-                  botToken: toOptionalValue(e.target.value.trim()),
-                })
-              }
-              size="small"
-              className="w-full max-w-[250px]"
-              placeholder={
-                isSaved
-                  ? t('notifiers.secretKeptPlaceholder')
-                  : // eslint-disable-next-line i18next/no-literal-string -- example token, not copy
-                    'xxxxxxxxxxxxxxxxxxxxxxxxxx'
-              }
-            />
+            <div className="w-full max-w-[250px]">
+              <Input
+                aria-label={t('notifiers.fields.botToken')}
+                aria-describedby={isBotTokenRequiredAgain ? botTokenNoticeId : undefined}
+                value={settings.botToken ?? ''}
+                onChange={(e) =>
+                  updateMattermostSettings({
+                    botToken: toOptionalValue(e.target.value.trim()),
+                  })
+                }
+                size="small"
+                className="w-full"
+                placeholder={
+                  isSaved && !isAddressChanged
+                    ? t('notifiers.secretKeptPlaceholder')
+                    : // eslint-disable-next-line i18next/no-literal-string -- example token, not copy
+                      'xxxxxxxxxxxxxxxxxxxxxxxxxx'
+                }
+              />
+              {isBotTokenRequiredAgain && (
+                <AddressChangedSecretNoticeComponent id={botTokenNoticeId} />
+              )}
+            </div>
           </div>
 
           <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">

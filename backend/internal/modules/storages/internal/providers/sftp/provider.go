@@ -113,6 +113,10 @@ func (p *Provider) MergeStoredSettings(merge providers.SettingsMerge) (providers
 		return nil, err
 	}
 
+	if incomingSettings.Host != storedSettings.Host || incomingSettings.Port != storedSettings.Port {
+		return incomingSettings, nil
+	}
+
 	if slices.Contains(incomingSettings.AuthMethods, AuthMethodPassword) && incomingSettings.Password == "" {
 		incomingSettings.Password = storedSettings.Password
 	}

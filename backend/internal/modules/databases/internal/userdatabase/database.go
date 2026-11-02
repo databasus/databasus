@@ -50,7 +50,7 @@ type Creation struct {
 }
 
 // Change replaces the name, the settings and the notifiers of a database. A secret the settings
-// leave out keeps its stored value.
+// leave out keeps its stored value while the resource address stays the stored one.
 type Change struct {
 	DatabaseID  uuid.UUID
 	Name        string

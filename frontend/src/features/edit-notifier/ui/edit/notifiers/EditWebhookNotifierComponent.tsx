@@ -1,15 +1,16 @@
 import { DeleteOutlined, InfoCircleOutlined, PlusOutlined } from '@ant-design/icons';
 import { Button, Input, Select, Tooltip } from 'antd';
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { InlineCodeComponent } from '@/shared/ui';
+import { AddressChangedSecretNoticeComponent, InlineCodeComponent } from '@/shared/ui';
 
 import type { WebhookHeader, WebhookNotifierSettings } from '../../../../../entities/notifiers';
 import {
   NOTIFICATION_CATEGORY_LABEL_KEYS,
   NotificationCategory,
   WebhookMethod,
+  isWebhookHeaderValueMissing,
 } from '../../../../../entities/notifiers';
 import type { TranslationKey } from '../../../../../shared/i18n';
 import { toOptionalValue } from '../../../../../shared/lib';
@@ -23,6 +24,8 @@ import {
 interface Props {
   settings: WebhookNotifierSettings;
   isSaved: boolean;
+  isAddressChanged: boolean;
+  savedHeaders: WebhookHeader[];
   onChange: (settings: WebhookNotifierSettings) => void;
 }
 
@@ -51,8 +54,15 @@ function validateJsonTemplate(template: string): TranslationKey | null {
   }
 }
 
-export function EditWebhookNotifierComponent({ settings, isSaved, onChange }: Props) {
+export function EditWebhookNotifierComponent({
+  settings,
+  isSaved,
+  isAddressChanged,
+  savedHeaders,
+  onChange,
+}: Props) {
   const { t } = useTranslation();
+  const noticeIdPrefix = useId();
   const headers = settings.headers;
   const bodyTemplate = settings.bodyTemplate ?? '';
 
@@ -148,45 +158,57 @@ export function EditWebhookNotifierComponent({ settings, isSaved, onChange }: Pr
           </span>
         </div>
 
-        {isSaved && (
+        {isSaved && !isAddressChanged && (
           <div className="mb-1 text-xs text-warning">
             {t('notifiers.webhook.savedHeadersHidden')}
           </div>
         )}
 
         <div className="w-full max-w-[500px]">
-          {headers.map((header: WebhookHeader, index: number) => (
-            <div key={index} className="mb-1 flex min-w-0 flex-wrap items-center gap-2">
-              <Input
-                aria-label={t('notifiers.webhook.headerNamePlaceholder')}
-                value={header.name}
-                onChange={(e) => updateHeader(index, { name: e.target.value })}
-                size="small"
-                className="min-w-0 flex-1"
-                placeholder={t('notifiers.webhook.headerNamePlaceholder')}
-              />
-              <Input
-                aria-label={t('notifiers.webhook.headerValuePlaceholder')}
-                value={header.value ?? ''}
-                onChange={(e) =>
-                  updateHeader(index, {
-                    value: toOptionalValue(e.target.value),
-                  })
-                }
-                size="small"
-                style={{ flex: 1, minWidth: 0 }}
-                placeholder={t('notifiers.webhook.headerValuePlaceholder')}
-              />
-              <Button
-                type="text"
-                danger
-                size="small"
-                aria-label={t('common.actions.remove')}
-                icon={<DeleteOutlined aria-hidden />}
-                onClick={() => removeHeader(index)}
-              />
-            </div>
-          ))}
+          {headers.map((header: WebhookHeader, index: number) => {
+            const isValueRequiredAgain =
+              isAddressChanged && isWebhookHeaderValueMissing(header, savedHeaders);
+            const valueNoticeId = `${noticeIdPrefix}-${index}`;
+
+            return (
+              <div key={index} className="mb-1 flex min-w-0 flex-wrap items-start gap-2">
+                <Input
+                  aria-label={t('notifiers.webhook.headerNamePlaceholder')}
+                  value={header.name}
+                  onChange={(e) => updateHeader(index, { name: e.target.value })}
+                  size="small"
+                  className="min-w-0 flex-1"
+                  placeholder={t('notifiers.webhook.headerNamePlaceholder')}
+                />
+                <div className="min-w-0 flex-1">
+                  <Input
+                    aria-label={t('notifiers.webhook.headerValuePlaceholder')}
+                    aria-describedby={isValueRequiredAgain ? valueNoticeId : undefined}
+                    value={header.value ?? ''}
+                    onChange={(e) =>
+                      updateHeader(index, {
+                        value: toOptionalValue(e.target.value),
+                      })
+                    }
+                    size="small"
+                    className="w-full"
+                    placeholder={t('notifiers.webhook.headerValuePlaceholder')}
+                  />
+                  {isValueRequiredAgain && (
+                    <AddressChangedSecretNoticeComponent id={valueNoticeId} />
+                  )}
+                </div>
+                <Button
+                  type="text"
+                  danger
+                  size="small"
+                  aria-label={t('common.actions.remove')}
+                  icon={<DeleteOutlined aria-hidden />}
+                  onClick={() => removeHeader(index)}
+                />
+              </div>
+            );
+          })}
 
           <Button
             type="dashed"

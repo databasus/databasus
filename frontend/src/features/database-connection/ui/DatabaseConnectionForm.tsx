@@ -15,6 +15,7 @@ import type { PostgresqlRestoreOptions } from '@/entities/restores';
 import { useSessionGuard } from '@/shared/auth';
 import { translateApiError } from '@/shared/i18n';
 
+import { isConnectionAddressChanged } from '../lib/isConnectionAddressChanged';
 import { isConnectionDraftFilled } from '../lib/isConnectionDraftFilled';
 import { useDatabaseConnectionTest } from '../model/useDatabaseConnectionTest';
 import { ConnectionTestFeedback } from './ConnectionTestFeedback';
@@ -111,6 +112,7 @@ export const DatabaseConnectionForm = (props: Props) => {
     const editorProps = {
       scenario: draft.scenario,
       savedSshTunnel: savedSettings?.sshTunnel,
+      isAddressChanged: isConnectionAddressChanged(draft),
       onConnectionChange: changeConnection,
       onNonConnectionChange: changeNonConnection,
     };

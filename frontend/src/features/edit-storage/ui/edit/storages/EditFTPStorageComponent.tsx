@@ -3,21 +3,24 @@ import { Checkbox, Input, InputNumber, Tooltip } from 'antd';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { AdvancedSettingsToggleComponent } from '@/shared/ui';
+import { AddressChangedSecretNoticeComponent, AdvancedSettingsToggleComponent } from '@/shared/ui';
 
 import type { FtpStorageSettings } from '../../../../../entities/storages';
 import { toOptionalValue } from '../../../../../shared/lib';
 
 interface Props {
   settings: FtpStorageSettings;
+  isAddressChanged: boolean;
   onChange: (settings: FtpStorageSettings) => void;
 }
 
-export function EditFTPStorageComponent({ settings, onChange }: Props) {
+export function EditFTPStorageComponent({ settings, isAddressChanged, onChange }: Props) {
   const { t } = useTranslation();
   const hasAdvancedValues = !!settings.isSkipTlsVerify;
   const [isShowAdvanced, setIsShowAdvanced] = useState(hasAdvancedValues);
   const advancedRegionId = useId();
+  const passwordNoticeId = useId();
+  const isPasswordRequiredAgain = isAddressChanged && !settings.password;
 
   return (
     <>
@@ -69,20 +72,24 @@ export function EditFTPStorageComponent({ settings, onChange }: Props) {
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('common.fields.password')}</div>
-        <Input.Password
-          aria-label={t('common.fields.password')}
-          value={settings.password || ''}
-          onChange={(e) => {
-            onChange({ ...settings, password: toOptionalValue(e.target.value) });
-          }}
-          size="small"
-          className="w-full max-w-[250px]"
-          placeholder={t('storages.edit.passwordPlaceholder')}
-          autoComplete="off"
-          data-1p-ignore
-          data-lpignore="true"
-          data-form-type="other"
-        />
+        <div className="w-full max-w-[250px]">
+          <Input.Password
+            aria-label={t('common.fields.password')}
+            aria-describedby={isPasswordRequiredAgain ? passwordNoticeId : undefined}
+            value={settings.password || ''}
+            onChange={(e) => {
+              onChange({ ...settings, password: toOptionalValue(e.target.value) });
+            }}
+            size="small"
+            className="w-full"
+            placeholder={t('storages.edit.passwordPlaceholder')}
+            autoComplete="off"
+            data-1p-ignore
+            data-lpignore="true"
+            data-form-type="other"
+          />
+          {isPasswordRequiredAgain && <AddressChangedSecretNoticeComponent id={passwordNoticeId} />}
+        </div>
       </div>
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">

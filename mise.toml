@@ -108,8 +108,9 @@ shell = "bash -euo pipefail -c"
 run = """
 source ../scripts/fedora.sh
 apply_libedit_shim
+# Parallel package binaries share one Ryuk reaper name and can collide on it, as in scripts/test.sh.
 # shellcheck disable=SC2086 # one package path per word
-go test -race -count=1 -timeout 30m $usage_packages
+TESTCONTAINERS_RYUK_DISABLED=true go test -race -count=1 -timeout 30m $usage_packages
 """
 
 [tasks."agent:build"]

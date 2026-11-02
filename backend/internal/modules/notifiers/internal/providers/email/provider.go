@@ -95,7 +95,10 @@ func (p *Provider) MergeStoredSecrets(merge providers.SecretMerge) (providers.Se
 		return nil, err
 	}
 
-	if incomingSettings.SMTPPassword == "" {
+	isAddressChanged := incomingSettings.SMTPHost != storedSettings.SMTPHost ||
+		incomingSettings.SMTPPort != storedSettings.SMTPPort
+
+	if incomingSettings.SMTPPassword == "" && !isAddressChanged {
 		incomingSettings.SMTPPassword = storedSettings.SMTPPassword
 	}
 

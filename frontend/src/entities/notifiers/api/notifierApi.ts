@@ -41,7 +41,8 @@ export const notifierApi = {
     );
   },
 
-  // A secret the settings leave out keeps its stored value.
+  // A secret the settings leave out keeps its stored value while the resource address stays the
+  // stored one.
   async updateNotifier(
     notifierId: string,
     name: string,

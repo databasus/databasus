@@ -16,6 +16,7 @@ export { validateTelegramNotifier } from './model/telegram/validateTelegramNotif
 export type { WebhookNotifierSettings } from './model/webhook/WebhookNotifierSettings';
 export type { WebhookHeader } from './model/webhook/WebhookHeader';
 export { validateWebhookNotifier } from './model/webhook/validateWebhookNotifier';
+export { isWebhookHeaderValueMissing } from './model/webhook/isWebhookHeaderValueMissing';
 export { WebhookMethod } from './model/webhook/WebhookMethod';
 export type { SlackNotifierSettings } from './model/slack/SlackNotifierSettings';
 export { validateSlackNotifier } from './model/slack/validateSlackNotifier';

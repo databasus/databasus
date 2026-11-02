@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Notifier, NotifierSettings } from '../../../../entities/notifiers';
 import { API_BASE_PATH, type ApiComponents } from '../../../../shared/api';
 import { DICTIONARIES } from '../../../../shared/i18n';
+import { en } from '../../../../shared/i18n/locales/en';
 import { mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
 import { watchNoticeTimer } from '../../../../shared/lib/test/noticeTimer';
 import { renderScreen } from '../../../../shared/lib/test/renderScreen';
@@ -496,5 +497,259 @@ describe('EditNotifierComponent providers', () => {
     expect(sentUpdates[0].settings).toMatchObject({
       headers: [{ name: 'X-Api-Key', value: 'new-value' }],
     });
+  });
+});
+
+describe('EditNotifierComponent address change', () => {
+  const addressChangedMessage = en.common.messages.addressChangedEnterSecretAgain;
+  const keptSecretPlaceholder = en.notifiers.secretKeptPlaceholder;
+  const savedHeadersNotice = en.notifiers.webhook.savedHeadersHidden;
+
+  const savedEmailNotifier = buildSavedNotifier({
+    type: 'EMAIL',
+    targetEmail: 'alerts@example.com',
+    smtpHost: 'smtp.example.com',
+    smtpPort: 587,
+    smtpUser: 'mailer',
+    isInsecureSkipVerify: false,
+    security: 'STARTTLS',
+  });
+
+  const savedTelegramNotifier = buildSavedNotifier({
+    type: 'TELEGRAM',
+    targetChatId: '-100123',
+    botApiUrl: 'https://telegram.example.com',
+    isProxyEnabled: false,
+  });
+
+  const savedMattermostBot = buildSavedNotifier({
+    type: 'MATTERMOST',
+    deliveryMode: 'BOT',
+    serverUrl: 'https://mattermost.example.com',
+    targetChannelId: 'abcdefghijklmnopqrstuvwxyz',
+    isInsecureSkipVerify: false,
+  });
+
+  const savedMattermostWebhook = buildSavedNotifier({
+    type: 'MATTERMOST',
+    deliveryMode: 'WEBHOOK',
+    serverUrl: 'https://mattermost.example.com',
+    isInsecureSkipVerify: false,
+  });
+
+  const getTestButton = () =>
+    screen.getByRole('button', { name: /Send test notification/ }) as HTMLButtonElement;
+
+  const renameNotifier = () =>
+    fireEvent.change(screen.getByDisplayValue('Team alerts'), { target: { value: 'Renamed' } });
+
+  const changeField = (label: string, value: string) =>
+    fireEvent.change(screen.getByRole('textbox', { name: label }), { target: { value } });
+
+  it('takes back the save control when the SMTP host changes after a successful test', async () => {
+    mockServer.use(mockApi.post('/notifier-tests', 200, { isDelivered: true }));
+    renderSavedNotifierForm(savedEmailNotifier);
+
+    renameNotifier();
+    fireEvent.click(getTestButton());
+    await screen.findByRole('button', { name: /Save/ });
+
+    changeField('SMTP host', 'moved.example.com');
+
+    expect(screen.queryByRole('button', { name: /Save/ })).toBeNull();
+    expect(getTestButton().disabled).toBe(true);
+  });
+
+  it('takes back the save control when the webhook URL changes after a successful test', async () => {
+    mockServer.use(mockApi.post('/notifier-tests', 200, { isDelivered: true }));
+    renderSavedNotifierForm(savedWebhookNotifier);
+
+    renameNotifier();
+    fireEvent.click(getTestButton());
+    await screen.findByRole('button', { name: /Save/ });
+
+    changeField('Webhook URL', 'https://moved.example.com');
+
+    expect(screen.queryByRole('button', { name: /Save/ })).toBeNull();
+    expect(getTestButton().disabled).toBe(true);
+  });
+
+  it('asks for the SMTP password and hides the kept placeholder when the SMTP host changes', () => {
+    renderSavedNotifierForm(savedEmailNotifier);
+
+    changeField('SMTP host', 'moved.example.com');
+
+    expect(screen.getAllByText(addressChangedMessage)).toHaveLength(1);
+    expect(screen.queryByPlaceholderText(keptSecretPlaceholder)).toBeNull();
+    expect(getTestButton().disabled).toBe(true);
+  });
+
+  it('asks for the SMTP password when the SMTP port changes', () => {
+    renderSavedNotifierForm(savedEmailNotifier);
+
+    fireEvent.change(screen.getByLabelText('SMTP port'), { target: { value: '2525' } });
+
+    expect(screen.getAllByText(addressChangedMessage)).toHaveLength(1);
+    expect(getTestButton().disabled).toBe(true);
+  });
+
+  it('brings the kept placeholder back when the SMTP host returns to the saved value', () => {
+    renderSavedNotifierForm(savedEmailNotifier);
+
+    renameNotifier();
+    changeField('SMTP host', 'moved.example.com');
+    changeField('SMTP host', 'smtp.example.com');
+
+    expect(screen.queryByText(addressChangedMessage)).toBeNull();
+    expect(screen.getByPlaceholderText(keptSecretPlaceholder)).toBeTruthy();
+    expect(getTestButton().disabled).toBe(false);
+  });
+
+  it('asks for no password when the SMTP host changes and the SMTP user is cleared', () => {
+    renderSavedNotifierForm(savedEmailNotifier);
+
+    changeField('SMTP host', 'moved.example.com');
+    changeField('SMTP user', '');
+
+    expect(screen.queryByText(addressChangedMessage)).toBeNull();
+    expect(getTestButton().disabled).toBe(false);
+  });
+
+  it('keeps a typed SMTP password when the SMTP host returns to the saved value', () => {
+    renderSavedNotifierForm(savedEmailNotifier);
+
+    changeField('SMTP host', 'moved.example.com');
+    fireEvent.change(screen.getByLabelText('SMTP password'), { target: { value: 'typed' } });
+    expect(screen.queryByText(addressChangedMessage)).toBeNull();
+    expect(getTestButton().disabled).toBe(false);
+
+    changeField('SMTP host', 'smtp.example.com');
+
+    expect((screen.getByLabelText('SMTP password') as HTMLInputElement).value).toBe('typed');
+  });
+
+  it('asks for the header value and hides the notice when the webhook URL changes', () => {
+    renderSavedNotifierForm(savedWebhookNotifier);
+
+    changeField('Webhook URL', 'https://hooks.example.com/backups/');
+
+    expect(screen.getAllByText(addressChangedMessage)).toHaveLength(1);
+    expect(screen.queryByText(savedHeadersNotice)).toBeNull();
+    expect(getTestButton().disabled).toBe(true);
+  });
+
+  it('asks for the saved header under another letter case when the webhook URL changes', () => {
+    renderSavedNotifierForm(savedWebhookNotifier);
+
+    changeField('Webhook URL', 'https://moved.example.com');
+    changeField('Header name', 'x-api-key');
+
+    expect(screen.getAllByText(addressChangedMessage)).toHaveLength(1);
+    expect(getTestButton().disabled).toBe(true);
+  });
+
+  it('asks for no value of a new header when the webhook URL changes', () => {
+    renderSavedNotifierForm(savedWebhookNotifier);
+
+    changeField('Webhook URL', 'https://moved.example.com');
+    changeField('Header name', 'X-New-Header');
+
+    expect(screen.queryByText(addressChangedMessage)).toBeNull();
+    expect(getTestButton().disabled).toBe(false);
+  });
+
+  it('brings the notice back when the webhook URL returns to the saved value', () => {
+    renderSavedNotifierForm(savedWebhookNotifier);
+
+    renameNotifier();
+    changeField('Webhook URL', 'https://moved.example.com');
+    changeField('Webhook URL', 'https://hooks.example.com/backups');
+
+    expect(screen.queryByText(addressChangedMessage)).toBeNull();
+    expect(screen.getByText(savedHeadersNotice)).toBeTruthy();
+    expect(getTestButton().disabled).toBe(false);
+  });
+
+  it('asks for the bot token when the Telegram Bot API URL changes', () => {
+    renderSavedNotifierForm(savedTelegramNotifier);
+
+    changeField('Bot API URL', 'https://moved.example.com');
+
+    expect(screen.getAllByText(addressChangedMessage)).toHaveLength(1);
+    expect(screen.queryByPlaceholderText(keptSecretPlaceholder)).toBeNull();
+    expect(getTestButton().disabled).toBe(true);
+  });
+
+  it('asks for the bot token when the Telegram proxy is turned on', () => {
+    renderSavedNotifierForm(savedTelegramNotifier);
+
+    fireEvent.click(screen.getByRole('switch', { name: 'Use proxy' }));
+
+    expect(screen.getAllByText(addressChangedMessage)).toHaveLength(1);
+    expect(getTestButton().disabled).toBe(true);
+  });
+
+  it('asks for the bot token when the Telegram proxy is turned off', () => {
+    renderSavedNotifierForm(
+      buildSavedNotifier({ type: 'TELEGRAM', targetChatId: '-100123', isProxyEnabled: true }),
+    );
+
+    fireEvent.click(screen.getByRole('switch', { name: 'Use proxy' }));
+
+    expect(screen.getAllByText(addressChangedMessage)).toHaveLength(1);
+    expect(getTestButton().disabled).toBe(true);
+  });
+
+  it('asks for the bot token and not the proxy URL when a Telegram proxy URL is typed', () => {
+    renderSavedNotifierForm(
+      buildSavedNotifier({ type: 'TELEGRAM', targetChatId: '-100123', isProxyEnabled: true }),
+    );
+
+    changeField('Proxy URL', 'socks5://proxy.example.com:1080');
+
+    expect(screen.getAllByText(addressChangedMessage)).toHaveLength(1);
+    expect(getTestButton().disabled).toBe(true);
+
+    changeField('Bot token', 'typed-token');
+
+    expect(screen.queryByText(addressChangedMessage)).toBeNull();
+    expect(getTestButton().disabled).toBe(false);
+  });
+
+  it('keeps the placeholder and the test when only the Telegram chat changes', () => {
+    renderSavedNotifierForm(savedTelegramNotifier);
+
+    changeField('Target chat ID', '-100456');
+
+    expect(screen.getByPlaceholderText(keptSecretPlaceholder)).toBeTruthy();
+    expect(screen.queryByText(addressChangedMessage)).toBeNull();
+    expect(getTestButton().disabled).toBe(false);
+  });
+
+  it('asks for the bot token when the Mattermost server URL changes in the bot mode', () => {
+    renderSavedNotifierForm(savedMattermostBot);
+
+    changeField('Server URL', 'https://moved.example.com');
+
+    expect(screen.getAllByText(addressChangedMessage)).toHaveLength(1);
+    expect(screen.queryByPlaceholderText(keptSecretPlaceholder)).toBeNull();
+    expect(getTestButton().disabled).toBe(true);
+  });
+
+  it('asks for no bot token when the Mattermost server URL differs in the webhook mode', async () => {
+    const { user } = renderSavedNotifierForm(savedMattermostWebhook);
+    const selectDeliveryMode = async (optionTitle: string) => {
+      await user.click(screen.getByRole('combobox', { name: 'Connect via' }));
+      fireEvent.click((await screen.findAllByTitle(optionTitle)).pop()!);
+    };
+
+    await selectDeliveryMode('Bot account');
+    changeField('Server URL', 'https://moved.example.com');
+    expect(screen.getAllByText(addressChangedMessage)).toHaveLength(1);
+
+    await selectDeliveryMode('Incoming webhook');
+
+    expect(screen.queryByText(addressChangedMessage)).toBeNull();
+    expect(getTestButton().disabled).toBe(false);
   });
 });

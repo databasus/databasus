@@ -85,7 +85,7 @@ func (p *Provider) MergeStoredSecrets(merge providers.SecretMerge) (providers.Se
 		incomingSettings.WebhookURL = storedSettings.WebhookURL
 	}
 
-	if incomingSettings.BotToken == "" {
+	if incomingSettings.BotToken == "" && incomingSettings.ServerURL == storedSettings.ServerURL {
 		incomingSettings.BotToken = storedSettings.BotToken
 	}
 

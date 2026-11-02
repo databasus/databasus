@@ -39,6 +39,7 @@ export const EditMySqlCompatibleConnectionComponent = ({
   scenario,
   settings,
   savedSshTunnel,
+  isAddressChanged,
   onConnectionChange,
   onNonConnectionChange,
 }: ConnectionEditorProps<Settings>) => {
@@ -72,6 +73,7 @@ export const EditMySqlCompatibleConnectionComponent = ({
         controlId={controlId}
         engineName={engineName}
         values={settings}
+        isAddressChanged={isAddressChanged}
         hostHints={isLocalhostConnection(settings) && <ConnectionHostHint topic="localhost" />}
         onHostChange={(rawHost) =>
           onConnectionChange({ ...settings, host: stripHostScheme(rawHost) })

@@ -3,7 +3,7 @@ import { Input, Radio, Tooltip } from 'antd';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { AdvancedSettingsToggleComponent } from '@/shared/ui';
+import { AddressChangedSecretNoticeComponent, AdvancedSettingsToggleComponent } from '@/shared/ui';
 
 import {
   AZURE_BLOB_AUTH_METHOD_LABEL_KEYS,
@@ -14,15 +14,23 @@ import { toOptionalValue } from '../../../../../shared/lib';
 interface Props {
   settings: AzureBlobStorageSettings;
   isSaved: boolean;
+  isAddressChanged: boolean;
   onChange: (settings: AzureBlobStorageSettings) => void;
 }
 
-export function EditAzureBlobStorageComponent({ settings, isSaved, onChange }: Props) {
+export function EditAzureBlobStorageComponent({
+  settings,
+  isSaved,
+  isAddressChanged,
+  onChange,
+}: Props) {
   const { t } = useTranslation();
   const authMethodLabelId = useId();
   const hasAdvancedValues = !!settings.prefix || !!settings.endpoint;
   const [isShowAdvanced, setIsShowAdvanced] = useState(hasAdvancedValues);
   const advancedRegionId = useId();
+  const accountKeyNoticeId = useId();
+  const isAccountKeyRequiredAgain = isAddressChanged && !settings.accountKey;
 
   return (
     <>
@@ -101,21 +109,27 @@ export function EditAzureBlobStorageComponent({ settings, isSaved, onChange }: P
             <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">
               {t('storages.fields.accountKey')}
             </div>
-            <Input.Password
-              aria-label={t('storages.fields.accountKey')}
-              value={settings.accountKey || ''}
-              onChange={(e) => {
-                onChange({ ...settings, accountKey: toOptionalValue(e.target.value.trim()) });
-              }}
-              size="small"
-              className="w-full max-w-[250px]"
-              // eslint-disable-next-line i18next/no-literal-string -- example key value
-              placeholder="your-account-key"
-              autoComplete="off"
-              data-1p-ignore
-              data-lpignore="true"
-              data-form-type="other"
-            />
+            <div className="w-full max-w-[250px]">
+              <Input.Password
+                aria-label={t('storages.fields.accountKey')}
+                aria-describedby={isAccountKeyRequiredAgain ? accountKeyNoticeId : undefined}
+                value={settings.accountKey || ''}
+                onChange={(e) => {
+                  onChange({ ...settings, accountKey: toOptionalValue(e.target.value.trim()) });
+                }}
+                size="small"
+                className="w-full"
+                // eslint-disable-next-line i18next/no-literal-string -- example key value
+                placeholder="your-account-key"
+                autoComplete="off"
+                data-1p-ignore
+                data-lpignore="true"
+                data-form-type="other"
+              />
+              {isAccountKeyRequiredAgain && (
+                <AddressChangedSecretNoticeComponent id={accountKeyNoticeId} />
+              )}
+            </div>
           </div>
         </>
       )}

@@ -22,6 +22,21 @@ func requireProblem(t *testing.T, status int, body []byte, expectedStatus int, e
 	require.Equal(t, expectedCode, problem.Code, string(body))
 }
 
+func requireFieldError(t *testing.T, body []byte, expectedField string) {
+	t.Helper()
+
+	var problem apiclient.Problem
+	require.NoError(t, json.Unmarshal(body, &problem), string(body))
+	require.NotNil(t, problem.Errors, string(body))
+
+	refusedFields := make([]string, 0, len(*problem.Errors))
+	for _, fieldError := range *problem.Errors {
+		refusedFields = append(refusedFields, fieldError.Field)
+	}
+
+	require.Contains(t, refusedFields, expectedField, string(body))
+}
+
 // team is an instance with a workspace owned by a user who is not an instance admin.
 type team struct {
 	app       *apptest.App

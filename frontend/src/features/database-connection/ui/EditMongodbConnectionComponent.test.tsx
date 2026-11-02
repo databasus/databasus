@@ -3,10 +3,12 @@ import { fireEvent, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { DatabaseType, createDefaultDatabaseSettings } from '@/entities/databases';
+import { en } from '@/shared/i18n/locales/en';
 import { setUpMockApi } from '@/shared/lib/test/mockApi';
 
 import {
   buildCreateDraft,
+  buildEditDraft,
   buildRestoreDraft,
   renderEditableForm,
   renderRestoreForm,
@@ -57,6 +59,18 @@ describe('EditMongodbConnectionComponent', () => {
     expect(directConnection.getAttribute('aria-checked')).toBe('true');
     expect(directConnection.disabled).toBe(true);
     expect(screen.getByLabelText('Port')).toBeTruthy();
+  });
+
+  it('asks for the password again when the SRV flag of a saved database changes', () => {
+    renderEditableForm(buildEditDraft({ ...mongodbSettings, password: undefined }));
+    openAdvanced();
+
+    fireEvent.click(screen.getByLabelText('Use SRV connection'));
+
+    expect(screen.getByText(en.common.messages.addressChangedEnterSecretAgain)).toBeTruthy();
+    expect(
+      (screen.getByRole('button', { name: /Test connection$/ }) as HTMLButtonElement).disabled,
+    ).toBe(true);
   });
 
   it('hides the collection exclusions in a restore target', () => {

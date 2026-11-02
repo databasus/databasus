@@ -44,6 +44,7 @@ export const fr: typeof en = {
     },
     messages: {
       copiedToClipboard: 'Copié dans le presse-papiers',
+      addressChangedEnterSecretAgain: "L'adresse a changé. Saisissez de nouveau cette valeur.",
     },
     // Joins translated words into one list (Chinese uses 、)
     listSeparator: ', ',

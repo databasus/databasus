@@ -85,6 +85,38 @@ func TestPostgresqlLimitedUser(t *testing.T) {
 		connectToPostgres(t, postgresServer, containers.PostgresDatabase, createdUser.Username, createdUser.Password)
 	})
 
+	t.Run("returns 400 invalid_request without connecting when a member checks a saved database at another host",
+		func(t *testing.T) {
+			tm := newTeam(t)
+			member := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER)
+			recorder := startConnectionRecorder(t)
+			savedDatabase := tm.createDatabase(t,
+				newPostgresqlLogicalSettings(t, newPostgresqlContainerTarget(postgresServer)))
+
+			response, err := member.Client.CheckLimitedUserWithResponse(t.Context(), newSettingsTarget(
+				tm.workspace.Id, &savedDatabase.Id, newPostgresqlLogicalSettings(t, recorder.getPostgresqlTarget())))
+
+			require.NoError(t, err)
+			requireInvalidField(t, response.StatusCode(), response.Body, "settings.password")
+			assert.Zero(t, recorder.getAcceptedCount())
+		})
+
+	t.Run("returns 400 invalid_request without connecting when a member creates a limited user at another host",
+		func(t *testing.T) {
+			tm := newTeam(t)
+			member := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER)
+			recorder := startConnectionRecorder(t)
+			savedDatabase := tm.createDatabase(t,
+				newPostgresqlLogicalSettings(t, newPostgresqlContainerTarget(postgresServer)))
+
+			response, err := member.Client.CreateLimitedUserWithResponse(t.Context(), newSettingsTarget(
+				tm.workspace.Id, &savedDatabase.Id, newPostgresqlLogicalSettings(t, recorder.getPostgresqlTarget())))
+
+			require.NoError(t, err)
+			requireInvalidField(t, response.StatusCode(), response.Body, "settings.password")
+			assert.Zero(t, recorder.getAcceptedCount())
+		})
+
 	t.Run("returns 403 permission_denied without connecting when a viewer checks a saved database at another host",
 		func(t *testing.T) {
 			tm := newTeam(t)

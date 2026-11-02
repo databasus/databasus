@@ -547,7 +547,7 @@ export interface paths {
         get: operations["getNotifier"];
         /**
          * Replace the name and the settings of a notifier
-         * @description Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value, and a webhook header sent without a value keeps the stored value of the header with the same name. Settings of another type than the notifier's get 400 `invalid_request`, because the type is fixed when the notifier is created.
+         * @description Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value, and a webhook header sent without a value keeps the stored value of the header with the same name, while the notifier's resource address stays the stored one: the SMTP host and port, the Telegram Bot API URL and proxy, the Mattermost server URL or the webhook URL. With another resource address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the notifier's get 400 `invalid_request`, because the type is fixed when the notifier is created.
          */
         put: operations["updateNotifier"];
         post?: never;
@@ -618,7 +618,7 @@ export interface paths {
         put?: never;
         /**
          * Send a test message with settings that are not saved
-         * @description Any member of the workspace may test, a viewer included. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace; otherwise the answer is 404 `not_found` and nothing is sent. Nothing is saved, the notifier's `lastSendError` included.
+         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test sends to wherever the request points. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace, or the answer is 404 `not_found`. With another resource address than the notifier's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the backend on a refusal. Nothing is saved, the notifier's `lastSendError` included.
          */
         post: operations["testNotifierSettings"];
         delete?: never;
@@ -668,7 +668,7 @@ export interface paths {
         get: operations["getStorage"];
         /**
          * Replace the name and the settings of a storage
-         * @description Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+         * @description Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value while the storage's resource address stays the stored one: the S3 endpoint, the Azure Blob endpoint and account name, or the host and port of FTP, NAS and SFTP. With another resource address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
          */
         put: operations["updateStorage"];
         post?: never;
@@ -739,7 +739,7 @@ export interface paths {
         put?: never;
         /**
          * Test the connection with settings that are not saved
-         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
+         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
          */
         post: operations["testStorageSettings"];
         delete?: never;
@@ -869,7 +869,7 @@ export interface paths {
         get: operations["getDatabase"];
         /**
          * Replace the name, the settings and the notifiers of a database
-         * @description Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
+         * @description Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the address it is used at stays the stored one. The password and the PostgreSQL client key follow the database's resource address: its host, its port, the address of its SSH tunnel and, for MongoDB, the SRV flag. The SSH secrets follow the tunnel's resource address: whether it is enabled, and its host and port while it is. At another address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
          */
         put: operations["updateDatabase"];
         post?: never;
@@ -940,7 +940,7 @@ export interface paths {
         put?: never;
         /**
          * Test the connection with settings that are not saved
-         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. Nothing connects on a refusal, and nothing is saved.
+         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. With another resource address than the database's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateDatabase`. Nothing connects on a refusal, and nothing is saved.
          */
         post: operations["testDatabaseSettings"];
         delete?: never;
@@ -960,7 +960,7 @@ export interface paths {
         put?: never;
         /**
          * Check whether the connecting user may do more than a backup needs
-         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. For physical PostgreSQL the check is about a replication-only user, for the other types about a read-only user. A server that cannot be reached gets 400 `database_connection_failed`.
+         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. For physical PostgreSQL the check is about a replication-only user, for the other types about a read-only user. A server that cannot be reached gets 400 `database_connection_failed`.
          */
         post: operations["checkLimitedUser"];
         delete?: never;
@@ -980,7 +980,7 @@ export interface paths {
         put?: never;
         /**
          * Create a limited user on the database's server
-         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
+         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
          */
         post: operations["createLimitedUser"];
         delete?: never;
@@ -2301,7 +2301,7 @@ export interface components {
             workspaceId: string;
             /**
              * Format: uuid
-             * @description A saved notifier of the workspace whose stored secrets fill the ones left out
+             * @description A saved notifier of the workspace whose stored secrets fill the ones left out at its resource address
              */
             notifierId?: string;
             settings: components["schemas"]["NotifierSettings"];
@@ -2454,7 +2454,7 @@ export interface components {
         WebhookHeader: {
             /** @description The name of the header */
             name: string;
-            /** @description The value; left out on a change, it keeps the stored value of the header with this name */
+            /** @description The value; left out on a change at the same URL, it keeps the stored value of the header with this name */
             value?: string;
         };
         /**
@@ -2519,7 +2519,7 @@ export interface components {
             workspaceId: string;
             /**
              * Format: uuid
-             * @description A saved storage of the workspace whose stored secrets fill the ones left out
+             * @description A saved storage of the workspace whose stored secrets fill the ones left out at its resource address
              */
             storageId?: string;
             settings: components["schemas"]["StorageSettings"];
@@ -2674,9 +2674,9 @@ export interface components {
             username: string;
             /** @description Selected credentials; excluded credentials are removed on save */
             authMethods: components["schemas"]["SftpAuthMethod"][];
-            /** @description The selected password; omit to retain its stored value */
+            /** @description The selected password; omit to retain its stored value at the same host and port */
             password?: string;
-            /** @description The selected private key; omit to retain its stored value */
+            /** @description The selected private key; omit to retain its stored value at the same host and port */
             privateKey?: string;
             /** @description The folder on the server, absent for the login folder */
             path?: string;
@@ -2763,7 +2763,7 @@ export interface components {
             workspaceId: string;
             /**
              * Format: uuid
-             * @description A saved database of the workspace whose stored secrets fill the ones left out
+             * @description A saved database of the workspace whose stored secrets fill the ones left out at its resource address
              */
             databaseId?: string;
             settings: components["schemas"]["DatabaseSettings"];
@@ -5293,6 +5293,7 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };

@@ -22,7 +22,10 @@ type Provider interface {
 	// Validate answers an apierror problem naming the setting it refuses.
 	Validate(settings Settings) error
 	// MergeStoredSettings applies the provider's secret selection and retention policy and
-	// refuses a change of a setting fixed at creation, such as the S3 prefix.
+	// refuses a change of a setting fixed at creation, such as the S3 prefix. A secret tied to the
+	// provider's resource address is filled only while that address stays the stored one, so a user who
+	// may not see a secret cannot send it to a server of their choice. Left empty, the secret then gets
+	// the refusal of Validate when the settings use it, and is removed when they do not.
 	MergeStoredSettings(merge SettingsMerge) (Settings, error)
 	SaveFile(ctx context.Context, file FileAccess, content io.Reader) error
 	// OpenFile returns a reader that may keep fetching from the provider while it is read, so ctx

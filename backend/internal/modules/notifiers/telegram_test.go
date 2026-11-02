@@ -28,6 +28,7 @@ func TestTelegramBotAPIURL(t *testing.T) {
 		assert.Nil(t, readTelegram.ProxyUrl)
 
 		readTelegram.BotApiUrl = nil
+		readTelegram.BotToken = optional("123456:AAH-TOKEN")
 		response := updateNotifier(t, tm.owner, createdNotifier.Id, apiclient.NotifierUpdate{
 			Name:     createdNotifier.Name,
 			Settings: newTelegramSettings(t, readTelegram),

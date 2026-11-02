@@ -11,6 +11,7 @@ import {
 } from '../../../../../entities/notifiers';
 import { toOptionalValue } from '../../../../../shared/lib';
 import {
+  AddressChangedSecretNoticeComponent,
   AdvancedFieldRowComponent,
   AdvancedSettingsToggleComponent,
 } from '../../../../../shared/ui';
@@ -18,10 +19,16 @@ import {
 interface Props {
   settings: EmailNotifierSettings;
   isSaved: boolean;
+  isAddressChanged: boolean;
   onChange: (settings: EmailNotifierSettings) => void;
 }
 
-export function EditEmailNotifierComponent({ settings, isSaved, onChange }: Props) {
+export function EditEmailNotifierComponent({
+  settings,
+  isSaved,
+  isAddressChanged,
+  onChange,
+}: Props) {
   const [isShowAdvanced, setIsShowAdvanced] = useState(
     settings.isInsecureSkipVerify ||
       !!settings.heloName ||
@@ -31,6 +38,8 @@ export function EditEmailNotifierComponent({ settings, isSaved, onChange }: Prop
   const { t } = useTranslation();
   const fieldPrefix = useId();
 
+  const isSmtpPasswordRequiredAgain =
+    isAddressChanged && !!settings.smtpUser && !settings.smtpPassword;
   const invalidFields = {
     isTargetEmailInvalid: !/^.+@[^\s@]+$/.test(settings.targetEmail ?? ''),
     isSmtpHostInvalid: !settings.smtpHost?.trim(),
@@ -197,12 +206,18 @@ export function EditEmailNotifierComponent({ settings, isSaved, onChange }: Prop
           }
           size="small"
           className="w-full min-w-0"
+          aria-describedby={
+            isSmtpPasswordRequiredAgain ? `${fieldPrefix}-smtpPassword-notice` : undefined
+          }
           placeholder={
-            isSaved
+            isSaved && !isAddressChanged
               ? t('notifiers.secretKeptPlaceholder')
               : t('notifiers.email.smtpPasswordPlaceholder')
           }
         />
+        {isSmtpPasswordRequiredAgain && (
+          <AddressChangedSecretNoticeComponent id={`${fieldPrefix}-smtpPassword-notice`} />
+        )}
       </Form.Item>
 
       <Form.Item

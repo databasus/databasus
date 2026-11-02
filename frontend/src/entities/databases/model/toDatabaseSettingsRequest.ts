@@ -4,7 +4,7 @@ import { DatabaseType } from './DatabaseType';
 import { toSshTunnelRequest } from './sshtunnel/toSshTunnelRequest';
 
 // The settings as a request sends them: an empty secret is left out, so a saved database keeps
-// the one it stored, and the values only the server sets are dropped.
+// the one it stored while the resource address stays the stored one, and the values only the server sets are dropped.
 export const toDatabaseSettingsRequest = (settings: DatabaseSettings): DatabaseSettings => {
   const sshTunnel = toSshTunnelRequest(settings.sshTunnel);
 

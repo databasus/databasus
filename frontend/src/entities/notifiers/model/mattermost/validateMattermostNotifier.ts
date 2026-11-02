@@ -6,6 +6,7 @@ const MATTERMOST_CHANNEL_ID_LENGTH = 26;
 export const validateMattermostNotifier = (
   isCreate: boolean,
   settings: MattermostNotifierSettings,
+  isAddressChanged = false,
 ): boolean => {
   if (settings.deliveryMode === MattermostDeliveryMode.WEBHOOK) {
     return !isCreate || !!settings.webhookUrl;
@@ -15,7 +16,7 @@ export const validateMattermostNotifier = (
     return false;
   }
 
-  if (isCreate && !settings.botToken) {
+  if ((isCreate || isAddressChanged) && !settings.botToken) {
     return false;
   }
 

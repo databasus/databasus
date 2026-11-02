@@ -1051,3 +1051,228 @@ describe('EditStorageComponent providers', () => {
     });
   });
 });
+
+describe('EditStorageComponent address change', () => {
+  const addressChangedMessage = en.common.messages.addressChangedEnterSecretAgain;
+
+  const savedStorageWith = (settings: StorageSettings): Storage => ({
+    ...savedS3Storage,
+    settings,
+  });
+
+  const savedS3AtEndpoint = savedStorageWith({
+    ...savedS3Storage.settings,
+    s3Endpoint: 'https://s3.example.com',
+  });
+
+  const savedFtp = savedStorageWith({
+    type: 'FTP',
+    host: 'ftp.example.com',
+    port: 21,
+    username: 'backup',
+    path: '/backups',
+    isSsl: false,
+    isSkipTlsVerify: false,
+  });
+
+  const savedNas = savedStorageWith({
+    type: 'NAS',
+    host: 'nas.example.com',
+    port: 445,
+    share: 'backups',
+    username: 'backup',
+    isSsl: false,
+  });
+
+  const savedAzureWithAccountKey = savedStorageWith({
+    type: 'AZURE_BLOB',
+    authMethod: 'ACCOUNT_KEY',
+    accountName: 'savedaccount',
+    containerName: 'backups',
+    endpoint: 'https://blob.example.com',
+  });
+
+  const savedAzureWithConnectionString = savedStorageWith({
+    type: 'AZURE_BLOB',
+    authMethod: 'CONNECTION_STRING',
+    containerName: 'backups',
+    endpoint: 'https://blob.example.com',
+  });
+
+  const getTestButton = () =>
+    screen.getByRole('button', { name: 'Test connection' }) as HTMLButtonElement;
+
+  it('shows the message under both keys and offers no test when the S3 endpoint changes', () => {
+    renderSavedStorageForm(savedS3AtEndpoint);
+
+    fireEvent.change(getProviderField('Endpoint'), {
+      target: { value: 'https://moved.example.com' },
+    });
+
+    expect(screen.getAllByText(addressChangedMessage)).toHaveLength(2);
+    expect(getTestButton().disabled).toBe(true);
+  });
+
+  it('takes back the save control when the S3 endpoint changes after a successful test', async () => {
+    mockServer.use(mockApi.post('/storage-tests', 200, { isConnected: true }));
+    renderSavedStorageForm(savedS3AtEndpoint);
+
+    fireEvent.change(screen.getByDisplayValue('Offsite backups'), {
+      target: { value: 'Renamed backups' },
+    });
+    fireEvent.click(getTestButton());
+    await screen.findByRole('button', { name: 'Save' });
+
+    fireEvent.change(getProviderField('Endpoint'), {
+      target: { value: 'https://moved.example.com' },
+    });
+
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
+    expect(getTestButton().disabled).toBe(true);
+  });
+
+  it('removes the message and offers the test when the S3 endpoint returns to the saved value', () => {
+    renderSavedStorageForm(savedS3AtEndpoint);
+
+    fireEvent.change(getProviderField('Endpoint'), {
+      target: { value: 'https://moved.example.com' },
+    });
+    fireEvent.change(getProviderField('Endpoint'), {
+      target: { value: 'https://s3.example.com' },
+    });
+
+    expect(screen.queryByText(addressChangedMessage)).toBeNull();
+    expect(getTestButton().disabled).toBe(false);
+  });
+
+  it('keeps the typed password in the test request when the FTP host returns to the saved value', async () => {
+    const sentTests: ApiComponents['schemas']['StorageSettingsTest'][] = [];
+    mockServer.use(
+      http.post(`*${API_BASE_PATH}/storage-tests`, async ({ request }) => {
+        sentTests.push((await request.json()) as ApiComponents['schemas']['StorageSettingsTest']);
+
+        return HttpResponse.json({ isConnected: true });
+      }),
+    );
+    renderSavedStorageForm(savedFtp);
+
+    fireEvent.change(getProviderField('Host'), { target: { value: 'moved.example.com' } });
+    fireEvent.change(getProviderField('Password'), { target: { value: 'typed-password' } });
+    expect(screen.queryByText(addressChangedMessage)).toBeNull();
+
+    fireEvent.change(getProviderField('Host'), { target: { value: 'ftp.example.com' } });
+    expect((getProviderField('Password') as HTMLInputElement).value).toBe('typed-password');
+
+    fireEvent.click(getTestButton());
+
+    await waitFor(() => expect(sentTests).toHaveLength(1));
+    expect(sentTests[0].settings).toMatchObject({ password: 'typed-password' });
+  });
+
+  it('offers the test without a password when only the FTP path changes', async () => {
+    const sentTests: ApiComponents['schemas']['StorageSettingsTest'][] = [];
+    mockServer.use(
+      http.post(`*${API_BASE_PATH}/storage-tests`, async ({ request }) => {
+        sentTests.push((await request.json()) as ApiComponents['schemas']['StorageSettingsTest']);
+
+        return HttpResponse.json({ isConnected: true });
+      }),
+    );
+    renderSavedStorageForm(savedFtp);
+
+    fireEvent.change(getProviderField('Path'), { target: { value: '/moved' } });
+
+    expect(screen.queryByText(addressChangedMessage)).toBeNull();
+    fireEvent.click(getTestButton());
+
+    await waitFor(() => expect(sentTests).toHaveLength(1));
+    expect(sentTests[0].settings).not.toHaveProperty('password');
+  });
+
+  it.each([
+    { provider: 'FTP', saved: savedFtp, label: 'Port', movedValue: '2121' },
+    { provider: 'NAS', saved: savedNas, label: 'Host', movedValue: 'moved.example.com' },
+    { provider: 'NAS', saved: savedNas, label: 'Port', movedValue: '1445' },
+  ])(
+    'shows the message under the password and offers no test when the $label of a $provider storage changes',
+    ({ saved, label, movedValue }) => {
+      renderSavedStorageForm(saved);
+
+      fireEvent.change(getProviderField(label), { target: { value: movedValue } });
+
+      expect(screen.getAllByText(addressChangedMessage)).toHaveLength(1);
+      expect(getTestButton().disabled).toBe(true);
+    },
+  );
+
+  it('asks only for the private key when an SFTP storage moves with only that method selected', async () => {
+    const { user } = renderSavedStorageForm(savedSftpStorage(['PASSWORD', 'PRIVATE_KEY']));
+
+    fireEvent.change(getProviderField('Host'), { target: { value: 'moved.example.com' } });
+    expect(screen.getAllByText(addressChangedMessage)).toHaveLength(2);
+    expect(screen.queryByText(en.storages.edit.sftp.savedPassword)).toBeNull();
+
+    await selectSftpMethods(user, 'Private key');
+
+    expect(screen.getAllByText(addressChangedMessage)).toHaveLength(1);
+    expect(screen.queryByText(en.storages.edit.sftp.savedPrivateKey)).toBeNull();
+    expect(screen.queryByLabelText('Password', { exact: true })).toBeNull();
+    expect(getTestButton().disabled).toBe(true);
+  });
+
+  it('shows the saved credential text again when the SFTP host returns to the saved value', () => {
+    const storage = savedSftpStorage(['PASSWORD']);
+    renderSavedStorageForm(storage);
+    const savedHost = (getProviderField('Host') as HTMLInputElement).value;
+
+    fireEvent.change(getProviderField('Host'), { target: { value: 'moved.example.com' } });
+    fireEvent.change(getProviderField('Host'), { target: { value: savedHost } });
+
+    expect(screen.queryByText(addressChangedMessage)).toBeNull();
+    expect(screen.getByText(en.storages.edit.sftp.savedPassword)).toBeTruthy();
+    expect(getTestButton().disabled).toBe(false);
+  });
+
+  it.each([
+    { label: 'Endpoint', movedValue: 'https://moved.example.com' },
+    { label: 'Account name', movedValue: 'movedaccount' },
+  ])(
+    'shows the message under the account key and offers no test when the Azure $label changes',
+    ({ label, movedValue }) => {
+      renderSavedStorageForm(savedAzureWithAccountKey);
+
+      fireEvent.change(getProviderField(label), { target: { value: movedValue } });
+
+      expect(screen.getAllByText(addressChangedMessage)).toHaveLength(1);
+      expect(getTestButton().disabled).toBe(true);
+    },
+  );
+
+  it('asks for nothing when the Azure account name is left empty', () => {
+    renderSavedStorageForm(
+      savedStorageWith({
+        type: 'AZURE_BLOB',
+        authMethod: 'ACCOUNT_KEY',
+        containerName: 'backups',
+      }),
+    );
+
+    fireEvent.change(getProviderField('Container name'), { target: { value: 'moved-container' } });
+
+    expect(screen.queryByText(addressChangedMessage)).toBeNull();
+    expect(getTestButton().disabled).toBe(false);
+  });
+
+  it('asks for no secret when the endpoint of an Azure storage with a connection string changes', () => {
+    renderSavedStorageForm(savedAzureWithConnectionString);
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Account key' }));
+    fireEvent.change(getProviderField('Endpoint'), {
+      target: { value: 'https://moved.example.com' },
+    });
+    fireEvent.click(screen.getByRole('radio', { name: 'Connection string' }));
+
+    expect(screen.queryByText(addressChangedMessage)).toBeNull();
+    expect(getTestButton().disabled).toBe(false);
+  });
+});

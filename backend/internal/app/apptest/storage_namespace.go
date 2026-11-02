@@ -71,6 +71,8 @@ func (namespace StorageNamespace) setEndpoint(t *testing.T, owner Session, endpo
 	s3Settings, err := response.JSON200.Settings.AsS3StorageSettings()
 	require.NoError(t, err)
 	s3Settings.S3Endpoint = &endpoint
+	s3Settings.S3AccessKey = new(containers.MinioRootUser)
+	s3Settings.S3SecretKey = new(containers.MinioRootPassword)
 	var settings apiclient.StorageSettings
 	require.NoError(t, settings.FromS3StorageSettings(s3Settings))
 

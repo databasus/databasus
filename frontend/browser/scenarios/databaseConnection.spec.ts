@@ -297,19 +297,19 @@ test('creates a database, edits it and reads it again without any secret', async
   await expect(page.getByLabel('Password', { exact: true })).toHaveValue('');
   await expect(page.getByText('SSH credentials')).toBeVisible();
 
-  await page.getByLabel('Host', { exact: true }).fill('replica.example.com');
+  await page.getByLabel('Username', { exact: true }).fill('replica_user');
   await page.getByRole('button', { name: 'Test connection' }).click();
   await page.getByRole('button', { name: 'Save', exact: true }).click();
 
   await expect(page.getByLabel('Host', { exact: true })).toBeHidden();
-  await expect(page.getByText('replica.example.com')).toBeVisible();
+  await expect(page.getByText('replica_user')).toBeVisible();
   expect(sentBodies[1]).not.toContain(TYPED_PASSWORD);
   expect(sentBodies[1]).not.toContain(TYPED_SSH_PASSWORD);
 
   await page.reload();
   await page.getByText('Config', { exact: true }).click();
 
-  await expect(page.getByText('replica.example.com')).toBeVisible();
+  await expect(page.getByText('replica_user')).toBeVisible();
   await expect(page.getByText(TYPED_PASSWORD)).toHaveCount(0);
   await expect(page.getByText(TYPED_SSH_PASSWORD)).toHaveCount(0);
 });

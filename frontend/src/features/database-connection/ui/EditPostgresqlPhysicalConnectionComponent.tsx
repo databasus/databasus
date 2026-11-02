@@ -37,6 +37,7 @@ const BACKUP_TYPE_TOOLTIP_KEYS: Record<PhysicalDatabaseBackupType, TranslationKe
 export const EditPostgresqlPhysicalConnectionComponent = ({
   settings,
   savedSshTunnel,
+  isAddressChanged,
   hasUserChosenSslMode,
   savedClientCertificate,
   onConnectionChange,
@@ -94,6 +95,7 @@ export const EditPostgresqlPhysicalConnectionComponent = ({
         controlId={controlId}
         engineName={POSTGRESQL_SHORT_NAME}
         values={settings}
+        isAddressChanged={isAddressChanged}
         isDatabaseNameShown={false}
         onHostChange={(rawHost) =>
           onConnectionChange(applyPostgresqlHost(settings, rawHost, hasUserChosenSslMode))
@@ -109,6 +111,7 @@ export const EditPostgresqlPhysicalConnectionComponent = ({
 
       <PostgresqlCertificateFields
         values={settings}
+        isAddressChanged={isAddressChanged}
         savedClientCertificate={savedClientCertificate}
         onChange={(change) => onConnectionChange({ ...settings, ...change })}
       />

@@ -195,7 +195,7 @@ func TestStorageSecretsLifecycle(t *testing.T) {
 				return newS3Settings(t, apiclient.S3StorageSettings{
 					S3Bucket:   "updated-bucket",
 					S3Region:   new("us-west-2"),
-					S3Endpoint: new("https://s3.us-west-2.amazonaws.com"),
+					S3Endpoint: new("https://s3.amazonaws.com"),
 				})
 			},
 			secretColumns: []storedSecretColumn{
@@ -247,7 +247,7 @@ func TestStorageSecretsLifecycle(t *testing.T) {
 				t.Helper()
 
 				return newNasSettings(t, apiclient.NasStorageSettings{
-					Host:     "nas2.example.com",
+					Host:     "nas.example.com",
 					Port:     445,
 					Share:    "backups2",
 					Username: "testuser2",
@@ -302,7 +302,7 @@ func TestStorageSecretsLifecycle(t *testing.T) {
 
 				return newAzureBlobSettings(t, apiclient.AzureBlobStorageSettings{
 					AuthMethod:    apiclient.AzureBlobAuthMethodACCOUNTKEY,
-					AccountName:   new("updatedaccount"),
+					AccountName:   new("testaccount"),
 					ContainerName: "updated-container",
 				})
 			},
@@ -327,8 +327,8 @@ func TestStorageSecretsLifecycle(t *testing.T) {
 				t.Helper()
 
 				return newFtpSettings(t, apiclient.FtpStorageSettings{
-					Host:     "ftp2.example.com",
-					Port:     2121,
+					Host:     "ftp.example.com",
+					Port:     21,
 					Username: "testuser2",
 					Path:     new("/backups2"),
 				})
@@ -363,8 +363,8 @@ func TestStorageSecretsLifecycle(t *testing.T) {
 						apiclient.SftpAuthMethodPASSWORD,
 						apiclient.SftpAuthMethodPRIVATEKEY,
 					},
-					Host:     "sftp2.example.com",
-					Port:     2222,
+					Host:     "sftp.example.com",
+					Port:     22,
 					Username: "testuser2",
 					Path:     new("/backups2"),
 				})

@@ -1,6 +1,7 @@
 package databases_test
 
 import (
+	"encoding/pem"
 	"net"
 	"net/http"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/ssh"
 
 	apiclient "databasus-backend/internal/lib/apiclient"
 	containers "databasus-backend/internal/lib/testcontainers"
@@ -109,6 +111,166 @@ func TestDatabaseSSHTunnel(t *testing.T) {
 		assert.Equal(t, containers.SSHBastionPassword, tm.app.DecryptSecret(t, storedTunnel.SSHPassword))
 	})
 
+	t.Run("returns 400 invalid_request and connects nowhere when the bastion moves without the secrets",
+		func(t *testing.T) {
+			tm := newTeam(t)
+			recorder := startConnectionRecorder(t)
+			createdDatabase := tm.createDatabaseNamed(t, "Bastioned",
+				fromLogicalSettings(t, newBastionedLogicalSettings(topology)))
+			movedLogical := newBastionedLogicalSettings(topology)
+			movedLogical.SshTunnel.Host = new(recorder.host)
+			movedLogical.SshTunnel.Port = new(recorder.port)
+			movedLogical.SshTunnel.Password = nil
+			movedLogical.Password = new(containers.PostgresPassword)
+
+			testResponse, err := tm.owner.Client.TestDatabaseSettingsWithResponse(t.Context(), newSettingsTarget(
+				tm.workspace.Id, &createdDatabase.Id, fromLogicalSettings(t, movedLogical)))
+
+			require.NoError(t, err)
+			requireInvalidField(t, testResponse.StatusCode(), testResponse.Body, "settings.sshTunnel.password")
+
+			movedLogical.Password = nil
+			update := toUpdate(createdDatabase)
+			update.Settings = fromLogicalSettings(t, movedLogical)
+
+			updateResponse := updateDatabase(t, tm.owner, createdDatabase.Id, update)
+
+			requireInvalidField(t, updateResponse.StatusCode(), updateResponse.Body, "settings.password")
+			assert.Zero(t, recorder.getAcceptedCount())
+			assert.Equal(t, new(topology.Bastion.Host),
+				getLogicalSettings(t, getDatabase(t, tm.owner, createdDatabase.Id)).SshTunnel.Host)
+		})
+
+	// The second server publishes no port, so connecting to it proves the backend opened the tunnel
+	// with the stored key.
+	t.Run(
+		"opens the tunnel with the stored key and reaches the new host when the database moves behind the same bastion",
+		func(t *testing.T) {
+			tm := newTeam(t)
+			member := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER)
+			bastionPrivateKey := readBastionTestKey(t)
+			secondServer := startSecondPostgresBehindBastion(t, topology)
+			keyTunnelLogical := newBastionedLogicalSettings(topology)
+			keyTunnelLogical.SshTunnel.AuthType = new(apiclient.SshAuthTypePRIVATEKEY)
+			keyTunnelLogical.SshTunnel.Password = nil
+			keyTunnelLogical.SshTunnel.PrivateKey = new(bastionPrivateKey)
+			createdDatabase := tm.createDatabaseNamed(t, "Bastioned", fromLogicalSettings(t, keyTunnelLogical))
+			movedLogical := keyTunnelLogical
+			movedLogical.Host = secondServer.Host
+			movedLogical.Port = secondServer.Port
+			movedLogical.Password = new(containers.PostgresPassword)
+			movedLogical.SshTunnel.PrivateKey = nil
+
+			testResult := testUnsavedSettings(t, member, newSettingsTarget(
+				tm.workspace.Id, &createdDatabase.Id, fromLogicalSettings(t, movedLogical)))
+
+			assert.True(t, testResult.IsConnected, "%v", testResult.Error)
+
+			update := toUpdate(createdDatabase)
+			update.Settings = fromLogicalSettings(t, movedLogical)
+
+			response := updateDatabase(t, member, createdDatabase.Id, update)
+
+			require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
+			assert.Equal(t, secondServer.Host, getLogicalSettings(t, getDatabase(t, member, createdDatabase.Id)).Host)
+			storedTunnel := getStoredSSHTunnel(t, tm, "databases_postgresql_logical", createdDatabase.Id)
+			assert.Equal(t, bastionPrivateKey, tm.app.DecryptSecret(t, storedTunnel.SSHPrivateKey))
+		},
+	)
+
+	t.Run("removes the stored passphrase when a moved tunnel gets a new key without one", func(t *testing.T) {
+		tm := newTeam(t)
+		member := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER)
+		bastionPrivateKey := readBastionTestKey(t)
+		keyTunnelLogical := newBastionedLogicalSettings(topology)
+		keyTunnelLogical.SshTunnel.AuthType = new(apiclient.SshAuthTypePRIVATEKEY)
+		keyTunnelLogical.SshTunnel.Password = nil
+		keyTunnelLogical.SshTunnel.PrivateKey = new(encryptPrivateKey(t, bastionPrivateKey, "stored-passphrase"))
+		keyTunnelLogical.SshTunnel.PrivateKeyPassphrase = new("stored-passphrase")
+		createdDatabase := tm.createDatabaseNamed(t, "Bastioned by an encrypted key",
+			fromLogicalSettings(t, keyTunnelLogical))
+		movedLogical := keyTunnelLogical
+		movedLogical.Password = new(containers.PostgresPassword)
+		movedLogical.SshTunnel.Host = new(getAnotherNameOfLocalHost(t, topology.Bastion.Host))
+		movedLogical.SshTunnel.PrivateKey = new(bastionPrivateKey)
+		movedLogical.SshTunnel.PrivateKeyPassphrase = nil
+		update := toUpdate(createdDatabase)
+		update.Settings = fromLogicalSettings(t, movedLogical)
+
+		response := updateDatabase(t, member, createdDatabase.Id, update)
+
+		require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
+		storedTunnel := getStoredSSHTunnel(t, tm, "databases_postgresql_logical", createdDatabase.Id)
+		assert.Empty(t, storedTunnel.SSHPrivateKeyPassphrase)
+		assert.Equal(t, bastionPrivateKey, tm.app.DecryptSecret(t, storedTunnel.SSHPrivateKey))
+	})
+
+	t.Run("returns 400 invalid_request when a disabled tunnel with a moved host is turned on without the secrets",
+		func(t *testing.T) {
+			tm := newTeam(t)
+			logical := newLogicalSettings(server)
+			logical.SshTunnel = newStoredSSHTunnel()
+			createdDatabase := tm.createDatabaseNamed(t, "Direct", fromLogicalSettings(t, logical))
+			movedLogical := getLogicalSettings(t, createdDatabase)
+			movedLogical.SshTunnel = newSubmittedSSHTunnelWithoutSecrets()
+			update := toUpdate(createdDatabase)
+			update.Settings = fromLogicalSettings(t, movedLogical)
+
+			moveResponse := updateDatabase(t, tm.owner, createdDatabase.Id, update)
+			require.Equal(t, http.StatusOK, moveResponse.StatusCode(), string(moveResponse.Body))
+
+			enabledLogical := getLogicalSettings(t, getDatabase(t, tm.owner, createdDatabase.Id))
+			enabledLogical.Password = new(containers.PostgresPassword)
+			enabledLogical.SshTunnel.IsEnabled = true
+			update.Settings = fromLogicalSettings(t, enabledLogical)
+
+			enableResponse := updateDatabase(t, tm.owner, createdDatabase.Id, update)
+
+			requireInvalidField(t, enableResponse.StatusCode(), enableResponse.Body, "settings.sshTunnel.privateKey")
+			storedTunnel := getStoredSSHTunnel(t, tm, "databases_postgresql_logical", createdDatabase.Id)
+			assert.Equal(t, "tunnel-private-key-value", tm.app.DecryptSecret(t, storedTunnel.SSHPrivateKey))
+		})
+
+	t.Run("returns 400 invalid_request and keeps the secrets when the tunnel is turned off without the password",
+		func(t *testing.T) {
+			tm := newTeam(t)
+			createdDatabase := tm.createDatabaseNamed(t, "Bastioned",
+				fromLogicalSettings(t, newBastionedLogicalSettings(topology)))
+			directLogical := getLogicalSettings(t, createdDatabase)
+			directLogical.SshTunnel.IsEnabled = false
+			update := toUpdate(createdDatabase)
+			update.Settings = fromLogicalSettings(t, directLogical)
+
+			response := updateDatabase(t, tm.owner, createdDatabase.Id, update)
+
+			requireInvalidField(t, response.StatusCode(), response.Body, "settings.password")
+			assert.True(t, getLogicalSettings(t, getDatabase(t, tm.owner, createdDatabase.Id)).SshTunnel.IsEnabled)
+			storedTunnel := getStoredSSHTunnel(t, tm, "databases_postgresql_logical", createdDatabase.Id)
+			assert.Equal(t, containers.SSHBastionPassword, tm.app.DecryptSecret(t, storedTunnel.SSHPassword))
+		})
+
+	t.Run("removes the ssh secrets when the tunnel is turned off with the password", func(t *testing.T) {
+		tm := newTeam(t)
+		logical := newLogicalSettings(server)
+		logical.SshTunnel = newStoredSSHTunnel()
+		createdDatabase := tm.createDatabaseNamed(t, "Direct", fromLogicalSettings(t, logical))
+		// A database that answers both through a tunnel and directly needs a bastion on the host's
+		// network, and only the stored flag matters to this change.
+		tm.app.ExecuteSQL(t, "UPDATE databases_postgresql_logical SET ssh_is_enabled = TRUE WHERE database_id = ?",
+			createdDatabase.Id)
+		directLogical := newLogicalSettings(server)
+		directLogical.SshTunnel = newDisabledSSHTunnel()
+		update := toUpdate(createdDatabase)
+		update.Settings = fromLogicalSettings(t, directLogical)
+
+		response := updateDatabase(t, tm.owner, createdDatabase.Id, update)
+
+		require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
+		storedTunnel := getStoredSSHTunnel(t, tm, "databases_postgresql_logical", createdDatabase.Id)
+		assert.Empty(t, storedTunnel.SSHPrivateKey)
+		assert.Empty(t, storedTunnel.SSHPrivateKeyPassphrase)
+	})
+
 	t.Run("keeps the tunnel settings in a copy of a bastioned database", func(t *testing.T) {
 		tm := newTeam(t)
 		createdDatabase := tm.createDatabaseNamed(t, "Bastioned to copy",
@@ -204,6 +366,47 @@ func TestDatabaseSSHTunnel(t *testing.T) {
 			assert.NotNil(t, createdPhysical.SystemIdentifier)
 			assert.NotNil(t, createdPhysical.WalSegmentSizeBytes)
 		})
+}
+
+func startSecondPostgresBehindBastion(t *testing.T, topology containers.BastionedDatabase) containers.Endpoint {
+	t.Helper()
+
+	bastionNetworks, err := topology.BastionContainer.Networks(t.Context())
+	require.NoError(t, err)
+	require.Len(t, bastionNetworks, 1)
+
+	return containers.StartPostgresOnNetwork(t, containers.OnNetworkSpec{
+		Image: "postgres:16",
+		Placement: containers.NetworkPlacement{
+			NetworkName: bastionNetworks[0],
+			Alias:       "second-postgres-behind-bastion",
+		},
+	})
+}
+
+func encryptPrivateKey(t *testing.T, privateKey, passphrase string) string {
+	t.Helper()
+
+	rawKey, err := ssh.ParseRawPrivateKey([]byte(privateKey))
+	require.NoError(t, err)
+	encryptedBlock, err := ssh.MarshalPrivateKeyWithPassphrase(rawKey, "", []byte(passphrase))
+	require.NoError(t, err)
+
+	return string(pem.EncodeToMemory(encryptedBlock))
+}
+
+// getAnotherNameOfLocalHost gives a published container a second address, which the resource address
+// comparison sees as a move while the connection still reaches the same container.
+func getAnotherNameOfLocalHost(t *testing.T, host string) string {
+	t.Helper()
+
+	require.Contains(t, []string{"localhost", "127.0.0.1"}, host)
+
+	if host == "localhost" {
+		return "127.0.0.1"
+	}
+
+	return "localhost"
 }
 
 func newBastionTunnel(topology containers.BastionedDatabase) apiclient.SshTunnelSettings {

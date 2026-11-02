@@ -30,10 +30,11 @@ func ValidatePostgresqlTLS(settings PostgresqlTLSSettings) error {
 	return nil
 }
 
-// MergeStoredPostgresqlTLS keeps the stored client key when the incoming settings leave it out.
-func MergeStoredPostgresqlTLS(incoming, stored PostgresqlTLSSettings) PostgresqlTLSSettings {
+// MergeStoredPostgresqlTLS keeps the stored client key when the incoming settings leave it out and the
+// database's resource address stays the stored one.
+func MergeStoredPostgresqlTLS(incoming, stored PostgresqlTLSSettings, isAddressChanged bool) PostgresqlTLSSettings {
 	merged := incoming
-	if merged.ClientKey == "" {
+	if merged.ClientKey == "" && !isAddressChanged {
 		merged.ClientKey = stored.ClientKey
 	}
 

@@ -6,10 +6,13 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   DatabaseType,
   type DatabaseSettings,
+  PostgresSslMode,
+  SshTunnelAuthType,
   createDefaultDatabaseSettings,
 } from '@/entities/databases';
 import { API_BASE_PATH, type ApiComponents } from '@/shared/api';
 import { useLocale } from '@/shared/i18n';
+import { en } from '@/shared/i18n/locales/en';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { watchNoticeTimer } from '@/shared/lib/test/noticeTimer';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
@@ -261,6 +264,7 @@ describe('DatabaseConnectionForm', () => {
       throw new Error('refused');
     });
     fireEvent.change(getHostInput(), { target: { value: 'replica.example.com' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'replica-password' } });
     clickTest();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Submit draft' }));
@@ -308,5 +312,230 @@ describe('DatabaseConnectionForm', () => {
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
     expect(onSubmit.mock.calls[0][0]).toEqual(draft);
     expect(onSubmit.mock.calls[0][0]).not.toBe(draft);
+  });
+});
+
+describe('DatabaseConnectionForm address change', () => {
+  const addressChangedMessage = en.common.messages.addressChangedEnterSecretAgain;
+
+  const savedMysqlBehindTunnel: DatabaseSettings = {
+    ...savedMysqlSettings,
+    sshTunnel: {
+      isEnabled: true,
+      host: 'bastion.example.com',
+      port: 22,
+      username: 'tunnel',
+      authType: SshTunnelAuthType.PRIVATE_KEY,
+    },
+  };
+
+  const savedPhysicalWithClientCertificate: DatabaseSettings = {
+    ...savedPhysicalSettings,
+    sslMode: PostgresSslMode.Require,
+    sslClientCert: 'saved-client-certificate',
+  };
+
+  const getTestButton = () =>
+    screen.getByRole('button', { name: /Test connection$/ }) as HTMLButtonElement;
+
+  const changeField = (label: string, value: string) =>
+    fireEvent.change(screen.getByLabelText(label), { target: { value } });
+
+  it('asks for the password and offers no test when the port changes', () => {
+    renderEditableForm(buildEditDraft(savedMysqlSettings));
+
+    changeField('Port', '3307');
+
+    expect(screen.getAllByText(addressChangedMessage)).toHaveLength(1);
+    expect(getTestButton().disabled).toBe(true);
+  });
+
+  it('tests with the new user name and no password when only the user name changes', async () => {
+    const sentTests: ApiComponents['schemas']['DatabaseSettingsTarget'][] = [];
+    mockServer.use(
+      http.post(`*${API_BASE_PATH}/database-tests`, async ({ request }) => {
+        sentTests.push(
+          (await request.json()) as ApiComponents['schemas']['DatabaseSettingsTarget'],
+        );
+
+        return HttpResponse.json({ isConnected: true });
+      }),
+    );
+    renderEditableForm(buildEditDraft(savedMysqlSettings));
+
+    changeField('Username', 'another-user');
+
+    expect(screen.queryByText(addressChangedMessage)).toBeNull();
+    expect(getTestButton().disabled).toBe(false);
+
+    fireEvent.click(getTestButton());
+
+    await screen.findByRole('button', { name: 'Submit draft' });
+    expect(sentTests[0].databaseId).toBe('database-id');
+    expect(sentTests[0].settings).toMatchObject({ username: 'another-user' });
+    expect(sentTests[0].settings).not.toHaveProperty('password');
+  });
+
+  it('removes the message when the host returns to the saved value', () => {
+    renderEditableForm(buildEditDraft(savedMysqlSettings));
+
+    changeField('Host', 'moved.example.com');
+    expect(getTestButton().disabled).toBe(true);
+
+    changeField('Host', 'db.example.com');
+
+    expect(screen.queryByText(addressChangedMessage)).toBeNull();
+    expect(getTestButton().disabled).toBe(false);
+  });
+
+  it('keeps a typed password when the host returns to the saved value', () => {
+    renderEditableForm(buildEditDraft(savedMysqlSettings));
+
+    changeField('Host', 'moved.example.com');
+    changeField('Password', 'typed-password');
+    expect(screen.queryByText(addressChangedMessage)).toBeNull();
+
+    changeField('Host', 'db.example.com');
+
+    expect((screen.getByLabelText('Password') as HTMLInputElement).value).toBe('typed-password');
+  });
+
+  it('leaves the stored state and asks for both secrets when the tunnel moves', () => {
+    renderEditableForm(buildEditDraft(savedMysqlBehindTunnel));
+    expect(screen.getByRole('button', { name: 'Replace' })).toBeTruthy();
+
+    changeField('SSH host', 'moved-bastion.example.com');
+
+    expect(screen.queryByRole('button', { name: 'Replace' })).toBeNull();
+    expect(screen.getAllByText(addressChangedMessage)).toHaveLength(2);
+    expect(getTestButton().disabled).toBe(true);
+
+    changeField('SSH private key', 'typed-key');
+    expect(screen.getAllByText(addressChangedMessage)).toHaveLength(1);
+    expect(getTestButton().disabled).toBe(true);
+
+    changeField('Password', 'typed-password');
+    expect(screen.queryByText(addressChangedMessage)).toBeNull();
+    expect(getTestButton().disabled).toBe(false);
+  });
+
+  it('brings the stored state back when the tunnel returns to the saved host', () => {
+    renderEditableForm(buildEditDraft(savedMysqlBehindTunnel));
+
+    changeField('SSH port', '2222');
+    changeField('SSH port', '22');
+
+    expect(screen.getByRole('button', { name: 'Replace' })).toBeTruthy();
+    expect(screen.queryByText(addressChangedMessage)).toBeNull();
+    expect(getTestButton().disabled).toBe(false);
+  });
+
+  it('asks for the SSH password without the message when a disabled tunnel is turned on', () => {
+    renderEditableForm(
+      buildEditDraft({
+        ...savedMysqlSettings,
+        sshTunnel: { isEnabled: false, authType: SshTunnelAuthType.PASSWORD },
+      }),
+    );
+    fireEvent.click(screen.getByText('Advanced settings'));
+
+    fireEvent.click(screen.getByLabelText('SSH tunnel'));
+    changeField('SSH host', 'bastion.example.com');
+    changeField('SSH username', 'tunnel');
+
+    expect((screen.getByLabelText('SSH password') as HTMLInputElement).value).toBe('');
+    expect(screen.getAllByText(addressChangedMessage)).toHaveLength(1);
+    expect(screen.getByLabelText('Password').getAttribute('aria-describedby')).toBeTruthy();
+    expect(screen.getByLabelText('SSH password').getAttribute('aria-describedby')).toBeNull();
+    expect(getTestButton().disabled).toBe(true);
+
+    changeField('Password', 'typed-password');
+    expect(getTestButton().disabled).toBe(true);
+
+    changeField('SSH password', 'typed-ssh-password');
+    expect(getTestButton().disabled).toBe(false);
+  });
+
+  it('hides the SSH fields and asks for the password when the tunnel is turned off', () => {
+    renderEditableForm(buildEditDraft(savedMysqlBehindTunnel));
+
+    fireEvent.click(screen.getByLabelText('SSH tunnel'));
+
+    expect(screen.queryByLabelText('SSH host')).toBeNull();
+    expect(screen.getAllByText(addressChangedMessage)).toHaveLength(1);
+    expect(getTestButton().disabled).toBe(true);
+  });
+
+  it('keeps the SSH stored state and asks for the password when the database moves behind the same tunnel', () => {
+    renderEditableForm(buildEditDraft(savedMysqlBehindTunnel));
+
+    changeField('Host', 'moved.example.com');
+
+    expect(screen.getByRole('button', { name: 'Replace' })).toBeTruthy();
+    expect(screen.getAllByText(addressChangedMessage)).toHaveLength(1);
+    expect(getTestButton().disabled).toBe(true);
+
+    changeField('Password', 'typed-password');
+
+    expect(screen.queryByText(addressChangedMessage)).toBeNull();
+    expect(getTestButton().disabled).toBe(false);
+  });
+
+  it('shows an empty client key field under the stored certificate when the host moves', () => {
+    renderEditableForm(buildEditDraft(savedPhysicalWithClientCertificate));
+    expect(screen.queryByLabelText('Client key')).toBeNull();
+
+    changeField('Host', 'moved.example.com');
+    changeField('Password', 'typed-password');
+
+    expect(screen.getByRole('button', { name: 'Replace' })).toBeTruthy();
+    expect((screen.getByLabelText('Client key') as HTMLTextAreaElement).value).toBe('');
+    expect(screen.getAllByText(addressChangedMessage)).toHaveLength(1);
+    expect(getTestButton().disabled).toBe(true);
+
+    changeField('Client key', 'typed-key');
+
+    expect(screen.queryByText(addressChangedMessage)).toBeNull();
+    expect(getTestButton().disabled).toBe(false);
+  });
+
+  it('shows only the stored certificate when the host returns to the saved value', () => {
+    renderEditableForm(buildEditDraft(savedPhysicalWithClientCertificate));
+
+    changeField('Host', 'moved.example.com');
+    changeField('Host', 'db.example.com');
+
+    expect(screen.getByRole('button', { name: 'Replace' })).toBeTruthy();
+    expect(screen.queryByLabelText('Client key')).toBeNull();
+    expect(getTestButton().disabled).toBe(false);
+  });
+
+  it('keeps a typed client key in view when the host returns to the saved value', () => {
+    renderEditableForm(buildEditDraft(savedPhysicalWithClientCertificate));
+
+    changeField('Host', 'moved.example.com');
+    changeField('Client key', 'typed-key');
+    changeField('Host', 'db.example.com');
+
+    expect((screen.getByLabelText('Client key') as HTMLTextAreaElement).value).toBe('typed-key');
+  });
+
+  it('asks for no client key when the certificates are replaced with nothing at a moved host', () => {
+    renderEditableForm(buildEditDraft(savedPhysicalWithClientCertificate));
+
+    changeField('Host', 'moved.example.com');
+    changeField('Password', 'typed-password');
+    fireEvent.click(screen.getByRole('button', { name: 'Replace' }));
+
+    expect(screen.queryByText(addressChangedMessage)).toBeNull();
+    expect(getTestButton().disabled).toBe(false);
+  });
+
+  it('asks for no secret again in the create scenario', () => {
+    renderEditableForm(buildCreateDraft(savedMysqlSettings));
+
+    changeField('Host', 'moved.example.com');
+
+    expect(screen.queryByText(addressChangedMessage)).toBeNull();
   });
 });

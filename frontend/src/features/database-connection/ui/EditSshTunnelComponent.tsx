@@ -11,6 +11,8 @@ import {
   hasStoredSshTunnelSecretsForAuthType,
   setSshTunnelAuthTypeAndClearUnusedSecrets,
 } from '../../../entities/databases';
+import { AddressChangedSecretNoticeComponent } from '../../../shared/ui';
+import { isSshTunnelAddressChanged } from '../lib/isSshTunnelAddressChanged';
 import { ConnectionFieldRow } from './ConnectionFieldRow';
 import { ConnectionFieldTooltip } from './ConnectionFieldTooltip';
 
@@ -57,18 +59,28 @@ export const EditSshTunnelComponent = ({ sshTunnel, savedSshTunnel, onChange }: 
       label={t('databases.sshTunnel.password')}
       controlId={`${controlId}-password`}
     >
-      <Input.Password
-        id={`${controlId}-password`}
-        value={currentTunnel.password}
-        onChange={(e) => updateField('password', e.target.value)}
-        size="small"
-        className="mb-2 w-full max-w-[200px]"
-        placeholder={t('databases.sshTunnel.passwordPlaceholder')}
-        autoComplete="off"
-        data-1p-ignore
-        data-lpignore="true"
-        data-form-type="other"
-      />
+      <div className="mb-2 w-full max-w-[200px]">
+        <Input.Password
+          id={`${controlId}-password`}
+          aria-describedby={
+            isMovedFromSavedAddress && !currentTunnel.password
+              ? `${controlId}-password-notice`
+              : undefined
+          }
+          value={currentTunnel.password}
+          onChange={(e) => updateField('password', e.target.value)}
+          size="small"
+          className="w-full"
+          placeholder={t('databases.sshTunnel.passwordPlaceholder')}
+          autoComplete="off"
+          data-1p-ignore
+          data-lpignore="true"
+          data-form-type="other"
+        />
+        {isMovedFromSavedAddress && !currentTunnel.password && (
+          <AddressChangedSecretNoticeComponent id={`${controlId}-password-notice`} />
+        )}
+      </div>
     </ConnectionFieldRow>
   );
 
@@ -79,16 +91,26 @@ export const EditSshTunnelComponent = ({ sshTunnel, savedSshTunnel, onChange }: 
         controlId={`${controlId}-private-key`}
         isTopAligned
       >
-        <Input.TextArea
-          id={`${controlId}-private-key`}
-          value={currentTunnel.privateKey}
-          onChange={(e) => updateField('privateKey', e.target.value)}
-          size="small"
-          className="w-full max-w-[200px]"
-          // eslint-disable-next-line i18next/no-literal-string -- key format example, not copy
-          placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
-          autoSize={{ minRows: 2, maxRows: 5 }}
-        />
+        <div className="w-full max-w-[200px]">
+          <Input.TextArea
+            id={`${controlId}-private-key`}
+            aria-describedby={
+              isMovedFromSavedAddress && !currentTunnel.privateKey
+                ? `${controlId}-private-key-notice`
+                : undefined
+            }
+            value={currentTunnel.privateKey}
+            onChange={(e) => updateField('privateKey', e.target.value)}
+            size="small"
+            className="w-full"
+            // eslint-disable-next-line i18next/no-literal-string -- key format example, not copy
+            placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
+            autoSize={{ minRows: 2, maxRows: 5 }}
+          />
+          {isMovedFromSavedAddress && !currentTunnel.privateKey && (
+            <AddressChangedSecretNoticeComponent id={`${controlId}-private-key-notice`} />
+          )}
+        </div>
       </ConnectionFieldRow>
 
       <ConnectionFieldRow
@@ -122,10 +144,11 @@ export const EditSshTunnelComponent = ({ sshTunnel, savedSshTunnel, onChange }: 
   // A saved database without a tunnel comes back as only the switch, so enabling it starts from
   // the defaults.
   const currentTunnel = { ...createEmptySshTunnelSettings(), ...sshTunnel };
-  const hasStoredSecrets = hasStoredSshTunnelSecretsForAuthType(
-    savedSshTunnel,
-    currentTunnel.authType,
-  );
+  const isAddressChanged = isSshTunnelAddressChanged(currentTunnel, savedSshTunnel);
+  const isMovedFromSavedAddress = isAddressChanged && !!savedSshTunnel?.isEnabled;
+  const hasStoredSecrets =
+    !isAddressChanged &&
+    hasStoredSshTunnelSecretsForAuthType(savedSshTunnel, currentTunnel.authType);
   // This component leaves the screen with the advanced settings, so the typed value itself tells
   // that a replacement is under way when it comes back.
   const hasTypedSecrets =

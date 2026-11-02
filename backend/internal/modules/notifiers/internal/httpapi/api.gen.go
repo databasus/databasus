@@ -473,7 +473,7 @@ type NotifierSettings struct {
 
 // NotifierSettingsTest Settings to send a test message with
 type NotifierSettingsTest struct {
-	// NotifierId A saved notifier of the workspace whose stored secrets fill the ones left out
+	// NotifierId A saved notifier of the workspace whose stored secrets fill the ones left out at its resource address
 	NotifierId *openapi_types.UUID `json:"notifierId,omitempty"`
 
 	// Settings The settings of the notifier's channel; `type` tells the channels apart
@@ -593,7 +593,7 @@ type WebhookHeader struct {
 	// Name The name of the header
 	Name string `json:"name"`
 
-	// Value The value; left out on a change, it keeps the stored value of the header with this name
+	// Value The value; left out on a change at the same URL, it keeps the stored value of the header with this name
 	Value *string `json:"value,omitempty"`
 }
 
@@ -1280,6 +1280,20 @@ func (response TestNotifierSettings401ApplicationProblemPlusJSONResponse) VisitT
 	}
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type TestNotifierSettings403ApplicationProblemPlusJSONResponse Problem
+
+func (response TestNotifierSettings403ApplicationProblemPlusJSONResponse) VisitTestNotifierSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
 	_, err := buf.WriteTo(w)
 	return err
 }

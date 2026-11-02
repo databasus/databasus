@@ -989,6 +989,9 @@ describe('DatabaseConfigComponent', () => {
       fireEvent.change(getInputByPlaceholder(/host$/), {
         target: { value: 'replica.example.com' },
       });
+      fireEvent.change(screen.getByLabelText('Password'), {
+        target: { value: 'replica-password' },
+      });
 
       clickTest();
       await clickSave();

@@ -276,7 +276,7 @@ func TestMergeStoredSecrets(t *testing.T) {
 		storedSettings := newBotSettings("https://mm.example.com")
 		storedSettings.BotToken = "stored-token"
 		storedSettings.WebhookURL = "https://mm.example.com/hooks/stored"
-		incomingSettings := newBotSettings("https://mm.internal.example.com")
+		incomingSettings := newBotSettings("https://mm.example.com")
 		incomingSettings.BotToken = ""
 		incomingSettings.TargetChannelID = strings.Repeat("d", channelIDLength)
 		incomingSettings.OverrideUsername = "Databasus"
@@ -291,9 +291,29 @@ func TestMergeStoredSecrets(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "stored-token", mergedMattermostSettings.BotToken)
 		assert.Equal(t, "https://mm.example.com/hooks/stored", mergedMattermostSettings.WebhookURL)
-		assert.Equal(t, "https://mm.internal.example.com", mergedMattermostSettings.ServerURL)
+		assert.Equal(t, "https://mm.example.com", mergedMattermostSettings.ServerURL)
 		assert.Equal(t, strings.Repeat("d", channelIDLength), mergedMattermostSettings.TargetChannelID)
 		assert.Equal(t, "Databasus", mergedMattermostSettings.OverrideUsername)
+	})
+
+	t.Run("keeps the webhook url and leaves the bot token empty when the server url changes", func(t *testing.T) {
+		t.Parallel()
+		storedSettings := newBotSettings("https://mm.example.com")
+		storedSettings.BotToken = "stored-token"
+		storedSettings.WebhookURL = "https://mm.example.com/hooks/stored"
+		incomingSettings := newBotSettings("https://moved.example.com")
+		incomingSettings.BotToken = ""
+
+		mergedSettings, err := newProvider(t).MergeStoredSecrets(providers.SecretMerge{
+			Incoming: incomingSettings,
+			Stored:   storedSettings,
+		})
+
+		require.NoError(t, err)
+		mergedMattermostSettings, err := providers.CastSettings[mattermost.Settings](mergedSettings)
+		require.NoError(t, err)
+		assert.Empty(t, mergedMattermostSettings.BotToken)
+		assert.Equal(t, "https://mm.example.com/hooks/stored", mergedMattermostSettings.WebhookURL)
 	})
 }
 

@@ -101,7 +101,13 @@ func (p *Provider) MergeStoredSecrets(merge providers.SecretMerge) (providers.Se
 		return nil, err
 	}
 
-	if incomingSettings.BotToken == "" {
+	// The stored proxy URL is encrypted, and it is never compared with one in the request, so that an
+	// answer cannot tell a caller whether a guessed URL matches it.
+	isAddressChanged := incomingSettings.BotAPIURL != storedSettings.BotAPIURL ||
+		incomingSettings.IsProxyEnabled != storedSettings.IsProxyEnabled ||
+		incomingSettings.ProxyURL != ""
+
+	if incomingSettings.BotToken == "" && !isAddressChanged {
 		incomingSettings.BotToken = storedSettings.BotToken
 	}
 

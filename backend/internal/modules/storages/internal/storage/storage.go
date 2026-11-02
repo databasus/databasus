@@ -33,7 +33,7 @@ type Creation struct {
 }
 
 // Change replaces the name and the settings of a storage. A secret the settings leave out keeps its
-// stored value.
+// stored value while the resource address stays the stored one.
 type Change struct {
 	StorageID uuid.UUID
 	Name      string

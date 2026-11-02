@@ -3,7 +3,7 @@ import { AutoComplete, Checkbox, Input, Tooltip } from 'antd';
 import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { AdvancedSettingsToggleComponent } from '@/shared/ui';
+import { AddressChangedSecretNoticeComponent, AdvancedSettingsToggleComponent } from '@/shared/ui';
 
 import {
   S3_STORAGE_CLASS_LABEL_KEYS,
@@ -15,14 +15,25 @@ import { toOptionalValue } from '../../../../../shared/lib';
 interface Props {
   settings: S3StorageSettings;
   isSaved: boolean;
+  isAddressChanged: boolean;
   onChange: (settings: S3StorageSettings) => void;
   // The error of the latest failed connection test.
   connectionError?: string;
 }
 
-export function EditS3StorageComponent({ settings, isSaved, onChange, connectionError }: Props) {
+export function EditS3StorageComponent({
+  settings,
+  isSaved,
+  isAddressChanged,
+  onChange,
+  connectionError,
+}: Props) {
   const { t } = useTranslation();
   const { locale } = useLocale();
+  const accessKeyNoticeId = useId();
+  const secretKeyNoticeId = useId();
+  const isAccessKeyRequiredAgain = isAddressChanged && !settings.s3AccessKey;
+  const isSecretKeyRequiredAgain = isAddressChanged && !settings.s3SecretKey;
   const hasAdvancedValues =
     !!settings.s3Prefix ||
     !!settings.isVirtualHostedStyle ||
@@ -85,40 +96,52 @@ export function EditS3StorageComponent({ settings, isSaved, onChange, connection
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.accessKey')}</div>
-        <Input.Password
-          aria-label={t('storages.fields.accessKey')}
-          value={settings.s3AccessKey || ''}
-          onChange={(e) => {
-            onChange({ ...settings, s3AccessKey: toOptionalValue(e.target.value.trim()) });
-          }}
-          size="small"
-          className="w-full max-w-[250px]"
-          // eslint-disable-next-line i18next/no-literal-string -- AWS example access key
-          placeholder="AKIAIOSFODNN7EXAMPLE"
-          autoComplete="off"
-          data-1p-ignore
-          data-lpignore="true"
-          data-form-type="other"
-        />
+        <div className="w-full max-w-[250px]">
+          <Input.Password
+            aria-label={t('storages.fields.accessKey')}
+            aria-describedby={isAccessKeyRequiredAgain ? accessKeyNoticeId : undefined}
+            value={settings.s3AccessKey || ''}
+            onChange={(e) => {
+              onChange({ ...settings, s3AccessKey: toOptionalValue(e.target.value.trim()) });
+            }}
+            size="small"
+            className="w-full"
+            // eslint-disable-next-line i18next/no-literal-string -- AWS example access key
+            placeholder="AKIAIOSFODNN7EXAMPLE"
+            autoComplete="off"
+            data-1p-ignore
+            data-lpignore="true"
+            data-form-type="other"
+          />
+          {isAccessKeyRequiredAgain && (
+            <AddressChangedSecretNoticeComponent id={accessKeyNoticeId} />
+          )}
+        </div>
       </div>
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.secretKey')}</div>
-        <Input.Password
-          aria-label={t('storages.fields.secretKey')}
-          value={settings.s3SecretKey || ''}
-          onChange={(e) => {
-            onChange({ ...settings, s3SecretKey: toOptionalValue(e.target.value.trim()) });
-          }}
-          size="small"
-          autoComplete="off"
-          data-1p-ignore
-          data-lpignore="true"
-          data-form-type="other"
-          className="w-full max-w-[250px]"
-          // eslint-disable-next-line i18next/no-literal-string -- AWS example secret key
-          placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-        />
+        <div className="w-full max-w-[250px]">
+          <Input.Password
+            aria-label={t('storages.fields.secretKey')}
+            aria-describedby={isSecretKeyRequiredAgain ? secretKeyNoticeId : undefined}
+            value={settings.s3SecretKey || ''}
+            onChange={(e) => {
+              onChange({ ...settings, s3SecretKey: toOptionalValue(e.target.value.trim()) });
+            }}
+            size="small"
+            autoComplete="off"
+            data-1p-ignore
+            data-lpignore="true"
+            data-form-type="other"
+            className="w-full"
+            // eslint-disable-next-line i18next/no-literal-string -- AWS example secret key
+            placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+          />
+          {isSecretKeyRequiredAgain && (
+            <AddressChangedSecretNoticeComponent id={secretKeyNoticeId} />
+          )}
+        </div>
       </div>
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">

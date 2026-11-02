@@ -9,16 +9,23 @@ import {
   validateTelegramNotifier,
   validateWebhookNotifier,
 } from '../../../entities/notifiers';
+import { isNotifierAddressChanged } from './isNotifierAddressChanged';
 
-// A saved notifier may leave its secrets empty, because the backend keeps the stored ones.
-export const isNotifierSettingsFilled = (settings: NotifierSettings, isSaved: boolean): boolean => {
+// A saved notifier may leave its secrets empty, because the backend keeps the stored ones, except
+// those a changed resource address must get again.
+export const isNotifierSettingsFilled = (
+  settings: NotifierSettings,
+  isSaved: boolean,
+  savedSettings?: NotifierSettings,
+): boolean => {
   const isCreate = !isSaved;
+  const isAddressChanged = isNotifierAddressChanged(settings, savedSettings);
 
   switch (settings.type) {
     case NotifierType.EMAIL:
-      return validateEmailNotifier(settings);
+      return validateEmailNotifier(settings, isAddressChanged);
     case NotifierType.TELEGRAM:
-      return validateTelegramNotifier(isCreate, settings);
+      return validateTelegramNotifier(isCreate, settings, isAddressChanged);
     case NotifierType.SLACK:
       return validateSlackNotifier(isCreate, settings);
     case NotifierType.DISCORD:
@@ -26,8 +33,13 @@ export const isNotifierSettingsFilled = (settings: NotifierSettings, isSaved: bo
     case NotifierType.TEAMS:
       return validateTeamsNotifier(isCreate, settings);
     case NotifierType.MATTERMOST:
-      return validateMattermostNotifier(isCreate, settings);
+      return validateMattermostNotifier(isCreate, settings, isAddressChanged);
     case NotifierType.WEBHOOK:
-      return validateWebhookNotifier(settings);
+      return validateWebhookNotifier(
+        settings,
+        isAddressChanged && savedSettings?.type === NotifierType.WEBHOOK
+          ? savedSettings.headers
+          : [],
+      );
   }
 };

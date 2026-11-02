@@ -68,7 +68,8 @@ func (p *Provider) Validate(settings providers.Settings) error {
 }
 
 // MergeStoredSecrets gives a header sent without a value the stored value of the header with the
-// same name. A header the incoming settings leave out is removed.
+// same name, and refuses such a header at another URL, because Validate accepts a header without a
+// value. A header the incoming settings leave out is removed.
 func (p *Provider) MergeStoredSecrets(merge providers.SecretMerge) (providers.Settings, error) {
 	incomingSettings, err := providers.CastSettings[Settings](merge.Incoming)
 	if err != nil {
@@ -80,13 +81,21 @@ func (p *Provider) MergeStoredSecrets(merge providers.SecretMerge) (providers.Se
 		return nil, err
 	}
 
+	isAddressChanged := incomingSettings.URL != storedSettings.URL
+
 	mergedHeaders := make([]Header, 0, len(incomingSettings.Headers))
-	for _, incomingHeader := range incomingSettings.Headers {
+	for headerIndex, incomingHeader := range incomingSettings.Headers {
 		if incomingHeader.Value == "" {
 			storedHeaderIndex := slices.IndexFunc(storedSettings.Headers, func(storedHeader Header) bool {
-				return strings.EqualFold(storedHeader.Name, incomingHeader.Name)
+				return strings.EqualFold(storedHeader.Name, incomingHeader.Name) && storedHeader.Value != ""
 			})
 			if storedHeaderIndex >= 0 {
+				if isAddressChanged {
+					return nil, providers.NewInvalidSettingError(
+						fmt.Sprintf("headers[%d].value", headerIndex), "must be entered again for the new URL",
+					)
+				}
+
 				incomingHeader.Value = storedSettings.Headers[storedHeaderIndex].Value
 			}
 		}

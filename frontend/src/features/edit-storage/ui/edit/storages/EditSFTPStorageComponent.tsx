@@ -13,17 +13,28 @@ import { AdvancedSettingsToggleComponent } from '../../../../../shared/ui';
 interface Props {
   settings: SftpStorageSettings;
   savedAuthMethods: SftpAuthMethod[];
+  isAddressChanged: boolean;
   onChange: (settings: SftpStorageSettings) => void;
 }
 
-export function EditSFTPStorageComponent({ settings, savedAuthMethods, onChange }: Props) {
+export function EditSFTPStorageComponent({
+  settings,
+  savedAuthMethods,
+  isAddressChanged,
+  onChange,
+}: Props) {
   const [isShowAdvanced, setIsShowAdvanced] = useState(settings.isSkipHostKeyVerify);
   const { t } = useTranslation();
   const controlId = useId();
   const hasPassword = settings.authMethods.includes(SftpAuthMethod.PASSWORD);
   const hasPrivateKey = settings.authMethods.includes(SftpAuthMethod.PRIVATE_KEY);
-  const isPasswordSaved = savedAuthMethods.includes(SftpAuthMethod.PASSWORD);
-  const isPrivateKeySaved = savedAuthMethods.includes(SftpAuthMethod.PRIVATE_KEY);
+  const isPasswordSaved = !isAddressChanged && savedAuthMethods.includes(SftpAuthMethod.PASSWORD);
+  const isPrivateKeySaved =
+    !isAddressChanged && savedAuthMethods.includes(SftpAuthMethod.PRIVATE_KEY);
+  const missingSecretText = (requiredKey: 'requiredPassword' | 'requiredPrivateKey') =>
+    isAddressChanged
+      ? t('common.messages.addressChangedEnterSecretAgain')
+      : t(`storages.edit.sftp.${requiredKey}`);
   const authMethodOptions = [
     { value: SftpAuthMethod.PASSWORD, label: t(SFTP_AUTH_METHOD_LABEL_KEYS.PASSWORD) },
     { value: SftpAuthMethod.PRIVATE_KEY, label: t(SFTP_AUTH_METHOD_LABEL_KEYS.PRIVATE_KEY) },
@@ -94,7 +105,7 @@ export function EditSFTPStorageComponent({ settings, savedAuthMethods, onChange 
               {isPasswordSaved
                 ? t('storages.edit.sftp.savedPassword')
                 : !settings.password
-                  ? t('storages.edit.sftp.requiredPassword')
+                  ? missingSecretText('requiredPassword')
                   : undefined}
             </span>
           }
@@ -123,7 +134,7 @@ export function EditSFTPStorageComponent({ settings, savedAuthMethods, onChange 
               {isPrivateKeySaved
                 ? t('storages.edit.sftp.savedPrivateKey')
                 : !settings.privateKey
-                  ? t('storages.edit.sftp.requiredPrivateKey')
+                  ? missingSecretText('requiredPrivateKey')
                   : t('storages.edit.sftp.privateKeyTooltip')}
             </span>
           }

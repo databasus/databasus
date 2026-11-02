@@ -207,6 +207,61 @@ func TestTestNotifierSettings(t *testing.T) {
 			assert.Empty(t, webhookEndpoint.getRequests())
 		})
 
+	t.Run("returns 403 permission_denied and sends nothing when a viewer tests settings with a saved notifier's id",
+		func(t *testing.T) {
+			tm := newTeam(t)
+			viewer := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
+			viewerEndpoint := startEndpoint(t, http.StatusOK)
+			createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id, newWebhookSettings(t,
+				newPostWebhook("https://hooks.example.com/saved",
+					apiclient.WebhookHeader{Name: "Authorization", Value: optional("Bearer saved-value")})))
+
+			response, err := viewer.Client.TestNotifierSettingsWithResponse(t.Context(),
+				apiclient.NotifierSettingsTest{
+					WorkspaceId: tm.workspace.Id,
+					NotifierId:  &createdNotifier.Id,
+					Settings: newWebhookSettings(t, newPostWebhook(viewerEndpoint.URL,
+						apiclient.WebhookHeader{Name: "Authorization", Value: nil})),
+				})
+
+			require.NoError(t, err)
+			requireProblem(t, response.StatusCode(), response.Body, http.StatusForbidden,
+				apiclient.ProblemCodePermissionDenied)
+			assert.Empty(t, viewerEndpoint.getRequests())
+		})
+
+	t.Run("returns 403 permission_denied when a viewer tests new settings", func(t *testing.T) {
+		tm := newTeam(t)
+		viewer := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
+		viewerEndpoint := startEndpoint(t, http.StatusOK)
+
+		response, err := viewer.Client.TestNotifierSettingsWithResponse(t.Context(), apiclient.NotifierSettingsTest{
+			WorkspaceId: tm.workspace.Id,
+			NotifierId:  nil,
+			Settings:    newWebhookSettings(t, newPostWebhook(viewerEndpoint.URL)),
+		})
+
+		require.NoError(t, err)
+		requireProblem(t, response.StatusCode(), response.Body, http.StatusForbidden,
+			apiclient.ProblemCodePermissionDenied)
+		assert.Empty(t, viewerEndpoint.getRequests())
+	})
+
+	t.Run("reports the outcome when a member tests unsaved settings", func(t *testing.T) {
+		tm := newTeam(t)
+		member := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER)
+		webhookEndpoint := startEndpoint(t, http.StatusOK)
+
+		testResult := testSettings(t, member, apiclient.NotifierSettingsTest{
+			WorkspaceId: tm.workspace.Id,
+			NotifierId:  nil,
+			Settings:    newWebhookSettings(t, newPostWebhook(webhookEndpoint.URL)),
+		})
+
+		assert.True(t, testResult.IsDelivered, "%v", testResult.Error)
+		assert.Len(t, webhookEndpoint.getRequests(), 1)
+	})
+
 	t.Run("returns 404 not_found and sends nothing when the named notifier is of another workspace",
 		func(t *testing.T) {
 			slackAPI := startEndpoint(t, http.StatusOK)

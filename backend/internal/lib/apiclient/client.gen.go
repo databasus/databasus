@@ -2123,7 +2123,7 @@ type DatabaseSettings struct {
 
 // DatabaseSettingsTarget Settings that are not saved, to connect with
 type DatabaseSettingsTarget struct {
-	// DatabaseId A saved database of the workspace whose stored secrets fill the ones left out
+	// DatabaseId A saved database of the workspace whose stored secrets fill the ones left out at its resource address
 	DatabaseId *openapi_types.UUID `json:"databaseId,omitempty"`
 
 	// Settings The settings of the database's type; `type` tells the types apart
@@ -3044,7 +3044,7 @@ type NotifierSettings struct {
 
 // NotifierSettingsTest Settings to send a test message with
 type NotifierSettingsTest struct {
-	// NotifierId A saved notifier of the workspace whose stored secrets fill the ones left out
+	// NotifierId A saved notifier of the workspace whose stored secrets fill the ones left out at its resource address
 	NotifierId *openapi_types.UUID `json:"notifierId,omitempty"`
 
 	// Settings The settings of the notifier's channel; `type` tells the channels apart
@@ -3636,7 +3636,7 @@ type SftpStorageSettings struct {
 	// IsSkipHostKeyVerify Host-key verification preference. The transport currently ignores host keys regardless of this value; credential selection does not establish host authenticity.
 	IsSkipHostKeyVerify bool `json:"isSkipHostKeyVerify"`
 
-	// Password The selected password; omit to retain its stored value
+	// Password The selected password; omit to retain its stored value at the same host and port
 	Password *string `json:"password,omitempty"`
 
 	// Path The folder on the server, absent for the login folder
@@ -3645,7 +3645,7 @@ type SftpStorageSettings struct {
 	// Port The port of the server
 	Port int `json:"port"`
 
-	// PrivateKey The selected private key; omit to retain its stored value
+	// PrivateKey The selected private key; omit to retain its stored value at the same host and port
 	PrivateKey *string `json:"privateKey,omitempty"`
 
 	// Type Always `SFTP`
@@ -3837,7 +3837,7 @@ type StorageSettingsTest struct {
 	// Settings The settings of the storage's provider; `type` tells the providers apart
 	Settings StorageSettings `json:"settings"`
 
-	// StorageId A saved storage of the workspace whose stored secrets fill the ones left out
+	// StorageId A saved storage of the workspace whose stored secrets fill the ones left out at its resource address
 	StorageId *openapi_types.UUID `json:"storageId,omitempty"`
 
 	// WorkspaceId The workspace the test is made in
@@ -4519,7 +4519,7 @@ type WebhookHeader struct {
 	// Name The name of the header
 	Name string `json:"name"`
 
-	// Value The value; left out on a change, it keeps the stored value of the header with this name
+	// Value The value; left out on a change at the same URL, it keeps the stored value of the header with this name
 	Value *string `json:"value,omitempty"`
 }
 
@@ -6526,7 +6526,7 @@ type ClientInterface interface {
 
 	// TestDatabaseSettingsWithBody Test the connection with settings that are not saved
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. Nothing connects on a refusal, and nothing is saved.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. With another resource address than the database's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateDatabase`. Nothing connects on a refusal, and nothing is saved.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -6535,7 +6535,7 @@ type ClientInterface interface {
 
 	// TestDatabaseSettings Test the connection with settings that are not saved
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. Nothing connects on a refusal, and nothing is saved.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. With another resource address than the database's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateDatabase`. Nothing connects on a refusal, and nothing is saved.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -6583,7 +6583,7 @@ type ClientInterface interface {
 
 	// UpdateDatabaseWithBody Replace the name, the settings and the notifiers of a database
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
+	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the address it is used at stays the stored one. The password and the PostgreSQL client key follow the database's resource address: its host, its port, the address of its SSH tunnel and, for MongoDB, the SRV flag. The SSH secrets follow the tunnel's resource address: whether it is enabled, and its host and port while it is. At another address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -6592,7 +6592,7 @@ type ClientInterface interface {
 
 	// UpdateDatabase Replace the name, the settings and the notifiers of a database
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
+	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the address it is used at stays the stored one. The password and the PostgreSQL client key follow the database's resource address: its host, its port, the address of its SSH tunnel and, for MongoDB, the SRV flag. The SSH secrets follow the tunnel's resource address: whether it is enabled, and its host and port while it is. At another address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -6738,7 +6738,7 @@ type ClientInterface interface {
 
 	// CheckLimitedUserWithBody Check whether the connecting user may do more than a backup needs
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. For physical PostgreSQL the check is about a replication-only user, for the other types about a read-only user. A server that cannot be reached gets 400 `database_connection_failed`.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. For physical PostgreSQL the check is about a replication-only user, for the other types about a read-only user. A server that cannot be reached gets 400 `database_connection_failed`.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -6747,7 +6747,7 @@ type ClientInterface interface {
 
 	// CheckLimitedUser Check whether the connecting user may do more than a backup needs
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. For physical PostgreSQL the check is about a replication-only user, for the other types about a read-only user. A server that cannot be reached gets 400 `database_connection_failed`.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. For physical PostgreSQL the check is about a replication-only user, for the other types about a read-only user. A server that cannot be reached gets 400 `database_connection_failed`.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -6756,7 +6756,7 @@ type ClientInterface interface {
 
 	// CreateLimitedUserWithBody Create a limited user on the database's server
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -6765,7 +6765,7 @@ type ClientInterface interface {
 
 	// CreateLimitedUser Create a limited user on the database's server
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -6827,7 +6827,7 @@ type ClientInterface interface {
 
 	// TestNotifierSettingsWithBody Send a test message with settings that are not saved
 	//
-	// Any member of the workspace may test, a viewer included. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace; otherwise the answer is 404 `not_found` and nothing is sent. Nothing is saved, the notifier's `lastSendError` included.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test sends to wherever the request points. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace, or the answer is 404 `not_found`. With another resource address than the notifier's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the backend on a refusal. Nothing is saved, the notifier's `lastSendError` included.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -6836,7 +6836,7 @@ type ClientInterface interface {
 
 	// TestNotifierSettings Send a test message with settings that are not saved
 	//
-	// Any member of the workspace may test, a viewer included. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace; otherwise the answer is 404 `not_found` and nothing is sent. Nothing is saved, the notifier's `lastSendError` included.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test sends to wherever the request points. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace, or the answer is 404 `not_found`. With another resource address than the notifier's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the backend on a refusal. Nothing is saved, the notifier's `lastSendError` included.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -6884,7 +6884,7 @@ type ClientInterface interface {
 
 	// UpdateNotifierWithBody Replace the name and the settings of a notifier
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value, and a webhook header sent without a value keeps the stored value of the header with the same name. Settings of another type than the notifier's get 400 `invalid_request`, because the type is fixed when the notifier is created.
+	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value, and a webhook header sent without a value keeps the stored value of the header with the same name, while the notifier's resource address stays the stored one: the SMTP host and port, the Telegram Bot API URL and proxy, the Mattermost server URL or the webhook URL. With another resource address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the notifier's get 400 `invalid_request`, because the type is fixed when the notifier is created.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -6893,7 +6893,7 @@ type ClientInterface interface {
 
 	// UpdateNotifier Replace the name and the settings of a notifier
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value, and a webhook header sent without a value keeps the stored value of the header with the same name. Settings of another type than the notifier's get 400 `invalid_request`, because the type is fixed when the notifier is created.
+	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value, and a webhook header sent without a value keeps the stored value of the header with the same name, while the notifier's resource address stays the stored one: the SMTP host and port, the Telegram Bot API URL and proxy, the Mattermost server URL or the webhook URL. With another resource address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the notifier's get 400 `invalid_request`, because the type is fixed when the notifier is created.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -7148,7 +7148,7 @@ type ClientInterface interface {
 
 	// TestStorageSettingsWithBody Test the connection with settings that are not saved
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -7157,7 +7157,7 @@ type ClientInterface interface {
 
 	// TestStorageSettings Test the connection with settings that are not saved
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -7205,7 +7205,7 @@ type ClientInterface interface {
 
 	// UpdateStorageWithBody Replace the name and the settings of a storage
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+	// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value while the storage's resource address stays the stored one: the S3 endpoint, the Azure Blob endpoint and account name, or the host and port of FTP, NAS and SFTP. With another resource address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -7214,7 +7214,7 @@ type ClientInterface interface {
 
 	// UpdateStorage Replace the name and the settings of a storage
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+	// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value while the storage's resource address stays the stored one: the S3 endpoint, the Azure Blob endpoint and account name, or the host and port of FTP, NAS and SFTP. With another resource address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -7708,7 +7708,7 @@ func (c *Client) UpdateBackupConfig(ctx context.Context, databaseId BackupConfig
 
 // TestDatabaseSettingsWithBody Test the connection with settings that are not saved
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. Nothing connects on a refusal, and nothing is saved.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. With another resource address than the database's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateDatabase`. Nothing connects on a refusal, and nothing is saved.
 //
 // Takes any type of body and a specified content type.
 //
@@ -7727,7 +7727,7 @@ func (c *Client) TestDatabaseSettingsWithBody(ctx context.Context, contentType s
 
 // TestDatabaseSettings Test the connection with settings that are not saved
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. Nothing connects on a refusal, and nothing is saved.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. With another resource address than the database's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateDatabase`. Nothing connects on a refusal, and nothing is saved.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -7835,7 +7835,7 @@ func (c *Client) GetDatabase(ctx context.Context, databaseId DatabaseId, reqEdit
 
 // UpdateDatabaseWithBody Replace the name, the settings and the notifiers of a database
 //
-// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
+// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the address it is used at stays the stored one. The password and the PostgreSQL client key follow the database's resource address: its host, its port, the address of its SSH tunnel and, for MongoDB, the SRV flag. The SSH secrets follow the tunnel's resource address: whether it is enabled, and its host and port while it is. At another address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
 //
 // Takes any type of body and a specified content type.
 //
@@ -7854,7 +7854,7 @@ func (c *Client) UpdateDatabaseWithBody(ctx context.Context, databaseId Database
 
 // UpdateDatabase Replace the name, the settings and the notifiers of a database
 //
-// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
+// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the address it is used at stays the stored one. The password and the PostgreSQL client key follow the database's resource address: its host, its port, the address of its SSH tunnel and, for MongoDB, the SRV flag. The SSH secrets follow the tunnel's resource address: whether it is enabled, and its host and port while it is. At another address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -8180,7 +8180,7 @@ func (c *Client) UpdateInstanceSettings(ctx context.Context, body UpdateInstance
 
 // CheckLimitedUserWithBody Check whether the connecting user may do more than a backup needs
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. For physical PostgreSQL the check is about a replication-only user, for the other types about a read-only user. A server that cannot be reached gets 400 `database_connection_failed`.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. For physical PostgreSQL the check is about a replication-only user, for the other types about a read-only user. A server that cannot be reached gets 400 `database_connection_failed`.
 //
 // Takes any type of body and a specified content type.
 //
@@ -8199,7 +8199,7 @@ func (c *Client) CheckLimitedUserWithBody(ctx context.Context, contentType strin
 
 // CheckLimitedUser Check whether the connecting user may do more than a backup needs
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. For physical PostgreSQL the check is about a replication-only user, for the other types about a read-only user. A server that cannot be reached gets 400 `database_connection_failed`.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. For physical PostgreSQL the check is about a replication-only user, for the other types about a read-only user. A server that cannot be reached gets 400 `database_connection_failed`.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -8218,7 +8218,7 @@ func (c *Client) CheckLimitedUser(ctx context.Context, body CheckLimitedUserJSON
 
 // CreateLimitedUserWithBody Create a limited user on the database's server
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
 //
 // Takes any type of body and a specified content type.
 //
@@ -8237,7 +8237,7 @@ func (c *Client) CreateLimitedUserWithBody(ctx context.Context, contentType stri
 
 // CreateLimitedUser Create a limited user on the database's server
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -8379,7 +8379,7 @@ func (c *Client) DownloadLogicalBackup(ctx context.Context, backupId BackupId, p
 
 // TestNotifierSettingsWithBody Send a test message with settings that are not saved
 //
-// Any member of the workspace may test, a viewer included. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace; otherwise the answer is 404 `not_found` and nothing is sent. Nothing is saved, the notifier's `lastSendError` included.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test sends to wherever the request points. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace, or the answer is 404 `not_found`. With another resource address than the notifier's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the backend on a refusal. Nothing is saved, the notifier's `lastSendError` included.
 //
 // Takes any type of body and a specified content type.
 //
@@ -8398,7 +8398,7 @@ func (c *Client) TestNotifierSettingsWithBody(ctx context.Context, contentType s
 
 // TestNotifierSettings Send a test message with settings that are not saved
 //
-// Any member of the workspace may test, a viewer included. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace; otherwise the answer is 404 `not_found` and nothing is sent. Nothing is saved, the notifier's `lastSendError` included.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test sends to wherever the request points. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace, or the answer is 404 `not_found`. With another resource address than the notifier's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the backend on a refusal. Nothing is saved, the notifier's `lastSendError` included.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -8506,7 +8506,7 @@ func (c *Client) GetNotifier(ctx context.Context, notifierId NotifierId, reqEdit
 
 // UpdateNotifierWithBody Replace the name and the settings of a notifier
 //
-// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value, and a webhook header sent without a value keeps the stored value of the header with the same name. Settings of another type than the notifier's get 400 `invalid_request`, because the type is fixed when the notifier is created.
+// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value, and a webhook header sent without a value keeps the stored value of the header with the same name, while the notifier's resource address stays the stored one: the SMTP host and port, the Telegram Bot API URL and proxy, the Mattermost server URL or the webhook URL. With another resource address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the notifier's get 400 `invalid_request`, because the type is fixed when the notifier is created.
 //
 // Takes any type of body and a specified content type.
 //
@@ -8525,7 +8525,7 @@ func (c *Client) UpdateNotifierWithBody(ctx context.Context, notifierId Notifier
 
 // UpdateNotifier Replace the name and the settings of a notifier
 //
-// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value, and a webhook header sent without a value keeps the stored value of the header with the same name. Settings of another type than the notifier's get 400 `invalid_request`, because the type is fixed when the notifier is created.
+// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value, and a webhook header sent without a value keeps the stored value of the header with the same name, while the notifier's resource address stays the stored one: the SMTP host and port, the Telegram Bot API URL and proxy, the Mattermost server URL or the webhook URL. With another resource address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the notifier's get 400 `invalid_request`, because the type is fixed when the notifier is created.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -9090,7 +9090,7 @@ func (c *Client) GetStorageSwitch(ctx context.Context, storageSwitchId openapi_t
 
 // TestStorageSettingsWithBody Test the connection with settings that are not saved
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
 //
 // Takes any type of body and a specified content type.
 //
@@ -9109,7 +9109,7 @@ func (c *Client) TestStorageSettingsWithBody(ctx context.Context, contentType st
 
 // TestStorageSettings Test the connection with settings that are not saved
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -9217,7 +9217,7 @@ func (c *Client) GetStorage(ctx context.Context, storageId StorageId, reqEditors
 
 // UpdateStorageWithBody Replace the name and the settings of a storage
 //
-// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value while the storage's resource address stays the stored one: the S3 endpoint, the Azure Blob endpoint and account name, or the host and port of FTP, NAS and SFTP. With another resource address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
 //
 // Takes any type of body and a specified content type.
 //
@@ -9236,7 +9236,7 @@ func (c *Client) UpdateStorageWithBody(ctx context.Context, storageId StorageId,
 
 // UpdateStorage Replace the name and the settings of a storage
 //
-// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value while the storage's resource address stays the stored one: the S3 endpoint, the Azure Blob endpoint and account name, or the host and port of FTP, NAS and SFTP. With another resource address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -14748,7 +14748,7 @@ type ClientWithResponsesInterface interface {
 
 	// TestDatabaseSettingsWithBodyWithResponse Test the connection with settings that are not saved
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. Nothing connects on a refusal, and nothing is saved.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. With another resource address than the database's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateDatabase`. Nothing connects on a refusal, and nothing is saved.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -14757,7 +14757,7 @@ type ClientWithResponsesInterface interface {
 
 	// TestDatabaseSettingsWithResponse Test the connection with settings that are not saved
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. Nothing connects on a refusal, and nothing is saved.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. With another resource address than the database's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateDatabase`. Nothing connects on a refusal, and nothing is saved.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -14811,7 +14811,7 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateDatabaseWithBodyWithResponse Replace the name, the settings and the notifiers of a database
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
+	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the address it is used at stays the stored one. The password and the PostgreSQL client key follow the database's resource address: its host, its port, the address of its SSH tunnel and, for MongoDB, the SRV flag. The SSH secrets follow the tunnel's resource address: whether it is enabled, and its host and port while it is. At another address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -14820,7 +14820,7 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateDatabaseWithResponse Replace the name, the settings and the notifiers of a database
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
+	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the address it is used at stays the stored one. The password and the PostgreSQL client key follow the database's resource address: its host, its port, the address of its SSH tunnel and, for MongoDB, the SRV flag. The SSH secrets follow the tunnel's resource address: whether it is enabled, and its host and port while it is. At another address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -14976,7 +14976,7 @@ type ClientWithResponsesInterface interface {
 
 	// CheckLimitedUserWithBodyWithResponse Check whether the connecting user may do more than a backup needs
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. For physical PostgreSQL the check is about a replication-only user, for the other types about a read-only user. A server that cannot be reached gets 400 `database_connection_failed`.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. For physical PostgreSQL the check is about a replication-only user, for the other types about a read-only user. A server that cannot be reached gets 400 `database_connection_failed`.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -14985,7 +14985,7 @@ type ClientWithResponsesInterface interface {
 
 	// CheckLimitedUserWithResponse Check whether the connecting user may do more than a backup needs
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. For physical PostgreSQL the check is about a replication-only user, for the other types about a read-only user. A server that cannot be reached gets 400 `database_connection_failed`.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. For physical PostgreSQL the check is about a replication-only user, for the other types about a read-only user. A server that cannot be reached gets 400 `database_connection_failed`.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -14994,7 +14994,7 @@ type ClientWithResponsesInterface interface {
 
 	// CreateLimitedUserWithBodyWithResponse Create a limited user on the database's server
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -15003,7 +15003,7 @@ type ClientWithResponsesInterface interface {
 
 	// CreateLimitedUserWithResponse Create a limited user on the database's server
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -15075,7 +15075,7 @@ type ClientWithResponsesInterface interface {
 
 	// TestNotifierSettingsWithBodyWithResponse Send a test message with settings that are not saved
 	//
-	// Any member of the workspace may test, a viewer included. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace; otherwise the answer is 404 `not_found` and nothing is sent. Nothing is saved, the notifier's `lastSendError` included.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test sends to wherever the request points. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace, or the answer is 404 `not_found`. With another resource address than the notifier's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the backend on a refusal. Nothing is saved, the notifier's `lastSendError` included.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -15084,7 +15084,7 @@ type ClientWithResponsesInterface interface {
 
 	// TestNotifierSettingsWithResponse Send a test message with settings that are not saved
 	//
-	// Any member of the workspace may test, a viewer included. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace; otherwise the answer is 404 `not_found` and nothing is sent. Nothing is saved, the notifier's `lastSendError` included.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test sends to wherever the request points. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace, or the answer is 404 `not_found`. With another resource address than the notifier's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the backend on a refusal. Nothing is saved, the notifier's `lastSendError` included.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -15138,7 +15138,7 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateNotifierWithBodyWithResponse Replace the name and the settings of a notifier
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value, and a webhook header sent without a value keeps the stored value of the header with the same name. Settings of another type than the notifier's get 400 `invalid_request`, because the type is fixed when the notifier is created.
+	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value, and a webhook header sent without a value keeps the stored value of the header with the same name, while the notifier's resource address stays the stored one: the SMTP host and port, the Telegram Bot API URL and proxy, the Mattermost server URL or the webhook URL. With another resource address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the notifier's get 400 `invalid_request`, because the type is fixed when the notifier is created.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -15147,7 +15147,7 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateNotifierWithResponse Replace the name and the settings of a notifier
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value, and a webhook header sent without a value keeps the stored value of the header with the same name. Settings of another type than the notifier's get 400 `invalid_request`, because the type is fixed when the notifier is created.
+	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value, and a webhook header sent without a value keeps the stored value of the header with the same name, while the notifier's resource address stays the stored one: the SMTP host and port, the Telegram Bot API URL and proxy, the Mattermost server URL or the webhook URL. With another resource address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the notifier's get 400 `invalid_request`, because the type is fixed when the notifier is created.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -15426,7 +15426,7 @@ type ClientWithResponsesInterface interface {
 
 	// TestStorageSettingsWithBodyWithResponse Test the connection with settings that are not saved
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -15435,7 +15435,7 @@ type ClientWithResponsesInterface interface {
 
 	// TestStorageSettingsWithResponse Test the connection with settings that are not saved
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -15489,7 +15489,7 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateStorageWithBodyWithResponse Replace the name and the settings of a storage
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+	// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value while the storage's resource address stays the stored one: the S3 endpoint, the Azure Blob endpoint and account name, or the host and port of FTP, NAS and SFTP. With another resource address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -15498,7 +15498,7 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateStorageWithResponse Replace the name and the settings of a storage
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+	// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value while the storage's resource address stays the stored one: the S3 endpoint, the Azure Blob endpoint and account name, or the host and port of FTP, NAS and SFTP. With another resource address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -18115,6 +18115,8 @@ type TestNotifierSettingsResponse struct {
 	ApplicationproblemJSON400 *Problem
 	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
 	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
 	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
 	ApplicationproblemJSON404 *Problem
 	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
@@ -18134,6 +18136,11 @@ func (r TestNotifierSettingsResponse) GetApplicationproblemJSON400() *Problem {
 // GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
 func (r TestNotifierSettingsResponse) GetApplicationproblemJSON401() *Problem {
 	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r TestNotifierSettingsResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
 }
 
 // GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
@@ -23216,7 +23223,7 @@ func (c *ClientWithResponses) UpdateBackupConfigWithResponse(ctx context.Context
 
 // TestDatabaseSettingsWithBodyWithResponse Test the connection with settings that are not saved
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. Nothing connects on a refusal, and nothing is saved.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. With another resource address than the database's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateDatabase`. Nothing connects on a refusal, and nothing is saved.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -23231,7 +23238,7 @@ func (c *ClientWithResponses) TestDatabaseSettingsWithBodyWithResponse(ctx conte
 
 // TestDatabaseSettingsWithResponse Test the connection with settings that are not saved
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. Nothing connects on a refusal, and nothing is saved.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. With another resource address than the database's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateDatabase`. Nothing connects on a refusal, and nothing is saved.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -23321,7 +23328,7 @@ func (c *ClientWithResponses) GetDatabaseWithResponse(ctx context.Context, datab
 
 // UpdateDatabaseWithBodyWithResponse Replace the name, the settings and the notifiers of a database
 //
-// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
+// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the address it is used at stays the stored one. The password and the PostgreSQL client key follow the database's resource address: its host, its port, the address of its SSH tunnel and, for MongoDB, the SRV flag. The SSH secrets follow the tunnel's resource address: whether it is enabled, and its host and port while it is. At another address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -23336,7 +23343,7 @@ func (c *ClientWithResponses) UpdateDatabaseWithBodyWithResponse(ctx context.Con
 
 // UpdateDatabaseWithResponse Replace the name, the settings and the notifiers of a database
 //
-// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
+// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the address it is used at stays the stored one. The password and the PostgreSQL client key follow the database's resource address: its host, its port, the address of its SSH tunnel and, for MongoDB, the SRV flag. The SSH secrets follow the tunnel's resource address: whether it is enabled, and its host and port while it is. At another address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -23600,7 +23607,7 @@ func (c *ClientWithResponses) UpdateInstanceSettingsWithResponse(ctx context.Con
 
 // CheckLimitedUserWithBodyWithResponse Check whether the connecting user may do more than a backup needs
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. For physical PostgreSQL the check is about a replication-only user, for the other types about a read-only user. A server that cannot be reached gets 400 `database_connection_failed`.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. For physical PostgreSQL the check is about a replication-only user, for the other types about a read-only user. A server that cannot be reached gets 400 `database_connection_failed`.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -23615,7 +23622,7 @@ func (c *ClientWithResponses) CheckLimitedUserWithBodyWithResponse(ctx context.C
 
 // CheckLimitedUserWithResponse Check whether the connecting user may do more than a backup needs
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. For physical PostgreSQL the check is about a replication-only user, for the other types about a read-only user. A server that cannot be reached gets 400 `database_connection_failed`.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. For physical PostgreSQL the check is about a replication-only user, for the other types about a read-only user. A server that cannot be reached gets 400 `database_connection_failed`.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -23630,7 +23637,7 @@ func (c *ClientWithResponses) CheckLimitedUserWithResponse(ctx context.Context, 
 
 // CreateLimitedUserWithBodyWithResponse Create a limited user on the database's server
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -23645,7 +23652,7 @@ func (c *ClientWithResponses) CreateLimitedUserWithBodyWithResponse(ctx context.
 
 // CreateLimitedUserWithResponse Create a limited user on the database's server
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -23765,7 +23772,7 @@ func (c *ClientWithResponses) DownloadLogicalBackupWithResponse(ctx context.Cont
 
 // TestNotifierSettingsWithBodyWithResponse Send a test message with settings that are not saved
 //
-// Any member of the workspace may test, a viewer included. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace; otherwise the answer is 404 `not_found` and nothing is sent. Nothing is saved, the notifier's `lastSendError` included.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test sends to wherever the request points. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace, or the answer is 404 `not_found`. With another resource address than the notifier's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the backend on a refusal. Nothing is saved, the notifier's `lastSendError` included.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -23780,7 +23787,7 @@ func (c *ClientWithResponses) TestNotifierSettingsWithBodyWithResponse(ctx conte
 
 // TestNotifierSettingsWithResponse Send a test message with settings that are not saved
 //
-// Any member of the workspace may test, a viewer included. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace; otherwise the answer is 404 `not_found` and nothing is sent. Nothing is saved, the notifier's `lastSendError` included.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test sends to wherever the request points. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace, or the answer is 404 `not_found`. With another resource address than the notifier's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the backend on a refusal. Nothing is saved, the notifier's `lastSendError` included.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -23870,7 +23877,7 @@ func (c *ClientWithResponses) GetNotifierWithResponse(ctx context.Context, notif
 
 // UpdateNotifierWithBodyWithResponse Replace the name and the settings of a notifier
 //
-// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value, and a webhook header sent without a value keeps the stored value of the header with the same name. Settings of another type than the notifier's get 400 `invalid_request`, because the type is fixed when the notifier is created.
+// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value, and a webhook header sent without a value keeps the stored value of the header with the same name, while the notifier's resource address stays the stored one: the SMTP host and port, the Telegram Bot API URL and proxy, the Mattermost server URL or the webhook URL. With another resource address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the notifier's get 400 `invalid_request`, because the type is fixed when the notifier is created.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -23885,7 +23892,7 @@ func (c *ClientWithResponses) UpdateNotifierWithBodyWithResponse(ctx context.Con
 
 // UpdateNotifierWithResponse Replace the name and the settings of a notifier
 //
-// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value, and a webhook header sent without a value keeps the stored value of the header with the same name. Settings of another type than the notifier's get 400 `invalid_request`, because the type is fixed when the notifier is created.
+// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value, and a webhook header sent without a value keeps the stored value of the header with the same name, while the notifier's resource address stays the stored one: the SMTP host and port, the Telegram Bot API URL and proxy, the Mattermost server URL or the webhook URL. With another resource address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the notifier's get 400 `invalid_request`, because the type is fixed when the notifier is created.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -24350,7 +24357,7 @@ func (c *ClientWithResponses) GetStorageSwitchWithResponse(ctx context.Context, 
 
 // TestStorageSettingsWithBodyWithResponse Test the connection with settings that are not saved
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -24365,7 +24372,7 @@ func (c *ClientWithResponses) TestStorageSettingsWithBodyWithResponse(ctx contex
 
 // TestStorageSettingsWithResponse Test the connection with settings that are not saved
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -24455,7 +24462,7 @@ func (c *ClientWithResponses) GetStorageWithResponse(ctx context.Context, storag
 
 // UpdateStorageWithBodyWithResponse Replace the name and the settings of a storage
 //
-// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value while the storage's resource address stays the stored one: the S3 endpoint, the Azure Blob endpoint and account name, or the host and port of FTP, NAS and SFTP. With another resource address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -24470,7 +24477,7 @@ func (c *ClientWithResponses) UpdateStorageWithBodyWithResponse(ctx context.Cont
 
 // UpdateStorageWithResponse Replace the name and the settings of a storage
 //
-// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value while the storage's resource address stays the stored one: the S3 endpoint, the Azure Blob endpoint and account name, or the host and port of FTP, NAS and SFTP. With another resource address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -27015,6 +27022,13 @@ func ParseTestNotifierSettingsResponse(rsp *http.Response) (*TestNotifierSetting
 			return nil, err
 		}
 		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest Problem

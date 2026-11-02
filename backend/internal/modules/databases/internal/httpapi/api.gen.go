@@ -537,7 +537,7 @@ type DatabaseSettings struct {
 
 // DatabaseSettingsTarget Settings that are not saved, to connect with
 type DatabaseSettingsTarget struct {
-	// DatabaseId A saved database of the workspace whose stored secrets fill the ones left out
+	// DatabaseId A saved database of the workspace whose stored secrets fill the ones left out at its resource address
 	DatabaseId *openapi_types.UUID `json:"databaseId,omitempty"`
 
 	// Settings The settings of the database's type; `type` tells the types apart

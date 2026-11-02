@@ -41,7 +41,8 @@ export const storageApi = {
     );
   },
 
-  // Omitted secrets remain stored; SFTP removes credentials excluded by authMethods.
+  // Omitted secrets remain stored while the resource address stays the stored one; SFTP removes
+  // credentials excluded by authMethods.
   async updateStorage(
     storageId: string,
     name: string,

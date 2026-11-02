@@ -10,6 +10,7 @@ import {
 } from '../../../../entities/notifiers';
 import { translateApiError } from '../../../../shared/i18n';
 import { createDefaultNotifierSettings } from '../../lib/createDefaultNotifierSettings';
+import { isNotifierAddressChanged } from '../../lib/isNotifierAddressChanged';
 import { isNotifierSettingsFilled } from '../../lib/isNotifierSettingsFilled';
 import { useNotifierDraft } from '../../model/useNotifierDraft';
 import { EditDiscordNotifierComponent } from './notifiers/EditDiscordNotifierComponent';
@@ -76,12 +77,14 @@ export function EditNotifierComponent({
     [notices, noticeId, workspaceId, editingNotifier?.id],
   );
 
-  const { name, settings, isUnsaved, isSaving, changeSettings, save } = form;
+  const { name, settings, savedSettings, isUnsaved, isSaving, changeSettings, save } = form;
   const isSendingTestNotification = form.isTesting;
   const isTestNotificationSuccess = form.isTested;
   const sendTestNotification = form.testSettings;
   const isSaved = form.savedNotifierId !== undefined;
-  const isAllDataFilled = !!name.trim() && isNotifierSettingsFilled(settings, isSaved);
+  const isAddressChanged = isNotifierAddressChanged(settings, savedSettings);
+  const isAllDataFilled =
+    !!name.trim() && isNotifierSettingsFilled(settings, isSaved, savedSettings);
   const errorText =
     form.error?.kind === 'api'
       ? translateApiError(form.error.error, t)
@@ -139,6 +142,7 @@ export function EditNotifierComponent({
           <EditTelegramNotifierComponent
             settings={settings}
             isSaved={isSaved}
+            isAddressChanged={isAddressChanged}
             onChange={changeSettings}
           />
         )}
@@ -147,6 +151,7 @@ export function EditNotifierComponent({
           <EditEmailNotifierComponent
             settings={settings}
             isSaved={isSaved}
+            isAddressChanged={isAddressChanged}
             onChange={changeSettings}
           />
         )}
@@ -155,6 +160,8 @@ export function EditNotifierComponent({
           <EditWebhookNotifierComponent
             settings={settings}
             isSaved={isSaved}
+            isAddressChanged={isAddressChanged}
+            savedHeaders={savedSettings?.type === NotifierType.WEBHOOK ? savedSettings.headers : []}
             onChange={changeSettings}
           />
         )}
@@ -187,6 +194,7 @@ export function EditNotifierComponent({
           <EditMattermostNotifierComponent
             settings={settings}
             isSaved={isSaved}
+            isAddressChanged={isAddressChanged}
             onChange={changeSettings}
           />
         )}

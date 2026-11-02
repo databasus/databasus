@@ -44,6 +44,7 @@ export const pt: typeof en = {
     },
     messages: {
       copiedToClipboard: 'Copiado para a área de transferência',
+      addressChangedEnterSecretAgain: 'O endereço mudou. Informe este valor novamente.',
     },
     // Joins translated words into one list (Chinese uses 、)
     listSeparator: ', ',

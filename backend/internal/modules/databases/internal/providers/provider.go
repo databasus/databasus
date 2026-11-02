@@ -23,7 +23,10 @@ type Provider interface {
 	// connects, the embedded internal database of Databasus included.
 	Validate(settings Settings) error
 	// MergeStoredSettings fills the secrets the incoming settings left out from the stored ones, and
-	// keeps what the provider owns, such as the replication slot name of a physical database.
+	// keeps what the provider owns, such as the replication slot name of a physical database. A secret
+	// tied to the database's resource address is filled only while that address stays the stored one,
+	// so a user who may not see a secret cannot send it to a server of their choice. Left empty, the
+	// secret then gets the refusal of Validate when the settings use it, and is removed when they do not.
 	MergeStoredSettings(merge SettingsMerge) (Settings, error)
 	// PrepareForCreate sets what the provider owns from the first save on, such as the replication
 	// slot name of a physical database.

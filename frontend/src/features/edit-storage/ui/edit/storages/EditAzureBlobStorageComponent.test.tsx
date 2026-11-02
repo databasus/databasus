@@ -11,6 +11,7 @@ describe('EditAzureBlobStorageComponent', () => {
       <EditAzureBlobStorageComponent
         settings={{ type: 'AZURE_BLOB', authMethod: 'ACCOUNT_KEY', containerName: 'backups' }}
         isSaved={false}
+        isAddressChanged={false}
         onChange={() => {}}
       />,
     );

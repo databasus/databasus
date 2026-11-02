@@ -147,12 +147,12 @@ func TestUpdateNotifier(t *testing.T) {
 		tm := newTeam(t)
 		webhookEndpoint := startEndpoint(t, http.StatusOK)
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id, newWebhookSettings(t,
-			newPostWebhook("https://hooks.example.com/old",
+			newPostWebhook(webhookEndpoint.URL,
 				apiclient.WebhookHeader{Name: "Authorization", Value: optional("Bearer saved-value")}),
 		))
 
 		response := updateNotifier(t, tm.owner, createdNotifier.Id, apiclient.NotifierUpdate{
-			Name: createdNotifier.Name,
+			Name: "Renamed",
 			Settings: newWebhookSettings(t, newPostWebhook(webhookEndpoint.URL,
 				apiclient.WebhookHeader{Name: "Authorization", Value: nil})),
 		})
@@ -194,7 +194,7 @@ func TestUpdateNotifier(t *testing.T) {
 
 		response := updateNotifier(t, tm.owner, createdNotifier.Id, apiclient.NotifierUpdate{
 			Name:     createdNotifier.Name,
-			Settings: newTelegramSettings(t, newTelegram("", "")),
+			Settings: newTelegramSettings(t, newTelegram("123456:AAH-TOKEN", "")),
 		})
 		require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
 

@@ -21,7 +21,10 @@ type Provider interface {
 	GetType() notification.NotifierType
 	// Validate answers an apierror problem naming the setting it refuses.
 	Validate(settings Settings) error
-	// MergeStoredSecrets fills the secrets the incoming settings left out from the stored ones.
+	// MergeStoredSecrets fills the secrets the incoming settings left out from the stored ones. A secret
+	// tied to the provider's resource address is filled only while that address stays the stored one,
+	// so a user who may not see a secret cannot send it to a server of their choice. Left empty, the
+	// secret then gets the refusal of Validate when the settings use it, and is removed when they do not.
 	MergeStoredSecrets(merge SecretMerge) (Settings, error)
 	Send(ctx context.Context, settings Settings, message notification.Notification) error
 	GetRepository() SettingsRepository

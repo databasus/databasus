@@ -27,7 +27,12 @@ const createTelegramSettings = (
 const renderTelegramForm = (settings: TelegramNotifierSettings) =>
   renderToStaticMarkup(
     <LocaleProvider>
-      <EditTelegramNotifierComponent settings={settings} isSaved onChange={() => {}} />
+      <EditTelegramNotifierComponent
+        settings={settings}
+        isSaved
+        isAddressChanged={false}
+        onChange={() => {}}
+      />
     </LocaleProvider>,
   );
 

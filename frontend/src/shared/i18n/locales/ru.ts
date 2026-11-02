@@ -44,6 +44,7 @@ export const ru: typeof en = {
     },
     messages: {
       copiedToClipboard: 'Скопировано в буфер обмена',
+      addressChangedEnterSecretAgain: 'Адрес изменился. Введите это значение заново.',
     },
     // Joins translated words into one list (Chinese uses 、)
     listSeparator: ', ',

@@ -180,12 +180,12 @@ func TestMergeStoredSecrets(t *testing.T) {
 
 	t.Run("keeps the stored value of a header sent without one and drops a header left out", func(t *testing.T) {
 		t.Parallel()
-		storedSettings := newSettings("https://hooks.example.com/old", webhook.MethodPOST)
+		storedSettings := newSettings("https://hooks.example.com/saved", webhook.MethodPOST)
 		storedSettings.Headers = []webhook.Header{
 			{Name: "Authorization", Value: "enc:stored-authorization"},
 			{Name: "X-Team", Value: "enc:stored-team"},
 		}
-		incomingSettings := newSettings("https://hooks.example.com/new", webhook.MethodPOST)
+		incomingSettings := newSettings("https://hooks.example.com/saved", webhook.MethodPOST)
 		incomingSettings.Headers = []webhook.Header{
 			{Name: "authorization", Value: ""},
 			{Name: "X-Region", Value: "eu"},
@@ -199,7 +199,7 @@ func TestMergeStoredSecrets(t *testing.T) {
 		require.NoError(t, err)
 		mergedWebhookSettings, err := providers.CastSettings[webhook.Settings](mergedSettings)
 		require.NoError(t, err)
-		assert.Equal(t, "https://hooks.example.com/new", mergedWebhookSettings.URL)
+		assert.Equal(t, "https://hooks.example.com/saved", mergedWebhookSettings.URL)
 		assert.Equal(t, []webhook.Header{
 			{Name: "authorization", Value: "enc:stored-authorization"},
 			{Name: "X-Region", Value: "eu"},

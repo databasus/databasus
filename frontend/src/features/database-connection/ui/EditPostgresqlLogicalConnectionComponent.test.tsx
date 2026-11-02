@@ -8,6 +8,7 @@ import {
   PostgresSslMode,
   createDefaultDatabaseSettings,
 } from '@/entities/databases';
+import { en } from '@/shared/i18n/locales/en';
 import { setUpMockApi } from '@/shared/lib/test/mockApi';
 import { stubClipboard } from '@/shared/lib/test/stubClipboard';
 
@@ -47,6 +48,38 @@ describe('EditPostgresqlLogicalConnectionComponent', () => {
     expect(screen.getByText('Exclude whole tables')).toBeTruthy();
     expect(screen.getByText('Exclude table data')).toBeTruthy();
     expect(screen.getByText('logs')).toBeTruthy();
+  });
+
+  it('offers no test until the client key is entered when a database with a client certificate moves', () => {
+    renderEditableForm(
+      buildEditDraft(buildSettings({ password: undefined, sslClientCert: 'saved-certificate' })),
+    );
+    const getTestButton = () =>
+      screen.getByRole('button', { name: /Test connection$/ }) as HTMLButtonElement;
+
+    fireEvent.change(getHostInput(), { target: { value: 'moved.example.com' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'typed-password' } });
+
+    expect(screen.getAllByText(en.common.messages.addressChangedEnterSecretAgain)).toHaveLength(1);
+    expect(getTestButton().disabled).toBe(true);
+
+    fireEvent.change(screen.getByLabelText('Client key'), { target: { value: 'typed-key' } });
+
+    expect(getTestButton().disabled).toBe(false);
+  });
+
+  it('asks for no client key when the certificates are replaced with nothing at a moved host', () => {
+    renderEditableForm(
+      buildEditDraft(buildSettings({ password: undefined, sslClientCert: 'saved-certificate' })),
+    );
+
+    fireEvent.change(getHostInput(), { target: { value: 'moved.example.com' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'typed-password' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Replace' }));
+
+    expect(
+      (screen.getByRole('button', { name: /Test connection$/ }) as HTMLButtonElement).disabled,
+    ).toBe(false);
   });
 
   it('keeps the advanced settings collapsed when no advanced value is set', () => {

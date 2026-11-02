@@ -6,6 +6,7 @@ import { Trans, useTranslation } from 'react-i18next';
 import type { TelegramNotifierSettings } from '../../../../../entities/notifiers';
 import { toOptionalValue } from '../../../../../shared/lib';
 import {
+  AddressChangedSecretNoticeComponent,
   AdvancedFieldRowComponent,
   AdvancedSettingsToggleComponent,
 } from '../../../../../shared/ui';
@@ -13,6 +14,7 @@ import {
 interface Props {
   settings: TelegramNotifierSettings;
   isSaved: boolean;
+  isAddressChanged: boolean;
   onChange: (settings: TelegramNotifierSettings) => void;
 }
 
@@ -22,7 +24,12 @@ const TOPIC_WITHOUT_ID = 0;
 
 const chatIdBotLink = <a href="https://t.me/getmyid_bot" target="_blank" rel="noreferrer" />;
 
-export function EditTelegramNotifierComponent({ settings, isSaved, onChange }: Props) {
+export function EditTelegramNotifierComponent({
+  settings,
+  isSaved,
+  isAddressChanged,
+  onChange,
+}: Props) {
   const { t } = useTranslation();
   const fieldPrefix = useId();
   const [isShowHowToGetChatId, setIsShowHowToGetChatId] = useState(false);
@@ -30,30 +37,39 @@ export function EditTelegramNotifierComponent({ settings, isSaved, onChange }: P
     !!settings.botApiUrl || settings.isProxyEnabled,
   );
 
+  const isBotTokenRequiredAgain = isAddressChanged && !settings.botToken;
   const isSendToThreadEnabled = settings.threadId !== undefined;
 
   return (
     <>
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('notifiers.fields.botToken')}</div>
-        <Input
-          aria-label={t('notifiers.fields.botToken')}
-          value={settings.botToken ?? ''}
-          onChange={(e) =>
-            onChange({
-              ...settings,
-              botToken: toOptionalValue(e.target.value.trim()),
-            })
-          }
-          size="small"
-          className="w-full max-w-[250px]"
-          placeholder={
-            isSaved
-              ? t('notifiers.secretKeptPlaceholder')
-              : // eslint-disable-next-line i18next/no-literal-string -- example token, not copy
-                '1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-          }
-        />
+        <div className="w-full max-w-[250px]">
+          <Input
+            aria-label={t('notifiers.fields.botToken')}
+            aria-describedby={
+              isBotTokenRequiredAgain ? `${fieldPrefix}-botToken-notice` : undefined
+            }
+            value={settings.botToken ?? ''}
+            onChange={(e) =>
+              onChange({
+                ...settings,
+                botToken: toOptionalValue(e.target.value.trim()),
+              })
+            }
+            size="small"
+            className="w-full"
+            placeholder={
+              isSaved && !isAddressChanged
+                ? t('notifiers.secretKeptPlaceholder')
+                : // eslint-disable-next-line i18next/no-literal-string -- example token, not copy
+                  '1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+            }
+          />
+          {isBotTokenRequiredAgain && (
+            <AddressChangedSecretNoticeComponent id={`${fieldPrefix}-botToken-notice`} />
+          )}
+        </div>
       </div>
 
       <div className="mb-1 sm:ml-[150px]">

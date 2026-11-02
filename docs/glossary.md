@@ -17,6 +17,7 @@ This is the project's common language. Each concept has one term in the document
 | Delivery | delivery | One send of one notification to one notifier, ended by a timeout. Its outcome becomes the notifier's last send error. |
 | Provider | provider | One implementation of a database, storage or notifier type, with its own settings table. |
 | Limited user | limited user, `limiteduser`, `checkLimitedUser`, `createLimitedUser` | A user that Databasus creates on the user's server for its backups: a read-only user, or for physical PostgreSQL a replication-only user. |
+| Resource address | resource address | The settings of a saved storage, notifier or database that decide where its stored secrets go, such as a host and port or an endpoint. A stored secret fills in only while the address stays the stored one. The `secret-handling` spec lists them per type. |
 | Workspace | workspace | A group of users and the databases, storages and notifiers they share. |
 | Member | member | A user in a workspace, with a workspace role. |
 | Member ID | member ID, `memberId` | The ID of one member of one workspace. The API uses it to change or remove that member and to name the new owner in an ownership transfer; it is not the user ID. |

@@ -74,14 +74,16 @@ func (s *TestSendService) TestNotifier(
 	return newTestResult(sendErr), nil
 }
 
-// TestSettings sends a test message with the given settings and saves nothing. A named notifier of
-// another workspace is answered as a missing one before anything is sent.
+// TestSettings sends a test message with the given settings and saves nothing. It needs the right to
+// change the workspace's content, because the test sends to wherever the settings point, and a saved
+// notifier's stored secrets fill in while the resource address stays the stored one. A named notifier of another workspace is
+// answered as a missing one before anything is sent.
 func (s *TestSendService) TestSettings(
 	ctx context.Context,
 	actor users.Actor,
 	settingsTest SettingsTest,
 ) (TestResult, error) {
-	err := s.workspaces.Authorize(ctx, actor, settingsTest.WorkspaceID, workspaces.ActionView)
+	err := s.workspaces.Authorize(ctx, actor, settingsTest.WorkspaceID, workspaces.ActionEditContent)
 	if err != nil {
 		return TestResult{}, err
 	}

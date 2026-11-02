@@ -214,6 +214,7 @@ func TestUpdateDatabase(t *testing.T) {
 			createdDatabase := tm.createDatabaseNamed(t, "Orders", fromLogicalSettings(t, newLogicalSettings(server)))
 			movedLogical := getLogicalSettings(t, createdDatabase)
 			movedLogical.Port = unansweredPort
+			movedLogical.Password = new(containers.PostgresPassword)
 			update := toUpdate(createdDatabase)
 			update.Name = "Orders moved"
 			update.Settings = fromLogicalSettings(t, movedLogical)

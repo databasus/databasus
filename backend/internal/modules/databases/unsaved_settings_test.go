@@ -20,7 +20,6 @@ func TestTestDatabaseSettings(t *testing.T) {
 	t.Parallel()
 
 	postgresServer := containers.StartPostgres(t, "postgres:16")
-	secondPostgresServer := containers.StartPostgres(t, "postgres:16")
 
 	t.Run("reports the outcome when a member tests a database that is not saved", func(t *testing.T) {
 		tm := newTeam(t)
@@ -33,18 +32,18 @@ func TestTestDatabaseSettings(t *testing.T) {
 		assert.Empty(t, tm.listDatabaseIDs(t), "a test saves nothing")
 	})
 
-	t.Run("connects to the new port with the stored password when the request leaves the password out",
+	t.Run("connects to the other database with the stored password when the request leaves the password out",
 		func(t *testing.T) {
 			tm := newTeam(t)
 			savedDatabase := tm.createDatabase(t,
 				newPostgresqlLogicalSettings(t, newPostgresqlContainerTarget(postgresServer)))
-			databaseOnlyOnSecondServer := newUniqueName("second_")
-			_, err := connectAsAdmin(t, secondPostgresServer, containers.PostgresDatabase).
-				Exec(t.Context(), "CREATE DATABASE "+databaseOnlyOnSecondServer)
+			otherDatabase := newUniqueName("other_")
+			_, err := connectAsAdmin(t, postgresServer, containers.PostgresDatabase).
+				Exec(t.Context(), "CREATE DATABASE "+otherDatabase)
 			require.NoError(t, err)
 
-			changedTarget := newPostgresqlContainerTarget(secondPostgresServer)
-			changedTarget.database = databaseOnlyOnSecondServer
+			changedTarget := newPostgresqlContainerTarget(postgresServer)
+			changedTarget.database = otherDatabase
 			changedTarget.password = nil
 
 			testResult := testUnsavedSettings(t, tm.owner, newSettingsTarget(tm.workspace.Id, &savedDatabase.Id,

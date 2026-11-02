@@ -1,3 +1,4 @@
+export { isOptionalValueChanged } from './isOptionalValueChanged';
 export { formatBytes } from './formatBytes';
 export { formatDuration } from './formatDuration';
 export { FormValidator } from './FormValidator';

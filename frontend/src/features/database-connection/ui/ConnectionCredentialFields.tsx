@@ -2,6 +2,8 @@ import { Input, InputNumber } from 'antd';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { AddressChangedSecretNoticeComponent } from '@/shared/ui';
+
 import { ConnectionFieldRow } from './ConnectionFieldRow';
 
 interface CredentialValues {
@@ -16,6 +18,7 @@ interface Props {
   controlId: string;
   engineName: string;
   values: CredentialValues;
+  isAddressChanged: boolean;
   isPortShown?: boolean;
   isDatabaseNameShown?: boolean;
   portPlaceholder?: string;
@@ -28,6 +31,7 @@ export const ConnectionCredentialFields = ({
   controlId,
   engineName,
   values,
+  isAddressChanged,
   isPortShown = true,
   isDatabaseNameShown = true,
   portPlaceholder,
@@ -36,6 +40,7 @@ export const ConnectionCredentialFields = ({
   onValuesChange,
 }: Props) => {
   const { t } = useTranslation();
+  const isPasswordRequiredAgain = isAddressChanged && !values.password?.trim();
 
   return (
     <>
@@ -84,18 +89,24 @@ export const ConnectionCredentialFields = ({
       </ConnectionFieldRow>
 
       <ConnectionFieldRow label={t('common.fields.password')} controlId={`${controlId}-password`}>
-        <Input.Password
-          id={`${controlId}-password`}
-          value={values.password}
-          onChange={(e) => onValuesChange({ password: e.target.value })}
-          size="small"
-          className="w-full max-w-[200px]"
-          placeholder={t('databases.edit.placeholders.password', { engine: engineName })}
-          autoComplete="off"
-          data-1p-ignore
-          data-lpignore="true"
-          data-form-type="other"
-        />
+        <div className="w-full max-w-[200px]">
+          <Input.Password
+            id={`${controlId}-password`}
+            aria-describedby={isPasswordRequiredAgain ? `${controlId}-password-notice` : undefined}
+            value={values.password}
+            onChange={(e) => onValuesChange({ password: e.target.value })}
+            size="small"
+            className="w-full"
+            placeholder={t('databases.edit.placeholders.password', { engine: engineName })}
+            autoComplete="off"
+            data-1p-ignore
+            data-lpignore="true"
+            data-form-type="other"
+          />
+          {isPasswordRequiredAgain && (
+            <AddressChangedSecretNoticeComponent id={`${controlId}-password-notice`} />
+          )}
+        </div>
       </ConnectionFieldRow>
 
       {isDatabaseNameShown && (

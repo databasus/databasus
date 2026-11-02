@@ -10,6 +10,7 @@ import {
 } from '../../../../entities/storages';
 import { translateApiError } from '../../../../shared/i18n';
 import { createDefaultStorageSettings } from '../../lib/createDefaultStorageSettings';
+import { isStorageAddressChanged } from '../../lib/isStorageAddressChanged';
 import { isStorageSettingsFilled } from '../../lib/isStorageSettingsFilled';
 import type { StorageDraft } from '../../lib/StorageDraft';
 import { useStorageDraft } from '../../model/useStorageDraft';
@@ -95,6 +96,7 @@ export function EditStorageComponent({
         : undefined;
 
   const isSaved = storageId !== undefined;
+  const isAddressChanged = isStorageAddressChanged(settings, savedSettings);
   const isAllDataFilled = !!name && isStorageSettingsFilled(settings, isSaved, savedSettings);
 
   const storageTypeOptions = Object.values(StorageType).map((storageType) => ({
@@ -162,6 +164,7 @@ export function EditStorageComponent({
           <EditS3StorageComponent
             settings={settings}
             isSaved={isSaved}
+            isAddressChanged={isAddressChanged}
             onChange={changeSettings}
             connectionError={connectionError}
           />
@@ -177,19 +180,28 @@ export function EditStorageComponent({
         )}
 
         {settings.type === StorageType.NAS && (
-          <EditNASStorageComponent settings={settings} onChange={changeSettings} />
+          <EditNASStorageComponent
+            settings={settings}
+            isAddressChanged={isAddressChanged}
+            onChange={changeSettings}
+          />
         )}
 
         {settings.type === StorageType.AZURE_BLOB && (
           <EditAzureBlobStorageComponent
             settings={settings}
             isSaved={isSaved}
+            isAddressChanged={isAddressChanged}
             onChange={changeSettings}
           />
         )}
 
         {settings.type === StorageType.FTP && (
-          <EditFTPStorageComponent settings={settings} onChange={changeSettings} />
+          <EditFTPStorageComponent
+            settings={settings}
+            isAddressChanged={isAddressChanged}
+            onChange={changeSettings}
+          />
         )}
 
         {settings.type === StorageType.SFTP && (
@@ -198,6 +210,7 @@ export function EditStorageComponent({
             savedAuthMethods={
               savedSettings?.type === StorageType.SFTP ? savedSettings.authMethods : []
             }
+            isAddressChanged={isAddressChanged}
             onChange={changeSettings}
           />
         )}

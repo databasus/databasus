@@ -71,9 +71,21 @@ func ValidateSSHTunnel(settings SSHTunnelSettings) error {
 	return nil
 }
 
+// IsSSHTunnelAddressChanged reports a change of where the tunnel connects. A disabled tunnel connects
+// nowhere, so turning a tunnel on or off counts as a change and moving a disabled one does not.
+func IsSSHTunnelAddressChanged(incoming, stored SSHTunnelSettings) bool {
+	if incoming.IsEnabled != stored.IsEnabled {
+		return true
+	}
+
+	return incoming.IsEnabled && (incoming.Host != stored.Host || incoming.Port != stored.Port)
+}
+
 // MergeStoredSSHTunnel keeps the stored secrets the incoming settings leave out, because the edit form
-// never receives them back. Switching the authentication type drops the secret of the type left
-// behind, so the previous way into the bastion does not stay behind unseen.
+// never receives them back, while the tunnel's address stays the stored one. At another address a
+// secret stays empty, so a user who may not see it cannot send it to a bastion of their choice.
+// Switching the authentication type drops the secret of the type left behind, so the previous way into
+// the bastion does not stay behind unseen.
 func MergeStoredSSHTunnel(incoming, stored SSHTunnelSettings) SSHTunnelSettings {
 	merged := incoming
 
@@ -81,16 +93,18 @@ func MergeStoredSSHTunnel(incoming, stored SSHTunnelSettings) SSHTunnelSettings 
 		merged.AuthType = stored.AuthType
 	}
 
-	if merged.Password == "" {
-		merged.Password = stored.Password
-	}
+	if !IsSSHTunnelAddressChanged(incoming, stored) {
+		if merged.Password == "" {
+			merged.Password = stored.Password
+		}
 
-	if merged.PrivateKey == "" {
-		merged.PrivateKey = stored.PrivateKey
-	}
+		if merged.PrivateKey == "" {
+			merged.PrivateKey = stored.PrivateKey
+		}
 
-	if merged.PrivateKeyPassphrase == "" {
-		merged.PrivateKeyPassphrase = stored.PrivateKeyPassphrase
+		if merged.PrivateKeyPassphrase == "" {
+			merged.PrivateKeyPassphrase = stored.PrivateKeyPassphrase
+		}
 	}
 
 	switch merged.AuthType {

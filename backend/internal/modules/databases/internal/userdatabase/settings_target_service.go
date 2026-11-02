@@ -9,8 +9,9 @@ import (
 	"databasus-backend/internal/modules/workspaces"
 )
 
-// ResolveSettingsTarget needs the right to change the workspace's content, because the settings send
-// the named database's stored secrets wherever they point. A named database that does not exist or
+// ResolveSettingsTarget needs the right to change the workspace's content, because the backend connects
+// wherever the settings point, and the named database fills in its stored secrets while the resource
+// address stays the stored one. A named database that does not exist or
 // belongs to another workspace is refused first, then the actor's role, then settings of another type
 // or settings a save would refuse, so no stored secret reaches anything before all of them pass.
 func (s *Service) ResolveSettingsTarget(

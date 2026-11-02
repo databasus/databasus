@@ -79,7 +79,10 @@ func (p *Provider) MergeStoredSettings(merge providers.SettingsMerge) (providers
 		return nil, err
 	}
 
-	if incomingSettings.Password == "" {
+	isAddressChanged := incomingSettings.Host != storedSettings.Host || incomingSettings.Port != storedSettings.Port ||
+		providers.IsSSHTunnelAddressChanged(incomingSettings.SSHTunnel, storedSettings.SSHTunnel)
+
+	if incomingSettings.Password == "" && !isAddressChanged {
 		incomingSettings.Password = storedSettings.Password
 	}
 

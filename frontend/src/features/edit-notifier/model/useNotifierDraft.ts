@@ -93,7 +93,11 @@ export const useNotifierDraft = ({
       activeTest.current ||
       activeSave.current ||
       !latestDraft.current.name.trim() ||
-      !isNotifierSettingsFilled(latestDraft.current.settings, !!savedIdRef.current)
+      !isNotifierSettingsFilled(
+        latestDraft.current.settings,
+        !!savedIdRef.current,
+        savedIdRef.current ? baselineRef.current.settings : undefined,
+      )
     )
       return;
 
@@ -155,7 +159,11 @@ export const useNotifierDraft = ({
 
     if (
       !submittedDraft.name.trim() ||
-      !isNotifierSettingsFilled(submittedDraft.settings, !!savedIdRef.current)
+      !isNotifierSettingsFilled(
+        submittedDraft.settings,
+        !!savedIdRef.current,
+        savedIdRef.current ? baselineRef.current.settings : undefined,
+      )
     )
       return;
 
@@ -284,6 +292,7 @@ export const useNotifierDraft = ({
   return {
     ...draft,
     savedNotifierId,
+    savedSettings: savedNotifierId !== undefined ? baseline.settings : undefined,
     isSaving,
     isTesting,
     error,

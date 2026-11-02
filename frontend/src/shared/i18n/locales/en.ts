@@ -44,6 +44,7 @@ export const en = {
     },
     messages: {
       copiedToClipboard: 'Copied to clipboard',
+      addressChangedEnterSecretAgain: 'The address changed. Enter this value again.',
     },
     // Joins translated words into one list (Chinese uses 、)
     listSeparator: ', ',

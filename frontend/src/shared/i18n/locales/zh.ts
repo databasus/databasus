@@ -44,6 +44,7 @@ export const zh: typeof en = {
     },
     messages: {
       copiedToClipboard: '已复制到剪贴板',
+      addressChangedEnterSecretAgain: '地址已更改，请重新输入此值。',
     },
     // Joins translated words into one list (Chinese uses 、)
     listSeparator: '、',

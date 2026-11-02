@@ -10,8 +10,8 @@ Defines who may see and change a workspace and what is inside it: what each work
 
 A member's workspace role SHALL decide what the member may do in the workspace, and the roles SHALL build on each other:
 
-- a viewer MAY see the workspace, its members and its content, MAY send test messages through the workspace's notifiers, MAY test the connection of the workspace's saved storages and saved databases, and MAY start, download and restore the logical backups of the workspace's databases;
-- a member MAY also create, change and delete the workspace's databases, storages and notifiers and everything attached to them, MAY cancel and delete logical backups and cancel restores, MAY test storage and database settings that are not saved yet, except where the `storages` spec reserves rclone settings for instance admins, and MAY check and create limited users of the workspace's databases;
+- a viewer MAY see the workspace, its members and its content, MAY send test messages through the workspace's saved notifiers, MAY test the connection of the workspace's saved storages and saved databases, and MAY start, download and restore the logical backups of the workspace's databases;
+- a member MAY also create, change and delete the workspace's databases, storages and notifiers and everything attached to them, MAY cancel and delete logical backups and cancel restores, MAY test notifier, storage and database settings that are not saved yet, except where the `storages` spec reserves rclone settings for instance admins, and MAY check and create limited users of the workspace's databases;
 - an admin MAY also rename the workspace and add, change and remove members who are not admins or the owner;
 - the owner MAY also add, change and remove admins, transfer ownership and delete the workspace.
 
@@ -52,9 +52,14 @@ The operations on workspaces, their members, their notifiers, their storages, th
 - **WHEN** a viewer of a workspace tests one of its saved notifiers
 - **THEN** the request succeeds and reports the outcome of the test send
 
+#### Scenario: Viewer tests unsaved notifier settings
+
+- **WHEN** a viewer of a workspace tests notifier settings that are not saved
+- **THEN** the response is `403` with `code` `permission_denied`, and no message leaves the backend
+
 #### Scenario: Member changes a notifier
 
-- **WHEN** a user with the role `WORKSPACE_MEMBER` creates, changes and deletes a notifier of the workspace
+- **WHEN** a user with the role `WORKSPACE_MEMBER` creates, changes, tests unsaved settings of and deletes a notifier of the workspace
 - **THEN** each request succeeds
 
 #### Scenario: Viewer reads and tests the workspace's storages

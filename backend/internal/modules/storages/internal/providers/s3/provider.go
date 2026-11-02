@@ -82,11 +82,13 @@ func (p *Provider) MergeStoredSettings(merge providers.SettingsMerge) (providers
 		return nil, providers.NewFixedSettingError("s3Prefix")
 	}
 
-	if incomingSettings.AccessKey == "" {
+	isAddressChanged := incomingSettings.Endpoint != storedSettings.Endpoint
+
+	if incomingSettings.AccessKey == "" && !isAddressChanged {
 		incomingSettings.AccessKey = storedSettings.AccessKey
 	}
 
-	if incomingSettings.SecretKey == "" {
+	if incomingSettings.SecretKey == "" && !isAddressChanged {
 		incomingSettings.SecretKey = storedSettings.SecretKey
 	}
 

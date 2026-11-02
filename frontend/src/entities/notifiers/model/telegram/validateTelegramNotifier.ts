@@ -36,8 +36,9 @@ const isValidBotApiUrl = (rawBotApiUrl: string): boolean => {
 export const validateTelegramNotifier = (
   isCreate: boolean,
   settings: TelegramNotifierSettings,
+  isAddressChanged = false,
 ): boolean => {
-  if (isCreate && !settings.botToken) {
+  if ((isCreate || isAddressChanged) && !settings.botToken) {
     return false;
   }
 

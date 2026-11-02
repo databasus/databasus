@@ -96,6 +96,7 @@ export const EditPostgresqlLogicalConnectionComponent = ({
   scenario,
   settings,
   savedSshTunnel,
+  isAddressChanged,
   hasUserChosenSslMode,
   savedClientCertificate,
   restoreOptions,
@@ -175,6 +176,7 @@ export const EditPostgresqlLogicalConnectionComponent = ({
         controlId={controlId}
         engineName={POSTGRESQL_SHORT_NAME}
         values={settings}
+        isAddressChanged={isAddressChanged}
         hostHints={
           <>
             {isLocalhostConnection(settings) && <ConnectionHostHint topic="localhost" />}
@@ -297,6 +299,7 @@ export const EditPostgresqlLogicalConnectionComponent = ({
 
           <PostgresqlCertificateFields
             values={settings}
+            isAddressChanged={isAddressChanged}
             savedClientCertificate={savedClientCertificate}
             onChange={(change) => onConnectionChange({ ...settings, ...change })}
           />

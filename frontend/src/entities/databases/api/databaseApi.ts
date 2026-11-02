@@ -60,7 +60,8 @@ export const databaseApi = {
     );
   },
 
-  // A secret the settings leave empty keeps its stored value. Only the editable fields are sent, so
+  // A secret the settings leave empty keeps its stored value while the resource address stays the
+  // stored one. Only the editable fields are sent, so
   // a whole Database can be passed.
   async updateDatabase(databaseId: string, databaseUpdate: DatabaseUpdate): Promise<Database> {
     return requireData(

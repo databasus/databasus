@@ -590,6 +590,7 @@ describe('DatabasesComponent', () => {
 
     await user.clear(hostInput);
     await user.type(hostInput, 'replica.example.com');
+    await user.type(screen.getByLabelText('Password'), 'replica-password');
     await user.click(await screen.findByRole('button', { name: 'Test connection' }));
     await user.click(await screen.findByRole('button', { name: 'Save' }));
 

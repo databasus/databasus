@@ -1,17 +1,22 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { Input, InputNumber, Switch, Tooltip } from 'antd';
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { NasStorageSettings } from '../../../../../entities/storages';
 import { toOptionalValue } from '../../../../../shared/lib';
+import { AddressChangedSecretNoticeComponent } from '../../../../../shared/ui';
 
 interface Props {
   settings: NasStorageSettings;
+  isAddressChanged: boolean;
   onChange: (settings: NasStorageSettings) => void;
 }
 
-export function EditNASStorageComponent({ settings, onChange }: Props) {
+export function EditNASStorageComponent({ settings, isAddressChanged, onChange }: Props) {
   const { t } = useTranslation();
+  const passwordNoticeId = useId();
+  const isPasswordRequiredAgain = isAddressChanged && !settings.password;
   const shareHasSlash = settings.share?.includes('/') || settings.share?.includes('\\');
 
   return (
@@ -86,20 +91,24 @@ export function EditNASStorageComponent({ settings, onChange }: Props) {
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('common.fields.password')}</div>
-        <Input.Password
-          aria-label={t('common.fields.password')}
-          value={settings.password || ''}
-          onChange={(e) => {
-            onChange({ ...settings, password: toOptionalValue(e.target.value) });
-          }}
-          size="small"
-          className="w-full max-w-[250px]"
-          placeholder={t('storages.edit.passwordPlaceholder')}
-          autoComplete="off"
-          data-1p-ignore
-          data-lpignore="true"
-          data-form-type="other"
-        />
+        <div className="w-full max-w-[250px]">
+          <Input.Password
+            aria-label={t('common.fields.password')}
+            aria-describedby={isPasswordRequiredAgain ? passwordNoticeId : undefined}
+            value={settings.password || ''}
+            onChange={(e) => {
+              onChange({ ...settings, password: toOptionalValue(e.target.value) });
+            }}
+            size="small"
+            className="w-full"
+            placeholder={t('storages.edit.passwordPlaceholder')}
+            autoComplete="off"
+            data-1p-ignore
+            data-lpignore="true"
+            data-form-type="other"
+          />
+          {isPasswordRequiredAgain && <AddressChangedSecretNoticeComponent id={passwordNoticeId} />}
+        </div>
       </div>
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
