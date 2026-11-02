@@ -62,10 +62,17 @@ func runStream(ctx context.Context, spec streamSpec) (streamOutcome, error) {
 		OnFailure: cancelStream,
 	})
 
-	backup, streamErr := p.Source.StreamBaseBackup(streamCtx, spec.Backup, finalWriter)
-	if encryptionWriter != nil {
-		_ = encryptionWriter.Close()
+	// A stalled storage blocks the write and may never return from its upload, so both are ended here.
+	spec.Backup.ReleaseOutput = func(cause error) {
+		_ = storageWriter.CloseWithError(cause)
+		cancelStream(cause)
 	}
+
+	if encryptionWriter != nil {
+		spec.Backup.FlushOutput = encryptionWriter.Close
+	}
+
+	backup, streamErr := p.Source.StreamBaseBackup(streamCtx, spec.Backup, finalWriter)
 	_ = storageWriter.Close()
 	saveErr := <-fileWrite.Errors
 

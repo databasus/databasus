@@ -11,9 +11,9 @@ import (
 )
 
 const (
-	// A small dump can exit before storage preparation consumes its buffered output. Allow that
-	// preparation to finish while still bounding pipes left open by descendant processes.
-	clientToolKillAfter         = time.Minute
+	// clientToolKillAfter bounds how long a run waits for more of the tool's output after the tool
+	// exited: a process the tool left behind can hold that output open.
+	clientToolKillAfter         = 10 * time.Second
 	clientConnectTimeoutSeconds = 30
 )
 

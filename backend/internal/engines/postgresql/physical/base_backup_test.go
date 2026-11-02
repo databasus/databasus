@@ -26,6 +26,10 @@ import (
 	"databasus-backend/internal/lib/toolstub"
 )
 
+// baseBackupFileSizeSpanningWrites is longer than one copy of the tool's output into the writer,
+// which takes 32 KiB, and short enough to fit in the pipe once one write is held, so the tool can exit.
+const baseBackupFileSizeSpanningWrites = 80 * 1024
+
 func newBaseBackupTestSpec(t *testing.T) BaseBackupSpec {
 	t.Helper()
 	return BaseBackupSpec{
@@ -47,10 +51,20 @@ func writeBaseBackupStub(t *testing.T, spec BaseBackupSpec, script string) *tool
 
 func writeBaseBackupTar(t *testing.T) string {
 	t.Helper()
+	return writeBaseBackupTarWithFile(t, []byte("17\n"))
+}
+
+func writeBaseBackupTarWithFile(t *testing.T, fileContent []byte) string {
+	t.Helper()
 	var archive bytes.Buffer
 	writer := tar.NewWriter(&archive)
-	require.NoError(t, writer.WriteHeader(&tar.Header{Name: "PG_VERSION", Mode: 0o600, Size: 3, Typeflag: tar.TypeReg}))
-	_, err := writer.Write([]byte("17\n"))
+	require.NoError(t, writer.WriteHeader(&tar.Header{
+		Name:     "PG_VERSION",
+		Mode:     0o600,
+		Size:     int64(len(fileContent)),
+		Typeflag: tar.TypeReg,
+	}))
+	_, err := writer.Write(fileContent)
 	require.NoError(t, err)
 	require.NoError(t, writer.Close())
 	path := filepath.Join(t.TempDir(), "base.tar")
@@ -81,6 +95,75 @@ func TestStreamBaseBackup(t *testing.T) {
 		assert.Equal(t, int64(output.Len()), backup.StreamedSize)
 		assert.Contains(t, string(backup.Manifest), `"Path": "PG_VERSION"`)
 	})
+
+	t.Run("returns the backup when a write holds past the limit after the storage accepted data", func(t *testing.T) {
+		t.Parallel()
+		spec := newBaseBackupTestSpec(t)
+		var isOutputReleased atomic.Bool
+		spec.ReleaseOutput = func(error) { isOutputReleased.Store(true) }
+		tarPath := writeBaseBackupTarWithFile(t, make([]byte, baseBackupFileSizeSpanningWrites))
+		writeBaseBackupStub(t, spec, baseBackupSuccessScript(tarPath))
+		slowOutput := &secondWriteHoldingOutput{hold: clientToolKillAfter + 2*time.Second}
+
+		backup, err := NewSource(Settings{}).StreamBaseBackup(t.Context(), spec, slowOutput)
+
+		require.NoError(t, err)
+		tarContent, err := os.ReadFile(tarPath)
+		require.NoError(t, err)
+		assert.Equal(t, tarContent, slowOutput.received.Bytes())
+		assert.Equal(t, int64(len(tarContent)), backup.StreamedSize)
+		assert.False(t, isOutputReleased.Load())
+	})
+
+	t.Run("reports a stalled stream when the output accepts nothing more after the tool exits", func(t *testing.T) {
+		t.Parallel()
+		spec := newBaseBackupTestSpec(t)
+		manualClock := &observedManualClock{source: clock.NewManual(time.Now())}
+		spec.Clock = manualClock
+		spec.Logger = slog.New(slog.NewTextHandler(stallLogWriter{isStalled: &manualClock.hasStalled}, nil))
+		spec.StallTimeout = time.Minute
+		stuckOutput := &stuckAfterFirstWriteOutput{isStuck: make(chan struct{}), released: make(chan struct{})}
+		spec.ReleaseOutput = func(error) { close(stuckOutput.released) }
+		exitMarkerPath := filepath.Join(t.TempDir(), "exited")
+		tarPath := writeBaseBackupTarWithFile(t, make([]byte, baseBackupFileSizeSpanningWrites))
+		writeBaseBackupStub(t, spec, fmt.Sprintf("%s\ntouch %q", baseBackupSuccessScript(tarPath), exitMarkerPath))
+
+		completed := make(chan error, 1)
+		go func() {
+			_, err := NewSource(Settings{}).StreamBaseBackup(t.Context(), spec, stuckOutput)
+			completed <- err
+		}()
+
+		testwait.Until(t, "tool exits and the output is stuck", func(context.Context) error {
+			if _, err := os.Stat(exitMarkerPath); err != nil {
+				return err
+			}
+
+			select {
+			case <-stuckOutput.isStuck:
+				return nil
+			default:
+				return errors.New("output is not stuck yet")
+			}
+		})
+		waitForClockSamples(t, manualClock)
+		manualClock.source.Advance(time.Minute + time.Second)
+
+		var streamErr error
+		testwait.Until(t, "watcher ends the stalled stream", func(context.Context) error {
+			select {
+			case streamErr = <-completed:
+				return nil
+			default:
+				return errors.New("stream is still running")
+			}
+		})
+
+		var failure *BaseBackupError
+		require.ErrorAs(t, streamErr, &failure)
+		assert.Equal(t, BaseBackupStalled, failure.Kind)
+	})
+
 	for _, scenario := range []struct {
 		name    string
 		script  string
@@ -307,6 +390,43 @@ func TestBaseBackupTiming(t *testing.T) {
 			assert.Equal(t, BaseBackupStalled, failure.Kind)
 		})
 	}
+}
+
+// secondWriteHoldingOutput accepts one write, then holds the next for a set time, the way a busy
+// storage blocks the stream after it has accepted data.
+type secondWriteHoldingOutput struct {
+	hold       time.Duration
+	writeCount int
+	received   bytes.Buffer
+}
+
+func (o *secondWriteHoldingOutput) Write(p []byte) (int, error) {
+	o.writeCount++
+	if o.writeCount == 2 {
+		<-time.After(o.hold)
+	}
+
+	return o.received.Write(p)
+}
+
+// stuckAfterFirstWriteOutput accepts one write, then blocks until it is released, the way a storage
+// that stopped accepting data blocks the stream.
+type stuckAfterFirstWriteOutput struct {
+	writeCount int
+	isStuck    chan struct{}
+	released   chan struct{}
+}
+
+func (o *stuckAfterFirstWriteOutput) Write(p []byte) (int, error) {
+	o.writeCount++
+	if o.writeCount == 1 {
+		return len(p), nil
+	}
+
+	close(o.isStuck)
+	<-o.released
+
+	return 0, io.ErrClosedPipe
 }
 
 type observedManualClock struct {

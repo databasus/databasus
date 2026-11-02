@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	// clientToolKillAfter bounds how long a run waits for the tool's output to end after the tool
+	// clientToolKillAfter bounds how long a run waits for more of the tool's output after the tool
 	// exited: a process the tool left behind can hold that output open.
 	clientToolKillAfter = 10 * time.Second
 	uriArgPrefix        = "--uri="

@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"testing"
 	"time"
@@ -187,6 +188,246 @@ func TestWait(t *testing.T) {
 	})
 }
 
+func TestRun(t *testing.T) {
+	t.Parallel()
+
+	t.Run("waits for a slow stdout writer after the tool exits", func(t *testing.T) {
+		t.Parallel()
+		slowOutput := &holdingWriter{hold: time.Second}
+
+		err := Run(t.Context(), Spec{
+			Path:      "sh",
+			Args:      []string{"-c", "printf dump-output"},
+			Stdout:    slowOutput,
+			KillAfter: 200 * time.Millisecond,
+		})
+
+		require.NoError(t, err)
+		assert.Equal(t, "dump-output", slowOutput.String())
+	})
+
+	t.Run("returns the exit error when the tool fails while the writer is slow", func(t *testing.T) {
+		t.Parallel()
+		slowOutput := &holdingWriter{hold: time.Second}
+
+		err := Run(t.Context(), Spec{
+			Path:      "sh",
+			Args:      []string{"-c", "printf dump-output; exit 3"},
+			Stdout:    slowOutput,
+			KillAfter: 200 * time.Millisecond,
+		})
+
+		var exitErr *exec.ExitError
+		require.ErrorAs(t, err, &exitErr)
+		assert.Equal(t, 3, exitErr.ExitCode())
+		assert.Equal(t, "dump-output", slowOutput.String())
+	})
+
+	t.Run("stops waiting for a descendant that holds the pipe after cancellation", func(t *testing.T) {
+		t.Parallel()
+		toolOutput := &lockedBuffer{}
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+
+		running, err := Start(ctx, Spec{
+			Path:      "sh",
+			Args:      []string{"-c", `setsid sh -c 'echo $$; exec sleep 600' & wait`},
+			Stdout:    toolOutput,
+			KillAfter: 200 * time.Millisecond,
+		})
+		require.NoError(t, err)
+
+		killDescendantAfterTest(t, toolOutput)
+		cancel()
+		waitErr := running.Wait()
+
+		require.ErrorIs(t, waitErr, context.Canceled)
+	})
+
+	t.Run("returns the wait delay error when a descendant holds the pipe after the tool exits", func(t *testing.T) {
+		t.Parallel()
+		toolOutput := &lockedBuffer{}
+
+		running, err := Start(t.Context(), Spec{
+			Path:      "sh",
+			Args:      []string{"-c", "sleep 600 & echo $!"},
+			Stdout:    toolOutput,
+			KillAfter: 200 * time.Millisecond,
+		})
+		require.NoError(t, err)
+
+		killDescendantAfterTest(t, toolOutput)
+		waitErr := running.Wait()
+
+		require.ErrorIs(t, waitErr, exec.ErrWaitDelay)
+	})
+
+	t.Run("returns the wait delay error once when a descendant holds both stdout and stderr", func(t *testing.T) {
+		t.Parallel()
+		toolOutput := &lockedBuffer{}
+		killAfter := 2 * time.Second
+		startedAt := time.Now()
+
+		running, err := Start(t.Context(), Spec{
+			Path:      "sh",
+			Args:      []string{"-c", "sleep 600 & echo $!"},
+			Stdout:    toolOutput,
+			Stderr:    &lockedBuffer{},
+			KillAfter: killAfter,
+		})
+		require.NoError(t, err)
+
+		killDescendantAfterTest(t, toolOutput)
+		waitErr := running.Wait()
+
+		require.ErrorIs(t, waitErr, exec.ErrWaitDelay)
+		assert.Less(t, time.Since(startedAt), 2*killAfter)
+	})
+
+	t.Run("returns the cancellation only after a blocked writer has returned", func(t *testing.T) {
+		t.Parallel()
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+		blockedOutput := &contextBlockedWriter{ctx: ctx, hasEntered: make(chan struct{})}
+
+		running, err := Start(ctx, Spec{
+			Path:      "sh",
+			Args:      []string{"-c", "printf dump-output"},
+			Stdout:    blockedOutput,
+			KillAfter: 200 * time.Millisecond,
+		})
+		require.NoError(t, err)
+
+		testwait.Until(t, "writer receives the output", func(context.Context) error {
+			select {
+			case <-blockedOutput.hasEntered:
+				return nil
+			default:
+				return errors.New("writer is not called yet")
+			}
+		})
+
+		cancel()
+		waitErr := running.Wait()
+
+		assert.True(t, blockedOutput.hasReturned.Load())
+		require.ErrorIs(t, waitErr, context.Canceled)
+		require.NotErrorIs(t, waitErr, errWriterFailed)
+	})
+
+	t.Run("stops a descendant that holds the pipe with a zero limit after cancellation", func(t *testing.T) {
+		t.Parallel()
+		toolOutput := &lockedBuffer{}
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+
+		running, err := Start(ctx, Spec{Path: "sh", Args: []string{"-c", "sleep 600 & echo $!"}, Stdout: toolOutput})
+		require.NoError(t, err)
+
+		killDescendantAfterTest(t, toolOutput)
+
+		waited := make(chan error, 1)
+		go func() { waited <- running.Wait() }()
+
+		testwait.Until(t, "tool exits", func(context.Context) error {
+			if syscall.Kill(running.cmd.Process.Pid, 0) == nil {
+				return errors.New("tool is still running")
+			}
+
+			return nil
+		})
+
+		cancel()
+
+		var waitErr error
+		testwait.Until(t, "wait returns after the cancellation", func(context.Context) error {
+			select {
+			case waitErr = <-waited:
+				return nil
+			default:
+				return errors.New("wait has not returned")
+			}
+		})
+
+		require.ErrorIs(t, waitErr, context.Canceled)
+	})
+
+	t.Run("stops the tool when the writer fails", func(t *testing.T) {
+		t.Parallel()
+
+		err := Run(t.Context(), Spec{
+			Path:      "sh",
+			Args:      []string{"-c", "yes"},
+			Stdout:    failingWriter{},
+			KillAfter: time.Minute,
+		})
+
+		var exitErr *exec.ExitError
+		require.ErrorAs(t, err, &exitErr)
+	})
+
+	t.Run("returns the writer error when the tool succeeds", func(t *testing.T) {
+		t.Parallel()
+
+		err := Run(t.Context(), Spec{
+			Path:      "sh",
+			Args:      []string{"-c", "printf dump-output"},
+			Stdout:    failingWriter{},
+			KillAfter: time.Minute,
+		})
+
+		require.ErrorIs(t, err, errWriterFailed)
+	})
+
+	t.Run("keeps the order of stdout and stderr when both use one writer", func(t *testing.T) {
+		t.Parallel()
+		var toolOutput bytes.Buffer
+
+		err := Run(t.Context(), Spec{
+			Path:   "sh",
+			Args:   []string{"-c", "echo first; echo second >&2; echo third; echo fourth >&2"},
+			Stdout: &toolOutput,
+			Stderr: &toolOutput,
+		})
+
+		require.NoError(t, err)
+		assert.Equal(t, "first\nsecond\nthird\nfourth\n", toolOutput.String())
+	})
+
+	t.Run("waits for a slow writer with a zero limit", func(t *testing.T) {
+		t.Parallel()
+		slowOutput := &holdingWriter{hold: 300 * time.Millisecond}
+
+		err := Run(t.Context(), Spec{Path: "sh", Args: []string{"-c", "printf dump-output"}, Stdout: slowOutput})
+
+		require.NoError(t, err)
+		assert.Equal(t, "dump-output", slowOutput.String())
+	})
+
+	t.Run("runs the tool with writers of an uncomparable type", func(t *testing.T) {
+		t.Parallel()
+		toolOutput := uncomparableWriter{sink: &lockedBuffer{}, tags: []string{"output"}}
+
+		err := Run(t.Context(), Spec{
+			Path:   "sh",
+			Args:   []string{"-c", "printf dump-output"},
+			Stdout: toolOutput,
+			Stderr: toolOutput,
+		})
+
+		require.NoError(t, err)
+		assert.Equal(t, "dump-output", toolOutput.sink.String())
+	})
+
+	t.Run("returns the start error when the tool cannot start with a stdout writer", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := Start(t.Context(), Spec{Path: filepath.Join(t.TempDir(), "missing"), Stdout: &lockedBuffer{}})
+
+		require.Error(t, err)
+	})
+}
+
 func waitForPidFile(t *testing.T, path string) int {
 	t.Helper()
 
@@ -216,6 +457,76 @@ func waitForOutput(t *testing.T, output *lockedBuffer, line string) {
 
 		return nil
 	})
+}
+
+// killDescendantAfterTest reads the pid the tool printed, since nothing else ends a descendant that
+// outlives its tool.
+func killDescendantAfterTest(t *testing.T, toolOutput *lockedBuffer) {
+	t.Helper()
+
+	var descendantPid int
+
+	testwait.Until(t, "tool prints the descendant's pid", func(context.Context) error {
+		var err error
+		descendantPid, err = strconv.Atoi(strings.TrimSpace(toolOutput.String()))
+
+		return err
+	})
+	t.Cleanup(func() { _ = syscall.Kill(descendantPid, syscall.SIGKILL) })
+}
+
+// holdingWriter holds its first write for a set time, the way a busy storage blocks the dump.
+type holdingWriter struct {
+	hold   time.Duration
+	isHeld atomic.Bool
+	output lockedBuffer
+}
+
+func (w *holdingWriter) Write(p []byte) (int, error) {
+	if w.isHeld.CompareAndSwap(false, true) {
+		<-time.After(w.hold)
+	}
+
+	return w.output.Write(p)
+}
+
+func (w *holdingWriter) String() string {
+	return w.output.String()
+}
+
+// contextBlockedWriter blocks until its context ends and takes a moment more to return, so a Wait
+// that stopped waiting for it would return first.
+type contextBlockedWriter struct {
+	ctx         context.Context
+	hasEntered  chan struct{}
+	hasReturned atomic.Bool
+}
+
+func (w *contextBlockedWriter) Write([]byte) (int, error) {
+	close(w.hasEntered)
+	<-w.ctx.Done()
+	<-time.After(200 * time.Millisecond)
+	w.hasReturned.Store(true)
+
+	return 0, errWriterFailed
+}
+
+var errWriterFailed = errors.New("writer failed")
+
+type failingWriter struct{}
+
+func (failingWriter) Write([]byte) (int, error) {
+	return 0, errWriterFailed
+}
+
+// uncomparableWriter panics when two values of it are compared, because of its slice field.
+type uncomparableWriter struct {
+	sink *lockedBuffer
+	tags []string
+}
+
+func (w uncomparableWriter) Write(p []byte) (int, error) {
+	return w.sink.Write(p)
 }
 
 type lockedBuffer struct {

@@ -35,7 +35,13 @@ type BaseBackupSpec struct {
 	StallPollInterval       time.Duration
 	ProgressInterval        time.Duration
 	ProgressListener        func(completedMb float64, elapsedMs int64)
-	Logger                  *slog.Logger
+	// ReleaseOutput makes a write blocked in the output return when the stream ends early, such as
+	// on a stall. Only the output's owner can do that, and the tool's run waits for that write.
+	ReleaseOutput func(cause error)
+	// FlushOutput writes what the output still buffers after the tool succeeded. It runs inside the
+	// stream, so the stall limit and ReleaseOutput also cover that last write.
+	FlushOutput func() error
+	Logger      *slog.Logger
 }
 
 type BaseBackupResult struct {
@@ -96,6 +102,8 @@ func (s *Source) StreamBaseBackup(
 		})
 	}
 
+	stopReleasingOutput := releaseOutputWhenStreamEnds(streamCtx, spec)
+
 	var stderr bytes.Buffer
 	running, startErr := process.Start(streamCtx, process.Spec{
 		Path: toolPath, Args: s.getBaseBackupArguments(spec), Env: s.getClientEnvironment(spec.Credentials),
@@ -110,6 +118,11 @@ func (s *Source) StreamBaseBackup(
 		runErr = running.Wait()
 	}
 
+	if runErr == nil && spec.FlushOutput != nil {
+		runErr = spec.FlushOutput()
+	}
+
+	stopReleasingOutput()
 	_ = manifestWriter.Close()
 	<-manifestDone
 	cause := context.Cause(streamCtx)
@@ -154,6 +167,16 @@ func (s *Source) StreamBaseBackup(
 	}
 
 	return BaseBackupResult{}, failure
+}
+
+func releaseOutputWhenStreamEnds(streamCtx context.Context, spec BaseBackupSpec) (stop func()) {
+	if spec.ReleaseOutput == nil {
+		return func() {}
+	}
+
+	stopAfterFunc := context.AfterFunc(streamCtx, func() { spec.ReleaseOutput(context.Cause(streamCtx)) })
+
+	return func() { stopAfterFunc() }
 }
 
 func (s *Source) getBaseBackupArguments(spec BaseBackupSpec) []string {

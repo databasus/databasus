@@ -28,14 +28,16 @@ type Spec struct {
 	// StopSignal is sent to the process group when ctx ends; nil sends SIGKILL at once.
 	StopSignal os.Signal
 	// KillAfter is how long the group may take to exit after StopSignal before SIGKILL. It also
-	// bounds how long Wait reads pipes that a child keeps open after the tool exited.
+	// bounds how long Wait waits for more output from pipes that a child keeps open after the tool
+	// exited. The time Stdout takes to accept output does not count against it.
 	KillAfter time.Duration
 }
 
 // Running is a started tool and its process group.
 type Running struct {
-	ctx context.Context
-	cmd *exec.Cmd
+	ctx         context.Context
+	cmd         *exec.Cmd
+	outputDrain *outputDrain
 
 	mu        sync.Mutex
 	killTimer *time.Timer
@@ -50,14 +52,28 @@ func Start(ctx context.Context, spec Spec) (*Running, error) {
 	cmd.Stdin = spec.Stdin
 	cmd.Stdout = spec.Stdout
 	cmd.Stderr = spec.Stderr
+
+	drain, err := attachOutputDrain(cmd, spec)
+	if err != nil {
+		return nil, err
+	}
+
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true, Pdeathsig: syscall.SIGKILL}
 	cmd.WaitDelay = spec.KillAfter
 
-	running := &Running{ctx: ctx, cmd: cmd}
+	running := &Running{ctx: ctx, cmd: cmd, outputDrain: drain}
 	cmd.Cancel = func() error { return running.stopGroup(spec) }
 
 	if err := cmd.Start(); err != nil {
+		if drain != nil {
+			drain.closeBothEnds()
+		}
+
 		return nil, fmt.Errorf("start %s: %w", spec.Path, err)
+	}
+
+	if drain != nil {
+		drain.start(ctx)
 	}
 
 	return running, nil
@@ -75,10 +91,16 @@ func (r *Running) Wait() error {
 	}
 	r.mu.Unlock()
 
+	drainErr := r.finishOutputDrain(waitErr)
+
 	ctxErr := r.ctx.Err()
 	if ctxErr == nil {
 		if waitErr != nil {
 			return fmt.Errorf("run %s: %w", r.cmd.Path, waitErr)
+		}
+
+		if drainErr != nil {
+			return fmt.Errorf("run %s: %w", r.cmd.Path, drainErr)
 		}
 
 		return nil
@@ -113,6 +135,30 @@ func CombinedOutput(ctx context.Context, spec Spec) ([]byte, error) {
 	err := Run(ctx, spec)
 
 	return output.Bytes(), err
+}
+
+// finishOutputDrain waits for the writer to take the remaining output. exec.ErrWaitDelay means a
+// descendant also holds Stderr and has used up the limit already, so the pipe is closed at once.
+func (r *Running) finishOutputDrain(waitErr error) error {
+	if r.outputDrain == nil {
+		return nil
+	}
+
+	if errors.Is(waitErr, exec.ErrWaitDelay) {
+		r.outputDrain.closeReader()
+	} else {
+		r.outputDrain.startLimitingReads()
+	}
+
+	select {
+	case <-r.outputDrain.done:
+	case <-r.ctx.Done():
+		// A descendant in the group may still hold the pipe; the kill lets the copy see EOF.
+		_ = r.signalGroup(syscall.SIGKILL)
+		<-r.outputDrain.done
+	}
+
+	return r.outputDrain.copyErr
 }
 
 func (r *Running) stopGroup(spec Spec) error {
