@@ -141,7 +141,7 @@ const ChartLegendComponent = ({
   const { t } = useTranslation();
 
   return (
-    <ul className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600 dark:text-gray-400">
+    <ul className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
       {lines.map((line) => (
         <li key={line.dataKey} className="flex items-center gap-1.5">
           <LegendLineSampleComponent line={line} />
@@ -214,9 +214,7 @@ const ChartFrameComponent = ({
       <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
         <div className="min-w-0 space-y-1">
           <div className="font-semibold">{t(titleKey)}</div>
-          {subtitleKey && (
-            <div className="text-xs text-gray-600 dark:text-gray-400">{t(subtitleKey)}</div>
-          )}
+          {subtitleKey && <div className="text-xs text-muted">{t(subtitleKey)}</div>}
           <ChartLegendComponent lines={lines} markers={markers} />
         </div>
 
@@ -340,7 +338,7 @@ export const ChartAvailabilityComponent = ({
 
   if (!hasEnoughChartPoints(series)) {
     return (
-      <div className="mt-4 rounded-lg border border-dashed border-gray-300 p-6 text-center text-gray-600 dark:border-gray-600 dark:text-gray-400">
+      <div className="mt-4 rounded-lg border border-dashed border-border p-6 text-center text-muted">
         {t('backups.physical.monitoring.charts.notEnoughData')}
       </div>
     );
@@ -355,7 +353,7 @@ export const ChartAvailabilityComponent = ({
       {children}
 
       {(dataSinceMs !== null || missingDataRanges.length > 0) && (
-        <div className="space-y-0.5 text-xs text-gray-600 dark:text-gray-400">
+        <div className="space-y-0.5 text-xs text-muted">
           {dataSinceMs !== null && (
             <div>
               {t('backups.physical.monitoring.charts.dataSince', {

@@ -33,12 +33,12 @@ const createRequestController = (requestFullBackup: () => Promise<unknown>) => {
 };
 
 describe('FullBackupRequestController', () => {
-  it('frees a busy button on the first landed refresh even when it never sent the request', () => {
+  it('reports no change on a landed refresh when no request was sent', () => {
     const { controller, requestingStates } = createRequestController(() => Promise.resolve());
 
     controller.handleRefreshLanded();
 
-    expect(requestingStates).toEqual([false]);
+    expect(requestingStates).toEqual([]);
   });
 
   it('refreshes after a successful request and keeps the button busy until that refresh lands', async () => {
@@ -97,5 +97,36 @@ describe('FullBackupRequestController', () => {
     await firstRequest;
 
     expect(dependencies.requestFullBackup).toHaveBeenCalledOnce();
+  });
+
+  it('reports nothing and refreshes nothing when a request succeeds after reporting stopped', async () => {
+    const deferredRequest = createDeferredRequest();
+    const { controller, dependencies, requestingStates } = createRequestController(
+      () => deferredRequest.promise,
+    );
+
+    const request = controller.requestFullBackup();
+    controller.stopReporting();
+    deferredRequest.resolveRequest();
+    await request;
+
+    expect(dependencies.reportRequested).not.toHaveBeenCalled();
+    expect(dependencies.refreshNow).not.toHaveBeenCalled();
+    expect(requestingStates).toEqual([true]);
+  });
+
+  it('reports nothing when a request fails after reporting stopped', async () => {
+    const deferredRequest = createDeferredRequest();
+    const { controller, dependencies, requestingStates } = createRequestController(
+      () => deferredRequest.promise,
+    );
+
+    const request = controller.requestFullBackup();
+    controller.stopReporting();
+    deferredRequest.rejectRequest(new Error('refused'));
+    await request;
+
+    expect(dependencies.reportError).not.toHaveBeenCalled();
+    expect(requestingStates).toEqual([true]);
   });
 });

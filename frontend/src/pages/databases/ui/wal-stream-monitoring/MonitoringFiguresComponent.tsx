@@ -35,8 +35,8 @@ const FigureComponent = ({ labelKey, lineColor, isAverage, children }: FigurePro
   const { t } = useTranslation();
 
   return (
-    <div className="rounded-lg border border-gray-200 px-4 py-3 dark:border-gray-700">
-      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+    <div className="rounded-lg border border-border px-4 py-3">
+      <div className="flex items-center gap-2 text-sm text-muted">
         {lineColor && (
           <span
             aria-hidden
@@ -46,7 +46,7 @@ const FigureComponent = ({ labelKey, lineColor, isAverage, children }: FigurePro
         )}
         {t(labelKey)}
         {isAverage && (
-          <span className="text-xs text-gray-400 dark:text-gray-500">
+          <span className="text-xs text-muted">
             {t('backups.physical.monitoring.figures.averageHint')}
           </span>
         )}
@@ -127,7 +127,7 @@ export const MonitoringFiguresComponent = ({
       </div>
 
       {easedSentences.length > 0 && (
-        <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+        <div className="mt-2 text-sm text-muted">
           {easedSentences.map((sentence) => (
             <span key={sentence.key} className="mr-1">
               <MonitoringTextComponent text={sentence} />

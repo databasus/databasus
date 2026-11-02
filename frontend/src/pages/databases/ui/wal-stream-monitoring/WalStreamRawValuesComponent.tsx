@@ -94,7 +94,7 @@ export const WalStreamRawValuesComponent = ({ statistics }: Props) => {
     <dl className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm md:grid-cols-2">
       {rows.map((row) => (
         <div key={row.labelKey} className="flex justify-between gap-4">
-          <dt className="text-gray-600 dark:text-gray-400">{t(row.labelKey)}</dt>
+          <dt className="text-muted">{t(row.labelKey)}</dt>
           <dd className="text-right font-medium">{row.value}</dd>
         </div>
       ))}

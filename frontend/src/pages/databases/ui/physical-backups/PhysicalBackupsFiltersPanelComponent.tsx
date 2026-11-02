@@ -45,9 +45,7 @@ export const PhysicalBackupsFiltersPanelComponent = ({ filters, onFiltersChange 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
-        <span className="min-w-[90px] pr-2 text-sm text-gray-500 dark:text-gray-400">
-          {t('common.fields.type')}
-        </span>
+        <span className="min-w-[90px] pr-2 text-sm text-muted">{t('common.fields.type')}</span>
         <Select
           mode="multiple"
           value={filters.types ?? []}
@@ -62,9 +60,7 @@ export const PhysicalBackupsFiltersPanelComponent = ({ filters, onFiltersChange 
       </div>
 
       <div className="flex items-center gap-2">
-        <span className="min-w-[90px] pr-2 text-sm text-gray-500 dark:text-gray-400">
-          {t('common.fields.status')}
-        </span>
+        <span className="min-w-[90px] pr-2 text-sm text-muted">{t('common.fields.status')}</span>
         <Select
           mode="multiple"
           value={filters.statuses ?? []}
@@ -79,9 +75,7 @@ export const PhysicalBackupsFiltersPanelComponent = ({ filters, onFiltersChange 
       </div>
 
       <div className="flex items-center gap-2">
-        <span className="min-w-[90px] pr-2 text-sm text-gray-500 dark:text-gray-400">
-          {t('backups.filters.before')}
-        </span>
+        <span className="min-w-[90px] pr-2 text-sm text-muted">{t('backups.filters.before')}</span>
         <DatePicker
           value={filters.createdBefore ? dayjs(filters.createdBefore) : null}
           onChange={handleBeforeDateChange}

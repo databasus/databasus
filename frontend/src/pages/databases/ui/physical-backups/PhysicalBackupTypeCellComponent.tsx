@@ -17,7 +17,7 @@ const renderTypeBadge = (type: PhysicalBackupType, t: TFunction): JSX.Element =>
 
   if (type === PhysicalBackupType.FULL) {
     return (
-      <span className="inline-flex items-center rounded bg-indigo-500/15 px-2 py-0.5 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-500/40 ring-inset dark:text-indigo-300">
+      <span className="inline-flex items-center rounded bg-accent/10 px-2 py-0.5 text-xs font-semibold text-accent ring-1 ring-accent/40 ring-inset">
         {label}
       </span>
     );
@@ -25,14 +25,14 @@ const renderTypeBadge = (type: PhysicalBackupType, t: TFunction): JSX.Element =>
 
   if (type === PhysicalBackupType.WAL) {
     return (
-      <span className="inline-flex items-center rounded bg-slate-400/10 px-2 py-0.5 text-xs font-medium text-slate-600 ring-1 ring-slate-400/30 ring-inset dark:text-slate-300">
+      <span className="inline-flex items-center rounded bg-muted/10 px-2 py-0.5 text-xs font-medium text-muted ring-1 ring-muted/30 ring-inset">
         {label}
       </span>
     );
   }
 
   return (
-    <span className="inline-flex items-center rounded bg-indigo-400/10 px-2 py-0.5 text-xs font-medium text-indigo-600 ring-1 ring-indigo-400/30 ring-inset dark:text-indigo-300">
+    <span className="inline-flex items-center rounded bg-accent/5 px-2 py-0.5 text-xs font-normal text-accent ring-1 ring-accent/30 ring-inset">
       {label}
     </span>
   );

@@ -5,14 +5,13 @@ import {
   DownloadOutlined,
   SafetyOutlined,
 } from '@ant-design/icons';
-import { Button, Tooltip } from 'antd';
-import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { DatabaseType } from '../../../../entities/databases';
 import type { TranslationKey } from '../../../../shared/i18n';
 import type { LogicalBackup } from '../../model/LogicalBackup';
 import { LogicalBackupStatus } from '../../model/LogicalBackupStatus';
+import { BackupActionButton } from '../BackupActionButton';
 
 // Physical databases have their own backups list; the generic text keeps the map exhaustive.
 const DOWNLOAD_TOOLTIP_KEYS: Record<DatabaseType, TranslationKey> = {
@@ -42,37 +41,6 @@ interface Props {
   actions: LogicalBackupRowActions;
 }
 
-interface ActionButtonProps {
-  title: string;
-  icon: ReactNode;
-  className: string;
-  isPending?: boolean;
-  isDisabled?: boolean;
-  onClick: () => void;
-}
-
-const ActionButton = ({
-  title,
-  icon,
-  className,
-  isPending,
-  isDisabled,
-  onClick,
-}: ActionButtonProps) => (
-  <Tooltip title={title}>
-    <Button
-      type="text"
-      size="small"
-      className={`${className} !text-lg`}
-      aria-label={title}
-      icon={icon}
-      loading={isPending}
-      disabled={isDisabled}
-      onClick={onClick}
-    />
-  </Tooltip>
-);
-
 export const LogicalBackupActions = ({ backup, actions }: Props) => {
   const { t } = useTranslation();
 
@@ -81,7 +49,7 @@ export const LogicalBackupActions = ({ backup, actions }: Props) => {
   if (backup.status === LogicalBackupStatus.IN_PROGRESS && actions.isCanManageDBs) {
     return (
       <div className="flex gap-2">
-        <ActionButton
+        <BackupActionButton
           title={t('backups.list.actions.cancelBackup')}
           icon={<CloseCircleOutlined />}
           className="!text-danger"
@@ -98,7 +66,7 @@ export const LogicalBackupActions = ({ backup, actions }: Props) => {
   if (deletingBackupId === backup.id) {
     return (
       <div className="flex gap-2">
-        <ActionButton
+        <BackupActionButton
           title={t('backups.list.actions.deleteBackup')}
           icon={<DeleteOutlined />}
           className="!text-danger"
@@ -112,7 +80,7 @@ export const LogicalBackupActions = ({ backup, actions }: Props) => {
   return (
     <div className="flex gap-2">
       {actions.isCanManageDBs && (
-        <ActionButton
+        <BackupActionButton
           title={t('backups.list.actions.deleteBackup')}
           icon={<DeleteOutlined />}
           className="!text-danger"
@@ -122,7 +90,7 @@ export const LogicalBackupActions = ({ backup, actions }: Props) => {
       )}
 
       {actions.isCanManageDBs && actions.databaseType === DatabaseType.POSTGRES_LOGICAL && (
-        <ActionButton
+        <BackupActionButton
           title={t('backups.logical.list.actions.verifyRestore')}
           icon={<SafetyOutlined />}
           className="!text-accent"
@@ -132,14 +100,14 @@ export const LogicalBackupActions = ({ backup, actions }: Props) => {
         />
       )}
 
-      <ActionButton
+      <BackupActionButton
         title={t('backups.logical.list.actions.restore')}
         icon={<CloudUploadOutlined />}
         className="!text-accent"
         onClick={() => actions.onRestore(backup)}
       />
 
-      <ActionButton
+      <BackupActionButton
         title={t(DOWNLOAD_TOOLTIP_KEYS[actions.databaseType])}
         icon={<DownloadOutlined />}
         className="!text-accent"

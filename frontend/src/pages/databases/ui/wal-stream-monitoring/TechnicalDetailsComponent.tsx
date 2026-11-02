@@ -32,7 +32,7 @@ export const TechnicalDetailsComponent = ({
   const { t } = useTranslation();
 
   return (
-    <section className="mt-8 space-y-6 border-t border-gray-200 pt-6 dark:border-gray-700">
+    <section className="mt-8 space-y-6 border-t border-border pt-6">
       <h3 className="text-base font-semibold">
         {t('backups.physical.monitoring.technicalDetails.title')}
       </h3>

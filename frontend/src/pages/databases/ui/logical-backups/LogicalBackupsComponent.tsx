@@ -1,9 +1,8 @@
 import { FilterFilled, FilterOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { Alert, App, Button, Modal, Spin } from 'antd';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { type BackupConfig, backupConfigApi } from '../../../../entities/backup-configs';
 import type { Database } from '../../../../entities/databases';
 import { usePersistentState, usePolledPagedList } from '../../../../shared/hooks';
 import { getWebsitePageUrl, translateApiError, useLocale } from '../../../../shared/i18n';
@@ -11,6 +10,8 @@ import { ConfirmationComponent } from '../../../../shared/ui';
 import { logicalBackupApi } from '../../api/logicalBackupApi';
 import type { LogicalBackup } from '../../model/LogicalBackup';
 import type { LogicalBackupListFilter } from '../../model/LogicalBackupListFilter';
+import { BackupConfigNotice } from '../backup-config/BackupConfigNotice';
+import { useBackupConfigLoad } from '../backup-config/useBackupConfigLoad';
 import { RestoresComponent } from '../restores/RestoresComponent';
 import type { LogicalBackupRowActions } from './LogicalBackupActions';
 import { LogicalBackupCards } from './LogicalBackupCards';
@@ -39,11 +40,6 @@ export const LogicalBackupsComponent = ({
   const { t } = useTranslation();
   const { locale } = useLocale();
   const { message, modal } = App.useApp();
-
-  const [backupConfig, setBackupConfig] = useState<BackupConfig | undefined>();
-  const [isBackupConfigLoading, setIsBackupConfigLoading] = useState(false);
-  const [backupConfigError, setBackupConfigError] = useState<unknown>();
-  const [backupConfigLoadAttempt, setBackupConfigLoadAttempt] = useState(0);
 
   const [showingBackupError, setShowingBackupError] = useState<LogicalBackup | undefined>();
   const [backupToDeleteId, setBackupToDeleteId] = useState<string | undefined>();
@@ -83,6 +79,9 @@ export const LogicalBackupsComponent = ({
     },
   });
 
+  const { backupConfig, isBackupConfigLoading, backupConfigError, retryBackupConfigLoad } =
+    useBackupConfigLoad(database.id);
+
   const backupActions = useLogicalBackupActions({
     databaseId: database.id,
     filter,
@@ -118,30 +117,6 @@ export const LogicalBackupsComponent = ({
       onOk: () => backupActions.startVerification(backupId),
     });
   };
-
-  useEffect(() => {
-    let isActive = true;
-
-    setIsBackupConfigLoading(true);
-    setBackupConfig(undefined);
-    setBackupConfigError(undefined);
-
-    backupConfigApi
-      .getBackupConfig(database.id)
-      .then((loadedBackupConfig) => {
-        if (isActive) setBackupConfig(loadedBackupConfig);
-      })
-      .catch((error: unknown) => {
-        if (isActive) setBackupConfigError(error);
-      })
-      .finally(() => {
-        if (isActive) setIsBackupConfigLoading(false);
-      });
-
-    return () => {
-      isActive = false;
-    };
-  }, [database.id, backupConfigLoadAttempt]);
 
   const isAnyFilterApplied =
     (filter.statuses && filter.statuses.length > 0) || filter.createdBefore !== undefined;
@@ -197,23 +172,11 @@ export const LogicalBackupsComponent = ({
         </div>
       )}
 
-      {backupConfigError !== undefined && (
-        <Alert
-          className="mt-3"
-          type="error"
-          showIcon
-          message={translateApiError(backupConfigError, t)}
-          action={
-            <Button onClick={() => setBackupConfigLoadAttempt((attempt) => attempt + 1)}>
-              {t('common.actions.retry')}
-            </Button>
-          }
-        />
-      )}
-
-      {backupConfig && !backupConfig.isBackupsEnabled && (
-        <div className="text-sm text-danger">{t('backups.list.scheduledBackupsDisabled')}</div>
-      )}
+      <BackupConfigNotice
+        backupConfig={backupConfig}
+        backupConfigError={backupConfigError}
+        onRetry={retryBackupConfigLoad}
+      />
 
       <div className="mt-5" />
 

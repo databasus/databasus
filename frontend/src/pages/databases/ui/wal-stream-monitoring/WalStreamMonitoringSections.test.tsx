@@ -384,7 +384,7 @@ describe('the Monitoring tab sections', () => {
       /<span class="hidden @2xl:block" aria-hidden="true"><span[^>]*class="anticon anticon-arrow-right"/,
     );
     expect(markup).toMatch(
-      /<span class="block text-gray-400 @2xl:hidden" aria-hidden="true"><span[^>]*class="anticon anticon-arrow-down"/,
+      /<span class="block text-muted @2xl:hidden" aria-hidden="true"><span[^>]*class="anticon anticon-arrow-down"/,
     );
   });
 });

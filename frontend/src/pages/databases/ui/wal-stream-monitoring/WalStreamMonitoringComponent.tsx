@@ -72,7 +72,7 @@ const MonitoringContainerComponent = ({
   // The width stops where a line of text and a chart still read at a glance; past it the tab only
   // grows empty space.
   <div
-    className={`w-full max-w-6xl bg-white p-3 shadow md:p-5 dark:bg-gray-800 ${isDirectlyUnderTab ? 'rounded-tr-md rounded-br-md rounded-bl-md' : 'rounded-md'}`}
+    className={`w-full max-w-6xl bg-surface p-3 shadow md:p-5 ${isDirectlyUnderTab ? 'rounded-tr-md rounded-br-md rounded-bl-md' : 'rounded-md'}`}
   >
     {children}
   </div>
@@ -80,13 +80,13 @@ const MonitoringContainerComponent = ({
 
 const MonitoringSkeletonComponent = () => (
   <div className="space-y-4">
-    <div className="h-24 rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+    <div className="h-24 rounded-lg border border-border p-4">
       <Skeleton active title paragraph={{ rows: 1 }} />
     </div>
-    <div className="h-36 rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+    <div className="h-36 rounded-lg border border-border p-4">
       <Skeleton active paragraph={{ rows: 3 }} />
     </div>
-    <div className="h-[760px] rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+    <div className="h-[760px] rounded-lg border border-border p-4">
       <Skeleton active paragraph={{ rows: 12 }} />
     </div>
   </div>
@@ -98,7 +98,7 @@ export const WalStreamMonitoringComponent = ({
   isDirectlyUnderTab,
   onOpenConfig,
 }: Props) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { message } = App.useApp();
 
   const [period, setPeriod] = useState<WalStreamStatisticsPeriod>(WalStreamStatisticsPeriod.HOUR);
@@ -165,17 +165,22 @@ export const WalStreamMonitoringComponent = ({
   }, [database.id]);
 
   useEffect(() => {
-    fullBackupRequestControllerRef.current = new FullBackupRequestController(
+    const requestController = new FullBackupRequestController(
       {
         requestFullBackup: () => physicalBackupsApi.triggerPhysicalBackup(database.id, 'FULL'),
         refreshNow: () => controllerRef.current?.retry(),
         reportRequested: () =>
-          message.success(t('backups.physical.monitoring.banner.fullBackupRequested')),
-        reportError: (e) => message.error(translateApiError(e, t)),
+          message.success(i18n.t('backups.physical.monitoring.banner.fullBackupRequested')),
+        reportError: (e) => message.error(translateApiError(e, i18n.t)),
       },
       setIsRequestingFullBackup,
     );
-  }, [database.id, message, t]);
+
+    setIsRequestingFullBackup(false);
+    fullBackupRequestControllerRef.current = requestController;
+
+    return () => requestController.stopReporting();
+  }, [database.id]);
 
   useEffect(() => {
     fullBackupRequestControllerRef.current?.handleRefreshLanded();

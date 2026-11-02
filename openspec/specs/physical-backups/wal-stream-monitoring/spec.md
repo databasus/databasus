@@ -782,7 +782,7 @@ When a full backup is what repairs the situation, the verdict banner SHALL offer
 
 The not streaming verdict SHALL never offer the button, because Databasus takes no backups while streaming is off. The collecting data verdict SHALL not offer it either: it lasts at most two minutes, and the restore sentence already says whether a first full backup exists.
 
-The button SHALL request a full backup at once, the same way the Backups tab does. While the request runs, the button SHALL show that it is working and SHALL not accept another click. After the request succeeds, the tab SHALL refresh at once, so the banner says that a full backup is on its way without waiting for the next scheduled refresh. A failed request SHALL show the error and leave the button available.
+The button SHALL request a full backup at once, the same way the Backups tab does. While the request runs, the button SHALL show that it is working and SHALL not accept another click. After the request succeeds, the tab SHALL refresh at once, so the banner says that a full backup is on its way without waiting for the next scheduled refresh. While the tab is open, a failed request SHALL show the error and leave the button available.
 
 #### Scenario: Broken chain fixed from the tab
 
@@ -798,7 +798,7 @@ The button SHALL request a full backup at once, the same way the Backups tab doe
 
 #### Scenario: Request refused
 
-- **WHEN** the full backup request fails
+- **WHEN** the full backup request fails while the tab is open
 - **THEN** the tab shows the error
 - **AND** the button can be pressed again
 
@@ -931,3 +931,37 @@ A second authenticated endpoint SHALL return the current values of a database's 
 
 - **WHEN** a user who is not a member of the database's workspace and not an instance admin requests its current values
 - **THEN** the response is `404` with `code` `not_found`, as the requirement on reading WAL stream statistics states
+
+### Requirement: The full backup request keeps one owner while the Monitoring tab is open
+
+While a full backup request runs, switching the interface language or receiving a scheduled refresh SHALL keep the button busy, and the button SHALL accept no other click. Messages about the request SHALL use the language current when they appear. Leaving the tab means opening another tab of the database page or selecting another database. When the user leaves, the request SHALL continue on the server, but its answer, including a failure, SHALL show no feedback, start no refresh and leave no refresh running. Hiding the browser tab SHALL not count as leaving.
+
+#### Scenario: The language changes during a request
+
+- **WHEN** the user presses the full backup button, switches the interface language while the request runs and a scheduled refresh arrives
+- **THEN** the button stays busy until the request has answered and the refresh after it has landed, and only one request was sent
+
+#### Scenario: The request fails in the new language
+
+- **WHEN** the language changes while the request runs and the request then fails
+- **THEN** the error appears in the new language, and the button can be pressed again
+
+#### Scenario: The request succeeds in the new language
+
+- **WHEN** the language changes while the request runs and the request then succeeds
+- **THEN** the success message appears in the new language
+
+#### Scenario: The user leaves during a request
+
+- **WHEN** the user opens another tab of the database, such as Backups, while a full backup request runs and the request then succeeds
+- **THEN** no message appears and no statistics request follows
+
+#### Scenario: The request fails after the user leaves
+
+- **WHEN** the user opens another tab of the database while a full backup request runs and the request then fails
+- **THEN** no error appears, and on return the button is offered again because no full backup is pending
+
+#### Scenario: The browser tab is hidden during a request
+
+- **WHEN** the user hides the browser tab while a full backup request runs and the request then succeeds
+- **THEN** the message appears and the button stays busy until the refresh after it has landed

@@ -66,7 +66,7 @@ export const RestoreTimelineComponent = ({ ranges, now }: Props) => {
           {t('backups.physical.monitoring.restoreTimeline.title')}
         </div>
 
-        <ul className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600 dark:text-gray-400">
+        <ul className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
           {shownKinds.map((kind) => (
             <li key={kind} className="flex items-center gap-1.5">
               <span
@@ -80,7 +80,7 @@ export const RestoreTimelineComponent = ({ ranges, now }: Props) => {
         </ul>
       </div>
 
-      <div className="relative mt-2 h-3 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+      <div className="relative mt-2 h-3 w-full overflow-hidden rounded-full bg-hover">
         {segments.map((segment) => (
           <Tooltip
             key={`${segment.kind}-${segment.fromMs}`}
@@ -103,7 +103,7 @@ export const RestoreTimelineComponent = ({ ranges, now }: Props) => {
         ))}
       </div>
 
-      <div className="mt-1 flex justify-between text-xs text-gray-600 dark:text-gray-400">
+      <div className="mt-1 flex justify-between text-xs text-muted">
         <span>{formatMoment(getMomentParam(segments[0].fromMs, now))}</span>
         <span>{formatMoment(getMomentParam(segments[segments.length - 1].toMs, now))}</span>
       </div>

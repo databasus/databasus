@@ -21,7 +21,7 @@ export const MonitoringTipsComponent = ({ tips }: Props) => {
     <ul className="space-y-3 text-sm">
       {tips.map((tip) => (
         <li key={tip.titleKey} className="flex gap-2">
-          <span className="shrink-0 pt-0.5 text-gray-400 dark:text-gray-500" aria-hidden>
+          <span className="shrink-0 pt-0.5 text-muted" aria-hidden>
             <InfoCircleOutlined />
           </span>
           <div>
@@ -29,7 +29,7 @@ export const MonitoringTipsComponent = ({ tips }: Props) => {
             <div>
               <MonitoringTextComponent text={tip.whatHappened} />
             </div>
-            <div className="text-gray-600 dark:text-gray-400">
+            <div className="text-muted">
               <MonitoringTextComponent text={tip.whatToDo} />
             </div>
           </div>

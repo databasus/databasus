@@ -15,6 +15,11 @@ export const stubClipboard = (readText: () => Promise<string>) => {
   overrideProperty(navigator, 'clipboard', { readText });
 };
 
+export const stubClipboardWrite = (writeText: (text: string) => Promise<void>) => {
+  overrideProperty(window, 'isSecureContext', true);
+  overrideProperty(navigator, 'clipboard', { writeText });
+};
+
 export const stubClipboardUnavailable = () => {
   overrideProperty(window, 'isSecureContext', false);
 };

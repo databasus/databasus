@@ -112,24 +112,26 @@ test.use({
   ],
 });
 
-test('renders WAL plots with positive measured dimensions and deterministic series', async ({
-  page,
-}) => {
-  await page.clock.setFixedTime(new Date('2026-10-18T12:00:00Z'));
-  await page.addInitScript(() => {
-    localStorage.setItem('databasus_user_token', 'synthetic-session');
-    localStorage.setItem('databasus_user_id', 'owner-id');
-    localStorage.setItem('databasus-locale', 'en');
-    localStorage.setItem('databasus-theme', 'light');
+for (const theme of ['light', 'dark'] as const) {
+  test(`renders WAL plots with positive measured dimensions and deterministic series in the ${theme} theme`, async ({
+    page,
+  }) => {
+    await page.clock.setFixedTime(new Date('2026-10-18T12:00:00Z'));
+    await page.addInitScript((selectedTheme) => {
+      localStorage.setItem('databasus_user_token', 'synthetic-session');
+      localStorage.setItem('databasus_user_id', 'owner-id');
+      localStorage.setItem('databasus-locale', 'en');
+      localStorage.setItem('databasus-theme', selectedTheme);
+    }, theme);
+
+    await page.goto('/');
+    await page.getByText('Monitoring', { exact: true }).click();
+
+    const plot = page.locator('.recharts-surface').first();
+    await expect(plot).toBeVisible();
+    const box = await plot.boundingBox();
+    expect(box!.width).toBeGreaterThan(0);
+    expect(box!.height).toBeGreaterThan(0);
+    expect(await page.locator('.recharts-line-curve').count()).toBeGreaterThan(0);
   });
-
-  await page.goto('/');
-  await page.getByText('Monitoring', { exact: true }).click();
-
-  const plot = page.locator('.recharts-surface').first();
-  await expect(plot).toBeVisible();
-  const box = await plot.boundingBox();
-  expect(box!.width).toBeGreaterThan(0);
-  expect(box!.height).toBeGreaterThan(0);
-  expect(await page.locator('.recharts-line-curve').count()).toBeGreaterThan(0);
-});
+}

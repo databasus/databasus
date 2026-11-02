@@ -1,6 +1,6 @@
 const MB_IN_GB = 1024;
 
-export const formatLogicalBackupSize = (
+export const formatBackupSize = (
   sizeMb: number,
   formatNumber: (value: number) => string,
 ): string => {
@@ -8,5 +8,5 @@ export const formatLogicalBackupSize = (
     return `${formatNumber(Number((sizeMb / MB_IN_GB).toFixed(2)))} GB`;
   }
 
-  return `${formatNumber(Number(sizeMb?.toFixed(2)))} MB`;
+  return `${formatNumber(Number(sizeMb.toFixed(2)))} MB`;
 };

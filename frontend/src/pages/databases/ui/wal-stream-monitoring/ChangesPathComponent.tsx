@@ -117,10 +117,7 @@ const StageHeaderComponent = ({ icon, titleKey, tone, hasOutgoingLine }: StageHe
       )}
 
       {hasOutgoingLine && (
-        <span
-          className="ml-1 hidden h-px min-w-3 flex-1 bg-gray-300 @2xl:block dark:bg-gray-600"
-          aria-hidden
-        />
+        <span className="ml-1 hidden h-px min-w-3 flex-1 bg-border @2xl:block" aria-hidden />
       )}
     </div>
   );
@@ -134,7 +131,7 @@ const InfoTooltipComponent = ({ tooltipKey }: { tooltipKey: TranslationKey }) =>
       <InfoCircleOutlined
         tabIndex={0}
         aria-label={t(tooltipKey)}
-        className="cursor-help text-gray-400 dark:text-gray-500"
+        className="cursor-help text-muted"
       />
     </Tooltip>
   );
@@ -146,7 +143,7 @@ const StageDetailsComponent = ({ labelKey, tooltipKey, children }: StageDetailsP
   return (
     <div className="mt-2 space-y-1.5 pr-3 pl-11">
       {/* Inline, so the info icon follows the last word when the label wraps. */}
-      <div className="text-xs text-gray-600 dark:text-gray-400">
+      <div className="text-xs text-muted">
         {t(labelKey)} <InfoTooltipComponent tooltipKey={tooltipKey} />
       </div>
       {children}
@@ -155,7 +152,7 @@ const StageDetailsComponent = ({ labelKey, tooltipKey, children }: StageDetailsP
 };
 
 const NoteComponent = ({ tooltipKey, children }: NoteProps) => (
-  <div className="flex items-start gap-1.5 text-xs text-gray-600 dark:text-gray-400">
+  <div className="flex items-start gap-1.5 text-xs text-muted">
     <span>{children}</span>
     {tooltipKey && <InfoTooltipComponent tooltipKey={tooltipKey} />}
   </div>
@@ -167,15 +164,15 @@ const LinkHeaderComponent = ({ tooltipKey, bytesPerSecond }: LinkHeaderProps) =>
   const { formatNumber } = useLocale();
 
   return (
-    <div className="flex items-center justify-center pt-2 text-gray-400 @2xl:h-9 @2xl:pt-0 @2xl:pr-2">
+    <div className="flex items-center justify-center pt-2 text-muted @2xl:h-9 @2xl:pt-0 @2xl:pr-2">
       {/* The container breakpoint classes sit on wrappers: AntD's own icon display rule would
       override them on the icon element and show both arrows. */}
-      <span className="hidden h-px flex-1 bg-gray-300 @2xl:block dark:bg-gray-600" aria-hidden />
+      <span className="hidden h-px flex-1 bg-border @2xl:block" aria-hidden />
 
       <Tooltip title={t(tooltipKey)}>
         <span
           tabIndex={0}
-          className="mx-1 cursor-help rounded-full border border-gray-200 px-2 py-0.5 text-sm font-semibold whitespace-nowrap text-gray-900 tabular-nums dark:border-gray-600 dark:text-gray-100"
+          className="mx-1 cursor-help rounded-full border border-border px-2 py-0.5 text-sm font-semibold whitespace-nowrap text-content tabular-nums"
         >
           {bytesPerSecond === null
             ? t('backups.physical.monitoring.path.unknownAmount')
@@ -183,7 +180,7 @@ const LinkHeaderComponent = ({ tooltipKey, bytesPerSecond }: LinkHeaderProps) =>
         </span>
       </Tooltip>
 
-      <span className="hidden h-px flex-1 bg-gray-300 @2xl:block dark:bg-gray-600" aria-hidden />
+      <span className="hidden h-px flex-1 bg-border @2xl:block" aria-hidden />
       <span className="hidden @2xl:block" aria-hidden>
         <ArrowRightOutlined />
       </span>
@@ -196,7 +193,7 @@ const LinkLabelComponent = ({ labelKey, lineColor }: LinkLabelProps) => {
 
   return (
     <div className="flex flex-col items-center gap-1 pb-2 @2xl:pb-0">
-      <span className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
+      <span className="flex items-center gap-1.5 text-xs text-muted">
         <span
           aria-hidden
           className="inline-block h-2 w-2 shrink-0 rounded-full"
@@ -204,7 +201,7 @@ const LinkLabelComponent = ({ labelKey, lineColor }: LinkLabelProps) => {
         />
         {t(labelKey)}
       </span>
-      <span className="block text-gray-400 @2xl:hidden" aria-hidden>
+      <span className="block text-muted @2xl:hidden" aria-hidden>
         <ArrowDownOutlined />
       </span>
     </div>
@@ -223,7 +220,7 @@ export const ChangesPathComponent = ({ statistics, stageTones, isReducedMotion }
   const localQueueBytes = current?.localQueueBytes ?? null;
 
   return (
-    <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+    <div className="rounded-lg border border-border p-4">
       <div className="@container">
         <ol className="grid grid-cols-1 @2xl:grid-cols-[minmax(0,1fr)_minmax(104px,140px)_minmax(0,1fr)_minmax(104px,140px)_minmax(0,1fr)] @2xl:grid-rows-[auto_auto]">
           <li className={STRIP_CELL_CLASS}>
@@ -300,7 +297,7 @@ export const ChangesPathComponent = ({ statistics, stageTones, isReducedMotion }
               )}
 
               {current && !current.isReceiverRunning && (
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-orange-600 dark:text-orange-400">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-warning">
                   <PauseCircleOutlined aria-hidden />
                   {t('backups.physical.monitoring.path.receivingPaused')}
                 </div>
@@ -347,7 +344,7 @@ export const ChangesPathComponent = ({ statistics, stageTones, isReducedMotion }
         </ol>
       </div>
 
-      <p className="mt-4 mb-0 text-xs text-gray-600 dark:text-gray-400">
+      <p className="mt-4 mb-0 text-xs text-muted">
         {t('backups.physical.monitoring.path.ratesCaption')}
       </p>
     </div>

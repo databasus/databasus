@@ -28,7 +28,7 @@ export const PathAmountComponent = ({ valueBytes, limitBytes, isReducedMotion }:
 
   if (valueBytes === null) {
     return (
-      <div className="text-sm text-gray-600 dark:text-gray-400">
+      <div className="text-sm text-muted">
         {t('backups.physical.monitoring.path.unknownAmount')}
       </div>
     );
@@ -36,7 +36,7 @@ export const PathAmountComponent = ({ valueBytes, limitBytes, isReducedMotion }:
 
   if (valueBytes === 0) {
     return (
-      <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400">
+      <div className="flex items-center gap-1.5 text-sm text-muted">
         <CheckCircleOutlined aria-hidden style={{ color: token.colorSuccess }} />
         {t('backups.physical.monitoring.path.nothingWaiting')}
       </div>
@@ -53,7 +53,7 @@ export const PathAmountComponent = ({ valueBytes, limitBytes, isReducedMotion }:
 
       {progress && limitBytes !== undefined && (
         <div className="mt-1 max-w-48">
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-hover">
             <div
               className="h-full rounded-full"
               style={{
@@ -64,9 +64,9 @@ export const PathAmountComponent = ({ valueBytes, limitBytes, isReducedMotion }:
             />
           </div>
 
-          <div className="mt-0.5 text-xs text-gray-600 dark:text-gray-400">
+          <div className="mt-0.5 text-xs text-muted">
             {progress.isOverLimit ? (
-              <span className="font-semibold text-red-600 dark:text-red-400">
+              <span className="font-semibold text-danger">
                 {t('backups.physical.monitoring.path.overLimit')}
               </span>
             ) : (

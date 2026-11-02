@@ -7,8 +7,8 @@ import { useTranslation } from 'react-i18next';
 import { useLocale } from '../../../../shared/i18n';
 import { formatDuration } from '../../../../shared/lib';
 import { getUserTimeFormat } from '../../../../shared/time';
+import { formatBackupSize } from '../../lib/formatBackupSize';
 import type { LogicalBackup } from '../../model/LogicalBackup';
-import { formatLogicalBackupSize } from './formatLogicalBackupSize';
 import { LogicalBackupActions, type LogicalBackupRowActions } from './LogicalBackupActions';
 import { LogicalBackupStatusLabel } from './LogicalBackupStatusLabel';
 
@@ -59,11 +59,11 @@ export const LogicalBackupsTable = ({ backups, isLoading, actions, onShowError }
       width: 150,
       render: (sizeMb: number, backup: LogicalBackup) => (
         <div>
-          <div>{formatLogicalBackupSize(sizeMb, formatNumber)}</div>
+          <div>{formatBackupSize(sizeMb, formatNumber)}</div>
           {backup.rawDatabaseSizeMb > 0 && (
             <div className="text-xs text-muted">
               {t('backups.logical.list.databaseSize', {
-                size: formatLogicalBackupSize(backup.rawDatabaseSizeMb, formatNumber),
+                size: formatBackupSize(backup.rawDatabaseSizeMb, formatNumber),
               })}
             </div>
           )}

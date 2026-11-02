@@ -65,7 +65,7 @@ const OtherReasonComponent = ({ reason }: { reason: ReasonTexts }) => {
           <span className="mr-1">
             <MonitoringTextComponent text={reason.whatHappened} />
           </span>
-          <span className="text-gray-600 dark:text-gray-400">
+          <span className="text-muted">
             <MonitoringTextComponent text={reason.whatToDo} />
           </span>
         </div>
@@ -112,7 +112,7 @@ export const VerdictBannerComponent = ({
               {t(banner.headlineKey)}
             </div>
 
-            <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
+            <div className="flex items-center gap-1.5 text-xs text-muted">
               <span
                 aria-hidden
                 className={`inline-block h-2 w-2 rounded-full ${isLive && !isReducedMotion ? 'animate-pulse' : ''}`}
@@ -142,7 +142,7 @@ export const VerdictBannerComponent = ({
 
                 {/* The button below is the action, so its sentence would only repeat it. */}
                 {!isFullBackupActionShown && (
-                  <div className="text-gray-600 dark:text-gray-400">
+                  <div className="text-muted">
                     <MonitoringTextComponent text={banner.headlineReason.whatToDo} />
                   </div>
                 )}
