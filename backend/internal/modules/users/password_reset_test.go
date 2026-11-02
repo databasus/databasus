@@ -2,6 +2,8 @@ package users_test
 
 import (
 	"net/http"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -173,6 +175,231 @@ func TestCompletePasswordReset(t *testing.T) {
 		require.Equal(t, http.StatusNoContent, rightCodeResponse.StatusCode(), string(rightCodeResponse.Body))
 	})
 
+	t.Run("refuses the correct code after five wrong attempts", func(t *testing.T) {
+		app := apptest.New(t)
+		admin := app.CreateAdmin(t)
+		code := requestResetCode(t, app, admin.Email)
+		enterWrongResetCodes(t, app, wrongResetCodeEntries{email: admin.Email, correctCode: code, attemptCount: 5})
+
+		response := completePasswordReset(t, app, admin.Email, code, resetPassword)
+
+		requireProblem(t, response.StatusCode(), response.Body, http.StatusBadRequest,
+			apiclient.ProblemCodeInvalidResetCode)
+		requireCompletedSignIn(t, signIn(t, app, admin.Email, apptest.TestPassword))
+	})
+
+	t.Run("accepts the correct code after four wrong attempts", func(t *testing.T) {
+		app := apptest.New(t)
+		admin := app.CreateAdmin(t)
+		code := requestResetCode(t, app, admin.Email)
+		enterWrongResetCodes(t, app, wrongResetCodeEntries{email: admin.Email, correctCode: code, attemptCount: 4})
+
+		response := completePasswordReset(t, app, admin.Email, code, resetPassword)
+
+		require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
+		requireCompletedSignIn(t, signIn(t, app, admin.Email, resetPassword))
+	})
+
+	t.Run("keeps the attempt count when the attempt fails", func(t *testing.T) {
+		app := apptest.New(t)
+		admin := app.CreateAdmin(t)
+		code := requestResetCode(t, app, admin.Email)
+
+		enterWrongResetCodes(t, app, wrongResetCodeEntries{email: admin.Email, correctCode: code, attemptCount: 1})
+
+		assert.Equal(t, 1, getNewestResetCodeAttemptCount(t, app, admin))
+	})
+
+	t.Run("refuses the correct code after eight simultaneous wrong attempts", func(t *testing.T) {
+		app := apptest.New(t)
+		admin := app.CreateAdmin(t)
+		code := requestResetCode(t, app, admin.Email)
+
+		var waitGroup sync.WaitGroup
+		for range 8 {
+			waitGroup.Go(func() {
+				completePasswordReset(t, app, admin.Email, getWrongCode(code), resetPassword)
+			})
+		}
+		waitGroup.Wait()
+
+		response := completePasswordReset(t, app, admin.Email, code, resetPassword)
+
+		requireProblem(t, response.StatusCode(), response.Body, http.StatusBadRequest,
+			apiclient.ProblemCodeInvalidResetCode)
+		assert.Equal(t, 5, getNewestResetCodeAttemptCount(t, app, admin))
+	})
+
+	t.Run("completes one reset when two requests carry the same correct code at once", func(t *testing.T) {
+		app := apptest.New(t)
+		admin := app.CreateAdmin(t)
+		code := requestResetCode(t, app, admin.Email)
+		newPasswords := []string{resetPassword, "another-password-789"}
+		responses := make([]*apiclient.CompletePasswordResetResponse, len(newPasswords))
+
+		var waitGroup sync.WaitGroup
+		for index, newPassword := range newPasswords {
+			waitGroup.Go(func() {
+				responses[index] = completePasswordReset(t, app, admin.Email, code, newPassword)
+			})
+		}
+		waitGroup.Wait()
+
+		acceptedIndex := 0
+		if responses[1].StatusCode() == http.StatusNoContent {
+			acceptedIndex = 1
+		}
+
+		refusedResponse := responses[1-acceptedIndex]
+		require.Equal(
+			t,
+			http.StatusNoContent,
+			responses[acceptedIndex].StatusCode(),
+			string(responses[acceptedIndex].Body),
+		)
+		requireProblem(t, refusedResponse.StatusCode(), refusedResponse.Body, http.StatusBadRequest,
+			apiclient.ProblemCodeInvalidResetCode)
+		requireCompletedSignIn(t, signIn(t, app, admin.Email, newPasswords[acceptedIndex]))
+	})
+
+	t.Run("refuses an older code while the newest one is usable", func(t *testing.T) {
+		app := apptest.New(t)
+		admin := app.CreateAdmin(t)
+		olderCode := requestResetCode(t, app, admin.Email)
+		app.Clock.Advance(time.Second)
+		requestResetCode(t, app, admin.Email)
+
+		response := completePasswordReset(t, app, admin.Email, olderCode, resetPassword)
+
+		requireProblem(t, response.StatusCode(), response.Body, http.StatusBadRequest,
+			apiclient.ProblemCodeInvalidResetCode)
+	})
+
+	t.Run("refuses an older code after the newest one is exhausted", func(t *testing.T) {
+		app := apptest.New(t)
+		admin := app.CreateAdmin(t)
+		olderCode := requestResetCode(t, app, admin.Email)
+		app.Clock.Advance(time.Second)
+		newestCode := requestResetCode(t, app, admin.Email)
+		enterWrongResetCodes(
+			t,
+			app,
+			wrongResetCodeEntries{email: admin.Email, correctCode: newestCode, attemptCount: 5},
+		)
+
+		response := completePasswordReset(t, app, admin.Email, olderCode, resetPassword)
+
+		requireProblem(t, response.StatusCode(), response.Body, http.StatusBadRequest,
+			apiclient.ProblemCodeInvalidResetCode)
+	})
+
+	t.Run("refuses an older code after a completed reset", func(t *testing.T) {
+		app := apptest.New(t)
+		admin := app.CreateAdmin(t)
+		olderCode := requestResetCode(t, app, admin.Email)
+		app.Clock.Advance(time.Second)
+		newestCode := requestResetCode(t, app, admin.Email)
+		completed := completePasswordReset(t, app, admin.Email, newestCode, resetPassword)
+		require.Equal(t, http.StatusNoContent, completed.StatusCode(), string(completed.Body))
+
+		response := completePasswordReset(t, app, admin.Email, olderCode, "another-password-789")
+
+		requireProblem(t, response.StatusCode(), response.Body, http.StatusBadRequest,
+			apiclient.ProblemCodeInvalidResetCode)
+		requireCompletedSignIn(t, signIn(t, app, admin.Email, resetPassword))
+	})
+
+	t.Run("accepts a new code after four wrong attempts on it when an exhausted one came before", func(t *testing.T) {
+		app := apptest.New(t)
+		admin := app.CreateAdmin(t)
+		exhaustedCode := requestResetCode(t, app, admin.Email)
+		enterWrongResetCodes(
+			t,
+			app,
+			wrongResetCodeEntries{email: admin.Email, correctCode: exhaustedCode, attemptCount: 5},
+		)
+		app.Clock.Advance(time.Second)
+		newCode := requestResetCode(t, app, admin.Email)
+		enterWrongResetCodes(t, app, wrongResetCodeEntries{email: admin.Email, correctCode: newCode, attemptCount: 4})
+
+		response := completePasswordReset(t, app, admin.Email, newCode, resetPassword)
+
+		require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
+		requireCompletedSignIn(t, signIn(t, app, admin.Email, resetPassword))
+	})
+
+	t.Run("returns invalid_reset_code for a wrong code with a password too long to hash", func(t *testing.T) {
+		app := apptest.New(t)
+		admin := app.CreateAdmin(t)
+		code := requestResetCode(t, app, admin.Email)
+
+		response := completePasswordReset(t, app, admin.Email, getWrongCode(code), strings.Repeat("a", 73))
+
+		requireProblem(t, response.StatusCode(), response.Body, http.StatusBadRequest,
+			apiclient.ProblemCodeInvalidResetCode)
+	})
+
+	t.Run("answers alike for an unknown address, a deactivated user and a wrong code", func(t *testing.T) {
+		app := apptest.New(t)
+		admin := app.CreateAdmin(t)
+		member := app.SignUp(t, apptest.NewTestEmail("member"))
+		memberCode := requestResetCode(t, app, member.Email)
+		requireDeactivated(t, admin, member.UserID)
+		code := requestResetCode(t, app, admin.Email)
+
+		wrongCodeResponse := completePasswordReset(t, app, admin.Email, getWrongCode(code), resetPassword)
+		unknownResponse := completePasswordReset(t, app, apptest.NewTestEmail("unknown"), code, resetPassword)
+		deactivatedResponse := completePasswordReset(t, app, member.Email, memberCode, resetPassword)
+
+		require.Equal(t, http.StatusBadRequest, wrongCodeResponse.StatusCode(), string(wrongCodeResponse.Body))
+		assert.Equal(t, wrongCodeResponse.StatusCode(), unknownResponse.StatusCode())
+		assert.Equal(t, wrongCodeResponse.StatusCode(), deactivatedResponse.StatusCode())
+		assert.Equal(
+			t,
+			wrongCodeResponse.ApplicationproblemJSON400.Code,
+			unknownResponse.ApplicationproblemJSON400.Code,
+		)
+		assert.Equal(
+			t,
+			wrongCodeResponse.ApplicationproblemJSON400.Code,
+			deactivatedResponse.ApplicationproblemJSON400.Code,
+		)
+		assert.Equal(
+			t,
+			wrongCodeResponse.ApplicationproblemJSON400.Detail,
+			unknownResponse.ApplicationproblemJSON400.Detail,
+		)
+		assert.Equal(
+			t,
+			wrongCodeResponse.ApplicationproblemJSON400.Detail,
+			deactivatedResponse.ApplicationproblemJSON400.Detail,
+		)
+
+		var isMemberCodeUsed bool
+		app.QuerySQL(
+			t,
+			&isMemberCodeUsed,
+			"SELECT is_used FROM users_password_reset_codes WHERE user_id = ?",
+			member.UserID,
+		)
+		assert.False(t, isMemberCodeUsed)
+	})
+
+	t.Run("returns 400 naming the password without spending an attempt when a wrong code comes with a short password",
+		func(t *testing.T) {
+			app := apptest.New(t)
+			admin := app.CreateAdmin(t)
+			code := requestResetCode(t, app, admin.Email)
+
+			response := completePasswordReset(t, app, admin.Email, getWrongCode(code), "short")
+
+			requireProblem(t, response.StatusCode(), response.Body, http.StatusBadRequest,
+				apiclient.ProblemCodeInvalidRequest)
+			require.NotNil(t, response.ApplicationproblemJSON400.Errors)
+			assert.Equal(t, "newPassword", (*response.ApplicationproblemJSON400.Errors)[0].Field)
+			assert.Zero(t, getNewestResetCodeAttemptCount(t, app, admin))
+		})
+
 	t.Run("returns 400 invalid_reset_code for a used code", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
@@ -235,6 +462,36 @@ func TestCompletePasswordReset(t *testing.T) {
 			admin.UserID)
 		assert.Zero(t, resetCodeCount)
 	})
+}
+
+type wrongResetCodeEntries struct {
+	email        string
+	correctCode  string
+	attemptCount int
+}
+
+func enterWrongResetCodes(t *testing.T, app *apptest.App, entries wrongResetCodeEntries) {
+	t.Helper()
+
+	for range entries.attemptCount {
+		response := completePasswordReset(t, app, entries.email, getWrongCode(entries.correctCode), resetPassword)
+		requireProblem(t, response.StatusCode(), response.Body, http.StatusBadRequest,
+			apiclient.ProblemCodeInvalidResetCode)
+	}
+}
+
+func getNewestResetCodeAttemptCount(t *testing.T, app *apptest.App, user apptest.Session) int {
+	t.Helper()
+
+	var attemptCount int
+	app.QuerySQL(
+		t,
+		&attemptCount,
+		"SELECT failed_attempt_count FROM users_password_reset_codes WHERE user_id = ? ORDER BY created_at DESC LIMIT 1",
+		user.UserID,
+	)
+
+	return attemptCount
 }
 
 func requestResetCode(t *testing.T, app *apptest.App, email string) string {

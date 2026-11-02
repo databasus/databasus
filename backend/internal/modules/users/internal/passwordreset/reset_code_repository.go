@@ -49,39 +49,60 @@ func (r *resetCodeRepository) countCreatedSince(ctx context.Context, userID uuid
 	return codeCount, nil
 }
 
-// getNewestUsable reads the newest code that is unused and unexpired at now, locking it for the
-// rest of the transaction, so one code cannot complete two resets.
-func (r *resetCodeRepository) getNewestUsable(
-	ctx context.Context,
-	userID uuid.UUID,
-	now time.Time,
-) (ResetCode, bool, error) {
+// getNewest reads the code issued to the user last, whatever its state, so an older code never
+// takes its place.
+func (r *resetCodeRepository) getNewest(ctx context.Context, userID uuid.UUID) (ResetCode, bool, error) {
 	var resetCode ResetCode
 
-	err := database.Conn(ctx, r.db).
-		Clauses(clause.Locking{Strength: clause.LockingStrengthUpdate, Table: clause.Table{Name: ""}, Options: ""}).
-		Where("user_id = ? AND is_used = FALSE AND expires_at > ?", userID, now).
-		Order("created_at DESC").
-		First(&resetCode).Error
+	err := database.Conn(ctx, r.db).Where("user_id = ?", userID).Order("created_at DESC").First(&resetCode).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return ResetCode{}, false, nil
 	}
 
 	if err != nil {
-		return ResetCode{}, false, fmt.Errorf("get the usable reset code: %w", err)
+		return ResetCode{}, false, fmt.Errorf("get the newest reset code: %w", err)
 	}
 
 	return resetCode, true, nil
 }
 
-func (r *resetCodeRepository) markUsed(ctx context.Context, resetCodeID uuid.UUID) error {
-	err := database.Conn(ctx, r.db).Exec("UPDATE users_password_reset_codes SET is_used = TRUE WHERE id = ?",
-		resetCodeID).Error
-	if err != nil {
-		return fmt.Errorf("mark the reset code used: %w", err)
+// claimAttempt takes one of the code's attempts before it is compared, and reports false once the
+// code is used, expired or out of attempts. Claiming first keeps a burst of simultaneous guesses at
+// five, because the database hands the attempts out one at a time, and it commits at once, so a
+// refused request keeps the count. It returns the attempts used so far.
+func (r *resetCodeRepository) claimAttempt(
+	ctx context.Context,
+	resetCodeID uuid.UUID,
+	now time.Time,
+) (int, bool, error) {
+	var claimedResetCode ResetCode
+
+	result := database.Conn(ctx, r.db).Model(&claimedResetCode).
+		Clauses(clause.Returning{Columns: []clause.Column{{Name: "failed_attempt_count"}}}).
+		Where(
+			"id = ? AND is_used = ? AND failed_attempt_count < ? AND expires_at > ?",
+			resetCodeID, false, maxCodeAttempts, now,
+		).
+		UpdateColumn("failed_attempt_count", gorm.Expr("failed_attempt_count + 1"))
+	if result.Error != nil {
+		return 0, false, fmt.Errorf("claim an attempt of the reset code: %w", result.Error)
 	}
 
-	return nil
+	return claimedResetCode.FailedAttemptCount, result.RowsAffected == 1, nil
+}
+
+// spend reports false when another request already used the code or it expired, so one code cannot
+// complete two resets.
+func (r *resetCodeRepository) spend(ctx context.Context, resetCodeID uuid.UUID, now time.Time) (bool, error) {
+	result := database.Conn(ctx, r.db).Exec(
+		"UPDATE users_password_reset_codes SET is_used = TRUE WHERE id = ? AND is_used = FALSE AND expires_at > ?",
+		resetCodeID, now,
+	)
+	if result.Error != nil {
+		return false, fmt.Errorf("spend the reset code: %w", result.Error)
+	}
+
+	return result.RowsAffected == 1, nil
 }
 
 func (r *resetCodeRepository) deleteCreatedBefore(ctx context.Context, before time.Time) (int64, error) {

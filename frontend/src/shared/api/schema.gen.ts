@@ -238,7 +238,7 @@ export interface paths {
         put?: never;
         /**
          * Replace the password with a mailed reset code
-         * @description Public, because the caller cannot sign in. A wrong, used or expired code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
+         * @description Public, because the caller cannot sign in. Only the newest code of a user works, and it accepts five attempts. A wrong, used, expired, exhausted or older code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
          */
         post: operations["completePasswordReset"];
         delete?: never;
