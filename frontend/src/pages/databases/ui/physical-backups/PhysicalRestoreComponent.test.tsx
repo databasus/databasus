@@ -13,7 +13,7 @@ import {
 } from '../../../../entities/databases';
 import { API_BASE_PATH } from '../../../../shared/api';
 import { DICTIONARIES } from '../../../../shared/i18n';
-import { buildProblem, setUpMockApi } from '../../../../shared/lib/test/mockApi';
+import { buildProblem, mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
 import { createPendingApiResponse } from '../../../../shared/lib/test/pendingApiResponse';
 import { releaseAndSettle } from '../../../../shared/lib/test/releaseAndSettle';
 import { renderScreen } from '../../../../shared/lib/test/renderScreen';
@@ -356,4 +356,149 @@ describe('PhysicalRestoreComponent', () => {
 
     expect(clearTimeoutSpy).toHaveBeenCalledWith(copiedTimers[0]);
   });
+});
+
+describe('PhysicalRestoreComponent commands', () => {
+  const RESTORE_TOKEN = 'restore-token';
+  const DEFAULT_DIRECTORY = './databasus-restore';
+
+  const getScriptUrl = () => physicalBackupsApi.getPhysicalRecoveryScriptUrl();
+  const getBundleUrl = () => physicalBackupsApi.getPhysicalRestoreSetUrl(RESTORE_TOKEN);
+
+  const buildDatabaseOfVersion = (version: '17' | '18'): Database => ({
+    ...database,
+    settings: { ...createDefaultDatabaseSettings(DatabaseType.POSTGRES_PHYSICAL), version },
+  });
+
+  // The hidden tab keeps its commands in the document, so only the shown tab counts.
+  const getShownCommands = () =>
+    Array.from(screen.getByRole('tabpanel').querySelectorAll('pre')).map(
+      (command) => command.textContent,
+    );
+
+  const renderIssuedRestore = async (shownDatabase = buildDatabaseOfVersion('17')) => {
+    server.use(
+      mockApi.post('/physical-restore-tokens', 201, {
+        token: RESTORE_TOKEN,
+        expiresAt: '2026-10-18T12:00:00Z',
+      }),
+    );
+    renderScreen(<PhysicalRestoreComponent database={shownDatabase} onClose={() => {}} />);
+    await waitFor(() => expect(queryCommandWithToken(RESTORE_TOKEN)).toBeTruthy());
+  };
+
+  const switchToDocker = () => fireEvent.click(screen.getByRole('tab', { name: 'Docker' }));
+
+  const switchToManual = () =>
+    fireEvent.click(screen.getByRole('radio', { name: restoreCopy.methods.manual }));
+
+  const editField = async (fieldName: string, value: string) => {
+    fireEvent.change(await screen.findByRole('textbox', { name: fieldName }), {
+      target: { value },
+    });
+  };
+
+  it('replaces the host script with the image script after switching to Docker', async () => {
+    await renderIssuedRestore();
+
+    expect(getShownCommands()).toEqual([
+      `curl -fsSL "${getScriptUrl()}" | sh -s -- "${getBundleUrl()}" "${DEFAULT_DIRECTORY}"`,
+    ]);
+
+    switchToDocker();
+
+    await waitFor(() =>
+      expect(getShownCommands()).toEqual([
+        `curl -fsSL "${getScriptUrl()}" | sh -s -- --combine-image "postgres:17" "${getBundleUrl()}" "${DEFAULT_DIRECTORY}"`,
+      ]),
+    );
+  });
+
+  it('replaces the script with the manual steps after switching to Manual', async () => {
+    await renderIssuedRestore();
+
+    switchToManual();
+
+    await waitFor(() =>
+      expect(getShownCommands()[0]).toBe(`curl -fsSL "${getBundleUrl()}" -o restore.tar`),
+    );
+    expect(getShownCommands().join('\n')).not.toContain('sh -s --');
+    expect(getShownCommands().join('\n')).toContain('pg_combinebackup');
+    expect(getShownCommands().join('\n')).not.toContain('docker run');
+
+    switchToDocker();
+
+    await waitFor(() =>
+      expect(getShownCommands().join('\n')).toContain(
+        '-v "$PWD:/work" -w /work postgres:17 \\\n  pg_combinebackup',
+      ),
+    );
+  });
+
+  it('shows the new restore directory in the script and the manual steps after an edit', async () => {
+    await renderIssuedRestore();
+
+    await editField(restoreCopy.fields.restoreDirectory, './edited-restore');
+
+    expect(getShownCommands()).toEqual([
+      `curl -fsSL "${getScriptUrl()}" | sh -s -- "${getBundleUrl()}" "./edited-restore"`,
+    ]);
+
+    switchToManual();
+
+    await waitFor(() =>
+      expect(getShownCommands().join('\n')).toContain('-o "./edited-restore/data"'),
+    );
+  });
+
+  it('shows the new pg_bin path in the script and the manual steps after an edit', async () => {
+    await renderIssuedRestore();
+
+    await editField(restoreCopy.fields.pgBinPath, '/opt/postgres/bin');
+
+    expect(getShownCommands()).toEqual([
+      `curl -fsSL "${getScriptUrl()}" | sh -s -- --pg-bin "/opt/postgres/bin" "${getBundleUrl()}" "${DEFAULT_DIRECTORY}"`,
+    ]);
+
+    switchToManual();
+
+    await waitFor(() =>
+      expect(getShownCommands().join('\n')).toContain('"/opt/postgres/bin/pg_combinebackup"'),
+    );
+  });
+
+  it('shows the new image in the Docker script and the Docker manual steps after an edit', async () => {
+    await renderIssuedRestore();
+    switchToDocker();
+
+    await editField(restoreCopy.fields.pgImage, 'registry.example.com/postgres:17');
+
+    expect(getShownCommands()).toEqual([
+      `curl -fsSL "${getScriptUrl()}" | sh -s -- --combine-image "registry.example.com/postgres:17" "${getBundleUrl()}" "${DEFAULT_DIRECTORY}"`,
+    ]);
+
+    switchToManual();
+
+    await waitFor(() =>
+      expect(getShownCommands().join('\n')).toContain(
+        '-w /work registry.example.com/postgres:17 \\',
+      ),
+    );
+  });
+
+  it.each(['17', '18'] as const)(
+    'offers and uses postgres:%s by default with a database of that version',
+    async (version) => {
+      await renderIssuedRestore(buildDatabaseOfVersion(version));
+
+      switchToDocker();
+
+      const imageField = await screen.findByRole<HTMLInputElement>('textbox', {
+        name: restoreCopy.fields.pgImage,
+      });
+
+      expect(imageField.value).toBe(`postgres:${version}`);
+      expect(getShownCommands()[0]).toContain(`--combine-image "postgres:${version}"`);
+    },
+  );
 });

@@ -56,6 +56,21 @@ describe('AuthCallbackPage', () => {
     },
   );
 
+  it('sends no second exchange when the same callback address is opened after a completed one', async () => {
+    const callbackRoute = `/auth/callback?code=private-code&state=${state}`;
+    storeAttempt();
+    server.use(mockApi.post('/github-sessions', 200, session));
+    const completedView = renderScreen(<AuthCallbackPage />, { route: callbackRoute });
+    await waitFor(() => expect(getSessionSnapshot().token).toBe(session.token));
+    completedView.unmount();
+
+    renderScreen(<AuthCallbackPage />, { route: callbackRoute });
+
+    await screen.findByRole('button', { name: 'Return to sign in' });
+    expect(server.getRequests()).toHaveLength(1);
+    expect(getSessionSnapshot().token).toBe(session.token);
+  });
+
   it.each([
     { name: 'missing code', query: `state=${state}`, record: {} },
     { name: 'missing state', query: 'code=private-code', record: {} },

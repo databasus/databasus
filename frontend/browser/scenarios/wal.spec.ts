@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 
 import type { components } from '../../src/shared/api/schema.gen';
+import { DICTIONARIES } from '../../src/shared/i18n/dictionaries';
 import { createTestWalStreamStatistics } from '../../src/shared/lib/test/buildWalStreamStatistics';
 import { applicationFixtures } from '../applicationFixtures';
 import { test } from '../browserTest';
@@ -22,6 +23,7 @@ const database: components['schemas']['Database'] = {
     version: '18',
   },
 };
+const chartCopy = DICTIONARIES.en.backups.physical.monitoring.charts;
 const statistics = createTestWalStreamStatistics();
 statistics.series.points = Array.from({ length: 12 }, (_, index) => ({
   startedAt: new Date(Date.parse('2026-10-18T11:48:00Z') + index * 60_000).toISOString(),
@@ -133,5 +135,55 @@ for (const theme of ['light', 'dark'] as const) {
     expect(box!.width).toBeGreaterThan(0);
     expect(box!.height).toBeGreaterThan(0);
     expect(await page.locator('.recharts-line-curve').count()).toBeGreaterThan(0);
+
+    const keepingUpChart = page
+      .locator('section,div')
+      .filter({ has: page.getByText(chartCopy.keepingUpTitle, { exact: true }) })
+      .filter({ has: page.locator('.recharts-surface') })
+      .last();
+    await expect(keepingUpChart.getByText(chartCopy.databaseWrites, { exact: true })).toBeVisible();
+    await expect(keepingUpChart.getByText(chartCopy.savedToStorage, { exact: true })).toBeVisible();
+
+    const drawnCurves = keepingUpChart.locator('.recharts-line-curve');
+    await expect(drawnCurves).toHaveCount(2);
+    for (const drawnCurve of await drawnCurves.all()) {
+      const curveBox = await drawnCurve.boundingBox();
+      expect(curveBox!.width).toBeGreaterThan(0);
+      expect(await drawnCurve.getAttribute('d')).toMatch(/^M[\d.]+,[\d.]+/);
+    }
+
+    const axisTicks = keepingUpChart.locator('.recharts-cartesian-axis-tick-value');
+    const timeTicks = axisTicks.filter({ hasText: /^\d{1,2}:\d{2}/ });
+    const amountTicks = axisTicks.filter({ hasText: /^\d[\d.,]*\s*[KMGT]?i?B/ });
+    await expect(timeTicks.first()).toBeVisible();
+    await expect(amountTicks.first()).toBeVisible();
   });
 }
+
+test('stops the verdict transition only while the reduced motion preference is set', async ({
+  page,
+}) => {
+  await page.clock.setFixedTime(new Date('2026-10-18T12:00:00Z'));
+  await page.addInitScript(() => {
+    localStorage.setItem('databasus_user_token', 'synthetic-session');
+    localStorage.setItem('databasus_user_id', 'owner-id');
+    localStorage.setItem('databasus-locale', 'en');
+  });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+
+  await page.goto('/');
+  await page.getByText('Monitoring', { exact: true }).click();
+
+  const verdictBanner = page.locator('div.rounded-lg.border').filter({ hasText: /./ }).first();
+  await expect(page.locator('.recharts-surface').first()).toBeVisible();
+  const readTransitionDuration = () =>
+    verdictBanner.evaluate((banner) => getComputedStyle(banner).transitionDuration);
+
+  await expect.poll(readTransitionDuration).toBe('0s');
+
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await expect.poll(readTransitionDuration).toContain('0.3s');
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect.poll(readTransitionDuration).toBe('0s');
+});

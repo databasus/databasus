@@ -124,6 +124,8 @@ const CONNECTION_VARIANTS = [
     variant: 'PostgreSQL logical',
     reachConnectionStep: reachPostgresBackupType('Logical'),
     type: 'POSTGRES_LOGICAL',
+    expectedPort: 5432,
+    expectedDatabase: 'shop',
     connectionString: 'postgresql://importer:imported-secret@imported.example.com:5433/imported',
     previousStepText: 'Physical',
   },
@@ -131,6 +133,8 @@ const CONNECTION_VARIANTS = [
     variant: 'PostgreSQL physical',
     reachConnectionStep: reachPostgresBackupType('Physical'),
     type: 'POSTGRES_PHYSICAL',
+    expectedPort: 5432,
+    expectedDatabase: undefined,
     connectionString: 'postgresql://importer:imported-secret@imported.example.com:5433/imported',
     previousStepText: 'Logical',
   },
@@ -138,6 +142,8 @@ const CONNECTION_VARIANTS = [
     variant: 'MySQL',
     reachConnectionStep: reachEngine('MySQL'),
     type: 'MYSQL',
+    expectedPort: 3306,
+    expectedDatabase: 'shop',
     connectionString: 'mysql://importer:imported-secret@imported.example.com:3307/imported',
     previousStepText: 'MongoDB',
   },
@@ -145,6 +151,8 @@ const CONNECTION_VARIANTS = [
     variant: 'MariaDB',
     reachConnectionStep: reachEngine('MariaDB'),
     type: 'MARIADB',
+    expectedPort: 3306,
+    expectedDatabase: 'shop',
     connectionString: 'mariadb://importer:imported-secret@imported.example.com:3307/imported',
     previousStepText: 'MongoDB',
   },
@@ -152,6 +160,8 @@ const CONNECTION_VARIANTS = [
     variant: 'MongoDB',
     reachConnectionStep: reachEngine('MongoDB'),
     type: 'MONGODB',
+    expectedPort: 27017,
+    expectedDatabase: 'shop',
     connectionString: 'mongodb://importer:imported-secret@imported.example.com:27018/imported',
     previousStepText: 'MySQL',
   },
@@ -206,6 +216,50 @@ const getSelectedSslMode = () =>
 
 const openAdvancedWhenClosed = () => {
   if (!screen.queryByText('SSH tunnel')) fireEvent.click(screen.getByText('Advanced settings'));
+};
+
+const fillSshTunnelWithPassword = () => {
+  openAdvancedWhenClosed();
+  fireEvent.click(within(getRowOfLabel('SSH tunnel')).getByRole('checkbox'));
+  fireEvent.change(screen.getByPlaceholderText('bastion.example.com'), {
+    target: { value: 'bastion.internal' },
+  });
+  fireEvent.change(within(getRowOfLabel('SSH username')).getByRole('textbox'), {
+    target: { value: 'tunnel-user' },
+  });
+  fireEvent.change(screen.getByPlaceholderText('Enter SSH password'), {
+    target: { value: 'abandoned-tunnel-secret' },
+  });
+};
+
+const chooseSshKeyAuth = async () => {
+  fireEvent.mouseDown(getRowOfLabel('SSH auth').querySelector('.ant-select-selector')!);
+  const option = await waitFor(() => {
+    const authOption = document.querySelector('.ant-select-item-option[title="Private key"]');
+    expect(authOption).toBeTruthy();
+    return authOption!;
+  });
+
+  fireEvent.click(option);
+};
+
+const enterSshKey = () => {
+  fireEvent.change(screen.getByPlaceholderText('-----BEGIN OPENSSH PRIVATE KEY-----'), {
+    target: { value: 'typed-private-key' },
+  });
+  fireEvent.change(screen.getByPlaceholderText('Only for an encrypted key'), {
+    target: { value: 'typed-passphrase' },
+  });
+};
+
+const KEY_TUNNEL_REQUEST = {
+  isEnabled: true,
+  host: 'bastion.internal',
+  port: 22,
+  username: 'tunnel-user',
+  authType: 'PRIVATE_KEY',
+  privateKey: 'typed-private-key',
+  privateKeyPassphrase: 'typed-passphrase',
 };
 
 const expectDatabaseTestRequests = (count: number) =>
@@ -479,6 +533,25 @@ describe('CreateDatabaseComponent', () => {
           username: 'tunnel-user',
           password: 'tunnel-secret',
         });
+      });
+
+      it('requires the key after key authentication is chosen and sends it without the typed password', async () => {
+        const sentTests = recordSettingsTests();
+        renderWizard();
+        await reachConnectionStep();
+        await fillConnectionExceptPassword();
+        fireEvent.change(getInputByPlaceholder(/password$/), { target: { value: 'secret' } });
+        fillSshTunnelWithPassword();
+
+        await chooseSshKeyAuth();
+
+        expect(getTestButton().disabled).toBe(true);
+
+        enterSshKey();
+        fireEvent.click(getTestButton());
+
+        await screen.findByRole('button', { name: 'Continue' });
+        expect(sentTests[0].settings.sshTunnel).toEqual(KEY_TUNNEL_REQUEST);
       });
 
       it('fills the fields from an imported connection string and asks for a test', async () => {
@@ -822,6 +895,7 @@ describe('completing the wizard', () => {
       isBackupConfigRefused: false,
       isBackupStartRefused: false,
       sentBackupConfigs: [] as ApiComponents['schemas']['BackupConfigInput'][],
+      sentCreations: [] as ApiComponents['schemas']['DatabaseCreate'][],
       sentNotifierIds: [] as string[][],
     };
     const startBackup = () =>
@@ -834,9 +908,12 @@ describe('completing the wizard', () => {
       http.post(`*${API_BASE_PATH}/databases`, async ({ request }) => {
         if (completionServer.isCreationRefused) return refuseRequest();
 
-        const { notifierIds } = (await request.json()) as { notifierIds: string[] };
+        const creation = (await request.json()) as ApiComponents['schemas']['DatabaseCreate'];
+        completionServer.sentCreations.push(creation);
 
-        return HttpResponse.json(buildCreatedDatabase(type, notifierIds), { status: 201 });
+        return HttpResponse.json(buildCreatedDatabase(type, creation.notifierIds), {
+          status: 201,
+        });
       }),
       http.put(`*${API_BASE_PATH}/databases/:databaseId`, async ({ request }) => {
         const { notifierIds } = (await request.json()) as { notifierIds: string[] };
@@ -1037,6 +1114,158 @@ describe('completing the wizard', () => {
       expect(countRequests({ method: 'POST', path: '/databases' })).toBe(1);
       expect(completionServer.sentNotifierIds).toEqual([['alerts-id']]);
       expect(completionServer.sentBackupConfigs).toHaveLength(1);
+    });
+  });
+
+  describe.each(CONNECTION_VARIANTS)(
+    'of $variant',
+    ({ reachConnectionStep, type, expectedPort, expectedDatabase }) => {
+      it('sends the name, the entered settings and the chosen notifiers in the create request', async () => {
+        const completionServer = declareCompletionServer(type);
+        declareNotifiers();
+        const { onClose } = renderCompletableWizard();
+        await reachConnectionStep();
+        await enterConnection();
+        await continueToNotifiers('Archive');
+        await toggleNotifier('Alerts');
+
+        await clickComplete();
+
+        await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+        expect(completionServer.sentCreations).toHaveLength(1);
+
+        const [sentCreation] = completionServer.sentCreations;
+
+        expect(sentCreation.workspaceId).toBe('workspace-id');
+        expect(sentCreation.name).toBe('Shop');
+        expect(sentCreation.notifierIds).toEqual(['alerts-id']);
+        expect(sentCreation.settings).toMatchObject({
+          type,
+          host: 'db.example.com',
+          port: expectedPort,
+          username: 'backup',
+          password: 'secret',
+          sshTunnel: { isEnabled: false },
+        });
+        expect((sentCreation.settings as { database?: string }).database).toBe(expectedDatabase);
+      });
+    },
+  );
+
+  it('sends the key and passphrase in the create request when the SSH tunnel uses key authentication', async () => {
+    const completionServer = declareCompletionServer(DatabaseType.MYSQL);
+    const { onClose } = renderCompletableWizard();
+    enterBaseInfo('MySQL');
+    await fillConnectionExceptPassword();
+    fireEvent.change(getInputByPlaceholder(/password$/), { target: { value: 'secret' } });
+    fillSshTunnelWithPassword();
+    await chooseSshKeyAuth();
+    enterSshKey();
+    fireEvent.click(getTestButton());
+    fireEvent.click(await screen.findByRole('button', { name: 'Continue' }));
+    await continueToNotifiers('Archive');
+
+    await clickComplete();
+
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+    expect(completionServer.sentCreations[0].settings.sshTunnel).toEqual(KEY_TUNNEL_REQUEST);
+  });
+
+  describe('when a limited user is suggested', () => {
+    const SUGGESTION_TITLE = 'Create a read-only user for Databasus?';
+    const CREATE_READ_ONLY_USER = 'Yes, create read-only user';
+
+    const reachSuggestion = async () => {
+      mockServer.use(
+        mockApi.post('/limited-user-checks', 200, { isAdvisable: true, privileges: [] }),
+      );
+      enterBaseInfo('MySQL');
+      await enterConnection();
+      await screen.findByText(SUGGESTION_TITLE);
+    };
+
+    const acceptSkipRisks = async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
+      fireEvent.click(
+        within(await screen.findByRole('dialog')).getByRole('button', {
+          name: 'Yes, I accept risks',
+        }),
+      );
+    };
+
+    it('creates the database with the generated user when the suggestion is accepted', async () => {
+      const completionServer = declareCompletionServer(DatabaseType.MYSQL);
+      const sentLimitedUsers: ApiComponents['schemas']['DatabaseSettingsTarget'][] = [];
+      mockServer.use(
+        http.post(`*${API_BASE_PATH}/limited-users`, async ({ request }) => {
+          sentLimitedUsers.push(
+            (await request.json()) as ApiComponents['schemas']['DatabaseSettingsTarget'],
+          );
+
+          return HttpResponse.json(
+            {
+              username: 'databasus_reader',
+              password: 'generated-secret',
+              isForcedWalRotationAvailable: false,
+            },
+            { status: 201 },
+          );
+        }),
+      );
+      const { onClose } = renderCompletableWizard();
+      await reachSuggestion();
+
+      fireEvent.click(screen.getByRole('button', { name: CREATE_READ_ONLY_USER }));
+      await continueToNotifiers('Archive');
+      await clickComplete();
+
+      await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+      expect(sentLimitedUsers).toHaveLength(1);
+      expect(sentLimitedUsers[0].databaseId).toBeUndefined();
+      expect(sentLimitedUsers[0].settings).toMatchObject({
+        type: 'MYSQL',
+        host: 'db.example.com',
+        username: 'backup',
+        password: 'secret',
+      });
+      expect(completionServer.sentCreations[0].settings).toMatchObject({
+        username: 'databasus_reader',
+        password: 'generated-secret',
+      });
+    });
+
+    it('creates the database with the entered user and creates no limited user when the suggestion is skipped', async () => {
+      const completionServer = declareCompletionServer(DatabaseType.MYSQL);
+      const { onClose } = renderCompletableWizard();
+      await reachSuggestion();
+
+      await acceptSkipRisks();
+      await continueToNotifiers('Archive');
+      await clickComplete();
+
+      await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+      expect(countRequests({ method: 'POST', path: '/limited-users' })).toBe(0);
+      expect(completionServer.sentCreations[0].settings).toMatchObject({
+        username: 'backup',
+        password: 'secret',
+      });
+    });
+
+    it('stays on the suggestion with the reason and still allows a skip when the create request is refused', async () => {
+      declareCompletionServer(DatabaseType.MYSQL);
+      mockServer.use(mockApi.post('/limited-users', 403, buildProblem('permission_denied', 403)));
+      renderCompletableWizard();
+      await reachSuggestion();
+
+      fireEvent.click(screen.getByRole('button', { name: CREATE_READ_ONLY_USER }));
+
+      expect(await screen.findByText(REFUSAL_REASON)).toBeTruthy();
+      expect(screen.getByText(SUGGESTION_TITLE)).toBeTruthy();
+      expect(screen.queryByText('Storage')).toBeNull();
+
+      await acceptSkipRisks();
+
+      expect(await screen.findByText('Storage')).toBeTruthy();
     });
   });
 

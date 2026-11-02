@@ -61,6 +61,55 @@ describe('RestoresComponent', () => {
   });
 });
 
+describe('RestoresComponent actions', () => {
+  const mysqlDatabase = buildDatabase(DatabaseType.MYSQL);
+
+  const buildRestore = (status: Restore['status']) =>
+    ({
+      id: 'restore-id',
+      backupId: completedBackup.id,
+      status,
+      durationMs: 0,
+      createdAt: '2026-10-27T10:00:00Z',
+    }) as Restore;
+
+  const SELECT_TARGET_NAME = /Select database to restore to$/;
+
+  it('keeps the target selection disabled and closed with a running restore', async () => {
+    mockServer.use(mockApi.get('/restores', 200, { items: [buildRestore('IN_PROGRESS')] }));
+    renderScreen(<RestoresComponent database={mysqlDatabase} backup={completedBackup} />);
+
+    const selectTargetButton = await screen.findByRole<HTMLButtonElement>('button', {
+      name: SELECT_TARGET_NAME,
+    });
+
+    expect(selectTargetButton.disabled).toBe(true);
+
+    fireEvent.click(selectTargetButton);
+
+    expect(screen.queryByPlaceholderText(/host$/)).toBeNull();
+  });
+
+  it.each([
+    { status: 'COMPLETED', label: 'Successful' },
+    { status: 'FAILED', label: 'Failed' },
+    { status: 'CANCELED', label: 'Canceled' },
+  ] as const)(
+    'offers no cancel and an enabled target selection with a $status restore',
+    async ({ status, label }) => {
+      mockServer.use(mockApi.get('/restores', 200, { items: [buildRestore(status)] }));
+      renderScreen(<RestoresComponent database={mysqlDatabase} backup={completedBackup} />);
+
+      expect(await screen.findByText(label)).toBeTruthy();
+
+      expect(screen.queryByRole('button', { name: 'Cancel restore' })).toBeNull();
+      expect(
+        screen.getByRole<HTMLButtonElement>('button', { name: SELECT_TARGET_NAME }).disabled,
+      ).toBe(false);
+    },
+  );
+});
+
 describe('RestoresComponent failures', () => {
   const mysqlDatabase = buildDatabase(DatabaseType.MYSQL);
 

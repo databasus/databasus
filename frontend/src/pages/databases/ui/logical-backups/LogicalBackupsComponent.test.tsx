@@ -94,22 +94,22 @@ const mockBackupPages = (backupPages: LogicalBackupPage[], requestedCursors: (st
 };
 
 // The database page scrolls the list inside its own container and hands that container in.
-function ScrollingDatabasePage() {
+function ScrollingDatabasePage({ isCanManageDBs }: { isCanManageDBs: boolean }) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   return (
     <div ref={scrollContainerRef} className="database-scroll-container">
       <LogicalBackupsComponent
         database={backedUpDatabase}
-        isCanManageDBs={true}
+        isCanManageDBs={isCanManageDBs}
         scrollContainerRef={scrollContainerRef}
       />
     </div>
   );
 }
 
-const renderBackupList = () => {
-  const { container } = renderScreen(<ScrollingDatabasePage />);
+const renderBackupList = (isCanManageDBs = true) => {
+  const { container } = renderScreen(<ScrollingDatabasePage isCanManageDBs={isCanManageDBs} />);
 
   return container.querySelector('.database-scroll-container') as Element;
 };
@@ -731,4 +731,231 @@ describe('LogicalBackupsComponent failures', () => {
       'first-page-cursor',
     ]);
   });
+});
+
+describe('LogicalBackupsComponent row actions', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  const ROW_ACTION_NAMES = {
+    cancel: 'Cancel backup',
+    delete: 'Delete backup',
+    verify: /^Verify restore/,
+    restore: 'Restore from backup',
+    download: /^Download backup file/,
+  };
+
+  type RowAction = keyof typeof ROW_ACTION_NAMES;
+
+  // The list renders each row twice, as a phone card and as a table row.
+  const getOfferedRowActions = () =>
+    (Object.keys(ROW_ACTION_NAMES) as RowAction[]).filter(
+      (action) => screen.queryAllByRole('button', { name: ROW_ACTION_NAMES[action] }).length === 2,
+    );
+
+  const declareListedBackups = (listedBackups: LogicalBackup[]) =>
+    mockServer.use(
+      mockApi.get('/backup-configs/{databaseId}', 200, backupConfigOfDatabase),
+      mockApi.get('/logical-backups', 200, { items: listedBackups }),
+    );
+
+  const getStartButton = () =>
+    screen.getByRole<HTMLButtonElement>('button', { name: /Make backup right now/ });
+
+  const startedVerification = {
+    id: 'verification-id',
+    databaseId: backedUpDatabase.id,
+    backupId: 'completed-backup',
+    trigger: 'MANUAL' as const,
+    status: 'PENDING' as const,
+    attemptCount: 0,
+    createdAt: '2026-10-27T10:00:00Z',
+  };
+
+  it.each([
+    { status: 'IN_PROGRESS', label: 'In progress', offeredActions: ['cancel'] },
+    {
+      status: 'COMPLETED',
+      label: 'Successful',
+      offeredActions: ['delete', 'verify', 'restore', 'download'],
+    },
+    { status: 'FAILED', label: 'Failed', offeredActions: [] },
+    { status: 'CANCELED', label: 'Canceled', offeredActions: [] },
+  ] as const)(
+    'offers exactly the actions of the status with a $status backup',
+    async ({ status, label, offeredActions }) => {
+      declareListedBackups([buildBackup('listed-backup', status)]);
+      renderBackupList();
+
+      await screen.findAllByText(label);
+
+      expect(getOfferedRowActions()).toEqual(offeredActions);
+    },
+  );
+
+  // The server lets a viewer start a backup (logical_backup_access_test.go), unlike a physical one.
+  it('offers the backup start, restore and download and no cancel, delete or verify with a viewer role', async () => {
+    declareListedBackups([
+      buildBackup('completed-backup', 'COMPLETED'),
+      buildBackup('running-backup', 'IN_PROGRESS'),
+    ]);
+    renderBackupList(false);
+
+    await screen.findAllByText('In progress');
+
+    expect(getOfferedRowActions()).toEqual(['restore', 'download']);
+    expect(getStartButton().disabled).toBe(false);
+  });
+
+  it('sends one start request when the backup start is clicked twice while pending', async () => {
+    declareListedBackups([buildBackup('completed-backup', 'COMPLETED')]);
+    const startCall = vi.spyOn(logicalBackupApi, 'startLogicalBackup');
+    const start = mockApi.delayed({
+      method: 'post',
+      path: '/logical-backups',
+      status: 202,
+      body: buildBackup('started-backup', 'IN_PROGRESS'),
+    });
+    mockServer.use(start.handler);
+    renderBackupList();
+    await screen.findAllByText('Successful');
+    const startButton = getStartButton();
+
+    fireEvent.click(startButton);
+    fireEvent.click(startButton);
+    await waitFor(() => expect(startCall).toHaveBeenCalled());
+    await releaseAndSettle(startCall, start.release);
+
+    expect(startCall).toHaveBeenCalledOnce();
+  });
+
+  it('sends one delete request when the confirmation and the row action are clicked again while pending', async () => {
+    declareListedBackups([buildBackup('completed-backup', 'COMPLETED')]);
+    const deleteCall = vi.spyOn(logicalBackupApi, 'deleteLogicalBackup');
+    const deletion = mockApi.delayed({
+      method: 'delete',
+      path: '/logical-backups/{backupId}',
+      status: 204,
+      body: undefined,
+    });
+    mockServer.use(deletion.handler);
+    renderBackupList();
+    await screen.findAllByText('Successful');
+
+    fireEvent.click(screen.getAllByRole('button', { name: ROW_ACTION_NAMES.delete })[0]);
+    const confirmButton = await screen.findByRole('button', { name: 'Delete' });
+    fireEvent.click(confirmButton);
+    fireEvent.click(confirmButton);
+    await waitFor(() => expect(deleteCall).toHaveBeenCalled());
+    fireEvent.click(screen.getAllByRole('button', { name: /Delete backup/ })[0]);
+    await releaseAndSettle(deleteCall, deletion.release);
+
+    expect(deleteCall).toHaveBeenCalledOnce();
+  });
+
+  it('sends one verification request when Queue check is clicked twice while pending', async () => {
+    declareListedBackups([buildBackup('completed-backup', 'COMPLETED')]);
+    const verificationCall = vi.spyOn(verificationRunsApi, 'startVerification');
+    const verification = mockApi.delayed({
+      method: 'post',
+      path: '/verifications',
+      status: 202,
+      body: startedVerification,
+    });
+    mockServer.use(verification.handler);
+    renderBackupList();
+    await screen.findAllByText('Successful');
+
+    fireEvent.click(screen.getAllByRole('button', { name: ROW_ACTION_NAMES.verify })[0]);
+    const queueButton = await screen.findByRole('button', { name: 'Queue check' });
+    fireEvent.click(queueButton);
+    fireEvent.click(queueButton);
+    await waitFor(() => expect(verificationCall).toHaveBeenCalled());
+    await releaseAndSettle(verificationCall, verification.release);
+
+    expect(verificationCall).toHaveBeenCalledOnce();
+  });
+
+  it('sends one verification request after the row verify action is clicked twice and every dialog is confirmed', async () => {
+    declareListedBackups([buildBackup('completed-backup', 'COMPLETED')]);
+    const verificationCall = vi.spyOn(verificationRunsApi, 'startVerification');
+    const verification = mockApi.delayed({
+      method: 'post',
+      path: '/verifications',
+      status: 202,
+      body: startedVerification,
+    });
+    mockServer.use(verification.handler);
+    renderBackupList();
+    await screen.findAllByText('Successful');
+    const verifyButton = screen.getAllByRole('button', { name: ROW_ACTION_NAMES.verify })[0];
+
+    fireEvent.click(verifyButton);
+    fireEvent.click(verifyButton);
+    const queueButtons = await screen.findAllByRole('button', { name: 'Queue check' });
+    queueButtons.forEach((queueButton) => fireEvent.click(queueButton));
+    await waitFor(() => expect(verificationCall).toHaveBeenCalled());
+    await releaseAndSettle(verificationCall, verification.release);
+
+    expect(verificationCall).toHaveBeenCalledOnce();
+  });
+
+  it('sends a second verification request when the row action is used again after a refusal', async () => {
+    declareListedBackups([buildBackup('completed-backup', 'COMPLETED')]);
+    const verificationCall = vi.spyOn(verificationRunsApi, 'startVerification');
+    mockServer.use(mockApi.post('/verifications', 409, buildProblem('already_running', 409)));
+    renderBackupList();
+    await screen.findAllByText('Successful');
+    const verifyButton = screen.getAllByRole('button', { name: ROW_ACTION_NAMES.verify })[0];
+
+    fireEvent.click(verifyButton);
+    fireEvent.click(await screen.findByRole('button', { name: 'Queue check' }));
+    await screen.findByText('This is already running. Wait for it to finish and try again.');
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Queue check' })).toBeNull());
+
+    fireEvent.click(verifyButton);
+    fireEvent.click(await screen.findByRole('button', { name: 'Queue check' }));
+
+    await waitFor(() => expect(verificationCall).toHaveBeenCalledTimes(2));
+  });
+
+  it('opens a new verify dialog after the previous one was declined', async () => {
+    declareListedBackups([buildBackup('completed-backup', 'COMPLETED')]);
+    renderBackupList();
+    await screen.findAllByText('Successful');
+    const verifyButton = screen.getAllByRole('button', { name: ROW_ACTION_NAMES.verify })[0];
+
+    fireEvent.click(verifyButton);
+    const declinedQueueButton = await screen.findByRole('button', { name: 'Queue check' });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(verifyButton);
+
+    await waitFor(() =>
+      expect(
+        screen
+          .getAllByRole('button', { name: 'Queue check' })
+          .some((queueButton) => queueButton !== declinedQueueButton),
+      ).toBe(true),
+    );
+  });
+
+  it.each([
+    { verificationStatus: 'VERIFIED_SUCCESSFUL', shownBadges: ['Verified'] },
+    { verificationStatus: 'VERIFICATION_FAILED', shownBadges: ['Verification failed'] },
+    { verificationStatus: 'NOT_VERIFIED', shownBadges: [] },
+  ] as const)(
+    'shows only the verification badge of the status with a $verificationStatus backup',
+    async ({ verificationStatus, shownBadges }) => {
+      declareListedBackups([
+        { ...buildBackup('completed-backup', 'COMPLETED'), verificationStatus },
+      ]);
+      renderBackupList();
+
+      await screen.findAllByText('Successful');
+
+      const listedBadges = ['Verified', 'Verification failed'].filter(
+        (badge) => screen.queryAllByText(badge).length === 2,
+      );
+      expect(listedBadges).toEqual(shownBadges);
+    },
+  );
 });

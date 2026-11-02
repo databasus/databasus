@@ -32,6 +32,17 @@ test('signs in and out when the real API owns the account', async ({ page }) => 
   }
 
   await page.getByRole('button', { name: 'Profile', exact: true }).click();
+  await page.evaluate(() => {
+    localStorage.setItem('selectedDatabaseId_previous-workspace', 'previous-database');
+    localStorage.setItem('logicalBackupListFilter', '{"statuses":["FAILED"]}');
+    localStorage.setItem('physicalBackupsFilters', '{"types":["FULL"]}');
+    localStorage.setItem('databasus-locale', 'en');
+    localStorage.setItem('databasus-theme', 'dark');
+    localStorage.setItem('lastVersionReload', '123');
+  });
   await page.getByRole('button', { name: /logout|sign out/i }).click();
   await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
+
+  const remainingKeys = await page.evaluate(() => Object.keys(localStorage).sort());
+  expect(remainingKeys).toEqual(['databasus-locale', 'databasus-theme', 'lastVersionReload']);
 });

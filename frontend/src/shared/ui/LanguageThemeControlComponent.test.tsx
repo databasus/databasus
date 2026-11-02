@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
-import { fireEvent, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
 import { DICTIONARIES } from '../i18n';
 import { renderScreen } from '../lib/test/renderScreen';
@@ -36,6 +36,29 @@ describe('LanguageThemeControlComponent', () => {
       expect(language.getAttribute('aria-expanded')).toBe('false');
       expect(document.activeElement).toBe(language);
     });
+  });
+
+  it('follows the OS preference after System is picked from the theme menu', async () => {
+    const osPreference = Object.assign(new EventTarget(), { matches: true });
+    vi.spyOn(window, 'matchMedia').mockReturnValue(osPreference as MediaQueryList);
+    const { user } = renderScreen(<LanguageThemeControlComponent />, {
+      locale: 'en',
+      theme: 'light',
+    });
+    const isPageDark = () => document.documentElement.classList.contains('dark');
+
+    expect(isPageDark()).toBe(false);
+
+    await user.click(screen.getByRole('button', { name: 'Theme: Light' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'System' }));
+
+    expect(isPageDark()).toBe(true);
+    expect(screen.getByRole('button', { name: 'Theme: System' })).toBeTruthy();
+    expect(localStorage.getItem('databasus-theme')).toBe('system');
+
+    act(() => osPreference.dispatchEvent(Object.assign(new Event('change'), { matches: false })));
+
+    expect(isPageDark()).toBe(false);
   });
 
   it('opens the language menu on hover and restores focus when Escape dismisses it', async () => {

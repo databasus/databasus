@@ -212,3 +212,289 @@ describe('EditNotifierComponent', () => {
     expect(screen.queryByRole('button', { name: /Save/ })).toBeNull();
   });
 });
+
+const providerNotifiers: {
+  provider: string;
+  typeLabel: string;
+  deliveryModeLabel?: string;
+  entered: Record<string, string>;
+  secretLabels: Record<string, string>;
+  sentOnCreate: NotifierSettings;
+  saved: NotifierSettings;
+}[] = [
+  {
+    provider: 'Telegram',
+    typeLabel: 'Telegram',
+    entered: { 'Bot token': 'telegram-bot-token', 'Target chat ID': '-100123' },
+    secretLabels: { botToken: 'Bot token', proxyUrl: 'Proxy URL' },
+    sentOnCreate: {
+      type: 'TELEGRAM',
+      botToken: 'telegram-bot-token',
+      targetChatId: '-100123',
+      isProxyEnabled: false,
+    },
+    saved: { type: 'TELEGRAM', targetChatId: '-100123', isProxyEnabled: true },
+  },
+  {
+    provider: 'Discord',
+    typeLabel: 'Discord',
+    entered: { 'Channel webhook URL': 'https://discord.example.com/hooks/key' },
+    secretLabels: { channelWebhookUrl: 'Channel webhook URL' },
+    sentOnCreate: { type: 'DISCORD', channelWebhookUrl: 'https://discord.example.com/hooks/key' },
+    saved: { type: 'DISCORD' },
+  },
+  {
+    provider: 'Teams',
+    typeLabel: 'Teams',
+    entered: { 'Power Automate URL': 'https://teams.example.com/flow' },
+    secretLabels: { powerAutomateUrl: 'Power Automate URL' },
+    sentOnCreate: { type: 'TEAMS', powerAutomateUrl: 'https://teams.example.com/flow' },
+    saved: { type: 'TEAMS' },
+  },
+  {
+    provider: 'Mattermost with a webhook',
+    typeLabel: 'Mattermost',
+    entered: { 'Incoming webhook URL': 'https://mattermost.example.com/hooks/key' },
+    secretLabels: { webhookUrl: 'Incoming webhook URL' },
+    sentOnCreate: {
+      type: 'MATTERMOST',
+      deliveryMode: 'WEBHOOK',
+      webhookUrl: 'https://mattermost.example.com/hooks/key',
+      isInsecureSkipVerify: false,
+    },
+    saved: { type: 'MATTERMOST', deliveryMode: 'WEBHOOK', isInsecureSkipVerify: false },
+  },
+  {
+    provider: 'Mattermost with a bot',
+    typeLabel: 'Mattermost',
+    deliveryModeLabel: 'Bot account',
+    entered: {
+      'Server URL': 'https://mattermost.example.com',
+      'Bot token': 'mattermost-bot-token',
+      'Channel ID': 'abcdefghijklmnopqrstuvwxyz',
+    },
+    secretLabels: { botToken: 'Bot token' },
+    sentOnCreate: {
+      type: 'MATTERMOST',
+      deliveryMode: 'BOT',
+      serverUrl: 'https://mattermost.example.com',
+      botToken: 'mattermost-bot-token',
+      targetChannelId: 'abcdefghijklmnopqrstuvwxyz',
+      isInsecureSkipVerify: false,
+    },
+    saved: {
+      type: 'MATTERMOST',
+      deliveryMode: 'BOT',
+      serverUrl: 'https://mattermost.example.com',
+      targetChannelId: 'abcdefghijklmnopqrstuvwxyz',
+      isInsecureSkipVerify: false,
+    },
+  },
+];
+
+const getProviderField = (label: string) => screen.getByRole('textbox', { name: label });
+
+// Records every notifier the form creates and answers it with the notifier the request describes.
+const mockCreation = () => {
+  const sentNotifiers: ApiComponents['schemas']['NotifierCreate'][] = [];
+  mockServer.use(
+    mockApi.post('/notifier-tests', 200, { isDelivered: true }),
+    http.post(`*${API_BASE_PATH}/notifiers`, async ({ request }) => {
+      const sentNotifier = (await request.json()) as ApiComponents['schemas']['NotifierCreate'];
+      sentNotifiers.push(sentNotifier);
+
+      return HttpResponse.json(
+        { ...buildSavedNotifier(sentNotifier.settings), name: sentNotifier.name },
+        { status: 201 },
+      );
+    }),
+  );
+
+  return sentNotifiers;
+};
+
+const renderNewNotifierForm = async (typeLabel: string) => {
+  const view = renderScreen(
+    <EditNotifierComponent
+      workspaceId="workspace-id"
+      isShowClose={false}
+      onClose={() => {}}
+      isShowName
+      onPersisted={() => {}}
+      onChanged={() => {}}
+    />,
+  );
+
+  fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), {
+    target: { value: 'New alerts' },
+  });
+  await view.user.click(screen.getByRole('combobox', { name: 'Type' }));
+  fireEvent.click((await screen.findAllByTitle(typeLabel)).pop()!);
+
+  return view;
+};
+
+const testAndSaveProvider = async () => {
+  fireEvent.click(screen.getByRole('button', { name: /Send test notification/ }));
+  fireEvent.click(await screen.findByRole('button', { name: /Save/ }));
+};
+
+describe('EditNotifierComponent providers', () => {
+  it.each(providerNotifiers)(
+    'sends the entered settings when a $provider notifier is created',
+    async ({ typeLabel, deliveryModeLabel, entered, sentOnCreate }) => {
+      const sentNotifiers = mockCreation();
+      const view = await renderNewNotifierForm(typeLabel);
+
+      if (deliveryModeLabel) {
+        await view.user.click(screen.getByRole('combobox', { name: 'Connect via' }));
+        fireEvent.click(await screen.findByTitle(deliveryModeLabel));
+      }
+      for (const [label, value] of Object.entries(entered))
+        fireEvent.change(getProviderField(label), { target: { value } });
+      await testAndSaveProvider();
+
+      await waitFor(() => expect(sentNotifiers).toHaveLength(1));
+      expect(sentNotifiers[0].name).toBe('New alerts');
+      expect(sentNotifiers[0].settings).toEqual(sentOnCreate);
+    },
+  );
+
+  it.each(providerNotifiers)(
+    'omits every secret when a saved $provider notifier is renamed',
+    async ({ saved }) => {
+      mockServer.use(mockApi.post('/notifier-tests', 200, { isDelivered: true }));
+      const sentUpdates = mockUpdate();
+      renderSavedNotifierForm(buildSavedNotifier(saved));
+
+      await renameAndSave('Renamed alerts');
+
+      await waitFor(() => expect(sentUpdates).toHaveLength(1));
+      expect(sentUpdates[0]).toEqual({ name: 'Renamed alerts', settings: saved });
+    },
+  );
+
+  it.each(providerNotifiers)(
+    'sends the replacement when a secret of a saved $provider notifier is entered again',
+    async ({ saved, secretLabels }) => {
+      mockServer.use(mockApi.post('/notifier-tests', 200, { isDelivered: true }));
+      const sentUpdates = mockUpdate();
+      renderSavedNotifierForm(buildSavedNotifier(saved));
+
+      const replacedSecrets = Object.fromEntries(
+        Object.keys(secretLabels).map((secretField) => [
+          secretField,
+          `https://example.com/new-${secretField}`,
+        ]),
+      );
+      for (const [secretField, label] of Object.entries(secretLabels))
+        fireEvent.change(getProviderField(label), {
+          target: { value: replacedSecrets[secretField] },
+        });
+      fireEvent.click(screen.getByRole('button', { name: /Send test notification/ }));
+      fireEvent.click(await screen.findByRole('button', { name: /Save/ }));
+
+      await waitFor(() => expect(sentUpdates).toHaveLength(1));
+      expect(sentUpdates[0].settings).toEqual({ ...saved, ...replacedSecrets });
+    },
+  );
+
+  it('sends the entered settings when an email notifier is created', async () => {
+    const sentNotifiers = mockCreation();
+    await renderNewNotifierForm('Email');
+
+    fireEvent.change(getProviderField('Target email'), { target: { value: 'ops@example.com' } });
+    fireEvent.change(getProviderField('SMTP host'), { target: { value: 'smtp.example.com' } });
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'SMTP port' }), {
+      target: { value: '465' },
+    });
+    fireEvent.change(getProviderField('SMTP user'), { target: { value: 'ops' } });
+    fireEvent.change(screen.getByLabelText('SMTP password'), {
+      target: { value: 'smtp-password' },
+    });
+    await testAndSaveProvider();
+
+    await waitFor(() => expect(sentNotifiers).toHaveLength(1));
+    expect(sentNotifiers[0].name).toBe('New alerts');
+    expect(sentNotifiers[0].settings).toEqual({
+      type: 'EMAIL',
+      targetEmail: 'ops@example.com',
+      smtpHost: 'smtp.example.com',
+      smtpPort: 465,
+      smtpUser: 'ops',
+      smtpPassword: 'smtp-password',
+      security: 'TLS',
+      isInsecureSkipVerify: false,
+    });
+  });
+
+  it('sends the entered settings when a Slack notifier is created', async () => {
+    const sentNotifiers = mockCreation();
+    await renderNewNotifierForm('Slack');
+
+    fireEvent.change(getProviderField('Bot token'), { target: { value: 'xoxb-entered-token' } });
+    fireEvent.change(getProviderField('Target chat ID'), { target: { value: 'C0123' } });
+    await testAndSaveProvider();
+
+    await waitFor(() => expect(sentNotifiers).toHaveLength(1));
+    expect(sentNotifiers[0].name).toBe('New alerts');
+    expect(sentNotifiers[0].settings).toEqual({
+      type: 'SLACK',
+      botToken: 'xoxb-entered-token',
+      targetChatId: 'C0123',
+    });
+  });
+
+  it('sends the entered settings with the header value when a webhook notifier is created', async () => {
+    const sentNotifiers = mockCreation();
+    const view = await renderNewNotifierForm('Webhook');
+
+    fireEvent.change(getProviderField('Webhook URL'), {
+      target: { value: 'https://hooks.example.com/backups' },
+    });
+    await view.user.click(screen.getByRole('button', { name: /Add header/ }));
+    fireEvent.change(getProviderField('Header name'), { target: { value: 'X-Api-Key' } });
+    fireEvent.change(getProviderField('Header value'), { target: { value: 'entered-value' } });
+    await testAndSaveProvider();
+
+    await waitFor(() => expect(sentNotifiers).toHaveLength(1));
+    expect(sentNotifiers[0].name).toBe('New alerts');
+    expect(sentNotifiers[0].settings).toEqual({
+      type: 'WEBHOOK',
+      webhookUrl: 'https://hooks.example.com/backups',
+      webhookMethod: 'POST',
+      headers: [{ name: 'X-Api-Key', value: 'entered-value' }],
+      acceptedCategories: ['ALL'],
+    });
+  });
+
+  it('sends the entered token when the bot token of a saved Slack notifier is entered again', async () => {
+    mockServer.use(mockApi.post('/notifier-tests', 200, { isDelivered: true }));
+    const sentUpdates = mockUpdate();
+    renderSavedNotifierForm(savedSlackNotifier);
+
+    fireEvent.change(getProviderField('Bot token'), { target: { value: 'xoxb-new-token' } });
+    await testAndSaveProvider();
+
+    await waitFor(() => expect(sentUpdates).toHaveLength(1));
+    expect(sentUpdates[0].settings).toEqual({
+      type: 'SLACK',
+      targetChatId: 'C0123',
+      botToken: 'xoxb-new-token',
+    });
+  });
+
+  it('sends the entered value when a header of a saved webhook notifier gets a value', async () => {
+    mockServer.use(mockApi.post('/notifier-tests', 200, { isDelivered: true }));
+    const sentUpdates = mockUpdate();
+    renderSavedNotifierForm(savedWebhookNotifier);
+
+    fireEvent.change(getProviderField('Header value'), { target: { value: 'new-value' } });
+    await testAndSaveProvider();
+
+    await waitFor(() => expect(sentUpdates).toHaveLength(1));
+    expect(sentUpdates[0].settings).toMatchObject({
+      headers: [{ name: 'X-Api-Key', value: 'new-value' }],
+    });
+  });
+});

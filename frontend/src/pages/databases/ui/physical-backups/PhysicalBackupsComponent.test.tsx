@@ -299,6 +299,33 @@ describe('PhysicalBackupsComponent', () => {
     });
   });
 
+  it.each([
+    { status: 'CHAIN_BROKEN', label: DICTIONARIES.en.status.physicalBackup.chainBroken },
+    { status: 'CANCELED', label: DICTIONARIES.en.status.physicalBackup.canceled },
+  ] as const)(
+    'shows $label and offers no row action with a $status backup',
+    async ({ status, label }) => {
+      server.use(
+        mockApi.get('/backup-configs/{databaseId}', 200, config),
+        mockApi.get('/physical-backups', 200, {
+          items: [buildBackup({ status })],
+          totalUsageMb: 10,
+        }),
+      );
+      renderDatabasePage();
+
+      expect(await screen.findAllByText(label)).toHaveLength(2);
+
+      for (const actionName of [
+        listCopy.actions.cancelBackup,
+        listCopy.actions.deleteBackup,
+        physicalListCopy.restoreFromThisBackup,
+      ]) {
+        expect(screen.queryByRole('button', { name: actionName })).toBeNull();
+      }
+    },
+  );
+
   it('keeps the tail and shows no loading state after a manual backup, and shows the new backup through a later poll', async () => {
     const requestedCursors: (string | null)[] = [];
     let isNewBackupListed = false;

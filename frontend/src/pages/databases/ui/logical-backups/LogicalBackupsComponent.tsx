@@ -1,6 +1,6 @@
 import { FilterFilled, FilterOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { Alert, App, Button, Modal, Spin } from 'antd';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import type { Database } from '../../../../entities/databases';
@@ -90,7 +90,17 @@ export const LogicalBackupsComponent = ({
     onNavigateToVerifications,
   });
 
+  const isVerifyRestoreConfirmOpenRef = useRef(false);
+
   const confirmVerifyRestore = (backupId: string) => {
+    if (isVerifyRestoreConfirmOpenRef.current) return;
+
+    isVerifyRestoreConfirmOpenRef.current = true;
+
+    const markVerifyRestoreConfirmClosed = () => {
+      isVerifyRestoreConfirmOpenRef.current = false;
+    };
+
     modal.confirm({
       title: t('backups.logical.list.verifyRestore.title'),
       icon: <InfoCircleOutlined className="!text-accent" />,
@@ -114,7 +124,11 @@ export const LogicalBackupsComponent = ({
       okType: 'primary',
       okButtonProps: { type: 'primary', danger: false },
       cancelText: t('common.actions.cancel'),
-      onOk: () => backupActions.startVerification(backupId),
+      onOk: async () => {
+        await backupActions.startVerification(backupId);
+        markVerifyRestoreConfirmClosed();
+      },
+      onCancel: markVerifyRestoreConfirmClosed,
     });
   };
 

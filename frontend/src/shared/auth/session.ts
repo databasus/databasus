@@ -11,6 +11,7 @@ export interface AuthIntent {
 
 const TOKEN_KEY = 'databasus_user_token';
 const USER_KEY = 'databasus_user_id';
+const SCOPED_SELECTION_KEY = /^selected[A-Z][A-Za-z]*Id_/;
 const listeners = new Set<() => void>();
 let snapshot: SessionSnapshot = { token: undefined, userId: undefined, generation: 0 };
 let intentRevision = 0;
@@ -38,6 +39,15 @@ export const subscribeSession = (listener: () => void): (() => void) => {
 export const isCurrentSession = (session: SessionSnapshot): boolean =>
   session === getSessionSnapshot();
 
+const removeScopedSelections = () => {
+  const storage = globalThis.localStorage;
+  if (!storage) return;
+
+  const storedKeys = Array.from({ length: storage.length }, (_, index) => storage.key(index));
+  for (const storedKey of storedKeys)
+    if (storedKey && SCOPED_SELECTION_KEY.test(storedKey)) storage.removeItem(storedKey);
+};
+
 const publishSession = (identity?: { token: string; userId: string }) => {
   const generation = getSessionSnapshot().generation + 1;
   if (identity) {
@@ -49,6 +59,9 @@ const publishSession = (identity?: { token: string; userId: string }) => {
   }
 
   globalThis.localStorage?.removeItem('selected_workspace_id');
+  removeScopedSelections();
+  globalThis.localStorage?.removeItem('logicalBackupListFilter');
+  globalThis.localStorage?.removeItem('physicalBackupsFilters');
   globalThis.sessionStorage?.removeItem('databasus_oauth_sign_in_attempt');
 
   snapshot = { token: identity?.token, userId: identity?.userId, generation };

@@ -9,6 +9,28 @@ import { renderScreen } from '@/shared/lib/test/renderScreen';
 const mockServer = setUpMockApi();
 
 describe('MailServer', () => {
+  it('disables the test email and names the missing server when the instance has no mail server', () => {
+    renderScreen(<MailServer isEmailConfigured={false} />);
+
+    const sendTestEmail = screen.getByRole<HTMLButtonElement>('button', {
+      name: 'Send test email',
+    });
+
+    expect(sendTestEmail.disabled).toBe(true);
+    expect(screen.getByText('not configured')).toBeTruthy();
+  });
+
+  it('enables the test email and shows the server as configured when the instance has one', () => {
+    renderScreen(<MailServer isEmailConfigured />);
+
+    const sendTestEmail = screen.getByRole<HTMLButtonElement>('button', {
+      name: 'Send test email',
+    });
+
+    expect(sendTestEmail.disabled).toBe(false);
+    expect(screen.getByText('configured')).toBeTruthy();
+  });
+
   it('shows that the instance has no mail server when the test email is refused for it', async () => {
     mockServer.use(mockApi.post('/test-emails', 409, buildProblem('email_not_configured', 409)));
     renderScreen(<MailServer isEmailConfigured />);

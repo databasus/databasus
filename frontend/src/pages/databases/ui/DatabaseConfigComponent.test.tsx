@@ -199,6 +199,64 @@ const countRequests = (pathSuffix: string, method: string) =>
     .getRequests()
     .filter((request) => request.method === method && request.url.endsWith(pathSuffix)).length;
 
+const recordSettingsTests = () => {
+  const sentTests: ApiComponents['schemas']['DatabaseSettingsTarget'][] = [];
+  const handler = http.post(`*${API_BASE_PATH}/database-tests`, async ({ request }) => {
+    sentTests.push((await request.json()) as ApiComponents['schemas']['DatabaseSettingsTarget']);
+
+    return HttpResponse.json({ isConnected: true });
+  });
+
+  return { handler, sentTests };
+};
+
+const passwordTunnel = {
+  isEnabled: true,
+  host: 'bastion.example.com',
+  port: 22,
+  username: 'tunnel-user',
+  authType: SshTunnelAuthType.PASSWORD,
+};
+
+const renderConnectionSaveFlow = (database: Database) => {
+  const { handler: updateHandler, sentUpdates } = recordUpdates(database);
+  const { handler: testHandler, sentTests } = recordSettingsTests();
+
+  renderSavedDatabaseConfig(database, [
+    updateHandler,
+    testHandler,
+    mockApi.post('/limited-user-checks', 200, { isAdvisable: false, privileges: [] }),
+  ]);
+
+  return { sentUpdates, sentTests };
+};
+
+const testAndSaveConnection = async (sentUpdates: unknown[]) => {
+  clickTest();
+  await clickSave();
+  await waitFor(() => expect(sentUpdates).toHaveLength(1));
+};
+
+const chooseSshAuth = async (optionTitle: string) => {
+  fireEvent.mouseDown(getRowOfLabel('SSH auth').querySelector('.ant-select-selector')!);
+  const option = await waitFor(() => {
+    const authOption = document.querySelector(`.ant-select-item-option[title="${optionTitle}"]`);
+    expect(authOption).toBeTruthy();
+    return authOption!;
+  });
+
+  fireEvent.click(option);
+};
+
+const enterSshKey = () => {
+  fireEvent.change(screen.getByPlaceholderText('-----BEGIN OPENSSH PRIVATE KEY-----'), {
+    target: { value: 'typed-private-key' },
+  });
+  fireEvent.change(screen.getByPlaceholderText('Only for an encrypted key'), {
+    target: { value: 'typed-passphrase' },
+  });
+};
+
 const savedWithCertificate = buildSavedDatabase(DatabaseType.POSTGRES_LOGICAL, {
   sslMode: PostgresSslMode.Require,
   sslClientCert: 'stored-client-cert',
@@ -397,6 +455,81 @@ describe('DatabaseConfigComponent', () => {
       expect((screen.getByPlaceholderText('Enter SSH password') as HTMLInputElement).value).toBe(
         'typed-replacement',
       );
+    });
+
+    it('shows the saved values and sends no update when Cancel follows an edit', async () => {
+      const { sentUpdates } = renderConnectionSaveFlow(buildSavedDatabase(type));
+
+      fireEvent.change(await openConnectionSection(), {
+        target: { value: 'changed.example.com' },
+      });
+      fireEvent.change(getInputByPlaceholder(/password$/), { target: { value: 'discarded' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+      expect(await screen.findByText('db.example.com')).toBeTruthy();
+      expect(screen.queryByText('changed.example.com')).toBeNull();
+
+      expect((await openConnectionSection()).value).toBe('db.example.com');
+      expect(getInputByPlaceholder(/password$/).value).toBe('');
+      expect(sentUpdates).toHaveLength(0);
+    });
+
+    it('sends the entered password in the test and the update when a new password is entered', async () => {
+      const { sentUpdates, sentTests } = renderConnectionSaveFlow(buildSavedDatabase(type));
+
+      await openConnectionSection();
+      fireEvent.change(getInputByPlaceholder(/password$/), {
+        target: { value: 'replaced-secret' },
+      });
+      await testAndSaveConnection(sentUpdates);
+
+      expect(sentTests[0].databaseId).toBe('database-id');
+      expect(sentTests[0].settings).toMatchObject({ password: 'replaced-secret' });
+      expect(sentUpdates[0].settings).toMatchObject({ password: 'replaced-secret' });
+    });
+
+    it('sends the new SSH password in the test and the update after Replace', async () => {
+      const { sentUpdates, sentTests } = renderConnectionSaveFlow(
+        buildSavedDatabase(type, { sshTunnel: passwordTunnel }),
+      );
+      const replacedTunnel = {
+        ...passwordTunnel,
+        password: 'replaced-tunnel-secret',
+      };
+
+      await openConnectionSection();
+      fireEvent.click(screen.getByRole('button', { name: 'Replace' }));
+      fireEvent.change(screen.getByPlaceholderText('Enter SSH password'), {
+        target: { value: replacedTunnel.password },
+      });
+      await testAndSaveConnection(sentUpdates);
+
+      expect(sentTests[0].settings.sshTunnel).toEqual(replacedTunnel);
+      expect(sentUpdates[0].settings.sshTunnel).toEqual(replacedTunnel);
+    });
+
+    it('sends the key and passphrase without the typed password when key authentication replaces a password tunnel', async () => {
+      const { sentUpdates, sentTests } = renderConnectionSaveFlow(
+        buildSavedDatabase(type, { sshTunnel: passwordTunnel }),
+      );
+      const keyTunnel = {
+        ...passwordTunnel,
+        authType: SshTunnelAuthType.PRIVATE_KEY,
+        privateKey: 'typed-private-key',
+        privateKeyPassphrase: 'typed-passphrase',
+      };
+
+      await openConnectionSection();
+      fireEvent.click(screen.getByRole('button', { name: 'Replace' }));
+      fireEvent.change(screen.getByPlaceholderText('Enter SSH password'), {
+        target: { value: 'abandoned-tunnel-secret' },
+      });
+      await chooseSshAuth('Private key');
+      enterSshKey();
+      await testAndSaveConnection(sentUpdates);
+
+      expect(sentTests[0].settings.sshTunnel).toEqual(keyTunnel);
+      expect(sentUpdates[0].settings.sshTunnel).toEqual(keyTunnel);
     });
 
     it('fills the fields from an imported connection string and asks for a new test', async () => {
@@ -1402,6 +1535,57 @@ describe('DatabaseConfigComponent backup configuration', () => {
       fireEvent.click(retryButton);
 
       expect(await screen.findByText('Archive')).toBeTruthy();
+    },
+  );
+
+  it.each(BACKUP_EDITORS)(
+    'shows the saved values with Save disabled and sends no update when Cancel follows an edit in the $kind section',
+    async ({ database, config }) => {
+      const chooseEncryption = async (optionTitle: string) => {
+        const control = await screen.findByRole('combobox', { name: 'Encryption' });
+
+        fireEvent.mouseDown(control.closest('.ant-select')!.querySelector('.ant-select-selector')!);
+        const option = await waitFor(() => {
+          const encryptionOption = document.querySelector(
+            `.ant-select-item-option[title="${optionTitle}"]`,
+          );
+          expect(encryptionOption).toBeTruthy();
+          return encryptionOption!;
+        });
+
+        fireEvent.click(option);
+      };
+      const getShownEncryption = async () =>
+        (await screen.findByText('Encryption')).parentElement!.textContent;
+
+      renderSavedDatabaseConfig(database, [
+        mockApi.get('/backup-configs/{databaseId}', 200, config),
+        ...declareBackupConfigRequests(),
+      ]);
+      await screen.findByText('Backups enabled');
+
+      const saveButton = await openBackupSection();
+      await chooseEncryption('Encrypt backup files');
+
+      expect(saveButton).toHaveProperty('disabled', false);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      await waitFor(() =>
+        expect(screen.queryByRole('combobox', { name: 'Encryption' })).toBeNull(),
+      );
+
+      expect(await getShownEncryption()).toBe('EncryptionNone');
+
+      const reopenedSaveButton = await openBackupSection();
+
+      expect(reopenedSaveButton).toHaveProperty('disabled', true);
+      expect(
+        screen
+          .getByRole('combobox', { name: 'Encryption' })
+          .closest('.ant-select')!
+          .querySelector('.ant-select-selection-item')?.textContent,
+      ).toBe('None');
+      expect(countRequests(`/backup-configs/${database.id}`, 'PUT')).toBe(0);
     },
   );
 

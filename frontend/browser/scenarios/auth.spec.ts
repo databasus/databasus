@@ -22,17 +22,23 @@ test('preserves auth input and reflows its translated refusal with 200% text at 
 
   await openAccount({ page, locale: 'es', theme: 'dark', isSignedIn: false });
   const dictionary = DICTIONARIES.es;
-  await page
-    .getByRole('textbox', { name: dictionary.users.fields.yourEmail, exact: true })
-    .fill('owner@example.com');
-  await page
-    .getByLabel(dictionary.common.fields.password, { exact: true })
-    .fill('synthetic-password');
+  const email = page.getByRole('textbox', { name: dictionary.users.fields.yourEmail, exact: true });
+  const password = page.getByLabel(dictionary.common.fields.password, { exact: true });
+  let navigationCount = 0;
+  page.on('framenavigated', (frame) => {
+    if (frame === page.mainFrame()) navigationCount++;
+  });
+
+  await email.fill('owner@example.com');
+  await password.fill('synthetic-password');
   await page.getByRole('button', { name: dictionary.users.signIn.submit, exact: true }).click();
 
   await expect(
     page.getByText(dictionary.errors.humanVerificationFailed, { exact: true }),
   ).toBeVisible();
+  await expect(email).toHaveValue('owner@example.com');
+  await expect(password).toHaveValue('synthetic-password');
+  expect(navigationCount).toBe(0);
   await enlargeText(page.locator('body'));
 
   for (const name of [

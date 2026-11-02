@@ -163,6 +163,9 @@ for (const theme of ['light', 'dark']) {
       table.getByText(dictionary.backups.physical.types.full, { exact: true }),
     ).toHaveCount(5);
     await expect(
+      table.getByText(dictionary.backups.physical.types.incremental, { exact: true }),
+    ).toBeVisible();
+    await expect(
       table.getByText(dictionary.backups.physical.types.wal, { exact: true }),
     ).toBeVisible();
 

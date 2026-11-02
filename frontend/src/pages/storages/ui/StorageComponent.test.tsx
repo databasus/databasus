@@ -122,6 +122,52 @@ describe('StorageComponent', () => {
     );
   });
 
+  it.each([
+    {
+      failure: '403',
+      answerTestRequest: () =>
+        mockApi.post('/storages/{storageId}/test', 403, buildProblem('permission_denied', 403)),
+      reason: 'You do not have permission to do this.',
+    },
+    {
+      failure: '500',
+      answerTestRequest: () =>
+        mockApi.post('/storages/{storageId}/test', 500, buildProblem('internal', 500)),
+      reason: 'An internal server error occurred. Please try again later.',
+    },
+    {
+      failure: 'a network loss',
+      answerTestRequest: () => mockApi.network('post', '/storages/{storageId}/test'),
+      reason: 'Cannot reach the Databasus server. Check your connection and try again.',
+    },
+  ])(
+    'shows the reason, keeps the storage and allows a retry when the saved connection test answers $failure',
+    async ({ answerTestRequest, reason }) => {
+      mockServer.use(
+        mockApi.get('/storages/{storageId}', 200, localStorageOfWorkspace),
+        answerTestRequest(),
+      );
+      const view = renderStorage();
+
+      await view.user.click(await screen.findByRole('button', { name: 'Test connection' }));
+
+      expect(await screen.findByText(reason)).toBeTruthy();
+      expect(screen.getByText(localStorageOfWorkspace.name)).toBeTruthy();
+
+      const testAction = screen.getByRole('button', { name: /Test connection/ });
+
+      await waitFor(() => expect(testAction).toHaveProperty('disabled', false));
+
+      mockServer.use(mockApi.post('/storages/{storageId}/test', 200, { isConnected: true }));
+
+      await view.user.click(testAction);
+
+      expect(await screen.findByText('Connection test successful!')).toBeTruthy();
+      expect(screen.queryByText(reason)).toBeNull();
+      expect(screen.getByText(localStorageOfWorkspace.name)).toBeTruthy();
+    },
+  );
+
   it('shows the storage text when a storage that backups use is deleted', async () => {
     const onStorageDeleted = vi.fn();
     mockServer.use(

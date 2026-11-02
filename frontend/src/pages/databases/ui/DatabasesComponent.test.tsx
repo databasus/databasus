@@ -390,6 +390,33 @@ describe('DatabasesComponent', () => {
     expect(screen.queryByRole('button', { name: /^Bravo/ })).toBeNull();
   });
 
+  it('keeps the database selected and listed and shows the reason when the delete is refused', async () => {
+    const alphaDatabase = buildDatabase('Alpha');
+    const bravoDatabase = buildDatabase('Bravo');
+    localStorage.setItem(SELECTED_DATABASE_PREFERENCE_KEY, bravoDatabase.id);
+    declareListResponses([alphaDatabase, bravoDatabase]);
+    mockServer.use(
+      mockApi.get('/storage-switches', 200, { items: [] }),
+      mockApi.get('/databases/{databaseId}', 200, bravoDatabase),
+      mockApi.delete('/databases/{databaseId}', 403, buildProblem('permission_denied', 403)),
+      ...declareSettingsRequests(),
+    );
+    const { user } = renderDatabasesScreen();
+
+    await user.click(await screen.findByText('Config'));
+    await user.click(await screen.findByRole('button', { name: 'Delete' }));
+    await user.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove' }),
+    );
+
+    expect(await screen.findByText('You do not have permission to do this.')).toBeTruthy();
+    expect((await findDatabaseCard('Bravo')).getAttribute('aria-pressed')).toBe('true');
+    expect(await findDatabaseCard('Alpha')).toBeTruthy();
+    expect(localStorage.getItem(SELECTED_DATABASE_PREFERENCE_KEY)).toBe(bravoDatabase.id);
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeTruthy();
+    expect(countRequests('/databases')).toBe(1);
+  });
+
   it('offers a retry instead of an empty list when the first list load fails', async () => {
     const showAlert = vi.fn();
     vi.stubGlobal('alert', showAlert);

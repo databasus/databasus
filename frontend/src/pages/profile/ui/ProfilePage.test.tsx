@@ -1,10 +1,13 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ProfilePage } from '@/pages/profile/ui/ProfilePage';
 // @vitest-environment happy-dom
+import { API_BASE_PATH } from '@/shared/api';
 import { activateSession, getSessionSnapshot, subscribeSession } from '@/shared/auth';
 import { DICTIONARIES } from '@/shared/i18n';
+import { inspectApiRequest } from '@/shared/lib/test/inspectApiRequest';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
 
@@ -134,6 +137,82 @@ describe('ProfilePage', () => {
       ).toBeNull();
     },
   );
+
+  it.each([
+    {
+      field: 'Name',
+      enteredValue: 'Renamed owner',
+      savedProfile: { name: 'Renamed owner', email: 'owner@example.com' },
+    },
+    {
+      field: 'Email',
+      enteredValue: 'renamed@example.com',
+      savedProfile: { name: 'Owner', email: 'renamed@example.com' },
+    },
+  ])(
+    'sends the entered $field beside the stored value when the profile is saved',
+    async ({ field, enteredValue, savedProfile }) => {
+      const savedBodies: unknown[] = [];
+      const savedUserIds: unknown[] = [];
+      const acknowledgedUser = {
+        id: 'owner-id',
+        role: 'ADMIN' as const,
+        status: 'ACTIVE' as const,
+        createdAt: '2026-10-01T00:00:00Z',
+        ...savedProfile,
+      };
+      mockServer.use(
+        http.put(`*${API_BASE_PATH}/users/:userId`, async ({ request, params }) => {
+          const { body } = await inspectApiRequest(request, {
+            method: 'put',
+            path: '/users/{userId}',
+          });
+          savedBodies.push(body);
+          savedUserIds.push(params.userId);
+
+          return HttpResponse.json(acknowledgedUser);
+        }),
+      );
+      const onUserChanged = vi.fn();
+      const { user } = await openProfile(onUserChanged);
+
+      const changedField = screen.getByRole('textbox', { name: field });
+      await user.clear(changedField);
+      await user.type(changedField, enteredValue);
+      await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+      await screen.findByText('Profile updated successfully');
+
+      expect(savedBodies).toEqual([savedProfile]);
+      expect(savedUserIds).toEqual(['owner-id']);
+      expect(onUserChanged).toHaveBeenCalledWith(acknowledgedUser);
+    },
+  );
+
+  it('sends the entered password when the password is changed', async () => {
+    const changedPasswordBodies: unknown[] = [];
+    const changedPasswordUserIds: unknown[] = [];
+    mockServer.use(
+      http.put(`*${API_BASE_PATH}/users/:userId/password`, async ({ request, params }) => {
+        const { body } = await inspectApiRequest(request, {
+          method: 'put',
+          path: '/users/{userId}/password',
+        });
+        changedPasswordBodies.push(body);
+        changedPasswordUserIds.push(params.userId);
+
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    await openProfile();
+
+    submitPasswordChange();
+
+    await screen.findByText('Password changed. Sign in again with your new password.');
+
+    expect(changedPasswordBodies).toEqual([{ newPassword: 'replacement-password' }]);
+    expect(changedPasswordUserIds).toEqual(['owner-id']);
+  });
 
   it('clears authentication and notifies listeners after a successful password change', async () => {
     mockServer.use(

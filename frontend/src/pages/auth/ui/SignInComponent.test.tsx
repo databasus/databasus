@@ -71,6 +71,23 @@ describe('SignInComponent', () => {
 
     expect(await screen.findByText('The email or password is incorrect.')).toBeTruthy();
   });
+
+  it('keeps the entered values and sends one request when the password is refused', async () => {
+    mockServer.use(mockApi.post('/sessions', 401, buildProblem('invalid_credentials', 401)));
+    renderScreen(<SignInComponent />);
+
+    submitPasswordSignIn();
+
+    await screen.findByText('The email or password is incorrect.');
+    expect(screen.getByPlaceholderText<HTMLInputElement>('your@email.com').value).toBe(
+      'owner@example.com',
+    );
+    expect(screen.getByPlaceholderText<HTMLInputElement>('********').value).toBe(
+      'correct-password',
+    );
+    expect(mockServer.getRequests()).toHaveLength(1);
+    expect(getSessionSnapshot().token).toBeUndefined();
+  });
 });
 
 it('publishes neither a session nor a code transition after the sign-in page is left', async () => {

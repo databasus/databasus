@@ -175,6 +175,58 @@ describe('EditNotifierComponent', () => {
       expect(screen.getByDisplayValue('Operations')).toBeTruthy();
     });
 
+    it.each([
+      {
+        failure: '403',
+        answerTestRequest: () =>
+          mockApi.post('/notifier-tests', 403, buildProblem('permission_denied', 403)),
+        reason: DICTIONARIES.en.errors.permissionDenied,
+      },
+      {
+        failure: '500',
+        answerTestRequest: () =>
+          mockApi.post('/notifier-tests', 500, buildProblem('internal', 500)),
+        reason: DICTIONARIES.en.errors.internal,
+      },
+      {
+        failure: 'a network loss',
+        answerTestRequest: () => mockApi.network('post', '/notifier-tests'),
+        reason: DICTIONARIES.en.errors.networkUnreachable,
+      },
+    ])(
+      'shows the reason, keeps the draft and allows a retry when the test notification answers $failure',
+      async ({ answerTestRequest, reason }) => {
+        server.use(answerTestRequest());
+        renderScreen(<EditNotifierComponent {...props} editingNotifier={emailNotifier} />, {
+          locale: 'en',
+        });
+        rename('Renamed draft');
+        fireEvent.change(screen.getByRole('textbox', { name: 'SMTP host' }), {
+          target: { value: 'draft.example.com' },
+        });
+
+        fireEvent.click(screen.getByRole('button', { name: /Send test notification/ }));
+
+        expect((await screen.findByRole('alert')).textContent).toContain(reason);
+        expect(screen.getByDisplayValue('Renamed draft')).toBeTruthy();
+        expect(screen.getByDisplayValue('draft.example.com')).toBeTruthy();
+        expect(screen.queryByRole('button', { name: /Save/ })).toBeNull();
+
+        const testAction = screen.getByRole('button', { name: /Send test notification/ });
+
+        await waitFor(() => expect(testAction).toHaveProperty('disabled', false));
+
+        server.use(mockApi.post('/notifier-tests', 200, { isDelivered: true }));
+
+        fireEvent.click(testAction);
+
+        expect(await screen.findByRole('button', { name: /Save/ })).toBeTruthy();
+        expect(screen.queryByText(reason)).toBeNull();
+        expect(screen.getByDisplayValue('Renamed draft')).toBeTruthy();
+        expect(screen.getByDisplayValue('draft.example.com')).toBeTruthy();
+      },
+    );
+
     it('retains test validity and sends one request per activation when name, locale or theme changes', async () => {
       server.use(mockApi.post('/notifier-tests', 200, { isDelivered: true }));
       const view = renderScreen(

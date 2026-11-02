@@ -1,13 +1,14 @@
 // @vitest-environment happy-dom
-import { screen } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { BackupConfig } from '../../../entities/backup-configs';
 import type { Storage } from '../../../entities/storages';
 import type { Workspace } from '../../../entities/workspaces';
 import { API_BASE_PATH, type ApiComponents } from '../../../shared/api';
-import { mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
+import { inspectApiRequest } from '../../../shared/lib/test/inspectApiRequest';
+import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
 import { renderScreen } from '../../../shared/lib/test/renderScreen';
 import { StorageTransferDialogComponent } from './StorageTransferDialogComponent';
 
@@ -107,5 +108,68 @@ describe('StorageTransferDialogComponent', () => {
         'This storage is used by some databases. Please transfer or remove related databases first.',
       ),
     ).toBeNull();
+  });
+
+  it('keeps the dialog and the chosen workspace and shows the translated reason when the transfer is refused', async () => {
+    mockServer.use(
+      mockStorageBackupConfigs([], []),
+      mockApi.get('/workspaces', 200, { items: [sourceWorkspace, targetWorkspace] }),
+      mockApi.post('/storages/{storageId}/transfer', 409, buildProblem('in_use', 409)),
+    );
+    const onClose = vi.fn();
+    const onTransferred = vi.fn();
+    const view = renderScreen(
+      <StorageTransferDialogComponent
+        storage={transferredStorage}
+        onClose={onClose}
+        onTransferred={onTransferred}
+      />,
+    );
+
+    fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Target workspace' }));
+    fireEvent.click(
+      await screen.findByText(targetWorkspace.name, {
+        selector: '.ant-select-item-option-content',
+      }),
+    );
+    await view.user.click(screen.getByRole('button', { name: /Transfer/ }));
+
+    expect(
+      await screen.findByText(
+        'It is still in use by a database or by a running backup or restore. Try again once nothing uses it.',
+      ),
+    ).toBeTruthy();
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect(screen.queryByText('in_use')).toBeNull();
+    expect(
+      screen.getByText(targetWorkspace.name, { selector: '.ant-select-selection-item' }),
+    ).toBeTruthy();
+    expect(onTransferred).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+
+    mockServer.use(
+      http.post(
+        `*${API_BASE_PATH}/storages/:storageId/transfer`,
+        () => new HttpResponse(null, { status: 204 }),
+      ),
+    );
+
+    await view.user.click(screen.getByRole('button', { name: /Transfer/ }));
+
+    await waitFor(() => expect(onTransferred).toHaveBeenCalledTimes(1));
+
+    const transfers = mockServer.getRequests().filter((request) => request.method === 'POST');
+
+    expect(transfers).toHaveLength(2);
+
+    for (const transfer of transfers) {
+      const inspectedTransfer = await inspectApiRequest(transfer, {
+        method: 'post',
+        path: '/storages/{storageId}/transfer',
+      });
+
+      expect(inspectedTransfer.params.storageId).toBe(transferredStorage.id);
+      expect(inspectedTransfer.body).toEqual({ targetWorkspaceId: targetWorkspace.id });
+    }
   });
 });

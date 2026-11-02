@@ -3,7 +3,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { HttpResponse, http } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { Storage } from '../../../../entities/storages';
+import type { Storage, StorageSettings } from '../../../../entities/storages';
 import { API_BASE_PATH, type ApiComponents } from '../../../../shared/api';
 import { activateSession } from '../../../../shared/auth';
 import { useLocale } from '../../../../shared/i18n';
@@ -711,4 +711,343 @@ it('requires the removed key when it is selected again after a successful method
   expect(
     (screen.getByRole('button', { name: 'Test connection' }) as HTMLButtonElement).disabled,
   ).toBe(true);
+});
+
+const providerStorages: {
+  provider: string;
+  typeLabel: string;
+  authMethodLabel?: string;
+  entered: Record<string, string>;
+  secretLabels: Record<string, string>;
+  sentOnCreate: StorageSettings;
+  saved: StorageSettings;
+}[] = [
+  {
+    provider: 'NAS',
+    typeLabel: 'NAS',
+    entered: {
+      Host: 'nas.example.com',
+      Share: 'backups',
+      Username: 'backup',
+      Password: 'nas-password',
+    },
+    secretLabels: { password: 'Password' },
+    sentOnCreate: {
+      type: 'NAS',
+      host: 'nas.example.com',
+      port: 445,
+      share: 'backups',
+      username: 'backup',
+      password: 'nas-password',
+      isSsl: false,
+    },
+    saved: {
+      type: 'NAS',
+      host: 'nas.example.com',
+      port: 445,
+      share: 'backups',
+      username: 'backup',
+      isSsl: false,
+    },
+  },
+  {
+    provider: 'Azure with an account key',
+    typeLabel: 'Azure Blob Storage',
+    entered: {
+      'Account name': 'databasusaccount',
+      'Account key': 'azure-account-key',
+      'Container name': 'backups',
+    },
+    secretLabels: { accountKey: 'Account key' },
+    sentOnCreate: {
+      type: 'AZURE_BLOB',
+      authMethod: 'ACCOUNT_KEY',
+      accountName: 'databasusaccount',
+      accountKey: 'azure-account-key',
+      containerName: 'backups',
+    },
+    saved: {
+      type: 'AZURE_BLOB',
+      authMethod: 'ACCOUNT_KEY',
+      accountName: 'databasusaccount',
+      containerName: 'backups',
+    },
+  },
+  {
+    provider: 'Azure with a connection string',
+    typeLabel: 'Azure Blob Storage',
+    authMethodLabel: 'Connection string',
+    entered: {
+      Connection: 'DefaultEndpointsProtocol=https;AccountName=databasusaccount',
+      'Container name': 'backups',
+    },
+    secretLabels: { connectionString: 'Connection' },
+    sentOnCreate: {
+      type: 'AZURE_BLOB',
+      authMethod: 'CONNECTION_STRING',
+      connectionString: 'DefaultEndpointsProtocol=https;AccountName=databasusaccount',
+      containerName: 'backups',
+    },
+    saved: { type: 'AZURE_BLOB', authMethod: 'CONNECTION_STRING', containerName: 'backups' },
+  },
+  {
+    provider: 'FTP',
+    typeLabel: 'FTP',
+    entered: { Host: 'ftp.example.com', Username: 'backup', Password: 'ftp-password' },
+    secretLabels: { password: 'Password' },
+    sentOnCreate: {
+      type: 'FTP',
+      host: 'ftp.example.com',
+      port: 21,
+      username: 'backup',
+      password: 'ftp-password',
+      isSsl: false,
+      isSkipTlsVerify: false,
+    },
+    saved: {
+      type: 'FTP',
+      host: 'ftp.example.com',
+      port: 21,
+      username: 'backup',
+      isSsl: false,
+      isSkipTlsVerify: false,
+    },
+  },
+  {
+    provider: 'rclone',
+    typeLabel: 'Rclone',
+    entered: { Config: '[remote]\ntype = sftp', 'Remote path': '/backups' },
+    secretLabels: { configContent: 'Config' },
+    sentOnCreate: {
+      type: 'RCLONE',
+      configContent: '[remote]\ntype = sftp',
+      remotePath: '/backups',
+    },
+    saved: { type: 'RCLONE', remotePath: '/backups' },
+  },
+];
+
+// Their rename and secret rules belong to the provider tests above, so only creation is listed here.
+const providerStoragesCreatedOnly: Pick<
+  (typeof providerStorages)[number],
+  'provider' | 'typeLabel' | 'authMethodLabel' | 'entered' | 'sentOnCreate'
+>[] = [
+  {
+    provider: 'S3',
+    typeLabel: 'S3',
+    entered: {
+      'S3 Bucket': 'databasus-backups',
+      Region: 'eu-central-1',
+      'Access key': 'entered-access-key',
+      'Secret key': 'entered-secret-key',
+      Endpoint: 'https://s3.example.com',
+    },
+    sentOnCreate: {
+      type: 'S3',
+      s3Bucket: 'databasus-backups',
+      s3Region: 'eu-central-1',
+      s3AccessKey: 'entered-access-key',
+      s3SecretKey: 'entered-secret-key',
+      s3Endpoint: 'https://s3.example.com',
+      isVirtualHostedStyle: false,
+      isSkipTlsVerify: false,
+    },
+  },
+  {
+    provider: 'SFTP with a password',
+    typeLabel: 'SFTP',
+    entered: {
+      Host: 'sftp.example.com',
+      Username: 'backup',
+      Password: 'sftp-password',
+      Path: '/backups',
+    },
+    sentOnCreate: {
+      type: 'SFTP',
+      host: 'sftp.example.com',
+      port: 22,
+      username: 'backup',
+      authMethods: ['PASSWORD'],
+      password: 'sftp-password',
+      path: '/backups',
+      isSkipHostKeyVerify: false,
+    },
+  },
+];
+
+const getProviderField = (label: string) =>
+  screen.getByLabelText(label, { selector: 'input:not([type="radio"]),textarea' });
+
+// Records every storage the form creates and answers it with the storage the request describes.
+const mockCreation = () => {
+  const sentStorages: ApiComponents['schemas']['StorageCreate'][] = [];
+  mockServer.use(
+    mockApi.post('/storage-tests', 200, { isConnected: true }),
+    http.post(`*${API_BASE_PATH}/storages`, async ({ request }) => {
+      const sentStorage = (await request.json()) as ApiComponents['schemas']['StorageCreate'];
+      sentStorages.push(sentStorage);
+
+      return HttpResponse.json(
+        { ...sentStorage, id: 'created-storage', workspaceId: 'workspace-id' },
+        { status: 201 },
+      );
+    }),
+  );
+
+  return sentStorages;
+};
+
+const renderNewStorageForm = async (typeLabel: string) => {
+  const view = renderScreen(
+    <EditStorageComponent
+      workspaceId="workspace-id"
+      isShowClose={false}
+      onClose={() => {}}
+      isShowName
+      onChanged={() => {}}
+    />,
+  );
+
+  fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), {
+    target: { value: 'New storage' },
+  });
+  await view.user.click(screen.getByRole('combobox', { name: 'Type' }));
+  fireEvent.click(await screen.findByTitle(typeLabel));
+
+  return view;
+};
+
+describe('EditStorageComponent providers', () => {
+  it.each([...providerStorages, ...providerStoragesCreatedOnly])(
+    'sends the entered settings when a $provider storage is created',
+    async ({ typeLabel, authMethodLabel, entered, sentOnCreate }) => {
+      const sentStorages = mockCreation();
+      await renderNewStorageForm(typeLabel);
+
+      if (authMethodLabel) fireEvent.click(screen.getByRole('radio', { name: authMethodLabel }));
+      for (const [label, value] of Object.entries(entered))
+        fireEvent.change(getProviderField(label), { target: { value } });
+      fireEvent.click(screen.getByRole('button', { name: /Test connection/ }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Save' }));
+
+      await waitFor(() => expect(sentStorages).toHaveLength(1));
+      expect(sentStorages[0]).toMatchObject({ name: 'New storage', settings: sentOnCreate });
+      expect(sentStorages[0].settings).toEqual(sentOnCreate);
+    },
+  );
+
+  it.each(providerStorages)(
+    'omits every secret when a saved $provider storage is renamed',
+    async ({ saved }) => {
+      mockServer.use(mockApi.post('/storage-tests', 200, { isConnected: true }));
+      const sentUpdates = mockUpdate();
+      renderSavedStorageForm({ ...savedS3Storage, settings: saved });
+
+      fireEvent.change(screen.getByDisplayValue('Offsite backups'), {
+        target: { value: 'Renamed backups' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /Test connection/ }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Save' }));
+
+      await waitFor(() => expect(sentUpdates).toHaveLength(1));
+      expect(sentUpdates[0]).toEqual({ name: 'Renamed backups', settings: saved });
+    },
+  );
+
+  it.each(providerStorages)(
+    'sends the replacement when a secret of a saved $provider storage is entered again',
+    async ({ saved, secretLabels }) => {
+      mockServer.use(mockApi.post('/storage-tests', 200, { isConnected: true }));
+      const sentUpdates = mockUpdate();
+      renderSavedStorageForm({ ...savedS3Storage, settings: saved });
+
+      for (const [secretField, label] of Object.entries(secretLabels))
+        fireEvent.change(getProviderField(label), { target: { value: `new-${secretField}` } });
+      fireEvent.click(screen.getByRole('button', { name: /Test connection/ }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Save' }));
+
+      await waitFor(() => expect(sentUpdates).toHaveLength(1));
+      expect(sentUpdates[0].settings).toEqual({
+        ...saved,
+        ...Object.fromEntries(
+          Object.keys(secretLabels).map((secretField) => [secretField, `new-${secretField}`]),
+        ),
+      });
+    },
+  );
+
+  it('sends the password and the private key when an SFTP storage is created with both methods', async () => {
+    const sentStorages = mockCreation();
+    const { user } = await renderNewStorageForm('SFTP');
+
+    await selectSftpMethods(user, 'Password and private key');
+    fireEvent.change(getProviderField('Host'), { target: { value: 'sftp.example.com' } });
+    fireEvent.change(getProviderField('Username'), { target: { value: 'backup' } });
+    fireEvent.change(getProviderField('Password'), { target: { value: 'sftp-password' } });
+    fireEvent.change(getProviderField('Private key'), { target: { value: 'sftp-private-key' } });
+    fireEvent.click(screen.getByRole('button', { name: /Test connection/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(sentStorages).toHaveLength(1));
+    expect(sentStorages[0].settings).toEqual({
+      type: 'SFTP',
+      host: 'sftp.example.com',
+      port: 22,
+      username: 'backup',
+      authMethods: ['PASSWORD', 'PRIVATE_KEY'],
+      password: 'sftp-password',
+      privateKey: 'sftp-private-key',
+      isSkipHostKeyVerify: false,
+    });
+  });
+
+  it('sends the entered client settings with the token when a Google Drive storage is created', async () => {
+    const sentStorages = mockCreation();
+    const tokenJson = JSON.stringify({ access_token: 'access', refresh_token: 'refresh' });
+    renderScreen(
+      <EditStorageComponent
+        workspaceId="workspace-id"
+        isShowClose={false}
+        onClose={() => {}}
+        isShowName
+        onChanged={() => {}}
+        draft={{
+          name: 'New storage',
+          settings: { type: 'GOOGLE_DRIVE', clientId: 'draft-client', tokenJson },
+        }}
+      />,
+    );
+
+    fireEvent.change(getProviderField('Client ID'), { target: { value: 'entered-client' } });
+    fireEvent.change(getProviderField('Client Secret'), { target: { value: 'entered-secret' } });
+    fireEvent.click(screen.getByRole('button', { name: /Test connection/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(sentStorages).toHaveLength(1));
+    expect(sentStorages[0]).toMatchObject({ name: 'New storage' });
+    expect(sentStorages[0].settings).toEqual({
+      type: 'GOOGLE_DRIVE',
+      clientId: 'entered-client',
+      clientSecret: 'entered-secret',
+      tokenJson,
+    });
+  });
+
+  it('sends the entered keys when S3 keys of a saved storage are entered again', async () => {
+    mockServer.use(mockApi.post('/storage-tests', 200, { isConnected: true }));
+    const sentUpdates = mockUpdate();
+    renderSavedStorageForm(savedS3Storage);
+
+    fireEvent.change(getProviderField('Access key'), { target: { value: 'new-access-key' } });
+    fireEvent.change(getProviderField('Secret key'), { target: { value: 'new-secret-key' } });
+    fireEvent.click(screen.getByRole('button', { name: /Test connection/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(sentUpdates).toHaveLength(1));
+    expect(sentUpdates[0].settings).toEqual({
+      ...savedS3Storage.settings,
+      s3AccessKey: 'new-access-key',
+      s3SecretKey: 'new-secret-key',
+    });
+  });
 });

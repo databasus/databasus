@@ -79,6 +79,67 @@ const chooseStorage = async (name = 'Archive') => {
   fireEvent.click(option);
 };
 
+const getFieldInput = (label: string) => screen.findByLabelText<HTMLInputElement>(label);
+
+const getSaveButton = () => screen.findByRole('button', { name: /Save$/ });
+
+const chooseOption = async ({
+  fieldName,
+  optionTitle,
+}: {
+  fieldName: string;
+  optionTitle: string;
+}) => {
+  const control = await screen.findByRole('combobox', { name: fieldName });
+
+  fireEvent.mouseDown(control.closest('.ant-select')!.querySelector('.ant-select-selector')!);
+
+  const option = await waitFor(() => {
+    const visibleOption = document.querySelector(`.ant-select-item-option[title="${optionTitle}"]`);
+    expect(visibleOption).toBeTruthy();
+    return visibleOption!;
+  });
+
+  fireEvent.click(option);
+};
+
+const renderConfig = (
+  schedule: LogicalBackupConfigInput['settings']['schedule'],
+  retention = logicalSettings.retention,
+  notificationTriggers = logicalSettings.notificationTriggers,
+) => {
+  const submitted: LogicalBackupConfigInput[] = [];
+
+  mockServer.use(
+    mockApi.get('/backup-configs/{databaseId}', 200, {
+      ...config,
+      settings: { ...logicalSettings, schedule, retention, notificationTriggers },
+    }),
+    mockApi.get('/logical-backups', 200, { items: [] }),
+    mockApi.get('/storage-switches', 200, { items: [] }),
+    mockApi.get('/storages', 200, { items: [] }),
+    http.put(`*${API_BASE_PATH}/backup-configs/:databaseId`, async ({ request }) => {
+      const saved = (await request.json()) as LogicalBackupConfigInput;
+      submitted.push(saved);
+
+      return HttpResponse.json({ ...saved, databaseId: database.id });
+    }),
+  );
+
+  renderScreen(
+    <EditLogicalBackupConfigSection database={database} onCancel={() => {}} onSaved={() => {}} />,
+  );
+
+  return submitted;
+};
+
+const saveAndGetSubmittedSettings = async (submitted: LogicalBackupConfigInput[]) => {
+  fireEvent.click(await getSaveButton());
+  await waitFor(() => expect(submitted).toHaveLength(1));
+
+  return submitted[0].settings;
+};
+
 describe('EditLogicalBackupConfigSection', () => {
   it('requires confirmation before reassigning cleared storage with retained history and handles an accepted response', async () => {
     const submitted: BackupConfigInput[] = [];
@@ -192,6 +253,99 @@ describe('EditLogicalBackupConfigSection', () => {
     expect(countField.value).toBe('1');
   });
 
+  describe('when a saved configuration changes', () => {
+    const ENCRYPTED_OPTION = 'Encrypt backup files';
+
+    it('sends the chosen encryption when encryption changes', async () => {
+      const submitted = renderConfig({ type: 'HOURLY' });
+
+      await chooseOption({ fieldName: 'Encryption', optionTitle: ENCRYPTED_OPTION });
+      await saveAndGetSubmittedSettings(submitted);
+
+      expect(submitted[0].encryption).toBe('ENCRYPTED');
+    });
+
+    it('sends the checked triggers without the unchecked one when notification triggers change', async () => {
+      const submitted = renderConfig({ type: 'HOURLY' }, logicalSettings.retention, [
+        'BACKUP_FAILED',
+      ]);
+
+      fireEvent.click(await screen.findByRole('checkbox', { name: 'Backup success' }));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Backup failed' }));
+      const submittedSettings = await saveAndGetSubmittedSettings(submitted);
+
+      expect(submittedSettings.notificationTriggers).toEqual(['BACKUP_SUCCESS']);
+    });
+
+    it('disables Save again when encryption returns to the saved value', async () => {
+      renderConfig({ type: 'HOURLY' });
+
+      expect(await getSaveButton()).toHaveProperty('disabled', true);
+
+      await chooseOption({ fieldName: 'Encryption', optionTitle: ENCRYPTED_OPTION });
+
+      expect(await getSaveButton()).toHaveProperty('disabled', false);
+
+      await chooseOption({ fieldName: 'Encryption', optionTitle: 'None' });
+
+      expect(await getSaveButton()).toHaveProperty('disabled', true);
+    });
+
+    it('disables Save again when notification triggers return to the saved set in another order', async () => {
+      renderConfig({ type: 'HOURLY' }, logicalSettings.retention, [
+        'BACKUP_SUCCESS',
+        'BACKUP_FAILED',
+      ]);
+      const successTrigger = await screen.findByRole('checkbox', { name: 'Backup success' });
+
+      fireEvent.click(successTrigger);
+
+      expect(await getSaveButton()).toHaveProperty('disabled', false);
+
+      fireEvent.click(successTrigger);
+
+      expect(await getSaveButton()).toHaveProperty('disabled', true);
+    });
+
+    it('sends the entered daily, weekly, monthly and yearly values when the GFS policy is chosen', async () => {
+      const submitted = renderConfig({ type: 'HOURLY' });
+
+      await chooseOption({
+        fieldName: 'Retention policy',
+        optionTitle: 'GFS (keep last N hourly, daily, weekly, monthly and yearly backups)',
+      });
+      fireEvent.change(await getFieldInput('Daily backups'), { target: { value: '11' } });
+      fireEvent.change(await getFieldInput('Weekly backups'), { target: { value: '12' } });
+      fireEvent.change(await getFieldInput('Monthly backups'), { target: { value: '13' } });
+      fireEvent.change(await getFieldInput('Yearly backups'), { target: { value: '14' } });
+      const submittedSettings = await saveAndGetSubmittedSettings(submitted);
+
+      expect(submittedSettings.retention).toMatchObject({
+        policy: 'GFS',
+        gfsDays: 11,
+        gfsWeeks: 12,
+        gfsMonths: 13,
+        gfsYears: 14,
+      });
+    });
+
+    it('sends the chosen period when the time period policy is chosen', async () => {
+      const submitted = renderConfig({ type: 'HOURLY' });
+
+      await chooseOption({
+        fieldName: 'Retention policy',
+        optionTitle: 'Time period (last N days)',
+      });
+      await chooseOption({ fieldName: 'Period', optionTitle: '6 months' });
+      const submittedSettings = await saveAndGetSubmittedSettings(submitted);
+
+      expect(submittedSettings.retention).toMatchObject({
+        policy: 'TIME_PERIOD',
+        period: 'SIX_MONTHS',
+      });
+    });
+  });
+
   describe('with a schedule', () => {
     const gfsRetention: LogicalBackupConfigInput['settings']['retention'] = {
       ...logicalSettings.retention,
@@ -200,25 +354,8 @@ describe('EditLogicalBackupConfigSection', () => {
       gfsDays: 7,
     };
 
-    const getFieldInput = (label: string) => screen.findByLabelText<HTMLInputElement>(label);
-
-    const getSaveButton = () => screen.findByRole('button', { name: /Save$/ });
-
-    const chooseScheduleType = async (optionTitle: string) => {
-      const control = await screen.findByRole('combobox', { name: 'Backup interval' });
-
-      fireEvent.mouseDown(control.closest('.ant-select')!.querySelector('.ant-select-selector')!);
-
-      const option = await waitFor(() => {
-        const visibleOption = document.querySelector(
-          `.ant-select-item-option[title="${optionTitle}"]`,
-        );
-        expect(visibleOption).toBeTruthy();
-        return visibleOption!;
-      });
-
-      fireEvent.click(option);
-    };
+    const chooseScheduleType = (optionTitle: string) =>
+      chooseOption({ fieldName: 'Backup interval', optionTitle });
 
     const chooseTime = async (time: string) => {
       const timeInput = await getFieldInput('Time of day');
@@ -226,39 +363,6 @@ describe('EditLogicalBackupConfigSection', () => {
       fireEvent.mouseDown(timeInput);
       fireEvent.change(timeInput, { target: { value: time } });
       fireEvent.keyDown(timeInput, { key: 'Enter' });
-    };
-
-    const renderConfig = (
-      schedule: LogicalBackupConfigInput['settings']['schedule'],
-      retention = logicalSettings.retention,
-    ) => {
-      const submitted: LogicalBackupConfigInput[] = [];
-
-      mockServer.use(
-        mockApi.get('/backup-configs/{databaseId}', 200, {
-          ...config,
-          settings: { ...logicalSettings, schedule, retention },
-        }),
-        mockApi.get('/logical-backups', 200, { items: [] }),
-        mockApi.get('/storage-switches', 200, { items: [] }),
-        mockApi.get('/storages', 200, { items: [] }),
-        http.put(`*${API_BASE_PATH}/backup-configs/:databaseId`, async ({ request }) => {
-          const saved = (await request.json()) as LogicalBackupConfigInput;
-          submitted.push(saved);
-
-          return HttpResponse.json({ ...saved, databaseId: database.id });
-        }),
-      );
-
-      renderScreen(
-        <EditLogicalBackupConfigSection
-          database={database}
-          onCancel={() => {}}
-          onSaved={() => {}}
-        />,
-      );
-
-      return submitted;
     };
 
     it('names the retention period field', async () => {
@@ -272,13 +376,6 @@ describe('EditLogicalBackupConfigSection', () => {
 
     const renderMonthlyConfig = (dayOfMonth: number) =>
       renderConfig({ type: 'MONTHLY', timeOfDay: '12:00', dayOfMonth });
-
-    const saveAndGetSubmittedSettings = async (submitted: LogicalBackupConfigInput[]) => {
-      fireEvent.click(await getSaveButton());
-      await waitFor(() => expect(submitted).toHaveLength(1));
-
-      return submitted[0].settings;
-    };
 
     const saveAndGetSubmittedSchedule = async (submitted: LogicalBackupConfigInput[]) =>
       (await saveAndGetSubmittedSettings(submitted)).schedule;

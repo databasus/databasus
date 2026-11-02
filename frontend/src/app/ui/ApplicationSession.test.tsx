@@ -284,3 +284,105 @@ describe('Application session isolation', () => {
     },
   );
 });
+
+const readLogicalBackupFilters = () =>
+  server
+    .getRequests()
+    .map((request) => new URL(request.url))
+    .filter(({ pathname }) => pathname === '/api/v1/logical-backups')
+    .map(({ searchParams }) => searchParams.get('createdBefore'));
+
+describe('Application logout', () => {
+  it('clears the account state and keeps the preferences when Logout is clicked', async () => {
+    seedAccount();
+    localStorage.setItem('selectedDatabaseId_workspace-id', 'previous-database');
+    localStorage.setItem('selectedStorageId_workspace-id', 'previous-storage');
+    localStorage.setItem('selectedNotifierId_workspace-id', 'previous-notifier');
+    localStorage.setItem('logicalBackupListFilter', JSON.stringify({ statuses: ['FAILED'] }));
+    localStorage.setItem('physicalBackupsFilters', JSON.stringify({ types: ['FULL'] }));
+    localStorage.setItem('databasus-locale', 'en');
+    localStorage.setItem('databasus-theme', 'dark');
+    localStorage.setItem('lastVersionReload', '123');
+    sessionStorage.setItem('databasus_oauth_sign_in_attempt', 'previous-attempt');
+
+    renderApp();
+    fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Logout' }));
+    await screen.findByRole('button', { name: 'Sign in' });
+
+    expect(getSessionSnapshot()).toMatchObject({ token: undefined, userId: undefined });
+    for (const clearedKey of [
+      'databasus_user_token',
+      'databasus_user_id',
+      'selected_workspace_id',
+      'selectedDatabaseId_workspace-id',
+      'selectedStorageId_workspace-id',
+      'selectedNotifierId_workspace-id',
+      'logicalBackupListFilter',
+      'physicalBackupsFilters',
+    ])
+      expect(localStorage.getItem(clearedKey), clearedKey).toBeNull();
+    expect(sessionStorage.getItem('databasus_oauth_sign_in_attempt')).toBeNull();
+    expect(localStorage.getItem('databasus-locale')).toBe('en');
+    expect(localStorage.getItem('databasus-theme')).toBe('dark');
+    expect(localStorage.getItem('lastVersionReload')).toBe('123');
+  });
+
+  it('opens the next account on the first database with no filter when both accounts share the workspace', async () => {
+    const buildSharedDatabase = (id: string, name: string) => ({
+      id,
+      name,
+      workspaceId: workspace.id,
+      settings: createDefaultDatabaseSettings(DatabaseType.POSTGRES_LOGICAL),
+      notifierIds: [],
+      healthStatus: 'AVAILABLE' as const,
+    });
+    const firstDatabase = buildSharedDatabase('first-database', 'First database');
+    const secondDatabase = buildSharedDatabase('second-database', 'Second database');
+    const previousFilterDate = '2026-01-01T00:00:00.000Z';
+
+    seedAccount();
+    server.use(
+      mockApi.get('/databases', 200, { items: [firstDatabase, secondDatabase] }),
+      http.get(`*${API_BASE_PATH}/databases/:databaseId`, ({ params }) =>
+        HttpResponse.json(params.databaseId === firstDatabase.id ? firstDatabase : secondDatabase),
+      ),
+      mockApi.get('/logical-backups', 200, { items: [] }),
+      http.get(`*${API_BASE_PATH}/backup-configs/:databaseId`, () =>
+        HttpResponse.json(buildProblem('not_found', 404), { status: 404 }),
+      ),
+      http.get(`*${API_BASE_PATH}/healthcheck-configs/:databaseId`, () =>
+        HttpResponse.json(buildProblem('not_found', 404), { status: 404 }),
+      ),
+    );
+    localStorage.setItem(
+      'logicalBackupListFilter',
+      JSON.stringify({ createdBefore: previousFilterDate }),
+    );
+
+    renderApp();
+    fireEvent.click(await screen.findByText('Second database'));
+    await waitFor(() =>
+      expect(localStorage.getItem('selectedDatabaseId_workspace-id')).toBe(secondDatabase.id),
+    );
+    await waitFor(() => expect(readLogicalBackupFilters()).toContain(previousFilterDate));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Profile' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Logout' }));
+    await screen.findByRole('button', { name: 'Sign in' });
+
+    server.use(
+      mockApi.get('/users/{userId}', 200, {
+        ...account,
+        id: 'replacement-owner',
+        email: 'replacement@example.com',
+      }),
+    );
+    act(() => activateSession({ token: 'replacement-session', userId: 'replacement-owner' }));
+
+    await waitFor(() =>
+      expect(localStorage.getItem('selectedDatabaseId_workspace-id')).toBe(firstDatabase.id),
+    );
+    await waitFor(() => expect(readLogicalBackupFilters().pop()).toBeNull());
+  });
+});

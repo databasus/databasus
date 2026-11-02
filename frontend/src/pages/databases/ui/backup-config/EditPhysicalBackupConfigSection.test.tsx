@@ -133,6 +133,29 @@ const chooseStorage = async (name = 'Archive') => {
   fireEvent.click(option);
 };
 
+const chooseEncryption = async (optionTitle: string) => {
+  const control = await screen.findByRole('combobox', { name: 'Encryption' });
+
+  fireEvent.mouseDown(control.closest('.ant-select')!.querySelector('.ant-select-selector')!);
+
+  const option = await waitFor(() => {
+    const visibleOption = document.querySelector(`.ant-select-item-option[title="${optionTitle}"]`);
+    expect(visibleOption).toBeTruthy();
+    return visibleOption!;
+  });
+
+  fireEvent.click(option);
+};
+
+const getSaveButton = () => screen.findByRole('button', { name: /Save$/ });
+
+const saveAndGetSubmittedConfig = async (submitted: BackupConfigInput[]) => {
+  fireEvent.click(await getSaveButton());
+  await waitFor(() => expect(submitted).toHaveLength(1));
+
+  return submitted[0];
+};
+
 describe('EditPhysicalBackupConfigSection', () => {
   describe('with two schedules', () => {
     beforeEach(() => {
@@ -209,6 +232,63 @@ describe('EditPhysicalBackupConfigSection', () => {
         timeOfDay: '12:00',
         dayOfMonth: 6,
       });
+    });
+  });
+
+  describe('when a saved configuration changes', () => {
+    const ENCRYPTED_OPTION = 'Encrypt backup files';
+    const hourlySchedules = {
+      fullBackupSchedule: { type: 'HOURLY' },
+      incrementalBackupSchedule: { type: 'HOURLY' },
+    } as const;
+
+    it('sends the chosen encryption when encryption changes', async () => {
+      const submitted = renderIncrementalSection(hourlySchedules);
+
+      await chooseEncryption(ENCRYPTED_OPTION);
+      const submittedConfig = await saveAndGetSubmittedConfig(submitted);
+
+      expect(submittedConfig.encryption).toBe('ENCRYPTED');
+    });
+
+    it('sends the checked triggers of the backup type when notification triggers change', async () => {
+      const submitted = renderIncrementalSection(hourlySchedules);
+
+      fireEvent.click(await screen.findByRole('checkbox', { name: 'Backup failed' }));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Chain broken' }));
+      const submittedConfig = await saveAndGetSubmittedConfig(submitted);
+
+      expect((submittedConfig.settings as PhysicalBackupSettings).notificationTriggers).toEqual([
+        'BACKUP_FAILED',
+        'CHAIN_BROKEN',
+      ]);
+    });
+
+    it('disables Save again when encryption returns to the saved value', async () => {
+      renderIncrementalSection(hourlySchedules);
+
+      expect(await getSaveButton()).toHaveProperty('disabled', true);
+
+      await chooseEncryption(ENCRYPTED_OPTION);
+
+      expect(await getSaveButton()).toHaveProperty('disabled', false);
+
+      await chooseEncryption('None');
+
+      expect(await getSaveButton()).toHaveProperty('disabled', true);
+    });
+
+    it('disables Save again when notification triggers return to the saved set', async () => {
+      renderIncrementalSection(hourlySchedules);
+      const chainTrigger = await screen.findByRole('checkbox', { name: 'Chain broken' });
+
+      fireEvent.click(chainTrigger);
+
+      expect(await getSaveButton()).toHaveProperty('disabled', false);
+
+      fireEvent.click(chainTrigger);
+
+      expect(await getSaveButton()).toHaveProperty('disabled', true);
     });
   });
 

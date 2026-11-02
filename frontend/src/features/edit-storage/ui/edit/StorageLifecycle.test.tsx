@@ -4,7 +4,8 @@ import { HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Storage } from '@/entities/storages';
-import { mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { inspectApiRequest } from '@/shared/lib/test/inspectApiRequest';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 import { EditStorageComponent } from './EditStorageComponent';
@@ -28,6 +29,44 @@ const changeStorageName = (value: string) =>
 const testAndSave = async () => {
   fireEvent.click(screen.getByRole('button', { name: /Test connection/ }));
   fireEvent.click(await screen.findByRole('button', { name: /Save/ }));
+};
+const s3Draft = {
+  name: 'Offsite',
+  settings: {
+    type: 'S3' as const,
+    s3Bucket: 'entered-bucket',
+    s3AccessKey: 'entered-access-key',
+    s3SecretKey: 'entered-secret-key',
+    isVirtualHostedStyle: false,
+    isSkipTlsVerify: false,
+  },
+};
+const beginS3Creation = async (onChanged: (storage: Storage) => void = () => {}) => {
+  const view = renderScreen(<EditStorageComponent {...props} onChanged={onChanged} />);
+
+  changeStorageName(s3Draft.name);
+  await view.user.click(screen.getByRole('combobox', { name: 'Type' }));
+  fireEvent.click(await screen.findByTitle('S3'));
+  fireEvent.change(screen.getByRole('textbox', { name: 'S3 Bucket' }), {
+    target: { value: s3Draft.settings.s3Bucket },
+  });
+  fireEvent.change(screen.getByLabelText('Access key'), {
+    target: { value: s3Draft.settings.s3AccessKey },
+  });
+  fireEvent.change(screen.getByLabelText('Secret key'), {
+    target: { value: s3Draft.settings.s3SecretKey },
+  });
+
+  return view;
+};
+const expectS3DraftOnForm = () => {
+  expect(screen.getByRole('textbox', { name: 'Name' })).toHaveProperty('value', s3Draft.name);
+  expect(screen.getByRole('textbox', { name: 'S3 Bucket' })).toHaveProperty(
+    'value',
+    s3Draft.settings.s3Bucket,
+  );
+  expect(screen.getByLabelText('Access key')).toHaveProperty('value', s3Draft.settings.s3AccessKey);
+  expect(screen.getByLabelText('Secret key')).toHaveProperty('value', s3Draft.settings.s3SecretKey);
 };
 
 describe('EditStorageComponent', () => {
@@ -337,4 +376,96 @@ describe('EditStorageComponent', () => {
       expect(firstCompleted).toHaveBeenCalledWith(expect.objectContaining({ id: local.id })),
     );
   });
+
+  it('keeps the name and settings, shows the reason and unlocks the type selector when creation is refused', async () => {
+    const createdStorage: Storage = { ...local, name: s3Draft.name, settings: s3Draft.settings };
+    server.use(
+      mockApi.post('/storage-tests', 200, { isConnected: true }),
+      mockApi.post('/storages', 403, buildProblem('permission_denied', 403)),
+    );
+    const onChanged = vi.fn();
+    const view = await beginS3Creation(onChanged);
+
+    await testAndSave();
+
+    expect(await screen.findByText('You do not have permission to do this.')).toBeTruthy();
+    expectS3DraftOnForm();
+    expect(onChanged).not.toHaveBeenCalled();
+
+    const typeSelector = screen.getByRole('combobox', { name: 'Type' });
+
+    await waitFor(() => expect(typeSelector).toHaveProperty('disabled', false));
+
+    await view.user.click(typeSelector);
+
+    expect(await screen.findByTitle('NAS')).toBeTruthy();
+
+    server.use(mockApi.post('/storages', 201, createdStorage));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onChanged).toHaveBeenCalledWith(createdStorage));
+
+    const creations = server
+      .getRequests()
+      .filter(
+        (request) =>
+          request.method === 'POST' && new URL(request.url).pathname.endsWith('/storages'),
+      );
+
+    expect(creations).toHaveLength(2);
+
+    for (const creation of creations) {
+      const { body } = await inspectApiRequest(creation, { method: 'post', path: '/storages' });
+
+      expect(body).toEqual({
+        workspaceId: props.workspaceId,
+        name: s3Draft.name,
+        settings: s3Draft.settings,
+      });
+    }
+  });
+
+  it.each([
+    {
+      failure: '403',
+      answerTestRequest: () =>
+        mockApi.post('/storage-tests', 403, buildProblem('permission_denied', 403)),
+      reason: 'You do not have permission to do this.',
+    },
+    {
+      failure: '500',
+      answerTestRequest: () => mockApi.post('/storage-tests', 500, buildProblem('internal', 500)),
+      reason: 'An internal server error occurred. Please try again later.',
+    },
+    {
+      failure: 'a network loss',
+      answerTestRequest: () => mockApi.network('post', '/storage-tests'),
+      reason: 'Cannot reach the Databasus server. Check your connection and try again.',
+    },
+  ])(
+    'shows the reason, keeps the draft and allows a retry when the connection test answers $failure',
+    async ({ answerTestRequest, reason }) => {
+      server.use(answerTestRequest());
+      await beginS3Creation();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Test connection' }));
+
+      expect(await screen.findByText(reason)).toBeTruthy();
+      expectS3DraftOnForm();
+      expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
+
+      const testAction = screen.getByRole('button', { name: 'Test connection' });
+
+      await waitFor(() => expect(testAction).toHaveProperty('disabled', false));
+
+      server.use(mockApi.post('/storage-tests', 200, { isConnected: true }));
+
+      fireEvent.click(testAction);
+
+      expect(await screen.findByRole('button', { name: 'Save' })).toBeTruthy();
+      expect(screen.queryByText(reason)).toBeNull();
+      expectS3DraftOnForm();
+    },
+  );
 });

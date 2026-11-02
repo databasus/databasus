@@ -12,6 +12,7 @@ import {
 import { API_BASE_PATH } from '../../../../shared/api';
 import { DICTIONARIES } from '../../../../shared/i18n';
 import { advanceFakeClock } from '../../../../shared/lib/test/advanceFakeClock';
+import { inspectApiRequest } from '../../../../shared/lib/test/inspectApiRequest';
 import { buildProblem, mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
 import { createPendingApiResponse } from '../../../../shared/lib/test/pendingApiResponse';
 import { releaseAndSettle } from '../../../../shared/lib/test/releaseAndSettle';
@@ -40,6 +41,9 @@ const buildAgent = (change: Partial<VerificationAgent> = {}): VerificationAgent 
   createdAt: '2026-10-27T10:00:00Z',
   ...change,
 });
+
+const firstAgent = buildAgent({ id: 'first-agent', name: 'First agent' });
+const secondAgent = buildAgent({ id: 'second-agent', name: 'Second agent' });
 
 const listResponse = (...agents: VerificationAgent[]) => HttpResponse.json({ items: agents });
 const failedResponse = () => HttpResponse.json(buildProblem('internal', 500), { status: 500 });
@@ -79,6 +83,37 @@ const pressRowDelete = async (agentName = 'Original agent') => {
 };
 
 const queryMessages = () => document.querySelectorAll('.ant-message-notice');
+
+const getAgentRow = (agentName: string) => screen.getByText(agentName).closest('tr') as HTMLElement;
+
+const openInstallCommands = async (agentName: string) => {
+  fireEvent.click(
+    within(getAgentRow(agentName)).getByRole('button', {
+      name: agentsCopy.actions.viewInstallCommands,
+    }),
+  );
+
+  return screen.findByRole('dialog');
+};
+
+const getDownloadBlock = (dialog: HTMLElement) => within(dialog).getByText(/^curl /);
+const getLaunchBlock = (dialog: HTMLElement) =>
+  within(dialog).getByText(/^\.\/verification-agent start/);
+
+const buildDownloadCommand = (arch: string) =>
+  `curl -L -o verification-agent "${window.location.origin}/api/v1/system/verification-agent?arch=${arch}" && chmod +x verification-agent`;
+
+const buildPlaceholderLaunchCommand = (agentId: string) =>
+  [
+    './verification-agent start \\',
+    `  --databasus-host=${window.location.origin} \\`,
+    `  --agent-id=${agentId} \\`,
+    `  --token=${TOKEN_PLACEHOLDER} \\`,
+    '  --max-cpu=2 \\',
+    '  --max-ram-mb=2048 \\',
+    '  --max-disk-gb=20 \\',
+    '  --max-concurrent-jobs=1',
+  ].join('\n');
 
 describe('VerificationAgentsComponent', () => {
   describe('its first load', () => {
@@ -500,6 +535,154 @@ describe('VerificationAgentsComponent', () => {
       await view.user.click(within(dialog).getAllByRole('button', { name: commonActions.copy })[0]);
 
       await waitFor(() => expect(writeText).toHaveBeenCalledWith(ISSUED_TOKEN));
+    });
+  });
+
+  describe('its install commands', () => {
+    const renderTwoAgents = async () => {
+      mockServer.use(
+        mockApi.get('/verification-agents', 200, { items: [firstAgent, secondAgent] }),
+      );
+      const view = renderScreen(<VerificationAgentsComponent />);
+      await screen.findByText('Second agent');
+
+      return view;
+    };
+
+    it('shows the host, the chosen agent, the token placeholder and the limits in the launch command after its dialog opens', async () => {
+      await renderTwoAgents();
+
+      const dialog = await openInstallCommands('Second agent');
+
+      expect(getLaunchBlock(dialog).textContent).toBe(
+        buildPlaceholderLaunchCommand('second-agent'),
+      );
+    });
+
+    it('shows the download URL of the chosen architecture and updates it after the switch', async () => {
+      await renderTwoAgents();
+
+      const dialog = await openInstallCommands('First agent');
+      const getArchitectureButton = (arch: string) =>
+        within(dialog).getByRole('button', { name: arch });
+
+      expect(getDownloadBlock(dialog).textContent).toBe(buildDownloadCommand('amd64'));
+      expect(getArchitectureButton('amd64').getAttribute('aria-pressed')).toBe('true');
+
+      fireEvent.click(getArchitectureButton('arm64'));
+
+      expect(getDownloadBlock(dialog).textContent).toBe(buildDownloadCommand('arm64'));
+      expect(getArchitectureButton('arm64').getAttribute('aria-pressed')).toBe('true');
+      expect(getArchitectureButton('amd64').getAttribute('aria-pressed')).toBe('false');
+
+      fireEvent.click(getArchitectureButton('amd64'));
+
+      expect(getDownloadBlock(dialog).textContent).toBe(buildDownloadCommand('amd64'));
+    });
+
+    it('copies the shown commands after their copy buttons are pressed', async () => {
+      const view = await renderTwoAgents();
+      const writeText = vi.fn(() => Promise.resolve());
+      stubClipboardWrite(writeText);
+
+      const dialog = await openInstallCommands('Second agent');
+      fireEvent.click(within(dialog).getByRole('button', { name: 'arm64' }));
+
+      const pressBlockCopy = (block: HTMLElement) =>
+        view.user.click(
+          within(block.parentElement as HTMLElement).getByRole('button', {
+            name: commonActions.copy,
+          }),
+        );
+
+      await pressBlockCopy(getDownloadBlock(dialog));
+      await waitFor(() => expect(writeText).toHaveBeenCalledWith(buildDownloadCommand('arm64')));
+
+      await pressBlockCopy(getLaunchBlock(dialog));
+      await waitFor(() =>
+        expect(writeText).toHaveBeenCalledWith(buildPlaceholderLaunchCommand('second-agent')),
+      );
+    });
+  });
+
+  describe('its requests', () => {
+    it('sends the typed name without its surrounding spaces when an agent is created', async () => {
+      const createdAgentBodies: unknown[] = [];
+      mockServer.use(
+        mockApi.get('/verification-agents', 200, { items: [] }),
+        http.post(AGENTS_PATH, async ({ request }) => {
+          const { body } = await inspectApiRequest(request, {
+            method: 'post',
+            path: '/verification-agents',
+          });
+          createdAgentBodies.push(body);
+
+          return HttpResponse.json(
+            { agent: buildAgent({ name: body.name }), token: ISSUED_TOKEN },
+            { status: 201 },
+          );
+        }),
+      );
+      renderScreen(<VerificationAgentsComponent />);
+      await screen.findByText(agentsCopy.empty);
+
+      fireEvent.click(getCreateButton());
+      const dialog = await screen.findByRole('dialog');
+      fireEvent.change(within(dialog).getByRole('textbox', { name: 'Name' }), {
+        target: { value: '  Build server  ' },
+      });
+      fireEvent.click(within(dialog).getByRole('button', { name: commonActions.create }));
+
+      expect(await screen.findByText(ISSUED_TOKEN)).toBeTruthy();
+      expect(createdAgentBodies).toEqual([{ name: 'Build server' }]);
+    });
+
+    it('rotates the token of the chosen agent when another agent is listed first', async () => {
+      const rotatedAgentIds: unknown[] = [];
+      mockServer.use(
+        mockApi.get('/verification-agents', 200, { items: [firstAgent, secondAgent] }),
+        http.post(`${AGENTS_PATH}/:agentId/rotate-token`, ({ params }) => {
+          rotatedAgentIds.push(params.agentId);
+
+          return HttpResponse.json({ token: ISSUED_TOKEN });
+        }),
+      );
+      renderScreen(<VerificationAgentsComponent />);
+      await screen.findByText('Second agent');
+
+      fireEvent.click(
+        within(getAgentRow('Second agent')).getByRole('button', {
+          name: agentsCopy.actions.rotateToken,
+        }),
+      );
+      const dialog = await screen.findByRole('dialog');
+      fireEvent.click(within(dialog).getByRole('button', { name: agentsCopy.actions.rotateToken }));
+
+      expect(await screen.findByText(ISSUED_TOKEN)).toBeTruthy();
+      expect(rotatedAgentIds).toEqual(['second-agent']);
+    });
+
+    it('deletes the chosen agent and keeps the other when another agent is listed first', async () => {
+      const deletedAgentIds: unknown[] = [];
+      declareListAnswersRepeatingLast(
+        () => listResponse(firstAgent, secondAgent),
+        () => listResponse(firstAgent),
+      );
+      mockServer.use(
+        http.delete(`${AGENTS_PATH}/:agentId`, ({ params }) => {
+          deletedAgentIds.push(params.agentId);
+
+          return new HttpResponse(null, { status: 204 });
+        }),
+      );
+      renderScreen(<VerificationAgentsComponent />);
+      await screen.findByText('Second agent');
+
+      await pressRowDelete('Second agent');
+
+      await waitFor(() => expect(screen.queryByText('Second agent')).toBeNull());
+      expect(deletedAgentIds).toEqual(['second-agent']);
+      expect(screen.getByText('First agent')).toBeTruthy();
     });
   });
 

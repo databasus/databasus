@@ -1,10 +1,13 @@
 // @vitest-environment happy-dom
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
 import { type InstanceSettings } from '@/entities/users';
+import { API_BASE_PATH } from '@/shared/api';
 import { activateSession } from '@/shared/auth';
 import { DICTIONARIES } from '@/shared/i18n';
+import { inspectApiRequest } from '@/shared/lib/test/inspectApiRequest';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
 import { LanguageThemeControlComponent } from '@/shared/ui';
@@ -63,6 +66,62 @@ describe('InstanceSettingsPage', () => {
       expect(!!screen.queryByRole('button', { name: DICTIONARIES.en.settings.saveChanges })).toBe(
         shouldDiffer,
       );
+    },
+  );
+
+  it.each([
+    {
+      settingName: 'member invitations',
+      switchName: DICTIONARIES.en.settings.memberInvitations.title,
+      turnedOn: { isAllowMemberInvitations: true },
+    },
+    {
+      settingName: 'member workspace creation',
+      switchName: DICTIONARIES.en.settings.memberWorkspaceCreation.title,
+      turnedOn: { isMemberAllowedToCreateWorkspaces: true },
+    },
+    {
+      settingName: 'two-factor authentication',
+      switchName: DICTIONARIES.en.settings.twoFactorAuth.title,
+      turnedOn: { isTwoFactorAuthRequired: true },
+    },
+  ])(
+    'sends $settingName turned on and the other settings unchanged when it is saved with mail configured',
+    async ({ switchName, turnedOn }) => {
+      const savedBodies: unknown[] = [];
+      server.use(
+        http.put(`*${API_BASE_PATH}/instance-settings`, async ({ request }) => {
+          const { body } = await inspectApiRequest(request, {
+            method: 'put',
+            path: '/instance-settings',
+          });
+          savedBodies.push(body);
+
+          return HttpResponse.json({ ...settings, ...turnedOn });
+        }),
+      );
+      await openSettings();
+
+      fireEvent.click(screen.getByRole('switch', { name: switchName }));
+      fireEvent.click(screen.getByRole('button', { name: DICTIONARIES.en.settings.saveChanges }));
+
+      await screen.findByText(DICTIONARIES.en.settings.updated);
+
+      expect(savedBodies).toEqual([
+        {
+          isAllowExternalRegistrations: false,
+          isAllowMemberInvitations: false,
+          isMemberAllowedToCreateWorkspaces: false,
+          isTwoFactorAuthRequired: false,
+          ...turnedOn,
+        },
+      ]);
+      expect(screen.getByRole('switch', { name: switchName }).getAttribute('aria-checked')).toBe(
+        'true',
+      );
+      expect(
+        screen.queryByRole('button', { name: DICTIONARIES.en.settings.saveChanges }),
+      ).toBeNull();
     },
   );
 

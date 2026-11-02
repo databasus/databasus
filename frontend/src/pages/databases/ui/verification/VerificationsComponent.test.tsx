@@ -11,6 +11,7 @@ import {
   DatabaseType,
   createDefaultDatabaseSettings,
 } from '../../../../entities/databases';
+import { verificationAgentApi } from '../../../../entities/verification-agents';
 import { API_BASE_PATH } from '../../../../shared/api';
 import { activateSession, invalidateSession } from '../../../../shared/auth';
 import { DICTIONARIES } from '../../../../shared/i18n';
@@ -329,6 +330,95 @@ describe('VerificationsComponent', () => {
         expect(listCall).toHaveBeenCalledOnce();
         expect(document.querySelector('.ant-message-notice')).toBeNull();
         expect(showAlert).not.toHaveBeenCalled();
+      },
+    );
+  });
+
+  describe('its no-agents warning', () => {
+    const DOCS_LINK_NAME = 'Learn more';
+
+    const queryDocsLink = () => screen.queryByRole('link', { name: DOCS_LINK_NAME });
+
+    const renderAfterAgentCountSettles = async () => {
+      const agentCountCall = vi.spyOn(verificationAgentApi, 'getAgentCount');
+      renderScreen(<DatabasePage />);
+      await screen.findAllByText('Manual');
+      await act(async () => {
+        await Promise.allSettled([agentCountCall.mock.results[0].value]);
+      });
+    };
+
+    it('shows the warning with its docs link when no agent is registered', async () => {
+      mockServer.use(
+        mockApi.get('/verification-agent-counts', 200, { agentCount: 0 }),
+        mockApi.get('/verifications', 200, { items: [] }),
+      );
+      renderScreen(<DatabasePage />);
+
+      const docsLink = await screen.findByRole('link', { name: DOCS_LINK_NAME });
+
+      expect(docsLink.getAttribute('href')).toBe('https://databasus.com/restore-verification/');
+      expect(screen.getByRole('alert').textContent).toContain('No verification agents registered');
+    });
+
+    it('shows no warning when an agent is registered', async () => {
+      declareList([verification('listed', 'MANUAL')]);
+
+      await renderAfterAgentCountSettles();
+
+      expect(queryDocsLink()).toBeNull();
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+
+    it('shows no warning when the agent count fails', async () => {
+      mockServer.use(
+        http.get(`*${API_BASE_PATH}/verification-agent-counts`, () => failedResponse()),
+        mockApi.get('/verifications', 200, { items: [verification('listed', 'MANUAL')] }),
+      );
+
+      await renderAfterAgentCountSettles();
+
+      expect(queryDocsLink()).toBeNull();
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+
+    it('removes the warning when a later agent count fails', async () => {
+      let isAgentCountFailing = false;
+      mockServer.use(
+        http.get(`*${API_BASE_PATH}/verification-agent-counts`, () =>
+          isAgentCountFailing ? failedResponse() : HttpResponse.json({ agentCount: 0 }),
+        ),
+        mockApi.get('/verifications', 200, { items: [] }),
+      );
+      vi.useFakeTimers();
+      renderScreen(<DatabasePage />);
+      await waitForCondition(() => screen.getByRole('link', { name: DOCS_LINK_NAME }));
+
+      isAgentCountFailing = true;
+
+      await advanceClockUntil(() => expect(queryDocsLink()).toBeNull());
+    });
+  });
+
+  describe('its status labels', () => {
+    const statusCopy = DICTIONARIES.en.status.verification;
+
+    it.each([
+      { status: 'PENDING', label: statusCopy.pending },
+      { status: 'RUNNING', label: statusCopy.running },
+      { status: 'COMPLETED', label: statusCopy.completed },
+      { status: 'FAILED', label: statusCopy.failed },
+      { status: 'CANCELED', label: statusCopy.canceled },
+    ] as const)(
+      'shows $label in the table and the cards with status $status',
+      async ({ status, label }) => {
+        declareList([{ ...verification('listed', 'MANUAL'), status }]);
+        renderScreen(<DatabasePage />);
+
+        const shownLabels = await screen.findAllByText(label);
+
+        expect(shownLabels).toHaveLength(2);
+        expect(shownLabels.filter((shownLabel) => shownLabel.closest('tr'))).toHaveLength(1);
       },
     );
   });

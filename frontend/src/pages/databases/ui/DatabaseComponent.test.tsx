@@ -15,6 +15,7 @@ import {
 import { activateSession, invalidateSession } from '../../../shared/auth';
 import { DICTIONARIES, useLocale } from '../../../shared/i18n';
 import { waitForCondition } from '../../../shared/lib/test/conditionWait';
+import { inspectApiRequest } from '../../../shared/lib/test/inspectApiRequest';
 import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
 import { createPendingApiResponse } from '../../../shared/lib/test/pendingApiResponse';
 import { releaseAndSettle } from '../../../shared/lib/test/releaseAndSettle';
@@ -689,6 +690,66 @@ describe('DatabaseComponent backup configuration answers', () => {
     });
   });
 
+  const buildCompletedBackup = (databaseId: string) => ({
+    id: 'completed-backup',
+    databaseId,
+    storageId: 'storage-id',
+    status: 'COMPLETED' as const,
+    sizeMb: 12,
+    rawDatabaseSizeMb: 40,
+    durationMs: 3_000,
+    encryption: 'NONE' as const,
+    verificationStatus: 'NOT_VERIFIED' as const,
+    createdAt: '2026-10-27T10:00:00Z',
+  });
+
+  const buildStartedVerification = (databaseId: string) => ({
+    id: 'verification-id',
+    databaseId,
+    backupId: 'completed-backup',
+    trigger: 'MANUAL' as const,
+    status: 'COMPLETED' as const,
+    attemptCount: 1,
+    createdAt: '2026-10-27T10:00:00Z',
+  });
+
+  it('starts the check of the chosen backup, reports it and opens the Verifications tab after Queue check is accepted', async () => {
+    const shownDatabase = buildScreenDatabase('shown-database', DatabaseType.POSTGRES_LOGICAL);
+    declareSavedScreen([shownDatabase], logicalSettings);
+    server.use(
+      mockApi.get('/logical-backups', 200, { items: [buildCompletedBackup(shownDatabase.id)] }),
+      mockApi.post('/verifications', 202, buildStartedVerification(shownDatabase.id)),
+      mockApi.get('/verifications', 200, { items: [] }),
+      mockApi.get('/verification-agent-counts', 200, { agentCount: 1 }),
+    );
+    renderScreen(<DatabaseComponent {...databaseScreenProps} databaseId={shownDatabase.id} />);
+    await screen.findAllByText('Successful');
+
+    fireEvent.click(screen.getAllByRole('button', { name: /^Verify restore/ })[0]);
+    fireEvent.click(await screen.findByRole('button', { name: 'Queue check' }));
+
+    expect(await screen.findByText('Restore check queued')).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Verifications' }).getAttribute('aria-selected')).toBe(
+      'true',
+    );
+    expect(
+      await screen.findByRole('heading', { name: DICTIONARIES.en.verification.runs.title }),
+    ).toBeTruthy();
+
+    const startRequests = server
+      .getRequests()
+      .filter(
+        (request) =>
+          request.method === 'POST' && new URL(request.url).pathname === '/api/v1/verifications',
+      );
+    expect(startRequests).toHaveLength(1);
+    const startRequest = await inspectApiRequest(startRequests[0], {
+      method: 'post',
+      path: '/verifications',
+    });
+    expect(startRequest.body).toEqual({ backupId: 'completed-backup' });
+  });
+
   it('keeps the open tab and shows nothing when a verification start answers after a switch', async () => {
     const firstDatabase = buildScreenDatabase('first-database', DatabaseType.POSTGRES_LOGICAL);
     const secondDatabase = buildScreenDatabase('second-database', DatabaseType.POSTGRES_LOGICAL);
@@ -697,15 +758,7 @@ describe('DatabaseComponent backup configuration answers', () => {
       method: 'post',
       path: '/verifications',
       status: 202,
-      body: {
-        id: 'verification-id',
-        databaseId: firstDatabase.id,
-        backupId: 'completed-backup',
-        trigger: 'MANUAL',
-        status: 'COMPLETED',
-        attemptCount: 1,
-        createdAt: '2026-10-27T10:00:00Z',
-      },
+      body: buildStartedVerification(firstDatabase.id),
     });
     declareSavedScreen([firstDatabase, secondDatabase], logicalSettings);
     server.use(
@@ -713,20 +766,7 @@ describe('DatabaseComponent backup configuration answers', () => {
         HttpResponse.json({
           items:
             new URL(request.url).searchParams.get('databaseId') === firstDatabase.id
-              ? [
-                  {
-                    id: 'completed-backup',
-                    databaseId: firstDatabase.id,
-                    storageId: 'storage-id',
-                    status: 'COMPLETED',
-                    sizeMb: 12,
-                    rawDatabaseSizeMb: 40,
-                    durationMs: 3_000,
-                    encryption: 'NONE',
-                    verificationStatus: 'NOT_VERIFIED',
-                    createdAt: '2026-10-27T10:00:00Z',
-                  },
-                ]
+              ? [buildCompletedBackup(firstDatabase.id)]
               : [],
         }),
       ),

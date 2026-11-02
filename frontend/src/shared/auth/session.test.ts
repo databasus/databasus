@@ -51,8 +51,13 @@ describe('Session', () => {
     activateSession({ token: 'first', userId: 'first-owner' });
     const firstSession = getSessionSnapshot();
     localStorage.setItem('selected_workspace_id', 'old-workspace');
-    localStorage.setItem('theme', 'dark');
-    localStorage.setItem('locale', 'fr');
+    localStorage.setItem('selectedDatabaseId_old-workspace', 'old-database');
+    localStorage.setItem('selectedStorageId_old-workspace', 'old-storage');
+    localStorage.setItem('selectedNotifierId_old-workspace', 'old-notifier');
+    localStorage.setItem('logicalBackupListFilter', '{"statuses":["FAILED"]}');
+    localStorage.setItem('physicalBackupsFilters', '{"types":["FULL"]}');
+    localStorage.setItem('databasus-theme', 'dark');
+    localStorage.setItem('databasus-locale', 'fr');
     localStorage.setItem('lastVersionReload', '123');
     sessionStorage.setItem('databasus_oauth_sign_in_attempt', 'old-attempt');
 
@@ -60,9 +65,14 @@ describe('Session', () => {
     expect(invalidateSession(firstSession)).toBe(false);
 
     expect(localStorage.getItem('selected_workspace_id')).toBeNull();
+    expect(localStorage.getItem('selectedDatabaseId_old-workspace')).toBeNull();
+    expect(localStorage.getItem('selectedStorageId_old-workspace')).toBeNull();
+    expect(localStorage.getItem('selectedNotifierId_old-workspace')).toBeNull();
+    expect(localStorage.getItem('logicalBackupListFilter')).toBeNull();
+    expect(localStorage.getItem('physicalBackupsFilters')).toBeNull();
     expect(sessionStorage.getItem('databasus_oauth_sign_in_attempt')).toBeNull();
-    expect(localStorage.getItem('theme')).toBe('dark');
-    expect(localStorage.getItem('locale')).toBe('fr');
+    expect(localStorage.getItem('databasus-theme')).toBe('dark');
+    expect(localStorage.getItem('databasus-locale')).toBe('fr');
     expect(localStorage.getItem('lastVersionReload')).toBe('123');
   });
 

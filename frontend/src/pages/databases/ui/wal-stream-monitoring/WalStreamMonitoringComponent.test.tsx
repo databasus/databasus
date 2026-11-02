@@ -11,6 +11,7 @@ import {
 } from '../../../../entities/databases';
 import { API_BASE_PATH } from '../../../../shared/api';
 import { DICTIONARIES, useLocale } from '../../../../shared/i18n';
+import { advanceClockUntil } from '../../../../shared/lib/test/advanceClockUntil';
 import { advanceFakeClock } from '../../../../shared/lib/test/advanceFakeClock';
 import { createTestWalStreamStatistics } from '../../../../shared/lib/test/buildWalStreamStatistics';
 import { waitForCondition } from '../../../../shared/lib/test/conditionWait';
@@ -20,8 +21,10 @@ import { releaseAndSettle } from '../../../../shared/lib/test/releaseAndSettle';
 import { renderScreen } from '../../../../shared/lib/test/renderScreen';
 import { physicalBackupsApi } from '../../api/physicalBackupsApi';
 import { physicalWalStreamStatisticsApi } from '../../api/physicalWalStreamStatisticsApi';
+import { WAL_STREAM_LIVE_INTERVAL_MS } from '../../lib/wal-stream-monitoring/walStreamLiveController';
 import { WAL_STREAM_REFRESH_INTERVAL_MS } from '../../lib/wal-stream-monitoring/walStreamRefreshController';
 import { WalStreamHealthLevel } from '../../model/wal-stream-monitoring/WalStreamHealthLevel';
+import type { WalStreamLiveResponse } from '../../model/wal-stream-monitoring/WalStreamLiveResponse';
 import { WalStreamReasonCode } from '../../model/wal-stream-monitoring/WalStreamReasonCode';
 import { WalStreamReasonLevel } from '../../model/wal-stream-monitoring/WalStreamReasonLevel';
 import { WalStreamMonitoringComponent } from './WalStreamMonitoringComponent';
@@ -48,6 +51,8 @@ const brokenChainStatistics = createTestWalStreamStatistics({
 const pendingFullBackupStatistics = createTestWalStreamStatistics({
   health: { ...brokenChainStatistics.health, isFullBackupPending: true },
 });
+
+const MiB = 1024 * 1024;
 
 const copy = DICTIONARIES.en.backups.physical.monitoring.banner;
 const russianCopy = DICTIONARIES.ru.backups.physical.monitoring.banner;
@@ -301,5 +306,165 @@ describe('WalStreamMonitoringComponent', () => {
         expect(screen.queryByRole('button', { name: new RegExp(copy.startFullBackup) })).toBeNull(),
       );
     });
+  });
+});
+
+describe('WalStreamMonitoringComponent readings', () => {
+  const healthyStatistics = createTestWalStreamStatistics();
+
+  // Newer than the sample of the statistics fixture, so the screen lays it over the statistics.
+  const buildLiveReading = (unarchivedWalBytes: number): WalStreamLiveResponse => ({
+    isStreamerRunning: true,
+    current: {
+      measuredAt: '2026-10-18T12:00:01Z',
+      sourceProbedAt: '2026-10-18T12:00:01Z',
+      sourceState: 'REACHABLE',
+      sourceCurrentLsn: '0/5000000',
+      slotWalStatus: 'reserved',
+      slotLagBytes: 2 * MiB,
+      slotSafeWalSizeBytes: null,
+      archiveProgressLsn: '0/4F00000',
+      lastArchivedWalAt: '2026-10-18T11:59:20Z',
+      unarchivedWalBytes,
+      localQueueBytes: 0,
+      localQueuePauseBytes: 512 * MiB,
+      isReceiverRunning: true,
+    },
+  });
+
+  const buildStatisticsWaiting = (unarchivedWalBytes: number) =>
+    createTestWalStreamStatistics({
+      keepingUp: { ...healthyStatistics.keepingUp, unarchivedWalBytes },
+    });
+
+  const declareLiveReadings = (answerReading: () => Response) => {
+    const liveReadings = { count: 0 };
+
+    server.use(
+      http.get(`*${API_BASE_PATH}/wal-streams/:databaseId`, () => {
+        liveReadings.count += 1;
+
+        return answerReading();
+      }),
+    );
+
+    return liveReadings;
+  };
+
+  const getWaitingToBeSaved = () =>
+    screen.getByText(DICTIONARIES.en.backups.physical.monitoring.figures.waitingToBeSaved)
+      .nextElementSibling?.textContent;
+
+  const setBrowserTabVisibility = (visibility: DocumentVisibilityState) => {
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue(visibility);
+    document.dispatchEvent(new Event('visibilitychange'));
+  };
+
+  const settleAllCalls = (apiCall: MockInstance) =>
+    act(async () => {
+      await Promise.allSettled(apiCall.mock.results.map((call) => call.value));
+    });
+
+  it('sends no request when the browser tab is hidden and reads at once after it is shown', async () => {
+    const statisticsRequests = declareStatistics(() => HttpResponse.json(healthyStatistics));
+    const liveReadings = declareLiveReadings(() => HttpResponse.json(buildLiveReading(30 * MiB)));
+    const statisticsLoad = vi.spyOn(physicalWalStreamStatisticsApi, 'getWalStreamStatistics');
+    const liveLoad = vi.spyOn(physicalWalStreamStatisticsApi, 'getWalStreamLive');
+    renderDatabasePage();
+    await waitForCondition(() => expect(liveReadings.count).toBeGreaterThan(0));
+    await settleAllCalls(statisticsLoad);
+    await settleAllCalls(liveLoad);
+
+    setBrowserTabVisibility('hidden');
+    const statisticsCallsWhenHidden = statisticsLoad.mock.calls.length;
+    const liveCallsWhenHidden = liveLoad.mock.calls.length;
+    await advanceFakeClock(WAL_STREAM_REFRESH_INTERVAL_MS * 2);
+
+    expect(statisticsLoad).toHaveBeenCalledTimes(statisticsCallsWhenHidden);
+    expect(liveLoad).toHaveBeenCalledTimes(liveCallsWhenHidden);
+    expect(statisticsRequests.count).toBe(statisticsCallsWhenHidden);
+    expect(liveReadings.count).toBe(liveCallsWhenHidden);
+
+    setBrowserTabVisibility('visible');
+
+    expect(statisticsLoad).toHaveBeenCalledTimes(statisticsCallsWhenHidden + 1);
+    expect(liveLoad).toHaveBeenCalledTimes(liveCallsWhenHidden + 1);
+
+    await settleAllCalls(liveLoad);
+    await advanceFakeClock(WAL_STREAM_LIVE_INTERVAL_MS);
+
+    expect(liveLoad.mock.calls.length).toBeGreaterThan(liveCallsWhenHidden + 1);
+    await waitForCondition(() => {
+      expect(statisticsRequests.count).toBe(statisticsCallsWhenHidden + 1);
+      expect(liveReadings.count).toBeGreaterThan(liveCallsWhenHidden + 1);
+    });
+  });
+
+  it('sends no live reading after the user leaves the monitoring tab', async () => {
+    declareStatistics(() => HttpResponse.json(healthyStatistics));
+    const liveReadings = declareLiveReadings(() => HttpResponse.json(buildLiveReading(30 * MiB)));
+    const liveLoad = vi.spyOn(physicalWalStreamStatisticsApi, 'getWalStreamLive');
+    renderDatabasePage();
+    await waitForCondition(() => expect(liveReadings.count).toBeGreaterThan(0));
+    await settleAllCalls(liveLoad);
+    const callsBeforeNextReading = liveLoad.mock.calls.length;
+    await advanceFakeClock(WAL_STREAM_LIVE_INTERVAL_MS);
+    expect(liveLoad.mock.calls.length).toBeGreaterThan(callsBeforeNextReading);
+    await waitForCondition(() => expect(liveReadings.count).toBe(liveLoad.mock.calls.length));
+    await settleAllCalls(liveLoad);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle tab' }));
+    const callsWhenLeaving = liveLoad.mock.calls.length;
+    await advanceFakeClock(WAL_STREAM_LIVE_INTERVAL_MS * 3);
+    document.dispatchEvent(new Event('visibilitychange'));
+
+    expect(liveLoad).toHaveBeenCalledTimes(callsWhenLeaving);
+    expect(liveReadings.count).toBe(callsWhenLeaving);
+  });
+
+  it('keeps the last live values without a warning when a reading is rejected, and updates them after the next success', async () => {
+    declareStatistics(() => HttpResponse.json(healthyStatistics));
+    let answerReading = () => HttpResponse.json(buildLiveReading(30 * MiB)) as Response;
+    declareLiveReadings(() => answerReading());
+    const liveLoad = vi.spyOn(physicalWalStreamStatisticsApi, 'getWalStreamLive');
+    renderDatabasePage();
+    await advanceClockUntil(() => expect(getWaitingToBeSaved()).toBe('30 MB'));
+
+    answerReading = () => HttpResponse.error();
+    await settleAllCalls(liveLoad);
+    const callsBeforeRejection = liveLoad.mock.calls.length;
+    await advanceClockUntil(() =>
+      expect(liveLoad.mock.calls.length).toBeGreaterThan(callsBeforeRejection),
+    );
+    await settleAllCalls(liveLoad);
+    await advanceFakeClock(WAL_STREAM_LIVE_INTERVAL_MS);
+
+    expect(getWaitingToBeSaved()).toBe('30 MB');
+    expect(screen.queryByText(copy.refreshFailed)).toBeNull();
+
+    answerReading = () => HttpResponse.json(buildLiveReading(40 * MiB));
+
+    await advanceClockUntil(() => expect(getWaitingToBeSaved()).toBe('40 MB'));
+  });
+
+  it('keeps the last statistics with a warning when a refresh is rejected, and updates them after the next success', async () => {
+    let answerStatistics = () => HttpResponse.json(buildStatisticsWaiting(20 * MiB)) as Response;
+    declareStatistics(() => answerStatistics());
+    const statisticsLoad = vi.spyOn(physicalWalStreamStatisticsApi, 'getWalStreamStatistics');
+    renderDatabasePage();
+    await waitForCondition(() => expect(getWaitingToBeSaved()).toBe('20 MB'));
+
+    answerStatistics = () => HttpResponse.error();
+    await advanceFakeClock(WAL_STREAM_REFRESH_INTERVAL_MS);
+
+    await waitForCondition(() => screen.getByText(copy.refreshFailed));
+    expect(getWaitingToBeSaved()).toBe('20 MB');
+    await settleAllCalls(statisticsLoad);
+
+    answerStatistics = () => HttpResponse.json(buildStatisticsWaiting(25 * MiB));
+    await advanceFakeClock(WAL_STREAM_REFRESH_INTERVAL_MS);
+
+    await advanceClockUntil(() => expect(getWaitingToBeSaved()).toBe('25 MB'));
+    expect(screen.queryByText(copy.refreshFailed)).toBeNull();
   });
 });
