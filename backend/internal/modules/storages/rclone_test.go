@@ -17,6 +17,8 @@ func TestRcloneStorage(t *testing.T) {
 
 	t.Run("returns 403 permission_denied and creates nothing when a member creates an rclone storage",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 
 			response, err := tm.owner.Client.CreateStorageWithResponse(t.Context(), apiclient.StorageCreate{
@@ -33,6 +35,8 @@ func TestRcloneStorage(t *testing.T) {
 
 	t.Run("lists the rclone storage without its configuration when an instance admin creates it",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 
 			createdStorage := createStorage(t, tm.admin, apiclient.StorageCreate{
@@ -56,6 +60,8 @@ func TestRcloneStorage(t *testing.T) {
 
 	t.Run("returns 403 permission_denied and keeps the name when a member renames an rclone storage",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			rcloneStorage := createStorage(t, tm.admin, apiclient.StorageCreate{
 				WorkspaceId: tm.workspace.Id,
@@ -78,6 +84,8 @@ func TestRcloneStorage(t *testing.T) {
 
 	t.Run("returns 403 permission_denied and keeps the S3 storage when a member sends rclone settings to it",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			s3Storage := createStorage(t, tm.owner, apiclient.StorageCreate{
 				WorkspaceId: tm.workspace.Id,
@@ -101,6 +109,8 @@ func TestRcloneStorage(t *testing.T) {
 		})
 
 	t.Run("returns 403 permission_denied when a member tests unsaved rclone settings", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 
 		response, err := tm.owner.Client.TestStorageSettingsWithResponse(t.Context(), apiclient.StorageSettingsTest{

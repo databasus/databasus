@@ -14,6 +14,7 @@ import (
 	"databasus-backend/internal/lib/testwait"
 )
 
+//nolint:tparallel // The subtests share one source server.
 func TestTimescaleArchiveFailure(t *testing.T) {
 	t.Parallel()
 	endpoint := containers.StartTimescaleDB(t, timescaledbImage)

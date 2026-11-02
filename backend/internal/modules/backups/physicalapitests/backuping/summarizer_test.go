@@ -21,6 +21,8 @@ func TestIncrementalBackupWithPendingWalSummaries(t *testing.T) {
 				scenario = "completes an incremental after 64 MiB of new WAL on PostgreSQL " + version + " without a manual checkpoint"
 			}
 			t.Run(scenario, func(t *testing.T) {
+				t.Parallel()
+
 				team := newBackupTeam(t, backupTeamSpec{Image: "postgres:" + version})
 				full := team.runBackup(t, "full")
 				require.Equal(t, "COMPLETED", full.Status)
@@ -58,6 +60,8 @@ func TestIncrementalBackupWithPendingWalSummaries(t *testing.T) {
 		}
 	}
 	t.Run("breaks the incremental chain when its parent stop position precedes the oldest summary", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupTeam(t, backupTeamSpec{})
 		full := team.runBackup(t, "full")
 		require.Equal(t, "COMPLETED", full.Status)

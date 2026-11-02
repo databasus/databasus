@@ -27,6 +27,8 @@ func TestCascadePhysicalBackupDuringClaim(t *testing.T) {
 		{name: "keeps WAL after a concurrent running full commits while retained full cleanup waits", shouldKeepFull: true},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
 			catalog := newCatalog(t)
 			full := catalog.seedCascadeFull(t, cascadeFullSpec{Age: 80 * time.Hour})
 			wal := catalog.seedCascadeWal(t, cascadeWalSpec{Segment: 1, Age: 70 * time.Hour})

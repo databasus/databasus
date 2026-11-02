@@ -16,6 +16,8 @@ func TestSignUp(t *testing.T) {
 	t.Parallel()
 
 	t.Run("makes the user an active admin when the instance has no user", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 
 		admin := app.SignUp(t, apptest.NewTestEmail("owner"))
@@ -27,6 +29,8 @@ func TestSignUp(t *testing.T) {
 	})
 
 	t.Run("makes the user a member when the instance already has a user", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		app.CreateAdmin(t)
 
@@ -38,6 +42,8 @@ func TestSignUp(t *testing.T) {
 	})
 
 	t.Run("returns a session that signs the user in", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		email := apptest.NewTestEmail("owner")
 
@@ -50,6 +56,8 @@ func TestSignUp(t *testing.T) {
 	})
 
 	t.Run("returns 409 email_taken when the address belongs to another user", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 
@@ -59,6 +67,8 @@ func TestSignUp(t *testing.T) {
 	})
 
 	t.Run("returns 400 naming the password when it is shorter than 8 characters", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 
 		response := signUp(t, app, apptest.NewTestEmail("owner"), "short", "Owner")
@@ -75,6 +85,8 @@ func TestSignUp(t *testing.T) {
 	})
 
 	t.Run("returns 400 naming the name when it is empty", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 
 		response := signUp(t, app, apptest.NewTestEmail("owner"), apptest.TestPassword, " ")
@@ -91,6 +103,8 @@ func TestSignUp(t *testing.T) {
 	})
 
 	t.Run("returns 400 and creates no user when the address is not an email address", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 
 		status, body := sendRawRequest(t, app, http.MethodPost, "/users",

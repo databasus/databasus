@@ -9,7 +9,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//nolint:tparallel // Each version's server stops before the next version starts, which bounds the memory the servers of one test hold.
 func TestShouldSuggestReplicationOnlyUser(t *testing.T) {
+	t.Parallel()
+
 	runOnEverySupportedVersion(t, func(t *testing.T, server testServer) {
 		t.Helper()
 
@@ -80,7 +83,10 @@ func TestShouldSuggestReplicationOnlyUser(t *testing.T) {
 	})
 }
 
+//nolint:tparallel // Each version's server stops before the next version starts, which bounds the memory the servers of one test hold.
 func TestCreateReplicationOnlyUser(t *testing.T) {
+	t.Parallel()
+
 	runOnEverySupportedVersion(t, func(t *testing.T, server testServer) {
 		t.Helper()
 
@@ -217,7 +223,11 @@ func TestCreateReplicationOnlyUser(t *testing.T) {
 
 // detectPlatform reads cluster-wide roles, so its scenarios run one at a time and each drops the
 // roles it created when it ends.
+//
+//nolint:tparallel // Each version's server stops before the next version starts, which bounds the memory the servers of one test hold.
 func TestDetectPlatform(t *testing.T) {
+	t.Parallel()
+
 	runOnEverySupportedVersion(t, func(t *testing.T, server testServer) {
 		t.Helper()
 

@@ -17,6 +17,8 @@ func TestIndependentPhysicalBackupSlots(t *testing.T) {
 	t.Parallel()
 
 	t.Run("runs two database backups with distinct slots on the same source", func(t *testing.T) {
+		t.Parallel()
+
 		first := newBackupTeam(t, backupTeamSpec{})
 		settings, err := first.Database.Settings.AsPostgresqlPhysicalSettings()
 		require.NoError(t, err)

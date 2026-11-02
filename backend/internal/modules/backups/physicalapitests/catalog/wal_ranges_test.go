@@ -56,6 +56,8 @@ func TestGetPhysicalBackupWalRanges(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
 			prereqs := newCatalog(t)
 			receivedAt := time.Now().UTC().Add(-time.Hour)
 			for index, segmentNumber := range testCase.segmentNumbers {

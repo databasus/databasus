@@ -15,6 +15,8 @@ func TestVerificationConfig(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns a disabled after-backup default without storing a row when no config is saved", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		config := team.config(t)
 		assert.False(t, config.IsAutomaticVerificationEnabled)
@@ -38,6 +40,8 @@ func TestVerificationConfig(t *testing.T) {
 		assert.Zero(t, configCount)
 	})
 	t.Run("persists all editable fields when a member saves a valid interval config", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		config := configInput(team.config(t))
 		config.IsAutomaticVerificationEnabled = true
@@ -59,6 +63,8 @@ func TestVerificationConfig(t *testing.T) {
 		assert.Equal(t, config, configInput(team.config(t)))
 	})
 	t.Run("keeps the saved config when an enabled interval schedule is invalid", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		original := team.config(t)
 		config := configInput(original)
@@ -86,6 +92,8 @@ func TestVerificationConfig(t *testing.T) {
 	})
 
 	t.Run("keeps the saved config when an enabled cron schedule has no date to run on", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		original := team.config(t)
 		config := configInput(original)
@@ -122,6 +130,8 @@ func TestVerificationConfig(t *testing.T) {
 		t.Run(
 			"saves empty notifications without validating an unused schedule with "+string(scheduleType),
 			func(t *testing.T) {
+				t.Parallel()
+
 				team := newVerificationTeam(t)
 				config := configInput(team.config(t))
 				config.ScheduleType = scheduleType
@@ -141,6 +151,8 @@ func TestVerificationConfig(t *testing.T) {
 		)
 	}
 	t.Run("refuses unknown schedule types and notifications without storing changes", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		original := team.config(t)
 		for _, field := range []string{"scheduleType", "notificationTriggers"} {

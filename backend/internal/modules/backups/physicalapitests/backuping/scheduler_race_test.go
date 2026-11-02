@@ -25,6 +25,8 @@ func TestSchedulePhysicalBackupDuringOrphanCleanup(t *testing.T) {
 		{name: "skips the full when a cluster mismatch is recorded while the scheduler waits on the lock", isMismatchRecordedWhileWaiting: true},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
 			team := newBackupState(t)
 			team.setSchedules(t, true)
 

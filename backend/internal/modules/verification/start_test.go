@@ -14,6 +14,8 @@ func TestStartVerification(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns a pending verification before any agent runs when the backup is completed", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		verification := team.start(t, backup.Id)
@@ -25,6 +27,8 @@ func TestStartVerification(t *testing.T) {
 	t.Run(
 		"returns backup_not_completed without creating a verification when the backup has failed",
 		func(t *testing.T) {
+			t.Parallel()
+
 			team := newVerificationTeam(t)
 			team.EnableBackups(t, team.Database.Id, team.StorageID, apiclient.BackupEncryptionNONE)
 			team.App.ExecuteSQL(
@@ -55,6 +59,8 @@ func TestStartVerification(t *testing.T) {
 	)
 	for _, status := range []apiclient.VerificationStatus{apiclient.VerificationStatusPENDING, apiclient.VerificationStatusRUNNING} {
 		t.Run("returns already_running when a manual verification is "+string(status), func(t *testing.T) {
+			t.Parallel()
+
 			team := newVerificationTeam(t)
 			backup := team.backup(t)
 			verification := team.start(t, backup.Id)
@@ -85,6 +91,8 @@ func TestStartVerification(t *testing.T) {
 		})
 	}
 	t.Run("keeps an automatic verification when a user starts a manual one", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		automatic := team.start(t, backup.Id)
@@ -102,6 +110,8 @@ func TestStartVerificationConcurrentRequests(t *testing.T) {
 	t.Parallel()
 
 	t.Run("creates one verification when members start it concurrently", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		start := make(chan struct{})

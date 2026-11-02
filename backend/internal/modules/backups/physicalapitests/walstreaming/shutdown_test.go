@@ -16,6 +16,8 @@ func TestWalStreamShutdown(t *testing.T) {
 	t.Parallel()
 
 	t.Run("resumes the same slot within thirty seconds when the modules restart", func(t *testing.T) {
+		t.Parallel()
+
 		team := newWalTeam(t, walTeamSpec{})
 		team.enable(t)
 		team.waitForReceiver(t)
@@ -67,6 +69,8 @@ func TestWalStreamShutdown(t *testing.T) {
 		)
 	})
 	t.Run("keeps its replication slot when a manager pass follows disabling backups", func(t *testing.T) {
+		t.Parallel()
+
 		team := newWalTeam(t, walTeamSpec{})
 		team.enable(t)
 		team.waitForReceiver(t)

@@ -162,8 +162,27 @@ func StartMongodbBehindSSHBastion(t *testing.T, image string) BastionedDatabase 
 
 // Docker re-picks an ephemeral host port on every `start`, so a bastion published dynamically moves
 // out from under a tunnel the moment a test restarts it. Pinning the binding is what a real bastion
-// has anyway, and it is the only way a forwarder can find its way back after an outage.
+// has anyway, and it is the only way a forwarder can find its way back after an outage. Docker can
+// hand a released port to another container before this one binds it, so each boot attempt reserves
+// its own port.
 func pinBastionHostPort(t *testing.T, req *testcontainers.ContainerRequest) {
+	t.Helper()
+
+	bastionPort, err := network.ParsePort(sshBastionPort)
+	if err != nil {
+		t.Fatalf("failed to parse the ssh bastion port %q: %v", sshBastionPort, err)
+	}
+
+	req.HostConfigModifier = func(hostConfig *container.HostConfig) {
+		hostConfig.PortBindings = network.PortMap{
+			bastionPort: []network.PortBinding{
+				{HostIP: netip.MustParseAddr("127.0.0.1"), HostPort: strconv.Itoa(reserveBastionHostPort(t))},
+			},
+		}
+	}
+}
+
+func reserveBastionHostPort(t *testing.T) int {
 	t.Helper()
 
 	var listenConfig net.ListenConfig
@@ -182,18 +201,7 @@ func pinBastionHostPort(t *testing.T, req *testcontainers.ContainerRequest) {
 		t.Fatalf("failed to release the reserved ssh bastion port: %v", err)
 	}
 
-	bastionPort, err := network.ParsePort(sshBastionPort)
-	if err != nil {
-		t.Fatalf("failed to parse the ssh bastion port %q: %v", sshBastionPort, err)
-	}
-
-	req.HostConfigModifier = func(hostConfig *container.HostConfig) {
-		hostConfig.PortBindings = network.PortMap{
-			bastionPort: []network.PortBinding{
-				{HostIP: netip.MustParseAddr("127.0.0.1"), HostPort: strconv.Itoa(reservedPort.Port)},
-			},
-		}
-	}
+	return reservedPort.Port
 }
 
 func sshBastionRequest(t *testing.T) testcontainers.ContainerRequest {

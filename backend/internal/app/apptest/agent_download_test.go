@@ -19,6 +19,8 @@ func TestSystemAgentDownload(t *testing.T) {
 
 	for _, architecture := range []apiclient.AgentArchitecture{apiclient.AgentArchitectureAmd64, apiclient.AgentArchitectureArm64} {
 		t.Run("streams the binary with exact headers when architecture is "+string(architecture), func(t *testing.T) {
+			t.Parallel()
+
 			directory := t.TempDir()
 			require.NoError(
 				t,
@@ -52,6 +54,8 @@ func TestSystemAgentDownload(t *testing.T) {
 		})
 	}
 	t.Run("returns contract errors when architecture or binary is unavailable", func(t *testing.T) {
+		t.Parallel()
+
 		directory := t.TempDir()
 		application := apptest.New(t, apptest.WithAgentBinariesDir(directory))
 		client := application.NewClient(t)
@@ -83,6 +87,8 @@ func TestSystemAgentDownload(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, response.StatusCode)
 	})
 	t.Run("hides filesystem errors when the binary is a directory", func(t *testing.T) {
+		t.Parallel()
+
 		directory := t.TempDir()
 		require.NoError(t, os.Mkdir(filepath.Join(directory, "databasus-verification-agent-linux-amd64"), 0o755))
 		application := apptest.New(t, apptest.WithAgentBinariesDir(directory))
@@ -98,6 +104,8 @@ func TestAgentDiscoveryAfterHeartbeatRefusal(t *testing.T) {
 	t.Parallel()
 
 	t.Run("serves public updates when a gigabyte-only heartbeat is rejected", func(t *testing.T) {
+		t.Parallel()
+
 		directory := t.TempDir()
 		require.NoError(
 			t,

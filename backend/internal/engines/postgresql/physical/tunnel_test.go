@@ -17,6 +17,8 @@ import (
 const unreachableBastionTimeout = 2 * time.Second
 
 func TestOpenTunnel(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns the source itself without a tunnel", func(t *testing.T) {
 		t.Parallel()
 		source := NewSource(newUnreachableSettings())

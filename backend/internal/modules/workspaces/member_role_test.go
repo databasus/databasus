@@ -16,6 +16,8 @@ func TestChangeWorkspaceMemberRole(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns 400 and keeps the owner when an admin makes a member the owner", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		workspaceAdmin, _ := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEADMIN)
 		_, viewerMember := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
@@ -31,6 +33,8 @@ func TestChangeWorkspaceMemberRole(t *testing.T) {
 	})
 
 	t.Run("returns 409 and keeps the owner's role when an instance admin demotes the owner", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		ownerMember := tm.getOwnerMember(t)
 
@@ -42,6 +46,8 @@ func TestChangeWorkspaceMemberRole(t *testing.T) {
 	})
 
 	t.Run("returns 403 and keeps the role when an admin demotes another admin", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		workspaceAdmin, _ := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEADMIN)
 		_, otherAdminMember := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEADMIN)
@@ -54,6 +60,8 @@ func TestChangeWorkspaceMemberRole(t *testing.T) {
 	})
 
 	t.Run("returns 403 and keeps the role when an admin promotes a member to admin", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		workspaceAdmin, _ := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEADMIN)
 		_, memberOfTeam := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER)
@@ -66,6 +74,8 @@ func TestChangeWorkspaceMemberRole(t *testing.T) {
 	})
 
 	t.Run("makes a member an admin when the owner promotes them", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		_, memberOfTeam := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER)
 
@@ -77,6 +87,8 @@ func TestChangeWorkspaceMemberRole(t *testing.T) {
 	})
 
 	t.Run("lets an admin change the role of a viewer", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		workspaceAdmin, _ := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEADMIN)
 		_, viewerMember := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
@@ -88,6 +100,8 @@ func TestChangeWorkspaceMemberRole(t *testing.T) {
 	})
 
 	t.Run("returns 409 and keeps the role when the owner changes their own role", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		ownerMember := tm.getOwnerMember(t)
 
@@ -99,6 +113,8 @@ func TestChangeWorkspaceMemberRole(t *testing.T) {
 	})
 
 	t.Run("returns 403 and keeps the role when an admin demotes themselves", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		workspaceAdmin, adminMember := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEADMIN)
 
@@ -110,6 +126,8 @@ func TestChangeWorkspaceMemberRole(t *testing.T) {
 	})
 
 	t.Run("returns 404 and keeps the role when the actor is not a member of the workspace", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		_, viewerMember := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 		stranger := tm.app.CreateNonAdminUser(t, tm.admin)
@@ -121,6 +139,8 @@ func TestChangeWorkspaceMemberRole(t *testing.T) {
 	})
 
 	t.Run("returns 404 when the member does not exist", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 
 		response := changeRole(t, tm.owner, uuid.New(), apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER)
@@ -133,6 +153,8 @@ func TestRemoveWorkspaceMember(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns 409 and keeps the owner when an instance admin removes the owner", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		ownerMember := tm.getOwnerMember(t)
 
@@ -144,6 +166,8 @@ func TestRemoveWorkspaceMember(t *testing.T) {
 	})
 
 	t.Run("returns 403 and keeps the admin when an admin removes another admin", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		workspaceAdmin, _ := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEADMIN)
 		_, otherAdminMember := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEADMIN)
@@ -156,6 +180,8 @@ func TestRemoveWorkspaceMember(t *testing.T) {
 	})
 
 	t.Run("ends the removed user's access and keeps their account", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		workspaceAdmin, _ := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEADMIN)
 		removedUser, removedMember := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER)
@@ -176,6 +202,8 @@ func TestRemoveWorkspaceMember(t *testing.T) {
 	})
 
 	t.Run("returns 403 and keeps the member when a member removes a viewer", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		memberOfTeam, _ := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER)
 		_, viewerMember := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
@@ -192,6 +220,8 @@ func TestTransferWorkspaceOwnership(t *testing.T) {
 	t.Parallel()
 
 	t.Run("makes the admin the owner and the previous owner an admin", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		_, adminMember := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEADMIN)
 
@@ -209,6 +239,8 @@ func TestTransferWorkspaceOwnership(t *testing.T) {
 	})
 
 	t.Run("changes nothing when the owner names their own member", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		_, viewerMember := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 		membersBefore := listAllMembers(t, tm.owner.Client, tm.workspace.Id)
@@ -221,6 +253,8 @@ func TestTransferWorkspaceOwnership(t *testing.T) {
 	})
 
 	t.Run("returns 403 and keeps the owner when an admin transfers ownership", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		workspaceAdmin, _ := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEADMIN)
 		_, memberOfTeam := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER)
@@ -233,6 +267,8 @@ func TestTransferWorkspaceOwnership(t *testing.T) {
 	})
 
 	t.Run("returns 404 and keeps the owner when the member belongs to another workspace", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		otherWorkspace := apptest.CreateWorkspace(t, tm.owner, "Other")
 		otherUser := tm.app.SignUp(t, apptest.NewTestEmail("other"))

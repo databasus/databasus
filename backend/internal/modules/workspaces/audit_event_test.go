@@ -18,6 +18,8 @@ func TestListAuditEvents(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns 403 when a user who is not an instance admin reads the global view", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 
 		response, err := tm.owner.Client.ListAuditEventsWithResponse(t.Context(), &apiclient.ListAuditEventsParams{})
@@ -28,6 +30,8 @@ func TestListAuditEvents(t *testing.T) {
 	})
 
 	t.Run("lists only the user's own events when the user reads their own view", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		apptest.CreateWorkspace(t, tm.admin, "Admin's workspace")
 
@@ -43,6 +47,8 @@ func TestListAuditEvents(t *testing.T) {
 	})
 
 	t.Run("returns 403 when a user who is not an instance admin reads another user's view", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 
 		response, err := tm.owner.Client.ListAuditEventsWithResponse(t.Context(), &apiclient.ListAuditEventsParams{
@@ -55,6 +61,8 @@ func TestListAuditEvents(t *testing.T) {
 	})
 
 	t.Run("lists only the workspace's events when a viewer reads the workspace's view", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		apptest.CreateWorkspace(t, tm.owner, "Other workspace")
 		viewer, _ := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
@@ -69,6 +77,8 @@ func TestListAuditEvents(t *testing.T) {
 
 	t.Run("lists the events of every workspace and outside any workspace when an instance admin reads the global view",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			otherWorkspace := apptest.CreateWorkspace(t, tm.owner, "Other workspace")
 			forbidMemberWorkspaces(t, tm.admin)
@@ -82,6 +92,8 @@ func TestListAuditEvents(t *testing.T) {
 		})
 
 	t.Run("lists only that user's events when an instance admin reads another user's view", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		apptest.CreateWorkspace(t, tm.admin, "Admin's workspace")
 
@@ -98,6 +110,8 @@ func TestListAuditEvents(t *testing.T) {
 
 	t.Run("lists the workspace's events when an instance admin outside the workspace reads its view",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			apptest.CreateWorkspace(t, tm.admin, "Admin's workspace")
 
@@ -111,6 +125,8 @@ func TestListAuditEvents(t *testing.T) {
 
 	t.Run("lists only that member's events in the workspace when a viewer narrows the view to one author",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			viewer, _ := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 			workspaceAdmin, _ := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEADMIN)
@@ -129,6 +145,8 @@ func TestListAuditEvents(t *testing.T) {
 		})
 
 	t.Run("returns 404 when a user who is not a member reads the workspace's view", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		stranger := tm.app.CreateNonAdminUser(t, tm.admin)
 
@@ -141,6 +159,8 @@ func TestListAuditEvents(t *testing.T) {
 	})
 
 	t.Run("returns 401 without a session", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 
 		response, err := app.NewClient(t).ListAuditEventsWithResponse(t.Context(), &apiclient.ListAuditEventsParams{})
@@ -151,6 +171,8 @@ func TestListAuditEvents(t *testing.T) {
 	})
 
 	t.Run("returns 400 when the cursor is not one of this list", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 
@@ -168,6 +190,8 @@ func TestPageAuditEvents(t *testing.T) {
 	t.Parallel()
 
 	t.Run("lists every event once newest first when following the pages to the last", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		for _, name := range []string{"Alpha", "Bravo", "Charlie", "Delta", "Echo"} {
@@ -187,6 +211,8 @@ func TestPageAuditEvents(t *testing.T) {
 
 	t.Run("continues after the last event of the first page when a new event is written while paging",
 		func(t *testing.T) {
+			t.Parallel()
+
 			app := apptest.New(t)
 			admin := app.CreateAdmin(t)
 			var renamedWorkspace apiclient.Workspace
@@ -216,6 +242,8 @@ func TestAuditEventWorkspace(t *testing.T) {
 	t.Parallel()
 
 	t.Run("shows the workspace's new name when the workspace is renamed after the event", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		renameWorkspaceSuccessfully(t, tm.owner, tm.workspace.Id, "Renamed team")
 
@@ -229,6 +257,8 @@ func TestAuditEventWorkspace(t *testing.T) {
 
 	t.Run("shows the workspace's id without a name when the workspace is deleted after the event",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			response, err := tm.owner.Client.DeleteWorkspaceWithResponse(t.Context(), tm.workspace.Id)
 			require.NoError(t, err)

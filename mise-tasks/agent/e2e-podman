@@ -32,6 +32,6 @@ fi
 source ../scripts/fedora.sh
 apply_libedit_shim
 export DATABASUS_AGENT_E2E_ENGINE_HOST="unix://$engine_socket"
-go test -race -count=1 -timeout 30m -v \
+go test ${CI:+-race} -count=1 -timeout 30m -v \
     -run '^(TestVerifyBackup|TestRestoreContainer)$/^(completes_with_an_encrypted_backup_on_postgres_18|fails_after_one_attempt_when_the_backup_is_broken|runs_without_root_or_capabilities_when_restoring_a_backup)$' \
     ./internal/agent/e2e/...

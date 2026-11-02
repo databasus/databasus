@@ -174,12 +174,23 @@ The CI backend lint job SHALL run the backend's architecture check next to the l
 
 ### Requirement: CI backend tests run with the race detector
 
-Every CI backend test group SHALL run with the race detector. A data race SHALL fail the group like any other test failure, under the same rules for failed groups as before.
+Every CI backend test group SHALL run with the race detector. So SHALL every other CI check that runs backend tests: the verification agent's unit tests, its Podman subset, the upgrade test and the real-API browser test. This SHALL hold for any backend test command a CI step calls, including one that CI does not call today, although the same command runs without the race detector on a developer's machine. A data race SHALL fail the group or check like any other test failure, under the same rules for failed groups as before.
 
 #### Scenario: A race in one shard
 
 - **WHEN** a test in one shard of the physical backup group triggers a data race
 - **THEN** that shard fails, and the other groups keep running and report their own results
+
+#### Scenario: A check that shares a command with local runs
+
+- **WHEN** CI runs the verification agent's unit tests through the command a developer also runs locally
+- **THEN** the tests run with the race detector in CI
+- **AND** the same command runs them without the race detector on a developer's machine
+
+#### Scenario: A CI step calls a command CI does not use today
+
+- **WHEN** a CI step calls `mise run test` or `mise run agent:e2e`
+- **THEN** the backend tests run with the race detector
 
 ### Requirement: CI lints each module with its local lint command
 
@@ -205,30 +216,6 @@ The CI lint job of the backend and of the frontend SHALL run the same lint comma
 
 - **WHEN** a developer changes the pinned version of the Go linter
 - **THEN** the next backend lint job runs the linter at the new version, and the CI configuration was not changed
-
-### Requirement: Selected backend CI shards can run together locally
-
-`mise run backend:test-group <shard>...` SHALL run the named CI selections concurrently in separate test processes, with race checking, `-failfast` and a 40-minute timeout per binary, without a helper build tag. It SHALL resolve selections through the existing group package and test selectors. It SHALL validate every shard before starting any test and reject duplicate names, unsharded groups, `other`, unknown groups and indices outside their count. It SHALL wait for every selected shard and return failure when any shard fails. On interruption it SHALL stop only its own test processes and remove its temporary logs.
-
-#### Scenario: Every physical API selection runs
-
-- **WHEN** all three `physical-api` shard names are passed
-- **THEN** they run concurrently, and together they execute every top-level physical API test exactly once
-
-#### Scenario: One selected shard fails
-
-- **WHEN** one shard fails while another selected shard still runs
-- **THEN** the task waits for the remaining shard, reports the selected shard names with their output and exits unsuccessfully
-
-#### Scenario: A selection is invalid
-
-- **WHEN** any requested shard is invalid or repeated
-- **THEN** the task rejects the selection before any test starts
-
-#### Scenario: Ordinary builds select the tests
-
-- **WHEN** a developer runs a valid backend shard selection without a helper build tag in the process environment
-- **THEN** its package and test selectors find the selection and its test processes start without adding such a tag
 
 ### Requirement: The verification agent's Podman subset runs as its own check
 

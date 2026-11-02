@@ -10,6 +10,7 @@ import (
 	containers "databasus-backend/internal/lib/testcontainers"
 )
 
+//nolint:tparallel // The subtests share one source server.
 func TestDatabaseExclusionLists(t *testing.T) {
 	t.Parallel()
 

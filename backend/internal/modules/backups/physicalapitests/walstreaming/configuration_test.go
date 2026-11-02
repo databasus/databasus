@@ -15,6 +15,8 @@ func TestChangePhysicalWalConfiguration(t *testing.T) {
 	t.Parallel()
 
 	t.Run("stops its receiver and removes the local queue when backups are disabled", func(t *testing.T) {
+		t.Parallel()
+
 		team := newWalTeam(t, walTeamSpec{})
 		team.enable(t)
 		team.waitForReceiver(t)
@@ -35,6 +37,8 @@ func TestChangePhysicalWalConfiguration(t *testing.T) {
 		assert.Zero(t, streamers)
 	})
 	t.Run("archives new segments in the new storage after its configured storage changes", func(t *testing.T) {
+		t.Parallel()
+
 		team := newWalTeam(t, walTeamSpec{})
 		team.enable(t)
 		team.waitForReceiver(t)
@@ -95,6 +99,8 @@ func TestFailingPhysicalWalSessions(t *testing.T) {
 			scenario = "sends the chain failure webhook and keeps the first failure time across sessions"
 		}
 		t.Run(scenario, func(t *testing.T) {
+			t.Parallel()
+
 			team := newWalTeam(t, walTeamSpec{})
 			inbox := &webhookInbox{}
 			team.attachWebhook(t, inbox)

@@ -25,7 +25,14 @@ export const runBrowserE2E = async (frontendRoot: string): Promise<number> => {
   try {
     exitCode = await runChild(
       'go',
-      ['test', '-race', '-count=1', '-timeout=30m', '-v', './internal/app/browsertests'],
+      [
+        'test',
+        ...(process.env.CI ? ['-race'] : []),
+        '-count=1',
+        '-timeout=30m',
+        '-v',
+        './internal/app/browsertests',
+      ],
       {
         cwd: resolve(frontendRoot, '../backend'),
         signal: controller.signal,

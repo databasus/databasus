@@ -19,6 +19,8 @@ func TestPhysicalWalSourceInRecovery(t *testing.T) {
 		t.Run(
 			"reports unavailable source positions when PostgreSQL "+version+" is replaced by its standby",
 			func(t *testing.T) {
+				t.Parallel()
+
 				primary, standby := containers.StartPhysicalPrimaryWithStandby(t, "postgres:"+version)
 				team := newWalTeam(t, walTeamSpec{SourceEndpoint: &primary})
 				team.App.ExecuteSQL(

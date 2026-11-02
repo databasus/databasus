@@ -91,6 +91,8 @@ func TestRecoverQueuedPhysicalWal(t *testing.T) {
 	t.Parallel()
 
 	t.Run("retains local segments after upload failure and commits them after S3 recovers", func(t *testing.T) {
+		t.Parallel()
+
 		team := newWalTeam(t, walTeamSpec{})
 		team.useUnavailableStorage(t)
 		team.enable(t)

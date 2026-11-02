@@ -18,6 +18,7 @@ type unauthenticatedCall struct {
 	call func(ctx context.Context, client *apiclient.ClientWithResponses) (int, []byte, error)
 }
 
+//nolint:tparallel // The subtests share one application and its client.
 func TestOperationsWithoutSession(t *testing.T) {
 	t.Parallel()
 

@@ -20,6 +20,7 @@ import (
 // getPostgresArchiveSignature() starts every archive pg_dump writes in its custom format.
 func getPostgresArchiveSignature() []byte { return []byte("PGDMP") }
 
+//nolint:tparallel // The subtests share one source server.
 func TestCreateDownloadToken(t *testing.T) {
 	t.Parallel()
 
@@ -57,6 +58,7 @@ func TestCreateDownloadToken(t *testing.T) {
 	})
 }
 
+//nolint:tparallel // The subtests share one source server.
 func TestDownloadLogicalBackup(t *testing.T) {
 	t.Parallel()
 
@@ -191,6 +193,7 @@ func TestDownloadLogicalBackup(t *testing.T) {
 	})
 }
 
+//nolint:tparallel // The subtests share one source server.
 func TestDownloadLogicalBackupWhileAnotherStreams(t *testing.T) {
 	t.Parallel()
 

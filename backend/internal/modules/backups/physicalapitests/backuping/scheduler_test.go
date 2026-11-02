@@ -13,6 +13,8 @@ func TestSchedulePhysicalBackup(t *testing.T) {
 	t.Run(
 		"starts a full backup when AUTO is requested for a full-only database with a completed full",
 		func(t *testing.T) {
+			t.Parallel()
+
 			team := newBackupState(t)
 			team.setSchedules(t, true)
 			team.seedFull(t, schedulerFullSpec{Age: time.Minute})
@@ -36,6 +38,8 @@ func TestSchedulePhysicalBackup(t *testing.T) {
 	)
 
 	t.Run("starts a replacement full immediately when an incremental detected a timeline switch", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupState(t)
 		full := team.seedFull(t, schedulerFullSpec{Age: 3 * time.Hour})
 		team.seedIncremental(t, full.ID, "TIMELINE_SWITCH_DETECTED")
@@ -46,6 +50,8 @@ func TestSchedulePhysicalBackup(t *testing.T) {
 	t.Run(
 		"suppresses automatic work when a system identifier mismatch has no completed replacement",
 		func(t *testing.T) {
+			t.Parallel()
+
 			team := newBackupState(t)
 			team.seedFull(
 				t,
@@ -59,6 +65,8 @@ func TestSchedulePhysicalBackup(t *testing.T) {
 		},
 	)
 	t.Run("allows a requested full when a system identifier mismatch suppresses automatic work", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupState(t)
 		team.seedFull(
 			t,
@@ -70,6 +78,8 @@ func TestSchedulePhysicalBackup(t *testing.T) {
 	t.Run(
 		"resumes automatic scheduling when a completed full follows a system identifier mismatch",
 		func(t *testing.T) {
+			t.Parallel()
+
 			team := newBackupState(t)
 			team.seedFull(
 				t,
@@ -87,6 +97,8 @@ func TestSchedulePhysicalBackup(t *testing.T) {
 	t.Run(
 		"suppresses automatic scheduling when a later full failed after a system identifier mismatch",
 		func(t *testing.T) {
+			t.Parallel()
+
 			team := newBackupState(t)
 			team.seedFull(
 				t,
@@ -103,6 +115,8 @@ func TestSchedulePhysicalBackup(t *testing.T) {
 	t.Run(
 		"suppresses automatic scheduling when a later full was cancelled after a system identifier mismatch",
 		func(t *testing.T) {
+			t.Parallel()
+
 			team := newBackupState(t)
 			team.seedFull(
 				t,
@@ -119,6 +133,8 @@ func TestSchedulePhysicalBackup(t *testing.T) {
 
 	t.Run("starts an incremental once the built daily slot passes when the stored cron has no date to run on",
 		func(t *testing.T) {
+			t.Parallel()
+
 			team := newBackupState(t)
 			team.seedFull(t, schedulerFullSpec{Age: 3 * time.Hour, ManifestFileName: new("root.manifest")})
 			team.setSchedules(t, false)
@@ -132,6 +148,8 @@ func TestSchedulePhysicalBackup(t *testing.T) {
 
 	t.Run("schedules nothing before the built daily slot when the stored cron has no date to run on",
 		func(t *testing.T) {
+			t.Parallel()
+
 			team := newBackupState(t)
 			team.seedFull(t, schedulerFullSpec{Age: time.Hour, ManifestFileName: new("root.manifest")})
 			team.setSchedules(t, false)
@@ -143,6 +161,8 @@ func TestSchedulePhysicalBackup(t *testing.T) {
 
 	t.Run("schedules nothing when the stored incremental cron has no date under an hourly full schedule",
 		func(t *testing.T) {
+			t.Parallel()
+
 			team := newBackupState(t)
 			team.seedFull(t, schedulerFullSpec{Age: 10 * time.Minute, ManifestFileName: new("root.manifest")})
 			team.setSchedules(t, false)
@@ -156,18 +176,24 @@ func TestSchedulePhysicalBackup(t *testing.T) {
 	)
 
 	t.Run("schedules nothing when a full only database has a recent full", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupState(t)
 		team.setSchedules(t, true)
 		team.seedFull(t, schedulerFullSpec{Age: 2 * time.Hour})
 		team.assertNoScheduledBackup(t)
 	})
 	t.Run("keeps the running backup without inserting another when a backup is running", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupState(t)
 		team.seedFull(t, schedulerFullSpec{Status: "IN_PROGRESS"})
 
 		team.assertNoScheduledBackup(t)
 	})
 	t.Run("chooses a requested full before its cadence", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupState(t)
 		team.seedFull(t, schedulerFullSpec{Age: time.Minute})
 		team.setSchedules(t, false)
@@ -175,6 +201,8 @@ func TestSchedulePhysicalBackup(t *testing.T) {
 		assert.Equal(t, "FULL", backup.Type)
 	})
 	t.Run("chooses a requested incremental before its cadence", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupState(t)
 		team.seedFull(t, schedulerFullSpec{Age: time.Minute, ManifestFileName: new("root.manifest")})
 		team.setSchedules(t, false)
@@ -182,6 +210,8 @@ func TestSchedulePhysicalBackup(t *testing.T) {
 		assert.Equal(t, "INCREMENTAL", backup.Type)
 	})
 	t.Run("clears an incremental request and falls back to full when no chain is extendable", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupState(t)
 
 		team.App.ExecuteSQL(
@@ -204,6 +234,8 @@ func TestSchedulePhysicalBackup(t *testing.T) {
 		assert.Zero(t, pendingRequests)
 	})
 	t.Run("clears an incremental request when incrementals are disabled", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupState(t)
 		team.setSchedules(t, true)
 		team.seedFull(t, schedulerFullSpec{Age: time.Minute})

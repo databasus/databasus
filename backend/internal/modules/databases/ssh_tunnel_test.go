@@ -25,6 +25,8 @@ func TestBastionedPostgres(t *testing.T) {
 	t.Parallel()
 
 	t.Run("refuses a connection from the host without the tunnel", func(t *testing.T) {
+		t.Parallel()
+
 		topology := containers.StartPostgresBehindSSHBastion(t, "postgres:16")
 		address := net.JoinHostPort(topology.Database.Host, strconv.Itoa(topology.Database.Port))
 
@@ -38,6 +40,7 @@ func TestBastionedPostgres(t *testing.T) {
 	})
 }
 
+//nolint:tparallel // The subtests share one source server.
 func TestDatabaseSSHTunnel(t *testing.T) {
 	t.Parallel()
 

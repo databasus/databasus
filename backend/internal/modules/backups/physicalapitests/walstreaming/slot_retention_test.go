@@ -17,6 +17,8 @@ func TestPhysicalWalSlotRetentionSample(t *testing.T) {
 	t.Parallel()
 
 	t.Run("records the start of extended slot retention while a paused receiver cannot advance", func(t *testing.T) {
+		t.Parallel()
+
 		timings := backups.ProductionWalStreamTimings()
 		timings.ForcedRotationInterval = 0
 		timings.LocalQueuePauseBytes = 16 * 1024 * 1024

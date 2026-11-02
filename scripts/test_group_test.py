@@ -3,10 +3,8 @@ import os
 from pathlib import Path
 import re
 import shutil
-import signal
 import subprocess
 import tempfile
-import time
 import unittest
 
 
@@ -68,7 +66,7 @@ class ShardFixture(unittest.TestCase):
 
         (self.workspace / "scripts").mkdir()
         (self.workspace / "scripts/fedora.sh").write_text("apply_libedit_shim() { :; }\n")
-        for name in ("test-group", "test-group-packages", "test-group-tests"):
+        for name in ("test-group-packages", "test-group-tests"):
             shutil.copy(ROOT / "mise-tasks/backend" / name, self.workspace / name)
 
         self.environment = {**os.environ, "PATH": f"{self.bin}:{os.environ['PATH']}",
@@ -79,139 +77,8 @@ class ShardFixture(unittest.TestCase):
         path.write_text("#!/usr/bin/env python3\n" + source)
         path.chmod(0o755)
 
-    def start(self, shards):
-        process = subprocess.Popen(["bash", str(self.workspace / "test-group")], cwd=self.backend,
-                                   env={**self.environment, "usage_shards": shards},
-                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                                   start_new_session=True)
-        self.addCleanup(self.stop, process)
-        return process
-
-    def stop(self, process):
-        try:
-            os.killpg(process.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
-        process.communicate()
-
     def records(self):
         return [json.loads(line) for line in self.calls.read_text().splitlines()]
-
-    def wait_for(self, condition):
-        deadline = time.monotonic() + TIMEOUT
-        while time.monotonic() < deadline:
-            if condition():
-                return
-            time.sleep(0.02)
-        self.fail(f"condition did not become true; calls: {self.records()}")
-
-
-class ShardOrchestrationTest(ShardFixture):
-    def setUp(self):
-        super().setUp()
-        self.stub("mise", '''import os, sys
-selection = sys.argv[-1]
-if "backend:test-group-packages" in sys.argv:
-    print("./fixture/" + selection)
-else:
-    print("^(Test" + selection.replace("-", "") + ")$")
-''')
-        self.stub("go", '''import json, os, pathlib, sys, time
-arguments = sys.argv[1:]
-package = arguments[-1]
-with open(os.environ["CALLS"], "a") as calls:
-    calls.write(json.dumps({"event": "start", "args": arguments, "pid": os.getpid(), "goflags": os.environ.get("GOFLAGS")}) + "\\n")
-if os.environ.get("HOLD") and (os.environ.get("HOLD_ALL") or package.endswith("2-of-3")):
-    while not pathlib.Path(os.environ["HOLD"]).exists():
-        time.sleep(0.02)
-status = int(bool(os.environ.get("FAIL") and package.endswith("1-of-3")))
-with open(os.environ["CALLS"], "a") as calls:
-    calls.write(json.dumps({"event": "end", "package": package, "status": status}) + "\\n")
-print(package)
-sys.exit(status)
-''')
-
-    def test_runs_each_requested_shard_concurrently_once_without_a_tag(self):
-        release = self.workspace / "release"
-        self.environment.update(HOLD=str(release), HOLD_ALL="1")
-        process = self.start("physical-api-1-of-3 physical-api-2-of-3 physical-api-3-of-3")
-
-        self.wait_for(lambda: len([record for record in self.records() if record["event"] == "start"]) == 3)
-        self.assertFalse(any(record["event"] == "end" for record in self.records()))
-        self.assertIsNone(process.poll())
-
-        release.touch()
-        output, errors = process.communicate(timeout=TIMEOUT)
-        self.assertEqual(process.returncode, 0, errors)
-
-        starts = [record for record in self.records() if record["event"] == "start"]
-        self.assertEqual(len(starts), 3)
-        self.assertEqual(len({record["args"][-1] for record in starts}), 3)
-        for record in starts:
-            self.assertEqual(record["goflags"], "")
-            self.assertNotIn("-tags", record["args"])
-            self.assertIn("40m", record["args"])
-            self.assertIn("-race", record["args"])
-            self.assertIn("-failfast", record["args"])
-            self.assertIn(record["args"][-1], output)
-
-        self.assertEqual(len([record for record in self.records() if record["event"] == "end"]), 3)
-        self.assertEqual(list(self.logs.iterdir()), [])
-
-    def test_invalid_or_duplicate_selections_start_nothing(self):
-        for shards in ("physical-1-of-3 physical-1-of-3", "other", "physical-1-of-3 other", "physical", "logical-4-of-3", "unknown-1-of-3", "physical-api-0-of-3"):
-            with self.subTest(shards=shards):
-                process = self.start(shards)
-                process.communicate(timeout=TIMEOUT)
-                self.assertNotEqual(process.returncode, 0)
-                self.assertEqual(self.records(), [])
-                self.assertEqual(list(self.logs.iterdir()), [])
-
-    def test_failure_waits_for_the_neighbour_before_returning(self):
-        release = self.workspace / "release"
-        self.environment.update(FAIL="1", HOLD=str(release))
-        process = self.start("physical-1-of-3 physical-2-of-3")
-
-        self.wait_for(lambda: any(record.get("status") == 1 for record in self.records()))
-        self.wait_for(lambda: len([record for record in self.records() if record["event"] == "start"]) == 2)
-        self.assertIsNone(process.poll())
-
-        release.touch()
-        output, _ = process.communicate(timeout=TIMEOUT)
-
-        self.assertEqual(process.returncode, 1)
-        self.assertIn("running physical-1-of-3", output)
-        self.assertIn("running physical-2-of-3", output)
-        self.assertIn("[physical-1-of-3]", output)
-        self.assertIn("[physical-2-of-3]", output)
-        self.assertEqual(list(self.logs.glob("databasus-test-shards.*")), [])
-        self.assertEqual(len([record for record in self.records() if record["event"] == "end"]), 2)
-
-    def test_interrupt_removes_only_its_processes_and_logs(self):
-        release = self.workspace / "release"
-        self.environment["HOLD"] = str(release)
-        neighbour = self.start("logical-2-of-3")
-        self.wait_for(lambda: len([record for record in self.records() if record["event"] == "start"]) == 1)
-        neighbour_pid = next(record["pid"] for record in self.records() if record["event"] == "start")
-        neighbour_logs = set(self.logs.iterdir())
-
-        interrupted = self.start("physical-2-of-3")
-        self.wait_for(lambda: len([record for record in self.records() if record["event"] == "start"]) == 2)
-        interrupted_pid = next(record["pid"] for record in self.records() if record["event"] == "start" and record["args"][-1].endswith("physical-2-of-3"))
-        interrupted.send_signal(signal.SIGTERM)
-        interrupted.communicate(timeout=TIMEOUT)
-
-        self.assertEqual(interrupted.returncode, 143)
-        self.assertIsNone(neighbour.poll())
-        os.kill(neighbour_pid, 0)
-        self.assertEqual(set(self.logs.iterdir()), neighbour_logs)
-        with self.assertRaises(ProcessLookupError):
-            os.kill(interrupted_pid, 0)
-
-        release.touch()
-        _, errors = neighbour.communicate(timeout=TIMEOUT)
-        self.assertEqual(neighbour.returncode, 0, errors)
-        self.assertEqual(list(self.logs.iterdir()), [])
 
 
 class OtherGroupSelectionTest(ShardFixture):

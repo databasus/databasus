@@ -15,6 +15,8 @@ func TestGetInstanceSettings(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns the defaults of a new instance with the second factor off", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 
@@ -30,6 +32,8 @@ func TestGetInstanceSettings(t *testing.T) {
 	})
 
 	t.Run("returns the settings to a member", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		member := app.CreateNonAdminUser(t, app.CreateAdmin(t))
 
@@ -40,6 +44,8 @@ func TestGetInstanceSettings(t *testing.T) {
 	})
 
 	t.Run("reports no mail server when the operator configured none", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t, apptest.WithoutMailServer())
 		admin := app.CreateAdmin(t)
 
@@ -51,6 +57,8 @@ func TestGetInstanceSettings(t *testing.T) {
 	})
 
 	t.Run("returns 401 without a session", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 
 		response, err := app.NewClient(t).GetInstanceSettingsWithResponse(t.Context())
@@ -65,6 +73,8 @@ func TestUpdateInstanceSettings(t *testing.T) {
 	t.Parallel()
 
 	t.Run("replaces the settings and reads them back when an admin updates them", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 
@@ -88,6 +98,8 @@ func TestUpdateInstanceSettings(t *testing.T) {
 	})
 
 	t.Run("returns 403 permission_denied and keeps the settings when a member updates them", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		member := app.CreateNonAdminUser(t, admin)
@@ -105,6 +117,8 @@ func TestUpdateInstanceSettings(t *testing.T) {
 	})
 
 	t.Run("returns 401 without a session", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 
 		response := updateInstanceSettings(t, app.NewClient(t), defaultSettingsUpdate())
@@ -114,6 +128,8 @@ func TestUpdateInstanceSettings(t *testing.T) {
 	})
 
 	t.Run("returns 400 when the body is not json", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 
@@ -131,6 +147,8 @@ func TestUpdateInstanceSettings(t *testing.T) {
 	})
 
 	t.Run("keeps the mail server answer when the request carries it", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 
@@ -152,6 +170,8 @@ func TestUpdateInstanceSettings(t *testing.T) {
 	})
 
 	t.Run("records the old and the new value of each changed switch in the audit log", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		closedRegistration := defaultSettingsUpdate()
@@ -164,6 +184,8 @@ func TestUpdateInstanceSettings(t *testing.T) {
 	})
 
 	t.Run("records nothing in the audit log when no switch changes", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		auditMessagesBefore := listGlobalAuditMessages(t, admin)
@@ -179,6 +201,8 @@ func TestTwoFactorSetting(t *testing.T) {
 	t.Parallel()
 
 	t.Run("refuses to turn the second factor on and names the mail server when there is none", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t, apptest.WithoutMailServer())
 		admin := app.CreateAdmin(t)
 		twoFactorUpdate := defaultSettingsUpdate()
@@ -193,6 +217,8 @@ func TestTwoFactorSetting(t *testing.T) {
 
 	t.Run("refuses to turn the second factor on and names the admin whose address is not usable",
 		func(t *testing.T) {
+			t.Parallel()
+
 			app := apptest.New(t)
 			admin := app.CreateAdmin(t)
 			placeholderAdmin := app.CreateNonAdminUser(t, admin)
@@ -212,6 +238,8 @@ func TestTwoFactorSetting(t *testing.T) {
 		})
 
 	t.Run("turns the second factor on when the admin without a usable address is deactivated", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		placeholderAdmin := app.CreateNonAdminUser(t, admin)
@@ -226,6 +254,8 @@ func TestTwoFactorSetting(t *testing.T) {
 	})
 
 	t.Run("lets an admin turn the second factor off after the mail server is gone", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t, apptest.WithoutMailServer())
 		admin := app.CreateAdmin(t)
 		requireTwoFactorAfterMailServerLoss(t, app, admin)
@@ -237,6 +267,8 @@ func TestTwoFactorSetting(t *testing.T) {
 	})
 
 	t.Run("keeps a session that predates the switch working", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		member := app.CreateNonAdminUser(t, admin)
@@ -255,6 +287,8 @@ func TestSignUpWithClosedRegistration(t *testing.T) {
 
 	t.Run("returns 403 registration_closed when the instance has a user and registration is closed",
 		func(t *testing.T) {
+			t.Parallel()
+
 			app := apptest.New(t)
 			admin := app.CreateAdmin(t)
 			closedRegistration := defaultSettingsUpdate()
@@ -268,6 +302,8 @@ func TestSignUpWithClosedRegistration(t *testing.T) {
 		})
 
 	t.Run("makes the first user the admin when registration is closed on an empty instance", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		app.ExecuteSQL(
 			t,

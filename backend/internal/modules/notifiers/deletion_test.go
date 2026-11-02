@@ -21,6 +21,8 @@ func TestDeleteNotifier(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns 409 in_use and keeps the notifier when a database uses it", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
 			newWebhookSettings(t, newPostWebhook("https://hooks.example.com")))
@@ -39,6 +41,8 @@ func TestDeleteNotifier(t *testing.T) {
 	})
 
 	t.Run("deletes a notifier that no database uses", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
 			newWebhookSettings(t, newPostWebhook("https://hooks.example.com")))
@@ -51,6 +55,8 @@ func TestDeleteNotifier(t *testing.T) {
 	})
 
 	t.Run("returns 403 permission_denied and keeps the notifier when a viewer deletes it", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		viewer := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
@@ -69,6 +75,8 @@ func TestDeleteWorkspaceWithNotifiers(t *testing.T) {
 	t.Parallel()
 
 	t.Run("deletes the notifiers of the workspace with it", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
 			newWebhookSettings(t, newPostWebhook("https://hooks.example.com")))
@@ -81,6 +89,8 @@ func TestDeleteWorkspaceWithNotifiers(t *testing.T) {
 	})
 
 	t.Run("keeps the notifiers when a later handler rolls the deletion back", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
 			newWebhookSettings(t, newPostWebhook("https://hooks.example.com")))

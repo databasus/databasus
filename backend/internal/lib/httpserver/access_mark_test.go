@@ -58,8 +58,9 @@ func TestGetAccessMark(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
-			guard, err := RequireContractOperation([]byte(markedContract), slog.New(slog.DiscardHandler))
+			contractRouter, err := NewAccessCheckedContractRouter([]byte(markedContract))
 			require.NoError(t, err)
+			guard := RequireContractOperation(contractRouter, slog.New(slog.DiscardHandler))
 
 			markByRequest := make(chan AccessMark, 1)
 			engine := gin.New()
@@ -85,7 +86,7 @@ func TestGetAccessMark(t *testing.T) {
 	})
 }
 
-func TestRequireContractOperationAccessMarks(t *testing.T) {
+func TestNewAccessCheckedContractRouter(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns an error when an operation carries an unknown mark", func(t *testing.T) {
@@ -105,7 +106,7 @@ paths:
           description: The users
 `
 
-		_, err := RequireContractOperation([]byte(contractWithUnknownMark), slog.New(slog.DiscardHandler))
+		_, err := NewAccessCheckedContractRouter([]byte(contractWithUnknownMark))
 
 		require.ErrorIs(t, err, ErrUnknownAccessMark)
 	})

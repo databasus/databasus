@@ -54,6 +54,8 @@ func TestStopWalStreamingAfterBackupTypeChange(t *testing.T) {
 	t.Parallel()
 
 	t.Run("deletes the streamer and keeps the running full when the database stops streaming WAL", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newConnectedCatalog(t)
 		catalog.saveStorageConfig(t, catalog.StorageID)
 		catalog.seedRunningBackupAndStreamer(t)

@@ -43,6 +43,8 @@ func TestPhysicalBackupProblems(t *testing.T) {
 		{"returns not_found when a deleted backup does not exist", func(*catalogFixture) apptest.PhysicalRequest { return apptest.PhysicalDeleteRequest(uuid.New()) }, 404, "not_found"},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
+			t.Parallel()
+
 			catalog := newCatalog(t)
 			status, body := catalog.App.CallPhysicalAPI(t, catalog.Owner, scenario.request(catalog))
 			require.Equal(t, scenario.status, status, "%s", body)
@@ -57,6 +59,8 @@ func TestPhysicalBackupSession(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns unauthenticated for each protected operation when no session is supplied", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		for _, request := range []apptest.PhysicalRequest{
 			apptest.PhysicalListRequest(catalog.DatabaseID, ""),
@@ -81,6 +85,8 @@ func TestDeletePhysicalWalSegment(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns not_found and preserves the range when deletion names a WAL segment", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		_, _, segment := seedOneOfEachType(t, catalog)
 		before := getBackups(t, catalog, "")
@@ -100,6 +106,8 @@ func TestOldPhysicalBackupPath(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns not_found when a client requests the removed physical list path", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		request, err := http.NewRequestWithContext(
 			t.Context(),
@@ -127,6 +135,8 @@ func TestPhysicalBackupWorkspacePrivacy(t *testing.T) {
 	t.Run(
 		"returns the missing-resource problem when an outsider names an existing database or backup",
 		func(t *testing.T) {
+			t.Parallel()
+
 			catalog := newCatalog(t)
 			full, _, _ := seedOneOfEachType(t, catalog)
 			apptest.SaveBackupConfigWithStorage(t, catalog.Owner,
@@ -173,6 +183,8 @@ func TestPhysicalBackupWorkspacePrivacy(t *testing.T) {
 		},
 	)
 	t.Run("returns invalid_request when database operations name a logical database", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		databaseID := catalog.App.InsertDatabase(t, catalog.WorkspaceID)
 		for _, request := range []apptest.PhysicalRequest{
@@ -195,6 +207,8 @@ func TestPhysicalFilteredPaging(t *testing.T) {
 	t.Run(
 		"keeps the type filter on every page when full backups share a catalog with incrementals and WAL",
 		func(t *testing.T) {
+			t.Parallel()
+
 			catalog := newCatalog(t)
 			full, _, _ := seedOneOfEachType(t, catalog)
 			base := catalog.App.Clock.Now().Add(-time.Hour)
@@ -218,6 +232,8 @@ func TestPhysicalFilteredPaging(t *testing.T) {
 		},
 	)
 	t.Run("keeps the time cutoff on every page when newer backups lie after the cutoff", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		base := time.Now().UTC().Add(-time.Hour)
 		backups := catalog.insertFulls(t, fullsSeedSpec{Count: 5, FirstCreatedAt: base})
@@ -232,6 +248,8 @@ func TestPhysicalFilteredPaging(t *testing.T) {
 		assert.Equal(t, []uuid.UUID{backups[2].ID, backups[1].ID, backups[0].ID}, collectBackupIDs(first, second))
 	})
 	t.Run("keeps the status filter on every page when completed and failed backups are mixed", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		catalog.insertFulls(t, fullsSeedSpec{Count: 2, FirstCreatedAt: time.Now().Add(-time.Hour)})
 
@@ -264,6 +282,8 @@ func TestPhysicalViewerReads(t *testing.T) {
 	t.Parallel()
 
 	t.Run("lists backups and issues both token variants when the user is a workspace viewer", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		full, _, _ := seedOneOfEachType(t, catalog)
 		viewer := catalog.addViewer(t)

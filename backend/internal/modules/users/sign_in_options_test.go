@@ -15,6 +15,8 @@ func TestGetSignInOptions(t *testing.T) {
 	t.Parallel()
 
 	t.Run("answers that the instance has no user when nobody signed up", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 
 		options := getSignInOptions(t, app)
@@ -23,6 +25,8 @@ func TestGetSignInOptions(t *testing.T) {
 	})
 
 	t.Run("answers that the instance has a user after the first sign-up", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		app.CreateAdmin(t)
 

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	dockernetwork "github.com/moby/moby/api/types/network"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/network"
 
@@ -163,7 +164,20 @@ func bootContainer(t *testing.T, req testcontainers.ContainerRequest) testcontai
 
 func newLabelledNetwork(t *testing.T) (*testcontainers.DockerNetwork, error) {
 	t.Helper()
-	return network.New(t.Context(), network.WithLabels(withTestRunLabel(t, nil)))
+	var createdNetwork *testcontainers.DockerNetwork
+
+	err := WithFreeSubnet(func(ipam *dockernetwork.IPAM) error {
+		var err error
+		createdNetwork, err = network.New(
+			t.Context(),
+			network.WithLabels(withTestRunLabel(t, nil)),
+			network.WithIPAM(ipam),
+		)
+
+		return err
+	})
+
+	return createdNetwork, err
 }
 
 func withTestRunLabel(t *testing.T, labels map[string]string) map[string]string {

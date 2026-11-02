@@ -14,6 +14,7 @@ import (
 
 const cronWithoutRunDate = "0 0 31 2 *"
 
+//nolint:tparallel // The subtests share one physical PostgreSQL server.
 func TestSavePhysicalBackupConfig(t *testing.T) {
 	t.Parallel()
 

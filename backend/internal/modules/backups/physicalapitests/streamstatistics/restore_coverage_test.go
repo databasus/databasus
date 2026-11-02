@@ -12,6 +12,8 @@ func TestGetPhysicalRestoreCoverage(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns no ranges when no full backup completed", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCoverageCatalog(t)
 		clock := newRestoreTimeline()
 		seedCoverageSegment(t, catalog, 1, clock.at(5))
@@ -24,6 +26,8 @@ func TestGetPhysicalRestoreCoverage(t *testing.T) {
 		assert.NotContains(t, getReasonCodes(coverage.Health.Reasons), "WAL_CHAIN_BROKEN")
 	})
 	t.Run("returns one range through the newest segment when WAL is contiguous", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCoverageCatalog(t)
 		clock := newRestoreTimeline()
 
@@ -37,6 +41,8 @@ func TestGetPhysicalRestoreCoverage(t *testing.T) {
 		assert.NotContains(t, getReasonCodes(coverage.Health.Reasons), "WAL_CHAIN_BROKEN")
 	})
 	t.Run("ends at the gap and reports a broken chain when no incremental bridges it", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCoverageCatalog(t)
 		clock := newRestoreTimeline()
 
@@ -52,6 +58,8 @@ func TestGetPhysicalRestoreCoverage(t *testing.T) {
 	t.Run(
 		"returns two ranges without a broken verdict when a completed incremental bridges the gap",
 		func(t *testing.T) {
+			t.Parallel()
+
 			catalog := newCoverageCatalog(t)
 			clock := newRestoreTimeline()
 
@@ -75,6 +83,8 @@ func TestGetPhysicalRestoreCoverage(t *testing.T) {
 		},
 	)
 	t.Run("keeps the gap blocking when the incremental completed before it", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCoverageCatalog(t)
 		clock := newRestoreTimeline()
 
@@ -93,6 +103,8 @@ func TestGetPhysicalRestoreCoverage(t *testing.T) {
 		assert.Contains(t, getReasonCodes(coverage.Health.Reasons), "WAL_CHAIN_BROKEN")
 	})
 	t.Run("keeps the gap blocking when the incremental after it did not complete", func(t *testing.T) {
+		t.Parallel()
+
 		for _, status := range []string{
 			"ERROR",
 			"CHAIN_BROKEN",
@@ -119,6 +131,8 @@ func TestGetPhysicalRestoreCoverage(t *testing.T) {
 		}
 	})
 	t.Run("keeps the second gap blocking when an incremental bridges only the first gap", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCoverageCatalog(t)
 		clock := newRestoreTimeline()
 
@@ -141,6 +155,8 @@ func TestGetPhysicalRestoreCoverage(t *testing.T) {
 		assert.Contains(t, getReasonCodes(coverage.Health.Reasons), "WAL_CHAIN_BROKEN")
 	})
 	t.Run("returns a single point for an incremental when it stops inside the missing segment", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCoverageCatalog(t)
 		clock := newRestoreTimeline()
 
@@ -167,6 +183,8 @@ func TestGetPhysicalRestoreCoverage(t *testing.T) {
 		assert.Contains(t, getReasonCodes(coverage.Health.Reasons), "WAL_CHAIN_BROKEN")
 	})
 	t.Run("ends before an uploading segment without a broken verdict while its claim is live", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCoverageCatalog(t)
 		clock := newRestoreTimeline()
 
@@ -195,6 +213,8 @@ func TestGetPhysicalRestoreCoverage(t *testing.T) {
 		assert.NotContains(t, getReasonCodes(coverage.Health.Reasons), "WAL_CHAIN_BROKEN")
 	})
 	t.Run("starts the ranges at the newer full when it completes", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCoverageCatalog(t)
 		clock := newRestoreTimeline()
 

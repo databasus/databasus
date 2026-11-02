@@ -109,4 +109,4 @@ API request and response types come from the generated contract. Keep generated 
 
 ## Verification
 
-Format only the files changed by the task. Run `mise run frontend:lint`, the tests of the affected behavior and `pnpm --dir frontend build` before handing over a frontend change. Run `pnpm --dir frontend test` for final verification of a refactoring milestone. Use the testing documentation for selecting and isolating tests; verification depends on the behavior changed, not the number of edited lines.
+Format only the files changed by the task. Run `mise run frontend:lint`, `mise run test` and `pnpm --dir frontend build` before handing over a frontend change. Use the testing documentation for isolating tests and for repeating one failing test.

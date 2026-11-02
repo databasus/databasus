@@ -14,6 +14,7 @@ import (
 	"databasus-backend/internal/modules/databases"
 )
 
+//nolint:tparallel // The subtests share one source server.
 func TestDatabaseStatusUpdates(t *testing.T) {
 	t.Parallel()
 

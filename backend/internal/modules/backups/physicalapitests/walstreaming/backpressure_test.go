@@ -18,6 +18,8 @@ func TestPhysicalWalBackpressure(t *testing.T) {
 	t.Run(
 		"counts a pause and then a restart after the queue drains and the receiver loses its source connection",
 		func(t *testing.T) {
+			t.Parallel()
+
 			timings := backups.ProductionWalStreamTimings()
 			timings.ForcedRotationInterval = 0
 			timings.LocalQueuePauseBytes = 3 * 16 * 1024 * 1024

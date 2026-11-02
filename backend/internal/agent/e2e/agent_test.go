@@ -30,9 +30,9 @@ func newAgentProcess(t *testing.T, binaryDirectory string) *agentProcess {
 	t.Helper()
 	directory := t.TempDir()
 	binary := filepath.Join(directory, binaryName())
-	contents, err := os.ReadFile(filepath.Join(binaryDirectory, binaryName()))
-	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(binary, contents, 0o755))
+	// A link, because a copy can fail to start with ETXTBSY: a process forked by a parallel scenario
+	// while the copy is open for writing inherits that descriptor.
+	require.NoError(t, os.Link(filepath.Join(binaryDirectory, binaryName()), binary))
 
 	agent := &agentProcess{
 		directory:  directory,

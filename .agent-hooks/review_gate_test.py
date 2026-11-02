@@ -946,8 +946,22 @@ class ChangeVerificationParsingTest(unittest.TestCase):
         self.assertIn(f"`{CHANGE_NAME}/tasks.md`", message)
         self.assertIn(review_gate.ALLOWED_VERIFICATION_FORMS, message)
 
-    def test_rejects_full_backend_suite(self):
-        self.assert_rejected(verification_section("mise run test"), "`mise run test` is not an allowed command")
+    def test_accepts_the_full_run_without_execution(self):
+        with mock.patch.object(review_gate.subprocess, "run", side_effect=AssertionError("must not run")):
+            checks = self.parse(verification_section("mise run test"))
+        self.assertEqual(checks, [review_gate.Check(".", ("mise", "run", "test"))])
+
+    def test_rejects_removed_narrow_commands(self):
+        commands = (
+            "mise run backend:test-package ./internal/features/intervals/...",
+            "mise run backend:test-group physical-api-1-of-3",
+            "mise run agent:test",
+            "pnpm --dir frontend test",
+            "mise run test-filesystem",
+        )
+        for command in commands:
+            with self.subTest(command=command):
+                self.assert_rejected(verification_section(command), f"`{command}` is not an allowed command")
 
     def test_rejects_old_just_form(self):
         self.assert_rejected(
@@ -955,45 +969,17 @@ class ChangeVerificationParsingTest(unittest.TestCase):
             "`just test-package ./internal/features/intervals/...` is not an allowed command",
         )
 
-    def test_rejects_shell_operator_as_forbidden_character(self):
+    def test_rejects_shell_operator_after_the_full_run(self):
         self.assert_rejected(
-            verification_section("mise run backend:test-package ./internal/features/intervals/... && rm -rf /tmp/x"),
-            "the argument `&&`",
+            verification_section("mise run test && rm -rf /tmp/x"),
+            "`mise run test && rm -rf /tmp/x` does not match the form `mise run test`",
         )
 
-    def test_rejects_argument_with_forbidden_character(self):
-        self.assert_rejected(
-            verification_section("mise run backend:test-package ./internal/a;rm"),
-            "the argument `./internal/a;rm` in `mise run backend:test-package ./internal/a;rm` has a forbidden character",
-        )
+    def test_rejects_arguments_after_the_full_run(self):
+        self.assert_rejected(verification_section("mise run test ./x"), "does not match the form `mise run test`")
 
-    def test_accepts_backend_package_tests_from_repository_root(self):
-        checks = self.parse(verification_section("mise run backend:test-package ./internal/features/intervals/..."))
-
-        self.assertEqual(
-            checks, [review_gate.Check(".", ("mise", "run", "backend:test-package", "./internal/features/intervals/..."))]
-        )
-
-    def test_accepts_parallel_backend_shards(self):
-        shards = ("physical-api-1-of-3", "physical-api-2-of-3", "physical-api-3-of-3")
-        checks = self.parse(verification_section("mise run backend:test-group " + " ".join(shards)))
-        self.assertEqual(checks, [review_gate.Check(".", ("mise", "run", "backend:test-group", *shards))])
-
-    def test_rejects_unbounded_or_invalid_backend_shards(self):
-        for shard in ("other", "other-1-of-3", "physical-api", "unknown-1-of-3", "physical-api-0-of-3", "physical-api-4-of-3"):
-            with self.subTest(shard=shard):
-                self.assert_rejected(verification_section("mise run backend:test-group " + shard), "must name a shard")
-
-    def test_rejects_backend_shards_without_names(self):
-        self.assert_rejected(verification_section("mise run backend:test-group"), "does not match the form")
-
-    def test_rejects_backend_shards_with_shell_substitution(self):
-        self.assert_rejected(verification_section("mise run backend:test-group physical-api-1-of-3;rm"), "forbidden character")
-
-    def test_accepts_verification_agent_tests_from_repository_root(self):
-        checks = self.parse(verification_section("mise run agent:test"))
-
-        self.assertEqual(checks, [review_gate.Check(".", ("mise", "run", "agent:test"))])
+    def test_rejects_shell_substitution_in_the_full_run(self):
+        self.assert_rejected(verification_section("mise run test;rm"), "`mise run test;rm` is not an allowed command")
 
     def test_accepts_exact_isolated_browser_form_without_execution(self):
         with mock.patch.object(review_gate.subprocess, "run", side_effect=AssertionError("must not run")):
@@ -1026,43 +1012,28 @@ class ChangeVerificationParsingTest(unittest.TestCase):
     def test_accepts_every_allowed_form_and_skips_empty_and_comment_lines(self):
         checks = self.parse(
             verification_section(
-                "# backend",
-                "mise run backend:test-package ./internal/features/intervals/... ./internal/features/backups/...",
+                "# everything",
+                "mise run test",
                 "",
-                "mise run agent:test",
-                "pnpm --dir frontend test src/features/widgets --reporter=dot",
+                "pnpm --dir frontend test:browser --project=ui",
+                "pnpm --dir frontend test:browser --project=e2e",
             )
         )
 
         self.assertEqual(
             checks,
             [
-                review_gate.Check(
-                    ".",
-                    ("mise", "run", "backend:test-package", "./internal/features/intervals/...", "./internal/features/backups/..."),
-                ),
-                review_gate.Check(".", ("mise", "run", "agent:test")),
-                review_gate.Check(".", ("pnpm", "--dir", "frontend", "test", "src/features/widgets", "--reporter=dot")),
+                review_gate.Check(".", ("mise", "run", "test")),
+                review_gate.Check(".", ("pnpm", "--dir", "frontend", "test:browser", "--project=ui")),
+                review_gate.Check(".", ("pnpm", "--dir", "frontend", "test:browser", "--project=e2e")),
             ],
         )
 
-    def test_rejects_backend_package_tests_without_package(self):
-        self.assert_rejected(verification_section("mise run backend:test-package"), "does not match the form `mise run backend:test-package <package>...`")
-
-    def test_rejects_package_path_without_leading_dot_slash(self):
-        self.assert_rejected(verification_section("mise run backend:test-package internal/features/intervals/..."), "must start with `./`")
-
-    def test_rejects_arguments_after_verification_agent_form(self):
-        self.assert_rejected(
-            verification_section("mise run agent:test ./x"),
-            "does not match the form `mise run agent:test`",
-        )
-
     def test_rejects_section_with_only_bash_fenced_block(self):
-        self.assert_rejected(verification_section("pnpm --dir frontend test", fence="bash"), "the section has no ```sh code block")
+        self.assert_rejected(verification_section("mise run test", fence="bash"), "the section has no ```sh code block")
 
     def test_rejects_unclosed_block(self):
-        self.assert_rejected("\n## Change verification\n\n```sh\npnpm --dir frontend test\n", "the ```sh code block is not closed")
+        self.assert_rejected("\n## Change verification\n\n```sh\nmise run test\n", "the ```sh code block is not closed")
 
     def test_rejects_block_without_commands(self):
         self.assert_rejected(verification_section("# nothing yet", ""), "the ```sh code block holds no command")
@@ -1491,7 +1462,7 @@ class ImplementationGateChecksTest(ShortReplyAssertions, SummaryAssertions, unit
         repository.submit_prompt("Continue")
         repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
         repository.set_stub("golangci-lint", {"exit_code": 1, "output": "must not run"})
-        repository.complete_tasks(verification_section=verification_section("mise run backend:test-package ./internal/features/widgets/...", "pnpm --dir frontend test:browser --project=ui"))
+        repository.complete_tasks(verification_section=verification_section("mise run test", "pnpm --dir frontend test:browser --project=ui"))
 
         response = repository.stop("implementation")
 
@@ -1514,8 +1485,8 @@ class ImplementationGateChecksTest(ShortReplyAssertions, SummaryAssertions, unit
     def test_runs_no_shared_verification_command_when_two_changes_name_it(self):
         repository = HookRepository(self)
         repository.submit_prompt("Continue")
-        repository.complete_tasks(verification_section=verification_section("pnpm --dir frontend test"))
-        repository.write_change(spec_names=("gizmos",), tasks="- [x] 1.1 Build\n" + verification_section("pnpm --dir frontend test"), name="add-gizmos")
+        repository.complete_tasks(verification_section=verification_section("mise run test"))
+        repository.write_change(spec_names=("gizmos",), tasks="- [x] 1.1 Build\n" + verification_section("mise run test"), name="add-gizmos")
 
         response = repository.stop("implementation")
 
@@ -1526,12 +1497,12 @@ class ImplementationGateChecksTest(ShortReplyAssertions, SummaryAssertions, unit
     def test_blocks_turn_before_reviewers_when_verification_section_is_malformed(self):
         repository = HookRepository(self)
         repository.submit_prompt("Continue")
-        repository.complete_tasks(verification_section=verification_section("mise run test"))
+        repository.complete_tasks(verification_section=verification_section("mise run agent:test"))
 
         response = repository.stop("implementation")
 
         self.assertEqual(response["decision"], "block")
-        self.assertIn("`mise run test` is not an allowed command", response["reason"])
+        self.assertIn("`mise run agent:test` is not an allowed command", response["reason"])
         self.assertIn(review_gate.ALLOWED_VERIFICATION_FORMS, response["reason"])
         self.assertEqual(repository.check_calls(), [])
         self.assertEqual(repository.reviewer_calls(), [])
@@ -1638,7 +1609,7 @@ class ImplementationGateReviewTest(ShortReplyAssertions, SummaryAssertions, unit
         self.assertIn("A bug fix has a test that reproduces the bug and fails on the code before the fix.", tests_role)
         self.assertIn("waits for a condition up to a limit instead of a fixed pause", tests_role)
         self.assertIn(
-            "run the tests of every backend package, verification agent package and frontend test file in which the change added or changed tests",
+            "A change that adds or changes tests in a backend package, a verification agent package or the frontend names `mise run test`",
             tests_role,
         )
         self.assertIn("such as the hook tests in `.agent-hooks/`, need an explicit verification in their task instead", tests_role)
@@ -1859,9 +1830,8 @@ class ManualReviewTest(unittest.TestCase):
         for name in ("golangci-lint", "pnpm", "npm", "mise"):
             repository.set_stub(name, {"exit_code": 1, "output": "must not run"})
         repository.complete_tasks(verification_section=verification_section(
-            "mise run backend:test-package ./internal/features/widgets/...",
-            "mise run agent:test",
-            "pnpm --dir frontend test",
+            "mise run test",
+            "pnpm --dir frontend test:browser --project=e2e",
         ))
 
         process = self.run_review(repository)
@@ -2187,12 +2157,12 @@ class ProposalGateValidationTest(unittest.TestCase):
     def test_blocks_turn_without_running_command_when_verification_section_has_forbidden_command(self):
         repository = HookRepository(self)
         repository.submit_prompt("Write a spec")
-        repository.write_proposal(tasks="- [ ] 1.1 Build\n" + verification_section("mise run test"))
+        repository.write_proposal(tasks="- [ ] 1.1 Build\n" + verification_section("mise run backend:test-package ./internal/lib/..."))
 
         response = repository.stop("proposal")
 
         self.assertEqual(response["decision"], "block")
-        self.assertIn("`mise run test` is not an allowed command", response["reason"])
+        self.assertIn("`mise run backend:test-package ./internal/lib/...` is not an allowed command", response["reason"])
         self.assertIn(review_gate.ALLOWED_VERIFICATION_FORMS, response["reason"])
         self.assertEqual(repository.calls("mise"), [])
         self.assertEqual([call["arguments"][0] for call in repository.calls("openspec")], ["status"])
@@ -2313,8 +2283,9 @@ class ProposalGateReviewTest(ShortReplyAssertions, SummaryAssertions, unittest.T
             "tasks add or change tests in a backend package, a verification agent package or the frontend has a `## Change verification` section",
             tasks_role,
         )
-        self.assertIn("run the tests of every such package the tasks' verifications name", tasks_role)
-        self.assertIn("a package the section leaves out, is a `tasks` finding that names the package", tasks_role)
+        self.assertIn("section that names `mise run test`, which runs the tests of every such package", tasks_role)
+        self.assertIn("Running `mise run test` in a task or in the section is never a finding.", tasks_role)
+        self.assertIn("a section that leaves it out, is a `tasks` finding that asks for it", tasks_role)
         self.assertIn("such as the hook tests in `.agent-hooks/`, need an explicit verification in their task instead", tasks_role)
 
     def test_blocks_turn_with_budget_reason_when_third_wave_of_reviewers_does_not_fit(self):

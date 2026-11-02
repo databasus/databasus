@@ -9,7 +9,10 @@ import (
 	"databasus-backend/internal/lib/testwait"
 )
 
+//nolint:tparallel // Each version's server stops before the next version starts, which bounds the memory the servers of one test hold.
 func TestGetWalSummarizerState(t *testing.T) {
+	t.Parallel()
+
 	for _, image := range getSupportedVersionImages() {
 		t.Run(image, func(t *testing.T) {
 			for _, isEnabled := range []bool{true, false} {

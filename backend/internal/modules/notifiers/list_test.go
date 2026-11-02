@@ -14,6 +14,8 @@ func TestListNotifiers(t *testing.T) {
 	t.Parallel()
 
 	t.Run("pages through the notifiers of the workspace by name", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		for _, name := range []string{"b", "a", "c"} {
 			response, err := tm.owner.Client.CreateNotifierWithResponse(t.Context(), apiclient.NotifierCreate{
@@ -49,6 +51,8 @@ func TestListNotifiers(t *testing.T) {
 	})
 
 	t.Run("returns 400 invalid_request when the cursor is not one of the list", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		malformedCursor := "not-a-cursor"
 

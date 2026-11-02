@@ -21,11 +21,22 @@ func TestPhysicalBackupRunOverlap(t *testing.T) {
 
 	for _, action := range []string{"cancel", "delete", "disable", "switch", "delete then switch", "delete then clear then switch"} {
 		t.Run("waits for the old process before completing the next full after "+action, func(t *testing.T) {
+			t.Parallel()
+
 			isStorageSwitch := action == "switch" || action == "delete then switch" ||
 				action == "delete then clear then switch"
 
 			team := newBackupTeam(t, backupTeamSpec{})
 			sourceStorageID := team.StorageID
+
+			// The target comes first: a cancelled process is killed after 10 seconds, and starting the
+			// target's storage between the cancellation and the scheduler pass can outlast that.
+			var targetWorkspace apiclient.Workspace
+			var target apptest.StorageNamespace
+			if isStorageSwitch {
+				targetWorkspace = apptest.CreateWorkspace(t, team.Owner, "Switched running backup")
+				target = apptest.CreateStorageNamespace(t, team.Owner, targetWorkspace.Id)
+			}
 
 			backup, releaseStorage := startHeldPhysicalStream(t, team, "full")
 			resume := apptest.SuspendPhysicalBackupProcess(t, backup.ID)
@@ -51,8 +62,6 @@ func TestPhysicalBackupRunOverlap(t *testing.T) {
 					require.Nil(t, apptest.GetBackupConfig(t, team.Owner, team.Database.Id).StorageId)
 				}
 
-				targetWorkspace := apptest.CreateWorkspace(t, team.Owner, "Switched running backup")
-				target := apptest.CreateStorageNamespace(t, team.Owner, targetWorkspace.Id)
 				operation := apptest.TransferToStorage(
 					t,
 					team.Owner,

@@ -18,6 +18,8 @@ func TestPhysicalBackupFailures(t *testing.T) {
 	t.Run(
 		"records the tool exit and server rejection when physical replication is denied by pg_hba",
 		func(t *testing.T) {
+			t.Parallel()
+
 			team := newBackupTeam(t, backupTeamSpec{IsPhysicalReplicationDenied: true})
 			backup := team.runBackup(t, "full")
 
@@ -32,6 +34,8 @@ func TestPhysicalBackupFailures(t *testing.T) {
 		},
 	)
 	t.Run("records a failed full when the source becomes unreachable", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupTeam(t, backupTeamSpec{})
 
 		team.App.ExecuteSQL(
@@ -50,6 +54,8 @@ func TestPhysicalBackupFailures(t *testing.T) {
 	t.Run(
 		"records a failed incremental when the source becomes unreachable",
 		func(t *testing.T) {
+			t.Parallel()
+
 			team := newBackupTeam(t, backupTeamSpec{})
 			full := team.runBackup(t, "full")
 			require.Equal(t, "COMPLETED", full.Status)
@@ -67,6 +73,8 @@ func TestPhysicalBackupFailures(t *testing.T) {
 		},
 	)
 	t.Run("breaks the incremental chain without an artifact when summarization was disabled", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupTeam(t, backupTeamSpec{})
 		full := team.runBackup(t, "full")
 		require.Equal(t, "COMPLETED", full.Status)
@@ -87,6 +95,8 @@ func TestPhysicalBackupFailures(t *testing.T) {
 		assert.Nil(t, incremental.FileName)
 	})
 	t.Run("breaks the full chain when the saved system identifier belongs to another cluster", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupTeam(t, backupTeamSpec{})
 
 		team.App.ExecuteSQL(
@@ -101,6 +111,8 @@ func TestPhysicalBackupFailures(t *testing.T) {
 		team.assertNoRunningBackup(t)
 	})
 	t.Run("breaks an incremental before running the tool when its parent manifest is missing", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupTeam(t, backupTeamSpec{})
 		full := team.runBackup(t, "full")
 		require.Equal(t, "COMPLETED", full.Status)
@@ -112,6 +124,8 @@ func TestPhysicalBackupFailures(t *testing.T) {
 		team.assertNoRunningBackup(t)
 	})
 	t.Run("breaks the incremental chain when its stored parent manifest is corrupted", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupTeam(t, backupTeamSpec{})
 		full := team.runBackup(t, "full")
 		require.Equal(t, "COMPLETED", full.Status)

@@ -57,6 +57,8 @@ func TestTelemetry(t *testing.T) {
 	t.Parallel()
 
 	t.Run("delivers anonymous api state after warmup and reuses its identity", func(t *testing.T) {
+		t.Parallel()
+
 		receiver := &telemetryReceiver{status: http.StatusAccepted}
 		server := httptest.NewServer(receiver)
 		t.Cleanup(server.Close)
@@ -147,6 +149,8 @@ func TestTelemetry(t *testing.T) {
 		}
 	})
 	t.Run("reports empty arrays and omits user count when no user exists", func(t *testing.T) {
+		t.Parallel()
+
 		receiver := &telemetryReceiver{status: http.StatusOK}
 		server := httptest.NewServer(receiver)
 		t.Cleanup(server.Close)
@@ -168,6 +172,8 @@ func TestTelemetry(t *testing.T) {
 	})
 
 	t.Run("sends nothing when reporting is disabled", func(t *testing.T) {
+		t.Parallel()
+
 		receiver := &telemetryReceiver{status: http.StatusOK}
 		server := httptest.NewServer(receiver)
 		t.Cleanup(server.Close)
@@ -185,6 +191,8 @@ func TestTelemetry(t *testing.T) {
 		assert.NoFileExists(t, identityPath)
 	})
 	t.Run("preserves corrupt identity when a report is due", func(t *testing.T) {
+		t.Parallel()
+
 		receiver := &telemetryReceiver{status: http.StatusNoContent}
 		server := httptest.NewServer(receiver)
 		t.Cleanup(server.Close)
@@ -209,6 +217,8 @@ func TestTelemetryIdentityFailures(t *testing.T) {
 
 	for _, scenario := range []string{"unreadable directory", "unwritable parent"} {
 		t.Run("skips reporting when identity has an "+scenario, func(t *testing.T) {
+			t.Parallel()
+
 			receiver := &telemetryReceiver{status: http.StatusOK}
 			server := httptest.NewServer(receiver)
 			t.Cleanup(server.Close)

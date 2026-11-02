@@ -18,6 +18,7 @@ func getUnreachableServer() containers.Endpoint {
 	return containers.Endpoint{Host: "db.example.com", Port: 5432}
 }
 
+//nolint:tparallel // The subtests share one source server.
 func TestDatabaseAccess(t *testing.T) {
 	t.Parallel()
 

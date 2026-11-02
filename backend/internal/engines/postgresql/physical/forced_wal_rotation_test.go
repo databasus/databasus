@@ -8,7 +8,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//nolint:tparallel // Each version's server stops before the next version starts, which bounds the memory the servers of one test hold.
 func TestCanForceWalRotation(t *testing.T) {
+	t.Parallel()
+
 	runOnEverySupportedVersion(t, func(t *testing.T, server testServer) {
 		t.Helper()
 

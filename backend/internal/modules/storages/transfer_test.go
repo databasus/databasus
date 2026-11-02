@@ -21,6 +21,8 @@ func TestTransferStorage(t *testing.T) {
 	t.Parallel()
 
 	t.Run("moves an unused storage to another workspace of the same user", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		targetWorkspace := apptest.CreateWorkspace(t, tm.owner, "Target")
 		createdStorage := tm.createLocalStorage(t, "Local")
@@ -33,6 +35,8 @@ func TestTransferStorage(t *testing.T) {
 	})
 
 	t.Run("returns 409 in_use and keeps the storage when a database of its workspace uses it", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		targetWorkspace := apptest.CreateWorkspace(t, tm.owner, "Target")
 		createdStorage := tm.createLocalStorage(t, "Local")
@@ -50,6 +54,8 @@ func TestTransferStorage(t *testing.T) {
 
 	t.Run("returns 403 permission_denied and keeps the storage when the user only views the target",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			otherOwner := tm.stranger(t)
 			targetWorkspace := apptest.CreateWorkspace(t, otherOwner, "Target")
@@ -66,6 +72,8 @@ func TestTransferStorage(t *testing.T) {
 
 	t.Run("answers a target workspace of another team exactly as a workspace that does not exist",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			otherTeamWorkspace := apptest.CreateWorkspace(t, tm.stranger(t), "Other team")
 			missingWorkspaceID := uuid.New()
@@ -85,6 +93,8 @@ func TestTransferStorage(t *testing.T) {
 		})
 
 	t.Run("moves the database and its storage together and keeps the config on the storage", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		targetWorkspace := apptest.CreateWorkspace(t, tm.owner, "Target")
 		createdStorage := tm.createLocalStorage(t, "Local")
@@ -116,6 +126,8 @@ func TestTransferStorage(t *testing.T) {
 	})
 
 	t.Run("refuses a backup config save that waited for a transfer of its storage", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		targetWorkspace := apptest.CreateWorkspace(t, tm.owner, "Target")
 		createdStorage := tm.createLocalStorage(t, "Local")
@@ -187,6 +199,8 @@ func TestTransferStoragePermissions(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			targetOwner := tm.stranger(t)
 			targetWorkspace := apptest.CreateWorkspace(t, targetOwner, "Target")
@@ -212,6 +226,8 @@ func TestTransferStoragePermissions(t *testing.T) {
 	}
 
 	t.Run("returns 404 not_found when the owner of the source is not a member of the target", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		otherTeamWorkspace := apptest.CreateWorkspace(t, tm.stranger(t), "Other team")
 		createdStorage := tm.createLocalStorage(t, "Local")

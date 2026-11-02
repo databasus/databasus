@@ -32,6 +32,8 @@ func TestNew(t *testing.T) {
 	t.Parallel()
 
 	t.Run("passes the response through the middleware of the server", func(t *testing.T) {
+		t.Parallel()
+
 		testApp := New(t)
 		client := apiclient.New(t, testApp.URL)
 
@@ -42,6 +44,8 @@ func TestNew(t *testing.T) {
 	})
 
 	t.Run("writes a row into the database of its own test", func(t *testing.T) {
+		t.Parallel()
+
 		testApp := New(t)
 
 		db, err := database.Open(t.Context(), testApp.databaseDsn)
@@ -54,6 +58,8 @@ func TestNew(t *testing.T) {
 	})
 
 	t.Run("does not see the row a previous test wrote when built after it", func(t *testing.T) {
+		t.Parallel()
+
 		testApp := New(t)
 
 		db, err := database.Open(t.Context(), testApp.databaseDsn)
@@ -72,6 +78,8 @@ func TestRunJobPass(t *testing.T) {
 	t.Parallel()
 
 	t.Run("refuses a WAL manager pass when live physical jobs are disabled", func(t *testing.T) {
+		t.Parallel()
+
 		testApp := New(t)
 		recordingTest := &fatalRecorder{TB: t, failure: "", mutex: sync.Mutex{}}
 		isDone := make(chan struct{})
@@ -81,6 +89,8 @@ func TestRunJobPass(t *testing.T) {
 	})
 
 	t.Run("starts a full backup when one scheduler pass finds a database without a full backup", func(t *testing.T) {
+		t.Parallel()
+
 		testApp := New(t)
 		source := containers.StartPhysicalPostgres(t, "postgres:17")
 		owner, database := enablePhysicalBackupLoops(t, testApp, source)
@@ -103,6 +113,8 @@ func TestRunJobPass(t *testing.T) {
 	})
 
 	t.Run("fails the test when no job has the name", func(t *testing.T) {
+		t.Parallel()
+
 		testApp := New(t)
 		recordingTest := &fatalRecorder{TB: t, failure: "", mutex: sync.Mutex{}}
 
@@ -159,6 +171,8 @@ func TestPhysicalBackupLoops(t *testing.T) {
 	t.Parallel()
 
 	t.Run("records distinct sample times and exposes no manual clock with live jobs", func(t *testing.T) {
+		t.Parallel()
+
 		testApp := New(t, WithPhysicalBackupLoops())
 		require.Nil(t, testApp.Clock)
 		source := containers.StartPhysicalPostgres(t, "postgres:17")
@@ -179,6 +193,8 @@ func TestPhysicalBackupLoops(t *testing.T) {
 		})
 	})
 	t.Run("keeps orphan WAL until an explicit cleaner pass with live jobs", func(t *testing.T) {
+		t.Parallel()
+
 		testApp := New(t, WithPhysicalBackupLoops())
 		source := containers.StartPhysicalPostgres(t, "postgres:17")
 		owner, backupDatabase := enablePhysicalBackupLoops(t, testApp, source)
@@ -223,6 +239,8 @@ func TestPhysicalBackupLoops(t *testing.T) {
 	})
 
 	t.Run("starts no physical backup or wal stream without the option", func(t *testing.T) {
+		t.Parallel()
+
 		testApp := New(t)
 		source := containers.StartPhysicalPostgres(t, "postgres:17")
 		owner, database := enablePhysicalBackupLoops(t, testApp, source)
@@ -262,6 +280,8 @@ func TestPhysicalBackupLoops(t *testing.T) {
 		})
 	})
 	t.Run("stops physical work before closing the database when an application ends", func(t *testing.T) {
+		t.Parallel()
+
 		source := containers.StartPhysicalPostgres(t, "postgres:17")
 		for applicationNumber := range 2 {
 			t.Run(fmt.Sprintf("application %d", applicationNumber+1), func(t *testing.T) {
@@ -298,6 +318,8 @@ func TestPhysicalBackupLoops(t *testing.T) {
 	})
 
 	t.Run("reports a cleanup failure when a background job outlives the stop bound", func(t *testing.T) {
+		t.Parallel()
+
 		var recordingTest *fatalRecorder
 		t.Run("application cleanup", func(t *testing.T) {
 			recordingTest = &fatalRecorder{TB: t, failure: "", mutex: sync.Mutex{}}
@@ -413,6 +435,8 @@ func TestPhysicalStartupWork(t *testing.T) {
 	t.Parallel()
 
 	t.Run("fails an unfinished backup when modules restart", func(t *testing.T) {
+		t.Parallel()
+
 		testApp := New(t)
 		source := containers.StartPhysicalPostgres(t, "postgres:17")
 		owner, database := enablePhysicalBackupLoops(t, testApp, source)
@@ -434,6 +458,8 @@ func TestPhysicalStartupWork(t *testing.T) {
 		assert.Contains(t, *listedBackups[0].FailMessage, "application restart")
 	})
 	t.Run("removes an orphan WAL segment when one cleaner pass runs", func(t *testing.T) {
+		t.Parallel()
+
 		testApp := New(t)
 		source := containers.StartPhysicalPostgres(t, "postgres:17")
 		owner, database := enablePhysicalBackupLoops(t, testApp, source)
@@ -449,6 +475,8 @@ func TestPhysicalStartupWork(t *testing.T) {
 		assert.Empty(t, listPhysicalBackups(t, testApp, owner, database.Id))
 	})
 	t.Run("removes an orphan backup slot and fails a stale streamer when modules restart", func(t *testing.T) {
+		t.Parallel()
+
 		testApp := New(t)
 		source := containers.StartPhysicalPostgres(t, "postgres:17")
 		_, database := enablePhysicalBackupLoops(t, testApp, source)
@@ -474,6 +502,8 @@ func TestPhysicalStartupWork(t *testing.T) {
 		assert.Equal(t, "FAILED", streamerStatus)
 	})
 	t.Run("keeps the replication slot and starts a new session when live modules restart", func(t *testing.T) {
+		t.Parallel()
+
 		testApp := New(t, WithPhysicalBackupLoops())
 		source := containers.StartPhysicalPostgres(t, "postgres:17")
 		owner, database := enablePhysicalBackupLoops(t, testApp, source)
@@ -546,6 +576,8 @@ func TestWalStreamTimings(t *testing.T) {
 	t.Parallel()
 
 	t.Run("archives WAL from a quiet source when the application shortens forced rotation", func(t *testing.T) {
+		t.Parallel()
+
 		timings := backups.ProductionWalStreamTimings()
 		timings.ForcedRotationInterval = 2 * time.Second
 		testApp := New(t, WithPhysicalBackupLoops(), WithWalStreamTimings(timings))

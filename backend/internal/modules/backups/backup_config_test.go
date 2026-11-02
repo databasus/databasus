@@ -20,6 +20,8 @@ func TestReadBackupConfig(t *testing.T) {
 	t.Run(
 		"reads the logical default of a database whose config was never saved and stores nothing",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			databaseID := tm.insertLogicalDatabase(t)
 
@@ -65,6 +67,8 @@ func TestReadBackupConfig(t *testing.T) {
 	)
 
 	t.Run("reads the saved values after the first save and lists the config", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		databaseID := tm.insertLogicalDatabase(t)
 		storageID := tm.createLocalStorage(t)
@@ -85,6 +89,8 @@ func TestSaveBackupConfig(t *testing.T) {
 	t.Parallel()
 
 	t.Run("refuses a physical config for a logical database and keeps the config", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		databaseID := tm.insertLogicalDatabase(t)
 		storageID := tm.createLocalStorage(t)
@@ -136,6 +142,8 @@ func TestSaveBackupConfig(t *testing.T) {
 	})
 
 	t.Run("refuses a retention count of zero, names the field and keeps the config", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		databaseID := tm.insertLogicalDatabase(t)
 		storageID := tm.createLocalStorage(t)
@@ -157,6 +165,8 @@ func TestSaveBackupConfig(t *testing.T) {
 	for _, undatedCron := range []string{"0 0 31 2 *", "0 0 31 2,4 *"} {
 		t.Run("refuses a cron schedule with no date to run on and keeps the config with "+undatedCron,
 			func(t *testing.T) {
+				t.Parallel()
+
 				tm := newTeam(t)
 				databaseID := tm.insertLogicalDatabase(t)
 				storageID := tm.createLocalStorage(t)
@@ -177,6 +187,8 @@ func TestSaveBackupConfig(t *testing.T) {
 	}
 
 	t.Run("saves a cron schedule with a date only in leap years", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		databaseID := tm.insertLogicalDatabase(t)
 		storageID := tm.createLocalStorage(t)
@@ -195,6 +207,8 @@ func TestSaveBackupConfig(t *testing.T) {
 	})
 
 	t.Run("names a storage of the database's workspace and leaves the storage as it was", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		databaseID := tm.insertLogicalDatabase(t)
 		storageID := tm.createLocalStorage(t)
@@ -207,6 +221,8 @@ func TestSaveBackupConfig(t *testing.T) {
 	})
 
 	t.Run("ignores storage fields beside the storage ID and leaves the storage as it was", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		databaseID := tm.insertLogicalDatabase(t)
 		storageID := tm.createLocalStorage(t)
@@ -227,6 +243,8 @@ func TestSaveBackupConfig(t *testing.T) {
 	})
 
 	t.Run("names no storage and creates none when the body carries a storage object without an ID", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		databaseID := tm.insertLogicalDatabase(t)
 		requestBody := newLogicalBackupConfigBody(t, nil)
@@ -240,6 +258,8 @@ func TestSaveBackupConfig(t *testing.T) {
 	})
 
 	t.Run("refuses a storage ID that no storage has and creates no storage", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		databaseID := tm.insertLogicalDatabase(t)
 		unknownStorageID := uuid.New()
@@ -253,6 +273,8 @@ func TestSaveBackupConfig(t *testing.T) {
 	})
 
 	t.Run("refuses a storage of another workspace and keeps the config's storage", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		databaseID := tm.insertLogicalDatabase(t)
 		storageID := tm.createLocalStorage(t)
@@ -272,6 +294,8 @@ func TestSaveBackupConfigRacingStorageTransfer(t *testing.T) {
 	t.Parallel()
 
 	t.Run("lets exactly one of a save and a transfer of its storage succeed", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		targetWorkspace := tm.createWorkspace(t)
 		databaseID := tm.insertLogicalDatabase(t)
@@ -321,6 +345,8 @@ func TestListBackupConfigs(t *testing.T) {
 	t.Parallel()
 
 	t.Run("lists the saved configs of a workspace in one response with their storages", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		storageID := tm.createLocalStorage(t)
 		savedDatabaseIDs := []uuid.UUID{
@@ -350,6 +376,8 @@ func TestListBackupConfigs(t *testing.T) {
 	})
 
 	t.Run("pages the configs of a workspace in database ID order", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		storageID := tm.createLocalStorage(t)
 		savedDatabaseIDs := []uuid.UUID{
@@ -389,6 +417,8 @@ func TestListBackupConfigs(t *testing.T) {
 	})
 
 	t.Run("lists the config that backs up into a storage", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		usedStorageID := tm.createLocalStorage(t)
 		otherStorageID := tm.createLocalStorage(t)
@@ -410,6 +440,8 @@ func TestListBackupConfigs(t *testing.T) {
 	})
 
 	t.Run("refuses a list with both filters or with neither", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		storageID := tm.createLocalStorage(t)
 
@@ -437,6 +469,8 @@ func TestCopyDatabaseBackupConfig(t *testing.T) {
 	t.Parallel()
 
 	t.Run("gives the copy of a database the copy of its saved logical config", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		databaseID := tm.insertLogicalDatabase(t)
 		storageID := tm.createLocalStorage(t)
@@ -467,6 +501,8 @@ func TestDeleteDatabaseBackupConfig(t *testing.T) {
 	t.Parallel()
 
 	t.Run("deletes the saved config with the database", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		databaseID := tm.insertLogicalDatabase(t)
 		saveLogicalBackupConfig(t, tm.owner, databaseID, tm.createLocalStorage(t))
@@ -480,6 +516,8 @@ func TestDeleteDatabaseBackupConfig(t *testing.T) {
 	})
 
 	t.Run("keeps the config when the deletion is refused while a logical backup runs", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		databaseID := tm.insertLogicalDatabase(t)
 		storageID := tm.createLocalStorage(t)
@@ -499,6 +537,8 @@ func TestBackupConfigAccess(t *testing.T) {
 	t.Parallel()
 
 	t.Run("lets a viewer list the workspace's configs and read a database's config", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		viewer := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 		databaseID := tm.insertLogicalDatabase(t)
@@ -511,6 +551,8 @@ func TestBackupConfigAccess(t *testing.T) {
 	})
 
 	t.Run("lets a member save a config", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		member := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER)
 		databaseID := tm.insertLogicalDatabase(t)
@@ -521,6 +563,8 @@ func TestBackupConfigAccess(t *testing.T) {
 	})
 
 	t.Run("refuses a viewer's save with 403 and keeps the config", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		viewer := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 		databaseID := tm.insertLogicalDatabase(t)
@@ -541,6 +585,8 @@ func TestBackupConfigAccess(t *testing.T) {
 	})
 
 	t.Run("answers a user outside the workspace with 404 on every operation and keeps the config", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		stranger := tm.app.SignUp(t, apptest.NewTestEmail("stranger"))
 		databaseID := tm.insertLogicalDatabase(t)
@@ -581,6 +627,8 @@ func TestBackupConfigAccess(t *testing.T) {
 	})
 
 	t.Run("answers a missing database like a database of another workspace", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		stranger := tm.app.SignUp(t, apptest.NewTestEmail("stranger"))
 		databaseID := tm.insertLogicalDatabase(t)

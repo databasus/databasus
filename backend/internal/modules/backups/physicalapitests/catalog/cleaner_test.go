@@ -16,6 +16,8 @@ func TestCleanPhysicalBackups(t *testing.T) {
 	t.Parallel()
 
 	t.Run("keeps the newest inactive chains and the active chain when chain retention runs", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCleanerCatalog(t)
 		configureRetentionSchedule(&catalog.Config)
 		catalog.Config.Retention.ChainsCount = 2
@@ -35,6 +37,8 @@ func TestCleanPhysicalBackups(t *testing.T) {
 		assert.False(t, catalog.fullExists(t, oldB.ID))
 	})
 	t.Run("keeps a recent chain beyond the count when the grace period has not elapsed", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCleanerCatalog(t)
 		catalog.hasRecentChains = true
 		configureRetentionSchedule(&catalog.Config)
@@ -57,6 +61,8 @@ func TestCleanPhysicalBackups(t *testing.T) {
 		assert.True(t, catalog.fullExists(t, recentBeyond.ID), "a chain younger than the grace period is never evicted")
 	})
 	t.Run("keeps the newest fulls and removes their dependents when full retention runs", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCleanerCatalog(t)
 		configureRetentionSchedule(&catalog.Config)
 		catalog.Config.Retention.FullBackups = &apiclient.FullBackupsRetention{
@@ -110,6 +116,8 @@ func TestCleanPhysicalBackups(t *testing.T) {
 		assert.False(t, catalog.fullExists(t, droppedFull.ID), "non-kept chain deleted entirely")
 	})
 	t.Run("keeps hourly bucket representatives when GFS retention runs", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCleanerCatalog(t)
 		configureRetentionSchedule(&catalog.Config)
 		catalog.Config.Retention.FullBackups = &apiclient.FullBackupsRetention{
@@ -130,6 +138,8 @@ func TestCleanPhysicalBackups(t *testing.T) {
 		assert.False(t, catalog.fullExists(t, droppedB.ID))
 	})
 	t.Run("keeps the union of fulls and chains when combined retention runs", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCleanerCatalog(t)
 		configureRetentionSchedule(&catalog.Config)
 		catalog.Config.Retention.ChainsCount = 1
@@ -157,6 +167,8 @@ func TestCleanPhysicalBackups(t *testing.T) {
 		assert.False(t, catalog.fullExists(t, dropped.ID))
 	})
 	t.Run("removes WAL when no chain covers it", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCleanerCatalog(t)
 
 		orphan := catalog.insertWal(
@@ -178,6 +190,8 @@ func TestCleanPhysicalBackups(t *testing.T) {
 		assert.False(t, catalog.walExists(t, orphan.ID), "WAL not covered by any chain is deleted")
 	})
 	t.Run("keeps WAL when a completed full covers it", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCleanerCatalog(t)
 
 		catalog.seedChainFull(t, chainFullSpec{StartSegment: 1, AgeHours: 0})
@@ -200,6 +214,8 @@ func TestCleanPhysicalBackups(t *testing.T) {
 		assert.True(t, catalog.walExists(t, covered.ID), "chain-covered WAL must never be caught by the orphan pass")
 	})
 	t.Run("keeps archived WAL when the first full is running", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCleanerCatalog(t)
 
 		catalog.insertFull(
@@ -230,6 +246,8 @@ func TestCleanPhysicalBackups(t *testing.T) {
 	})
 
 	t.Run("keeps the boundary segment when a full starts inside it", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCleanerCatalog(t)
 
 		catalog.insertFull(
@@ -265,6 +283,8 @@ func TestCleanPhysicalBackups(t *testing.T) {
 			"the segment holding the FULL's start_lsn and stop_lsn must survive the orphan sweep")
 	})
 	t.Run("removes WAL ending below the first retained full when the orphan pass runs", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCleanerCatalog(t)
 
 		catalog.insertFull(
@@ -300,6 +320,8 @@ func TestCleanPhysicalBackups(t *testing.T) {
 			"WAL that ends below the earliest retained FULL's start is still reclaimable")
 	})
 	t.Run("removes an abandoned WAL claim when it is older than the grace period", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCleanerCatalog(t)
 
 		catalog.seedChainFull(t, chainFullSpec{StartSegment: 0})
@@ -326,6 +348,8 @@ func TestCleanPhysicalBackups(t *testing.T) {
 		)
 	})
 	t.Run("keeps an uncommitted WAL claim when it is inside the grace period", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCleanerCatalog(t)
 
 		catalog.seedChainFull(t, chainFullSpec{StartSegment: 0})
@@ -348,6 +372,8 @@ func TestCleanPhysicalBackups(t *testing.T) {
 		assert.True(t, catalog.walExists(t, freshClaim.ID), "an active WAL upload within grace must survive")
 	})
 	t.Run("keeps the running full while evicting expired completed chains", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCleanerCatalog(t)
 		configureRetentionSchedule(&catalog.Config)
 		catalog.Config.Retention.ChainsCount = 1
@@ -371,6 +397,8 @@ func TestCleanPhysicalBackups(t *testing.T) {
 		assert.False(t, catalog.fullExists(t, evicted.ID), "completed chains beyond the keep-count are still evicted")
 	})
 	t.Run("deletes only expired samples when the cleaner pass runs", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCleanerCatalog(t)
 		now := time.Now().UTC()
 
@@ -393,6 +421,8 @@ func TestCleanPhysicalBackups(t *testing.T) {
 		require.NotEqual(t, expiredSample.ID, remainingSamples[0].ID)
 	})
 	t.Run("deletes every expired sample when the database stopped streaming eight days ago", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCleanerCatalog(t)
 		now := time.Now().UTC()
 		stoppedStreamingAt := now.Add(-8 * 24 * time.Hour)

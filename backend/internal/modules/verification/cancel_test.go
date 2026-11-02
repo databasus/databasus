@@ -14,6 +14,8 @@ func TestCancelVerification(t *testing.T) {
 	t.Parallel()
 
 	t.Run("cancels a pending verification when a member asks", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		verification := team.start(t, backup.Id)
@@ -39,6 +41,8 @@ func TestCancelVerification(t *testing.T) {
 	})
 	for _, status := range []apiclient.VerificationStatus{apiclient.VerificationStatusCOMPLETED, apiclient.VerificationStatusFAILED, apiclient.VerificationStatusCANCELED} {
 		t.Run("returns not_running when the verification is "+string(status), func(t *testing.T) {
+			t.Parallel()
+
 			team := newVerificationTeam(t)
 			backup := team.backup(t)
 			verification := team.start(t, backup.Id)

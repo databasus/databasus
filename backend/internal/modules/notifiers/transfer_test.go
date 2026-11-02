@@ -21,6 +21,8 @@ func TestTransferNotifier(t *testing.T) {
 	t.Parallel()
 
 	t.Run("moves an unused notifier to another workspace of the user", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		targetWorkspace := apptest.CreateWorkspace(t, tm.owner, "Target "+uuid.NewString()[:8])
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
@@ -35,6 +37,8 @@ func TestTransferNotifier(t *testing.T) {
 	})
 
 	t.Run("returns 409 in_use and keeps the notifier when a database of its workspace uses it", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		targetWorkspace := apptest.CreateWorkspace(t, tm.owner, "Target "+uuid.NewString()[:8])
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
@@ -51,6 +55,8 @@ func TestTransferNotifier(t *testing.T) {
 	})
 
 	t.Run("waits for an attach in flight and then returns 409 in_use", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		targetWorkspace := apptest.CreateWorkspace(t, tm.owner, "Target "+uuid.NewString()[:8])
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
@@ -84,6 +90,8 @@ func TestTransferNotifier(t *testing.T) {
 
 	t.Run("returns 403 permission_denied when the user is only a viewer of the target workspace",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			member := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER)
 			targetWorkspace := apptest.CreateWorkspace(t, tm.owner, "Target "+uuid.NewString()[:8])
@@ -100,6 +108,8 @@ func TestTransferNotifier(t *testing.T) {
 		})
 
 	t.Run("returns 404 not_found when the user is not a member of the notifier's workspace", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		stranger := tm.stranger(t)
 		strangerWorkspace := apptest.CreateWorkspace(t, stranger, "Stranger "+uuid.NewString()[:8])
@@ -117,6 +127,8 @@ func TestTransferDatabaseWithNotifiers(t *testing.T) {
 	t.Parallel()
 
 	t.Run("moves the database and its notifier and keeps the notifier attached", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		targetWorkspace := apptest.CreateWorkspace(t, tm.owner, "Target "+uuid.NewString()[:8])
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,

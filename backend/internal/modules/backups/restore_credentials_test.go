@@ -22,6 +22,7 @@ func getRestoreFields() []string {
 	return []string{"id", "backupId", "status", "failMessage", "durationMs", "createdAt"}
 }
 
+//nolint:tparallel // The subtests share one source server.
 func TestRestoreTargetCredentials(t *testing.T) {
 	t.Parallel()
 

@@ -13,6 +13,8 @@ func TestPhysicalBackupWithoutClusterSize(t *testing.T) {
 	t.Parallel()
 
 	t.Run("completes with a null raw size when the role cannot measure database sizes", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupTeam(t, backupTeamSpec{})
 		team.useReplicationRole(t)
 		source := team.openSource(t)

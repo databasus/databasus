@@ -77,6 +77,8 @@ func TestVerificationNotifications(t *testing.T) {
 		{name: "sends no failure when notifications are disabled", report: agentclient.VerificationReport{Status: "FAILED", PgRestoreExitCode: new(1)}, isSuccess: false, isEnabled: false, attempts: 1},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
+			t.Parallel()
+
 			team := newVerificationTeam(t)
 			backup := team.backup(t)
 			team.App.WaitForBackupRuns(t)
@@ -130,6 +132,8 @@ func TestVerificationSilentAgentNotification(t *testing.T) {
 	t.Parallel()
 
 	t.Run("notifies only at the final attempt when the scheduler reaps a silent agent", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		team.App.WaitForBackupRuns(t)

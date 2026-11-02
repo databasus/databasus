@@ -32,6 +32,8 @@ func TestPhysicalBackupOverMtls(t *testing.T) {
 	t.Run(
 		"publishes the full and manifest after replication authentication with a client certificate",
 		func(t *testing.T) {
+			t.Parallel()
+
 			team := newBackupTeam(t, backupTeamSpec{IsMtls: true})
 			full := team.runBackup(t, "full")
 			require.Equal(t, "COMPLETED", full.Status)
@@ -40,6 +42,8 @@ func TestPhysicalBackupOverMtls(t *testing.T) {
 		},
 	)
 	t.Run("rejects a source update when its required client certificate is removed", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupTeam(t, backupTeamSpec{IsMtls: true})
 		settings, err := team.Database.Settings.AsPostgresqlPhysicalSettings()
 		require.NoError(t, err)

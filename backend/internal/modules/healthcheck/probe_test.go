@@ -14,6 +14,8 @@ func TestHealthcheckProbe(t *testing.T) {
 	t.Parallel()
 
 	t.Run("marks unavailable only at the threshold and sends one notification until recovery", func(t *testing.T) {
+		t.Parallel()
+
 		team := newHealthcheckTeam(t)
 		failedMessages := recordNotifications(t, team, apiclient.NotificationCategoryHEALTHCHECKFAILED)
 		recoveryMessages := recordNotifications(t, team, apiclient.NotificationCategoryHEALTHCHECKSUCCESS)
@@ -62,6 +64,8 @@ func TestHealthcheckProbe(t *testing.T) {
 		assert.Empty(t, recoveryMessages)
 	})
 	t.Run("breaks consecutive failures when a successful probe intervenes", func(t *testing.T) {
+		t.Parallel()
+
 		team := newHealthcheckTeam(t)
 		var port int
 		team.App.QuerySQL(
@@ -91,6 +95,8 @@ func TestHealthcheckProbe(t *testing.T) {
 		assert.Len(t, team.getAttempts(t), 4)
 	})
 	t.Run("notifies on the first success only after checks are switched off and on again", func(t *testing.T) {
+		t.Parallel()
+
 		team := newHealthcheckTeam(t)
 		messages := recordNotifications(t, team)
 		team.pass(t)
@@ -112,6 +118,8 @@ func TestHealthcheckProbe(t *testing.T) {
 		assert.Contains(t, <-messages, "online")
 	})
 	t.Run("clears an unavailable status and keeps the history when checks are switched off", func(t *testing.T) {
+		t.Parallel()
+
 		team := newHealthcheckTeam(t)
 		input := configInput(team.getConfig(t))
 		input.FailedAttemptsBeforeUnavailable = 1
@@ -129,6 +137,8 @@ func TestHealthcheckProbe(t *testing.T) {
 		assert.Len(t, team.getAttempts(t), 1)
 	})
 	t.Run("changes status without notification when notifications are switched off", func(t *testing.T) {
+		t.Parallel()
+
 		team := newHealthcheckTeam(t)
 		messages := recordNotifications(t, team)
 		input := configInput(team.getConfig(t))
@@ -142,6 +152,8 @@ func TestHealthcheckProbe(t *testing.T) {
 		assert.Empty(t, messages)
 	})
 	t.Run("respects the interval and its one second slack before recording the next attempt", func(t *testing.T) {
+		t.Parallel()
+
 		team := newHealthcheckTeam(t)
 		input := configInput(team.getConfig(t))
 		input.IntervalMinutes = 5
@@ -161,6 +173,8 @@ func TestHealthcheckProbe(t *testing.T) {
 		assert.Len(t, team.getAttempts(t), 3)
 	})
 	t.Run("deletes attempts strictly older than retention from the time of a check", func(t *testing.T) {
+		t.Parallel()
+
 		team := newHealthcheckTeam(t)
 		team.pass(t)
 		team.App.Clock.Advance(7 * 24 * time.Hour)
@@ -174,6 +188,8 @@ func TestHealthcheckProbe(t *testing.T) {
 		assert.WithinDuration(t, team.App.Clock.Now(), attempts[0].CreatedAt, time.Microsecond)
 	})
 	t.Run("rolls back attempts and sends no notification when a status update fails", func(t *testing.T) {
+		t.Parallel()
+
 		team := newHealthcheckTeam(t)
 		messages := recordNotifications(t, team)
 		input := configInput(team.getConfig(t))

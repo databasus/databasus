@@ -17,6 +17,8 @@ func TestPhysicalRestoreTokenContract(t *testing.T) {
 	t.Parallel()
 
 	t.Run("expires after 15 minutes when a token has not been used", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		full := createStreamableFullBackup(t, catalog)
 		var token restoreTokenResponse
@@ -42,6 +44,8 @@ func TestPhysicalRestoreTokenContract(t *testing.T) {
 		assert.Equal(t, apiclient.ProblemCodeUnauthenticated, problem.Code)
 	})
 	t.Run("returns no_restorable_backup when the full backup is deleted after token issue", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		full := createStreamableFullBackup(t, catalog)
 		var token restoreTokenResponse
@@ -68,6 +72,8 @@ func TestPhysicalRestoreTokenContract(t *testing.T) {
 		assert.Equal(t, apiclient.ProblemCodeNoRestorableBackup, problem.Code)
 	})
 	t.Run("returns not_found when a backup token names a backup deleted after issue", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		full := createStreamableFullBackup(t, catalog)
 		var token restoreTokenResponse
@@ -94,6 +100,8 @@ func TestPhysicalRestoreTokenContract(t *testing.T) {
 		assert.Equal(t, apiclient.ProblemCodeNotFound, problem.Code)
 	})
 	t.Run("spends the token when a competing restore stream refuses its first download", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		full := createStreamableFullBackup(t, catalog)
 		var token restoreTokenResponse
@@ -126,6 +134,8 @@ func TestPhysicalRestoreTokenContract(t *testing.T) {
 	t.Run(
 		"returns the same public script without credentials when fetched with and without a session",
 		func(t *testing.T) {
+			t.Parallel()
+
 			catalog := newCatalog(t)
 			full := createStreamableFullBackup(t, catalog)
 			var token restoreTokenResponse

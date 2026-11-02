@@ -35,6 +35,8 @@ func TestPhysicalBackupSlots(t *testing.T) {
 			t.Run(
 				"keeps a permanent physical slot during "+kind+" on PostgreSQL "+version+" and removes it after completion",
 				func(t *testing.T) {
+					t.Parallel()
+
 					team := newBackupTeam(t, backupTeamSpec{Image: "postgres:" + version})
 					if kind == "incremental" {
 						require.Equal(t, "COMPLETED", team.runBackup(t, "full").Status)
@@ -91,6 +93,8 @@ func TestPhysicalBackupSlots(t *testing.T) {
 		}
 	}
 	t.Run("recovers an orphan before a full and reuses its slot name for the next full", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupTeam(t, backupTeamSpec{})
 		source := team.openSource(t)
 		slotName, _ := team.slotNames(t)
@@ -109,6 +113,8 @@ func TestPhysicalBackupSlots(t *testing.T) {
 		}
 	})
 	t.Run("reuses the slot after a failed full when its source becomes reachable", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupTeam(t, backupTeamSpec{})
 
 		team.App.ExecuteSQL(
@@ -140,6 +146,8 @@ func TestPhysicalBackupSlotStartupCleanup(t *testing.T) {
 			scenario = "removes the orphan through its SSH bastion when modules restart"
 		}
 		t.Run(scenario, func(t *testing.T) {
+			t.Parallel()
+
 			team := newBackupTeam(t, backupTeamSpec{IsBastioned: isBastioned})
 			source := team.openSource(t)
 			backupSlot, streamerSlot := team.slotNames(t)
@@ -166,6 +174,8 @@ func TestPhysicalBackupSlotStartupCleanup(t *testing.T) {
 		})
 	}
 	t.Run("skips an unreachable source and removes its orphan after the next reachable restart", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupTeam(t, backupTeamSpec{})
 		source := team.openSource(t)
 		slotName, _ := team.slotNames(t)

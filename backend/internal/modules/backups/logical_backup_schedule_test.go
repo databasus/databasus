@@ -21,6 +21,7 @@ const logicalBackupSchedulerJobName = "backups_logical_scheduler"
 
 var errScheduledBackupNotFailed = errors.New("the scheduled backup has not failed yet")
 
+//nolint:tparallel // The subtests share one source server.
 func TestLogicalBackupScheduler(t *testing.T) {
 	t.Parallel()
 

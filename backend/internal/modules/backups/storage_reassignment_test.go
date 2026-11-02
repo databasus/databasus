@@ -64,6 +64,7 @@ func TestReassignLogicalBackupStorage(t *testing.T) {
 	}
 }
 
+//nolint:tparallel // The subtests share one source server.
 func TestRefuseLogicalStorageSwitchDuringWork(t *testing.T) {
 	t.Parallel()
 	server := startRestoreServer(t, "postgres:17")

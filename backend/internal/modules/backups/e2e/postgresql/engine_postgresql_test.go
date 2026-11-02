@@ -62,6 +62,8 @@ type relationRef struct {
 
 // TestBackupAndRestorePostgresql boots each supported version once and runs every scenario against
 // it, so only one server of the matrix is alive at a time.
+//
+//nolint:tparallel // Each version's scenarios share one server, and a version stops before the next starts.
 func TestBackupAndRestorePostgresql(t *testing.T) {
 	t.Parallel()
 
@@ -127,6 +129,7 @@ func TestBackupAndRestorePostgresql(t *testing.T) {
 	}
 }
 
+//nolint:tparallel // The subtests share one source server.
 func TestBackupAndRestoreTimescaledb(t *testing.T) {
 	t.Parallel()
 
@@ -177,6 +180,8 @@ func TestBackupAndRestorePostgresqlOverTls(t *testing.T) {
 	t.Parallel()
 
 	t.Run("restores the rows over a connection that requires TLS", func(t *testing.T) {
+		t.Parallel()
+
 		endpoint := containers.StartPostgresSSL(t, enginetest.GetTestdataDirectory(t, "ssl"))
 		server := connectToPostgresql(t, endpoint, "sslmode=require")
 		tableName := "test_data_ssl_" + enginetest.NewUniqueSuffix()
@@ -198,6 +203,7 @@ func TestBackupAndRestorePostgresqlOverTls(t *testing.T) {
 	})
 }
 
+//nolint:tparallel // The subtests share one source server.
 func TestBackupAndRestorePostgresqlOverMutualTls(t *testing.T) {
 	t.Parallel()
 
@@ -253,6 +259,8 @@ func TestBackupAndRestorePostgresqlOverSshTunnel(t *testing.T) {
 	t.Parallel()
 
 	t.Run("restores the rows through the bastion", func(t *testing.T) {
+		t.Parallel()
+
 		topology := containers.StartPostgresBehindSSHBastion(t, "postgres:16")
 		server := connectToPostgresql(t, enginetest.OpenForwardedEndpoint(t, topology), postgresqlPlainConnection)
 		tableName := "test_data_ssh_tunnel_" + enginetest.NewUniqueSuffix()
@@ -279,6 +287,8 @@ func TestBackupPostgresqlToFailingStorage(t *testing.T) {
 	t.Parallel()
 
 	t.Run("fails the backup without hanging when the upload fails", func(t *testing.T) {
+		t.Parallel()
+
 		server := connectToPostgresql(t, containers.StartPostgres(t, "postgres:16"), postgresqlPlainConnection)
 		tableName := "test_data_" + enginetest.NewUniqueSuffix()
 		server.execute(t, createAndFillPostgresqlTableQuery(tableName))

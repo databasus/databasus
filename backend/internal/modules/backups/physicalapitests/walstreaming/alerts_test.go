@@ -22,6 +22,8 @@ func TestWalForcedRotation(t *testing.T) {
 	t.Run(
 		"archives a rarely written segment without a manual switch when forced rotation is enabled",
 		func(t *testing.T) {
+			t.Parallel()
+
 			team := newWalTeam(t, walTeamSpec{})
 			team.enable(t)
 			team.waitForReceiver(t)
@@ -32,6 +34,8 @@ func TestWalForcedRotation(t *testing.T) {
 	t.Run(
 		"reports refused rotation through the webhook and statistics while explicit source rotations still archive WAL",
 		func(t *testing.T) {
+			t.Parallel()
+
 			team := newWalTeam(t, walTeamSpec{})
 			roleName := team.useReplicationRole(t)
 
@@ -75,6 +79,8 @@ func TestWalArchiveStaleness(t *testing.T) {
 	t.Parallel()
 
 	t.Run("alerts while a writing source cannot archive and resumes after S3 recovers", func(t *testing.T) {
+		t.Parallel()
+
 		timings := backups.ProductionWalStreamTimings()
 		timings.ForcedRotationInterval = time.Second
 		timings.ArchiveStalenessThreshold = 2 * time.Second

@@ -12,6 +12,7 @@ import (
 	apiclient "databasus-backend/internal/lib/apiclient"
 )
 
+//nolint:tparallel // The subtests share one source server.
 func TestListLogicalBackups(t *testing.T) {
 	t.Parallel()
 
@@ -64,6 +65,7 @@ func TestListLogicalBackups(t *testing.T) {
 	})
 }
 
+//nolint:tparallel // The subtests share one source server.
 func TestListLogicalBackupsWithCursor(t *testing.T) {
 	t.Parallel()
 

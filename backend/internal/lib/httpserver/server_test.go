@@ -125,11 +125,9 @@ func newGuardedEngine(t *testing.T, routePath string) guardedEngine {
 
 	guarded := guardedEngine{engine: gin.New(), handledRequests: &atomic.Int32{}, logOutput: &bytes.Buffer{}}
 
-	guard, err := RequireContractOperation(
-		[]byte(guardedContract),
-		slog.New(slog.NewJSONHandler(guarded.logOutput, nil)),
-	)
+	contractRouter, err := NewAccessCheckedContractRouter([]byte(guardedContract))
 	require.NoError(t, err)
+	guard := RequireContractOperation(contractRouter, slog.New(slog.NewJSONHandler(guarded.logOutput, nil)))
 
 	guarded.engine.Group("/api/v1", guard).GET(routePath, func(ginContext *gin.Context) {
 		guarded.handledRequests.Add(1)
@@ -211,6 +209,9 @@ func TestListen(t *testing.T) {
 		go func() { _ = server.Serve() }()
 		t.Cleanup(func() { _ = server.Shutdown(t.Context()) })
 
+		// The server starts its header timer when it accepts the connection, possibly before Dial returns.
+		connectingAt := time.Now()
+
 		var dialer net.Dialer
 		connection, err := dialer.DialContext(t.Context(), "tcp", server.GetAddress())
 		require.NoError(t, err)
@@ -219,11 +220,10 @@ func TestListen(t *testing.T) {
 		_, err = connection.Write([]byte("GET /api/v1/syst"))
 		require.NoError(t, err)
 
-		writtenAt := time.Now()
-		require.NoError(t, connection.SetReadDeadline(writtenAt.Add(20*time.Second)))
+		require.NoError(t, connection.SetReadDeadline(connectingAt.Add(20*time.Second)))
 
 		_, err = io.ReadAll(connection)
-		closedAfter := time.Since(writtenAt)
+		closedAfter := time.Since(connectingAt)
 
 		require.NoError(t, err, "server must close the connection before the client read deadline")
 		assert.GreaterOrEqual(t, closedAfter, 10*time.Second)

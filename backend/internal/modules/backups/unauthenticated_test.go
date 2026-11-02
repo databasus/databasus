@@ -15,6 +15,8 @@ func TestBackupConfigOperationsWithoutSession(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns 401 unauthenticated for a list without a session", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 
 		response, err := tm.app.NewClient(t).ListBackupConfigsWithResponse(t.Context(),
@@ -31,6 +33,8 @@ func TestBackupConfigOperationsWithoutSession(t *testing.T) {
 	})
 
 	t.Run("returns 401 unauthenticated for a read without a session", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		databaseID := tm.insertLogicalDatabase(t)
 
@@ -42,6 +46,8 @@ func TestBackupConfigOperationsWithoutSession(t *testing.T) {
 	})
 
 	t.Run("returns 401 unauthenticated for a save without a session and saves nothing", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		databaseID := tm.insertLogicalDatabase(t)
 		storageID := tm.createLocalStorage(t)
@@ -56,6 +62,8 @@ func TestBackupConfigOperationsWithoutSession(t *testing.T) {
 	})
 
 	t.Run("returns 401 unauthenticated for a transfer without a session and moves nothing", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		targetWorkspace := tm.createWorkspace(t)
 		databaseID := tm.insertLogicalDatabase(t)

@@ -19,6 +19,8 @@ func TestVerificationHelpers(t *testing.T) {
 	t.Parallel()
 
 	t.Run("reads a pending manual verification of a completed backup", func(t *testing.T) {
+		t.Parallel()
+
 		team, backup := newVerificationBackup(t)
 		agent := team.App.CreateVerificationAgent(t, team.Admin)
 		require.NotEmpty(t, agent.Token)
@@ -40,6 +42,8 @@ func TestVerificationHelpers(t *testing.T) {
 		assert.Empty(t, read.JSON200.TableStats)
 	})
 	t.Run("downloads damaged bytes while the backup stays completed", func(t *testing.T) {
+		t.Parallel()
+
 		team, backup := newVerificationBackup(t)
 		damagedBytes := []byte("damaged backup bytes")
 		team.App.DamageLocalBackup(t, backup.Id, damagedBytes)

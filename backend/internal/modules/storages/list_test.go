@@ -14,6 +14,8 @@ func TestListStoragesPages(t *testing.T) {
 	t.Parallel()
 
 	t.Run("pages the storages by name and points to the next page while more remain", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		for _, name := range []string{"b", "a", "c"} {
 			tm.createLocalStorage(t, name)
@@ -42,6 +44,8 @@ func TestListStoragesPages(t *testing.T) {
 	})
 
 	t.Run("returns 400 invalid_request when the limit is above 100", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 
 		response, err := tm.owner.Client.ListStoragesWithResponse(t.Context(), &apiclient.ListStoragesParams{

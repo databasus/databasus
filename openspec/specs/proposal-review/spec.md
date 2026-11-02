@@ -47,7 +47,7 @@ Before starting reviewers the hook SHALL check the format of the change's "Chang
 - **THEN** the turn is blocked, the agent gets the validation output, and no reviewer starts
 
 #### Scenario: A forbidden command in the verification section
-- **WHEN** the change's "Change verification" section contains `mise run test`
+- **WHEN** the change's "Change verification" section contains `mise run backend:test-package ./internal/lib/...`
 - **THEN** the turn is blocked with the reason and the list of allowed forms, the command does not run, and no reviewer starts
 
 ### Requirement: What the full proposal review checks
@@ -102,8 +102,12 @@ The task reviewer SHALL check that a task with a test covers every scenario, tha
 - **THEN** the task reviewer returns a `tasks` finding that asks for the section with that package
 
 #### Scenario: A section that leaves out a package
-- **WHEN** a task's verification runs the tests of two backend packages and the "Change verification" section runs only one of them
-- **THEN** the task reviewer returns a `tasks` finding that names the missing package
+- **WHEN** a task adds tests to a backend package and the "Change verification" section holds only a browser command
+- **THEN** the task reviewer returns a `tasks` finding that asks for `mise run test`
+
+#### Scenario: A task that runs the full run
+- **WHEN** a task's verification or the "Change verification" section runs `mise run test`
+- **THEN** the task reviewer returns no finding for running it
 
 #### Scenario: A change with only hook tests
 - **WHEN** the tasks add tests only to the hook tests and the change has no "Change verification" section

@@ -15,6 +15,8 @@ func TestUpdateUser(t *testing.T) {
 	t.Parallel()
 
 	t.Run("replaces the name and the address, and the next sign-in uses the new address", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		changedEmail := apptest.NewTestEmail("changed")
@@ -31,6 +33,8 @@ func TestUpdateUser(t *testing.T) {
 	})
 
 	t.Run("keeps the session that changed the address", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 
@@ -42,6 +46,8 @@ func TestUpdateUser(t *testing.T) {
 	})
 
 	t.Run("records the old and the new address in the audit log", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		changedEmail := apptest.NewTestEmail("changed")
@@ -54,6 +60,8 @@ func TestUpdateUser(t *testing.T) {
 	})
 
 	t.Run("returns 409 email_taken when the address belongs to another user", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		member := app.SignUp(t, apptest.NewTestEmail("member"))
@@ -65,6 +73,8 @@ func TestUpdateUser(t *testing.T) {
 	})
 
 	t.Run("returns 400 naming the email when it is not an address", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 
@@ -78,6 +88,8 @@ func TestUpdateUser(t *testing.T) {
 	})
 
 	t.Run("keeps an address that is not valid when only the name changes", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		app.ExecuteSQL(t, "UPDATE users SET email = 'admin' WHERE id = ?", admin.UserID)
@@ -89,6 +101,8 @@ func TestUpdateUser(t *testing.T) {
 	})
 
 	t.Run("returns 403 permission_denied for another user's ID, even for an instance admin", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		member := app.SignUp(t, apptest.NewTestEmail("member"))
@@ -104,6 +118,8 @@ func TestChangeUserPassword(t *testing.T) {
 	t.Parallel()
 
 	t.Run("signs the user in with the new password and not with the old one", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 
@@ -117,6 +133,8 @@ func TestChangeUserPassword(t *testing.T) {
 	})
 
 	t.Run("returns 401 unauthenticated for a token issued before the change", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 
@@ -129,6 +147,8 @@ func TestChangeUserPassword(t *testing.T) {
 	})
 
 	t.Run("invalidates each earlier session after multiple replacements at one clock instant", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		sessionClients := []*apiclient.ClientWithResponses{admin.Client}
@@ -150,6 +170,8 @@ func TestChangeUserPassword(t *testing.T) {
 	})
 
 	t.Run("keeps sessions and pending codes when the password transaction rolls back", func(t *testing.T) {
+		t.Parallel()
+
 		app, admin := newTwoFactorApp(t)
 		pendingSignIn := startTwoFactorSignIn(t, app, admin.Email)
 		code := readLatestMailedCode(t, app, admin.Email)
@@ -167,6 +189,8 @@ func TestChangeUserPassword(t *testing.T) {
 	})
 
 	t.Run("returns 400 naming the password when it is shorter than 8 characters", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 
@@ -178,6 +202,8 @@ func TestChangeUserPassword(t *testing.T) {
 	})
 
 	t.Run("returns 403 permission_denied for another user's ID, even for an instance admin", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		member := app.SignUp(t, apptest.NewTestEmail("member"))

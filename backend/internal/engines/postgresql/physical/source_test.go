@@ -10,7 +10,10 @@ import (
 	containers "databasus-backend/internal/lib/testcontainers"
 )
 
+//nolint:tparallel // Each version's server stops before the next version starts, which bounds the memory the servers of one test hold.
 func TestProbeLiveness(t *testing.T) {
+	t.Parallel()
+
 	for _, image := range getSupportedVersionImages() {
 		t.Run(image, func(t *testing.T) {
 			server := startTestServer(t, image, containers.WithMaxWalSenders(1))
@@ -44,7 +47,10 @@ func TestProbeLiveness(t *testing.T) {
 	}
 }
 
+//nolint:tparallel // Each version's server stops before the next version starts, which bounds the memory the servers of one test hold.
 func TestGetClusterSizeMb(t *testing.T) {
+	t.Parallel()
+
 	runOnEverySupportedVersion(t, func(t *testing.T, server testServer) {
 		t.Helper()
 
@@ -59,7 +65,10 @@ func TestGetClusterSizeMb(t *testing.T) {
 	})
 }
 
+//nolint:tparallel // Each version's server stops before the next version starts, which bounds the memory the servers of one test hold.
 func TestOpenInspection(t *testing.T) {
+	t.Parallel()
+
 	runOnEverySupportedVersion(t, func(t *testing.T, server testServer) {
 		t.Helper()
 

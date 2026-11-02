@@ -12,6 +12,8 @@ func TestPhysicalCatalogSeeds(t *testing.T) {
 	t.Parallel()
 
 	t.Run("lists catalog rows when a physical database has no source server", func(t *testing.T) {
+		t.Parallel()
+
 		testApp := New(t)
 		owner := testApp.CreateAdmin(t)
 		workspace := CreateWorkspace(t, owner, "Catalog seeds")

@@ -6,7 +6,7 @@ This document describes the kinds of tests Databasus has and what each kind chec
 
 - A test checks what a caller observes: the HTTP API of the backend, the behavior of an engine against a real database server, or a screen of the frontend.
 - Our own database, modules and services are never mocked. Fakes replace only systems we cannot run locally and failures that are unsafe to cause for real.
-- Independent tests run in parallel within and across packages. Tests that intentionally change process environment settings or share a bounded engine-version fixture remain sequential. Single packages and tests also run alongside runs from other worktrees on the same machine; only full runs take turns through a machine-wide lock. A test never takes a shared resource under a fixed name.
+- Independent tests run in parallel within and across packages. Tests that intentionally change process environment settings or share a bounded engine-version fixture remain sequential. A test repeated directly also runs alongside runs from other worktrees on the same machine; only full runs take turns through a machine-wide lock. A test never takes a shared resource under a fixed name.
 - Every check runs locally. The review hook tests are the only manual check, and CI repeats all the others on a clean machine.
 
 ## Layers
@@ -53,7 +53,7 @@ Visual references live in `frontend/browser/references`. Ordinary runs use `upda
 
 The public Node supervisor runs only `backend/internal/app/browsertests`. That Go package builds the frontend in its run's temporary directory, constructs `apptest`, creates its account through the API and starts a loopback gateway on a free port. The gateway proxies `/api/`, serves runtime configuration before the application bundle and supplies SPA fallback. Separate browser scenarios check sign-in/sign-out and workspace resources. The resource scenario signs in, creates uniquely named workspaces and a local storage, reads it back through the API, reloads the selected workspace/storage preferences and switches to an empty workspace to verify resource isolation. Only external GitHub metadata is synthetic.
 
-The Go package also runs directly through `mise run backend:test-package ./internal/app/browsertests`. It belongs exclusively to the `browser-e2e` selection and is excluded from `other` and the broad default backend run. Ordinary backend testing requires no frontend runtime. CI provisions this browser job independently, and release versioning depends on its success.
+The Go package also runs directly with the Go test command from [Commands](#commands). It belongs exclusively to the `browser-e2e` selection and is excluded from `other` and the broad default backend run. Ordinary backend testing requires no frontend runtime. CI provisions this browser job independently, and release versioning depends on its success.
 
 `pnpm --dir frontend exec vitest run --config vitest.browser-e2e.config.ts` selects `frontend/tooling/runBrowserE2E.test.ts`, which drives the actual public command for scenario/readiness failure, interruption and overlapping runs. It checks nonzero exits and diagnostics, gateway/process/container/build-directory cleanup and unrelated-service survival. Process shutdown waits for owned descendants after the driver exits. Container cleanup verifies absence and rejects an unresolved runtime failure. Interruption during cleanup keeps both the public exit and retained status nonzero, even after the test driver succeeds. The E2E CI job runs these probes after the pilot. Default `pnpm test` excludes them and needs no backend. These probes run whole browser and container runs, so `frontend/vitest.browser-e2e.config.ts` gives them their own 180-second test limit. Database retention follows the existing failure policy below. E2E traces, video and automatic screenshots are disabled; temporary Playwright output is deleted. The public supervisor retains only nonsensitive lifecycle fields in `frontend/browser-results/e2e-<runId>/status.json`. Failure probes put synthetic credential, token and authorization-code markers into the browser and check that retained evidence contains none of them.
 
@@ -100,32 +100,37 @@ A gateway on the agent's link is the one allowed stand-in in this suite. It forw
 
 `DATABASUS_AGENT_E2E_ENGINE_HOST` selects the engine for the agent and the test's engine checks; an empty value uses Docker. Only the agent process receives it as `DOCKER_HOST`, so source servers stay on Docker. `mise run agent:e2e-podman` checks access to the rootful socket at `/run/podman/podman.sock` (overridden by `E2E_ENGINE_SOCKET`) and runs three scenarios: an encrypted backup on PostgreSQL 18, a broken backup and restore container privileges. It fails before testing when the socket cannot be opened and prints the command that grants access.
 
-A measured Docker run with race checks took 4 minutes 50 seconds (289.770 seconds), including both binary builds, with the required images already cached. Cold pulls and host contention change that duration; the package keeps the 30-minute timeout of `backend:test-package`.
+A measured Docker run with race checks took 4 minutes 50 seconds (289.770 seconds), including both binary builds, with the required images already cached. Cold pulls and host contention change that duration; the package has a 30-minute timeout.
 
-Independent scenarios run concurrently. Separate runs can overlap: agents have unique IDs, directories, ports and engine labels. Every scenario waits for its containers and networks to disappear after the outcome; cleanup also stops its process and removes labeled resources on failure. A detached daemon has an explicit PID cleanup. Failed scenarios print the agent output and logs. `mise run agent:test` excludes the e2e package and requires neither an engine nor the test database. CI runs the Docker suite in the `agent-e2e` backend group and the Podman subset as its own check.
+Test functions run concurrently, and the scenarios of `TestVerifyBackup` run one after another, because the agent of each scenario takes its network from Docker's default address pools. Separate runs can overlap: agents have unique IDs, directories, ports and engine labels. Every scenario waits for its containers and networks to disappear after the outcome; cleanup also stops its process and removes labeled resources on failure. A detached daemon has an explicit PID cleanup. Failed scenarios print the agent output and logs. `mise run agent:test` excludes the e2e package and requires neither an engine nor the test database. CI runs the Docker suite in the `agent-e2e` backend group and the Podman subset as its own check.
 
 ## Isolation
 
-- **Internal database.** Databases for tests live on one test PostgreSQL server, shared by every worktree on the machine and never stopped by a test run. `testdb.Open(t)` creates a fresh database with a unique name from a template that has every migration applied. The template is built once per set of migrations, under an advisory lock, and it is keyed by a hash of the migrations. A passing test drops its database. A failing test keeps it and prints its address. Each test process removes databases that are older than an hour and have no connections.
+- **Internal database.** Databases for tests live on one test PostgreSQL server, shared by every worktree on the machine and never stopped by a test run. `testdb.Open(t)` creates a fresh database with a unique name from a template that has every migration applied. The template is built once per set of migrations, under an advisory lock, and it is keyed by a hash of the migrations. A passing test drops its database. A failing test keeps it and prints its address. Each test process removes databases that are older than an hour and have no connections. The server runs without durability, with the flags the engine test containers use, so a crash of the server or the host can corrupt it. Its contents are disposable, but a plain recreation keeps the data volume and an existing template is reused. After such a crash, and only while no test run is active, recover by discarding the volume: `docker compose up -d --force-recreate --renew-anon-volumes backend-db-test`. The next test then builds a new template. The development database keeps its durability.
 - **Database servers for engines.** Tests reuse a source inside its engine-version scope. Each scope stops its container before starting the next version; independent top-level scopes can overlap. Booting a server for every scenario is too slow, and retaining every version at once uses too much memory. The servers keep their data in memory with durability turned off. Tests that share a server give a unique name to every object they create: database, role, schema and replication slot.
 - **Storages.** Each test uses its own bucket, container or directory.
+- **Docker networks.** A network a test creates takes a subnet outside Docker's default address pools, through `WithFreeSubnet` in `internal/lib/testcontainers`, so those pools stay free for the verification agent, which creates its own.
 - **Everything else.** Ports come from `127.0.0.1:0` or `httptest`, and files come from `t.TempDir()`. Containers and processes that a test starts get unique names and labels, and `t.Cleanup` removes them.
 
 ## Waiting
 
 Tests never wait for a fixed time. They wait for a condition with `testwait.Until`, up to the test's overall timeout, and the linter rejects `time.Sleep` and `Eventually` in tests. Time that drives behavior comes from the clock in `Deps`. A test of a schedule or a timeout therefore moves the clock instead of sleeping. The testing skill describes how to write a negative check.
 
-## Choosing the tests to run
+## Checking work
 
-While working, run the package or the test you need right now. Before handing the work over, run the tests of every package the change touched and of the packages that test the same feature, with `mise run backend:test-package <packages>` and `pnpm test` in `frontend/`. A package that tests the same feature is one whose tests exercise the changed behavior through the API, such as the backup and restore tests for a change in an engine.
+`mise run test` is the one routine local test command, for developers and agents alike. It checks a change that adds or changes tests or the code those tests cover, and the OpenSpec change verification of such a change names it; a change that edits only documentation owes no run. After it installs the frontend dependencies from the lockfile, it runs three concurrent processes and waits for all of them, so one failure does not hide others:
 
-`mise run backend:test-package` and the full run allow 30 minutes per package, because an unsharded physical API package can exceed 15 minutes. The full run is `mise run test`. It holds a machine-wide lock, so only one full run goes at a time and the others wait. Single packages and single tests run without the lock. CI runs every suite except the review hook tests on every pull request.
+- the backend packages listed in `backend/test-slow-packages.txt`, longest first, with a low package limit;
+- all other backend packages, with a higher limit, so they do not wait for slow ones;
+- the frontend unit and screen tests.
 
-`mise run backend:test-group physical-api-1-of-3 physical-api-2-of-3 physical-api-3-of-3` runs the physical API suite with the same selections as CI. The selected shards run concurrently in separate processes, each with race checks and a 40-minute timeout. Each process stops after its first failed test, as CI does. Use a single shard name to repeat that selection. The task also accepts the `physical` and `logical` shards; it rejects unsharded groups and `other`.
+Output lines carry the name of their process, and the summary names each process that failed. A package missing from the list runs with the fast packages, so a new package needs no entry; a package that starts containers or networks or runs for over a minute belongs in the list. An entry the run does not select costs nothing at run time, and a script test fails and names it. The upgrade test starts after all three processes pass. The run allows 30 minutes per package. It holds a machine-wide lock, so only one full run goes at a time and the others wait. The browser suites and the filesystem tests stay separate commands. CI runs every suite except the review hook tests on every pull request.
+
+To repeat one failing test while fixing it, call its runner directly with the commands below; this takes no lock and builds no image.
 
 ## Runs
 
-- Backend tests run with `-race`, and a data race fails the test.
+- CI runs backend tests with `-race`, and a data race fails the test. Local runs leave it out, because it makes them several times slower: every repository test command adds it only when `CI` is set. To reproduce a race CI reported, add `-race` to the command that repeats the test.
 - CI runs the same groups as the full run, split into shards by the measured duration of tests. Physical backup tests and WAL streaming tests are the slow groups and get their own shards.
 - The migration tests in `backend/migrations` and the architecture linter tests in `backend/tools/archlint` run in `mise run test` and, in CI, in the `other` group.
 - The review hook tests in `.agent-hooks/` run in neither. An agent that changes the hooks runs them by hand.
@@ -138,11 +143,8 @@ Local and CI preparation never reset shared source servers. Seed tests own their
 
 | What                                          | Command                                                                                              |
 | --------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Given backend packages                        | `mise run backend:test-package <packages>`                                                           |
-| Selected CI shards, concurrently              | `mise run backend:test-group <shard>...`                                                             |
-| Default backend and upgrade suite             | `mise run test`                                                                                      |
-| One backend package                           | `go test -race -count=1 ./internal/modules/<module>/...` in `backend/`                               |
-| One backend test                              | `go test -race -count=1 -run 'TestName/scenario text' ./internal/modules/<module>/...` in `backend/` |
+| Everything routine                            | `mise run test`                                                                                      |
+| One backend test, in `backend/`, see below    | `go test -count=1 -run 'TestName/scenario text' ./internal/modules/<module>/...`                     |
 | Verification agent unit tests                 | `mise run agent:test`                                                                                |
 | Verification agent end-to-end tests on Docker | `mise run agent:e2e`                                                                                 |
 | Verification agent subset on rootful Podman   | `mise run agent:e2e-podman`                                                                          |
@@ -153,3 +155,12 @@ Local and CI preparation never reset shared source servers. Seed tests own their
 | Upgrade test                                  | `mise run backend:test-upgrade`                                                                      |
 | Filesystem tests                              | `mise run test-filesystem`                                                                           |
 | Review hook tests, by hand                    | `python3 -m unittest discover -s .agent-hooks -p '*_test.py'`                                        |
+
+The bundled PostgreSQL clients need the libedit shim on Fedora, and parallel test binaries collide on the Ryuk reaper name, so the full command that repeats a backend test is:
+
+```sh
+cd backend
+source ../scripts/fedora.sh
+apply_libedit_shim
+TESTCONTAINERS_RYUK_DISABLED=true go test -count=1 -run 'TestName/scenario text' ./internal/modules/<module>/...
+```

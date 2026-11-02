@@ -28,6 +28,7 @@ linters:
     - usetesting
     - testifylint
     - thelper
+    - tparallel
     - gochecknoglobals
     - gochecknoinits
     - importas

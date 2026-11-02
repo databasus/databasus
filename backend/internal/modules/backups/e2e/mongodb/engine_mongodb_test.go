@@ -47,6 +47,8 @@ type mongodbTestDocument struct {
 
 // TestBackupAndRestoreMongodb boots each supported version once and runs every scenario against it,
 // so only one server of the matrix is alive at a time.
+//
+//nolint:tparallel // Each version's scenarios share one server, and a version stops before the next starts.
 func TestBackupAndRestoreMongodb(t *testing.T) {
 	t.Parallel()
 
@@ -74,6 +76,8 @@ func TestBackupAndRestoreMongodbOverTls(t *testing.T) {
 	t.Parallel()
 
 	t.Run("restores the documents over a connection that requires TLS", func(t *testing.T) {
+		t.Parallel()
+
 		certificateDirectory := enginetest.GetTestdataDirectory(t, "ssl")
 		endpoint := containers.StartMongodbSSL(t,
 			filepath.Join(certificateDirectory, "server.pem"), filepath.Join(certificateDirectory, "server.crt"))
@@ -99,6 +103,8 @@ func TestBackupAndRestoreMongodbOverSshTunnel(t *testing.T) {
 	t.Parallel()
 
 	t.Run("restores the documents through the bastion", func(t *testing.T) {
+		t.Parallel()
+
 		topology := containers.StartMongodbBehindSSHBastion(t, "mongo:7.0")
 		server := connectToMongodb(t, enginetest.OpenForwardedEndpoint(t, topology), "")
 		server.createTestDataCollection(t)
@@ -123,6 +129,8 @@ func TestBackupMongodbToFailingStorage(t *testing.T) {
 	t.Parallel()
 
 	t.Run("fails the backup without hanging when the upload fails", func(t *testing.T) {
+		t.Parallel()
+
 		server := connectToMongodb(t, containers.StartMongodb(t, "mongo:7.0"), "")
 		server.createTestDataCollection(t)
 

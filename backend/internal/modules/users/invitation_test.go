@@ -19,6 +19,8 @@ func TestInviteUser(t *testing.T) {
 	t.Parallel()
 
 	t.Run("invites an unknown address an instance admin adds to a workspace", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		workspaceID := createWorkspace(t, admin)
@@ -33,6 +35,8 @@ func TestInviteUser(t *testing.T) {
 	})
 
 	t.Run("lets a member invite when the instance allows member invitations", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		app.CreateAdmin(t)
 		member := app.SignUp(t, apptest.NewTestEmail("member"))
@@ -46,6 +50,8 @@ func TestInviteUser(t *testing.T) {
 	})
 
 	t.Run("refuses a member when the instance does not allow member invitations", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		member := app.SignUp(t, apptest.NewTestEmail("member"))
@@ -64,6 +70,8 @@ func TestInviteUser(t *testing.T) {
 	})
 
 	t.Run("refuses a password sign-in for the invited user like a wrong password", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		invitedEmail := inviteThroughWorkspace(t, admin)
@@ -78,6 +86,8 @@ func TestInviteUser(t *testing.T) {
 	})
 
 	t.Run("lets the invited user finish sign-up while registration is closed", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		closedRegistration := defaultSettingsUpdate()
@@ -104,6 +114,8 @@ func TestInviteUser(t *testing.T) {
 	})
 
 	t.Run("makes the invited user a member of the workspace after sign-up", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		workspaceID := createWorkspace(t, admin)
@@ -130,6 +142,8 @@ func TestInviteUser(t *testing.T) {
 	})
 
 	t.Run("lets the invited user finish sign-up through GitHub", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t, apptest.WithGitHub())
 		admin := app.CreateAdmin(t)
 		invitedEmail := inviteThroughWorkspace(t, admin)

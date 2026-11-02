@@ -19,6 +19,8 @@ func TestVerificationAgents(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns a token once and pages agents newest first when an admin creates agents", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		createdAgents := make([]apiclient.VerificationAgent, 3)
@@ -81,6 +83,8 @@ func TestVerificationAgents(t *testing.T) {
 		requireProblem(t, repeated.StatusCode(), repeated.Body, http.StatusNotFound, apiclient.ProblemCodeNotFound)
 	})
 	t.Run("refuses every admin operation when a workspace owner is not an instance admin", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		workspaceOwner := app.CreateNonAdminUser(t, admin)
@@ -129,6 +133,8 @@ func TestVerificationAgents(t *testing.T) {
 		require.Equal(t, http.StatusOK, status, string(body))
 	})
 	t.Run("returns unauthenticated when creating or listing without a session", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		agent := app.CreateVerificationAgent(t, admin)
@@ -180,6 +186,8 @@ func TestVerificationAgents(t *testing.T) {
 		assert.Equal(t, []apptest.VerificationAgent{agent.Agent}, app.ListVerificationAgents(t, admin))
 	})
 	t.Run("refuses invalid input and a foreign cursor without changing agents", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		created, err := admin.Client.CreateVerificationAgentWithResponse(
@@ -223,6 +231,8 @@ func TestVerificationAgentAudit(t *testing.T) {
 	t.Parallel()
 
 	t.Run("records agent changes without a workspace and returns a hex token when an admin acts", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		created, err := admin.Client.CreateVerificationAgentWithResponse(

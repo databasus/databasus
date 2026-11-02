@@ -12,6 +12,7 @@ import (
 	containers "databasus-backend/internal/lib/testcontainers"
 )
 
+//nolint:tparallel // The subtests share one physical PostgreSQL server.
 func TestDeleteDatabaseWithPhysicalBackups(t *testing.T) {
 	t.Parallel()
 

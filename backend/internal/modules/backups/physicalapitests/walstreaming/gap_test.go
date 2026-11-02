@@ -19,6 +19,8 @@ func TestIncrementalPhysicalBackupAfterWalGap(t *testing.T) {
 	t.Run(
 		"completes an incremental after a missing streamed segment while reporting the catalog gap",
 		func(t *testing.T) {
+			t.Parallel()
+
 			team := newWalTeam(t, walTeamSpec{})
 			team.enable(t)
 			team.waitForReceiver(t)

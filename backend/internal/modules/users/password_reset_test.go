@@ -20,6 +20,8 @@ func TestRequestPasswordReset(t *testing.T) {
 	t.Parallel()
 
 	t.Run("mails a code that replaces the password of the bootstrap administrator", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 
@@ -41,6 +43,8 @@ func TestRequestPasswordReset(t *testing.T) {
 	})
 
 	t.Run("answers alike and mails nothing for an address without a user", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		app.CreateAdmin(t)
 		unknownEmail := apptest.NewTestEmail("unknown")
@@ -52,6 +56,8 @@ func TestRequestPasswordReset(t *testing.T) {
 	})
 
 	t.Run("answers alike and mails nothing for a deactivated user", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		member := app.SignUp(t, apptest.NewTestEmail("member"))
@@ -64,6 +70,8 @@ func TestRequestPasswordReset(t *testing.T) {
 	})
 
 	t.Run("answers alike and mails nothing for an invited user", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		invitedEmail := inviteThroughWorkspace(t, admin)
@@ -76,6 +84,8 @@ func TestRequestPasswordReset(t *testing.T) {
 	})
 
 	t.Run("answers alike and mails nothing for the placeholder address", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		app.ExecuteSQL(t, "UPDATE users SET email = 'admin' WHERE id = ?", admin.UserID)
@@ -87,6 +97,8 @@ func TestRequestPasswordReset(t *testing.T) {
 	})
 
 	t.Run("returns 429 rate_limited on the fourth request in an hour, for any address", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		unknownEmail := apptest.NewTestEmail("unknown")
@@ -107,6 +119,8 @@ func TestRequestPasswordReset(t *testing.T) {
 	})
 
 	t.Run("returns 400 human_verification_failed without the challenge answer", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t, apptest.WithTurnstile())
 		admin := app.CreateAdmin(t)
 
@@ -122,6 +136,8 @@ func TestCompletePasswordReset(t *testing.T) {
 	t.Parallel()
 
 	t.Run("ends the sessions issued before the reset", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		code := requestResetCode(t, app, admin.Email)
@@ -135,6 +151,8 @@ func TestCompletePasswordReset(t *testing.T) {
 	})
 
 	t.Run("invalidates a pending code after a password reset at the same clock instant", func(t *testing.T) {
+		t.Parallel()
+
 		app, admin := newTwoFactorApp(t)
 		pending := startTwoFactorSignIn(t, app, admin.Email)
 		pendingCode := readLatestMailedCode(t, app, admin.Email)
@@ -163,6 +181,8 @@ func TestCompletePasswordReset(t *testing.T) {
 	})
 
 	t.Run("returns 400 invalid_reset_code for a wrong code and keeps the right one usable", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		code := requestResetCode(t, app, admin.Email)
@@ -176,6 +196,8 @@ func TestCompletePasswordReset(t *testing.T) {
 	})
 
 	t.Run("refuses the correct code after five wrong attempts", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		code := requestResetCode(t, app, admin.Email)
@@ -189,6 +211,8 @@ func TestCompletePasswordReset(t *testing.T) {
 	})
 
 	t.Run("accepts the correct code after four wrong attempts", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		code := requestResetCode(t, app, admin.Email)
@@ -201,6 +225,8 @@ func TestCompletePasswordReset(t *testing.T) {
 	})
 
 	t.Run("keeps the attempt count when the attempt fails", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		code := requestResetCode(t, app, admin.Email)
@@ -211,6 +237,8 @@ func TestCompletePasswordReset(t *testing.T) {
 	})
 
 	t.Run("refuses the correct code after eight simultaneous wrong attempts", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		code := requestResetCode(t, app, admin.Email)
@@ -231,6 +259,8 @@ func TestCompletePasswordReset(t *testing.T) {
 	})
 
 	t.Run("completes one reset when two requests carry the same correct code at once", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		code := requestResetCode(t, app, admin.Email)
@@ -263,6 +293,8 @@ func TestCompletePasswordReset(t *testing.T) {
 	})
 
 	t.Run("refuses an older code while the newest one is usable", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		olderCode := requestResetCode(t, app, admin.Email)
@@ -276,6 +308,8 @@ func TestCompletePasswordReset(t *testing.T) {
 	})
 
 	t.Run("refuses an older code after the newest one is exhausted", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		olderCode := requestResetCode(t, app, admin.Email)
@@ -294,6 +328,8 @@ func TestCompletePasswordReset(t *testing.T) {
 	})
 
 	t.Run("refuses an older code after a completed reset", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		olderCode := requestResetCode(t, app, admin.Email)
@@ -310,6 +346,8 @@ func TestCompletePasswordReset(t *testing.T) {
 	})
 
 	t.Run("accepts a new code after four wrong attempts on it when an exhausted one came before", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		exhaustedCode := requestResetCode(t, app, admin.Email)
@@ -329,6 +367,8 @@ func TestCompletePasswordReset(t *testing.T) {
 	})
 
 	t.Run("returns invalid_reset_code for a wrong code with a password too long to hash", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		code := requestResetCode(t, app, admin.Email)
@@ -340,6 +380,8 @@ func TestCompletePasswordReset(t *testing.T) {
 	})
 
 	t.Run("answers alike for an unknown address, a deactivated user and a wrong code", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		member := app.SignUp(t, apptest.NewTestEmail("member"))
@@ -387,6 +429,8 @@ func TestCompletePasswordReset(t *testing.T) {
 
 	t.Run("returns 400 naming the password without spending an attempt when a wrong code comes with a short password",
 		func(t *testing.T) {
+			t.Parallel()
+
 			app := apptest.New(t)
 			admin := app.CreateAdmin(t)
 			code := requestResetCode(t, app, admin.Email)
@@ -401,6 +445,8 @@ func TestCompletePasswordReset(t *testing.T) {
 		})
 
 	t.Run("returns 400 invalid_reset_code for a used code", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		code := requestResetCode(t, app, admin.Email)
@@ -415,6 +461,8 @@ func TestCompletePasswordReset(t *testing.T) {
 	})
 
 	t.Run("returns 400 invalid_reset_code for a code older than an hour", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		code := requestResetCode(t, app, admin.Email)
@@ -427,6 +475,8 @@ func TestCompletePasswordReset(t *testing.T) {
 	})
 
 	t.Run("returns 400 invalid_reset_code for an address without a user", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		app.CreateAdmin(t)
 
@@ -437,6 +487,8 @@ func TestCompletePasswordReset(t *testing.T) {
 	})
 
 	t.Run("returns 400 naming the password when it is shorter than 8 characters", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		code := requestResetCode(t, app, admin.Email)
@@ -450,6 +502,8 @@ func TestCompletePasswordReset(t *testing.T) {
 	})
 
 	t.Run("deletes the codes of the past hour in the cleanup pass", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		requestResetCode(t, app, admin.Email)

@@ -42,6 +42,7 @@ const (
 	CodeNotRunning               Code = "not_running"
 	CodeInsufficientDiskSpace    Code = "insufficient_disk_space"
 	CodeVerificationGone         Code = "verification_gone"
+	CodeInstanceUnhealthy        Code = "instance_unhealthy"
 	CodeInternal                 Code = "internal"
 )
 
@@ -115,6 +116,8 @@ func describeCode(code Code) (int, string) {
 		return http.StatusConflict, "Insufficient disk space"
 	case CodeVerificationGone:
 		return http.StatusGone, "Verification gone"
+	case CodeInstanceUnhealthy:
+		return http.StatusServiceUnavailable, "Instance unhealthy"
 	case CodeInternal:
 		return http.StatusInternalServerError, "Internal error"
 	}

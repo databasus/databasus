@@ -46,7 +46,7 @@ The implementing agent SHALL run the relevant formatters, linters and tests befo
 
 #### Scenario: A change names package tests
 
-- **WHEN** implementation review starts for a change whose verification section names backend package tests
+- **WHEN** implementation review starts for a change whose verification section contains `mise run test`
 - **THEN** the hook starts AI reviewers without running those tests or any module linter
 
 #### Scenario: The hooks changed
@@ -278,67 +278,53 @@ While a change has an unaccepted full implementation review, the necessity check
 - **WHEN** after a `spec_mismatch` finding the agent edits the change's delta spec and finishes the turn
 - **THEN** the necessity check does not start, and the full review checks the edit
 
-### Requirement: Which change verification commands the hook accepts
+### Requirement: The full review ends within the hook timeout
+
+The full implementation review SHALL work within a time budget that ends before the hook timeout of the client configuration, with a margin for the hook's own Git, OpenSpec and file work. A reviewer SHALL start only when the budget still holds its whole time limit. A reviewer that cannot start for that reason SHALL count as a reviewer that could not run: the review is not accepted, and the agent gets the reason. The hook MUST NOT be killed by the client timeout without a message.
+
+#### Scenario: Too many reviewers for the budget
+
+- **WHEN** a change has so many delta specs that a third wave of reviewers would not fit in the remaining budget
+- **THEN** the reviewers of that wave do not start, the turn is blocked, and the agent gets the reason that the review time budget ran out
+
+#### Scenario: Two waves of reviewers
+
+- **WHEN** the change needs two waves of reviewers and their time limits fit the review budget
+- **THEN** both waves run and the hook answers before the client timeout
+
+### Requirement: Change verification commands the hook accepts
 
 The change verification commands SHALL be the lines of the first code block fenced as `sh` under the "Change verification" heading of the change's task list. A block fenced as `bash`, `shell` or without a language does not count. Empty lines and comment lines are skipped. The hook SHALL accept only these command forms:
 
-- backend package tests: `mise run backend:test-package` followed by one or more package paths, which the agent runs from the repository root and the task resolves in the backend directory;
-- backend CI shards: `mise run backend:test-group` followed by one or more shard names of `physical`, `logical` or `physical-api`, which the agent runs from the repository root;
-- the verification agent's tests: `mise run agent:test`, with no further arguments, which the agent runs from the repository root;
-- frontend tests: `pnpm --dir frontend test`, optionally followed by test file paths or filters;
+- the routine local tests: exactly `mise run test`, with no further arguments, which the agent runs from the repository root;
 - isolated frontend browser tests: exactly `pnpm --dir frontend test:browser --project=ui` or `pnpm --dir frontend test:browser --project=e2e`, with no additional arguments.
 
-The implementing agent SHALL run these commands before review. The hook SHALL parse them only to validate the section and MUST NOT execute them. The backend task passes its package paths on to a shell script, so every argument after the fixed prefix MUST consist only of letters, digits and the characters `.`, `/`, `_`, `-`, `=`, `:` and `@`, and a package path MUST start with `./`. A shard name MUST match `<group>-<index>-of-<count>` with positive integers, and its index MUST NOT exceed its count. Unsharded groups, unknown groups and `other` MUST be rejected. This character set leaves out every shell operator and substitution. A line that is not one of the allowed forms or has an argument outside the allowed characters, a section without a closed `sh` block, and a block without commands SHALL each block the turn with the reason and the list of allowed forms. No reviewer starts in that case.
+The implementing agent SHALL run these commands before review. The hook SHALL parse them only to validate the section and MUST NOT execute them. A line that is not one of the allowed forms, a section without a closed `sh` block, and a block without commands SHALL each block the turn with the reason and the list of allowed forms. No reviewer starts in that case.
 
-#### Scenario: A full suite run in the block
+#### Scenario: The full run in the block
 
 - **WHEN** the change verification block contains `mise run test`
-- **THEN** the turn is blocked with the reason that the command is not allowed, and nothing runs
+- **THEN** the hook accepts the command format without running the tests
 
 #### Scenario: A shell operator
 
-- **WHEN** a line reads `mise run backend:test-package ./internal/features/intervals/... && rm -rf /tmp/x`
-- **THEN** the turn is blocked with the reason that the argument `&&` has a forbidden character, and nothing runs
+- **WHEN** a line reads `mise run test && rm -rf /tmp/x`
+- **THEN** the turn is blocked with the reason that the line does not match the form, and nothing runs
 
-#### Scenario: An argument with a forbidden character
+#### Scenario: The full run with an argument
 
-- **WHEN** a line reads `mise run backend:test-package ./internal/a;rm`
-- **THEN** the turn is blocked with the reason that an argument has a forbidden character, and nothing runs
+- **WHEN** a block contains `mise run test ./x`
+- **THEN** the turn is blocked with the reason that the line does not match the form, and nothing runs
 
-#### Scenario: Two changes name the same command
+#### Scenario: A removed narrow command
 
-- **WHEN** the hook reviews two changes whose blocks both contain `pnpm --dir frontend test`
-- **THEN** the hook validates both sections without running the command
-
-#### Scenario: Backend package tests
-
-- **WHEN** a block contains `mise run backend:test-package ./internal/features/intervals/...`
-- **THEN** the hook accepts the command format without running the package tests
+- **WHEN** a block contains `mise run agent:test`, `pnpm --dir frontend test` or `mise run backend:test-group physical-api-1-of-3`
+- **THEN** the turn is blocked with the reason that the command is not allowed and the list of allowed forms, and nothing runs
 
 #### Scenario: The old command form
 
-- **WHEN** a block contains `just test-package ./internal/features/intervals/...`
+- **WHEN** a block contains `mise run backend:test-package ./internal/features/intervals/...`
 - **THEN** the turn is blocked with the reason that the command is not allowed and the list of allowed forms, and nothing runs
-
-#### Scenario: Verification agent tests
-
-- **WHEN** a block contains `mise run agent:test`
-- **THEN** the hook accepts the command format without running the verification agent tests
-
-#### Scenario: Verification agent tests with an argument
-
-- **WHEN** a block contains `mise run agent:test ./x`
-- **THEN** the turn is blocked with the reason that the line does not match the form, and nothing runs
-
-#### Scenario: Parallel physical API shards
-
-- **WHEN** the block contains `mise run backend:test-group physical-api-1-of-3 physical-api-2-of-3 physical-api-3-of-3`
-- **THEN** the hook accepts the command format without running the CI selections
-
-#### Scenario: An unbounded backend group
-
-- **WHEN** the block names an unsharded group, `other`, an unknown group or a shard outside its count
-- **THEN** the hook rejects the command before any test or reviewer starts
 
 #### Scenario: The isolated browser UI command
 
@@ -356,17 +342,3 @@ The implementing agent SHALL run these commands before review. The hook SHALL pa
 
 - **WHEN** the block omits the browser project, selects a project other than `ui` or `e2e`, adds arguments or uses a different package script
 - **THEN** the hook rejects the command before any reviewer starts
-
-### Requirement: The full review ends within the hook timeout
-
-The full implementation review SHALL work within a time budget that ends before the hook timeout of the client configuration, with a margin for the hook's own Git, OpenSpec and file work. A reviewer SHALL start only when the budget still holds its whole time limit. A reviewer that cannot start for that reason SHALL count as a reviewer that could not run: the review is not accepted, and the agent gets the reason. The hook MUST NOT be killed by the client timeout without a message.
-
-#### Scenario: Too many reviewers for the budget
-
-- **WHEN** a change has so many delta specs that a third wave of reviewers would not fit in the remaining budget
-- **THEN** the reviewers of that wave do not start, the turn is blocked, and the agent gets the reason that the review time budget ran out
-
-#### Scenario: Two waves of reviewers
-
-- **WHEN** the change needs two waves of reviewers and their time limits fit the review budget
-- **THEN** both waves run and the hook answers before the client timeout

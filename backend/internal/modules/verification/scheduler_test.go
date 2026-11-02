@@ -37,6 +37,8 @@ func TestVerificationScheduler(t *testing.T) {
 	t.Run(
 		"uses the newest completed backup and keeps one interval verification when the schedule is due",
 		func(t *testing.T) {
+			t.Parallel()
+
 			team := newVerificationTeam(t)
 			team.backup(t)
 			team.App.Clock.Advance(time.Second)
@@ -54,6 +56,8 @@ func TestVerificationScheduler(t *testing.T) {
 	)
 
 	t.Run("creates no verification when the stored cron expression has no date to run on", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		team.backup(t)
 		team.enableSchedule(t, apiclient.VerificationScheduleTypeINTERVAL)
@@ -66,6 +70,8 @@ func TestVerificationScheduler(t *testing.T) {
 	})
 
 	t.Run("keeps manual work and creates scheduled work when an interval is due", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		manual := team.start(t, backup.Id)
@@ -77,6 +83,8 @@ func TestVerificationScheduler(t *testing.T) {
 		assert.Equal(t, apiclient.VerificationStatusPENDING, team.read(t, manual.Id).Status)
 	})
 	t.Run("waits for the next interval after a user cancels scheduled work", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		team.backup(t)
 		team.enableSchedule(t, apiclient.VerificationScheduleTypeINTERVAL)
@@ -96,6 +104,8 @@ func TestVerificationScheduler(t *testing.T) {
 		assert.Len(t, team.list(t), 2)
 	})
 	t.Run("does not create interval work when the config runs after backups", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		team.backup(t)
 		team.enableSchedule(t, apiclient.VerificationScheduleTypeAFTERBACKUP)
@@ -103,6 +113,8 @@ func TestVerificationScheduler(t *testing.T) {
 		assert.Empty(t, team.list(t))
 	})
 	t.Run("fails without retry when pending work waits longer than a day", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		verification := team.start(t, backup.Id)
@@ -116,6 +128,8 @@ func TestVerificationScheduler(t *testing.T) {
 		assert.NotNil(t, persisted.FinishedAt)
 	})
 	t.Run("requeues running work and refuses the token when its agent is deleted", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		verification := team.start(t, backup.Id)
@@ -144,6 +158,8 @@ func TestVerificationScheduler(t *testing.T) {
 				rune('0'+attempts),
 			),
 			func(t *testing.T) {
+				t.Parallel()
+
 				team := newVerificationTeam(t)
 				backup := team.backup(t)
 				verification := team.start(t, backup.Id)
@@ -176,6 +192,8 @@ func TestVerificationScheduler(t *testing.T) {
 	for _, trigger := range []string{"SCHEDULED", "AFTER_BACKUP"} {
 		for _, status := range []string{"PENDING", "RUNNING"} {
 			t.Run("cancels automatic "+trigger+" "+status+" work when its config is disabled", func(t *testing.T) {
+				t.Parallel()
+
 				team := newVerificationTeam(t)
 				backup := team.backup(t)
 				verification := team.start(t, backup.Id)
@@ -196,6 +214,8 @@ func TestVerificationScheduler(t *testing.T) {
 	}
 	for _, status := range []string{"PENDING", "RUNNING"} {
 		t.Run("keeps manual "+status+" work when its config is disabled", func(t *testing.T) {
+			t.Parallel()
+
 			team := newVerificationTeam(t)
 			backup := team.backup(t)
 			verification := team.start(t, backup.Id)
@@ -211,6 +231,8 @@ func TestAfterBackupVerification(t *testing.T) {
 	t.Parallel()
 
 	t.Run("supersedes pending automatic work and keeps manual work when a new backup completes", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		team.enableSchedule(t, apiclient.VerificationScheduleTypeAFTERBACKUP)
 		first := team.backup(t)
@@ -242,6 +264,8 @@ func TestAfterBackupVerification(t *testing.T) {
 		t.Run(
 			"creates no after-backup work when the config is disabled or interval based with enabled="+map[bool]string{false: "false", true: "true"}[isEnabled],
 			func(t *testing.T) {
+				t.Parallel()
+
 				team := newVerificationTeam(t)
 				config := configInput(team.config(t))
 				config.IsAutomaticVerificationEnabled = isEnabled

@@ -8,6 +8,8 @@ import (
 )
 
 func TestVerifySlot(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns slot name error without a slot name", func(t *testing.T) {
 		t.Parallel()
 
@@ -61,6 +63,8 @@ func TestVerifySlot(t *testing.T) {
 }
 
 func TestDropSlot(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns slot name error without a slot name", func(t *testing.T) {
 		t.Parallel()
 
@@ -120,6 +124,8 @@ func TestDropSlot(t *testing.T) {
 }
 
 func TestDropSlotForRemoval(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns slot name error without a slot name", func(t *testing.T) {
 		t.Parallel()
 

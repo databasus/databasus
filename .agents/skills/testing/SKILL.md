@@ -110,13 +110,13 @@ Write fakes as small hand-written structs. Do not use mock generators, `testify/
 - Call `testdb.Open(t)` once per test. A helper that opens one database for several subtests makes that database shared again.
 - On a shared engine server, give every object a unique name: database, role, schema and replication slot.
 - Take ports from `127.0.0.1:0` and files from `t.TempDir()`. Remove every container or process the test starts in `t.Cleanup`.
-- Mark independent tests with `t.Parallel()`.
+- Mark independent tests and their subtests with `t.Parallel()`. A subtest stays sequential only with a stated reason, in `//nolint:tparallel // <reason>` on its test: a shared application, moving clock, source server, engine-version fixture or process environment setting, or a dependency on an earlier subtest.
 
 ## Which tests to run
 
-While working, run the package or the single test you need. Before handing the work over, run the tests of every package you touched and of the packages that test the same feature, with `mise run backend:test-package <packages>` and `pnpm test` in `frontend/`, and include the commands and their result in the report. [`docs/testing.md`](../../../docs/testing.md#choosing-the-tests-to-run) says which packages test the same feature. Run the full `mise run test` only when the user asks for it.
+Check a change that adds or changes tests or the code they cover with `mise run test`, and include the command and its result in the report. While fixing a test it reported, repeat that test directly with the Go test command or `pnpm test -t` in `frontend/`. A race reported by CI is reproduced by adding `-race` to the Go test command, because local runs leave it out. [`docs/testing.md`](../../../docs/testing.md#commands) gives the full commands.
 
-After you interrupt a run, remove only what that run left behind. Never prune Docker or stop the shared test PostgreSQL server.
+After you interrupt a run, remove only what that run left behind. Never prune Docker or stop the shared test PostgreSQL server, apart from [its recovery after a crash](../../../docs/testing.md#isolation).
 
 ## Before handing the work over
 

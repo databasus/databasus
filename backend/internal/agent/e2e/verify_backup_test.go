@@ -16,6 +16,7 @@ import (
 	containers "databasus-backend/internal/lib/testcontainers"
 )
 
+//nolint:tparallel // The agent of each scenario creates a Docker network, and Docker's address pools run out when all scenarios start at once.
 func TestVerifyBackup(t *testing.T) {
 	t.Parallel()
 

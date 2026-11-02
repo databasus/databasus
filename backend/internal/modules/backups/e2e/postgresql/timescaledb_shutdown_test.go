@@ -17,6 +17,7 @@ import (
 	"databasus-backend/internal/lib/testwait"
 )
 
+//nolint:tparallel // The subtests share one source server.
 func TestTimescaleRestoreShutdown(t *testing.T) {
 	t.Parallel()
 	endpoint := containers.StartTimescaleDB(t, timescaledbImage)
@@ -102,6 +103,8 @@ func isTimescaleTargetRestoring(t *testing.T, server postgresqlServer, databaseN
 func TestTimescaleRestoreForcedShutdown(t *testing.T) {
 	t.Parallel()
 	t.Run("recovers the outcome on restart when archive input prevents draining", func(t *testing.T) {
+		t.Parallel()
+
 		endpoint := containers.StartTimescaleDB(t, timescaledbImage)
 		server := connectToPostgresql(t, endpoint, postgresqlPlainConnection)
 		tm := enginetest.NewTeam(t)

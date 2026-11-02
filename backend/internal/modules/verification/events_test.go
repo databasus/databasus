@@ -17,6 +17,8 @@ func TestVerificationDatabaseEvents(t *testing.T) {
 		t.Run(
 			"copies the saved config or keeps the default when a database is copied with saved="+map[bool]string{false: "false", true: "true"}[isSaved],
 			func(t *testing.T) {
+				t.Parallel()
+
 				team := newVerificationTeam(t)
 				if isSaved {
 					team.enableSchedule(t, apiclient.VerificationScheduleTypeINTERVAL)
@@ -48,6 +50,8 @@ func TestVerificationDatabaseEvents(t *testing.T) {
 		)
 	}
 	t.Run("deletes dependent verifications and configs when their backup and database are deleted", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		verification := team.start(t, backup.Id)

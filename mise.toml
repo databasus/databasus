@@ -30,7 +30,7 @@ description = "Start the app locally: dev database, test fixtures, WAL backup so
 run = "scripts/dev.sh"
 
 [tasks.test]
-description = "Run every backend test package, then the upgrade test"
+description = "Run every backend test package and the frontend tests, then the upgrade test"
 run = "scripts/test.sh"
 
 [tasks.pull-testcontainers]
@@ -97,22 +97,6 @@ description = "Regenerate the backend servers and test clients from backend/api/
 dir = "backend"
 run = "go generate ./..."
 
-# The libedit shim lets the bundled PostgreSQL clients start on Fedora; without it a package that
-# checks them at startup exits before its first test. Unsharded physical API packages can exceed
-# 15 minutes, especially when other runs share the machine. The timeout matches scripts/test.sh.
-[tasks."backend:test-package"]
-description = "Run the given backend test packages, e.g. mise run backend:test-package ./internal/modules/verification/..."
-dir = "backend"
-usage = 'arg "<packages>" var=#true help="Package paths relative to backend/, each starting with ./"'
-shell = "bash -euo pipefail -c"
-run = """
-source ../scripts/fedora.sh
-apply_libedit_shim
-# Parallel package binaries share one Ryuk reaper name and can collide on it, as in scripts/test.sh.
-# shellcheck disable=SC2086 # one package path per word
-TESTCONTAINERS_RYUK_DISABLED=true go test -race -count=1 -timeout 30m $usage_packages
-"""
-
 [tasks."agent:build"]
 description = "Build the verification agent binary"
 dir = "backend"
@@ -125,7 +109,7 @@ shell = "bash -euo pipefail -c"
 run = """
 packages=$(go list ./internal/agent/... ./cmd/verification-agent/... | rg -v '/internal/agent/e2e(/|$)')
 # shellcheck disable=SC2086 # go list emits one package path per word
-go test -race -count=1 -failfast $packages
+go test ${CI:+-race} -count=1 -failfast $packages
 """
 
 [tasks."frontend:lint"]

@@ -12,6 +12,8 @@ func TestHealthcheckLifecycle(t *testing.T) {
 	t.Parallel()
 
 	t.Run("copies all settings without attempts when a database is copied", func(t *testing.T) {
+		t.Parallel()
+
 		team := newHealthcheckTeam(t)
 		team.pass(t)
 
@@ -32,6 +34,8 @@ func TestHealthcheckLifecycle(t *testing.T) {
 		assert.Empty(t, copiedTeam.getAttempts(t))
 	})
 	t.Run("deletes the config and attempts in the database deletion transaction", func(t *testing.T) {
+		t.Parallel()
+
 		team := newHealthcheckTeam(t)
 		team.pass(t)
 		response, err := team.Owner.Client.DeleteDatabaseWithResponse(t.Context(), team.Database.Id)
@@ -45,6 +49,8 @@ func TestHealthcheckLifecycle(t *testing.T) {
 		}
 	})
 	t.Run("keeps config and attempts when a database deletion rolls back", func(t *testing.T) {
+		t.Parallel()
+
 		team := newHealthcheckTeam(t)
 		team.pass(t)
 		original := team.getConfig(t)

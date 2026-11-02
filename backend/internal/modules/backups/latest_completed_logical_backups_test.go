@@ -17,6 +17,8 @@ func TestGetLatestCompletedLogicalBackups(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns the latest completed backup per database when newer backups have failed", func(t *testing.T) {
+		t.Parallel()
+
 		tm := enginetest.NewTeam(t)
 		server := containers.StartPostgres(t, "postgres:18")
 		database := tm.CreateDatabase(t, apiclient.PostgresqlLogicalSettings{

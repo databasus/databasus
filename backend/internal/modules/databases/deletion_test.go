@@ -15,6 +15,7 @@ import (
 
 const storageFileDeletionJob = "storage_file_deletion"
 
+//nolint:tparallel // The subtests share one source server.
 func TestDeleteDatabase(t *testing.T) {
 	t.Parallel()
 
@@ -96,6 +97,7 @@ func TestDeleteDatabase(t *testing.T) {
 	})
 }
 
+//nolint:tparallel // The subtests share one source server.
 func TestDeleteDatabaseAccess(t *testing.T) {
 	t.Parallel()
 

@@ -23,6 +23,8 @@ func TestRecoverPhysicalBackupAfterRestart(t *testing.T) {
 		{name: "removes its named artifact after restart recovery fails an interrupted full", hasArtifact: true},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
 			team := newBackupTeam(t, backupTeamSpec{})
 			full := team.App.InsertPhysicalFullBackup(
 				t,

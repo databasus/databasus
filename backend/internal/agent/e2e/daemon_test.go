@@ -22,6 +22,8 @@ func TestAgentDaemon(t *testing.T) {
 	t.Parallel()
 
 	t.Run("starts one instance and stops it with the daemon commands", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t, apptest.WithAgentBinariesDir(currentBinaryDirectory))
 		admin := app.CreateAdmin(t)
 		credentials := app.CreateVerificationAgent(t, admin)

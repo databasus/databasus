@@ -17,6 +17,7 @@ import (
 
 const mysqlRootUsername = "root"
 
+//nolint:tparallel // The subtests share one source server.
 func TestMysqlLimitedUser(t *testing.T) {
 	t.Parallel()
 
@@ -60,6 +61,7 @@ func TestMysqlLimitedUser(t *testing.T) {
 	})
 }
 
+//nolint:tparallel // The subtests share one source server.
 func TestPostgresqlLimitedUser(t *testing.T) {
 	t.Parallel()
 
@@ -181,6 +183,7 @@ func TestPostgresqlLimitedUser(t *testing.T) {
 	})
 }
 
+//nolint:tparallel // The subtests share one physical PostgreSQL server.
 func TestPhysicalLimitedUser(t *testing.T) {
 	t.Parallel()
 

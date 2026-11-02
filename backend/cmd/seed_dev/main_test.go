@@ -537,6 +537,8 @@ func getBackupConfig(t *testing.T, router *apptest.App, token string, databaseID
 func TestSeedOverlap(t *testing.T) {
 	t.Parallel()
 	t.Run("creates both configured backups when seeds overlap", func(t *testing.T) {
+		t.Parallel()
+
 		firstFixture, firstParams := setUpSeedTest(t)
 		secondFixture, secondParams := setUpSeedTest(t)
 		firstParams.Email = "same-seed@example.com"

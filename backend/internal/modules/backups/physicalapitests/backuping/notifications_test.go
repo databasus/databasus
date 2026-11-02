@@ -13,6 +13,8 @@ func TestPhysicalBackupNotifications(t *testing.T) {
 	t.Parallel()
 
 	t.Run("sends no success notification when its trigger is disabled", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupTeam(t, backupTeamSpec{})
 		inbox := &webhookInbox{}
 		team.attachWebhook(t, inbox, apiclient.NotificationCategoryBACKUPSUCCESS)
@@ -25,6 +27,8 @@ func TestPhysicalBackupNotifications(t *testing.T) {
 		assert.Empty(t, inbox.getMessages())
 	})
 	t.Run("notifies every attached webhook when a full succeeds", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupTeam(t, backupTeamSpec{})
 		first := &webhookInbox{}
 		second := &webhookInbox{}
@@ -41,6 +45,8 @@ func TestPhysicalBackupNotifications(t *testing.T) {
 		assert.Contains(t, first.getMessages()[0], "completed")
 	})
 	t.Run("sends a failed notification when a full loses its source", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupTeam(t, backupTeamSpec{})
 		inbox := &webhookInbox{}
 		team.attachWebhook(t, inbox, apiclient.NotificationCategoryBACKUPFAILED)
@@ -59,6 +65,8 @@ func TestPhysicalBackupNotifications(t *testing.T) {
 		assert.Contains(t, inbox.getMessages()[0], "failed")
 	})
 	t.Run("sends a chain broken notification when a full sees another cluster identity", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupTeam(t, backupTeamSpec{})
 		inbox := &webhookInbox{}
 		team.attachWebhook(t, inbox, apiclient.NotificationCategoryBACKUPFAILED)
@@ -77,6 +85,8 @@ func TestPhysicalBackupNotifications(t *testing.T) {
 		assert.Contains(t, inbox.getMessages()[0], "chain-broken")
 	})
 	t.Run("sends a failed notification when an incremental loses its source", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupTeam(t, backupTeamSpec{})
 		full := team.runBackup(t, "full")
 		require.Equal(t, "COMPLETED", full.Status)

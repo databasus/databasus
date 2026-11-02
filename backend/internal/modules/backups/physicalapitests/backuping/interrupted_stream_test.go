@@ -16,11 +16,17 @@ func TestFailedPhysicalBackupStream(t *testing.T) {
 
 	t.Run(
 		"discards a partial artifact and drops the slot when the real pg_basebackup walsender is terminated",
-		func(t *testing.T) { terminateFullBackupStream(t, false) },
+		func(t *testing.T) {
+			t.Parallel()
+			terminateFullBackupStream(t, false)
+		},
 	)
 	t.Run(
 		"drops the slot over a fresh connection when the backup role loses all its source connections",
-		func(t *testing.T) { terminateFullBackupStream(t, true) },
+		func(t *testing.T) {
+			t.Parallel()
+			terminateFullBackupStream(t, true)
+		},
 	)
 }
 

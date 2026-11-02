@@ -22,6 +22,8 @@ func TestApplicationIsolation(t *testing.T) {
 	t.Parallel()
 
 	t.Run("preserves data and files when a neighbouring application shuts down", func(t *testing.T) {
+		t.Parallel()
+
 		survivor := New(t)
 		survivorOwner := survivor.SignUp(t, "same@example.com")
 		survivorWorkspace := CreateWorkspace(t, survivorOwner, "Survivor")

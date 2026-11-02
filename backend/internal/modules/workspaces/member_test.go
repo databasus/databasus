@@ -18,6 +18,8 @@ func TestAddWorkspaceMember(t *testing.T) {
 	t.Parallel()
 
 	t.Run("adds an existing user with the requested role", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		workspaceAdmin, _ := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEADMIN)
 		user := tm.app.SignUp(t, apptest.NewTestEmail("user"))
@@ -39,6 +41,8 @@ func TestAddWorkspaceMember(t *testing.T) {
 	})
 
 	t.Run("returns 409 and keeps the role when the user is already a member", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		viewer, _ := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 
@@ -56,6 +60,8 @@ func TestAddWorkspaceMember(t *testing.T) {
 	})
 
 	t.Run("invites an address without a user when the instance allows member invitations", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		workspaceAdmin, _ := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEADMIN)
 		invitedEmail := apptest.NewTestEmail("invited")
@@ -78,6 +84,8 @@ func TestAddWorkspaceMember(t *testing.T) {
 	})
 
 	t.Run("returns 403 and invites nobody when the instance does not allow member invitations", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		closeMemberInvitations(t, tm.admin)
 		invitedEmail := apptest.NewTestEmail("invited")
@@ -97,6 +105,8 @@ func TestAddWorkspaceMember(t *testing.T) {
 	})
 
 	t.Run("returns 400 and adds nobody when the role is the owner role", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		user := tm.app.SignUp(t, apptest.NewTestEmail("user"))
 
@@ -128,6 +138,8 @@ func TestAddWorkspaceMember(t *testing.T) {
 	}
 	for _, roleCase := range roleCases {
 		t.Run(roleCase.name, func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			lowRoleUser, _ := tm.addMember(t, roleCase.role)
 			user := tm.app.SignUp(t, apptest.NewTestEmail("user"))
@@ -147,6 +159,8 @@ func TestAddWorkspaceMember(t *testing.T) {
 	}
 
 	t.Run("returns 403 when an admin adds a user as an admin", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		workspaceAdmin, _ := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEADMIN)
 		user := tm.app.SignUp(t, apptest.NewTestEmail("user"))
@@ -164,6 +178,8 @@ func TestAddWorkspaceMember(t *testing.T) {
 	})
 
 	t.Run("returns 404 when the user is not a member of the workspace", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		stranger := tm.app.CreateNonAdminUser(t, tm.admin)
 
@@ -179,6 +195,8 @@ func TestAddWorkspaceMember(t *testing.T) {
 	})
 
 	t.Run("keeps the invited member when the mail server refuses the invitation email", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		tm.app.Mail.RefuseSends()
 		invitedEmail := apptest.NewTestEmail("invited")
@@ -201,6 +219,8 @@ func TestAddWorkspaceMember(t *testing.T) {
 	})
 
 	t.Run("returns 400 and adds nobody when the address is not an email address", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 
 		status, body := sendRawRequest(t, tm.app, tm.owner, http.MethodPost, "/workspace-members",
@@ -211,6 +231,8 @@ func TestAddWorkspaceMember(t *testing.T) {
 	})
 
 	t.Run("leaves no user, member or email when adding the member fails after the invitation", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		refuseMemberInserts(t, tm.app)
 		invitedEmail := apptest.NewTestEmail("invited")
@@ -238,6 +260,8 @@ func TestInvitationEmail(t *testing.T) {
 	for _, publicURL := range publicURLs {
 		t.Run("links to the public address as configured and names the inviter with "+publicURL,
 			func(t *testing.T) {
+				t.Parallel()
+
 				app := apptest.New(t, apptest.WithPublicURL(publicURL))
 				admin := app.CreateAdmin(t)
 				renameUser(t, admin, "Grace Inviter")
@@ -260,6 +284,8 @@ func TestListWorkspaceMembers(t *testing.T) {
 	t.Parallel()
 
 	t.Run("lists an invited member as invited after the members who joined earlier", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		workspaceAdmin, _ := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEADMIN)
 		invitedEmail := apptest.NewTestEmail("invited")
@@ -280,6 +306,8 @@ func TestListWorkspaceMembers(t *testing.T) {
 	})
 
 	t.Run("lists every member once in the order they joined when following the cursor", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		joinedUserIDs := []uuid.UUID{tm.owner.UserID}
 		for range 4 {
@@ -313,6 +341,8 @@ func TestListWorkspaceMembers(t *testing.T) {
 	})
 
 	t.Run("returns 400 when the cursor is not one of this list", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 
 		response, err := tm.owner.Client.ListWorkspaceMembersWithResponse(t.Context(),
@@ -324,6 +354,8 @@ func TestListWorkspaceMembers(t *testing.T) {
 	})
 
 	t.Run("returns 404 when the user is not a member of the workspace", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		stranger := tm.app.CreateNonAdminUser(t, tm.admin)
 

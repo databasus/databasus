@@ -12,10 +12,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/moby/moby/api/pkg/stdcopy"
 	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
 	"github.com/moby/moby/client"
 	"github.com/stretchr/testify/require"
 
 	agent_container "databasus-backend/internal/agent/container"
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/lib/testwait"
 )
 
@@ -87,19 +89,28 @@ func requireNoLeftovers(t *testing.T, engine *client.Client, agentID uuid.UUID) 
 
 func createNetwork(t *testing.T, engine *client.Client, agentID, verificationID uuid.UUID) string {
 	t.Helper()
-	network, err := engine.NetworkCreate(
-		t.Context(),
-		"databasus-verif-"+verificationID.String(),
-		client.NetworkCreateOptions{
-			Driver: "bridge",
-			Labels: map[string]string{
-				agent_container.LabelAgentID:        agentID.String(),
-				agent_container.LabelVerificationID: verificationID.String(),
+	var networkID string
+
+	err := containers.WithFreeSubnet(func(ipam *network.IPAM) error {
+		created, err := engine.NetworkCreate(
+			t.Context(),
+			"databasus-verif-"+verificationID.String(),
+			client.NetworkCreateOptions{
+				Driver: "bridge",
+				IPAM:   ipam,
+				Labels: map[string]string{
+					agent_container.LabelAgentID:        agentID.String(),
+					agent_container.LabelVerificationID: verificationID.String(),
+				},
 			},
-		},
-	)
+		)
+		networkID = created.ID
+
+		return err
+	})
 	require.NoError(t, err)
-	return network.ID
+
+	return networkID
 }
 
 func readContainerStatus(t *testing.T, engine *client.Client, containerID string) string {

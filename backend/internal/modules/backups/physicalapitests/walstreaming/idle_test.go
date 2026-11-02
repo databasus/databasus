@@ -18,6 +18,8 @@ func TestIdlePhysicalWalSource(t *testing.T) {
 	t.Run(
 		"keeps the same receiver and slot across 150 seconds of samples when the source stays idle",
 		func(t *testing.T) {
+			t.Parallel()
+
 			team := newWalTeam(t, walTeamSpec{})
 			team.enable(t)
 			team.waitForReceiver(t)

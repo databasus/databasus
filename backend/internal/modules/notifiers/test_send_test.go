@@ -21,6 +21,8 @@ func TestTestNotifier(t *testing.T) {
 	t.Parallel()
 
 	t.Run("reports the test message as delivered when a viewer tests a working webhook", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		viewer := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 		webhookEndpoint := startEndpoint(t, http.StatusOK)
@@ -35,6 +37,8 @@ func TestTestNotifier(t *testing.T) {
 	})
 
 	t.Run("reports the channel's error and records it when the webhook answers 500", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		webhookEndpoint := startEndpoint(t, http.StatusInternalServerError)
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
@@ -51,6 +55,8 @@ func TestTestNotifier(t *testing.T) {
 	})
 
 	t.Run("delivers the telegram message under the path prefix of the bot API URL", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		botAPI := startEndpoint(t, http.StatusOK)
 		telegram := newTelegram(telegramBotToken, botAPI.URL+"/telegram/")
@@ -67,6 +73,8 @@ func TestTestNotifier(t *testing.T) {
 	})
 
 	t.Run("records the failure without the header value the webhook echoes", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		webhookEndpoint := startEndpointAnswering(t, http.StatusInternalServerError,
 			"rejected Authorization: Bearer header-secret")
@@ -84,6 +92,8 @@ func TestTestNotifier(t *testing.T) {
 	})
 
 	t.Run("records the failure without the discord webhook URL the API echoes", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		discordAPI := startEndpointAnswering(t, http.StatusBadRequest, "unknown webhook {path}")
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
@@ -104,6 +114,8 @@ func TestTestNotifier(t *testing.T) {
 
 	t.Run("returns 404 not_found and sends nothing when a user tests a notifier of another team",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			stranger := tm.stranger(t)
 			webhookEndpoint := startEndpoint(t, http.StatusOK)
@@ -123,6 +135,8 @@ func TestTestNotifierSettings(t *testing.T) {
 	t.Parallel()
 
 	t.Run("sends to the entered discord webhook and creates no notifier", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		discordWebhook := startEndpoint(t, http.StatusNoContent)
 
@@ -143,6 +157,8 @@ func TestTestNotifierSettings(t *testing.T) {
 	})
 
 	t.Run("sends to the edited chat with the stored bot token and keeps the saved chat", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		botAPI := startEndpoint(t, http.StatusOK)
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
@@ -169,6 +185,8 @@ func TestTestNotifierSettings(t *testing.T) {
 	})
 
 	t.Run("reports a failed send without writing its error to the named notifier", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		botAPI := startEndpoint(t, http.StatusInternalServerError)
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
@@ -188,6 +206,8 @@ func TestTestNotifierSettings(t *testing.T) {
 
 	t.Run("returns 404 not_found and sends nothing when a user tests settings in a workspace of another team",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			stranger := tm.stranger(t)
 			webhookEndpoint := startEndpoint(t, http.StatusOK)
@@ -209,6 +229,8 @@ func TestTestNotifierSettings(t *testing.T) {
 
 	t.Run("returns 403 permission_denied and sends nothing when a viewer tests settings with a saved notifier's id",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			viewer := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 			viewerEndpoint := startEndpoint(t, http.StatusOK)
@@ -231,6 +253,8 @@ func TestTestNotifierSettings(t *testing.T) {
 		})
 
 	t.Run("returns 403 permission_denied when a viewer tests new settings", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		viewer := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 		viewerEndpoint := startEndpoint(t, http.StatusOK)
@@ -248,6 +272,8 @@ func TestTestNotifierSettings(t *testing.T) {
 	})
 
 	t.Run("reports the outcome when a member tests unsaved settings", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		member := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER)
 		webhookEndpoint := startEndpoint(t, http.StatusOK)
@@ -264,6 +290,8 @@ func TestTestNotifierSettings(t *testing.T) {
 
 	t.Run("returns 404 not_found and sends nothing when the named notifier is of another workspace",
 		func(t *testing.T) {
+			t.Parallel()
+
 			slackAPI := startEndpoint(t, http.StatusOK)
 			tm := newTeam(t, apptest.WithNotifierEndpoints(apptest.NotifierEndpoints{
 				SlackPostMessageURL: slackAPI.URL,
@@ -294,6 +322,8 @@ func TestTestNotifierSettings(t *testing.T) {
 
 	t.Run("returns 400 invalid_request and sends nothing when a webhook header name is not an HTTP token",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			webhookEndpoint := startEndpoint(t, http.StatusOK)
 
@@ -315,6 +345,8 @@ func TestTestNotifierSettings(t *testing.T) {
 		})
 
 	t.Run("returns 400 invalid_request and sends nothing when the bot API URL is unusable", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		botAPI := startEndpoint(t, http.StatusOK)
 		botAPIHost := strings.TrimPrefix(botAPI.URL, "http://")
@@ -339,6 +371,8 @@ func TestTestNotifierSettings(t *testing.T) {
 	})
 
 	t.Run("sends the telegram message through the proxy when the proxy is on", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		proxy := startEndpoint(t, http.StatusOK)
 		telegram := newTelegram(telegramBotToken, "http://telegram-bot-api.invalid:8081/telegram")
@@ -359,6 +393,8 @@ func TestTestNotifierSettings(t *testing.T) {
 	})
 
 	t.Run("names the host without the bot token when the bot API cannot be reached", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		closedServer := httptest.NewServer(http.NotFoundHandler())
 		closedServer.Close()
@@ -376,6 +412,8 @@ func TestTestNotifierSettings(t *testing.T) {
 	})
 
 	t.Run("keeps the body without the bot token when the bot API echoes the request path", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		botAPI := startEndpointAnswering(t, http.StatusNotFound, "Cannot POST {path}")
 
@@ -395,6 +433,8 @@ func TestUpgradedNotifierSecrets(t *testing.T) {
 	t.Parallel()
 
 	t.Run("sends the decrypted header value an older release stored encrypted", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		webhookEndpoint := startEndpoint(t, http.StatusOK)
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
@@ -412,6 +452,8 @@ func TestUpgradedNotifierSecrets(t *testing.T) {
 	})
 
 	t.Run("sends with the bot token an older release stored encrypted", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		botAPI := startEndpoint(t, http.StatusOK)
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,

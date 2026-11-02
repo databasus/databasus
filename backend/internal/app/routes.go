@@ -1,6 +1,9 @@
 package app
 
 import (
+	"sync"
+
+	"github.com/getkin/kin-openapi/routers"
 	"github.com/gin-gonic/gin"
 
 	contract "databasus-backend/api"
@@ -9,14 +12,30 @@ import (
 	"databasus-backend/internal/lib/httpserver"
 )
 
+//nolint:gochecknoglobals // The immutable contract router is parsed once per process and shared by applications; it holds no application state.
+var loadUserContractRouter = sync.OnceValues(func() (routers.Router, error) {
+	return httpserver.NewAccessCheckedContractRouter(contract.OpenAPI)
+})
+
+//nolint:gochecknoglobals // The immutable contract router is parsed once per process and shared by applications; it holds no application state.
+var loadAgentContractRouter = sync.OnceValues(func() (routers.Router, error) {
+	return httpserver.NewAccessCheckedContractRouter(contract.Agent)
+})
+
 // registerContractRoutes mounts the servers generated from the contract on a group that answers 500
 // to any route the contract does not describe.
 func (a *App) registerContractRoutes(router *gin.Engine) error {
-	contractGuard, err := httpserver.RequireContractOperation(contract.OpenAPI, a.logger)
+	userContractRouter, err := loadUserContractRouter()
 	if err != nil {
 		return err
 	}
 
+	agentContractRouter, err := loadAgentContractRouter()
+	if err != nil {
+		return err
+	}
+
+	contractGuard := httpserver.RequireContractOperation(userContractRouter, a.logger)
 	contractRoutes := router.Group("/api/v1", contractGuard, a.usersModule.GetAccessMiddleware())
 	errorHooks := apierror.NewHooks(apierror.Deps{Logger: a.logger})
 
@@ -51,10 +70,7 @@ func (a *App) registerContractRoutes(router *gin.Engine) error {
 		systemhttpapi.GinServerOptions{BaseURL: "", Middlewares: nil, ErrorHandler: errorHooks.HandleParameterError},
 	)
 
-	agentGuard, err := httpserver.RequireContractOperation(contract.Agent, a.logger)
-	if err != nil {
-		return err
-	}
+	agentGuard := httpserver.RequireContractOperation(agentContractRouter, a.logger)
 	a.verificationModule.RegisterAgentRoutes(router.Group("/api/v1", agentGuard), errorHooks)
 	return nil
 }

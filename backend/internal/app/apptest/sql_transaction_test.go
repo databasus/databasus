@@ -11,6 +11,8 @@ func TestSQLTransaction(t *testing.T) {
 	t.Parallel()
 
 	t.Run("commits a held transaction when the test releases it", func(t *testing.T) {
+		t.Parallel()
+
 		testApp := New(t)
 		transaction := testApp.BeginSQLTransaction(t)
 		transaction.ExecuteSQL(

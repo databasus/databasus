@@ -16,6 +16,8 @@ func TestCascadePhysicalBackup(t *testing.T) {
 	t.Parallel()
 
 	t.Run("deletes all chain rows and stored objects while another timeline survives", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		full := catalog.seedCascadeFull(t, cascadeFullSpec{})
 		first := catalog.seedCascadeIncremental(t, full.ID, 1)
@@ -59,6 +61,8 @@ func TestCascadePhysicalBackup(t *testing.T) {
 		catalog.assertFullPresent(t, successor.ID)
 	})
 	t.Run("keeps the next full boundary segment when deleting its predecessor", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		full := catalog.seedCascadeFull(t, cascadeFullSpec{})
 		catalog.seedCascadeFull(t, cascadeFullSpec{Segment: 4, Offset: 0x28})
@@ -73,6 +77,8 @@ func TestCascadePhysicalBackup(t *testing.T) {
 		assert.True(t, catalog.App.IsLocalStorageFilePresent(t, *boundary.FileName))
 	})
 	t.Run("keeps shared WAL restorable when an older full survives", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		predecessor := catalog.seedCascadeFull(t, cascadeFullSpec{Age: time.Hour})
 		successor := catalog.seedCascadeFull(t, cascadeFullSpec{Segment: 2, Age: 55 * time.Minute})
@@ -109,6 +115,8 @@ func TestCascadePhysicalBackup(t *testing.T) {
 		assert.NotEmpty(t, token.Token)
 	})
 	t.Run("keeps WAL and history when another full is running", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		full := catalog.seedCascadeFull(t, cascadeFullSpec{})
 		wal := catalog.seedCascadeWal(t, cascadeWalSpec{Segment: 1})
@@ -125,6 +133,8 @@ func TestCascadePhysicalBackup(t *testing.T) {
 		catalog.assertHistoryPresent(t, history.ID, true)
 	})
 	t.Run("removes an incremental with no stored file when deleting its full", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		full := catalog.seedCascadeFull(t, cascadeFullSpec{})
 		incremental := catalog.insertIncremental(
@@ -145,6 +155,8 @@ func TestCascadePhysicalBackup(t *testing.T) {
 		catalog.assertIncrementalGone(t, incremental.ID)
 	})
 	t.Run("deletes only part of the WAL within the cleaner budget and keeps its full", func(t *testing.T) {
+		t.Parallel()
+
 		var catalog *catalogFixture
 		cleaner := newCleanerCatalog(t)
 		catalog = cleaner.catalogFixture
@@ -186,6 +198,8 @@ func TestCascadePhysicalBackup(t *testing.T) {
 		assert.Less(t, remaining, 5)
 	})
 	t.Run("sheds dependent rows while keeping a retained full", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		full := catalog.seedCascadeFull(t, cascadeFullSpec{Age: 80 * time.Hour})
 		catalog.seedCascadeFull(t, cascadeFullSpec{Segment: 10, Age: 60 * time.Hour})
@@ -206,6 +220,8 @@ func TestCascadePhysicalBackup(t *testing.T) {
 		catalog.assertWalGone(t, wal.ID)
 	})
 	t.Run("hands every physical artifact to file cleanup after database deletion", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		full := catalog.seedCascadeFull(t, cascadeFullSpec{})
 		history := catalog.seedHistory(t, 1)

@@ -16,6 +16,8 @@ func TestChangePhysicalBackup(t *testing.T) {
 	t.Parallel()
 
 	t.Run("records cancellation before answering when a running backup has no live process", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		full := catalog.insertFull(
@@ -41,6 +43,8 @@ func TestChangePhysicalBackup(t *testing.T) {
 		assert.Equal(t, "CANCELED", page.Backups[0].Status)
 	})
 	t.Run("returns 409 when a completed backup is cancelled", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		full := catalog.insertFull(
@@ -73,6 +77,8 @@ func TestChangePhysicalBackup(t *testing.T) {
 		assert.Equal(t, "COMPLETED", page.Backups[0].Status)
 	})
 	t.Run("removes its entire chain when a full backup is deleted", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		full := catalog.insertFull(
@@ -129,6 +135,8 @@ func TestChangePhysicalBackup(t *testing.T) {
 		catalog.assertWalGone(t, walSegment.ID)
 	})
 	t.Run("keeps WAL and the root full when an incremental and its descendants are deleted", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		full := catalog.insertFull(
@@ -200,6 +208,8 @@ func TestChangePhysicalBackup(t *testing.T) {
 		catalog.assertWalPresent(t, walSegment.ID)
 	})
 	t.Run("keeps a backup and returns 403 when a viewer requests deletion", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		full := catalog.insertFull(
@@ -232,6 +242,8 @@ func TestChangePhysicalBackup(t *testing.T) {
 		catalog.assertFullPresent(t, full.ID)
 	})
 	t.Run("keeps the backup running and returns 403 when a viewer requests cancellation", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		full := catalog.insertFull(
@@ -259,6 +271,8 @@ func TestChangePhysicalBackup(t *testing.T) {
 		assert.NotNil(t, runningBackupID, "a viewer's rejected cancel must leave the backup running")
 	})
 	t.Run("records the database name in the audit log when a full backup is deleted", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		full := catalog.insertFull(
@@ -286,6 +300,8 @@ func TestChangePhysicalBackup(t *testing.T) {
 		catalog.assertAuditLogContains(t, "Physical full backup deleted", catalog.DatabaseName)
 	})
 	t.Run("records the database name in the audit log when a backup is cancelled", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		full := catalog.insertFull(
@@ -307,6 +323,8 @@ func TestChangePhysicalBackup(t *testing.T) {
 		catalog.assertAuditLogContains(t, "Physical backup cancelled", catalog.DatabaseName)
 	})
 	t.Run("returns 404 when deletion names an unknown backup", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		catalog.call(
@@ -319,6 +337,8 @@ func TestChangePhysicalBackup(t *testing.T) {
 		)
 	})
 	t.Run("returns 404 when cancellation names an unknown backup", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		catalog.call(
@@ -331,6 +351,8 @@ func TestChangePhysicalBackup(t *testing.T) {
 		)
 	})
 	t.Run("returns 404 when cancellation names a WAL segment", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		walSegment := catalog.insertWal(
@@ -357,6 +379,8 @@ func TestChangePhysicalBackup(t *testing.T) {
 		)
 	})
 	t.Run("removes the running backup before answering when it is deleted", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		full := catalog.insertFull(
@@ -393,6 +417,8 @@ func TestPhysicalBackupMemberChanges(t *testing.T) {
 		{"deletes a completed backup when the user is a workspace member", false},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
+			t.Parallel()
+
 			catalog := newCatalog(t)
 			member := catalog.App.CreateNonAdminUser(t, catalog.Admin)
 			apptest.AddWorkspaceMember(t, catalog.Owner, catalog.WorkspaceID, member.Email,

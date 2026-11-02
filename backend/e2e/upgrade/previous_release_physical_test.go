@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
@@ -146,13 +147,29 @@ func writePhysicalBackup(t *testing.T, api *apiClient, source physicalSourceSpec
 		)
 	}
 
-	if incrementalBackup.RootFullBackupID != fullBackup.ID || incrementalBackup.ParentIncrementalBackupID != "" {
+	// Enabling backups can make the scheduler start a full backup of its own before the requested one,
+	// so the increment extends whichever full backup finished last, which may not be the one seen above.
+	var fullBackupsPage previousPhysicalBackupPage
+	err = api.get(
+		t.Context(),
+		"/backups/physical/database/"+databaseID+"/backups?type=FULL&limit=100",
+		&fullBackupsPage,
+	)
+	if err != nil {
+		return "", nil, err
+	}
+
+	rootFullBackupIndex := slices.IndexFunc(fullBackupsPage.Backups, func(backup previousPhysicalBackup) bool {
+		return backup.ID == incrementalBackup.RootFullBackupID && backup.Status == "COMPLETED"
+	})
+	if rootFullBackupIndex < 0 || incrementalBackup.ParentIncrementalBackupID != "" {
 		return "", nil, fmt.Errorf(
-			"physical incremental backup %s does not directly extend full backup %s",
+			"physical incremental backup %s does not directly extend a completed full backup, its root is %s",
 			incrementalBackup.ID,
-			fullBackup.ID,
+			incrementalBackup.RootFullBackupID,
 		)
 	}
+	fullBackup = fullBackupsPage.Backups[rootFullBackupIndex]
 
 	items := []upgradecheck.Item{
 		physicalFullBackupItem(fullBackup.GetSnapshot()),

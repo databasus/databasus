@@ -81,6 +81,8 @@ func TestReassignPhysicalStorage(t *testing.T) {
 func TestEnableSwitchedPhysicalStorage(t *testing.T) {
 	t.Parallel()
 	t.Run("starts a fresh full when a disabled switch preserves a target chain", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupTeam(t, backupTeamSpec{})
 		full := team.runBackup(t, "full")
 
@@ -109,6 +111,8 @@ func TestEnableSwitchedPhysicalStorage(t *testing.T) {
 func TestRollbackRunningPhysicalStorageSwitch(t *testing.T) {
 	t.Parallel()
 	t.Run("keeps old execution alive when cleanup persistence fails", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupTeam(t, backupTeamSpec{})
 		backup, releaseStorage := startHeldPhysicalStream(t, team, "full")
 		team.App.ExecuteSQL(

@@ -19,6 +19,8 @@ func TestRestorePhysicalBackup(t *testing.T) {
 	t.Parallel()
 
 	t.Run("issues a token and expiry time when a full backup can be restored", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		catalog.insertFull(
@@ -49,6 +51,8 @@ func TestRestorePhysicalBackup(t *testing.T) {
 		assert.WithinDuration(t, time.Now().Add(15*time.Minute), response.ExpiresAt, time.Minute)
 	})
 	t.Run("returns 409 when the database has no restorable chain", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		var problem apiclient.Problem
@@ -64,6 +68,8 @@ func TestRestorePhysicalBackup(t *testing.T) {
 		assert.Equal(t, apiclient.ProblemCodeNoRestorableBackup, problem.Code)
 	})
 	t.Run("issues a token when the requested restore time is reachable", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		base := time.Now().UTC().Add(-2 * time.Hour)
@@ -123,6 +129,8 @@ func TestRestorePhysicalBackup(t *testing.T) {
 		assert.NotEmpty(t, response.Token)
 	})
 	t.Run("issues a token when the target time lies during a newer full backup", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		base := time.Now().UTC().Add(-2 * time.Hour)
 
@@ -182,6 +190,8 @@ func TestRestorePhysicalBackup(t *testing.T) {
 		assert.NotEmpty(t, response.Token)
 	})
 	t.Run("returns 409 before issuing a token when the target lies beyond a WAL gap", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		base := time.Now().UTC().Add(-2 * time.Hour)
@@ -242,6 +252,8 @@ func TestRestorePhysicalBackup(t *testing.T) {
 		assert.Contains(t, problem.Detail, "WAL gap")
 	})
 	t.Run("issues a token and expiry time when a full backup is selected", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		full := catalog.insertFull(
@@ -272,6 +284,8 @@ func TestRestorePhysicalBackup(t *testing.T) {
 		assert.WithinDuration(t, time.Now().Add(15*time.Minute), response.ExpiresAt, time.Minute)
 	})
 	t.Run("returns 404 when the selected backup does not exist", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		catalog.call(
@@ -284,6 +298,8 @@ func TestRestorePhysicalBackup(t *testing.T) {
 		)
 	})
 	t.Run("returns 401 when the download token is invalid", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		catalog.call(
@@ -296,6 +312,8 @@ func TestRestorePhysicalBackup(t *testing.T) {
 		)
 	})
 	t.Run("streams a full and its manifest without WAL when a backup token is used", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		full := createStreamableFullBackup(t, catalog)
@@ -332,6 +350,8 @@ func TestRestorePhysicalBackup(t *testing.T) {
 		}
 	})
 	t.Run("returns a runnable POSIX script when the public recovery script is requested", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		response := catalog.call(
@@ -352,6 +372,8 @@ func TestRestorePhysicalBackup(t *testing.T) {
 			"WAL is decompressed on the host up front; the script must not wire zstd into restore_command")
 	})
 	t.Run("explains how to restore configuration when the restored cluster has no config files", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		response := catalog.call(
@@ -374,6 +396,8 @@ func TestRestorePhysicalBackup(t *testing.T) {
 			"the script must never emit a trust rule for the restored cluster")
 	})
 	t.Run("rejects a second download when its single-use token was consumed", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		full := createStreamableFullBackup(t, catalog)
@@ -395,6 +419,8 @@ func TestRestorePhysicalBackup(t *testing.T) {
 		catalog.call(t, catalogCall{Request: streamRequest, Authorization: "", StatusCode: http.StatusUnauthorized})
 	})
 	t.Run("returns 409 when a restore download is already open for the same user", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		full := catalog.insertFull(
@@ -436,6 +462,8 @@ func TestRestorePhysicalBackup(t *testing.T) {
 		assert.Equal(t, apiclient.ProblemCodeAlreadyRunning, problem.Code)
 	})
 	t.Run("refuses another token with 409 when a restore download is already open", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		full := catalog.insertFull(

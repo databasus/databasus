@@ -23,6 +23,8 @@ func TestPhysicalBackupShutdown(t *testing.T) {
 		t.Run(
 			"records failure and notifies subscribers when shutdown interrupts a "+kind+" stream",
 			func(t *testing.T) {
+				t.Parallel()
+
 				team := newBackupTeam(t, backupTeamSpec{})
 				if kind == "incremental" {
 					require.Equal(t, "COMPLETED", team.runBackup(t, "full").Status)
@@ -73,6 +75,8 @@ func TestPhysicalBackupShutdown(t *testing.T) {
 			},
 		)
 		t.Run("keeps the user cancellation outcome when a user cancels a "+kind+" stream", func(t *testing.T) {
+			t.Parallel()
+
 			team := newBackupTeam(t, backupTeamSpec{})
 			if kind == "incremental" {
 				require.Equal(t, "COMPLETED", team.runBackup(t, "full").Status)
@@ -98,6 +102,8 @@ func TestCancelDispatchedPhysicalBackup(t *testing.T) {
 	t.Run(
 		"waits for process cleanup when cancellation records a terminal status before the process stops",
 		func(t *testing.T) {
+			t.Parallel()
+
 			team := newBackupTeam(t, backupTeamSpec{})
 			backup, releaseStorage := startHeldPhysicalStream(t, team, "full")
 			resume := apptest.SuspendPhysicalBackupProcess(t, backup.ID)
@@ -113,6 +119,8 @@ func TestCancelDispatchedPhysicalBackup(t *testing.T) {
 	)
 
 	t.Run("ends the backup when cancellation immediately follows a scheduler pass", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupTeam(t, backupTeamSpec{})
 		releaseStorage := holdStorageWrites(t, team)
 		team.trigger(t, "full")

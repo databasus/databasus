@@ -18,6 +18,8 @@ func TestHealthcheckAttemptList(t *testing.T) {
 	t.Parallel()
 
 	t.Run("filters since inclusively and pages newest first including tied timestamps", func(t *testing.T) {
+		t.Parallel()
+
 		team := newHealthcheckTeam(t)
 		now := team.App.Clock.Now()
 		attemptIDs := make([]uuid.UUID, 5)
@@ -79,10 +81,14 @@ func TestHealthcheckAttemptList(t *testing.T) {
 		assert.Len(t, response.JSON200.Items, 2)
 	})
 	t.Run("returns an empty final page when the database has never been checked", func(t *testing.T) {
+		t.Parallel()
+
 		team := newHealthcheckTeam(t)
 		assert.Empty(t, team.getAttempts(t))
 	})
 	t.Run("rejects a request with an invalid page size or cursor", func(t *testing.T) {
+		t.Parallel()
+
 		team := newHealthcheckTeam(t)
 		missingCursor := (database.TimeCursor{Time: team.App.Clock.Now(), ID: uuid.New()}).Encode()
 
@@ -127,6 +133,8 @@ func TestHealthcheckAttemptList(t *testing.T) {
 		)
 	})
 	t.Run("rejects a cursor when it belongs to another database", func(t *testing.T) {
+		t.Parallel()
+
 		team := newHealthcheckTeam(t)
 		copiedDatabase, err := team.Owner.Client.CopyDatabaseWithResponse(t.Context(), team.Database.Id)
 		require.NoError(t, err)

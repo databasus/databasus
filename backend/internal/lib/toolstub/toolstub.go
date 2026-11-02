@@ -56,15 +56,15 @@ func Write(t *testing.T, path string, spec Spec) *Stub {
 	script += spec.Script + "\n"
 
 	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o700))
-	require.NoError(t, writeExecutable(path, script))
+	require.NoError(t, WriteExecutable(path, script))
 
 	return stub
 }
 
-// writeExecutable holds syscall.ForkLock while the file is open for writing. A process another
+// WriteExecutable holds syscall.ForkLock while the file is open for writing. A process another
 // test forks meanwhile would inherit the open descriptor until its exec, and starting the stub in
 // that window fails with "text file busy".
-func writeExecutable(path, script string) error {
+func WriteExecutable(path, script string) error {
 	syscall.ForkLock.RLock()
 	defer syscall.ForkLock.RUnlock()
 

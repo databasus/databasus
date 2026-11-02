@@ -17,6 +17,8 @@ func TestHealthcheckAccess(t *testing.T) {
 	t.Parallel()
 
 	t.Run("allows reading but refuses saving when a viewer calls", func(t *testing.T) {
+		t.Parallel()
+
 		team := newHealthcheckTeam(t)
 		viewer := team.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 		original := team.getConfig(t)
@@ -50,6 +52,8 @@ func TestHealthcheckAccess(t *testing.T) {
 	t.Run(
 		"hides every operation with the same not_found body as a missing database when a stranger calls",
 		func(t *testing.T) {
+			t.Parallel()
+
 			team := newHealthcheckTeam(t)
 			stranger := team.App.SignUp(t, apptest.NewTestEmail("stranger"))
 			original := team.getConfig(t)
@@ -106,6 +110,8 @@ func TestHealthcheckAccess(t *testing.T) {
 		},
 	)
 	t.Run("allows saving outside the workspace when an instance admin calls", func(t *testing.T) {
+		t.Parallel()
+
 		team := newHealthcheckTeam(t)
 		input := configInput(team.getConfig(t))
 		input.IntervalMinutes = 10
@@ -126,6 +132,8 @@ func TestHealthcheckAccess(t *testing.T) {
 		assert.Equal(t, input, configInput(team.getConfig(t)))
 	})
 	t.Run("requires a session for every operation", func(t *testing.T) {
+		t.Parallel()
+
 		team := newHealthcheckTeam(t)
 		client := team.App.NewClient(t)
 

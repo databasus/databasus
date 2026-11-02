@@ -17,6 +17,8 @@ func TestSignInWithGitHub(t *testing.T) {
 	t.Parallel()
 
 	t.Run("makes the user an active admin when the instance has no user", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t, apptest.WithGitHub())
 		email := apptest.NewTestEmail("owner")
 
@@ -31,6 +33,8 @@ func TestSignInWithGitHub(t *testing.T) {
 	})
 
 	t.Run("makes the user a member when the instance already has a user", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t, apptest.WithGitHub())
 		app.CreateAdmin(t)
 
@@ -42,6 +46,8 @@ func TestSignInWithGitHub(t *testing.T) {
 	})
 
 	t.Run("signs in the existing user with the same address and links the account", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t, apptest.WithGitHub())
 		admin := app.CreateAdmin(t)
 		gitHubAccount := apptest.NewGitHubAccount(admin.Email)
@@ -57,6 +63,8 @@ func TestSignInWithGitHub(t *testing.T) {
 	})
 
 	t.Run("takes the primary verified address when the profile shows none", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t, apptest.WithGitHub())
 		email := apptest.NewTestEmail("private")
 		gitHubAccount := apptest.NewGitHubAccount("")
@@ -71,6 +79,8 @@ func TestSignInWithGitHub(t *testing.T) {
 	})
 
 	t.Run("returns 403 registration_closed for a new user when registration is closed", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t, apptest.WithGitHub())
 		admin := app.CreateAdmin(t)
 		closedRegistration := defaultSettingsUpdate()
@@ -89,6 +99,8 @@ func TestSignInWithGitHub(t *testing.T) {
 	})
 
 	t.Run("returns 403 user_deactivated for a deactivated user", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t, apptest.WithGitHub())
 		admin := app.CreateAdmin(t)
 		gitHubAccount := apptest.NewGitHubAccount(apptest.NewTestEmail("member"))
@@ -102,6 +114,8 @@ func TestSignInWithGitHub(t *testing.T) {
 	})
 
 	t.Run("returns 403 user_deactivated when the address belongs to a deactivated user", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t, apptest.WithGitHub())
 		admin := app.CreateAdmin(t)
 		member := app.SignUp(t, apptest.NewTestEmail("member"))
@@ -114,6 +128,8 @@ func TestSignInWithGitHub(t *testing.T) {
 	})
 
 	t.Run("returns 400 oauth_failed when the account has no verified address", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t, apptest.WithGitHub())
 		gitHubAccount := apptest.NewGitHubAccount("")
 		gitHubAccount.Emails = []apptest.GitHubEmail{
@@ -127,6 +143,8 @@ func TestSignInWithGitHub(t *testing.T) {
 	})
 
 	t.Run("returns 400 oauth_failed when GitHub refuses the code", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t, apptest.WithGitHub())
 
 		response := signInWithGitHub(t, app, "code-github-never-issued")
@@ -135,6 +153,8 @@ func TestSignInWithGitHub(t *testing.T) {
 	})
 
 	t.Run("returns 409 oauth_not_configured when the instance has no GitHub client", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 
 		response := signInWithGitHub(t, app, "any-code")
@@ -144,6 +164,8 @@ func TestSignInWithGitHub(t *testing.T) {
 	})
 
 	t.Run("issues the session directly when the instance requires the second factor", func(t *testing.T) {
+		t.Parallel()
+
 		app, admin := newTwoFactorApp(t, apptest.WithGitHub())
 
 		session := requireGitHubSession(t, app, apptest.NewGitHubAccount(admin.Email))
@@ -153,6 +175,8 @@ func TestSignInWithGitHub(t *testing.T) {
 	})
 
 	t.Run("refuses a password sign-in for the user it created like a wrong password", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t, apptest.WithGitHub())
 		email := apptest.NewTestEmail("owner")
 		requireGitHubSession(t, app, apptest.NewGitHubAccount(email))
@@ -169,6 +193,8 @@ func TestSignInWithGoogle(t *testing.T) {
 	t.Parallel()
 
 	t.Run("makes the user an active admin when the instance has no user", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t, apptest.WithGoogle())
 		email := apptest.NewTestEmail("owner")
 
@@ -182,6 +208,8 @@ func TestSignInWithGoogle(t *testing.T) {
 	})
 
 	t.Run("signs in the existing user with the same address and links the account", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t, apptest.WithGoogle())
 		admin := app.CreateAdmin(t)
 		googleAccount := apptest.NewGoogleAccount(admin.Email)
@@ -194,6 +222,8 @@ func TestSignInWithGoogle(t *testing.T) {
 	})
 
 	t.Run("returns 400 oauth_failed when the address is not verified", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t, apptest.WithGoogle())
 		admin := app.CreateAdmin(t)
 		googleAccount := apptest.NewGoogleAccount(admin.Email)
@@ -205,6 +235,8 @@ func TestSignInWithGoogle(t *testing.T) {
 	})
 
 	t.Run("returns 400 oauth_failed when the account has no address", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t, apptest.WithGoogle())
 
 		response := signInWithGoogle(t, app, app.Google.Authorize(apptest.NewGoogleAccount("")))
@@ -213,6 +245,8 @@ func TestSignInWithGoogle(t *testing.T) {
 	})
 
 	t.Run("returns 409 oauth_not_configured when the instance has no Google client", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t, apptest.WithGitHub())
 
 		response := signInWithGoogle(t, app, "any-code")

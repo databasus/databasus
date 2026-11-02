@@ -17,6 +17,8 @@ func TestCreateWorkspace(t *testing.T) {
 	t.Parallel()
 
 	t.Run("makes the creator the owner when the instance lets members create workspaces", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		member := app.CreateNonAdminUser(t, admin)
@@ -36,6 +38,8 @@ func TestCreateWorkspace(t *testing.T) {
 	})
 
 	t.Run("returns 403 when the instance does not let members create workspaces", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		member := app.CreateNonAdminUser(t, admin)
@@ -53,6 +57,8 @@ func TestCreateWorkspace(t *testing.T) {
 	})
 
 	t.Run("lets an instance admin create a workspace when members may not", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		forbidMemberWorkspaces(t, admin)
@@ -67,6 +73,8 @@ func TestCreateWorkspace(t *testing.T) {
 	})
 
 	t.Run("returns 400 when the name is empty", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 
@@ -78,6 +86,8 @@ func TestCreateWorkspace(t *testing.T) {
 	})
 
 	t.Run("returns 401 without a session", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 
 		response, err := app.NewClient(t).CreateWorkspaceWithResponse(t.Context(), apiclient.WorkspaceCreate{
@@ -94,6 +104,8 @@ func TestListWorkspaces(t *testing.T) {
 	t.Parallel()
 
 	t.Run("lists only the workspaces the user is a member of with the user's role", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		otherOwner := tm.app.CreateNonAdminUser(t, tm.admin)
 		apptest.CreateWorkspace(t, otherOwner, "Other team")
@@ -108,6 +120,8 @@ func TestListWorkspaces(t *testing.T) {
 	})
 
 	t.Run("lists every workspace for an instance admin without a role where they are not a member", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		member := app.CreateNonAdminUser(t, admin)
@@ -125,6 +139,8 @@ func TestListWorkspaces(t *testing.T) {
 	})
 
 	t.Run("lists every workspace once in the order of one page when following the cursor", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		createdNames := []string{"Delta", "alpha", "Charlie", "Bravo", "Bravo", "Echo"}
@@ -144,6 +160,8 @@ func TestListWorkspaces(t *testing.T) {
 	})
 
 	t.Run("returns 400 when the cursor is not one of this list", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 
@@ -162,6 +180,8 @@ func TestGetWorkspace(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns 404 when the user is not a member of the workspace", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		stranger := tm.app.CreateNonAdminUser(t, tm.admin)
 
@@ -171,6 +191,8 @@ func TestGetWorkspace(t *testing.T) {
 	})
 
 	t.Run("answers a non-member the same as a missing workspace", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		stranger := tm.app.CreateNonAdminUser(t, tm.admin)
 		missingWorkspaceID := uuid.New()
@@ -186,6 +208,8 @@ func TestGetWorkspace(t *testing.T) {
 	})
 
 	t.Run("lets a viewer read the workspace and list its members", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		viewer, _ := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 
@@ -197,6 +221,8 @@ func TestGetWorkspace(t *testing.T) {
 	})
 
 	t.Run("lets an instance admin outside the workspace read, rename and list its members", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 
 		readResponse := getWorkspace(t, tm.admin, tm.workspace.Id)
@@ -214,6 +240,8 @@ func TestUpdateWorkspace(t *testing.T) {
 	t.Parallel()
 
 	t.Run("renames the workspace when an admin of it renames it", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		workspaceAdmin, _ := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEADMIN)
 
@@ -238,6 +266,8 @@ func TestUpdateWorkspace(t *testing.T) {
 	}
 	for _, roleCase := range roleCases {
 		t.Run(roleCase.name, func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			lowRoleUser, _ := tm.addMember(t, roleCase.role)
 
@@ -250,6 +280,8 @@ func TestUpdateWorkspace(t *testing.T) {
 	}
 
 	t.Run("returns 400 when the name is longer than 255 characters", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 
 		response := renameWorkspace(t, tm.owner, tm.workspace.Id, strings.Repeat("n", 256))

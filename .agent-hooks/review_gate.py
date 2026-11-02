@@ -20,8 +20,8 @@ Only the selected CLI must be installed and signed in; failure never switches cl
 Doctor checks executable availability, without a paid authentication or model probe.
 Examples outside an agent: `mise run doctor --client claude` and
 `mise run review support-codex-review-pipeline --client codex`.
-Frontend verification accepts Vitest commands and exactly
-`pnpm --dir frontend test:browser --project=ui` or `pnpm --dir frontend test:browser --project=e2e`; these are parsed without execution.
+Change verification accepts exactly `mise run test`, `pnpm --dir frontend test:browser --project=ui`
+and `pnpm --dir frontend test:browser --project=e2e`; these are parsed without execution.
 The plan gates intercept ExitPlanMode only in Claude Code; Codex runs the Stop gates.
 Codex 0.164.0 needs persisted project trust to load a new clone's .codex/ layer; a command-line
 trust override alone is insufficient. The project's chrome-devtools entry replaces the global one.
@@ -226,80 +226,19 @@ class ChangeVerificationError(Exception):
     pass
 
 
-@dataclass(frozen=True)
-class VerificationForm:
-    prefix: tuple
-    directory: str
-    usage: str
-    min_arguments: int
-    max_arguments: int | None
-    is_package_list: bool
-
-
 CHANGE_VERIFICATION_HEADING = "## Change verification"
-VERIFICATION_FORMS = (
-    VerificationForm(
-        prefix=("mise", "run", "backend:test-group"),
-        directory=".",
-        usage="mise run backend:test-group <shard>...",
-        min_arguments=1,
-        max_arguments=None,
-        is_package_list=False,
-    ),
-    VerificationForm(
-        prefix=("mise", "run", "backend:test-package"),
-        directory=".",
-        usage="mise run backend:test-package <package>...",
-        min_arguments=1,
-        max_arguments=None,
-        is_package_list=True,
-    ),
-    VerificationForm(
-        prefix=("mise", "run", "agent:test"),
-        directory=".",
-        usage="mise run agent:test",
-        min_arguments=0,
-        max_arguments=0,
-        is_package_list=False,
-    ),
-    VerificationForm(
-        prefix=("pnpm", "--dir", "frontend", "test:browser", "--project=ui"),
-        directory=".",
-        usage="pnpm --dir frontend test:browser --project=ui",
-        min_arguments=0,
-        max_arguments=0,
-        is_package_list=False,
-    ),
-    VerificationForm(
-        prefix=("pnpm", "--dir", "frontend", "test:browser", "--project=e2e"),
-        directory=".",
-        usage="pnpm --dir frontend test:browser --project=e2e",
-        min_arguments=0,
-        max_arguments=0,
-        is_package_list=False,
-    ),
-    VerificationForm(
-        prefix=("pnpm", "--dir", "frontend", "test"),
-        directory=".",
-        usage="pnpm --dir frontend test [<argument>...]",
-        min_arguments=0,
-        max_arguments=None,
-        is_package_list=False,
-    ),
-)
 # Verification entries describe commands for the implementing agent, not for review to execute.
-# Browser verification admits exactly the isolated UI or E2E project, with no extra arguments.
-# Restrict arguments because the backend tasks eventually pass them to shell scripts.
-VERIFICATION_ARGUMENT_PATTERN = re.compile(r"[A-Za-z0-9._/=:@-]+")
+# Each form is a whole command: one run checks everything, so no form takes arguments.
+VERIFICATION_FORMS = (
+    ("mise", "run", "test"),
+    ("pnpm", "--dir", "frontend", "test:browser", "--project=ui"),
+    ("pnpm", "--dir", "frontend", "test:browser", "--project=e2e"),
+)
 ALLOWED_VERIFICATION_FORMS = (
-    "Allowed forms, one command per line in one ```sh block:\n"
-    "- `mise run backend:test-package <package>...`, every package starting with `./`, resolved in `backend/`\n"
-    "- `mise run backend:test-group <shard>...`, sharded physical, logical or physical-api groups only\n"
-    "- `mise run agent:test`, with nothing after it\n"
-    "- `pnpm --dir frontend test [<argument>...]`\n"
-    "- exactly `pnpm --dir frontend test:browser --project=ui`, with nothing after it\n"
-    "- exactly `pnpm --dir frontend test:browser --project=e2e`, with nothing after it\n"
-    "Arguments may hold only letters, digits and `.`, `/`, `_`, `-`, `=`, `:`, `@`."
+    "Allowed forms, one command per line in one ```sh block, each with nothing after it:\n"
+    "- `mise run test`\n"
+    "- `pnpm --dir frontend test:browser --project=ui`\n"
+    "- `pnpm --dir frontend test:browser --project=e2e`"
 )
 
 
@@ -337,24 +276,10 @@ def parse_verification_command(line):
         raise ChangeVerificationError(f"`{line}` cannot be split into words: {error}")
 
     for form in VERIFICATION_FORMS:
-        if tuple(words[: len(form.prefix)]) != form.prefix:
-            continue
-
-        arguments = words[len(form.prefix) :]
-        for argument in arguments:
-            if not VERIFICATION_ARGUMENT_PATTERN.fullmatch(argument):
-                raise ChangeVerificationError(f"the argument `{argument}` in `{line}` has a forbidden character")
-        if len(arguments) < form.min_arguments or (form.max_arguments is not None and len(arguments) > form.max_arguments):
-            raise ChangeVerificationError(f"`{line}` does not match the form `{form.usage}`")
-        if form.is_package_list and not all(argument.startswith("./") for argument in arguments):
-            raise ChangeVerificationError(f"every package in `{line}` must start with `./`")
-        if form.prefix == ("mise", "run", "backend:test-group"):
-            for argument in arguments:
-                shard = re.fullmatch(r"(?:physical|logical|physical-api)-([1-9][0-9]*)-of-([1-9][0-9]*)", argument)
-                if shard is None or int(shard[1]) > int(shard[2]):
-                    raise ChangeVerificationError(f"the argument `{argument}` must name a shard of physical, logical or physical-api")
-
-        return Check(form.directory, tuple(words))
+        if tuple(words) == form:
+            return Check(".", form)
+        if tuple(words[: len(form)]) == form:
+            raise ChangeVerificationError(f"`{line}` does not match the form `{' '.join(form)}`")
     raise ChangeVerificationError(f"`{line}` is not an allowed command")
 
 

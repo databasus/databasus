@@ -46,6 +46,7 @@ func TestLoad(t *testing.T) {
 	t.Run("loads with an empty SMTP_PORT", func(t *testing.T) {
 		spec := newIsolatedSpec(t, "")
 		setRequiredVariables(t)
+		t.Setenv("SMTP_HOST", "")
 		t.Setenv("SMTP_PORT", "")
 
 		loadedConfig, _, err := Load(spec)
@@ -95,6 +96,7 @@ func TestLoad(t *testing.T) {
 		writePublishedDsn(t, spec, publishedDsn)
 		unsetVariable(t, "ENV_MODE")
 		t.Setenv(databaseDsnVariable, "")
+		t.Setenv("SMTP_HOST", "")
 		t.Setenv("SMTP_PORT", "")
 		environmentBeforeLoad := getSortedEnvironment()
 

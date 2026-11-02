@@ -19,6 +19,8 @@ func TestMoveLogicalBackupConfigToAnotherStorage(t *testing.T) {
 	t.Parallel()
 
 	t.Run("removes the logical backups and deletes their files when the storage changes", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		databaseID := tm.insertLogicalDatabase(t)
 		previousStorageID := tm.createLocalStorage(t)
@@ -40,6 +42,8 @@ func TestMoveLogicalBackupConfigToAnotherStorage(t *testing.T) {
 
 	t.Run("returns 409 in_use and keeps the storage and the backups while a logical backup is in progress",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			databaseID := tm.insertLogicalDatabase(t)
 			previousStorageID := tm.createLocalStorage(t)
@@ -61,6 +65,8 @@ func TestMoveLogicalBackupConfigToAnotherStorage(t *testing.T) {
 
 	t.Run("keeps the logical backups and their files when the config is saved with the same storage",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			databaseID := tm.insertLogicalDatabase(t)
 			storageID := tm.createLocalStorage(t)
@@ -78,6 +84,8 @@ func TestMoveLogicalBackupConfigToAnotherStorage(t *testing.T) {
 		})
 
 	t.Run("returns 500 internal and keeps the storage and the backups when the removal fails", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		databaseID := tm.insertLogicalDatabase(t)
 		previousStorageID := tm.createLocalStorage(t)
@@ -104,6 +112,7 @@ func TestMoveLogicalBackupConfigToAnotherStorage(t *testing.T) {
 	})
 }
 
+//nolint:tparallel // The subtests share one physical PostgreSQL server.
 func TestMovePhysicalBackupConfigToAnotherStorage(t *testing.T) {
 	t.Parallel()
 

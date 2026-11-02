@@ -43,8 +43,7 @@ The repository's skills live in `.agents/skills/`, which Codex reads directly; C
 | Command | Purpose |
 |---|---|
 | `mise run dev` | Start the app locally: dev database, test fixtures, WAL backup source with its load generator, backend and frontend; seeds a dev account with databases and restarts the backend when its code changes |
-| `mise run test` | Run the default backend and upgrade suite; filesystem tests run separately |
-| `mise run backend:test-package <packages>` | Run the given backend test packages |
+| `mise run test` | Check the work: every backend package and the frontend tests, then the upgrade test; browser and filesystem tests run separately |
 | `mise run test-filesystem` | Run the Docker filesystem suite, mostly left to CI |
 | `mise run pull-testcontainers` | Pull the database images the backend tests use |
 | `mise run lint` | Check every module without changing files; `mise run backend:lint` and `frontend:lint` check one |
@@ -72,9 +71,8 @@ Several agents may work on this repo at once, in different worktrees, sharing on
 - The main agent, the one the user talks to, works in the checkout or worktree its session starts in. It creates a new git worktree only when the user explicitly asks for one, and it uses a worktree the user created as it is.
 - A background agent, one the main agent starts, may create a worktree of its own when its work needs one or when the main agent asks it to. The main agent may ask for that.
 - Lint and format whenever you want: they touch nothing shared.
-- While working, run the packages and tests you need right now. Before handing the work over, run the tests of the packages you touched and of the packages that test the same feature, as [`docs/testing.md`](docs/testing.md#choosing-the-tests-to-run) says.
-- Run the full `mise run test` only when the user asks for it.
-- Never stop the shared test PostgreSQL server or prune Docker, because other runs use them.
+- Check a change that adds or changes tests or the code they cover with `mise run test`, as [`docs/testing.md`](docs/testing.md#checking-work) says. Full runs take turns through a machine-wide lock, so one may wait for another; repeating one failing test directly takes no lock.
+- Never stop the shared test PostgreSQL server or prune Docker, because other runs use them. The one exception is the recovery of that server after a crash, while no test run is active, which [`docs/testing.md`](docs/testing.md#isolation) describes.
 
 ---
 

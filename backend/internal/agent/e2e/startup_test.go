@@ -16,6 +16,8 @@ func TestAgentStartup(t *testing.T) {
 	t.Parallel()
 
 	t.Run("removes its leftovers while keeping another agent's network", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t, apptest.WithAgentBinariesDir(currentBinaryDirectory))
 		admin := app.CreateAdmin(t)
 		credentials := app.CreateVerificationAgent(t, admin)

@@ -17,6 +17,8 @@ func TestVerificationReportRetries(t *testing.T) {
 	t.Parallel()
 
 	t.Run("requeues twice and fails at the third attempt when an agent cannot prepare the restore", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		verification := team.start(t, backup.Id)
@@ -51,6 +53,8 @@ func TestVerificationReportRetries(t *testing.T) {
 		{name: "a restored database below the size guard", report: agentclient.VerificationReport{Status: "COMPLETED", DBSizeBytesAfterRestore: new(int64(1))}},
 	} {
 		t.Run("fails without retry when the agent reports "+failure.name, func(t *testing.T) {
+			t.Parallel()
+
 			team := newVerificationTeam(t)
 			backup := team.backup(t)
 			team.App.ExecuteSQL(t, "UPDATE backups_logical SET backup_raw_db_size_mb=100 WHERE id=?", backup.Id)
@@ -88,6 +92,8 @@ func TestVerificationHeartbeatReconciliation(t *testing.T) {
 		{name: "fails when a dropped job has exhausted its attempts", age: 91 * time.Second, isReported: false, attempts: 3, status: apiclient.VerificationStatusFAILED},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
+			t.Parallel()
+
 			team := newVerificationTeam(t)
 			backup := team.backup(t)
 			verification := team.start(t, backup.Id)
@@ -113,6 +119,8 @@ func TestVerificationHeartbeatReconciliation(t *testing.T) {
 		})
 	}
 	t.Run("aborts foreign and missing IDs without resurrecting completed work", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		verification := team.start(t, backup.Id)
@@ -152,6 +160,8 @@ func TestVerificationMixedHeartbeat(t *testing.T) {
 	t.Parallel()
 
 	t.Run("reclaims only the dropped verification when an agent continues another one", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		first := team.start(t, backup.Id)

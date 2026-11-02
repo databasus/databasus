@@ -6,11 +6,12 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"databasus-backend/internal/lib/toolstub"
 )
 
 func TestCheck(t *testing.T) {
@@ -53,7 +54,7 @@ func TestCheck(t *testing.T) {
 		binDir := t.TempDir()
 		require.NoError(
 			t,
-			os.WriteFile(filepath.Join(binDir, "mysqldump"), []byte("\x7fELF not a loadable image"), 0o755),
+			toolstub.WriteExecutable(filepath.Join(binDir, "mysqldump"), "\x7fELF not a loadable image"),
 		)
 		checker := NewChecker([]Bundle{fakeBundle(binDir, "8.0", "mysqldump")})
 
@@ -150,18 +151,13 @@ func fakeBundle(binDir, releaseLine, command string) Bundle {
 func writeFakeClient(t *testing.T, dir, name, output string) {
 	t.Helper()
 
-	script := "#!/bin/sh\necho " + strconv.Quote(output) + "\n"
-	require.NoError(t, os.WriteFile(filepath.Join(dir, name), []byte(script), 0o755))
+	toolstub.Write(t, filepath.Join(dir, name), toolstub.Spec{Script: "echo " + strconv.Quote(output)})
 }
 
 func writeCountingFakeClient(t *testing.T, dir, name, output, startCountFile string) {
 	t.Helper()
 
-	script := strings.Join([]string{
-		"#!/bin/sh",
-		"printf x >> " + strconv.Quote(startCountFile),
-		"echo " + strconv.Quote(output),
-		"",
-	}, "\n")
-	require.NoError(t, os.WriteFile(filepath.Join(dir, name), []byte(script), 0o755))
+	toolstub.Write(t, filepath.Join(dir, name), toolstub.Spec{
+		Script: "printf x >> " + strconv.Quote(startCountFile) + "\necho " + strconv.Quote(output),
+	})
 }

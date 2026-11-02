@@ -90,6 +90,8 @@ func TestStageBackupViaExec(t *testing.T) {
 }
 
 func TestRunPgRestore(t *testing.T) {
+	t.Parallel()
+
 	t.Run("accepts the existing public schema when pg_restore exits with an error", func(t *testing.T) {
 		t.Parallel()
 		stderr := `pg_restore: error: could not execute query: ERROR: schema "public" already exists
@@ -108,6 +110,8 @@ pg_restore: warning: errors ignored on restore: 1
 	})
 
 	t.Run("accepts ignorable errors when the complete output exceeds the log tail", func(t *testing.T) {
+		t.Parallel()
+
 		stderr := strings.Repeat(
 			"pg_restore: error: could not execute query: ERROR:  extension \"set_user\" is not available\n",
 			100,
@@ -124,6 +128,8 @@ pg_restore: warning: errors ignored on restore: 1
 		assert.Len(t, restoreResult.StderrTail, 8192)
 	})
 	t.Run("returns result without error when pg_restore succeeds", func(t *testing.T) {
+		t.Parallel()
+
 		exec := &fakeExecRunner{result: ExecResult{ExitCode: 0}}
 		r := NewRestorer(slog.New(slog.DiscardHandler))
 
@@ -141,6 +147,8 @@ pg_restore: warning: errors ignored on restore: 1
 		assert.Equal(t, []string{"PGPASSWORD=deadbeef"}, exec.recorded[0].env)
 	})
 	t.Run("passes clean and if exists when the job uses plain PostgreSQL", func(t *testing.T) {
+		t.Parallel()
+
 		exec := &fakeExecRunner{result: ExecResult{ExitCode: 0}}
 		r := NewRestorer(slog.New(slog.DiscardHandler))
 
@@ -152,6 +160,8 @@ pg_restore: warning: errors ignored on restore: 1
 		assert.Contains(t, exec.recorded[0].cmd, "--if-exists")
 	})
 	t.Run("omits clean and if exists when the job uses TimescaleDB", func(t *testing.T) {
+		t.Parallel()
+
 		exec := &fakeExecRunner{result: ExecResult{ExitCode: 0}}
 		r := NewRestorer(slog.New(slog.DiscardHandler))
 
@@ -169,6 +179,8 @@ pg_restore: warning: errors ignored on restore: 1
 	t.Run(
 		"returns err restore failed with populated result when pg_restore exits with a nonzero code",
 		func(t *testing.T) {
+			t.Parallel()
+
 			exec := &fakeExecRunner{result: ExecResult{ExitCode: 1, Stderr: "could not execute query"}}
 			r := NewRestorer(slog.New(slog.DiscardHandler))
 
@@ -181,6 +193,8 @@ pg_restore: warning: errors ignored on restore: 1
 		},
 	)
 	t.Run("returns non restore error when the exec call fails", func(t *testing.T) {
+		t.Parallel()
+
 		exec := &fakeExecRunner{err: errors.New("exec create failed")}
 		r := NewRestorer(slog.New(slog.DiscardHandler))
 
@@ -191,6 +205,8 @@ pg_restore: warning: errors ignored on restore: 1
 			"an exec-infrastructure failure must not look like a non-zero pg_restore exit")
 	})
 	t.Run("tail is truncated suffix when stderr exceeds the tail limit", func(t *testing.T) {
+		t.Parallel()
+
 		huge := strings.Repeat("A", 9000) + "TAIL-MARKER"
 		exec := &fakeExecRunner{result: ExecResult{ExitCode: 0, Stderr: huge}}
 		r := NewRestorer(slog.New(slog.DiscardHandler))

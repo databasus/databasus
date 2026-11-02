@@ -18,6 +18,8 @@ func TestListUsers(t *testing.T) {
 	t.Parallel()
 
 	t.Run("pages through every user, the newest first", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		signedUpEmails := []string{admin.Email}
@@ -58,6 +60,8 @@ func TestListUsers(t *testing.T) {
 	})
 
 	t.Run("lists users created at the same moment once each", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		for range 3 {
@@ -90,6 +94,8 @@ func TestListUsers(t *testing.T) {
 	})
 
 	t.Run("keeps the users whose address or name contains the query, ignoring case", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		matchingMember := app.SignUp(t, apptest.NewTestEmail("findme"))
@@ -103,6 +109,8 @@ func TestListUsers(t *testing.T) {
 	})
 
 	t.Run("matches a wildcard character of the query literally", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		app.SignUp(t, apptest.NewTestEmail("member"))
@@ -114,6 +122,8 @@ func TestListUsers(t *testing.T) {
 	})
 
 	t.Run("returns 400 naming the cursor when it is not a cursor of the list", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		after := "not-a-cursor"
@@ -129,6 +139,8 @@ func TestListUsers(t *testing.T) {
 	})
 
 	t.Run("returns 403 permission_denied to a member", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		app.CreateAdmin(t)
 		member := app.SignUp(t, apptest.NewTestEmail("member"))
@@ -146,6 +158,8 @@ func TestDeactivateUser(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns 401 unauthenticated for a token of the deactivated user", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		member := app.SignUp(t, apptest.NewTestEmail("member"))
@@ -160,6 +174,8 @@ func TestDeactivateUser(t *testing.T) {
 	})
 
 	t.Run("refuses a wrong password to the deactivated user like to anyone", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		member := app.SignUp(t, apptest.NewTestEmail("member"))
@@ -172,6 +188,8 @@ func TestDeactivateUser(t *testing.T) {
 	})
 
 	t.Run("answers user_deactivated without a token to the correct password", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		member := app.SignUp(t, apptest.NewTestEmail("member"))
@@ -185,6 +203,8 @@ func TestDeactivateUser(t *testing.T) {
 	})
 
 	t.Run("returns 403 permission_denied when an administrator deactivates themselves", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 
@@ -195,6 +215,8 @@ func TestDeactivateUser(t *testing.T) {
 	})
 
 	t.Run("returns 404 not_found for a user that does not exist", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 
@@ -208,6 +230,8 @@ func TestActivateUser(t *testing.T) {
 	t.Parallel()
 
 	t.Run("lets the deactivated user sign in again", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		member := app.SignUp(t, apptest.NewTestEmail("member"))
@@ -226,6 +250,8 @@ func TestManageAdmins(t *testing.T) {
 	t.Parallel()
 
 	t.Run("lets the bootstrap administrator manage admins after changing address", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		bootstrapAdmin := app.CreateAdmin(t)
 		member := app.SignUp(t, apptest.NewTestEmail("member"))
@@ -249,6 +275,8 @@ func TestManageAdmins(t *testing.T) {
 	})
 
 	t.Run("refuses every admin change to an admin who is not the bootstrap administrator", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		bootstrapAdmin := app.CreateAdmin(t)
 		otherAdmin := appointAdmin(t, app, bootstrapAdmin)
@@ -273,6 +301,8 @@ func TestManageAdmins(t *testing.T) {
 	})
 
 	t.Run("lets an admin who is not the bootstrap administrator manage members", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		bootstrapAdmin := app.CreateAdmin(t)
 		otherAdmin := appointAdmin(t, app, bootstrapAdmin)
@@ -284,6 +314,8 @@ func TestManageAdmins(t *testing.T) {
 	})
 
 	t.Run("refuses to strip the bootstrap administrator of the role or deactivate it", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		bootstrapAdmin := app.CreateAdmin(t)
 		otherAdmin := appointAdmin(t, app, bootstrapAdmin)
@@ -305,6 +337,8 @@ func TestManageAdmins(t *testing.T) {
 	})
 
 	t.Run("returns 400 naming the role when it is not a role", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		bootstrapAdmin := app.CreateAdmin(t)
 		member := app.SignUp(t, apptest.NewTestEmail("member"))

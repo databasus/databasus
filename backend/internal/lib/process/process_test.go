@@ -120,13 +120,15 @@ func TestStart(t *testing.T) {
 }
 
 func TestParentDeath(t *testing.T) {
+	t.Parallel()
+
 	if len(os.Args) > 2 && os.Args[len(os.Args)-2] == "process-parent-helper" {
 		running, err := Start(t.Context(), Spec{Path: os.Args[len(os.Args)-1], Stdout: os.Stdout})
 		require.NoError(t, err)
 		_ = running.Wait()
 		return
 	}
-	t.Parallel()
+
 	t.Run("kills the tool when its parent dies", func(t *testing.T) {
 		t.Parallel()
 		toolPath := filepath.Join(t.TempDir(), "tool")

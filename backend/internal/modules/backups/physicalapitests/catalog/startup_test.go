@@ -14,6 +14,8 @@ func TestRestartPhysicalCleanup(t *testing.T) {
 	t.Parallel()
 
 	t.Run("drops the orphan backup slot after failing a backup left running by a crash", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newConnectedCatalog(t)
 		catalog.seedRunningBackupAndStreamer(t)
 

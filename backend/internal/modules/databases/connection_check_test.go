@@ -15,6 +15,7 @@ import (
 	containers "databasus-backend/internal/lib/testcontainers"
 )
 
+//nolint:tparallel // The subtests share one source server.
 func TestTestDatabase(t *testing.T) {
 	t.Parallel()
 
@@ -97,6 +98,7 @@ func TestTestDatabase(t *testing.T) {
 	})
 }
 
+//nolint:tparallel // The subtests share one physical PostgreSQL server.
 func TestTestPhysicalDatabase(t *testing.T) {
 	t.Parallel()
 

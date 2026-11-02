@@ -49,6 +49,8 @@ func TestHealthcheckInterruption(t *testing.T) {
 	t.Parallel()
 
 	t.Run("discards a pending probe after checks are disabled", func(t *testing.T) {
+		t.Parallel()
+
 		team := newHealthcheckTeam(t)
 		messages := recordNotifications(t, team)
 		config := configInput(team.getConfig(t))
@@ -82,6 +84,8 @@ func TestHealthcheckInterruption(t *testing.T) {
 		assert.Empty(t, messages)
 	})
 	t.Run("waits for an interrupted probe and records nothing after cancellation", func(t *testing.T) {
+		t.Parallel()
+
 		team := newHealthcheckTeam(t)
 		messages := recordNotifications(t, team)
 		accepted, release := holdProbe(t, team)
@@ -112,6 +116,8 @@ func TestHealthcheckInterruption(t *testing.T) {
 		assert.Empty(t, messages)
 	})
 	t.Run("deletes a database and records nothing when a probe fails after deletion", func(t *testing.T) {
+		t.Parallel()
+
 		team := newHealthcheckTeam(t)
 		messages := recordNotifications(t, team)
 		accepted, release := holdProbe(t, team)

@@ -22,6 +22,8 @@ func TestVerificationHeartbeatMemory(t *testing.T) {
 
 	for _, memoryMb := range []int{0, 512, 4096} {
 		t.Run(fmt.Sprintf("stores %d megabytes when explicitly reported", memoryMb), func(t *testing.T) {
+			t.Parallel()
+
 			application := apptest.New(t)
 			admin := application.CreateAdmin(t)
 			agent := application.CreateVerificationAgent(t, admin)
@@ -37,6 +39,8 @@ func TestVerificationHeartbeatMemory(t *testing.T) {
 		})
 	}
 	t.Run("keeps persisted megabytes when an upgraded instance has no new heartbeat", func(t *testing.T) {
+		t.Parallel()
+
 		application := apptest.New(t)
 		admin := application.CreateAdmin(t)
 		agent := application.CreateVerificationAgent(t, admin)
@@ -52,6 +56,8 @@ func TestVerificationHeartbeatMemory(t *testing.T) {
 		`{"maxCpu":1,"maxRamGb":16,"maxDiskGb":2,"maxConcurrentJobs":1,"currentVerificationIds":[]}`,
 	} {
 		t.Run("preserves capacity and last contact when megabytes are missing", func(t *testing.T) {
+			t.Parallel()
+
 			application := apptest.New(t)
 			admin := application.CreateAdmin(t)
 			agent := application.CreateVerificationAgent(t, admin)
@@ -95,6 +101,8 @@ func TestVerificationAgentAuthentication(t *testing.T) {
 	t.Run(
 		"returns one detail without updating capacity when credentials do not belong to the named agent",
 		func(t *testing.T) {
+			t.Parallel()
+
 			app := apptest.New(t)
 			admin := app.CreateAdmin(t)
 			agent := app.CreateVerificationAgent(t, admin)
@@ -150,6 +158,8 @@ func TestVerificationAgentCapacityValidation(t *testing.T) {
 	t.Parallel()
 
 	t.Run("preserves capacity when a heartbeat contains a negative value", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		agent := app.CreateVerificationAgent(t, admin)
@@ -177,6 +187,8 @@ func TestVerificationAgentCapacityValidation(t *testing.T) {
 		assert.Equal(t, 2, persistedAgent.MaxConcurrentJobs)
 	})
 	t.Run("leaves work pending when the claim capacity is negative", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		verification := team.start(t, backup.Id)
@@ -203,6 +215,8 @@ func TestVerificationAgentReportValidation(t *testing.T) {
 		{"keeps running when a table has no schema", agentclient.VerificationReport{Status: agentclient.VerificationReportStatusCOMPLETED, TableStats: []agentclient.ReportTableStat{{Name: "customers"}}}},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
+			t.Parallel()
+
 			team := newVerificationTeam(t)
 			backup := team.backup(t)
 			verification := team.start(t, backup.Id)
@@ -228,6 +242,8 @@ func TestVerificationAgentGone(t *testing.T) {
 
 	for _, state := range []string{"cancelled", "reclaimed", "unknown", "deleted backup", "completed"} {
 		t.Run("returns gone for stream and report when the verification is "+state, func(t *testing.T) {
+			t.Parallel()
+
 			team := newVerificationTeam(t)
 			backup := team.backup(t)
 			verification := team.start(t, backup.Id)
@@ -303,6 +319,8 @@ func TestVerificationBackupStreamFailure(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns internal and preserves ownership when the stored backup file is missing", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		verification := team.start(t, backup.Id)

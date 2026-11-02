@@ -18,6 +18,7 @@ import (
 
 var errAttachmentNotWaiting = errors.New("no attachment waits for the lock on the notifier")
 
+//nolint:tparallel // The subtests share one source server.
 func TestDatabaseNotifiers(t *testing.T) {
 	t.Parallel()
 

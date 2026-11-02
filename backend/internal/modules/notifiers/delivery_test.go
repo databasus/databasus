@@ -45,6 +45,8 @@ func TestNotify(t *testing.T) {
 
 	t.Run("delivers to discord without waiting for a webhook that never answers, which then times out",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t, apptest.WithNotificationDeliveryTimeout(time.Second))
 			silentWebhook := startSilentEndpoint(t)
 			discordWebhook := startEndpoint(t, http.StatusNoContent)
@@ -64,6 +66,8 @@ func TestNotify(t *testing.T) {
 		})
 
 	t.Run("sends the first 2000 characters of a longer message", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		webhookEndpoint := startEndpoint(t, http.StatusOK)
 		webhookNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
@@ -86,6 +90,8 @@ func TestNotify(t *testing.T) {
 
 	t.Run("delivers to the other notifier when one points at an address that refuses connections",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			webhookEndpoint := startEndpoint(t, http.StatusOK)
 			refusingNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
@@ -108,6 +114,8 @@ func TestDeliveryOutcome(t *testing.T) {
 	t.Parallel()
 
 	t.Run("keeps the name and URL saved during a delivery and records the delivery's error", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		blockingEndpoint := startBlockingEndpoint(t, http.StatusInternalServerError)
 		newEndpoint := startEndpoint(t, http.StatusOK)
@@ -142,6 +150,8 @@ func TestDeliveryOutcome(t *testing.T) {
 
 	t.Run("shows the failure after a failed delivery and no error after the next successful one",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			var endpointStatus atomic.Int64
 			endpointStatus.Store(http.StatusBadGateway)
@@ -173,6 +183,8 @@ func TestDeliveryThroughEachProvider(t *testing.T) {
 	t.Parallel()
 
 	t.Run("posts the notification to the webhook", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		webhookEndpoint := startEndpoint(t, http.StatusOK)
 		webhookNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
@@ -186,6 +198,8 @@ func TestDeliveryThroughEachProvider(t *testing.T) {
 	})
 
 	t.Run("posts the notification to the discord channel webhook", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		discordWebhook := startEndpoint(t, http.StatusNoContent)
 		discordNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
@@ -198,6 +212,8 @@ func TestDeliveryThroughEachProvider(t *testing.T) {
 	})
 
 	t.Run("posts the notification to the teams workflow", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		teamsWorkflow := startEndpoint(t, http.StatusAccepted)
 		teamsNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
@@ -215,6 +231,8 @@ func TestDeliveryThroughEachProvider(t *testing.T) {
 	})
 
 	t.Run("posts the notification to the mattermost incoming webhook", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		mattermostWebhook := startEndpoint(t, http.StatusOK)
 		mattermostNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
@@ -240,6 +258,8 @@ func TestDeliveryThroughEachProvider(t *testing.T) {
 	})
 
 	t.Run("posts the notification to the slack channel with the bot token", func(t *testing.T) {
+		t.Parallel()
+
 		slackAPI := startEndpoint(t, http.StatusOK)
 		tm := newTeam(t, apptest.WithNotifierEndpoints(apptest.NotifierEndpoints{
 			SlackPostMessageURL: slackAPI.URL + "/api/chat.postMessage",
@@ -263,6 +283,8 @@ func TestDeliveryThroughEachProvider(t *testing.T) {
 	})
 
 	t.Run("sends the notification through the official bot API when the notifier names none", func(t *testing.T) {
+		t.Parallel()
+
 		botAPI := startEndpoint(t, http.StatusOK)
 		tm := newTeam(t, apptest.WithNotifierEndpoints(apptest.NotifierEndpoints{
 			SlackPostMessageURL: "",
@@ -281,6 +303,8 @@ func TestDeliveryThroughEachProvider(t *testing.T) {
 	})
 
 	t.Run("mails the notification through the notifier's SMTP server", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		mailpitEndpoint := containers.StartMailpit(t)
 		mailpitClient := mailpit.NewClient(fmt.Sprintf("%s:%d", mailpitEndpoint.HTTP.Host, mailpitEndpoint.HTTP.Port))

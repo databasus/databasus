@@ -10,6 +10,7 @@ import (
 	"databasus-backend/internal/modules/storages"
 )
 
+//nolint:tparallel // newTestApp sets process environment variables, which a parallel test cannot do.
 func TestJobHealth(t *testing.T) {
 	t.Run("assigns a policy when every application job is assembled", func(t *testing.T) {
 		application := newTestApp(t)

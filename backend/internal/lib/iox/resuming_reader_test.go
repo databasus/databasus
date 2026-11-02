@@ -91,6 +91,8 @@ func TestResumingReader(t *testing.T) {
 	t.Parallel()
 
 	t.Run("leaves the stall timer stopped when the consumer is idle", func(t *testing.T) {
+		t.Parallel()
+
 		fileBytes := generateBytes(4096)
 		source := &stubSource{content: fileBytes}
 

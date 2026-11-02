@@ -14,6 +14,8 @@ func TestUpdateStorage(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns 400 invalid_request and keeps the local storage when S3 settings are sent", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		localStorage := tm.createLocalStorage(t, "Local")
 
@@ -38,6 +40,8 @@ func TestUpdateStorage(t *testing.T) {
 	})
 
 	t.Run("returns 400 invalid_request and keeps the port when an FTP storage gets port 70000", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		ftpStorage := createStorage(t, tm.owner, apiclient.StorageCreate{
 			WorkspaceId: tm.workspace.Id,
@@ -67,6 +71,8 @@ func TestUpdateStorage(t *testing.T) {
 	})
 
 	t.Run("returns 400 invalid_request and keeps the name when the name is empty", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		localStorage := tm.createLocalStorage(t, "Local")
 
@@ -85,6 +91,8 @@ func TestCreateInvalidStorage(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns 400 invalid_request and creates nothing when the S3 storage has no bucket", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 
 		response, err := tm.owner.Client.CreateStorageWithResponse(t.Context(), apiclient.StorageCreate{
@@ -104,6 +112,8 @@ func TestCreateInvalidStorage(t *testing.T) {
 	})
 
 	t.Run("returns 401 unauthenticated without a session", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 
 		response, err := tm.app.NewClient(t).CreateStorageWithResponse(t.Context(), apiclient.StorageCreate{

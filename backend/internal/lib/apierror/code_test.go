@@ -57,6 +57,7 @@ func TestCode(t *testing.T) {
 		{apierror.CodeInsufficientDiskSpace, http.StatusConflict},
 		{apierror.CodeInternal, http.StatusInternalServerError},
 		{apierror.CodeVerificationGone, http.StatusGone},
+		{apierror.CodeInstanceUnhealthy, http.StatusServiceUnavailable},
 	}
 
 	for _, codeStatus := range codeStatuses {
@@ -113,6 +114,7 @@ func TestCode(t *testing.T) {
 			apierror.CodeInsufficientDiskSpace,
 			apierror.CodeInternal,
 			apierror.CodeVerificationGone,
+			apierror.CodeInstanceUnhealthy,
 		}
 
 		contractCodes := []string{}

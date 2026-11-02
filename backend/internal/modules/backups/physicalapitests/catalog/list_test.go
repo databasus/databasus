@@ -16,6 +16,8 @@ func TestGetPhysicalBackups(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns rows in creation order when the owner lists backups", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		base := time.Now().UTC().Add(-1 * time.Hour)
@@ -85,6 +87,8 @@ func TestGetPhysicalBackups(t *testing.T) {
 		assert.Positive(t, response.TotalUsageMb)
 	})
 	t.Run("returns a failure message when a backup failed", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		base := time.Now().UTC().Add(-1 * time.Hour)
@@ -139,6 +143,8 @@ func TestGetPhysicalBackups(t *testing.T) {
 			"a completed backup carries no failure message")
 	})
 	t.Run("returns every row once when the caller follows cursors", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		fulls := catalog.insertFulls(t, fullsSeedSpec{Count: 5, FirstCreatedAt: time.Now().UTC().Add(-1 * time.Hour)})
@@ -159,6 +165,8 @@ func TestGetPhysicalBackups(t *testing.T) {
 		assert.Equal(t, []uuid.UUID{fulls[4].ID, fulls[3].ID, fulls[2].ID, fulls[1].ID, fulls[0].ID}, listedIDs)
 	})
 	t.Run("keeps pagination stable when a backup is created between pages", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		fulls := catalog.insertFulls(t, fullsSeedSpec{Count: 3, FirstCreatedAt: time.Now().UTC().Add(-1 * time.Hour)})
@@ -185,6 +193,8 @@ func TestGetPhysicalBackups(t *testing.T) {
 		assert.Equal(t, []uuid.UUID{fulls[2].ID, fulls[1].ID, fulls[0].ID}, listedIDs)
 	})
 	t.Run("returns 400 when the cursor is malformed", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		for _, malformedCursor := range []string{"not-a-cursor", "e30", "eyJ0IjoieCJ9"} {
@@ -199,6 +209,8 @@ func TestGetPhysicalBackups(t *testing.T) {
 		}
 	})
 	t.Run("lists only the requested database when a cursor comes from another database", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		base := time.Now().UTC().Add(-1 * time.Hour)
@@ -236,6 +248,8 @@ func TestGetPhysicalBackups(t *testing.T) {
 		assert.Equal(t, []uuid.UUID{ownFulls[1].ID, ownFulls[0].ID}, collectBackupIDs(page))
 	})
 	t.Run("returns 404 when a nonmember uses a cursor", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		catalog.insertFulls(t, fullsSeedSpec{Count: 2, FirstCreatedAt: time.Now().UTC().Add(-1 * time.Hour)})
@@ -255,6 +269,8 @@ func TestGetPhysicalBackups(t *testing.T) {
 		)
 	})
 	t.Run("returns 404 when the user is not a workspace member", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		outsider := catalog.App.CreateNonAdminUser(t, catalog.Admin)
@@ -269,6 +285,8 @@ func TestGetPhysicalBackups(t *testing.T) {
 		)
 	})
 	t.Run("filters by type when one type is requested", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		full, incr, walSegment := seedOneOfEachType(t, catalog)
@@ -286,6 +304,8 @@ func TestGetPhysicalBackups(t *testing.T) {
 		assert.Equal(t, walSegment.ID, walPage.Backups[0].ID)
 	})
 	t.Run("filters by status when one status is requested", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		completed := catalog.insertFull(
@@ -316,6 +336,8 @@ func TestGetPhysicalBackups(t *testing.T) {
 		assert.Equal(t, inProgress.ID, inProgressPage.Backups[0].ID)
 	})
 	t.Run("excludes newer rows when a date cutoff is supplied", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		now := time.Now().UTC()
@@ -351,6 +373,8 @@ func TestGetPhysicalBackups(t *testing.T) {
 		assert.Equal(t, older.ID, page.Backups[0].ID)
 	})
 	t.Run("accepts several types when the filter repeats", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		full, _, walSegment := seedOneOfEachType(t, catalog)
@@ -364,6 +388,8 @@ func TestGetPhysicalBackups(t *testing.T) {
 		assert.Contains(t, returnedIDs, walSegment.ID)
 	})
 	t.Run("accepts several statuses when the filter repeats", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		completed := catalog.insertFull(
@@ -406,6 +432,8 @@ func TestGetPhysicalBackups(t *testing.T) {
 		assert.Contains(t, returnedIDs, inProgress.ID)
 	})
 	t.Run("combines type and status filters when both are supplied", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		completedFull := catalog.insertFull(
@@ -449,6 +477,8 @@ func TestGetPhysicalBackups(t *testing.T) {
 		assert.Equal(t, completedFull.ID, page.Backups[0].ID)
 	})
 	t.Run("returns an empty page when the database has no backups", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		page := getBackups(t, catalog, "")
@@ -458,6 +488,8 @@ func TestGetPhysicalBackups(t *testing.T) {
 		assert.Zero(t, page.TotalUsageMb)
 	})
 	t.Run("isolates rows when another database has backups", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		ownFull := catalog.insertFull(
@@ -493,6 +525,8 @@ func TestGetPhysicalBackups(t *testing.T) {
 		assert.Equal(t, ownFull.ID, page.Backups[0].ID)
 	})
 	t.Run("uses the default or maximum page size when the caller requests it", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		createCompletedFullBackupsInBulk(t, catalog, 1001)
@@ -506,6 +540,8 @@ func TestGetPhysicalBackups(t *testing.T) {
 		assert.NotEmpty(t, maximumPage.NextCursor)
 	})
 	t.Run("groups consecutive WAL segments when their timeline matches", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		base := time.Now().UTC().Add(-1 * time.Hour)
@@ -547,6 +583,8 @@ func TestGetPhysicalBackups(t *testing.T) {
 		assert.Equal(t, full.ID, page.Backups[1].ID)
 	})
 	t.Run("splits WAL ranges and marks the gap when a segment is missing", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		base := time.Now().UTC().Add(-1 * time.Hour)
@@ -569,6 +607,8 @@ func TestGetPhysicalBackups(t *testing.T) {
 		assert.False(t, page.Backups[1].HasGapBefore, "the oldest retained range has nothing before it")
 	})
 	t.Run("starts a range without a gap mark when the timeline changes", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		base := time.Now().UTC().Add(-1 * time.Hour)
@@ -592,6 +632,8 @@ func TestGetPhysicalBackups(t *testing.T) {
 		assert.Equal(t, 1, page.Backups[1].TimelineID)
 	})
 	t.Run("splits a WAL range when a full backup lies between segments", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		olderSegments, full, newerSegments := seedWalAroundFull(t, catalog)
@@ -609,6 +651,8 @@ func TestGetPhysicalBackups(t *testing.T) {
 		assert.Equal(t, 2, *page.Backups[2].WalSegmentsCount)
 	})
 	t.Run("merges WAL ranges across a full when the caller filters to WAL", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		olderSegments, _, newerSegments := seedWalAroundFull(t, catalog)
@@ -621,6 +665,8 @@ func TestGetPhysicalBackups(t *testing.T) {
 		assert.Equal(t, newerSegments[1].WalFilename, *page.Backups[0].ToWalFilename)
 	})
 	t.Run("limits a WAL range when the date cutoff falls inside it", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		base := time.Now().UTC().Add(-1 * time.Hour)
@@ -638,6 +684,8 @@ func TestGetPhysicalBackups(t *testing.T) {
 		assert.InDelta(t, 32, page.Backups[0].SizeMb, 0.001)
 	})
 	t.Run("lists no WAL when the requested status cannot describe WAL", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		base := time.Now().UTC().Add(-1 * time.Hour)
@@ -663,6 +711,8 @@ func TestGetPhysicalBackups(t *testing.T) {
 		assert.Equal(t, []uuid.UUID{failed.ID}, collectBackupIDs(page))
 	})
 	t.Run("grows a WAL range in place when a segment is appended", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		base := time.Now().UTC().Add(-1 * time.Hour)
@@ -687,6 +737,8 @@ func TestGetPhysicalBackups(t *testing.T) {
 		assert.WithinDuration(t, appendedSegment.ReceivedAt, *grownRange.CompletedAt, time.Millisecond)
 	})
 	t.Run("counts a WAL range as one row when it contains many segments", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 
 		base := time.Now().UTC().Add(-2 * time.Hour)

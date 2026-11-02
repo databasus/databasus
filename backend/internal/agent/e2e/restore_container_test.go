@@ -22,6 +22,8 @@ func TestRestoreContainer(t *testing.T) {
 	t.Parallel()
 
 	t.Run("runs without root or capabilities when restoring a backup", func(t *testing.T) {
+		t.Parallel()
+
 		endpoint := containers.StartPostgres(t, "postgres:18")
 		team := enginetest.NewTeam(t, apptest.WithAgentBinariesDir(currentBinaryDirectory))
 		database := team.CreateDatabase(t, seedSource(t, endpoint, false))
@@ -43,8 +45,20 @@ func TestRestoreContainer(t *testing.T) {
 				case <-gate.streamRequested:
 					return nil
 				default:
-					return fmt.Errorf("the stream has not been requested")
 				}
+
+				// A verification that ended without its container, as when Docker has no network
+				// left, never requests the stream, so waiting further would last until the timeout.
+				verification := team.App.GetVerification(t, team.Owner, verificationID)
+				if verification.Status == "COMPLETED" || verification.Status == "FAILED" {
+					require.FailNow(
+						t,
+						"the verification ended before requesting the stream",
+						fmt.Sprint(verification.FailMessage),
+					)
+				}
+
+				return fmt.Errorf("the stream has not been requested")
 			},
 		)
 

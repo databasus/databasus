@@ -18,6 +18,7 @@ import (
 // unansweredPort is a port where no test server listens, so a connection to it is refused at once.
 const unansweredPort = 1
 
+//nolint:tparallel // The subtests share one source server.
 func TestCreateDatabase(t *testing.T) {
 	t.Parallel()
 
@@ -183,6 +184,7 @@ func listLogicalBackupIDs(t *testing.T, tm team, databaseID uuid.UUID) []uuid.UU
 	return backupIDs
 }
 
+//nolint:tparallel // The subtests share one source server.
 func TestUpdateDatabase(t *testing.T) {
 	t.Parallel()
 

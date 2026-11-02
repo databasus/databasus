@@ -16,12 +16,16 @@ func TestPhysicalBackupChains(t *testing.T) {
 	t.Parallel()
 
 	t.Run("accepts an incremental when the chain has a healthy full", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		catalog.seedCascadeFull(t, cascadeFullSpec{})
 		catalog.seedCascadeWal(t, cascadeWalSpec{Segment: 1})
 		catalog.triggerIncremental(t, http.StatusAccepted)
 	})
 	t.Run("refuses an incremental and retains the old chain when its incremental is broken", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		full := catalog.seedCascadeFull(t, cascadeFullSpec{})
 		incremental := catalog.seedCascadeIncremental(t, full.ID, 1)
@@ -35,6 +39,8 @@ func TestPhysicalBackupChains(t *testing.T) {
 		catalog.assertFullPresent(t, full.ID)
 	})
 	t.Run("keeps a chain extendable and reports the gap when intermediate WAL is missing", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		catalog.seedCascadeFull(t, cascadeFullSpec{})
 		catalog.seedCascadeWal(t, cascadeWalSpec{Segment: 1})
@@ -48,6 +54,8 @@ func TestPhysicalBackupChains(t *testing.T) {
 	t.Run(
 		"retains the newest healthy chain and permits an incremental after deleting the older full",
 		func(t *testing.T) {
+			t.Parallel()
+
 			catalog := newCatalog(t)
 			older := catalog.seedCascadeFull(t, cascadeFullSpec{Age: time.Hour})
 			newer := catalog.seedCascadeFull(t, cascadeFullSpec{Segment: 4})
@@ -57,6 +65,8 @@ func TestPhysicalBackupChains(t *testing.T) {
 		},
 	)
 	t.Run("ends the removable WAL span at the next full start", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		older := catalog.seedCascadeFull(t, cascadeFullSpec{Age: time.Hour})
 		newer := catalog.seedCascadeFull(t, cascadeFullSpec{Segment: 4})
@@ -65,6 +75,8 @@ func TestPhysicalBackupChains(t *testing.T) {
 		assert.Empty(t, getBackups(t, catalog, "?type=WAL").Backups)
 	})
 	t.Run("removes WAL beyond the full stop when no successor bounds the span", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		full := catalog.seedCascadeFull(t, cascadeFullSpec{Segment: 4})
 		wal := catalog.seedCascadeWal(t, cascadeWalSpec{Segment: 5})
@@ -72,6 +84,8 @@ func TestPhysicalBackupChains(t *testing.T) {
 		catalog.assertWalGone(t, wal.ID)
 	})
 	t.Run("orders inactive chains by the latest WAL receive time for retention", func(t *testing.T) {
+		t.Parallel()
+
 		var catalog *catalogFixture
 		cleaner := newCleanerCatalog(t)
 		catalog = cleaner.catalogFixture
@@ -95,6 +109,8 @@ func TestPhysicalBackupChains(t *testing.T) {
 		catalog.assertFullGone(t, newer.ID)
 	})
 	t.Run("removes only the orphan before the full start when sweeping WAL", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		catalog.seedCascadeFull(t, cascadeFullSpec{Segment: 4})
 		orphan := catalog.seedCascadeWal(t, cascadeWalSpec{Segment: 1})
@@ -107,6 +123,8 @@ func TestPhysicalBackupChains(t *testing.T) {
 		catalog.assertWalPresent(t, anchored.ID)
 	})
 	t.Run("keeps the full boundary segment when the full starts inside it", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		catalog.seedCascadeFull(t, cascadeFullSpec{Segment: 4, Offset: 0x28})
 		boundary := catalog.seedCascadeWal(t, cascadeWalSpec{Segment: 4})
@@ -115,6 +133,8 @@ func TestPhysicalBackupChains(t *testing.T) {
 		catalog.assertWalPresent(t, boundary.ID)
 	})
 	t.Run("reports both WAL gaps when two missing ranges separate three runs", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		catalog.seedCascadeFull(t, cascadeFullSpec{})
 		for _, segment := range []int{1, 4, 7} {
@@ -126,6 +146,8 @@ func TestPhysicalBackupChains(t *testing.T) {
 		assertWalGap(t, page, 5, 7)
 	})
 	t.Run("orders inactive chains by the latest incremental when there is no WAL", func(t *testing.T) {
+		t.Parallel()
+
 		var catalog *catalogFixture
 		cleaner := newCleanerCatalog(t)
 		catalog = cleaner.catalogFixture
@@ -148,6 +170,8 @@ func TestPhysicalBackupChains(t *testing.T) {
 		catalog.assertFullGone(t, newer.ID)
 	})
 	t.Run("refuses to extend an older chain when the newest chain is broken", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		older := catalog.seedCascadeFull(t, cascadeFullSpec{Age: time.Hour})
 		newer := catalog.seedCascadeFull(t, cascadeFullSpec{Segment: 4})
@@ -166,6 +190,8 @@ func TestPhysicalBackupChains(t *testing.T) {
 		assert.Equal(t, older.ID, page.Backups[1].ID)
 	})
 	t.Run("keeps the middle chain boundary segments when orphan cleanup examines three chains", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		for _, segment := range []int{0, 4, 8} {
 			catalog.seedCascadeFull(t, cascadeFullSpec{Segment: segment, Offset: 0x28})
@@ -189,6 +215,8 @@ func TestPhysicalBackupChains(t *testing.T) {
 		}
 	})
 	t.Run("deletes the segment ending at a chain boundary only with its owning predecessor", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		predecessor := catalog.seedCascadeFull(t, cascadeFullSpec{})
 		successor := catalog.seedCascadeFull(t, cascadeFullSpec{Segment: 4})
@@ -201,6 +229,8 @@ func TestPhysicalBackupChains(t *testing.T) {
 		catalog.assertFullPresent(t, successor.ID)
 	})
 	t.Run("keeps matching segments from another timeline and database when deleting a chain", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		full := catalog.seedCascadeFull(t, cascadeFullSpec{Segment: 4, Offset: 0x28})
 		segments := catalog.insertContiguousWal(

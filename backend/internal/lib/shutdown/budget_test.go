@@ -16,6 +16,8 @@ func TestBudget(t *testing.T) {
 	t.Parallel()
 
 	t.Run("preserves values and its own timeout after ordinary cancellation", func(t *testing.T) {
+		t.Parallel()
+
 		synctest.Test(t, func(t *testing.T) {
 			type contextKey struct{}
 			budget := New(Deps{Clock: clock.NewSystem()})
@@ -36,6 +38,8 @@ func TestBudget(t *testing.T) {
 	})
 
 	t.Run("shortens an active cleanup when shutdown begins", func(t *testing.T) {
+		t.Parallel()
+
 		synctest.Test(t, func(t *testing.T) {
 			budget := New(Deps{Clock: clock.NewSystem()})
 			cleanupCtx, cancelCleanup := budget.NewContext(
@@ -53,6 +57,8 @@ func TestBudget(t *testing.T) {
 	})
 
 	t.Run("skips cleanup after its cutoff while leaving outcome time", func(t *testing.T) {
+		t.Parallel()
+
 		synctest.Test(t, func(t *testing.T) {
 			budget := New(Deps{Clock: clock.NewSystem()})
 			drainDeadline := budget.Begin(6 * time.Second)
@@ -82,6 +88,8 @@ func TestBudget(t *testing.T) {
 	})
 
 	t.Run("keeps an earlier ordinary timeout when shutdown has more time", func(t *testing.T) {
+		t.Parallel()
+
 		synctest.Test(t, func(t *testing.T) {
 			budget := New(Deps{Clock: clock.NewSystem()})
 			budget.Begin(6 * time.Second)
@@ -97,6 +105,8 @@ func TestBudget(t *testing.T) {
 	})
 
 	t.Run("releases registrations and timers when cleanup finishes", func(t *testing.T) {
+		t.Parallel()
+
 		synctest.Test(t, func(t *testing.T) {
 			budget := New(Deps{Clock: clock.NewSystem()})
 			budget.Begin(6 * time.Second)

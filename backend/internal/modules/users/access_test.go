@@ -19,6 +19,8 @@ func TestAccessMark(t *testing.T) {
 
 	t.Run("returns 401 unauthenticated without running a signed-in operation when no token is sent",
 		func(t *testing.T) {
+			t.Parallel()
+
 			app := apptest.New(t)
 			admin := app.CreateAdmin(t)
 
@@ -29,6 +31,8 @@ func TestAccessMark(t *testing.T) {
 		})
 
 	t.Run("returns 401 unauthenticated when the token is not a session token", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 
@@ -39,6 +43,8 @@ func TestAccessMark(t *testing.T) {
 	})
 
 	t.Run("runs a public operation when no token is sent", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 
 		response, err := app.NewClient(t).GetSignInOptionsWithResponse(t.Context())
@@ -48,6 +54,8 @@ func TestAccessMark(t *testing.T) {
 	})
 
 	t.Run("accepts the raw token without the bearer prefix", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 
@@ -68,6 +76,8 @@ func TestPasswordPathsWithoutSession(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns 404 when an anonymous caller asks to read or set a password of a user", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		app.CreateAdmin(t)
 

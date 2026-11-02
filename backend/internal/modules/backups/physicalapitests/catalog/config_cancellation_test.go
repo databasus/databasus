@@ -20,6 +20,8 @@ func TestCancelPhysicalWorkAfterConfigSave(t *testing.T) {
 	t.Parallel()
 
 	t.Run("keeps completed files when a full finishes while disabling backups waits on its row", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		catalog.saveStorageConfig(t, catalog.StorageID)
 		full := catalog.insertFull(t, newInProgressFull(inProgressFullSpec{
@@ -86,6 +88,8 @@ func TestCancelPhysicalWorkAfterConfigSave(t *testing.T) {
 		}
 	})
 	t.Run("cancels the running backup and deletes the streamer when backups are disabled", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		catalog.saveStorageConfig(t, catalog.StorageID)
 		catalog.seedRunningBackupAndStreamer(t)

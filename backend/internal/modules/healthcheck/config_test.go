@@ -15,6 +15,8 @@ func TestHealthcheckConfig(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns the enabled default after database creation without changing it on read", func(t *testing.T) {
+		t.Parallel()
+
 		team := newHealthcheckTeam(t)
 		config := team.getConfig(t)
 		assert.True(t, config.IsHealthcheckEnabled)
@@ -25,6 +27,8 @@ func TestHealthcheckConfig(t *testing.T) {
 		assert.Equal(t, config, team.getConfig(t))
 	})
 	t.Run("persists all fields and an audit event when a member saves", func(t *testing.T) {
+		t.Parallel()
+
 		team := newHealthcheckTeam(t)
 		member := team.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER)
 		input := apiclient.HealthcheckConfigInput{
@@ -56,6 +60,8 @@ func TestHealthcheckConfig(t *testing.T) {
 		assert.True(t, hasConfigEvent)
 	})
 	t.Run("keeps every field when a numeric value is below one", func(t *testing.T) {
+		t.Parallel()
+
 		team := newHealthcheckTeam(t)
 		original := team.getConfig(t)
 		for _, field := range []string{"interval", "threshold", "retention"} {
@@ -85,6 +91,8 @@ func TestHealthcheckConfig(t *testing.T) {
 		}
 	})
 	t.Run("rolls back the config and status when the audit write fails", func(t *testing.T) {
+		t.Parallel()
+
 		team := newHealthcheckTeam(t)
 		original := team.getConfig(t)
 		team.App.ExecuteSQL(
@@ -110,6 +118,8 @@ func TestHealthcheckConfig(t *testing.T) {
 		assert.Equal(t, new(apiclient.DatabaseHealthStatusAVAILABLE), team.getHealthStatus(t))
 	})
 	t.Run("returns internal without creating a config when its row is missing", func(t *testing.T) {
+		t.Parallel()
+
 		team := newHealthcheckTeam(t)
 		team.App.ExecuteSQL(t, "DELETE FROM healthcheck_configs WHERE database_id = ?", team.Database.Id)
 

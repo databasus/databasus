@@ -13,7 +13,11 @@ import (
 
 // WAL level "minimal" has no scenario: PostgreSQL accepts it only with max_wal_senders=0, which
 // refuses the replication connection before the check reads wal_level.
+//
+//nolint:tparallel // Each version's server stops before the next version starts, which bounds the memory the servers of one test hold.
 func TestTestReplicationConnection(t *testing.T) {
+	t.Parallel()
+
 	runOnEverySupportedVersion(t, func(t *testing.T, server testServer) {
 		t.Helper()
 
@@ -158,7 +162,10 @@ func TestTestReplicationConnection(t *testing.T) {
 	})
 }
 
+//nolint:tparallel // Each version's server stops before the next version starts, which bounds the memory the servers of one test hold.
 func TestReadReplicationSettings(t *testing.T) {
+	t.Parallel()
+
 	t.Run("defaults summarize_wal to off when server predates it", func(t *testing.T) {
 		server := testServer{endpoint: containers.StartPostgres(t, "postgres:16"), image: "postgres:16", version: ""}
 

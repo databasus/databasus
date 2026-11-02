@@ -15,6 +15,8 @@ func TestCreateNotifier(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns the saved telegram notifier without its bot token and proxy URL", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		telegram := newTelegram("123456:AAH-SECRET-TOKEN", "")
 		telegram.IsProxyEnabled = true
@@ -42,6 +44,8 @@ func TestCreateNotifier(t *testing.T) {
 	})
 
 	t.Run("returns 400 invalid_request and creates nothing when the webhook has no URL", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 
 		response, err := tm.owner.Client.CreateNotifierWithResponse(t.Context(), apiclient.NotifierCreate{
@@ -58,6 +62,8 @@ func TestCreateNotifier(t *testing.T) {
 
 	t.Run("returns 400 invalid_request and creates nothing when a webhook header name is not an HTTP token",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 
 			for _, invalidHeaderName := range getInvalidWebhookHeaderNames() {
@@ -78,6 +84,8 @@ func TestCreateNotifier(t *testing.T) {
 
 	t.Run("saves the webhook and sends the header when its name holds letters, digits and token punctuation",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 
 			for _, validHeaderName := range []string{"X-Api_Key.1", "X~Team!1"} {
@@ -100,6 +108,8 @@ func TestGetNotifier(t *testing.T) {
 	t.Parallel()
 
 	t.Run("lists the webhook header names without their values and shows the URL", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id, newWebhookSettings(t,
 			newPostWebhook("https://hooks.example.com/databasus",
@@ -118,6 +128,8 @@ func TestGetNotifier(t *testing.T) {
 	})
 
 	t.Run("lists no headers when the webhook has none", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
 			newWebhookSettings(t, newPostWebhook("https://hooks.example.com/databasus")))
@@ -130,6 +142,8 @@ func TestGetNotifier(t *testing.T) {
 	})
 
 	t.Run("returns the URL in clear when an older release stored it encrypted", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
 			newWebhookSettings(t, newPostWebhook("https://hooks.example.com/placeholder")))
@@ -144,6 +158,8 @@ func TestGetNotifier(t *testing.T) {
 	})
 
 	t.Run("lists the notifier with an empty URL when its stored URL cannot be decrypted", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
 			newWebhookSettings(t, newPostWebhook("https://hooks.example.com/placeholder")))
@@ -163,6 +179,8 @@ func TestUpdateNotifier(t *testing.T) {
 	t.Parallel()
 
 	t.Run("keeps the stored slack bot token when a rename leaves it out", func(t *testing.T) {
+		t.Parallel()
+
 		slackAPI := startEndpoint(t, http.StatusOK)
 		tm := newTeam(t, apptest.WithNotifierEndpoints(apptest.NotifierEndpoints{
 			SlackPostMessageURL: slackAPI.URL,
@@ -195,6 +213,8 @@ func TestUpdateNotifier(t *testing.T) {
 	})
 
 	t.Run("keeps the stored value of a webhook header sent without one", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		webhookEndpoint := startEndpoint(t, http.StatusOK)
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id, newWebhookSettings(t,
@@ -218,6 +238,8 @@ func TestUpdateNotifier(t *testing.T) {
 
 	t.Run("returns 400 invalid_request and keeps the stored headers when a webhook header name is not an HTTP token",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			webhookEndpoint := startEndpoint(t, http.StatusOK)
 			createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id, newWebhookSettings(
@@ -247,6 +269,8 @@ func TestUpdateNotifier(t *testing.T) {
 		})
 
 	t.Run("returns 400 invalid_request when a change sends back a stored invalid header name", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
 			newWebhookSettings(t, newPostWebhook("https://hooks.example.com/databasus")))
@@ -267,6 +291,8 @@ func TestUpdateNotifier(t *testing.T) {
 	})
 
 	t.Run("removes a webhook header the change leaves out", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		webhookEndpoint := startEndpoint(t, http.StatusOK)
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id, newWebhookSettings(t,
@@ -287,6 +313,8 @@ func TestUpdateNotifier(t *testing.T) {
 	})
 
 	t.Run("clears the stored proxy URL when the proxy is turned off", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		telegram := newTelegram("123456:AAH-TOKEN", "")
 		telegram.IsProxyEnabled = true
@@ -311,6 +339,8 @@ func TestUpdateNotifier(t *testing.T) {
 
 	t.Run("returns 400 invalid_request and keeps the slack notifier when it gets telegram settings",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id, newSlackSettings(t,
 				apiclient.SlackNotifierSettings{
@@ -335,6 +365,8 @@ func TestUpdateNotifier(t *testing.T) {
 		})
 
 	t.Run("returns 400 invalid_request and keeps the SMTP host when the change empties it", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		email := apiclient.EmailNotifierSettings{
 			Type:                 apiclient.EmailNotifierSettingsTypeEMAIL,

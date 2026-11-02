@@ -17,6 +17,8 @@ func TestDeletePhysicalReplicationSlots(t *testing.T) {
 			scenario = "deletes the database without waiting for an unreachable source to return"
 		}
 		t.Run(scenario, func(t *testing.T) {
+			t.Parallel()
+
 			team := newWalTeam(t, walTeamSpec{IsWithoutLoops: true, IsBastioned: !isUnreachable})
 			source := team.openSource(t)
 

@@ -11,7 +11,10 @@ import (
 
 const defaultWalSegmentSizeBytes = 16 * 1024 * 1024
 
+//nolint:tparallel // Each version's server stops before the next version starts, which bounds the memory the servers of one test hold.
 func TestInspectCluster(t *testing.T) {
+	t.Parallel()
+
 	runOnEverySupportedVersion(t, func(t *testing.T, server testServer) {
 		t.Helper()
 

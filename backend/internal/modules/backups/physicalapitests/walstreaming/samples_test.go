@@ -20,6 +20,8 @@ func TestPhysicalWalSamples(t *testing.T) {
 	t.Run(
 		"records source and archive values and clears its failing time after the first healthy sample",
 		func(t *testing.T) {
+			t.Parallel()
+
 			team := newWalTeam(t, walTeamSpec{})
 			team.App.InsertPhysicalWalStreamer(
 				t,
@@ -81,6 +83,8 @@ func TestPhysicalWalSamples(t *testing.T) {
 	t.Run(
 		"preserves the first unreachable time across sessions when source login fails again before the next sample",
 		func(t *testing.T) {
+			t.Parallel()
+
 			team := newWalTeam(t, walTeamSpec{})
 			role := team.useReplicationRole(t)
 			team.enable(t)

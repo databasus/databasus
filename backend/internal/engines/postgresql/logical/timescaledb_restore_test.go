@@ -18,6 +18,7 @@ import (
 	"databasus-backend/internal/lib/testwait"
 )
 
+//nolint:tparallel // The subtests share one TimescaleDB server.
 func TestTimescaleRestore(t *testing.T) {
 	t.Parallel()
 	server := testServer{

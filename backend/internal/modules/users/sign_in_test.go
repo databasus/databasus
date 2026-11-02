@@ -17,6 +17,8 @@ func TestSignIn(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns a session whose token reads the user when the password is correct", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 
@@ -31,6 +33,8 @@ func TestSignIn(t *testing.T) {
 
 	t.Run("answers the same status and code when the address is unknown or the password is wrong",
 		func(t *testing.T) {
+			t.Parallel()
+
 			app := apptest.New(t)
 			admin := app.CreateAdmin(t)
 
@@ -45,6 +49,8 @@ func TestSignIn(t *testing.T) {
 
 	t.Run("mentions neither admin nor the user count when the address is mistyped on a single-user instance",
 		func(t *testing.T) {
+			t.Parallel()
+
 			app := apptest.New(t)
 			app.CreateAdmin(t)
 
@@ -57,6 +63,8 @@ func TestSignIn(t *testing.T) {
 		})
 
 	t.Run("returns 429 rate_limited after ten attempts for one address within a minute", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 
@@ -76,6 +84,8 @@ func TestSignIn(t *testing.T) {
 
 	t.Run("signs in with the placeholder address admin when an upgraded instance still holds it",
 		func(t *testing.T) {
+			t.Parallel()
+
 			app := apptest.New(t)
 			admin := app.CreateAdmin(t)
 			app.ExecuteSQL(t, "UPDATE users SET email = 'admin' WHERE id = ?", admin.UserID)

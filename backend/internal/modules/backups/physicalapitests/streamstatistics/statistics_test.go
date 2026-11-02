@@ -19,6 +19,8 @@ func TestGetWalStreamStatistics(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns current values and series when a workspace member requests statistics", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newStatisticsCatalog(t)
 		catalog.insertStreamer(
 			t,
@@ -52,6 +54,8 @@ func TestGetWalStreamStatistics(t *testing.T) {
 		assert.Len(t, response.Series.Points, 60)
 	})
 	t.Run("returns no statistics when the request is not allowed", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newStatisticsCatalog(t)
 		catalog.insertSamples(
 			t,
@@ -133,6 +137,8 @@ func TestGetWalStreamStatistics(t *testing.T) {
 		}
 	})
 	t.Run("averages over sampled time when the caller requests a week", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newStatisticsCatalog(t)
 		catalog.insertStreamer(
 			t,
@@ -184,6 +190,8 @@ func TestGetWalStreamStatistics(t *testing.T) {
 			*quietPoint.ArchiveBytesPerSecond, 1)
 	})
 	t.Run("returns sixty consecutive minute buckets when the caller requests an hour", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newStatisticsCatalog(t)
 
 		requestedAfter := time.Now().UTC()
@@ -208,6 +216,8 @@ func TestGetWalStreamStatistics(t *testing.T) {
 		}
 	})
 	t.Run("keeps empty points when the streamer has an hour without samples", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newStatisticsCatalog(t)
 		catalog.insertStreamer(
 			t,
@@ -255,6 +265,8 @@ func TestGetWalStreamStatistics(t *testing.T) {
 		assert.Greater(t, holePointCount, 10)
 	})
 	t.Run("removes samples when the database is deleted", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		catalog.insertSamples(
 			t,
@@ -282,6 +294,8 @@ func TestGetWalStreamStatistics(t *testing.T) {
 		assert.Zero(t, remainingSamples)
 	})
 	t.Run("returns the newest archive receive time when WAL segments are committed", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newStatisticsCatalog(t)
 		catalog.insertStreamer(
 			t,
@@ -330,6 +344,8 @@ func TestGetWalStreamStatistics(t *testing.T) {
 		assert.WithinDuration(t, newerSegment.ReceivedAt, *response.Current.LastArchivedWalAt, time.Millisecond)
 	})
 	t.Run("returns documented codes when streaming needs attention", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newStatisticsCatalog(t)
 		catalog.insertStreamer(
 			t,
@@ -379,6 +395,8 @@ func TestGetWalStreamStatistics(t *testing.T) {
 		assertOnlyCodesTimesAndPositionsAreStrings(t, "", body)
 	})
 	t.Run("reports when streaming stopped after the newest failed sample", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newStatisticsCatalog(t)
 
 		catalog.insertStreamer(t, &apptest.PhysicalWalStreamerSeed{
@@ -403,6 +421,8 @@ func TestGetWalStreamStatistics(t *testing.T) {
 		assert.Equal(t, "NOT_RUNNING", response.Streamer.State)
 	})
 	t.Run("reports a broken WAL chain until a newer full replaces it", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newStatisticsCatalog(t)
 		catalog.insertStreamer(
 			t,
@@ -443,6 +463,8 @@ func TestGetWalStreamStatistics(t *testing.T) {
 		assert.Empty(t, repairedResponse.Health.Reasons)
 	})
 	t.Run("keeps the broken verdict when an incremental fails on a WAL gap", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newStatisticsCatalog(t)
 		catalog.insertStreamer(
 			t,
@@ -482,6 +504,8 @@ func TestGetWalStreamStatistics(t *testing.T) {
 			"a chain broken by an incremental still has a completed full backup")
 	})
 	t.Run("restores to the newest WAL receive time when WAL follows the full without a gap", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newStatisticsCatalog(t)
 		now := time.Now().UTC()
 
@@ -496,6 +520,8 @@ func TestGetWalStreamStatistics(t *testing.T) {
 		assert.Equal(t, time.UTC, response.LatestRestorableAt.Location())
 	})
 	t.Run("restores to the segment before a gap when the newest chain has a gap", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newStatisticsCatalog(t)
 		now := time.Now().UTC()
 
@@ -511,6 +537,8 @@ func TestGetWalStreamStatistics(t *testing.T) {
 		assert.WithinDuration(t, segmentBeforeGap.ReceivedAt, *response.LatestRestorableAt, time.Millisecond)
 	})
 	t.Run("restores to the newest WAL when an incremental completes after a gap", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newStatisticsCatalog(t)
 		now := time.Now().UTC()
 
@@ -543,6 +571,8 @@ func TestGetWalStreamStatistics(t *testing.T) {
 			"a gap below the newest completed backup does not limit the latest restore")
 	})
 	t.Run("returns two healthy ranges when an incremental bridges a WAL gap", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newStatisticsCatalog(t)
 		catalog.insertStreamer(
 			t,
@@ -580,6 +610,8 @@ func TestGetWalStreamStatistics(t *testing.T) {
 		assert.Equal(t, time.UTC, response.RestorableRanges[0].From.Location())
 	})
 	t.Run("reports a broken chain when a gap follows the newest incremental", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newStatisticsCatalog(t)
 		catalog.insertStreamer(
 			t,
@@ -611,6 +643,8 @@ func TestGetWalStreamStatistics(t *testing.T) {
 		assert.WithinDuration(t, segmentBeforeGap.ReceivedAt, response.RestorableRanges[0].To, time.Millisecond)
 	})
 	t.Run("keeps a broken chain when the incremental after a gap fails", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newStatisticsCatalog(t)
 		catalog.insertStreamer(
 			t,
@@ -649,6 +683,8 @@ func TestGetWalStreamStatistics(t *testing.T) {
 		assert.Len(t, response.RestorableRanges, 1)
 	})
 	t.Run("restores to full completion when no WAL follows the full", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newStatisticsCatalog(t)
 
 		full := seedTestCompletedFullAtSegment(t, catalog, 0x10, time.Now().UTC().Add(-time.Hour))
@@ -659,6 +695,8 @@ func TestGetWalStreamStatistics(t *testing.T) {
 		assert.WithinDuration(t, *full.CompletedAt, *response.LatestRestorableAt, time.Millisecond)
 	})
 	t.Run("returns no restore point when no full backup completed", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newStatisticsCatalog(t)
 		seedTestWalSegmentReceivedAt(t, catalog, 0x10, time.Now().UTC())
 
@@ -678,6 +716,8 @@ func TestGetWalStreamStatistics(t *testing.T) {
 		assert.Contains(t, string(response.Body), `"restorableRanges":[]`, "the list is empty, not null")
 	})
 	t.Run("reports a pending full when it is requested or running", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newStatisticsCatalog(t)
 
 		assert.False(t, getWalStreamStatistics(t, catalog, "HOUR").Health.IsFullBackupPending)
@@ -712,6 +752,8 @@ func TestGetWalStreamStatistics(t *testing.T) {
 			"a requested full backup is pending")
 	})
 	t.Run("reports a stopped streamer when its heartbeat is stale", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newStatisticsCatalog(t)
 
 		catalog.insertStreamer(t, &apptest.PhysicalWalStreamerSeed{
@@ -727,6 +769,8 @@ func TestGetWalStreamStatistics(t *testing.T) {
 	})
 
 	t.Run("keeps recorded series when streaming is no longer expected", func(t *testing.T) {
+		t.Parallel()
+
 		for _, testCase := range []struct {
 			name          string
 			stopStreaming func(*testing.T, *catalogFixture)

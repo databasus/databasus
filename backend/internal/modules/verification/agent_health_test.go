@@ -30,6 +30,8 @@ func TestVerificationAgentHealth(t *testing.T) {
 		{name: "reports an agent when its last heartbeat is stale", isOld: false, hasHeartbeat: true, isDeleted: false, isHealthy: false, isHeartbeatStale: true},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
+			t.Parallel()
+
 			app := apptest.New(t)
 			admin := app.CreateAdmin(t)
 			agent := app.CreateVerificationAgent(t, admin)

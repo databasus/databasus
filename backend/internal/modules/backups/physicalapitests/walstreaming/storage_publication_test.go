@@ -18,6 +18,8 @@ import (
 func TestLateWalStoragePublication(t *testing.T) {
 	t.Parallel()
 	t.Run("keeps files first registered after acceptance outside the captured cleanup set", func(t *testing.T) {
+		t.Parallel()
+
 		team := newWalTeam(t, walTeamSpec{})
 		oldStorage := apptest.CreateStorageNamespace(t, team.Owner, team.Database.WorkspaceId)
 		team.StorageID = oldStorage.StorageID
@@ -126,6 +128,8 @@ func TestLateWalStoragePublication(t *testing.T) {
 		assert.Equal(t, operation.CleanupDeadline, outcome.CleanupDeadline)
 	})
 	t.Run("rejects the old streamer's uploads after another instance accepts the switch", func(t *testing.T) {
+		t.Parallel()
+
 		team := newWalTeam(t, walTeamSpec{})
 		oldStorage := apptest.CreateStorageNamespace(t, team.Owner, team.Database.WorkspaceId)
 		team.StorageID = oldStorage.StorageID
@@ -133,6 +137,11 @@ func TestLateWalStoragePublication(t *testing.T) {
 		otherInstance := team.App.StartConcurrentInstance(t)
 		otherOwner := team.Owner
 		otherOwner.Client = otherInstance.NewSessionClient(t, team.Owner.Token)
+
+		// The target comes before the hold: a held WAL upload ends after 2 minutes, and starting the
+		// target's storage inside that window can outlast it on a busy machine.
+		targetWorkspace := apptest.CreateWorkspace(t, otherOwner, "Concurrent WAL switch")
+		target := apptest.CreateStorageNamespace(t, otherOwner, targetWorkspace.Id)
 
 		team.enable(t)
 		team.waitForReceiver(t)
@@ -149,8 +158,6 @@ func TestLateWalStoragePublication(t *testing.T) {
 		team.App.WaitForPhysicalBackups(t)
 		team.App.PausePhysicalJobs(t)
 
-		targetWorkspace := apptest.CreateWorkspace(t, otherOwner, "Concurrent WAL switch")
-		target := apptest.CreateStorageNamespace(t, otherOwner, targetWorkspace.Id)
 		operation := apptest.TransferToStorage(t, otherOwner, apptest.StorageSwitchTransfer{
 			DatabaseID: team.Database.Id, WorkspaceID: targetWorkspace.Id, StorageID: target.StorageID,
 		})

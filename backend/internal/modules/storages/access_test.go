@@ -17,6 +17,8 @@ func TestStorageAccess(t *testing.T) {
 	t.Parallel()
 
 	t.Run("lets a viewer list and read the workspace's storages", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		viewer := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 		createdStorage := tm.createLocalStorage(t, "Local")
@@ -26,6 +28,8 @@ func TestStorageAccess(t *testing.T) {
 	})
 
 	t.Run("lets a workspace member create and change a storage", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		member := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER)
 
@@ -44,6 +48,8 @@ func TestStorageAccess(t *testing.T) {
 	})
 
 	t.Run("returns 403 permission_denied and keeps the name when a viewer renames a storage", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		viewer := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 		createdStorage := tm.createLocalStorage(t, "Local")
@@ -59,6 +65,8 @@ func TestStorageAccess(t *testing.T) {
 	})
 
 	t.Run("returns 403 permission_denied and creates nothing when a viewer creates a storage", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		viewer := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 
@@ -75,6 +83,8 @@ func TestStorageAccess(t *testing.T) {
 	})
 
 	t.Run("answers another team's storage exactly as a storage that does not exist", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		stranger := tm.stranger(t)
 		createdStorage := tm.createLocalStorage(t, "Local")
@@ -96,6 +106,8 @@ func TestStorageAccess(t *testing.T) {
 
 	t.Run("returns 404 not_found and keeps the name when a stranger changes another team's storage",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			stranger := tm.stranger(t)
 			createdStorage := tm.createLocalStorage(t, "Local")
@@ -111,6 +123,8 @@ func TestStorageAccess(t *testing.T) {
 		})
 
 	t.Run("returns 404 not_found when a stranger lists another team's storages", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		stranger := tm.stranger(t)
 		tm.createLocalStorage(t, "Local")

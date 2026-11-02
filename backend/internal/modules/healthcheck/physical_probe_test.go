@@ -16,6 +16,8 @@ func TestHealthcheckPhysicalProbe(t *testing.T) {
 	t.Parallel()
 
 	t.Run("records success and failure for a physical PostgreSQL database", func(t *testing.T) {
+		t.Parallel()
+
 		team := enginetest.NewTeam(t)
 		endpoint := containers.StartPhysicalPostgres(t, "postgres:17")
 		userDatabase := team.CreateDatabase(t, apiclient.PostgresqlPhysicalSettings{

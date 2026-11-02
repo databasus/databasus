@@ -32,6 +32,8 @@ func getMysqlVersions() []struct {
 
 // TestBackupAndRestoreMysql boots each supported version once and runs every scenario against it,
 // so only one server of the matrix is alive at a time.
+//
+//nolint:tparallel // Each version's scenarios share one server, and a version stops before the next starts.
 func TestBackupAndRestoreMysql(t *testing.T) {
 	t.Parallel()
 
@@ -59,6 +61,8 @@ func TestBackupAndRestoreMysqlOverTls(t *testing.T) {
 	t.Parallel()
 
 	t.Run("restores the rows over a connection that requires TLS", func(t *testing.T) {
+		t.Parallel()
+
 		require.NoError(t, enginetest.RegisterSkipVerifyMysqlTLSConfig())
 
 		endpoint := containers.StartMysqlSSL(t, "mysql:8.4")
@@ -89,6 +93,8 @@ func TestBackupAndRestoreMysqlOverSshTunnel(t *testing.T) {
 	t.Parallel()
 
 	t.Run("restores the rows through the bastion", func(t *testing.T) {
+		t.Parallel()
+
 		topology := containers.StartMysqlBehindSSHBastion(t, "mysql:8.4")
 		server := enginetest.ConnectToMysqlFamily(
 			t,
@@ -121,6 +127,8 @@ func TestBackupMysqlToFailingStorage(t *testing.T) {
 	t.Parallel()
 
 	t.Run("fails the backup without hanging when the upload fails", func(t *testing.T) {
+		t.Parallel()
+
 		server := enginetest.ConnectToMysqlFamily(
 			t,
 			containers.StartMysql(t, "mysql:8.0"),

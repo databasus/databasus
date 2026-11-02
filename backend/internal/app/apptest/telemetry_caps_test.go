@@ -21,6 +21,8 @@ func TestTelemetryCollectionCaps(t *testing.T) {
 	t.Parallel()
 
 	t.Run("limits every array to 200 when the instance contains more entries", func(t *testing.T) {
+		t.Parallel()
+
 		receiver := &telemetryReceiver{status: http.StatusOK}
 		server := httptest.NewServer(receiver)
 		t.Cleanup(server.Close)

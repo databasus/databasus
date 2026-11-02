@@ -18,6 +18,8 @@ func TestTestStorage(t *testing.T) {
 	t.Parallel()
 
 	t.Run("reports a local storage as connected when a viewer tests it", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		viewer := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 		localStorage := tm.createLocalStorage(t, "Local")
@@ -30,6 +32,8 @@ func TestTestStorage(t *testing.T) {
 
 	t.Run("reports an S3 storage as not connected with the missing bucket when the bucket does not exist",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			bucket := startMinioBucket(t)
 			missingBucketName := "missing-" + uuid.NewString()[:8]
@@ -55,6 +59,8 @@ func TestTestStorage(t *testing.T) {
 		})
 
 	t.Run("returns 404 not_found when a stranger tests another team's storage", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		stranger := tm.stranger(t)
 		localStorage := tm.createLocalStorage(t, "Local")
@@ -66,6 +72,8 @@ func TestTestStorage(t *testing.T) {
 	})
 
 	t.Run("returns 401 unauthenticated without a session", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		localStorage := tm.createLocalStorage(t, "Local")
 
@@ -77,6 +85,8 @@ func TestTestStorage(t *testing.T) {
 	})
 
 	t.Run("changes no stored column when an S3 and then a local storage are tested", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		bucket := startMinioBucket(t)
 		s3StorageID := insertStoredS3Storage(t, tm, storedS3Storage{

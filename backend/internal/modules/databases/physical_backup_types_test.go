@@ -15,6 +15,8 @@ func Test_GetPhysicalBackupTypes(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns the backup type of each physical database and leaves out the other IDs", func(t *testing.T) {
+		t.Parallel()
+
 		physicalServer := containers.StartPhysicalPostgres(t, "postgres:17")
 		tm := newTeam(t)
 		physicalDatabase := tm.createDatabaseNamed(t, "Cluster",

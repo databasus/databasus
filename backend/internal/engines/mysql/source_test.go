@@ -181,6 +181,7 @@ func newTestLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(os.Stdout, nil))
 }
 
+//nolint:tparallel // Each version's scenarios share one server, and a version stops before the next starts.
 func TestSource(t *testing.T) {
 	t.Parallel()
 

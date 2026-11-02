@@ -18,6 +18,8 @@ func TestPhysicalBackupArtifacts(t *testing.T) {
 		t.Run(
 			"publishes a full and two incremental artifacts with their manifests when PostgreSQL "+version+" is healthy",
 			func(t *testing.T) {
+				t.Parallel()
+
 				team := newBackupTeam(t, backupTeamSpec{Image: "postgres:" + version, IsEncrypted: true})
 				full := team.runBackup(t, "full")
 				require.Equal(t, "COMPLETED", full.Status)
@@ -52,6 +54,8 @@ func TestPhysicalBackupArtifacts(t *testing.T) {
 		)
 	}
 	t.Run("publishes a full with a measured raw cluster size when only full backups are enabled", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupTeam(t, backupTeamSpec{BackupType: apiclient.PhysicalBackupTypeFULL})
 		full := team.runBackup(t, "full")
 		require.Equal(t, "COMPLETED", full.Status)

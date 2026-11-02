@@ -14,6 +14,8 @@ func TestVerificationClaimBudget(t *testing.T) {
 	t.Parallel()
 
 	t.Run("skips an oversized oldest candidate and deducts running jobs when choosing work", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		oversized := team.start(t, backup.Id)
@@ -49,6 +51,8 @@ func TestVerificationClaimBudget(t *testing.T) {
 		assert.Equal(t, apiclient.VerificationStatusPENDING, team.read(t, oversized.Id).Status)
 	})
 	t.Run("leaves a claimed job with its owner when another agent claims", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		verification := team.start(t, backup.Id)
@@ -61,6 +65,8 @@ func TestVerificationClaimBudget(t *testing.T) {
 		assert.Equal(t, owner.Agent.ID, *team.read(t, verification.Id).AgentId)
 	})
 	t.Run("forwards the backup TimescaleDB version when assigning work", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		team.App.ExecuteSQL(t, "UPDATE backups_logical SET timescaledb_version='2.25.0' WHERE id=?", backup.Id)

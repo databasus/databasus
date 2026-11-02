@@ -403,6 +403,8 @@ func timescaleJob() *agentclient.VerificationAssignment {
 }
 
 func TestRun(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns the panic after draining jobs when a restore panics", func(t *testing.T) {
 		t.Parallel()
 		apiClient := &fakeAPI{claims: []*agentclient.VerificationAssignment{postgresJob()}}
@@ -508,6 +510,8 @@ func TestRun(t *testing.T) {
 	})
 
 	t.Run("drains and stops when the context is cancelled", func(t *testing.T) {
+		t.Parallel()
+
 		apiClient := &fakeAPI{}
 		r := newTestRunner(t, apiClient, okSpawner(), &fakeRestorer{}, &fakeStats{}, newFakeRegistrar())
 
@@ -528,6 +532,8 @@ func TestRun(t *testing.T) {
 		}
 	})
 	t.Run("panics when Run is called twice", func(t *testing.T) {
+		t.Parallel()
+
 		r := newTestRunner(t, &fakeAPI{}, okSpawner(), &fakeRestorer{}, &fakeStats{}, newFakeRegistrar())
 
 		ctx, cancel := context.WithCancel(t.Context())

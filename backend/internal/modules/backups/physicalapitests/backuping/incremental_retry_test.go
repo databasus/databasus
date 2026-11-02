@@ -15,6 +15,8 @@ func TestPhysicalIncrementalRetryBudget(t *testing.T) {
 	t.Parallel()
 
 	t.Run("keeps the chain extendable after two automatic failures and breaks it on the third", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupTeam(t, backupTeamSpec{})
 		full := team.runBackup(t, "full")
 		require.Equal(t, "COMPLETED", full.Status)
@@ -72,6 +74,8 @@ func TestPhysicalIncrementalRetryBudget(t *testing.T) {
 		assert.Contains(t, inbox.getMessages()[0], "chain-broken")
 	})
 	t.Run("keeps the retry budget when a completed incremental separates the failures", func(t *testing.T) {
+		t.Parallel()
+
 		team := newBackupTeam(t, backupTeamSpec{})
 		full := team.runBackup(t, "full")
 		require.Equal(t, "COMPLETED", full.Status)

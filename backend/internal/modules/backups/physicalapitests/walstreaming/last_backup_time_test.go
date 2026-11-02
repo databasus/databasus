@@ -19,6 +19,8 @@ func TestPhysicalBackupTimeAfterWal(t *testing.T) {
 	t.Parallel()
 
 	t.Run("keeps the archived WAL time when an older full finishes after it", func(t *testing.T) {
+		t.Parallel()
+
 		team := newWalTeam(t, walTeamSpec{})
 		team.enable(t)
 		team.waitForReceiver(t)

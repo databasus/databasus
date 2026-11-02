@@ -18,6 +18,7 @@ import (
 	"databasus-backend/internal/lib/testwait"
 )
 
+//nolint:tparallel // The subtests share one source server.
 func TestCancelRestore(t *testing.T) {
 	t.Parallel()
 

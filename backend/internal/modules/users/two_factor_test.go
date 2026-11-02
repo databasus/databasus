@@ -19,6 +19,8 @@ func TestTwoFactorSignIn(t *testing.T) {
 
 	t.Run("answers a pending sign-in without a token and sends one code when the second factor is on",
 		func(t *testing.T) {
+			t.Parallel()
+
 			app, admin := newTwoFactorApp(t)
 
 			response := signIn(t, app, admin.Email, apptest.TestPassword)
@@ -34,6 +36,8 @@ func TestTwoFactorSignIn(t *testing.T) {
 		})
 
 	t.Run("keeps only a hash of the code", func(t *testing.T) {
+		t.Parallel()
+
 		app, admin := newTwoFactorApp(t)
 		pendingSignIn := startTwoFactorSignIn(t, app, admin.Email)
 		code := readLatestMailedCode(t, app, admin.Email)
@@ -48,6 +52,8 @@ func TestTwoFactorSignIn(t *testing.T) {
 
 	t.Run("sends a message with the code, its ten minutes and the rule that a new code replaces it",
 		func(t *testing.T) {
+			t.Parallel()
+
 			app, admin := newTwoFactorApp(t)
 
 			startTwoFactorSignIn(t, app, admin.Email)
@@ -61,6 +67,8 @@ func TestTwoFactorSignIn(t *testing.T) {
 
 	t.Run("returns the same pending sign-in and sends nothing when the password step repeats while it is live",
 		func(t *testing.T) {
+			t.Parallel()
+
 			app, admin := newTwoFactorApp(t)
 			firstPendingSignIn := startTwoFactorSignIn(t, app, admin.Email)
 
@@ -71,6 +79,8 @@ func TestTwoFactorSignIn(t *testing.T) {
 		})
 
 	t.Run("sends one code when two password steps arrive at once", func(t *testing.T) {
+		t.Parallel()
+
 		app, admin := newTwoFactorApp(t)
 
 		var waitGroup sync.WaitGroup
@@ -85,6 +95,8 @@ func TestTwoFactorSignIn(t *testing.T) {
 	})
 
 	t.Run("sends a fresh code after the password changed during a pending sign-in", func(t *testing.T) {
+		t.Parallel()
+
 		app, admin := newTwoFactorApp(t)
 		firstPendingSignIn := startTwoFactorSignIn(t, app, admin.Email)
 		changed := changeUserPassword(t, admin.Client, admin.UserID, apptest.TestPassword)
@@ -97,6 +109,8 @@ func TestTwoFactorSignIn(t *testing.T) {
 	})
 
 	t.Run("returns 429 too_many_sign_in_codes without mail after five codes within an hour", func(t *testing.T) {
+		t.Parallel()
+
 		app, admin := newTwoFactorApp(t)
 
 		for range 5 {
@@ -112,6 +126,8 @@ func TestTwoFactorSignIn(t *testing.T) {
 	})
 
 	t.Run("counts earlier codes toward the hourly cap after fixed-clock password replacements", func(t *testing.T) {
+		t.Parallel()
+
 		app, admin := newTwoFactorApp(t)
 		for range 5 {
 			pending := startTwoFactorSignIn(t, app, admin.Email)
@@ -129,6 +145,8 @@ func TestTwoFactorSignIn(t *testing.T) {
 	})
 
 	t.Run("returns 503 sign_in_code_not_sent when the instance has no mail server", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t, apptest.WithoutMailServer())
 		admin := app.CreateAdmin(t)
 		requireTwoFactorAfterMailServerLoss(t, app, admin)
@@ -142,6 +160,8 @@ func TestTwoFactorSignIn(t *testing.T) {
 	t.Run(
 		"returns 503 sign_in_code_not_sent without a token when the mail server refuses the code",
 		func(t *testing.T) {
+			t.Parallel()
+
 			app, admin := newTwoFactorApp(t)
 			app.Mail.RefuseSends()
 
@@ -154,6 +174,8 @@ func TestTwoFactorSignIn(t *testing.T) {
 	)
 
 	t.Run("sends no mail and answers as with one factor when the password is wrong", func(t *testing.T) {
+		t.Parallel()
+
 		app, admin := newTwoFactorApp(t)
 
 		response := signIn(t, app, admin.Email, "wrong-password-123")
@@ -164,6 +186,8 @@ func TestTwoFactorSignIn(t *testing.T) {
 	})
 
 	t.Run("sends no mail and creates no pending sign-in when the address is unknown", func(t *testing.T) {
+		t.Parallel()
+
 		app, _ := newTwoFactorApp(t)
 		unknownEmail := apptest.NewTestEmail("unknown")
 
@@ -179,6 +203,8 @@ func TestTwoFactorSignIn(t *testing.T) {
 	})
 
 	t.Run("records the sign-in in the audit log only at the code step", func(t *testing.T) {
+		t.Parallel()
+
 		app, admin := newTwoFactorApp(t)
 		pendingSignIn := startTwoFactorSignIn(t, app, admin.Email)
 		signedInMessage := "User signed in with email: " + admin.Email
@@ -200,6 +226,8 @@ func TestVerifySignInCode(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns a session when the code that arrived is submitted", func(t *testing.T) {
+		t.Parallel()
+
 		app, admin := newTwoFactorApp(t)
 		pendingSignIn := startTwoFactorSignIn(t, app, admin.Email)
 
@@ -213,6 +241,8 @@ func TestVerifySignInCode(t *testing.T) {
 	})
 
 	t.Run("returns 410 pending_sign_in_not_usable when the code already completed a sign-in", func(t *testing.T) {
+		t.Parallel()
+
 		app, admin := newTwoFactorApp(t)
 		pendingSignIn := startTwoFactorSignIn(t, app, admin.Email)
 		code := readLatestMailedCode(t, app, admin.Email)
@@ -225,6 +255,8 @@ func TestVerifySignInCode(t *testing.T) {
 	})
 
 	t.Run("returns 410 pending_sign_in_not_usable when the code is submitted eleven minutes later", func(t *testing.T) {
+		t.Parallel()
+
 		app, admin := newTwoFactorApp(t)
 		pendingSignIn := startTwoFactorSignIn(t, app, admin.Email)
 		app.Clock.Advance(11 * time.Minute)
@@ -236,6 +268,8 @@ func TestVerifySignInCode(t *testing.T) {
 	})
 
 	t.Run("returns 400 sign_in_code_incorrect when the code belongs to another pending sign-in", func(t *testing.T) {
+		t.Parallel()
+
 		app, admin := newTwoFactorApp(t)
 		member := app.CreateNonAdminUser(t, admin)
 		adminPendingSignIn := startTwoFactorSignIn(t, app, admin.Email)
@@ -249,6 +283,8 @@ func TestVerifySignInCode(t *testing.T) {
 	})
 
 	t.Run("returns 410 pending_sign_in_not_usable when nobody issued the identifier", func(t *testing.T) {
+		t.Parallel()
+
 		app, _ := newTwoFactorApp(t)
 
 		response := verifySignInCode(t, app, uuid.New(), "123456")
@@ -258,6 +294,8 @@ func TestVerifySignInCode(t *testing.T) {
 	})
 
 	t.Run("refuses the correct code after five wrong ones", func(t *testing.T) {
+		t.Parallel()
+
 		app, admin := newTwoFactorApp(t)
 		pendingSignIn := startTwoFactorSignIn(t, app, admin.Email)
 		code := readLatestMailedCode(t, app, admin.Email)
@@ -273,6 +311,8 @@ func TestVerifySignInCode(t *testing.T) {
 	})
 
 	t.Run("checks no more than five codes when ten wrong codes arrive at once", func(t *testing.T) {
+		t.Parallel()
+
 		app, admin := newTwoFactorApp(t)
 		pendingSignIn := startTwoFactorSignIn(t, app, admin.Email)
 		code := readLatestMailedCode(t, app, admin.Email)
@@ -297,6 +337,8 @@ func TestVerifySignInCode(t *testing.T) {
 	})
 
 	t.Run("returns one session when the same correct code arrives twice at once", func(t *testing.T) {
+		t.Parallel()
+
 		app, admin := newTwoFactorApp(t)
 		pendingSignIn := startTwoFactorSignIn(t, app, admin.Email)
 		code := readLatestMailedCode(t, app, admin.Email)
@@ -323,6 +365,8 @@ func TestVerifySignInCode(t *testing.T) {
 	})
 
 	t.Run("returns 410 when the user was deactivated while the code was in flight", func(t *testing.T) {
+		t.Parallel()
+
 		app, admin := newTwoFactorApp(t)
 		member := app.CreateNonAdminUser(t, admin)
 		pendingSignIn := startTwoFactorSignIn(t, app, member.Email)
@@ -335,6 +379,8 @@ func TestVerifySignInCode(t *testing.T) {
 	})
 
 	t.Run("returns 410 when the password changed while the code was in flight", func(t *testing.T) {
+		t.Parallel()
+
 		app, admin := newTwoFactorApp(t)
 		pendingSignIn := startTwoFactorSignIn(t, app, admin.Email)
 		changed := changeUserPassword(t, admin.Client, admin.UserID, apptest.TestPassword)
@@ -347,6 +393,8 @@ func TestVerifySignInCode(t *testing.T) {
 	})
 
 	t.Run("completes the sign-in after the second factor was switched off", func(t *testing.T) {
+		t.Parallel()
+
 		app, admin := newTwoFactorApp(t)
 		pendingSignIn := startTwoFactorSignIn(t, app, admin.Email)
 		require.Equal(t, http.StatusOK, updateInstanceSettings(t, admin.Client, defaultSettingsUpdate()).StatusCode())
@@ -357,6 +405,8 @@ func TestVerifySignInCode(t *testing.T) {
 	})
 
 	t.Run("returns 400 when the path names an email address instead of a pending sign-in", func(t *testing.T) {
+		t.Parallel()
+
 		app, admin := newTwoFactorApp(t)
 
 		verifyStatus, _ := sendRawRequest(t, app, http.MethodPost, "/pending-sign-ins/"+admin.Email+"/verify",
@@ -369,6 +419,8 @@ func TestVerifySignInCode(t *testing.T) {
 
 	t.Run("returns 400 human_verification_failed before checking the code when the challenge is not answered",
 		func(t *testing.T) {
+			t.Parallel()
+
 			app, admin := newTwoFactorApp(t, apptest.WithTurnstile())
 			pendingSignIn := startTwoFactorSignInWithAnswer(t, app, admin.Email)
 
@@ -393,6 +445,8 @@ func TestResendSignInCode(t *testing.T) {
 	t.Parallel()
 
 	t.Run("sends a new code that names a new pending sign-in and retires the previous code", func(t *testing.T) {
+		t.Parallel()
+
 		app, admin := newTwoFactorApp(t)
 		firstPendingSignIn := startTwoFactorSignIn(t, app, admin.Email)
 		firstCode := readLatestMailedCode(t, app, admin.Email)
@@ -413,6 +467,8 @@ func TestResendSignInCode(t *testing.T) {
 	})
 
 	t.Run("refuses resend and verification after a fixed-clock password replacement", func(t *testing.T) {
+		t.Parallel()
+
 		app, admin := newTwoFactorApp(t)
 		pending := startTwoFactorSignIn(t, app, admin.Email)
 		code := readLatestMailedCode(t, app, admin.Email)
@@ -456,6 +512,8 @@ func TestResendSignInCode(t *testing.T) {
 
 	t.Run("returns 429 sign_in_code_resent_too_soon without mail when a second resend comes within the minute",
 		func(t *testing.T) {
+			t.Parallel()
+
 			app, admin := newTwoFactorApp(t)
 			pendingSignIn := startTwoFactorSignIn(t, app, admin.Email)
 			resentPendingSignIn := resendSignInCode(t, app, pendingSignIn.PendingSignInId)
@@ -470,6 +528,8 @@ func TestResendSignInCode(t *testing.T) {
 
 	t.Run("returns 400 human_verification_failed without mail when the challenge is not answered",
 		func(t *testing.T) {
+			t.Parallel()
+
 			app, admin := newTwoFactorApp(t, apptest.WithTurnstile())
 			pendingSignIn := startTwoFactorSignInWithAnswer(t, app, admin.Email)
 
@@ -485,6 +545,8 @@ func TestExpiredCodesCleanup(t *testing.T) {
 	t.Parallel()
 
 	t.Run("deletes pending sign-ins older than an hour and keeps younger ones", func(t *testing.T) {
+		t.Parallel()
+
 		app, admin := newTwoFactorApp(t)
 		member := app.CreateNonAdminUser(t, admin)
 		oldPendingSignIn := startTwoFactorSignIn(t, app, admin.Email)
@@ -501,6 +563,8 @@ func TestExpiredCodesCleanup(t *testing.T) {
 	})
 
 	t.Run("keeps the hourly cap counting the codes of the last hour after a pass", func(t *testing.T) {
+		t.Parallel()
+
 		app, admin := newTwoFactorApp(t)
 
 		for range 5 {

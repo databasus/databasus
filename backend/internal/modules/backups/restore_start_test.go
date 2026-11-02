@@ -19,6 +19,7 @@ const hugeBackupSizeMb = 1_000_000_000_000
 
 var insufficientDiskSpaceDetail = regexp.MustCompile(`needs (\d+) bytes .* but (\d+) bytes are free`)
 
+//nolint:tparallel // The subtests share one source server.
 func TestStartRestore(t *testing.T) {
 	t.Parallel()
 

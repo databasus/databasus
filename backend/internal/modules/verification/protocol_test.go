@@ -46,6 +46,8 @@ func TestVerificationProtocol(t *testing.T) {
 	t.Parallel()
 
 	t.Run("updates capacity and the last seen time when an agent heartbeats twice", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		agent := app.CreateVerificationAgent(t, admin)
@@ -69,6 +71,8 @@ func TestVerificationProtocol(t *testing.T) {
 		require.NotNil(t, persisted.LastSeenAt)
 	})
 	t.Run("invalidates the previous token when an admin rotates it", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		agent := app.CreateVerificationAgent(t, admin)
@@ -85,6 +89,8 @@ func TestVerificationProtocol(t *testing.T) {
 		assert.Equal(t, http.StatusOK, status, string(body))
 	})
 	t.Run("refuses credentials and capacity that are invalid without changing the agent", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		agent := app.CreateVerificationAgent(t, admin)
@@ -134,6 +140,8 @@ func TestVerificationProtocol(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, status)
 	})
 	t.Run("limits requests per agent without charging invalid UUIDs", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		agent := app.CreateVerificationAgent(t, admin)
@@ -159,6 +167,8 @@ func TestVerificationProtocol(t *testing.T) {
 		)
 	})
 	t.Run("returns only engine facts and the disk budget when a pending job fits", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		team.App.ExecuteSQL(t, "UPDATE backups_logical SET backup_raw_db_size_mb=0.01 WHERE id=?", backup.Id)
@@ -180,6 +190,8 @@ func TestVerificationProtocol(t *testing.T) {
 		assert.Equal(t, apiclient.VerificationStatusRUNNING, team.read(t, verification.Id).Status)
 	})
 	t.Run("returns no job when the pending backup exceeds the agent budget", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		verification := team.start(t, backup.Id)
@@ -190,6 +202,8 @@ func TestVerificationProtocol(t *testing.T) {
 		assert.Equal(t, apiclient.VerificationStatusPENDING, team.read(t, verification.Id).Status)
 	})
 	t.Run("stores results and table counts when the owner reports completion", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		verification := team.start(t, backup.Id)
@@ -230,6 +244,8 @@ func TestVerificationProtocol(t *testing.T) {
 		assert.NotContains(t, string(listed.Body), "tableStats")
 	})
 	t.Run("returns gone when a completed report no longer owns a running verification", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		verification := team.start(t, backup.Id)
@@ -260,6 +276,8 @@ func TestVerificationProtocol(t *testing.T) {
 		assert.Equal(t, http.StatusGone, status)
 	})
 	t.Run("tells the agent to abort when a running verification is cancelled", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		verification := team.start(t, backup.Id)

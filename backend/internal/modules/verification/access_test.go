@@ -16,6 +16,8 @@ func TestVerificationAccess(t *testing.T) {
 	t.Parallel()
 
 	t.Run("allows reads and refuses edits when a workspace viewer calls", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		verification := team.start(t, backup.Id)
@@ -74,6 +76,8 @@ func TestVerificationAccess(t *testing.T) {
 		assert.Equal(t, apiclient.VerificationStatusPENDING, team.read(t, verification.Id).Status)
 	})
 	t.Run("returns the same not_found body as missing objects when a stranger calls", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		verification := team.start(t, backup.Id)
@@ -132,6 +136,8 @@ func TestVerificationAccess(t *testing.T) {
 		assert.Equal(t, apiclient.VerificationStatusPENDING, team.read(t, verification.Id).Status)
 	})
 	t.Run("allows edits when an instance admin belongs to no workspace", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		saved, err := team.Admin.Client.UpdateVerificationConfigWithResponse(
@@ -149,6 +155,8 @@ func TestVerificationAccess(t *testing.T) {
 		assert.Equal(t, http.StatusAccepted, started.StatusCode())
 	})
 	t.Run("requires a session for every workspace verification operation", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		verification := team.start(t, backup.Id)

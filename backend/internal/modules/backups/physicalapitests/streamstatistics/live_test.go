@@ -36,6 +36,8 @@ func TestGetWalStreamLive(t *testing.T) {
 	t.Parallel()
 
 	t.Run("reports current values when the application runs a real WAL streamer", func(t *testing.T) {
+		t.Parallel()
+
 		source := containers.StartPhysicalPostgres(t, "postgres:17")
 		timings := backups.ProductionWalStreamTimings()
 		timings.ForcedRotationInterval = 2 * time.Second
@@ -114,6 +116,8 @@ func TestGetWalStreamLive(t *testing.T) {
 		}
 	})
 	t.Run("returns no current values when no streamer runs", func(t *testing.T) {
+		t.Parallel()
+
 		testApp := apptest.New(t)
 		owner := testApp.CreateAdmin(t)
 		workspace := apptest.CreateWorkspace(t, owner, "Idle WAL stream")

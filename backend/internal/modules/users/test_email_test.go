@@ -15,6 +15,8 @@ func TestSendTestEmail(t *testing.T) {
 	t.Parallel()
 
 	t.Run("sends a message to the admin and records the delivery in the audit log", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 
@@ -29,6 +31,8 @@ func TestSendTestEmail(t *testing.T) {
 
 	t.Run("answers the mail server's error and records the failure when the server refuses the message",
 		func(t *testing.T) {
+			t.Parallel()
+
 			app := apptest.New(t)
 			admin := app.CreateAdmin(t)
 			app.Mail.RefuseSends()
@@ -43,6 +47,8 @@ func TestSendTestEmail(t *testing.T) {
 		})
 
 	t.Run("returns 403 permission_denied and sends nothing when a member asks", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		member := app.CreateNonAdminUser(t, app.CreateAdmin(t))
 
@@ -54,6 +60,8 @@ func TestSendTestEmail(t *testing.T) {
 	})
 
 	t.Run("returns 409 email_not_configured when the instance has no mail server", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t, apptest.WithoutMailServer())
 		admin := app.CreateAdmin(t)
 
@@ -65,6 +73,8 @@ func TestSendTestEmail(t *testing.T) {
 
 	t.Run("returns 409 admin_email_missing and sends nothing when the admin holds the login admin",
 		func(t *testing.T) {
+			t.Parallel()
+
 			app := apptest.New(t)
 			admin := app.CreateAdmin(t)
 			app.ExecuteSQL(t, "UPDATE users SET email = 'admin' WHERE id = ?", admin.UserID)
@@ -77,6 +87,8 @@ func TestSendTestEmail(t *testing.T) {
 		})
 
 	t.Run("returns 429 rate_limited and sends nothing on the sixth request within ten minutes", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 

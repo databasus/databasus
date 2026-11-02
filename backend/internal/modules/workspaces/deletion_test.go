@@ -21,6 +21,8 @@ func TestDeleteWorkspace(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns 409 and deletes nothing when the workspace has a database", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 		createWebhookNotifier(t, tm.owner, tm.workspace.Id)
@@ -39,6 +41,8 @@ func TestDeleteWorkspace(t *testing.T) {
 	})
 
 	t.Run("deletes the workspace with its notifier and storage when it has no databases", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		createWebhookNotifier(t, tm.owner, tm.workspace.Id)
 		tm.app.CreateLocalStorage(t, tm.owner, tm.workspace.Id)
@@ -61,6 +65,8 @@ func TestDeleteWorkspace(t *testing.T) {
 
 	t.Run("returns 409 and keeps everything when its storage holds a backup of another workspace's database",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 			createWebhookNotifier(t, tm.owner, tm.workspace.Id)
@@ -84,6 +90,8 @@ func TestDeleteWorkspace(t *testing.T) {
 
 	t.Run("returns 409 workspace_not_empty when it has a database and its storage holds backups",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 			storageID := tm.app.CreateLocalStorage(t, tm.owner, tm.workspace.Id)
@@ -103,6 +111,8 @@ func TestDeleteWorkspace(t *testing.T) {
 		})
 
 	t.Run("deletes the workspace and removes the file its storage was about to clean up", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		storageID := tm.app.CreateLocalStorage(t, tm.owner, tm.workspace.Id)
 		pendingFileName := "pending-" + uuid.NewString()
@@ -118,6 +128,8 @@ func TestDeleteWorkspace(t *testing.T) {
 	})
 
 	t.Run("keeps the accounts and the other workspaces of the deleted workspace's members", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		viewer, _ := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 		otherWorkspace := apptest.CreateWorkspace(t, tm.owner, "Kept")
@@ -143,6 +155,8 @@ func TestDeleteWorkspace(t *testing.T) {
 	})
 
 	t.Run("returns 500 and keeps everything when a later step fails", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 		createWebhookNotifier(t, tm.owner, tm.workspace.Id)
@@ -166,6 +180,8 @@ func TestDeleteWorkspace(t *testing.T) {
 	t.Run(
 		"returns 409 and keeps everything when a database is added after the databases were checked",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 			createWebhookNotifier(t, tm.owner, tm.workspace.Id)
@@ -189,6 +205,8 @@ func TestDeleteWorkspace(t *testing.T) {
 	)
 
 	t.Run("returns 403 and keeps the workspace when an admin of it deletes it", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		workspaceAdmin, _ := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEADMIN)
 
@@ -200,6 +218,8 @@ func TestDeleteWorkspace(t *testing.T) {
 	})
 
 	t.Run("deletes an empty workspace when an instance admin who is not a member deletes it", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 
 		response := deleteWorkspace(t, tm.admin, tm.workspace.Id)
@@ -211,6 +231,8 @@ func TestDeleteWorkspace(t *testing.T) {
 	})
 
 	t.Run("returns 404 when an instance admin deletes a workspace that does not exist", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 
 		response := deleteWorkspace(t, tm.admin, uuid.New())

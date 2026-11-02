@@ -15,6 +15,8 @@ func TestGetPostgresqlLogicalVersions(t *testing.T) {
 	t.Run(
 		"returns versions without decrypting settings when IDs include other engines and missing databases",
 		func(t *testing.T) {
+			t.Parallel()
+
 			postgresServer := containers.StartPostgres(t, "postgres:18")
 			tm := newTeam(t)
 			savedDatabase := tm.createDatabase(

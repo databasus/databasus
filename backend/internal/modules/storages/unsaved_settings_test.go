@@ -25,6 +25,8 @@ func TestTestStorageSettings(t *testing.T) {
 
 	t.Run("connects to the entered FTP server and creates no storage when settings are tested before saving",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			ftpServer := containers.StartFtp(t)
 
@@ -44,6 +46,8 @@ func TestTestStorageSettings(t *testing.T) {
 		})
 
 	t.Run("reports not connected when the entered FTP password is wrong", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		ftpServer := containers.StartFtp(t)
 
@@ -64,6 +68,8 @@ func TestTestStorageSettings(t *testing.T) {
 
 	t.Run("signs in with the stored SFTP password and creates the new path while the saved path stays",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			sftpServer := containers.StartSftp(t)
 			savedPath := "/" + containers.SftpUploadDir + "/saved"
@@ -105,6 +111,8 @@ func TestTestStorageSettings(t *testing.T) {
 
 	t.Run("returns 404 not_found and connects nowhere when the named NAS storage belongs to another workspace",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			listener := startSilentListener(t)
 			stranger := tm.stranger(t)
@@ -124,6 +132,8 @@ func TestTestStorageSettings(t *testing.T) {
 
 	t.Run("returns 400 invalid_request and connects nowhere when FTP settings name a saved SFTP storage",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			listener := startSilentListener(t)
 			sftpStorage := createStorage(t, tm.owner, apiclient.StorageCreate{
@@ -156,6 +166,8 @@ func TestTestStorageSettings(t *testing.T) {
 
 	t.Run("returns 400 invalid_request and connects nowhere when S3 settings change the prefix of the named storage",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			listener := startSilentListener(t)
 			endpointURL := fmt.Sprintf("http://%s:%d", listener.host, listener.port)
@@ -189,6 +201,8 @@ func TestTestStorageSettings(t *testing.T) {
 
 	t.Run("returns 403 permission_denied and connects nowhere when a viewer tests settings with a saved NAS storage",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			viewer := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 			storedListener := startSilentListener(t)
@@ -209,6 +223,8 @@ func TestTestStorageSettings(t *testing.T) {
 		})
 
 	t.Run("reports a local storage as connected when a workspace member tests unsaved settings", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		member := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER)
 
@@ -223,6 +239,8 @@ func TestTestStorageSettings(t *testing.T) {
 	})
 
 	t.Run("returns 400 invalid_request and connects nowhere when the unsaved settings are invalid", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		listener := startSilentListener(t)
 
@@ -239,6 +257,8 @@ func TestTestStorageSettings(t *testing.T) {
 	})
 
 	t.Run("returns 401 unauthenticated without a session", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 
 		response, err := tm.app.NewClient(t).TestStorageSettingsWithResponse(t.Context(), apiclient.StorageSettingsTest{

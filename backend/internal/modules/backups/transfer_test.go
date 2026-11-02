@@ -19,6 +19,8 @@ func TestTransferDatabase(t *testing.T) {
 	t.Parallel()
 
 	t.Run("moves the database and its storage when no other database uses the storage", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		targetWorkspace := tm.createWorkspace(t)
 		databaseID := tm.insertLogicalDatabase(t)
@@ -46,6 +48,8 @@ func TestTransferDatabase(t *testing.T) {
 
 	t.Run("removes the old catalog and files when switching to the target storage",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			targetWorkspace := tm.createWorkspace(t)
 			databaseID := tm.insertLogicalDatabase(t)
@@ -73,6 +77,8 @@ func TestTransferDatabase(t *testing.T) {
 		})
 
 	t.Run("saves the default config with the target storage when the config was never saved", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		targetWorkspace := tm.createWorkspace(t)
 		databaseID := tm.insertLogicalDatabase(t)
@@ -93,6 +99,8 @@ func TestTransferDatabase(t *testing.T) {
 	})
 
 	t.Run("moves only the notifiers that no other database uses when moving notifiers", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		targetWorkspace := tm.createWorkspace(t)
 		databaseID := tm.insertLogicalDatabase(t)
@@ -124,6 +132,8 @@ func TestTransferDatabase(t *testing.T) {
 	})
 
 	t.Run("replaces the database's notifiers with notifiers of the target workspace", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		targetWorkspace := tm.createWorkspace(t)
 		databaseID := tm.insertLogicalDatabase(t)
@@ -146,6 +156,8 @@ func TestTransferDatabase(t *testing.T) {
 
 	t.Run("returns 400 invalid_request and moves nothing when a replacing notifier does not exist",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			targetWorkspace := tm.createWorkspace(t)
 			databaseID := tm.insertLogicalDatabase(t)
@@ -163,6 +175,8 @@ func TestTransferDatabase(t *testing.T) {
 
 	t.Run("returns 400 invalid_request and moves nothing when a replacing notifier is outside the target",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			targetWorkspace := tm.createWorkspace(t)
 			databaseID := tm.insertLogicalDatabase(t)
@@ -181,6 +195,8 @@ func TestTransferDatabase(t *testing.T) {
 
 	t.Run("returns 409 in_use and moves nothing when another database backs up into the storage",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			targetWorkspace := tm.createWorkspace(t)
 			databaseID := tm.insertLogicalDatabase(t)
@@ -202,6 +218,8 @@ func TestTransferDatabase(t *testing.T) {
 
 	t.Run("returns 400 invalid_request and moves nothing when moving the storage of a config without one",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			targetWorkspace := tm.createWorkspace(t)
 			databaseID := tm.insertLogicalDatabase(t)
@@ -217,6 +235,8 @@ func TestTransferDatabase(t *testing.T) {
 
 	t.Run("returns 400 invalid_request and moves nothing when the target storage is outside the target",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			targetWorkspace := tm.createWorkspace(t)
 			databaseID := tm.insertLogicalDatabase(t)
@@ -236,6 +256,8 @@ func TestTransferDatabasePermissions(t *testing.T) {
 	t.Parallel()
 
 	t.Run("moves the database when the user is a member of both workspaces", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		member := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER)
 		targetWorkspace := tm.createWorkspace(t)
@@ -253,6 +275,8 @@ func TestTransferDatabasePermissions(t *testing.T) {
 	})
 
 	t.Run("returns 403 permission_denied when the user is a viewer of the source workspace", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		viewer := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 		targetWorkspace := tm.createWorkspace(t)
@@ -271,6 +295,8 @@ func TestTransferDatabasePermissions(t *testing.T) {
 	})
 
 	t.Run("returns 403 permission_denied when the user is a viewer of the target workspace", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		member := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER)
 		targetWorkspace := tm.createWorkspace(t)
@@ -290,6 +316,8 @@ func TestTransferDatabasePermissions(t *testing.T) {
 
 	t.Run("answers a target workspace of another team exactly as a workspace that does not exist",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			otherOwner := tm.app.CreateNonAdminUser(t, tm.admin)
 			otherTeamWorkspace := apptest.CreateWorkspace(t, otherOwner, "Other team "+uuid.NewString()[:8])
@@ -318,6 +346,8 @@ func TestTransferDatabaseOutsideSourceWorkspace(t *testing.T) {
 	t.Parallel()
 
 	t.Run("answers a database of another team exactly as a database that does not exist", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		stranger := tm.app.CreateNonAdminUser(t, tm.admin)
 		strangerWorkspace := apptest.CreateWorkspace(t, stranger, "Stranger "+uuid.NewString()[:8])

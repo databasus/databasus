@@ -15,6 +15,8 @@ func TestTelegramBotAPIURL(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns the bot API URL in clear and clears it when a change leaves it out", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		telegram := newTelegram("123456:AAH-TOKEN", "https://gateway.example.com/telegram")
 		telegram.IsProxyEnabled = true
@@ -41,6 +43,8 @@ func TestTelegramBotAPIURL(t *testing.T) {
 	})
 
 	t.Run("refuses an unusable bot API URL and keeps the stored notifier", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
 			newTelegramSettings(t, newTelegram("123456:AAH-TOKEN", "https://gateway.example.com/telegram")))
@@ -76,6 +80,8 @@ func TestTelegramBotAPIURL(t *testing.T) {
 	})
 
 	t.Run("accepts a plain http bot API URL with a port or a path", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 
 		for _, botAPIURL := range []string{

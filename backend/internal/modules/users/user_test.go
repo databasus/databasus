@@ -16,6 +16,8 @@ func TestGetUser(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns the caller's own user", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		app.CreateAdmin(t)
 		member := app.SignUp(t, apptest.NewTestEmail("member"))
@@ -29,6 +31,8 @@ func TestGetUser(t *testing.T) {
 	})
 
 	t.Run("returns another user when the caller is an instance admin", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		member := app.SignUp(t, apptest.NewTestEmail("member"))
@@ -40,6 +44,8 @@ func TestGetUser(t *testing.T) {
 	})
 
 	t.Run("returns 403 permission_denied when a member reads another user", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		member := app.SignUp(t, apptest.NewTestEmail("member"))
@@ -51,6 +57,8 @@ func TestGetUser(t *testing.T) {
 	})
 
 	t.Run("returns 404 not_found when the user does not exist", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 
@@ -60,6 +68,8 @@ func TestGetUser(t *testing.T) {
 	})
 
 	t.Run("returns 400 invalid_request when the user id is not a uuid", func(t *testing.T) {
+		t.Parallel()
+
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 

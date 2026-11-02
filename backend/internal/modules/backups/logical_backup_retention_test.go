@@ -13,6 +13,7 @@ import (
 
 const logicalBackupRetentionJobName = "backups_logical_retention"
 
+//nolint:tparallel // The subtests share one source server.
 func TestLogicalBackupRetention(t *testing.T) {
 	t.Parallel()
 

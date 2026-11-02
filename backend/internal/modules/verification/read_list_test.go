@@ -15,6 +15,8 @@ func TestListVerifications(t *testing.T) {
 	t.Parallel()
 
 	t.Run("pages newest first without table statistics when a database has three verifications", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
 		verifications := make([]apiclient.Verification, 3)
@@ -53,6 +55,8 @@ func TestListVerifications(t *testing.T) {
 		assert.Nil(t, last.JSON200.NextCursor)
 	})
 	t.Run("returns invalid_request when the cursor or page size is invalid", func(t *testing.T) {
+		t.Parallel()
+
 		team := newVerificationTeam(t)
 		for _, params := range []apiclient.ListVerificationsParams{{DatabaseId: team.Database.Id, Limit: nil, After: new("foreign")}, {DatabaseId: team.Database.Id, Limit: new(0), After: nil}, {DatabaseId: team.Database.Id, Limit: new(101), After: nil}} {
 			response, err := team.Owner.Client.ListVerificationsWithResponse(t.Context(), &params)

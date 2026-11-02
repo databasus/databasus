@@ -189,6 +189,8 @@ func TestDatabaseSecrets(t *testing.T) {
 	for _, lifecycleCase := range secretLifecycleCases {
 		t.Run("keeps the stored "+lifecycleCase.name+" secrets encrypted and hidden when a change leaves them out",
 			func(t *testing.T) {
+				t.Parallel()
+
 				server := lifecycleCase.startServer(t)
 				tm := newTeam(t)
 				createdDatabase := tm.createDatabaseNamed(t, "With secrets",

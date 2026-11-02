@@ -23,6 +23,8 @@ func TestCreateStorage(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns the saved S3 storage without its keys", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 
 		response, err := tm.owner.Client.CreateStorageWithResponse(t.Context(), apiclient.StorageCreate{
@@ -56,6 +58,8 @@ func TestListStorages(t *testing.T) {
 	t.Parallel()
 
 	t.Run("lists an SFTP storage without its password and private key", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		createStorage(t, tm.owner, apiclient.StorageCreate{
 			WorkspaceId: tm.workspace.Id,
@@ -101,6 +105,8 @@ func TestUpdateStorageSecrets(t *testing.T) {
 	t.Parallel()
 
 	t.Run("writes the next backup with the stored keys after a rename without them", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		bucket := startMinioBucket(t)
 		storedAccessKey := tm.app.EncryptSecret(t, containers.MinioRootUser)
@@ -131,6 +137,8 @@ func TestUpdateStorageSecrets(t *testing.T) {
 	})
 
 	t.Run("returns 400 invalid_request and keeps the prefix when the S3 prefix changes", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		createdStorage := createStorage(t, tm.owner, apiclient.StorageCreate{
 			WorkspaceId: tm.workspace.Id,
@@ -399,6 +407,8 @@ func TestStorageSecretsLifecycle(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(fmt.Sprintf("keeps the %s secrets encrypted and hidden through a change without them", testCase.name),
 			func(t *testing.T) {
+				t.Parallel()
+
 				tm := newTeam(t)
 				author := tm.owner
 				if testCase.isAdminRequired {

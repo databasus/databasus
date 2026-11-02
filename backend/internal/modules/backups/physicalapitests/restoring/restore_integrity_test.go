@@ -19,6 +19,8 @@ func TestPhysicalRestoreIntegrity(t *testing.T) {
 	t.Run(
 		"streams compressed backup and WAL bytes with plaintext history and an integrity manifest",
 		func(t *testing.T) {
+			t.Parallel()
+
 			catalog := newCatalog(t)
 			timeline := newRestoreTimeline()
 			full := catalog.seedRestoreFull(

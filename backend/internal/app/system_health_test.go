@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -24,6 +23,7 @@ import (
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/diskusage"
 	"databasus-backend/internal/lib/logging"
+	"databasus-backend/internal/lib/toolstub"
 )
 
 func TestInstanceHealth(t *testing.T) {
@@ -169,7 +169,7 @@ func TestHealthClientTools(t *testing.T) {
 			application := newTestApp(t)
 			directory := t.TempDir()
 			if scenario.isPresent {
-				require.NoError(t, os.WriteFile(filepath.Join(directory, "tool"), []byte("#!/bin/sh\nexit 1\n"), 0o755))
+				toolstub.Write(t, filepath.Join(directory, "tool"), toolstub.Spec{Script: "exit 1"})
 			}
 			application.clientToolsChecker = clienttools.NewChecker(
 				[]clienttools.Bundle{

@@ -20,6 +20,8 @@ func TestTelemetrySchedule(t *testing.T) {
 	t.Parallel()
 
 	t.Run("retries after backoff when the receiver redirects to a successful page", func(t *testing.T) {
+		t.Parallel()
+
 		var attempts, redirectedRequests atomic.Int64
 		server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 			if request.URL.Path == "/accepted" {
@@ -50,6 +52,8 @@ func TestTelemetrySchedule(t *testing.T) {
 		assert.Zero(t, redirectedRequests.Load())
 	})
 	t.Run("doubles retries to the daily cap and resets them when a send succeeds", func(t *testing.T) {
+		t.Parallel()
+
 		receiver := &telemetryReceiver{status: http.StatusServiceUnavailable}
 		server := httptest.NewServer(receiver)
 		t.Cleanup(server.Close)
@@ -98,6 +102,8 @@ func TestTelemetrySchedule(t *testing.T) {
 		require.Len(t, receiver.getReports(), 17)
 	})
 	t.Run("waits another daily opportunity when identity cannot be loaded", func(t *testing.T) {
+		t.Parallel()
+
 		receiver := &telemetryReceiver{status: http.StatusOK}
 		server := httptest.NewServer(receiver)
 		t.Cleanup(server.Close)
@@ -123,6 +129,8 @@ func TestTelemetrySchedule(t *testing.T) {
 		assert.Equal(t, "persisted", receiver.getReports()[0]["instanceID"])
 	})
 	t.Run("records a transport failure when the receiver cannot be reached", func(t *testing.T) {
+		t.Parallel()
+
 		server := httptest.NewServer(http.NotFoundHandler())
 		receiverURL := server.URL
 		server.Close()
@@ -140,6 +148,8 @@ func TestTelemetrySchedule(t *testing.T) {
 		require.Error(t, application.RunJobPassWithContext(t.Context(), "telemetry_ping"))
 	})
 	t.Run("ends an in-flight send when its application context is canceled", func(t *testing.T) {
+		t.Parallel()
+
 		started := make(chan struct{})
 		receiverDone := make(chan struct{})
 		server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, request *http.Request) {
@@ -171,6 +181,8 @@ func TestTelemetrySchedule(t *testing.T) {
 		close(receiverDone)
 	})
 	t.Run("bounds an unanswered HTTP send to five seconds", func(t *testing.T) {
+		t.Parallel()
+
 		receiverDone := make(chan struct{})
 		server := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { <-receiverDone }))
 		t.Cleanup(server.Close)

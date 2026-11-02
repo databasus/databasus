@@ -22,6 +22,8 @@ func TestDeleteStorage(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns 204 and no longer lists the storage when nothing references it", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		createdStorage := tm.createLocalStorage(t, "Local")
 
@@ -32,6 +34,8 @@ func TestDeleteStorage(t *testing.T) {
 	})
 
 	t.Run("returns 409 in_use and keeps the storage when a logical backup config uses it", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		createdStorage := tm.createLocalStorage(t, "Local")
 		tm.app.InsertBackupConfigUsingStorage(t, apptest.StorageUse{
@@ -46,6 +50,8 @@ func TestDeleteStorage(t *testing.T) {
 	})
 
 	t.Run("returns 409 in_use and keeps the storage when a physical backup config uses it", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		createdStorage := tm.createLocalStorage(t, "Local")
 		databaseID := tm.app.InsertDatabase(t, tm.workspace.Id)
@@ -61,6 +67,8 @@ func TestDeleteStorage(t *testing.T) {
 	})
 
 	t.Run("returns 409 in_use and removes no file when backups are still stored in it", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		createdStorage := tm.createLocalStorage(t, "Local")
 		pendingFileName := "pending-" + uuid.NewString()
@@ -77,6 +85,8 @@ func TestDeleteStorage(t *testing.T) {
 	})
 
 	t.Run("removes the files waiting for cleanup before the deletion answers", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		createdStorage := tm.createLocalStorage(t, "Local")
 		pendingFileName := "pending-" + uuid.NewString()
@@ -92,6 +102,8 @@ func TestDeleteStorage(t *testing.T) {
 
 	t.Run("deletes the storage and names the files left behind when its provider is unreachable",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			storageID := insertStoredS3Storage(t, tm, storedS3Storage{
 				bucket:             minioBucket{name: "unreachable", endpointURL: "http://127.0.0.1:1", client: nil},
@@ -112,6 +124,8 @@ func TestDeleteStorage(t *testing.T) {
 
 	t.Run("deletes the storage without removing a file whose write is still running and names it",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			createdStorage := tm.createLocalStorage(t, "Local")
 			runningFileName := "running-" + uuid.NewString()
@@ -127,6 +141,10 @@ func TestDeleteStorage(t *testing.T) {
 			testwait.Until(t, "the running write registers its file", func(context.Context) error {
 				if countPendingDeletions(t, tm.app, createdStorage.Id) == 0 {
 					return fmt.Errorf("no pending deletion of %s yet", runningFileName)
+				}
+
+				if !tm.app.IsLocalStorageStagingFilePresent(t, runningFileName) {
+					return fmt.Errorf("no staging file of %s yet", runningFileName)
 				}
 
 				return nil
@@ -149,6 +167,8 @@ func TestDeleteStorageAccess(t *testing.T) {
 	t.Parallel()
 
 	t.Run("lets a workspace member delete a storage", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		member := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER)
 		createdStorage := tm.createLocalStorage(t, "Local")
@@ -160,6 +180,8 @@ func TestDeleteStorageAccess(t *testing.T) {
 	})
 
 	t.Run("returns 403 permission_denied and keeps the storage when a viewer deletes it", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		viewer := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 		createdStorage := tm.createLocalStorage(t, "Local")
@@ -173,6 +195,8 @@ func TestDeleteStorageAccess(t *testing.T) {
 
 	t.Run("returns 404 not_found and keeps the storage when a stranger deletes another team's storage",
 		func(t *testing.T) {
+			t.Parallel()
+
 			tm := newTeam(t)
 			stranger := tm.stranger(t)
 			createdStorage := tm.createLocalStorage(t, "Local")
@@ -185,6 +209,8 @@ func TestDeleteStorageAccess(t *testing.T) {
 		})
 
 	t.Run("returns 401 unauthenticated and keeps the storage without a session", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		createdStorage := tm.createLocalStorage(t, "Local")
 

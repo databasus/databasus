@@ -31,6 +31,8 @@ func TestPhysicalBackupAccess(t *testing.T) {
 		{"returns 401 for both operations when the request has no session", "NO_SESSION", http.StatusUnauthorized, http.StatusUnauthorized, apiclient.ProblemCodeUnauthenticated},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
+			t.Parallel()
+
 			catalog := newCatalog(t)
 
 			apptest.SaveBackupConfigWithStorage(t, catalog.Owner,
@@ -83,6 +85,8 @@ func TestTriggerPhysicalBackup(t *testing.T) {
 	t.Parallel()
 
 	t.Run("sets the full request time when a full backup is requested", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		apptest.SaveBackupConfigWithStorage(
 			t,
@@ -109,6 +113,8 @@ func TestTriggerPhysicalBackup(t *testing.T) {
 		assert.NotNil(t, requested[0].ForceFullRequestedAt)
 	})
 	t.Run("returns 409 when an incremental has no extendable chain", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		apptest.SaveBackupConfigWithStorage(t, catalog.Owner,
 			apptest.StorageUse{DatabaseID: catalog.DatabaseID, StorageID: catalog.StorageID})
@@ -128,6 +134,8 @@ func TestTriggerPhysicalBackup(t *testing.T) {
 		assert.Equal(t, backupRequests{}, catalog.getBackupRequests(t))
 	})
 	t.Run("accepts an automatic request when no backup is running", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		apptest.GetBackupConfig(t, catalog.Owner, catalog.DatabaseID)
 		catalog.call(

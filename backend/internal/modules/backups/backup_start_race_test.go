@@ -20,6 +20,8 @@ func TestSaveLogicalBackupConfigRacingBackupStart(t *testing.T) {
 	t.Parallel()
 
 	t.Run("never leaves a backup on the previous storage of a saved config", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		databaseID := tm.insertLogicalDatabase(t)
 		storageIDs := []uuid.UUID{tm.createLocalStorage(t), tm.createLocalStorage(t)}

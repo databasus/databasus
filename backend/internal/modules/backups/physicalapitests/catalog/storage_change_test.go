@@ -17,6 +17,8 @@ func TestChangePhysicalBackupStorage(t *testing.T) {
 	t.Run(
 		"removes unneeded WAL and history when a running full is removed and a target full survives",
 		func(t *testing.T) {
+			t.Parallel()
+
 			catalog := newCatalog(t)
 			running := catalog.insertFull(t, newInProgressFull(inProgressFullSpec{
 				DatabaseID: catalog.DatabaseID, StorageID: catalog.StorageID, TimelineID: 1,
@@ -61,6 +63,8 @@ func TestChangePhysicalBackupStorage(t *testing.T) {
 	)
 
 	t.Run("removes the old chain and schedules its files for deletion when storage changes", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		newStorageID := catalog.App.CreateLocalStorage(t, catalog.Owner, catalog.WorkspaceID)
 		catalog.saveStorageConfig(t, catalog.StorageID)
@@ -75,6 +79,8 @@ func TestChangePhysicalBackupStorage(t *testing.T) {
 		}
 	})
 	t.Run("releases and removes a running full when storage changes", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		newStorageID := catalog.App.CreateLocalStorage(t, catalog.Owner, catalog.WorkspaceID)
 		catalog.saveStorageConfig(t, catalog.StorageID)
@@ -91,6 +97,8 @@ func TestChangePhysicalBackupStorage(t *testing.T) {
 		assert.Empty(t, getBackups(t, catalog, "").Backups)
 	})
 	t.Run("keeps the chain when storage stays the same", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		catalog.saveStorageConfig(t, catalog.StorageID)
 		full, incremental, wal := seedOneOfEachType(t, catalog)
@@ -103,6 +111,8 @@ func TestChangePhysicalBackupStorage(t *testing.T) {
 		assert.Empty(t, catalog.pendingFiles(t, catalog.StorageID))
 	})
 	t.Run("keeps the config and chain unchanged when recording cleanup fails", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		catalog.saveStorageConfig(t, catalog.StorageID)
 		full, incremental, wal := seedOneOfEachType(t, catalog)
@@ -245,6 +255,8 @@ func (catalog *catalogFixture) pendingFiles(t *testing.T, storageID uuid.UUID) [
 func TestRollbackReassignedPhysicalStorage(t *testing.T) {
 	t.Parallel()
 	t.Run("preserves all retained history when reassignment cleanup cannot be saved", func(t *testing.T) {
+		t.Parallel()
+
 		catalog := newCatalog(t)
 		catalog.saveStorageConfig(t, catalog.StorageID)
 		full, incremental, wal := seedOneOfEachType(t, catalog)

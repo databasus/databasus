@@ -18,6 +18,8 @@ func TestPhysicalRestoreWalScope(t *testing.T) {
 		{name: "includes its boundary segment and ignores other timelines and databases when the full starts inside a segment", offset: 0x28},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
 			catalog := newCatalog(t)
 			timeline := newRestoreTimeline()
 			full := catalog.seedRestoreFull(

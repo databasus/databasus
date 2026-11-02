@@ -66,7 +66,10 @@ func TestResolveLiveTimelineIDUnreadable(t *testing.T) {
 	})
 }
 
+//nolint:tparallel // Each version's server stops before the next version starts, which bounds the memory the servers of one test hold.
 func TestReadLiveTimeline(t *testing.T) {
+	t.Parallel()
+
 	for _, image := range getSupportedVersionImages() {
 		t.Run(image, func(t *testing.T) {
 			t.Run("reports the live timeline after promotion before the control file catches up", func(t *testing.T) {

@@ -17,6 +17,8 @@ func TestNotifierAccess(t *testing.T) {
 	t.Parallel()
 
 	t.Run("lets a viewer list and read the notifiers of the workspace", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		viewer := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
@@ -31,6 +33,8 @@ func TestNotifierAccess(t *testing.T) {
 	})
 
 	t.Run("lets a member create, change and delete a notifier", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		member := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER)
 
@@ -49,6 +53,8 @@ func TestNotifierAccess(t *testing.T) {
 	})
 
 	t.Run("answers a notifier of another team as a missing one", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		stranger := tm.stranger(t)
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
@@ -71,6 +77,8 @@ func TestNotifierAccess(t *testing.T) {
 	})
 
 	t.Run("returns 404 not_found when a user lists the notifiers of another team", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		stranger := tm.stranger(t)
 
@@ -85,6 +93,8 @@ func TestNotifierAccess(t *testing.T) {
 	})
 
 	t.Run("returns 403 permission_denied and keeps the name when a viewer renames a notifier", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		viewer := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
@@ -101,6 +111,8 @@ func TestNotifierAccess(t *testing.T) {
 	})
 
 	t.Run("returns 404 not_found and keeps the notifier when a user of another team changes it", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		stranger := tm.stranger(t)
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
@@ -116,6 +128,8 @@ func TestNotifierAccess(t *testing.T) {
 	})
 
 	t.Run("returns 404 not_found and keeps the notifier when a user of another team deletes it", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		stranger := tm.stranger(t)
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
@@ -129,6 +143,8 @@ func TestNotifierAccess(t *testing.T) {
 	})
 
 	t.Run("returns 403 permission_denied and creates nothing when a viewer creates a notifier", func(t *testing.T) {
+		t.Parallel()
+
 		tm := newTeam(t)
 		viewer := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 
