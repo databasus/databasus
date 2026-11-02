@@ -18,7 +18,8 @@ interface Props {
 
 export const NotifierTransferDialogComponent = ({ notifier, onClose, onTransferred }: Props) => {
   const { t } = useTranslation();
-  const [error, setError] = useState<unknown>();
+  const [loadError, setLoadError] = useState<unknown>();
+  const [transferError, setTransferError] = useState<unknown>();
   const [isLoading, setIsLoading] = useState(true);
   const [isNotifierInUse, setIsNotifierInUse] = useState(false);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -28,7 +29,8 @@ export const NotifierTransferDialogComponent = ({ notifier, onClose, onTransferr
   const loadData = async () => {
     const revision = contextRevision.GetCurrent();
     const isActive = () => isCurrent() && contextRevision.IsCurrent(revision);
-    setError(undefined);
+    setLoadError(undefined);
+    setTransferError(undefined);
     setIsLoading(true);
 
     try {
@@ -50,7 +52,7 @@ export const NotifierTransferDialogComponent = ({ notifier, onClose, onTransferr
     } catch (e) {
       if (!isActive()) return;
 
-      setError(e);
+      setLoadError(e);
     }
 
     if (isActive()) setIsLoading(false);
@@ -59,7 +61,7 @@ export const NotifierTransferDialogComponent = ({ notifier, onClose, onTransferr
   const transferNotifier = async () => {
     const revision = contextRevision.GetCurrent();
     const isActive = () => isCurrent() && contextRevision.IsCurrent(revision);
-    setError(undefined);
+    setTransferError(undefined);
 
     if (!selectedWorkspaceId) return;
 
@@ -73,7 +75,7 @@ export const NotifierTransferDialogComponent = ({ notifier, onClose, onTransferr
     } catch (e) {
       if (!isActive()) return;
 
-      setError(e);
+      setTransferError(e);
     }
 
     if (isActive()) setIsTransferring(false);
@@ -102,13 +104,16 @@ export const NotifierTransferDialogComponent = ({ notifier, onClose, onTransferr
       onCancel={onClose}
       maskClosable={false}
     >
-      {error !== undefined && (
+      {loadError !== undefined && (
         <Alert
           type="error"
           showIcon
-          message={translateApiError(error, t)}
+          message={translateApiError(loadError, t)}
           action={<Button onClick={() => void loadData()}>{t('common.actions.retry')}</Button>}
         />
+      )}
+      {transferError !== undefined && (
+        <Alert type="error" showIcon message={translateApiError(transferError, t)} />
       )}
       {isLoading ? (
         <div className="flex justify-center py-5">

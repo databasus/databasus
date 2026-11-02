@@ -21,7 +21,8 @@ const STORAGE_USE_CHECK_LIMIT = 1;
 
 export const StorageTransferDialogComponent = ({ storage, onClose, onTransferred }: Props) => {
   const { t } = useTranslation();
-  const [error, setError] = useState<unknown>();
+  const [loadError, setLoadError] = useState<unknown>();
+  const [transferError, setTransferError] = useState<unknown>();
   const [isLoading, setIsLoading] = useState(true);
   const [isStorageInUse, setIsStorageInUse] = useState(false);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -31,7 +32,8 @@ export const StorageTransferDialogComponent = ({ storage, onClose, onTransferred
   const loadData = async () => {
     const revision = contextRevision.GetCurrent();
     const isActive = () => isCurrent() && contextRevision.IsCurrent(revision);
-    setError(undefined);
+    setLoadError(undefined);
+    setTransferError(undefined);
     setIsLoading(true);
 
     try {
@@ -54,7 +56,7 @@ export const StorageTransferDialogComponent = ({ storage, onClose, onTransferred
     } catch (e) {
       if (!isActive()) return;
 
-      setError(e);
+      setLoadError(e);
     }
 
     if (isActive()) setIsLoading(false);
@@ -63,7 +65,7 @@ export const StorageTransferDialogComponent = ({ storage, onClose, onTransferred
   const transferStorage = async () => {
     const revision = contextRevision.GetCurrent();
     const isActive = () => isCurrent() && contextRevision.IsCurrent(revision);
-    setError(undefined);
+    setTransferError(undefined);
 
     if (!selectedWorkspaceId) return;
 
@@ -77,7 +79,7 @@ export const StorageTransferDialogComponent = ({ storage, onClose, onTransferred
     } catch (e) {
       if (!isActive()) return;
 
-      setError(e);
+      setTransferError(e);
     }
 
     if (isActive()) setIsTransferring(false);
@@ -106,13 +108,16 @@ export const StorageTransferDialogComponent = ({ storage, onClose, onTransferred
       onCancel={onClose}
       maskClosable={false}
     >
-      {error !== undefined && (
+      {loadError !== undefined && (
         <Alert
           type="error"
           showIcon
-          message={translateApiError(error, t)}
+          message={translateApiError(loadError, t)}
           action={<Button onClick={() => void loadData()}>{t('common.actions.retry')}</Button>}
         />
+      )}
+      {transferError !== undefined && (
+        <Alert type="error" showIcon message={translateApiError(transferError, t)} />
       )}
       {isLoading ? (
         <div className="flex justify-center py-5">

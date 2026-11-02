@@ -110,6 +110,23 @@ describe('StorageTransferDialogComponent', () => {
     ).toBeNull();
   });
 
+  it('reloads the dialog data through Retry when the data fails to load', async () => {
+    mockServer.use(mockApi.get('/backup-configs', 500, buildProblem('internal', 500)));
+    const view = renderDialog();
+
+    const retryButton = await screen.findByRole('button', { name: 'Retry' });
+
+    mockServer.use(
+      mockStorageBackupConfigs([], []),
+      mockApi.get('/workspaces', 200, { items: [sourceWorkspace, targetWorkspace] }),
+    );
+
+    await view.user.click(retryButton);
+
+    expect(await screen.findByRole('combobox', { name: 'Target workspace' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+  });
+
   it('keeps the dialog and the chosen workspace and shows the translated reason when the transfer is refused', async () => {
     mockServer.use(
       mockStorageBackupConfigs([], []),
@@ -141,6 +158,7 @@ describe('StorageTransferDialogComponent', () => {
     ).toBeTruthy();
     expect(screen.getByRole('dialog')).toBeTruthy();
     expect(screen.queryByText('in_use')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
     expect(
       screen.getByText(targetWorkspace.name, { selector: '.ant-select-selection-item' }),
     ).toBeTruthy();

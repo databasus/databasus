@@ -86,6 +86,29 @@ describe('NotifierTransferDialogComponent', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('reloads the dialog data through Retry when the data fails to load', async () => {
+    mockServer.use(mockApi.get('/databases', 500, buildProblem('internal', 500)));
+    const view = renderScreen(
+      <NotifierTransferDialogComponent
+        notifier={transferredNotifier}
+        onClose={() => {}}
+        onTransferred={() => {}}
+      />,
+    );
+
+    const retryButton = await screen.findByRole('button', { name: 'Retry' });
+
+    mockServer.use(
+      mockNotifierDatabases([], []),
+      mockApi.get('/workspaces', 200, { items: [sourceWorkspace, targetWorkspace] }),
+    );
+
+    await view.user.click(retryButton);
+
+    expect(await screen.findByRole('combobox', { name: 'Target workspace' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+  });
+
   it('keeps the dialog and the chosen workspace and shows the translated reason when the transfer is refused', async () => {
     mockServer.use(
       mockNotifierDatabases([], []),
@@ -117,6 +140,7 @@ describe('NotifierTransferDialogComponent', () => {
     ).toBeTruthy();
     expect(screen.getByRole('dialog')).toBeTruthy();
     expect(screen.queryByText('in_use')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
     expect(
       screen.getByText(targetWorkspace.name, { selector: '.ant-select-selection-item' }),
     ).toBeTruthy();
