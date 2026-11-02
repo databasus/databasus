@@ -10,7 +10,7 @@ interface Props {
   onClick: () => void;
 }
 
-export const BackupActionButton = ({
+export const RowActionButton = ({
   title,
   icon,
   className,

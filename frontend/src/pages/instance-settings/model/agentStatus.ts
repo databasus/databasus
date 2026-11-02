@@ -1,5 +1,3 @@
-import type { TagProps } from 'antd';
-
 import type { TranslationKey } from '../../../shared/i18n';
 
 // Agents are expected to heartbeat every 30 seconds; the 15-second list poll on
@@ -21,11 +19,11 @@ export const getAgentStatus = (
   return 'offline';
 };
 
-export const AGENT_STATUS_COLORS: Record<AgentStatus, TagProps['color']> = {
-  'never-seen': 'default',
-  online: 'green',
-  stale: 'orange',
-  offline: 'red',
+export const AGENT_STATUS_TEXT_CLASSES: Record<AgentStatus, string> = {
+  'never-seen': 'text-muted',
+  online: 'text-success',
+  stale: 'text-warning',
+  offline: 'text-danger',
 };
 
 export const AGENT_STATUS_LABEL_KEYS: Record<AgentStatus, TranslationKey> = {

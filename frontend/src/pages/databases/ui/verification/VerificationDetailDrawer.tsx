@@ -1,43 +1,26 @@
-import { Button, Drawer, Skeleton, Table, Tag, type TagProps } from 'antd';
+import { Alert, Button, Drawer, Skeleton, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
-import type { TFunction } from 'i18next';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { type LocaleContextValue, translateApiError, useLocale } from '../../../../shared/i18n';
+import { RequestRevision } from '../../../../shared/lib/RequestRevision';
 import { getUserTimeFormat } from '../../../../shared/time';
 import { verificationRunsApi } from '../../api/verificationRunsApi';
 import { type VerificationDetails } from '../../model/verification/VerificationDetails';
 import { VerificationStatus } from '../../model/verification/VerificationStatus';
-import { VERIFICATION_STATUS_LABEL_KEYS } from '../../model/verification/VerificationStatusLabelKeys';
 import { type VerificationTableStat } from '../../model/verification/VerificationTableStat';
-import { VerificationTrigger } from '../../model/verification/VerificationTrigger';
-import { VERIFICATION_TRIGGER_LABEL_KEYS } from '../../model/verification/VerificationTriggerLabelKeys';
+import { formatOptionalDuration } from './formatOptionalDuration';
+import { VerificationStatusLabel } from './VerificationStatusLabel';
+import { VerificationTriggerTag } from './VerificationTriggerTag';
 
 interface Props {
   verificationId: string;
+  isOpen: boolean;
   onClose: () => void;
+  onClosed: () => void;
 }
-
-const formatDurationMs = (durationMs?: number) => {
-  if (durationMs === undefined || durationMs === null) {
-    return '-';
-  }
-
-  const totalSeconds = Math.floor(durationMs / 1000);
-
-  if (totalSeconds < 60) {
-    // eslint-disable-next-line i18next/no-literal-string -- unit letters stay English in every language
-    return `${totalSeconds}s`;
-  }
-
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-
-  // eslint-disable-next-line i18next/no-literal-string -- unit letters stay English in every language
-  return `${minutes}m ${seconds}s`;
-};
 
 const formatSizeBytes = (
   sizeBytes: number | undefined,
@@ -56,77 +39,60 @@ const formatSizeBytes = (
   return `${formatNumber(Number(sizeMb.toFixed(2)))} MB`;
 };
 
-const VERIFICATION_STATUS_TAG_COLORS: Record<VerificationStatus, TagProps['color']> = {
-  [VerificationStatus.COMPLETED]: 'green',
-  [VerificationStatus.FAILED]: 'red',
-  [VerificationStatus.RUNNING]: 'blue',
-  [VerificationStatus.PENDING]: 'default',
-  [VerificationStatus.CANCELED]: 'default',
-};
-
-const renderStatusTag = (status: VerificationStatus, t: TFunction) => (
-  <Tag color={VERIFICATION_STATUS_TAG_COLORS[status]}>
-    {t(VERIFICATION_STATUS_LABEL_KEYS[status])}
-  </Tag>
-);
-
-const renderTriggerTag = (trigger: VerificationTrigger, t: TFunction) => (
-  <Tag color={trigger === VerificationTrigger.MANUAL ? 'blue' : 'purple'}>
-    {t(VERIFICATION_TRIGGER_LABEL_KEYS[trigger])}
-  </Tag>
-);
-
 const renderTimestamp = (
   iso: string,
   formatRelativeTime: LocaleContextValue['formatRelativeTime'],
 ) => (
   <span className="flex flex-col items-end">
     <span>{dayjs.utc(iso).local().format(getUserTimeFormat().format)}</span>
-    <span className="text-xs text-gray-500 dark:text-gray-400">
-      ({formatRelativeTime(dayjs.utc(iso))})
-    </span>
+    <span className="text-xs text-muted">({formatRelativeTime(dayjs.utc(iso))})</span>
   </span>
 );
 
 const renderInfoRow = (label: string, value: React.ReactNode) => (
-  <div className="flex items-baseline justify-between border-b border-gray-100 py-1 last:border-b-0 dark:border-gray-700">
-    <span className="text-xs text-gray-500 dark:text-gray-400">{label}</span>
-    <span className="text-sm text-gray-800 dark:text-gray-200">{value}</span>
+  <div className="flex items-baseline justify-between border-b border-border py-1 last:border-b-0">
+    <span className="text-xs text-muted">{label}</span>
+    <div className="text-sm text-content">{value}</div>
   </div>
 );
 
 const renderSection = (title: string, children: React.ReactNode) => (
   <div className="mb-4">
-    <div className="mb-1 text-xs font-semibold tracking-wide text-gray-400 uppercase dark:text-gray-500">
-      {title}
-    </div>
+    <div className="mb-1 text-xs font-semibold tracking-wide text-muted uppercase">{title}</div>
     {children}
   </div>
 );
 
-export const VerificationDetailDrawer = ({ verificationId, onClose }: Props) => {
+export const VerificationDetailDrawer = ({ verificationId, isOpen, onClose, onClosed }: Props) => {
   const { t } = useTranslation();
   const { formatNumber, formatRelativeTime } = useLocale();
   const [verification, setVerification] = useState<VerificationDetails | undefined>();
   const [isLoading, setIsLoading] = useState(true);
-  const [hasLoadError, setHasLoadError] = useState(false);
+  const [loadError, setLoadError] = useState<unknown>();
+  const [loadRevision] = useState(() => new RequestRevision());
 
-  const loadVerification = () => {
+  const loadVerification = async () => {
+    const revision = loadRevision.Invalidate();
+
     setIsLoading(true);
-    setHasLoadError(false);
+    setLoadError(undefined);
 
-    verificationRunsApi
-      .getById(verificationId)
-      .then(setVerification)
-      .catch((e: unknown) => {
-        alert(translateApiError(e, t));
-        setHasLoadError(true);
-      })
-      .finally(() => setIsLoading(false));
+    try {
+      const loadedVerification = await verificationRunsApi.getById(verificationId);
+      if (loadRevision.IsCurrent(revision)) setVerification(loadedVerification);
+    } catch (error) {
+      if (loadRevision.IsCurrent(revision)) setLoadError(error);
+    }
+
+    if (loadRevision.IsCurrent(revision)) setIsLoading(false);
   };
 
   useEffect(() => {
-    loadVerification();
+    void loadVerification();
+
+    return () => {
+      loadRevision.Invalidate();
+    };
   }, [verificationId]);
 
   const sortedStats = useMemo(
@@ -165,42 +131,54 @@ export const VerificationDetailDrawer = ({ verificationId, onClose }: Props) => 
       placement="right"
       width={520}
       onClose={onClose}
-      open={true}
+      open={isOpen}
+      afterOpenChange={(isOpen) => {
+        if (!isOpen) onClosed();
+      }}
       maskClosable={true}
     >
       {isLoading ? (
         <Skeleton active paragraph={{ rows: 10 }} />
-      ) : hasLoadError || !verification ? (
-        <div className="flex flex-col items-center gap-3 py-12 text-center">
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            {t('verification.runs.details.loadFailed')}
-          </div>
-          <Button onClick={loadVerification}>{t('common.actions.retry')}</Button>
-        </div>
+      ) : loadError !== undefined || !verification ? (
+        <Alert
+          type="error"
+          showIcon
+          message={translateApiError(loadError, t)}
+          action={
+            <Button onClick={() => void loadVerification()}>{t('common.actions.retry')}</Button>
+          }
+        />
       ) : (
         <div>
           {verification.failMessage &&
             (verification.status === VerificationStatus.CANCELED ? (
-              <div className="mb-4 rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+              <div className="mb-4 rounded-md border border-border bg-raised p-3 text-sm">
                 <div className="mb-1 font-semibold">
                   {t('verification.runs.details.cancellationReason')}
                 </div>
                 <div className="break-words whitespace-pre-wrap">{verification.failMessage}</div>
               </div>
             ) : (
-              <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-                <div className="mb-1 font-semibold">{t('verification.runs.details.failure')}</div>
-                <div className="break-words whitespace-pre-wrap">{verification.failMessage}</div>
-              </div>
+              <Alert
+                className="mb-4"
+                type="error"
+                message={t('verification.runs.details.failure')}
+                description={
+                  <div className="break-words whitespace-pre-wrap">{verification.failMessage}</div>
+                }
+              />
             ))}
 
           {renderSection(
             t('verification.runs.details.sections.status'),
             <>
-              {renderInfoRow(t('common.fields.status'), renderStatusTag(verification.status, t))}
+              {renderInfoRow(
+                t('common.fields.status'),
+                <VerificationStatusLabel status={verification.status} />,
+              )}
               {renderInfoRow(
                 t('verification.runs.fields.trigger'),
-                renderTriggerTag(verification.trigger, t),
+                <VerificationTriggerTag trigger={verification.trigger} />,
               )}
               {renderInfoRow(
                 t('verification.runs.details.fields.attempt'),
@@ -234,11 +212,11 @@ export const VerificationDetailDrawer = ({ verificationId, onClose }: Props) => 
             <>
               {renderInfoRow(
                 t('verification.runs.details.fields.restoreDuration'),
-                formatDurationMs(verification.restoreDurationMs),
+                formatOptionalDuration(verification.restoreDurationMs),
               )}
               {renderInfoRow(
                 t('verification.runs.details.fields.verifyDuration'),
-                formatDurationMs(verification.verifyDurationMs),
+                formatOptionalDuration(verification.verifyDurationMs),
               )}
               {renderInfoRow(
                 t('verification.runs.details.fields.restoredDbSize'),
@@ -261,11 +239,11 @@ export const VerificationDetailDrawer = ({ verificationId, onClose }: Props) => 
             </>,
           )}
 
-          <h3 className="mt-2 mb-2 text-base font-semibold dark:text-white">
+          <h3 className="mt-2 mb-2 text-base font-semibold">
             {t('verification.runs.details.tableStats.title')}
           </h3>
           {sortedStats.length === 0 ? (
-            <div className="text-sm text-gray-500 dark:text-gray-400">
+            <div className="text-sm text-muted">
               {t('verification.runs.details.tableStats.empty')}
             </div>
           ) : (
@@ -274,7 +252,7 @@ export const VerificationDetailDrawer = ({ verificationId, onClose }: Props) => 
               size="small"
               columns={tableStatColumns}
               dataSource={sortedStats}
-              rowKey="id"
+              rowKey={(stat) => `${stat.schemaName}.${stat.name}`}
               pagination={false}
             />
           )}

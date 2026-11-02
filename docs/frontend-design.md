@@ -1,6 +1,6 @@
 # Frontend design
 
-The interface uses AntD components and icons with Tailwind for layout and spacing. Shared controls, the application shell, authentication and account screens, workspace settings, resource lists/details and storage/notifier editors use semantic presentation; the remaining domain screens migrate in their own milestones.
+The interface uses AntD components and icons with Tailwind for layout and spacing. The application uses semantic presentation everywhere except the legacy toast implementation, which migrates in its own milestone.
 
 ## Theme and typography
 
@@ -34,4 +34,4 @@ Charts use labelled numeric/time axes, non-color distinctions and positive measu
 
 `pnpm --dir frontend lint:styles` parses TypeScript/TSX and CSS, resolves presentation constants and checks color utilities, arbitrary values and focus removal. It accepts semantic references, layout utilities and technical data. Only the exact theme and WAL palette files define independent colors. The finite `frontend/style-baseline.json` records remaining constructs and counts with an owner and removal milestone. Repairing an occurrence requires removing its stale baseline entry; copying one fails lint.
 
-Shared UI, the shell, migrated account/workspace/resource pages and reusable storage/notifier editors have no baseline entries. Other domain screens and the legacy toast implementation remain assigned to their migration milestones. Avoid expanding those exceptions. [Testing](testing.md#browser-ui-tests) describes the browser environment, failure artifacts and explicit reference updates.
+Only the legacy toast implementation has baseline entries, assigned to its migration milestone. Avoid expanding that exception. [Testing](testing.md#browser-ui-tests) describes the browser environment, failure artifacts and explicit reference updates.

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { type PhysicalBackupListItem } from '../../model/physical-backups/PhysicalBackupListItem';
 import { PhysicalBackupStatus } from '../../model/physical-backups/PhysicalBackupStatus';
 import { PhysicalBackupType } from '../../model/physical-backups/PhysicalBackupType';
-import { BackupActionButton } from '../BackupActionButton';
+import { RowActionButton } from '../RowActionButton';
 
 export interface PhysicalBackupRowActions {
   isCanManageDBs: boolean;
@@ -33,7 +33,7 @@ export const PhysicalBackupActions = ({ backup, actions }: Props): JSX.Element =
   return (
     <div className="flex gap-2">
       {backup.status === PhysicalBackupStatus.IN_PROGRESS && isCanManageDBs && (
-        <BackupActionButton
+        <RowActionButton
           title={t('backups.list.actions.cancelBackup')}
           icon={<CloseCircleOutlined />}
           className="!text-danger"
@@ -45,7 +45,7 @@ export const PhysicalBackupActions = ({ backup, actions }: Props): JSX.Element =
 
       {backup.status === PhysicalBackupStatus.COMPLETED && (
         <>
-          <BackupActionButton
+          <RowActionButton
             title={t('backups.physical.list.restoreFromThisBackup')}
             icon={<CloudUploadOutlined />}
             className="!text-accent"
@@ -53,7 +53,7 @@ export const PhysicalBackupActions = ({ backup, actions }: Props): JSX.Element =
           />
 
           {isCanManageDBs && (
-            <BackupActionButton
+            <RowActionButton
               title={t('backups.list.actions.deleteBackup')}
               icon={<DeleteOutlined />}
               className="!text-danger"

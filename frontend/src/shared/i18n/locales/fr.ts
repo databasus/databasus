@@ -1085,7 +1085,6 @@ export const fr: typeof en = {
       },
       details: {
         title: 'Détails de la vérification de restauration',
-        loadFailed: 'Impossible de charger les détails de la vérification.',
         cancellationReason: "Motif de l'annulation",
         failure: 'Échec',
         sections: {

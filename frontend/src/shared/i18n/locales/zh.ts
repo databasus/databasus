@@ -1006,7 +1006,6 @@ export const zh: typeof en = {
       },
       details: {
         title: '恢复验证详情',
-        loadFailed: '无法加载恢复验证详情。',
         cancellationReason: '取消原因',
         failure: '失败原因',
         sections: {

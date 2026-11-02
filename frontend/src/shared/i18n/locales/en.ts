@@ -1050,7 +1050,6 @@ export const en = {
       },
       details: {
         title: 'Restore check details',
-        loadFailed: 'Could not load restore check details.',
         cancellationReason: 'Cancellation reason',
         failure: 'Failure',
         sections: {

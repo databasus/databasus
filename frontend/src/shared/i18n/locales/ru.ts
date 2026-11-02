@@ -1055,7 +1055,6 @@ export const ru: typeof en = {
       },
       details: {
         title: 'Подробности проверки восстановления',
-        loadFailed: 'Не удалось загрузить подробности проверки.',
         cancellationReason: 'Причина отмены',
         failure: 'Ошибка',
         sections: {

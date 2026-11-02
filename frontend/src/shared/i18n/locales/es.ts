@@ -1079,7 +1079,6 @@ export const es: typeof en = {
       },
       details: {
         title: 'Detalles de la verificación de restauración',
-        loadFailed: 'No se pudieron cargar los detalles de la verificación de restauración.',
         cancellationReason: 'Motivo de la cancelación',
         failure: 'Error',
         sections: {

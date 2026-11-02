@@ -11,7 +11,7 @@ import { DatabaseType } from '../../../../entities/databases';
 import type { TranslationKey } from '../../../../shared/i18n';
 import type { LogicalBackup } from '../../model/LogicalBackup';
 import { LogicalBackupStatus } from '../../model/LogicalBackupStatus';
-import { BackupActionButton } from '../BackupActionButton';
+import { RowActionButton } from '../RowActionButton';
 
 // Physical databases have their own backups list; the generic text keeps the map exhaustive.
 const DOWNLOAD_TOOLTIP_KEYS: Record<DatabaseType, TranslationKey> = {
@@ -49,7 +49,7 @@ export const LogicalBackupActions = ({ backup, actions }: Props) => {
   if (backup.status === LogicalBackupStatus.IN_PROGRESS && actions.isCanManageDBs) {
     return (
       <div className="flex gap-2">
-        <BackupActionButton
+        <RowActionButton
           title={t('backups.list.actions.cancelBackup')}
           icon={<CloseCircleOutlined />}
           className="!text-danger"
@@ -66,7 +66,7 @@ export const LogicalBackupActions = ({ backup, actions }: Props) => {
   if (deletingBackupId === backup.id) {
     return (
       <div className="flex gap-2">
-        <BackupActionButton
+        <RowActionButton
           title={t('backups.list.actions.deleteBackup')}
           icon={<DeleteOutlined />}
           className="!text-danger"
@@ -80,7 +80,7 @@ export const LogicalBackupActions = ({ backup, actions }: Props) => {
   return (
     <div className="flex gap-2">
       {actions.isCanManageDBs && (
-        <BackupActionButton
+        <RowActionButton
           title={t('backups.list.actions.deleteBackup')}
           icon={<DeleteOutlined />}
           className="!text-danger"
@@ -90,7 +90,7 @@ export const LogicalBackupActions = ({ backup, actions }: Props) => {
       )}
 
       {actions.isCanManageDBs && actions.databaseType === DatabaseType.POSTGRES_LOGICAL && (
-        <BackupActionButton
+        <RowActionButton
           title={t('backups.logical.list.actions.verifyRestore')}
           icon={<SafetyOutlined />}
           className="!text-accent"
@@ -100,14 +100,14 @@ export const LogicalBackupActions = ({ backup, actions }: Props) => {
         />
       )}
 
-      <BackupActionButton
+      <RowActionButton
         title={t('backups.logical.list.actions.restore')}
         icon={<CloudUploadOutlined />}
         className="!text-accent"
         onClick={() => actions.onRestore(backup)}
       />
 
-      <BackupActionButton
+      <RowActionButton
         title={t(DOWNLOAD_TOOLTIP_KEYS[actions.databaseType])}
         icon={<DownloadOutlined />}
         className="!text-accent"
