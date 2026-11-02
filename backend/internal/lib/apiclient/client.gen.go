@@ -6927,7 +6927,7 @@ type ClientInterface interface {
 
 	// CompletePasswordResetWithBody Replace the password with a mailed reset code
 	//
-	// Public, because the caller cannot sign in. A wrong, used or expired code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
+	// Public, because the caller cannot sign in. Only the newest code of a user works, and it accepts five attempts. A wrong, used, expired, exhausted or older code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -6936,7 +6936,7 @@ type ClientInterface interface {
 
 	// CompletePasswordReset Replace the password with a mailed reset code
 	//
-	// Public, because the caller cannot sign in. A wrong, used or expired code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
+	// Public, because the caller cannot sign in. Only the newest code of a user works, and it accepts five attempts. A wrong, used, expired, exhausted or older code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -8599,7 +8599,7 @@ func (c *Client) TransferNotifier(ctx context.Context, notifierId NotifierId, bo
 
 // CompletePasswordResetWithBody Replace the password with a mailed reset code
 //
-// Public, because the caller cannot sign in. A wrong, used or expired code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
+// Public, because the caller cannot sign in. Only the newest code of a user works, and it accepts five attempts. A wrong, used, expired, exhausted or older code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
 //
 // Takes any type of body and a specified content type.
 //
@@ -8618,7 +8618,7 @@ func (c *Client) CompletePasswordResetWithBody(ctx context.Context, contentType 
 
 // CompletePasswordReset Replace the password with a mailed reset code
 //
-// Public, because the caller cannot sign in. A wrong, used or expired code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
+// Public, because the caller cannot sign in. Only the newest code of a user works, and it accepts five attempts. A wrong, used, expired, exhausted or older code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -15183,7 +15183,7 @@ type ClientWithResponsesInterface interface {
 
 	// CompletePasswordResetWithBodyWithResponse Replace the password with a mailed reset code
 	//
-	// Public, because the caller cannot sign in. A wrong, used or expired code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
+	// Public, because the caller cannot sign in. Only the newest code of a user works, and it accepts five attempts. A wrong, used, expired, exhausted or older code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -15192,7 +15192,7 @@ type ClientWithResponsesInterface interface {
 
 	// CompletePasswordResetWithResponse Replace the password with a mailed reset code
 	//
-	// Public, because the caller cannot sign in. A wrong, used or expired code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
+	// Public, because the caller cannot sign in. Only the newest code of a user works, and it accepts five attempts. A wrong, used, expired, exhausted or older code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -23952,7 +23952,7 @@ func (c *ClientWithResponses) TransferNotifierWithResponse(ctx context.Context, 
 
 // CompletePasswordResetWithBodyWithResponse Replace the password with a mailed reset code
 //
-// Public, because the caller cannot sign in. A wrong, used or expired code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
+// Public, because the caller cannot sign in. Only the newest code of a user works, and it accepts five attempts. A wrong, used, expired, exhausted or older code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -23967,7 +23967,7 @@ func (c *ClientWithResponses) CompletePasswordResetWithBodyWithResponse(ctx cont
 
 // CompletePasswordResetWithResponse Replace the password with a mailed reset code
 //
-// Public, because the caller cannot sign in. A wrong, used or expired code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
+// Public, because the caller cannot sign in. Only the newest code of a user works, and it accepts five attempts. A wrong, used, expired, exhausted or older code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //

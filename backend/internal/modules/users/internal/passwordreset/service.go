@@ -137,8 +137,10 @@ func (s *Service) RequestReset(ctx context.Context, request ResetRequest) error 
 	return nil
 }
 
-// CompleteReset replaces the password of the user who returns with the newest usable code. A wrong
-// code leaves it usable, as before.
+// CompleteReset replaces the password of the user who returns with their newest code. Each guess
+// first claims one of the code's five attempts, so simultaneous guesses never check it more than
+// five times, and the password is hashed only after the code proves correct, so a caller without
+// the code costs the server at most those comparisons. A short password takes no attempt.
 func (s *Service) CompleteReset(ctx context.Context, completion ResetCompletion) error {
 	if !identity.IsPasswordLongEnough(completion.NewPassword) {
 		return apierror.NewInvalidFieldsProblem([]apierror.FieldError{{
@@ -147,33 +149,33 @@ func (s *Service) CompleteReset(ctx context.Context, completion ResetCompletion)
 		}})
 	}
 
+	user, isFound, err := s.accounts.GetRecordByEmail(ctx, completion.Email)
+	if err != nil {
+		return err
+	}
+
+	if !isFound || !user.IsActive() {
+		return ErrInvalidResetCode
+	}
+
+	resetCode, err := s.verifyResetCode(ctx, user, completion.Code)
+	if err != nil {
+		return err
+	}
+
 	hashedPassword, err := identity.HashPassword(completion.NewPassword)
 	if err != nil {
 		return err
 	}
 
 	return s.transactor.Transaction(ctx, func(ctx context.Context) error {
-		user, isFound, err := s.accounts.GetRecordByEmail(ctx, completion.Email)
+		isSpent, err := s.resetCodes.spend(ctx, resetCode.ID, s.clock.Now())
 		if err != nil {
 			return err
 		}
 
-		if !isFound || !user.IsActive() {
+		if !isSpent {
 			return ErrInvalidResetCode
-		}
-
-		resetCode, isFound, err := s.resetCodes.getNewestUsable(ctx, user.ID, s.clock.Now())
-		if err != nil {
-			return err
-		}
-
-		if !isFound || bcrypt.CompareHashAndPassword([]byte(resetCode.HashedCode), []byte(completion.Code)) != nil {
-			return ErrInvalidResetCode
-		}
-
-		err = s.resetCodes.markUsed(ctx, resetCode.ID)
-		if err != nil {
-			return err
 		}
 
 		return s.accounts.ReplacePassword(ctx, user, hashedPassword, "Password reset via email code")
@@ -184,6 +186,39 @@ func (s *Service) CompleteReset(ctx context.Context, completion ResetCompletion)
 // of them has expired.
 func (s *Service) DeleteResetCodesPastRetention(ctx context.Context, now time.Time) (int64, error) {
 	return s.resetCodes.deleteCreatedBefore(ctx, now.Add(-resetCodeRetention))
+}
+
+// verifyResetCode answers the user's newest code when the given value matches it. An older code
+// never gets a turn, so it cannot work again once the newest is exhausted or used.
+func (s *Service) verifyResetCode(ctx context.Context, user accounts.UserRecord, code string) (ResetCode, error) {
+	resetCode, isFound, err := s.resetCodes.getNewest(ctx, user.ID)
+	if err != nil {
+		return ResetCode{}, err
+	}
+
+	if !isFound {
+		return ResetCode{}, ErrInvalidResetCode
+	}
+
+	attemptCount, isAttemptClaimed, err := s.resetCodes.claimAttempt(ctx, resetCode.ID, s.clock.Now())
+	if err != nil {
+		return ResetCode{}, err
+	}
+
+	if !isAttemptClaimed {
+		return ResetCode{}, ErrInvalidResetCode
+	}
+
+	if bcrypt.CompareHashAndPassword([]byte(resetCode.HashedCode), []byte(code)) != nil {
+		if attemptCount >= maxCodeAttempts {
+			s.logger.WarnContext(ctx, "reset code exhausted by incorrect attempts",
+				slog.String("user_id", user.ID.String()))
+		}
+
+		return ResetCode{}, ErrInvalidResetCode
+	}
+
+	return resetCode, nil
 }
 
 // issueResetCode stores a new code unless the user used up the hourly allowance, which answers
@@ -214,12 +249,13 @@ func (s *Service) issueResetCode(ctx context.Context, user accounts.UserRecord) 
 	}
 
 	err = s.resetCodes.insert(ctx, ResetCode{
-		ID:         uuid.New(),
-		UserID:     user.ID,
-		HashedCode: string(hashedCode),
-		ExpiresAt:  now.Add(resetCodeLifetime),
-		IsUsed:     false,
-		CreatedAt:  now,
+		ID:                 uuid.New(),
+		UserID:             user.ID,
+		HashedCode:         string(hashedCode),
+		ExpiresAt:          now.Add(resetCodeLifetime),
+		IsUsed:             false,
+		FailedAttemptCount: 0,
+		CreatedAt:          now,
 	})
 	if err != nil {
 		return "", false, err
