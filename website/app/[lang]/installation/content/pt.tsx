@@ -537,9 +537,9 @@ sudo curl -sSL https://raw.githubusercontent.com/databasus/databasus/refs/heads/
               <p>
                 Retorna <code>200</code> quando está tudo bem, ou{" "}
                 <code>503</code> com o motivo quando algo precisa de atenção:
-                base de dados interna, cache, uso de disco (acima de 95%),
-                ferramentas cliente de base de dados, agendador de backups e
-                atividade do agente de verificação. Sem autenticação, e o CORS
+                base de dados interna, uso de disco (acima de 95%), ferramentas
+                cliente de base de dados, tarefas em segundo plano e atividade
+                do agente de verificação. Sem autenticação, e o CORS
                 está aberto para monitores baseados em navegador.
               </p>
 

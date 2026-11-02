@@ -528,9 +528,9 @@ sudo curl -sSL https://raw.githubusercontent.com/databasus/databasus/refs/heads/
               <p>
                 Returns <code>200</code> when healthy, or <code>503</code> with
                 a reason when something needs attention: internal database,
-                cache, disk usage (above 95%), database client tools, backup
-                scheduler and verification-agent liveness. No authentication, and
-                CORS is open for browser-based monitors.
+                disk usage (above 95%), database client tools, background jobs
+                and verification-agent liveness. No authentication, and CORS is
+                open for browser-based monitors.
               </p>
 
               <p>
