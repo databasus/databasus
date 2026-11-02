@@ -166,6 +166,32 @@ describe('EditLogicalBackupConfigSection', () => {
     expect(onSaved).not.toHaveBeenCalled();
   });
 
+  it('accepts a new retention count typed after the field is cleared, and shows the minimum after leaving it empty', async () => {
+    mockServer.use(
+      mockApi.get('/backup-configs/{databaseId}', 200, config),
+      mockApi.get('/logical-backups', 200, { items: [] }),
+      mockApi.get('/storage-switches', 200, { items: [] }),
+      mockApi.get('/storages', 200, { items: [] }),
+    );
+    const { user } = renderScreen(
+      <EditLogicalBackupConfigSection database={database} onCancel={() => {}} onSaved={() => {}} />,
+    );
+    const countField = await screen.findByLabelText<HTMLInputElement>('Most recent backups');
+
+    await user.clear(countField);
+
+    expect(countField.value).toBe('');
+
+    await user.type(countField, '9');
+
+    expect(countField.value).toBe('9');
+
+    await user.clear(countField);
+    await user.tab();
+
+    expect(countField.value).toBe('1');
+  });
+
   describe('with a schedule', () => {
     const gfsRetention: LogicalBackupConfigInput['settings']['retention'] = {
       ...logicalSettings.retention,

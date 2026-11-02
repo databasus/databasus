@@ -1,5 +1,5 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
-import { Button, InputNumber, Select, Tooltip } from 'antd';
+import { Button, Select, Tooltip } from 'antd';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -10,6 +10,7 @@ import { LogicalRetentionPolicy } from '../../model/LogicalRetentionPolicy';
 import { LOGICAL_RETENTION_POLICY_LABEL_KEYS } from '../../model/LogicalRetentionPolicyLabelKeys';
 import { RetentionPeriod } from '../../model/RetentionPeriod';
 import { RETENTION_PERIOD_LABEL_KEYS } from '../../model/RetentionPeriodLabelKeys';
+import { RetentionNumberInput } from './RetentionNumberInput';
 
 type LogicalRetention = LogicalBackupSettings['retention'];
 
@@ -38,14 +39,7 @@ const GfsPeriodField = ({ label, value, onChange }: GfsPeriodFieldProps) => {
       <label htmlFor={inputId} className="w-[110px] text-sm text-muted">
         {label}
       </label>
-      <InputNumber
-        id={inputId}
-        min={0}
-        value={value}
-        onChange={(nextValue) => onChange(nextValue ?? 0)}
-        size="small"
-        className="w-[80px]"
-      />
+      <RetentionNumberInput id={inputId} minimum={0} value={value} onChange={onChange} />
     </div>
   );
 };
@@ -110,13 +104,11 @@ export const LogicalRetentionFields = ({ settings, onChange }: Props) => {
             <label htmlFor={countInputId} className="mr-2 shrink-0 text-sm text-muted">
               {t('backups.logical.config.retention.count')}
             </label>
-            <InputNumber
+            <RetentionNumberInput
               id={countInputId}
-              min={1}
+              minimum={1}
               value={retention.count}
-              onChange={(count) => updateRetention({ count: count ?? 1 })}
-              size="small"
-              className="w-[80px]"
+              onChange={(count) => updateRetention({ count })}
             />
 
             <Tooltip

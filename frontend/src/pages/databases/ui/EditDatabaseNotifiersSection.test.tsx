@@ -117,4 +117,29 @@ describe('EditDatabaseNotifiersSection', () => {
     expect(screen.getByRole('button', { name: 'Cancel' })).toHaveProperty('disabled', false);
     expect(onSaved).not.toHaveBeenCalled();
   });
+
+  it('shows a failed notifier load with a retry that lists the notifiers and keeps the selection', async () => {
+    mockServer.use(mockApi.get('/notifiers', 500, buildProblem('internal', 500)));
+    const view = renderScreen(
+      <EditDatabaseNotifiersSection
+        database={{ ...database, notifierIds: [alertsNotifier.id] }}
+        onCancel={() => {}}
+        onSaved={() => {}}
+      />,
+    );
+
+    const retryButton = await screen.findByRole('button', { name: 'Retry' });
+
+    expect(screen.getByRole('alert')).toBeTruthy();
+
+    mockServer.use(mockApi.get('/notifiers', 200, { items: [alertsNotifier] }));
+    await view.user.click(retryButton);
+
+    const combobox = await screen.findByRole('combobox', { name: 'Notifiers' });
+
+    await waitFor(() => expect(combobox.closest('.ant-select')!.textContent).toContain('Alerts'));
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
+  });
 });

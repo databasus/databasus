@@ -87,6 +87,30 @@ describe('PhysicalBackupConfigFields', () => {
     }
   });
 
+  it.each([
+    { fieldName: 'Chains', enteredValue: '9', minimum: '1' },
+    { fieldName: 'Daily', enteredValue: '9', minimum: '0' },
+  ])(
+    'accepts a new $fieldName value typed after the field is cleared, and shows the minimum after leaving it empty',
+    async ({ fieldName, enteredValue, minimum }) => {
+      const { user } = renderFields();
+      const field = screen.getByRole('spinbutton', { name: fieldName });
+
+      await user.clear(field);
+
+      expect(field).toHaveProperty('value', '');
+
+      await user.type(field, enteredValue);
+
+      expect(field).toHaveProperty('value', enteredValue);
+
+      await user.clear(field);
+      await user.tab();
+
+      expect(field).toHaveProperty('value', minimum);
+    },
+  );
+
   it('shows the entered values after a switch of the retention policy and back', async () => {
     const view = renderFields();
 

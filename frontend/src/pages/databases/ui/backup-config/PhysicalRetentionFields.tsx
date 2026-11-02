@@ -1,5 +1,5 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
-import { InputNumber, Select, Tooltip } from 'antd';
+import { Select, Tooltip } from 'antd';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -11,6 +11,7 @@ import { FULL_BACKUPS_RETENTION_POLICY_LABEL_KEYS } from '../../model/physical-b
 import { hasIncrementalBackups } from '../../model/physical-backups/hasIncrementalBackups';
 import type { PhysicalBackupConfigDraft } from '../../model/physical-backups/PhysicalBackupConfigDraft';
 import { PhysicalRetentionPolicy } from '../../model/physical-backups/PhysicalRetentionPolicy';
+import { RetentionNumberInput } from './RetentionNumberInput';
 
 type PhysicalRetentionDraft = PhysicalBackupConfigDraft['settings']['retention'];
 
@@ -46,14 +47,7 @@ const NumberField = ({ label, minimum, value, onChange }: NumberFieldProps) => {
       <label htmlFor={inputId} className="w-[110px] shrink-0 text-sm leading-4 text-muted">
         {label}
       </label>
-      <InputNumber
-        id={inputId}
-        min={minimum}
-        value={value}
-        onChange={(entered) => onChange(entered ?? minimum)}
-        size="small"
-        className="w-[80px] max-w-[80px]"
-      />
+      <RetentionNumberInput id={inputId} minimum={minimum} value={value} onChange={onChange} />
     </div>
   );
 };
@@ -135,13 +129,11 @@ export const PhysicalRetentionFields = ({ retention, backupType, onChange }: Pro
                 <InfoCircleOutlined className="ml-1 text-muted" />
               </Tooltip>
             </div>
-            <InputNumber
+            <RetentionNumberInput
               id={chainsCountId}
-              min={1}
+              minimum={1}
               value={retention.chainsCount}
-              onChange={(chainsCount) => onChange({ ...retention, chainsCount: chainsCount ?? 1 })}
-              size="small"
-              className="w-[80px] max-w-[80px]"
+              onChange={(chainsCount) => onChange({ ...retention, chainsCount })}
             />
           </div>
         )}
