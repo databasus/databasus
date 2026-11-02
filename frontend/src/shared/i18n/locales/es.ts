@@ -1333,6 +1333,8 @@ export const es: typeof en = {
         '*Los valores de las cabeceras guardadas se ocultan. Deje un valor vacío para conservarlo',
       headers: 'Cabeceras',
       headerNamePlaceholder: 'Nombre de la cabecera',
+      headerNameInvalid:
+        "Use solo letras latinas, dígitos y los caracteres !#$%&'*+-.^_`|~. No se permiten espacios.",
       headerValuePlaceholder: 'Valor de la cabecera',
       addHeader: 'Añadir cabecera',
       hiddenHeaderValue: '(oculto)',

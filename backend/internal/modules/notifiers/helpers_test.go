@@ -131,6 +131,10 @@ func newWebhookSettings(t *testing.T, webhook apiclient.WebhookNotifierSettings)
 	})
 }
 
+func getInvalidWebhookHeaderNames() []string {
+	return []string{"X Team", " ", "", "X:Team", "X-Caf\u00e9"}
+}
+
 func newPostWebhook(webhookURL string, headers ...apiclient.WebhookHeader) apiclient.WebhookNotifierSettings {
 	return apiclient.WebhookNotifierSettings{
 		Type:               apiclient.WebhookNotifierSettingsTypeWEBHOOK,

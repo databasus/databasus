@@ -55,6 +55,45 @@ func TestCreateNotifier(t *testing.T) {
 			apiclient.ProblemCodeInvalidRequest)
 		assert.Empty(t, listNotifiers(t, tm.owner, tm.workspace.Id))
 	})
+
+	t.Run("returns 400 invalid_request and creates nothing when a webhook header name is not an HTTP token",
+		func(t *testing.T) {
+			tm := newTeam(t)
+
+			for _, invalidHeaderName := range getInvalidWebhookHeaderNames() {
+				response, err := tm.owner.Client.CreateNotifierWithResponse(t.Context(), apiclient.NotifierCreate{
+					WorkspaceId: tm.workspace.Id,
+					Name:        "Hook",
+					Settings: newWebhookSettings(t, newPostWebhook("https://hooks.example.com/databasus",
+						apiclient.WebhookHeader{Name: invalidHeaderName, Value: optional("payments")})),
+				})
+
+				require.NoError(t, err)
+				requireProblem(t, response.StatusCode(), response.Body, http.StatusBadRequest,
+					apiclient.ProblemCodeInvalidRequest)
+			}
+
+			assert.Empty(t, listNotifiers(t, tm.owner, tm.workspace.Id))
+		})
+
+	t.Run("saves the webhook and sends the header when its name holds letters, digits and token punctuation",
+		func(t *testing.T) {
+			tm := newTeam(t)
+
+			for _, validHeaderName := range []string{"X-Api_Key.1", "X~Team!1"} {
+				webhookEndpoint := startEndpoint(t, http.StatusOK)
+				createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id, newWebhookSettings(t,
+					newPostWebhook(webhookEndpoint.URL,
+						apiclient.WebhookHeader{Name: validHeaderName, Value: optional("payments")})))
+
+				testResult := testNotifier(t, tm.owner, createdNotifier.Id)
+
+				assert.True(t, testResult.IsDelivered, "%v", testResult.Error)
+				webhookRequests := webhookEndpoint.getRequests()
+				require.Len(t, webhookRequests, 1)
+				assert.Equal(t, "payments", webhookRequests[0].Headers.Get(validHeaderName))
+			}
+		})
 }
 
 func TestGetNotifier(t *testing.T) {
@@ -76,6 +115,18 @@ func TestGetNotifier(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "https://hooks.example.com/databasus", readWebhook.WebhookUrl)
 		assert.Equal(t, []apiclient.WebhookHeader{{Name: "Authorization", Value: nil}}, readWebhook.Headers)
+	})
+
+	t.Run("lists no headers when the webhook has none", func(t *testing.T) {
+		tm := newTeam(t)
+		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
+			newWebhookSettings(t, newPostWebhook("https://hooks.example.com/databasus")))
+
+		readNotifier := getNotifier(t, tm.owner, createdNotifier.Id)
+
+		readWebhook, err := readNotifier.Settings.AsWebhookNotifierSettings()
+		require.NoError(t, err)
+		assert.Empty(t, readWebhook.Headers)
 	})
 
 	t.Run("returns the URL in clear when an older release stored it encrypted", func(t *testing.T) {
@@ -163,6 +214,56 @@ func TestUpdateNotifier(t *testing.T) {
 		webhookRequests := webhookEndpoint.getRequests()
 		require.Len(t, webhookRequests, 1)
 		assert.Equal(t, "Bearer saved-value", webhookRequests[0].Headers.Get("Authorization"))
+	})
+
+	t.Run("returns 400 invalid_request and keeps the stored headers when a webhook header name is not an HTTP token",
+		func(t *testing.T) {
+			tm := newTeam(t)
+			webhookEndpoint := startEndpoint(t, http.StatusOK)
+			createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id, newWebhookSettings(
+				t,
+				newPostWebhook(
+					webhookEndpoint.URL,
+					apiclient.WebhookHeader{Name: "X-Team", Value: optional("payments")},
+				),
+			))
+
+			for _, invalidHeaderName := range getInvalidWebhookHeaderNames() {
+				updateResponse := updateNotifier(t, tm.owner, createdNotifier.Id, apiclient.NotifierUpdate{
+					Name: createdNotifier.Name,
+					Settings: newWebhookSettings(t, newPostWebhook(webhookEndpoint.URL,
+						apiclient.WebhookHeader{Name: invalidHeaderName, Value: optional("changed")})),
+				})
+				requireProblem(t, updateResponse.StatusCode(), updateResponse.Body, http.StatusBadRequest,
+					apiclient.ProblemCodeInvalidRequest)
+			}
+
+			testResult := testNotifier(t, tm.owner, createdNotifier.Id)
+
+			assert.True(t, testResult.IsDelivered, "%v", testResult.Error)
+			webhookRequests := webhookEndpoint.getRequests()
+			require.Len(t, webhookRequests, 1)
+			assert.Equal(t, "payments", webhookRequests[0].Headers.Get("X-Team"))
+		})
+
+	t.Run("returns 400 invalid_request when a change sends back a stored invalid header name", func(t *testing.T) {
+		tm := newTeam(t)
+		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
+			newWebhookSettings(t, newPostWebhook("https://hooks.example.com/databasus")))
+		tm.app.ExecuteSQL(t, "UPDATE notifiers_webhook SET headers = jsonb_build_array(jsonb_build_object("+
+			"'key', 'X Team', 'value', '')) WHERE notifier_id = ?", createdNotifier.Id)
+
+		readWebhook, err := getNotifier(t, tm.owner, createdNotifier.Id).Settings.AsWebhookNotifierSettings()
+		require.NoError(t, err)
+		require.Equal(t, []apiclient.WebhookHeader{{Name: "X Team", Value: nil}}, readWebhook.Headers)
+
+		updateResponse := updateNotifier(t, tm.owner, createdNotifier.Id, apiclient.NotifierUpdate{
+			Name:     createdNotifier.Name,
+			Settings: newWebhookSettings(t, readWebhook),
+		})
+
+		requireProblem(t, updateResponse.StatusCode(), updateResponse.Body, http.StatusBadRequest,
+			apiclient.ProblemCodeInvalidRequest)
 	})
 
 	t.Run("removes a webhook header the change leaves out", func(t *testing.T) {

@@ -1249,6 +1249,7 @@ export const zh: typeof en = {
       savedHeadersHidden: '*已保存请求头的值不予显示。值留空则保持不变',
       headers: '请求头',
       headerNamePlaceholder: '请求头名称',
+      headerNameInvalid: "只能使用拉丁字母、数字和字符 !#$%&'*+-.^_`|~，不能包含空格。",
       headerValuePlaceholder: '请求头值',
       addHeader: '添加请求头',
       hiddenHeaderValue: '（已隐藏）',

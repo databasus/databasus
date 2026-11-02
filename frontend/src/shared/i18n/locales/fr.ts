@@ -1340,6 +1340,8 @@ export const fr: typeof en = {
         '*Les valeurs des en-têtes enregistrés sont masquées. Laissez une valeur vide pour la conserver',
       headers: 'En-têtes',
       headerNamePlaceholder: "Nom de l'en-tête",
+      headerNameInvalid:
+        "Utilisez uniquement des lettres latines, des chiffres et les caractères !#$%&'*+-.^_`|~. Les espaces sont interdits.",
       headerValuePlaceholder: "Valeur de l'en-tête",
       addHeader: 'Ajouter un en-tête',
       hiddenHeaderValue: '(masqué)',

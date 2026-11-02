@@ -103,6 +103,32 @@ func TestNotifiersMigration(t *testing.T) {
 		assert.Equal(t, "POST", emptyRow.WebhookMethod)
 	})
 
+	t.Run("removes webhook header rows with an empty name and keeps the named ones in order", func(t *testing.T) {
+		t.Parallel()
+		db := openDatabaseMigratedBefore(t, notifiersMigrationName)
+		workspaceID := insertWorkspace(t, db)
+		mixedNotifierID := insertWebhookNotifier(t, db, workspaceID, webhookColumns{
+			headers: `[{"key":"Authorization","value":"enc:first"},{"key":"","value":"enc:nameless"},` +
+				`{"key":"X Team","value":"enc:second"}]`,
+			acceptedTypes:   `["ALL"]`,
+			webhookMethod:   "POST",
+			webhookURLValue: "https://hooks.example.com/mixed",
+		})
+		namelessNotifierID := insertWebhookNotifier(t, db, workspaceID, webhookColumns{
+			headers:         `[{"key":"","value":""}]`,
+			acceptedTypes:   `["ALL"]`,
+			webhookMethod:   "POST",
+			webhookURLValue: "https://hooks.example.com/nameless",
+		})
+
+		applyAllMigrations(t, db, notifiersMigrationName)
+
+		assert.JSONEq(t,
+			`[{"key":"Authorization","value":"enc:first"},{"key":"X Team","value":"enc:second"}]`,
+			getWebhookRow(t, db, mixedNotifierID).Headers)
+		assert.JSONEq(t, `[]`, getWebhookRow(t, db, namelessNotifierID).Headers)
+	})
+
 	t.Run("keeps every encrypted secret byte for byte", func(t *testing.T) {
 		t.Parallel()
 		db := openDatabaseMigratedBefore(t, notifiersMigrationName)

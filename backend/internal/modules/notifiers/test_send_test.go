@@ -237,6 +237,28 @@ func TestTestNotifierSettings(t *testing.T) {
 			assert.Empty(t, slackAPI.getRequests())
 		})
 
+	t.Run("returns 400 invalid_request and sends nothing when a webhook header name is not an HTTP token",
+		func(t *testing.T) {
+			tm := newTeam(t)
+			webhookEndpoint := startEndpoint(t, http.StatusOK)
+
+			for _, invalidHeaderName := range getInvalidWebhookHeaderNames() {
+				response, err := tm.owner.Client.TestNotifierSettingsWithResponse(t.Context(),
+					apiclient.NotifierSettingsTest{
+						WorkspaceId: tm.workspace.Id,
+						NotifierId:  nil,
+						Settings: newWebhookSettings(t, newPostWebhook(webhookEndpoint.URL,
+							apiclient.WebhookHeader{Name: invalidHeaderName, Value: optional("payments")})),
+					})
+
+				require.NoError(t, err)
+				requireProblem(t, response.StatusCode(), response.Body, http.StatusBadRequest,
+					apiclient.ProblemCodeInvalidRequest)
+			}
+
+			assert.Empty(t, webhookEndpoint.getRequests())
+		})
+
 	t.Run("returns 400 invalid_request and sends nothing when the bot API URL is unusable", func(t *testing.T) {
 		tm := newTeam(t)
 		botAPI := startEndpoint(t, http.StatusOK)

@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Notifier, NotifierSettings } from '../../../../entities/notifiers';
 import { API_BASE_PATH, type ApiComponents } from '../../../../shared/api';
-import { DICTIONARIES } from '../../../../shared/i18n';
+import { DICTIONARIES, type Locale } from '../../../../shared/i18n';
 import { mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
 import { watchNoticeTimer } from '../../../../shared/lib/test/noticeTimer';
 import { renderScreen } from '../../../../shared/lib/test/renderScreen';
@@ -38,7 +38,7 @@ const savedWebhookNotifier = buildSavedNotifier({
   acceptedCategories: ['ALL'],
 });
 
-const renderSavedNotifierForm = (notifier: Notifier) =>
+const renderSavedNotifierForm = (notifier: Notifier, options?: { locale: Locale }) =>
   renderScreen(
     <EditNotifierComponent
       workspaceId="workspace-id"
@@ -49,6 +49,7 @@ const renderSavedNotifierForm = (notifier: Notifier) =>
       onPersisted={() => {}}
       onChanged={() => {}}
     />,
+    options,
   );
 
 const mockUpdate = () => {
@@ -74,6 +75,25 @@ const renameAndSave = async (name: string) => {
   });
   fireEvent.click(screen.getByRole('button', { name: /Send test notification/ }));
   fireEvent.click(await screen.findByRole('button', { name: /Save/ }));
+};
+
+const headerNameError = DICTIONARIES.en.notifiers.webhook.headerNameInvalid;
+
+const getHeaderNameInput = () => screen.getAllByRole('textbox', { name: 'Header name' })[0];
+
+const expectHeaderNameRefused = () => {
+  expect(screen.getByText(headerNameError)).toBeTruthy();
+  expect(
+    screen.getByRole('button', { name: /Send test notification/ }).hasAttribute('disabled'),
+  ).toBe(true);
+  expect(screen.queryByRole('button', { name: /Save/ })).toBeNull();
+};
+
+const expectTestAvailableWithoutHeaderNameError = async () => {
+  await waitFor(() => expect(screen.queryByText(headerNameError)).toBeNull());
+  expect(
+    screen.getByRole('button', { name: /Send test notification/ }).hasAttribute('disabled'),
+  ).toBe(false);
 };
 
 describe('EditNotifierComponent', () => {
@@ -190,6 +210,139 @@ describe('EditNotifierComponent', () => {
       headers: [{ name: 'X-Api-Key' }],
     });
     expect(sentUpdates[0].settings).not.toHaveProperty('headers.0.value');
+  });
+
+  it('shows an error and leaves no test or save when a webhook header name has a space', () => {
+    renderSavedNotifierForm(savedWebhookNotifier);
+
+    fireEvent.change(getHeaderNameInput(), { target: { value: 'X Team' } });
+
+    expectHeaderNameRefused();
+  });
+
+  it('shows an error and leaves no test or save when a webhook header name has a character outside the HTTP token', () => {
+    renderSavedNotifierForm(savedWebhookNotifier);
+
+    fireEvent.change(getHeaderNameInput(), { target: { value: 'X:Team' } });
+
+    expectHeaderNameRefused();
+  });
+
+  it('offers the test when a webhook header name holds token punctuation', async () => {
+    renderSavedNotifierForm(savedWebhookNotifier);
+
+    fireEvent.change(getHeaderNameInput(), { target: { value: 'X~Team!1' } });
+
+    await expectTestAvailableWithoutHeaderNameError();
+  });
+
+  it('shows an error and leaves no test or save right after a webhook header row is added', () => {
+    renderSavedNotifierForm(savedWebhookNotifier);
+
+    fireEvent.click(screen.getByRole('button', { name: /Add header/ }));
+
+    expectHeaderNameRefused();
+  });
+
+  it('offers the test again when the invalid webhook header name is corrected', async () => {
+    renderSavedNotifierForm(savedWebhookNotifier);
+
+    fireEvent.change(getHeaderNameInput(), { target: { value: 'X Team' } });
+
+    expectHeaderNameRefused();
+
+    fireEvent.change(getHeaderNameInput(), { target: { value: 'X-Team' } });
+
+    await expectTestAvailableWithoutHeaderNameError();
+  });
+
+  it('offers the test again when the invalid webhook header row is removed', async () => {
+    renderSavedNotifierForm(savedWebhookNotifier);
+
+    fireEvent.change(screen.getByDisplayValue('Team alerts'), { target: { value: 'Changed' } });
+    fireEvent.click(screen.getByRole('button', { name: /Add header/ }));
+
+    expectHeaderNameRefused();
+
+    fireEvent.click(screen.getAllByRole('button', { name: /Remove/ })[1]);
+
+    await expectTestAvailableWithoutHeaderNameError();
+  });
+
+  it('trims spaces around a webhook header name when the field loses focus and saves the trimmed name', async () => {
+    mockServer.use(mockApi.post('/notifier-tests', 200, { isDelivered: true }));
+    const sentUpdates = mockUpdate();
+    renderSavedNotifierForm(savedWebhookNotifier);
+
+    fireEvent.change(getHeaderNameInput(), { target: { value: ' X-Team ' } });
+    expect(screen.queryByText(headerNameError)).toBeNull();
+
+    fireEvent.blur(getHeaderNameInput());
+
+    expect((getHeaderNameInput() as HTMLInputElement).value).toBe('X-Team');
+    expect(screen.queryByText(headerNameError)).toBeNull();
+
+    await renameAndSave('Renamed webhook');
+
+    await waitFor(() => expect(sentUpdates).toHaveLength(1));
+    expect(sentUpdates[0].settings).toMatchObject({ headers: [{ name: 'X-Team' }] });
+  });
+
+  it('empties a webhook header name of only spaces when the field loses focus and refuses it', () => {
+    renderSavedNotifierForm(savedWebhookNotifier);
+
+    fireEvent.change(getHeaderNameInput(), { target: { value: '   ' } });
+    fireEvent.blur(getHeaderNameInput());
+
+    expect((getHeaderNameInput() as HTMLInputElement).value).toBe('');
+    expectHeaderNameRefused();
+  });
+
+  it('keeps Save after a successful test when a webhook header name field is left unchanged', async () => {
+    mockServer.use(mockApi.post('/notifier-tests', 200, { isDelivered: true }));
+    renderSavedNotifierForm(savedWebhookNotifier);
+
+    fireEvent.change(screen.getByDisplayValue('Team alerts'), { target: { value: 'Changed' } });
+    fireEvent.click(screen.getByRole('button', { name: /Send test notification/ }));
+    await screen.findByRole('button', { name: /Save/ });
+
+    fireEvent.focus(getHeaderNameInput());
+    fireEvent.blur(getHeaderNameInput());
+
+    expect(screen.getByRole('button', { name: /Save/ })).toBeTruthy();
+  });
+
+  it('shows the error when a saved webhook has a stored invalid header name', () => {
+    renderSavedNotifierForm(
+      buildSavedNotifier({
+        type: 'WEBHOOK',
+        webhookUrl: 'https://hooks.example.com/backups',
+        webhookMethod: 'POST',
+        headers: [{ name: 'X Team' }],
+        acceptedCategories: ['ALL'],
+      }),
+    );
+
+    expect(screen.getByText(headerNameError)).toBeTruthy();
+
+    fireEvent.change(screen.getByDisplayValue('Team alerts'), { target: { value: 'Changed' } });
+
+    expectHeaderNameRefused();
+  });
+
+  it('shows the webhook header name error in the language of the interface', () => {
+    renderSavedNotifierForm(
+      buildSavedNotifier({
+        type: 'WEBHOOK',
+        webhookUrl: 'https://hooks.example.com/backups',
+        webhookMethod: 'POST',
+        headers: [{ name: 'X Team' }],
+        acceptedCategories: ['ALL'],
+      }),
+      { locale: 'ru' },
+    );
+
+    expect(screen.getByText(DICTIONARIES.ru.notifiers.webhook.headerNameInvalid)).toBeTruthy();
   });
 
   it("shows the channel's error when the test message is not delivered", async () => {

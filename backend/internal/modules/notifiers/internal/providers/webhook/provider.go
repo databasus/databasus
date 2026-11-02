@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -16,6 +17,9 @@ import (
 	"databasus-backend/internal/modules/notifiers/internal/providers"
 	"databasus-backend/internal/modules/notifiers/internal/providers/redaction"
 )
+
+// httpTokenPattern matches an RFC 9110 token, the only header name an HTTP client sends.
+var httpTokenPattern = regexp.MustCompile("^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$")
 
 type Deps struct {
 	Repositories   Repositories
@@ -59,8 +63,11 @@ func (p *Provider) Validate(settings providers.Settings) error {
 	}
 
 	for headerIndex, header := range webhookSettings.Headers {
-		if header.Name == "" {
-			return providers.NewInvalidSettingError(fmt.Sprintf("headers[%d].name", headerIndex), "is required")
+		if !httpTokenPattern.MatchString(header.Name) {
+			return providers.NewInvalidSettingError(
+				fmt.Sprintf("headers[%d].name", headerIndex),
+				"must be an HTTP token",
+			)
 		}
 	}
 
