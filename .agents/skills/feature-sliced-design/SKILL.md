@@ -9,6 +9,6 @@ Read the Frontend section of [architecture.md](../../../docs/architecture.md#fro
 
 Use the vendored [FSD methodology](upstream/methodology.md) to investigate placement and dependency problems. Load its conditional references only when the task needs them. Start with the closest real consumer, identify the responsibility that changes independently, and choose the smallest boundary that owns it. Follow the project's architecture when an upstream alternative differs.
 
-Check the affected consumers and public entry points before a move. Keep mechanical moves separate from changes in behavior, preserve scenario coverage, and run frontend lint, relevant tests and the production build. Existing baseline entries permit only their recorded occurrences; they do not authorize new dependencies or broader exceptions. Remove entries when their findings disappear.
+Check the affected consumers and public entry points before a move. Keep mechanical moves separate from changes in behavior, preserve scenario coverage, and run frontend lint, relevant tests and the production build. A forbidden dependency has no exception: repair it.
 
 The upstream text and references are vendored verbatim from Feature-Sliced Design contributors. [upstream.json](upstream.json) records the source revision, license declaration and content hashes; [LICENSE](LICENSE) contains the MIT terms. Keep attribution and the full source revision when updating those files.

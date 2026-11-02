@@ -40,7 +40,8 @@ export const RestoreCard = ({
 
   const restoreDurationMs =
     restore.status === RestoreStatus.IN_PROGRESS
-      ? Date.now() - new Date(restore.createdAt).getTime()
+      ? // eslint-disable-next-line react/purity -- the elapsed time updates with each poll, and a slightly old value does no harm
+        Date.now() - new Date(restore.createdAt).getTime()
       : restore.durationMs;
 
   const minutes = Math.floor(restoreDurationMs / 60000);

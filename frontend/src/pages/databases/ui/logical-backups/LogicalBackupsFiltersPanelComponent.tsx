@@ -1,6 +1,7 @@
 import { DatePicker, Select } from 'antd';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { LogicalBackupListFilter } from '../../model/LogicalBackupListFilter';
@@ -21,6 +22,8 @@ const FILTERABLE_STATUSES = [
 
 export const LogicalBackupsFiltersPanelComponent = ({ filter, onFilterChange }: Props) => {
   const { t } = useTranslation();
+  const statusFieldId = useId();
+  const beforeFieldId = useId();
 
   const handleStatusChange = (statuses: LogicalBackupStatus[]) => {
     onFilterChange({ ...filter, statuses: statuses.length > 0 ? statuses : undefined });
@@ -41,8 +44,11 @@ export const LogicalBackupsFiltersPanelComponent = ({ filter, onFilterChange }: 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
-        <span className="min-w-[90px] pr-2 text-sm text-muted">{t('common.fields.status')}</span>
+        <label className="min-w-[90px] pr-2 text-sm text-muted" htmlFor={statusFieldId}>
+          {t('common.fields.status')}
+        </label>
         <Select
+          id={statusFieldId}
           mode="multiple"
           value={filter.statuses ?? []}
           onChange={handleStatusChange}
@@ -56,8 +62,11 @@ export const LogicalBackupsFiltersPanelComponent = ({ filter, onFilterChange }: 
       </div>
 
       <div className="flex items-center gap-2">
-        <span className="min-w-[90px] pr-2 text-sm text-muted">{t('backups.filters.before')}</span>
+        <label className="min-w-[90px] pr-2 text-sm text-muted" htmlFor={beforeFieldId}>
+          {t('backups.filters.before')}
+        </label>
         <DatePicker
+          id={beforeFieldId}
           value={filter.createdBefore ? dayjs(filter.createdBefore) : null}
           onChange={handleCreatedBeforeChange}
           size="small"

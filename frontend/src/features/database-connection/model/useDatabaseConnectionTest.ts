@@ -91,16 +91,17 @@ export function useDatabaseConnectionTest<Change>(options: Options<Change>) {
   });
 
   useLayoutEffect(() => {
+    const { context: contextRevision, test: testRevision } = revisions.current;
     const cancelForNewSession = () => {
-      revisions.current.context.Invalidate();
+      contextRevision.Invalidate();
       withdrawTest();
     };
     const unsubscribe = subscribeSession(cancelForNewSession);
 
     return () => {
       unsubscribe();
-      revisions.current.context.Invalidate();
-      revisions.current.test.Invalidate();
+      contextRevision.Invalidate();
+      testRevision.Invalidate();
       isTestActive.current = false;
     };
   }, []);

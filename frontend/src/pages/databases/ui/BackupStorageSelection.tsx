@@ -1,12 +1,12 @@
 import { Alert, Button, Modal, Select } from 'antd';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { type Storage, getStorageLogoFromType, storageApi } from '@/entities/storages';
 import { EditStorageComponent } from '@/features/edit-storage';
 import { useSessionGuard } from '@/shared/auth';
+import { useLatestRef, useRequestRevision } from '@/shared/hooks';
 import { translateApiError } from '@/shared/i18n';
-import { RequestRevision } from '@/shared/lib/RequestRevision';
 
 interface Props {
   workspaceId: string;
@@ -38,13 +38,13 @@ export function BackupStorageSelection({
   };
 
   const load = async () => {
-    const revision = requests.current.Invalidate();
+    const revision = requests.Invalidate();
     setIsLoading(true);
     setError(undefined);
 
     try {
       const choices = await storageApi.listAllStorages(workspaceId);
-      if (!isCurrent() || !requests.current.IsCurrent(revision)) return;
+      if (!isCurrent() || !requests.IsCurrent(revision)) return;
 
       const acknowledged = acknowledgedStorages.current;
       setStorages([
@@ -52,36 +52,45 @@ export function BackupStorageSelection({
         ...acknowledged,
       ]);
     } catch (failure) {
-      if (isCurrent() && requests.current.IsCurrent(revision)) setError(failure);
+      if (isCurrent() && requests.IsCurrent(revision)) setError(failure);
     } finally {
-      if (isCurrent() && requests.current.IsCurrent(revision)) setIsLoading(false);
+      if (isCurrent() && requests.IsCurrent(revision)) setIsLoading(false);
     }
   };
 
   const { t } = useTranslation();
   const controlId = useId();
   const isCurrent = useSessionGuard();
-  const requests = useRef(new RequestRevision());
+  const requests = useRequestRevision();
   const acknowledgedStorages = useRef<Storage[]>([]);
   const createButtonRef = useRef<HTMLButtonElement>(null);
-  const currentWorkspace = useRef(workspaceId);
-  currentWorkspace.current = workspaceId;
+  const currentWorkspace = useLatestRef(workspaceId);
+
+  const startStoragesLoad = useEffectEvent(() => {
+    void load();
+  });
 
   useEffect(() => {
     acknowledgedStorages.current = [];
     setStorages([]);
     setIsCreating(false);
-    void load();
+    startStoragesLoad();
 
     return () => {
-      requests.current.Invalidate();
+      requests.Invalidate();
     };
-  }, [workspaceId]);
+  }, [workspaceId, requests]);
+
+  // Read when the form closes, because the button can appear after the form opened.
+  const returnFocusToButton = useEffectEvent(() => {
+    createButtonRef.current?.focus();
+  });
+
   useEffect(() => {
     if (!isCreating) return;
 
     return () => {
-      createButtonRef.current?.focus();
+      returnFocusToButton();
     };
   }, [isCreating]);
 

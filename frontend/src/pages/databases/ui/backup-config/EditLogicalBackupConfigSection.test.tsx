@@ -261,6 +261,15 @@ describe('EditLogicalBackupConfigSection', () => {
       return submitted;
     };
 
+    it('names the retention period field', async () => {
+      renderConfig(
+        { type: 'HOURLY' },
+        { ...logicalSettings.retention, policy: 'TIME_PERIOD', period: 'MONTH' },
+      );
+
+      expect(await screen.findByRole('combobox', { name: 'Period' })).toBeTruthy();
+    });
+
     const renderMonthlyConfig = (dayOfMonth: number) =>
       renderConfig({ type: 'MONTHLY', timeOfDay: '12:00', dayOfMonth });
 

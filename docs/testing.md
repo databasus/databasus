@@ -57,7 +57,7 @@ The Go package also runs directly through `mise run backend:test-package ./inter
 
 `browser/scenarios/{storageResources,notifierResources,workspaceSettings}.spec.ts` checks every storage/notifier provider in light French and dark Russian presentation, keyboard selection, accessible controls, retained input and actual 200 percent text at 320 CSS pixels. It also checks workspace read-error recovery. Existing Google authorization and SFTP scenarios retain nested cancel/create/select, credential and live locale/theme coverage. These UI scenarios use contract-shaped HTTP fixtures and require no external provider account.
 
-Node runner/style fixtures live under `frontend/tooling/*.test.ts` and are explicitly included in Vitest. Playwright scenarios remain outside Vitest discovery. The frontend lint task also runs `lint:styles`, which checks parsed presentation against its exact shrinking baseline. The [design document](frontend-design.md#enforcement-and-migration) explains ownership.
+Node runner/style fixtures live under `frontend/tooling/*.test.ts` and are explicitly included in Vitest. Playwright scenarios remain outside Vitest discovery. The frontend lint task also runs `lint:styles`, which fails on any direct color or removed focus in parsed presentation. The [design document](frontend-design.md#enforcement) explains ownership.
 
 A module whose API tests outlast one package may split them into test-only packages under its directory, such as `internal/modules/backups/physicalapitests/`.
 

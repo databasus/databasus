@@ -22,12 +22,12 @@ import {
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useId, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { ApiError } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
-import { RequestRevision } from '@/shared/lib/RequestRevision';
+import { useRequestRevision } from '@/shared/hooks';
 
 import { type User, UserRole, userManagementApi } from '../../../entities/users';
 import {
@@ -116,12 +116,12 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
     (member.role !== WorkspaceRole.ADMIN || canManageAdmins);
 
   const loadMembers = async () => {
-    const readRevision = memberReadRevision.current.Invalidate();
-    const revision = workspaceRevision.current.GetCurrent();
+    const readRevision = memberReadRevision.Invalidate();
+    const revision = workspaceRevision.GetCurrent();
     const isActive = () =>
       isCurrent() &&
-      workspaceRevision.current.IsCurrent(revision) &&
-      memberReadRevision.current.IsCurrent(readRevision);
+      workspaceRevision.IsCurrent(revision) &&
+      memberReadRevision.IsCurrent(readRevision);
     setIsLoadingMembers(true);
     setLoadError(undefined);
 
@@ -149,12 +149,12 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
   };
 
   const searchUsers = async (query: string) => {
-    const requestRevision = searchRevision.current.Invalidate();
-    const revision = workspaceRevision.current.GetCurrent();
+    const requestRevision = searchRevision.Invalidate();
+    const revision = workspaceRevision.GetCurrent();
     const isActive = () =>
       isCurrent() &&
-      workspaceRevision.current.IsCurrent(revision) &&
-      searchRevision.current.IsCurrent(requestRevision);
+      workspaceRevision.IsCurrent(revision) &&
+      searchRevision.IsCurrent(requestRevision);
 
     if (user.role !== UserRole.ADMIN) return;
 
@@ -182,8 +182,8 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
   };
 
   const handleAddMember = async () => {
-    const revision = workspaceRevision.current.GetCurrent();
-    const isActive = () => isCurrent() && workspaceRevision.current.IsCurrent(revision);
+    const revision = workspaceRevision.GetCurrent();
+    const isActive = () => isCurrent() && workspaceRevision.IsCurrent(revision);
 
     if (!addMemberForm.email.trim()) {
       setAddMemberEmailError(true);
@@ -224,8 +224,8 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
   };
 
   const handleChangeRole = async (memberId: string, newRole: AssignableWorkspaceRole) => {
-    const revision = workspaceRevision.current.GetCurrent();
-    const isActive = () => isCurrent() && workspaceRevision.current.IsCurrent(revision);
+    const revision = workspaceRevision.GetCurrent();
+    const isActive = () => isCurrent() && workspaceRevision.IsCurrent(revision);
     setChangingRoleFor(memberId);
     setIsChangingRole(true);
 
@@ -249,8 +249,8 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
   };
 
   const handleRemoveMember = async (memberId: string, memberEmail: string) => {
-    const revision = workspaceRevision.current.GetCurrent();
-    const isActive = () => isCurrent() && workspaceRevision.current.IsCurrent(revision);
+    const revision = workspaceRevision.GetCurrent();
+    const isActive = () => isCurrent() && workspaceRevision.IsCurrent(revision);
     setRemovingMembers((prev) => new Set(prev).add(memberId));
 
     try {
@@ -275,8 +275,8 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
   };
 
   const handleTransferOwnership = async () => {
-    const revision = workspaceRevision.current.GetCurrent();
-    const isActive = () => isCurrent() && workspaceRevision.current.IsCurrent(revision);
+    const revision = workspaceRevision.GetCurrent();
+    const isActive = () => isCurrent() && workspaceRevision.IsCurrent(revision);
 
     if (!transferForm.selectedMemberId) {
       setTransferMemberError(true);
@@ -393,12 +393,17 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
 
   const memberEmailControlId = useId();
   const isCurrent = useSessionGuard();
-  const workspaceRevision = useRef(new RequestRevision());
-  const searchRevision = useRef(new RequestRevision());
-  const memberReadRevision = useRef(new RequestRevision());
+  const workspaceRevision = useRequestRevision();
+  const searchRevision = useRequestRevision();
+  const memberReadRevision = useRequestRevision();
+
+  const startMembersLoad = useEffectEvent(() => {
+    void loadMembers();
+  });
+
   useEffect(() => {
-    workspaceRevision.current.Invalidate();
-    searchRevision.current.Invalidate();
+    workspaceRevision.Invalidate();
+    searchRevision.Invalidate();
     setMembers([]);
     setHasLoadedMembers(false);
     setIsAddMemberModalOpen(false);
@@ -417,27 +422,32 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
     setUserSearchResults([]);
     setSearchInputValue('');
     setIsSearchingUsers(false);
-    void loadMembers();
+    startMembersLoad();
 
     return () => {
-      workspaceRevision.current.Invalidate();
-      searchRevision.current.Invalidate();
-      memberReadRevision.current.Invalidate();
+      workspaceRevision.Invalidate();
+      searchRevision.Invalidate();
+      memberReadRevision.Invalidate();
     };
-  }, [selectedWorkspace.id]);
+  }, [selectedWorkspace.id, workspaceRevision, searchRevision, memberReadRevision]);
+
+  const canSearchUsers = useEffectEvent(() => user.role === UserRole.ADMIN);
+  const startUserSearch = useEffectEvent((query: string) => {
+    searchUsers(query);
+  });
 
   useEffect(() => {
-    if (user.role !== UserRole.ADMIN || !isAddMemberModalOpen) return;
+    if (!canSearchUsers() || !isAddMemberModalOpen) return;
 
     const timer = setTimeout(() => {
-      searchUsers(searchInputValue);
+      startUserSearch(searchInputValue);
     }, 300);
 
     return () => {
       clearTimeout(timer);
-      searchRevision.current.Invalidate();
+      searchRevision.Invalidate();
     };
-  }, [searchInputValue, isAddMemberModalOpen, selectedWorkspace.id]);
+  }, [searchInputValue, isAddMemberModalOpen, selectedWorkspace.id, searchRevision]);
 
   const assignableRoles: AssignableWorkspaceRole[] = canManageAdmins
     ? [WorkspaceRole.VIEWER, WorkspaceRole.MEMBER, WorkspaceRole.ADMIN]

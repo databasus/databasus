@@ -16,7 +16,7 @@ export function AuthNavbarComponent() {
   return (
     <div className="flex min-h-[65px] flex-wrap items-center justify-between gap-3 px-4 pt-5 sm:justify-start">
       <div className="flex items-center gap-3 hover:opacity-80">
-        <a href={homePageUrl} target="_blank" rel="noreferrer">
+        <a href={homePageUrl} target="_blank" rel="noreferrer" aria-label={t('common.websiteLink')}>
           <img className="h-[45px] w-[45px] p-1" src="/logo.svg" alt="" />
         </a>
 

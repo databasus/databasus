@@ -132,6 +132,17 @@ const answerTriggerAndSettle = (release: () => void) =>
 const failedResponse = () => HttpResponse.json(buildProblem('internal', 500), { status: 500 });
 
 describe('WalStreamMonitoringComponent', () => {
+  it('names the chart period switch', async () => {
+    declareStatistics(() => HttpResponse.json(brokenChainStatistics));
+    renderDatabasePage();
+
+    await waitForCondition(() =>
+      expect(
+        screen.getByRole('radiogroup', { name: DICTIONARIES.en.healthcheck.attempts.period }),
+      ).toBeTruthy(),
+    );
+  });
+
   describe('with a running full backup request', () => {
     it('keeps the button busy through a language switch and a scheduled refresh until the refresh after the answer lands', async () => {
       const fullBackupAnswer = createPendingApiResponse();

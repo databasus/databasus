@@ -120,9 +120,10 @@ export const ShowPhysicalBackupConfigComponent = ({
     );
   };
 
+  const { storageId } = backupConfig;
+
   useEffect(() => {
     let isActive = true;
-    const { storageId } = backupConfig;
 
     setStorage(undefined);
     setStorageLoadError(undefined);
@@ -141,7 +142,7 @@ export const ShowPhysicalBackupConfigComponent = ({
     return () => {
       isActive = false;
     };
-  }, [backupConfig.storageId, storageLoadAttempt]);
+  }, [storageId, storageLoadAttempt]);
 
   const { settings } = backupConfig;
   const { retention } = settings;

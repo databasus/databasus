@@ -1,6 +1,7 @@
 import { DatePicker, Select } from 'antd';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { type PhysicalBackupsFilters } from '../../model/physical-backups/PhysicalBackupsFilters';
@@ -16,6 +17,9 @@ interface Props {
 
 export const PhysicalBackupsFiltersPanelComponent = ({ filters, onFiltersChange }: Props) => {
   const { t } = useTranslation();
+  const typeFieldId = useId();
+  const statusFieldId = useId();
+  const beforeFieldId = useId();
 
   const handleTypeChange = (types: PhysicalBackupType[]) => {
     onFiltersChange({ ...filters, types: types.length > 0 ? types : undefined });
@@ -45,8 +49,11 @@ export const PhysicalBackupsFiltersPanelComponent = ({ filters, onFiltersChange 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
-        <span className="min-w-[90px] pr-2 text-sm text-muted">{t('common.fields.type')}</span>
+        <label className="min-w-[90px] pr-2 text-sm text-muted" htmlFor={typeFieldId}>
+          {t('common.fields.type')}
+        </label>
         <Select
+          id={typeFieldId}
           mode="multiple"
           value={filters.types ?? []}
           onChange={handleTypeChange}
@@ -60,8 +67,11 @@ export const PhysicalBackupsFiltersPanelComponent = ({ filters, onFiltersChange 
       </div>
 
       <div className="flex items-center gap-2">
-        <span className="min-w-[90px] pr-2 text-sm text-muted">{t('common.fields.status')}</span>
+        <label className="min-w-[90px] pr-2 text-sm text-muted" htmlFor={statusFieldId}>
+          {t('common.fields.status')}
+        </label>
         <Select
+          id={statusFieldId}
           mode="multiple"
           value={filters.statuses ?? []}
           onChange={handleStatusChange}
@@ -75,8 +85,11 @@ export const PhysicalBackupsFiltersPanelComponent = ({ filters, onFiltersChange 
       </div>
 
       <div className="flex items-center gap-2">
-        <span className="min-w-[90px] pr-2 text-sm text-muted">{t('backups.filters.before')}</span>
+        <label className="min-w-[90px] pr-2 text-sm text-muted" htmlFor={beforeFieldId}>
+          {t('backups.filters.before')}
+        </label>
         <DatePicker
+          id={beforeFieldId}
           value={filters.createdBefore ? dayjs(filters.createdBefore) : null}
           onChange={handleBeforeDateChange}
           size="small"

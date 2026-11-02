@@ -1,4 +1,4 @@
-import { Spin } from 'antd';
+import { Alert, Button, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -8,6 +8,7 @@ import {
   getNotifierLogoFromType,
   notifierApi,
 } from '../../../../entities/notifiers';
+import { useSessionGuard } from '../../../../shared/auth';
 import { translateApiError } from '../../../../shared/i18n';
 
 interface Props {
@@ -18,24 +19,46 @@ interface Props {
 // workspace's notifier list.
 export const ShowDatabaseNotifiersComponent = ({ database }: Props) => {
   const { t } = useTranslation();
+  const isActive = useSessionGuard();
 
   const [workspaceNotifiers, setWorkspaceNotifiers] = useState<Notifier[]>();
+  const [loadError, setLoadError] = useState<unknown>();
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   useEffect(() => {
-    let isActive = true;
+    let isCurrentLoad = true;
+
+    setWorkspaceNotifiers(undefined);
+    setLoadError(undefined);
+
     notifierApi
       .listAllNotifiers(database.workspaceId)
       .then((listedNotifiers) => {
-        if (isActive) setWorkspaceNotifiers(listedNotifiers);
+        if (isCurrentLoad && isActive()) setWorkspaceNotifiers(listedNotifiers);
       })
-      .catch((e) => {
-        if (isActive) alert(translateApiError(e, t));
+      .catch((error: unknown) => {
+        if (isCurrentLoad && isActive()) setLoadError(error);
       });
 
     return () => {
-      isActive = false;
+      isCurrentLoad = false;
     };
-  }, [database.workspaceId]);
+  }, [database.workspaceId, loadAttempt, isActive]);
+
+  if (loadError !== undefined) {
+    return (
+      <Alert
+        type="error"
+        showIcon
+        message={translateApiError(loadError, t)}
+        action={
+          <Button onClick={() => setLoadAttempt((attempt) => attempt + 1)}>
+            {t('common.actions.retry')}
+          </Button>
+        }
+      />
+    );
+  }
 
   if (!workspaceNotifiers) return <Spin size="small" />;
 
@@ -55,6 +78,7 @@ export const ShowDatabaseNotifiersComponent = ({ database }: Props) => {
                 <div>- {notifier.name}</div>
                 <img
                   src={getNotifierLogoFromType(notifier.settings.type)}
+                  alt=""
                   className="ml-1 h-4 w-4"
                 />
               </div>

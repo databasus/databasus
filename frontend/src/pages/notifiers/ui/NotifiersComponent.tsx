@@ -1,5 +1,5 @@
 import { Alert, Button, Empty, Input, Modal, Spin } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { type Notifier, notifierApi } from '@/entities/notifiers';
@@ -7,9 +7,8 @@ import type { Workspace } from '@/entities/workspaces';
 import { EditNotifierComponent } from '@/features/edit-notifier';
 import { ApiError } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
-import { useIsMobile, useScopedSelection } from '@/shared/hooks';
+import { useIsMobile, useRequestRevision, useScopedSelection } from '@/shared/hooks';
 import { translateApiError } from '@/shared/i18n';
-import { RequestRevision } from '@/shared/lib/RequestRevision';
 import { ResourceListDetail } from '@/shared/ui';
 
 import { NotifierCardComponent } from './NotifierCardComponent';
@@ -35,7 +34,7 @@ export const NotifiersComponent = ({ workspace, isCanManageNotifiers, onUnavaila
   const loadNotifiers = (isSilent = false) => {
     if (!isCurrent()) return;
 
-    const revision = loadRevision.current.Invalidate();
+    const revision = loadRevision.Invalidate();
     const workspaceId = workspace.id;
 
     if (!isSilent) setIsLoading(true);
@@ -43,11 +42,11 @@ export const NotifiersComponent = ({ workspace, isCanManageNotifiers, onUnavaila
     notifierApi
       .listAllNotifiers(workspaceId)
       .then((items) => {
-        if (!isCurrent() || !loadRevision.current.IsCurrent(revision)) return;
+        if (!isCurrent() || !loadRevision.IsCurrent(revision)) return;
         setCollection({ workspaceId, items, isReady: true });
       })
       .catch((error) => {
-        if (isCurrent() && loadRevision.current.IsCurrent(revision)) {
+        if (isCurrent() && loadRevision.IsCurrent(revision)) {
           setLoadError(error);
 
           if (error instanceof ApiError && [403, 404].includes(error.status ?? 0)) {
@@ -57,7 +56,7 @@ export const NotifiersComponent = ({ workspace, isCanManageNotifiers, onUnavaila
         }
       })
       .finally(() => {
-        if (isCurrent() && loadRevision.current.IsCurrent(revision)) setIsLoading(false);
+        if (isCurrent() && loadRevision.IsCurrent(revision)) setIsLoading(false);
       });
   };
 
@@ -86,7 +85,7 @@ export const NotifiersComponent = ({ workspace, isCanManageNotifiers, onUnavaila
   const { t } = useTranslation();
   const isMobile = useIsMobile();
   const isCurrent = useSessionGuard();
-  const loadRevision = useRef(new RequestRevision());
+  const loadRevision = useRequestRevision();
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const notifiers = collection.workspaceId === workspace.id ? collection.items : [];
   const selection = useScopedSelection({
@@ -98,24 +97,33 @@ export const NotifiersComponent = ({ workspace, isCanManageNotifiers, onUnavaila
   });
   const selectedNotifierId = selection.selectedItemId;
 
+  const startNotifiersLoad = useEffectEvent((isSilent?: boolean) => {
+    loadNotifiers(isSilent);
+  });
+
   useEffect(() => {
     setCollection({ workspaceId: workspace.id, items: [], isReady: false });
     setIsShowAddNotifier(false);
     setSearchQuery('');
-    loadNotifiers();
-    const interval = setInterval(() => loadNotifiers(true), 5 * 60_000);
+    startNotifiersLoad();
+    const interval = setInterval(() => startNotifiersLoad(true), 5 * 60_000);
 
     return () => {
-      loadRevision.current.Invalidate();
+      loadRevision.Invalidate();
       clearInterval(interval);
     };
-  }, [workspace.id]);
+  }, [workspace.id, loadRevision]);
+
+  // Read when the form closes, because the button can appear after the form opened.
+  const returnFocusToButton = useEffectEvent(() => {
+    addButtonRef.current?.focus();
+  });
 
   useEffect(() => {
     if (!isShowAddNotifier) return;
 
     return () => {
-      addButtonRef.current?.focus();
+      returnFocusToButton();
     };
   }, [isShowAddNotifier]);
 

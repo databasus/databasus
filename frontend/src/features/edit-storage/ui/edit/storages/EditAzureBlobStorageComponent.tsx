@@ -19,6 +19,7 @@ interface Props {
 
 export function EditAzureBlobStorageComponent({ settings, isSaved, onChange }: Props) {
   const { t } = useTranslation();
+  const authMethodLabelId = useId();
   const hasAdvancedValues = !!settings.prefix || !!settings.endpoint;
   const [isShowAdvanced, setIsShowAdvanced] = useState(hasAdvancedValues);
   const advancedRegionId = useId();
@@ -26,19 +27,23 @@ export function EditAzureBlobStorageComponent({ settings, isSaved, onChange }: P
   return (
     <>
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.authMethod')}</div>
-        <Radio.Group
-          value={settings.authMethod || 'ACCOUNT_KEY'}
-          onChange={(e) => {
-            onChange({ ...settings, authMethod: e.target.value });
-          }}
-          size="small"
-        >
-          <Radio value="ACCOUNT_KEY">{t(AZURE_BLOB_AUTH_METHOD_LABEL_KEYS.ACCOUNT_KEY)}</Radio>
-          <Radio value="CONNECTION_STRING">
-            {t(AZURE_BLOB_AUTH_METHOD_LABEL_KEYS.CONNECTION_STRING)}
-          </Radio>
-        </Radio.Group>
+        <div id={authMethodLabelId} className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">
+          {t('storages.fields.authMethod')}
+        </div>
+        <div role="radiogroup" aria-labelledby={authMethodLabelId}>
+          <Radio.Group
+            value={settings.authMethod || 'ACCOUNT_KEY'}
+            onChange={(e) => {
+              onChange({ ...settings, authMethod: e.target.value });
+            }}
+            size="small"
+          >
+            <Radio value="ACCOUNT_KEY">{t(AZURE_BLOB_AUTH_METHOD_LABEL_KEYS.ACCOUNT_KEY)}</Radio>
+            <Radio value="CONNECTION_STRING">
+              {t(AZURE_BLOB_AUTH_METHOD_LABEL_KEYS.CONNECTION_STRING)}
+            </Radio>
+          </Radio.Group>
+        </div>
       </div>
 
       {settings.authMethod === 'CONNECTION_STRING' && (

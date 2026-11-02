@@ -1,6 +1,6 @@
 import { Alert, Button, DatePicker, Segmented, Spin, Tabs } from 'antd';
 import type { Dayjs } from 'dayjs';
-import { type JSX, useState } from 'react';
+import { type JSX, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { type Database, DatabaseType } from '../../../../entities/databases';
@@ -33,6 +33,7 @@ const getRestoreErrorHintKey = (error: unknown): TranslationKey | undefined =>
 
 export const PhysicalRestoreComponent = ({ database, backup, onClose }: Props): JSX.Element => {
   const { t } = useTranslation();
+  const targetTimeFieldId = useId();
 
   // The source cluster's major version, detected on connect. Physical databases are
   // always PostgreSQL 17 or 18; the fallback is only a defensive guard. Every shown
@@ -96,10 +97,11 @@ export const PhysicalRestoreComponent = ({ database, backup, onClose }: Props): 
             {t('backups.physical.restore.pointInTimeIntro')}
           </div>
           <div className="mb-3 flex w-full flex-col items-start sm:flex-row sm:items-center">
-            <div className="mb-1 min-w-[120px] sm:mb-0 sm:pr-2">
+            <label className="mb-1 min-w-[120px] sm:mb-0 sm:pr-2" htmlFor={targetTimeFieldId}>
               {t('backups.physical.restore.targetTime')}
-            </div>
+            </label>
             <DatePicker
+              id={targetTimeFieldId}
               showTime
               value={targetTime}
               onChange={(value) => setTargetTime(value ?? undefined)}
@@ -130,6 +132,7 @@ export const PhysicalRestoreComponent = ({ database, backup, onClose }: Props): 
       {bundleUrl && (
         <div className="mt-5 border-t border-border pt-4">
           <Segmented<PhysicalRestoreMethod>
+            aria-label={t('backups.physical.restore.methods.label')}
             value={restoreMethod}
             onChange={setRestoreMethod}
             options={[

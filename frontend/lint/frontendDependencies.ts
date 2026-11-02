@@ -13,7 +13,7 @@ export interface FrontendDependency {
   endColumn: number;
 }
 
-const getSourceFiles = (directory: string): string[] =>
+export const getSourceFiles = (directory: string): string[] =>
   readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const path = join(directory, entry.name);
     return entry.isDirectory() ? getSourceFiles(path) : /\.[cm]?[jt]sx?$/.test(path) ? [path] : [];

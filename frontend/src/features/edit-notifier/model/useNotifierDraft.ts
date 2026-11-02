@@ -260,9 +260,10 @@ export const useNotifierDraft = ({
   }, [workspaceId, editingNotifier]);
 
   useLayoutEffect(() => {
+    const { session: sessionRevision, test: testRevision } = revisions.current;
     const invalidateSession = () => {
-      revisions.current.session.Invalidate();
-      revisions.current.test.Invalidate();
+      sessionRevision.Invalidate();
+      testRevision.Invalidate();
       activeSave.current = undefined;
       activeTest.current = undefined;
       setIsSaving(false);
@@ -274,7 +275,7 @@ export const useNotifierDraft = ({
 
     return () => {
       unsubscribe();
-      revisions.current.session.Invalidate();
+      sessionRevision.Invalidate();
       activeSave.current = undefined;
       activeTest.current = undefined;
     };
@@ -287,6 +288,7 @@ export const useNotifierDraft = ({
     isTesting,
     error,
     isUnsaved: !isNotifierDraftUnchanged({ draft, baseline }),
+    // eslint-disable-next-line react/refs -- every invalidation comes with a state update, so this read cannot go stale
     isTested: testedSettingsRevision === revisions.current.settings.GetCurrent(),
     changeName,
     changeSettings,

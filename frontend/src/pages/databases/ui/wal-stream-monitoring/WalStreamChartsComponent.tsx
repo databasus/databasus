@@ -389,6 +389,7 @@ export const WalStreamKeepingUpChartComponent = ({
 
   const periodSwitch = (
     <Segmented
+      aria-label={t('healthcheck.attempts.period')}
       value={period}
       onChange={(value) => onPeriodChange(value as WalStreamStatisticsPeriod)}
       options={PERIODS.map((periodOption) => ({

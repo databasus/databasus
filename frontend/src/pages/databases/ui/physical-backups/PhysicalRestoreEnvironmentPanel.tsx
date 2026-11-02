@@ -1,5 +1,5 @@
 import { Alert, Input } from 'antd';
-import { type JSX } from 'react';
+import { type JSX, useId } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { InlineCodeComponent } from '../../../../shared/ui';
@@ -63,6 +63,9 @@ export const PhysicalRestoreEnvironmentPanel = ({
   onDockerImageChange,
 }: Props): JSX.Element => {
   const { t } = useTranslation();
+  const directoryFieldId = useId();
+  const pgBinFieldId = useId();
+  const imageFieldId = useId();
   const { copiedCommandId, copyCommand } = useCopiedCommand();
 
   const dataDir = clusterDataDir(outputDir, pgVersion);
@@ -71,10 +74,11 @@ export const PhysicalRestoreEnvironmentPanel = ({
     <div>
       <div className="mb-3">
         <div className="mb-2 flex w-full flex-col items-start sm:flex-row sm:items-center">
-          <div className="mb-1 shrink-0 sm:mb-0 sm:w-[190px] sm:pr-2">
+          <label className="mb-1 shrink-0 sm:mb-0 sm:w-[190px] sm:pr-2" htmlFor={directoryFieldId}>
             {t('backups.physical.restore.fields.restoreDirectory')}
-          </div>
+          </label>
           <Input
+            id={directoryFieldId}
             value={outputDir}
             onChange={(e) => onOutputDirChange(e.target.value)}
             className="w-full max-w-[320px]"
@@ -82,10 +86,11 @@ export const PhysicalRestoreEnvironmentPanel = ({
         </div>
         {environment === 'host' ? (
           <div className="flex w-full flex-col items-start sm:flex-row sm:items-center">
-            <div className="mb-1 shrink-0 sm:mb-0 sm:w-[190px] sm:pr-2">
+            <label className="mb-1 shrink-0 sm:mb-0 sm:w-[190px] sm:pr-2" htmlFor={pgBinFieldId}>
               {t('backups.physical.restore.fields.pgBinPath')}
-            </div>
+            </label>
             <Input
+              id={pgBinFieldId}
               value={pgBin}
               onChange={(e) => onPgBinChange(e.target.value)}
               placeholder={t('backups.physical.restore.fields.pgBinPathPlaceholder', {
@@ -96,10 +101,11 @@ export const PhysicalRestoreEnvironmentPanel = ({
           </div>
         ) : (
           <div className="flex w-full flex-col items-start sm:flex-row sm:items-center">
-            <div className="mb-1 shrink-0 sm:mb-0 sm:w-[190px] sm:pr-2">
+            <label className="mb-1 shrink-0 sm:mb-0 sm:w-[190px] sm:pr-2" htmlFor={imageFieldId}>
               {t('backups.physical.restore.fields.pgImage')}
-            </div>
+            </label>
             <Input
+              id={imageFieldId}
               value={dockerImage}
               onChange={(e) => onDockerImageChange(e.target.value)}
               className="w-full max-w-[320px]"

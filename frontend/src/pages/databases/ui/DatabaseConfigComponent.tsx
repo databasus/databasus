@@ -5,8 +5,8 @@ import {
   DeleteOutlined,
   InfoCircleOutlined,
 } from '@ant-design/icons';
-import { Alert, Button, Input, Spin } from 'antd';
-import { useEffect, useState } from 'react';
+import { Alert, App, Button, Input, Spin } from 'antd';
+import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -16,8 +16,8 @@ import {
   toPhysicalBackupConfigInput,
 } from '../../../entities/backup-configs';
 import { type Database, DatabaseType, databaseApi } from '../../../entities/databases';
+import { useSessionGuard } from '../../../shared/auth';
 import { translateApiError } from '../../../shared/i18n';
-import { ToastHelper } from '../../../shared/toast';
 import { ConfirmationComponent } from '../../../shared/ui';
 import { EditLogicalBackupConfigSection } from './backup-config/EditLogicalBackupConfigSection';
 import { EditPhysicalBackupConfigSection } from './backup-config/EditPhysicalBackupConfigSection';
@@ -27,6 +27,7 @@ import { DatabaseSettingsSection } from './DatabaseSettingsSection';
 import { DatabaseTransferDialogComponent } from './DatabaseTransferDialogComponent';
 import { EditDatabaseConnectionSection } from './EditDatabaseConnectionSection';
 import { EditDatabaseNotifiersSection } from './EditDatabaseNotifiersSection';
+import { EditIconButton } from './EditIconButton';
 import { EditHealthcheckConfigComponent, ShowHealthcheckConfigComponent } from './healthcheck';
 import { ShowDatabaseNotifiersComponent } from './show/ShowDatabaseNotifiersComponent';
 import { ShowDatabaseSpecificDataComponent } from './show/ShowDatabaseSpecificDataComponent';
@@ -36,9 +37,9 @@ import { ShowVerificationConfigComponent } from './verification/ShowVerification
 interface Props {
   database: Database;
   onDatabaseChanged: (database: Database) => void;
-  onDatabaseDeleted: () => void;
-  onDatabaseCopied: (copiedDatabase: Database) => void;
-  onDatabaseTransferred: () => void;
+  onDatabaseDeleted: (deletedDatabaseId: string) => void;
+  onDatabaseCopied: (copiedDatabase: Database, sourceDatabaseId: string) => void;
+  onDatabaseTransferred: (transferredDatabaseId: string) => void;
 
   isCanManageDBs: boolean;
 }
@@ -60,6 +61,10 @@ export const DatabaseConfigComponent = ({
   isCanManageDBs,
 }: Props) => {
   const { t } = useTranslation();
+  const { notification } = App.useApp();
+  const isActive = useSessionGuard();
+  const databaseNameId = useId();
+
   const [editingSection, setEditingSection] = useState<DatabaseSettingsSectionId>();
   const [nameDraft, setNameDraft] = useState('');
   const [isSavingName, setIsSavingName] = useState(false);
@@ -73,95 +78,123 @@ export const DatabaseConfigComponent = ({
   const [backupConfig, setBackupConfig] = useState<BackupConfig | undefined>();
   const [backupConfigError, setBackupConfigError] = useState<unknown>();
   const [backupConfigLoadAttempt, setBackupConfigLoadAttempt] = useState(0);
+  const [actionError, setActionError] = useState<unknown>();
+  const [connectionFailureReason, setConnectionFailureReason] = useState<string>();
+
+  const clearActionFailure = () => {
+    setActionError(undefined);
+    setConnectionFailureReason(undefined);
+  };
 
   const copyDatabase = () => {
+    clearActionFailure();
     setIsCopying(true);
     setIsShowCopyConfirm(false);
 
     databaseApi
       .copyDatabase(database.id)
       .then((copiedDatabase) => {
-        ToastHelper.showToast({
-          title: t('databases.config.copied.title'),
-          description: t('databases.config.copied.description', { name: copiedDatabase.name }),
-        });
-        onDatabaseCopied(copiedDatabase);
+        if (isActive()) {
+          notification.success({
+            message: t('databases.config.copied.title'),
+            description: t('databases.config.copied.description', { name: copiedDatabase.name }),
+          });
+        }
+
+        onDatabaseCopied(copiedDatabase, database.id);
       })
       .catch((e: unknown) => {
-        alert(translateApiError(e, t));
+        if (isActive()) setActionError(e);
       })
       .finally(() => {
-        setIsCopying(false);
+        if (isActive()) setIsCopying(false);
       });
   };
 
   const testConnection = () => {
+    clearActionFailure();
     setIsTestingConnection(true);
     databaseApi
       .testDatabase(database.id)
       .then((testResult) => {
+        if (!isActive()) return;
+
         if (!testResult.isConnected) {
-          alert(t('databases.edit.connectionTestFailed', { error: testResult.error }));
+          setConnectionFailureReason(testResult.error ?? '');
           return;
         }
 
-        ToastHelper.showToast({
-          title: t('databases.config.connectionTestSucceeded.title'),
+        notification.success({
+          message: t('databases.config.connectionTestSucceeded.title'),
           description: t('databases.config.connectionTestSucceeded.description'),
         });
       })
       .catch((e: unknown) => {
-        alert(translateApiError(e, t));
+        if (isActive()) setActionError(e);
       })
       .finally(() => {
-        setIsTestingConnection(false);
+        if (isActive()) setIsTestingConnection(false);
       });
   };
 
   const remove = () => {
+    clearActionFailure();
     setIsShowRemoveConfirm(false);
     setIsRemoving(true);
     databaseApi
       .deleteDatabase(database.id)
       .then(() => {
-        onDatabaseDeleted();
+        onDatabaseDeleted(database.id);
       })
       .catch((e: unknown) => {
-        alert(translateApiError(e, t));
+        if (isActive()) setActionError(e);
       })
       .finally(() => {
-        setIsRemoving(false);
+        if (isActive()) setIsRemoving(false);
       });
   };
 
   const startEdit = (section: DatabaseSettingsSectionId) => {
+    clearActionFailure();
     setNameDraft(database.name);
     setEditingSection(section);
   };
 
   const closeSection = () => setEditingSection(undefined);
 
+  const acceptSavedConnection = (savedDatabase: Database) => {
+    if (isActive()) clearActionFailure();
+
+    onDatabaseChanged(savedDatabase);
+  };
+
   const acceptSavedDatabase = (savedDatabase: Database) => {
-    closeSection();
+    if (isActive()) {
+      clearActionFailure();
+      closeSection();
+    }
+
     onDatabaseChanged(savedDatabase);
   };
 
   const acceptSavedBackupConfig = () => {
+    clearActionFailure();
     closeSection();
     setBackupConfigLoadAttempt((attempt) => attempt + 1);
     onDatabaseChanged(database);
   };
 
   const saveName = () => {
+    clearActionFailure();
     setIsSavingName(true);
     databaseApi
       .updateDatabase(database.id, { ...database, name: nameDraft })
       .then(acceptSavedDatabase)
       .catch((e: unknown) => {
-        alert(translateApiError(e, t));
+        if (isActive()) setActionError(e);
       })
       .finally(() => {
-        setIsSavingName(false);
+        if (isActive()) setIsSavingName(false);
       });
   };
 
@@ -190,6 +223,22 @@ export const DatabaseConfigComponent = ({
     isPhysicalDatabase && backupConfig ? toPhysicalBackupConfigInput(backupConfig) : undefined;
   const logicalBackupConfig =
     !isPhysicalDatabase && backupConfig ? toLogicalBackupConfigInput(backupConfig) : undefined;
+  const actionFailureMessage =
+    connectionFailureReason !== undefined
+      ? t('databases.edit.connectionTestFailed', { error: connectionFailureReason })
+      : actionError !== undefined
+        ? translateApiError(actionError, t)
+        : undefined;
+  const actionFailureAlert = actionFailureMessage !== undefined && (
+    <Alert
+      className="mt-4"
+      type="error"
+      showIcon
+      message={actionFailureMessage}
+      closable={{ closeIcon: <CloseOutlined />, 'aria-label': t('common.actions.close') }}
+      onClose={clearActionFailure}
+    />
+  );
 
   return (
     <div className="relative w-full rounded-tr-md rounded-br-md rounded-bl-md bg-surface p-3 shadow sm:p-5">
@@ -204,12 +253,14 @@ export const DatabaseConfigComponent = ({
 
       {editingSection !== 'name' ? (
         <div className="mb-5 flex items-center text-xl font-bold sm:text-2xl">
-          {database.name}
+          <span id={databaseNameId}>{database.name}</span>
 
           {isSectionEditable && (
-            <div className="ml-2 cursor-pointer" onClick={() => startEdit('name')}>
-              <img src="/icons/pen-gray.svg" />
-            </div>
+            <EditIconButton
+              subjectId={databaseNameId}
+              className="ml-2 !h-[18px] !w-[18px]"
+              onClick={() => startEdit('name')}
+            />
           )}
         </div>
       ) : (
@@ -217,6 +268,7 @@ export const DatabaseConfigComponent = ({
           <div className="flex items-center">
             <Input
               className="max-w-full sm:max-w-[250px]"
+              aria-label={t('common.fields.name')}
               value={nameDraft}
               onChange={(e) => setNameDraft(e.target.value)}
               placeholder={t('databases.config.namePlaceholder')}
@@ -227,6 +279,7 @@ export const DatabaseConfigComponent = ({
               <Button
                 type="text"
                 className="flex h-6 w-6 items-center justify-center p-0"
+                aria-label={t('common.actions.close')}
                 onClick={closeSection}
                 disabled={isSavingName}
               >
@@ -246,6 +299,8 @@ export const DatabaseConfigComponent = ({
               {t('common.actions.save')}
             </Button>
           )}
+
+          {actionFailureAlert}
         </div>
       )}
 
@@ -292,7 +347,7 @@ export const DatabaseConfigComponent = ({
             <EditDatabaseConnectionSection
               key={database.id}
               database={database}
-              onDatabaseSaved={onDatabaseChanged}
+              onDatabaseSaved={acceptSavedConnection}
               onClose={closeSection}
             />
           ) : (
@@ -382,6 +437,8 @@ export const DatabaseConfigComponent = ({
         </DatabaseSettingsSection>
       </div>
 
+      {editingSection !== 'name' && actionFailureAlert}
+
       {editingSection !== 'connection' && (
         <div className="mt-10 flex flex-col gap-2 sm:flex-row sm:gap-0">
           <Button
@@ -400,6 +457,7 @@ export const DatabaseConfigComponent = ({
                 type="primary"
                 ghost
                 icon={<ArrowRightOutlined />}
+                aria-label={t('common.actions.transfer')}
                 onClick={() => setIsShowTransferDialog(true)}
                 className="sm:mr-1"
               />
@@ -408,6 +466,7 @@ export const DatabaseConfigComponent = ({
                 type="primary"
                 ghost
                 icon={<CopyOutlined />}
+                aria-label={t('common.actions.copy')}
                 onClick={() => setIsShowCopyConfirm(true)}
                 loading={isCopying}
                 disabled={isCopying}
@@ -419,6 +478,7 @@ export const DatabaseConfigComponent = ({
                 ghost
                 danger
                 icon={<DeleteOutlined />}
+                aria-label={t('common.actions.delete')}
                 onClick={() => setIsShowRemoveConfirm(true)}
                 loading={isRemoving}
                 disabled={isRemoving}
@@ -455,7 +515,7 @@ export const DatabaseConfigComponent = ({
           onClose={() => setIsShowTransferDialog(false)}
           onTransferred={() => {
             setIsShowTransferDialog(false);
-            onDatabaseTransferred();
+            onDatabaseTransferred(database.id);
           }}
         />
       )}

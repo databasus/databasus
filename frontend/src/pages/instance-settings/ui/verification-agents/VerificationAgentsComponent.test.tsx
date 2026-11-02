@@ -382,7 +382,7 @@ describe('VerificationAgentsComponent', () => {
         reveal: async () => {
           fireEvent.click(getCreateButton());
           const dialog = await screen.findByRole('dialog');
-          fireEvent.change(within(dialog).getByPlaceholderText(agentsCopy.create.namePlaceholder), {
+          fireEvent.change(within(dialog).getByRole('textbox', { name: 'Name' }), {
             target: { value: 'Typed name' },
           });
           fireEvent.click(within(dialog).getByRole('button', { name: commonActions.create }));

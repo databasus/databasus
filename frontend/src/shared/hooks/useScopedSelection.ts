@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 
 interface Options {
   scopeKey: string;
@@ -43,11 +43,15 @@ export function useScopedSelection({ scopeKey, itemIds, isReady, isMobile }: Opt
     setSelection({ scopeKey, selectedItemId, hasChosen: true });
   const remove = (removedId: string) => select(itemIds.find((itemId) => itemId !== removedId));
 
+  const acknowledgeSelection = useEffectEvent(() => {
+    if (selection.selectedItemId !== selectedItemId || !selection.hasChosen)
+      setSelection({ scopeKey, selectedItemId, hasChosen: true });
+  });
+
   useEffect(() => {
     if (!isReady) return;
 
-    if (selection.selectedItemId !== selectedItemId || !selection.hasChosen)
-      setSelection({ scopeKey, selectedItemId, hasChosen: true });
+    acknowledgeSelection();
 
     try {
       if (selectedItemId) localStorage.setItem(scopeKey, selectedItemId);

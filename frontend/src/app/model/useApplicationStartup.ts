@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 
 import { diskApi, type DiskUsage } from '@/entities/disk';
 import { settingsApi, userApi, UserRole, type User, type InstanceSettings } from '@/entities/users';
 import { workspaceApi, WorkspaceRole, type Workspace } from '@/entities/workspaces';
 import { useSessionGuard } from '@/shared/auth';
-import { RequestRevision } from '@/shared/lib/RequestRevision';
+import { useRequestRevision } from '@/shared/hooks';
 
 export function useApplicationStartup() {
   const [user, setUser] = useState<User>();
@@ -16,9 +16,9 @@ export function useApplicationStartup() {
   const [isLoading, setIsLoading] = useState(true);
 
   const load = async () => {
-    const requestRevision = revision.current.Invalidate();
-    accessRevision.current.Invalidate();
-    const isCurrent = () => isSessionCurrent() && revision.current.IsCurrent(requestRevision);
+    const requestRevision = revision.Invalidate();
+    accessRevision.Invalidate();
+    const isCurrent = () => isSessionCurrent() && revision.IsCurrent(requestRevision);
     setIsLoading(true);
     setError(undefined);
 
@@ -65,14 +65,14 @@ export function useApplicationStartup() {
   const acceptWorkspace = (workspace: Workspace) => {
     if (!isSessionCurrent()) return;
 
-    accessRevision.current.Invalidate();
+    accessRevision.Invalidate();
     setWorkspaces((current) => [...current.filter((item) => item.id !== workspace.id), workspace]);
     setSelectedWorkspaceId(workspace.id);
   };
   const updateWorkspace = (workspace: Workspace) => {
     if (!isSessionCurrent()) return;
 
-    accessRevision.current.Invalidate();
+    accessRevision.Invalidate();
     setWorkspaces((current) =>
       current.map((item) => (item.id === workspace.id ? workspace : item)),
     );
@@ -80,7 +80,7 @@ export function useApplicationStartup() {
   const removeWorkspace = (workspaceId: string) => {
     if (!isSessionCurrent()) return;
 
-    accessRevision.current.Invalidate();
+    accessRevision.Invalidate();
     setWorkspaces((current) => current.filter((workspace) => workspace.id !== workspaceId));
     setSelectedWorkspaceId((current) =>
       current === workspaceId
@@ -91,39 +91,43 @@ export function useApplicationStartup() {
   const selectWorkspace = (workspace: Workspace) => {
     if (!isSessionCurrent()) return;
 
-    accessRevision.current.Invalidate();
+    accessRevision.Invalidate();
     setSelectedWorkspaceId(workspace.id);
   };
   const reconcileUnavailableWorkspace = async (workspaceId: string) => {
     if (!isSessionCurrent()) return;
 
     removeWorkspace(workspaceId);
-    const requestRevision = accessRevision.current.Invalidate();
+    const requestRevision = accessRevision.Invalidate();
 
     try {
       const accessible = await workspaceApi.listAllWorkspaces();
-      if (!isSessionCurrent() || !accessRevision.current.IsCurrent(requestRevision)) return;
+      if (!isSessionCurrent() || !accessRevision.IsCurrent(requestRevision)) return;
 
       setWorkspaces(accessible);
       setSelectedWorkspaceId((current) =>
         accessible.some((workspace) => workspace.id === current) ? current : accessible[0]?.id,
       );
     } catch (failure) {
-      if (isSessionCurrent() && accessRevision.current.IsCurrent(requestRevision))
-        setError(failure);
+      if (isSessionCurrent() && accessRevision.IsCurrent(requestRevision)) setError(failure);
     }
   };
   const isSessionCurrent = useSessionGuard();
-  const revision = useRef(new RequestRevision());
-  const accessRevision = useRef(new RequestRevision());
+  const revision = useRequestRevision();
+  const accessRevision = useRequestRevision();
+
+  const startApplicationLoad = useEffectEvent(() => {
+    void load();
+  });
 
   useEffect(() => {
-    void load();
+    startApplicationLoad();
+
     return () => {
-      revision.current.Invalidate();
-      accessRevision.current.Invalidate();
+      revision.Invalidate();
+      accessRevision.Invalidate();
     };
-  }, []);
+  }, [revision, accessRevision]);
   useEffect(() => {
     if (isLoading || error !== undefined) return;
 

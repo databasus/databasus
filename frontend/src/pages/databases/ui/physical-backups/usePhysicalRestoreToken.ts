@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 
-import { RequestRevision } from '../../../../shared/lib/RequestRevision';
+import { useRequestRevision } from '../../../../shared/hooks';
 import { type PhysicalRestoreTokenCreate, physicalBackupsApi } from '../../api/physicalBackupsApi';
 
 interface TokenAnswer {
@@ -16,29 +16,30 @@ interface TokenAnswer {
 export const usePhysicalRestoreToken = (subject: PhysicalRestoreTokenCreate) => {
   const [answer, setAnswer] = useState<TokenAnswer>();
 
-  const requestRevision = useRef(new RequestRevision());
+  const requestRevision = useRequestRevision();
   const subjectKey = JSON.stringify(subject);
 
+  const createToken = useEffectEvent(() => physicalBackupsApi.createPhysicalRestoreToken(subject));
+
   useEffect(() => {
-    const revision = requestRevision.current.Invalidate();
+    const revision = requestRevision.Invalidate();
 
     setAnswer(undefined);
 
-    physicalBackupsApi
-      .createPhysicalRestoreToken(subject)
+    createToken()
       .then((createdToken) => {
-        if (requestRevision.current.IsCurrent(revision)) {
+        if (requestRevision.IsCurrent(revision)) {
           setAnswer({ subjectKey, token: createdToken.token });
         }
       })
       .catch((error: unknown) => {
-        if (requestRevision.current.IsCurrent(revision)) setAnswer({ subjectKey, error });
+        if (requestRevision.IsCurrent(revision)) setAnswer({ subjectKey, error });
       });
 
     return () => {
-      requestRevision.current.Invalidate();
+      requestRevision.Invalidate();
     };
-  }, [subjectKey]);
+  }, [subjectKey, requestRevision]);
 
   const currentAnswer = answer?.subjectKey === subjectKey ? answer : undefined;
 

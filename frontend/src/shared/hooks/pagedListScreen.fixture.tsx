@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useEffectEvent, useRef } from 'react';
 
 import { getApiClient, requireData } from '../api';
 import type { ApiComponents } from '../api';
@@ -37,8 +37,14 @@ const ListScreen = ({
   parameters: PagedListParams<Workspace, string>;
   onPublish?: Props['onPublish'];
 }) => {
-  useEffect(() => {
+  const { scrollContainerRef } = parameters;
+
+  const publishList = useEffectEvent(() => {
     onPublish?.(list);
+  });
+
+  useEffect(() => {
+    publishList();
   }, [
     list.items,
     list.isLoading,
@@ -49,7 +55,7 @@ const ListScreen = ({
     list.replaceOrPrependItem,
   ]);
   return (
-    <div ref={parameters.scrollContainerRef} data-testid="scroll-list">
+    <div ref={scrollContainerRef} data-testid="scroll-list">
       <output>
         {list.isLoading ? 'Loading' : 'Ready'}:{list.isLoadingMore ? 'More' : 'Idle'}
       </output>

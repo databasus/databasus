@@ -1189,7 +1189,7 @@ class DiffGateTest(unittest.TestCase):
 
 
 class ArchitectureGateTest(unittest.TestCase):
-    def test_architecture_prompt_reads_authoritative_frontend_architecture_and_finite_baseline(self):
+    def test_architecture_prompt_reads_authoritative_frontend_architecture(self):
         repository = HookRepository(self)
         repository.submit_prompt("Improve a screen")
         repository.write("frontend/src/pages/Settings.tsx", "export {};\n")
@@ -1199,7 +1199,6 @@ class ArchitectureGateTest(unittest.TestCase):
         [call] = repository.reviewer_calls()
         self.assertIn('`docs/architecture.md`: "Frontend"', call["prompt"])
         self.assertIn('`frontend/AGENTS.md`: the applicable frontend conventions', call["prompt"])
-        self.assertIn('individually recorded occurrences in `frontend/fsd-baseline.json`', call["prompt"])
 
     def test_architecture_prompt_checks_http_contract_against_api_design_skill(self):
         repository = HookRepository(self)

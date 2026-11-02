@@ -21,13 +21,10 @@ export const MonitoringTextComponent = ({ text, onOpenConfig }: Props) => {
       components={{
         code: <InlineCodeComponent />,
         configLink: (
-          <a
-            href="#"
-            className="underline"
-            onClick={(event) => {
-              event.preventDefault();
-              onOpenConfig?.();
-            }}
+          <button
+            type="button"
+            className="cursor-pointer underline"
+            onClick={() => onOpenConfig?.()}
           />
         ),
       }}

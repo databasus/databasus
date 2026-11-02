@@ -1,11 +1,12 @@
 import { EyeInvisibleOutlined, EyeTwoTone, LoadingOutlined } from '@ant-design/icons';
 import { Form, Alert, App, Button, Input, Spin } from 'antd';
-import { useId } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffectEvent, useId } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { USER_ROLE_LABEL_KEYS, type User, userApi } from '@/entities/users';
 import { invalidateSession, useSessionGuard } from '@/shared/auth';
+import { useRequestRevision } from '@/shared/hooks';
 import { translateApiError } from '@/shared/i18n';
 
 interface Props {
@@ -35,19 +36,19 @@ export function ProfilePage({ onUserChanged }: Props) {
   const [isConfirmPasswordError, setIsConfirmPasswordError] = useState(false);
 
   const loadUserProfile = async () => {
-    const revision = ++loadRevision.current;
+    const revision = loadRevision.Invalidate();
     setIsLoading(true);
     setFailure(undefined);
     try {
       const loadedUser = await userApi.getCurrentUser();
-      if (!isCurrent() || revision !== loadRevision.current) return;
+      if (!isCurrent() || !loadRevision.IsCurrent(revision)) return;
       setUser(loadedUser);
       setEditName(loadedUser.name);
       setEditEmail(loadedUser.email);
     } catch (error) {
-      if (isCurrent() && revision === loadRevision.current) setFailure(error);
+      if (isCurrent() && loadRevision.IsCurrent(revision)) setFailure(error);
     } finally {
-      if (isCurrent() && revision === loadRevision.current) setIsLoading(false);
+      if (isCurrent() && loadRevision.IsCurrent(revision)) setIsLoading(false);
     }
   };
 
@@ -150,14 +151,18 @@ export function ProfilePage({ onUserChanged }: Props) {
   const { t, i18n } = useTranslation();
   const { message } = App.useApp();
   const isCurrent = useSessionGuard();
-  const loadRevision = useRef(0);
+  const loadRevision = useRequestRevision();
+
+  const startProfileLoad = useEffectEvent(() => {
+    void loadUserProfile();
+  });
 
   useEffect(() => {
-    void loadUserProfile();
+    startProfileLoad();
     return () => {
-      loadRevision.current++;
+      loadRevision.Invalidate();
     };
-  }, []);
+  }, [loadRevision]);
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1">

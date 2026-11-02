@@ -35,7 +35,12 @@ export const AppShell = ({
       style={{ height }}
     >
       <header className="flex min-h-[50px] shrink-0 flex-wrap items-center gap-2 rounded bg-surface px-2 py-2 shadow md:min-h-[60px] md:gap-4 md:p-3">
-        <a href={getWebsitePageUrl('home', locale)} target="_blank" rel="noreferrer">
+        <a
+          href={getWebsitePageUrl('home', locale)}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={t('common.websiteLink')}
+        >
           <img className="h-[30px] w-[30px] md:h-[40px] md:w-[40px]" src="/logo.svg" alt="" />
         </a>
         <div className="min-w-0 flex-1 md:flex-initial">{workspaceSelector}</div>

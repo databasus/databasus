@@ -22,6 +22,7 @@ export const ru: typeof en = {
       remove: 'Удалить',
       retry: 'Повторить',
       save: 'Сохранить',
+      transfer: 'Перенести',
     },
     answers: {
       no: 'Нет',
@@ -46,6 +47,7 @@ export const ru: typeof en = {
     },
     // Joins translated words into one list (Chinese uses 、)
     listSeparator: ', ',
+    websiteLink: 'Сайт Databasus',
     confirmation: {
       title: 'Подтверждение',
     },
@@ -1644,6 +1646,7 @@ export const ru: typeof en = {
           'Ссылка на скачивание одноразовая и действует 15 минут. Если команда завершилась ошибкой 401, откройте это окно заново, чтобы получить новую ссылку.',
         copied: 'Скопировано',
         methods: {
+          label: 'Способ восстановления',
           script: 'Через скрипт',
           manual: 'Вручную',
         },

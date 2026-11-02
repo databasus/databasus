@@ -3,6 +3,7 @@ import { act, screen } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
+import { DICTIONARIES } from '@/shared/i18n/dictionaries';
 import { setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
 
@@ -11,6 +12,28 @@ import { AppShell } from './AppShell';
 const server = setUpMockApi();
 
 describe('AppShell', () => {
+  it('names the logo link', () => {
+    server.use(
+      http.get('https://api.github.com/repos/databasus/databasus', () =>
+        HttpResponse.json({ stargazers_count: 1 }),
+      ),
+    );
+
+    renderScreen(
+      <AppShell
+        workspaceSelector={<div>Workspace selector</div>}
+        sidebar={<nav>Navigation</nav>}
+        isSidebarOpen={false}
+        onOpenSidebar={() => {}}
+      >
+        <div />
+      </AppShell>,
+      { locale: 'fr' },
+    );
+
+    expect(screen.getByRole('link', { name: DICTIONARIES.fr.common.websiteLink })).toBeTruthy();
+  });
+
   it('resizes its boundary and removes viewport listeners when the shell unmounts after replay', async () => {
     server.use(
       http.get('https://api.github.com/repos/databasus/databasus', () =>

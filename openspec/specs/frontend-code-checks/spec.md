@@ -2,13 +2,13 @@
 
 ## Purpose
 
-Keep frontend dependency boundaries enforceable during gradual restructuring, while allowing only the specific existing violations scheduled for removal.
+Frontend checks reject boundary, style, effect and interaction violations.
 
 ## Requirements
 
 ### Requirement: Frontend checks reject forbidden dependencies
 
-The frontend lint command SHALL reject a new dependency directed upward through the application, pages, widgets, features, entities and shared layers. It SHALL reject dependencies between different slices of the same layer and access to a slice's private internals from another slice. These checks SHALL cover ordinary, type-only and dynamic imports and re-exports, with equivalent results for relative and configured alias imports. Re-exporting a forbidden dependency through a public entry point MUST NOT authorize it.
+The frontend lint command SHALL reject a dependency directed upward through the application, pages, widgets, features, entities and shared layers. It SHALL reject dependencies between different slices of the same layer and access to a slice's private internals from another slice. These checks SHALL cover ordinary, type-only and dynamic imports and re-exports, with equivalent results for relative and configured alias imports. Re-exporting a forbidden dependency through a public entry point MUST NOT authorize it.
 
 #### Scenario: An upward dependency is added
 
@@ -35,25 +35,6 @@ The frontend lint command SHALL reject a new dependency directed upward through 
 - **WHEN** a consumer imports a lower layer through its public entry point using the configured alias
 - **THEN** lint, type checking, tests and production build resolve the dependency consistently
 
-### Requirement: Recorded violations form a finite shrinking baseline
-
-The checks SHALL permit only individually recorded existing findings, each with an owner and a removal milestone. Baseline matching SHALL distinguish the rule, source, dependency or structural location, and occurrence count. The baseline MUST NOT exempt entire layers, slices or files. New findings, increased occurrence counts and stale entries SHALL fail verification. Unchanged violations SHALL remain recognizable after unrelated line movement.
-
-#### Scenario: A new violation appears beside an accepted one
-
-- **WHEN** a file containing a recorded violation adds another forbidden dependency or another occurrence of the same dependency
-- **THEN** frontend lint fails
-
-#### Scenario: A violation is repaired
-
-- **WHEN** a recorded violation no longer exists but its baseline entry remains
-- **THEN** frontend lint fails until the stale entry is removed
-
-#### Scenario: An unrelated edit moves a violation
-
-- **WHEN** an unchanged recorded dependency moves to a different line
-- **THEN** the baseline still recognizes the same finding without authorizing any additional finding
-
 ### Requirement: Architecture checks preserve the existing verification surface
 
 Adding dependency checks SHALL preserve formatting, source lint, type checking and generated API freshness verification in the frontend lint command. Existing application addresses, screens and domain operations SHALL remain available after the mechanical layer rename.
@@ -70,7 +51,7 @@ Adding dependency checks SHALL preserve formatting, source lint, type checking a
 
 ### Requirement: Frontend checks reject new style bypasses
 
-Frontend lint SHALL reject newly introduced direct color values outside approved theme and chart-palette owners, and removal of visible focus without an accessible replacement. Coverage SHALL include component styles, style sheets and utility-class colors, including named colors, functional color notation and default color-palette utilities. Layout utilities, semantic theme references and technical data SHALL remain permitted. Diagnostics SHALL identify the source and violated rule.
+Frontend lint SHALL reject direct color values outside approved theme and chart-palette owners, and removal of visible focus without an accessible replacement. Coverage SHALL include component styles, style sheets and utility-class colors, including named colors, functional color notation and default color-palette utilities. Layout utilities, semantic theme references and technical data SHALL remain permitted. Diagnostics SHALL identify the source and violated rule.
 
 #### Scenario: A utility class bypasses the theme
 
@@ -87,16 +68,69 @@ Frontend lint SHALL reject newly introduced direct color values outside approved
 - **WHEN** a contributor disables a control's focus indication without supplying a visible replacement
 - **THEN** frontend lint fails
 
-### Requirement: Style migration exceptions are finite and shrinking
+### Requirement: Frontend checks accept no recorded exceptions
 
-Existing style violations SHALL be represented by individual findings with their rule, source, normalized offending value or construct, occurrence count, owner and removal milestone. A new occurrence, an increased count or an unused exception SHALL fail lint. A finding SHALL remain recognizable after unrelated line movement. Wildcard exemptions for whole files, folders or utility palettes SHALL not authorize future violations.
+Frontend lint SHALL fail on every dependency, public API and style finding. The repository SHALL provide no list of tolerated findings, and the checks SHALL report each finding with its rule and source.
 
-#### Scenario: An existing color is copied
+#### Scenario: A forbidden dependency is added
 
-- **WHEN** an accepted existing style violation is copied into another occurrence
-- **THEN** lint fails for the added occurrence
+- **WHEN** a contributor adds a dependency that the architecture checks forbid
+- **THEN** frontend lint exits with a failure and names the rule and the source file
 
-#### Scenario: A violation is repaired
+#### Scenario: A direct color is added
 
-- **WHEN** a recorded violation disappears from the source
-- **THEN** lint fails until its stale exception is removed
+- **WHEN** a contributor adds a direct color outside an approved theme or chart-palette owner
+- **THEN** frontend lint exits with a failure and names the rule and the source file
+
+### Requirement: Frontend script modules belong to a layer
+
+Frontend lint SHALL reject a script module that sits outside the application, pages, widgets, features, entities and shared layers, except the application's entry module and its ambient type declaration. Dependencies of such a module could not otherwise be checked. This SHALL hold whether or not the module imports anything. The global style sheet is not a script module and stays at the source root.
+
+#### Scenario: A module is added beside the layers
+
+- **WHEN** a contributor adds a module with no imports and no importers directly under the frontend source root
+- **THEN** frontend lint fails and names that file
+
+#### Scenario: A module is added in a new folder
+
+- **WHEN** a contributor adds a module in a folder beside the layers
+- **THEN** frontend lint fails and names that file
+
+#### Scenario: The allowed root files stay
+
+- **WHEN** frontend lint checks the application's entry module, ambient type declaration and global style sheet
+- **THEN** it reports no finding for them
+
+### Requirement: Frontend checks enforce effect, rendering and interaction rules
+
+Frontend lint SHALL fail when an effect or memoized value omits a value it reads, when a reference is read or written during rendering, when rendering calls an impure function or mutates a value, when a component file exports something other than components, when a non-interactive element handles a click, or when an image has no text alternative. A single line MAY be exempted from one of these rules with a disable comment, and code review SHALL require that comment to state its reason.
+
+#### Scenario: An effect omits a dependency
+
+- **WHEN** a contributor writes an effect that reads a changing value it does not declare
+- **THEN** frontend lint fails
+
+#### Scenario: Rendering touches a reference or the clock
+
+- **WHEN** a component reads or writes a reference, calls an impure function or mutates a value during rendering
+- **THEN** frontend lint fails
+
+#### Scenario: A component file exports a non-component
+
+- **WHEN** a component file also exports a value that is not a component or a constant
+- **THEN** frontend lint fails
+
+#### Scenario: A plain element handles a click
+
+- **WHEN** a contributor adds a click handler to a non-interactive element
+- **THEN** frontend lint fails
+
+#### Scenario: An image has no text alternative
+
+- **WHEN** a contributor adds an image with no text alternative attribute
+- **THEN** frontend lint fails
+
+#### Scenario: One line is exempted
+
+- **WHEN** a single line carries a disable comment for one of these rules
+- **THEN** frontend lint accepts that line and still rejects the same finding on the next line

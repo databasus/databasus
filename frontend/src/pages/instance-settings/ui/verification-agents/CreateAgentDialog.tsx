@@ -51,6 +51,7 @@ export const CreateAgentDialog = ({
     >
       <p className="mb-2 text-sm text-muted">{t('verification.agents.create.tokenNotice')}</p>
       <Input
+        aria-label={t('common.fields.name')}
         placeholder={t('verification.agents.create.namePlaceholder')}
         value={name}
         onChange={(event) => setName(event.target.value)}

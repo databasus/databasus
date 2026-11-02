@@ -6,7 +6,7 @@ import {
   InfoCircleOutlined,
 } from '@ant-design/icons';
 import { Alert, App, Button, Input, Spin } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { EditNotifierComponent } from '@/features/edit-notifier';
@@ -15,8 +15,8 @@ import { ApiError } from '@/shared/api';
 import { notifierApi } from '../../../entities/notifiers';
 import type { Notifier } from '../../../entities/notifiers';
 import { useSessionGuard } from '../../../shared/auth';
+import { useLatestRef, useRequestRevision } from '../../../shared/hooks';
 import { translateApiError } from '../../../shared/i18n';
-import { RequestRevision } from '../../../shared/lib/RequestRevision';
 import { ConfirmationComponent } from '../../../shared/ui';
 import { NotifierTransferDialogComponent } from './NotifierTransferDialogComponent';
 import { ShowNotifierComponent } from './show/ShowNotifierComponent';
@@ -56,15 +56,14 @@ export const NotifierComponent = ({
   const [isShowTransferDialog, setIsShowTransferDialog] = useState(false);
 
   const isCurrentNotifier = (revision: number) =>
-    isCurrent() && notifierRevision.current.IsCurrent(revision);
+    isCurrent() && notifierRevision.IsCurrent(revision);
 
   const sendTestNotification = async () => {
     if (!notifier || !isCurrent() || isSendingTestNotification) return;
 
-    const revision = notifierRevision.current.GetCurrent();
-    const testRevision = savedTestRevision.current.Invalidate();
-    const isActive = () =>
-      isCurrentNotifier(revision) && savedTestRevision.current.IsCurrent(testRevision);
+    const revision = notifierRevision.GetCurrent();
+    const testRevision = savedTestRevision.Invalidate();
+    const isActive = () => isCurrentNotifier(revision) && savedTestRevision.IsCurrent(testRevision);
 
     setError(undefined);
     setDeliveryError(undefined);
@@ -108,7 +107,7 @@ export const NotifierComponent = ({
   const remove = async () => {
     if (!notifier || !isCurrent()) return;
 
-    const revision = notifierRevision.current.GetCurrent();
+    const revision = notifierRevision.GetCurrent();
 
     setIsRemoving(true);
 
@@ -131,7 +130,7 @@ export const NotifierComponent = ({
     if (isEditName || isEditSettings || isSaving) return;
 
     if (type === 'settings') {
-      savedTestRevision.current.Invalidate();
+      savedTestRevision.Invalidate();
       setIsSendingTestNotification(false);
       setError(undefined);
       setDeliveryError(undefined);
@@ -147,7 +146,7 @@ export const NotifierComponent = ({
     if (!notifier || !isCurrent() || isSaving) return;
 
     const submittedName = editName;
-    const revision = notifierRevision.current.GetCurrent();
+    const revision = notifierRevision.GetCurrent();
 
     setIsSaving(true);
 
@@ -181,8 +180,8 @@ export const NotifierComponent = ({
   const loadSettings = () => {
     if (!isCurrent()) return;
 
-    const revision = notifierRevision.current.Invalidate();
-    savedTestRevision.current.Invalidate();
+    const revision = notifierRevision.Invalidate();
+    savedTestRevision.Invalidate();
     setIsSendingTestNotification(false);
     setIsSaving(false);
     setIsRemoving(false);
@@ -207,24 +206,26 @@ export const NotifierComponent = ({
   const { t, i18n } = useTranslation();
   const { notification } = App.useApp();
   const isCurrent = useSessionGuard();
-  const notifierRevision = useRef(new RequestRevision());
-  const savedTestRevision = useRef(new RequestRevision());
-  const latestNotifier = useRef(notifier);
-  latestNotifier.current = notifier;
-  const latestName = useRef(editName);
-  latestName.current = editName;
+  const notifierRevision = useRequestRevision();
+  const savedTestRevision = useRequestRevision();
+  const latestNotifier = useLatestRef(notifier);
+  const latestName = useLatestRef(editName);
+
+  const startSettingsLoad = useEffectEvent(() => {
+    void loadSettings();
+  });
 
   useEffect(() => {
     setIsEditName(false);
     setIsEditSettings(false);
     setIsShowTransferDialog(false);
     setIsShowRemoveConfirm(false);
-    loadSettings();
+    startSettingsLoad();
 
     return () => {
-      notifierRevision.current.Invalidate();
+      notifierRevision.Invalidate();
     };
-  }, [notifierId]);
+  }, [notifierId, notifierRevision]);
 
   const isNameUnsaved = isEditName && editName !== notifier?.name;
 
@@ -368,7 +369,7 @@ export const NotifierComponent = ({
                   onPersisted={(savedNotifier) => {
                     if (!isCurrent() || savedNotifier.id !== notifierId) return;
 
-                    savedTestRevision.current.Invalidate();
+                    savedTestRevision.Invalidate();
                     setNotifier(savedNotifier);
                     onNotifierChanged(savedNotifier);
                   }}

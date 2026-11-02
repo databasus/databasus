@@ -1,6 +1,7 @@
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
@@ -391,5 +392,34 @@ describe('Style ownership checks', () => {
     '<div className="divide-[var(--app-border)] placeholder-[var(--app-muted)]" />',
   ])('permits semantic styling when every supplied branch is safe in %s', (content) => {
     expect(check({ content })).toEqual([]);
+  });
+});
+
+describe('lint:styles', () => {
+  const runStyleLint = (content: string) => {
+    const directory = mkdtempSync(join(tmpdir(), 'databasus-styles-'));
+
+    try {
+      mkdirSync(join(directory, 'shared/ui'), { recursive: true });
+      writeFileSync(join(directory, 'shared/ui/Control.tsx'), content);
+
+      return spawnSync(process.execPath, [resolve(__dirname, '../lint/styles.ts'), directory], {
+        encoding: 'utf8',
+      });
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  };
+
+  it('exits with a failure and names the rule and source when one finding exists', () => {
+    const lintRun = runStyleLint("export const Control = () => <div style={{ color: '#f00' }} />;");
+
+    expect(lintRun.status).not.toBe(0);
+    expect(lintRun.stderr).toContain('direct-color');
+    expect(lintRun.stderr).toContain('shared/ui/Control.tsx');
+  });
+
+  it('exits successfully when no finding exists', () => {
+    expect(runStyleLint('export const Control = () => <div className="flex" />;').status).toBe(0);
   });
 });

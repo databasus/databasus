@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { GoogleDriveStorageSettings } from '../../../entities/storages';
 import { getSessionSnapshot, isCurrentSession, subscribeSession } from '../../../shared/auth';
+import { useLatestRef } from '../../../shared/hooks';
 import type { TranslationKey } from '../../../shared/i18n';
 import type { StorageAuthorizationAttempt } from './StorageAuthorizationAttempt';
 import {
@@ -17,6 +18,8 @@ interface GoogleDriveAuthorizationOptions {
 }
 
 const ATTEMPT_LIFETIME = 10 * 60 * 1000;
+
+const getCurrentTimestamp = () => Date.now();
 
 export function useGoogleDriveAuthorization(options: GoogleDriveAuthorizationOptions) {
   const [status, setStatus] = useState<'idle' | 'waiting' | 'exchanging' | 'authorized' | 'error'>(
@@ -133,7 +136,7 @@ export function useGoogleDriveAuthorization(options: GoogleDriveAuthorizationOpt
       const attempt: StorageAuthorizationAttempt = {
         state,
         channel,
-        createdAt: Date.now(),
+        createdAt: getCurrentTimestamp(),
         redirectUri: `${window.location.origin}/storages/google-oauth`,
         workspaceId: current.workspaceId,
         storageId: current.storageId,
@@ -193,8 +196,7 @@ export function useGoogleDriveAuthorization(options: GoogleDriveAuthorizationOpt
   const activeAttempt = useRef<StorageAuthorizationAttempt | undefined>(undefined);
   const requestRevision = useRef(0);
   const editorId = useRef(Symbol());
-  const latestOptions = useRef(options);
-  latestOptions.current = options;
+  const latestOptions = useLatestRef(options);
 
   useEffect(() => {
     cancel();

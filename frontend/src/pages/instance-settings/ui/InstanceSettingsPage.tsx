@@ -1,6 +1,6 @@
 import { CopyOutlined, LoadingOutlined } from '@ant-design/icons';
 import { Alert, App, Button, Spin, Switch } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { type InstanceSettings, type InstanceSettingsUpdate, settingsApi } from '@/entities/users';
@@ -8,6 +8,7 @@ import { InstanceAuditLogs } from '@/pages/instance-settings/ui/InstanceAuditLog
 import { MailServer } from '@/pages/instance-settings/ui/MailServer';
 import { useSessionGuard } from '@/shared/auth';
 import { getApplicationServer } from '@/shared/config';
+import { useRequestRevision } from '@/shared/hooks';
 import { getWebsitePageUrl, translateApiError, useLocale } from '@/shared/i18n';
 import { ClipboardHelper } from '@/shared/lib/ClipboardHelper';
 
@@ -40,19 +41,19 @@ export function InstanceSettingsPage({ onSettingsChanged }: Props) {
   });
 
   const loadSettings = async () => {
-    const revision = ++loadRevision.current;
+    const revision = loadRevision.Invalidate();
     setIsLoading(true);
     setFailure(undefined);
 
     try {
       const currentSettings = await settingsApi.getSettings();
-      if (!isCurrent() || revision !== loadRevision.current) return;
+      if (!isCurrent() || !loadRevision.IsCurrent(revision)) return;
       setSettings(currentSettings);
       setFormSettings(toFormSettings(currentSettings));
     } catch (error: unknown) {
-      if (isCurrent() && revision === loadRevision.current) setFailure(error);
+      if (isCurrent() && loadRevision.IsCurrent(revision)) setFailure(error);
     } finally {
-      if (isCurrent() && revision === loadRevision.current) setIsLoading(false);
+      if (isCurrent() && loadRevision.IsCurrent(revision)) setIsLoading(false);
     }
   };
 
@@ -97,16 +98,20 @@ export function InstanceSettingsPage({ onSettingsChanged }: Props) {
   const { locale } = useLocale();
   const { message } = App.useApp();
   const isCurrent = useSessionGuard();
-  const loadRevision = useRef(0);
+  const loadRevision = useRequestRevision();
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  const startSettingsLoad = useEffectEvent(() => {
     void loadSettings();
+  });
+
+  useEffect(() => {
+    startSettingsLoad();
     return () => {
-      loadRevision.current++;
+      loadRevision.Invalidate();
     };
-  }, []);
+  }, [loadRevision]);
   const hasChanges =
     !!settings &&
     (Object.keys(formSettings) as (keyof InstanceSettingsUpdate)[]).some(

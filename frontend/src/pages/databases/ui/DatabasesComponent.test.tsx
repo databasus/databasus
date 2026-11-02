@@ -15,6 +15,7 @@ import {
 import type { Storage } from '../../../entities/storages';
 import type { Workspace } from '../../../entities/workspaces';
 import { API_BASE_PATH, type ApiComponents } from '../../../shared/api';
+import { activateSession, invalidateSession } from '../../../shared/auth';
 import { waitForCondition } from '../../../shared/lib/test/conditionWait';
 import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
 import { createPendingApiResponse } from '../../../shared/lib/test/pendingApiResponse';
@@ -205,11 +206,11 @@ const declareTransferRequests = (...listedDatabasePages: Database[][]) => {
 
 const transferSelectedDatabase = async (user: ReturnType<typeof renderScreen>['user']) => {
   await user.click(await screen.findByText('Config'));
-  await user.click(await screen.findByRole('button', { name: 'arrow-right' }));
+  await user.click(await screen.findByRole('button', { name: 'Transfer' }));
   await chooseSelectOption(await screen.findByRole('combobox'), transferTargetWorkspace.name);
   await waitFor(() => expect(screen.getAllByRole('combobox')).toHaveLength(2));
   await chooseSelectOption(screen.getAllByRole('combobox')[1], transferTargetStorage.name);
-  await user.click(screen.getByRole('button', { name: 'Transfer' }));
+  await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Transfer' }));
 };
 
 const findDatabaseCard = (name: string) =>
@@ -378,7 +379,7 @@ describe('DatabasesComponent', () => {
     const { user } = renderDatabasesScreen();
 
     await user.click(await screen.findByText('Config'));
-    await user.click(await screen.findByRole('button', { name: 'delete' }));
+    await user.click(await screen.findByRole('button', { name: 'Delete' }));
     await user.click(
       within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove' }),
     );
@@ -506,15 +507,15 @@ describe('DatabasesComponent', () => {
 
     const { user } = renderDatabasesScreen();
     await user.click(await screen.findByText('Config'));
-    const nameTitle = await screen.findByText('Shop', { selector: 'div.text-xl' });
+    const nameTitle = await screen.findByText('Shop', { selector: 'div.text-xl > span' });
 
-    fireEvent.click(nameTitle.querySelector(EDIT_ICON_SELECTOR)!.parentElement!);
+    fireEvent.click(nameTitle.parentElement!.querySelector(EDIT_ICON_SELECTOR)!.parentElement!);
     const nameInput = screen.getByPlaceholderText('Enter name...');
     await user.clear(nameInput);
     await user.type(nameInput, 'Storefront');
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
-    expect(await screen.findByText('Storefront', { selector: 'div.text-xl' })).toBeTruthy();
+    expect(await screen.findByText('Storefront', { selector: 'div.text-xl > span' })).toBeTruthy();
     expect((await findDatabaseCard('Storefront')).getAttribute('aria-pressed')).toBe('true');
     expect(screen.queryByPlaceholderText('Enter name...')).toBeNull();
   });
@@ -545,7 +546,6 @@ describe('DatabasesComponent', () => {
   });
 
   it('keeps the connection section open with the entered values when saving is refused', async () => {
-    vi.stubGlobal('alert', vi.fn());
     const shopDatabase = buildDatabase('Shop', 'AVAILABLE', DatabaseType.MYSQL);
     declareListResponses([shopDatabase]);
     mockServer.use(
@@ -725,7 +725,7 @@ describe('DatabasesComponent', () => {
     const { user } = renderDatabasesScreen();
     await user.click(await screen.findByText('Config'));
 
-    await user.click(await screen.findByRole('button', { name: 'copy' }));
+    await user.click(await screen.findByRole('button', { name: 'Copy' }));
     await user.click(
       within(await screen.findByRole('dialog')).getByRole('button', { name: 'Copy' }),
     );
@@ -738,7 +738,6 @@ describe('DatabasesComponent', () => {
   });
 
   it('keeps the list and the selection when copying is refused', async () => {
-    vi.stubGlobal('alert', vi.fn());
     const shopDatabase = buildDatabase('Shop');
     declareListResponses([shopDatabase]);
     mockServer.use(
@@ -751,7 +750,7 @@ describe('DatabasesComponent', () => {
     const { user } = renderDatabasesScreen();
     await user.click(await screen.findByText('Config'));
 
-    await user.click(await screen.findByRole('button', { name: 'copy' }));
+    await user.click(await screen.findByRole('button', { name: 'Copy' }));
     await user.click(
       within(await screen.findByRole('dialog')).getByRole('button', { name: 'Copy' }),
     );
@@ -759,7 +758,7 @@ describe('DatabasesComponent', () => {
     await waitFor(() =>
       expect(countRequests(`/databases/${shopDatabase.id}/copy`, 'POST')).toBe(1),
     );
-    expect(window.alert).toHaveBeenCalled();
+    expect(await screen.findByText('You do not have permission to do this.')).toBeTruthy();
     expect((await findDatabaseCard('Shop')).getAttribute('aria-pressed')).toBe('true');
     expect(screen.getAllByRole('button', { name: /^Shop/ })).toHaveLength(1);
     expect(countRequests('/databases')).toBe(1);
@@ -873,8 +872,8 @@ describe('DatabasesComponent with a late rename', () => {
 
     const { user } = renderDatabasesScreen();
     await user.click(await screen.findByText('Config'));
-    const nameTitle = await screen.findByText('Shop', { selector: 'div.text-xl' });
-    fireEvent.click(nameTitle.querySelector(EDIT_ICON_SELECTOR)!.parentElement!);
+    const nameTitle = await screen.findByText('Shop', { selector: 'div.text-xl > span' });
+    fireEvent.click(nameTitle.parentElement!.querySelector(EDIT_ICON_SELECTOR)!.parentElement!);
     const nameInput = screen.getByPlaceholderText('Enter name...');
     await user.clear(nameInput);
     await user.type(nameInput, 'Storefront');
@@ -882,7 +881,7 @@ describe('DatabasesComponent with a late rename', () => {
     await waitFor(() => expect(countRequests(`/databases/${shopDatabase.id}`, 'PUT')).toBe(1));
 
     await user.click(await findDatabaseCard('Bravo'));
-    await screen.findByText('Bravo', { selector: 'div.text-xl' });
+    await screen.findByText('Bravo', { selector: 'div.text-xl > span' });
     isRenamed = true;
     await act(async () => {
       pendingRename.respond(HttpResponse.json(renamedDatabase));
@@ -890,8 +889,397 @@ describe('DatabasesComponent with a late rename', () => {
 
     expect(await findDatabaseCard('Storefront')).toBeTruthy();
     expect((await findDatabaseCard('Bravo')).getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByText('Bravo', { selector: 'div.text-xl' })).toBeTruthy();
-    expect(screen.queryByText('Storefront', { selector: 'div.text-xl' })).toBeNull();
+    expect(screen.getByText('Bravo', { selector: 'div.text-xl > span' })).toBeTruthy();
+    expect(screen.queryByText('Storefront', { selector: 'div.text-xl > span' })).toBeNull();
+  });
+});
+
+describe('DatabasesComponent with late database actions', () => {
+  const shopDatabase = buildDatabase('Shop');
+  const bravoDatabase = buildDatabase('Bravo');
+  const copiedDatabase = { ...buildDatabase('Copy of Shop'), id: 'shop-copy-id' };
+  const renamedDatabase = { ...shopDatabase, name: 'Storefront' };
+  const REFUSAL_MESSAGE = 'You do not have permission to do this.';
+  const COPY_NOTICE = 'Database copied successfully!';
+  const TEST_NOTICE = 'Connection test successful!';
+  const refusal = () => HttpResponse.json(buildProblem('permission_denied', 403), { status: 403 });
+
+  const declareActionServer = () => {
+    const actionServer = {
+      listedDatabases: [shopDatabase, bravoDatabase],
+      pendingAction: createPendingApiResponse(),
+    };
+    vi.spyOn(databaseApi, 'listAllDatabases');
+    vi.spyOn(databaseApi, 'copyDatabase');
+    vi.spyOn(databaseApi, 'updateDatabase');
+    vi.spyOn(databaseApi, 'deleteDatabase');
+    vi.spyOn(databaseApi, 'testDatabase');
+    localStorage.setItem(SELECTED_DATABASE_PREFERENCE_KEY, shopDatabase.id);
+    mockServer.use(
+      http.get(`*${API_BASE_PATH}/databases`, () =>
+        HttpResponse.json({ items: actionServer.listedDatabases }),
+      ),
+      mockApi.get('/backup-configs', 200, { items: [] }),
+      mockApi.get('/storages', 200, { items: [] }),
+      mockApi.get('/storage-switches', 200, { items: [] }),
+      http.get(`*${API_BASE_PATH}/databases/:databaseId`, ({ params }) =>
+        HttpResponse.json(params.databaseId === bravoDatabase.id ? bravoDatabase : shopDatabase),
+      ),
+      http.post(
+        `*${API_BASE_PATH}/databases/:databaseId/copy`,
+        () => actionServer.pendingAction.response,
+      ),
+      http.post(
+        `*${API_BASE_PATH}/databases/:databaseId/test`,
+        () => actionServer.pendingAction.response,
+      ),
+      http.put(
+        `*${API_BASE_PATH}/databases/:databaseId`,
+        () => actionServer.pendingAction.response,
+      ),
+      http.delete(
+        `*${API_BASE_PATH}/databases/:databaseId`,
+        () => actionServer.pendingAction.response,
+      ),
+      ...declareSettingsRequests(),
+    );
+
+    return actionServer;
+  };
+
+  type ScreenUser = ReturnType<typeof renderScreen>['user'];
+
+  const startCopy = async (user: ScreenUser) => {
+    await user.click(await screen.findByRole('button', { name: 'Copy' }));
+    await user.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Copy' }),
+    );
+    await waitFor(() =>
+      expect(countRequests(`/databases/${shopDatabase.id}/copy`, 'POST')).toBe(1),
+    );
+  };
+
+  const startDelete = async (user: ScreenUser) => {
+    await user.click(await screen.findByRole('button', { name: 'Delete' }));
+    await user.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove' }),
+    );
+    await waitFor(() => expect(countRequests(`/databases/${shopDatabase.id}`, 'DELETE')).toBe(1));
+  };
+
+  const startRename = async (user: ScreenUser) => {
+    await user.click(await screen.findByRole('button', { name: 'Edit Shop' }));
+
+    const nameInput = screen.getByPlaceholderText('Enter name...');
+    await user.clear(nameInput);
+    await user.type(nameInput, 'Storefront');
+
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(countRequests(`/databases/${shopDatabase.id}`, 'PUT')).toBe(1));
+  };
+
+  const startTest = async (user: ScreenUser) => {
+    await user.click(await screen.findByRole('button', { name: 'Test connection' }));
+    await waitFor(() =>
+      expect(countRequests(`/databases/${shopDatabase.id}/test`, 'POST')).toBe(1),
+    );
+  };
+
+  const openConfigOfShop = async () => {
+    const view = renderDatabasesScreen();
+    await view.user.click(await screen.findByText('Config'));
+    await screen.findByText('Shop', { selector: 'div.text-xl > span' });
+
+    return view;
+  };
+
+  const selectBravo = async (user: ScreenUser) => {
+    await user.click(await findDatabaseCard('Bravo'));
+    await screen.findByText('Bravo', { selector: 'div.text-xl > span' });
+  };
+
+  const expectCardPressed = (name: string, isPressed: boolean) =>
+    waitFor(async () =>
+      expect((await findDatabaseCard(name)).getAttribute('aria-pressed')).toBe(String(isPressed)),
+    );
+
+  const expectNoActionFeedback = () => {
+    expect(screen.queryByText(COPY_NOTICE)).toBeNull();
+    expect(screen.queryByText(TEST_NOTICE)).toBeNull();
+    expect(screen.queryByText(REFUSAL_MESSAGE)).toBeNull();
+  };
+
+  const respondAndSettle = async (respond: () => void) => {
+    const actionCalls = [
+      vi.mocked(databaseApi.copyDatabase),
+      vi.mocked(databaseApi.updateDatabase),
+      vi.mocked(databaseApi.deleteDatabase),
+      vi.mocked(databaseApi.testDatabase),
+    ].flatMap((actionCall) => actionCall.mock.results.map((result) => result.value as unknown));
+
+    await act(async () => {
+      respond();
+      await Promise.allSettled(actionCalls);
+    });
+  };
+
+  describe('after another database was selected', () => {
+    it('adds a late copy to the list unselected and keeps the selection', async () => {
+      const actionServer = declareActionServer();
+      const { user } = await openConfigOfShop();
+      await startCopy(user);
+      await selectBravo(user);
+
+      actionServer.listedDatabases = [shopDatabase, bravoDatabase, copiedDatabase];
+      await act(async () => {
+        actionServer.pendingAction.respond(HttpResponse.json(copiedDatabase, { status: 201 }));
+      });
+
+      expect(await findDatabaseCard('Copy of Shop')).toBeTruthy();
+      await expectCardPressed('Copy of Shop', false);
+      await expectCardPressed('Bravo', true);
+      expect(screen.getByText('Bravo', { selector: 'div.text-xl > span' })).toBeTruthy();
+      expectNoActionFeedback();
+    });
+
+    it('removes a late deleted database and keeps the selection', async () => {
+      const actionServer = declareActionServer();
+      const { user } = await openConfigOfShop();
+      await startDelete(user);
+      await selectBravo(user);
+
+      actionServer.listedDatabases = [bravoDatabase];
+      await act(async () => {
+        actionServer.pendingAction.respond(new HttpResponse(null, { status: 204 }));
+      });
+
+      await waitFor(() => expect(screen.queryByRole('button', { name: /^Shop/ })).toBeNull());
+      await expectCardPressed('Bravo', true);
+      expect(screen.getByText('Bravo', { selector: 'div.text-xl > span' })).toBeTruthy();
+      expectNoActionFeedback();
+    });
+
+    it('shows no feedback for a late connection test', async () => {
+      const actionServer = declareActionServer();
+      const { user } = await openConfigOfShop();
+      await startTest(user);
+      await selectBravo(user);
+
+      await respondAndSettle(() =>
+        actionServer.pendingAction.respond(HttpResponse.json({ isConnected: true })),
+      );
+
+      expectNoActionFeedback();
+      await expectCardPressed('Bravo', true);
+    });
+
+    it('shows no feedback for a late refusal', async () => {
+      const actionServer = declareActionServer();
+      const { user } = await openConfigOfShop();
+      await startCopy(user);
+      await selectBravo(user);
+
+      await respondAndSettle(() => actionServer.pendingAction.respond(refusal()));
+
+      expectNoActionFeedback();
+      await expectCardPressed('Bravo', true);
+    });
+  });
+
+  describe('after another tab was opened', () => {
+    it('selects a late copy with no notice', async () => {
+      const actionServer = declareActionServer();
+      const { user } = await openConfigOfShop();
+      await startCopy(user);
+      await user.click(screen.getByText('Backups'));
+
+      actionServer.listedDatabases = [shopDatabase, bravoDatabase, copiedDatabase];
+      await act(async () => {
+        actionServer.pendingAction.respond(HttpResponse.json(copiedDatabase, { status: 201 }));
+      });
+
+      await expectCardPressed('Copy of Shop', true);
+      expectNoActionFeedback();
+    });
+
+    it('shows the new name of a late rename in the list', async () => {
+      const actionServer = declareActionServer();
+      const { user } = await openConfigOfShop();
+      await startRename(user);
+      await user.click(screen.getByText('Backups'));
+
+      actionServer.listedDatabases = [renamedDatabase, bravoDatabase];
+      await act(async () => {
+        actionServer.pendingAction.respond(HttpResponse.json(renamedDatabase));
+      });
+
+      expect(await findDatabaseCard('Storefront')).toBeTruthy();
+      await expectCardPressed('Storefront', true);
+      expectNoActionFeedback();
+    });
+
+    it('moves the selection when a late delete answers', async () => {
+      const actionServer = declareActionServer();
+      const { user } = await openConfigOfShop();
+      await startDelete(user);
+      await user.click(screen.getByText('Backups'));
+
+      actionServer.listedDatabases = [bravoDatabase];
+      await act(async () => {
+        actionServer.pendingAction.respond(new HttpResponse(null, { status: 204 }));
+      });
+
+      await waitFor(() => expect(screen.queryByRole('button', { name: /^Shop/ })).toBeNull());
+      await expectCardPressed('Bravo', true);
+      expectNoActionFeedback();
+    });
+
+    it('shows no feedback for a late connection test', async () => {
+      const actionServer = declareActionServer();
+      const { user } = await openConfigOfShop();
+      await startTest(user);
+      await user.click(screen.getByText('Backups'));
+
+      await respondAndSettle(() =>
+        actionServer.pendingAction.respond(HttpResponse.json({ isConnected: true })),
+      );
+
+      expectNoActionFeedback();
+    });
+
+    it.each([
+      { action: 'copy', start: startCopy },
+      { action: 'rename', start: startRename },
+      { action: 'delete', start: startDelete },
+      { action: 'connection test', start: startTest },
+    ])('shows no reason for a late refused $action', async ({ start }) => {
+      const actionServer = declareActionServer();
+      const { user } = await openConfigOfShop();
+      await start(user);
+      await user.click(screen.getByText('Backups'));
+
+      await respondAndSettle(() => actionServer.pendingAction.respond(refusal()));
+
+      expectNoActionFeedback();
+      await expectCardPressed('Shop', true);
+      await user.click(screen.getByText('Config'));
+      await screen.findByText('Shop', { selector: 'div.text-xl > span' });
+      expectNoActionFeedback();
+    });
+  });
+
+  const LATE_SUCCESSES = [
+    {
+      action: 'copy',
+      start: startCopy,
+      buildAnswer: () => HttpResponse.json(copiedDatabase, { status: 201 }),
+    },
+    {
+      action: 'rename',
+      start: startRename,
+      buildAnswer: () => HttpResponse.json(renamedDatabase),
+    },
+    {
+      action: 'delete',
+      start: startDelete,
+      buildAnswer: () => new HttpResponse(null, { status: 204 }),
+    },
+    {
+      action: 'connection test',
+      start: startTest,
+      buildAnswer: () => HttpResponse.json({ isConnected: true }),
+    },
+  ];
+
+  it.each(LATE_SUCCESSES)(
+    'reports nothing and requests nothing when a $action answers after the screen left',
+    async ({ start, buildAnswer }) => {
+      const actionServer = declareActionServer();
+      const { user, unmount } = await openConfigOfShop();
+      await start(user);
+      const listLoads = vi.mocked(databaseApi.listAllDatabases);
+      const listLoadsBeforeLeaving = listLoads.mock.calls.length;
+      unmount();
+
+      await respondAndSettle(() => actionServer.pendingAction.respond(buildAnswer()));
+
+      expectNoActionFeedback();
+      expect(listLoads.mock.calls.length).toBe(listLoadsBeforeLeaving);
+    },
+  );
+
+  it.each(LATE_SUCCESSES)(
+    'changes nothing when a $action answers after the session ended',
+    async ({ start, buildAnswer }) => {
+      activateSession({ token: 'first-token', userId: 'first-user' });
+      const actionServer = declareActionServer();
+      const { user } = await openConfigOfShop();
+      await start(user);
+      const listLoads = vi.mocked(databaseApi.listAllDatabases);
+      const listLoadsBeforeEnd = listLoads.mock.calls.length;
+      act(() => {
+        invalidateSession();
+      });
+
+      await respondAndSettle(() => actionServer.pendingAction.respond(buildAnswer()));
+
+      expectNoActionFeedback();
+      expect(listLoads.mock.calls.length).toBe(listLoadsBeforeEnd);
+      expect(screen.queryByRole('button', { name: /^Copy of Shop/ })).toBeNull();
+      expect(screen.queryByRole('button', { name: /^Storefront/ })).toBeNull();
+      expect(screen.getByRole('button', { name: /^Shop/ })).toBeTruthy();
+      expect(screen.queryByText('Storefront', { selector: 'div.text-xl > span' })).toBeNull();
+    },
+  );
+
+  it.each(
+    LATE_SUCCESSES.filter(({ action }) => action !== 'connection test').map(
+      ({ action, start }) => ({ action, start }),
+    ),
+  )('shows no reason when a refused $action answers after the session ended', async ({ start }) => {
+    activateSession({ token: 'first-token', userId: 'first-user' });
+    const actionServer = declareActionServer();
+    const { user } = await openConfigOfShop();
+    await start(user);
+    act(() => {
+      invalidateSession();
+    });
+
+    await respondAndSettle(() => actionServer.pendingAction.respond(refusal()));
+
+    expectNoActionFeedback();
+  });
+
+  it('removes a shown reason after returning from another tab', async () => {
+    const actionServer = declareActionServer();
+    const { user } = await openConfigOfShop();
+    await startCopy(user);
+    await act(async () => {
+      actionServer.pendingAction.respond(refusal());
+    });
+    await screen.findByText(REFUSAL_MESSAGE);
+
+    await user.click(screen.getByText('Backups'));
+    await user.click(screen.getByText('Config'));
+    await screen.findByText('Shop', { selector: 'div.text-xl > span' });
+
+    expect(screen.queryByText(REFUSAL_MESSAGE)).toBeNull();
+  });
+
+  it('removes a shown reason after returning from another database', async () => {
+    const actionServer = declareActionServer();
+    const { user } = await openConfigOfShop();
+    await startCopy(user);
+    await act(async () => {
+      actionServer.pendingAction.respond(refusal());
+    });
+    await screen.findByText(REFUSAL_MESSAGE);
+
+    await selectBravo(user);
+    await user.click(await findDatabaseCard('Shop'));
+    await screen.findByText('Shop', { selector: 'div.text-xl > span' });
+
+    expect(screen.queryByText(REFUSAL_MESSAGE)).toBeNull();
   });
 });
 

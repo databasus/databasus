@@ -1,5 +1,13 @@
 import { Alert, App, Button, Skeleton } from 'antd';
-import { type ReactNode, memo, useCallback, useEffect, useRef, useState } from 'react';
+import {
+  memo,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { Database } from '../../../../entities/databases';
@@ -128,6 +136,8 @@ export const WalStreamMonitoringComponent = ({
     controllerRef.current?.setPeriod(newPeriod);
   }, []);
 
+  const getPeriod = useEffectEvent(() => period);
+
   useEffect(() => {
     const controller = new WalStreamRefreshController(
       {
@@ -137,7 +147,7 @@ export const WalStreamMonitoringComponent = ({
         pageVisibility: browserPageVisibility,
         getNow: () => new Date(),
       },
-      period,
+      getPeriod(),
       setRefreshState,
     );
 
@@ -164,14 +174,20 @@ export const WalStreamMonitoringComponent = ({
     return () => liveController.stop();
   }, [database.id]);
 
+  const reportFullBackupRequested = useEffectEvent(() => {
+    message.success(i18n.t('backups.physical.monitoring.banner.fullBackupRequested'));
+  });
+  const reportFullBackupError = useEffectEvent((error: unknown) => {
+    message.error(translateApiError(error, i18n.t));
+  });
+
   useEffect(() => {
     const requestController = new FullBackupRequestController(
       {
         requestFullBackup: () => physicalBackupsApi.triggerPhysicalBackup(database.id, 'FULL'),
         refreshNow: () => controllerRef.current?.retry(),
-        reportRequested: () =>
-          message.success(i18n.t('backups.physical.monitoring.banner.fullBackupRequested')),
-        reportError: (e) => message.error(translateApiError(e, i18n.t)),
+        reportRequested: () => reportFullBackupRequested(),
+        reportError: (e) => reportFullBackupError(e),
       },
       setIsRequestingFullBackup,
     );

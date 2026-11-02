@@ -1,11 +1,11 @@
 import { ArrowRightOutlined, CloseOutlined, DeleteOutlined } from '@ant-design/icons';
 import { Alert, App, Button, Input, Spin } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { EditStorageComponent } from '@/features/edit-storage';
 import { useSessionGuard } from '@/shared/auth';
-import { RequestRevision } from '@/shared/lib/RequestRevision';
+import { useLatestRef, useRequestRevision } from '@/shared/hooks';
 
 import { type Storage, storageApi } from '../../../entities/storages';
 import { ApiError } from '../../../shared/api';
@@ -56,12 +56,12 @@ export const StorageComponent = ({
   const testConnection = async () => {
     if (!storage || !isCurrent() || isTestingConnection) return;
 
-    const revision = contextRevision.current.GetCurrent();
-    const testRevision = savedTestRevision.current.Invalidate();
+    const revision = contextRevision.GetCurrent();
+    const testRevision = savedTestRevision.Invalidate();
     const isActive = () =>
       isCurrent() &&
-      contextRevision.current.IsCurrent(revision) &&
-      savedTestRevision.current.IsCurrent(testRevision);
+      contextRevision.IsCurrent(revision) &&
+      savedTestRevision.IsCurrent(testRevision);
 
     setError(undefined);
     setConnectionError(undefined);
@@ -92,8 +92,8 @@ export const StorageComponent = ({
   // A storage that a backup config uses or that still holds backups is refused with in_use; the
   // generic in_use text names only databases, so the storage has its own.
   const remove = async () => {
-    const revision = contextRevision.current.GetCurrent();
-    const isActive = () => isCurrent() && contextRevision.current.IsCurrent(revision);
+    const revision = contextRevision.GetCurrent();
+    const isActive = () => isCurrent() && contextRevision.IsCurrent(revision);
     setError(undefined);
     setConnectionError(undefined);
     setIsDeleteBlocked(false);
@@ -126,7 +126,7 @@ export const StorageComponent = ({
     if (isEditName || isEditSettings || isSaving) return;
 
     if (type === 'settings') {
-      savedTestRevision.current.Invalidate();
+      savedTestRevision.Invalidate();
       setIsTestingConnection(false);
       setError(undefined);
       setConnectionError(undefined);
@@ -139,8 +139,8 @@ export const StorageComponent = ({
 
   // The settings of a read storage carry no secrets, so the rename keeps the stored ones.
   const saveName = async () => {
-    const revision = contextRevision.current.GetCurrent();
-    const isActive = () => isCurrent() && contextRevision.current.IsCurrent(revision);
+    const revision = contextRevision.GetCurrent();
+    const isActive = () => isCurrent() && contextRevision.IsCurrent(revision);
     setError(undefined);
     setConnectionError(undefined);
     setIsDeleteBlocked(false);
@@ -179,14 +179,14 @@ export const StorageComponent = ({
   };
 
   const acknowledgeStorage = (savedStorage: Storage) => {
-    savedTestRevision.current.Invalidate();
+    savedTestRevision.Invalidate();
     setStorage(savedStorage);
     onStorageChanged(savedStorage);
   };
 
   const loadSettings = () => {
-    const revision = contextRevision.current.Invalidate();
-    savedTestRevision.current.Invalidate();
+    const revision = contextRevision.Invalidate();
+    savedTestRevision.Invalidate();
     setIsTestingConnection(false);
     setIsSaving(false);
     setIsRemoving(false);
@@ -198,10 +198,10 @@ export const StorageComponent = ({
     storageApi
       .getStorage(storageId)
       .then((loadedStorage) => {
-        if (isCurrent() && contextRevision.current.IsCurrent(revision)) setStorage(loadedStorage);
+        if (isCurrent() && contextRevision.IsCurrent(revision)) setStorage(loadedStorage);
       })
       .catch((failure) => {
-        if (isCurrent() && contextRevision.current.IsCurrent(revision)) {
+        if (isCurrent() && contextRevision.IsCurrent(revision)) {
           setError(failure);
 
           if (failure instanceof ApiError && [403, 404].includes(failure.status ?? 0))
@@ -212,22 +212,25 @@ export const StorageComponent = ({
 
   const { notification } = App.useApp();
   const isCurrent = useSessionGuard();
-  const contextRevision = useRef(new RequestRevision());
-  const savedTestRevision = useRef(new RequestRevision());
-  const latestName = useRef(editStorage?.name);
-  latestName.current = editStorage?.name;
+  const contextRevision = useRequestRevision();
+  const savedTestRevision = useRequestRevision();
+  const latestName = useLatestRef(editStorage?.name);
+
+  const startSettingsLoad = useEffectEvent(() => {
+    void loadSettings();
+  });
 
   useEffect(() => {
     setIsEditName(false);
     setIsEditSettings(false);
     setIsShowTransferDialog(false);
     setIsShowRemoveConfirm(false);
-    loadSettings();
+    startSettingsLoad();
 
     return () => {
-      contextRevision.current.Invalidate();
+      contextRevision.Invalidate();
     };
-  }, [storageId]);
+  }, [storageId, contextRevision]);
 
   const isNameUnsaved = isEditName && editStorage?.name !== storage?.name;
 

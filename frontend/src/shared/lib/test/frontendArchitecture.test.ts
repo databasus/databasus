@@ -1,12 +1,12 @@
+import { spawnSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { compareVersions } from '@/shared/lib/version';
 
 import { checkFrontendArchitecture } from '../../../../lint/fsd';
-import { compareArchitectureBaseline } from '../../../../lint/fsd-baseline';
 
 interface BoundaryCase {
   name: string;
@@ -42,6 +42,11 @@ const createProject = (files: Record<string, string>) => {
 afterEach(() =>
   fixtures.splice(0).forEach((directory) => rmSync(directory, { recursive: true, force: true })),
 );
+
+const runArchitectureLint = (root: string) =>
+  spawnSync(process.execPath, [resolve(__dirname, '../../../../lint/fsd.ts'), root], {
+    encoding: 'utf8',
+  });
 
 const domain = {
   'entities/database/index.ts': 'export const database = 1; export type Database = string;',
@@ -161,31 +166,66 @@ describe('frontend architecture', () => {
     });
   });
 
-  it('tracks exact occurrences and stale entries when the baseline changes', () => {
-    const finding = {
-      rule: 'project/private-slice-import',
-      source: 'features/a/index.ts',
-      target: 'entities/database/model/connection.ts',
-    };
-    const entry = { ...finding, count: 1, owner: 'databases', milestone: 5 };
+  it('exits with a failure and names the rule and source when one finding exists', () => {
+    const root = createProject({
+      'shared/ui/index.ts': 'export const control = 1;',
+      'constants.ts': 'export const value = 1;',
+    });
 
-    expect(compareArchitectureBaseline([finding], [entry])).toEqual([]);
-    expect(compareArchitectureBaseline([finding, finding], [entry])).toEqual([
-      expect.stringContaining('Increased'),
-    ]);
+    const lintRun = runArchitectureLint(root);
+
+    expect(lintRun.status).not.toBe(0);
+    expect(lintRun.stderr).toContain('project/file-outside-layers: constants.ts');
+  });
+
+  it('exits with a failure and names the rule and source when a forbidden dependency is added', () => {
+    const root = createProject({
+      ...domain,
+      'shared/api/client.ts': "import {database} from '@/entities/database'; export {database};",
+    });
+
+    const lintRun = runArchitectureLint(root);
+
+    expect(lintRun.status).not.toBe(0);
+    expect(lintRun.stderr).toMatch(
+      /(fsd\/forbidden-imports|project\/forbidden-dependency): shared\/api\/client\.ts/,
+    );
+  });
+
+  it('exits successfully when no finding exists', () => {
+    const lintRun = runArchitectureLint(
+      createProject({ 'shared/ui/index.ts': 'export const control = 1;' }),
+    );
+
+    expect(lintRun.stderr).toBe('');
+    expect(lintRun.status).toBe(0);
+  });
+
+  it.each([
+    { placement: 'directly under the source root', module: 'constants.ts' },
+    { placement: 'in a folder beside the layers', module: 'helpers/format.ts' },
+  ])('rejects an import-free module $placement', async ({ module }) => {
+    const root = createProject({ ...domain, [module]: 'export const value = 1;' });
+
+    expect(await checkFrontendArchitecture(root)).toContainEqual({
+      rule: 'project/file-outside-layers',
+      source: module,
+    });
+  });
+
+  it('accepts the entry module, the ambient declaration and the global style sheet', async () => {
+    const root = createProject({
+      ...domain,
+      'main.tsx': 'export {};',
+      'vite-env.d.ts': 'export {};',
+      'index.css': 'body {}',
+    });
+
     expect(
-      compareArchitectureBaseline(
-        [finding, { ...finding, target: 'entities/database/model/other.ts' }],
-        [entry],
+      (await checkFrontendArchitecture(root)).filter(
+        (finding) => finding.rule === 'project/file-outside-layers',
       ),
-    ).toEqual([expect.stringContaining('New')]);
-    expect(compareArchitectureBaseline([], [entry])).toEqual([expect.stringContaining('Stale')]);
-    expect(
-      compareArchitectureBaseline(
-        [{ ...finding, target: 'entities/database/model/other.ts' }],
-        [entry],
-      ),
-    ).toEqual([expect.stringContaining('Stale'), expect.stringContaining('New')]);
+    ).toEqual([]);
   });
 
   it('preserves semantic identity when unrelated lines move', async () => {

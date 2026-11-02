@@ -22,6 +22,7 @@ export const es: typeof en = {
       remove: 'Eliminar',
       retry: 'Reintentar',
       save: 'Guardar',
+      transfer: 'Transferir',
     },
     answers: {
       no: 'No',
@@ -46,6 +47,7 @@ export const es: typeof en = {
     },
     // Joins translated words into one list (Chinese uses 、)
     listSeparator: ', ',
+    websiteLink: 'Sitio web de Databasus',
     confirmation: {
       title: 'Confirmación',
     },
@@ -1674,6 +1676,7 @@ export const es: typeof en = {
           'El enlace de descarga es de un solo uso y caduca en 15 minutos. Si un comando falla con un error 401, vuelva a abrir este diálogo para generar uno nuevo.',
         copied: 'Copiado',
         methods: {
+          label: 'Método de restauración',
           script: 'Con script',
           manual: 'Manual',
         },

@@ -12,9 +12,13 @@ import type { Database } from '../../../entities/databases';
 import { type Storage, storageApi } from '../../../entities/storages';
 import type { Workspace } from '../../../entities/workspaces';
 import { useSessionGuard } from '../../../shared/auth';
-import { useIsMobile, useScopedSelection } from '../../../shared/hooks';
+import {
+  useIsMobile,
+  useLatestRef,
+  useRequestRevision,
+  useScopedSelection,
+} from '../../../shared/hooks';
 import { translateApiError } from '../../../shared/i18n';
-import { RequestRevision } from '../../../shared/lib/RequestRevision';
 import { ResourceListDetail } from '../../../shared/ui';
 import { CreateDatabaseComponent } from './CreateDatabaseComponent';
 import { DatabaseCardComponent } from './DatabaseCardComponent';
@@ -74,7 +78,7 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs }: Props) => {
   const loadDatabases = (isSilent = false) => {
     if (!isCurrent()) return;
 
-    const revision = loadRevision.current.Invalidate();
+    const revision = loadRevision.Invalidate();
     const workspaceId = workspace.id;
 
     if (!isSilent) {
@@ -88,7 +92,7 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs }: Props) => {
       storageApi.listAllStorages(workspaceId),
     ])
       .then(([listedDatabases, listedBackupConfigs, listedStorages]) => {
-        if (!isCurrent() || !loadRevision.current.IsCurrent(revision)) return;
+        if (!isCurrent() || !loadRevision.IsCurrent(revision)) return;
 
         setCollection({
           workspaceId,
@@ -100,17 +104,19 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs }: Props) => {
       })
       .catch((error) => {
         // A background refresh retries on its own, so it keeps the shown list without feedback.
-        if (!isSilent && isCurrent() && loadRevision.current.IsCurrent(revision)) {
+        if (!isSilent && isCurrent() && loadRevision.IsCurrent(revision)) {
           setLoadError(error);
         }
       })
       .finally(() => {
-        if (isCurrent() && loadRevision.current.IsCurrent(revision)) setIsLoading(false);
+        if (isCurrent() && loadRevision.IsCurrent(revision)) setIsLoading(false);
       });
   };
 
+  const isCurrentWorkspaceAnswer = () => isCurrent() && latestWorkspaceId.current === workspace.id;
+
   const acceptDatabase = (database: Database) => {
-    if (!isCurrent() || database.workspaceId !== workspace.id) return;
+    if (!isCurrentWorkspaceAnswer() || database.workspaceId !== workspace.id) return;
 
     setCollection((current) => ({
       ...current,
@@ -119,15 +125,33 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs }: Props) => {
     loadDatabases(true);
   };
 
-  const acceptAddedDatabase = (database: Database) => {
-    if (!isCurrent() || database.workspaceId !== workspace.id) return;
-
+  const addDatabaseToList = (database: Database) => {
     setCollection((current) => ({
       ...current,
       items: [...current.items.filter((item) => item.id !== database.id), database],
     }));
+  };
+
+  const acceptAddedDatabase = (database: Database) => {
+    if (!isCurrentWorkspaceAnswer() || database.workspaceId !== workspace.id) return;
+
+    addDatabaseToList(database);
     selection.select(database.id);
     loadDatabases(true);
+  };
+
+  const acceptCopiedDatabase = (copiedDatabase: Database, sourceDatabaseId: string) => {
+    if (!isCurrentWorkspaceAnswer() || copiedDatabase.workspaceId !== workspace.id) return;
+
+    addDatabaseToList(copiedDatabase);
+
+    if (latestSelectedDatabaseId.current === sourceDatabaseId) selection.select(copiedDatabase.id);
+
+    loadDatabases(true);
+  };
+
+  const rememberDatabaseCreatedInWizard = (database: Database) => {
+    databaseCreatedInWizard.current = database;
   };
 
   // Selecting at creation would mount the screen behind the wizard, and its single configuration read
@@ -140,13 +164,14 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs }: Props) => {
     if (database) acceptAddedDatabase(database);
   };
 
-  const removeSelected = () => {
-    if (!selectedDatabaseId) return;
+  const removeDatabase = (databaseId: string) => {
+    if (!isCurrentWorkspaceAnswer()) return;
 
-    selection.remove(selectedDatabaseId);
+    if (latestSelectedDatabaseId.current === databaseId) selection.remove(databaseId);
+
     setCollection((current) => ({
       ...current,
-      items: current.items.filter((item) => item.id !== selectedDatabaseId),
+      items: current.items.filter((item) => item.id !== databaseId),
     }));
     loadDatabases(true);
   };
@@ -154,7 +179,7 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs }: Props) => {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
   const isCurrent = useSessionGuard();
-  const loadRevision = useRef(new RequestRevision());
+  const loadRevision = useRequestRevision();
   const detailScrollRef = useRef<HTMLDivElement>(null);
   const databaseCreatedInWizard = useRef<Database | undefined>(undefined);
   const databases = collection.workspaceId === workspace.id ? collection.items : [];
@@ -166,9 +191,17 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs }: Props) => {
     isMobile,
   });
   const selectedDatabaseId = selection.selectedItemId;
+  // A late answer runs a handler from the render that started the action, so its selection and
+  // workspace can be stale.
+  const latestSelectedDatabaseId = useLatestRef(selectedDatabaseId);
+  const latestWorkspaceId = useLatestRef(workspace.id);
 
   const refreshIfVisible = useEffectEvent(() => {
     if (document.visibilityState !== 'hidden' && collection.isReady) loadDatabases(true);
+  });
+
+  const startDatabasesLoad = useEffectEvent(() => {
+    loadDatabases();
   });
 
   useEffect(() => {
@@ -176,18 +209,18 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs }: Props) => {
     setIsShowAddDatabase(false);
     databaseCreatedInWizard.current = undefined;
     setSearchQuery('');
-    loadDatabases();
+    startDatabasesLoad();
 
     const refresh = () => refreshIfVisible();
     const interval = setInterval(refresh, DATABASES_REFRESH_INTERVAL_MS);
     document.addEventListener(VISIBILITY_CHANGE_EVENT, refresh);
 
     return () => {
-      loadRevision.current.Invalidate();
+      loadRevision.Invalidate();
       clearInterval(interval);
       document.removeEventListener(VISIBILITY_CHANGE_EVENT, refresh);
     };
-  }, [workspace.id]);
+  }, [workspace.id, loadRevision]);
 
   const filteredDatabases = databases.filter((database) =>
     database.name.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -277,9 +310,9 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs }: Props) => {
                 scrollContainerRef={detailScrollRef}
                 databaseId={selectedDatabaseId}
                 onDatabaseChanged={acceptDatabase}
-                onDatabaseDeleted={removeSelected}
-                onDatabaseCopied={acceptAddedDatabase}
-                onDatabaseTransferred={removeSelected}
+                onDatabaseDeleted={removeDatabase}
+                onDatabaseCopied={acceptCopiedDatabase}
+                onDatabaseTransferred={removeDatabase}
                 isCanManageDBs={isCanManageDBs}
               />
             )
@@ -301,9 +334,7 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs }: Props) => {
 
           <CreateDatabaseComponent
             workspaceId={workspace.id}
-            onCreated={(database) => {
-              databaseCreatedInWizard.current = database;
-            }}
+            onCreated={rememberDatabaseCreatedInWizard}
             onClose={closeWizardAndAcceptCreatedDatabase}
             onConnectionErrorChange={setHasConnectionError}
             onWideStepChange={setIsWideStep}

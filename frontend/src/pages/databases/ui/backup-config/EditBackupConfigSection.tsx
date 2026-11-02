@@ -1,5 +1,5 @@
 import { Alert, Button, Spin, Switch } from 'antd';
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useEffectEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -83,6 +83,11 @@ export const EditBackupConfigSection = <TDraft extends BackupConfigSectionDraft>
     void saveDraft(savedDraft);
   };
 
+  const loadHasHistory = useEffectEvent(() =>
+    backupConfigApi.hasBackupHistory(database.id, isPhysical),
+  );
+  const buildLoadedDraft = useEffectEvent((loadedConfig: BackupConfig) => toDraft(loadedConfig));
+
   useEffect(() => {
     let isCurrentLoad = true;
 
@@ -92,12 +97,12 @@ export const EditBackupConfigSection = <TDraft extends BackupConfigSectionDraft>
 
     Promise.all([
       backupConfigApi.getBackupConfig(database.id),
-      backupConfigApi.hasBackupHistory(database.id, isPhysical).catch(() => undefined),
+      loadHasHistory().catch(() => undefined),
     ])
       .then(([loadedConfig, loadedHasHistory]) => {
         if (!isCurrentLoad) return;
 
-        const loadedDraft = toDraft(loadedConfig);
+        const loadedDraft = buildLoadedDraft(loadedConfig);
 
         setAcknowledgedDraft(loadedDraft);
         setDraft(loadedDraft);

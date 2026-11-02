@@ -1,5 +1,5 @@
 import { Alert, Button, Collapse, Progress, Spin } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { translateApiError } from '../../../shared/i18n';
@@ -103,23 +103,36 @@ export const StorageSwitchHistoryComponent = ({
     };
   }, []);
 
+  const resetToInitialOperation = useEffectEvent(() => {
+    setOperations(initialOperation ? [initialOperation] : []);
+  });
+
   useEffect(() => {
     scopeGeneration.current++;
     setIsLoading(false);
-    setOperations(initialOperation ? [initialOperation] : []);
+    resetToInitialOperation();
     setNextCursor(undefined);
     setError(undefined);
   }, [workspaceId, databaseId]);
 
-  useEffect(() => {
+  const prependInitialOperationAndLoad = useEffectEvent(() => {
     if (initialOperation) {
       setOperations((current) => [
         initialOperation,
         ...current.filter((operation) => operation.id !== initialOperation.id),
       ]);
     }
+
     void loadHistory();
+  });
+
+  useEffect(() => {
+    prependInitialOperationAndLoad();
   }, [workspaceId, databaseId, initialOperation?.id]);
+
+  const refreshPendingOperations = useEffectEvent(() => {
+    void refreshPending();
+  });
 
   useEffect(() => {
     if (
@@ -127,7 +140,7 @@ export const StorageSwitchHistoryComponent = ({
       !operations.some((operation) => operation.status === 'CLEANUP_PENDING')
     )
       return;
-    const timer = setTimeout(refreshPending, 2000);
+    const timer = setTimeout(() => refreshPendingOperations(), 2000);
     return () => clearTimeout(timer);
   }, [operations, error]);
 

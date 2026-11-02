@@ -1,11 +1,11 @@
 import { LoadingOutlined } from '@ant-design/icons';
 import { Alert, App, Button, Input, Spin } from 'antd';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { databaseApi } from '@/entities/databases';
 import { ApiError } from '@/shared/api';
-import { RequestRevision } from '@/shared/lib/RequestRevision';
+import { useLatestRef, useRequestRevision } from '@/shared/hooks';
 
 import type { User } from '../../../entities/users';
 import { UserRole } from '../../../entities/users';
@@ -42,12 +42,12 @@ export function WorkspaceSettingsComponent({
   const [isNameError, setNameError] = useState(false);
 
   const isActiveWorkspace = (revision: number) =>
-    isCurrent() && workspaceRevision.current.IsCurrent(revision);
+    isCurrent() && workspaceRevision.IsCurrent(revision);
 
   const handleUnavailable = (error: unknown) => {
     if (!isCurrent()) return;
 
-    workspaceRevision.current.Invalidate();
+    workspaceRevision.Invalidate();
     deletionDialog.current?.destroy();
     setWorkspace(undefined);
     setFormWorkspace({});
@@ -68,7 +68,7 @@ export function WorkspaceSettingsComponent({
   };
 
   const loadWorkspace = async () => {
-    const revision = workspaceRevision.current.Invalidate();
+    const revision = workspaceRevision.Invalidate();
     setIsLoading(true);
     setLoadError(undefined);
     setWorkspace(undefined);
@@ -103,7 +103,7 @@ export function WorkspaceSettingsComponent({
       return;
     }
 
-    const revision = workspaceRevision.current.GetCurrent();
+    const revision = workspaceRevision.GetCurrent();
     setNameError(false);
     setMutationError(undefined);
     setIsSaving(true);
@@ -137,7 +137,7 @@ export function WorkspaceSettingsComponent({
       return;
     }
 
-    const revision = workspaceRevision.current.GetCurrent();
+    const revision = workspaceRevision.GetCurrent();
     deletionDialog.current?.destroy();
     deletionDialog.current = modal.confirm({
       title: t('workspaces.delete.confirmation.title'),
@@ -193,9 +193,8 @@ export function WorkspaceSettingsComponent({
   const isMobile = useIsMobile();
   const isCurrent = useSessionGuard();
 
-  const workspaceRevision = useRef(new RequestRevision());
-  const callbacks = useRef({ onRenamed, onDeleted, onUnavailable });
-  callbacks.current = { onRenamed, onDeleted, onUnavailable };
+  const workspaceRevision = useRequestRevision();
+  const callbacks = useLatestRef({ onRenamed, onDeleted, onUnavailable });
   const nameControlId = useId();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const deletionDialog = useRef<ReturnType<typeof modal.confirm> | undefined>(undefined);
@@ -207,17 +206,21 @@ export function WorkspaceSettingsComponent({
     selectedWorkspace.currentUserRole === WorkspaceRole.ADMIN;
   const canDelete = isInstanceAdmin || selectedWorkspace.currentUserRole === WorkspaceRole.OWNER;
 
+  const startWorkspaceLoad = useEffectEvent(() => {
+    void loadWorkspace();
+  });
+
   useEffect(() => {
     setIsSaving(false);
     setIsDeleting(false);
     setMutationError(undefined);
-    void loadWorkspace();
+    startWorkspaceLoad();
 
     return () => {
-      workspaceRevision.current.Invalidate();
+      workspaceRevision.Invalidate();
       deletionDialog.current?.destroy();
     };
-  }, [selectedWorkspace.id]);
+  }, [selectedWorkspace.id, workspaceRevision]);
 
   const isBasicInfoChanged = !!workspace && formWorkspace.name !== workspace.name;
 

@@ -1,5 +1,5 @@
 import { Button, Input } from 'antd';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -32,6 +32,7 @@ export const EditDatabaseBaseInfoComponent = ({
   onContinue,
 }: Props) => {
   const { t } = useTranslation();
+  const nameFieldId = useId();
   const [editingName, setEditingName] = useState(name);
   const [selectedType, setSelectedType] = useState(type);
 
@@ -48,8 +49,11 @@ export const EditDatabaseBaseInfoComponent = ({
   return (
     <div>
       <div className="mb-3 flex items-center">
-        <div className="mr-3">{t('common.fields.name')}</div>
+        <label className="mr-3" htmlFor={nameFieldId}>
+          {t('common.fields.name')}
+        </label>
         <Input
+          id={nameFieldId}
           value={editingName}
           onChange={(e) => setEditingName(e.target.value)}
           size="small"
@@ -66,21 +70,19 @@ export const EditDatabaseBaseInfoComponent = ({
           const engineLabel = t(DATABASE_TYPE_LABEL_KEYS[engineType]);
 
           return (
-            <div
+            <button
+              type="button"
               key={engineType}
+              aria-pressed={isSelected}
               onClick={() => selectEngine(engineType)}
               className={`flex h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border text-center text-xs transition hover:border-accent ${
                 isSelected ? 'border-accent bg-hover' : 'border-border bg-surface'
               }`}
             >
-              <img
-                src={getDatabaseLogoFromType(engineType)}
-                alt={engineLabel}
-                className="h-7 w-7"
-              />
+              <img src={getDatabaseLogoFromType(engineType)} alt="" className="h-7 w-7" />
 
               <span className="px-1 leading-tight">{engineLabel}</span>
-            </div>
+            </button>
           );
         })}
       </div>

@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { HttpResponse, type RequestHandler, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -18,6 +18,8 @@ import {
 } from '../../../entities/databases';
 import { API_BASE_PATH, type ApiComponents } from '../../../shared/api';
 import { activateSession, invalidateSession } from '../../../shared/auth';
+import { useLocale } from '../../../shared/i18n';
+import { DICTIONARIES } from '../../../shared/i18n/dictionaries';
 import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
 import { createPendingApiResponse } from '../../../shared/lib/test/pendingApiResponse';
 import { releaseAndSettle } from '../../../shared/lib/test/releaseAndSettle';
@@ -204,91 +206,6 @@ const savedWithCertificate = buildSavedDatabase(DatabaseType.POSTGRES_LOGICAL, {
 } as Partial<DatabaseSettings>);
 
 describe('DatabaseConfigComponent', () => {
-  it('ignores pending configuration errors after the screen unmounts', async () => {
-    const alert = vi.fn();
-    vi.stubGlobal('alert', alert);
-    const backupConfig = mockApi.pending('get', '/backup-configs/{databaseId}');
-    const healthcheckConfig = mockApi.pending('get', '/healthcheck-configs/{databaseId}');
-    const view = renderDatabaseConfig(false, [backupConfig.handler, healthcheckConfig.handler]);
-
-    await waitFor(() =>
-      expect(
-        mockServer
-          .getRequests()
-          .filter((request) => /\/(backup-configs|healthcheck-configs)\//.test(request.url)),
-      ).toHaveLength(2),
-    );
-
-    view.unmount();
-    const requestsFinished = new Promise<void>((resolve) => {
-      let completedRequests = 0;
-      mockServer.events.on('request:end', ({ request }) => {
-        if (
-          /\/(backup-configs|healthcheck-configs)\//.test(request.url) &&
-          ++completedRequests === 2
-        )
-          resolve();
-      });
-    });
-    await act(async () => {
-      backupConfig.cancel();
-      healthcheckConfig.cancel();
-      await requestsFinished;
-    });
-
-    expect(alert).not.toHaveBeenCalled();
-  });
-
-  it('shows no notifier or verification error after the screen unmounts', async () => {
-    const showAlert = vi.fn();
-    vi.stubGlobal('alert', showAlert);
-    const notifiers = mockApi.pending('get', '/notifiers');
-    const verificationConfig = mockApi.pending('get', '/verification-configs/{databaseId}');
-    mockServer.use(
-      notifiers.handler,
-      verificationConfig.handler,
-      mockApi.pending('get', '/backup-configs/{databaseId}').handler,
-      mockApi.pending('get', '/healthcheck-configs/{databaseId}').handler,
-    );
-
-    const view = renderScreen(
-      <DatabaseConfigComponent
-        database={{
-          ...savedDatabase,
-          settings: createDefaultDatabaseSettings(DatabaseType.POSTGRES_LOGICAL),
-        }}
-        onDatabaseChanged={() => {}}
-        onDatabaseDeleted={() => {}}
-        onDatabaseCopied={() => {}}
-        onDatabaseTransferred={() => {}}
-        isCanManageDBs={false}
-      />,
-    );
-    await waitFor(() =>
-      expect(
-        mockServer
-          .getRequests()
-          .filter((request) => /\/(notifiers|verification-configs\/)/.test(request.url)),
-      ).toHaveLength(2),
-    );
-
-    view.unmount();
-    const requestsFinished = new Promise<void>((resolve) => {
-      let completedRequests = 0;
-      mockServer.events.on('request:end', ({ request }) => {
-        if (/\/(notifiers|verification-configs\/)/.test(request.url) && ++completedRequests === 2)
-          resolve();
-      });
-    });
-    await act(async () => {
-      notifiers.cancel();
-      verificationConfig.cancel();
-      await requestsFinished;
-    });
-
-    expect(showAlert).not.toHaveBeenCalled();
-  });
-
   it('shows the limited-user hint after an editor saves the connection settings', async () => {
     const { handlers, limitedUserCheckCalls } = recordLimitedUserChecks();
     renderDatabaseConfig(true, handlers);
@@ -314,7 +231,6 @@ describe('DatabaseConfigComponent', () => {
   });
 
   it('offers a retry when the backup configuration fails to load', async () => {
-    vi.stubGlobal('alert', vi.fn());
     const retriedBackupConfig = createPendingApiResponse();
     let backupConfigRequests = 0;
     mockServer.use(
@@ -604,42 +520,6 @@ describe('DatabaseConfigComponent', () => {
       expect(screen.getByRole('button', { name: /Save$/ })).toBeTruthy();
     },
   );
-
-  it('shows no failure of a physical backup configuration after the screen unmounts', async () => {
-    const showAlert = vi.fn();
-    vi.stubGlobal('alert', showAlert);
-    const configCall = vi.spyOn(backupConfigApi, 'getBackupConfig');
-    const backupConfigLoad = mockApi.delayed({
-      method: 'get',
-      path: '/backup-configs/{databaseId}',
-      status: 500,
-      body: buildProblem('internal', 500),
-    });
-    mockServer.use(
-      backupConfigLoad.handler,
-      mockApi.get('/notifiers', 200, { items: [] }),
-      mockApi.pending('get', '/storages').handler,
-      mockApi.pending('get', '/healthcheck-configs/{databaseId}').handler,
-      mockApi.pending('get', '/verification-configs/{databaseId}').handler,
-    );
-
-    const view = renderScreen(
-      <DatabaseConfigComponent
-        database={buildSavedDatabase(DatabaseType.POSTGRES_PHYSICAL)}
-        onDatabaseChanged={() => {}}
-        onDatabaseDeleted={() => {}}
-        onDatabaseCopied={() => {}}
-        onDatabaseTransferred={() => {}}
-        isCanManageDBs
-      />,
-    );
-    await waitFor(() => expect(configCall).toHaveBeenCalled());
-
-    view.unmount();
-    await releaseAndSettle(configCall, backupConfigLoad.release);
-
-    expect(showAlert).not.toHaveBeenCalled();
-  });
 
   describe('the defects of the connection section', () => {
     it('does not offer Save when the password changes during a successful test', async () => {
@@ -1973,5 +1853,266 @@ describe('DatabaseConfigComponent backup configuration', () => {
 
     expect(screen.queryByText('Retry backup if failed')).toBeNull();
     expect(screen.queryByText('Advanced settings')).toBeNull();
+  });
+});
+
+describe('DatabaseConfigComponent action feedback', () => {
+  const REFUSAL_MESSAGE = 'You do not have permission to do this.';
+  const refusal = buildProblem('permission_denied', 403);
+
+  const renderActions = (handlers: RequestHandler[] = []) => {
+    const callbacks = {
+      onDatabaseChanged: vi.fn(),
+      onDatabaseDeleted: vi.fn(),
+      onDatabaseCopied: vi.fn(),
+      onDatabaseTransferred: vi.fn(),
+    };
+    const showAlert = vi.spyOn(window, 'alert').mockImplementation(() => {});
+    const LanguageSwitch = () => {
+      const { setLocale } = useLocale();
+
+      return <button onClick={() => setLocale('ru')}>Switch language</button>;
+    };
+
+    mockServer.use(
+      ...handlers,
+      mockApi.get('/notifiers', 200, { items: [] }),
+      mockApi.pending('get', '/backup-configs/{databaseId}').handler,
+      mockApi.pending('get', '/storages').handler,
+      mockApi.pending('get', '/healthcheck-configs/{databaseId}').handler,
+    );
+
+    const view = renderScreen(
+      <>
+        <LanguageSwitch />
+        <DatabaseConfigComponent database={savedDatabase} isCanManageDBs {...callbacks} />
+      </>,
+    );
+
+    return { ...view, ...callbacks, showAlert };
+  };
+
+  const confirmCopy = async () => {
+    fireEvent.click(await screen.findByRole('button', { name: 'Copy' }));
+    fireEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Copy' }),
+    );
+  };
+
+  const confirmDelete = async () => {
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete' }));
+    fireEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove' }),
+    );
+  };
+
+  const startNameEdit = async (user: ReturnType<typeof renderScreen>['user']) => {
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit Shop' }));
+
+    const nameInput = screen.getByPlaceholderText('Enter name...');
+    await user.clear(nameInput);
+    await user.type(nameInput, 'Storefront');
+
+    return nameInput as HTMLInputElement;
+  };
+
+  it('shows the reason on the screen when the connection test reports no connection', async () => {
+    const { showAlert } = renderActions([
+      mockApi.post('/databases/{databaseId}/test', 200, {
+        isConnected: false,
+        error: 'connection refused',
+      }),
+    ]);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Test connection' }));
+
+    expect(
+      await screen.findByText('The database could not be reached: connection refused'),
+    ).toBeTruthy();
+    expect(showAlert).not.toHaveBeenCalled();
+  });
+
+  it('shows the reason and lets the test start again when the test request fails', async () => {
+    const { showAlert } = renderActions([
+      mockApi.post('/databases/{databaseId}/test', 403, refusal),
+    ]);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Test connection' }));
+
+    expect(await screen.findByText(REFUSAL_MESSAGE)).toBeTruthy();
+    expect(showAlert).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(
+        screen.getByRole<HTMLButtonElement>('button', { name: /Test connection/ }).disabled,
+      ).toBe(false),
+    );
+
+    mockServer.use(mockApi.post('/databases/{databaseId}/test', 200, { isConnected: true }));
+    fireEvent.click(screen.getByRole('button', { name: /Test connection/ }));
+
+    expect(await screen.findByText('Connection test successful!')).toBeTruthy();
+    expect(screen.queryByText(REFUSAL_MESSAGE)).toBeNull();
+  });
+
+  it('shows a notice and reports the source database when a copy succeeds', async () => {
+    const copiedDatabase = { ...savedDatabase, id: 'copied-id', name: 'Copy of Shop' };
+    const { onDatabaseCopied, showAlert } = renderActions([
+      mockApi.post('/databases/{databaseId}/copy', 201, copiedDatabase),
+    ]);
+
+    await confirmCopy();
+
+    expect(await screen.findByText('Database copied successfully!')).toBeTruthy();
+    expect(screen.getByText('"Copy of Shop" has been created successfully')).toBeTruthy();
+    expect(onDatabaseCopied).toHaveBeenCalledWith(copiedDatabase, savedDatabase.id);
+    expect(showAlert).not.toHaveBeenCalled();
+  });
+
+  it('keeps the database and offers the copy again when a copy is refused', async () => {
+    const { onDatabaseCopied } = renderActions([
+      mockApi.post('/databases/{databaseId}/copy', 403, refusal),
+    ]);
+
+    await confirmCopy();
+
+    expect(await screen.findByText(REFUSAL_MESSAGE)).toBeTruthy();
+    expect(onDatabaseCopied).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(screen.getByRole<HTMLButtonElement>('button', { name: /copy/i }).disabled).toBe(false),
+    );
+  });
+
+  it('keeps the name editor open with the entered name when a rename is refused', async () => {
+    const { user, onDatabaseChanged } = renderActions([
+      mockApi.put('/databases/{databaseId}', 403, refusal),
+    ]);
+    const nameInput = await startNameEdit(user);
+
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText(REFUSAL_MESSAGE)).toBeTruthy();
+    expect(nameInput.value).toBe('Storefront');
+    expect(screen.getByPlaceholderText('Enter name...')).toBe(nameInput);
+    expect(onDatabaseChanged).not.toHaveBeenCalled();
+  });
+
+  it('ends the removing indicator and offers delete again when a delete is refused', async () => {
+    const { onDatabaseDeleted } = renderActions([
+      mockApi.delete('/databases/{databaseId}', 403, refusal),
+    ]);
+
+    await confirmDelete();
+
+    expect(await screen.findByText(REFUSAL_MESSAGE)).toBeTruthy();
+    expect(screen.queryByText('Removing...')).toBeNull();
+    expect(onDatabaseDeleted).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(screen.getByRole<HTMLButtonElement>('button', { name: /delete/i }).disabled).toBe(
+        false,
+      ),
+    );
+  });
+
+  it('reports the deleted database when a delete succeeds', async () => {
+    const { onDatabaseDeleted } = renderActions([
+      mockApi.delete('/databases/{databaseId}', 204, undefined),
+    ]);
+
+    await confirmDelete();
+
+    await waitFor(() => expect(onDatabaseDeleted).toHaveBeenCalledWith(savedDatabase.id));
+  });
+
+  it('translates a shown refusal reason when the language changes', async () => {
+    renderActions([mockApi.post('/databases/{databaseId}/copy', 403, refusal)]);
+
+    await confirmCopy();
+    await screen.findByText(REFUSAL_MESSAGE);
+    fireEvent.click(screen.getByRole('button', { name: 'Switch language' }));
+
+    await waitFor(() => expect(screen.queryByText(REFUSAL_MESSAGE)).toBeNull());
+    expect(screen.getByRole('alert').textContent).toContain(
+      DICTIONARIES.ru.errors.permissionDenied,
+    );
+  });
+
+  it('translates a shown connection reason when the language changes', async () => {
+    renderActions([
+      mockApi.post('/databases/{databaseId}/test', 200, {
+        isConnected: false,
+        error: 'connection refused',
+      }),
+    ]);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Test connection' }));
+    await screen.findByText('The database could not be reached: connection refused');
+    fireEvent.click(screen.getByRole('button', { name: 'Switch language' }));
+
+    await waitFor(() =>
+      expect(
+        screen.queryByText('The database could not be reached: connection refused'),
+      ).toBeNull(),
+    );
+    expect(screen.getByRole('alert').textContent).toContain(
+      DICTIONARIES.ru.databases.edit.connectionTestFailed.replace(
+        '{{error}}',
+        'connection refused',
+      ),
+    );
+  });
+
+  it('removes a shown reason when the user closes it', async () => {
+    renderActions([mockApi.post('/databases/{databaseId}/copy', 403, refusal)]);
+
+    await confirmCopy();
+    await screen.findByText(REFUSAL_MESSAGE);
+    fireEvent.click(within(screen.getByRole('alert')).getByRole('button', { name: 'Close' }));
+
+    await waitFor(() => expect(screen.queryByText(REFUSAL_MESSAGE)).toBeNull());
+  });
+
+  it('removes a shown reason when a section edit starts', async () => {
+    renderActions([mockApi.post('/databases/{databaseId}/copy', 403, refusal)]);
+
+    await confirmCopy();
+    await screen.findByText(REFUSAL_MESSAGE);
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Database settings' }));
+
+    expect(screen.queryByText(REFUSAL_MESSAGE)).toBeNull();
+  });
+
+  it('removes a reason that arrived during an edit when the connection save succeeds', async () => {
+    const heldCopy = mockApi.pending('post', '/databases/{databaseId}/copy');
+    renderActions([
+      heldCopy.handler,
+      mockApi.post('/database-tests', 200, { isConnected: true }),
+      mockApi.post('/limited-user-checks', 200, { isAdvisable: false, privileges: [] }),
+      mockApi.put('/databases/{databaseId}', 200, savedDatabase),
+    ]);
+
+    await confirmCopy();
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit Database settings' }));
+    await screen.findByPlaceholderText(/host$/);
+    await act(async () => {
+      heldCopy.respond(HttpResponse.json(refusal, { status: 403 }));
+    });
+    await screen.findByText(REFUSAL_MESSAGE);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Test connection' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(screen.queryByText(REFUSAL_MESSAGE)).toBeNull());
+  });
+
+  it('removes a shown reason when the next action of the database starts', async () => {
+    const heldTest = mockApi.pending('post', '/databases/{databaseId}/test');
+    renderActions([mockApi.post('/databases/{databaseId}/copy', 403, refusal), heldTest.handler]);
+
+    await confirmCopy();
+    await screen.findByText(REFUSAL_MESSAGE);
+    fireEvent.click(screen.getByRole('button', { name: 'Test connection' }));
+
+    expect(screen.queryByText(REFUSAL_MESSAGE)).toBeNull();
+    heldTest.cancel();
   });
 });

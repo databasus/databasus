@@ -16,6 +16,7 @@ import {
 import type { Storage } from '../../../entities/storages';
 import type { Workspace } from '../../../entities/workspaces';
 import { API_BASE_PATH } from '../../../shared/api';
+import { DICTIONARIES } from '../../../shared/i18n/dictionaries';
 import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
 import { renderScreen } from '../../../shared/lib/test/renderScreen';
 import { DatabaseTransferDialogComponent } from './DatabaseTransferDialogComponent';
@@ -204,6 +205,12 @@ describe('DatabaseTransferDialogComponent', () => {
       await screen.findByRole('combobox', { name: 'Storage' }),
       targetStorage.name,
     );
+    expect(
+      screen.getByRole('radiogroup', { name: DICTIONARIES.en.databases.transfer.storage.title }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('radiogroup', { name: DICTIONARIES.en.databases.transfer.notifiers.title }),
+    ).toBeTruthy();
     fireEvent.click(screen.getByRole('radio', { name: 'Transfer notifiers with database' }));
     await screen.findByText('Source alerts');
 

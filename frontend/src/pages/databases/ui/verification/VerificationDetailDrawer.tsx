@@ -1,7 +1,7 @@
 import { Alert, Button, Drawer, Skeleton, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useEffectEvent, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { type LocaleContextValue, translateApiError, useLocale } from '../../../../shared/i18n';
@@ -87,13 +87,17 @@ export const VerificationDetailDrawer = ({ verificationId, isOpen, onClose, onCl
     if (loadRevision.IsCurrent(revision)) setIsLoading(false);
   };
 
-  useEffect(() => {
+  const startVerificationLoad = useEffectEvent(() => {
     void loadVerification();
+  });
+
+  useEffect(() => {
+    startVerificationLoad();
 
     return () => {
       loadRevision.Invalidate();
     };
-  }, [verificationId]);
+  }, [verificationId, loadRevision]);
 
   const sortedStats = useMemo(
     () => [...(verification?.tableStats ?? [])].sort((a, b) => b.rowCount - a.rowCount),

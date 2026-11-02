@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffectEvent, useLayoutEffect, useRef, useState } from 'react';
 
 import { type Storage, type StorageSettings, storageApi } from '@/entities/storages';
 import { getSessionSnapshot, isCurrentSession, subscribeSession } from '@/shared/auth';
@@ -198,6 +198,9 @@ export function useStorageDraft(options: Options) {
   useLayoutEffect(() => {
     callbacks.current = options;
   });
+
+  const createInitialDraft = useEffectEvent(() => createDraft(options));
+
   useLayoutEffect(() => {
     const hasNewContext =
       context.current.workspaceId !== options.workspaceId ||
@@ -223,7 +226,7 @@ export function useStorageDraft(options: Options) {
     invalidateTest();
     activeSave.current = undefined;
 
-    const initial = createDraft(options);
+    const initial = createInitialDraft();
     currentDraft.current = initial;
     baselineRef.current = initial;
     persistedId.current = initial.storageId;
@@ -234,9 +237,10 @@ export function useStorageDraft(options: Options) {
     setIsSaving(false);
   }, [options.workspaceId, options.editingStorage, options.draft]);
   useLayoutEffect(() => {
+    const { context: contextRevision, test: testRevision } = revisions.current;
     const cancel = () => {
-      revisions.current.context.Invalidate();
-      revisions.current.test.Invalidate();
+      contextRevision.Invalidate();
+      testRevision.Invalidate();
       activeTest.current = undefined;
       activeSave.current = undefined;
       setIsSaving(false);
@@ -247,8 +251,8 @@ export function useStorageDraft(options: Options) {
 
     return () => {
       unsubscribe();
-      revisions.current.context.Invalidate();
-      revisions.current.test.Invalidate();
+      contextRevision.Invalidate();
+      testRevision.Invalidate();
       activeTest.current = undefined;
       activeSave.current = undefined;
     };
@@ -263,6 +267,7 @@ export function useStorageDraft(options: Options) {
     isTesting,
     error,
     isUnsaved: !storageId || !isStorageDraftUnchanged({ draft, baseline }),
+    // eslint-disable-next-line react/refs -- every invalidation comes with a state update, so this read cannot go stale
     isTested: testedRevision === revisions.current.settings.GetCurrent(),
     changeName,
     changeSettings,

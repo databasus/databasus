@@ -1,10 +1,17 @@
 import { Alert, Button, Modal, Select, Spin } from 'antd';
-import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from 'react';
+import {
+  type Dispatch,
+  type SetStateAction,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { EditNotifierComponent } from '@/features/edit-notifier';
 import { useSessionGuard } from '@/shared/auth';
-import { RequestRevision } from '@/shared/lib/RequestRevision';
+import { useRequestRevision } from '@/shared/hooks';
 
 import { type Notifier, notifierApi } from '../../../entities/notifiers';
 import { translateApiError } from '../../../shared/i18n';
@@ -39,8 +46,8 @@ export const DatabaseNotifiersFields = ({
   };
 
   const loadNotifiers = async (isSilent = false) => {
-    const revision = listRevision.current.Invalidate();
-    const isActive = () => isCurrent() && listRevision.current.IsCurrent(revision);
+    const revision = listRevision.Invalidate();
+    const isActive = () => isCurrent() && listRevision.IsCurrent(revision);
     setError(undefined);
 
     if (!isSilent) setIsNotifiersLoading(true);
@@ -65,25 +72,34 @@ export const DatabaseNotifiersFields = ({
   };
 
   const isCurrent = useSessionGuard();
-  const listRevision = useRef(new RequestRevision());
+  const listRevision = useRequestRevision();
   const acknowledgedNotifiers = useRef<Notifier[]>([]);
   const createButtonRef = useRef<HTMLButtonElement>(null);
+
+  const startNotifiersLoad = useEffectEvent(() => {
+    void loadNotifiers();
+  });
 
   useEffect(() => {
     acknowledgedNotifiers.current = [];
     setShowCreateNotifier(false);
-    loadNotifiers();
+    startNotifiersLoad();
 
     return () => {
-      listRevision.current.Invalidate();
+      listRevision.Invalidate();
     };
-  }, [workspaceId]);
+  }, [workspaceId, listRevision]);
+
+  // Read when the form closes, because the button can appear after the form opened.
+  const returnFocusToButton = useEffectEvent(() => {
+    createButtonRef.current?.focus();
+  });
 
   useEffect(() => {
     if (!isShowCreateNotifier) return;
 
     return () => {
-      createButtonRef.current?.focus();
+      returnFocusToButton();
     };
   }, [isShowCreateNotifier]);
 

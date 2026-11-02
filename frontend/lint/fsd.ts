@@ -1,16 +1,11 @@
-import { readFileSync } from 'node:fs';
 import { dirname, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { linter, processConfiguration } from 'steiger';
 
 import configuration from '../steiger.config.ts';
-import { checkProjectDependencies } from './checkProjectDependencies.ts';
+import { checkFilesOutsideLayers } from './checkFilesOutsideLayers.ts';
+import { type ArchitectureFinding, checkProjectDependencies } from './checkProjectDependencies.ts';
 import { getFrontendDependencies } from './frontendDependencies.ts';
-import {
-  type ArchitectureBaselineEntry,
-  type ArchitectureFinding,
-  compareArchitectureBaseline,
-} from './fsd-baseline.ts';
 
 export const checkFrontendArchitecture = async (root: string): Promise<ArchitectureFinding[]> => {
   processConfiguration(configuration, dirname(root));
@@ -53,22 +48,22 @@ export const checkFrontendArchitecture = async (root: string): Promise<Architect
     });
 
   const missingFindings = checkProjectDependencies(root, dependencies, coveredForbiddenOccurrences);
-  return [...primaryFindings, ...missingFindings];
+  return [...primaryFindings, ...missingFindings, ...checkFilesOutsideLayers(root)];
 };
 
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   const frontendRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-  const findings = await checkFrontendArchitecture(resolve(frontendRoot, 'src'));
-  const baseline = JSON.parse(
-    readFileSync(resolve(frontendRoot, 'fsd-baseline.json'), 'utf8'),
-  ) as ArchitectureBaselineEntry[];
-  const errors = compareArchitectureBaseline(findings, baseline);
-  if (errors.length) {
-    console.error(errors.join('\n'));
+  const findings = await checkFrontendArchitecture(
+    resolve(process.argv[2] ?? resolve(frontendRoot, 'src')),
+  );
+
+  if (findings.length) {
+    for (const { rule, source, target } of findings) {
+      console.error(`${rule}: ${source}${target ? ` -> ${target}` : ''}`);
+    }
+
     process.exitCode = 1;
   } else {
-    console.log(
-      `Architecture checks passed (${findings.length} individually recorded migration findings).`,
-    );
+    console.log('Architecture checks passed.');
   }
 }

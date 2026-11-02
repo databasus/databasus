@@ -66,7 +66,7 @@ export const ReactComponent = ({ someValue }: Props): JSX.Element => {
 3. **Component declaration**
    - **States** — `useState` declarations
    - **Plain functions** — Event handlers, async operations, in-component formatters. Anything that does _not_ call a React hook.
-   - **Hooks** — `useRef` + ref mutation, `useCallback`, `useMemo`, `useEffect`. A function wrapped in `useCallback` is a hook — it lives here, not in the functions section.
+   - **Hooks** — `useRef`, `useLatestRef`, `useEffectEvent`, `useCallback`, `useMemo`, `useEffect`. A function wrapped in `useCallback` is a hook — it lives here, not in the functions section.
    - **Calculated values** — Derived data computed inline (e.g. an AntD `columns` array).
    - **Return** — JSX markup
 

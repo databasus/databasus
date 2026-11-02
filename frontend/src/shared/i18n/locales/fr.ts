@@ -22,6 +22,7 @@ export const fr: typeof en = {
       remove: 'Supprimer',
       retry: 'Réessayer',
       save: 'Enregistrer',
+      transfer: 'Transférer',
     },
     answers: {
       no: 'Non',
@@ -46,6 +47,7 @@ export const fr: typeof en = {
     },
     // Joins translated words into one list (Chinese uses 、)
     listSeparator: ', ',
+    websiteLink: 'Site web de Databasus',
     confirmation: {
       title: 'Confirmation',
     },
@@ -1680,6 +1682,7 @@ export const fr: typeof en = {
           'Le lien de téléchargement est à usage unique et expire au bout de 15 minutes. Si une commande échoue avec une erreur 401, rouvrez cette fenêtre pour générer un nouveau lien.',
         copied: 'Copié',
         methods: {
+          label: 'Méthode de restauration',
           script: 'Par script',
           manual: 'Manuelle',
         },

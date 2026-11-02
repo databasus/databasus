@@ -7,8 +7,6 @@ The standard for this review is `docs/architecture.md` and the architecture rule
 - `docs/architecture.md`: "Frontend", for any change under `frontend/`;
 - `frontend/AGENTS.md`: the applicable frontend conventions, including "Architecture and skills".
 
-For frontend migration findings, accept only the individually recorded occurrences in `frontend/fsd-baseline.json`. New or multiplied violations remain findings.
-
 Check all backend files belonging to the change against the architecture rules, including every command and code outside the former migration layout. Frontend architecture rules remain applicable.
 
 When a plan adds or changes an HTTP operation, or a finished change edits a file under `backend/api/`, also read `.agents/skills/api-design/SKILL.md` and check the operation or the edit against it. Name the rule of the `api-design` skill that is broken.

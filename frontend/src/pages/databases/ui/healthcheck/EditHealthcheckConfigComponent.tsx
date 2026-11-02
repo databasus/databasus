@@ -1,10 +1,12 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
-import { Button, Input, Spin, Switch, Tooltip } from 'antd';
-import { useEffect, useState } from 'react';
+import { Alert, Button, Input, Spin, Switch, Tooltip } from 'antd';
+import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { healthcheckConfigApi } from '../../../../entities/healthcheck';
 import type { HealthcheckConfig } from '../../../../entities/healthcheck';
+import { useSessionGuard } from '../../../../shared/auth';
+import { useLatestRef } from '../../../../shared/hooks';
 import { translateApiError } from '../../../../shared/i18n';
 
 interface Props {
@@ -14,62 +16,101 @@ interface Props {
 
 export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) => {
   const { t } = useTranslation();
-  const [isLoading, setIsLoading] = useState(false);
+  const isActive = useSessionGuard();
+  const latestDatabaseId = useLatestRef(databaseId);
+  const enableFieldId = useId();
+  const notifyFieldId = useId();
+  const intervalFieldId = useId();
+  const attemptsFieldId = useId();
+  const retentionFieldId = useId();
+
   const [isSaving, setIsSaving] = useState(false);
   const [isUnsaved, setIsUnsaved] = useState(false);
+  const [saveError, setSaveError] = useState<unknown>();
   const [healthcheckConfig, setHealthcheckConfig] = useState<HealthcheckConfig | undefined>(
     undefined,
   );
+  const [loadError, setLoadError] = useState<unknown>();
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   const handleSave = async () => {
     if (!healthcheckConfig) return;
 
+    const isCurrentSave = () => isActive() && latestDatabaseId.current === databaseId;
+
     setIsSaving(true);
+    setSaveError(undefined);
 
     try {
       await healthcheckConfigApi.saveHealthcheckConfig(healthcheckConfig);
+
+      if (!isCurrentSave()) return;
+
       setIsUnsaved(false);
       onClose();
     } catch (e) {
-      alert(translateApiError(e, t));
+      if (isCurrentSave()) setSaveError(e);
+    } finally {
+      if (isCurrentSave()) setIsSaving(false);
     }
-
-    setIsSaving(false);
   };
 
   useEffect(() => {
-    let isActive = true;
-    setIsLoading(true);
+    let isCurrentLoad = true;
+
+    setHealthcheckConfig(undefined);
+    setLoadError(undefined);
+    setSaveError(undefined);
+    setIsUnsaved(false);
+    setIsSaving(false);
+
     healthcheckConfigApi
       .getHealthcheckConfig(databaseId)
       .then((config) => {
-        if (isActive) setHealthcheckConfig(config);
+        if (isCurrentLoad && isActive()) setHealthcheckConfig(config);
       })
-      .catch((error) => {
-        if (isActive) alert(translateApiError(error, t));
-      })
-      .finally(() => {
-        if (isActive) setIsLoading(false);
+      .catch((error: unknown) => {
+        if (isCurrentLoad && isActive()) setLoadError(error);
       });
 
     return () => {
-      isActive = false;
+      isCurrentLoad = false;
     };
-  }, [databaseId]);
+  }, [databaseId, loadAttempt, isActive]);
 
-  if (isLoading) {
-    return <Spin size="small" />;
+  if (loadError !== undefined) {
+    return (
+      <div>
+        <Alert
+          type="error"
+          showIcon
+          message={translateApiError(loadError, t)}
+          action={
+            <Button onClick={() => setLoadAttempt((attempt) => attempt + 1)}>
+              {t('common.actions.retry')}
+            </Button>
+          }
+        />
+
+        <div className="mt-6 flex justify-end">
+          <Button onClick={onClose}>{t('common.actions.cancel')}</Button>
+        </div>
+      </div>
+    );
   }
 
   if (!healthcheckConfig) {
-    return <div />;
+    return <Spin size="small" />;
   }
 
   return (
     <div className="space-y-4">
       <div className="mb-1 flex items-center">
-        <div className="min-w-[180px] pr-2">{t('healthcheck.config.enable')}</div>
+        <label className="min-w-[180px] pr-2" htmlFor={enableFieldId}>
+          {t('healthcheck.config.enable')}
+        </label>
         <Switch
+          id={enableFieldId}
           checked={healthcheckConfig.isHealthcheckEnabled}
           onChange={(checked) => {
             setHealthcheckConfig({
@@ -89,11 +130,12 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
       {healthcheckConfig.isHealthcheckEnabled && (
         <>
           <div className="mb-1 flex items-center">
-            <div className="min-w-[180px] pr-2">
+            <label className="min-w-[180px] pr-2" htmlFor={notifyFieldId}>
               {t('healthcheck.config.notifyWhenUnavailable')}
-            </div>
+            </label>
 
             <Switch
+              id={notifyFieldId}
               checked={healthcheckConfig.isNotificationEnabled}
               onChange={(checked) => {
                 setHealthcheckConfig({
@@ -114,9 +156,12 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
           </div>
 
           <div className="mb-1 flex items-center">
-            <div className="min-w-[180px] pr-2">{t('healthcheck.config.checkIntervalMinutes')}</div>
+            <label className="min-w-[180px] pr-2" htmlFor={intervalFieldId}>
+              {t('healthcheck.config.checkIntervalMinutes')}
+            </label>
 
             <Input
+              id={intervalFieldId}
               type="number"
               value={healthcheckConfig.intervalMinutes}
               onChange={(e) => {
@@ -144,9 +189,12 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
           </div>
 
           <div className="mb-1 flex items-center">
-            <div className="min-w-[180px] pr-2">{t('healthcheck.config.attemptsBeforeDown')}</div>
+            <label className="min-w-[180px] pr-2" htmlFor={attemptsFieldId}>
+              {t('healthcheck.config.attemptsBeforeDown')}
+            </label>
 
             <Input
+              id={attemptsFieldId}
               type="number"
               value={healthcheckConfig.failedAttemptsBeforeUnavailable}
               onChange={(e) => {
@@ -174,9 +222,12 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
           </div>
 
           <div className="mb-1 flex items-center">
-            <div className="min-w-[180px] pr-2">{t('healthcheck.config.attemptRetentionDays')}</div>
+            <label className="min-w-[180px] pr-2" htmlFor={retentionFieldId}>
+              {t('healthcheck.config.attemptRetentionDays')}
+            </label>
 
             <Input
+              id={retentionFieldId}
               type="number"
               value={healthcheckConfig.attemptRetentionDays}
               onChange={(e) => {
@@ -203,6 +254,10 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
             </Tooltip>
           </div>
         </>
+      )}
+
+      {saveError !== undefined && (
+        <Alert type="error" showIcon message={translateApiError(saveError, t)} />
       )}
 
       <div className="mt-6 flex justify-end space-x-2">

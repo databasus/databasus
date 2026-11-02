@@ -3,7 +3,6 @@ import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import ts from 'typescript';
 
-import { compareStyleBaseline, type StyleBaselineEntry } from './styleBaseline.ts';
 import { checkStyleSource, type StyleFinding } from './styleChecks.ts';
 
 export const checkFrontendStyles = (root: string): StyleFinding[] => {
@@ -35,16 +34,15 @@ export const checkFrontendStyles = (root: string): StyleFinding[] => {
 
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   const frontendRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-  const findings = checkFrontendStyles(resolve(frontendRoot, 'src'));
-  const baseline = JSON.parse(
-    readFileSync(resolve(frontendRoot, 'style-baseline.json'), 'utf8'),
-  ) as StyleBaselineEntry[];
-  const errors = compareStyleBaseline({ findings, baseline });
-  if (errors.length) {
-    console.error(errors.join('\n'));
+  const findings = checkFrontendStyles(resolve(process.argv[2] ?? resolve(frontendRoot, 'src')));
+
+  if (findings.length) {
+    for (const { rule, source, construct } of findings) {
+      console.error(`${rule}: ${source}: ${construct}`);
+    }
+
     process.exitCode = 1;
-  } else
-    console.log(
-      `Style checks passed (${findings.length} individually recorded migration findings).`,
-    );
+  } else {
+    console.log('Style checks passed.');
+  }
 }

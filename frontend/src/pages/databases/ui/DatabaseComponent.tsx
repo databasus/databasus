@@ -1,8 +1,9 @@
-import { Alert, Button, Spin } from 'antd';
+import { Alert, Button, Spin, Tabs } from 'antd';
 import { type RefObject, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { type Database, DatabaseType, databaseApi } from '../../../entities/databases';
+import { useSessionGuard } from '../../../shared/auth';
 import { translateApiError } from '../../../shared/i18n';
 import { isMonitoringTabShown } from '../lib/wal-stream-monitoring/monitoringTab';
 import { DatabaseConfigComponent } from './DatabaseConfigComponent';
@@ -16,11 +17,13 @@ interface Props {
   scrollContainerRef: RefObject<HTMLDivElement | null>;
   databaseId: string;
   onDatabaseChanged: (database: Database) => void;
-  onDatabaseDeleted: () => void;
-  onDatabaseCopied: (copiedDatabase: Database) => void;
-  onDatabaseTransferred: () => void;
+  onDatabaseDeleted: (deletedDatabaseId: string) => void;
+  onDatabaseCopied: (copiedDatabase: Database, sourceDatabaseId: string) => void;
+  onDatabaseTransferred: (transferredDatabaseId: string) => void;
   isCanManageDBs: boolean;
 }
+
+type DatabaseTab = 'config' | 'backups' | 'verifications' | 'monitoring';
 
 export const DatabaseComponent = ({
   scrollContainerRef,
@@ -32,9 +35,8 @@ export const DatabaseComponent = ({
   isCanManageDBs,
 }: Props) => {
   const { t } = useTranslation();
-  const [currentTab, setCurrentTab] = useState<
-    'config' | 'backups' | 'verifications' | 'monitoring'
-  >('backups');
+  const isActive = useSessionGuard();
+  const [currentTab, setCurrentTab] = useState<DatabaseTab>('backups');
 
   const [database, setDatabase] = useState<Database | undefined>();
   const [loadError, setLoadError] = useState<unknown>();
@@ -46,9 +48,12 @@ export const DatabaseComponent = ({
   };
 
   const acceptChangedDatabase = (changedDatabase: Database) => {
-    setDatabase((shownDatabase) =>
-      shownDatabase?.id === changedDatabase.id ? changedDatabase : shownDatabase,
-    );
+    if (isActive()) {
+      setDatabase((shownDatabase) =>
+        shownDatabase?.id === changedDatabase.id ? changedDatabase : shownDatabase,
+      );
+    }
+
     onDatabaseChanged(changedDatabase);
   };
 
@@ -98,39 +103,22 @@ export const DatabaseComponent = ({
 
   return (
     <div className="w-full">
-      <div className="flex">
-        <div
-          className={`mr-2 cursor-pointer rounded-tl-md rounded-tr-md px-6 py-2 ${shownTab === 'config' ? 'bg-surface' : 'bg-hover'}`}
-          onClick={() => setCurrentTab('config')}
-        >
-          {t('databases.tabs.config')}
-        </div>
-
-        <div
-          className={`mr-2 cursor-pointer rounded-tl-md rounded-tr-md px-6 py-2 ${shownTab === 'backups' ? 'bg-surface' : 'bg-hover'}`}
-          onClick={() => setCurrentTab('backups')}
-        >
-          {t('databases.tabs.backups')}
-        </div>
-
-        {isLogicalDatabase && (
-          <div
-            className={`mr-2 cursor-pointer rounded-tl-md rounded-tr-md px-6 py-2 ${shownTab === 'verifications' ? 'bg-surface' : 'bg-hover'}`}
-            onClick={() => setCurrentTab('verifications')}
-          >
-            {t('databases.tabs.verifications')}
-          </div>
-        )}
-
-        {isMonitoringShown && (
-          <div
-            className={`mr-2 cursor-pointer rounded-tl-md rounded-tr-md px-6 py-2 ${shownTab === 'monitoring' ? 'bg-surface' : 'bg-hover'}`}
-            onClick={() => setCurrentTab('monitoring')}
-          >
-            {t('databases.tabs.monitoring')}
-          </div>
-        )}
-      </div>
+      <Tabs
+        type="card"
+        tabBarStyle={{ marginBottom: 0 }}
+        activeKey={shownTab}
+        onChange={(tab) => setCurrentTab(tab as DatabaseTab)}
+        items={[
+          { key: 'config', label: t('databases.tabs.config') },
+          { key: 'backups', label: t('databases.tabs.backups') },
+          ...(isLogicalDatabase
+            ? [{ key: 'verifications', label: t('databases.tabs.verifications') }]
+            : []),
+          ...(isMonitoringShown
+            ? [{ key: 'monitoring', label: t('databases.tabs.monitoring') }]
+            : []),
+        ]}
+      />
 
       {shownTab === 'config' && (
         <DatabaseConfigComponent

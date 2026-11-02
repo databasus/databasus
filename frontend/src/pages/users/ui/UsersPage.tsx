@@ -2,14 +2,13 @@ import { LoadingOutlined } from '@ant-design/icons';
 import { Alert, App, Button, Drawer, Input, Select, Spin, Switch, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { USER_ROLE_LABEL_KEYS, type User, UserRole, userManagementApi } from '@/entities/users';
 import { useSessionGuard } from '@/shared/auth';
-import { useIsMobile, usePagedList } from '@/shared/hooks';
+import { useIsMobile, usePagedList, useRequestRevision } from '@/shared/hooks';
 import { translateApiError, useLocale } from '@/shared/i18n';
-import { RequestRevision } from '@/shared/lib/RequestRevision';
 import { getUserTimeFormat } from '@/shared/time';
 
 import { UserAuditLogsSidebar } from './UserAuditLogsSidebar';
@@ -38,7 +37,7 @@ export function UsersPage() {
 
   const retryUsers = () => {
     if (isLoading) return;
-    queryRevision.current.Invalidate();
+    queryRevision.Invalidate();
     acknowledgedUsers.clear();
     setFailure(undefined);
     void reload();
@@ -47,7 +46,7 @@ export function UsersPage() {
   const handleActivationToggle = async (toggledUser: User) => {
     if (actionUsers.current.has(toggledUser.id)) return;
     actionUsers.current.add(toggledUser.id);
-    const requestQueryRevision = queryRevision.current.GetCurrent();
+    const requestQueryRevision = queryRevision.GetCurrent();
     setProcessingUsers((current) => withUserId(current, toggledUser.id));
     setFailure(undefined);
 
@@ -55,14 +54,14 @@ export function UsersPage() {
       const changedUser = isUserActive(toggledUser)
         ? await userManagementApi.deactivateUser(toggledUser.id)
         : await userManagementApi.activateUser(toggledUser.id);
-      if (!isCurrent() || !queryRevision.current.IsCurrent(requestQueryRevision)) return;
+      if (!isCurrent() || !queryRevision.IsCurrent(requestQueryRevision)) return;
       acknowledgedUsers.set(changedUser.id, changedUser);
       replaceOrPrependItem(changedUser);
       message.success(
         i18n.t(isUserActive(changedUser) ? 'users.list.activated' : 'users.list.deactivated'),
       );
     } catch (error) {
-      if (isCurrent() && queryRevision.current.IsCurrent(requestQueryRevision)) setFailure(error);
+      if (isCurrent() && queryRevision.IsCurrent(requestQueryRevision)) setFailure(error);
     } finally {
       actionUsers.current.delete(toggledUser.id);
       if (isCurrent()) setProcessingUsers((current) => withoutUserId(current, toggledUser.id));
@@ -72,18 +71,18 @@ export function UsersPage() {
   const handleRoleChange = async (userId: string, newRole: UserRole) => {
     if (actionUsers.current.has(userId)) return;
     actionUsers.current.add(userId);
-    const requestQueryRevision = queryRevision.current.GetCurrent();
+    const requestQueryRevision = queryRevision.GetCurrent();
     setChangingRoleUsers((current) => withUserId(current, userId));
     setFailure(undefined);
 
     try {
       const changedUser = await userManagementApi.changeUserRole(userId, newRole);
-      if (!isCurrent() || !queryRevision.current.IsCurrent(requestQueryRevision)) return;
+      if (!isCurrent() || !queryRevision.IsCurrent(requestQueryRevision)) return;
       acknowledgedUsers.set(changedUser.id, changedUser);
       replaceOrPrependItem(changedUser);
       message.success(i18n.t('users.list.roleChanged'));
     } catch (error) {
-      if (isCurrent() && queryRevision.current.IsCurrent(requestQueryRevision)) setFailure(error);
+      if (isCurrent() && queryRevision.IsCurrent(requestQueryRevision)) setFailure(error);
     } finally {
       actionUsers.current.delete(userId);
       if (isCurrent()) setChangingRoleUsers((current) => withoutUserId(current, userId));
@@ -170,15 +169,16 @@ export function UsersPage() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const actionUsers = useRef(new Set<string>());
   const drawerInvoker = useRef<HTMLElement | null>(null);
-  const currentQuery = useRef(searchQuery);
-  const queryRevision = useRef(new RequestRevision());
+  const queryRevision = useRequestRevision();
+  const [acknowledgedUsers] = useState(() => new Map<string, User>());
 
-  if (currentQuery.current !== searchQuery) {
-    currentQuery.current = searchQuery;
-    queryRevision.current.Invalidate();
-  }
+  // A layout effect runs before any late answer can arrive, so an answer of the old query cannot
+  // pass its revision check.
+  useLayoutEffect(() => {
+    queryRevision.Invalidate();
+    acknowledgedUsers.clear();
+  }, [searchQuery, queryRevision, acknowledgedUsers]);
 
-  const acknowledgedUsers = useMemo(() => new Map<string, User>(), [searchQuery]);
   const {
     items: users,
     isLoading,

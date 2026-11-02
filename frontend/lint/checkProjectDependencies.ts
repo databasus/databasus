@@ -1,9 +1,14 @@
 import { relative, sep } from 'node:path';
 
 import type { FrontendDependency } from './frontendDependencies.ts';
-import type { ArchitectureFinding } from './fsd-baseline.ts';
 
-const LAYERS = ['app', 'pages', 'widgets', 'features', 'entities', 'shared'];
+export interface ArchitectureFinding {
+  rule: string;
+  source: string;
+  target?: string;
+}
+
+export const LAYERS = ['app', 'pages', 'widgets', 'features', 'entities', 'shared'];
 
 const getLocation = (path: string) => {
   const parts = path.split('/');

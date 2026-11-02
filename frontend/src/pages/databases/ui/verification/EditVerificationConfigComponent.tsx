@@ -1,6 +1,6 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { Alert, Button, Checkbox, Select, Spin, Switch, Tooltip } from 'antd';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import {
@@ -9,6 +9,7 @@ import {
   ScheduleType,
 } from '../../../../entities/schedules';
 import { useSessionGuard } from '../../../../shared/auth';
+import { useLatestRef } from '../../../../shared/hooks';
 import { getWebsitePageUrl, translateApiError, useLocale } from '../../../../shared/i18n';
 import { verificationConfigApi } from '../../api/verificationConfigApi';
 import { buildVerificationConfigForSave } from '../../model/verification/buildVerificationConfigForSave';
@@ -30,7 +31,7 @@ export const EditVerificationConfigComponent = ({ databaseId, onClose }: Props) 
   const { t } = useTranslation();
   const { locale } = useLocale();
   const isActive = useSessionGuard();
-  const shownDatabaseId = useRef(databaseId);
+  const shownDatabaseId = useLatestRef(databaseId);
   const scheduleChoiceControlId = useId();
 
   const [acknowledgedConfig, setAcknowledgedConfig] = useState<VerificationConfig>();
@@ -97,8 +98,6 @@ export const EditVerificationConfigComponent = ({ databaseId, onClose }: Props) 
     }
   };
 
-  shownDatabaseId.current = databaseId;
-
   useEffect(() => {
     let isCurrentLoad = true;
 
@@ -123,7 +122,7 @@ export const EditVerificationConfigComponent = ({ databaseId, onClose }: Props) 
     return () => {
       isCurrentLoad = false;
     };
-  }, [databaseId, loadAttempt]);
+  }, [databaseId, loadAttempt, isActive]);
 
   if (loadError !== undefined) {
     return (

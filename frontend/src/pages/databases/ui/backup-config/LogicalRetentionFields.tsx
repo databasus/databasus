@@ -84,6 +84,7 @@ export const LogicalRetentionFields = ({ settings, onChange }: Props) => {
           <div className="flex w-full items-center">
             <Select
               value={retention.period}
+              aria-label={t('healthcheck.attempts.period')}
               onChange={(period) => updateRetention({ period })}
               size="small"
               className="min-w-0 grow"

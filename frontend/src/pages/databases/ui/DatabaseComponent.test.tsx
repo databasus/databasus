@@ -194,9 +194,7 @@ describe('DatabaseComponent', () => {
     const { user } = renderScreen(<DatabaseScreen />);
 
     await user.click(await screen.findByText('Config'));
-    const nameTitle = await screen.findByText('Shop');
-
-    fireEvent.click(nameTitle.querySelector('img[src="/icons/pen-gray.svg"]')!.parentElement!);
+    await user.click(await screen.findByRole('button', { name: 'Edit Shop' }));
     const nameInput = screen.getByPlaceholderText(DICTIONARIES.en.databases.config.namePlaceholder);
 
     await user.clear(nameInput);
@@ -207,6 +205,46 @@ describe('DatabaseComponent', () => {
     expect(screen.getByPlaceholderText(DICTIONARIES.fr.databases.config.namePlaceholder)).toBe(
       nameInput,
     );
+    for (const actionName of [
+      DICTIONARIES.fr.common.actions.transfer,
+      DICTIONARIES.fr.common.actions.copy,
+      DICTIONARIES.fr.common.actions.delete,
+      DICTIONARIES.fr.common.actions.close,
+    ]) {
+      expect(screen.getByRole('button', { name: actionName })).toBeTruthy();
+    }
+    expect(
+      server
+        .getRequests()
+        .filter((request) => new URL(request.url).pathname === '/api/v1/databases/shop-id'),
+    ).toHaveLength(1);
+  });
+
+  it('changes the tab from the keyboard and keeps the shown database', async () => {
+    declareDatabaseDependencies();
+    server.use(
+      mockApi.get('/databases/{databaseId}', 200, {
+        id: 'shop-id',
+        workspaceId: 'workspace-id',
+        name: 'Shop',
+        settings: createDefaultDatabaseSettings(DatabaseType.MYSQL),
+        notifierIds: [],
+      }),
+    );
+    const { user } = renderScreen(<DatabaseScreen />);
+
+    const backupsTab = await screen.findByRole('tab', { name: 'Backups' });
+    expect(backupsTab.getAttribute('aria-selected')).toBe('true');
+
+    backupsTab.focus();
+    await user.keyboard('{ArrowLeft}{Enter}');
+
+    await waitFor(() =>
+      expect(screen.getByRole('tab', { name: /Config$/ }).getAttribute('aria-selected')).toBe(
+        'true',
+      ),
+    );
+    expect(await screen.findByText('Shop')).toBeTruthy();
     expect(
       server
         .getRequests()
@@ -331,9 +369,9 @@ describe('DatabaseComponent', () => {
 
     expect(container.querySelectorAll(EDIT_ICON_SELECTOR)).toHaveLength(0);
     expect(screen.getByRole('button', { name: 'Test connection' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'copy' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'arrow-right' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'delete' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Copy' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Transfer' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull();
   });
 
   it('shows the stored restore verification values after saving and requests no database', async () => {
@@ -494,7 +532,7 @@ describe('DatabaseComponent backup configuration answers', () => {
     notifierIds: [],
   });
 
-  const getBackupsTab = () => screen.getByText('Backups', { selector: 'div' });
+  const getBackupsTab = () => screen.getByRole('tab', { name: 'Backups' });
 
   const EDITOR_KINDS = [
     { kind: 'logical', type: DatabaseType.POSTGRES_LOGICAL, settings: logicalSettings },
@@ -622,7 +660,7 @@ describe('DatabaseComponent backup configuration answers', () => {
 
       expect(showAlert).not.toHaveBeenCalled();
       expect(screen.queryByText('You do not have permission to do this.')).toBeNull();
-      expect(getBackupsTab().className).toContain('bg-surface');
+      expect(getBackupsTab().getAttribute('aria-selected')).toBe('true');
       expect(onDatabaseChanged).not.toHaveBeenCalled();
     });
 
@@ -708,7 +746,7 @@ describe('DatabaseComponent backup configuration answers', () => {
     await screen.findAllByText('No backups yet');
     await releaseAndSettle(startCall, start.release);
 
-    expect(getBackupsTab().className).toContain('bg-surface');
+    expect(getBackupsTab().getAttribute('aria-selected')).toBe('true');
     expect(screen.queryByText('Restore check queued')).toBeNull();
     expect(screen.getByRole('heading', { name: 'Backups' })).toBeTruthy();
   });
@@ -730,7 +768,7 @@ describe('DatabaseComponent backup configuration answers', () => {
 
     const expectBackupsTabShown = async () => {
       expect(await screen.findByRole('button', { name: /Make backup right now/ })).toBeTruthy();
-      expect(getBackupsTab().className).toContain('bg-surface');
+      expect(getBackupsTab().getAttribute('aria-selected')).toBe('true');
     };
 
     it('shows the backups of a MySQL database selected on the verifications tab', async () => {
@@ -774,7 +812,9 @@ describe('DatabaseComponent backup configuration answers', () => {
       await screen.findByText('Config');
       view.rerender(renderSelectedDatabase(logicalDatabase.id));
 
-      expect((await screen.findByText('Verifications')).className).toContain('bg-surface');
+      expect(
+        (await screen.findByRole('tab', { name: 'Verifications' })).getAttribute('aria-selected'),
+      ).toBe('true');
     });
   });
 });

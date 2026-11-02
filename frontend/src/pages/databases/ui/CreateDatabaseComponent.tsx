@@ -1,5 +1,5 @@
 import { Alert, App, Button } from 'antd';
-import { useEffect, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { DatabaseConnectionForm } from '@/features/database-connection';
@@ -167,8 +167,12 @@ export const CreateDatabaseComponent = ({
 
   // The read-only user step explains its choice in long sentences and puts three buttons in one
   // row, which the narrow wizard width cannot hold.
+  const reportWideStep = useEffectEvent((isWideStep: boolean) => {
+    onWideStepChange?.(isWideStep);
+  });
+
   useEffect(() => {
-    onWideStepChange?.(step === 'create-limited-user');
+    reportWideStep(step === 'create-limited-user');
   }, [step]);
 
   const physicalBackupType = getPhysicalBackupType(draft);

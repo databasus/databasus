@@ -1,9 +1,9 @@
 import { Alert, Button, Modal, Select, Spin } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useSessionGuard } from '@/shared/auth';
-import { RequestRevision } from '@/shared/lib/RequestRevision';
+import { useRequestRevision } from '@/shared/hooks';
 
 import { backupConfigApi } from '../../../entities/backup-configs';
 import { type Storage, storageApi } from '../../../entities/storages';
@@ -29,8 +29,8 @@ export const StorageTransferDialogComponent = ({ storage, onClose, onTransferred
   const [isTransferring, setIsTransferring] = useState(false);
 
   const loadData = async () => {
-    const revision = contextRevision.current.GetCurrent();
-    const isActive = () => isCurrent() && contextRevision.current.IsCurrent(revision);
+    const revision = contextRevision.GetCurrent();
+    const isActive = () => isCurrent() && contextRevision.IsCurrent(revision);
     setError(undefined);
     setIsLoading(true);
 
@@ -61,8 +61,8 @@ export const StorageTransferDialogComponent = ({ storage, onClose, onTransferred
   };
 
   const transferStorage = async () => {
-    const revision = contextRevision.current.GetCurrent();
-    const isActive = () => isCurrent() && contextRevision.current.IsCurrent(revision);
+    const revision = contextRevision.GetCurrent();
+    const isActive = () => isCurrent() && contextRevision.IsCurrent(revision);
     setError(undefined);
 
     if (!selectedWorkspaceId) return;
@@ -84,15 +84,19 @@ export const StorageTransferDialogComponent = ({ storage, onClose, onTransferred
   };
 
   const isCurrent = useSessionGuard();
-  const contextRevision = useRef(new RequestRevision());
+  const contextRevision = useRequestRevision();
+  const startDataLoad = useEffectEvent(() => {
+    void loadData();
+  });
+
   useEffect(() => {
-    contextRevision.current.Invalidate();
-    loadData();
+    contextRevision.Invalidate();
+    startDataLoad();
 
     return () => {
-      contextRevision.current.Invalidate();
+      contextRevision.Invalidate();
     };
-  }, [storage.id]);
+  }, [storage.id, contextRevision]);
 
   return (
     <Modal

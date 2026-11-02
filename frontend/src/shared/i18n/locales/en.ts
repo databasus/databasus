@@ -22,6 +22,7 @@ export const en = {
       remove: 'Remove',
       retry: 'Retry',
       save: 'Save',
+      transfer: 'Transfer',
     },
     answers: {
       no: 'No',
@@ -46,6 +47,7 @@ export const en = {
     },
     // Joins translated words into one list (Chinese uses 、)
     listSeparator: ', ',
+    websiteLink: 'Databasus website',
     confirmation: {
       title: 'Confirmation',
     },
@@ -1637,6 +1639,7 @@ export const en = {
           'The download link is single-use and expires in 15 minutes. If a command fails with a 401, reopen this dialog to mint a fresh one.',
         copied: 'Copied',
         methods: {
+          label: 'Restore method',
           script: 'Via script',
           manual: 'Manual',
         },

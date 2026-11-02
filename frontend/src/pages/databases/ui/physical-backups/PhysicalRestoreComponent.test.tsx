@@ -131,6 +131,30 @@ const SwitchableRestoreScreen = () => {
 };
 
 describe('PhysicalRestoreComponent', () => {
+  it('names the target time, restore method and environment fields', async () => {
+    const { heldRequests } = declareHeldTokenRequests();
+    renderPointInTimeRestore();
+
+    expect(screen.getByLabelText(restoreCopy.targetTime)).toBeTruthy();
+
+    const latestRequest = await waitForHeldRequest(heldRequests, LATEST_TARGET);
+    latestRequest.respond(issueToken('latest-token'));
+    await waitFor(() => expect(queryCommandWithToken('latest-token')).toBeTruthy());
+
+    expect(screen.getByRole('radiogroup', { name: restoreCopy.methods.label })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('radio', { name: restoreCopy.methods.manual }));
+
+    expect(
+      await screen.findByRole('textbox', { name: restoreCopy.fields.restoreDirectory }),
+    ).toBeTruthy();
+    expect(screen.getByRole('textbox', { name: restoreCopy.fields.pgBinPath })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Docker' }));
+
+    expect(await screen.findByRole('textbox', { name: restoreCopy.fields.pgImage })).toBeTruthy();
+  });
+
   it('requests one token for a backup and shows commands without a target time', async () => {
     const { heldRequests, requestBodies } = declareHeldTokenRequests();
     renderScreen(

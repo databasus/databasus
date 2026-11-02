@@ -1,4 +1,4 @@
-import { expect } from '@playwright/test';
+import { type Page, expect } from '@playwright/test';
 
 import type { components } from '../../src/shared/api/schema.gen';
 import { applicationFixtures, workspace } from '../applicationFixtures';
@@ -110,6 +110,25 @@ test.use({
         status: 200,
         body: { items: [] },
       }),
+      apiResponse({ method: 'get', path: '/logical-backups', status: 200, body: { items: [] } }),
+      apiResponse({
+        method: 'get',
+        path: '/verification-configs/{databaseId}',
+        status: 200,
+        body: {
+          databaseId: database.id,
+          isAutomaticVerificationEnabled: false,
+          scheduleType: 'AFTER_BACKUP',
+          schedule: { type: 'HOURLY' },
+          notificationTriggers: [],
+        },
+      }),
+      apiResponse({
+        method: 'post',
+        path: '/databases/{databaseId}/copy',
+        status: 201,
+        body: { ...database, id: 'orders-copy-id', name: 'Orders copy' },
+      }),
     ],
     { scope: 'test' },
   ],
@@ -174,3 +193,58 @@ for (const width of [320, 1280]) {
     await assertSingleScrollOwner(detailContainer);
   });
 }
+
+const openDatabaseSettings = async (page: Page, theme: 'light' | 'dark') => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await openAccount({ page, theme });
+  await openWorkspaceScreen({ page, locale: 'en', tab: 'databases' });
+  await page.getByRole('tab', { name: 'Config' }).click();
+};
+
+test('shows the copy notice on the dark surface and removes it on its own', async ({ page }) => {
+  await openDatabaseSettings(page, 'dark');
+
+  await page.getByRole('button', { name: 'Copy', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Copy', exact: true }).click();
+
+  const notice = page.locator('.ant-notification-notice');
+  await expect(notice.getByText('Database copied successfully!')).toBeVisible();
+
+  const noticeBackground = await notice.evaluate(
+    (element) => getComputedStyle(element).backgroundColor,
+  );
+  const [red, green, blue] = (noticeBackground.match(/\d+/g) ?? []).map(Number);
+  expect(Math.max(red, green, blue)).toBeLessThan(128);
+
+  // The notice stays for AntD's 4.5 seconds plus its leave animation, longer than the default wait.
+  await expect(notice).toHaveCount(0, { timeout: 15_000 });
+});
+
+test('shows a focus indicator when tabbing to a tab and an edit icon', async ({ page }) => {
+  await openDatabaseSettings(page, 'light');
+
+  const configTab = page.getByRole('tab', { name: /Config$/ });
+  await page.getByRole('button', { name: /^Orders/ }).focus();
+  await expect
+    .poll(async () => {
+      await page.keyboard.press('Tab');
+
+      return configTab.evaluate((element) => element === document.activeElement);
+    })
+    .toBe(true);
+  await expect(configTab.locator('xpath=..')).toHaveCSS('outline-style', 'solid');
+
+  const editIcon = page.getByRole('button', { name: 'Edit Orders' });
+  await expect
+    .poll(async () => {
+      await page.keyboard.press('Tab');
+
+      return editIcon.evaluate((element) => element === document.activeElement);
+    })
+    .toBe(true);
+  await expect(editIcon).toHaveCSS('outline-style', 'solid');
+
+  await page.keyboard.press('Enter');
+
+  await expect(page.getByRole('textbox', { name: 'Name' })).toBeVisible();
+});

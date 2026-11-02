@@ -1,11 +1,11 @@
 import { LoadingOutlined } from '@ant-design/icons';
 import { Alert, Button, Spin } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { type PendingSignIn, userApi } from '@/entities/users';
 import { useSessionGuard } from '@/shared/auth';
-import { useScreenHeight } from '@/shared/hooks';
+import { useRequestRevision, useScreenHeight } from '@/shared/hooks';
 import { translateApiError } from '@/shared/i18n';
 
 import { AuthNavbarComponent } from './AuthNavbarComponent';
@@ -31,30 +31,34 @@ export function AuthPage() {
   };
 
   const loadOptions = async () => {
-    const requestRevision = ++revision.current;
+    const requestRevision = revision.Invalidate();
     setLoading(true);
     setFailure(undefined);
     try {
       const hasUsers = await userApi.isAnyUserExists();
-      if (!isCurrent() || revision.current !== requestRevision) return;
+      if (!isCurrent() || !revision.IsCurrent(requestRevision)) return;
       setHasAnyUser(hasUsers);
       setAuthMode(hasUsers ? 'signIn' : 'signUp');
     } catch (error) {
-      if (isCurrent() && revision.current === requestRevision) setFailure(error);
+      if (isCurrent() && revision.IsCurrent(requestRevision)) setFailure(error);
     } finally {
-      if (isCurrent() && revision.current === requestRevision) setLoading(false);
+      if (isCurrent() && revision.IsCurrent(requestRevision)) setLoading(false);
     }
   };
   const { t } = useTranslation();
   const screenHeight = useScreenHeight();
-  const revision = useRef(0);
+  const revision = useRequestRevision();
   const isCurrent = useSessionGuard();
-  useEffect(() => {
+  const startOptionsLoad = useEffectEvent(() => {
     void loadOptions();
+  });
+
+  useEffect(() => {
+    startOptionsLoad();
     return () => {
-      revision.current++;
+      revision.Invalidate();
     };
-  }, []);
+  }, [revision]);
 
   return (
     <div

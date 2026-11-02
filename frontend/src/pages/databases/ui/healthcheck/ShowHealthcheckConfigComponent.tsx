@@ -1,9 +1,10 @@
-import { Spin } from 'antd';
+import { Alert, Button, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { healthcheckConfigApi } from '../../../../entities/healthcheck';
 import type { HealthcheckConfig } from '../../../../entities/healthcheck';
+import { useSessionGuard } from '../../../../shared/auth';
 import { translateApiError } from '../../../../shared/i18n';
 
 interface Props {
@@ -12,36 +13,51 @@ interface Props {
 
 export const ShowHealthcheckConfigComponent = ({ databaseId }: Props) => {
   const { t } = useTranslation();
-  const [isLoading, setIsLoading] = useState(false);
+  const isActive = useSessionGuard();
+
   const [healthcheckConfig, setHealthcheckConfig] = useState<HealthcheckConfig | undefined>(
     undefined,
   );
+  const [loadError, setLoadError] = useState<unknown>();
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   useEffect(() => {
-    let isActive = true;
-    setIsLoading(true);
+    let isCurrentLoad = true;
+
+    setHealthcheckConfig(undefined);
+    setLoadError(undefined);
+
     healthcheckConfigApi
       .getHealthcheckConfig(databaseId)
       .then((config) => {
-        if (isActive) setHealthcheckConfig(config);
+        if (isCurrentLoad && isActive()) setHealthcheckConfig(config);
       })
-      .catch((error) => {
-        if (isActive) alert(translateApiError(error, t));
-      })
-      .finally(() => {
-        if (isActive) setIsLoading(false);
+      .catch((error: unknown) => {
+        if (isCurrentLoad && isActive()) setLoadError(error);
       });
-    return () => {
-      isActive = false;
-    };
-  }, [databaseId, t]);
 
-  if (isLoading) {
-    return <Spin size="small" />;
+    return () => {
+      isCurrentLoad = false;
+    };
+  }, [databaseId, loadAttempt, isActive]);
+
+  if (loadError !== undefined) {
+    return (
+      <Alert
+        type="error"
+        showIcon
+        message={translateApiError(loadError, t)}
+        action={
+          <Button onClick={() => setLoadAttempt((attempt) => attempt + 1)}>
+            {t('common.actions.retry')}
+          </Button>
+        }
+      />
+    );
   }
 
   if (!healthcheckConfig) {
-    return <div />;
+    return <Spin size="small" />;
   }
 
   return (

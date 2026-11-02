@@ -51,10 +51,12 @@ export const ChoosePostgresBackupTypeComponent = ({
           const isSelected = selectedType === option.type;
 
           return (
-            <div
+            <button
+              type="button"
               key={option.type}
+              aria-pressed={isSelected}
               onClick={() => setSelectedType(option.type)}
-              className={`flex cursor-pointer flex-col gap-2 rounded-xl border p-3 transition hover:border-accent ${
+              className={`flex cursor-pointer flex-col gap-2 rounded-xl border p-3 text-left transition hover:border-accent ${
                 isSelected ? 'border-accent bg-hover' : 'border-border bg-surface'
               }`}
             >
@@ -63,7 +65,7 @@ export const ChoosePostgresBackupTypeComponent = ({
               </div>
 
               <span className="text-sm leading-snug text-muted">{t(option.descriptionKey)}</span>
-            </div>
+            </button>
           );
         })}
       </div>

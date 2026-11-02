@@ -1,9 +1,9 @@
 import { Alert, Button, Modal, Select, Spin } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useSessionGuard } from '@/shared/auth';
-import { RequestRevision } from '@/shared/lib/RequestRevision';
+import { useRequestRevision } from '@/shared/hooks';
 
 import { databaseApi } from '../../../entities/databases';
 import { type Notifier, notifierApi } from '../../../entities/notifiers';
@@ -26,8 +26,8 @@ export const NotifierTransferDialogComponent = ({ notifier, onClose, onTransferr
   const [isTransferring, setIsTransferring] = useState(false);
 
   const loadData = async () => {
-    const revision = contextRevision.current.GetCurrent();
-    const isActive = () => isCurrent() && contextRevision.current.IsCurrent(revision);
+    const revision = contextRevision.GetCurrent();
+    const isActive = () => isCurrent() && contextRevision.IsCurrent(revision);
     setError(undefined);
     setIsLoading(true);
 
@@ -57,8 +57,8 @@ export const NotifierTransferDialogComponent = ({ notifier, onClose, onTransferr
   };
 
   const transferNotifier = async () => {
-    const revision = contextRevision.current.GetCurrent();
-    const isActive = () => isCurrent() && contextRevision.current.IsCurrent(revision);
+    const revision = contextRevision.GetCurrent();
+    const isActive = () => isCurrent() && contextRevision.IsCurrent(revision);
     setError(undefined);
 
     if (!selectedWorkspaceId) return;
@@ -80,15 +80,19 @@ export const NotifierTransferDialogComponent = ({ notifier, onClose, onTransferr
   };
 
   const isCurrent = useSessionGuard();
-  const contextRevision = useRef(new RequestRevision());
+  const contextRevision = useRequestRevision();
+  const startDataLoad = useEffectEvent(() => {
+    void loadData();
+  });
+
   useEffect(() => {
-    contextRevision.current.Invalidate();
-    loadData();
+    contextRevision.Invalidate();
+    startDataLoad();
 
     return () => {
-      contextRevision.current.Invalidate();
+      contextRevision.Invalidate();
     };
-  }, [notifier.id]);
+  }, [notifier.id, contextRevision]);
 
   return (
     <Modal

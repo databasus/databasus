@@ -22,6 +22,7 @@ export const zh: typeof en = {
       remove: '移除',
       retry: '重试',
       save: '保存',
+      transfer: '转移',
     },
     answers: {
       no: '否',
@@ -46,6 +47,7 @@ export const zh: typeof en = {
     },
     // Joins translated words into one list (Chinese uses 、)
     listSeparator: '、',
+    websiteLink: 'Databasus 网站',
     confirmation: {
       title: '确认',
     },
@@ -1570,6 +1572,7 @@ export const zh: typeof en = {
           '下载链接只能使用一次，15 分钟后失效。如果命令因 401 失败，重新打开此对话框即可生成新链接。',
         copied: '已复制',
         methods: {
+          label: '恢复方式',
           script: '使用脚本',
           manual: '手动',
         },

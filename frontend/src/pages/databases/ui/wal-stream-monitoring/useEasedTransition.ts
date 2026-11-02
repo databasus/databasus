@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 
 const EASING_DURATION_MS = 400;
 
@@ -14,10 +14,14 @@ export const useEasedTransition = <TValue>(
   const displayedRef = useRef(target);
   const targetKey = JSON.stringify(target);
 
+  const getTransition = useEffectEvent(() => ({ to: target, interpolateTo: interpolate }));
+
   useEffect(() => {
+    const { to, interpolateTo } = getTransition();
+
     if (isReducedMotion) {
-      displayedRef.current = target;
-      setDisplayed(target);
+      displayedRef.current = to;
+      setDisplayed(to);
 
       return;
     }
@@ -28,7 +32,7 @@ export const useEasedTransition = <TValue>(
 
     const step = (frameTime: number) => {
       const progress = Math.min(1, (frameTime - startedAt) / EASING_DURATION_MS);
-      const value = interpolate(from, target, progress);
+      const value = interpolateTo(from, to, progress);
 
       displayedRef.current = value;
       setDisplayed(value);

@@ -49,7 +49,7 @@ export const ShowVerificationConfigComponent = ({ databaseId }: Props) => {
     return () => {
       isCurrentLoad = false;
     };
-  }, [databaseId, loadAttempt]);
+  }, [databaseId, loadAttempt, isActive]);
 
   if (loadError !== undefined) {
     return (

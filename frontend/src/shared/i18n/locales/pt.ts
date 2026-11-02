@@ -22,6 +22,7 @@ export const pt: typeof en = {
       remove: 'Remover',
       retry: 'Tentar novamente',
       save: 'Salvar',
+      transfer: 'Transferir',
     },
     answers: {
       no: 'Não',
@@ -46,6 +47,7 @@ export const pt: typeof en = {
     },
     // Joins translated words into one list (Chinese uses 、)
     listSeparator: ', ',
+    websiteLink: 'Site do Databasus',
     confirmation: {
       title: 'Confirmação',
     },
@@ -1663,6 +1665,7 @@ export const pt: typeof en = {
           'O link de download só pode ser usado uma vez e expira em 15 minutos. Se um comando falhar com erro 401, abra esta janela de novo para gerar um novo link.',
         copied: 'Copiado',
         methods: {
+          label: 'Método de restauração',
           script: 'Por script',
           manual: 'Manual',
         },

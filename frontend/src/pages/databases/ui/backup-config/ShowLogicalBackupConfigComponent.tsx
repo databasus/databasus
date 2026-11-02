@@ -68,9 +68,10 @@ export const ShowLogicalBackupConfigComponent = ({ database, backupConfig }: Pro
     return texts.map((text) => translateLocalizedText(text, t)).join(listSeparator);
   };
 
+  const { storageId } = backupConfig;
+
   useEffect(() => {
     let isActive = true;
-    const { storageId } = backupConfig;
 
     setStorage(undefined);
     setStorageLoadError(undefined);
@@ -89,7 +90,7 @@ export const ShowLogicalBackupConfigComponent = ({ database, backupConfig }: Pro
     return () => {
       isActive = false;
     };
-  }, [backupConfig.storageId, storageLoadAttempt]);
+  }, [storageId, storageLoadAttempt]);
 
   const { schedule, retention } = backupConfig.settings;
 

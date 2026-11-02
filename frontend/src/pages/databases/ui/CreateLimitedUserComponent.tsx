@@ -1,5 +1,5 @@
 import { App, Button, Modal, Spin } from 'antd';
-import { useEffect, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import {
@@ -146,24 +146,25 @@ export const CreateLimitedUserComponent = ({
     onSkipped();
   };
 
+  const startSuggestionCheck = useEffectEvent(async () => {
+    setIsCheckingReadOnlyUserSuggestion(true);
+
+    const limitedUserCheck = await fetchLimitedUserCheck();
+    if (!isActive()) return;
+
+    setPrivileges(limitedUserCheck?.privileges || []);
+
+    // A failed check must not silently advance the wizard - keep the screen so the user
+    // still gets the choice.
+    if (limitedUserCheck && !limitedUserCheck.isAdvisable) {
+      onLimitedUserNotSuggested();
+    }
+
+    setIsCheckingReadOnlyUserSuggestion(false);
+  });
+
   useEffect(() => {
-    const run = async () => {
-      setIsCheckingReadOnlyUserSuggestion(true);
-
-      const limitedUserCheck = await fetchLimitedUserCheck();
-      if (!isActive()) return;
-
-      setPrivileges(limitedUserCheck?.privileges || []);
-
-      // A failed check must not silently advance the wizard - keep the screen so the user
-      // still gets the choice.
-      if (limitedUserCheck && !limitedUserCheck.isAdvisable) {
-        onLimitedUserNotSuggested();
-      }
-
-      setIsCheckingReadOnlyUserSuggestion(false);
-    };
-    run();
+    void startSuggestionCheck();
   }, []);
 
   if (isCheckingReadOnlyUserSuggestion) {
@@ -223,21 +224,23 @@ export const CreateLimitedUserComponent = ({
               {isMongodb
                 ? t('databases.readOnlyUser.writeRoles')
                 : t('databases.readOnlyUser.writePrivileges')}{' '}
-              <span
-                className={shouldShowExpandToggle() ? 'cursor-pointer hover:opacity-80' : ''}
-                onClick={() =>
-                  shouldShowExpandToggle() && setIsPrivilegesExpanded(!isPrivilegesExpanded)
-                }
-              >
-                {getPrivilegesDisplay()}
-                {shouldShowExpandToggle() && (
+              {shouldShowExpandToggle() ? (
+                <button
+                  type="button"
+                  className="cursor-pointer text-left hover:opacity-80"
+                  aria-expanded={isPrivilegesExpanded}
+                  onClick={() => setIsPrivilegesExpanded(!isPrivilegesExpanded)}
+                >
+                  {getPrivilegesDisplay()}
                   <span className="ml-1 text-xs text-accent hover:opacity-80">
                     {isPrivilegesExpanded
                       ? t('databases.readOnlyUser.collapse')
                       : t('databases.readOnlyUser.expand')}
                   </span>
-                )}
-              </span>
+                </button>
+              ) : (
+                getPrivilegesDisplay()
+              )}
             </>
           )}
         </p>

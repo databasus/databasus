@@ -1,6 +1,6 @@
-import { Select, Spin, Tooltip } from 'antd';
+import { Alert, Button, Select, Spin, Tooltip } from 'antd';
 import dayjs from 'dayjs';
-import { useEffect, useState } from 'react';
+import { useEffect, useEffectEvent, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { type Database, HealthStatus } from '../../../../entities/databases';
@@ -9,6 +9,7 @@ import {
   healthcheckAttemptApi,
   healthcheckConfigApi,
 } from '../../../../entities/healthcheck';
+import { useSessionGuard } from '../../../../shared/auth';
 import { translateApiError, useLocale } from '../../../../shared/i18n';
 import { getUserShortTimeFormat } from '../../../../shared/time/getUserTimeFormat';
 
@@ -42,76 +43,136 @@ const getSinceByPeriod = (period: 'today' | '7d' | '30d' | 'all'): Date => {
 export const HealthcheckAttemptsComponent = ({ database, onVisibilityChange }: Props) => {
   const { t } = useTranslation();
   const { formatRelativeTime } = useLocale();
+  const isSessionActive = useSessionGuard();
+  const periodFieldId = useId();
 
   const [isHealthcheckConfigLoading, setIsHealthcheckConfigLoading] = useState(false);
   const [isShowHealthcheckConfig, setIsShowHealthcheckConfig] = useState(false);
+  const [configLoadError, setConfigLoadError] = useState<unknown>();
 
   const [isLoading, setIsLoading] = useState(false);
   const [healthcheckAttempts, setHealthcheckAttempts] = useState<HealthcheckAttempt[]>([]);
+  const [attemptsLoadError, setAttemptsLoadError] = useState<unknown>();
   const [period, setPeriod] = useState<'today' | '7d' | '30d' | 'all'>('today');
+  const [loadAttempt, setLoadAttempt] = useState(0);
+
+  const reportVisibility = useEffectEvent((isVisible: boolean) => {
+    onVisibilityChange?.(isVisible);
+  });
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | undefined;
     let isCancelled = false;
     let loadSequence = 0;
 
-    const loadHealthcheckAttempts = async (shouldShowLoading = true) => {
+    const isCurrentLoad = (sequence: number) =>
+      !isCancelled && sequence === loadSequence && isSessionActive();
+
+    const fetchAllAttempts = async (sequence: number) => {
+      const since = getSinceByPeriod(period);
+      const attempts: HealthcheckAttempt[] = [];
+      let after: string | undefined;
+
+      do {
+        const page = await healthcheckAttemptApi.getAttemptsByDatabase(database.id, since, after);
+        if (!isCurrentLoad(sequence)) return undefined;
+
+        attempts.push(...page.items);
+        after = page.nextCursor;
+      } while (after);
+
+      return attempts;
+    };
+
+    const refreshHealthcheckAttempts = async () => {
       const sequence = ++loadSequence;
-      if (shouldShowLoading) setIsLoading(true);
 
       try {
-        const since = getSinceByPeriod(period);
-        const attempts: HealthcheckAttempt[] = [];
-        let after: string | undefined;
-        do {
-          const page = await healthcheckAttemptApi.getAttemptsByDatabase(database.id, since, after);
-          if (isCancelled || sequence !== loadSequence) return;
-          attempts.push(...page.items);
-          after = page.nextCursor;
-        } while (after);
+        const attempts = await fetchAllAttempts(sequence);
+        if (attempts) setHealthcheckAttempts(attempts);
+      } catch {
+        // A failed refresh keeps the shown attempts, and the next tick repairs them on its own.
+      }
+    };
+
+    const loadHealthcheckAttempts = async () => {
+      const sequence = ++loadSequence;
+      setIsLoading(true);
+
+      try {
+        const attempts = await fetchAllAttempts(sequence);
+        if (!attempts) return;
+
         setHealthcheckAttempts(attempts);
+
+        // Polling starts only after a successful load, so a tick cannot replace a shown failure.
+        if (period === 'today') {
+          interval = setInterval(() => {
+            void refreshHealthcheckAttempts();
+          }, 60_000);
+        }
       } catch (e) {
-        if (!isCancelled && sequence === loadSequence) alert(translateApiError(e, t));
+        if (isCurrentLoad(sequence)) setAttemptsLoadError(e);
       } finally {
-        if (!isCancelled && sequence === loadSequence) setIsLoading(false);
+        if (isCurrentLoad(sequence)) setIsLoading(false);
       }
     };
 
     setIsHealthcheckConfigLoading(true);
     setIsShowHealthcheckConfig(false);
+    setConfigLoadError(undefined);
+    setAttemptsLoadError(undefined);
+    setHealthcheckAttempts([]);
+
     healthcheckConfigApi
       .getHealthcheckConfig(database.id)
       .then((config) => {
-        if (isCancelled) return;
+        if (isCancelled || !isSessionActive()) return;
+
         setIsShowHealthcheckConfig(config.isHealthcheckEnabled);
-        onVisibilityChange?.(config.isHealthcheckEnabled);
-        if (config.isHealthcheckEnabled) {
-          void loadHealthcheckAttempts();
-          if (period === 'today') {
-            interval = setInterval(() => {
-              void loadHealthcheckAttempts(false);
-            }, 60_000);
-          }
-        }
+        reportVisibility(config.isHealthcheckEnabled);
+
+        if (config.isHealthcheckEnabled) void loadHealthcheckAttempts();
       })
-      .catch((e) => {
-        if (!isCancelled) alert(translateApiError(e, t));
+      .catch((e: unknown) => {
+        if (isCancelled || !isSessionActive()) return;
+
+        setConfigLoadError(e);
+        reportVisibility(true);
       })
       .finally(() => {
-        if (!isCancelled) setIsHealthcheckConfigLoading(false);
+        if (!isCancelled && isSessionActive()) setIsHealthcheckConfigLoading(false);
       });
 
     return () => {
       isCancelled = true;
       if (interval) clearInterval(interval);
     };
-  }, [database.id, period, onVisibilityChange, t]);
+  }, [database.id, period, loadAttempt, isSessionActive]);
+
+  const retryButton = (
+    <Button onClick={() => setLoadAttempt((attempt) => attempt + 1)}>
+      {t('common.actions.retry')}
+    </Button>
+  );
 
   if (isHealthcheckConfigLoading) {
     return (
       <div className="mb-5 flex items-center">
         <Spin />
       </div>
+    );
+  }
+
+  if (configLoadError !== undefined) {
+    return (
+      <Alert
+        className="mb-5"
+        type="error"
+        showIcon
+        message={translateApiError(configLoadError, t)}
+        action={retryButton}
+      />
     );
   }
 
@@ -124,8 +185,11 @@ export const HealthcheckAttemptsComponent = ({ database, onVisibilityChange }: P
       <h2 className="text-lg font-bold sm:text-xl">{t('healthcheck.attempts.title')}</h2>
 
       <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:flex-row sm:items-center">
-        <span className="text-sm font-medium sm:mr-2">{t('healthcheck.attempts.period')}</span>
+        <label className="text-sm font-medium sm:mr-2" htmlFor={periodFieldId}>
+          {t('healthcheck.attempts.period')}
+        </label>
         <Select
+          id={periodFieldId}
           size="small"
           value={period}
           onChange={(value) => setPeriod(value)}
@@ -141,7 +205,14 @@ export const HealthcheckAttemptsComponent = ({ database, onVisibilityChange }: P
 
       <div className="mt-4 sm:mt-5" />
 
-      {isLoading ? (
+      {attemptsLoadError !== undefined ? (
+        <Alert
+          type="error"
+          showIcon
+          message={translateApiError(attemptsLoadError, t)}
+          action={retryButton}
+        />
+      ) : isLoading ? (
         <div className="flex justify-center">
           <Spin size="small" />
         </div>
