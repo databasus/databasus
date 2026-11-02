@@ -37,8 +37,17 @@ STUB_SOURCES = {
             sleep "${STUB_GO_TEST_SECONDS:-0}"
             exit "${STUB_GO_TEST_EXIT_STATUS:-0}"
         elif [[ "$1" == list ]]; then
+            echo "$(date +%s.%N) go $*" >>"$STUB_CALLS"
             echo "databasus-backend/internal/lib/ordinary"
             echo "databasus-backend/internal/app/browsertests"
+            if [[ "$2" == ./... ]]; then
+                echo "databasus-backend/migrations"
+                echo "databasus-backend/tools/archlint"
+                echo "databasus-backend/newdirectory/fresh"
+                echo "databasus-backend/internal/lib/e2e/upgrade"
+                echo "databasus-backend/e2e/upgrade"
+                echo "databasus-backend/e2e/upgrade/upgradecheck"
+            fi
             exit "${STUB_GO_LIST_EXIT_STATUS:-0}"
         else
             echo "$(date +%s.%N) go $*" >>"$STUB_CALLS"
@@ -214,6 +223,21 @@ class TestScriptTestCase(unittest.TestCase):
         self.assertIn("databasus-backend/internal/lib/ordinary", selection[1])
         self.assertNotIn("browsertests", selection[1])
         self.assertNotIn("node", selection[1])
+
+    def test_default_selection_covers_the_whole_module_except_the_upgrade_test(self):
+        script = self.start_script()
+        exit_status, _, stderr = self.finish_script(script)
+        self.assertEqual(exit_status, 0, stderr)
+
+        self.assertIsNotNone(self.find_call("go list ./..."))
+        selection = self.find_call("go selection")[1].split()
+        self.assertIn("databasus-backend/migrations", selection)
+        self.assertIn("databasus-backend/tools/archlint", selection)
+        self.assertIn("databasus-backend/newdirectory/fresh", selection)
+        self.assertIn("databasus-backend/internal/lib/e2e/upgrade", selection)
+        self.assertNotIn("databasus-backend/e2e/upgrade", selection)
+        self.assertNotIn("databasus-backend/e2e/upgrade/upgradecheck", selection)
+        self.assertNotIn("databasus-backend/internal/app/browsertests", selection)
 
     def test_discovery_stops_verification_when_go_list_fails_after_partial_output(self):
         script = self.start_script({"STUB_GO_LIST_EXIT_STATUS": "7"})

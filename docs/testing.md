@@ -7,7 +7,7 @@ This document describes the kinds of tests Databasus has and what each kind chec
 - A test checks what a caller observes: the HTTP API of the backend, the behavior of an engine against a real database server, or a screen of the frontend.
 - Our own database, modules and services are never mocked. Fakes replace only systems we cannot run locally and failures that are unsafe to cause for real.
 - Independent tests run in parallel within and across packages. Tests that intentionally change process environment settings or share a bounded engine-version fixture remain sequential. Single packages and tests also run alongside runs from other worktrees on the same machine; only full runs take turns through a machine-wide lock. A test never takes a shared resource under a fixed name.
-- Every check runs locally, and none of them is manual. CI repeats the same tests on a clean machine.
+- Every check runs locally. The review hook tests are the only manual check, and CI repeats all the others on a clean machine.
 
 ## Layers
 
@@ -19,6 +19,8 @@ Paths under `internal/` are inside `backend/`.
 | Engine tests             | connecting, privileges, dumping and restoring against every supported server version                                | `internal/engines/<engine>/*_test.go`                      | the database servers in containers                                                      |
 | Backup and restore tests | a full backup → restore cycle per engine and version, logical and physical, including SSH tunnels, TLS and failover | `internal/modules/backups/e2e/`                            | the application, source and target servers, storages in containers, the recovery script |
 | Agent tests              | the verification agent's job pipeline, and the agent against a real backend                                         | `internal/agent/**`, `internal/agent/e2e/`                 | the backend from the test harness, Docker or Podman                                     |
+| Migration tests          | a migration keeps and converts existing rows, on upgrade and on rollback                                            | `backend/migrations/*_test.go`                             | the internal database, empty or fully migrated as the test asks                         |
+| Architecture linter tests | each rule of the linter fails on a violation and passes on clean code                                              | `backend/tools/archlint/*_test.go`                         | the linter on fixture modules; no database                                              |
 | Upgrade tests            | an instance of the previous release keeps its data after an upgrade to the current code, and its backups restore    | `backend/e2e/upgrade/`                                     | both images, real data written through the API                                          |
 | Filesystem tests         | the image on the host filesystems and permission setups that users run                                              | `e2e/docker-storage/`                                      | Docker on the host                                                                      |
 | Frontend tests           | screens for every answer the contract allows                                                                        | `frontend/src/**/*.test.tsx`                               | the components; the network is mocked through `mockApi`, typed by the contract          |
@@ -117,7 +119,7 @@ Tests never wait for a fixed time. They wait for a condition with `testwait.Unti
 
 While working, run the package or the test you need right now. Before handing the work over, run the tests of every package the change touched and of the packages that test the same feature, with `mise run backend:test-package <packages>` and `pnpm test` in `frontend/`. A package that tests the same feature is one whose tests exercise the changed behavior through the API, such as the backup and restore tests for a change in an engine.
 
-`mise run backend:test-package` and the full run allow 30 minutes per package, because an unsharded physical API package can exceed 15 minutes. The full run is `mise run test`. It holds a machine-wide lock, so only one full run goes at a time and the others wait. Single packages and single tests run without the lock. CI runs everything on every pull request.
+`mise run backend:test-package` and the full run allow 30 minutes per package, because an unsharded physical API package can exceed 15 minutes. The full run is `mise run test`. It holds a machine-wide lock, so only one full run goes at a time and the others wait. Single packages and single tests run without the lock. CI runs every suite except the review hook tests on every pull request.
 
 `mise run backend:test-group physical-api-1-of-3 physical-api-2-of-3 physical-api-3-of-3` runs the physical API suite with the same selections as CI. The selected shards run concurrently in separate processes, each with race checks and a 40-minute timeout. Each process stops after its first failed test, as CI does. Use a single shard name to repeat that selection. The task also accepts the `physical` and `logical` shards; it rejects unsharded groups and `other`.
 
@@ -125,6 +127,8 @@ While working, run the package or the test you need right now. Before handing th
 
 - Backend tests run with `-race`, and a data race fails the test.
 - CI runs the same groups as the full run, split into shards by the measured duration of tests. Physical backup tests and WAL streaming tests are the slow groups and get their own shards.
+- The migration tests in `backend/migrations` and the architecture linter tests in `backend/tools/archlint` run in `mise run test` and, in CI, in the `other` group.
+- The review hook tests in `.agent-hooks/` run in neither. An agent that changes the hooks runs them by hand.
 - The upgrade test is part of `mise run test`. Filesystem tests run separately through `mise run test-filesystem`. CI runs both on every pull request.
 - The upgrade test starts from the newest release tag by version. It runs in `mise run test` after the backend packages pass, and in CI as the check `test-upgrade` against the image CI built for the commit. `mise run backend:test-upgrade` runs it alone and builds the image from the checkout unless `DATABASUS_IMAGE` names one.
 
@@ -148,3 +152,4 @@ Local and CI preparation never reset shared source servers. Seed tests own their
 | Update browser visual references              | `pnpm --dir frontend test:browser:update`                                                          |
 | Upgrade test                                  | `mise run backend:test-upgrade`                                                                      |
 | Filesystem tests                              | `mise run test-filesystem`                                                                           |
+| Review hook tests, by hand                    | `python3 -m unittest discover -s .agent-hooks -p '*_test.py'`                                        |
