@@ -245,6 +245,12 @@ A request to write a spec, write up a change or write its artifacts goes through
 
 When the user asks to pack a change, in any language, the agent first checks that every task in its `tasks.md` is checked; if one is not, it changes nothing and names the unchecked tasks. Otherwise it archives the change through the `openspec-archive-change` skill, and the pack request answers that skill's sync prompt: "Sync now" when the main specs need the delta specs, "Archive now" when they are already synced. Then it commits the implementation, the main specs and the archived change in one commit per the [Git commits skill](.agents/skills/git-commits/SKILL.md). The request is the user's consent to the sync and to that commit, so the agent asks about neither again. The commit leaves out changes the agent did not make, per [Other agents' changes in the working tree](#other-agents-changes-in-the-working-tree), and the agent does not push.
 
+In a linked worktree, the pack also merges the commit into the local `develop` branch, and the request is consent to that too:
+
+- Run the merge in the checkout that holds `develop`; Git cannot move a branch checked out elsewhere.
+- Resolve conflicts by your own judgment, then rerun the tests of the packages they touched.
+- Ask the user only about a critical conflict that the code and specs do not settle, or when another agent's uncommitted changes block the merge. Abort the merge before asking.
+
 ### Decisions during apply
 
 The standing repair authorization in [Tests](#tests) applies even when a repair requires updating the change's artifacts.

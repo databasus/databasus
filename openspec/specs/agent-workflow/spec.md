@@ -38,6 +38,8 @@ After a review hook blocked the turn and the agent fixed or rejected the finding
 ### Requirement: The pack command archives and commits a finished change
 When the user asks to pack a change, in whatever language the request is written, and every task of the change is checked, the agent SHALL archive the change with its delta specs synced into the main specs, and commit the implementation, the main specs and the archived change in one commit whose message follows the repository's commit format. The request SHALL count as the user's consent to the sync and to that commit, so the agent does not ask about either again. The agent MUST NOT include changes it did not make within the user's requests, and MUST NOT push. When a task of the change is unchecked, the agent MUST NOT sync, archive or commit anything, and SHALL name the unchecked tasks to the user.
 
+In a linked worktree, the agent SHALL also merge the pack commit into the local `develop` branch; the request SHALL count as consent to that merge. The agent SHALL resolve conflicts itself and rerun the tests of the packages they touched. It SHALL ask the user only about a critical conflict that the code and specs do not settle, or when another agent's uncommitted changes block the merge, and SHALL abort the merge before asking.
+
 #### Scenario: Pack a finished change
 - **WHEN** every task of a change is checked and the user writes "pack"
 - **THEN** the main specs contain the change's requirements, the change sits in the archive, and one new commit holds the code, the specs and the archive, with nothing pushed
@@ -49,6 +51,18 @@ When the user asks to pack a change, in whatever language the request is written
 #### Scenario: Another agent's edit in the working tree
 - **WHEN** the user asks to pack a change while the working tree also holds an edit the agent did not make
 - **THEN** the commit leaves that edit out, and it stays uncommitted in the working tree
+
+#### Scenario: Pack in a linked worktree
+- **WHEN** every task of a change is checked and the user writes "pack" in a linked worktree
+- **THEN** the local `develop` branch contains the pack commit, with nothing pushed
+
+#### Scenario: A merge conflict the code resolves
+- **WHEN** merging the pack commit into `develop` conflicts and the code and the specs show the right result
+- **THEN** the agent resolves the conflict without asking the user and reruns the tests of the packages the conflict touched
+
+#### Scenario: A critical conflict with no clear answer
+- **WHEN** merging the pack commit into `develop` hits a critical conflict that neither the code nor the specs settle
+- **THEN** the agent aborts the merge, `develop` stays as it was, and the agent asks the user
 
 ### Requirement: The user sees and owns what the agent runs
 The agent SHALL run tests, linters and builds as ordinary foreground commands, so the user sees which command runs and that the agent is working. When the agent starts the backend, the frontend or another long-lived process to check its work, it SHALL stop that process before it finishes the task. Long-lived processes the user wants running are started by the user.

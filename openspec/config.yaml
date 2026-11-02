@@ -71,7 +71,7 @@ operations:
       - Follow the implementation verification and review order in the Review hooks section of AGENTS.md.
       - Resolve every blocking review hook finding before finishing; never apply a scope finding without the user's consent.
       - Once the full implementation review accepts the change, write the full summary of the change. Open it by saying that the automatic review passed and accepted the change in its current state, and end with a short list of what the review made you fix.
-      - Never commit or push without explicit approval. A "pack" request, as the OpenSpec section of AGENTS.md describes it, is approval to commit, not to push. No AI attribution trailers in commit messages.
+      - Never commit or push without explicit approval. A "pack" request, as the OpenSpec section of AGENTS.md describes it, is approval to commit and, from a linked worktree, to merge that commit into the local develop branch, not to push. No AI attribution trailers in commit messages.
   archive:
     guidance:
       - Confirm the module AGENTS.md files were updated if the change introduced a convention.
