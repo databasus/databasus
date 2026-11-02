@@ -24,19 +24,33 @@ class PackageCoverageTest(unittest.TestCase):
         self.assertRegex(job, r"jdx/mise-action@[a-f0-9]{40}")
         self.assertIn("python3 -m unittest discover -s scripts -p '*_test.py'", job)
 
-    def test_real_groups_cover_every_backend_package_once_without_the_upgrade_package(self):
+    def test_backend_test_job_installs_the_linter_its_tests_run(self):
+        workflow = (ROOT / ".github/workflows/ci-release.yml").read_text()
+        job = re.search(r"^  test-backend:\n(.*?)(?=^  [a-zA-Z0-9_-]+:|\Z)", workflow, re.M | re.S).group(1)
+        tools = re.search(r"install_args:\s*['\"]?([^'\"\n]+)", job).group(1).split()
+        self.assertIn("golangci-lint", tools)
+
+    def test_every_package_except_the_upgrade_test_belongs_to_exactly_one_group(self):
         groups = ("physical", "logical", "physical-api", "agent-e2e", "browser-e2e", "other")
         selections = {}
         for group in groups:
             packages = subprocess.check_output(["bash", str(ROOT / "mise-tasks/backend/test-group-packages")], cwd=ROOT / "backend", env={**os.environ, "usage_group": group}, text=True).splitlines()
             selections[group] = set(packages)
 
-        all_packages = subprocess.check_output(["go", "list", "./internal/...", "./cmd/..."], cwd=ROOT / "backend", text=True).splitlines()
+        module_packages = subprocess.check_output(["go", "list", "./..."], cwd=ROOT / "backend", text=True).splitlines()
+        all_packages = [package for package in module_packages if not re.match(r"databasus-backend/e2e/upgrade(/|$)", package)]
 
         self.assertEqual(set(all_packages), set().union(*selections.values()))
         self.assertEqual(len(all_packages), sum(len(packages) for packages in selections.values()))
         self.assertEqual(selections["browser-e2e"], {"databasus-backend/internal/app/browsertests"})
         self.assertNotIn("databasus-backend/internal/app/browsertests", selections["other"])
+        self.assertIn("databasus-backend/migrations", selections["other"])
+        self.assertIn("databasus-backend/tools/archlint", selections["other"])
+
+    def test_upgrade_step_selects_the_upgrade_test_with_its_comparison_helper(self):
+        upgrade_task = (ROOT / "mise-tasks/backend/test-upgrade").read_text()
+
+        self.assertIn("./e2e/upgrade/...", upgrade_task)
 
 
 class ShardFixture(unittest.TestCase):
@@ -145,7 +159,7 @@ sys.exit(status)
         self.assertEqual(list(self.logs.iterdir()), [])
 
     def test_invalid_or_duplicate_selections_start_nothing(self):
-        for shards in ("physical-1-of-3 physical-1-of-3", "other", "physical", "logical-4-of-3", "unknown-1-of-3", "physical-api-0-of-3"):
+        for shards in ("physical-1-of-3 physical-1-of-3", "other", "physical-1-of-3 other", "physical", "logical-4-of-3", "unknown-1-of-3", "physical-api-0-of-3"):
             with self.subTest(shards=shards):
                 process = self.start(shards)
                 process.communicate(timeout=TIMEOUT)
@@ -165,9 +179,12 @@ sys.exit(status)
         release.touch()
         output, _ = process.communicate(timeout=TIMEOUT)
 
-        self.assertNotEqual(process.returncode, 0)
-        self.assertIn("physical-1-of-3", output)
-        self.assertIn("physical-2-of-3", output)
+        self.assertEqual(process.returncode, 1)
+        self.assertIn("running physical-1-of-3", output)
+        self.assertIn("running physical-2-of-3", output)
+        self.assertIn("[physical-1-of-3]", output)
+        self.assertIn("[physical-2-of-3]", output)
+        self.assertEqual(list(self.logs.glob("databasus-test-shards.*")), [])
         self.assertEqual(len([record for record in self.records() if record["event"] == "end"]), 2)
 
     def test_interrupt_removes_only_its_processes_and_logs(self):
@@ -184,7 +201,7 @@ sys.exit(status)
         interrupted.send_signal(signal.SIGTERM)
         interrupted.communicate(timeout=TIMEOUT)
 
-        self.assertNotEqual(interrupted.returncode, 0)
+        self.assertEqual(interrupted.returncode, 143)
         self.assertIsNone(neighbour.poll())
         os.kill(neighbour_pid, 0)
         self.assertEqual(set(self.logs.iterdir()), neighbour_logs)
@@ -195,6 +212,34 @@ sys.exit(status)
         _, errors = neighbour.communicate(timeout=TIMEOUT)
         self.assertEqual(neighbour.returncode, 0, errors)
         self.assertEqual(list(self.logs.iterdir()), [])
+
+
+class OtherGroupSelectionTest(ShardFixture):
+    def test_selects_a_package_in_a_new_top_level_directory(self):
+        self.stub("go", '''import sys
+if sys.argv[1:] == ["list", "./..."]:
+    print("databasus-backend/internal/lib/ordinary")
+    print("databasus-backend/internal/modules/backups/e2e/logical")
+    print("databasus-backend/newdirectory/fresh")
+    print("databasus-backend/internal/lib/e2e/upgrade")
+    print("databasus-backend/e2e/upgrade")
+    print("databasus-backend/e2e/upgrade/upgradecheck")
+else:
+    print("databasus-backend/internal/lib/ordinary")
+''')
+
+        selection = subprocess.run(["bash", str(self.workspace / "test-group-packages")], cwd=self.backend,
+                                   env={**self.environment, "usage_group": "other"},
+                                   capture_output=True, text=True, timeout=TIMEOUT)
+
+        self.assertEqual(selection.returncode, 0, selection.stderr)
+        selected_packages = selection.stdout.splitlines()
+        self.assertIn("databasus-backend/newdirectory/fresh", selected_packages)
+        self.assertIn("databasus-backend/internal/lib/e2e/upgrade", selected_packages)
+        self.assertIn("databasus-backend/internal/lib/ordinary", selected_packages)
+        self.assertNotIn("databasus-backend/internal/modules/backups/e2e/logical", selected_packages)
+        self.assertNotIn("databasus-backend/e2e/upgrade", selected_packages)
+        self.assertNotIn("databasus-backend/e2e/upgrade/upgradecheck", selected_packages)
 
 
 class RealShardSelectionTest(ShardFixture):

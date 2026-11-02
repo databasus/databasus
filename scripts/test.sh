@@ -62,8 +62,8 @@ timeout 60 bash -c 'until docker exec backend-db-test pg_isready -U postgres >/d
 mise run backend:pull-testcontainers
 
 cd "$root/backend"
-discovered_packages=$(go list ./internal/... ./cmd/...)
-mapfile -t backend_packages < <(grep -Ev '/internal/app/browsertests(/|$)' <<<"$discovered_packages")
+discovered_packages=$(go list ./...)
+mapfile -t backend_packages < <(grep -Ev '/internal/app/browsertests(/|$)|^databasus-backend/e2e/upgrade(/|$)' <<<"$discovered_packages")
 TESTCONTAINERS_RYUK_DISABLED=true \
     go test -race -p=8 -count=1 -failfast -timeout 30m "${backend_packages[@]}"
 
