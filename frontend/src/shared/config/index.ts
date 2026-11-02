@@ -1,0 +1,9 @@
+export {
+  APP_VERSION,
+  CLOUDFLARE_TURNSTILE_SITE_KEY,
+  CONTAINER_ARCH,
+  GITHUB_CLIENT_ID,
+  GOOGLE_CLIENT_ID,
+  IS_EMAIL_CONFIGURED,
+  getApplicationServer,
+} from './deploymentConfig';

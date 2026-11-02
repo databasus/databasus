@@ -1,3 +1,3 @@
-import type { components } from '../../../shared/api/schema.gen';
+import type { ApiComponents } from '../../../shared/api';
 
-export type StorageSwitch = components['schemas']['StorageSwitch'];
+export type StorageSwitch = ApiComponents['schemas']['StorageSwitch'];

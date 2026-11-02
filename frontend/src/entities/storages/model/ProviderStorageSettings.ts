@@ -1,6 +1,5 @@
 import type { ApiComponents } from '../../../shared/api';
 
-export type LocalStorageSettings = ApiComponents['schemas']['LocalStorageSettings'];
 export type S3StorageSettings = ApiComponents['schemas']['S3StorageSettings'];
 export type GoogleDriveStorageSettings = ApiComponents['schemas']['GoogleDriveStorageSettings'];
 export type NasStorageSettings = ApiComponents['schemas']['NasStorageSettings'];

@@ -392,7 +392,6 @@ export const ru: typeof en = {
       replace: 'Заменить',
     },
     fields: {
-      databaseType: 'Тип базы данных',
       version: 'Версия {{engine}}',
       databaseName: 'Имя БД',
       sslMode: 'Режим SSL',
@@ -1728,13 +1727,6 @@ export const ru: typeof en = {
           broken: 'Сломано',
           needsAttention: 'Требует внимания',
           info: 'Для информации',
-        },
-        keepingUpStates: {
-          unknown: 'Неизвестно',
-          fallingBehind: 'Отстает',
-          catchingUp: 'Догоняет',
-          idle: 'Тишина',
-          keepingUp: 'Успевает',
         },
         banner: {
           collectingDataDescription: 'Стриминг запущен, первые цифры появятся в течение минуты.',

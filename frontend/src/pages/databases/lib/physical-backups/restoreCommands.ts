@@ -55,7 +55,7 @@ export const buildDockerRunCommand = ({
 }: DockerRunCommandParams): string =>
   `docker run -e POSTGRES_PASSWORD=... -v "$PWD/${hostDir}:${containerDir}" ${defaultDockerImage(pgVersion)}`;
 
-export interface ScriptCommandParams {
+interface ScriptCommandParams {
   scriptUrl: string;
   bundleUrl: string;
   outputDir: string;
@@ -64,7 +64,7 @@ export interface ScriptCommandParams {
   targetTime: string;
 }
 
-export interface DockerScriptCommandParams {
+interface DockerScriptCommandParams {
   scriptUrl: string;
   bundleUrl: string;
   outputDir: string;
@@ -73,7 +73,7 @@ export interface DockerScriptCommandParams {
   targetTime: string;
 }
 
-export interface ManualStepsParams {
+interface ManualStepsParams {
   bundleUrl: string;
   outputDir: string;
   // the source cluster's major version - decides the cluster's layout under outputDir.
@@ -88,7 +88,7 @@ export interface ManualStepsParams {
   targetTime?: string;
 }
 
-export interface RestoreStep {
+interface RestoreStep {
   titleKey: TranslationKey;
   code: string;
 }

@@ -1,6 +1,6 @@
 import { type JSX } from 'react';
 
-import { CLOUDFLARE_TURNSTILE_SITE_KEY } from '../../constants';
+import { CLOUDFLARE_TURNSTILE_SITE_KEY } from '@/shared/config';
 
 interface CloudflareTurnstileWidgetProps {
   containerRef: React.RefObject<HTMLDivElement | null>;

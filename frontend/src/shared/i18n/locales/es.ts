@@ -404,7 +404,6 @@ export const es: typeof en = {
       replace: 'Reemplazar',
     },
     fields: {
-      databaseType: 'Tipo de base de datos',
       version: 'Versión de {{engine}}',
       databaseName: 'Nombre de la BD',
       sslMode: 'Modo SSL',
@@ -1758,13 +1757,6 @@ export const es: typeof en = {
           broken: 'Roto',
           needsAttention: 'Requiere atención',
           info: 'Para su información',
-        },
-        keepingUpStates: {
-          unknown: 'Desconocido',
-          fallingBehind: 'Se queda atrás',
-          catchingUp: 'Recuperando',
-          idle: 'Sin actividad',
-          keepingUp: 'Al día',
         },
         banner: {
           collectingDataDescription:

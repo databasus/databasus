@@ -1,8 +1,8 @@
 import { getApiClient, requireData, requireSuccess } from '../../../shared/api';
 import { collectCursorPages } from '../../../shared/lib/collectCursorPages';
-import type { Notifier } from '../models/Notifier';
-import type { NotifierSettings } from '../models/NotifierSettings';
-import type { NotifierTestResult } from '../models/NotifierTestResult';
+import type { Notifier } from '../model/Notifier';
+import type { NotifierSettings } from '../model/NotifierSettings';
+import type { NotifierTestResult } from '../model/NotifierTestResult';
 
 // The largest page the contract serves, so a workspace's notifiers arrive in as few requests as
 // possible.

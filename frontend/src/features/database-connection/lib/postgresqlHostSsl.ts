@@ -20,7 +20,7 @@ export const deriveSslModeFromHost = (rawHost: string): PostgresSslMode | null =
   return null;
 };
 
-export const clearPostgresqlCertificates = <
+const clearPostgresqlCertificates = <
   Settings extends PostgresqlLogicalSettings | PostgresqlPhysicalSettings,
 >(
   settings: Settings,

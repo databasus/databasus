@@ -5,7 +5,7 @@ import type { TranslationKey } from '../../../shared/i18n';
 const ONLINE_WINDOW_MS = 90 * 1000;
 const STALE_WINDOW_MS = 5 * 60 * 1000;
 
-export type AgentStatus = 'never-seen' | 'online' | 'stale' | 'offline';
+type AgentStatus = 'never-seen' | 'online' | 'stale' | 'offline';
 
 export const getAgentStatus = (
   lastSeenAt: string | undefined,

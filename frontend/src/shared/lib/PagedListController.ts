@@ -1,6 +1,6 @@
 import { type PagedListPage, appendNextPage, mergeRefreshedFirstPage } from './pagedList';
 
-export type PagedListFailedPage = 'first' | 'next';
+type PagedListFailedPage = 'first' | 'next';
 
 export interface PagedListOptions<TItem, TCursor, TMetadata = undefined> {
   fetchPage: (cursor: TCursor | undefined) => Promise<PagedListPage<TItem, TCursor, TMetadata>>;

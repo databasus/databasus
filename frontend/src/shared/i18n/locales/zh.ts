@@ -373,7 +373,6 @@ export const zh: typeof en = {
       replace: '替换',
     },
     fields: {
-      databaseType: '数据库类型',
       version: '{{engine}} 版本',
       databaseName: '数据库名',
       sslMode: 'SSL 模式',
@@ -1649,13 +1648,6 @@ export const zh: typeof en = {
           broken: '故障',
           needsAttention: '需要注意',
           info: '提示',
-        },
-        keepingUpStates: {
-          unknown: '未知',
-          fallingBehind: '跟不上',
-          catchingUp: '正在追赶',
-          idle: '空闲',
-          keepingUp: '跟得上',
         },
         banner: {
           collectingDataDescription: '流式传输已开始，一分钟内会出现第一批数据。',

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 
-import { APP_VERSION } from '@/constants';
 import { systemApi } from '@/entities/system';
+import { APP_VERSION } from '@/shared/config';
 
 const VERSION_CHECK_INTERVAL_MS = 5 * 60 * 1000;
 const RELOAD_COOLDOWN_MS = 10 * 1000;

@@ -3,7 +3,7 @@ import { Alert, Button } from 'antd';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { GITHUB_CLIENT_ID, GOOGLE_CLIENT_ID } from '@/constants';
+import { GITHUB_CLIENT_ID, GOOGLE_CLIENT_ID } from '@/shared/config';
 
 import { createOAuthSignInAttempt, type OAuthProvider } from '../model/OAuthSignInAttempt';
 

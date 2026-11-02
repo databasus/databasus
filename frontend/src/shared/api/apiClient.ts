@@ -1,7 +1,7 @@
 import createClient, { type Middleware } from 'openapi-fetch';
 
-import { getApplicationServer } from '../../constants';
 import { getSessionSnapshot, invalidateSession, type SessionSnapshot } from '../auth';
+import { getApplicationServer } from '../config';
 import { API_ERROR_CODES, ApiError } from './ApiError';
 import type { paths } from './schema.gen';
 

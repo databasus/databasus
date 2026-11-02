@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { CLOUDFLARE_TURNSTILE_SITE_KEY } from '../../constants';
+import { CLOUDFLARE_TURNSTILE_SITE_KEY } from '@/shared/config';
 
 declare global {
   interface Window {

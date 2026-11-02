@@ -3,13 +3,14 @@ import { useId } from 'react';
 import { type JSX, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { CLOUDFLARE_TURNSTILE_SITE_KEY } from '@/constants';
 import { type PendingSignIn, userApi } from '@/entities/users';
 import { ApiError } from '@/shared/api';
 import { useAuthOperation } from '@/shared/auth';
-import { useCloudflareTurnstile } from '@/shared/hooks/useCloudflareTurnstile';
+import { CLOUDFLARE_TURNSTILE_SITE_KEY } from '@/shared/config';
 import { translateApiError } from '@/shared/i18n';
-import { CloudflareTurnstileWidget } from '@/shared/ui/CloudflareTurnstileWidget';
+
+import { useCloudflareTurnstile } from '../model/useCloudflareTurnstile';
+import { CloudflareTurnstileWidget } from './CloudflareTurnstileWidget';
 
 interface SignInCodeComponentProps {
   pendingSignIn: PendingSignIn;

@@ -1,11 +1,11 @@
-import { getApplicationServer } from '../../../constants';
 import { API_BASE_PATH, getApiClient, requireData, requireSuccess } from '../../../shared/api';
+import { getApplicationServer } from '../../../shared/config';
 import type { DownloadToken } from '../model/DownloadToken';
 import type { LogicalBackup } from '../model/LogicalBackup';
 import type { LogicalBackupListFilter } from '../model/LogicalBackupListFilter';
 import type { LogicalBackupPage } from '../model/LogicalBackupPage';
 
-export interface LogicalBackupPageRequest {
+interface LogicalBackupPageRequest {
   databaseId: string;
   filter: LogicalBackupListFilter;
   limit: number;

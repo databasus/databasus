@@ -1,8 +1,8 @@
 import { getApiClient, requireData, requireSuccess } from '../../../shared/api';
 import { collectCursorPages } from '../../../shared/lib/collectCursorPages';
-import type { Storage } from '../models/Storage';
-import type { StorageSettings } from '../models/StorageSettings';
-import type { StorageTestResult } from '../models/StorageTestResult';
+import type { Storage } from '../model/Storage';
+import type { StorageSettings } from '../model/StorageSettings';
+import type { StorageTestResult } from '../model/StorageTestResult';
 
 // The largest page the contract serves, so a workspace's storages arrive in as few requests as
 // possible.

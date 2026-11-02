@@ -1,3 +1,3 @@
-import type { components } from '../../../shared/api/schema.gen';
+import type { ApiComponents } from '../../../shared/api';
 
-export type DiskUsage = components['schemas']['DiskUsage'];
+export type DiskUsage = ApiComponents['schemas']['DiskUsage'];

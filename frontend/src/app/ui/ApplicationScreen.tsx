@@ -2,7 +2,6 @@ import { Alert, Button, Spin, Tooltip } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { APP_VERSION, CONTAINER_ARCH } from '@/constants';
 import { DatabasesPage } from '@/pages/databases';
 import { InstanceSettingsPage } from '@/pages/instance-settings';
 import { NotifiersComponent } from '@/pages/notifiers';
@@ -11,7 +10,7 @@ import { StoragesComponent } from '@/pages/storages';
 import { UsersPage } from '@/pages/users';
 import { WorkspaceSettingsComponent } from '@/pages/workspace-settings';
 import { useSessionGuard } from '@/shared/auth';
-import { useIsNewGitHubVersionAvailable } from '@/shared/hooks';
+import { APP_VERSION, CONTAINER_ARCH } from '@/shared/config';
 import { translateApiError, useLocale } from '@/shared/i18n';
 import {
   AppShell,
@@ -23,6 +22,7 @@ import {
 } from '@/widgets/app-shell';
 
 import { useApplicationStartup } from '../model/useApplicationStartup';
+import { useIsNewGitHubVersionAvailable } from '../model/useIsNewGitHubVersionAvailable';
 import { CreateWorkspaceDialogComponent } from './CreateWorkspaceDialogComponent';
 
 export const ApplicationScreen = () => {

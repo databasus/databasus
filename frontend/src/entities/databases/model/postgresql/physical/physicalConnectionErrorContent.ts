@@ -4,11 +4,11 @@ import { ConnectionErrorCode } from './ConnectionErrorCode';
 
 // A note is one dictionary sentence rendered through Trans, with <bold> marking the emphasized
 // words. Commands are technical strings and stay literal in every language.
-export type PhysicalConnectionErrorStep =
+type PhysicalConnectionErrorStep =
   | { type: 'command'; command: string }
   | { type: 'note'; key: TranslationKey };
 
-export interface PhysicalConnectionErrorContent {
+interface PhysicalConnectionErrorContent {
   titleKey: TranslationKey;
   summaryKey: TranslationKey;
   buildSteps?: (ctx: { username: string }) => PhysicalConnectionErrorStep[];

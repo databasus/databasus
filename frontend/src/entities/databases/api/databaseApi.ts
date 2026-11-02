@@ -19,7 +19,7 @@ const toSettingsTargetRequest = (target: DatabaseSettingsTarget): DatabaseSettin
 });
 
 // Narrows the list to the databases that send to one notifier.
-export interface DatabaseListFilter {
+interface DatabaseListFilter {
   notifierId?: string;
 }
 

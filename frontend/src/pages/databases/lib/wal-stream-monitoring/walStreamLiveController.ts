@@ -6,7 +6,7 @@ import type { PageVisibility, RefreshTimer } from './walStreamRefreshController'
 // buffer and the last save move in about real time.
 export const WAL_STREAM_LIVE_INTERVAL_MS = 1_000;
 
-export interface WalStreamLiveDependencies {
+interface WalStreamLiveDependencies {
   fetchLive: () => Promise<WalStreamLiveResponse>;
   timer: RefreshTimer;
   pageVisibility: PageVisibility;

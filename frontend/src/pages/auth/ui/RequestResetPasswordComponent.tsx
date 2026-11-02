@@ -5,10 +5,11 @@ import { Trans, useTranslation } from 'react-i18next';
 
 import { userApi } from '@/entities/users';
 import { useSessionGuard } from '@/shared/auth';
-import { useCloudflareTurnstile } from '@/shared/hooks/useCloudflareTurnstile';
 import { translateApiError } from '@/shared/i18n';
 import { FormValidator } from '@/shared/lib/FormValidator';
-import { CloudflareTurnstileWidget } from '@/shared/ui/CloudflareTurnstileWidget';
+
+import { useCloudflareTurnstile } from '../model/useCloudflareTurnstile';
+import { CloudflareTurnstileWidget } from './CloudflareTurnstileWidget';
 
 interface RequestResetPasswordComponentProps {
   onSwitchToSignIn?: () => void;

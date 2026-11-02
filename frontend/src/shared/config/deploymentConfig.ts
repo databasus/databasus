@@ -50,7 +50,3 @@ export const CLOUDFLARE_TURNSTILE_SITE_KEY =
 const archMap: Record<string, string> = { amd64: 'x64', arm64: 'arm64' };
 const rawArch = runtimeConfig?.CONTAINER_ARCH ?? '';
 export const CONTAINER_ARCH = archMap[rawArch] || rawArch;
-
-export function getOAuthRedirectUri(): string {
-  return `${window.location.origin}/auth/callback`;
-}

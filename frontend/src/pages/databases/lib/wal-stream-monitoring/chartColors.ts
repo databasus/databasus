@@ -1,6 +1,6 @@
 import type { ResolvedTheme } from '../../../../shared/theme';
 
-export interface WalStreamChartColors {
+interface WalStreamChartColors {
   sourceWrites: string;
   archive: string;
   notSavedYet: string;

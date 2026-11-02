@@ -1,7 +1,7 @@
 import type { MonitoringText } from '../../model/wal-stream-monitoring/MonitoringText';
 import type { MonitoringTextParam } from '../../model/wal-stream-monitoring/MonitoringTextParam';
 
-export const easeOutCubic = (progress: number): number =>
+const easeOutCubic = (progress: number): number =>
   1 - (1 - Math.min(1, Math.max(0, progress))) ** 3;
 
 export const interpolateNumber = (fromValue: number, toValue: number, progress: number): number =>

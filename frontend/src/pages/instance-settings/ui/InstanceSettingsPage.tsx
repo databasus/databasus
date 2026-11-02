@@ -3,11 +3,11 @@ import { Alert, App, Button, Spin, Switch } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { getApplicationServer } from '@/constants';
 import { type InstanceSettings, type InstanceSettingsUpdate, settingsApi } from '@/entities/users';
 import { InstanceAuditLogs } from '@/pages/instance-settings/ui/InstanceAuditLogs';
 import { MailServer } from '@/pages/instance-settings/ui/MailServer';
 import { useSessionGuard } from '@/shared/auth';
+import { getApplicationServer } from '@/shared/config';
 import { getWebsitePageUrl, translateApiError, useLocale } from '@/shared/i18n';
 import { ClipboardHelper } from '@/shared/lib/ClipboardHelper';
 

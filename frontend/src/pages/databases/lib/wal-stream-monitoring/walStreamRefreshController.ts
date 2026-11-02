@@ -18,7 +18,7 @@ export interface PageVisibility {
   subscribe: (onVisibilityChange: () => void) => () => void;
 }
 
-export interface WalStreamRefreshDependencies {
+interface WalStreamRefreshDependencies {
   fetchStatistics: (period: WalStreamStatisticsPeriod) => Promise<WalStreamStatistics>;
   timer: RefreshTimer;
   pageVisibility: PageVisibility;

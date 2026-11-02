@@ -4,19 +4,20 @@ import { useId } from 'react';
 import { type JSX, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
+import { type PendingSignIn, userApi } from '@/entities/users';
+import { OAuthSignInButtons } from '@/features/oauth-sign-in';
+import { useAuthOperation } from '@/shared/auth';
 import {
   CLOUDFLARE_TURNSTILE_SITE_KEY,
   GITHUB_CLIENT_ID,
   GOOGLE_CLIENT_ID,
   IS_EMAIL_CONFIGURED,
-} from '@/constants';
-import { type PendingSignIn, userApi } from '@/entities/users';
-import { OAuthSignInButtons } from '@/features/oauth-sign-in';
-import { useAuthOperation } from '@/shared/auth';
-import { useCloudflareTurnstile } from '@/shared/hooks/useCloudflareTurnstile';
+} from '@/shared/config';
 import { translateApiError } from '@/shared/i18n';
 import { FormValidator } from '@/shared/lib/FormValidator';
-import { CloudflareTurnstileWidget } from '@/shared/ui/CloudflareTurnstileWidget';
+
+import { useCloudflareTurnstile } from '../model/useCloudflareTurnstile';
+import { CloudflareTurnstileWidget } from './CloudflareTurnstileWidget';
 
 interface SignInComponentProps {
   onSwitchToSignUp?: () => void;

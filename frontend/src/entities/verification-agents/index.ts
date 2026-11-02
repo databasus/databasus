@@ -1,6 +1,2 @@
 export { verificationAgentApi } from './api/verificationAgentApi';
-export type {
-  CreatedAgentResponse,
-  RotateTokenResponse,
-  VerificationAgent,
-} from './model/VerificationAgent';
+export type { VerificationAgent } from './model/VerificationAgent';

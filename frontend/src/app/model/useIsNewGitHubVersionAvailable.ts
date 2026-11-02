@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
-import { APP_VERSION } from '../../constants';
-import { compareVersions, parseGitHubTag } from '../lib';
+import { APP_VERSION } from '@/shared/config';
+import { compareVersions, parseGitHubTag } from '@/shared/lib';
 
 const GITHUB_RELEASES_API = 'https://api.github.com/repos/databasus/databasus/releases/latest';
 // eslint-disable-next-line i18next/no-literal-string -- localStorage key

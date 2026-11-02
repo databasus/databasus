@@ -1,4 +1,3 @@
-import { getApplicationServer } from '../../../constants';
 import {
   API_BASE_PATH,
   getApiClient,
@@ -6,6 +5,7 @@ import {
   requireSuccess,
   type ApiComponents,
 } from '../../../shared/api';
+import { getApplicationServer } from '../../../shared/config';
 import type { PhysicalBackupsFilters } from '../model/physical-backups/PhysicalBackupsFilters';
 
 export type TriggerPhysicalBackupType = ApiComponents['schemas']['PhysicalBackupStartKind'];

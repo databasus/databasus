@@ -35,11 +35,7 @@ export { POSTGRESQL_SHORT_NAME } from './model/postgresql/postgresqlShortName';
 export { PhysicalDatabaseBackupType } from './model/postgresql/physical/PhysicalDatabaseBackupType';
 export { PHYSICAL_DATABASE_BACKUP_TYPE_LABEL_KEYS } from './model/postgresql/physical/PhysicalDatabaseBackupTypeLabelKeys';
 export { ConnectionErrorCode } from './model/postgresql/physical/ConnectionErrorCode';
-export {
-  type PhysicalConnectionErrorContent,
-  type PhysicalConnectionErrorStep,
-  physicalConnectionErrorContent,
-} from './model/postgresql/physical/physicalConnectionErrorContent';
+export { physicalConnectionErrorContent } from './model/postgresql/physical/physicalConnectionErrorContent';
 export { type SshTunnelSettings } from './model/sshtunnel/SshTunnelSettings';
 export { SshTunnelAuthType } from './model/sshtunnel/SshTunnelAuthType';
 export {

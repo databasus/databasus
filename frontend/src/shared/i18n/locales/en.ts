@@ -392,7 +392,6 @@ export const en = {
       replace: 'Replace',
     },
     fields: {
-      databaseType: 'Database type',
       version: '{{engine}} version',
       databaseName: 'DB name',
       sslMode: 'SSL mode',
@@ -1718,13 +1717,6 @@ export const en = {
           broken: 'Broken',
           needsAttention: 'Needs attention',
           info: 'For your information',
-        },
-        keepingUpStates: {
-          unknown: 'Unknown',
-          fallingBehind: 'Falling behind',
-          catchingUp: 'Catching up',
-          idle: 'Quiet',
-          keepingUp: 'Keeping up',
         },
         banner: {
           collectingDataDescription: 'Streaming started; the first numbers appear within a minute.',
