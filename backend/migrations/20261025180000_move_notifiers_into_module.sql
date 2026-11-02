@@ -372,6 +372,13 @@ ALTER TABLE notifiers_webhook
     ALTER COLUMN headers SET NOT NULL;
 -- +goose StatementEnd
 
+-- A header without a name cannot be sent and blocks saving the notifier. Copying the kept rows
+-- whole leaves their encrypted values as they are.
+-- +goose StatementBegin
+UPDATE notifiers_webhook
+SET headers = jsonb_path_query_array(headers, '$[*] ? (@.key != "")');
+-- +goose StatementEnd
+
 -- +goose StatementBegin
 ALTER TABLE notifiers_webhook
     ADD COLUMN accepted_categories TEXT[] NOT NULL DEFAULT '{ALL}';

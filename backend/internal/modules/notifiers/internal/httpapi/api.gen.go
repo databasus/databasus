@@ -590,7 +590,7 @@ type TelegramNotifierSettingsType string
 
 // WebhookHeader A header of the webhook's requests
 type WebhookHeader struct {
-	// Name The name of the header
+	// Name The name of the header, an RFC 9110 token: one or more ASCII letters, digits or the characters !#$%&'*+-.^_`|~. Any other name is refused with 400
 	Name string `json:"name"`
 
 	// Value The value; left out on a change at the same URL, it keeps the stored value of the header with this name

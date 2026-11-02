@@ -1,0 +1,29 @@
+## 1. Migration
+
+- [x] 1.1 Add the case "removes webhook header rows with an empty name and keeps the named ones in order" to `TestNotifiersMigration` in `backend/migrations/notifiers_migration_test.go`. Use a webhook with a named, a nameless and another named row, where one named row is `X Team`, and a webhook with only a nameless row. Assert that the named rows keep their order and values and that the second webhook ends with `[]`. Verify that it fails on the current migration with `mise run backend:test-package ./migrations/...`.
+- [x] 1.2 In `backend/migrations/20261025180000_move_notifiers_into_module.sql`, remove header rows with an empty name after the headers column becomes `JSONB NOT NULL`, as `design.md` describes. Verify that the new case and the rest of the package pass with `mise run backend:test-package ./migrations/...`.
+- [x] 1.3 Add a case to `TestGetNotifier` in `backend/internal/modules/notifiers/secrets_test.go` that creates a webhook without headers, reads it through the API and asserts that `Headers` is empty. Verify that it passes with `mise run backend:test-package ./internal/modules/notifiers/...`.
+- [x] 1.4 Confirm that the existing tests cover the state the migration leaves, and that each passes: `TestNotifiersMigration/keeps every encrypted secret byte for byte` and `TestUpgradedNotifierSecrets/sends the decrypted header value an older release stored encrypted` for stored values, `TestGetNotifier/lists the webhook header names without their values and shows the URL` for the read, `TestUpdateNotifier/keeps the stored value of a webhook header sent without one` for saving and delivery with a named header, `TestUpdateNotifier/removes a webhook header the change leaves out` for saving and sending with no headers, and `TestDeliveryThroughEachProvider/posts the notification to the webhook` for delivery with no headers. Verify with `mise run backend:test-package ./migrations/... ./internal/modules/notifiers/...`.
+
+## 2. Backend validation
+
+- [x] 2.1 State the RFC 9110 token rule in the `description` of `WebhookHeader.name` in `backend/api/openapi.yaml` and run `mise run generate-api`. Verify with `mise run backend:lint`, which fails when the generated code is out of date.
+- [x] 2.2 Add to `backend/internal/modules/notifiers/secrets_test.go`, for the names `X Team`, a single space and an empty name: `TestCreateNotifier/returns 400 invalid_request and creates nothing when a webhook header name is not an HTTP token`, which asserts the code and that `listNotifiers` is empty, and `TestUpdateNotifier/returns 400 invalid_request and keeps the stored headers when a webhook header name is not an HTTP token`, which asserts the code and that the next notification carries the stored headers. Add `TestUpdateNotifier/returns 400 invalid_request when a change sends back a stored invalid header name`, which stores `X Team` through SQL, reads the notifier and sends the header back. Verify that the cases for `X Team` and a single space fail with `mise run backend:test-package ./internal/modules/notifiers/...`.
+- [x] 2.3 Add `TestTestNotifierSettings/returns 400 invalid_request and sends nothing when a webhook header name is not an HTTP token` to `backend/internal/modules/notifiers/test_send_test.go`, which asserts the code and that the endpoint has no requests. Verify that it fails with `mise run backend:test-package ./internal/modules/notifiers/...`.
+- [x] 2.4 Add `TestCreateNotifier/saves the webhook and sends the header when its name holds letters, digits and token punctuation` with the names `X-Api_Key.1` and `X~Team!1`, which asserts that the endpoint receives each header. In `Validate` in `backend/internal/modules/notifiers/internal/providers/webhook/provider.go`, refuse a name that is not a token, as `design.md` describes. Verify that all new cases pass with `mise run backend:test-package ./internal/modules/notifiers/...`.
+- [x] 2.5 Run the backend linter and verify that it passes with `mise run backend:lint`.
+
+## 3. Frontend validation
+
+- [x] 3.1 Add tests to `frontend/src/features/edit-notifier/ui/edit/EditNotifierComponent.test.tsx` for a webhook form with the name `X Team` and with a newly added empty row, where the row shows the error and save and test send are unavailable, for correcting and for removing the row, where they become available again, for ` X-Team ` after the field loses focus, where the field shows `X-Team`, the row has no error and saving sends `X-Team`, and for a name of only spaces after the field loses focus, where the field is empty, the row shows the error and save and test send are unavailable. Add tests that after a successful test, focusing and leaving an unchanged header name keeps Save available, and that opening a saved webhook with the stored header `X Team` shows the error and leaves save and test send unavailable. Add one test that renders the form in a non-English locale and asserts the error text in that language. Verify that they fail with `pnpm --dir frontend test src/features/edit-notifier`.
+- [x] 3.2 Extend `validateWebhookNotifier` with the token rule, ignoring spaces at the edges of a name, trim the name input on blur, changing the draft only when the trimmed name differs, show the error under the row in `EditWebhookNotifierComponent.tsx`, and add its key to all six dictionaries in `frontend/src/shared/i18n/locales/`. Verify that the tests pass with `pnpm --dir frontend test src/features/edit-notifier` and `pnpm --dir frontend test src/shared/i18n`.
+- [x] 3.3 Verify the frontend with `mise run frontend:lint` and `pnpm --dir frontend build`.
+
+## Change verification
+
+```sh
+mise run backend:test-package ./migrations/...
+mise run backend:test-package ./internal/modules/notifiers/...
+pnpm --dir frontend test src/features/edit-notifier
+pnpm --dir frontend test src/shared/i18n
+```

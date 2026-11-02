@@ -2452,7 +2452,7 @@ export interface components {
         };
         /** @description A header of the webhook's requests */
         WebhookHeader: {
-            /** @description The name of the header */
+            /** @description The name of the header, an RFC 9110 token: one or more ASCII letters, digits or the characters !#$%&'*+-.^_`|~. Any other name is refused with 400 */
             name: string;
             /** @description The value; left out on a change at the same URL, it keeps the stored value of the header with this name */
             value?: string;

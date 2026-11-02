@@ -1324,6 +1324,8 @@ export const pt: typeof en = {
         '*Os valores dos cabeçalhos salvos ficam ocultos. Deixe um valor em branco para mantê-lo',
       headers: 'Cabeçalhos',
       headerNamePlaceholder: 'Nome do cabeçalho',
+      headerNameInvalid:
+        "Use apenas letras latinas, dígitos e os caracteres !#$%&'*+-.^_`|~. Espaços não são permitidos.",
       headerValuePlaceholder: 'Valor do cabeçalho',
       addHeader: 'Adicionar cabeçalho',
       hiddenHeaderValue: '(oculto)',

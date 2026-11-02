@@ -1,5 +1,5 @@
 import { DeleteOutlined, InfoCircleOutlined, PlusOutlined } from '@ant-design/icons';
-import { Button, Input, Select, Tooltip } from 'antd';
+import { Button, Form, Input, Select, Tooltip } from 'antd';
 import { useId, useMemo } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -11,6 +11,7 @@ import {
   NotificationCategory,
   WebhookMethod,
   isWebhookHeaderValueMissing,
+  isWebhookHeaderNameValid,
 } from '../../../../../entities/notifiers';
 import type { TranslationKey } from '../../../../../shared/i18n';
 import { toOptionalValue } from '../../../../../shared/lib';
@@ -63,6 +64,7 @@ export function EditWebhookNotifierComponent({
 }: Props) {
   const { t } = useTranslation();
   const noticeIdPrefix = useId();
+  const headerFieldId = useId();
   const headers = settings.headers;
   const bodyTemplate = settings.bodyTemplate ?? '';
 
@@ -94,6 +96,16 @@ export function EditWebhookNotifierComponent({
     const changedHeaders = [...headers];
     changedHeaders[index] = { ...changedHeaders[index], ...changes };
     updateWebhookSettings({ headers: changedHeaders });
+  };
+
+  // Leaving a field with nothing to trim must not change the draft, because any draft change
+  // withdraws the successful test that Save depends on.
+  const trimHeaderName = (index: number) => {
+    const trimmedName = headers[index].name.trim();
+
+    if (trimmedName !== headers[index].name) {
+      updateHeader(index, { name: trimmedName });
+    }
   };
 
   const removeHeader = (index: number) => {
@@ -166,20 +178,38 @@ export function EditWebhookNotifierComponent({
 
         <div className="w-full max-w-[500px]">
           {headers.map((header: WebhookHeader, index: number) => {
+            const isNameValid = isWebhookHeaderNameValid(header.name);
             const isValueRequiredAgain =
               isAddressChanged && isWebhookHeaderValueMissing(header, savedHeaders);
             const valueNoticeId = `${noticeIdPrefix}-${index}`;
 
             return (
               <div key={index} className="mb-1 flex min-w-0 flex-wrap items-start gap-2">
-                <Input
-                  aria-label={t('notifiers.webhook.headerNamePlaceholder')}
-                  value={header.name}
-                  onChange={(e) => updateHeader(index, { name: e.target.value })}
-                  size="small"
-                  className="min-w-0 flex-1"
-                  placeholder={t('notifiers.webhook.headerNamePlaceholder')}
-                />
+                <Form.Item
+                  className="!mb-0 min-w-0 flex-1"
+                  validateStatus={isNameValid ? undefined : 'error'}
+                  help={
+                    isNameValid ? undefined : (
+                      <span className="text-danger" id={`${headerFieldId}-${index}-name-error`}>
+                        {t('notifiers.webhook.headerNameInvalid')}
+                      </span>
+                    )
+                  }
+                >
+                  <Input
+                    aria-label={t('notifiers.webhook.headerNamePlaceholder')}
+                    aria-invalid={!isNameValid}
+                    aria-describedby={
+                      isNameValid ? undefined : `${headerFieldId}-${index}-name-error`
+                    }
+                    value={header.name}
+                    onChange={(e) => updateHeader(index, { name: e.target.value })}
+                    onBlur={() => trimHeaderName(index)}
+                    size="small"
+                    className="w-full min-w-0"
+                    placeholder={t('notifiers.webhook.headerNamePlaceholder')}
+                  />
+                </Form.Item>
                 <div className="min-w-0 flex-1">
                   <Input
                     aria-label={t('notifiers.webhook.headerValuePlaceholder')}

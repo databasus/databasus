@@ -1300,6 +1300,8 @@ export const en = {
       savedHeadersHidden: '*Saved header values are hidden. Leave a value empty to keep it',
       headers: 'Headers',
       headerNamePlaceholder: 'Header name',
+      headerNameInvalid:
+        "Use only Latin letters, digits and the characters !#$%&'*+-.^_`|~. Spaces are not allowed.",
       headerValuePlaceholder: 'Header value',
       addHeader: 'Add header',
       hiddenHeaderValue: '(hidden)',

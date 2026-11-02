@@ -17,6 +17,7 @@ export type { WebhookNotifierSettings } from './model/webhook/WebhookNotifierSet
 export type { WebhookHeader } from './model/webhook/WebhookHeader';
 export { validateWebhookNotifier } from './model/webhook/validateWebhookNotifier';
 export { isWebhookHeaderValueMissing } from './model/webhook/isWebhookHeaderValueMissing';
+export { isWebhookHeaderNameValid } from './model/webhook/isWebhookHeaderNameValid';
 export { WebhookMethod } from './model/webhook/WebhookMethod';
 export type { SlackNotifierSettings } from './model/slack/SlackNotifierSettings';
 export { validateSlackNotifier } from './model/slack/validateSlackNotifier';

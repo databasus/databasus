@@ -4541,7 +4541,9 @@ components:
       properties:
         name:
           type: string
-          description: The name of the header
+          description: >-
+            The name of the header, an RFC 9110 token: one or more ASCII letters, digits or the characters
+            !#$%&'*+-.^_`|~. Any other name is refused with 400
         value:
           type: string
           writeOnly: true
