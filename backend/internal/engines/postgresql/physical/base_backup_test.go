@@ -27,8 +27,13 @@ import (
 )
 
 // baseBackupFileSizeSpanningWrites is longer than one copy of the tool's output into the writer,
-// which takes 32 KiB, and short enough to fit in the pipe once one write is held, so the tool can exit.
+// which takes 32 KiB.
 const baseBackupFileSizeSpanningWrites = 80 * 1024
+
+// baseBackupFileSizeFittingAnyPipe keeps the archive inside the pipe buffer, so the tool can exit
+// while the output is stuck. The kernel gives a new pipe only 8 KiB once the user holds too many
+// pipes, which happens while several test runs share a machine.
+const baseBackupFileSizeFittingAnyPipe = 1024
 
 func newBaseBackupTestSpec(t *testing.T) BaseBackupSpec {
 	t.Helper()
@@ -122,11 +127,21 @@ func TestStreamBaseBackup(t *testing.T) {
 		spec.Clock = manualClock
 		spec.Logger = slog.New(slog.NewTextHandler(stallLogWriter{isStalled: &manualClock.hasStalled}, nil))
 		spec.StallTimeout = time.Minute
-		stuckOutput := &stuckAfterFirstWriteOutput{isStuck: make(chan struct{}), released: make(chan struct{})}
+		firstWriteMarkerPath := filepath.Join(t.TempDir(), "first-write-accepted")
+		stuckOutput := &stuckAfterFirstWriteOutput{
+			firstWriteMarkerPath: firstWriteMarkerPath,
+			isStuck:              make(chan struct{}),
+			released:             make(chan struct{}),
+		}
 		spec.ReleaseOutput = func(error) { close(stuckOutput.released) }
 		exitMarkerPath := filepath.Join(t.TempDir(), "exited")
-		tarPath := writeBaseBackupTarWithFile(t, make([]byte, baseBackupFileSizeSpanningWrites))
-		writeBaseBackupStub(t, spec, fmt.Sprintf("%s\ntouch %q", baseBackupSuccessScript(tarPath), exitMarkerPath))
+		tarPath := writeBaseBackupTarWithFile(t, make([]byte, baseBackupFileSizeFittingAnyPipe))
+		// The tool sends the rest only after the first write was accepted. Otherwise the stream could
+		// read the small archive at once, and no second write would ever get stuck.
+		writeBaseBackupStub(t, spec, fmt.Sprintf(
+			"head -c 512 %q\nuntil [ -e %q ]; do sleep 0.01; done\ntail -c +513 %q\ntouch %q",
+			tarPath, firstWriteMarkerPath, tarPath, exitMarkerPath,
+		))
 
 		completed := make(chan error, 1)
 		go func() {
@@ -412,14 +427,19 @@ func (o *secondWriteHoldingOutput) Write(p []byte) (int, error) {
 // stuckAfterFirstWriteOutput accepts one write, then blocks until it is released, the way a storage
 // that stopped accepting data blocks the stream.
 type stuckAfterFirstWriteOutput struct {
-	writeCount int
-	isStuck    chan struct{}
-	released   chan struct{}
+	firstWriteMarkerPath string
+	writeCount           int
+	isStuck              chan struct{}
+	released             chan struct{}
 }
 
 func (o *stuckAfterFirstWriteOutput) Write(p []byte) (int, error) {
 	o.writeCount++
 	if o.writeCount == 1 {
+		if err := os.WriteFile(o.firstWriteMarkerPath, nil, 0o600); err != nil {
+			return 0, err
+		}
+
 		return len(p), nil
 	}
 

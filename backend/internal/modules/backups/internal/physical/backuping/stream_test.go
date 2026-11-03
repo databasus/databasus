@@ -26,6 +26,11 @@ import (
 	"databasus-backend/internal/modules/storages"
 )
 
+// archiveFileSizeFittingAnyPipe keeps the archive inside the pipe buffer, so the tool can exit while
+// the storage is stuck. The kernel gives a new pipe only 8 KiB once the user holds too many pipes,
+// which happens while several test runs share a machine.
+const archiveFileSizeFittingAnyPipe = 1024
+
 func TestRunStream(t *testing.T) {
 	t.Parallel()
 
@@ -55,7 +60,7 @@ func TestRunStream(t *testing.T) {
 
 	t.Run("reports a cancellation within the limit when the tool exited and the storage is stuck", func(t *testing.T) {
 		t.Parallel()
-		tarPath := writeTarOfSize(t, 80*1024)
+		tarPath := writeTarOfSize(t, archiveFileSizeFittingAnyPipe)
 		spec := newStuckStorageStreamSpec(t, tarPath)
 		spec.Backup.StallTimeout = time.Hour
 		exitMarkerPath := filepath.Join(t.TempDir(), "exited")
