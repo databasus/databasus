@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -79,72 +78,4 @@ func TestPhysicalBackupAccess(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestTriggerPhysicalBackup(t *testing.T) {
-	t.Parallel()
-
-	t.Run("sets the full request time when a full backup is requested", func(t *testing.T) {
-		t.Parallel()
-
-		catalog := newCatalog(t)
-		apptest.SaveBackupConfigWithStorage(
-			t,
-			catalog.Owner,
-			apptest.StorageUse{DatabaseID: catalog.DatabaseID, StorageID: catalog.StorageID},
-		)
-
-		catalog.call(
-			t,
-			catalogCall{
-				Request:       apptest.PhysicalStartRequest(catalog.DatabaseID, "FULL"),
-				Authorization: "Bearer " + catalog.Owner.Token,
-				StatusCode:    http.StatusAccepted,
-			},
-		)
-
-		var requested []struct{ ForceFullRequestedAt *time.Time }
-		catalog.App.QuerySQL(
-			t,
-			&requested,
-			"SELECT force_full_requested_at FROM backups_configs_physical WHERE database_id = ?",
-			catalog.DatabaseID,
-		)
-		assert.NotNil(t, requested[0].ForceFullRequestedAt)
-	})
-	t.Run("returns 409 when an incremental has no extendable chain", func(t *testing.T) {
-		t.Parallel()
-
-		catalog := newCatalog(t)
-		apptest.SaveBackupConfigWithStorage(t, catalog.Owner,
-			apptest.StorageUse{DatabaseID: catalog.DatabaseID, StorageID: catalog.StorageID})
-
-		var problem apiclient.Problem
-		catalog.call(
-			t,
-			catalogCall{
-				Request:       apptest.PhysicalStartRequest(catalog.DatabaseID, "INCREMENTAL"),
-				Authorization: "Bearer " + catalog.Owner.Token,
-				StatusCode:    http.StatusConflict,
-				Destination:   &problem,
-			},
-		)
-
-		assert.Equal(t, apiclient.ProblemCodeNoExtendableChain, problem.Code)
-		assert.Equal(t, backupRequests{}, catalog.getBackupRequests(t))
-	})
-	t.Run("accepts an automatic request when no backup is running", func(t *testing.T) {
-		t.Parallel()
-
-		catalog := newCatalog(t)
-		apptest.GetBackupConfig(t, catalog.Owner, catalog.DatabaseID)
-		catalog.call(
-			t,
-			catalogCall{
-				Request:       apptest.PhysicalStartRequest(catalog.DatabaseID, "AUTO"),
-				Authorization: "Bearer " + catalog.Owner.Token,
-				StatusCode:    http.StatusAccepted,
-			},
-		)
-	})
 }

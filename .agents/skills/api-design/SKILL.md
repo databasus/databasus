@@ -46,6 +46,8 @@ Every operation has a `default` response with the `Problem` schema (RFC 9457) an
 | 429 | a rate limit was hit | `rate_limited` |
 | 500 | anything unexpected; the body has no internal details | `internal` |
 
+A start refused by the target's backup config answers 400 `invalid_request` with a field problem on `databaseId` rather than 409: `startLogicalBackup` and `startPhysicalBackup` do so when the config names no storage. `startPhysicalBackup` also does so when backups are turned off, because its WAL stream has stopped, while `startLogicalBackup` accepts a manual start then.
+
 A new `code` is added to its contract's enum in the same change. A code of `openapi.yaml` is also added to the frontend's dictionary; the frontend does not receive codes exclusive to `agent.yaml`.
 
 ## Access
@@ -56,11 +58,11 @@ A new `code` is added to its contract's enum in the same change. A code of `open
 
 ## Long operations
 
-Starting a backup, a restore or a verification answers 202 with the resource in its in-progress status. The client follows progress with `GET` on the resource. The operation never blocks until the work ends.
+Starting a backup, a restore or a verification answers 202 with the resource in its in-progress status. The client follows progress with `GET` on the resource. The operation never blocks until the work ends. A cancel whose status is final when it answers responds 200 with the resource. Starting a physical backup is an exception, for the reason in [architecture.md, HTTP API](../../../docs/architecture.md#http-api).
 
 ## Pagination
 
-A list takes `limit` and `after` and returns `items` and `nextCursor`. The cursor is opaque. `nextCursor` is absent on the last page. A list has a fixed order, documented in the operation. `OFFSET` and totals are not offered.
+A list takes `limit` and `after` and returns `items` and `nextCursor`. The cursor is opaque. `nextCursor` is absent on the last page. A list has a fixed order, documented in the operation. `OFFSET` and counts of rows for paging are not offered. A figure that is not a paging count may sit on the page, as [`totalUsageMb`](../../../docs/architecture.md#http-api) does.
 
 ## Downloads
 

@@ -7006,7 +7006,7 @@ type ClientInterface interface {
 
 	// StartPhysicalBackupWithBody Request a physical backup
 	//
-	// Needs WORKSPACE_MEMBER. Records the request; the scheduler creates the backup on its next pass. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database gets 400 invalid_request.
+	// Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -7015,7 +7015,7 @@ type ClientInterface interface {
 
 	// StartPhysicalBackup Request a physical backup
 	//
-	// Needs WORKSPACE_MEMBER. Records the request; the scheduler creates the backup on its next pass. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database gets 400 invalid_request.
+	// Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -7031,7 +7031,7 @@ type ClientInterface interface {
 
 	// CancelPhysicalBackup Cancel a running physical backup
 	//
-	// Needs WORKSPACE_MEMBER. Interrupts the process; the backup then becomes CANCELED. A finished backup gets 409 not_running.
+	// Needs WORKSPACE_MEMBER. Records the backup as CANCELED and answers with it in that final status, as listPhysicalBackups shows it; its process stops afterwards. A finished backup gets 409 not_running.
 	//
 	// Corresponds with POST /physical-backups/{backupId}/cancel (the `CancelPhysicalBackup` operationId).
 	CancelPhysicalBackup(ctx context.Context, backupId PhysicalBackupId, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -8768,7 +8768,7 @@ func (c *Client) ListPhysicalBackups(ctx context.Context, params *ListPhysicalBa
 
 // StartPhysicalBackupWithBody Request a physical backup
 //
-// Needs WORKSPACE_MEMBER. Records the request; the scheduler creates the backup on its next pass. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database gets 400 invalid_request.
+// Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded.
 //
 // Takes any type of body and a specified content type.
 //
@@ -8787,7 +8787,7 @@ func (c *Client) StartPhysicalBackupWithBody(ctx context.Context, contentType st
 
 // StartPhysicalBackup Request a physical backup
 //
-// Needs WORKSPACE_MEMBER. Records the request; the scheduler creates the backup on its next pass. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database gets 400 invalid_request.
+// Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -8823,7 +8823,7 @@ func (c *Client) DeletePhysicalBackup(ctx context.Context, backupId PhysicalBack
 
 // CancelPhysicalBackup Cancel a running physical backup
 //
-// Needs WORKSPACE_MEMBER. Interrupts the process; the backup then becomes CANCELED. A finished backup gets 409 not_running.
+// Needs WORKSPACE_MEMBER. Records the backup as CANCELED and answers with it in that final status, as listPhysicalBackups shows it; its process stops afterwards. A finished backup gets 409 not_running.
 //
 // Corresponds with POST /physical-backups/{backupId}/cancel (the `CancelPhysicalBackup` operationId).
 func (c *Client) CancelPhysicalBackup(ctx context.Context, backupId PhysicalBackupId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -15264,7 +15264,7 @@ type ClientWithResponsesInterface interface {
 
 	// StartPhysicalBackupWithBodyWithResponse Request a physical backup
 	//
-	// Needs WORKSPACE_MEMBER. Records the request; the scheduler creates the backup on its next pass. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database gets 400 invalid_request.
+	// Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -15273,7 +15273,7 @@ type ClientWithResponsesInterface interface {
 
 	// StartPhysicalBackupWithResponse Request a physical backup
 	//
-	// Needs WORKSPACE_MEMBER. Records the request; the scheduler creates the backup on its next pass. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database gets 400 invalid_request.
+	// Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -15291,7 +15291,7 @@ type ClientWithResponsesInterface interface {
 
 	// CancelPhysicalBackupWithResponse Cancel a running physical backup
 	//
-	// Needs WORKSPACE_MEMBER. Interrupts the process; the backup then becomes CANCELED. A finished backup gets 409 not_running.
+	// Needs WORKSPACE_MEMBER. Records the backup as CANCELED and answers with it in that final status, as listPhysicalBackups shows it; its process stops afterwards. A finished backup gets 409 not_running.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -19158,6 +19158,8 @@ func (r DeletePhysicalBackupResponse) ContentType() string {
 type CancelPhysicalBackupResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *PhysicalBackupListRow
 	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
 	ApplicationproblemJSON400 *Problem
 	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
@@ -19170,6 +19172,11 @@ type CancelPhysicalBackupResponse struct {
 	ApplicationproblemJSON409 *Problem
 	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
 	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r CancelPhysicalBackupResponse) GetJSON200() *PhysicalBackupListRow {
+	return r.JSON200
 }
 
 // GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
@@ -24087,7 +24094,7 @@ func (c *ClientWithResponses) ListPhysicalBackupsWithResponse(ctx context.Contex
 
 // StartPhysicalBackupWithBodyWithResponse Request a physical backup
 //
-// Needs WORKSPACE_MEMBER. Records the request; the scheduler creates the backup on its next pass. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database gets 400 invalid_request.
+// Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -24102,7 +24109,7 @@ func (c *ClientWithResponses) StartPhysicalBackupWithBodyWithResponse(ctx contex
 
 // StartPhysicalBackupWithResponse Request a physical backup
 //
-// Needs WORKSPACE_MEMBER. Records the request; the scheduler creates the backup on its next pass. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database gets 400 invalid_request.
+// Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -24132,7 +24139,7 @@ func (c *ClientWithResponses) DeletePhysicalBackupWithResponse(ctx context.Conte
 
 // CancelPhysicalBackupWithResponse Cancel a running physical backup
 //
-// Needs WORKSPACE_MEMBER. Interrupts the process; the backup then becomes CANCELED. A finished backup gets 409 not_running.
+// Needs WORKSPACE_MEMBER. Records the backup as CANCELED and answers with it in that final status, as listPhysicalBackups shows it; its process stops afterwards. A finished backup gets 409 not_running.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -27844,8 +27851,12 @@ func ParseCancelPhysicalBackupResponse(rsp *http.Response) (*CancelPhysicalBacku
 	}
 
 	switch {
-	case rsp.StatusCode == 202:
-		break // No content-type
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PhysicalBackupListRow
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
 		var dest Problem

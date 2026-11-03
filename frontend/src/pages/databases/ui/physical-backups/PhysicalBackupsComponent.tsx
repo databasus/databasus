@@ -133,6 +133,9 @@ export const PhysicalBackupsComponent = ({
     onRestore: setRestoringBackup,
   };
 
+  const isStartRefusedByConfig =
+    backupConfig !== undefined && (!backupConfig.isBackupsEnabled || !backupConfig.storageId);
+
   if (isBackupConfigLoading) {
     return (
       <div className="mb-5 flex items-center">
@@ -190,7 +193,11 @@ export const PhysicalBackupsComponent = ({
             className="mr-2 !w-auto"
             type="primary"
             loading={backupActions.isStartingBackup}
-            disabled={backupActions.isStartingBackup || firstLoadError !== undefined}
+            disabled={
+              backupActions.isStartingBackup ||
+              firstLoadError !== undefined ||
+              isStartRefusedByConfig
+            }
             icon={<DownOutlined />}
             menu={backupNowMenu}
             onClick={() => void backupActions.startBackup('AUTO')}
@@ -203,6 +210,10 @@ export const PhysicalBackupsComponent = ({
           {t('backups.physical.list.restore')}
         </Button>
       </div>
+
+      {isCanManageDBs && isStartRefusedByConfig && (
+        <div className="mt-2 text-sm text-muted">{t('backups.physical.list.startRequirement')}</div>
+      )}
 
       <div className="mt-5 w-full md:max-w-[890px]">
         {firstLoadError !== undefined ? (

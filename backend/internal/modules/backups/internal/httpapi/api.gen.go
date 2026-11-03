@@ -4910,12 +4910,18 @@ type CancelPhysicalBackupResponseObject interface {
 	VisitCancelPhysicalBackupResponse(w http.ResponseWriter) error
 }
 
-type CancelPhysicalBackup202Response struct {
-}
+type CancelPhysicalBackup200JSONResponse PhysicalBackupListRow
 
-func (response CancelPhysicalBackup202Response) VisitCancelPhysicalBackupResponse(w http.ResponseWriter) error {
-	w.WriteHeader(202)
-	return nil
+func (response CancelPhysicalBackup200JSONResponse) VisitCancelPhysicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
 }
 
 type CancelPhysicalBackup400ApplicationProblemPlusJSONResponse struct {

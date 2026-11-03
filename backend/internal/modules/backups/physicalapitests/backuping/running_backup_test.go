@@ -2,6 +2,7 @@ package backuping_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -67,7 +68,12 @@ func TestCancelRunningPhysicalBackup(t *testing.T) {
 			team.Owner,
 			apptest.PhysicalCancelRequest(backup.ID),
 		)
-		require.Equal(t, http.StatusAccepted, status, "%s", body)
+		require.Equal(t, http.StatusOK, status, "%s", body)
+
+		var cancelledBackup backupRow
+		require.NoError(t, json.Unmarshal(body, &cancelledBackup))
+		assert.Equal(t, "CANCELED", cancelledBackup.Status)
+		assert.Equal(t, []backupRow{cancelledBackup}, team.listBackups(t))
 
 		releaseStorage()
 		team.App.WaitForPhysicalBackups(t)

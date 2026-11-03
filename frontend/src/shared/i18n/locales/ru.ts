@@ -1571,6 +1571,8 @@ export const ru: typeof en = {
       list: {
         totalUsage: 'Занято всего: {{size}}',
         backUpNow: 'Сделать бекап',
+        startRequirement:
+          'Чтобы запустить бекап, включите бекапы и выберите хранилище в настройках бекапов.',
         fullBackup: 'Полный бекап',
         incrementalBackup: 'Инкрементальный бекап',
         restore: 'Восстановить',

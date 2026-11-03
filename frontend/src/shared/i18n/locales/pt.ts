@@ -1590,6 +1590,8 @@ export const pt: typeof en = {
       list: {
         totalUsage: 'Uso total: {{size}}',
         backUpNow: 'Fazer backup agora',
+        startRequirement:
+          'Para iniciar um backup, ative os backups e escolha um armazenamento na configuração de backup.',
         fullBackup: 'Backup completo',
         incrementalBackup: 'Backup incremental',
         restore: 'Restaurar',

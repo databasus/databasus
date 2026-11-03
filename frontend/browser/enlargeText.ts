@@ -11,4 +11,16 @@ export const enlargeText = async (region: Locator) => {
     for (const { element, size } of sizes) element.style.fontSize = `${size * 2}px`;
   });
   await expect(probe).toHaveCSS('font-size', `${before * 2}px`);
+
+  // AntD animates font-size on some controls, such as a select's value, and a layout measured
+  // during that transition sees text that has not reached its final size.
+  await region.evaluate(async (root) => {
+    const fontTransitions = root
+      .getAnimations({ subtree: true })
+      .filter(
+        (animation) =>
+          animation instanceof CSSTransition && animation.transitionProperty === 'font-size',
+      );
+    await Promise.allSettled(fontTransitions.map((transition) => transition.finished));
+  });
 };

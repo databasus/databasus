@@ -138,7 +138,7 @@ export function EditStorageComponent({
           {t('common.fields.type')}
         </label>
 
-        <div className="flex items-center">
+        <div className="flex w-full min-w-0 items-center">
           {isSaved ? (
             t(STORAGE_TYPE_LABEL_KEYS[settings.type])
           ) : (
@@ -149,11 +149,15 @@ export function EditStorageComponent({
               options={storageTypeOptions}
               onChange={(type: StorageType) => changeSettings(createDefaultStorageSettings(type))}
               size="small"
-              className="w-[250px] max-w-[250px]"
+              className="w-full max-w-[250px] min-w-0"
             />
           )}
 
-          <img alt="" src={getStorageLogoFromType(settings.type)} className="ml-2 h-4 w-4" />
+          <img
+            alt=""
+            src={getStorageLogoFromType(settings.type)}
+            className="ml-2 h-4 w-4 shrink-0"
+          />
         </div>
       </div>
 

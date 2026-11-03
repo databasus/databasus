@@ -1502,6 +1502,7 @@ export const zh: typeof en = {
       list: {
         totalUsage: '总占用：{{size}}',
         backUpNow: '立即备份',
+        startRequirement: '要启动备份，请在备份配置中启用备份并选择存储。',
         fullBackup: '全量备份',
         incrementalBackup: '增量备份',
         restore: '恢复',

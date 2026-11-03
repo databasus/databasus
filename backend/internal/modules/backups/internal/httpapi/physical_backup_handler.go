@@ -96,11 +96,17 @@ func (h *Handler) CancelPhysicalBackup(
 		return nil, err
 	}
 
-	if err := h.physicalBackups.CancelBackup(ctx, actor, request.BackupId); err != nil {
+	cancelledBackup, err := h.physicalBackups.CancelBackup(ctx, actor, request.BackupId)
+	if err != nil {
 		return nil, err
 	}
 
-	return CancelPhysicalBackup202Response{}, nil
+	body, err := toPhysicalBackupListRow(cancelledBackup)
+	if err != nil {
+		return nil, err
+	}
+
+	return CancelPhysicalBackup200JSONResponse(body), nil
 }
 
 func (h *Handler) DeletePhysicalBackup(

@@ -32,9 +32,10 @@ const database = {
   settings: createDefaultDatabaseSettings(DatabaseType.POSTGRES_PHYSICAL),
   notifierIds: [],
 };
+const STORAGE_ID = 'storage-id';
 const config: BackupConfig = {
   databaseId: database.id,
-  storageId: null,
+  storageId: STORAGE_ID,
   isBackupsEnabled: true,
   encryption: 'NONE',
   settings: {
@@ -297,6 +298,48 @@ describe('PhysicalBackupsComponent', () => {
 
       expect(queryStartButton()).toBeTruthy();
     });
+
+    it.each([
+      {
+        condition: 'backups are turned off',
+        change: { isBackupsEnabled: false, storageId: STORAGE_ID },
+      },
+      {
+        condition: 'backups are on and no storage is named',
+        change: { isBackupsEnabled: true, storageId: null },
+      },
+    ])('disables the start and says what it needs when $condition', async ({ change }) => {
+      declareListedBackups();
+      server.use(mockApi.get('/backup-configs/{databaseId}', 200, { ...config, ...change }));
+      renderDatabasePage();
+      await screen.findAllByText('111 MB');
+
+      const startMenuTrigger = screen.getByRole<HTMLButtonElement>('button', { name: 'down' });
+
+      fireEvent.click(queryStartButton() as HTMLButtonElement);
+      fireEvent.click(startMenuTrigger);
+
+      expect(queryStartButton()?.disabled).toBe(true);
+      expect(startMenuTrigger.disabled).toBe(true);
+      expect(screen.queryByText(physicalListCopy.fullBackup)).toBeNull();
+      expect(server.getRequests().filter(({ method }) => method === 'POST')).toHaveLength(0);
+      expect(screen.getByText(physicalListCopy.startRequirement)).toBeTruthy();
+      expect(screen.queryAllByText(listCopy.scheduledBackupsDisabled)).toHaveLength(
+        change.isBackupsEnabled === false ? 1 : 0,
+      );
+    });
+
+    it('keeps the start enabled without saying what it needs when the config fails to load', async () => {
+      declareListedBackups();
+      server.use(
+        http.get(`*${API_BASE_PATH}/backup-configs/:databaseId`, () => failedListResponse()),
+      );
+      renderDatabasePage();
+      await screen.findAllByText('111 MB');
+
+      expect(queryStartButton()?.disabled).toBe(false);
+      expect(screen.queryByText(physicalListCopy.startRequirement)).toBeNull();
+    });
   });
 
   it.each([
@@ -477,6 +520,7 @@ describe('PhysicalBackupsComponent', () => {
       action: string;
       status: PhysicalBackupListItem['status'];
       apiMethod: 'triggerPhysicalBackup' | 'cancelPhysicalBackup' | 'deletePhysicalBackup';
+      buildAcceptedAnswer: () => Response;
       press: () => unknown;
     }
 
@@ -485,18 +529,21 @@ describe('PhysicalBackupsComponent', () => {
         action: 'start',
         status: 'COMPLETED',
         apiMethod: 'triggerPhysicalBackup',
+        buildAcceptedAnswer: () => new HttpResponse(null, { status: 202 }),
         press: () => fireEvent.click(queryStartButton() as HTMLButtonElement),
       },
       {
         action: 'cancel',
         status: 'IN_PROGRESS',
         apiMethod: 'cancelPhysicalBackup',
+        buildAcceptedAnswer: () => HttpResponse.json(buildBackup({ status: 'CANCELED' })),
         press: () => fireEvent.click(getRowAction(listCopy.actions.cancelBackup)),
       },
       {
         action: 'delete',
         status: 'COMPLETED',
         apiMethod: 'deletePhysicalBackup',
+        buildAcceptedAnswer: () => new HttpResponse(null, { status: 204 }),
         press: clickDeleteAndConfirm,
       },
     ];
@@ -575,7 +622,7 @@ describe('PhysicalBackupsComponent', () => {
         leaveTab();
         const listCallsWhenLeaving = listCall.mock.calls.length;
         await releaseAndSettle(actionCall, () =>
-          heldAnswer.respond(new HttpResponse(null, { status: 202 })),
+          heldAnswer.respond(heldAction.buildAcceptedAnswer()),
         );
 
         expect(listCall.mock.calls).toHaveLength(listCallsWhenLeaving);
@@ -595,7 +642,7 @@ describe('PhysicalBackupsComponent', () => {
         });
         const listCallsWhenChanged = listCall.mock.calls.length;
         await releaseAndSettle(actionCall, () =>
-          heldAnswer.respond(new HttpResponse(null, { status: 202 })),
+          heldAnswer.respond(heldAction.buildAcceptedAnswer()),
         );
 
         expect(listCall.mock.calls).toHaveLength(listCallsWhenChanged);
@@ -656,17 +703,12 @@ describe('PhysicalBackupsComponent', () => {
   });
 
   describe('with a failing refresh', () => {
-    const physicalBackup = {
+    const physicalBackup = buildBackup({
       id: 'running-backup',
-      databaseId: database.id,
-      storageId: 'storage-id',
-      kind: 'FULL',
       status: 'IN_PROGRESS',
       sizeMb: 12,
-      durationMs: 3_000,
-      encryption: 'NONE',
       createdAt: '2026-10-27T10:00:00Z',
-    };
+    });
 
     const failedResponse = () => HttpResponse.json(buildProblem('internal', 500), { status: 500 });
 
@@ -720,7 +762,7 @@ describe('PhysicalBackupsComponent', () => {
         }),
         http.post('*/api/v1/physical-backups/:backupId/cancel', () => {
           isCancelled = true;
-          return HttpResponse.json({ ...physicalBackup, status: 'CANCELED' }, { status: 202 });
+          return HttpResponse.json({ ...physicalBackup, status: 'CANCELED' });
         }),
       );
       vi.useFakeTimers();

@@ -302,7 +302,7 @@ func cancelPhysicalBackup(t *testing.T, team *backupTeam, backup backupRow) {
 		team.Owner,
 		apptest.PhysicalCancelRequest(backup.ID),
 	)
-	require.Equal(t, http.StatusAccepted, status, "%s", body)
+	require.Equal(t, http.StatusOK, status, "%s", body)
 }
 
 func findPhysicalBackup(t *testing.T, team *backupTeam, backup backupRow) backupRow {
