@@ -23,39 +23,77 @@ type schedulingState struct {
 	recentFullsError      error
 }
 
+// configEvaluation is one database's turn in a scheduler pass.
+type configEvaluation struct {
+	now    time.Time
+	config config.PhysicalBackupConfig
+	state  schedulingState
+}
+
+func (s *Scheduler) loadNewestStates(
+	ctx context.Context,
+	databaseIDs []uuid.UUID,
+) (map[uuid.UUID]schedulingState, error) {
+	newestBackups, err := s.backupRepo.GetNewestBackupsByDatabases(ctx, databaseIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	unresolvedDatabases, err := s.repository.GetDatabasesWithUnresolvedMismatch(ctx, databaseIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	states := make(map[uuid.UUID]schedulingState, len(databaseIDs))
+	for _, databaseID := range databaseIDs {
+		states[databaseID] = schedulingState{
+			lastFull:              newestBackups[databaseID].Full,
+			lastIncremental:       newestBackups[databaseID].Incremental,
+			hasUnresolvedMismatch: unresolvedDatabases[databaseID],
+		}
+	}
+
+	return states, nil
+}
+
+// loadSchedulingState reads one database's whole state for the decision repeated under the lock.
 func (s *Scheduler) loadSchedulingState(
 	ctx context.Context,
-	logger *slog.Logger,
 	now time.Time,
-	config config.PhysicalBackupConfig,
+	backupConfig config.PhysicalBackupConfig,
 ) (schedulingState, error) {
-	state := schedulingState{}
-	var err error
-
-	state.lastFull, _, err = s.backupRepo.FindLastFullAnyStatusByDatabase(ctx, config.DatabaseID)
-	if err != nil || config.ForceFullRequestedAt != nil {
-		return state, err
-	}
-
-	state.hasUnresolvedMismatch, err = s.repository.HasUnresolvedSystemIdentifierMismatch(ctx, config.DatabaseID)
-	if err != nil || state.hasUnresolvedMismatch {
-		return state, err
-	}
-
-	state.lastIncremental, _, err = s.backupRepo.FindLastIncrementalByDatabase(ctx, config.DatabaseID)
+	newestStates, err := s.loadNewestStates(ctx, []uuid.UUID{backupConfig.DatabaseID})
 	if err != nil {
-		return state, err
+		return schedulingState{}, err
 	}
 
-	if !decidePhysicalBackupFromNewest(state, config, now).needsChain {
-		return state, nil
+	return s.addChainFacts(ctx, s.logger, configEvaluation{
+		now:    now,
+		config: backupConfig,
+		state:  newestStates[backupConfig.DatabaseID],
+	}), nil
+}
+
+// addChainFacts reads the chain only when the decision from the newest backups asks for it. A failed
+// read is recorded in the state, so the decision can still choose a backup that needs no chain.
+func (s *Scheduler) addChainFacts(
+	ctx context.Context,
+	logger *slog.Logger,
+	evaluation configEvaluation,
+) schedulingState {
+	state := evaluation.state
+	if !decidePhysicalBackupFromNewest(state, evaluation.config, evaluation.now).needsChain {
+		return state
 	}
 
-	chain, err := s.chainViewService.FindLastExtendableChainByDatabase(ctx, config.DatabaseID)
+	databaseID := evaluation.config.DatabaseID
+
+	chain, err := s.chainViewService.FindLastExtendableChainByDatabase(ctx, databaseID)
 	if err != nil {
 		state.chainError = err
 		logger.ErrorContext(ctx, "failed to find extendable chain", slog.Any("error", err))
-		return state, nil
+
+		return state
 	}
 
 	if chain != nil {
@@ -64,17 +102,18 @@ func (s *Scheduler) loadSchedulingState(
 		if state.parentError != nil {
 			logger.ErrorContext(ctx, "failed to resolve incremental parent", slog.Any("error", state.parentError))
 		}
-		return state, nil
+
+		return state
 	}
 
 	state.recentFullBackups, state.recentFullsError = s.backupRepo.FindNewestFullAnyStatusByDatabase(
 		ctx,
-		config.DatabaseID,
+		databaseID,
 		recentFullAttemptsWindow,
 	)
 	if state.recentFullsError != nil {
 		logger.ErrorContext(ctx, "failed to find recent full backups", slog.Any("error", state.recentFullsError))
 	}
 
-	return state, nil
+	return state
 }

@@ -33,6 +33,64 @@ func newBackupState(t *testing.T) *backupTeam {
 	return team
 }
 
+// addDatabase returns a second team on the same application, workspace and storage, so one scheduler
+// pass evaluates both databases.
+func (team *backupTeam) addDatabase(t *testing.T) *backupTeam {
+	t.Helper()
+	databaseID := team.App.InsertPhysicalDatabase(t, team.Database.WorkspaceId)
+
+	response, err := team.Owner.Client.GetDatabaseWithResponse(t.Context(), databaseID)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, response.StatusCode())
+
+	apptest.SaveBackupConfigWithStorage(
+		t,
+		team.Owner,
+		apptest.StorageUse{DatabaseID: databaseID, StorageID: team.StorageID},
+	)
+
+	return &backupTeam{App: team.App, Owner: team.Owner, Database: *response.JSON200, StorageID: team.StorageID}
+}
+
+func newIdleBackupState(t *testing.T) *backupTeam {
+	t.Helper()
+	team := newBackupState(t)
+	team.makeIdle(t)
+
+	return team
+}
+
+func (team *backupTeam) addIdleDatabase(t *testing.T) *backupTeam {
+	t.Helper()
+	addedTeam := team.addDatabase(t)
+	addedTeam.makeIdle(t)
+
+	return addedTeam
+}
+
+func (team *backupTeam) makeIdle(t *testing.T) {
+	t.Helper()
+	team.setSchedules(t, true)
+	team.seedFull(t, schedulerFullSpec{Age: 2 * time.Hour})
+}
+
+func (team *backupTeam) listNewBackups(t *testing.T, listedBefore []backupRow) []backupRow {
+	t.Helper()
+	knownBackupIDs := make(map[uuid.UUID]bool, len(listedBefore))
+	for _, backup := range listedBefore {
+		knownBackupIDs[backup.ID] = true
+	}
+
+	var newBackups []backupRow
+	for _, backup := range team.listBackups(t) {
+		if !knownBackupIDs[backup.ID] {
+			newBackups = append(newBackups, backup)
+		}
+	}
+
+	return newBackups
+}
+
 type schedulerFullSpec struct {
 	Status           string
 	Reason           *string

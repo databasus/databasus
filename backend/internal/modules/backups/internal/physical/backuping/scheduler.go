@@ -31,11 +31,29 @@ type Scheduler struct {
 func (s *Scheduler) GetJob() background.Job {
 	return background.Job{
 		Name:     "backups_physical_scheduler",
-		Interval: time.Second,
+		Interval: schedulerInterval,
 		Run:      func(ctx context.Context, _ time.Time) error { return s.RunPass(ctx) },
 	}
 }
-func (s *Scheduler) RunPass(ctx context.Context) error { return s.runPendingBackups(ctx, s.logger) }
+
+// GetRequestJob serves pending backup requests between full scheduler passes. It reads committed
+// configs, so every writer of a request and a request left waiting by a running backup need no signal.
+func (s *Scheduler) GetRequestJob() background.Job {
+	return background.Job{
+		Name:     "backups_physical_request_scheduler",
+		Interval: requestSchedulerInterval,
+		Run:      func(ctx context.Context, _ time.Time) error { return s.runRequestPass(ctx) },
+	}
+}
+
+func (s *Scheduler) RunPass(ctx context.Context) error {
+	enabledConfigs, err := s.configs.ListEnabledPhysicalBackupConfigs(ctx)
+	if err != nil {
+		return err
+	}
+
+	return s.evaluateConfigs(ctx, enabledConfigs)
+}
 
 func (s *Scheduler) FailBackupsLeftInProgress(
 	ctx context.Context,
@@ -44,16 +62,38 @@ func (s *Scheduler) FailBackupsLeftInProgress(
 	return s.lifecycle.FailLeftInProgress(ctx)
 }
 
-func (s *Scheduler) runPendingBackups(ctx context.Context, logger *slog.Logger) error {
-	enabledConfigs, err := s.configs.ListEnabledPhysicalBackupConfigs(ctx)
+func (s *Scheduler) runRequestPass(ctx context.Context) error {
+	pendingConfigs, err := s.configs.ListPhysicalBackupConfigsWithPendingRequest(ctx)
+	if err != nil {
+		return err
+	}
+
+	return s.evaluateConfigs(ctx, pendingConfigs)
+}
+
+func (s *Scheduler) evaluateConfigs(ctx context.Context, backupConfigs []config.PhysicalBackupConfig) error {
+	if len(backupConfigs) == 0 {
+		return nil
+	}
+
+	databaseIDs := make([]uuid.UUID, 0, len(backupConfigs))
+	for _, backupConfig := range backupConfigs {
+		databaseIDs = append(databaseIDs, backupConfig.DatabaseID)
+	}
+
+	newestStates, err := s.loadNewestStates(ctx, databaseIDs)
 	if err != nil {
 		return err
 	}
 
 	now := s.clock.Now()
 
-	for _, backupConfig := range enabledConfigs {
-		s.evaluateConfig(ctx, logger, now, backupConfig)
+	for _, backupConfig := range backupConfigs {
+		s.evaluateConfig(ctx, s.logger, configEvaluation{
+			now:    now,
+			config: backupConfig,
+			state:  newestStates[backupConfig.DatabaseID],
+		})
 	}
 
 	return nil
@@ -72,41 +112,28 @@ type backupDecision struct {
 func (s *Scheduler) evaluateConfig(
 	ctx context.Context,
 	logger *slog.Logger,
-	now time.Time,
-	backupConfig config.PhysicalBackupConfig,
+	evaluation configEvaluation,
 ) {
-	logger = logger.With(slog.Any("database_id", backupConfig.DatabaseID))
+	logger = logger.With(slog.Any("database_id", evaluation.config.DatabaseID))
 
-	if backupConfig.StorageID == nil {
+	if evaluation.config.StorageID == nil {
 		logger.ErrorContext(ctx, "physical backup config has no storage id; skipping")
 
 		return
 	}
 
-	_, ok := s.decideBackupKind(ctx, logger, now, backupConfig)
-	if !ok {
+	state := s.addChainFacts(ctx, logger, evaluation)
+
+	choice := decidePhysicalBackup(state, evaluation.config, evaluation.now)
+	if choice.shouldClearIncrementalRequest {
+		s.clearIncrementalRequest(ctx, logger, evaluation.config)
+	}
+
+	if !choice.canSchedule {
 		return
 	}
 
-	s.scheduleBackup(ctx, logger, backupConfig)
-}
-
-func (s *Scheduler) decideBackupKind(
-	ctx context.Context,
-	logger *slog.Logger,
-	now time.Time,
-	backupConfig config.PhysicalBackupConfig,
-) (backupDecision, bool) {
-	state, err := s.loadSchedulingState(ctx, logger, now, backupConfig)
-	if err != nil {
-		logger.ErrorContext(ctx, "failed to load physical backup scheduling state", slog.Any("error", err))
-		return backupDecision{}, false
-	}
-	choice := decidePhysicalBackup(state, backupConfig, now)
-	if choice.shouldClearIncrementalRequest {
-		s.clearIncrementalRequest(ctx, logger, backupConfig)
-	}
-	return choice.decision, choice.canSchedule
+	s.scheduleBackup(ctx, logger, evaluation.config)
 }
 
 func (s *Scheduler) clearIncrementalRequest(
@@ -262,7 +289,7 @@ func (s *Scheduler) claimAndInsert(
 		}
 
 		backupConfig = latestConfig
-		state, err := s.loadSchedulingState(ctx, s.logger, now, backupConfig)
+		state, err := s.loadSchedulingState(ctx, now, backupConfig)
 		if err != nil {
 			return err
 		}

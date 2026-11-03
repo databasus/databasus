@@ -112,6 +112,38 @@ func TestRunJobPass(t *testing.T) {
 		})
 	})
 
+	t.Run("starts a requested full backup when one pass of the backup request job runs", func(t *testing.T) {
+		t.Parallel()
+
+		testApp := New(t)
+		source := containers.StartPhysicalPostgres(t, "postgres:17")
+		owner, database := enablePhysicalBackupLoops(t, testApp, source)
+		requestFullBackup(t, testApp, owner, database.Id)
+
+		testApp.RunJobPass(t, "backups_physical_request_scheduler")
+
+		dispatchedBackups := listPhysicalBackups(t, testApp, owner, database.Id)
+		require.Len(t, dispatchedBackups, 1)
+		assert.Equal(t, "FULL", dispatchedBackups[0].Type)
+		assert.Contains(t, []string{"IN_PROGRESS", "COMPLETED"}, dispatchedBackups[0].Status)
+	})
+
+	t.Run("starts a requested full backup when one scheduler pass runs", func(t *testing.T) {
+		t.Parallel()
+
+		testApp := New(t)
+		source := containers.StartPhysicalPostgres(t, "postgres:17")
+		owner, database := enablePhysicalBackupLoops(t, testApp, source)
+		requestFullBackup(t, testApp, owner, database.Id)
+
+		testApp.RunJobPass(t, "backups_physical_scheduler")
+
+		dispatchedBackups := listPhysicalBackups(t, testApp, owner, database.Id)
+		require.Len(t, dispatchedBackups, 1)
+		assert.Equal(t, "FULL", dispatchedBackups[0].Type)
+		assert.Contains(t, []string{"IN_PROGRESS", "COMPLETED"}, dispatchedBackups[0].Status)
+	})
+
 	t.Run("fails the test when no job has the name", func(t *testing.T) {
 		t.Parallel()
 
@@ -238,6 +270,77 @@ func TestPhysicalBackupLoops(t *testing.T) {
 		assert.Zero(t, segmentCount)
 	})
 
+	t.Run("runs the backup request job live and again after modules restart", func(t *testing.T) {
+		t.Parallel()
+
+		testApp := New(t, WithPhysicalBackupLoops())
+		source := containers.StartPhysicalPostgres(t, "postgres:17")
+		owner, database := enablePhysicalBackupLoops(t, testApp, source)
+		testApp.WaitForPhysicalBackups(t)
+		waitForCompletedBackupRequestPass(t, testApp)
+
+		testApp.RestartModules(t)
+		waitForCompletedBackupRequestPass(t, testApp)
+
+		listedBefore := len(listPhysicalBackups(t, testApp, owner, database.Id))
+		requestFullBackup(t, testApp, owner, database.Id)
+
+		testwait.Until(t, "the requested full appears without an explicit pass", func(context.Context) error {
+			if listedCount := len(listPhysicalBackups(t, testApp, owner, database.Id)); listedCount <= listedBefore {
+				return fmt.Errorf("%d backups are listed", listedCount)
+			}
+
+			return nil
+		})
+	})
+
+	t.Run("runs one pass of the backup request job by name with live jobs", func(t *testing.T) {
+		t.Parallel()
+
+		testApp := New(t, WithPhysicalBackupLoops())
+
+		testApp.RunJobPass(t, "backups_physical_request_scheduler")
+
+		var requestJobSnapshot background.JobSnapshot
+		for _, snapshot := range testApp.GetPhysicalLoopSnapshots() {
+			if snapshot.Name == "backups_physical_request_scheduler" {
+				requestJobSnapshot = snapshot
+			}
+		}
+
+		assert.NotNil(t, requestJobSnapshot.LastCompletedAt)
+	})
+
+	t.Run("leaves a requested backup unstarted without the option and without a pass", func(t *testing.T) {
+		t.Parallel()
+
+		testApp := New(t)
+		source := containers.StartPhysicalPostgres(t, "postgres:17")
+		owner, database := enablePhysicalBackupLoops(t, testApp, source)
+		requestFullBackup(t, testApp, owner, database.Id)
+
+		// The backup request job would run every second; observe five of its intervals.
+		observationEnds := time.Now().Add(5 * time.Second)
+		testwait.Until(t, "five intervals pass without a started backup", func(context.Context) error {
+			require.Empty(t, listPhysicalBackups(t, testApp, owner, database.Id))
+
+			if time.Now().Before(observationEnds) {
+				return fmt.Errorf("observation window is still open")
+			}
+
+			return nil
+		})
+
+		var pendingRequests int64
+		testApp.QuerySQL(
+			t,
+			&pendingRequests,
+			"SELECT count(*) FROM backups_configs_physical WHERE database_id=? AND force_full_requested_at IS NOT NULL",
+			database.Id,
+		)
+		assert.Equal(t, int64(1), pendingRequests)
+	})
+
 	t.Run("starts no physical backup or wal stream without the option", func(t *testing.T) {
 		t.Parallel()
 
@@ -245,9 +348,9 @@ func TestPhysicalBackupLoops(t *testing.T) {
 		source := containers.StartPhysicalPostgres(t, "postgres:17")
 		owner, database := enablePhysicalBackupLoops(t, testApp, source)
 
-		// The scheduler ticks every second; observe five ticks after the config save answered.
+		// The backup request job would run every second; observe five of its intervals after the config save answered.
 		observationEnds := time.Now().Add(5 * time.Second)
-		testwait.Until(t, "five scheduler ticks pass without physical work", func(context.Context) error {
+		testwait.Until(t, "five intervals pass without physical work", func(context.Context) error {
 			status, body := testApp.CallPhysicalAPI(t, owner, PhysicalListRequest(database.Id, "?limit=1000"))
 			require.Equal(t, http.StatusOK, status, "%s", body)
 			var listed struct {
@@ -388,6 +491,25 @@ func enablePhysicalBackupLoops(t *testing.T, testApp *App, source containers.End
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, response.StatusCode(), "%s", response.Body)
 	return owner, database
+}
+
+func requestFullBackup(t *testing.T, testApp *App, owner Session, databaseID uuid.UUID) {
+	t.Helper()
+	status, body := testApp.CallPhysicalAPI(t, owner, PhysicalStartRequest(databaseID, "FULL"))
+	require.Equal(t, http.StatusAccepted, status, "%s", body)
+}
+
+func waitForCompletedBackupRequestPass(t *testing.T, testApp *App) {
+	t.Helper()
+	testwait.Until(t, "the live backup request job completes a pass", func(context.Context) error {
+		for _, snapshot := range testApp.GetPhysicalLoopSnapshots() {
+			if snapshot.Name == "backups_physical_request_scheduler" && snapshot.LastCompletedAt != nil {
+				return nil
+			}
+		}
+
+		return fmt.Errorf("the live runner has no completed pass of the backup request job")
+	})
 }
 
 func getActivePhysicalReplicationSlotCount(t *testing.T, source containers.Endpoint) int {

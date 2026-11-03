@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
@@ -75,20 +76,6 @@ func (r *BackupRepository) FindNewestFullAnyStatusByDatabase(ctx context.Context
 	}
 
 	return backups, nil
-}
-
-func (r *BackupRepository) FindLastFullAnyStatusByDatabase(ctx context.Context, databaseID uuid.UUID,
-) (*Backup, bool, error) {
-	backups, err := r.FindNewestFullAnyStatusByDatabase(ctx, databaseID, 1)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if len(backups) == 0 {
-		return nil, false, nil
-	}
-
-	return backups[0], true, nil
 }
 
 func (r *BackupRepository) FindAllFullByDatabaseOutsideStorage(ctx context.Context, databaseID uuid.UUID,
@@ -231,25 +218,6 @@ func (r *BackupRepository) FindAllByRootFull(ctx context.Context, rootFullBackup
 	return backups, nil
 }
 
-func (r *BackupRepository) FindLastIncrementalByDatabase(ctx context.Context, databaseID uuid.UUID,
-) (*Backup, bool, error) {
-	var backup Backup
-
-	err := database.Conn(ctx, r.db).
-		Where("kind = 'INCREMENTAL' AND database_id = ?", databaseID).
-		Order("created_at DESC").
-		First(&backup).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, false, nil
-		}
-
-		return nil, false, err
-	}
-
-	return &backup, true, nil
-}
-
 func (r *BackupRepository) AcquireBackupAndOrphanCleanupLock(ctx context.Context, databaseID uuid.UUID) error {
 	return database.Conn(ctx, r.db).Exec(
 		`SELECT pg_advisory_xact_lock(hashtextextended('physical-backup:' || ?::text, 0))`,
@@ -353,6 +321,52 @@ func (r *BackupRepository) HasRunningFullBackup(ctx context.Context, databaseID 
 		Where("database_id = ? AND kind = ? AND status = ?", databaseID, BackupKindFull, BackupStatusInProgress).
 		Count(&count).Error
 	return count > 0, err
+}
+
+// NewestBackups holds the newest backup of each kind of one database, whatever their status.
+type NewestBackups struct {
+	Full        *Backup
+	Incremental *Backup
+}
+
+// GetNewestBackupsByDatabases looks up each database and kind through the index on database, kind and
+// creation time, so the read does not walk the history of a database.
+func (r *BackupRepository) GetNewestBackupsByDatabases(
+	ctx context.Context,
+	databaseIDs []uuid.UUID,
+) (map[uuid.UUID]NewestBackups, error) {
+	newestBackups := make(map[uuid.UUID]NewestBackups, len(databaseIDs))
+	if len(databaseIDs) == 0 {
+		return newestBackups, nil
+	}
+
+	var backups []*Backup
+	err := database.Conn(ctx, r.db).Raw(`
+		SELECT newest.*
+		FROM unnest(?::uuid[]) AS requested (database_id)
+		CROSS JOIN (VALUES ('FULL'), ('INCREMENTAL')) AS kinds (kind)
+		CROSS JOIN LATERAL (
+			SELECT * FROM backups_physical
+			WHERE database_id = requested.database_id AND kind = kinds.kind
+			ORDER BY created_at DESC
+			LIMIT 1
+		) AS newest`, pq.Array(databaseIDs)).Scan(&backups).Error
+	if err != nil {
+		return nil, err
+	}
+
+	for _, backup := range backups {
+		databaseBackups := newestBackups[backup.DatabaseID]
+		if backup.Kind == BackupKindFull {
+			databaseBackups.Full = backup
+		} else {
+			databaseBackups.Incremental = backup
+		}
+
+		newestBackups[backup.DatabaseID] = databaseBackups
+	}
+
+	return newestBackups, nil
 }
 
 func (r *BackupRepository) GetLatestCompletedFullBackups(
