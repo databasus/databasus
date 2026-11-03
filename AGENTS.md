@@ -8,6 +8,7 @@ How the system is built is described in `docs/`:
 - [`docs/architecture.md`](docs/architecture.md) — the layout, the module boundaries, data, the API contract, long-running work, and the reasons behind each rule
 - [`docs/testing.md`](docs/testing.md) — the kinds of tests, isolation, test selection and runs
 - [`docs/glossary.md`](docs/glossary.md) — one term per concept, in prose and in code
+- [`docs/machine-setup.md`](docs/machine-setup.md) — preparing a Fedora machine so the full test run is faster
 
 Product behavior is specified in `openspec/specs`.
 
