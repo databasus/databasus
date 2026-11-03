@@ -10,7 +10,7 @@ import {
 import { useSessionGuard } from '../../../../shared/auth';
 import { usePolledPagedList } from '../../../../shared/hooks';
 import { getWebsitePageUrl, translateApiError, useLocale } from '../../../../shared/i18n';
-import { ClipboardHelper } from '../../../../shared/lib/ClipboardHelper';
+import { BrowserClipboard } from '../../../../shared/lib/BrowserClipboard';
 import type { AgentArchitecture } from '../../lib/verificationAgentCommands';
 import { AgentInstallCommandsDialog } from './AgentInstallCommandsDialog';
 import { CreateAgentDialog } from './CreateAgentDialog';
@@ -52,7 +52,7 @@ export const VerificationAgentsComponent = () => {
 
   const copyToClipboard = async (text: string) => {
     try {
-      await ClipboardHelper.copyToClipboard(text);
+      await BrowserClipboard.copyToClipboard(text);
       if (isCurrent()) message.success(t('common.messages.copiedToClipboard'));
     } catch {
       if (isCurrent()) message.error(t('verification.agents.copyFailed'));

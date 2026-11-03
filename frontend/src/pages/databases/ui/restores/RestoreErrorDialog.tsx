@@ -3,7 +3,7 @@ import { Alert, App, Button, Modal } from 'antd';
 import { Trans, useTranslation } from 'react-i18next';
 
 import type { Restore } from '../../../../entities/restores';
-import { ClipboardHelper } from '../../../../shared/lib/ClipboardHelper';
+import { BrowserClipboard } from '../../../../shared/lib/BrowserClipboard';
 
 interface Props {
   restore: Restore;
@@ -24,7 +24,7 @@ export const RestoreErrorDialog = ({ restore, onClose }: Props) => {
         <Button
           icon={<CopyOutlined />}
           onClick={() => {
-            ClipboardHelper.copyToClipboard(restore.failMessage || '');
+            BrowserClipboard.copyToClipboard(restore.failMessage || '');
             message.success(t('restores.errorDetails.copied'));
           }}
         >

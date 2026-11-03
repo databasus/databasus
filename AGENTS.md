@@ -9,6 +9,9 @@ How the system is built is described in `docs/`:
 - [`docs/testing.md`](docs/testing.md) — the kinds of tests, isolation, test selection and runs
 - [`docs/glossary.md`](docs/glossary.md) — one term per concept, in prose and in code
 - [`docs/machine-setup.md`](docs/machine-setup.md) — preparing a Fedora machine so the full test run is faster
+- [`docs/frontend-design.md`](docs/frontend-design.md) — frontend design conventions and their code owners
+- [`docs/frontend-localization.md`](docs/frontend-localization.md) — dictionaries, safe interpolation and regional formats
+- [`docs/google-drive-storage-authorization.md`](docs/google-drive-storage-authorization.md) — how a storage editor authorizes with Google Drive
 
 Product behavior is specified in `openspec/specs`.
 
@@ -72,7 +75,7 @@ Several agents may work on this repo at once, in different worktrees, sharing on
 - The main agent, the one the user talks to, works in the checkout or worktree its session starts in. It creates a new git worktree only when the user explicitly asks for one, and it uses a worktree the user created as it is.
 - A background agent, one the main agent starts, may create a worktree of its own when its work needs one or when the main agent asks it to. The main agent may ask for that.
 - Lint and format whenever you want: they touch nothing shared.
-- Check a change that adds or changes tests or the code they cover with `mise run test`, as [`docs/testing.md`](docs/testing.md#checking-work) says. Full runs take turns through a machine-wide lock, so one may wait for another; repeating one failing test directly takes no lock.
+- [`docs/testing.md`](docs/testing.md#checking-work) says which test run a change owes. Full runs take turns through a machine-wide lock, so one may wait for another; repeating one failing test directly takes no lock.
 - Never stop the shared test PostgreSQL server or prune Docker, because other runs use them. The one exception is the recovery of that server after a crash, while no test run is active, which [`docs/testing.md`](docs/testing.md#isolation) describes.
 
 ---

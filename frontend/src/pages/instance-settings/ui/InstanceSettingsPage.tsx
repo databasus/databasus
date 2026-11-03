@@ -10,7 +10,7 @@ import { useSessionGuard } from '@/shared/auth';
 import { getApplicationServer } from '@/shared/config';
 import { useRequestRevision } from '@/shared/hooks';
 import { getWebsitePageUrl, translateApiError, useLocale } from '@/shared/i18n';
-import { ClipboardHelper } from '@/shared/lib/ClipboardHelper';
+import { BrowserClipboard } from '@/shared/lib/BrowserClipboard';
 
 import { VerificationAgentsComponent } from './verification-agents/VerificationAgentsComponent';
 
@@ -324,7 +324,7 @@ export function InstanceSettingsPage({ onSettingsChanged }: Props) {
                   aria-label={t('common.actions.copy')}
                   icon={<CopyOutlined aria-hidden />}
                   onClick={() => {
-                    ClipboardHelper.copyToClipboard(
+                    BrowserClipboard.copyToClipboard(
                       `${getApplicationServer()}/api/v1/system/health`,
                     );
                     message.success(i18n.t('settings.healthcheck.copied'));

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { ClipboardHelper } from '../../../../shared/lib/ClipboardHelper';
+import { BrowserClipboard } from '../../../../shared/lib/BrowserClipboard';
 
 const COPIED_MARK_MS = 2000;
 
@@ -15,7 +15,7 @@ export const useCopiedCommand = () => {
   const copiedMarkTimer = useRef<number | undefined>(undefined);
 
   const copyCommand = async ({ commandId, code }: CommandToCopy) => {
-    await ClipboardHelper.copyToClipboard(code);
+    await BrowserClipboard.copyToClipboard(code);
 
     window.clearTimeout(copiedMarkTimer.current);
     setCopiedCommandId(commandId);

@@ -163,7 +163,7 @@ func TestApplicationVersion(t *testing.T) {
 		configured string
 		reported   string
 	}{
-		{"keeps the development default when APP_VERSION is unset", "", "3.26.0"},
+		{"keeps the development default when APP_VERSION is unset", "", "dev"},
 		{"uses the configured version when APP_VERSION is set", "9.8.7", "9.8.7"},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {

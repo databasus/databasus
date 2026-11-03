@@ -30,11 +30,10 @@ This will compile TypeScript and create an optimized production build.
 
 ### Linting
 
-To check for linting and type errors:
+To run every frontend check without changing files:
 
 ```bash
-pnpm lint
-pnpm typecheck
+mise run frontend:lint
 ```
 
 ### Formatting
@@ -55,6 +54,6 @@ pnpm format:check
 
 ## Workspace resource screens
 
-Workspace settings, storage and notifier lists/details live in their `src/pages` slices. Reusable editors live in `features/edit-storage` and `features/edit-notifier`. `pages/databases` owns the database list, details, settings and creation wizard, the logical and physical backup lists with their config editors, the restore screens, WAL stream monitoring and the verification config and run screens. It composes those editors for database transfer, notifier selection and backup-storage configuration. `pages/instance-settings` owns the mail server, the audit log and the verification agent screens. `features/database-connection` holds the connection form, which the page also uses for the restore target. Workspace creation belongs to app-local UI.
+Workspace settings, storage and notifier lists/details live in their `src/pages` slices. Reusable editors live in `features/edit-storage` and `features/edit-notifier`. `pages/databases` owns the database list, details, settings and creation wizard, the logical and physical backup lists with their config editors, the restore screens, WAL stream monitoring and the verification config and verification screens. It composes those editors for database transfer, notifier selection and backup-storage configuration. `pages/instance-settings` owns the mail server, the audit log and the verification agent screens. `features/database-connection` holds the connection form, which the page also uses for the restore target. Workspace creation belongs to app-local UI.
 
 The [architecture](../docs/architecture.md#frontend) describes ownership and asynchronous acceptance. The [testing guide](../docs/testing.md) describes production browser UI checks and the isolated real-API workspace/storage scenario.

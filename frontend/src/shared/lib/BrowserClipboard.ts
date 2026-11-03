@@ -1,4 +1,4 @@
-export class ClipboardHelper {
+export class BrowserClipboard {
   static isClipboardApiAvailable(): boolean {
     return !!(navigator.clipboard && window.isSecureContext);
   }

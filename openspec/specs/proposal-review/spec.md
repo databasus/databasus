@@ -57,7 +57,7 @@ The delta spec reviewer SHALL check that requirements are complete and testable,
 
 The necessity reviewer SHALL look for a noticeably simpler way to reach the same result, following the repository rule that the best code is unwritten: something that already exists in the repository or its dependencies, a small refactoring instead of new code, or a narrower option. It SHALL return a `simplify` finding when the user loses nothing and a `scope` finding when the user loses a feature, screen, scenario or setting.
 
-The architecture reviewer SHALL check the decisions in the design and the structure the proposal implies against `docs/architecture.md` and the architecture rules of the module docs, and SHALL return a `mismatch` finding for each contradiction that the change does not resolve by editing `docs/architecture.md` itself. When the change adds or changes an HTTP operation, the architecture reviewer SHALL also check it against the repository's API design skill and return a `mismatch` finding for each rule it breaks. A design that keeps the existing structure of Go code under `backend/` and `agent/` outside the layout block in "Backend layout" of `docs/architecture.md` SHALL NOT be reported, unless the change moves that code.
+The architecture reviewer SHALL check the decisions in the design and the structure the proposal implies against `docs/architecture.md` and the architecture rules of the module docs, and SHALL return a `mismatch` finding for each contradiction that the change does not resolve by editing `docs/architecture.md` itself. When the change adds or changes an HTTP operation, the architecture reviewer SHALL also check it against the repository's API design skill and return a `mismatch` finding for each rule it breaks.
 
 The names reviewer SHALL check every name the proposal, design and delta specs introduce for code, data or the contract, such as modules, packages, types, tables, columns, HTTP operations, fields, commands and environment variables, against the naming rules of the root `AGENTS.md`, the module docs, the table naming rules in the "Data" section of `docs/architecture.md` and `docs/glossary.md`. It SHALL return a `mismatch` finding that names the rule and suggests a name, and a `gap` finding when the change introduces a domain term that the glossary does not define and the change does not add.
 
@@ -72,10 +72,6 @@ The task reviewer SHALL check that a task with a test covers every scenario, tha
 #### Scenario: A design that bypasses a module boundary
 - **WHEN** the design lets one module read another module's table directly and leaves `docs/architecture.md` unchanged
 - **THEN** the architecture reviewer returns a `mismatch` finding that names the rule in `docs/architecture.md`
-
-#### Scenario: A design that edits old code in place
-- **WHEN** the design changes a service under `backend/internal/features` and keeps its existing structure
-- **THEN** the architecture reviewer returns no finding about the layout of that code
 
 #### Scenario: A proposed operation that breaks an API rule
 - **WHEN** the design adds an HTTP operation whose error responses do not use the error format the API design skill requires
