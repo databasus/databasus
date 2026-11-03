@@ -29,8 +29,7 @@
     <a href="#-功能特性">功能特性</a> •
     <a href="#-安装">安装</a> •
     <a href="#-使用">使用</a> •
-    <a href="#-许可证">许可证</a> •
-    <a href="#-参与贡献">参与贡献</a>
+    <a href="#-许可证">许可证</a>
   </p>
 
   <p style="margin-top: 20px; margin-bottom: 20px; font-size: 1.2em;">
@@ -311,8 +310,6 @@ Databasus 处理的是敏感数据，所以防范漏洞、越权访问和数据�
 
 本项目采用 Apache 2.0 许可证，详见 [LICENSE](../../LICENSE) 文件
 
-## 🤝 参与贡献
+## 💬 社区
 
-欢迎贡献！更多细节、优先级和规则见<a href="https://databasus.com/contribute">贡献指南</a>。如果你想参与但不知道从哪下手，在 Telegram 上找我 [@rostislav_dugin](https://t.me/rostislav_dugin)
-
-你也可以加入我们在 Telegram 上的开发者、DBA 和 DevOps 工程师社群 [@databasus_community](https://t.me/databasus_community)。
+欢迎加入我们在 Telegram 上的开发者、DBA 和 DevOps 工程师社群 [@databasus_community](https://t.me/databasus_community)。

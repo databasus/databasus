@@ -433,7 +433,7 @@ export default function MongodbBackupPage() {
 
               <p className="text-gray-400 text-sm md:text-base mb-4">
                 Databasus est entièrement open source sous licence Apache 2.0.
-                Inspectez chaque ligne de code, forkez-le, contribuez-y. Gratuit
+                Inspectez chaque ligne de code et forkez-le. Gratuit
                 pour un usage personnel comme en entreprise
               </p>
               <div>

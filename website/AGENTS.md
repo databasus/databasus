@@ -30,7 +30,7 @@ Each `content/<locale>.tsx` exports **both** `metadata` (fully translated, `cano
 **If you change a page in `app/(en)/` that is listed in `TRANSLATED_PATHS`, you must apply the same change to all 5 copies in `app/[lang]/<path>/content/`.** That includes structure, links, and metadata. Check before finishing:
 
 1. The section/element hierarchy matches the English page.
-2. Internal links carry the `/{lang}/` prefix — except links to untranslated pages (`/privacy`, `/terms-of-use`, `/contribute/*`), which stay unprefixed.
+2. Internal links carry the `/{lang}/` prefix — except links to untranslated pages (`/privacy`, `/terms-of-use`), which stay unprefixed.
 3. Heading `id` anchors are identical to English in every locale (cross-links like `/faq#oss-programs` depend on them).
 4. Technical strings (install commands, configs, file names, code blocks) are byte-identical to English.
 5. Adding a page to the translated core or adding a locale starts in `app/i18n.ts` (`TRANSLATED_PATHS` / `LOCALES`); sitemap and hreflang follow from it automatically. The application's links to website pages depend on it too: `frontend/src/shared/i18n/websitePages.ts` marks which linked pages are translated, and a frontend test (`websitePages.test.ts`) reads `TRANSLATED_PATHS` and fails when the two disagree. Adding or removing a translated path that the application links to means updating that table in the same change.

@@ -29,8 +29,7 @@
     <a href="#-características">Características</a> •
     <a href="#-instalación">Instalación</a> •
     <a href="#-uso">Uso</a> •
-    <a href="#-licencia">Licencia</a> •
-    <a href="#-contribuir">Contribuir</a>
+    <a href="#-licencia">Licencia</a>
   </p>
 
   <p style="margin-top: 20px; margin-bottom: 20px; font-size: 1.2em;">
@@ -311,8 +310,6 @@ Las rutas críticas están cubiertas por pruebas unitarias y de integración, ej
 
 Este proyecto está publicado bajo la licencia Apache 2.0. Consulte el archivo [LICENSE](../../LICENSE) para los detalles
 
-## 🤝 Contribuir
+## 💬 Comunidad
 
-¡Las contribuciones son bienvenidas! Lea la <a href="https://databasus.com/contribute">guía de contribución</a> para conocer los detalles, las prioridades y las reglas. Si quiere contribuir pero no sabe por dónde empezar, escríbame por Telegram [@rostislav_dugin](https://t.me/rostislav_dugin)
-
-También puede unirse a nuestra gran comunidad de desarrolladores, DBA e ingenieros DevOps en Telegram [@databasus_community](https://t.me/databasus_community).
+Únase a nuestra gran comunidad de desarrolladores, DBA e ingenieros DevOps en Telegram [@databasus_community](https://t.me/databasus_community).

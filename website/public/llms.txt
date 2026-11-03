@@ -54,7 +54,6 @@ Physical, full, incremental and WAL backups are built on PostgreSQL 17's native 
 ### Setup and Configuration
 
 - [Installation](https://databasus.com/installation): Four installation methods - automated script, Docker run, Docker Compose and Helm for Kubernetes. Here you can read how to install Databasus
-- [Agent Installation](https://databasus.com/installation/agent): How to install the Databasus agent used for physical backups, incremental backups, WAL archiving and Point-in-Time Recovery (PITR) of PostgreSQL databases.
 - [Advanced Config](https://databasus.com/advanced-config): Optional environment variables for self-hosting Databasus — none required for a default install. Covers Google and GitHub OAuth sign-in, SMTP email, Cloudflare Turnstile sign-up captcha, anonymous telemetry, OpenTelemetry log export and a custom analytics script. Notes that OAuth sign-in and email require the instance to be served over HTTPS on a public domain.
 - [Access Management](https://databasus.com/access-management): Workspaces, user roles, audit logs and global settings for managing access control. Here you can read how to manage access to Databasus, which roles system does it have. As well here exaplained how teams and organizations can control usage for their team members.
 - [Password Reset](https://databasus.com/password): How to reset user passwords using command-line tool
@@ -100,12 +99,6 @@ Physical, full, incremental and WAL backups are built on PostgreSQL 17's native 
 - [Databasus vs Barman](https://databasus.com/databasus-vs-barman): Differences in backup approach, PITR capabilities, ease of use and team features, and when to choose each tool.
 - [Databasus vs WAL-G](https://databasus.com/databasus-vs-wal-g): Differences in backup approach, multi-database support, ease of use and team features, and when to choose each tool.
 - [Databasus vs PgBackWeb](https://databasus.com/databasus-vs-pgbackweb): Differences in features, security, team support, storage options, notifications and ease of use.
-
-### Contributing
-
-- [Contribute to Databasus](https://databasus.com/contribute): How to contribute through promotion, documentation, social sharing or code development. Add new storages, notifiers or fix bugs.
-- [How to add new storage](https://databasus.com/contribute/how-to-add-storage): Developer guide for contributing new storage integrations. Covers backend models, migrations and frontend UI components for storage providers.
-- [How to add new notifier](https://databasus.com/contribute/how-to-add-notifier): Developer guide for contributing new notification integrations. Covers backend models, migrations and frontend UI components.
 
 ## Technical Details
 
