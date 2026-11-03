@@ -727,10 +727,12 @@ func lsnPtr(v walmath.LSN) *walmath.LSN {
 }
 
 func classifyShutdown(ctx context.Context, backupResult Result) Result {
-	if errors.Is(context.Cause(ctx), runcontext.ErrBackupShutdown) {
+	if backupResult.Status != catalog.BackupStatusCompleted &&
+		errors.Is(context.Cause(ctx), runcontext.ErrBackupShutdown) {
 		backupResult.Status = catalog.BackupStatusError
 		backupResult.ErrorReason = new(catalog.BackupErrorApplicationRestart)
 		backupResult.ErrorMessage = runcontext.ErrBackupShutdown.Error()
 	}
+
 	return backupResult
 }
