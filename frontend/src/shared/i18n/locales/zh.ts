@@ -6,19 +6,15 @@ export const zh: typeof en = {
   },
   common: {
     actions: {
-      add: '添加',
       back: '返回',
       cancel: '取消',
       close: '关闭',
-      confirm: '确认',
       continue: '继续',
       copy: '复制',
       create: '创建',
       delete: '删除',
-      download: '下载',
       edit: '编辑',
       ok: '确定',
-      refresh: '刷新',
       remove: '移除',
       retry: '重试',
       save: '保存',
@@ -38,7 +34,6 @@ export const zh: typeof en = {
       username: '用户名',
     },
     states: {
-      disabled: '已禁用',
       enabled: '已启用',
       loading: '加载中…',
     },
@@ -84,12 +79,8 @@ export const zh: typeof en = {
       summary: '已用 {{used}} / {{total}} GB（{{percent}}%）',
     },
     workspaceSelection: {
-      createShort: '创建',
       create: '创建工作区',
       selected: '当前工作区',
-      placeholder: '选择工作区',
-      search: '搜索工作区',
-      notFound: '未找到工作区',
       createNew: '+ 新建工作区',
     },
     starButton: {
@@ -101,9 +92,6 @@ export const zh: typeof en = {
       submit: '提交',
       description: '无法自动读取剪贴板，请在下方粘贴内容。',
       placeholder: '在此粘贴连接字符串',
-    },
-    auth: {
-      accountsCheckFailed: '无法检查该实例是否已有账户：{{error}}',
     },
     oauthCallback: {
       failedTitle: '认证失败',
@@ -1134,7 +1122,6 @@ export const zh: typeof en = {
       hasSendError: '发送出错',
     },
     create: {
-      title: '添加通知渠道',
       namePlaceholder: '我的聊天',
     },
     config: {
@@ -1286,8 +1273,6 @@ export const zh: typeof en = {
       powerAutomateUrlLabel: 'Power Automate URL：',
       powerAutomateUrlTooltip:
         '你的 Power Automate 流中的 HTTP 端点（When an HTTP request is received 触发器）',
-      showFullUrl: '显示',
-      hideFullUrl: '隐藏',
     },
     mattermost: {
       howToConnect: '如何连接 Mattermost？',

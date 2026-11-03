@@ -20,10 +20,6 @@ func (lsn fixtureLSN) String() string {
 
 type fixtureSegmentNo uint64
 
-func (segment fixtureSegmentNo) FirstLSN(size uint64) fixtureLSN {
-	return fixtureLSN(uint64(segment) * size)
-}
-
 type fullSeedSpec struct {
 	DatabaseID uuid.UUID
 	StorageID  uuid.UUID

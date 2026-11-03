@@ -6,19 +6,15 @@ export const es: typeof en = {
   },
   common: {
     actions: {
-      add: 'Añadir',
       back: 'Atrás',
       cancel: 'Cancelar',
       close: 'Cerrar',
-      confirm: 'Confirmar',
       continue: 'Continuar',
       copy: 'Copiar',
       create: 'Crear',
       delete: 'Eliminar',
-      download: 'Descargar',
       edit: 'Editar',
       ok: 'Aceptar',
-      refresh: 'Actualizar',
       remove: 'Eliminar',
       retry: 'Reintentar',
       save: 'Guardar',
@@ -38,7 +34,6 @@ export const es: typeof en = {
       username: 'Usuario',
     },
     states: {
-      disabled: 'Desactivado',
       enabled: 'Activado',
       loading: 'Cargando...',
     },
@@ -84,12 +79,8 @@ export const es: typeof en = {
       summary: 'En uso: {{used}} de {{total}} GB ({{percent}}%)',
     },
     workspaceSelection: {
-      createShort: 'Crear',
       create: 'Crear espacio de trabajo',
       selected: 'Espacio de trabajo actual',
-      placeholder: 'Seleccione un espacio de trabajo',
-      search: 'Buscar espacios de trabajo...',
-      notFound: 'No se encontraron espacios de trabajo',
       createNew: '+ Nuevo espacio de trabajo',
     },
     starButton: {
@@ -102,9 +93,6 @@ export const es: typeof en = {
       description:
         'El acceso automático al portapapeles no está disponible. Pegue el contenido a continuación.',
       placeholder: 'Pegue aquí la cadena de conexión...',
-    },
-    auth: {
-      accountsCheckFailed: 'No se pudo comprobar si la instancia tiene alguna cuenta: {{error}}',
     },
     oauthCallback: {
       failedTitle: 'Error de autenticación',
@@ -1211,7 +1199,6 @@ export const es: typeof en = {
       hasSendError: 'Error de envío',
     },
     create: {
-      title: 'Añadir canal de notificación',
       namePlaceholder: 'Mi chat',
     },
     config: {
@@ -1371,8 +1358,6 @@ export const es: typeof en = {
       powerAutomateUrlLabel: 'URL de Power Automate:',
       powerAutomateUrlTooltip:
         'Endpoint HTTP de su flujo de Power Automate (When an HTTP request is received)',
-      showFullUrl: 'Mostrar',
-      hideFullUrl: 'Ocultar',
     },
     mattermost: {
       howToConnect: '¿Cómo conectar Mattermost?',

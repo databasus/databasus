@@ -19,7 +19,6 @@ import (
 	"databasus-backend/internal/modules/backups/internal/restore"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
-	"databasus-backend/internal/modules/users"
 )
 
 type Deps struct {
@@ -123,40 +122,6 @@ func (m *Module) RegisterRoutes(routes gin.IRouter, hooks *apierror.Hooks) {
 		}),
 		backupshttpapi.GinServerOptions{BaseURL: "", Middlewares: nil, ErrorHandler: hooks.HandleParameterError},
 	)
-}
-
-func (m *Module) LockAndGetLogicalBackupConfig(
-	ctx context.Context,
-	databaseID uuid.UUID,
-) (config.LogicalBackupConfig, error) {
-	return m.configs.LockAndGetLogicalBackupConfig(ctx, databaseID)
-}
-
-func (m *Module) GetLogicalBackupConfig(ctx context.Context, databaseID uuid.UUID) (config.LogicalBackupConfig, error) {
-	return m.configs.GetLogicalBackupConfig(ctx, databaseID)
-}
-
-func (m *Module) GetPhysicalBackupConfig(
-	ctx context.Context,
-	databaseID uuid.UUID,
-) (config.PhysicalBackupConfig, error) {
-	return m.configs.GetPhysicalBackupConfig(ctx, databaseID)
-}
-
-func (m *Module) ListEnabledLogicalBackupConfigs(ctx context.Context) ([]config.LogicalBackupConfig, error) {
-	return m.configs.ListEnabledLogicalBackupConfigs(ctx)
-}
-
-func (m *Module) ListEnabledPhysicalBackupConfigs(ctx context.Context) ([]config.PhysicalBackupConfig, error) {
-	return m.configs.ListEnabledPhysicalBackupConfigs(ctx)
-}
-
-func (m *Module) SaveBackupConfig(
-	ctx context.Context,
-	actor users.Actor,
-	savedConfig config.AnyBackupConfig,
-) (config.SavedBackupConfig, error) {
-	return m.configs.SaveBackupConfig(ctx, actor, savedConfig)
 }
 
 func (m *Module) RequestFullBackup(ctx context.Context, databaseID uuid.UUID) error {

@@ -3,7 +3,6 @@ package chains
 import (
 	"context"
 	"errors"
-	"fmt"
 	"slices"
 	"time"
 
@@ -56,18 +55,6 @@ func (s *Service) FindNonExtendableChainsByDatabase(ctx context.Context, databas
 	}
 
 	return views, nil
-}
-
-func (s *Service) GetChainSpan(ctx context.Context, rootFullBackupID uuid.UUID) (catalog.LSNRange, error) {
-	full, _, err := s.backupRepository.FindByID(ctx, rootFullBackupID)
-	if err != nil {
-		return catalog.LSNRange{}, err
-	}
-	if full == nil {
-		return catalog.LSNRange{}, fmt.Errorf("chain_view: full backup not found: %s", rootFullBackupID)
-	}
-
-	return s.getChainSpanForFull(ctx, full)
 }
 
 func (s *Service) GetChainEndTimestamp(ctx context.Context, view *ChainView) (time.Time, error) {

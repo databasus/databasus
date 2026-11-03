@@ -128,8 +128,6 @@ type Module interface {
 	RecordBackupFailure(ctx context.Context, databaseID uuid.UUID, message string) error
 	SetHealthStatus(ctx context.Context, databaseID uuid.UUID, status *HealthStatus) error
 
-	DeleteDatabase(ctx context.Context, actor users.Actor, databaseID uuid.UUID) error
-
 	// TransferDatabaseToWorkspace and ReplaceDatabaseNotifiers serve the database transfer of the backups
 	// module, which checks access in both workspaces itself and runs them in its transaction.
 	TransferDatabaseToWorkspace(ctx context.Context, actor users.Actor, databaseID, workspaceID uuid.UUID) error

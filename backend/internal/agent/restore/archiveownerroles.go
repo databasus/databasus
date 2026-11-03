@@ -19,7 +19,7 @@ var tocEntryPattern = regexp.MustCompile(`^\d+; \d+ \d+ \S+ .+ \S+$`)
 // --no-owner --no-acl, so object ownership never needs these roles. Data does:
 // TimescaleDB's _timescaledb_config.bgw_job.owner is a regrole column, and COPY resolves
 // each role name to an OID as it loads, so a policy owned by an application role fails the
-// whole restore with `role "..." does not exist` (issue #721). Coverage is the archive's TOC
+// whole restore with `role "..." does not exist`. Coverage is the archive's TOC
 // owners, which is every role the dump names as an owner — a regrole value pointing at a role
 // that owns no archived object is out of reach and would still fail.
 // The ensured role names are returned so the caller can log them under its job scope.

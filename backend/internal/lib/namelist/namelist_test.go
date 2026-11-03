@@ -6,16 +6,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParseUniqueNames(t *testing.T) {
+func TestNormalizeUniqueNames(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns an empty slice with blank input", func(t *testing.T) {
 		t.Parallel()
 
-		assert.Empty(t, ParseUniqueNames(""))
-		assert.Empty(t, ParseUniqueNames("   "))
-		assert.Empty(t, ParseUniqueNames(",,,"))
-		assert.NotNil(t, ParseUniqueNames(""))
+		assert.Empty(t, NormalizeUniqueNames([]string{""}))
+		assert.Empty(t, NormalizeUniqueNames([]string{"   "}))
+		assert.Empty(t, NormalizeUniqueNames([]string{",,,"}))
+		assert.NotNil(t, NormalizeUniqueNames([]string{""}))
 	})
 
 	t.Run("returns trimmed names with pasted multiline input", func(t *testing.T) {
@@ -25,36 +25,21 @@ func TestParseUniqueNames(t *testing.T) {
 		assert.Equal(
 			t,
 			[]string{"personnel_access_control_event", "personnel_real_time_location", "personnel_real_time"},
-			ParseUniqueNames(pastedNames),
+			NormalizeUniqueNames([]string{pastedNames}),
 		)
 	})
 
 	t.Run("returns unique names with duplicates and empty entries", func(t *testing.T) {
 		t.Parallel()
 
-		assert.Equal(t, []string{"orders", "users"}, ParseUniqueNames("orders,, users ,orders"))
+		assert.Equal(t, []string{"orders", "users"}, NormalizeUniqueNames([]string{"orders,, users ,orders"}))
 	})
-}
-
-func TestNormalizeUniqueNames(t *testing.T) {
-	t.Parallel()
 
 	t.Run("splits entries apart with separators inside them", func(t *testing.T) {
 		t.Parallel()
 		storedNames := []string{"orders", "\nusers, payments", "   ", "orders"}
 
 		assert.Equal(t, []string{"orders", "users", "payments"}, NormalizeUniqueNames(storedNames))
-	})
-}
-
-func TestFormatUniqueNames(t *testing.T) {
-	t.Parallel()
-
-	t.Run("joins normalized names with commas with dirty names", func(t *testing.T) {
-		t.Parallel()
-
-		assert.Equal(t, "orders,users", FormatUniqueNames([]string{" orders ", "\nusers", "orders", ""}))
-		assert.Empty(t, FormatUniqueNames(nil))
 	})
 }
 

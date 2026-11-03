@@ -6,19 +6,15 @@ export const ru: typeof en = {
   },
   common: {
     actions: {
-      add: 'Добавить',
       back: 'Назад',
       cancel: 'Отмена',
       close: 'Закрыть',
-      confirm: 'Подтвердить',
       continue: 'Продолжить',
       copy: 'Копировать',
       create: 'Создать',
       delete: 'Удалить',
-      download: 'Скачать',
       edit: 'Изменить',
       ok: 'OK',
-      refresh: 'Обновить',
       remove: 'Удалить',
       retry: 'Повторить',
       save: 'Сохранить',
@@ -38,7 +34,6 @@ export const ru: typeof en = {
       username: 'Имя пользователя',
     },
     states: {
-      disabled: 'Выключено',
       enabled: 'Включено',
       loading: 'Загрузка...',
     },
@@ -84,12 +79,8 @@ export const ru: typeof en = {
       summary: 'Занято {{used}} из {{total}} GB ({{percent}}%)',
     },
     workspaceSelection: {
-      createShort: 'Создать',
       create: 'Создать рабочее пространство',
       selected: 'Рабочее пространство',
-      placeholder: 'Выберите рабочее пространство',
-      search: 'Поиск рабочих пространств...',
-      notFound: 'Рабочие пространства не найдены',
       createNew: '+ Новое рабочее пространство',
     },
     starButton: {
@@ -102,9 +93,6 @@ export const ru: typeof en = {
       description:
         'Автоматический доступ к буферу обмена недоступен. Вставьте содержимое в поле ниже.',
       placeholder: 'Вставьте строку подключения...',
-    },
-    auth: {
-      accountsCheckFailed: 'Не удалось проверить, есть ли на инстансе учетные записи: {{error}}',
     },
     oauthCallback: {
       failedTitle: 'Не удалось войти',
@@ -1186,7 +1174,6 @@ export const ru: typeof en = {
       hasSendError: 'Есть ошибка отправки',
     },
     create: {
-      title: 'Добавить канал уведомлений',
       namePlaceholder: 'Мой чат',
     },
     config: {
@@ -1344,8 +1331,6 @@ export const ru: typeof en = {
       powerAutomateUrlLabel: 'URL Power Automate:',
       powerAutomateUrlTooltip:
         'HTTP-адрес из вашего потока Power Automate (триггер When an HTTP request is received)',
-      showFullUrl: 'Показать',
-      hideFullUrl: 'Скрыть',
     },
     mattermost: {
       howToConnect: 'Как подключить Mattermost?',

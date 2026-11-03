@@ -3,7 +3,6 @@
 package shared
 
 import (
-	"fmt"
 	"strconv"
 )
 
@@ -21,18 +20,6 @@ const (
 
 func getSupportedVersions() []Version {
 	return []Version{Version12, Version13, Version14, Version15, Version16, Version17, Version18}
-}
-
-// GetVersionEnum panics on a version the backend does not support: every caller passes a value that
-// was detected and checked against the supported versions before it was stored.
-func GetVersionEnum(version string) Version {
-	for _, supportedVersion := range getSupportedVersions() {
-		if string(supportedVersion) == version {
-			return supportedVersion
-		}
-	}
-
-	panic(fmt.Sprintf("invalid postgresql version: %s", version))
 }
 
 func IsBackupVersionHigherThanRestoreVersion(backupVersion, restoreVersion Version) bool {

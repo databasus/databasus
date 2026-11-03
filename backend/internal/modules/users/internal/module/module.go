@@ -93,10 +93,6 @@ func (m *Module) InviteUser(
 	return m.accounts.InviteUser(ctx, actor, invitation)
 }
 
-func (m *Module) CanInviteUsers(ctx context.Context, actor identity.Actor) (bool, error) {
-	return m.settings.CanInviteUsers(ctx, actor)
-}
-
 func (m *Module) CanCreateWorkspaces(ctx context.Context, actor identity.Actor) (bool, error) {
 	return m.settings.CanCreateWorkspaces(ctx, actor)
 }

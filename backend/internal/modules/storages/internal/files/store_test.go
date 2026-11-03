@@ -340,9 +340,9 @@ func TestRequestFileDeletions(t *testing.T) {
 		files.requestDeletions(t, reference)
 		files.requestDeletions(t, reference)
 
-		count, err := files.repository.CountByReferences(t.Context(), []StoredFileReference{reference})
+		pendingDeletions, err := files.repository.ListByStorage(t.Context(), reference.StorageID)
 		require.NoError(t, err)
-		assert.EqualValues(t, 1, count)
+		assert.Len(t, pendingDeletions, 1)
 	})
 
 	t.Run("succeeds while a writer is running and takes the file from it", func(t *testing.T) {

@@ -11,8 +11,6 @@ import (
 	"databasus-backend/internal/engines/postgresql/physical/walmath"
 )
 
-const DefaultForcedRotationInterval = 5 * time.Minute
-
 const forcedRotationPollInterval = 30 * time.Second
 
 type walRotationSample struct {
