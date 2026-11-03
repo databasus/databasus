@@ -36,7 +36,9 @@ func TestVerificationClaimBudget(t *testing.T) {
 		candidate := team.start(t, smaller.Id)
 
 		agent := team.App.CreateVerificationAgent(t, team.Admin)
-		status, body := newProtocolAgent(t, team.App, agent).claimVerification(claimBody(5))
+		protocol := newProtocolAgent(t, team.App, agent)
+		protocol.requireAcceptedHeartbeat(nil)
+		status, body := protocol.claimVerification(claimBody(5))
 		require.Equal(t, http.StatusOK, status, string(body))
 		assert.Equal(t, apiclient.VerificationStatusRUNNING, team.read(t, candidate.Id).Status)
 		assert.Equal(t, apiclient.VerificationStatusPENDING, team.read(t, oversized.Id).Status)
@@ -46,7 +48,7 @@ func TestVerificationClaimBudget(t *testing.T) {
 			"UPDATE backups_logical SET backup_size_mb=4000,backup_raw_db_size_mb=1 WHERE id=?",
 			backup.Id,
 		)
-		status, body = newProtocolAgent(t, team.App, agent).claimVerification(claimBody(6))
+		status, body = protocol.claimVerification(claimBody(6))
 		assert.Equal(t, http.StatusNoContent, status, string(body))
 		assert.Equal(t, apiclient.VerificationStatusPENDING, team.read(t, oversized.Id).Status)
 	})
@@ -60,7 +62,9 @@ func TestVerificationClaimBudget(t *testing.T) {
 		other := team.App.CreateVerificationAgent(t, team.Admin)
 
 		assert.Equal(t, verification.Id, claim(t, team, owner))
-		status, body := newProtocolAgent(t, team.App, other).claimVerification(claimBody(25))
+		otherProtocol := newProtocolAgent(t, team.App, other)
+		otherProtocol.requireAcceptedHeartbeat(nil)
+		status, body := otherProtocol.claimVerification(claimBody(25))
 		assert.Equal(t, http.StatusNoContent, status, string(body))
 		assert.Equal(t, owner.Agent.ID, *team.read(t, verification.Id).AgentId)
 	})
@@ -73,7 +77,9 @@ func TestVerificationClaimBudget(t *testing.T) {
 		team.start(t, backup.Id)
 
 		agent := team.App.CreateVerificationAgent(t, team.Admin)
-		status, body := newProtocolAgent(t, team.App, agent).claimVerification(claimBody(25))
+		protocol := newProtocolAgent(t, team.App, agent)
+		protocol.requireAcceptedHeartbeat(nil)
+		status, body := protocol.claimVerification(claimBody(25))
 		require.Equal(t, http.StatusOK, status, string(body))
 		assert.Contains(t, string(body), `"timescaledbVersion":"2.25.0"`)
 	})

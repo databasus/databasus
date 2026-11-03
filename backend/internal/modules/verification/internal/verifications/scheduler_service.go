@@ -104,7 +104,6 @@ func (s *Service) reapStaleRuns(ctx context.Context, logger *slog.Logger) error 
 	}
 
 	now := s.clock.Now()
-	staleBefore := now.Add(-staleAgentThreshold)
 
 	for _, row := range runningRows {
 		if row.AgentID == nil {
@@ -138,7 +137,7 @@ func (s *Service) reapStaleRuns(ctx context.Context, logger *slog.Logger) error 
 			continue
 		}
 
-		if agent.LastSeenAt == nil || agent.LastSeenAt.Before(staleBefore) {
+		if !hasFreshAcceptedHeartbeat(&agent, now) {
 			if failErr := s.RequeueOrFail(ctx, row, FailureReasonAgentLostContact, nil); failErr != nil {
 				logger.ErrorContext(ctx,
 					"failed to requeue or fail stale RUNNING verification",

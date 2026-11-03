@@ -319,7 +319,24 @@ Settings come from environment variables, with `.env` as an optional local sourc
 
 ## Verification agent
 
-The verification agent is a CLI worker that runs on a machine the user provides. It sends capacity heartbeats, claims verification jobs, restores each backup into a disposable PostgreSQL container through the Docker or Podman API and reports the result. It has no HTTP server and no database schema. The agent ships inside the Databasus image and is downloaded from `/api/v1/system/verification-agent`. It replaces itself with the version of the backend it is connected to. Because both are built from one commit, the agent and the backend always share the contract and the engine code.
+The verification agent is a CLI worker that runs on a machine the user provides. It sends capacity heartbeats, claims verification jobs, restores each backup into a disposable PostgreSQL container through the Docker or Podman API and reports the result. It has no HTTP server and no database schema. The agent ships inside the Databasus image and is downloaded from `/api/v1/system/verification-agent`. After successful self-update and restart, it shares the contract and engine code of the connected backend because both binaries are built from one commit. Before that update, a running agent still uses its installed release's protocol and its requests may be rejected.
+
+The server assigns new work only to an agent with [assignment eligibility](glossary.md#product): its last accepted heartbeat, `lastSeenAt`, must be at most five minutes old. A heartbeat exactly five minutes old still counts; an older one has expired. The check runs in the verification service after authentication and request validation, and before any pending row is locked. An ineligible agent gets the empty `204` of `claimVerification`, so the job keeps its status and attempt count for another agent. A rejected heartbeat changes nothing: it neither starts nor extends this window, and it does not end a window already open. The next accepted heartbeat restores eligibility with the same registration and token. Heartbeats and claims run independently in the agent, so a first claim may find no accepted heartbeat yet and simply retry on its next poll.
+
+Eligibility governs new assignments only. Expired agents stay in the registered-agent list and count, so an administrator can find and repair them, and users can enqueue work while no agent is eligible. Work already running follows its own recovery: its owner can still stream and report until the scheduler's stale-run pass requeues or fails the job, using the same five-minute boundary.
+
+The independent background updater checks the server version every ten seconds. Replacement requires creating a temporary executable beside the running binary and renaming it over that binary; write access to the executable alone is insufficient. If replacement fails, stop the agent or its supervisor, download the matching architecture from the connected server to a temporary file, install it with suitable permissions and restart from the existing working directory with the saved configuration. Confirm accepted server contact and a completed backup verification.
+
+Permission or read-only filesystem errors in the update logs, with no recent accepted heartbeat, indicate that manual replacement may be needed. For the built-in daemon, remain in its existing working directory so it finds its saved configuration and lock file. Invoke the installed binary by its absolute path as the normal agent account, for example `/opt/databasus-agent/verification-agent stop`. Replace that example path below with the actual installed path, even when its directory differs from the working directory. Run the installation steps using an account with write access to the executable's directory. Replace the server address and select `arch=arm64` instead of `arch=amd64` on ARM64:
+
+```sh
+curl --fail --location --output /opt/databasus-agent/verification-agent.new \
+  "https://your-databasus-host/api/v1/system/verification-agent?arch=amd64" && \
+chmod 755 /opt/databasus-agent/verification-agent.new && \
+mv -f /opt/databasus-agent/verification-agent.new /opt/databasus-agent/verification-agent
+```
+
+Restart with `/opt/databasus-agent/verification-agent start`, using the same installed path, from the existing working directory as the original agent account. For systemd or a container, stop that supervisor instead of using the daemon's `stop` command. Install the binary with an identity that can write its directory, or replace the deployed container image, then restart through the same supervisor. Keep `databasus-verification.json`, the token and resource limits. A successful `version` or `status` command alone does not prove recovery; check server-visible contact and a completed backup verification.
 
 ## Automatic checks
 

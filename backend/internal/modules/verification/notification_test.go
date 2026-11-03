@@ -143,8 +143,6 @@ func TestVerificationSilentAgentNotification(t *testing.T) {
 		agent := team.App.CreateVerificationAgent(t, team.Admin)
 
 		for attempt := 1; attempt <= 3; attempt++ {
-			status, body := newProtocolAgent(t, team.App, agent).recordHeartbeat(agent.Agent.ID, heartbeatBody(nil))
-			require.Equal(t, http.StatusOK, status, string(body))
 			claim(t, team, agent)
 			team.App.Clock.Advance(6 * time.Minute)
 			team.runScheduler(t)

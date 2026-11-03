@@ -33,6 +33,12 @@ func (a protocolAgent) recordHeartbeat(id uuid.UUID, body agentclient.HeartbeatR
 	return response.StatusCode(), response.Body
 }
 
+func (a protocolAgent) requireAcceptedHeartbeat(ownedVerificationIDs []uuid.UUID) {
+	a.test.Helper()
+	status, body := a.recordHeartbeat(a.credentials.Agent.ID, heartbeatBody(ownedVerificationIDs))
+	require.Equal(a.test, http.StatusOK, status, string(body))
+}
+
 func (a protocolAgent) claimVerification(body agentclient.ClaimRequest) (int, []byte) {
 	a.test.Helper()
 	response, err := a.app.NewAgentClient(a.test, a.credentials).
@@ -51,11 +57,26 @@ func (a protocolAgent) reportVerification(id uuid.UUID, body agentclient.Verific
 
 func (a protocolAgent) sendInvalidHeartbeat(id string) (int, []byte) {
 	a.test.Helper()
+	return a.postRawJSON("/api/v1/agent/verification/"+id+"/heartbeat", `{}`)
+}
+
+func (a protocolAgent) sendRawHeartbeat(body string) (int, []byte) {
+	a.test.Helper()
+	return a.postRawJSON("/api/v1/agent/verification/"+a.credentials.Agent.ID.String()+"/heartbeat", body)
+}
+
+func (a protocolAgent) sendRawClaim(body string) (int, []byte) {
+	a.test.Helper()
+	return a.postRawJSON("/api/v1/agent/verifications/"+a.credentials.Agent.ID.String()+"/claim", body)
+}
+
+func (a protocolAgent) postRawJSON(path, body string) (int, []byte) {
+	a.test.Helper()
 	request, err := http.NewRequestWithContext(
 		a.test.Context(),
 		http.MethodPost,
-		a.app.URL+"/api/v1/agent/verification/"+id+"/heartbeat",
-		strings.NewReader(`{}`),
+		a.app.URL+path,
+		strings.NewReader(body),
 	)
 	require.NoError(a.test, err)
 
@@ -65,10 +86,10 @@ func (a protocolAgent) sendInvalidHeartbeat(id string) (int, []byte) {
 	response, err := http.DefaultClient.Do(request)
 	require.NoError(a.test, err)
 	defer func() { require.NoError(a.test, response.Body.Close()) }()
-	body, err := io.ReadAll(response.Body)
+	responseBody, err := io.ReadAll(response.Body)
 	require.NoError(a.test, err)
 
-	return response.StatusCode, body
+	return response.StatusCode, responseBody
 }
 
 type agentResponse struct {

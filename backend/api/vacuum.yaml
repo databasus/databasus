@@ -73,7 +73,7 @@ rules:
 
   # /system/version and /system/verification-agent never change, because installed agents update
   # themselves through them.
-  # These four agent paths stay compatible with agents of the previous release.
+  # Agent request compatibility follows docs/architecture.md, HTTP API.
   databasus-path-plural-nouns:
     description: >-
       A path segment that names a resource is a plural noun; a segment after a parameter may be an

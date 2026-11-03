@@ -31,9 +31,26 @@ func claimBody(diskGb int) agentclient.ClaimRequest {
 	}
 }
 
+func (team verificationTeam) listRunningVerificationIDsOwnedBy(t *testing.T, agentID uuid.UUID) []uuid.UUID {
+	t.Helper()
+	ownedVerificationIDs := []uuid.UUID{}
+
+	for _, verification := range team.list(t) {
+		isRunning := verification.Status == apiclient.VerificationStatusRUNNING
+		if isRunning && verification.AgentId != nil && *verification.AgentId == agentID {
+			ownedVerificationIDs = append(ownedVerificationIDs, verification.Id)
+		}
+	}
+
+	return ownedVerificationIDs
+}
+
 func claim(t *testing.T, team verificationTeam, agent apptest.CreatedVerificationAgent) uuid.UUID {
 	t.Helper()
-	status, body := newProtocolAgent(t, team.App, agent).claimVerification(claimBody(25))
+	protocol := newProtocolAgent(t, team.App, agent)
+	protocol.requireAcceptedHeartbeat(team.listRunningVerificationIDsOwnedBy(t, agent.Agent.ID))
+
+	status, body := protocol.claimVerification(claimBody(25))
 	require.Equal(t, http.StatusOK, status, string(body))
 	var assignment struct {
 		VerificationID uuid.UUID `json:"verificationId"`
@@ -174,8 +191,10 @@ func TestVerificationProtocol(t *testing.T) {
 		team.App.ExecuteSQL(t, "UPDATE backups_logical SET backup_raw_db_size_mb=0.01 WHERE id=?", backup.Id)
 		verification := team.start(t, backup.Id)
 		agent := team.App.CreateVerificationAgent(t, team.Admin)
+		protocol := newProtocolAgent(t, team.App, agent)
+		protocol.requireAcceptedHeartbeat(nil)
 
-		status, body := newProtocolAgent(t, team.App, agent).claimVerification(claimBody(5))
+		status, body := protocol.claimVerification(claimBody(5))
 		require.Equal(t, http.StatusOK, status, string(body))
 		var assignment map[string]json.RawMessage
 		require.NoError(t, json.Unmarshal(body, &assignment))
@@ -196,8 +215,10 @@ func TestVerificationProtocol(t *testing.T) {
 		backup := team.backup(t)
 		verification := team.start(t, backup.Id)
 		agent := team.App.CreateVerificationAgent(t, team.Admin)
+		protocol := newProtocolAgent(t, team.App, agent)
+		protocol.requireAcceptedHeartbeat(nil)
 
-		status, body := newProtocolAgent(t, team.App, agent).claimVerification(claimBody(1))
+		status, body := protocol.claimVerification(claimBody(1))
 		assert.Equal(t, http.StatusNoContent, status, string(body))
 		assert.Equal(t, apiclient.VerificationStatusPENDING, team.read(t, verification.Id).Status)
 	})

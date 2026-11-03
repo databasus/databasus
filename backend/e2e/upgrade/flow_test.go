@@ -20,8 +20,9 @@ const (
 var errInstanceExited = errors.New("the instance exited during start-up")
 
 type upgradeSpec struct {
-	previousImage string
-	currentImage  string
+	previousImage           string
+	currentImage            string
+	shouldCheckAgentUpgrade bool
 	// currentEntrypoint replaces the entrypoint of the current image when set, so a test can make
 	// the current instance fail at start-up.
 	currentEntrypoint []string
@@ -243,7 +244,23 @@ func checkThroughCurrentCode(
 		return docker.withLogTail(ctx, resources.currentContainerName, err)
 	}
 
-	return checkRestoredRows(ctx, sourceHostPort)
+	if err := checkRestoredRows(ctx, sourceHostPort); err != nil {
+		return err
+	}
+
+	if spec.shouldCheckAgentUpgrade {
+		checkReleasedAgentUpgrade(
+			t,
+			releasedAgentUpgradeSpec{
+				docker:       docker,
+				api:          currentAPI,
+				currentImage: spec.currentImage,
+				upgradeData:  writtenData,
+			},
+		)
+	}
+
+	return nil
 }
 
 // startInstance starts a Databasus container and waits until it answers its health check. When it

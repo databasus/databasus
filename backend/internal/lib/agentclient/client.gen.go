@@ -281,7 +281,7 @@ type ClientInterface interface {
 
 	// ClaimVerificationWithBody Claim a pending verification
 	//
-	// Claim a pending verification using the authenticated agent token.
+	// Claim a pending verification using the authenticated agent token. New work is assigned only to an agent whose last accepted heartbeat (`lastSeenAt`) is at most five minutes old. A rejected heartbeat neither establishes nor extends that time. Authentication, rate limits and request validation apply first, whatever the age of the heartbeat.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -290,7 +290,7 @@ type ClientInterface interface {
 
 	// ClaimVerification Claim a pending verification
 	//
-	// Claim a pending verification using the authenticated agent token.
+	// Claim a pending verification using the authenticated agent token. New work is assigned only to an agent whose last accepted heartbeat (`lastSeenAt`) is at most five minutes old. A rejected heartbeat neither establishes nor extends that time. Authentication, rate limits and request validation apply first, whatever the age of the heartbeat.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -363,7 +363,7 @@ func (c *Client) RecordHeartbeat(ctx context.Context, agentId AgentId, body Reco
 
 // ClaimVerificationWithBody Claim a pending verification
 //
-// Claim a pending verification using the authenticated agent token.
+// Claim a pending verification using the authenticated agent token. New work is assigned only to an agent whose last accepted heartbeat (`lastSeenAt`) is at most five minutes old. A rejected heartbeat neither establishes nor extends that time. Authentication, rate limits and request validation apply first, whatever the age of the heartbeat.
 //
 // Takes any type of body and a specified content type.
 //
@@ -382,7 +382,7 @@ func (c *Client) ClaimVerificationWithBody(ctx context.Context, agentId AgentId,
 
 // ClaimVerification Claim a pending verification
 //
-// Claim a pending verification using the authenticated agent token.
+// Claim a pending verification using the authenticated agent token. New work is assigned only to an agent whose last accepted heartbeat (`lastSeenAt`) is at most five minutes old. A rejected heartbeat neither establishes nor extends that time. Authentication, rate limits and request validation apply first, whatever the age of the heartbeat.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -707,7 +707,7 @@ type ClientWithResponsesInterface interface {
 
 	// ClaimVerificationWithBodyWithResponse Claim a pending verification
 	//
-	// Claim a pending verification using the authenticated agent token.
+	// Claim a pending verification using the authenticated agent token. New work is assigned only to an agent whose last accepted heartbeat (`lastSeenAt`) is at most five minutes old. A rejected heartbeat neither establishes nor extends that time. Authentication, rate limits and request validation apply first, whatever the age of the heartbeat.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -716,7 +716,7 @@ type ClientWithResponsesInterface interface {
 
 	// ClaimVerificationWithResponse Claim a pending verification
 	//
-	// Claim a pending verification using the authenticated agent token.
+	// Claim a pending verification using the authenticated agent token. New work is assigned only to an agent whose last accepted heartbeat (`lastSeenAt`) is at most five minutes old. A rejected heartbeat neither establishes nor extends that time. Authentication, rate limits and request validation apply first, whatever the age of the heartbeat.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -968,7 +968,7 @@ func (c *ClientWithResponses) RecordHeartbeatWithResponse(ctx context.Context, a
 
 // ClaimVerificationWithBodyWithResponse Claim a pending verification
 //
-// Claim a pending verification using the authenticated agent token.
+// Claim a pending verification using the authenticated agent token. New work is assigned only to an agent whose last accepted heartbeat (`lastSeenAt`) is at most five minutes old. A rejected heartbeat neither establishes nor extends that time. Authentication, rate limits and request validation apply first, whatever the age of the heartbeat.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -983,7 +983,7 @@ func (c *ClientWithResponses) ClaimVerificationWithBodyWithResponse(ctx context.
 
 // ClaimVerificationWithResponse Claim a pending verification
 //
-// Claim a pending verification using the authenticated agent token.
+// Claim a pending verification using the authenticated agent token. New work is assigned only to an agent whose last accepted heartbeat (`lastSeenAt`) is at most five minutes old. A rejected heartbeat neither establishes nor extends that time. Authentication, rate limits and request validation apply first, whatever the age of the heartbeat.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //

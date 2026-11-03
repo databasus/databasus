@@ -22,6 +22,11 @@ func (s *Service) ClaimVerification(
 			[]apierror.FieldError{{Field: "capacity", Detail: "must be nonnegative"}},
 		)
 	}
+
+	if !hasFreshAcceptedHeartbeat(agent, s.clock.Now()) {
+		return nil, nil
+	}
+
 	assignment, err := s.claimVerification(ctx, agent, capacity)
 	if err != nil {
 		//nolint:errorlint // The agent contract must not expose another module's Problem code.

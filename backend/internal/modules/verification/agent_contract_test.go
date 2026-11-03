@@ -1,10 +1,8 @@
 package verification_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 	"testing"
 	"time"
 
@@ -15,6 +13,11 @@ import (
 	"databasus-backend/internal/app/apptest"
 	"databasus-backend/internal/lib/agentclient"
 	apiclient "databasus-backend/internal/lib/apiclient"
+)
+
+const (
+	missingMemoryHeartbeat = `{"maxCpu":1,"maxDiskGb":2,"maxConcurrentJobs":1,"currentVerificationIds":[]}`
+	gigabyteOnlyHeartbeat  = `{"maxCpu":1,"maxRamGb":16,"maxDiskGb":2,"maxConcurrentJobs":1,"currentVerificationIds":[]}`
 )
 
 func TestVerificationHeartbeatMemory(t *testing.T) {
@@ -51,10 +54,7 @@ func TestVerificationHeartbeatMemory(t *testing.T) {
 		assert.Nil(t, listed[0].LastSeenAt)
 	})
 
-	for _, body := range []string{
-		`{"maxCpu":1,"maxDiskGb":2,"maxConcurrentJobs":1,"currentVerificationIds":[]}`,
-		`{"maxCpu":1,"maxRamGb":16,"maxDiskGb":2,"maxConcurrentJobs":1,"currentVerificationIds":[]}`,
-	} {
+	for _, body := range []string{missingMemoryHeartbeat, gigabyteOnlyHeartbeat} {
 		t.Run("preserves capacity and last contact when megabytes are missing", func(t *testing.T) {
 			t.Parallel()
 
@@ -71,23 +71,12 @@ func TestVerificationHeartbeatMemory(t *testing.T) {
 			beforeRefusal := application.ListVerificationAgents(t, admin)[0]
 			application.Clock.Advance(time.Minute)
 
-			request, err := http.NewRequestWithContext(
-				t.Context(),
-				http.MethodPost,
-				application.URL+"/api/v1/agent/verification/"+agent.Agent.ID.String()+"/heartbeat",
-				strings.NewReader(body),
+			status, responseBody = newProtocolAgent(t, application, agent).sendRawHeartbeat(body)
+			requireAgentProblem(
+				t,
+				agentResponse{Status: status, Body: responseBody},
+				agentclient.Problem{Status: http.StatusBadRequest, Code: agentclient.ProblemCodeInvalidRequest},
 			)
-			require.NoError(t, err)
-			request.Header.Set("Content-Type", "application/json")
-			request.Header.Set("Authorization", "Bearer "+agent.Token)
-			response, err := http.DefaultClient.Do(request)
-			require.NoError(t, err)
-			defer func() { require.NoError(t, response.Body.Close()) }()
-
-			require.Equal(t, http.StatusBadRequest, response.StatusCode)
-			var problem agentclient.Problem
-			require.NoError(t, json.NewDecoder(response.Body).Decode(&problem))
-			assert.Equal(t, agentclient.ProblemCodeInvalidRequest, problem.Code)
 
 			afterRefusal := application.ListVerificationAgents(t, admin)[0]
 			assert.Equal(t, beforeRefusal, afterRefusal)
