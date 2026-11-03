@@ -5,10 +5,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Compress gzips responses except files that are compressed already.
-func Compress() gin.HandlerFunc {
+func Compress(excludedPathsRegexs []string) gin.HandlerFunc {
 	return gzip.Gzip(
 		gzip.DefaultCompression,
 		gzip.WithExcludedExtensions([]string{".png", ".gif", ".jpeg", ".jpg", ".ico", ".svg", ".pdf", ".mp4"}),
+		gzip.WithExcludedPathsRegexs(excludedPathsRegexs),
 	)
 }

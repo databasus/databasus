@@ -41,7 +41,7 @@ func TestVerificationHelpers(t *testing.T) {
 		assert.Equal(t, verification.Status, string(read.JSON200.Status))
 		assert.Empty(t, read.JSON200.TableStats)
 	})
-	t.Run("downloads damaged bytes while the backup stays completed", func(t *testing.T) {
+	t.Run("detects a truncated download while the backup stays completed", func(t *testing.T) {
 		t.Parallel()
 
 		team, backup := newVerificationBackup(t)
@@ -62,9 +62,10 @@ func TestVerificationHelpers(t *testing.T) {
 		require.NoError(t, err)
 		defer func() { require.NoError(t, response.Body.Close()) }()
 		contents, err := io.ReadAll(response.Body)
-		require.NoError(t, err)
+		require.ErrorIs(t, err, io.ErrUnexpectedEOF)
 		assert.Equal(t, http.StatusOK, response.StatusCode)
 		assert.Equal(t, damagedBytes, contents)
+		assert.Equal(t, int64(backup.SizeMb*1024*1024), response.ContentLength)
 
 		persistedBackup, err := team.Owner.Client.GetLogicalBackupWithResponse(t.Context(), backup.Id)
 		require.NoError(t, err)
