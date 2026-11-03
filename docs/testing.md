@@ -139,6 +139,10 @@ To repeat one failing test while fixing it, call its runner directly with the co
 
 Local and CI preparation never reset shared source servers. Seed tests own their logical and physical source containers. Development compose sources remain available to `mise run dev`; test cleanup never removes their databases, roles or replication slots.
 
+### Docker storage on btrfs
+
+Creating and removing a container waits for `fsync` on Docker's storage. On btrfs, the Fedora default, this limits Docker to about 2 container starts per second however many run at once, and a full run starts about 700. Keep Docker's data on a separate ext4 file system mounted with `nobarrier,data=writeback`, for example in a loop image, and its named volumes on the original disk. A power loss can then corrupt the image data on that file system, so it holds only what can be pulled or built again. Keep `/tmp` on the default tmpfs too: tests write their temporary files there.
+
 ## Commands
 
 | What                                          | Command                                                                                              |

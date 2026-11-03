@@ -36,6 +36,7 @@ func TestDeleteStreamingPhysicalDatabase(t *testing.T) {
 			)
 			require.NoError(t, err)
 
+			team.App.InstallStorageWriteBarrier(t)
 			storageLock := team.App.BeginSQLTransaction(t)
 			var storageIDs []string
 			storageLock.QuerySQL(t, &storageIDs, "SELECT id FROM storages WHERE id=? FOR NO KEY UPDATE", team.StorageID)

@@ -109,8 +109,8 @@ start_suite() {
 
 pnpm --dir "$root/frontend" install --frozen-lockfile
 
-# Slow packages mostly wait on containers. Their limit stays low, because above it the same tests
-# slow down at low CPU and Docker runs out of network address pools. The others mostly compute.
+# Slow packages mostly wait on containers. Their limit stays low, because above it the run gets no
+# faster and Docker runs out of network address pools. The others mostly compute.
 if ((${#slow_packages[@]} > 0)); then
     start_suite backend-slow env TESTCONTAINERS_RYUK_DISABLED=true \
         go test ${CI:+-race} -p=8 -count=1 -timeout 30m "${slow_packages[@]}"

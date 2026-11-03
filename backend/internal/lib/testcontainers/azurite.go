@@ -15,7 +15,10 @@ const (
 	AzuriteAccountKey = "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=="
 )
 
-const azuriteBlobPort = "10000/tcp"
+const (
+	azuriteBlobPort       = "10000/tcp"
+	azuriteStartupTimeout = 120 * time.Second
+)
 
 // StartAzurite's caller creates its blob containers against the returned endpoint using the fixed
 // Azurite dev account above.
@@ -32,7 +35,10 @@ func StartAzuriteContainer(t *testing.T) ContainerHandle {
 		Image:        "mcr.microsoft.com/azure-storage/azurite",
 		ExposedPorts: []string{azuriteBlobPort},
 		Cmd:          []string{"azurite-blob", "--blobHost", "0.0.0.0", "--skipApiVersionCheck"},
-		WaitingFor:   wait.ForListeningPort(azuriteBlobPort).WithStartupTimeout(120 * time.Second),
+		WaitingFor: wait.ForAll(
+			wait.ForLog("Azurite Blob service successfully listens on").WithStartupTimeout(azuriteStartupTimeout),
+			wait.ForListeningPort(azuriteBlobPort).WithStartupTimeout(azuriteStartupTimeout),
+		),
 	}
 
 	return startContainer(t, req, azuriteBlobPort)

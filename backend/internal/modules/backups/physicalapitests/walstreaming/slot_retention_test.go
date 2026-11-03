@@ -33,8 +33,22 @@ func TestPhysicalWalSlotRetentionSample(t *testing.T) {
 
 		team.useUnavailableStorage(t)
 		team.enable(t)
-		team.waitForReceiver(t)
 		source := team.openSource(t)
+
+		// The queue limit is one segment, so the receiver can pause before any poll sees it running.
+		testwait.Until(t, "the streamer creates its replication slot", func(ctx context.Context) error {
+			var slotCount int
+			if err := source.QueryRow(ctx, "SELECT count(*) FROM pg_replication_slots WHERE starts_with(slot_name,'databasus_slot')").
+				Scan(&slotCount); err != nil {
+				return err
+			}
+
+			if slotCount == 0 {
+				return fmt.Errorf("the streamer has no replication slot yet")
+			}
+
+			return nil
+		})
 
 		_, err := source.Exec(t.Context(), "ALTER SYSTEM SET max_wal_size='32MB'")
 		require.NoError(t, err)

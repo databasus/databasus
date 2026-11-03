@@ -104,17 +104,21 @@ func TestFailingPhysicalWalSessions(t *testing.T) {
 			team := newWalTeam(t, walTeamSpec{})
 			inbox := &webhookInbox{}
 			team.attachWebhook(t, inbox)
+
+			// Saving the notifications turns backups on, so the address breaks first: a streamer that
+			// starts on the real address never reads it again and never fails.
+			team.App.ExecuteSQL(
+				t,
+				"UPDATE databases_postgresql_physical SET host='127.0.0.1',port=1 WHERE database_id=?",
+				team.Database.Id,
+			)
+
 			if isNotified {
 				team.setNotifications(t, apiclient.NotificationTriggerCHAINBROKEN)
 			} else {
 				team.setNotifications(t)
 			}
 
-			team.App.ExecuteSQL(
-				t,
-				"UPDATE databases_postgresql_physical SET host='127.0.0.1',port=1 WHERE database_id=?",
-				team.Database.Id,
-			)
 			team.enable(t)
 
 			first := team.waitForFailedSession(t, streamStatistics{})

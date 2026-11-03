@@ -22,15 +22,7 @@ func TestCancelRunningPhysicalBackup(t *testing.T) {
 
 		team := newBackupTeam(t, backupTeamSpec{})
 		source := team.openSource(t)
-		storageLock := team.App.BeginSQLTransaction(t)
-		var lockedStorageIDs []string
-		storageLock.QuerySQL(
-			t,
-			&lockedStorageIDs,
-			"SELECT id FROM storages WHERE id=? FOR NO KEY UPDATE",
-			team.StorageID,
-		)
-		require.Len(t, lockedStorageIDs, 1)
+		releaseStorage := holdStorageWrites(t, team)
 
 		team.trigger(t, "full")
 		team.App.RunJobPass(t, "backups_physical_scheduler")
@@ -77,7 +69,7 @@ func TestCancelRunningPhysicalBackup(t *testing.T) {
 		)
 		require.Equal(t, http.StatusAccepted, status, "%s", body)
 
-		storageLock.Rollback(t)
+		releaseStorage()
 		team.App.WaitForPhysicalBackups(t)
 		rows := team.listBackups(t)
 		require.Len(t, rows, 1)

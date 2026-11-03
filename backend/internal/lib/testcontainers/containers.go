@@ -139,7 +139,11 @@ func bootContainer(t *testing.T, req testcontainers.ContainerRequest) testcontai
 		})
 		if err == nil {
 			t.Cleanup(func() {
-				if err := container.Terminate(context.WithoutCancel(t.Context())); err != nil {
+				// The container's data is thrown away with it, so a graceful stop only costs time.
+				if err := container.Terminate(
+					context.WithoutCancel(t.Context()),
+					testcontainers.StopTimeout(0),
+				); err != nil {
 					t.Logf("failed to terminate %s container: %v", req.Image, err)
 				}
 			})

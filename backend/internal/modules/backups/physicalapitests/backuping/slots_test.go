@@ -44,6 +44,7 @@ func TestPhysicalBackupSlots(t *testing.T) {
 
 					source := team.openSource(t)
 					slotName, _ := team.slotNames(t)
+					team.App.InstallStorageWriteBarrier(t)
 					lock := team.App.BeginSQLTransaction(t)
 					var storageIDs []string
 					lock.QuerySQL(

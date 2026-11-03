@@ -45,7 +45,7 @@ func terminateFullBackupStream(t *testing.T, isHoldingConnectionTerminated bool)
 	)
 	require.NoError(t, seedErr)
 
-	installStorageWriteBarrier(t, team.App)
+	team.App.InstallStorageWriteBarrier(t)
 	storageLock := team.App.BeginSQLTransaction(t)
 	var storageIDs []string
 	storageLock.QuerySQL(t, &storageIDs, "SELECT id FROM storages WHERE id=? FOR NO KEY UPDATE", team.StorageID)
