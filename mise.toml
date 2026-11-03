@@ -17,6 +17,10 @@ python = "3.14.7"
 ripgrep = "15.2.0"
 shellcheck = "0.11.0"
 vacuum = "0.35.1"
+"aqua:aquasecurity/trivy" = "0.76.1"
+gh = "2.103.3"
+jq = "1.8.2"
+actionlint = "1.7.12"
 
 [env]
 # The TypeScript wrapper supplies frontend/node_modules before the mise shim changes NODE_PATH.
@@ -46,7 +50,7 @@ run = "pnpm --dir frontend generate:api"
 # --continue-on-error and every failing module is reported.
 [tasks.lint]
 description = "Check every module without changing files"
-run = "mise run --continue-on-error backend:lint ::: frontend:lint ::: lint-shell"
+run = "mise run --continue-on-error backend:lint ::: frontend:lint ::: lint-shell ::: lint-workflows"
 
 [tasks.format]
 description = "Format every module"
@@ -63,6 +67,10 @@ git ls-files -z --cached --others --exclude-standard '*.sh' tools/lsp mise-tasks
         fi
     done | xargs -0 -r shellcheck
 """
+
+[tasks.lint-workflows]
+description = "Check the GitHub Actions workflows with actionlint"
+run = "actionlint -shellcheck="
 
 [tasks.doctor]
 description = "Check review tools and whether Codex project hooks are enabled and trusted"

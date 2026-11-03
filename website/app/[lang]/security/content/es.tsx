@@ -389,8 +389,9 @@ export default function SecurityPage() {
               </p>
 
               <p>
-                La <strong>Dependency Review Action</strong> bloquea de plano
-                cualquier PR que introduzca un CVE nuevo de nivel{" "}
+                La <strong>Dependency Review Action</strong> hace fallar la
+                comprobación de cualquier PR que introduzca un CVE nuevo de
+                nivel{" "}
                 <strong>HIGH</strong> o <strong>CRITICAL</strong>.
               </p>
 
@@ -400,8 +401,8 @@ export default function SecurityPage() {
 
               <ul>
                 <li>
-                  Las imágenes de contenedor se escanean con{" "}
-                  <strong>Trivy</strong> en cada build.
+                  La imagen de la aplicación se escanea con <strong>Trivy</strong> en
+                  ambas arquitecturas antes de cada versión.
                 </li>
                 <li>
                   Una pasada aparte de Trivy sobre el Dockerfile detecta
@@ -439,8 +440,9 @@ export default function SecurityPage() {
               <p>
                 El resto de la canalización de CI/CD ejecuta lint, comprobación
                 de tipos, la suite de pruebas completa, pruebas de humo de las
-                imágenes y builds multiarquitectura en cada PR. Una versión solo
-                se publica si todo pasa.
+                imágenes y builds multiarquitectura en cada PR. Una versión se
+                publica solo cuando todo esto y los escaneos de seguridad pasan
+                y no queda ninguna alerta crítica de CodeQL abierta.
               </p>
 
               <h3 id="reporting-a-vulnerability">

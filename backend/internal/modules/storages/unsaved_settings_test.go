@@ -364,7 +364,7 @@ func isSftpDirectoryPresent(t *testing.T, server containers.Endpoint, path strin
 	sshClient, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", server.Host, server.Port), &ssh.ClientConfig{
 		User: containers.SftpUsername,
 		Auth: []ssh.AuthMethod{ssh.Password(containers.SftpPassword)},
-		//nolint:gosec // The test container generates its host key at start, so there is nothing to pin.
+		// The test container generates its host key at start, so there is nothing to pin.
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		Timeout:         30 * time.Second,
 	})

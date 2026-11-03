@@ -92,6 +92,13 @@ This is the project's common language. Each concept has one term in the document
 
 | Term | In code | Meaning |
 |---|---|---|
+| Release gate | `is-release-gate` | The set of CI checks a commit on `main` must pass before a version is selected. |
+| Release analysis | `.github/workflows/ci-release.yml:analyze` | The CodeQL analysis that runs as part of the release gate. |
+| Severity gate | `codeql-severity-gate` | The release gate job that reads CodeQL alerts by severity and stops the release on an open critical one. |
+| Image check | `scripts/check_image.sh` | The smoke checks of a built application image plus its Trivy scans. |
+| Smoke check | smoke check | One start-and-probe check of a running image. |
+| CodeQL alert | code scanning alert | A result of the static analysis, which can be dismissed on GitHub. |
+| Secret scan finding | gitleaks finding | A gitleaks result, which can only be allowlisted in `.gitleaksignore`. |
 | Review client | review client | The CLI that runs AI review and apply consultations: `codex` or `claude`, selected explicitly or by the active agent environment. |
 | Review profile | `ReviewProfile` | The model selection, reasoning effort, review contract and execution policy that identify which full-review findings and acceptance can be reused. |
 | Module | module | A part of the backend that owns one domain area and its tables. Only its `module.go` is visible from outside. |

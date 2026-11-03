@@ -101,7 +101,7 @@ func (w *EncryptingWriter) writeHeaderOnce() error {
 func (w *EncryptingWriter) sealAndWriteChunk(chunk []byte) error {
 	sealedChunk := w.cipher.Seal(nil, getChunkNonce(w.header.Nonce, w.chunkIndex), chunk, nil)
 
-	sealedChunkLen := uint32(len(sealedChunk)) //nolint:gosec // a sealed chunk is at most 1 MiB and a 16-byte tag
+	sealedChunkLen := uint32(len(sealedChunk)) // a sealed chunk is at most 1 MiB and a 16-byte tag
 	lengthPrefix := make([]byte, streamChunkLengthLen)
 	binary.BigEndian.PutUint32(lengthPrefix, sealedChunkLen)
 

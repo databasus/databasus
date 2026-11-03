@@ -24,7 +24,10 @@ func TestDeleteDatabaseRacingRestoreStart(t *testing.T) {
 			func(t *testing.T) {
 				tm := newTeam(t)
 				database := newBackedUpDatabase(t, tm, server)
-				restoreTarget := server.newRestoreTarget(t, server.newTargetSpec(t))
+				// The target stays locked, so an accepted restore cannot finish before the deletion reads it: a
+				// restore that has already ended does not stand in the deletion's way.
+				blockedTargetSpec, _ := server.newBlockedTargetSpec(t)
+				restoreTarget := server.newRestoreTarget(t, blockedTargetSpec)
 
 				restoreStatus := make(chan int, 1)
 				startSignal := make(chan struct{})

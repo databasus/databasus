@@ -100,13 +100,30 @@ jobs:
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: 'go shellcheck'
+          install_args: 'go shellcheck jq'
 
       - name: Run shellcheck
         run: mise run lint-shell
 
       - name: Test the full test run script
         run: python3 -m unittest discover -s scripts -p '*_test.py'
+
+  # Unlike the other lint jobs this one also checks pushes to develop, the path work takes to main.
+  lint-workflows:
+    if: github.head_ref != 'develop'
+    runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
+    timeout-minutes: 15
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: 'actionlint'
+
+      - name: Run actionlint
+        run: mise run lint-workflows
 
   dockerfile-scan:
     if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
@@ -118,14 +135,10 @@ jobs:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - name: Install Trivy
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y wget apt-transport-https gnupg
-          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo gpg --batch --no-tty --yes --dearmor -o /usr/share/keyrings/trivy.gpg
-          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" | sudo tee /etc/apt/sources.list.d/trivy.list
-          sudo apt-get update
-          sudo apt-get install -y trivy
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: 'aqua:aquasecurity/trivy'
 
       - name: Trivy Dockerfile misconfiguration scan
         run: |
@@ -642,113 +655,13 @@ jobs:
           tags: |
             databasus-dev:smoke-${{ github.sha }}
 
-      - name: Run smoke pings against dev image
-        run: |
-          # 0770 keeps the traversal bit off for others, so the smoke run only passes
-          # while the in-container postgres account reaches PGDATA through its group.
-          mkdir -p /tmp/databasus-dev-smoke-data
-          chmod 770 /tmp/databasus-dev-smoke-data
-          docker run -d --name databasus-dev-smoke \
-            -p 4005:4005 \
-            -v /tmp/databasus-dev-smoke-data:/databasus-data \
-            databasus-dev:smoke-${{ github.sha }}
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: 'aqua:aquasecurity/trivy'
 
-          for i in $(seq 1 60); do
-            health_body=$(mktemp)
-            code=$(curl -s -o "$health_body" -w '%{http_code}' http://localhost:4005/api/v1/system/health || true)
-            if [ "$code" = "200" ] && grep -q '"status"' "$health_body"; then
-              echo "healthcheck OK after ${i} attempt(s)"
-              rm -f "$health_body"
-              break
-            fi
-            rm -f "$health_body"
-            if [ "$i" -eq 60 ]; then
-              echo "healthcheck never returned valid JSON (last code: ${code})"
-              docker logs databasus-dev-smoke
-              exit 1
-            fi
-            sleep 2
-          done
-
-          body=$(curl -sf http://localhost:4005/)
-          if ! echo "$body" | grep -q 'id="root"'; then
-            echo "index.html did not contain React root div"
-            echo "$body"
-            exit 1
-          fi
-          echo "index.html OK"
-
-          for arch in amd64 arm64; do
-            echo "Checking verification agent download for $arch..."
-            out=$(mktemp)
-            http=$(curl -sS -o "$out" -w '%{http_code}' "http://localhost:4005/api/v1/system/verification-agent?arch=$arch")
-            if [ "$http" != "200" ]; then
-              echo "verification agent ($arch) download failed: HTTP $http"
-              head -c 200 "$out" || true
-              docker logs databasus-dev-smoke
-              rm -f "$out"
-              exit 1
-            fi
-            magic=$(head -c 4 "$out" | od -An -t x1 | tr -d ' ')
-            if [ "$magic" != "7f454c46" ]; then
-              echo "verification agent ($arch) is not an ELF binary (first 4 bytes: $magic)"
-              head -c 200 "$out" || true
-              docker logs databasus-dev-smoke
-              rm -f "$out"
-              exit 1
-            fi
-            size=$(stat -c%s "$out")
-            echo "verification agent ($arch) OK (${size} bytes)"
-            rm -f "$out"
-          done
-
-          # A console command is the only user of the credential start.sh publishes for
-          # processes that miss PID 1's environment, so nothing else here notices when
-          # publishing breaks.
-          echo "Checking that a console command reaches the metadata database..."
-          console_output=$(mktemp)
-          if ! docker exec databasus-dev-smoke ./main --list-admins >"$console_output" 2>&1; then
-            echo "console command could not reach the metadata database"
-            cat "$console_output"
-            docker logs databasus-dev-smoke
-            rm -f "$console_output"
-            exit 1
-          fi
-          rm -f "$console_output"
-          echo "console command OK"
-
-          # A broken non-PostgreSQL bundle only logs a warning and disables that engine,
-          # so the container stays healthy. The image ships every bundle, so any such
-          # warning here means one of them cannot run in the image.
-          echo "Checking that every bundled client tool runs in the image..."
-          if docker logs databasus-dev-smoke 2>&1 | grep -F "client tools check failed"; then
-            echo "a bundled client tool cannot run in the image"
-            exit 1
-          fi
-          echo "client tools OK"
-
-      - name: Install Trivy
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y wget apt-transport-https gnupg
-          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo gpg --batch --no-tty --yes --dearmor -o /usr/share/keyrings/trivy.gpg
-          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" | sudo tee /etc/apt/sources.list.d/trivy.list
-          sudo apt-get update
-          sudo apt-get install -y trivy
-
-      - name: Trivy scan dev image (CRITICAL, blocking)
-        run: trivy image --severity CRITICAL --ignore-unfixed --pkg-types os,library --scanners vuln --exit-code 1 databasus-dev:smoke-${{ github.sha }}
-
-      - name: Trivy scan dev image (HIGH, advisory)
-        if: always()
-        run: trivy image --severity HIGH --ignore-unfixed --pkg-types os,library --scanners vuln --exit-code 0 databasus-dev:smoke-${{ github.sha }}
-
-      - name: Cleanup smoke container
-        if: always()
-        run: |
-          docker rm -f databasus-dev-smoke || true
-          docker rmi databasus-dev:smoke-${{ github.sha }} || true
-          rm -rf /tmp/databasus-dev-smoke-data || true
+      - name: Check dev image
+        run: scripts/check_image.sh databasus-dev:smoke-${{ github.sha }}
 
   push-dev-image:
     runs-on: ${{ matrix.runner }}
@@ -888,134 +801,39 @@ jobs:
             -t "databasus/databasus-dev:${{ github.sha }}" \
             "${platform_image_refs[@]}"
 
+  # arm64 runs on main only: it costs a build and a scan per run, and work from develop meets it on main anyway.
   build-image:
     if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
-    runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     needs: [lint-backend, lint-frontend, lint-shell, dockerfile-scan]
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(github.ref == 'refs/heads/main' && '[{"arch":"amd64","platform":"linux/amd64","runner":"namespace-profile-4vcpu-8ram-ubuntu-26-x64"},{"arch":"arm64","platform":"linux/arm64","runner":"namespace-profile-2vcpu-4ram-ubuntu-26-arm"}]' || '[{"arch":"amd64","platform":"linux/amd64","runner":"namespace-profile-4vcpu-8ram-ubuntu-26-x64"}]') }}
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - name: Build amd64 image and load locally
+      - name: Build image and load locally
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
           context: .
           push: false
           load: true
-          platforms: linux/amd64
+          platforms: ${{ matrix.platform }}
           build-args: |
             APP_VERSION=ci-${{ github.sha }}
           tags: |
             databasus:smoke-${{ github.sha }}
 
-      - name: Run smoke pings against built image
-        run: |
-          # 0770 keeps the traversal bit off for others, so the smoke run only passes
-          # while the in-container postgres account reaches PGDATA through its group.
-          mkdir -p /tmp/databasus-smoke-data
-          chmod 770 /tmp/databasus-smoke-data
-          docker run -d --name databasus-smoke \
-            -p 4005:4005 \
-            -v /tmp/databasus-smoke-data:/databasus-data \
-            databasus:smoke-${{ github.sha }}
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: 'aqua:aquasecurity/trivy'
 
-          for i in $(seq 1 60); do
-            health_body=$(mktemp)
-            code=$(curl -s -o "$health_body" -w '%{http_code}' http://localhost:4005/api/v1/system/health || true)
-            if [ "$code" = "200" ] && grep -q '"status"' "$health_body"; then
-              echo "healthcheck OK after ${i} attempt(s)"
-              rm -f "$health_body"
-              break
-            fi
-            rm -f "$health_body"
-            if [ "$i" -eq 60 ]; then
-              echo "healthcheck never returned valid JSON (last code: ${code})"
-              docker logs databasus-smoke
-              exit 1
-            fi
-            sleep 2
-          done
-
-          body=$(curl -sf http://localhost:4005/)
-          if ! echo "$body" | grep -q 'id="root"'; then
-            echo "index.html did not contain React root div"
-            echo "$body"
-            exit 1
-          fi
-          echo "index.html OK"
-
-          for arch in amd64 arm64; do
-            echo "Checking verification agent download for $arch..."
-            out=$(mktemp)
-            http=$(curl -sS -o "$out" -w '%{http_code}' "http://localhost:4005/api/v1/system/verification-agent?arch=$arch")
-            if [ "$http" != "200" ]; then
-              echo "verification agent ($arch) download failed: HTTP $http"
-              head -c 200 "$out" || true
-              docker logs databasus-smoke
-              rm -f "$out"
-              exit 1
-            fi
-            magic=$(head -c 4 "$out" | od -An -t x1 | tr -d ' ')
-            if [ "$magic" != "7f454c46" ]; then
-              echo "verification agent ($arch) is not an ELF binary (first 4 bytes: $magic)"
-              head -c 200 "$out" || true
-              docker logs databasus-smoke
-              rm -f "$out"
-              exit 1
-            fi
-            size=$(stat -c%s "$out")
-            echo "verification agent ($arch) OK (${size} bytes)"
-            rm -f "$out"
-          done
-
-          # A console command is the only user of the credential start.sh publishes for
-          # processes that miss PID 1's environment, so nothing else here notices when
-          # publishing breaks.
-          echo "Checking that a console command reaches the metadata database..."
-          console_output=$(mktemp)
-          if ! docker exec databasus-smoke ./main --list-admins >"$console_output" 2>&1; then
-            echo "console command could not reach the metadata database"
-            cat "$console_output"
-            docker logs databasus-smoke
-            rm -f "$console_output"
-            exit 1
-          fi
-          rm -f "$console_output"
-          echo "console command OK"
-
-          # A broken non-PostgreSQL bundle only logs a warning and disables that engine,
-          # so the container stays healthy. The image ships every bundle, so any such
-          # warning here means one of them cannot run in the image.
-          echo "Checking that every bundled client tool runs in the image..."
-          if docker logs databasus-smoke 2>&1 | grep -F "client tools check failed"; then
-            echo "a bundled client tool cannot run in the image"
-            exit 1
-          fi
-          echo "client tools OK"
-
-      - name: Install Trivy
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y wget apt-transport-https gnupg
-          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo gpg --batch --no-tty --yes --dearmor -o /usr/share/keyrings/trivy.gpg
-          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" | sudo tee /etc/apt/sources.list.d/trivy.list
-          sudo apt-get update
-          sudo apt-get install -y trivy
-
-      - name: Trivy scan release image (CRITICAL, blocking)
-        run: trivy image --severity CRITICAL --ignore-unfixed --pkg-types os,library --scanners vuln --exit-code 1 databasus:smoke-${{ github.sha }}
-
-      - name: Trivy scan release image (HIGH, advisory)
-        if: always()
-        run: trivy image --severity HIGH --ignore-unfixed --pkg-types os,library --scanners vuln --exit-code 0 databasus:smoke-${{ github.sha }}
-
-      - name: Cleanup smoke container
-        if: always()
-        run: |
-          docker rm -f databasus-smoke || true
-          docker rmi databasus:smoke-${{ github.sha }} || true
-          rm -rf /tmp/databasus-smoke-data || true
+      - name: Check image
+        run: scripts/check_image.sh databasus:smoke-${{ github.sha }}
 
   build-verification-image:
     if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
@@ -1039,6 +857,17 @@ jobs:
           build-args: |
             PG_MAJOR=16
 
+  # Reports under its own CodeQL configuration, which scripts/check_codeql_alerts.sh relies on.
+  code-scanning:
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    uses: ./.github/workflows/codeql.yml
+    with:
+      is-release-gate: true
+
   determine-version:
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
     timeout-minutes: 10
@@ -1053,6 +882,10 @@ jobs:
         e2e-verification-agent-podman,
         test-filesystems,
         test-upgrade,
+        lint-workflows,
+        build-image,
+        build-verification-image,
+        code-scanning,
       ]
     if: ${{ github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[skip-release]') }}
     outputs:
@@ -1066,7 +899,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install semver
-        run: npm install -g semver
+        run: npm install -g semver@7.8.6
 
       - name: Get current version
         id: current_version

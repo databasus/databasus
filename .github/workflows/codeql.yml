@@ -1,21 +1,26 @@
 name: Code scanning
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: ["**"]
   schedule:
     # CodeQL query packs and semgrep rulesets are updated over time; a scheduled
     # scan surfaces new findings even when no code has changed.
     - cron: "0 6 * * 1"
+  # ci-release.yml runs these scans on main, so a release waits for them.
+  workflow_call:
+    inputs:
+      is-release-gate:
+        type: boolean
+        required: true
 
 permissions:
   contents: read
 
 concurrency:
   group: codeql-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  # A scan called by a release shares its group with the scheduled run on main.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   analyze:
@@ -62,6 +67,31 @@ jobs:
         with:
           category: "/language:${{ matrix.language }}"
 
+  # The analysis uploads its results and passes whatever it found, so this job decides by severity.
+  codeql-severity-gate:
+    name: CodeQL severity gate
+    needs: [analyze]
+    if: inputs.is-release-gate
+    runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: read
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: 'gh jq'
+
+      - name: Check CodeQL alerts of the release analysis
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/check_codeql_alerts.sh "$GITHUB_REPOSITORY" "$GITHUB_REF" "$GITHUB_SHA"
+
   secret-scan:
     name: Secret scan (gitleaks)
     # A pull request from develop is scanned by the push to main after its merge.
@@ -87,8 +117,11 @@ jobs:
           echo "${GITLEAKS_SHA256}  /tmp/gitleaks.tar.gz" | sha256sum --check
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
 
+      # A release reads only its own history, so a finding on an unrelated branch cannot stop it.
       - name: Scan git history for secrets
-        run: /tmp/gitleaks git --redact --exit-code 1 .
+        env:
+          SCANNED_HISTORY: ${{ inputs.is-release-gate && 'HEAD' || '--all' }}
+        run: /tmp/gitleaks git --redact --exit-code 1 --log-opts="$SCANNED_HISTORY" .
 
   semgrep:
     name: Analyze (semgrep)
