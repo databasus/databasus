@@ -63,12 +63,19 @@ func TestRunStream(t *testing.T) {
 		tarPath := writeTarOfSize(t, archiveFileSizeFittingAnyPipe)
 		spec := newStuckStorageStreamSpec(t, tarPath)
 		spec.Backup.StallTimeout = time.Hour
+		firstReadMarkerPath := filepath.Join(t.TempDir(), "first-read")
+		spec.Params.FileStore = &stuckStorage{firstReadMarkerPath: firstReadMarkerPath}
 		exitMarkerPath := filepath.Join(t.TempDir(), "exited")
+		// The tool sends the rest only after the storage read the first part, so a write stays blocked
+		// on the stuck storage when the tool exits.
 		toolstub.Write(
 			t,
 			spec.Backup.ClientTools.GetExecutable(pgshared.Version17, pgshared.ExecutablePgBasebackup),
 			toolstub.Spec{
-				Script: fmt.Sprintf("cat %q\ntouch %q", tarPath, exitMarkerPath),
+				Script: fmt.Sprintf(
+					"head -c 512 %q\nuntil [ -e %q ]; do sleep 0.01; done\ntail -c +513 %q\ntouch %q",
+					tarPath, firstReadMarkerPath, tarPath, exitMarkerPath,
+				),
 			},
 		)
 		ctx, cancel := context.WithCancel(t.Context())
@@ -185,6 +192,8 @@ func writeTarOfSize(t *testing.T, fileSize int) string {
 // ends, the way a storage that stopped responding behaves.
 type stuckStorage struct {
 	storages.Module
+
+	firstReadMarkerPath string
 }
 
 func (s *stuckStorage) StartBackgroundWrite(
@@ -195,6 +204,10 @@ func (s *stuckStorage) StartBackgroundWrite(
 
 	go func() {
 		_, _ = spec.Source.Read(make([]byte, 64*1024))
+		if s.firstReadMarkerPath != "" {
+			_ = os.WriteFile(s.firstReadMarkerPath, nil, 0o600)
+		}
+
 		<-ctx.Done()
 		writeErrors <- ctx.Err()
 	}()

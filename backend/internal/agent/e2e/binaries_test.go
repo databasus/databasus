@@ -9,18 +9,18 @@ import (
 	"runtime"
 	"testing"
 	"time"
-
-	"databasus-backend/internal/lib/config"
 )
 
-//nolint:gochecknoglobals // TestMain builds the binaries and sets their paths and version once before any scenario runs.
+//nolint:gochecknoglobals // TestMain builds the binaries and sets their paths once before any scenario runs.
 var (
 	currentBinaryDirectory string
 	olderBinaryDirectory   string
-	serverVersion          string
 )
 
 const olderVersion = "0.0.1"
+
+// The agent starts its background upgrader for every version except "dev", as a release does.
+const serverVersion = "0.0.2-e2e"
 
 func TestMain(m *testing.M) {
 	directory, err := os.MkdirTemp("", "databasus-agent-e2e-")
@@ -33,14 +33,10 @@ func TestMain(m *testing.M) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	loadedConfig, _, err := config.Load(
-		config.LoadSpec{IsDatabaseRequired: false, RootDirectory: "", PublishedDatabaseDsnPath: ""},
-	)
-	if err != nil {
+	if err := os.Setenv("APP_VERSION", serverVersion); err != nil {
 		panic(err)
 	}
 
-	serverVersion = loadedConfig.AppVersion
 	currentBinaryDirectory = filepath.Join(directory, "current")
 	olderBinaryDirectory = filepath.Join(directory, "older")
 

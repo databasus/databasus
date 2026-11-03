@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useSessionGuard } from '@/shared/auth';
 import { type LocalizedText, translateLocalizedText } from '@/shared/i18n';
-import { ClipboardHelper } from '@/shared/lib/ClipboardHelper';
+import { BrowserClipboard } from '@/shared/lib/BrowserClipboard';
 import { ClipboardPasteModalComponent } from '@/shared/ui';
 
 interface ParseFailure {
@@ -55,13 +55,13 @@ export const ConnectionStringImport = <ParseOutcome extends { password?: string 
   };
 
   const startImport = async () => {
-    if (!ClipboardHelper.isClipboardApiAvailable()) {
+    if (!BrowserClipboard.isClipboardApiAvailable()) {
       setIsShowPasteModal(true);
       return;
     }
 
     try {
-      const text = await ClipboardHelper.readFromClipboard();
+      const text = await BrowserClipboard.readFromClipboard();
       if (isActive()) applyConnectionString(text);
     } catch {
       if (isActive()) message.error(t('databases.edit.clipboardReadFailed'));

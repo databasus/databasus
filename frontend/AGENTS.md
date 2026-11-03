@@ -82,10 +82,10 @@ Follow [Blank lines separate logical steps](../AGENTS.md#blank-lines-separate-lo
 
 ## Clipboard operations
 
-Always use `ClipboardHelper` (`shared/lib/ClipboardHelper.ts`) for clipboard operations — never call `navigator.clipboard` directly.
+Always use `BrowserClipboard` (`shared/lib/BrowserClipboard.ts`) for clipboard operations — never call `navigator.clipboard` directly.
 
-- **Copy:** `ClipboardHelper.copyToClipboard(text)` — uses `navigator.clipboard` with `execCommand('copy')` fallback for non-secure contexts (HTTP).
-- **Paste:** Check `ClipboardHelper.isClipboardApiAvailable()` first. If available, use `ClipboardHelper.readFromClipboard()`. If not, show `ClipboardPasteModalComponent` (`shared/ui`) which lets the user paste manually via a text input modal.
+- **Copy:** `BrowserClipboard.copyToClipboard(text)` — uses `navigator.clipboard` with `execCommand('copy')` fallback for non-secure contexts (HTTP).
+- **Paste:** Check `BrowserClipboard.isClipboardApiAvailable()` first. If available, use `BrowserClipboard.readFromClipboard()`. If not, show `ClipboardPasteModalComponent` (`shared/ui`) which lets the user paste manually via a text input modal.
 
 ---
 
@@ -109,4 +109,4 @@ API request and response types come from the generated contract. Keep generated 
 
 ## Verification
 
-Format only the files changed by the task. Run `mise run frontend:lint`, `mise run test` and `pnpm --dir frontend build` before handing over a frontend change. Use the testing documentation for isolating tests and for repeating one failing test.
+Run `mise run frontend:lint` and `pnpm --dir frontend build` before handing over a frontend change, and check its tests as [`docs/testing.md`](../docs/testing.md#checking-work) says. That document also covers isolating tests and repeating one failing test.

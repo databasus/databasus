@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { type ConnectionErrorCode, physicalConnectionErrorContent } from '@/entities/databases';
 import { TransByKey, translateApiError, translateLocalizedText } from '@/shared/i18n';
-import { ClipboardHelper } from '@/shared/lib/ClipboardHelper';
+import { BrowserClipboard } from '@/shared/lib/BrowserClipboard';
 
 import type { DatabaseConnectionTestFailure } from '../model/useDatabaseConnectionTest';
 
@@ -20,7 +20,7 @@ export const ConnectionTestFeedback = ({ failure, isPhysical, username }: Props)
 
   const copyCommand = async (command: string) => {
     try {
-      await ClipboardHelper.copyToClipboard(command);
+      await BrowserClipboard.copyToClipboard(command);
       message.success(t('common.messages.copiedToClipboard'));
     } catch {
       message.error(t('databases.edit.copyFailed'));

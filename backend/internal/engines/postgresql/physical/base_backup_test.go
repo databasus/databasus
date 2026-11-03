@@ -26,10 +26,6 @@ import (
 	"databasus-backend/internal/lib/toolstub"
 )
 
-// baseBackupFileSizeSpanningWrites is longer than one copy of the tool's output into the writer,
-// which takes 32 KiB.
-const baseBackupFileSizeSpanningWrites = 80 * 1024
-
 // baseBackupFileSizeFittingAnyPipe keeps the archive inside the pipe buffer, so the tool can exit
 // while the output is stuck. The kernel gives a new pipe only 8 KiB once the user holds too many
 // pipes, which happens while several test runs share a machine.
@@ -77,10 +73,20 @@ func writeBaseBackupTarWithFile(t *testing.T, fileContent []byte) string {
 	return path
 }
 
+const baseBackupLsnScript = `echo 'pg_basebackup: write-ahead log start point: 0/3000060 on timeline 1' >&2
+ echo 'pg_basebackup: write-ahead log end point: 0/3000220' >&2`
+
+// baseBackupTwoWritesScript sends the rest of the archive only after the first write was accepted.
+// Otherwise the stream could read the small archive at once, and no second write would ever happen.
+func baseBackupTwoWritesScript(tarPath, firstWriteMarkerPath string) string {
+	return fmt.Sprintf(
+		"head -c 512 %q\nuntil [ -e %q ]; do sleep 0.01; done\ntail -c +513 %q",
+		tarPath, firstWriteMarkerPath, tarPath,
+	)
+}
+
 func baseBackupSuccessScript(path string) string {
-	return fmt.Sprintf(`cat %q
- echo 'pg_basebackup: write-ahead log start point: 0/3000060 on timeline 1' >&2
- echo 'pg_basebackup: write-ahead log end point: 0/3000220' >&2`, path)
+	return fmt.Sprintf("cat %q\n%s", path, baseBackupLsnScript)
 }
 
 func TestStreamBaseBackup(t *testing.T) {
@@ -106,9 +112,17 @@ func TestStreamBaseBackup(t *testing.T) {
 		spec := newBaseBackupTestSpec(t)
 		var isOutputReleased atomic.Bool
 		spec.ReleaseOutput = func(error) { isOutputReleased.Store(true) }
-		tarPath := writeBaseBackupTarWithFile(t, make([]byte, baseBackupFileSizeSpanningWrites))
-		writeBaseBackupStub(t, spec, baseBackupSuccessScript(tarPath))
-		slowOutput := &secondWriteHoldingOutput{hold: clientToolKillAfter + 2*time.Second}
+		tarPath := writeBaseBackupTarWithFile(t, make([]byte, baseBackupFileSizeFittingAnyPipe))
+		firstWriteMarkerPath := filepath.Join(t.TempDir(), "first-write-accepted")
+		writeBaseBackupStub(
+			t,
+			spec,
+			fmt.Sprintf("%s\n%s", baseBackupTwoWritesScript(tarPath, firstWriteMarkerPath), baseBackupLsnScript),
+		)
+		slowOutput := &secondWriteHoldingOutput{
+			firstWriteMarkerPath: firstWriteMarkerPath,
+			hold:                 clientToolKillAfter + 2*time.Second,
+		}
 
 		backup, err := NewSource(Settings{}).StreamBaseBackup(t.Context(), spec, slowOutput)
 
@@ -136,12 +150,11 @@ func TestStreamBaseBackup(t *testing.T) {
 		spec.ReleaseOutput = func(error) { close(stuckOutput.released) }
 		exitMarkerPath := filepath.Join(t.TempDir(), "exited")
 		tarPath := writeBaseBackupTarWithFile(t, make([]byte, baseBackupFileSizeFittingAnyPipe))
-		// The tool sends the rest only after the first write was accepted. Otherwise the stream could
-		// read the small archive at once, and no second write would ever get stuck.
-		writeBaseBackupStub(t, spec, fmt.Sprintf(
-			"head -c 512 %q\nuntil [ -e %q ]; do sleep 0.01; done\ntail -c +513 %q\ntouch %q",
-			tarPath, firstWriteMarkerPath, tarPath, exitMarkerPath,
-		))
+		writeBaseBackupStub(
+			t,
+			spec,
+			fmt.Sprintf("%s\ntouch %q", baseBackupTwoWritesScript(tarPath, firstWriteMarkerPath), exitMarkerPath),
+		)
 
 		completed := make(chan error, 1)
 		go func() {
@@ -410,9 +423,10 @@ func TestBaseBackupTiming(t *testing.T) {
 // secondWriteHoldingOutput accepts one write, then holds the next for a set time, the way a busy
 // storage blocks the stream after it has accepted data.
 type secondWriteHoldingOutput struct {
-	hold       time.Duration
-	writeCount int
-	received   bytes.Buffer
+	firstWriteMarkerPath string
+	hold                 time.Duration
+	writeCount           int
+	received             bytes.Buffer
 }
 
 func (o *secondWriteHoldingOutput) Write(p []byte) (int, error) {
@@ -421,7 +435,16 @@ func (o *secondWriteHoldingOutput) Write(p []byte) (int, error) {
 		<-time.After(o.hold)
 	}
 
-	return o.received.Write(p)
+	written, err := o.received.Write(p)
+	if err != nil {
+		return written, err
+	}
+
+	if o.writeCount == 1 {
+		err = os.WriteFile(o.firstWriteMarkerPath, nil, 0o600)
+	}
+
+	return written, err
 }
 
 // stuckAfterFirstWriteOutput accepts one write, then blocks until it is released, the way a storage

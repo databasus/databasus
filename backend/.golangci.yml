@@ -47,8 +47,8 @@ linters:
           alias: apiclient
         - pkg: databasus-backend/api
           alias: contract
-        # Three PostgreSQL packages named shared, logical and physical would clash with each other
-        # and with the old engine packages in the same files.
+        # Three PostgreSQL packages named shared, logical and physical would clash with other
+        # packages of the same name in one file.
         - pkg: databasus-backend/internal/engines/postgresql/shared
           alias: pgshared
         - pkg: databasus-backend/internal/engines/postgresql/logical
