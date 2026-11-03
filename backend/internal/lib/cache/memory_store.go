@@ -123,20 +123,6 @@ func (s *MemoryStore) Delete(ctx context.Context, key string) error {
 	return nil
 }
 
-func (s *MemoryStore) Clear(ctx context.Context) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
-	s.entries = make(map[string]memoryEntry)
-	s.payloadBytes = 0
-
-	return nil
-}
-
 func validateWrite(ctx context.Context, entry Entry) error {
 	if err := ctx.Err(); err != nil {
 		return err

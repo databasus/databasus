@@ -42,16 +42,11 @@ import (
 )
 
 type (
-	SavedBackupConfig = config.SavedBackupConfig
 	// Method is how a database is backed up: physically for a physical PostgreSQL database, logically
 	// for every other one.
 	Method = config.Method
 	// BackupConfig holds what the configs of both methods share.
 	BackupConfig = config.BackupConfig
-	// AnyBackupConfig is a LogicalBackupConfig or a PhysicalBackupConfig.
-	AnyBackupConfig      = config.AnyBackupConfig
-	LogicalBackupConfig  = config.LogicalBackupConfig
-	PhysicalBackupConfig = config.PhysicalBackupConfig
 
 	Encryption                 = config.Encryption
 	NotificationTrigger        = config.NotificationTrigger
@@ -133,19 +128,6 @@ type Module interface {
 	GetJobs() []background.Job
 	// WaitForRuns returns once every backup run has written its outcome, or with ctx's error.
 	WaitForRuns(ctx context.Context) error
-
-	// The getters return the saved config or the default of the database's method, and write nothing.
-	// A database of the other method is an error.
-	GetLogicalBackupConfig(ctx context.Context, databaseID uuid.UUID) (LogicalBackupConfig, error)
-	// LockAndGetLogicalBackupConfig also holds a share lock on the saved config until the caller's
-	// transaction ends. A backup start takes it before it inserts its row, so a save that changes the
-	// storage and removes the database's backups never misses a backup that starts meanwhile.
-	LockAndGetLogicalBackupConfig(ctx context.Context, databaseID uuid.UUID) (LogicalBackupConfig, error)
-	GetPhysicalBackupConfig(ctx context.Context, databaseID uuid.UUID) (PhysicalBackupConfig, error)
-	// The lists hold only saved configs, so a database whose config was never saved runs no backup.
-	ListEnabledLogicalBackupConfigs(ctx context.Context) ([]LogicalBackupConfig, error)
-	ListEnabledPhysicalBackupConfigs(ctx context.Context) ([]PhysicalBackupConfig, error)
-	SaveBackupConfig(ctx context.Context, actor users.Actor, config AnyBackupConfig) (SavedBackupConfig, error)
 
 	OnStorageTransferring(ctx context.Context, event storages.StorageTransferring) error
 	OnDatabaseCopied(ctx context.Context, event databases.DatabaseCopied) error

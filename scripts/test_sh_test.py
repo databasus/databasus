@@ -230,6 +230,13 @@ class TestScriptTestCase(unittest.TestCase):
     def get_selection_of(self, package):
         return next(selection for selection in self.get_go_selections() if package in selection)
 
+    def test_the_run_starts_only_the_test_postgresql_server(self):
+        exit_status, _, stderr = self.finish_script(self.start_script())
+        self.assertEqual(exit_status, 0, stderr)
+
+        compose_calls = [call for _, call in self.read_calls() if call.startswith("docker compose")]
+        self.assertEqual(compose_calls, ["docker compose up -d backend-db-test"])
+
     def test_default_selection_excludes_browser_ownership(self):
         script = self.start_script()
         _, errors = script.communicate(timeout=30)
@@ -520,8 +527,15 @@ class TestScriptTestCase(unittest.TestCase):
         self.assertNotIn("cleanup_test_db", workflow)
         self.assertNotIn("Reset the shared", workflow)
         self.assertEqual(workflow.count("docker exec backend-db-test pg_isready"), 3)
-        for port in ("5004", "5007", "5008"):
-            self.assertNotRegex(workflow, rf"nc -z[^\n]*{port}")
+        self.assertNotRegex(workflow, r"nc -z[^\n]*5004")
+
+    def test_ci_starts_only_the_test_postgresql_server(self):
+        workflow = (REPOSITORY_ROOT / ".github/workflows/ci-release.yml").read_text()
+        compose_starts = re.findall(r"docker compose (?:-f docker-compose\.yml )?up -d[^\n]*", workflow)
+        self.assertEqual(len(compose_starts), 3)
+        for compose_start in compose_starts:
+            self.assertRegex(compose_start, r"up -d backend-db-test$")
+        self.assertNotIn("docker exec backend-db pg_isready", workflow)
 
 
 if __name__ == "__main__":

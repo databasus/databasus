@@ -117,7 +117,3 @@ func (s failingStore) ReadAndDelete(context.Context, string) ([]byte, bool, erro
 func (s failingStore) Delete(context.Context, string) error {
 	return s.err
 }
-
-func (s failingStore) Clear(context.Context) error {
-	return s.err
-}

@@ -17,8 +17,8 @@ import (
 //
 // Why a manifest instead of just probing {fileName}.part1, .part2, ... until a key 404s:
 //
-//  1. The bytes we store are an encrypted stream with no end-of-stream marker (see
-//     util/encryption). Probe-until-404 cannot tell a complete backup from one whose final part
+//  1. The bytes we store are an encrypted stream with no end-of-stream marker.
+//     Probe-until-404 cannot tell a complete backup from one whose final part
 //     failed to upload, was truncated, or was reaped by lifecycle rules: it would stop at the gap
 //     and hand the restore a silently short, corrupt stream. TotalSize plus the per-part list and
 //     sha256 let GetFile reject a missing/short/corrupted part BEFORE the restore starts, turning

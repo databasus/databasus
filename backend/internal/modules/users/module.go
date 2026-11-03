@@ -75,12 +75,11 @@ type Module interface {
 	// GetUsers leaves out the IDs that match no user.
 	GetUsers(ctx context.Context, userIDs []uuid.UUID) ([]User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, bool, error)
-	// InviteUser creates a user who finishes sign-up later. It answers permission_denied when
-	// CanInviteUsers would answer false and email_taken when the address has a user.
+	// InviteUser creates a user who finishes sign-up later. It answers permission_denied when the
+	// instance settings forbid the actor to invite and email_taken when the address has a user.
 	InviteUser(ctx context.Context, actor Actor, invitation Invitation) (User, error)
-	// CanInviteUsers and CanCreateWorkspaces answer the instance settings for a user who is not an
-	// instance admin; an instance admin always may.
-	CanInviteUsers(ctx context.Context, actor Actor) (bool, error)
+	// CanCreateWorkspaces answers the instance settings for a user who is not an instance admin; an
+	// instance admin always may.
 	CanCreateWorkspaces(ctx context.Context, actor Actor) (bool, error)
 	GetUserCount(ctx context.Context) (int64, error)
 

@@ -136,10 +136,6 @@ func (m *Module) SetHealthStatus(
 	return m.databases.SetHealthStatus(ctx, databaseID, status)
 }
 
-func (m *Module) DeleteDatabase(ctx context.Context, actor users.Actor, databaseID uuid.UUID) error {
-	return m.databases.DeleteDatabase(ctx, actor, databaseID)
-}
-
 func (m *Module) TransferDatabaseToWorkspace(
 	ctx context.Context,
 	actor users.Actor,

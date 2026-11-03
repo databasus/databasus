@@ -31,7 +31,6 @@ const (
 	ftpConnectTimeout     = 30 * time.Second
 	ftpTestConnectTimeout = 10 * time.Second
 	ftpDeleteTimeout      = 30 * time.Second
-	ftpChunkSize          = 16 * 1024 * 1024
 )
 
 func (s *ftpServer) saveFile(ctx context.Context, logger *slog.Logger, fileName string, file io.Reader) error {

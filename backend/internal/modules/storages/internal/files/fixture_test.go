@@ -150,10 +150,18 @@ func (f *testFiles) runPass(t *testing.T) {
 func (f *testFiles) findPending(t *testing.T, reference StoredFileReference) (PendingDeletion, bool) {
 	t.Helper()
 
-	pending, isFound, err := f.repository.FindByReference(t.Context(), reference)
+	var pending PendingDeletion
+
+	err := f.db.WithContext(t.Context()).
+		Where("storage_id = ? AND file_name = ?", reference.StorageID, reference.FileName).
+		First(&pending).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return PendingDeletion{}, false
+	}
+
 	require.NoError(t, err)
 
-	return pending, isFound
+	return pending, true
 }
 
 // isDue asks the database, because eligibility is a comparison the claim makes there.

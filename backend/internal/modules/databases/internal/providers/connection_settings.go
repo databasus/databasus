@@ -1,7 +1,6 @@
 package providers
 
 import (
-	"slices"
 	"strconv"
 
 	"github.com/google/uuid"
@@ -98,10 +97,6 @@ func (MysqlConnectionSettings) GetType() Type {
 	return TypeMysql
 }
 
-func (s MysqlConnectionSettings) HasPrivilege(privilege string) bool {
-	return slices.Contains(s.Privileges, privilege)
-}
-
 type MariadbConnectionSettings struct {
 	DatabaseID uuid.UUID
 	// Engine carries the password and the tunnel secrets in clear text.
@@ -116,10 +111,6 @@ type MariadbConnectionSettings struct {
 
 func (MariadbConnectionSettings) GetType() Type {
 	return TypeMariadb
-}
-
-func (s MariadbConnectionSettings) HasPrivilege(privilege string) bool {
-	return slices.Contains(s.Privileges, privilege)
 }
 
 type MongodbConnectionSettings struct {

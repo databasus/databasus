@@ -5,7 +5,7 @@ root=$(cd "$(dirname "$0")/.." && pwd)
 source "$root/scripts/fedora.sh"
 
 readonly backend_port=4005
-readonly test_fixtures=(test-logical-postgres-16 test-physical-postgres-17 test-physical-postgres-18)
+readonly test_fixtures=(test-logical-postgres-16)
 readonly own_services=(backend-db wal-backup-postgres-18 wal-backup-loader)
 
 # `stop`, not `down`: the dev database keeps its data in an anonymous volume that `down` would drop.

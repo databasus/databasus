@@ -6,19 +6,15 @@ export const en = {
   },
   common: {
     actions: {
-      add: 'Add',
       back: 'Back',
       cancel: 'Cancel',
       close: 'Close',
-      confirm: 'Confirm',
       continue: 'Continue',
       copy: 'Copy',
       create: 'Create',
       delete: 'Delete',
-      download: 'Download',
       edit: 'Edit',
       ok: 'OK',
-      refresh: 'Refresh',
       remove: 'Remove',
       retry: 'Retry',
       save: 'Save',
@@ -38,7 +34,6 @@ export const en = {
       username: 'Username',
     },
     states: {
-      disabled: 'Disabled',
       enabled: 'Enabled',
       loading: 'Loading...',
     },
@@ -84,12 +79,8 @@ export const en = {
       summary: '{{used}} of {{total}} GB used ({{percent}}%)',
     },
     workspaceSelection: {
-      createShort: 'Create',
       create: 'Create workspace',
       selected: 'Selected workspace',
-      placeholder: 'Select a workspace',
-      search: 'Search workspaces...',
-      notFound: 'No workspaces found',
       createNew: '+ Create new workspace',
     },
     starButton: {
@@ -101,9 +92,6 @@ export const en = {
       submit: 'Submit',
       description: 'Automatic clipboard access is not available. Please paste your content below.',
       placeholder: 'Paste your connection string here...',
-    },
-    auth: {
-      accountsCheckFailed: 'Failed to check whether the instance has any account: {{error}}',
     },
     oauthCallback: {
       failedTitle: 'Authentication Failed',
@@ -1180,7 +1168,6 @@ export const en = {
       hasSendError: 'Has send error',
     },
     create: {
-      title: 'Add notifier',
       namePlaceholder: 'Chat with me',
     },
     config: {
@@ -1337,8 +1324,6 @@ export const en = {
       powerAutomateUrlLabel: 'Power Automate URL:',
       powerAutomateUrlTooltip:
         'HTTP endpoint from your Power Automate flow (When an HTTP request is received)',
-      showFullUrl: 'Show',
-      hideFullUrl: 'Hide',
     },
     mattermost: {
       howToConnect: 'How to connect Mattermost?',

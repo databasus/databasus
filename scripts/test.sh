@@ -64,7 +64,7 @@ fi
 apply_libedit_shim
 
 cd "$root"
-docker compose up -d
+docker compose up -d backend-db-test
 timeout 60 bash -c 'until docker exec backend-db-test pg_isready -U postgres >/dev/null; do sleep 2; done'
 
 mise run backend:pull-testcontainers

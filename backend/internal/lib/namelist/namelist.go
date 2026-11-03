@@ -30,14 +30,6 @@ func NormalizeUniqueNames(names []string) []string {
 	return normalizedNames
 }
 
-func ParseUniqueNames(rawNames string) []string {
-	return NormalizeUniqueNames([]string{rawNames})
-}
-
-func FormatUniqueNames(names []string) string {
-	return strings.Join(NormalizeUniqueNames(names), ",")
-}
-
 // FormatTruncatedNames keeps an error message readable when the caller found hundreds of offending
 // objects: the reader needs a few examples and the scale, not the whole list.
 func FormatTruncatedNames(names []string) string {

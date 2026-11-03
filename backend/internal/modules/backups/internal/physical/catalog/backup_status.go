@@ -47,10 +47,6 @@ const (
 	// running backups cancelled when the user disables backups.
 	BackupErrorCanceledByUser BackupErrorReason = "CANCELED_BY_USER"
 
-	// Database deletion removes the backup row in its transaction, so this reason is rarely
-	// observable in the catalog.
-	BackupErrorCanceledByDbRemoval BackupErrorReason = "CANCELED_BY_DB_REMOVAL"
-
 	// INCR-specific and chain-killing (status = CHAIN_BROKEN).
 	BackupErrorSummariesExpired      BackupErrorReason = "SUMMARIES_EXPIRED"
 	BackupErrorSummarizerOff         BackupErrorReason = "SUMMARIZER_OFF"

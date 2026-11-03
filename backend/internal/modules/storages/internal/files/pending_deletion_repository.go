@@ -2,7 +2,6 @@ package files
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -241,32 +240,6 @@ func (r *PendingDeletionRepository) GetPendingDeletionSummary(
 	return summary, nil
 }
 
-func (r *PendingDeletionRepository) CountByReferences(
-	ctx context.Context,
-	references []StoredFileReference,
-) (int64, error) {
-	unique := deduplicateReferences(references)
-	if len(unique) == 0 {
-		return 0, nil
-	}
-
-	pairs := make([][]any, 0, len(unique))
-	for _, reference := range unique {
-		pairs = append(pairs, []any{reference.StorageID, reference.FileName})
-	}
-
-	var count int64
-
-	err := database.Conn(ctx, r.db).Model(&PendingDeletion{}).
-		Where("(storage_id, file_name) IN ?", pairs).
-		Count(&count).Error
-	if err != nil {
-		return 0, fmt.Errorf("count pending deletions: %w", err)
-	}
-
-	return count, nil
-}
-
 func (r *PendingDeletionRepository) ListByStorage(ctx context.Context, storageID uuid.UUID) ([]PendingDeletion, error) {
 	var pending []PendingDeletion
 
@@ -276,26 +249,6 @@ func (r *PendingDeletionRepository) ListByStorage(ctx context.Context, storageID
 	}
 
 	return pending, nil
-}
-
-func (r *PendingDeletionRepository) FindByReference(
-	ctx context.Context,
-	reference StoredFileReference,
-) (PendingDeletion, bool, error) {
-	var pending PendingDeletion
-
-	err := database.Conn(ctx, r.db).
-		Where("storage_id = ? AND file_name = ?", reference.StorageID, reference.FileName).
-		First(&pending).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return PendingDeletion{}, false, nil
-	}
-
-	if err != nil {
-		return PendingDeletion{}, false, fmt.Errorf("find pending deletion: %w", err)
-	}
-
-	return pending, true, nil
 }
 
 func deduplicateReferences(references []StoredFileReference) []StoredFileReference {

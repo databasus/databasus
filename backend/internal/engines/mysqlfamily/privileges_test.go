@@ -145,7 +145,7 @@ func TestGetBackupPrivileges(t *testing.T) {
 		))
 
 		assert.True(t, backupPrivileges.IsSufficientForDump())
-		assert.False(t, HasPrivilege(backupPrivileges.GetEffectivePrivilegesCsv(), "TRIGGER"))
+		assert.NotContains(t, backupPrivileges.EffectivePrivileges, "TRIGGER")
 	})
 
 	t.Run("falls back to schema grants when the schema has no tables", func(t *testing.T) {
@@ -182,7 +182,7 @@ func TestGetBackupPrivileges(t *testing.T) {
 		))
 
 		assert.True(t, backupPrivileges.IsSufficientForDump())
-		assert.False(t, HasPrivilege(backupPrivileges.GetEffectivePrivilegesCsv(), "EVENT"))
+		assert.NotContains(t, backupPrivileges.EffectivePrivileges, "EVENT")
 	})
 }
 
@@ -229,18 +229,5 @@ func TestNewInsufficiencyError(t *testing.T) {
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "and 3 more")
-	})
-}
-
-func TestHasPrivilege(t *testing.T) {
-	t.Parallel()
-
-	t.Run("matches whole tokens only with comma separated privileges", func(t *testing.T) {
-		t.Parallel()
-
-		assert.True(t, HasPrivilege("SELECT,SHOW VIEW,TRIGGER", "SHOW VIEW"))
-		assert.False(t, HasPrivilege("SELECT,SHOW VIEW", "TRIGGER"))
-		assert.False(t, HasPrivilege("SHOW CREATE ROUTINE", "CREATE"))
-		assert.False(t, HasPrivilege("", "SELECT"))
 	})
 }

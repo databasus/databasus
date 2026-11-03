@@ -58,22 +58,6 @@ services:
     container_name: backend-db-test
     shm_size: 10gb
 
-  # VictoriaLogs for external logging
-  backend-victoria-logs:
-    image: victoriametrics/victoria-logs:latest
-    container_name: backend-victoria-logs
-    ports:
-      - "${BACKEND_VICTORIA_LOGS_PORT:-9428}:9428"
-    command:
-      - -storageDataPath=/victoria-logs-data
-      - -retentionPeriod=7d
-      # VictoriaLogs only enforces basic auth when BOTH are set; password alone is a no-op.
-      - -httpAuth.username=databasus
-      - -httpAuth.password=devpassword
-    volumes:
-      - /victoria-logs-data
-    restart: unless-stopped
-
   # ================================================================
   # Test containers
   # ================================================================
@@ -90,78 +74,17 @@ services:
     container_name: test-logical-postgres-16
     shm_size: 1gb
 
-  # Init script appends a password-protected replication rule so pg_basebackup
-  # works from the host through Docker NAT (default pg_hba only allows
-  # replication from 127.0.0.1/32, but the Docker bridge presents the host
-  # connection as the bridge subnet IP). scram-sha-256 keeps the password
-  # requirement intact.
-  test-physical-postgres-17:
-    build:
-      dockerfile_inline: |
-        FROM postgres:17
-        COPY --chmod=0755 <<"EOF" /docker-entrypoint-initdb.d/02_allow_replication.sh
-        #!/bin/bash
-        set -e
-        echo "host replication all all scram-sha-256" >> "$$PGDATA/pg_hba.conf"
-        EOF
-    ports:
-      - "${TEST_PHYSICAL_POSTGRES_17_PORT:-5007}:5432"
-    environment:
-      - POSTGRES_DB=testdb
-      - POSTGRES_USER=testuser
-      - POSTGRES_PASSWORD=testpassword
-    command:
-      - postgres
-      - -c
-      - wal_level=logical
-      - -c
-      - summarize_wal=on
-      - -c
-      - max_wal_senders=10
-      - -c
-      - max_replication_slots=10
-      - -c
-      - wal_keep_size=512MB
-    container_name: test-physical-postgres-17
-    shm_size: 1gb
-
-  test-physical-postgres-18:
-    build:
-      dockerfile_inline: |
-        FROM postgres:18
-        COPY --chmod=0755 <<"EOF" /docker-entrypoint-initdb.d/02_allow_replication.sh
-        #!/bin/bash
-        set -e
-        echo "host replication all all scram-sha-256" >> "$$PGDATA/pg_hba.conf"
-        EOF
-    ports:
-      - "${TEST_PHYSICAL_POSTGRES_18_PORT:-5008}:5432"
-    environment:
-      - POSTGRES_DB=testdb
-      - POSTGRES_USER=testuser
-      - POSTGRES_PASSWORD=testpassword
-    command:
-      - postgres
-      - -c
-      - wal_level=logical
-      - -c
-      - summarize_wal=on
-      - -c
-      - max_wal_senders=10
-      - -c
-      - max_replication_slots=10
-      - -c
-      - wal_keep_size=512MB
-    container_name: test-physical-postgres-18
-    shm_size: 1gb
-
   # ================================================================
   # Live WAL-backup rig (always-on, for manual remote-WAL testing)
   # ================================================================
 
   # Live PG 18 that continuously generates WAL (via the wal-backup-loader sidecar),
-  # for manually exercising remote WAL backups. Mirrors test-physical-postgres-18's
-  # physical-backup config; the loader sidecar drives the traffic.
+  # for manually exercising remote WAL backups; the loader sidecar drives the traffic.
+  # Init script appends a password-protected replication rule so pg_basebackup
+  # works from the host through Docker NAT (default pg_hba only allows
+  # replication from 127.0.0.1/32, but the Docker bridge presents the host
+  # connection as the bridge subnet IP). scram-sha-256 keeps the password
+  # requirement intact.
   wal-backup-postgres-18:
     build:
       dockerfile_inline: |

@@ -6,19 +6,15 @@ export const pt: typeof en = {
   },
   common: {
     actions: {
-      add: 'Adicionar',
       back: 'Voltar',
       cancel: 'Cancelar',
       close: 'Fechar',
-      confirm: 'Confirmar',
       continue: 'Continuar',
       copy: 'Copiar',
       create: 'Criar',
       delete: 'Excluir',
-      download: 'Baixar',
       edit: 'Editar',
       ok: 'OK',
-      refresh: 'Atualizar',
       remove: 'Remover',
       retry: 'Tentar novamente',
       save: 'Salvar',
@@ -38,7 +34,6 @@ export const pt: typeof en = {
       username: 'Nome de usuário',
     },
     states: {
-      disabled: 'Desativado',
       enabled: 'Ativado',
       loading: 'Carregando...',
     },
@@ -84,12 +79,8 @@ export const pt: typeof en = {
       summary: '{{used}} de {{total}} GB em uso ({{percent}}%)',
     },
     workspaceSelection: {
-      createShort: 'Criar',
       create: 'Criar espaço de trabalho',
       selected: 'Espaço de trabalho',
-      placeholder: 'Selecione um espaço de trabalho',
-      search: 'Buscar espaços de trabalho...',
-      notFound: 'Nenhum espaço de trabalho encontrado',
       createNew: '+ Novo espaço de trabalho',
     },
     starButton: {
@@ -102,10 +93,6 @@ export const pt: typeof en = {
       description:
         'Não foi possível acessar a área de transferência automaticamente. Cole o conteúdo no campo abaixo.',
       placeholder: 'Cole aqui a string de conexão...',
-    },
-    auth: {
-      accountsCheckFailed:
-        'Não foi possível verificar se a instância possui alguma conta: {{error}}',
     },
     oauthCallback: {
       failedTitle: 'Falha na autenticação',
@@ -1203,7 +1190,6 @@ export const pt: typeof en = {
       hasSendError: 'Com erro de envio',
     },
     create: {
-      title: 'Adicionar canal de notificação',
       namePlaceholder: 'Meu chat',
     },
     config: {
@@ -1361,8 +1347,6 @@ export const pt: typeof en = {
       powerAutomateUrlLabel: 'URL do Power Automate:',
       powerAutomateUrlTooltip:
         'Endpoint HTTP do seu fluxo do Power Automate (gatilho When an HTTP request is received)',
-      showFullUrl: 'Mostrar',
-      hideFullUrl: 'Ocultar',
     },
     mattermost: {
       howToConnect: 'Como conectar o Mattermost?',

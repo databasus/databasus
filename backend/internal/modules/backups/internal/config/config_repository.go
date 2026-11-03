@@ -33,7 +33,6 @@ type configRepository struct {
 type rowLock string
 
 const (
-	noRowLock        rowLock = ""
 	forUpdateRowLock rowLock = " FOR UPDATE"
 	forShareRowLock  rowLock = " FOR SHARE"
 )

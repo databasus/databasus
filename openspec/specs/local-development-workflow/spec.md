@@ -39,7 +39,7 @@ The repository SHALL provide `mise run dev`. It SHALL start the development data
 
 ### Requirement: Interrupting the local app stops what it started
 
-When a developer interrupts `mise run dev` with Ctrl+C, the backend and the frontend development server SHALL exit, and the development database, the WAL backup source and its load generator SHALL stop. These containers SHALL be stopped rather than removed, so the database's data survives into the next run. The shared backend test fixtures SHALL keep running, because the backend suite and other worktrees use them.
+When a developer interrupts `mise run dev` with Ctrl+C, the backend and the frontend development server SHALL exit, and the development database, the WAL backup source and its load generator SHALL stop. These containers SHALL be stopped rather than removed, so the database's data survives into the next run. The shared test fixtures SHALL keep running, because development sessions in other worktrees use them.
 
 #### Scenario: Developer presses Ctrl+C
 
@@ -59,7 +59,7 @@ When a developer interrupts `mise run dev` with Ctrl+C, the backend and the fron
 
 ### Requirement: One command runs the full backend suite
 
-The repository SHALL provide `mise run test`. It SHALL assume a Fedora host and, when `libedit` is installed on that host, SHALL make the bundled database clients startable without any further manual step. When `libedit` is missing, it SHALL stop before running tests and name the package to install. It SHALL start the shared test fixtures, pull the database engine and object storage images the backend tests reference, reset the shared database servers as the `backend-test-isolation` capability allows, and then run every test package of the backend module except the real-API browser packages and the upgrade test with its comparison helper, each test that asks for a migrated internal database getting one as that capability describes. A migration test that asks for an empty internal database SHALL get one with no migration applied and SHALL apply the migrations it needs itself, and packages that need no database SHALL open none. A package in a new directory of the module SHALL join this run without any change to the selection. After the backend packages and the frontend tests pass, it SHALL run the upgrade test as the requirement "The full run includes the upgrade test" describes. It SHALL NOT prepare internal databases ahead of the tests. It SHALL NOT run the Docker filesystem suite. Its exit status SHALL be non-zero when any step or any test fails.
+The repository SHALL provide `mise run test`. It SHALL assume a Fedora host and, when `libedit` is installed on that host, SHALL make the bundled database clients startable without any further manual step. When `libedit` is missing, it SHALL stop before running tests and name the package to install. It SHALL start the shared test PostgreSQL server and no other development service, pull the database engine and object storage images the backend tests reference, and then run every test package of the backend module except the real-API browser packages and the upgrade test with its comparison helper, each test that asks for a migrated internal database getting one as that capability describes. A migration test that asks for an empty internal database SHALL get one with no migration applied and SHALL apply the migrations it needs itself, and packages that need no database SHALL open none. A package in a new directory of the module SHALL join this run without any change to the selection. After the backend packages and the frontend tests pass, it SHALL run the upgrade test as the requirement "The full run includes the upgrade test" describes. It SHALL NOT prepare internal databases ahead of the tests. It SHALL NOT run the Docker filesystem suite. Its exit status SHALL be non-zero when any step or any test fails.
 
 #### Scenario: Developer runs the suite on Fedora
 
@@ -67,6 +67,12 @@ The repository SHALL provide `mise run test`. It SHALL assume a Fedora host and,
 - **THEN** every selected backend test package runs, and each test that asks for a migrated internal database gets one with every migration of the checkout applied
 - **AND** a migration test that asks for an empty internal database gets one with no migration applied, and packages that need no database open none
 - **AND** tests that start a bundled database client do not fail on a missing shared library
+
+#### Scenario: Only the test PostgreSQL server starts
+
+- **WHEN** a developer runs `mise run test`
+- **THEN** the shared test PostgreSQL server is started
+- **AND** the command starts no other service of the development compose file
 
 #### Scenario: A test fails
 
@@ -95,7 +101,7 @@ The repository SHALL provide `mise run test`. It SHALL assume a Fedora host and,
 
 ### Requirement: The full run includes the upgrade test
 
-After the backend test packages and the frontend tests pass, `mise run test` SHALL run the upgrade test. When the developer names a Databasus image through `DATABASUS_IMAGE`, the upgrade test SHALL use it. Otherwise `mise run test` SHALL build the image from the checkout first. A failed upgrade test SHALL make `mise run test` exit with a non-zero status. When a backend package fails, `mise run test` SHALL stop without building the image or running the upgrade test. A single test package started directly with the Go test command SHALL NOT build an image or run the upgrade test. When the developer interrupts `mise run test` during the upgrade test, the containers, the network and the volume of the upgrade test SHALL be removed, and the shared test fixtures SHALL keep running.
+After the backend test packages and the frontend tests pass, `mise run test` SHALL run the upgrade test. When the developer names a Databasus image through `DATABASUS_IMAGE`, the upgrade test SHALL use it. Otherwise `mise run test` SHALL build the image from the checkout first. A failed upgrade test SHALL make `mise run test` exit with a non-zero status. When a backend package fails, `mise run test` SHALL stop without building the image or running the upgrade test. A single test package started directly with the Go test command SHALL NOT build an image or run the upgrade test. When the developer interrupts `mise run test` during the upgrade test, the containers, the network and the volume of the upgrade test SHALL be removed, and the shared test PostgreSQL server SHALL keep running.
 
 #### Scenario: Developer runs the full suite without an image
 
@@ -131,11 +137,11 @@ After the backend test packages and the frontend tests pass, `mise run test` SHA
 
 - **WHEN** a developer presses Ctrl+C while the upgrade test runs during `mise run test`
 - **THEN** none of the upgrade test's containers, its network or its volume remains
-- **AND** the shared test fixtures are still running
+- **AND** the shared test PostgreSQL server is still running
 
 ### Requirement: Interrupting the backend suite leaves no test processes or containers
 
-When a developer interrupts `mise run test` with Ctrl+C, every test process of that run SHALL exit, and every test container and test network that run started SHALL be removed. Test containers and networks started by another run or by a single package run, in this worktree or another one, SHALL NOT be removed. The shared test fixtures SHALL keep running, so that the next run and other worktrees can use them.
+When a developer interrupts `mise run test` with Ctrl+C, every test process of that run SHALL exit, and every test container and test network that run started SHALL be removed. Test containers and networks started by another run or by a single package run, in this worktree or another one, SHALL NOT be removed. The shared test PostgreSQL server SHALL keep running, so that the next run and other worktrees can use it.
 
 #### Scenario: Developer presses Ctrl+C mid-suite
 
@@ -151,7 +157,7 @@ When a developer interrupts `mise run test` with Ctrl+C, every test process of t
 #### Scenario: Shared fixtures survive the interrupt
 
 - **WHEN** a developer interrupts `mise run test`
-- **THEN** the shared test fixtures are still running afterwards
+- **THEN** the shared test PostgreSQL server is still running afterwards
 
 ### Requirement: Full backend runs take turns
 
@@ -405,7 +411,7 @@ A scenario SHALL remove every container, network, process and file it started, w
 
 #### Scenario: Developer runs the suite on Docker
 
-- **WHEN** a developer runs `mise run agent:e2e` on a host with Docker and the shared test fixtures
+- **WHEN** a developer runs `mise run agent:e2e` on a host with Docker and the shared test PostgreSQL server
 - **THEN** every scenario of the Docker run passes
 - **AND** no container or network carrying a label of the suite's agents remains afterwards
 

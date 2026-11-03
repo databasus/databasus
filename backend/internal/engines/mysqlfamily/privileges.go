@@ -182,16 +182,6 @@ func (p BackupPrivileges) NewInsufficiencyError() error {
 	)
 }
 
-func HasPrivilege(grantedPrivileges, privilege string) bool {
-	for grantedPrivilege := range strings.SplitSeq(grantedPrivileges, ",") {
-		if strings.TrimSpace(grantedPrivilege) == privilege {
-			return true
-		}
-	}
-
-	return false
-}
-
 func qualifyTableNames(schemaName string, tableNames []string) []string {
 	qualifiedNames := make([]string, 0, len(tableNames))
 

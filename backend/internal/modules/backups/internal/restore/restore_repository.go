@@ -140,18 +140,20 @@ func (r *restoreRepository) fail(
 	durationMs int64,
 ) (bool, error) {
 	return r.updateInProgress(ctx, "fail the restore",
-		"status = 'FAILED', fail_message = ?, restore_duration_ms = ?", restoreID, failMessage, durationMs)
+		"status = ?, fail_message = ?, restore_duration_ms = ?", restoreID, StatusFailed, failMessage, durationMs)
 }
 
 func (r *restoreRepository) cancel(ctx context.Context, restoreID uuid.UUID, durationMs int64) (bool, error) {
 	return r.updateInProgress(ctx, "cancel the restore",
-		"status = 'CANCELED', restore_duration_ms = ?", restoreID, durationMs)
+		"status = ?, restore_duration_ms = ?", restoreID, StatusCanceled, durationMs)
 }
 
 func (r *restoreRepository) failAllInProgress(ctx context.Context, failMessage string) (int64, error) {
 	result := database.Conn(ctx, r.db).Exec(
-		"UPDATE backups_restores SET status = 'FAILED', fail_message = ? WHERE status = 'IN_PROGRESS'",
+		"UPDATE backups_restores SET status = ?, fail_message = ? WHERE status = ?",
+		StatusFailed,
 		failMessage,
+		StatusInProgress,
 	)
 	if result.Error != nil {
 		return 0, fmt.Errorf("fail the restores left in progress: %w", result.Error)
@@ -167,8 +169,8 @@ func (r *restoreRepository) updateInProgress(
 	values ...any,
 ) (bool, error) {
 	result := database.Conn(ctx, r.db).Exec(
-		"UPDATE backups_restores SET "+assignments+" WHERE id = ? AND status = 'IN_PROGRESS'",
-		append(values, restoreID)...,
+		"UPDATE backups_restores SET "+assignments+" WHERE id = ? AND status = ?",
+		append(values, restoreID, StatusInProgress)...,
 	)
 	if result.Error != nil {
 		return false, fmt.Errorf("%s: %w", operation, result.Error)

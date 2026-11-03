@@ -19,7 +19,7 @@ type StoreFactory func(t *testing.T) cache.Store
 func RunStoreContract(t *testing.T, createStore StoreFactory) {
 	t.Helper()
 
-	t.Run("copies payloads and forgets every entry when cleared", func(t *testing.T) {
+	t.Run("copies payloads when an entry is set and read", func(t *testing.T) {
 		t.Parallel()
 		store := createStore(t)
 		sourcePayload := []byte("value")
@@ -38,11 +38,6 @@ func RunStoreContract(t *testing.T, createStore StoreFactory) {
 		require.NoError(t, err)
 		require.True(t, isFound)
 		assert.Equal(t, []byte("value"), storedPayload)
-
-		require.NoError(t, store.Clear(t.Context()))
-		_, isFound, err = store.Get(t.Context(), "entry")
-		require.NoError(t, err)
-		assert.False(t, isFound)
 	})
 
 	t.Run("returns an error when the context is canceled", func(t *testing.T) {

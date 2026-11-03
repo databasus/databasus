@@ -69,7 +69,6 @@ func New(tb testing.TB, options ...Option) *App {
 		agentBinariesDir:             "",
 		logSink:                      nil,
 		walStreamTimings:             nil,
-		fileTimings:                  nil,
 		notificationDeliveryTimeout:  0,
 		// A test never reaches the real Slack or Telegram: an unset address points at a host that
 		// does not resolve.
@@ -170,9 +169,6 @@ func New(tb testing.TB, options ...Option) *App {
 	}
 
 	environment.StorageFileTimings = getTestFileTimings()
-	if applied.fileTimings != nil {
-		environment.StorageFileTimings = *applied.fileTimings
-	}
 
 	if applied.walStreamTimings != nil {
 		environment.WalStreamTimings = *applied.walStreamTimings

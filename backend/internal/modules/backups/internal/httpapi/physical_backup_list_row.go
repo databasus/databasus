@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"databasus-backend/internal/modules/backups/internal/physical"
+	"databasus-backend/internal/modules/backups/internal/physical/catalog"
 )
 
 func toPhysicalBackupListRow(backup physical.PhysicalBackupListItem) (PhysicalBackupListRow, error) {
@@ -28,8 +29,8 @@ func toPhysicalBackupListRow(backup physical.PhysicalBackupListItem) (PhysicalBa
 	body.TimelineId = backup.TimelineID
 	body.ToWalFilename = backup.ToWalFilename
 
-	switch string(backup.Type) {
-	case "FULL", "INCREMENTAL", "WAL":
+	switch backup.Type {
+	case catalog.BackupTypeFull, catalog.BackupTypeIncremental, catalog.BackupTypeWal:
 	default:
 		return PhysicalBackupListRow{}, errUnknownPhysicalValue
 	}

@@ -24,5 +24,4 @@ type Store interface {
 	CreateIfAbsent(ctx context.Context, entry Entry) (bool, error)
 	ReadAndDelete(ctx context.Context, key string) ([]byte, bool, error)
 	Delete(ctx context.Context, key string) error
-	Clear(ctx context.Context) error
 }

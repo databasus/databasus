@@ -66,26 +66,3 @@ func (c *Client) FetchMessages(ctx context.Context) ([]Message, error) {
 
 	return payload.Messages, nil
 }
-
-func (c *Client) Clear(ctx context.Context) error {
-	ctx, cancel := context.WithTimeout(ctx, requestTimeout)
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.baseURL+"/api/v1/messages", nil)
-	if err != nil {
-		return err
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("mailpit clear: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("mailpit clear returned %s: %s", resp.Status, string(body))
-	}
-
-	return nil
-}

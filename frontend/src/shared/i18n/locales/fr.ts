@@ -6,19 +6,15 @@ export const fr: typeof en = {
   },
   common: {
     actions: {
-      add: 'Ajouter',
       back: 'Retour',
       cancel: 'Annuler',
       close: 'Fermer',
-      confirm: 'Confirmer',
       continue: 'Continuer',
       copy: 'Copier',
       create: 'Créer',
       delete: 'Supprimer',
-      download: 'Télécharger',
       edit: 'Modifier',
       ok: 'OK',
-      refresh: 'Actualiser',
       remove: 'Supprimer',
       retry: 'Réessayer',
       save: 'Enregistrer',
@@ -38,7 +34,6 @@ export const fr: typeof en = {
       username: "Nom d'utilisateur",
     },
     states: {
-      disabled: 'Désactivé',
       enabled: 'Activé',
       loading: 'Chargement...',
     },
@@ -84,12 +79,8 @@ export const fr: typeof en = {
       summary: '{{used}} sur {{total}} GB utilisés ({{percent}} %)',
     },
     workspaceSelection: {
-      createShort: 'Créer',
       create: 'Créer un espace de travail',
       selected: 'Espace de travail',
-      placeholder: 'Choisissez un espace de travail',
-      search: 'Rechercher un espace de travail...',
-      notFound: 'Aucun espace de travail trouvé',
       createNew: '+ Nouvel espace de travail',
     },
     starButton: {
@@ -102,9 +93,6 @@ export const fr: typeof en = {
       description:
         "L'accès automatique au presse-papiers n'est pas disponible. Collez votre contenu ci-dessous.",
       placeholder: 'Collez votre chaîne de connexion ici...',
-    },
-    auth: {
-      accountsCheckFailed: "Impossible de vérifier si l'instance possède un compte : {{error}}",
     },
     oauthCallback: {
       failedTitle: "Échec de l'authentification",
@@ -1217,7 +1205,6 @@ export const fr: typeof en = {
       hasSendError: "Erreur d'envoi",
     },
     create: {
-      title: 'Ajouter un canal de notification',
       namePlaceholder: 'Mes alertes',
     },
     config: {
@@ -1378,8 +1365,6 @@ export const fr: typeof en = {
       powerAutomateUrlLabel: 'URL Power Automate :',
       powerAutomateUrlTooltip:
         'URL HTTP de votre flux Power Automate (déclencheur When an HTTP request is received)',
-      showFullUrl: 'Afficher',
-      hideFullUrl: 'Masquer',
     },
     mattermost: {
       howToConnect: 'Comment connecter Mattermost ?',

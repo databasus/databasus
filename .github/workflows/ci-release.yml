@@ -302,13 +302,10 @@ jobs:
 
       - name: Start test containers
         run: |
-          docker compose -f docker-compose.yml up -d
+          docker compose -f docker-compose.yml up -d backend-db-test
 
       - name: Wait for containers to be ready
         run: |
-          # Wait for main dev database (postgres listens on 5432 inside the container)
-          timeout 60 bash -c 'until docker exec backend-db pg_isready -U postgres; do sleep 2; done'
-
           # Wait for test database (postgres listens on 5432 inside the container)
           timeout 60 bash -c 'until docker exec backend-db-test pg_isready -U postgres; do sleep 2; done'
 
@@ -401,13 +398,10 @@ jobs:
 
       - name: Start test containers
         run: |
-          docker compose -f docker-compose.yml up -d
+          docker compose -f docker-compose.yml up -d backend-db-test
 
       - name: Wait for containers to be ready
         run: |
-          # Wait for main dev database (postgres listens on 5432 inside the container)
-          timeout 60 bash -c 'until docker exec backend-db pg_isready -U postgres; do sleep 2; done'
-
           # Wait for test database (postgres listens on 5432 inside the container)
           timeout 60 bash -c 'until docker exec backend-db-test pg_isready -U postgres; do sleep 2; done'
 
