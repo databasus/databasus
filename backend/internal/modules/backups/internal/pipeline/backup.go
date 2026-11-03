@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"sync/atomic"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/klauspost/compress/zstd"
@@ -19,8 +20,6 @@ import (
 	"databasus-backend/internal/modules/storages"
 )
 
-const progressReportIntervalMb = 1.0
-
 type BackupSpec struct {
 	BackupID     uuid.UUID
 	DatabaseID   uuid.UUID
@@ -28,9 +27,12 @@ type BackupSpec struct {
 	StorageID    uuid.UUID
 	FileName     string
 	IsEncrypted  bool
-	// OnProgress receives the stored size every megabyte and once more when the dump completes.
+	// OnProgress receives the stored size every ProgressInterval while the dump streams, apart from
+	// the goroutine that copies it, and once more when the stream ends successfully.
 	OnProgress func(storedSizeMb float64)
-	Logger     *slog.Logger
+	// ProgressInterval is how often OnProgress receives the stored size while the dump streams.
+	ProgressInterval time.Duration
+	Logger           *slog.Logger
 }
 
 type BackupResult struct {
@@ -143,6 +145,14 @@ func (p *Pipeline) streamDumpToStorage(runCtx context.Context, stream backupStre
 
 	stream.spec.Logger.InfoContext(runCtx, "streaming backup to storage")
 
+	stopReportingProgress := startReportingProgress(backupCtx, progressReportSpec{
+		interval:        stream.spec.ProgressInterval,
+		getStoredSizeMb: chain.getStoredSizeMb,
+		listener:        stream.spec.OnProgress,
+		logger:          stream.spec.Logger,
+	})
+	defer stopReportingProgress()
+
 	dumpErr := stream.dumpSource.Dump(backupCtx, chain.input)
 
 	err = finishBackupStream(backupRun{
@@ -152,14 +162,15 @@ func (p *Pipeline) streamDumpToStorage(runCtx context.Context, stream backupStre
 		storagePipe:  storagePipe,
 		storageWrite: storageWrite,
 	}, dumpErr)
+
+	stopReportingProgress()
+
 	if err != nil {
 		return BackupResult{}, err
 	}
 
 	storedSizeMb := chain.getStoredSizeMb()
-	if stream.spec.OnProgress != nil {
-		stream.spec.OnProgress(storedSizeMb)
-	}
+	stream.spec.OnProgress(storedSizeMb)
 
 	return BackupResult{
 		EncryptionHeader:   encryptionHeader,
@@ -255,8 +266,7 @@ func (p *Pipeline) buildWriterChain(
 	}
 
 	chain.storedBytes = io_utils.NewCountingWriter(encryptedOutput)
-
-	var dumpOutput io.Writer = chain.storedBytes
+	chain.input = chain.storedBytes
 
 	if stream.compression.isZstd {
 		zstdEncoder, err := zstd.NewWriter(
@@ -268,14 +278,7 @@ func (p *Pipeline) buildWriterChain(
 		}
 
 		chain.zstdEncoder = zstdEncoder
-		dumpOutput = zstdEncoder
-	}
-
-	chain.input = &progressReportingWriter{
-		output:         dumpOutput,
-		storedBytes:    chain.storedBytes,
-		listener:       stream.spec.OnProgress,
-		lastReportedMb: 0,
+		chain.input = zstdEncoder
 	}
 
 	return chain, encryptionHeader, nil
@@ -320,29 +323,6 @@ func (c *backupWriterChain) abandon() {
 
 func (c *backupWriterChain) getStoredSizeMb() float64 {
 	return float64(c.storedBytes.GetBytesWritten()) / (1024 * 1024)
-}
-
-// progressReportingWriter reports the stored size every megabyte. It sits where the tool's output
-// enters the chain, so the listener is called from the one goroutine that copies that output.
-type progressReportingWriter struct {
-	output         io.Writer
-	storedBytes    *io_utils.CountingWriter
-	listener       func(storedSizeMb float64)
-	lastReportedMb float64
-}
-
-func (w *progressReportingWriter) Write(p []byte) (int, error) {
-	writtenBytes, err := w.output.Write(p)
-
-	if w.listener != nil {
-		storedSizeMb := float64(w.storedBytes.GetBytesWritten()) / (1024 * 1024)
-		if storedSizeMb >= w.lastReportedMb+progressReportIntervalMb {
-			w.listener(storedSizeMb)
-			w.lastReportedMb = storedSizeMb
-		}
-	}
-
-	return writtenBytes, err
 }
 
 // storagePipeWriter records whether a write into the pipe failed, which happens only when the
