@@ -41,7 +41,6 @@ export const LOCALE_NATIVE_NAMES: Record<Locale | "en", string> = {
 export const TRANSLATED_PATHS = [
   "",
   "installation",
-  "installation/agent",
   "advanced-config",
   "access-management",
   "password",

@@ -29,8 +29,7 @@
     <a href="#-recursos">Recursos</a> •
     <a href="#-instalação">Instalação</a> •
     <a href="#-como-usar">Como usar</a> •
-    <a href="#-licença">Licença</a> •
-    <a href="#-contribuindo">Contribuindo</a>
+    <a href="#-licença">Licença</a>
   </p>
 
   <p style="margin-top: 20px; margin-bottom: 20px; font-size: 1.2em;">
@@ -311,8 +310,6 @@ Encontrou uma vulnerabilidade? Reporte pela aba Security do GitHub. Veja o [SECU
 
 Este projeto está sob a licença Apache 2.0 - veja o arquivo [LICENSE](../../LICENSE) para mais detalhes
 
-## 🤝 Contribuindo
+## 💬 Comunidade
 
-Contribuições são bem-vindas! Leia o <a href="https://databasus.com/contribute">guia de contribuição</a> para conhecer os detalhes, as prioridades e as regras. Se você quer contribuir mas não sabe por onde começar, me escreva no Telegram [@rostislav_dugin](https://t.me/rostislav_dugin)
-
-Você também pode entrar na nossa grande comunidade de desenvolvedores, DBAs e engenheiros de DevOps no Telegram [@databasus_community](https://t.me/databasus_community).
+Entre na nossa grande comunidade de desenvolvedores, DBAs e engenheiros de DevOps no Telegram [@databasus_community](https://t.me/databasus_community).

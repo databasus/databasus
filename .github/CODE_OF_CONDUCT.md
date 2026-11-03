@@ -85,7 +85,6 @@ When contributing to Databasus, please:
 - Understand that everyone has different levels of experience
 - Ask questions in a respectful manner
 - Accept that your contribution may not be accepted, and be open to feedback
-- Follow the [contribution guidelines](https://databasus.com/contribute)
 
 For code contributions, remember to:
 

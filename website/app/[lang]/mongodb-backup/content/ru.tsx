@@ -430,7 +430,7 @@ export default function MongodbBackupPage() {
 
               <p className="text-gray-400 text-sm md:text-base mb-4">
                 Databasus полностью открыт под лицензией Apache 2.0. Изучайте
-                каждую строку кода, делайте форки, вносите свой вклад. Бесплатен
+                каждую строку кода и делайте форки. Бесплатен
                 для личного и корпоративного использования
               </p>
               <div>
