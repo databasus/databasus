@@ -26,9 +26,10 @@ func TestUpgrade(t *testing.T) {
 		t.Logf("upgrading %s to %s", previousImage, currentImage)
 
 		_, err := runUpgrade(t, upgradeSpec{
-			previousImage:     previousImage,
-			currentImage:      currentImage,
-			currentEntrypoint: nil,
+			previousImage:           previousImage,
+			currentImage:            currentImage,
+			shouldCheckAgentUpgrade: true,
+			currentEntrypoint:       nil,
 		})
 
 		require.NoError(t, err)

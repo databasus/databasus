@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Databasus verification agent API
   version: 1.0.0
-  description: The protocol used by verification agents, including agents of the previous release
+  description: The protocol used by the current verification agent. Previously installed agents discover and download the matching agent through the public system version and verification-agent operations; their agent requests can be rejected until self-update succeeds.
 servers:
   - url: /api/v1
 security:

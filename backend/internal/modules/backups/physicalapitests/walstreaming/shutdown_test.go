@@ -24,12 +24,7 @@ func TestWalStreamShutdown(t *testing.T) {
 		team.App.WaitForPhysicalBackups(t)
 
 		source := team.openSource(t)
-		var initialSlot string
-		require.NoError(
-			t,
-			source.QueryRow(t.Context(), "SELECT slot_name FROM pg_replication_slots WHERE slot_name LIKE 'databasus_slot_%' AND active").
-				Scan(&initialSlot),
-		)
+		initialSlot := getActiveWalSlot(t, source)
 
 		initialStatistics := team.statistics(t)
 		require.NotNil(t, initialStatistics.Streamer.SessionStartedAt)
@@ -77,12 +72,7 @@ func TestWalStreamShutdown(t *testing.T) {
 		team.App.WaitForPhysicalBackups(t)
 
 		source := team.openSource(t)
-		var initialSlot string
-		require.NoError(
-			t,
-			source.QueryRow(t.Context(), "SELECT slot_name FROM pg_replication_slots WHERE slot_name LIKE 'databasus_slot_%' AND active").
-				Scan(&initialSlot),
-		)
+		initialSlot := getActiveWalSlot(t, source)
 
 		team.disable(t)
 		team.App.RunJobPass(t, "backups_physical_wal_stream_manager")
