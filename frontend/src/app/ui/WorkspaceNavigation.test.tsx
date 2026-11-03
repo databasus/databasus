@@ -3,10 +3,20 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { Workspace } from '@/entities/workspaces';
+import { backupConfigApi } from '@/entities/backup-configs';
+import {
+  createDefaultDatabaseSettings,
+  databaseApi,
+  DatabaseType,
+  type Database,
+} from '@/entities/databases';
+import { storageApi } from '@/entities/storages';
+import { workspaceApi, type Workspace } from '@/entities/workspaces';
 import { API_BASE_PATH } from '@/shared/api';
 import { activateSession } from '@/shared/auth';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
+import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
 
 import { renderApp } from './renderApp';
 
@@ -23,7 +33,19 @@ const secondWorkspace: Workspace = {
   name: 'Second team',
 };
 const thirdWorkspace: Workspace = { ...firstWorkspace, id: 'third-workspace', name: 'Third team' };
-const openApplication = (workspaces: Workspace[], rememberedWorkspaceId?: string) => {
+const firstWorkspaceDatabase: Database = {
+  id: 'first-workspace-database',
+  name: 'Production database',
+  workspaceId: firstWorkspace.id,
+  settings: createDefaultDatabaseSettings(DatabaseType.POSTGRES_LOGICAL),
+  notifierIds: [],
+  healthStatus: 'AVAILABLE',
+};
+const openApplication = (
+  workspaces: Workspace[],
+  rememberedWorkspaceId?: string,
+  databases: Database[] = [],
+) => {
   activateSession({ token: 'workspace-session', userId: 'owner-id' });
 
   if (rememberedWorkspaceId) localStorage.setItem('selected_workspace_id', rememberedWorkspaceId);
@@ -53,7 +75,18 @@ const openApplication = (workspaces: Workspace[], rememberedWorkspaceId?: string
     http.get(`*${API_BASE_PATH}/workspaces/:workspaceId`, ({ params }) =>
       HttpResponse.json(workspaces.find((workspace) => workspace.id === params.workspaceId)),
     ),
-    mockApi.get('/databases', 200, { items: [] }),
+    http.get(`*${API_BASE_PATH}/databases`, ({ request }) =>
+      HttpResponse.json({
+        items: databases.filter(
+          (database) =>
+            database.workspaceId === new URL(request.url).searchParams.get('workspaceId'),
+        ),
+      }),
+    ),
+    mockApi.get('/databases/{databaseId}', 200, firstWorkspaceDatabase),
+    mockApi.pending('get', '/backup-configs/{databaseId}').handler,
+    mockApi.pending('get', '/logical-backups').handler,
+    mockApi.pending('get', '/healthcheck-configs/{databaseId}').handler,
     mockApi.get('/storages', 200, { items: [] }),
     mockApi.get('/backup-configs', 200, { items: [] }),
     mockApi.get('/storage-switches', 200, { items: [] }),
@@ -101,8 +134,421 @@ const denyFirstWorkspace = () =>
         : HttpResponse.json({ items: [] }),
     ),
   );
+const collectionReadPaths = ['/databases', '/backup-configs', '/storages'] as const;
+const holdFirstWorkspaceRead = (path: (typeof collectionReadPaths)[number]) => {
+  const pendingRead = createPendingApiResponse();
+  server.use(
+    http.get(`*${API_BASE_PATH}${path}`, ({ request }) =>
+      new URL(request.url).searchParams.get('workspaceId') === firstWorkspace.id
+        ? pendingRead.response
+        : HttpResponse.json({ items: [] }),
+    ),
+  );
+
+  return pendingRead;
+};
+const observeCollectionRead = (path: (typeof collectionReadPaths)[number]) => {
+  if (path === '/backup-configs') return vi.spyOn(backupConfigApi, 'listAllWorkspaceBackupConfigs');
+  if (path === '/storages') return vi.spyOn(storageApi, 'listAllStorages');
+  return vi.spyOn(databaseApi, 'listAllDatabases');
+};
+const getWorkspaceReadCount = () =>
+  server
+    .getRequests()
+    .filter((request) => new URL(request.url).pathname === `${API_BASE_PATH}/workspaces`).length;
+const waitForDatabaseDetails = async () => {
+  await screen.findByRole('button', { name: /Production database/ });
+  await screen.findByRole('tab', { name: 'Backups' });
+};
+const expectNoDatabaseContent = () => {
+  expect(screen.queryByRole('button', { name: /Production database/ })).toBeNull();
+  expect(screen.queryByRole('tab', { name: 'Backups' })).toBeNull();
+};
+const refuseWorkspaceRead = (status: 403 | 404) =>
+  HttpResponse.json(buildProblem(status === 403 ? 'permission_denied' : 'not_found', status), {
+    status,
+  });
+
+describe('Application database workspace access', () => {
+  it.each(
+    ['initial', 'background'].flatMap((phase) =>
+      collectionReadPaths.flatMap((path) =>
+        ([403, 404] as const).flatMap((status) =>
+          [false, true].map((hasAnotherWorkspace) => ({
+            phase,
+            path,
+            status,
+            hasAnotherWorkspace,
+          })),
+        ),
+      ),
+    ),
+  )(
+    'clears database content when $phase $path answers $status with another workspace=$hasAnotherWorkspace',
+    async ({ phase, path, status, hasAnotherWorkspace }) => {
+      const collectionReads = observeCollectionRead(path);
+      const workspaceReads = vi.spyOn(workspaceApi, 'listAllWorkspaces');
+      const application = openApplication(
+        hasAnotherWorkspace ? [firstWorkspace, secondWorkspace] : [firstWorkspace],
+        undefined,
+        [firstWorkspaceDatabase],
+      );
+
+      if (phase === 'background') await waitForDatabaseDetails();
+
+      const refusedRead = holdFirstWorkspaceRead(path);
+      await screen.findByRole('combobox', { name: 'Selected workspace' });
+      const reconciliation = mockApi.pending('get', '/workspaces');
+      server.use(reconciliation.handler);
+
+      try {
+        if (phase === 'background') fireEvent(document, new Event('visibilitychange'));
+
+        await waitFor(() =>
+          expect(collectionReads).toHaveBeenCalledTimes(phase === 'background' ? 2 : 1),
+        );
+        await releaseAndSettle(collectionReads, () =>
+          refusedRead.respond(refuseWorkspaceRead(status)),
+        );
+
+        await waitFor(expectNoDatabaseContent);
+        await waitFor(() => expect(workspaceReads).toHaveBeenCalledTimes(2));
+        expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+
+        if (hasAnotherWorkspace) {
+          expect(getWorkspaceSelection().getByText(secondWorkspace.name)).toBeTruthy();
+          expect(getWorkspaceSelection().queryByText(firstWorkspace.name)).toBeNull();
+        } else {
+          expect(screen.queryByRole('combobox', { name: 'Selected workspace' })).toBeNull();
+        }
+
+        await releaseAndSettle(workspaceReads, () =>
+          reconciliation.respond(
+            HttpResponse.json({ items: hasAnotherWorkspace ? [secondWorkspace] : [] }),
+          ),
+        );
+
+        if (hasAnotherWorkspace) {
+          await screen.findByRole('button', { name: 'Add database' });
+          expect(localStorage.getItem('selected_workspace_id')).toBe(secondWorkspace.id);
+        } else {
+          expect(
+            screen.getAllByRole('button', { name: 'Create workspace' }).length,
+          ).toBeGreaterThan(0);
+          expect(localStorage.getItem('selected_workspace_id')).toBeNull();
+        }
+
+        expectNoDatabaseContent();
+      } finally {
+        application.unmount();
+        refusedRead.cancel();
+        reconciliation.cancel();
+      }
+    },
+  );
+
+  it('recovers workspace navigation when reconciliation fails after a database access refusal', async () => {
+    openApplication([firstWorkspace, secondWorkspace], undefined, [firstWorkspaceDatabase]);
+    await waitForDatabaseDetails();
+
+    const databaseReads = observeCollectionRead('/databases');
+    const refusedRead = holdFirstWorkspaceRead('/databases');
+    server.use(mockApi.get('/workspaces', 500, buildProblem('internal', 500)));
+
+    fireEvent(document, new Event('visibilitychange'));
+    await waitFor(() => expect(databaseReads).toHaveBeenCalledTimes(1));
+    await releaseAndSettle(databaseReads, () => refusedRead.respond(refuseWorkspaceRead(404)));
+    const retry = await screen.findByRole('button', { name: 'Retry' });
+
+    expectNoDatabaseContent();
+    expect(
+      screen.getByText('An internal server error occurred. Please try again later.'),
+    ).toBeTruthy();
+
+    server.use(mockApi.get('/workspaces', 200, { items: [secondWorkspace] }));
+
+    fireEvent.click(retry);
+    await screen.findByRole('button', { name: 'Add database' });
+
+    expect(getWorkspaceSelection().getByText(secondWorkspace.name)).toBeTruthy();
+    expect(getWorkspaceSelection().queryByText(firstWorkspace.name)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+    expectNoDatabaseContent();
+  });
+
+  it.each([403, 404] as const)(
+    'ignores a late database refusal with HTTP %s after a workspace switch',
+    async (status) => {
+      openApplication([firstWorkspace, secondWorkspace], undefined, [firstWorkspaceDatabase]);
+      await waitForDatabaseDetails();
+
+      const databaseReads = observeCollectionRead('/databases');
+      const refusedRead = holdFirstWorkspaceRead('/databases');
+
+      fireEvent(document, new Event('visibilitychange'));
+      await waitFor(() => expect(databaseReads).toHaveBeenCalledTimes(1));
+
+      await selectWorkspace(secondWorkspace);
+      await openSettings();
+      fireEvent.change(await screen.findByDisplayValue(secondWorkspace.name), {
+        target: { value: 'Current workspace draft' },
+      });
+      await releaseAndSettle(
+        databaseReads,
+        () => refusedRead.respond(refuseWorkspaceRead(status)),
+        0,
+      );
+
+      expect(screen.getByDisplayValue('Current workspace draft')).toBeTruthy();
+      expect(getWorkspaceSelection().getByText(secondWorkspace.name)).toBeTruthy();
+      expect(getWorkspaceReadCount()).toBe(1);
+      expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+    },
+  );
+
+  it.each([403, 404] as const)(
+    'ignores a late database refusal with HTTP %s after session replacement',
+    async (status) => {
+      openApplication([firstWorkspace, secondWorkspace], undefined, [firstWorkspaceDatabase]);
+      await waitForDatabaseDetails();
+
+      const databaseReads = observeCollectionRead('/databases');
+      const refusedRead = holdFirstWorkspaceRead('/databases');
+
+      fireEvent(document, new Event('visibilitychange'));
+      await waitFor(() => expect(databaseReads).toHaveBeenCalledTimes(1));
+
+      server.use(mockApi.get('/workspaces', 200, { items: [secondWorkspace] }));
+
+      act(() => activateSession({ token: 'replacement-session', userId: 'owner-id' }));
+      await waitFor(() =>
+        expect(getWorkspaceSelection().getByText(secondWorkspace.name)).toBeTruthy(),
+      );
+      const workspaceReadCount = getWorkspaceReadCount();
+      await releaseAndSettle(
+        databaseReads,
+        () => refusedRead.respond(refuseWorkspaceRead(status)),
+        0,
+      );
+
+      expect(getWorkspaceReadCount()).toBe(workspaceReadCount);
+      expect(getWorkspaceSelection().getByText(secondWorkspace.name)).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+      expectNoDatabaseContent();
+    },
+  );
+
+  it.each([403, 404] as const)(
+    'keeps a newer database list when an older refresh answers HTTP %s',
+    async (status) => {
+      openApplication([firstWorkspace, secondWorkspace], undefined, [firstWorkspaceDatabase]);
+      await waitForDatabaseDetails();
+
+      const databaseReads = observeCollectionRead('/databases');
+      const refusedRead = holdFirstWorkspaceRead('/databases');
+
+      fireEvent(document, new Event('visibilitychange'));
+      await waitFor(() => expect(databaseReads).toHaveBeenCalledTimes(1));
+
+      server.use(
+        mockApi.get('/databases', 200, {
+          items: [{ ...firstWorkspaceDatabase, name: 'Current database' }],
+        }),
+      );
+
+      fireEvent(document, new Event('visibilitychange'));
+      await screen.findByRole('button', { name: /Current database/ });
+
+      await releaseAndSettle(
+        databaseReads,
+        () => refusedRead.respond(refuseWorkspaceRead(status)),
+        0,
+      );
+
+      expect(
+        screen.getByRole('button', { name: /Current database/ }).getAttribute('aria-pressed'),
+      ).toBe('true');
+      expect(getWorkspaceSelection().getByText(firstWorkspace.name)).toBeTruthy();
+      expect(getWorkspaceReadCount()).toBe(1);
+      expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+    },
+  );
+
+  it.each(
+    ['initial', 'background'].flatMap((phase) =>
+      ['network', 'server'].flatMap((temporaryFailure) =>
+        ([403, 404] as const).flatMap((status) =>
+          (['/backup-configs', '/storages'] as const).map((path) => ({
+            phase,
+            temporaryFailure,
+            status,
+            path,
+          })),
+        ),
+      ),
+    ),
+  )(
+    'reconciles access when $phase $path answers $status after a $temporaryFailure failure',
+    async ({ phase, temporaryFailure, status, path }) => {
+      const application = openApplication([firstWorkspace, secondWorkspace], undefined, [
+        firstWorkspaceDatabase,
+      ]);
+
+      if (phase === 'background') await waitForDatabaseDetails();
+
+      const databaseReads = observeCollectionRead('/databases');
+      const accessReads = observeCollectionRead(path);
+      const failedRead = holdFirstWorkspaceRead('/databases');
+      const refusedRead = holdFirstWorkspaceRead(path);
+      const pendingSibling = holdFirstWorkspaceRead(
+        path === '/storages' ? '/backup-configs' : '/storages',
+      );
+      await screen.findByRole('combobox', { name: 'Selected workspace' });
+      const reconciliation = mockApi.pending('get', '/workspaces');
+      server.use(reconciliation.handler);
+
+      try {
+        if (phase === 'background') fireEvent(document, new Event('visibilitychange'));
+
+        await waitFor(() => {
+          expect(databaseReads).toHaveBeenCalledTimes(1);
+          expect(accessReads).toHaveBeenCalledTimes(1);
+        });
+        await releaseAndSettle(databaseReads, () =>
+          failedRead.respond(
+            temporaryFailure === 'network'
+              ? HttpResponse.error()
+              : HttpResponse.json(buildProblem('internal', 500), { status: 500 }),
+          ),
+        );
+
+        if (phase === 'initial') await screen.findByRole('button', { name: 'Retry' });
+        else expect(screen.getByRole('button', { name: /Production database/ })).toBeTruthy();
+
+        expect(getWorkspaceReadCount()).toBe(1);
+
+        await releaseAndSettle(accessReads, () => refusedRead.respond(refuseWorkspaceRead(status)));
+
+        await waitFor(expectNoDatabaseContent);
+        await waitFor(() => expect(getWorkspaceReadCount()).toBe(2));
+        expect(getWorkspaceSelection().getByText(secondWorkspace.name)).toBeTruthy();
+        expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+      } finally {
+        application.unmount();
+        failedRead.cancel();
+        refusedRead.cancel();
+        pendingSibling.respond(HttpResponse.json({ items: [] }));
+        reconciliation.respond(HttpResponse.json({ items: [secondWorkspace] }));
+      }
+    },
+  );
+
+  it('reconciles workspace access once when sibling reads refuse the same refresh', async () => {
+    const application = openApplication([firstWorkspace, secondWorkspace], undefined, [
+      firstWorkspaceDatabase,
+    ]);
+    await waitForDatabaseDetails();
+
+    const configReads = observeCollectionRead('/backup-configs');
+    const storageReads = observeCollectionRead('/storages');
+    const refusedConfigs = holdFirstWorkspaceRead('/backup-configs');
+    const refusedStorages = holdFirstWorkspaceRead('/storages');
+    const reconciliation = mockApi.pending('get', '/workspaces');
+    server.use(reconciliation.handler);
+
+    try {
+      fireEvent(document, new Event('visibilitychange'));
+      await waitFor(() => {
+        expect(configReads).toHaveBeenCalledTimes(1);
+        expect(storageReads).toHaveBeenCalledTimes(1);
+      });
+      await act(async () => {
+        refusedConfigs.respond(refuseWorkspaceRead(403));
+        refusedStorages.respond(refuseWorkspaceRead(404));
+        await Promise.allSettled([
+          configReads.mock.results[0].value,
+          storageReads.mock.results[0].value,
+        ]);
+      });
+
+      await waitFor(expectNoDatabaseContent);
+      await waitFor(() => expect(getWorkspaceReadCount()).toBe(2));
+      expect(getWorkspaceSelection().getByText(secondWorkspace.name)).toBeTruthy();
+    } finally {
+      application.unmount();
+      refusedConfigs.cancel();
+      refusedStorages.cancel();
+      reconciliation.cancel();
+    }
+  });
+
+  it.each(['network', 'server'])(
+    'keeps workspace navigation when a database refresh has a $0 failure',
+    async (temporaryFailure) => {
+      openApplication([firstWorkspace, secondWorkspace], undefined, [firstWorkspaceDatabase]);
+      await waitForDatabaseDetails();
+
+      const databaseReads = observeCollectionRead('/databases');
+      const failedRead = holdFirstWorkspaceRead('/databases');
+
+      fireEvent(document, new Event('visibilitychange'));
+      await waitFor(() => expect(databaseReads).toHaveBeenCalledTimes(1));
+      await releaseAndSettle(databaseReads, () =>
+        failedRead.respond(
+          temporaryFailure === 'network'
+            ? HttpResponse.error()
+            : HttpResponse.json(buildProblem('internal', 500), { status: 500 }),
+        ),
+      );
+
+      expect(
+        screen.getByRole('button', { name: /Production database/ }).getAttribute('aria-pressed'),
+      ).toBe('true');
+      expect(getWorkspaceSelection().getByText(firstWorkspace.name)).toBeTruthy();
+      expect(getWorkspaceReadCount()).toBe(1);
+      expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+    },
+  );
+});
 
 describe('Application workspace navigation', () => {
+  it('clears the databases and refreshes workspaces when a refresh answers 403', async () => {
+    const application = openApplication([firstWorkspace, secondWorkspace], undefined, [
+      firstWorkspaceDatabase,
+    ]);
+    await screen.findByRole('button', { name: /Production database/ });
+    await screen.findByRole('tab', { name: 'Backups' });
+    const reconciliation = mockApi.pending('get', '/workspaces');
+    server.use(
+      http.get(`*${API_BASE_PATH}/databases`, ({ request }) =>
+        new URL(request.url).searchParams.get('workspaceId') === firstWorkspace.id
+          ? HttpResponse.json(buildProblem('permission_denied', 403), { status: 403 })
+          : HttpResponse.json({ items: [] }),
+      ),
+      reconciliation.handler,
+    );
+
+    try {
+      fireEvent(document, new Event('visibilitychange'));
+
+      await waitFor(() => {
+        expect(screen.queryByRole('button', { name: /Production database/ })).toBeNull();
+        expect(screen.queryByRole('tab', { name: 'Backups' })).toBeNull();
+      });
+      expect(getWorkspaceSelection().queryByText(firstWorkspace.name)).toBeNull();
+      await waitFor(() =>
+        expect(
+          server
+            .getRequests()
+            .filter((request) => new URL(request.url).pathname.endsWith('/workspaces')),
+        ).toHaveLength(2),
+      );
+    } finally {
+      application.unmount();
+      reconciliation.respond(HttpResponse.json({ items: [secondWorkspace] }));
+    }
+  });
+
   it.each(
     (['/audit-events', '/workspace-members'] as const).flatMap((path) =>
       [403, 404, 500].map((status) => ({

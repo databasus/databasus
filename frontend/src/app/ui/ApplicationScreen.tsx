@@ -213,6 +213,7 @@ export const ApplicationScreen = () => {
                   <>
                     {selectedTab === 'databases' && (
                       <DatabasesPage
+                        onUnavailable={startup.reconcileUnavailableWorkspace}
                         workspace={selectedWorkspace}
                         isCanManageDBs={canManageWorkspace}
                         key={`databases-${selectedWorkspace.id}`}

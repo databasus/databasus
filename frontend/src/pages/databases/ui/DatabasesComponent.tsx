@@ -11,6 +11,7 @@ import { databaseApi, sortUnavailableDatabasesFirst } from '../../../entities/da
 import type { Database } from '../../../entities/databases';
 import { type Storage, storageApi } from '../../../entities/storages';
 import type { Workspace } from '../../../entities/workspaces';
+import { ApiError } from '../../../shared/api';
 import { useSessionGuard } from '../../../shared/auth';
 import {
   useIsMobile,
@@ -26,6 +27,7 @@ import { DatabaseComponent } from './DatabaseComponent';
 
 interface Props {
   workspace: Workspace;
+  onUnavailable?: (workspaceId: string) => void;
   isCanManageDBs: boolean;
 }
 
@@ -65,7 +67,7 @@ const mapStoragesByDatabaseId = (
   return storagesByDatabaseId;
 };
 
-export const DatabasesComponent = ({ workspace, isCanManageDBs }: Props) => {
+export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }: Props) => {
   const [collection, setCollection] = useState(() => createEmptyCollection(workspace.id));
   const [loadError, setLoadError] = useState<unknown>();
   const [isLoading, setIsLoading] = useState(true);
@@ -80,6 +82,24 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs }: Props) => {
 
     const revision = loadRevision.Invalidate();
     const workspaceId = workspace.id;
+    let isWorkspaceUnavailable = false;
+
+    const handleWorkspaceReadError = (error: unknown): never => {
+      if (
+        isCurrent() &&
+        loadRevision.IsCurrent(revision) &&
+        !isWorkspaceUnavailable &&
+        error instanceof ApiError &&
+        [403, 404].includes(error.status ?? 0)
+      ) {
+        isWorkspaceUnavailable = true;
+        setCollection(createEmptyCollection(workspaceId));
+        setLoadError(undefined);
+        onUnavailable?.(workspaceId);
+      }
+
+      throw error;
+    };
 
     if (!isSilent) {
       setIsLoading(true);
@@ -87,12 +107,12 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs }: Props) => {
     }
 
     Promise.all([
-      databaseApi.listAllDatabases(workspaceId),
-      backupConfigApi.listAllWorkspaceBackupConfigs(workspaceId),
-      storageApi.listAllStorages(workspaceId),
+      databaseApi.listAllDatabases(workspaceId).catch(handleWorkspaceReadError),
+      backupConfigApi.listAllWorkspaceBackupConfigs(workspaceId).catch(handleWorkspaceReadError),
+      storageApi.listAllStorages(workspaceId).catch(handleWorkspaceReadError),
     ])
       .then(([listedDatabases, listedBackupConfigs, listedStorages]) => {
-        if (!isCurrent() || !loadRevision.IsCurrent(revision)) return;
+        if (!isCurrent() || !loadRevision.IsCurrent(revision) || isWorkspaceUnavailable) return;
 
         setCollection({
           workspaceId,
@@ -103,10 +123,10 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs }: Props) => {
         setLoadError(undefined);
       })
       .catch((error) => {
+        if (!isCurrent() || !loadRevision.IsCurrent(revision) || isWorkspaceUnavailable) return;
+
         // A background refresh retries on its own, so it keeps the shown list without feedback.
-        if (!isSilent && isCurrent() && loadRevision.IsCurrent(revision)) {
-          setLoadError(error);
-        }
+        if (!isSilent) setLoadError(error);
       })
       .finally(() => {
         if (isCurrent() && loadRevision.IsCurrent(revision)) setIsLoading(false);
