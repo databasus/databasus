@@ -483,6 +483,13 @@ for (const locale of ['fr', 'zh'] as const) {
     await expect(testControl).toBeInViewport();
     await testControl.click();
 
+    const successNotice = page.getByRole('alert').filter({
+      hasText: dictionary.notifiers.testNotification.sent.title,
+    });
+    await expect(successNotice).toBeVisible();
+    await page.getByLabel('Close', { exact: true }).click();
+    await expect(successNotice).not.toBeVisible();
+
     const save = editor.getByRole('button', { name: dictionary.common.actions.save, exact: true });
     await expect(save).toBeVisible();
     await save.scrollIntoViewIfNeeded();

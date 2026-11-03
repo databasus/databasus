@@ -81,7 +81,6 @@ export const es: typeof en = {
     diskUsage: {
       title: 'Uso del disco',
       hint: 'Para crear copias de seguridad en local y restaurarlas, necesita suficiente espacio en el disco. Para restaurar una copia hace falta tanto espacio libre como el que ocupa la copia.',
-      compactSummary: 'En uso: {{used}} de {{total}} GB<lineBreak/>({{percent}}%)',
       summary: 'En uso: {{used}} de {{total}} GB ({{percent}}%)',
     },
     workspaceSelection: {

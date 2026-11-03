@@ -81,7 +81,6 @@ export const ru: typeof en = {
     diskUsage: {
       title: 'Место на диске',
       hint: 'Чтобы делать бекапы локально и восстанавливаться из них, на диске должно хватать места. Для восстановления нужно столько же свободного места, сколько занимает бекап.',
-      compactSummary: 'Занято {{used}} из {{total}} GB<lineBreak/>({{percent}}%)',
       summary: 'Занято {{used}} из {{total}} GB ({{percent}}%)',
     },
     workspaceSelection: {

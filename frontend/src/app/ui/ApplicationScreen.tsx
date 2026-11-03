@@ -71,6 +71,11 @@ export const ApplicationScreen = () => {
       setSelectedTab('databases');
   }, [isAdmin, selectedTab]);
 
+  const isUsedMoreThan85Percent =
+    diskUsage && diskUsage.usedSpaceBytes / diskUsage.totalSpaceBytes > 0.85;
+  const isUsedMoreThan95Percent =
+    diskUsage && diskUsage.usedSpaceBytes / diskUsage.totalSpaceBytes > 0.95;
+
   const tabs: SidebarTab[] = [
     {
       text: t('app.navigation.databases'),
@@ -159,9 +164,9 @@ export const ApplicationScreen = () => {
           )
         }
         auxiliary={
-          diskUsage && (
+          isUsedMoreThan85Percent && (
             <Tooltip title={t('app.diskUsage.hint')}>
-              <span className="text-xs text-muted">
+              <span className={`text-xs ${isUsedMoreThan95Percent ? 'text-danger' : 'text-muted'}`}>
                 {t('app.diskUsage.summary', getDiskUsageValues(diskUsage, formatNumber))}
               </span>
             </Tooltip>
