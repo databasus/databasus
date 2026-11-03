@@ -63,6 +63,16 @@ class CodexHooksDoctorTest(unittest.TestCase):
         self.assertEqual(process.returncode, 1, process.stdout + process.stderr)
         self.assertIn("could not inspect", process.stdout)
 
+    def test_reports_why_app_server_failed_and_how_to_rerun_outside_the_sandbox(self):
+        repository = self.create_repository()
+        repository.set_stub("codex", {"app_server_error": "Error: Read-only file system (os error 30)"})
+
+        process = repository.run_doctor()
+
+        self.assertEqual(process.returncode, 1, process.stdout + process.stderr)
+        self.assertIn("Error: Read-only file system (os error 30)", process.stdout)
+        self.assertIn("outside the sandbox", process.stdout)
+
     def test_refuses_trusted_hooks_when_the_feature_is_disabled(self):
         repository = self.create_repository()
         configuration = json.loads((repository.stubs_dir / "codex.json").read_text())

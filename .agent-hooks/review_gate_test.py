@@ -68,6 +68,10 @@ STUB_SOURCE = textwrap.dedent(
     config_path = stubs_dir / f"{name}.json"
     config = json.loads(config_path.read_text()) if config_path.exists() else {}
     if name == "codex" and "app-server" in arguments:
+        if config.get("app_server_error"):
+            print("WARNING: startup warning", file=sys.stderr)
+            print(config["app_server_error"], file=sys.stderr)
+            sys.exit(1)
         for line in sys.stdin:
             request = json.loads(line)
             if request.get("method") == "initialize":
@@ -325,6 +329,7 @@ class HookRepository:
         if not calls_dir.is_dir():
             return []
         calls = [json.loads(path.read_text()) for path in calls_dir.iterdir()]
+        calls.sort(key=lambda call: call["started_at"])
         return [call for call in calls if name is None or call["name"] == name]
 
     def check_calls(self):

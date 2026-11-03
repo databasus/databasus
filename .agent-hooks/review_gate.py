@@ -18,6 +18,9 @@ Hooks pass --client explicitly. Terminal actions use --client first, then AGENT_
 and reject absent or invalid selection. Agent shell environments declare their own client.
 Only the selected CLI must be installed and signed in; failure never switches clients.
 Doctor checks executable availability, without a paid authentication or model probe.
+Its Codex hook inspection starts `codex app-server`, which writes to the Codex home directory, so
+inside the Codex sandbox it has to run outside the sandbox. Keep that directory out of the project's
+writable roots: it holds the hook trust that the doctor checks.
 Examples outside an agent: `mise run doctor --client claude` and
 `mise run review support-codex-review-pipeline --client codex`.
 Change verification accepts exactly `mise run test`, `pnpm --dir frontend test:browser --project=ui`

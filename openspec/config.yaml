@@ -20,6 +20,9 @@ context: |
     OpenSpec message or action, as AGENTS.md says, and apply its embedded
     mode to all agent-authored prose. Preserve exact
     commands, paths, identifiers, schemas, templates, quotations and facts.
+  - Run mise run doctor before writing or applying a change, and stop and
+    show the user the output if it fails, as the "Environment check before
+    a change" section of AGENTS.md says.
   - English only in code, comments, identifiers, API strings and commit
     messages. AGENTS.md enumerates every place translated end-user content
     is allowed; a change that needs another one amends that rule explicitly

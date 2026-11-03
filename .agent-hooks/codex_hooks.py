@@ -3,7 +3,14 @@ import os
 from pathlib import Path
 import selectors
 import subprocess
+import tempfile
 import time
+
+
+def get_last_line(error_output):
+    error_output.seek(0)
+    lines = error_output.read().decode(errors="replace").splitlines()
+    return lines[-1] if lines else "no error output"
 
 
 def get_project_hooks(executable, root):
@@ -16,9 +23,9 @@ def get_project_hooks(executable, root):
         {"id": 2, "method": "hooks/list", "params": {"cwds": [str(root)]}},
         {"id": 3, "method": "config/read", "params": {"cwd": str(root), "includeLayers": False}},
     ]
-    with subprocess.Popen(
+    with tempfile.TemporaryFile() as error_output, subprocess.Popen(
         [executable, "app-server"], cwd=root, stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+        stdout=subprocess.PIPE, stderr=error_output,
     ) as process:
         try:
             process.stdin.write(("\n".join(json.dumps(request) for request in requests) + "\n").encode())
@@ -34,7 +41,7 @@ def get_project_hooks(executable, root):
                         break
                     chunk = os.read(process.stdout.fileno(), 65536)
                     if not chunk:
-                        raise ValueError("app-server closed before answering hooks/list")
+                        raise ValueError(f"app-server closed before answering hooks/list: {get_last_line(error_output)}")
                     pending += chunk
                     if len(pending) > 1024 * 1024:
                         raise ValueError("app-server response exceeded the inspection limit")
@@ -100,5 +107,6 @@ def check_project_hooks(executable, root):
         print(f"Codex project hooks: {len(configured_hooks)} trusted and enabled")
         return True
     except (OSError, ValueError, KeyError, TypeError) as error:
-        print(f"Codex project hooks: could not inspect hooks/list ({type(error).__name__})")
+        print(f"Codex project hooks: could not inspect hooks/list ({type(error).__name__}: {error})")
+        print("Inside the Codex sandbox, `codex app-server` cannot write its home directory, so run this check outside the sandbox.")
         return False
