@@ -122,7 +122,7 @@ func runUntil(recordingTest *recordingTB, description string, condition func(ctx
 type recordingTB struct {
 	testing.TB
 
-	ctx      context.Context //nolint:containedctx // stands in for the context testing.T holds
+	ctx      context.Context // stands in for the context testing.T holds
 	deadline time.Time
 	isFailed bool
 	failure  string

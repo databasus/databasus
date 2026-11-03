@@ -1,5 +1,5 @@
 # ========= BUILD FRONTEND =========
-FROM --platform=$BUILDPLATFORM node:24-alpine AS frontend-build
+FROM --platform=$BUILDPLATFORM node:24.21.0-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS frontend-build
 
 WORKDIR /frontend
 
@@ -16,7 +16,7 @@ RUN pnpm build
 
 # ========= BUILD BACKEND =========
 # Backend build stage
-FROM --platform=$BUILDPLATFORM golang:1.26.10 AS backend-build
+FROM --platform=$BUILDPLATFORM golang:1.26.10@sha256:670bb5aa5349ae03b8516764718486f4f16399134bdc9acd0c46a23f043ab05c AS backend-build
 
 # Set working directory
 WORKDIR /app
@@ -46,7 +46,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 
 
 # ========= BUILD VERIFICATION AGENT =========
-FROM --platform=$BUILDPLATFORM golang:1.26.10 AS verification-agent-build
+FROM --platform=$BUILDPLATFORM golang:1.26.10@sha256:670bb5aa5349ae03b8516764718486f4f16399134bdc9acd0c46a23f043ab05c AS verification-agent-build
 
 WORKDIR /app
 
@@ -75,7 +75,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 #   - Anything pulled in for a single build step is purged within the same layer.
 #   - We keep this tight because every extra binary widens the attack surface and
 #     adds another CVE to track.
-FROM debian:bookworm-slim
+FROM debian:bookworm-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3
 
 ARG TARGETARCH
 ENV CONTAINER_ARCH=$TARGETARCH

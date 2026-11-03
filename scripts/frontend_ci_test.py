@@ -67,7 +67,7 @@ class FrontendCiTest(unittest.TestCase):
         prerequisites = re.findall(r"[a-zA-Z0-9_-]+", re.search(r"needs:\s*\[([^]]+)\]", release).group(1))
         self.assertEqual(set(prerequisites), {
             "lint-backend", "test-backend", "test-frontend", "test-frontend-browser-ui", "test-frontend-browser-e2e", "test-verification-agent",
-            "e2e-verification-agent-podman", "test-filesystems", "test-upgrade",
+            "e2e-verification-agent-podman", "test-filesystems", "test-upgrade", "lint-workflows", "build-image", "build-verification-image", "code-scanning",
         })
 
     def test_browser_job_uses_the_local_command_and_keeps_failure_artifacts(self):

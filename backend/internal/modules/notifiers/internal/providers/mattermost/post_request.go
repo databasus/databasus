@@ -166,6 +166,6 @@ func newTLSSkippingTransport() *http.Transport {
 		TLSClientConfig: &tls.Config{
 			MinVersion:         tls.VersionTLS12,
 			InsecureSkipVerify: true,
-		}, //nolint:gosec // the user turned verification off for this notifier
+		},
 	}
 }

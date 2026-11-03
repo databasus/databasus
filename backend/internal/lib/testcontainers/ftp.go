@@ -111,7 +111,7 @@ func findFreePassivePortRange(t *testing.T) passivePortRange {
 	rangeCount := (ftpPassivePortHighest - ftpPassivePortLowest + 1) / ftpPassivePortCount
 	// math/rand only spreads concurrent tests over the ranges, it guards nothing.
 	// nosemgrep: go.lang.security.audit.crypto.math_random.math-random-used
-	startIndex := rand.IntN(rangeCount) //nolint:gosec // spreads concurrent tests, guards nothing
+	startIndex := rand.IntN(rangeCount)
 
 	for offset := range rangeCount {
 		first := ftpPassivePortLowest + ((startIndex+offset)%rangeCount)*ftpPassivePortCount
