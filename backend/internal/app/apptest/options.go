@@ -1,6 +1,7 @@
 package apptest
 
 import (
+	"log/slog"
 	"time"
 
 	"databasus-backend/internal/modules/backups"
@@ -23,6 +24,7 @@ type settings struct {
 	publicURL                    string
 	clientToolsDir               string
 	agentBinariesDir             string
+	logSink                      slog.Handler
 	// notificationDeliveryTimeout is zero for the timeout the server uses.
 	notificationDeliveryTimeout time.Duration
 	notifierEndpoints           NotifierEndpoints
@@ -40,6 +42,12 @@ type NotifierEndpoints struct {
 func WithClientToolsDir(directory string) Option {
 	return func(applied *settings) {
 		applied.clientToolsDir = directory
+	}
+}
+
+func WithLogSink(sink slog.Handler) Option {
+	return func(applied *settings) {
+		applied.logSink = sink
 	}
 }
 

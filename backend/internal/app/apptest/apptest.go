@@ -20,6 +20,7 @@ import (
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/config"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/lib/logging"
 	"databasus-backend/internal/lib/testdb"
 	"databasus-backend/internal/lib/testwait"
 )
@@ -66,6 +67,7 @@ func New(tb testing.TB, options ...Option) *App {
 		publicURL:                    "",
 		clientToolsDir:               "",
 		agentBinariesDir:             "",
+		logSink:                      nil,
 		walStreamTimings:             nil,
 		fileTimings:                  nil,
 		notificationDeliveryTimeout:  0,
@@ -115,13 +117,18 @@ func New(tb testing.TB, options ...Option) *App {
 		tb.Fatalf("build the environment of the test application: %v", err)
 	}
 
+	configuredLogging := environment.Logging
 	tb.Cleanup(func() {
 		flushCtx, cancelFlush := context.WithTimeout(context.WithoutCancel(tb.Context()), 5*time.Second)
 		defer cancelFlush()
-		if err := environment.Logging.Shutdown(flushCtx); err != nil {
+		if err := configuredLogging.Shutdown(flushCtx); err != nil {
 			tb.Errorf("flush test application logs: %v", err)
 		}
 	})
+
+	if applied.logSink != nil {
+		environment.Logging = logging.NewWithSinks(configuredLogging.GetLogger().Handler(), applied.logSink)
+	}
 
 	if applied.isTurnstileEnabled {
 		environment.ExternalEndpoints.TurnstileVerifyURL = startFakeTurnstile(tb)
@@ -274,6 +281,10 @@ func (a *App) RunJobPass(tb testing.TB, name string) {
 	}
 }
 
+func (a *App) StopModules() {
+	a.stopModules()
+}
+
 // RestartModules stops the modules as a shutdown does, waits for the runs to write their outcome and
 // starts the modules again on the same database, as the next start of the application does.
 func (a *App) RestartModules(tb testing.TB) {
@@ -283,7 +294,7 @@ func (a *App) RestartModules(tb testing.TB) {
 	waitCtx, cancelWait := context.WithTimeout(context.WithoutCancel(tb.Context()), app.ShutdownDrainTimeout)
 	defer cancelWait()
 
-	a.stopModules()
+	a.StopModules()
 	if hasPhysicalLoops {
 		if err := a.stopPhysicalWork(waitCtx); err != nil {
 			tb.Fatalf("stop physical backup loops before restarting modules: %v", err)

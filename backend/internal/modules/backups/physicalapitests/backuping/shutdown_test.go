@@ -3,8 +3,10 @@ package backuping_test
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,6 +22,125 @@ func TestPhysicalBackupShutdown(t *testing.T) {
 	t.Parallel()
 
 	for _, kind := range []string{"full", "incremental"} {
+		for _, scenario := range []struct {
+			name               string
+			shouldMetadataFail bool
+		}{
+			{name: "keeps a completed " + kind + " backup when shutdown reaches it before publication", shouldMetadataFail: false},
+			{name: "fails a " + kind + " backup when metadata fails during shutdown", shouldMetadataFail: true},
+		} {
+			t.Run(scenario.name, func(t *testing.T) {
+				t.Parallel()
+
+				started := make(chan context.Context, 2)
+				observer := backupRunObserver{Handler: slog.DiscardHandler, started: started}
+				team := newBackupTeam(t, backupTeamSpec{}, apptest.WithLogSink(observer))
+
+				if kind == "incremental" {
+					require.Equal(t, "COMPLETED", team.runBackup(t, "full").Status)
+					observer.WaitForStart(t)
+				}
+
+				failures, successes := &webhookInbox{}, &webhookInbox{}
+				team.attachWebhook(t, failures, apiclient.NotificationCategoryBACKUPFAILED)
+				team.attachWebhook(t, successes, apiclient.NotificationCategoryBACKUPSUCCESS)
+				team.setNotifications(
+					t,
+					apiclient.NotificationTriggerBACKUPFAILED,
+					apiclient.NotificationTriggerBACKUPSUCCESS,
+				)
+
+				metadata := holdBackupMetadata(t, team)
+				team.trigger(t, kind)
+				team.App.RunJobPass(t, "backups_physical_scheduler")
+				metadata.Wait(t)
+				backupCtx := observer.WaitForStart(t)
+
+				var runningBackup backupRow
+				for _, backup := range team.listBackups(t) {
+					if backup.Status == "IN_PROGRESS" {
+						runningBackup = backup
+					}
+				}
+
+				require.NotEmpty(t, runningBackup.ID)
+
+				var copiedBackup apptest.PhysicalFullBackupSeed
+				team.App.QuerySQL(t, &copiedBackup, "SELECT * FROM backups_physical WHERE id=?", runningBackup.ID)
+
+				require.NotNil(t, copiedBackup.FileName)
+				require.True(t, team.App.IsLocalStorageFilePresent(t, *copiedBackup.FileName))
+				require.True(t, team.App.IsLocalStorageFilePresent(t, *copiedBackup.FileName+".manifest"))
+
+				team.App.StopModules()
+				testwait.Until(t, "shutdown cancels the original backup run context", func(context.Context) error {
+					if backupCtx.Err() == nil {
+						return fmt.Errorf("backup run context is still active")
+					}
+
+					return nil
+				})
+				require.Equal(t, shutdownFailMessage, context.Cause(backupCtx).Error())
+
+				if scenario.shouldMetadataFail {
+					metadata.CancelWrite(t)
+				}
+
+				metadata.Release(t)
+				team.App.RestartModules(t)
+
+				if scenario.shouldMetadataFail {
+					failedBackup := findPhysicalBackup(t, team, runningBackup)
+
+					require.Equal(t, "ERROR", failedBackup.Status)
+					require.NotNil(t, failedBackup.FailMessage)
+					assert.Equal(t, shutdownFailMessage, *failedBackup.FailMessage)
+					team.assertTerminalDetails(t, failedBackup, "APPLICATION_RESTART")
+					team.assertNoRunningBackup(t)
+
+					team.App.Clock.Advance(3 * time.Second)
+					team.App.RunJobPass(t, "storage_file_deletion")
+
+					for _, suffix := range []string{"", ".manifest", ".metadata"} {
+						assert.False(t, team.App.IsLocalStorageFilePresent(t, *copiedBackup.FileName+suffix))
+					}
+
+					team.App.WaitForNotificationDeliveries(t)
+
+					require.Len(t, failures.getMessages(), 1)
+					assert.Contains(t, failures.getMessages()[0], failedBackup.ID.String())
+					assert.Empty(t, successes.getMessages())
+
+					return
+				}
+
+				completedBackup := findPhysicalBackup(t, team, runningBackup)
+
+				require.Equal(t, "COMPLETED", completedBackup.Status)
+				assert.Nil(t, completedBackup.FailMessage)
+				team.assertNoRunningBackup(t)
+
+				team.App.Clock.Advance(3 * time.Second)
+				team.App.RunJobPass(t, "storage_file_deletion")
+
+				team.assertArtifacts(t, completedBackup)
+
+				var persistedBackup apptest.PhysicalFullBackupSeed
+				team.App.QuerySQL(t, &persistedBackup, "SELECT * FROM backups_physical WHERE id=?", completedBackup.ID)
+
+				assert.Nil(t, persistedBackup.ErrorReason)
+				require.NotNil(t, persistedBackup.CompletedAt)
+				require.NotNil(t, persistedBackup.FileName)
+				assert.True(t, team.App.IsLocalStorageFilePresent(t, *persistedBackup.FileName+".metadata"))
+
+				team.App.WaitForNotificationDeliveries(t)
+
+				require.Len(t, successes.getMessages(), 1)
+				assert.Contains(t, successes.getMessages()[0], completedBackup.ID.String())
+				assert.Empty(t, failures.getMessages())
+			})
+		}
+
 		t.Run(
 			"records failure and notifies subscribers when shutdown interrupts a "+kind+" stream",
 			func(t *testing.T) {

@@ -41,7 +41,7 @@ type (
 	}
 )
 
-func newBackupTeam(t *testing.T, spec backupTeamSpec) *backupTeam {
+func newBackupTeam(t *testing.T, spec backupTeamSpec, options ...apptest.Option) *backupTeam {
 	t.Helper()
 	image := spec.Image
 	if image == "" {
@@ -64,7 +64,8 @@ func newBackupTeam(t *testing.T, spec backupTeamSpec) *backupTeam {
 		tunnel = enginetest.NewBastionSSHTunnelSettings(topology)
 	}
 
-	testApp := apptest.New(t, apptest.WithClientToolsDir(spec.ClientToolsDir))
+	options = append(options, apptest.WithClientToolsDir(spec.ClientToolsDir))
+	testApp := apptest.New(t, options...)
 	owner := testApp.CreateAdmin(t)
 	workspace := apptest.CreateWorkspace(t, owner, "Physical backup API")
 	storageID := testApp.CreateLocalStorage(t, owner, workspace.Id)
