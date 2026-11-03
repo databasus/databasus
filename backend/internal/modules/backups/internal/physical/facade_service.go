@@ -178,7 +178,12 @@ func (s *Service) Start(ctx context.Context) error {
 }
 
 func (s *Service) GetJobs() []background.Job {
-	return []background.Job{s.backuping.Scheduler.GetJob(), s.cleaner.GetJob(), s.streams.GetJob()}
+	return []background.Job{
+		s.backuping.Scheduler.GetJob(),
+		s.backuping.Scheduler.GetRequestJob(),
+		s.cleaner.GetJob(),
+		s.streams.GetJob(),
+	}
 }
 
 func (s *Service) GetLatestCompletedFullBackups(

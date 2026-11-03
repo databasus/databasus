@@ -176,6 +176,17 @@ func (s *Service) ListEnabledPhysicalBackupConfigs(ctx context.Context) ([]Physi
 	return s.fitToBackupTypes(ctx, enabledConfigs)
 }
 
+// ListPhysicalBackupConfigsWithPendingRequest leaves out a config with no storage, which cannot start its backup
+// and which a full scheduler pass reports.
+func (s *Service) ListPhysicalBackupConfigsWithPendingRequest(ctx context.Context) ([]PhysicalBackupConfig, error) {
+	pendingConfigs, err := s.repository.listPhysicalWithPendingRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.fitToBackupTypes(ctx, pendingConfigs)
+}
+
 // ListBackupConfigs pages through the saved configs of a workspace's databases or of the databases
 // that back up into a storage, ordered by database ID.
 func (s *Service) ListBackupConfigs(ctx context.Context, actor users.Actor, query ListQuery) (Page, error) {

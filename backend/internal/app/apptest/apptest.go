@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 
@@ -256,6 +257,14 @@ func (a *App) QuerySQL(tb testing.TB, destination any, query string, values ...a
 	}
 }
 
+func getPhysicalLoopJobs() []string {
+	return []string{
+		"backups_physical_scheduler",
+		"backups_physical_request_scheduler",
+		"backups_physical_wal_stream_manager",
+	}
+}
+
 // RunJobPass runs one pass of the named background job and fails the test when the pass fails or
 // no job has the name.
 func (a *App) RunJobPass(tb testing.TB, name string) {
@@ -266,8 +275,7 @@ func (a *App) RunJobPass(tb testing.TB, name string) {
 		return
 	}
 	var err error
-	if a.physicalRunner != nil &&
-		(name == "backups_physical_scheduler" || name == "backups_physical_wal_stream_manager") {
+	if a.physicalRunner != nil && slices.Contains(getPhysicalLoopJobs(), name) {
 		err = a.physicalRunner.RunPass(tb.Context(), name)
 	} else {
 		err = a.app.RunJobPass(tb.Context(), name)
@@ -275,6 +283,28 @@ func (a *App) RunJobPass(tb testing.TB, name string) {
 	if err != nil {
 		tb.Fatalf("run a pass of the background job %s: %v", name, err)
 	}
+}
+
+// GetPhysicalLoopSnapshots returns the state of the live physical jobs, and nothing without them.
+func (a *App) GetPhysicalLoopSnapshots() []background.JobSnapshot {
+	if a.physicalRunner == nil {
+		return nil
+	}
+
+	return a.physicalRunner.GetSnapshots()
+}
+
+// CountInternalDatabaseQueries returns how many statements the application sends to its internal database
+// while run works. The test keeps other work of the application out of that time.
+func (a *App) CountInternalDatabaseQueries(tb testing.TB, run func()) int64 {
+	tb.Helper()
+
+	queryCount, err := a.app.CountInternalDatabaseQueries(run)
+	if err != nil {
+		tb.Fatalf("count internal database queries: %v", err)
+	}
+
+	return queryCount
 }
 
 func (a *App) StopModules() {
@@ -351,7 +381,7 @@ func (a *App) startPhysicalLoops(tb testing.TB) {
 	tb.Helper()
 	loopsCtx, cancelLoops := context.WithCancel(context.WithoutCancel(tb.Context()))
 	a.cancelPhysicalLoops = cancelLoops
-	a.physicalRunner = a.app.NewJobRunner([]string{"backups_physical_scheduler", "backups_physical_wal_stream_manager"})
+	a.physicalRunner = a.app.NewJobRunner(getPhysicalLoopJobs())
 	a.physicalRunner.Start(loopsCtx)
 }
 

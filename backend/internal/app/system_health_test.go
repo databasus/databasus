@@ -48,6 +48,25 @@ func TestInstanceHealth(t *testing.T) {
 		}
 		assert.True(t, slices.IsSorted(names))
 	})
+
+	t.Run("reports the intervals of the physical backup scheduler and the backup request job", func(t *testing.T) {
+		application := newTestApp(t)
+		application.clientToolsChecker = clienttools.NewChecker(nil)
+		client := newHealthClient(t, application)
+
+		response, err := client.GetInstanceHealthWithResponse(t.Context())
+		require.NoError(t, err)
+		require.NotNil(t, response.JSON200, string(response.Body))
+
+		intervalSecondsByJob := make(map[string]float64, len(response.JSON200.Jobs))
+		for _, job := range response.JSON200.Jobs {
+			intervalSecondsByJob[job.Name] = job.IntervalSeconds
+		}
+
+		assert.InDelta(t, 15, intervalSecondsByJob["backups_physical_scheduler"], 0)
+		assert.InDelta(t, 1, intervalSecondsByJob["backups_physical_request_scheduler"], 0)
+	})
+
 	for _, scenario := range []struct {
 		name                string
 		used                int64

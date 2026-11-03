@@ -205,6 +205,12 @@ func (r *configRepository) listEnabledPhysical(ctx context.Context) ([]PhysicalB
 	return r.queryPhysical(ctx, physicalConfigQuery+" WHERE backups_configs.is_backups_enabled")
 }
 
+func (r *configRepository) listPhysicalWithPendingRequest(ctx context.Context) ([]PhysicalBackupConfig, error) {
+	return r.queryPhysical(ctx, physicalConfigQuery+" WHERE backups_configs.is_backups_enabled "+
+		"AND backups_configs.storage_id IS NOT NULL "+
+		"AND (force_full_requested_at IS NOT NULL OR force_incremental_requested_at IS NOT NULL)")
+}
+
 // upsertLogical expects the caller's transaction in ctx, so the shared row never exists without the
 // row of its method.
 func (r *configRepository) upsertLogical(ctx context.Context, config LogicalBackupConfig) error {

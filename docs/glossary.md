@@ -123,6 +123,9 @@ This is the project's common language. Each concept has one term in the document
 | Job snapshot | `background.JobSnapshot`, `Runner.GetSnapshots` | A copied observation of one periodic job’s running state and latest start and completion, readable without waiting for the job. |
 | Permitted pass duration | `MaxPassDuration`, `maxPassDurationSeconds` | The monitoring budget for a pass and its completion deadline; expiration affects instance health and does not cancel execution. |
 | Background job | job | Work that `background.Runner` runs on a schedule. Each run of a job is called a pass. |
+| Pending backup request | `ForceFullRequestedAt`, `ForceIncrementalRequestedAt` | A request timestamp in a physical database's backup config, written by a manual start, a WAL slot rebuild or a storage switch. |
+| Full scheduler pass | `backups_physical_scheduler` | A pass of the physical backup scheduler that evaluates every enabled backup config. |
+| Backup request job | `backups_physical_request_scheduler` | The background job that evaluates only the backup configs with a pending backup request, between full scheduler passes. |
 | File store | file store | The storages module's only way to write, read and delete files in a storage. It records every write so that no file is left without an owner. |
 | Write receipt | write receipt | What the file store returns for a written file. The transaction that publishes the backup spends it to keep the file. |
 | Stored file reference | stored file reference, `storages.StoredFileReference` | The storage and the name of one stored file, which backup code keeps to read or delete the file later. |

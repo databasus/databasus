@@ -2,9 +2,10 @@ package catalog
 
 import (
 	"context"
-	"time"
+	"database/sql"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 
 	"databasus-backend/internal/lib/database"
@@ -167,30 +168,41 @@ func (r *Repository) ListBackups(ctx context.Context, querySpec BackupListQuery)
 	return rows, err
 }
 
-func (r *Repository) HasUnresolvedSystemIdentifierMismatch(ctx context.Context, databaseID uuid.UUID) (bool, error) {
-	var state struct {
-		LatestMismatchAt      *time.Time
-		LatestCompletedFullAt *time.Time
+// GetDatabasesWithUnresolvedMismatch answers for the given databases. A mismatch stays unresolved until a
+// full backup completes after it.
+func (r *Repository) GetDatabasesWithUnresolvedMismatch(
+	ctx context.Context,
+	databaseIDs []uuid.UUID,
+) (map[uuid.UUID]bool, error) {
+	unresolvedDatabases := make(map[uuid.UUID]bool)
+	if len(databaseIDs) == 0 {
+		return unresolvedDatabases, nil
 	}
+
+	var rows []struct{ DatabaseID uuid.UUID }
 
 	err := database.Conn(ctx, r.db).Raw(`
-		SELECT
-			(
-                SELECT MAX(COALESCE(completed_at, created_at)) FROM backups_physical
-                WHERE database_id = ? AND error_reason = ?
-			) AS latest_mismatch_at,
-			(
-				SELECT MAX(completed_at) FROM backups_physical
-				WHERE database_id = ? AND status = ? AND kind = 'FULL'
-			) AS latest_completed_full_at
-	`,
-		databaseID, BackupErrorSystemIdentifierMismatch,
-		databaseID, BackupStatusCompleted,
-	).Scan(&state).Error
+		SELECT database_id
+		FROM backups_physical
+		WHERE database_id = ANY(?::uuid[])
+		GROUP BY database_id
+		HAVING COUNT(*) FILTER (WHERE error_reason = @mismatch) > 0
+			AND (
+				COUNT(*) FILTER (WHERE status = @completed AND kind = 'FULL') = 0
+				OR MAX(completed_at) FILTER (WHERE status = @completed AND kind = 'FULL')
+					<= MAX(COALESCE(completed_at, created_at)) FILTER (WHERE error_reason = @mismatch)
+			)`,
+		pq.Array(databaseIDs),
+		sql.Named("mismatch", BackupErrorSystemIdentifierMismatch),
+		sql.Named("completed", BackupStatusCompleted),
+	).Scan(&rows).Error
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
-	return state.LatestMismatchAt != nil &&
-		(state.LatestCompletedFullAt == nil || !state.LatestCompletedFullAt.After(*state.LatestMismatchAt)), nil
+	for _, row := range rows {
+		unresolvedDatabases[row.DatabaseID] = true
+	}
+
+	return unresolvedDatabases, nil
 }
