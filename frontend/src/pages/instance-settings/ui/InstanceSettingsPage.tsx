@@ -11,6 +11,7 @@ import { getApplicationServer } from '@/shared/config';
 import { useRequestRevision } from '@/shared/hooks';
 import { getWebsitePageUrl, translateApiError, useLocale } from '@/shared/i18n';
 import { ClipboardHelper } from '@/shared/lib/ClipboardHelper';
+import { LoadFailure } from '@/shared/ui';
 
 import { VerificationAgentsComponent } from './verification-agents/VerificationAgentsComponent';
 
@@ -127,24 +128,17 @@ export function InstanceSettingsPage({ onSettingsChanged }: Props) {
         >
           <h1 className="text-2xl font-bold">{t('settings.title')}</h1>
 
-          {failure !== undefined && (
-            <Alert
-              className="mt-3"
-              type="error"
-              showIcon
-              message={translateApiError(failure, t)}
-              action={
-                !settings && (
-                  <Button
-                    className="!h-auto min-h-8 max-w-full !whitespace-normal"
-                    onClick={() => void loadSettings()}
-                  >
-                    {t('common.actions.retry')}
-                  </Button>
-                )
-              }
-            />
-          )}
+          {failure !== undefined &&
+            (settings ? (
+              <Alert
+                className="mt-3"
+                type="error"
+                showIcon
+                message={translateApiError(failure, t)}
+              />
+            ) : (
+              <LoadFailure className="mt-3" error={failure} onRetry={() => void loadSettings()} />
+            ))}
           <div className="mt-6">
             {isLoading ? (
               <div>

@@ -13,6 +13,37 @@ const transfer: DatabaseTransfer = {
   isMovingNotifiers: false,
 };
 
+describe('backupConfigApi.listAllWorkspaceBackupConfigs', () => {
+  it('returns the configs of every page and sends the workspace, limit and cursor', async () => {
+    const requestedQueries: URLSearchParams[] = [];
+    server.use(
+      http.get('*/api/v1/backup-configs', ({ request }) => {
+        const query = new URL(request.url).searchParams;
+        requestedQueries.push(query);
+
+        return HttpResponse.json(
+          query.get('after') === null
+            ? { items: [{ databaseId: 'first-database' }], nextCursor: 'second-page' }
+            : { items: [{ databaseId: 'second-database' }] },
+        );
+      }),
+    );
+
+    const listedConfigs = await backupConfigApi.listAllWorkspaceBackupConfigs('workspace-id');
+
+    expect(listedConfigs.map((config) => config.databaseId)).toEqual([
+      'first-database',
+      'second-database',
+    ]);
+    expect(requestedQueries.map((query) => query.get('after'))).toEqual([null, 'second-page']);
+    expect(requestedQueries.map((query) => query.get('workspaceId'))).toEqual([
+      'workspace-id',
+      'workspace-id',
+    ]);
+    expect(requestedQueries.map((query) => query.get('limit'))).toEqual(['100', '100']);
+  });
+});
+
 describe('backupConfigApi.transferDatabase', () => {
   it('rejects missing operation data when the transfer is accepted', async () => {
     server.use(

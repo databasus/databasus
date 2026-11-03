@@ -103,6 +103,19 @@ describe('StorageComponent', () => {
     expect(screen.getByText(renamed.name)).toBeTruthy();
   });
 
+  it('offers no retry when the connection test fails with the storage loaded', async () => {
+    mockServer.use(
+      mockApi.get('/storages/{storageId}', 200, localStorageOfWorkspace),
+      mockApi.post('/storages/{storageId}/test', 500, buildProblem('internal', 500)),
+    );
+    const view = renderStorage();
+
+    await view.user.click(await screen.findByRole('button', { name: 'Test connection' }));
+    await screen.findByText('An internal server error occurred. Please try again later.');
+
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+  });
+
   it('shows translated failure when a saved connection test returns no diagnostic', async () => {
     mockServer.use(
       mockApi.get('/storages/{storageId}', 200, localStorageOfWorkspace),

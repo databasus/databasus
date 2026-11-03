@@ -417,6 +417,19 @@ describe('ProfilePage', () => {
     },
   );
 
+  it('offers no retry when saving fails with the data loaded', async () => {
+    mockServer.use(mockApi.put('/users/{userId}', 403, buildProblem('permission_denied', 403)));
+    await openProfile();
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), {
+      target: { value: 'Correction' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    await screen.findByText('You do not have permission to do this.');
+
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+  });
+
   it('recovers the current profile when the initial request fails and is retried', async () => {
     activateSession({ token: 'current', userId: 'owner-id' });
     mockServer.use(mockApi.get('/users/{userId}', 500, buildProblem('internal', 500)));

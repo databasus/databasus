@@ -1,4 +1,4 @@
-import { Alert, Button, Empty, Modal, Spin } from 'antd';
+import { Button, Empty, Modal, Spin } from 'antd';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -8,8 +8,7 @@ import { EditStorageComponent } from '@/features/edit-storage';
 import { ApiError } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { useIsMobile, useRequestRevision, useScopedSelection } from '@/shared/hooks';
-import { translateApiError } from '@/shared/i18n';
-import { ResourceListDetail } from '@/shared/ui';
+import { ResourceListDetail, LoadFailure } from '@/shared/ui';
 
 import { StorageCardComponent } from './StorageCardComponent';
 import { StorageComponent } from './StorageComponent';
@@ -159,14 +158,7 @@ export const StoragesComponent = ({ workspace, isCanManageStorages, onUnavailabl
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-      {loadError !== undefined && (
-        <Alert
-          type="error"
-          showIcon
-          message={translateApiError(loadError, t)}
-          action={<Button onClick={() => loadStorages()}>{t('common.actions.retry')}</Button>}
-        />
-      )}
+      {loadError !== undefined && <LoadFailure error={loadError} onRetry={() => loadStorages()} />}
       {isLoading && !collection.isReady ? (
         <Spin />
       ) : collection.isReady ? (

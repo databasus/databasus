@@ -9,6 +9,7 @@ import { databaseApi } from '../../../entities/databases';
 import { type Notifier, notifierApi } from '../../../entities/notifiers';
 import { type Workspace, workspaceApi } from '../../../entities/workspaces';
 import { translateApiError } from '../../../shared/i18n';
+import { LoadFailure } from '../../../shared/ui';
 
 interface Props {
   notifier: Notifier;
@@ -104,14 +105,7 @@ export const NotifierTransferDialogComponent = ({ notifier, onClose, onTransferr
       onCancel={onClose}
       maskClosable={false}
     >
-      {loadError !== undefined && (
-        <Alert
-          type="error"
-          showIcon
-          message={translateApiError(loadError, t)}
-          action={<Button onClick={() => void loadData()}>{t('common.actions.retry')}</Button>}
-        />
-      )}
+      {loadError !== undefined && <LoadFailure error={loadError} onRetry={() => void loadData()} />}
       {transferError !== undefined && (
         <Alert type="error" showIcon message={translateApiError(transferError, t)} />
       )}

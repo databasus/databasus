@@ -17,7 +17,7 @@ import type { Notifier } from '../../../entities/notifiers';
 import { useSessionGuard } from '../../../shared/auth';
 import { useLatestRef, useRequestRevision } from '../../../shared/hooks';
 import { translateApiError } from '../../../shared/i18n';
-import { ConfirmationComponent } from '../../../shared/ui';
+import { ConfirmationComponent, LoadFailure } from '../../../shared/ui';
 import { NotifierTransferDialogComponent } from './NotifierTransferDialogComponent';
 import { ShowNotifierComponent } from './show/ShowNotifierComponent';
 
@@ -232,18 +232,12 @@ export const NotifierComponent = ({
   return (
     <div className="flex min-h-0 w-full min-w-0 flex-col">
       <div className="min-h-0 min-w-0 grow rounded bg-surface p-4 text-content shadow sm:p-5">
-        {error !== undefined && (
-          <Alert
-            type="error"
-            showIcon
-            message={translateApiError(error, t)}
-            action={
-              !notifier ? (
-                <Button onClick={loadSettings}>{t('common.actions.retry')}</Button>
-              ) : undefined
-            }
-          />
-        )}
+        {error !== undefined &&
+          (notifier ? (
+            <Alert type="error" showIcon message={translateApiError(error, t)} />
+          ) : (
+            <LoadFailure error={error} onRetry={loadSettings} />
+          ))}
         {deliveryError !== undefined && (
           <Alert
             type="error"

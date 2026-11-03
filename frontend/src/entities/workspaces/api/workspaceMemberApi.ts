@@ -1,4 +1,5 @@
 import { getApiClient, requireData, requireSuccess } from '../../../shared/api';
+import { collectCursorPages } from '../../../shared/lib/collectCursorPages';
 import type { AddedWorkspaceMember } from '../model/AddedWorkspaceMember';
 import type { AssignableWorkspaceRole } from '../model/AssignableWorkspaceRole';
 import type { WorkspaceMember } from '../model/WorkspaceMember';
@@ -11,21 +12,13 @@ export const workspaceMemberApi = {
   // The member screen shows every member and offers each of them for an ownership transfer, so
   // this follows the cursor to the last page.
   async listAllMembers(workspaceId: string): Promise<WorkspaceMember[]> {
-    const members: WorkspaceMember[] = [];
-    let after: string | undefined;
-
-    do {
-      const page = requireData(
+    return collectCursorPages(async (after: string | undefined) =>
+      requireData(
         await getApiClient().GET('/workspace-members', {
           params: { query: { workspaceId, limit: MEMBER_PAGE_LIMIT, after } },
         }),
-      );
-
-      members.push(...page.items);
-      after = page.nextCursor;
-    } while (after !== undefined);
-
-    return members;
+      ),
+    );
   },
 
   async addMember(addition: WorkspaceMemberAddition): Promise<AddedWorkspaceMember> {

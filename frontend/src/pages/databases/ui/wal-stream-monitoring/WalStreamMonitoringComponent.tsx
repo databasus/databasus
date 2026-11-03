@@ -1,4 +1,4 @@
-import { Alert, App, Button, Skeleton } from 'antd';
+import { Alert, App, Skeleton } from 'antd';
 import {
   memo,
   type ReactNode,
@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { Database } from '../../../../entities/databases';
 import { translateApiError } from '../../../../shared/i18n';
+import { LoadFailure } from '../../../../shared/ui';
 import { physicalBackupsApi } from '../../api/physicalBackupsApi';
 import { physicalWalStreamStatisticsApi } from '../../api/physicalWalStreamStatisticsApi';
 import { getFullBackupAction } from '../../lib/wal-stream-monitoring/fullBackupAction';
@@ -42,7 +43,6 @@ import { WalStreamKeepingUpChartComponent } from './WalStreamChartsComponent';
 interface Props {
   database: Database;
   isCanManageDBs: boolean;
-  isDirectlyUnderTab: boolean;
   onOpenConfig: () => void;
 }
 
@@ -70,20 +70,10 @@ const CHART_ENTRY_ANIMATION_MS = 1500;
 // The charts re-render only when a refresh brings a new series, not on every tick of the clock.
 const MemoizedWalStreamKeepingUpChartComponent = memo(WalStreamKeepingUpChartComponent);
 
-const MonitoringContainerComponent = ({
-  isDirectlyUnderTab,
-  children,
-}: {
-  isDirectlyUnderTab: boolean;
-  children: ReactNode;
-}) => (
+const MonitoringContainerComponent = ({ children }: { children: ReactNode }) => (
   // The width stops where a line of text and a chart still read at a glance; past it the tab only
   // grows empty space.
-  <div
-    className={`w-full max-w-6xl bg-surface p-3 shadow md:p-5 ${isDirectlyUnderTab ? 'rounded-tr-md rounded-br-md rounded-bl-md' : 'rounded-md'}`}
-  >
-    {children}
-  </div>
+  <div className="w-full max-w-6xl rounded-md bg-surface p-3 shadow md:p-5">{children}</div>
 );
 
 const MonitoringSkeletonComponent = () => (
@@ -100,12 +90,7 @@ const MonitoringSkeletonComponent = () => (
   </div>
 );
 
-export const WalStreamMonitoringComponent = ({
-  database,
-  isCanManageDBs,
-  isDirectlyUnderTab,
-  onOpenConfig,
-}: Props) => {
+export const WalStreamMonitoringComponent = ({ database, isCanManageDBs, onOpenConfig }: Props) => {
   const { t, i18n } = useTranslation();
   const { message } = App.useApp();
 
@@ -223,18 +208,9 @@ export const WalStreamMonitoringComponent = ({
 
   if (!statistics || !refreshState?.lastSuccessfulRefreshAt) {
     return (
-      <MonitoringContainerComponent isDirectlyUnderTab={isDirectlyUnderTab}>
+      <MonitoringContainerComponent>
         {refreshState?.firstLoadError ? (
-          <Alert
-            type="error"
-            showIcon
-            message={translateApiError(refreshState.firstLoadError, t)}
-            action={
-              <Button size="small" onClick={retryFirstLoad}>
-                {t('common.actions.retry')}
-              </Button>
-            }
-          />
+          <LoadFailure error={refreshState.firstLoadError} onRetry={retryFirstLoad} />
         ) : (
           <MonitoringSkeletonComponent />
         )}
@@ -252,7 +228,7 @@ export const WalStreamMonitoringComponent = ({
     !isReducedMotion && statistics.series.period !== lastAnimatedPeriod;
 
   return (
-    <MonitoringContainerComponent isDirectlyUnderTab={isDirectlyUnderTab}>
+    <MonitoringContainerComponent>
       <VerdictBannerComponent
         banner={banner}
         fullBackupAction={getFullBackupAction({

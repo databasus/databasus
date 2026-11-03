@@ -1,4 +1,4 @@
-import { Alert, App, Button, Spin } from 'antd';
+import { Alert, App, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -7,6 +7,7 @@ import { verificationAgentApi } from '../../../../entities/verification-agents';
 import { useSessionGuard } from '../../../../shared/auth';
 import { usePolledPagedList } from '../../../../shared/hooks';
 import { getWebsitePageUrl, translateApiError, useLocale } from '../../../../shared/i18n';
+import { LoadFailure } from '../../../../shared/ui';
 import { verificationRunsApi } from '../../api/verificationRunsApi';
 import { type Verification } from '../../model/verification/Verification';
 import type { VerificationRowActions } from './VerificationActions';
@@ -17,7 +18,6 @@ import { VerificationsTable } from './VerificationsTable';
 interface Props {
   database: Database;
   isCanManageDBs: boolean;
-  isDirectlyUnderTab?: boolean;
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -25,12 +25,7 @@ const AGENT_AVAILABILITY_REFRESH_MS = 5_000;
 const VERIFICATIONS_REFRESH_MS = 1_000;
 const VERIFICATIONS_PAGE_SIZE = 50;
 
-export const VerificationsComponent = ({
-  database,
-  isCanManageDBs,
-  isDirectlyUnderTab,
-  scrollContainerRef,
-}: Props) => {
+export const VerificationsComponent = ({ database, isCanManageDBs, scrollContainerRef }: Props) => {
   const { t } = useTranslation();
   const { locale } = useLocale();
   const { message } = App.useApp();
@@ -122,9 +117,7 @@ export const VerificationsComponent = ({
   };
 
   return (
-    <div
-      className={`w-full bg-surface p-3 shadow md:p-5 ${isDirectlyUnderTab ? 'rounded-tr-md rounded-br-md rounded-bl-md' : 'rounded-md'}`}
-    >
+    <div className="w-full rounded-md bg-surface p-3 shadow md:p-5">
       <h2 className="text-lg font-bold md:text-xl">{t('verification.runs.title')}</h2>
 
       <p className="mt-2 max-w-2xl text-sm text-muted">{t('verification.runs.description')}</p>
@@ -154,16 +147,7 @@ export const VerificationsComponent = ({
 
       <div className="mt-5 w-full md:max-w-[900px]">
         {firstLoadError !== undefined ? (
-          <Alert
-            type="error"
-            showIcon
-            message={translateApiError(firstLoadError, t)}
-            action={
-              <Button onClick={() => void reloadVerifications()}>
-                {t('common.actions.retry')}
-              </Button>
-            }
-          />
+          <LoadFailure error={firstLoadError} onRetry={() => void reloadVerifications()} />
         ) : (
           <>
             <div className="hidden md:block">

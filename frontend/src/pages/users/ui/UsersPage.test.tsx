@@ -76,6 +76,29 @@ describe('UsersPage', () => {
     },
   );
 
+  it('removes the retry and sends one request while the reload is pending', async () => {
+    mockServer.use(mockApi.get('/users', 500, buildProblem('internal', 500)));
+    const { user } = renderScreen(<UsersPage />);
+    const retry = await screen.findByRole('button', { name: 'Retry' });
+    const failedRequestCount = mockServer.getRequests().length;
+    const retriedPage = mockApi.delayed({
+      method: 'get',
+      path: '/users',
+      status: 200,
+      body: { items: [buildUser('member@example.com')] },
+    });
+    mockServer.use(retriedPage.handler);
+
+    await user.click(retry);
+    await waitFor(() => expect(mockServer.getRequests()).toHaveLength(failedRequestCount + 1));
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull());
+
+    retriedPage.release();
+    await screen.findByText(/member@example.com/);
+
+    expect(mockServer.getRequests()).toHaveLength(failedRequestCount + 1);
+  });
+
   it('loads the next page with the cursor of the previous one when the list is scrolled down', async () => {
     const requestedCursors: (string | null)[] = [];
     mockServer.use(

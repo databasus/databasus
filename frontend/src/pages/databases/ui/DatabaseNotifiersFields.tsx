@@ -1,4 +1,4 @@
-import { Alert, Button, Modal, Select, Spin } from 'antd';
+import { Button, Modal, Select, Spin } from 'antd';
 import {
   type Dispatch,
   type SetStateAction,
@@ -14,7 +14,7 @@ import { useSessionGuard } from '@/shared/auth';
 import { useRequestRevision } from '@/shared/hooks';
 
 import { type Notifier, notifierApi } from '../../../entities/notifiers';
-import { translateApiError } from '../../../shared/i18n';
+import { LoadFailure } from '../../../shared/ui';
 
 interface Props {
   workspaceId: string;
@@ -112,13 +112,7 @@ export const DatabaseNotifiersFields = ({
 
   return (
     <>
-      {error !== undefined && (
-        <Alert
-          type="error"
-          message={translateApiError(error, t)}
-          action={<Button onClick={() => void loadNotifiers()}>{t('common.actions.retry')}</Button>}
-        />
-      )}
+      {error !== undefined && <LoadFailure error={error} onRetry={() => void loadNotifiers()} />}
       <div className="mb-5 max-w-68.75 text-muted">
         {t('databases.notifiers.description')}
         <br />

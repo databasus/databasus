@@ -7,7 +7,6 @@ import {
   UserOutlined,
 } from '@ant-design/icons';
 import {
-  Alert,
   App,
   AutoComplete,
   Button,
@@ -42,6 +41,7 @@ import {
 import { useIsMobile } from '../../../shared/hooks';
 import { translateApiError, useLocale } from '../../../shared/i18n';
 import { getUserShortTimeFormat } from '../../../shared/time';
+import { LoadFailure } from '../../../shared/ui';
 
 interface Props {
   selectedWorkspace: Workspace;
@@ -546,12 +546,7 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
   return (
     <div className="max-w-212.5">
       {loadError !== undefined && (
-        <Alert
-          type="error"
-          showIcon
-          message={translateApiError(loadError, t)}
-          action={<Button onClick={() => void loadMembers()}>{t('common.actions.retry')}</Button>}
-        />
+        <LoadFailure error={loadError} onRetry={() => void loadMembers()} />
       )}
       <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <h2 className="text-xl font-bold text-muted">{t('workspaces.members.title')}</h2>

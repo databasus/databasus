@@ -1,4 +1,4 @@
-import { Alert, Button, Modal, Select } from 'antd';
+import { Button, Modal, Select } from 'antd';
 import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -6,7 +6,7 @@ import { type Storage, getStorageLogoFromType, storageApi } from '@/entities/sto
 import { EditStorageComponent } from '@/features/edit-storage';
 import { useSessionGuard } from '@/shared/auth';
 import { useLatestRef, useRequestRevision } from '@/shared/hooks';
-import { translateApiError } from '@/shared/i18n';
+import { LoadFailure } from '@/shared/ui';
 
 interface Props {
   workspaceId: string;
@@ -99,12 +99,7 @@ export function BackupStorageSelection({
   return (
     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
       {error !== undefined && (
-        <Alert
-          type="error"
-          className="w-full"
-          message={translateApiError(error, t)}
-          action={<Button onClick={() => void load()}>{t('common.actions.retry')}</Button>}
-        />
+        <LoadFailure className="w-full" error={error} onRetry={() => void load()} />
       )}
       <Select
         id={controlId}

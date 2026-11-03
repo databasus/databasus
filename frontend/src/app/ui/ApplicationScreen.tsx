@@ -1,4 +1,4 @@
-import { Alert, Button, Spin, Tooltip } from 'antd';
+import { Button, Spin, Tooltip } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -11,7 +11,8 @@ import { UsersPage } from '@/pages/users';
 import { WorkspaceSettingsComponent } from '@/pages/workspace-settings';
 import { useSessionGuard } from '@/shared/auth';
 import { APP_VERSION, CONTAINER_ARCH } from '@/shared/config';
-import { translateApiError, useLocale } from '@/shared/i18n';
+import { useLocale } from '@/shared/i18n';
+import { LoadFailure } from '@/shared/ui';
 import {
   AppShell,
   SidebarComponent,
@@ -192,14 +193,7 @@ export const ApplicationScreen = () => {
             <Spin />
           </div>
         ) : startup.error !== undefined ? (
-          <Alert
-            type="error"
-            showIcon
-            message={translateApiError(startup.error, t)}
-            action={
-              <Button onClick={() => void startup.retry()}>{t('common.actions.retry')}</Button>
-            }
-          />
+          <LoadFailure error={startup.error} onRetry={() => void startup.retry()} />
         ) : (
           isReady && (
             <>

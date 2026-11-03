@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { screen } from '@testing-library/react';
 import dayjs from 'dayjs';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { renderScreen } from '@/shared/lib/test/renderScreen';
 import { getUserShortTimeFormat, getUserTimeFormat } from '@/shared/time';
@@ -115,4 +115,31 @@ describe('AuditEventList', () => {
       expect(screen.getByText(text)).toBeTruthy();
     },
   );
+
+  it.each([
+    { state: 'an empty list', events: [] },
+    { state: 'loaded events', events: [event] },
+  ])('shows the failure and retries on click with $state', async ({ events }) => {
+    const onRetry = vi.fn();
+    const { user } = renderScreen(
+      <AuditEventList
+        events={events}
+        failure={{ error: new Error('offline'), onRetry }}
+        isLoading={false}
+        isLoadingMore={false}
+        hasMore={false}
+        view={{
+          mode: 'table',
+          shouldShowAuthor: false,
+          shouldShowWorkspace: true,
+          timeFormat: 'full',
+          emptyKey: 'auditLogs.empty',
+        }}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
 });

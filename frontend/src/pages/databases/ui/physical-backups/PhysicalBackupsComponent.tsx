@@ -1,5 +1,5 @@
 import { DownOutlined, FilterFilled, FilterOutlined } from '@ant-design/icons';
-import { Alert, App, Button, Dropdown, type MenuProps, Modal, Spin } from 'antd';
+import { App, Button, Dropdown, type MenuProps, Modal, Spin } from 'antd';
 import { type JSX, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -10,7 +10,7 @@ import {
 } from '../../../../entities/databases';
 import { usePersistentState, usePolledPagedList } from '../../../../shared/hooks';
 import { translateApiError, useLocale } from '../../../../shared/i18n';
-import { ConfirmationComponent } from '../../../../shared/ui';
+import { ConfirmationComponent, LoadFailure } from '../../../../shared/ui';
 import { type TriggerPhysicalBackupType, physicalBackupsApi } from '../../api/physicalBackupsApi';
 import { formatBackupSize } from '../../lib/formatBackupSize';
 import { type PhysicalBackupListItem } from '../../model/physical-backups/PhysicalBackupListItem';
@@ -31,14 +31,12 @@ const BACKUPS_REFRESH_MS = 1_000;
 interface Props {
   database: Database;
   isCanManageDBs: boolean;
-  isDirectlyUnderTab?: boolean;
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export const PhysicalBackupsComponent = ({
   database,
   isCanManageDBs,
-  isDirectlyUnderTab,
   scrollContainerRef,
 }: Props): JSX.Element => {
   const { t } = useTranslation();
@@ -94,7 +92,7 @@ export const PhysicalBackupsComponent = ({
     },
   });
 
-  const { backupConfig, isBackupConfigLoading, backupConfigError, retryBackupConfigLoad } =
+  const { backupConfig, isBackupConfigLoading, backupConfigError, reloadBackupConfig } =
     useBackupConfigLoad(database.id);
 
   const backupActions = usePhysicalBackupActions({
@@ -145,9 +143,7 @@ export const PhysicalBackupsComponent = ({
   }
 
   return (
-    <div
-      className={`w-full bg-surface p-3 shadow md:p-5 ${isDirectlyUnderTab ? 'rounded-tr-md rounded-br-md rounded-bl-md' : 'rounded-md'}`}
-    >
+    <div className="w-full rounded-md bg-surface p-3 shadow md:p-5">
       <div className="flex items-center gap-2">
         <h2 className="text-lg font-bold md:text-xl">{t('backups.list.title')}</h2>
         <div className="relative">
@@ -176,7 +172,7 @@ export const PhysicalBackupsComponent = ({
       <BackupConfigNotice
         backupConfig={backupConfig}
         backupConfigError={backupConfigError}
-        onRetry={retryBackupConfigLoad}
+        onRetry={reloadBackupConfig}
       />
 
       {totalUsageMb !== undefined && firstLoadError === undefined && (
@@ -217,14 +213,7 @@ export const PhysicalBackupsComponent = ({
 
       <div className="mt-5 w-full md:max-w-[890px]">
         {firstLoadError !== undefined ? (
-          <Alert
-            type="error"
-            showIcon
-            message={translateApiError(firstLoadError, t)}
-            action={
-              <Button onClick={() => void reloadBackups()}>{t('common.actions.retry')}</Button>
-            }
-          />
+          <LoadFailure error={firstLoadError} onRetry={() => void reloadBackups()} />
         ) : (
           <>
             <div className="md:hidden">

@@ -6,6 +6,7 @@ export { ConfirmationComponent } from './ConfirmationComponent';
 export { InlineCodeComponent } from './InlineCodeComponent';
 export { LanguageSelectorComponent } from './LanguageSelectorComponent';
 export { LanguageThemeControlComponent } from './LanguageThemeControlComponent';
+export { LoadFailure } from './LoadFailure';
 export { StarButtonComponent } from './StarButtonComponent';
 export { ThemeToggleComponent } from './ThemeToggleComponent';
 export { ResourceListDetail } from './ResourceListDetail';

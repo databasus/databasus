@@ -6,23 +6,22 @@ import {
   InfoCircleOutlined,
 } from '@ant-design/icons';
 import { Alert, App, Button, Input, Spin } from 'antd';
-import { useEffect, useId, useState } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
-  type BackupConfig,
-  backupConfigApi,
   toLogicalBackupConfigInput,
   toPhysicalBackupConfigInput,
 } from '../../../entities/backup-configs';
 import { type Database, DatabaseType, databaseApi } from '../../../entities/databases';
 import { useSessionGuard } from '../../../shared/auth';
 import { translateApiError } from '../../../shared/i18n';
-import { ConfirmationComponent } from '../../../shared/ui';
+import { ConfirmationComponent, LoadFailure } from '../../../shared/ui';
 import { EditLogicalBackupConfigSection } from './backup-config/EditLogicalBackupConfigSection';
 import { EditPhysicalBackupConfigSection } from './backup-config/EditPhysicalBackupConfigSection';
 import { ShowLogicalBackupConfigComponent } from './backup-config/ShowLogicalBackupConfigComponent';
 import { ShowPhysicalBackupConfigComponent } from './backup-config/ShowPhysicalBackupConfigComponent';
+import { useBackupConfigLoad } from './backup-config/useBackupConfigLoad';
 import { DatabaseSettingsSection } from './DatabaseSettingsSection';
 import { DatabaseTransferDialogComponent } from './DatabaseTransferDialogComponent';
 import { EditDatabaseConnectionSection } from './EditDatabaseConnectionSection';
@@ -75,9 +74,7 @@ export const DatabaseConfigComponent = ({
   const [isRemoving, setIsRemoving] = useState(false);
   const [isShowCopyConfirm, setIsShowCopyConfirm] = useState(false);
   const [isShowTransferDialog, setIsShowTransferDialog] = useState(false);
-  const [backupConfig, setBackupConfig] = useState<BackupConfig | undefined>();
-  const [backupConfigError, setBackupConfigError] = useState<unknown>();
-  const [backupConfigLoadAttempt, setBackupConfigLoadAttempt] = useState(0);
+  const { backupConfig, backupConfigError, reloadBackupConfig } = useBackupConfigLoad(database.id);
   const [actionError, setActionError] = useState<unknown>();
   const [connectionFailureReason, setConnectionFailureReason] = useState<string>();
 
@@ -180,7 +177,7 @@ export const DatabaseConfigComponent = ({
   const acceptSavedBackupConfig = () => {
     clearActionFailure();
     closeSection();
-    setBackupConfigLoadAttempt((attempt) => attempt + 1);
+    reloadBackupConfig();
     onDatabaseChanged(database);
   };
 
@@ -197,23 +194,6 @@ export const DatabaseConfigComponent = ({
         if (isActive()) setIsSavingName(false);
       });
   };
-
-  useEffect(() => {
-    let isActive = true;
-    setBackupConfig(undefined);
-    setBackupConfigError(undefined);
-    backupConfigApi
-      .getBackupConfig(database.id)
-      .then((loadedBackupConfig) => {
-        if (isActive) setBackupConfig(loadedBackupConfig);
-      })
-      .catch((error) => {
-        if (isActive) setBackupConfigError(error);
-      });
-    return () => {
-      isActive = false;
-    };
-  }, [database.id, backupConfigLoadAttempt]);
 
   const isPhysicalDatabase = database.settings.type === DatabaseType.POSTGRES_PHYSICAL;
   const isLogicalDatabase = database.settings.type === DatabaseType.POSTGRES_LOGICAL;
@@ -241,7 +221,7 @@ export const DatabaseConfigComponent = ({
   );
 
   return (
-    <div className="relative w-full rounded-tr-md rounded-br-md rounded-bl-md bg-surface p-3 shadow sm:p-5">
+    <div className="relative w-full rounded-md bg-surface p-3 shadow sm:p-5">
       {isRemoving && (
         <div className="absolute inset-0 z-10 flex items-center justify-center rounded-tr-md rounded-br-md rounded-bl-md bg-surface/80">
           <div className="flex flex-col items-center gap-3">
@@ -305,17 +285,7 @@ export const DatabaseConfigComponent = ({
       )}
 
       {backupConfigError !== undefined && editingSection !== 'backup-config' && (
-        <Alert
-          className="mb-4"
-          type="error"
-          showIcon
-          message={translateApiError(backupConfigError, t)}
-          action={
-            <Button onClick={() => setBackupConfigLoadAttempt((attempt) => attempt + 1)}>
-              {t('common.actions.retry')}
-            </Button>
-          }
-        />
+        <LoadFailure className="mb-4" error={backupConfigError} onRetry={reloadBackupConfig} />
       )}
 
       {database.lastBackupErrorMessage && (

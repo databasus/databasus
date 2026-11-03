@@ -1,5 +1,5 @@
 import { LoadingOutlined, PlusOutlined } from '@ant-design/icons';
-import { Alert, App, Button, Spin } from 'antd';
+import { App, Button, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -11,6 +11,7 @@ import { useSessionGuard } from '../../../../shared/auth';
 import { usePolledPagedList } from '../../../../shared/hooks';
 import { getWebsitePageUrl, translateApiError, useLocale } from '../../../../shared/i18n';
 import { ClipboardHelper } from '../../../../shared/lib/ClipboardHelper';
+import { LoadFailure } from '../../../../shared/ui';
 import type { AgentArchitecture } from '../../lib/verificationAgentCommands';
 import { AgentInstallCommandsDialog } from './AgentInstallCommandsDialog';
 import { CreateAgentDialog } from './CreateAgentDialog';
@@ -170,12 +171,7 @@ export const VerificationAgentsComponent = () => {
       </p>
 
       {firstLoadError !== undefined ? (
-        <Alert
-          type="error"
-          showIcon
-          message={translateApiError(firstLoadError, t)}
-          action={<Button onClick={() => void reload()}>{t('common.actions.retry')}</Button>}
-        />
+        <LoadFailure error={firstLoadError} onRetry={() => void reload()} />
       ) : isLoading ? (
         <div className="py-4">
           <Spin indicator={<LoadingOutlined spin />} />

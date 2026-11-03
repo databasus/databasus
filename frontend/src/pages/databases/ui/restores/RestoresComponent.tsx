@@ -1,4 +1,4 @@
-import { Alert, App, Button, Spin } from 'antd';
+import { App, Button, Spin } from 'antd';
 import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -14,7 +14,7 @@ import {
 import { useSessionGuard } from '../../../../shared/auth';
 import { usePolledPagedList } from '../../../../shared/hooks';
 import { translateApiError } from '../../../../shared/i18n';
-import { ConfirmationComponent } from '../../../../shared/ui';
+import { ConfirmationComponent, LoadFailure } from '../../../../shared/ui';
 import type { LogicalBackup } from '../../model/LogicalBackup';
 import { createRestoreTargetDraft } from './createRestoreTargetDraft';
 import { RestoreCard } from './RestoreCard';
@@ -128,16 +128,7 @@ export const RestoresComponent = ({ database, backup }: Props) => {
     }
 
     if (firstLoadError !== undefined) {
-      return (
-        <Alert
-          type="error"
-          showIcon
-          message={translateApiError(firstLoadError, t)}
-          action={
-            <Button onClick={() => void reloadRestores()}>{t('common.actions.retry')}</Button>
-          }
-        />
-      );
+      return <LoadFailure error={firstLoadError} onRetry={() => void reloadRestores()} />;
     }
 
     return (

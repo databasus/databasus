@@ -1,12 +1,12 @@
 import { FilterFilled, FilterOutlined, InfoCircleOutlined } from '@ant-design/icons';
-import { Alert, App, Button, Modal, Spin } from 'antd';
+import { App, Button, Modal, Spin } from 'antd';
 import { useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import type { Database } from '../../../../entities/databases';
 import { usePersistentState, usePolledPagedList } from '../../../../shared/hooks';
 import { getWebsitePageUrl, translateApiError, useLocale } from '../../../../shared/i18n';
-import { ConfirmationComponent } from '../../../../shared/ui';
+import { ConfirmationComponent, LoadFailure } from '../../../../shared/ui';
 import { logicalBackupApi } from '../../api/logicalBackupApi';
 import type { LogicalBackup } from '../../model/LogicalBackup';
 import type { LogicalBackupListFilter } from '../../model/LogicalBackupListFilter';
@@ -25,7 +25,6 @@ const BACKUPS_REFRESH_MS = 1_000;
 interface Props {
   database: Database;
   isCanManageDBs: boolean;
-  isDirectlyUnderTab?: boolean;
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
   onNavigateToVerifications?: () => void;
 }
@@ -33,7 +32,6 @@ interface Props {
 export const LogicalBackupsComponent = ({
   database,
   isCanManageDBs,
-  isDirectlyUnderTab,
   scrollContainerRef,
   onNavigateToVerifications,
 }: Props) => {
@@ -79,7 +77,7 @@ export const LogicalBackupsComponent = ({
     },
   });
 
-  const { backupConfig, isBackupConfigLoading, backupConfigError, retryBackupConfigLoad } =
+  const { backupConfig, isBackupConfigLoading, backupConfigError, reloadBackupConfig } =
     useBackupConfigLoad(database.id);
 
   const backupActions = useLogicalBackupActions({
@@ -158,9 +156,7 @@ export const LogicalBackupsComponent = ({
   }
 
   return (
-    <div
-      className={`w-full bg-surface p-3 shadow md:p-5 ${isDirectlyUnderTab ? 'rounded-tr-md rounded-br-md rounded-bl-md' : 'rounded-md'}`}
-    >
+    <div className="w-full rounded-md bg-surface p-3 shadow md:p-5">
       <div className="flex items-center gap-2">
         <h2 className="text-lg font-bold md:text-xl">{t('backups.list.title')}</h2>
         <div className="relative">
@@ -189,7 +185,7 @@ export const LogicalBackupsComponent = ({
       <BackupConfigNotice
         backupConfig={backupConfig}
         backupConfigError={backupConfigError}
-        onRetry={retryBackupConfigLoad}
+        onRetry={reloadBackupConfig}
       />
 
       <div className="mt-5" />
@@ -209,14 +205,7 @@ export const LogicalBackupsComponent = ({
 
       <div className="mt-5 w-full md:max-w-[850px]">
         {firstLoadError !== undefined ? (
-          <Alert
-            type="error"
-            showIcon
-            message={translateApiError(firstLoadError, t)}
-            action={
-              <Button onClick={() => void reloadBackups()}>{t('common.actions.retry')}</Button>
-            }
-          />
+          <LoadFailure error={firstLoadError} onRetry={() => void reloadBackups()} />
         ) : (
           <>
             <div className="md:hidden">

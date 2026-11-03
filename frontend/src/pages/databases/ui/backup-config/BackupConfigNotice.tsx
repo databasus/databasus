@@ -1,8 +1,7 @@
-import { Alert, Button } from 'antd';
 import { useTranslation } from 'react-i18next';
 
 import type { BackupConfig } from '../../../../entities/backup-configs';
-import { translateApiError } from '../../../../shared/i18n';
+import { LoadFailure } from '../../../../shared/ui';
 
 interface Props {
   backupConfig?: BackupConfig;
@@ -16,13 +15,7 @@ export const BackupConfigNotice = ({ backupConfig, backupConfigError, onRetry }:
   return (
     <>
       {backupConfigError !== undefined && (
-        <Alert
-          className="mt-3"
-          type="error"
-          showIcon
-          message={translateApiError(backupConfigError, t)}
-          action={<Button onClick={onRetry}>{t('common.actions.retry')}</Button>}
-        />
+        <LoadFailure className="mt-3" error={backupConfigError} onRetry={onRetry} />
       )}
 
       {backupConfig && !backupConfig.isBackupsEnabled && (

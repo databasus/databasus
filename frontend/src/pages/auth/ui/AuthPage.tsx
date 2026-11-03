@@ -1,12 +1,11 @@
 import { LoadingOutlined } from '@ant-design/icons';
-import { Alert, Button, Spin } from 'antd';
+import { Spin } from 'antd';
 import { useEffect, useEffectEvent, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 
 import { type PendingSignIn, userApi } from '@/entities/users';
 import { useSessionGuard } from '@/shared/auth';
 import { useRequestRevision, useScreenHeight } from '@/shared/hooks';
-import { translateApiError } from '@/shared/i18n';
+import { LoadFailure } from '@/shared/ui';
 
 import { AuthNavbarComponent } from './AuthNavbarComponent';
 import { RequestResetPasswordComponent } from './RequestResetPasswordComponent';
@@ -45,7 +44,6 @@ export function AuthPage() {
       if (isCurrent() && revision.IsCurrent(requestRevision)) setLoading(false);
     }
   };
-  const { t } = useTranslation();
   const screenHeight = useScreenHeight();
   const revision = useRequestRevision();
   const isCurrent = useSessionGuard();
@@ -70,12 +68,7 @@ export function AuthPage() {
           <Spin indicator={<LoadingOutlined spin />} size="large" />
         </div>
       ) : failure !== undefined ? (
-        <Alert
-          className="m-4"
-          type="error"
-          message={translateApiError(failure, t)}
-          action={<Button onClick={() => void loadOptions()}>{t('common.actions.retry')}</Button>}
-        />
+        <LoadFailure className="m-4" error={failure} onRetry={() => void loadOptions()} />
       ) : (
         <div>
           <div>

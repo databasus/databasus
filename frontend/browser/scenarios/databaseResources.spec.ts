@@ -1,4 +1,4 @@
-import { type Page, expect } from '@playwright/test';
+import { type Locator, type Page, expect } from '@playwright/test';
 
 import type { components } from '../../src/shared/api/schema.gen';
 import { applicationFixtures, workspace } from '../applicationFixtures';
@@ -218,6 +218,52 @@ test('shows the copy notice on the dark surface and removes it on its own', asyn
 
   // The notice stays for AntD's 4.5 seconds plus its leave animation, longer than the default wait.
   await expect(notice).toHaveCount(0, { timeout: 15_000 });
+});
+
+const getTopLeftRadius = (card: Locator) =>
+  card.evaluate((element) => getComputedStyle(element).borderTopLeftRadius);
+
+const getCardOfHeading = (page: Page, name: string) =>
+  page
+    .getByRole('heading', { name, level: 2 })
+    .locator('xpath=ancestor::div[contains(@class, "rounded-md")][1]');
+
+test('squares the top-left corner of the backups card only when it sits directly under the tabs', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await openAccount({ page, theme: 'light' });
+  await openWorkspaceScreen({ page, locale: 'en', tab: 'databases' });
+
+  const backupsCard = getCardOfHeading(page, 'Backups');
+
+  await expect.poll(() => getTopLeftRadius(backupsCard)).toBe('0px');
+});
+
+test('squares the top-left corner of the healthcheck card when it sits above the backups card', async ({
+  page,
+}) => {
+  await page.route('**/api/v1/healthcheck-configs/*', (route) =>
+    route.fulfill({
+      json: {
+        databaseId: database.id,
+        isHealthcheckEnabled: true,
+        isNotificationEnabled: false,
+        intervalMinutes: 1,
+        failedAttemptsBeforeUnavailable: 3,
+        attemptRetentionDays: 7,
+      },
+    }),
+  );
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await openAccount({ page, theme: 'light' });
+  await openWorkspaceScreen({ page, locale: 'en', tab: 'databases' });
+
+  const healthcheckCard = getCardOfHeading(page, 'Healthcheck attempts');
+  const backupsCard = getCardOfHeading(page, 'Backups');
+
+  await expect.poll(() => getTopLeftRadius(healthcheckCard)).toBe('0px');
+  expect(await getTopLeftRadius(backupsCard)).not.toBe('0px');
 });
 
 test('shows a focus indicator when tabbing to a tab and an edit icon', async ({ page }) => {

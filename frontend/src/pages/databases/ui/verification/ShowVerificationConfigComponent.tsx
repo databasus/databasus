@@ -1,4 +1,4 @@
-import { Alert, Button, Spin } from 'antd';
+import { Spin } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -11,8 +11,9 @@ import {
   getNextCronRun,
 } from '../../../../entities/schedules';
 import { useSessionGuard } from '../../../../shared/auth';
-import { translateApiError, useLocale } from '../../../../shared/i18n';
+import { useLocale } from '../../../../shared/i18n';
 import { getUserClockFormat, getUserTimeFormat } from '../../../../shared/time';
+import { LoadFailure } from '../../../../shared/ui';
 import { verificationConfigApi } from '../../api/verificationConfigApi';
 import { type VerificationConfig } from '../../model/verification/VerificationConfig';
 import { VERIFICATION_NOTIFICATION_TYPE_LABEL_KEYS } from '../../model/verification/VerificationNotificationTypeLabelKeys';
@@ -53,16 +54,7 @@ export const ShowVerificationConfigComponent = ({ databaseId }: Props) => {
 
   if (loadError !== undefined) {
     return (
-      <Alert
-        type="error"
-        showIcon
-        message={translateApiError(loadError, t)}
-        action={
-          <Button onClick={() => setLoadAttempt((attempt) => attempt + 1)}>
-            {t('common.actions.retry')}
-          </Button>
-        }
-      />
+      <LoadFailure error={loadError} onRetry={() => setLoadAttempt((attempt) => attempt + 1)} />
     );
   }
 

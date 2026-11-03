@@ -1,4 +1,5 @@
 import { getApiClient, requireData } from '../../../shared/api';
+import { collectCursorPages } from '../../../shared/lib/collectCursorPages';
 import type { BackupConfig } from '../model/BackupConfig';
 import type { BackupConfigInput } from '../model/BackupConfigInput';
 import type { DatabaseTransfer } from '../model/DatabaseTransfer';
@@ -12,21 +13,13 @@ export const backupConfigApi = {
   // The database list shows the storage of every card, so this follows the cursor to the last page.
   // A database whose config was never saved is not listed.
   async listAllWorkspaceBackupConfigs(workspaceId: string): Promise<BackupConfig[]> {
-    const backupConfigs: BackupConfig[] = [];
-    let after: string | undefined;
-
-    do {
-      const page = requireData(
+    return collectCursorPages(async (after: string | undefined) =>
+      requireData(
         await getApiClient().GET('/backup-configs', {
           params: { query: { workspaceId, limit: BACKUP_CONFIG_PAGE_LIMIT, after } },
         }),
-      );
-
-      backupConfigs.push(...page.items);
-      after = page.nextCursor;
-    } while (after !== undefined);
-
-    return backupConfigs;
+      ),
+    );
   },
 
   // The first page of the configs that back up into the storage; a small limit answers whether the

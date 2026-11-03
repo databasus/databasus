@@ -108,6 +108,27 @@ describe('NotifierComponent', () => {
     expect(screen.getByText(renamed.name)).toBeTruthy();
   });
 
+  it('offers no retry when the delivery test fails with the notifier loaded', async () => {
+    mockServer.use(
+      mockApi.get('/notifiers/{notifierId}', 200, usedNotifier),
+      mockApi.post('/notifiers/{notifierId}/test', 500, buildProblem('internal', 500)),
+    );
+    const view = renderScreen(
+      <NotifierComponent
+        notifierId={usedNotifier.id}
+        onNotifierChanged={() => {}}
+        onNotifierDeleted={() => {}}
+        onNotifierTransferred={() => {}}
+        isCanManageNotifiers
+      />,
+    );
+
+    await view.user.click(await screen.findByRole('button', { name: 'Send test notification' }));
+    await screen.findByText('An internal server error occurred. Please try again later.');
+
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+  });
+
   it('shows translated failure when a saved delivery test returns no diagnostic', async () => {
     mockServer.use(
       mockApi.get('/notifiers/{notifierId}', 200, usedNotifier),

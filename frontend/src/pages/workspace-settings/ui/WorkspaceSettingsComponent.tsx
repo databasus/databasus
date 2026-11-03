@@ -13,6 +13,7 @@ import { type Workspace, WorkspaceRole, workspaceApi } from '../../../entities/w
 import { useSessionGuard } from '../../../shared/auth';
 import { useIsMobile } from '../../../shared/hooks';
 import { translateApiError } from '../../../shared/i18n';
+import { LoadFailure } from '../../../shared/ui';
 import { WorkspaceAuditLogsComponent } from './WorkspaceAuditLogsComponent';
 import { WorkspaceMembersComponent } from './WorkspaceMembersComponent';
 
@@ -236,14 +237,7 @@ export function WorkspaceSettingsComponent({
           {isLoading ? (
             <Spin indicator={<LoadingOutlined spin />} size="large" />
           ) : loadError !== undefined ? (
-            <Alert
-              type="error"
-              showIcon
-              message={translateApiError(loadError, t)}
-              action={
-                <Button onClick={() => void loadWorkspace()}>{t('common.actions.retry')}</Button>
-              }
-            />
+            <LoadFailure error={loadError} onRetry={() => void loadWorkspace()} />
           ) : workspace ? (
             <>
               {mutationError !== undefined && (

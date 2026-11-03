@@ -1,4 +1,3 @@
-import { Alert, Button } from 'antd';
 import type { RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -6,7 +5,7 @@ import { AuditEventList, useAuditEventPages } from '@/entities/audit-logs';
 import { ApiError } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { useIsMobile } from '@/shared/hooks';
-import { translateApiError } from '@/shared/i18n';
+import { LoadFailure } from '@/shared/ui';
 
 interface Props {
   workspaceId: string;
@@ -40,12 +39,7 @@ export function WorkspaceAuditLogsComponent({
     <section className="max-w-300">
       <h2 className="mb-4 text-xl font-bold text-content">{t('auditLogs.title')}</h2>
       {pages.error !== undefined && (
-        <Alert
-          type="error"
-          showIcon
-          message={translateApiError(pages.error, t)}
-          action={<Button onClick={() => void pages.reload()}>{t('common.actions.retry')}</Button>}
-        />
+        <LoadFailure error={pages.error} onRetry={() => void pages.reload()} />
       )}
       {!hasLostAccess && (pages.error === undefined || pages.items.length > 0) && (
         <AuditEventList

@@ -11,6 +11,7 @@ import {
 import { useSessionGuard } from '../../../../shared/auth';
 import { useLatestRef } from '../../../../shared/hooks';
 import { getWebsitePageUrl, translateApiError, useLocale } from '../../../../shared/i18n';
+import { LoadFailure } from '../../../../shared/ui';
 import { verificationConfigApi } from '../../api/verificationConfigApi';
 import { buildVerificationConfigForSave } from '../../model/verification/buildVerificationConfigForSave';
 import { isVerificationConfigChanged } from '../../model/verification/isVerificationConfigChanged';
@@ -127,16 +128,7 @@ export const EditVerificationConfigComponent = ({ databaseId, onClose }: Props) 
   if (loadError !== undefined) {
     return (
       <div>
-        <Alert
-          type="error"
-          showIcon
-          message={translateApiError(loadError, t)}
-          action={
-            <Button onClick={() => setLoadAttempt((attempt) => attempt + 1)}>
-              {t('common.actions.retry')}
-            </Button>
-          }
-        />
+        <LoadFailure error={loadError} onRetry={() => setLoadAttempt((attempt) => attempt + 1)} />
 
         <div className="mt-6 flex justify-end">
           <Button onClick={onClose}>{t('common.actions.cancel')}</Button>
