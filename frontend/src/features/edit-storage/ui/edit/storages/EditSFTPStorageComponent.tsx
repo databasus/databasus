@@ -165,8 +165,15 @@ export function EditSFTPStorageComponent({
         regionId={`${controlId}-advanced`}
       />
       <div id={`${controlId}-advanced`} hidden={!isShowAdvanced}>
-        <Form.Item>
+        <Form.Item
+          help={
+            <span id={`${controlId}-skip-host-key-help`}>
+              {t('storages.edit.sftp.skipHostKeyTooltip')}
+            </span>
+          }
+        >
           <Checkbox
+            aria-describedby={`${controlId}-skip-host-key-help`}
             checked={settings.isSkipHostKeyVerify}
             onChange={(event) =>
               onChange({ ...settings, isSkipHostKeyVerify: event.target.checked })

@@ -193,21 +193,17 @@ func TestGetWalStreamStatistics(t *testing.T) {
 		t.Parallel()
 
 		catalog := newStatisticsCatalog(t)
+		requestedAt := catalog.App.Clock.Now().Add(-2 * time.Minute)
+		catalog.App.Clock.Set(requestedAt)
 
-		requestedAfter := time.Now().UTC()
 		response := getWalStreamStatistics(t, catalog, "HOUR")
-		requestedBefore := time.Now().UTC()
 
 		require.Len(t, response.Series.Points, 60)
 		assert.Equal(t, int64(60), response.Series.BucketSeconds)
 
 		lastPoint := response.Series.Points[59]
-		assert.False(t, lastPoint.StartedAt.After(requestedBefore), "the last point starts no later than the request")
-		assert.True(
-			t,
-			lastPoint.StartedAt.Add(time.Minute).After(requestedAfter),
-			"the last point contains the request",
-		)
+
+		assert.Equal(t, requestedAt.Truncate(time.Minute), lastPoint.StartedAt)
 		assert.Equal(t, response.Series.To, lastPoint.StartedAt.Add(time.Minute))
 
 		for pointIndex := 1; pointIndex < len(response.Series.Points); pointIndex++ {
