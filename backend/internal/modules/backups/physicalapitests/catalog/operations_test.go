@@ -32,7 +32,7 @@ func TestChangePhysicalBackup(t *testing.T) {
 			catalogCall{
 				Request:       apptest.PhysicalCancelRequest(full.ID),
 				Authorization: "Bearer " + catalog.Owner.Token,
-				StatusCode:    http.StatusAccepted,
+				StatusCode:    http.StatusOK,
 			},
 		)
 
@@ -316,7 +316,7 @@ func TestChangePhysicalBackup(t *testing.T) {
 			catalogCall{
 				Request:       apptest.PhysicalCancelRequest(full.ID),
 				Authorization: "Bearer " + catalog.Owner.Token,
-				StatusCode:    http.StatusAccepted,
+				StatusCode:    http.StatusOK,
 			},
 		)
 
@@ -430,7 +430,7 @@ func TestPhysicalBackupMemberChanges(t *testing.T) {
 
 				catalog.call(t, catalogCall{
 					Request:       apptest.PhysicalCancelRequest(running.ID),
-					Authorization: "Bearer " + member.Token, StatusCode: http.StatusAccepted,
+					Authorization: "Bearer " + member.Token, StatusCode: http.StatusOK,
 				})
 
 				assert.Nil(t, catalog.getRunningBackupID(t))

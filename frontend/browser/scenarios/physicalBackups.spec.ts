@@ -89,7 +89,7 @@ test.use({
         body: {
           databaseId: database.id,
           isBackupsEnabled: true,
-          storageId: null,
+          storageId: 'storage-id',
           encryption: 'NONE',
           settings: {
             type: 'PHYSICAL',

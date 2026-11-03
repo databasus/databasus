@@ -2211,7 +2211,7 @@ paths:
       tags:
         - "backups"
       summary: "Request a physical backup"
-      description: "Needs WORKSPACE_MEMBER. Records the request; the scheduler creates the backup on its next pass. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database gets 400 invalid_request."
+      description: "Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded."
       requestBody:
         description: "The request to apply"
         required: true
@@ -2264,10 +2264,14 @@ paths:
       tags:
         - "backups"
       summary: "Cancel a running physical backup"
-      description: "Needs WORKSPACE_MEMBER. Interrupts the process; the backup then becomes CANCELED. A finished backup gets 409 not_running."
+      description: "Needs WORKSPACE_MEMBER. Records the backup as CANCELED and answers with it in that final status, as listPhysicalBackups shows it; its process stops afterwards. A finished backup gets 409 not_running."
       responses:
-        "202":
-          description: "Cancel a running physical backup"
+        "200":
+          description: "The backup in its final status"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PhysicalBackupListRow"
         "400":
           $ref: "#/components/responses/Problem"
         "401":

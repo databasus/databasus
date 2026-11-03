@@ -39,6 +39,14 @@ var (
 	errInvalidBackupKind = apierror.NewInvalidFieldsProblem(
 		[]apierror.FieldError{{Field: "kind", Detail: "must be AUTO, FULL or INCREMENTAL"}},
 	)
+	errBackupsTurnedOff = apierror.NewInvalidFieldsProblem(
+		[]apierror.FieldError{{Field: "databaseId", Detail: "must name a database whose backups are turned on"}},
+	)
+	errNoStorage = apierror.NewInvalidFieldsProblem(
+		[]apierror.FieldError{
+			{Field: "databaseId", Detail: "must name a database whose backup config names a storage"},
+		},
+	)
 	ErrNoExtendableChain = &apierror.Problem{
 		Code:   apierror.CodeNoExtendableChain,
 		Detail: "no extendable chain; run a full backup first",

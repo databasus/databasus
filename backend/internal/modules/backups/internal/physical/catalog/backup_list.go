@@ -44,9 +44,10 @@ type BackupListPosition struct {
 // BackupListFilter narrows ListBackups. An empty slice (or nil BeforeDate) is
 // "no filter on that dimension". Types and Statuses match the synthetic columns
 // the UNION projects ('WAL'/'COMPLETED' for WAL segments) and match any of their
-// values; BeforeDate filters on created_at. The filter selects segments before
-// they are grouped into WAL ranges.
+// values; BeforeDate filters on created_at; ID selects one row. The filter selects
+// segments before they are grouped into WAL ranges.
 type BackupListFilter struct {
+	ID         *uuid.UUID
 	Types      []string
 	Statuses   []string
 	BeforeDate *time.Time
@@ -59,6 +60,11 @@ type BackupListFilter struct {
 func (f BackupListFilter) buildClause() (string, []any) {
 	var conditions []string
 	var args []any
+
+	if f.ID != nil {
+		conditions = append(conditions, "id = ?")
+		args = append(args, *f.ID)
+	}
 
 	if len(f.Types) > 0 {
 		conditions = append(conditions, "type IN ?")

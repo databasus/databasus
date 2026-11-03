@@ -1600,6 +1600,8 @@ export const es: typeof en = {
       list: {
         totalUsage: 'Uso total: {{size}}',
         backUpNow: 'Hacer copia ahora',
+        startRequirement:
+          'Para iniciar una copia de seguridad, active las copias de seguridad y elija un almacenamiento en la configuración de copias de seguridad.',
         fullBackup: 'Copia completa',
         incrementalBackup: 'Copia incremental',
         restore: 'Restaurar',

@@ -1565,6 +1565,8 @@ export const en = {
       list: {
         totalUsage: 'Total usage: {{size}}',
         backUpNow: 'Back up now',
+        startRequirement:
+          'To start a backup, turn on backups and choose a storage in the backup configuration.',
         fullBackup: 'Full backup',
         incrementalBackup: 'Incremental backup',
         restore: 'Restore',

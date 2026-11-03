@@ -1117,7 +1117,7 @@ export interface paths {
         put?: never;
         /**
          * Request a physical backup
-         * @description Needs WORKSPACE_MEMBER. Records the request; the scheduler creates the backup on its next pass. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database gets 400 invalid_request.
+         * @description Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded.
          */
         post: operations["startPhysicalBackup"];
         delete?: never;
@@ -1163,7 +1163,7 @@ export interface paths {
         put?: never;
         /**
          * Cancel a running physical backup
-         * @description Needs WORKSPACE_MEMBER. Interrupts the process; the backup then becomes CANCELED. A finished backup gets 409 not_running.
+         * @description Needs WORKSPACE_MEMBER. Records the backup as CANCELED and answers with it in that final status, as listPhysicalBackups shows it; its process stops afterwards. A finished backup gets 409 not_running.
          */
         post: operations["cancelPhysicalBackup"];
         delete?: never;
@@ -6246,12 +6246,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Cancel a running physical backup */
-            202: {
+            /** @description The backup in its final status */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PhysicalBackupListRow"];
+                };
             };
             400: components["responses"]["Problem"];
             401: components["responses"]["Problem"];

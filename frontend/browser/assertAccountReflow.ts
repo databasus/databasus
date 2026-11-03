@@ -36,7 +36,8 @@ export const assertAccountReflow = async (region: Locator) => {
           element.getClientRects().length &&
           element.clientWidth > 0 &&
           !!element.textContent?.trim() &&
-          !element.matches('input, textarea, svg, svg *') &&
+          // AntD ends a long select value with an ellipsis; its title and options keep the full text.
+          !element.matches('input, textarea, svg, svg *, .ant-select-selection-item') &&
           !element.closest('pre, code') &&
           element.scrollWidth > element.clientWidth + 2,
       )

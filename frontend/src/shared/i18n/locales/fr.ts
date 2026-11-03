@@ -1607,6 +1607,8 @@ export const fr: typeof en = {
       list: {
         totalUsage: 'Espace utilisé : {{size}}',
         backUpNow: 'Sauvegarder maintenant',
+        startRequirement:
+          'Pour lancer une sauvegarde, activez les sauvegardes et choisissez un stockage dans la configuration des sauvegardes.',
         fullBackup: 'Sauvegarde complète',
         incrementalBackup: 'Sauvegarde incrémentale',
         restore: 'Restaurer',
