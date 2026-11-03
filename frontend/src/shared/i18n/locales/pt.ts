@@ -109,9 +109,7 @@ export const pt: typeof en = {
     },
     oauthCallback: {
       failedTitle: 'Falha na autenticação',
-      codeNotFound: 'Código de autorização não encontrado',
-      stateMissing: 'Parâmetro state do OAuth ausente',
-      invalidProvider: 'Provedor OAuth inválido',
+      notCompleted: 'O login não foi concluído. Comece novamente.',
       returnToSignIn: 'Voltar para o login',
       completing: 'Concluindo a autenticação...',
     },

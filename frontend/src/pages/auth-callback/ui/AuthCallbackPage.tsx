@@ -53,7 +53,7 @@ export function AuthCallbackPage() {
             description={
               failure instanceof ApiError
                 ? translateApiError(failure, t)
-                : t('app.oauthCallback.invalidProvider')
+                : t('app.oauthCallback.notCompleted')
             }
           />
           <Button className="mt-4" onClick={() => navigate('/', { replace: true })}>

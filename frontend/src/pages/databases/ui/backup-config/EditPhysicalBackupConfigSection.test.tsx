@@ -16,6 +16,7 @@ import {
 } from '../../../../entities/databases';
 import type { Schedule } from '../../../../entities/schedules';
 import { API_BASE_PATH } from '../../../../shared/api';
+import { DICTIONARIES, useLocale } from '../../../../shared/i18n';
 import { mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
 import { renderScreen } from '../../../../shared/lib/test/renderScreen';
 import { EditPhysicalBackupConfigSection } from './EditPhysicalBackupConfigSection';
@@ -75,7 +76,7 @@ const incrementalDatabase: Database = {
   } as Database['settings'],
 };
 
-const renderIncrementalSection = ({
+const serveIncrementalSection = ({
   fullBackupSchedule,
   incrementalBackupSchedule,
 }: {
@@ -106,15 +107,37 @@ const renderIncrementalSection = ({
     }),
   );
 
-  renderScreen(
-    <EditPhysicalBackupConfigSection
-      database={incrementalDatabase}
-      onCancel={() => {}}
-      onSaved={() => {}}
-    />,
-  );
+  return submitted;
+};
+
+const IncrementalSection = () => (
+  <EditPhysicalBackupConfigSection
+    database={incrementalDatabase}
+    onCancel={() => {}}
+    onSaved={() => {}}
+  />
+);
+
+const renderIncrementalSection = (schedules: {
+  fullBackupSchedule: Schedule;
+  incrementalBackupSchedule: Schedule | null;
+}) => {
+  const submitted = serveIncrementalSection(schedules);
+
+  renderScreen(<IncrementalSection />);
 
   return submitted;
+};
+
+const IncrementalSectionWithLanguageSwitch = () => {
+  const { setLocale } = useLocale();
+
+  return (
+    <>
+      <button onClick={() => setLocale('fr')}>Change language</button>
+      <IncrementalSection />
+    </>
+  );
 };
 
 const findCadenceGroup = (name: string) => screen.findByRole('group', { name });
@@ -241,6 +264,27 @@ describe('EditPhysicalBackupConfigSection', () => {
       fullBackupSchedule: { type: 'HOURLY' },
       incrementalBackupSchedule: { type: 'HOURLY' },
     } as const;
+
+    it('keeps the draft when the language changes', async () => {
+      const submitted = serveIncrementalSection(hourlySchedules);
+      renderScreen(<IncrementalSectionWithLanguageSwitch />);
+
+      await chooseEncryption(ENCRYPTED_OPTION);
+      fireEvent.click(screen.getByRole('button', { name: 'Change language' }));
+
+      const translatedEncryption = await screen.findByRole('combobox', {
+        name: DICTIONARIES.fr.backups.config.encryption,
+      });
+      const saveButton = screen.getByRole('button', {
+        name: new RegExp(`${DICTIONARIES.fr.common.actions.save}$`),
+      }) as HTMLButtonElement;
+
+      expect(translatedEncryption.closest('.ant-select')?.textContent).toContain(
+        DICTIONARIES.fr.backups.encryptionOptions.encrypted,
+      );
+      expect(saveButton.disabled).toBe(false);
+      expect(submitted).toHaveLength(0);
+    });
 
     it('sends the chosen encryption when encryption changes', async () => {
       const submitted = renderIncrementalSection(hourlySchedules);

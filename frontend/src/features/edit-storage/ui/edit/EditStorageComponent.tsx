@@ -9,6 +9,7 @@ import {
   getStorageLogoFromType,
 } from '../../../../entities/storages';
 import { translateApiError } from '../../../../shared/i18n';
+import { WRAPPING_SELECT_CLASS_NAME } from '../../../../shared/ui';
 import { createDefaultStorageSettings } from '../../lib/createDefaultStorageSettings';
 import { isStorageAddressChanged } from '../../lib/isStorageAddressChanged';
 import { isStorageSettingsFilled } from '../../lib/isStorageSettingsFilled';
@@ -149,7 +150,7 @@ export function EditStorageComponent({
               options={storageTypeOptions}
               onChange={(type: StorageType) => changeSettings(createDefaultStorageSettings(type))}
               size="small"
-              className="w-full max-w-[250px] min-w-0"
+              className={`w-full max-w-[250px] min-w-0 ${WRAPPING_SELECT_CLASS_NAME}`}
             />
           )}
 

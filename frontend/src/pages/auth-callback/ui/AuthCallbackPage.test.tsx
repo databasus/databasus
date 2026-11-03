@@ -25,6 +25,12 @@ const storeAttempt = (changes: Record<string, unknown> = {}) =>
       ...changes,
     }),
   );
+const expectUnfinishedSignInMessage = async () => {
+  await screen.findByRole('button', { name: 'Return to sign in' });
+
+  expect(screen.getByText(DICTIONARIES.en.app.oauthCallback.notCompleted)).toBeTruthy();
+  expect(screen.queryByText('Invalid OAuth provider')).toBeNull();
+};
 
 describe('AuthCallbackPage', () => {
   it.each(['github', 'google'] as const)(
@@ -66,7 +72,7 @@ describe('AuthCallbackPage', () => {
 
     renderScreen(<AuthCallbackPage />, { route: callbackRoute });
 
-    await screen.findByRole('button', { name: 'Return to sign in' });
+    await expectUnfinishedSignInMessage();
     expect(server.getRequests()).toHaveLength(1);
     expect(getSessionSnapshot().token).toBe(session.token);
   });
@@ -96,11 +102,10 @@ describe('AuthCallbackPage', () => {
       query: `code=private-code&state=${state}`,
       record: { provider: 'other' },
     },
-    { name: 'provider refusal', query: `error=access_denied&state=${state}`, record: {} },
   ])('rejects exchange when the callback has $name', async ({ query, record }) => {
     storeAttempt(record);
     renderScreen(<AuthCallbackPage />, { route: `/auth/callback?${query}`, isStrictMode: true });
-    await screen.findByRole('button', { name: 'Return to sign in' });
+    await expectUnfinishedSignInMessage();
     expect(server.getRequests()).toHaveLength(0);
     expect(getSessionSnapshot().token).toBeUndefined();
   });
@@ -116,10 +121,24 @@ describe('AuthCallbackPage', () => {
       renderScreen(<AuthCallbackPage />, {
         route: `/auth/callback?code=private-code&state=${state}`,
       });
-      await screen.findByRole('button', { name: 'Return to sign in' });
+      await expectUnfinishedSignInMessage();
       expect(server.getRequests()).toHaveLength(0);
     },
   );
+
+  it('explains that sign-in did not finish when the provider refuses consent', async () => {
+    storeAttempt();
+
+    renderScreen(<AuthCallbackPage />, {
+      route: `/auth/callback?error=access_denied&state=${state}`,
+      isStrictMode: true,
+    });
+
+    await expectUnfinishedSignInMessage();
+    expect(server.getRequests()).toHaveLength(0);
+    expect(sessionStorage.getItem(attemptKey)).toBeNull();
+    expect(getSessionSnapshot().token).toBeUndefined();
+  });
 
   it('requires a new attempt when the provider exchange is refused', async () => {
     storeAttempt();
@@ -183,7 +202,7 @@ describe('AuthCallbackPage', () => {
 it('preserves a replacement attempt when an older callback state arrives', async () => {
   storeAttempt({ state: 'b'.repeat(64), provider: 'google' });
   renderScreen(<AuthCallbackPage />, { route: `/auth/callback?code=old-code&state=${state}` });
-  await screen.findByRole('button', { name: 'Return to sign in' });
+  await expectUnfinishedSignInMessage();
   expect(JSON.parse(sessionStorage.getItem(attemptKey)!).state).toBe('b'.repeat(64));
   expect(server.getRequests()).toHaveLength(0);
 });

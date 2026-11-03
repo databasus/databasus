@@ -108,9 +108,7 @@ export const ru: typeof en = {
     },
     oauthCallback: {
       failedTitle: 'Не удалось войти',
-      codeNotFound: 'Не найден код авторизации',
-      stateMissing: 'Нет параметра state OAuth',
-      invalidProvider: 'Неизвестный OAuth-провайдер',
+      notCompleted: 'Вход не завершён. Начните заново.',
       returnToSignIn: 'Вернуться ко входу',
       completing: 'Завершаем вход...',
     },

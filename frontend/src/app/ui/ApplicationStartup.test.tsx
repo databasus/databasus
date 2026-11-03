@@ -402,6 +402,85 @@ it('keeps account navigation usable when production release information fails', 
   expect(document.querySelector('.ant-spin-spinning')).toBeNull();
 });
 
+describe('New-version link', () => {
+  const NEW_VERSION_EXPLANATION = 'New version available';
+
+  const serveLatestRelease = (tagName: string) => {
+    seed();
+    localStorage.removeItem('githubLatestVersion');
+    server.use(
+      http.get('https://api.github.com/repos/databasus/databasus/releases/latest', () =>
+        HttpResponse.json({ tag_name: tagName }),
+      ),
+    );
+  };
+
+  const waitForReleaseAnswer = () =>
+    new Promise<void>((resolve) => {
+      const onResponse = ({ request }: { request: Request }) => {
+        if (!request.url.endsWith('/releases/latest')) return;
+        server.events.removeListener('response:mocked', onResponse);
+        resolve();
+      };
+      server.events.on('response:mocked', onResponse);
+    });
+
+  it('explains the new version link when a newer release exists', async () => {
+    serveLatestRelease('v2.0.0');
+
+    const { user } = renderScreen(<ApplicationScreen />);
+    const link = await screen.findByRole('link', { name: NEW_VERSION_EXPLANATION });
+
+    expect(link.getAttribute('href')).toBe(
+      'https://github.com/databasus/databasus/releases/latest',
+    );
+    expect(link.textContent).toBe('');
+
+    await user.hover(link);
+    expect((await screen.findByRole('tooltip')).textContent).toBe(NEW_VERSION_EXPLANATION);
+  });
+
+  it('explains the new version link on keyboard focus', async () => {
+    serveLatestRelease('v2.0.0');
+
+    renderScreen(<ApplicationScreen />);
+    const link = await screen.findByRole('link', { name: NEW_VERSION_EXPLANATION });
+
+    fireEvent.focus(link);
+
+    expect((await screen.findByRole('tooltip')).textContent).toBe(NEW_VERSION_EXPLANATION);
+  });
+
+  it('hides the new version link when the running version is the latest', async () => {
+    serveLatestRelease('v1.0.0');
+    const releaseAnswered = waitForReleaseAnswer();
+
+    renderScreen(<ApplicationScreen />);
+    await releaseAnswered;
+    await screen.findByRole('button', { name: 'Profile' });
+
+    expect(screen.queryByRole('link', { name: NEW_VERSION_EXPLANATION })).toBeNull();
+  });
+
+  it('hides the new version link when the release lookup fails', async () => {
+    seed();
+    localStorage.removeItem('githubLatestVersion');
+    server.use(
+      http.get(
+        'https://api.github.com/repos/databasus/databasus/releases/latest',
+        () => new HttpResponse(null, { status: 503 }),
+      ),
+    );
+    const releaseAnswered = waitForReleaseAnswer();
+
+    renderScreen(<ApplicationScreen />);
+    await releaseAnswered;
+    await screen.findByRole('button', { name: 'Profile' });
+
+    expect(screen.queryByRole('link', { name: NEW_VERSION_EXPLANATION })).toBeNull();
+  });
+});
+
 it('accepts only the active startup after root StrictMode repeats setup', async () => {
   seed();
   const firstSetup = mockApi.pending('get', '/users/{userId}');
