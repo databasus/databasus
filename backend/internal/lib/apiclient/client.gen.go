@@ -6820,7 +6820,7 @@ type ClientInterface interface {
 
 	// DownloadLogicalBackup Download the file of a logical backup
 	//
-	// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable.
+	// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the decrypted file's exact byte count in its existing compression format. Encryption overhead in storage is not included in that length.
 	//
 	// Corresponds with GET /logical-backups/{backupId}/file (the `DownloadLogicalBackup` operationId).
 	DownloadLogicalBackup(ctx context.Context, backupId BackupId, params *DownloadLogicalBackupParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -7045,7 +7045,7 @@ type ClientInterface interface {
 
 	// DownloadPhysicalRestoreSet Download a physical restore set
 	//
-	// Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. A restore set that can no longer be built gets the same problem as at token issue.
+	// Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. A restore set that can no longer be built gets the same problem as at token issue. Streams the archive without HTTP gzip, even when the client accepts gzip. The complete archive length is not required in advance; Content-Length may be absent.
 	//
 	// Corresponds with GET /physical-restore-sets (the `DownloadPhysicalRestoreSet` operationId).
 	DownloadPhysicalRestoreSet(ctx context.Context, params *DownloadPhysicalRestoreSetParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -7262,7 +7262,7 @@ type ClientInterface interface {
 
 	// DownloadVerificationAgent Download the verification agent
 	//
-	// Public self-update download for installed agents, independent of heartbeat acceptance.
+	// Public self-update download for installed agents, independent of heartbeat acceptance. Streams the binary without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the binary's exact byte count.
 	//
 	// Corresponds with GET /system/verification-agent (the `DownloadVerificationAgent` operationId).
 	DownloadVerificationAgent(ctx context.Context, params *DownloadVerificationAgentParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -8362,7 +8362,7 @@ func (c *Client) CancelLogicalBackup(ctx context.Context, backupId BackupId, req
 
 // DownloadLogicalBackup Download the file of a logical backup
 //
-// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable.
+// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the decrypted file's exact byte count in its existing compression format. Encryption overhead in storage is not included in that length.
 //
 // Corresponds with GET /logical-backups/{backupId}/file (the `DownloadLogicalBackup` operationId).
 func (c *Client) DownloadLogicalBackup(ctx context.Context, backupId BackupId, params *DownloadLogicalBackupParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -8857,7 +8857,7 @@ func (c *Client) GetRecoveryScript(ctx context.Context, reqEditors ...RequestEdi
 
 // DownloadPhysicalRestoreSet Download a physical restore set
 //
-// Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. A restore set that can no longer be built gets the same problem as at token issue.
+// Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. A restore set that can no longer be built gets the same problem as at token issue. Streams the archive without HTTP gzip, even when the client accepts gzip. The complete archive length is not required in advance; Content-Length may be absent.
 //
 // Corresponds with GET /physical-restore-sets (the `DownloadPhysicalRestoreSet` operationId).
 func (c *Client) DownloadPhysicalRestoreSet(ctx context.Context, params *DownloadPhysicalRestoreSetParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -9344,7 +9344,7 @@ func (c *Client) GetInstanceHealth(ctx context.Context, reqEditors ...RequestEdi
 
 // DownloadVerificationAgent Download the verification agent
 //
-// Public self-update download for installed agents, independent of heartbeat acceptance.
+// Public self-update download for installed agents, independent of heartbeat acceptance. Streams the binary without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the binary's exact byte count.
 //
 // Corresponds with GET /system/verification-agent (the `DownloadVerificationAgent` operationId).
 func (c *Client) DownloadVerificationAgent(ctx context.Context, params *DownloadVerificationAgentParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -15066,7 +15066,7 @@ type ClientWithResponsesInterface interface {
 
 	// DownloadLogicalBackupWithResponse Download the file of a logical backup
 	//
-	// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable.
+	// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the decrypted file's exact byte count in its existing compression format. Encryption overhead in storage is not included in that length.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -15309,7 +15309,7 @@ type ClientWithResponsesInterface interface {
 
 	// DownloadPhysicalRestoreSetWithResponse Download a physical restore set
 	//
-	// Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. A restore set that can no longer be built gets the same problem as at token issue.
+	// Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. A restore set that can no longer be built gets the same problem as at token issue. Streams the archive without HTTP gzip, even when the client accepts gzip. The complete archive length is not required in advance; Content-Length may be absent.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -15552,7 +15552,7 @@ type ClientWithResponsesInterface interface {
 
 	// DownloadVerificationAgentWithResponse Download the verification agent
 	//
-	// Public self-update download for installed agents, independent of heartbeat acceptance.
+	// Public self-update download for installed agents, independent of heartbeat acceptance. Streams the binary without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the binary's exact byte count.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -23757,7 +23757,7 @@ func (c *ClientWithResponses) CancelLogicalBackupWithResponse(ctx context.Contex
 
 // DownloadLogicalBackupWithResponse Download the file of a logical backup
 //
-// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable.
+// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the decrypted file's exact byte count in its existing compression format. Encryption overhead in storage is not included in that length.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -24162,7 +24162,7 @@ func (c *ClientWithResponses) GetRecoveryScriptWithResponse(ctx context.Context,
 
 // DownloadPhysicalRestoreSetWithResponse Download a physical restore set
 //
-// Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. A restore set that can no longer be built gets the same problem as at token issue.
+// Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. A restore set that can no longer be built gets the same problem as at token issue. Streams the archive without HTTP gzip, even when the client accepts gzip. The complete archive length is not required in advance; Content-Length may be absent.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -24567,7 +24567,7 @@ func (c *ClientWithResponses) GetInstanceHealthWithResponse(ctx context.Context,
 
 // DownloadVerificationAgentWithResponse Download the verification agent
 //
-// Public self-update download for installed agents, independent of heartbeat acceptance.
+// Public self-update download for installed agents, independent of heartbeat acceptance. Streams the binary without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the binary's exact byte count.
 //
 // Returns a wrapper object for the known response body format(s).
 //

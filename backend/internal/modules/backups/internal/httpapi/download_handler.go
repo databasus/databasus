@@ -48,6 +48,6 @@ func (h *Handler) DownloadLogicalBackup(
 	return DownloadLogicalBackup200ApplicationoctetStreamResponse{
 		Body:          openedDownload.File,
 		Headers:       DownloadLogicalBackup200ResponseHeaders{ContentDisposition: &contentDisposition},
-		ContentLength: 0,
+		ContentLength: openedDownload.SizeBytes,
 	}, nil
 }

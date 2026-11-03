@@ -119,7 +119,11 @@ func (a *App) newRouter() *gin.Engine {
 	router.Use(httpserver.LogAccess(a.logger))
 	router.Use(httpserver.Recover(a.logger))
 	router.Use(httpserver.NoStoreCacheControl())
-	router.Use(httpserver.Compress())
+	router.Use(httpserver.Compress([]string{
+		`^/api/v1/logical-backups/[^/]+/file$`,
+		`^/api/v1/physical-restore-sets$`,
+		`^/api/v1/system/verification-agent$`,
+	}))
 
 	if a.environment.Config.EnvMode == config.EnvModeDevelopment {
 		router.Use(httpserver.AllowAnyOrigin([]string{httpserver.RequestIDHeader}))

@@ -797,7 +797,7 @@ export interface paths {
         };
         /**
          * Download the verification agent
-         * @description Public self-update download for installed agents, independent of heartbeat acceptance.
+         * @description Public self-update download for installed agents, independent of heartbeat acceptance. Streams the binary without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the binary's exact byte count.
          */
         get: operations["downloadVerificationAgent"];
         put?: never;
@@ -1201,7 +1201,7 @@ export interface paths {
         };
         /**
          * Download a physical restore set
-         * @description Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. A restore set that can no longer be built gets the same problem as at token issue.
+         * @description Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. A restore set that can no longer be built gets the same problem as at token issue. Streams the archive without HTTP gzip, even when the client accepts gzip. The complete archive length is not required in advance; Content-Length may be absent.
          */
         get: operations["downloadPhysicalRestoreSet"];
         put?: never;
@@ -1364,7 +1364,7 @@ export interface paths {
         };
         /**
          * Download the file of a logical backup
-         * @description Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable.
+         * @description Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the decrypted file's exact byte count in its existing compression format. Encryption overhead in storage is not included in that length.
          */
         get: operations["downloadLogicalBackup"];
         put?: never;

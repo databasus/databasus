@@ -1538,7 +1538,10 @@ paths:
       operationId: downloadVerificationAgent
       tags: [system]
       summary: Download the verification agent
-      description: Public self-update download for installed agents, independent of heartbeat acceptance.
+      description: >-
+        Public self-update download for installed agents, independent of heartbeat acceptance.
+        Streams the binary without HTTP gzip, even when the client accepts gzip, and includes
+        Content-Length equal to the binary's exact byte count.
       x-access: public
       security: []
       parameters:
@@ -2314,7 +2317,7 @@ paths:
       tags:
         - "backups"
       summary: "Download a physical restore set"
-      description: "Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. A restore set that can no longer be built gets the same problem as at token issue."
+      description: "Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. A restore set that can no longer be built gets the same problem as at token issue. Streams the archive without HTTP gzip, even when the client accepts gzip. The complete archive length is not required in advance; Content-Length may be absent."
       x-access: "public"
       parameters:
         - {"name": "token", "in": "query", "required": true, "description": "The single-use restore token", "schema": {"type": "string"}}
@@ -2598,7 +2601,9 @@ paths:
         `createDownloadToken` is the credential. Returns the decrypted file. An expired, used,
         unknown or mismatched token gets 401 `unauthenticated`. While another download or restore
         stream of the token's user runs, the request gets 409 `already_running` and the token stays
-        usable.
+        usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes
+        Content-Length equal to the decrypted file's exact byte count in its existing compression
+        format. Encryption overhead in storage is not included in that length.
       parameters:
         - name: token
           in: query

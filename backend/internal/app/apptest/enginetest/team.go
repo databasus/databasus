@@ -216,13 +216,17 @@ func (tm Team) RequireBackupSizeMatchesDownload(t *testing.T, backup apiclient.L
 		tokenResponse.Body)
 
 	downloadResponse, err := tm.Owner.Client.DownloadLogicalBackupWithResponse(t.Context(), backup.Id,
-		&apiclient.DownloadLogicalBackupParams{Token: tokenResponse.JSON201.Token})
+		&apiclient.DownloadLogicalBackupParams{Token: tokenResponse.JSON201.Token},
+		func(_ context.Context, request *http.Request) error {
+			request.Header.Set("Accept-Encoding", "identity")
+			return nil
+		})
 	requireStatus(t, "download the backup", err, http.StatusOK, downloadResponse.StatusCode(), downloadResponse.Body)
 
 	downloadedBytes := int64(len(downloadResponse.Body))
 	announcedLength := downloadResponse.HTTPResponse.ContentLength
 
-	if announcedLength != -1 && announcedLength != downloadedBytes {
+	if announcedLength != downloadedBytes {
 		t.Fatalf("the download announced %d bytes and delivered %d", announcedLength, downloadedBytes)
 	}
 

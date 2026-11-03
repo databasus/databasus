@@ -63,8 +63,9 @@ func NewService(deps Deps) *Service {
 
 // Download is an opened backup file. Closing File ends the user's stream.
 type Download struct {
-	File     io.ReadCloser
-	FileName string
+	File      io.ReadCloser
+	FileName  string
+	SizeBytes int64
 }
 
 // CreateToken issues a token that lets one request download the backup once within five minutes. A
@@ -197,7 +198,11 @@ func (s *Service) openWithStream(ctx context.Context, downloadToken DownloadToke
 		return Download{}, err
 	}
 
-	return Download{File: backupFile, FileName: fileName}, nil
+	return Download{
+		File:      backupFile,
+		FileName:  fileName,
+		SizeBytes: int64(backup.BackupSizeMb * 1024 * 1024),
+	}, nil
 }
 
 func (s *Service) keepStreamAlive(heartbeatCtx context.Context, userStream UserStream) {

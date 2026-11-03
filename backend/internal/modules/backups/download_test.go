@@ -2,10 +2,12 @@ package backups_test
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -63,6 +65,66 @@ func TestDownloadLogicalBackup(t *testing.T) {
 	t.Parallel()
 
 	server := startRestoreServer(t, restoreServerImage)
+
+	for _, storageEncryption := range []struct {
+		name       string
+		encryption apiclient.BackupEncryption
+	}{
+		{name: "unencrypted", encryption: apiclient.BackupEncryptionNONE},
+		{name: "encrypted", encryption: apiclient.BackupEncryptionENCRYPTED},
+	} {
+		t.Run(
+			"does not compress the backup stream when the client accepts gzip and storage is "+storageEncryption.name,
+			func(t *testing.T) {
+				team := newTeam(t)
+				backup := completeDownloadBackup(t, downloadBackupSpec{
+					team: team, server: server, encryption: storageEncryption.encryption,
+				})
+				issuedToken := issueDownloadToken(t, team.owner, backup.Id)
+
+				response, err := team.app.NewClient(t).DownloadLogicalBackupWithResponse(
+					t.Context(), backup.Id, &apiclient.DownloadLogicalBackupParams{Token: issuedToken.Token},
+					func(_ context.Context, request *http.Request) error {
+						request.Header.Set("Accept-Encoding", "gzip")
+						return nil
+					},
+				)
+				require.NoError(t, err)
+
+				require.Equal(t, http.StatusOK, response.StatusCode())
+				assert.False(t, response.HTTPResponse.Uncompressed)
+				require.Empty(t, response.HTTPResponse.Header.Get("Content-Encoding"))
+				assert.Equal(t, strconv.Itoa(len(response.Body)), response.HTTPResponse.Header.Get("Content-Length"))
+				assert.Equal(t, int64(len(response.Body)), response.HTTPResponse.ContentLength)
+				assert.True(t, bytes.HasPrefix(response.Body, getPostgresArchiveSignature()))
+				assert.Contains(t, response.HTTPResponse.Header.Get("Content-Disposition"), issuedToken.FileName)
+			},
+		)
+
+		t.Run("announces the exact file length when storage is "+storageEncryption.name, func(t *testing.T) {
+			team := newTeam(t)
+			backup := completeDownloadBackup(t, downloadBackupSpec{
+				team: team, server: server, encryption: storageEncryption.encryption,
+			})
+			issuedToken := issueDownloadToken(t, team.owner, backup.Id)
+
+			response, err := team.app.NewClient(t).DownloadLogicalBackupWithResponse(
+				t.Context(), backup.Id, &apiclient.DownloadLogicalBackupParams{Token: issuedToken.Token},
+				func(_ context.Context, request *http.Request) error {
+					request.Header.Set("Accept-Encoding", "identity")
+					return nil
+				},
+			)
+			require.NoError(t, err)
+
+			require.Equal(t, http.StatusOK, response.StatusCode())
+			require.Greater(t, len(response.Body), 2*1024)
+			require.NotZero(t, len(response.Body)%(1024*1024))
+			assert.Equal(t, strconv.Itoa(len(response.Body)), response.HTTPResponse.Header.Get("Content-Length"))
+			assert.Equal(t, int64(len(response.Body)), response.HTTPResponse.ContentLength)
+			assert.True(t, bytes.HasPrefix(response.Body, getPostgresArchiveSignature()))
+		})
+	}
 
 	t.Run("returns the file once and 401 unauthenticated to the second use of the token", func(t *testing.T) {
 		tm := newTeam(t)
@@ -269,6 +331,24 @@ func completeLargeBackup(t *testing.T, tm team, server restoreServer) apiclient.
 		FROM generate_series(1, 32) AS row_number`)
 
 	return completeRestorableBackup(t, tm.owner, source.databaseID)
+}
+
+type downloadBackupSpec struct {
+	team       team
+	server     restoreServer
+	encryption apiclient.BackupEncryption
+}
+
+func completeDownloadBackup(t *testing.T, spec downloadBackupSpec) apiclient.LogicalBackup {
+	t.Helper()
+
+	source := newBackupSourceDatabase(t, spec.team, spec.server)
+	spec.server.exec(t, source.sourceName, `INSERT INTO items
+		SELECT item_number + 3, md5(item_number::text) FROM generate_series(1, 1000) AS item_number`)
+	saveLogicalBackupSettings(t, spec.team.owner, source.databaseID, source.storageID, newLogicalBackupSettings(),
+		spec.encryption)
+
+	return completeRestorableBackup(t, spec.team.owner, source.databaseID)
 }
 
 func countDownloadTokens(t *testing.T, tm team, backupID uuid.UUID) int {

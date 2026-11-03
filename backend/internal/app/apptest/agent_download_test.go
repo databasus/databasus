@@ -1,9 +1,11 @@
 package apptest_test
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -21,12 +23,13 @@ func TestSystemAgentDownload(t *testing.T) {
 		t.Run("streams the binary with exact headers when architecture is "+string(architecture), func(t *testing.T) {
 			t.Parallel()
 
+			binaryContents := strings.Repeat("agent "+string(architecture)+"\n", 512)
 			directory := t.TempDir()
 			require.NoError(
 				t,
 				os.WriteFile(
 					filepath.Join(directory, "databasus-verification-agent-linux-"+string(architecture)),
-					[]byte("agent "+string(architecture)),
+					[]byte(binaryContents),
 					0o755,
 				),
 			)
@@ -37,10 +40,18 @@ func TestSystemAgentDownload(t *testing.T) {
 			response, err := client.DownloadVerificationAgentWithResponse(
 				t.Context(),
 				&apiclient.DownloadVerificationAgentParams{Arch: architecture},
+				func(_ context.Context, request *http.Request) error {
+					request.Header.Set("Accept-Encoding", "gzip")
+					return nil
+				},
 			)
 			require.NoError(t, err)
 			require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
-			assert.Equal(t, "agent "+string(architecture), string(response.Body))
+			assert.False(t, response.HTTPResponse.Uncompressed)
+			assert.Empty(t, response.HTTPResponse.Header.Get("Content-Encoding"))
+			assert.Equal(t, strconv.Itoa(len(response.Body)), response.HTTPResponse.Header.Get("Content-Length"))
+			assert.Equal(t, int64(len(response.Body)), response.HTTPResponse.ContentLength)
+			assert.Equal(t, binaryContents, string(response.Body))
 			assert.Equal(t, "application/octet-stream", response.HTTPResponse.Header.Get("Content-Type"))
 			assert.Equal(
 				t,
@@ -50,6 +61,8 @@ func TestSystemAgentDownload(t *testing.T) {
 
 			version, err := client.GetVersionWithResponse(t.Context())
 			require.NoError(t, err)
+			require.NotNil(t, version.JSON200)
+			assert.True(t, version.HTTPResponse.Uncompressed)
 			assert.Equal(t, version.JSON200.Version, response.HTTPResponse.Header.Get("X-Databasus-Version"))
 		})
 	}
