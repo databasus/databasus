@@ -8,6 +8,7 @@ import { USER_ROLE_LABEL_KEYS, type User, userApi } from '@/entities/users';
 import { invalidateSession, useSessionGuard } from '@/shared/auth';
 import { useRequestRevision } from '@/shared/hooks';
 import { translateApiError } from '@/shared/i18n';
+import { LoadFailure } from '@/shared/ui';
 
 interface Props {
   onUserChanged?: (user: User) => void;
@@ -170,24 +171,21 @@ export function ProfilePage({ onUserChanged }: Props) {
         <div className="min-h-0 min-w-0 flex-1 overflow-y-auto rounded bg-surface p-4 wrap-anywhere shadow sm:p-5">
           <h1 className="text-2xl font-bold">{t('users.profile.title')}</h1>
 
-          {failure !== undefined && (
-            <Alert
-              className="mt-3"
-              type="error"
-              showIcon
-              message={translateApiError(failure, t)}
-              action={
-                !user && (
-                  <Button
-                    className="!h-auto min-h-8 max-w-full !whitespace-normal"
-                    onClick={() => void loadUserProfile()}
-                  >
-                    {t('common.actions.retry')}
-                  </Button>
-                )
-              }
-            />
-          )}
+          {failure !== undefined &&
+            (user ? (
+              <Alert
+                className="mt-3"
+                type="error"
+                showIcon
+                message={translateApiError(failure, t)}
+              />
+            ) : (
+              <LoadFailure
+                className="mt-3"
+                error={failure}
+                onRetry={() => void loadUserProfile()}
+              />
+            ))}
           <div className="mt-5">
             {user ? (
               <>

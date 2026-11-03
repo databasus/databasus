@@ -1,4 +1,4 @@
-import { Alert, Button, Spin } from 'antd';
+import { Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -9,7 +9,7 @@ import {
   notifierApi,
 } from '../../../../entities/notifiers';
 import { useSessionGuard } from '../../../../shared/auth';
-import { translateApiError } from '../../../../shared/i18n';
+import { LoadFailure } from '../../../../shared/ui';
 
 interface Props {
   database: Database;
@@ -47,16 +47,7 @@ export const ShowDatabaseNotifiersComponent = ({ database }: Props) => {
 
   if (loadError !== undefined) {
     return (
-      <Alert
-        type="error"
-        showIcon
-        message={translateApiError(loadError, t)}
-        action={
-          <Button onClick={() => setLoadAttempt((attempt) => attempt + 1)}>
-            {t('common.actions.retry')}
-          </Button>
-        }
-      />
+      <LoadFailure error={loadError} onRetry={() => setLoadAttempt((attempt) => attempt + 1)} />
     );
   }
 

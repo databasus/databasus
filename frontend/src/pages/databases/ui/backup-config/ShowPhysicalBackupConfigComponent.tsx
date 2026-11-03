@@ -1,5 +1,5 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
-import { Alert, Button, Tooltip } from 'antd';
+import { Tooltip } from 'antd';
 import { type JSX, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -17,12 +17,9 @@ import {
   getLocalScheduleParts,
 } from '../../../../entities/schedules';
 import { type Storage, getStorageLogoFromType, storageApi } from '../../../../entities/storages';
-import {
-  type LocalizedText,
-  translateApiError,
-  translateLocalizedText,
-} from '../../../../shared/i18n';
+import { type LocalizedText, translateLocalizedText } from '../../../../shared/i18n';
 import { getUserClockFormat } from '../../../../shared/time';
+import { LoadFailure } from '../../../../shared/ui';
 import { type FullBackupsRetention } from '../../model/physical-backups/FullBackupsRetention';
 import { FullBackupsRetentionPolicy } from '../../model/physical-backups/FullBackupsRetentionPolicy';
 import { PHYSICAL_NOTIFICATION_TRIGGER_LABEL_KEYS } from '../../model/physical-backups/PhysicalNotificationTriggerLabelKeys';
@@ -224,16 +221,10 @@ export const ShowPhysicalBackupConfigComponent = ({
           </div>
 
           {storageLoadError !== undefined && (
-            <Alert
+            <LoadFailure
               className="mb-1"
-              type="error"
-              showIcon
-              message={translateApiError(storageLoadError, t)}
-              action={
-                <Button onClick={() => setStorageLoadAttempt((attempt) => attempt + 1)}>
-                  {t('common.actions.retry')}
-                </Button>
-              }
+              error={storageLoadError}
+              onRetry={() => setStorageLoadAttempt((attempt) => attempt + 1)}
             />
           )}
 

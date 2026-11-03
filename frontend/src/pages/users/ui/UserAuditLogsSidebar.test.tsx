@@ -3,7 +3,7 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { type User } from '@/entities/users';
-import { mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 import { UserAuditLogsSidebar } from './UserAuditLogsSidebar';
@@ -63,5 +63,17 @@ describe('UserAuditLogsSidebar', () => {
     const nextPageUrl = new URL(server.getRequests()[2].url);
     expect(nextPageUrl.searchParams.get('after')).toBe('second-cursor');
     expect(nextPageUrl.searchParams.get('limit')).toBe('50');
+  });
+
+  it('loads the events again when a failed load is retried', async () => {
+    server.use(mockApi.get('/audit-events', 500, buildProblem('internal', 500)));
+    const view = renderScreen(<UserAuditLogsSidebar user={firstUser} />);
+    const retry = await screen.findByRole('button', { name: 'Retry' });
+
+    server.use(mockApi.get('/audit-events', 200, { items: [auditEvent] }));
+    await view.user.click(retry);
+
+    expect(await screen.findByText(auditEvent.message)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
   });
 });

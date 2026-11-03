@@ -1,12 +1,13 @@
-import { Alert, Button, Drawer, Skeleton, Table } from 'antd';
+import { Alert, Drawer, Skeleton, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { useEffect, useEffectEvent, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type LocaleContextValue, translateApiError, useLocale } from '../../../../shared/i18n';
+import { type LocaleContextValue, useLocale } from '../../../../shared/i18n';
 import { RequestRevision } from '../../../../shared/lib/RequestRevision';
 import { getUserTimeFormat } from '../../../../shared/time';
+import { LoadFailure } from '../../../../shared/ui';
 import { verificationRunsApi } from '../../api/verificationRunsApi';
 import { type VerificationDetails } from '../../model/verification/VerificationDetails';
 import { VerificationStatus } from '../../model/verification/VerificationStatus';
@@ -144,14 +145,7 @@ export const VerificationDetailDrawer = ({ verificationId, isOpen, onClose, onCl
       {isLoading ? (
         <Skeleton active paragraph={{ rows: 10 }} />
       ) : loadError !== undefined || !verification ? (
-        <Alert
-          type="error"
-          showIcon
-          message={translateApiError(loadError, t)}
-          action={
-            <Button onClick={() => void loadVerification()}>{t('common.actions.retry')}</Button>
-          }
-        />
+        <LoadFailure error={loadError} onRetry={() => void loadVerification()} />
       ) : (
         <div>
           {verification.failMessage &&

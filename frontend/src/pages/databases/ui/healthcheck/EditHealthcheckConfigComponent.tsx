@@ -8,6 +8,7 @@ import type { HealthcheckConfig } from '../../../../entities/healthcheck';
 import { useSessionGuard } from '../../../../shared/auth';
 import { useLatestRef } from '../../../../shared/hooks';
 import { translateApiError } from '../../../../shared/i18n';
+import { LoadFailure } from '../../../../shared/ui';
 
 interface Props {
   databaseId: string;
@@ -81,16 +82,7 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
   if (loadError !== undefined) {
     return (
       <div>
-        <Alert
-          type="error"
-          showIcon
-          message={translateApiError(loadError, t)}
-          action={
-            <Button onClick={() => setLoadAttempt((attempt) => attempt + 1)}>
-              {t('common.actions.retry')}
-            </Button>
-          }
-        />
+        <LoadFailure error={loadError} onRetry={() => setLoadAttempt((attempt) => attempt + 1)} />
 
         <div className="mt-6 flex justify-end">
           <Button onClick={onClose}>{t('common.actions.cancel')}</Button>

@@ -10,7 +10,7 @@ import { useLatestRef, useRequestRevision } from '@/shared/hooks';
 import { type Storage, storageApi } from '../../../entities/storages';
 import { ApiError } from '../../../shared/api';
 import { translateApiError } from '../../../shared/i18n';
-import { ConfirmationComponent } from '../../../shared/ui';
+import { ConfirmationComponent, LoadFailure } from '../../../shared/ui';
 import { ShowStorageComponent } from './show/ShowStorageComponent';
 import { StorageTransferDialogComponent } from './StorageTransferDialogComponent';
 
@@ -237,18 +237,12 @@ export const StorageComponent = ({
   return (
     <div className="w-full min-w-0">
       <div className="min-w-0 grow rounded bg-surface p-5 shadow">
-        {error !== undefined && (
-          <Alert
-            type="error"
-            showIcon
-            message={translateApiError(error, t)}
-            action={
-              !storage ? (
-                <Button onClick={loadSettings}>{t('common.actions.retry')}</Button>
-              ) : undefined
-            }
-          />
-        )}
+        {error !== undefined &&
+          (storage ? (
+            <Alert type="error" showIcon message={translateApiError(error, t)} />
+          ) : (
+            <LoadFailure error={error} onRetry={loadSettings} />
+          ))}
         {connectionError !== undefined && (
           <Alert
             type="error"

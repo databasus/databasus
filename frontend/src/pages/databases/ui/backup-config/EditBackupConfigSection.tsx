@@ -11,7 +11,7 @@ import {
 import type { Database } from '../../../../entities/databases';
 import { useSessionGuard } from '../../../../shared/auth';
 import { translateApiError } from '../../../../shared/i18n';
-import { ConfirmationComponent } from '../../../../shared/ui';
+import { ConfirmationComponent, LoadFailure } from '../../../../shared/ui';
 
 interface BackupConfigSectionDraft {
   isBackupsEnabled: boolean;
@@ -120,16 +120,7 @@ export const EditBackupConfigSection = <TDraft extends BackupConfigSectionDraft>
   if (loadError !== undefined) {
     return (
       <div>
-        <Alert
-          type="error"
-          showIcon
-          message={translateApiError(loadError, t)}
-          action={
-            <Button onClick={() => setLoadAttempt((attempt) => attempt + 1)}>
-              {t('common.actions.retry')}
-            </Button>
-          }
-        />
+        <LoadFailure error={loadError} onRetry={() => setLoadAttempt((attempt) => attempt + 1)} />
 
         <div className="mt-5 flex">
           <Button danger ghost onClick={onCancel}>

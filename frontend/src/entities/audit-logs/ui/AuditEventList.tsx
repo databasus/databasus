@@ -1,10 +1,11 @@
-import { Alert, Button, Spin, Table } from 'antd';
+import { Spin, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 
-import { type TranslationKey, useLocale, translateApiError } from '@/shared/i18n';
+import { type TranslationKey, useLocale } from '@/shared/i18n';
 import { getUserTimeFormat, getUserShortTimeFormat } from '@/shared/time';
+import { LoadFailure } from '@/shared/ui';
 
 import { type AuditEvent } from '../model/AuditEvent';
 import { getAuditEventWorkspaceLabel } from '../model/getAuditEventWorkspaceLabel';
@@ -12,8 +13,7 @@ import { AuditEventAuthorComponent } from './AuditEventAuthorComponent';
 
 interface Props {
   events: AuditEvent[];
-  error?: unknown;
-  onRetry?: () => void;
+  failure?: { error: unknown; onRetry: () => void };
   isLoading: boolean;
   isLoadingMore: boolean;
   hasMore: boolean;
@@ -32,8 +32,7 @@ export function AuditEventList({
   isLoadingMore,
   hasMore,
   view,
-  error,
-  onRetry,
+  failure,
 }: Props) {
   const formatTimestamp = (createdAt: string) =>
     `${dayjs(createdAt).format((view.timeFormat === 'short' ? getUserShortTimeFormat() : getUserTimeFormat()).format)} (${formatRelativeTime(dayjs(createdAt))})`;
@@ -90,29 +89,15 @@ export function AuditEventList({
       </div>
     );
 
-  if (error !== undefined && !events.length)
-    return (
-      <Alert
-        type="error"
-        showIcon
-        message={translateApiError(error, t)}
-        action={<Button onClick={onRetry}>{t('common.actions.retry')}</Button>}
-      />
-    );
+  if (failure && !events.length)
+    return <LoadFailure error={failure.error} onRetry={failure.onRetry} />;
 
   if (!events.length)
     return <div className="py-8 text-center text-sm text-muted">{t(view.emptyKey)}</div>;
 
   return (
     <>
-      {error !== undefined && (
-        <Alert
-          type="error"
-          showIcon
-          message={translateApiError(error, t)}
-          action={<Button onClick={onRetry}>{t('common.actions.retry')}</Button>}
-        />
-      )}
+      {failure && <LoadFailure error={failure.error} onRetry={failure.onRetry} />}
       {view.mode === 'cards' ? (
         events.map((event) => (
           <article

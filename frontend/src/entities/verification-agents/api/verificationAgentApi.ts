@@ -1,20 +1,16 @@
 import { getApiClient, requireData, requireSuccess } from '../../../shared/api';
+import { collectCursorPages } from '../../../shared/lib/collectCursorPages';
 import type { VerificationAgent } from '../model/VerificationAgent';
 
 export const verificationAgentApi = {
   async listAgents(): Promise<VerificationAgent[]> {
-    const agents: VerificationAgent[] = [];
-    let after: string | undefined;
-    do {
-      const page = requireData(
+    return collectCursorPages(async (after: string | undefined) =>
+      requireData(
         await getApiClient().GET('/verification-agents', {
           params: { query: { limit: 100, after } },
         }),
-      );
-      agents.push(...page.items);
-      after = page.nextCursor;
-    } while (after !== undefined);
-    return agents;
+      ),
+    );
   },
   async getAgentCount() {
     return requireData(await getApiClient().GET('/verification-agent-counts'));

@@ -10,6 +10,7 @@ import { useSessionGuard } from '@/shared/auth';
 import { useIsMobile, usePagedList, useRequestRevision } from '@/shared/hooks';
 import { translateApiError, useLocale } from '@/shared/i18n';
 import { getUserTimeFormat } from '@/shared/time';
+import { LoadFailure } from '@/shared/ui';
 
 import { UserAuditLogsSidebar } from './UserAuditLogsSidebar';
 
@@ -327,22 +328,7 @@ export function UsersPage() {
           </div>
 
           {failure !== undefined && <Alert type="error" message={translateApiError(failure, t)} />}
-          {listFailure !== undefined && (
-            <Alert
-              type="error"
-              showIcon
-              message={translateApiError(listFailure, t)}
-              action={
-                <Button
-                  className="!h-auto min-h-8 max-w-full !whitespace-normal"
-                  onClick={retryUsers}
-                  disabled={isLoading}
-                >
-                  {t('common.actions.retry')}
-                </Button>
-              }
-            />
-          )}
+          {listFailure !== undefined && <LoadFailure error={listFailure} onRetry={retryUsers} />}
           {isLoading ? (
             <div className="flex h-64 items-center justify-center">
               <Spin indicator={<LoadingOutlined spin />} size="large" />

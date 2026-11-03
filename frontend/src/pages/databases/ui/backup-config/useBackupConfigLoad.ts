@@ -8,7 +8,7 @@ export const useBackupConfigLoad = (databaseId: string) => {
   const [backupConfigError, setBackupConfigError] = useState<unknown>();
   const [loadAttempt, setLoadAttempt] = useState(0);
 
-  const retryBackupConfigLoad = () => setLoadAttempt((attempt) => attempt + 1);
+  const reloadBackupConfig = () => setLoadAttempt((attempt) => attempt + 1);
 
   useEffect(() => {
     let isActive = true;
@@ -34,5 +34,5 @@ export const useBackupConfigLoad = (databaseId: string) => {
     };
   }, [databaseId, loadAttempt]);
 
-  return { backupConfig, isBackupConfigLoading, backupConfigError, retryBackupConfigLoad };
+  return { backupConfig, isBackupConfigLoading, backupConfigError, reloadBackupConfig };
 };

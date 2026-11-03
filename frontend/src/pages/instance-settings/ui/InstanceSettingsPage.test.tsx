@@ -144,6 +144,17 @@ describe('InstanceSettingsPage', () => {
     expect(externalToggle().getAttribute('aria-checked')).toBe('true');
   });
 
+  it('offers no retry when saving fails with the data loaded', async () => {
+    server.use(mockApi.put('/instance-settings', 403, buildProblem('permission_denied', 403)));
+    await openSettings();
+
+    fireEvent.click(externalToggle());
+    fireEvent.click(screen.getByRole('button', { name: DICTIONARIES.en.settings.saveChanges }));
+    await screen.findByText('You do not have permission to do this.');
+
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+  });
+
   it.each([
     { reason: 'unmount', isRefused: false },
     { reason: 'session replacement', isRefused: false },

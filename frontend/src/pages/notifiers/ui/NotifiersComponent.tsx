@@ -1,4 +1,4 @@
-import { Alert, Button, Empty, Input, Modal, Spin } from 'antd';
+import { Button, Empty, Input, Modal, Spin } from 'antd';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -8,8 +8,7 @@ import { EditNotifierComponent } from '@/features/edit-notifier';
 import { ApiError } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { useIsMobile, useRequestRevision, useScopedSelection } from '@/shared/hooks';
-import { translateApiError } from '@/shared/i18n';
-import { ResourceListDetail } from '@/shared/ui';
+import { ResourceListDetail, LoadFailure } from '@/shared/ui';
 
 import { NotifierCardComponent } from './NotifierCardComponent';
 import { NotifierComponent } from './NotifierComponent';
@@ -167,14 +166,7 @@ export const NotifiersComponent = ({ workspace, isCanManageNotifiers, onUnavaila
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-      {loadError !== undefined && (
-        <Alert
-          type="error"
-          showIcon
-          message={translateApiError(loadError, t)}
-          action={<Button onClick={() => loadNotifiers()}>{t('common.actions.retry')}</Button>}
-        />
-      )}
+      {loadError !== undefined && <LoadFailure error={loadError} onRetry={() => loadNotifiers()} />}
       {isLoading && !collection.isReady ? (
         <Spin />
       ) : collection.isReady ? (

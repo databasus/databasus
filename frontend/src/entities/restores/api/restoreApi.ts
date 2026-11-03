@@ -1,4 +1,5 @@
 import { getApiClient, requireData } from '../../../shared/api';
+import { collectCursorPages } from '../../../shared/lib/collectCursorPages';
 import type { Restore } from '../model/Restore';
 import type { RestoreTarget } from '../model/RestoreTarget';
 
@@ -9,21 +10,13 @@ export const restoreApi = {
   // The restore dialog shows every restore of the backup, newest first, so this follows the
   // cursor to the last page.
   async listAllRestores(backupId: string): Promise<Restore[]> {
-    const restores: Restore[] = [];
-    let after: string | undefined;
-
-    do {
-      const page = requireData(
+    return collectCursorPages(async (after: string | undefined) =>
+      requireData(
         await getApiClient().GET('/restores', {
           params: { query: { backupId, limit: RESTORE_PAGE_LIMIT, after } },
         }),
-      );
-
-      restores.push(...page.items);
-      after = page.nextCursor;
-    } while (after !== undefined);
-
-    return restores;
+      ),
+    );
   },
 
   // Answers once the target is reachable, with the restore in progress.

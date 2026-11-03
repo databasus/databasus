@@ -424,7 +424,7 @@ describe('HealthcheckAttemptsComponent', () => {
     expect(attemptsCall.mock.calls.length).toBe(callsBeforeUnmount);
   });
 
-  it('repeats no request when the parent passes a new callback or the language changes', async () => {
+  it('repeats no request when the language changes', async () => {
     const configCall = vi.spyOn(healthcheckConfigApi, 'getHealthcheckConfig');
     const attemptsCall = vi.spyOn(healthcheckAttemptApi, 'getAttemptsByDatabase');
     const LanguageSwitch = () => {
@@ -432,21 +432,19 @@ describe('HealthcheckAttemptsComponent', () => {
 
       return <button onClick={() => setLocale('fr')}>Switch language</button>;
     };
-    const Screen = ({ onVisibilityChange }: { onVisibilityChange: () => void }) => (
-      <>
-        <LanguageSwitch />
-        <HealthcheckAttemptsComponent database={database} onVisibilityChange={onVisibilityChange} />
-      </>
-    );
     mockServer.use(
       mockApi.get('/healthcheck-configs/{databaseId}', 200, config),
       http.get(attemptsPath, () => singlePage(attempt('first', 'AVAILABLE'))),
     );
 
-    const { container, rerender } = renderScreen(<Screen onVisibilityChange={() => {}} />);
+    const { container } = renderScreen(
+      <>
+        <LanguageSwitch />
+        <HealthcheckAttemptsComponent database={database} />
+      </>,
+    );
     await waitFor(() => expect(container.querySelectorAll('[data-status]')).toHaveLength(1));
 
-    rerender(<Screen onVisibilityChange={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: 'Switch language' }));
     await screen.findByText(DICTIONARIES.fr.healthcheck.attempts.title);
 

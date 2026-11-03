@@ -1,6 +1,6 @@
-import { Alert, Button, Select, Spin, Tooltip } from 'antd';
+import { Select, Spin, Tooltip } from 'antd';
 import dayjs from 'dayjs';
-import { useEffect, useEffectEvent, useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { type Database, HealthStatus } from '../../../../entities/databases';
@@ -10,12 +10,12 @@ import {
   healthcheckConfigApi,
 } from '../../../../entities/healthcheck';
 import { useSessionGuard } from '../../../../shared/auth';
-import { translateApiError, useLocale } from '../../../../shared/i18n';
+import { useLocale } from '../../../../shared/i18n';
 import { getUserShortTimeFormat } from '../../../../shared/time/getUserTimeFormat';
+import { LoadFailure } from '../../../../shared/ui';
 
 interface Props {
   database: Database;
-  onVisibilityChange?: (isVisible: boolean) => void;
 }
 
 const getSinceByPeriod = (period: 'today' | '7d' | '30d' | 'all'): Date => {
@@ -40,7 +40,7 @@ const getSinceByPeriod = (period: 'today' | '7d' | '30d' | 'all'): Date => {
   return since;
 };
 
-export const HealthcheckAttemptsComponent = ({ database, onVisibilityChange }: Props) => {
+export const HealthcheckAttemptsComponent = ({ database }: Props) => {
   const { t } = useTranslation();
   const { formatRelativeTime } = useLocale();
   const isSessionActive = useSessionGuard();
@@ -56,9 +56,7 @@ export const HealthcheckAttemptsComponent = ({ database, onVisibilityChange }: P
   const [period, setPeriod] = useState<'today' | '7d' | '30d' | 'all'>('today');
   const [loadAttempt, setLoadAttempt] = useState(0);
 
-  const reportVisibility = useEffectEvent((isVisible: boolean) => {
-    onVisibilityChange?.(isVisible);
-  });
+  const retryLoad = () => setLoadAttempt((attempt) => attempt + 1);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | undefined;
@@ -130,7 +128,6 @@ export const HealthcheckAttemptsComponent = ({ database, onVisibilityChange }: P
         if (isCancelled || !isSessionActive()) return;
 
         setIsShowHealthcheckConfig(config.isHealthcheckEnabled);
-        reportVisibility(config.isHealthcheckEnabled);
 
         if (config.isHealthcheckEnabled) void loadHealthcheckAttempts();
       })
@@ -138,7 +135,6 @@ export const HealthcheckAttemptsComponent = ({ database, onVisibilityChange }: P
         if (isCancelled || !isSessionActive()) return;
 
         setConfigLoadError(e);
-        reportVisibility(true);
       })
       .finally(() => {
         if (!isCancelled && isSessionActive()) setIsHealthcheckConfigLoading(false);
@@ -150,12 +146,6 @@ export const HealthcheckAttemptsComponent = ({ database, onVisibilityChange }: P
     };
   }, [database.id, period, loadAttempt, isSessionActive]);
 
-  const retryButton = (
-    <Button onClick={() => setLoadAttempt((attempt) => attempt + 1)}>
-      {t('common.actions.retry')}
-    </Button>
-  );
-
   if (isHealthcheckConfigLoading) {
     return (
       <div className="mb-5 flex items-center">
@@ -165,15 +155,7 @@ export const HealthcheckAttemptsComponent = ({ database, onVisibilityChange }: P
   }
 
   if (configLoadError !== undefined) {
-    return (
-      <Alert
-        className="mb-5"
-        type="error"
-        showIcon
-        message={translateApiError(configLoadError, t)}
-        action={retryButton}
-      />
-    );
+    return <LoadFailure className="mb-5" error={configLoadError} onRetry={retryLoad} />;
   }
 
   if (!isShowHealthcheckConfig) {
@@ -181,7 +163,7 @@ export const HealthcheckAttemptsComponent = ({ database, onVisibilityChange }: P
   }
 
   return (
-    <div className="mb-5 w-full rounded-tr-md rounded-br-md rounded-bl-md bg-surface p-3 shadow sm:p-5">
+    <div className="mb-5 w-full rounded-md bg-surface p-3 shadow sm:p-5">
       <h2 className="text-lg font-bold sm:text-xl">{t('healthcheck.attempts.title')}</h2>
 
       <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:flex-row sm:items-center">
@@ -206,12 +188,7 @@ export const HealthcheckAttemptsComponent = ({ database, onVisibilityChange }: P
       <div className="mt-4 sm:mt-5" />
 
       {attemptsLoadError !== undefined ? (
-        <Alert
-          type="error"
-          showIcon
-          message={translateApiError(attemptsLoadError, t)}
-          action={retryButton}
-        />
+        <LoadFailure error={attemptsLoadError} onRetry={retryLoad} />
       ) : isLoading ? (
         <div className="flex justify-center">
           <Spin size="small" />

@@ -1,4 +1,4 @@
-import { Alert, Button, Input, Modal, Spin } from 'antd';
+import { Button, Input, Modal, Spin } from 'antd';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -19,8 +19,7 @@ import {
   useRequestRevision,
   useScopedSelection,
 } from '../../../shared/hooks';
-import { translateApiError } from '../../../shared/i18n';
-import { ResourceListDetail } from '../../../shared/ui';
+import { ResourceListDetail, LoadFailure } from '../../../shared/ui';
 import { CreateDatabaseComponent } from './CreateDatabaseComponent';
 import { DatabaseCardComponent } from './DatabaseCardComponent';
 import { DatabaseComponent } from './DatabaseComponent';
@@ -288,14 +287,7 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       <StorageSwitchHistoryComponent workspaceId={workspace.id} />
 
-      {loadError !== undefined && (
-        <Alert
-          type="error"
-          showIcon
-          message={translateApiError(loadError, t)}
-          action={<Button onClick={() => loadDatabases()}>{t('common.actions.retry')}</Button>}
-        />
-      )}
+      {loadError !== undefined && <LoadFailure error={loadError} onRetry={() => loadDatabases()} />}
 
       {isLoading && !collection.isReady ? (
         <div className="mx-3 my-3 flex w-62.5 justify-center">

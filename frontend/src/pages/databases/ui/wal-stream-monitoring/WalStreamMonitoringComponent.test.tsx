@@ -67,12 +67,7 @@ const DatabasePage = () => {
       <button onClick={() => setLocale('ru')}>Switch language</button>
       <button onClick={() => setIsMonitoringOpen((isOpen) => !isOpen)}>Toggle tab</button>
       {isMonitoringOpen && (
-        <WalStreamMonitoringComponent
-          database={database}
-          isCanManageDBs
-          isDirectlyUnderTab
-          onOpenConfig={() => {}}
-        />
+        <WalStreamMonitoringComponent database={database} isCanManageDBs onOpenConfig={() => {}} />
       )}
     </>
   );

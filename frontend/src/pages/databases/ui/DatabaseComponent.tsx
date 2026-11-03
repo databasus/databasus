@@ -1,10 +1,10 @@
-import { Alert, Button, Spin, Tabs } from 'antd';
+import { Spin, Tabs } from 'antd';
 import { type RefObject, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { type Database, DatabaseType, databaseApi } from '../../../entities/databases';
 import { useSessionGuard } from '../../../shared/auth';
-import { translateApiError } from '../../../shared/i18n';
+import { LoadFailure } from '../../../shared/ui';
 import { isMonitoringTabShown } from '../lib/wal-stream-monitoring/monitoringTab';
 import { DatabaseConfigComponent } from './DatabaseConfigComponent';
 import { HealthcheckAttemptsComponent } from './healthcheck';
@@ -41,11 +41,6 @@ export const DatabaseComponent = ({
   const [database, setDatabase] = useState<Database | undefined>();
   const [loadError, setLoadError] = useState<unknown>();
   const [loadAttempt, setLoadAttempt] = useState(0);
-  const [isHealthcheckVisible, setIsHealthcheckVisible] = useState(false);
-
-  const handleHealthcheckVisibilityChange = (isVisible: boolean) => {
-    setIsHealthcheckVisible(isVisible);
-  };
 
   const acceptChangedDatabase = (changedDatabase: Database) => {
     if (isActive()) {
@@ -84,16 +79,7 @@ export const DatabaseComponent = ({
 
   if (loadError !== undefined) {
     return (
-      <Alert
-        type="error"
-        showIcon
-        message={translateApiError(loadError, t)}
-        action={
-          <Button onClick={() => setLoadAttempt((attempt) => attempt + 1)}>
-            {t('common.actions.retry')}
-          </Button>
-        }
-      />
+      <LoadFailure error={loadError} onRetry={() => setLoadAttempt((attempt) => attempt + 1)} />
     );
   }
 
@@ -120,60 +106,56 @@ export const DatabaseComponent = ({
         ]}
       />
 
-      {shownTab === 'config' && (
-        <DatabaseConfigComponent
-          database={database}
-          onDatabaseChanged={acceptChangedDatabase}
-          onDatabaseDeleted={onDatabaseDeleted}
-          onDatabaseCopied={onDatabaseCopied}
-          onDatabaseTransferred={onDatabaseTransferred}
-          isCanManageDBs={isCanManageDBs}
-        />
-      )}
-
-      {shownTab === 'backups' && (
-        <>
-          <HealthcheckAttemptsComponent
+      {/* The card directly under the tabs joins the active tab, so it has a square corner there. */}
+      <div className="[&>:first-child]:rounded-tl-none">
+        {shownTab === 'config' && (
+          <DatabaseConfigComponent
             database={database}
-            onVisibilityChange={handleHealthcheckVisibilityChange}
+            onDatabaseChanged={acceptChangedDatabase}
+            onDatabaseDeleted={onDatabaseDeleted}
+            onDatabaseCopied={onDatabaseCopied}
+            onDatabaseTransferred={onDatabaseTransferred}
+            isCanManageDBs={isCanManageDBs}
           />
+        )}
 
-          {isPhysicalDatabase ? (
-            <PhysicalBackupsComponent
-              database={database}
-              isCanManageDBs={isCanManageDBs}
-              isDirectlyUnderTab={!isHealthcheckVisible}
-              scrollContainerRef={scrollContainerRef}
-            />
-          ) : (
-            <LogicalBackupsComponent
-              database={database}
-              isCanManageDBs={isCanManageDBs}
-              isDirectlyUnderTab={!isHealthcheckVisible}
-              scrollContainerRef={scrollContainerRef}
-              onNavigateToVerifications={() => setCurrentTab('verifications')}
-            />
-          )}
-        </>
-      )}
+        {shownTab === 'backups' && (
+          <>
+            <HealthcheckAttemptsComponent database={database} />
 
-      {shownTab === 'monitoring' && (
-        <WalStreamMonitoringComponent
-          database={database}
-          isCanManageDBs={isCanManageDBs}
-          isDirectlyUnderTab={true}
-          onOpenConfig={() => setCurrentTab('config')}
-        />
-      )}
+            {isPhysicalDatabase ? (
+              <PhysicalBackupsComponent
+                database={database}
+                isCanManageDBs={isCanManageDBs}
+                scrollContainerRef={scrollContainerRef}
+              />
+            ) : (
+              <LogicalBackupsComponent
+                database={database}
+                isCanManageDBs={isCanManageDBs}
+                scrollContainerRef={scrollContainerRef}
+                onNavigateToVerifications={() => setCurrentTab('verifications')}
+              />
+            )}
+          </>
+        )}
 
-      {shownTab === 'verifications' && (
-        <VerificationsComponent
-          database={database}
-          isCanManageDBs={isCanManageDBs}
-          isDirectlyUnderTab={true}
-          scrollContainerRef={scrollContainerRef}
-        />
-      )}
+        {shownTab === 'monitoring' && (
+          <WalStreamMonitoringComponent
+            database={database}
+            isCanManageDBs={isCanManageDBs}
+            onOpenConfig={() => setCurrentTab('config')}
+          />
+        )}
+
+        {shownTab === 'verifications' && (
+          <VerificationsComponent
+            database={database}
+            isCanManageDBs={isCanManageDBs}
+            scrollContainerRef={scrollContainerRef}
+          />
+        )}
+      </div>
     </div>
   );
 };
