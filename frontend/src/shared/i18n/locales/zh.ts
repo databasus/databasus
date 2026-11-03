@@ -81,7 +81,6 @@ export const zh: typeof en = {
     diskUsage: {
       title: '磁盘用量',
       hint: '在本地创建和恢复备份需要足够的磁盘空间。恢复时需要的可用空间与备份大小相同。',
-      compactSummary: '磁盘已用 {{used}} / {{total}} GB<lineBreak/>（{{percent}}%）',
       summary: '已用 {{used}} / {{total}} GB（{{percent}}%）',
     },
     workspaceSelection: {

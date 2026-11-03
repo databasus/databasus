@@ -81,7 +81,6 @@ export const en = {
     diskUsage: {
       title: 'Disk Usage',
       hint: 'To make backups locally and restore them, you need to have enough space on your disk. For restore, you need to have same amount of space that the backup size.',
-      compactSummary: '{{used}} of {{total}} GB<lineBreak/>ROM used ({{percent}}%)',
       summary: '{{used}} of {{total}} GB used ({{percent}}%)',
     },
     workspaceSelection: {

@@ -81,7 +81,6 @@ export const pt: typeof en = {
     diskUsage: {
       title: 'Uso do disco',
       hint: 'Para fazer backups localmente e restaurá-los, o disco precisa ter espaço suficiente. Para restaurar, é preciso ter livre o mesmo espaço que o backup ocupa.',
-      compactSummary: '{{used}} de {{total}} GB<lineBreak/>em uso ({{percent}}%)',
       summary: '{{used}} de {{total}} GB em uso ({{percent}}%)',
     },
     workspaceSelection: {

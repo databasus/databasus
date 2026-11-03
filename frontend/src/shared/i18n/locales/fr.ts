@@ -81,7 +81,6 @@ export const fr: typeof en = {
     diskUsage: {
       title: 'Espace disque',
       hint: "Pour créer des sauvegardes en local et les restaurer, il faut assez d'espace sur le disque. Une restauration demande autant d'espace libre que la taille de la sauvegarde.",
-      compactSummary: '{{used}} sur {{total}} GB<lineBreak/>utilisés ({{percent}} %)',
       summary: '{{used}} sur {{total}} GB utilisés ({{percent}} %)',
     },
     workspaceSelection: {

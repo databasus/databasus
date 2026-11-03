@@ -3,12 +3,105 @@ import { expect } from '@playwright/test';
 import { DICTIONARIES } from '../../src/shared/i18n/dictionaries';
 import { accountFixtures } from '../accountFixtures';
 import { assertAccountReflow } from '../assertAccountReflow';
+import { assertThemeTextColor } from '../assertThemeTextColor';
 import { test } from '../browserTest';
 import { enlargeText } from '../enlargeText';
+import { apiResponse } from '../HttpFixture';
 import { openAccount } from '../openAccount';
 import { openAccountTab } from '../openAccountTab';
 
 test.use({ httpFixtures: [accountFixtures(), { scope: 'test' }] });
+
+for (const usedPercent of [50, 90, 95, 96]) {
+  test.describe(`disk usage at ${usedPercent} percent`, () => {
+    const totalSpaceBytes = 100 * 1024 ** 3;
+    const usedSpaceBytes = usedPercent * 1024 ** 3;
+    const diskSummary = `${usedPercent.toFixed(1)} of 100.0 GB used (${usedPercent.toFixed(1)}%)`;
+    const colorRole = usedPercent > 95 ? '--app-danger' : '--app-muted';
+    test.use({
+      httpFixtures: [
+        accountFixtures().map((fixture) =>
+          fixture.method === 'GET' && fixture.path === '/system/disk-usages'
+            ? apiResponse({
+                method: 'get',
+                path: '/system/disk-usages',
+                status: 200,
+                body: {
+                  usedSpaceBytes,
+                  totalSpaceBytes,
+                  freeSpaceBytes: totalSpaceBytes - usedSpaceBytes,
+                },
+              })
+            : fixture,
+        ),
+        { scope: 'test' },
+      ],
+    });
+
+    if (usedPercent === 90 || usedPercent === 96) {
+      test('preserves warning color and header reflow when the theme changes with enlarged text', async ({
+        page,
+      }) => {
+        await page.setViewportSize({ width: 769, height: 900 });
+        await openAccount({ page });
+        const header = page.getByRole('banner');
+        const summary = header.getByText(diskSummary, { exact: true });
+        await expect(summary).toBeVisible();
+        await assertThemeTextColor({ text: summary, role: colorRole });
+
+        await summary.hover();
+        await expect(page.getByRole('tooltip')).toHaveText(DICTIONARIES.en.app.diskUsage.hint);
+        await page.mouse.move(0, 0);
+        await expect(page.getByRole('tooltip')).not.toBeVisible();
+
+        await enlargeText(page.locator('body'));
+        await assertAccountReflow(header);
+        await expect(summary).toBeInViewport();
+
+        const lightColor = await summary.evaluate((element) => getComputedStyle(element).color);
+        await header
+          .getByRole('button', {
+            name: DICTIONARIES.en.app.theme.title.replace(
+              '{{theme}}',
+              DICTIONARIES.en.app.theme.light,
+            ),
+            exact: true,
+          })
+          .click();
+        await page
+          .getByRole('menuitem', { name: DICTIONARIES.en.app.theme.dark, exact: true })
+          .click();
+
+        await expect(page.locator('html')).toHaveClass(/dark/);
+        await assertThemeTextColor({ text: summary, role: colorRole });
+        await expect(summary).not.toHaveCSS('color', lightColor);
+        await expect(summary).toHaveText(diskSummary);
+        await assertAccountReflow(header);
+        await expect(summary).toBeInViewport();
+      });
+    }
+
+    if (usedPercent !== 90) {
+      for (const theme of ['light', 'dark']) {
+        test(`keeps mobile disk information available in the ${theme} theme`, async ({ page }) => {
+          await page.setViewportSize({ width: 320, height: 900 });
+          await openAccount({ page, theme });
+          await page
+            .getByRole('button', { name: DICTIONARIES.en.app.navigation.menu, exact: true })
+            .click();
+
+          const sidebar = page.getByRole('dialog');
+          const summary = sidebar.getByText(diskSummary, { exact: true });
+          await expect(summary).toBeVisible();
+          await assertThemeTextColor({ text: summary, role: colorRole });
+          await expect(
+            page.getByRole('banner').getByText(diskSummary, { exact: true }),
+          ).toHaveCount(0);
+        });
+      }
+    }
+  });
+}
 
 test('keeps desktop header actions reachable when the entire shell uses 200% text just above the mobile breakpoint', async ({
   page,
