@@ -1,5 +1,5 @@
 import { Alert, Button, Spin, Tooltip } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { DatabasesPage } from '@/pages/databases';
@@ -210,13 +210,12 @@ export const ApplicationScreen = () => {
               {selectedTab === 'users' && isAdmin && <UsersPage />}
               {['databases', 'storages', 'notifiers', 'settings'].includes(selectedTab) &&
                 (selectedWorkspace ? (
-                  <>
+                  <Fragment key={selectedWorkspace.id}>
                     {selectedTab === 'databases' && (
                       <DatabasesPage
                         onUnavailable={startup.reconcileUnavailableWorkspace}
                         workspace={selectedWorkspace}
                         isCanManageDBs={canManageWorkspace}
-                        key={`databases-${selectedWorkspace.id}`}
                       />
                     )}
                     {selectedTab === 'storages' && (
@@ -240,10 +239,9 @@ export const ApplicationScreen = () => {
                         onUnavailable={startup.reconcileUnavailableWorkspace}
                         selectedWorkspace={selectedWorkspace}
                         user={user}
-                        key={`settings-${selectedWorkspace.id}`}
                       />
                     )}
-                  </>
+                  </Fragment>
                 ) : (
                   <div className="flex flex-1 items-center justify-center">
                     {canCreateWorkspace && (

@@ -117,11 +117,7 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
 
   const loadMembers = async () => {
     const readRevision = memberReadRevision.Invalidate();
-    const revision = workspaceRevision.GetCurrent();
-    const isActive = () =>
-      isCurrent() &&
-      workspaceRevision.IsCurrent(revision) &&
-      memberReadRevision.IsCurrent(readRevision);
+    const isActive = () => isCurrent() && memberReadRevision.IsCurrent(readRevision);
     setIsLoadingMembers(true);
     setLoadError(undefined);
 
@@ -150,11 +146,7 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
 
   const searchUsers = async (query: string) => {
     const requestRevision = searchRevision.Invalidate();
-    const revision = workspaceRevision.GetCurrent();
-    const isActive = () =>
-      isCurrent() &&
-      workspaceRevision.IsCurrent(revision) &&
-      searchRevision.IsCurrent(requestRevision);
+    const isActive = () => isCurrent() && searchRevision.IsCurrent(requestRevision);
 
     if (user.role !== UserRole.ADMIN) return;
 
@@ -182,9 +174,6 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
   };
 
   const handleAddMember = async () => {
-    const revision = workspaceRevision.GetCurrent();
-    const isActive = () => isCurrent() && workspaceRevision.IsCurrent(revision);
-
     if (!addMemberForm.email.trim()) {
       setAddMemberEmailError(true);
       message.error(t('workspaces.members.add.emailRequired'));
@@ -199,7 +188,7 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
         email: addMemberForm.email.trim(),
         role: addMemberForm.role,
       });
-      if (!isActive()) return;
+      if (!isCurrent()) return;
 
       setAddMemberForm(EMPTY_ADD_MEMBER_FORM);
       setIsAddMemberModalOpen(false);
@@ -213,35 +202,33 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
 
       loadMembers();
     } catch (error: unknown) {
-      if (!isActive()) return;
+      if (!isCurrent()) return;
 
       message.error(translateApiError(error, t));
     } finally {
-      if (isActive()) {
+      if (isCurrent()) {
         setIsAddingMember(false);
       }
     }
   };
 
   const handleChangeRole = async (memberId: string, newRole: AssignableWorkspaceRole) => {
-    const revision = workspaceRevision.GetCurrent();
-    const isActive = () => isCurrent() && workspaceRevision.IsCurrent(revision);
     setChangingRoleFor(memberId);
     setIsChangingRole(true);
 
     try {
       const changedMember = await workspaceMemberApi.changeMemberRole(memberId, newRole);
-      if (!isActive()) return;
+      if (!isCurrent()) return;
 
       setMembers((prev) => prev.map((member) => (member.id === memberId ? changedMember : member)));
 
       message.success(t('workspaces.members.roleChanged'));
     } catch (error: unknown) {
-      if (!isActive()) return;
+      if (!isCurrent()) return;
 
       message.error(translateApiError(error, t));
     } finally {
-      if (isActive()) {
+      if (isCurrent()) {
         setChangingRoleFor(null);
         setIsChangingRole(false);
       }
@@ -249,22 +236,20 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
   };
 
   const handleRemoveMember = async (memberId: string, memberEmail: string) => {
-    const revision = workspaceRevision.GetCurrent();
-    const isActive = () => isCurrent() && workspaceRevision.IsCurrent(revision);
     setRemovingMembers((prev) => new Set(prev).add(memberId));
 
     try {
       await workspaceMemberApi.removeMember(memberId);
-      if (!isActive()) return;
+      if (!isCurrent()) return;
 
       setMembers((prev) => prev.filter((member) => member.id !== memberId));
       message.success(t('workspaces.members.remove.removed', { email: memberEmail }));
     } catch (error: unknown) {
-      if (!isActive()) return;
+      if (!isCurrent()) return;
 
       message.error(translateApiError(error, t));
     } finally {
-      if (isActive()) {
+      if (isCurrent()) {
         setRemovingMembers((prev) => {
           const newSet = new Set(prev);
           newSet.delete(memberId);
@@ -275,9 +260,6 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
   };
 
   const handleTransferOwnership = async () => {
-    const revision = workspaceRevision.GetCurrent();
-    const isActive = () => isCurrent() && workspaceRevision.IsCurrent(revision);
-
     if (!transferForm.selectedMemberId) {
       setTransferMemberError(true);
       message.error(t('workspaces.transferOwnership.memberRequired'));
@@ -296,18 +278,18 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
 
     try {
       await workspaceApi.transferOwnership(selectedWorkspace.id, selectedMember.id);
-      if (!isActive()) return;
+      if (!isCurrent()) return;
 
       setTransferForm({ selectedMemberId: '' });
       setIsTransferOwnershipModalOpen(false);
       message.success(t('workspaces.transferOwnership.transferred'));
       loadMembers();
     } catch (error: unknown) {
-      if (!isActive()) return;
+      if (!isCurrent()) return;
 
       message.error(translateApiError(error, t));
     } finally {
-      if (isActive()) {
+      if (isCurrent()) {
         setIsTransferringOwnership(false);
       }
     }
@@ -393,7 +375,6 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
 
   const memberEmailControlId = useId();
   const isCurrent = useSessionGuard();
-  const workspaceRevision = useRequestRevision();
   const searchRevision = useRequestRevision();
   const memberReadRevision = useRequestRevision();
 
@@ -402,34 +383,8 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
   });
 
   useEffect(() => {
-    workspaceRevision.Invalidate();
-    searchRevision.Invalidate();
-    setMembers([]);
-    setHasLoadedMembers(false);
-    setIsAddMemberModalOpen(false);
-    setAddMemberForm(EMPTY_ADD_MEMBER_FORM);
-    setIsAddingMember(false);
-    setAddMemberEmailError(false);
-    setIsInviteDialogOpen(false);
-    setInvitedEmail('');
-    setChangingRoleFor(null);
-    setIsChangingRole(false);
-    setIsTransferOwnershipModalOpen(false);
-    setTransferForm({ selectedMemberId: '' });
-    setIsTransferringOwnership(false);
-    setTransferMemberError(false);
-    setRemovingMembers(new Set());
-    setUserSearchResults([]);
-    setSearchInputValue('');
-    setIsSearchingUsers(false);
     startMembersLoad();
-
-    return () => {
-      workspaceRevision.Invalidate();
-      searchRevision.Invalidate();
-      memberReadRevision.Invalidate();
-    };
-  }, [selectedWorkspace.id, workspaceRevision, searchRevision, memberReadRevision]);
+  }, []);
 
   const canSearchUsers = useEffectEvent(() => user.role === UserRole.ADMIN);
   const startUserSearch = useEffectEvent((query: string) => {
@@ -447,7 +402,7 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
       clearTimeout(timer);
       searchRevision.Invalidate();
     };
-  }, [searchInputValue, isAddMemberModalOpen, selectedWorkspace.id, searchRevision]);
+  }, [searchInputValue, isAddMemberModalOpen, searchRevision]);
 
   const assignableRoles: AssignableWorkspaceRole[] = canManageAdmins
     ? [WorkspaceRole.VIEWER, WorkspaceRole.MEMBER, WorkspaceRole.ADMIN]

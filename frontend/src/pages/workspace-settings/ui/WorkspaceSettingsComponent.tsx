@@ -211,16 +211,13 @@ export function WorkspaceSettingsComponent({
   });
 
   useEffect(() => {
-    setIsSaving(false);
-    setIsDeleting(false);
-    setMutationError(undefined);
     startWorkspaceLoad();
 
     return () => {
       workspaceRevision.Invalidate();
       deletionDialog.current?.destroy();
     };
-  }, [selectedWorkspace.id, workspaceRevision]);
+  }, [workspaceRevision]);
 
   const isBasicInfoChanged = !!workspace && formWorkspace.name !== workspace.name;
 

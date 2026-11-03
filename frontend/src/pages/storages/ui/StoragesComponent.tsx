@@ -22,35 +22,32 @@ interface Props {
 
 export const StoragesComponent = ({ workspace, isCanManageStorages, onUnavailable }: Props) => {
   const [collection, setCollection] = useState<{
-    workspaceId: string;
     items: Storage[];
     isReady: boolean;
-  }>({ workspaceId: workspace.id, items: [], isReady: false });
+  }>({ items: [], isReady: false });
   const [loadError, setLoadError] = useState<unknown>();
   const [isLoading, setIsLoading] = useState(true);
   const [isShowAddStorage, setIsShowAddStorage] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
 
   const loadStorages = (isSilent = false) => {
     if (!isCurrent()) return;
 
     const revision = loadRevision.Invalidate();
-    const workspaceId = workspace.id;
 
     if (!isSilent) setIsLoading(true);
     setLoadError(undefined);
     storageApi
-      .listAllStorages(workspaceId)
+      .listAllStorages(workspace.id)
       .then((items) => {
         if (!isCurrent() || !loadRevision.IsCurrent(revision)) return;
-        setCollection({ workspaceId, items, isReady: true });
+        setCollection({ items, isReady: true });
       })
       .catch((error) => {
         if (isCurrent() && loadRevision.IsCurrent(revision)) {
           setLoadError(error);
 
           if (error instanceof ApiError && [403, 404].includes(error.status ?? 0)) {
-            setCollection({ workspaceId: workspace.id, items: [], isReady: false });
+            setCollection({ items: [], isReady: false });
             onUnavailable?.(workspace.id);
           }
         }
@@ -64,7 +61,6 @@ export const StoragesComponent = ({ workspace, isCanManageStorages, onUnavailabl
     if (!isCurrent() || resource.workspaceId !== workspace.id) return;
 
     setCollection((current) => ({
-      workspaceId: workspace.id,
       isReady: true,
       items: [...current.items.filter((item) => item.id !== resource.id), resource],
     }));
@@ -87,12 +83,12 @@ export const StoragesComponent = ({ workspace, isCanManageStorages, onUnavailabl
   const isCurrent = useSessionGuard();
   const loadRevision = useRequestRevision();
   const addButtonRef = useRef<HTMLButtonElement>(null);
-  const storages = collection.workspaceId === workspace.id ? collection.items : [];
+  const storages = collection.items;
   const selection = useScopedSelection({
     // eslint-disable-next-line i18next/no-literal-string -- browser preference key
     scopeKey: `selectedStorageId_${workspace.id}`,
     itemIds: storages.map((resource) => resource.id),
-    isReady: collection.workspaceId === workspace.id && collection.isReady,
+    isReady: collection.isReady,
     isMobile,
   });
   const selectedStorageId = selection.selectedItemId;
@@ -102,15 +98,8 @@ export const StoragesComponent = ({ workspace, isCanManageStorages, onUnavailabl
   });
 
   useEffect(() => {
-    setCollection({ workspaceId: workspace.id, items: [], isReady: false });
-    setIsShowAddStorage(false);
-    setSearchQuery('');
     startStoragesLoad();
-
-    return () => {
-      loadRevision.Invalidate();
-    };
-  }, [workspace.id, loadRevision]);
+  }, []);
 
   // Read when the form closes, because the button can appear after the form opened.
   const returnFocusToButton = useEffectEvent(() => {
@@ -125,9 +114,6 @@ export const StoragesComponent = ({ workspace, isCanManageStorages, onUnavailabl
     };
   }, [isShowAddStorage]);
 
-  const filteredStorages = storages.filter((resource) =>
-    resource.name.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
   const addButton = (
     <Button
       ref={addButtonRef}
@@ -144,7 +130,7 @@ export const StoragesComponent = ({ workspace, isCanManageStorages, onUnavailabl
         <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('storages.list.empty')} />
       )}
       {storages.length >= 5 && isCanManageStorages && addButton}
-      {filteredStorages.map((resource) => (
+      {storages.map((resource) => (
         <StorageCardComponent
           key={resource.id}
           storage={resource}
@@ -182,7 +168,7 @@ export const StoragesComponent = ({ workspace, isCanManageStorages, onUnavailabl
           detail={
             selectedStorageId && (
               <StorageComponent
-                key={`${workspace.id}/${selectedStorageId}`}
+                key={selectedStorageId}
                 storageId={selectedStorageId}
                 onUnavailable={() => loadStorages(true)}
                 onStorageChanged={acceptStorage}
@@ -194,7 +180,7 @@ export const StoragesComponent = ({ workspace, isCanManageStorages, onUnavailabl
           }
         />
       ) : null}
-      {isShowAddStorage && collection.workspaceId === workspace.id && (
+      {isShowAddStorage && (
         <Modal
           title={t('storages.list.addStorage')}
           footer={null}

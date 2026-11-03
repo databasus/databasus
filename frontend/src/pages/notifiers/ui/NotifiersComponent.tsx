@@ -22,10 +22,9 @@ interface Props {
 
 export const NotifiersComponent = ({ workspace, isCanManageNotifiers, onUnavailable }: Props) => {
   const [collection, setCollection] = useState<{
-    workspaceId: string;
     items: Notifier[];
     isReady: boolean;
-  }>({ workspaceId: workspace.id, items: [], isReady: false });
+  }>({ items: [], isReady: false });
   const [loadError, setLoadError] = useState<unknown>();
   const [isLoading, setIsLoading] = useState(true);
   const [isShowAddNotifier, setIsShowAddNotifier] = useState(false);
@@ -35,22 +34,21 @@ export const NotifiersComponent = ({ workspace, isCanManageNotifiers, onUnavaila
     if (!isCurrent()) return;
 
     const revision = loadRevision.Invalidate();
-    const workspaceId = workspace.id;
 
     if (!isSilent) setIsLoading(true);
     setLoadError(undefined);
     notifierApi
-      .listAllNotifiers(workspaceId)
+      .listAllNotifiers(workspace.id)
       .then((items) => {
         if (!isCurrent() || !loadRevision.IsCurrent(revision)) return;
-        setCollection({ workspaceId, items, isReady: true });
+        setCollection({ items, isReady: true });
       })
       .catch((error) => {
         if (isCurrent() && loadRevision.IsCurrent(revision)) {
           setLoadError(error);
 
           if (error instanceof ApiError && [403, 404].includes(error.status ?? 0)) {
-            setCollection({ workspaceId: workspace.id, items: [], isReady: false });
+            setCollection({ items: [], isReady: false });
             onUnavailable?.(workspace.id);
           }
         }
@@ -64,7 +62,6 @@ export const NotifiersComponent = ({ workspace, isCanManageNotifiers, onUnavaila
     if (!isCurrent() || resource.workspaceId !== workspace.id) return;
 
     setCollection((current) => ({
-      workspaceId: workspace.id,
       isReady: true,
       items: [...current.items.filter((item) => item.id !== resource.id), resource],
     }));
@@ -87,12 +84,12 @@ export const NotifiersComponent = ({ workspace, isCanManageNotifiers, onUnavaila
   const isCurrent = useSessionGuard();
   const loadRevision = useRequestRevision();
   const addButtonRef = useRef<HTMLButtonElement>(null);
-  const notifiers = collection.workspaceId === workspace.id ? collection.items : [];
+  const notifiers = collection.items;
   const selection = useScopedSelection({
     // eslint-disable-next-line i18next/no-literal-string -- browser preference key
     scopeKey: `selectedNotifierId_${workspace.id}`,
     itemIds: notifiers.map((resource) => resource.id),
-    isReady: collection.workspaceId === workspace.id && collection.isReady,
+    isReady: collection.isReady,
     isMobile,
   });
   const selectedNotifierId = selection.selectedItemId;
@@ -102,17 +99,13 @@ export const NotifiersComponent = ({ workspace, isCanManageNotifiers, onUnavaila
   });
 
   useEffect(() => {
-    setCollection({ workspaceId: workspace.id, items: [], isReady: false });
-    setIsShowAddNotifier(false);
-    setSearchQuery('');
     startNotifiersLoad();
     const interval = setInterval(() => startNotifiersLoad(true), 5 * 60_000);
 
     return () => {
-      loadRevision.Invalidate();
       clearInterval(interval);
     };
-  }, [workspace.id, loadRevision]);
+  }, []);
 
   // Read when the form closes, because the button can appear after the form opened.
   const returnFocusToButton = useEffectEvent(() => {
@@ -197,7 +190,7 @@ export const NotifiersComponent = ({ workspace, isCanManageNotifiers, onUnavaila
           detail={
             selectedNotifierId && (
               <NotifierComponent
-                key={`${workspace.id}/${selectedNotifierId}`}
+                key={selectedNotifierId}
                 notifierId={selectedNotifierId}
                 onUnavailable={() => loadNotifiers(true)}
                 onNotifierChanged={acceptNotifier}
@@ -209,7 +202,7 @@ export const NotifiersComponent = ({ workspace, isCanManageNotifiers, onUnavaila
           }
         />
       ) : null}
-      {isShowAddNotifier && collection.workspaceId === workspace.id && (
+      {isShowAddNotifier && (
         <Modal
           title={t('notifiers.list.addNotifier')}
           footer={null}
