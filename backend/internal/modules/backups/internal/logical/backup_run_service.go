@@ -20,6 +20,8 @@ import (
 // the expensive part is done, so a cancel arriving now no longer fails the backup.
 const metadataWriteTimeout = 30 * time.Second
 
+const logicalBackupProgressInterval = 5 * time.Second
+
 // backupMetadata is the sidecar next to the backup file, which lets the recovery of a storage
 // without Databasus decrypt the file.
 type backupMetadata struct {
@@ -53,7 +55,8 @@ func (s *Service) runBackup(runCtx context.Context, backup LogicalBackup, backup
 		OnProgress: func(storedSizeMb float64) {
 			s.recordProgress(runCtx, backup, storedSizeMb, startedAt)
 		},
-		Logger: s.logger,
+		ProgressInterval: logicalBackupProgressInterval,
+		Logger:           s.logger,
 	})
 	if errors.Is(err, runcontext.ErrBackupCancelled) {
 		s.cancelBackup(runCtx, backup, startedAt)

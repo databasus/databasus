@@ -16,7 +16,10 @@ import (
 	"databasus-backend/internal/lib/testwait"
 )
 
-var errDownloadNotServed = errors.New("the download is not served yet")
+var (
+	errDownloadNotServed    = errors.New("the download is not served yet")
+	errProgressNotRefreshed = errors.New("no progress refresh recorded the moved duration")
+)
 
 // backupSourceDatabase is a database of the team's workspace on a restoreServer whose config backs it
 // up into a local storage, with no backup yet.
@@ -52,6 +55,47 @@ func startBlockedSourceBackup(
 	server.waitUntilSessionWaitsOnLock(t, source.sourceName)
 
 	return startedBackup, releaseLock
+}
+
+// startQuietDumpBackup starts a backup whose dump tool waits on a locked view that references no
+// table, because locking a view also locks the tables it references. The size query before the dump
+// reads only tables, so unlike startBlockedSourceBackup this holds the backup while its dump streams,
+// before the tool has written anything.
+func startQuietDumpBackup(
+	t *testing.T,
+	tm team,
+	server restoreServer,
+	source backupSourceDatabase,
+) apiclient.LogicalBackup {
+	t.Helper()
+
+	server.exec(t, source.sourceName, "CREATE VIEW quiet_view AS SELECT 1 AS id")
+	server.lockRelation(t, source.sourceName, "quiet_view")
+	startedBackup := startRestorableBackup(t, tm.owner, source.databaseID)
+	server.waitUntilSessionWaitsOnLock(t, source.sourceName)
+
+	return startedBackup
+}
+
+// moveClockUntilProgressRefresh moves the clock by a minute and waits for a progress refresh to record
+// that duration, which takes up to one real progress interval.
+func moveClockUntilProgressRefresh(t *testing.T, tm team, backupID uuid.UUID) apiclient.LogicalBackup {
+	t.Helper()
+
+	tm.app.Clock.Advance(time.Minute)
+
+	var refreshedBackup apiclient.LogicalBackup
+
+	testwait.Until(t, "a progress refresh recorded the moved duration", func(context.Context) error {
+		refreshedBackup = *requestLogicalBackup(t, tm.owner, backupID).JSON200
+		if refreshedBackup.DurationMs < time.Minute.Milliseconds() {
+			return fmt.Errorf("%w: %d ms", errProgressNotRefreshed, refreshedBackup.DurationMs)
+		}
+
+		return nil
+	})
+
+	return refreshedBackup
 }
 
 func requestLogicalBackupStart(

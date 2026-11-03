@@ -10,6 +10,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
@@ -36,14 +37,15 @@ func newTestBackupSpec() BackupSpec {
 	backupID := uuid.New()
 
 	return BackupSpec{
-		BackupID:     backupID,
-		DatabaseID:   uuid.New(),
-		DatabaseType: "",
-		StorageID:    uuid.New(),
-		FileName:     "test-backup-" + backupID.String(),
-		IsEncrypted:  false,
-		OnProgress:   func(float64) {},
-		Logger:       slog.New(slog.DiscardHandler),
+		BackupID:         backupID,
+		DatabaseID:       uuid.New(),
+		DatabaseType:     "",
+		StorageID:        uuid.New(),
+		FileName:         "test-backup-" + backupID.String(),
+		IsEncrypted:      false,
+		OnProgress:       func(float64) {},
+		ProgressInterval: time.Hour,
+		Logger:           slog.New(slog.DiscardHandler),
 	}
 }
 

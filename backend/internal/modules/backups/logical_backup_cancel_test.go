@@ -47,6 +47,20 @@ func TestCancelLogicalBackup(t *testing.T) {
 			cancelledFileName, cancelledFileName+".metadata"))
 	})
 
+	t.Run("keeps the canceled status and size 0 after a cancel while the dump streams", func(t *testing.T) {
+		tm := newTeam(t)
+		source := newBackupSourceDatabase(t, tm, server)
+		runningBackup := startQuietDumpBackup(t, tm, server, source)
+		moveClockUntilProgressRefresh(t, tm, runningBackup.Id)
+
+		response := requestLogicalBackupCancel(t, tm.owner, runningBackup.Id)
+
+		require.Equal(t, http.StatusAccepted, response.StatusCode(), string(response.Body))
+		cancelledBackup := waitForRestorableBackupStatus(t, tm.owner, runningBackup.Id,
+			apiclient.LogicalBackupStatusCANCELED)
+		assert.Zero(t, cancelledBackup.SizeMb)
+	})
+
 	t.Run("records canceled when the user cancels during setup", func(t *testing.T) {
 		tm := newTeam(t)
 		source := newBackupSourceDatabase(t, tm, server)

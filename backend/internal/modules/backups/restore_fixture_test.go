@@ -106,10 +106,16 @@ func (s restoreServer) countItems(t *testing.T, databaseName string) int {
 func (s restoreServer) lockItems(t *testing.T, databaseName string) (release func()) {
 	t.Helper()
 
+	return s.lockRelation(t, databaseName, "items")
+}
+
+func (s restoreServer) lockRelation(t *testing.T, databaseName, relationName string) (release func()) {
+	t.Helper()
+
 	transaction, err := s.connect(t, databaseName).Begin(t.Context())
 	require.NoError(t, err)
 
-	_, err = transaction.Exec(t.Context(), "LOCK TABLE items IN ACCESS EXCLUSIVE MODE")
+	_, err = transaction.Exec(t.Context(), "LOCK TABLE "+relationName+" IN ACCESS EXCLUSIVE MODE")
 	require.NoError(t, err)
 
 	release = func() { _ = transaction.Rollback(context.WithoutCancel(t.Context())) }
@@ -118,8 +124,6 @@ func (s restoreServer) lockItems(t *testing.T, databaseName string) (release fun
 	return release
 }
 
-// waitUntilSessionWaitsOnLock waits until a session of the database, a dump or a restore tool, waits
-// for the lock lockItems holds.
 func (s restoreServer) waitUntilSessionWaitsOnLock(t *testing.T, databaseName string) {
 	t.Helper()
 

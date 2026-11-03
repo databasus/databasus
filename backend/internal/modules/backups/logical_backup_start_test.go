@@ -38,6 +38,26 @@ func TestStartLogicalBackup(t *testing.T) {
 		assert.Positive(t, completedBackup.SizeMb)
 		assert.Nil(t, completedBackup.FailMessage)
 		assert.Equal(t, apiclient.BackupEncryptionNONE, completedBackup.Encryption)
+
+		issuedToken := issueDownloadToken(t, tm.owner, startedBackup.Id)
+		downloadedFile := downloadBackupFile(t, tm, startedBackup.Id, issuedToken.Token)
+		assert.InDelta(t, float64(len(downloadedFile))/(1024*1024), completedBackup.SizeMb, 1e-9)
+	})
+
+	t.Run("advances the duration and keeps the size while the dump produces no output", func(t *testing.T) {
+		tm := newTeam(t)
+		source := newBackupSourceDatabase(t, tm, server)
+		runningBackup := startQuietDumpBackup(t, tm, server, source)
+
+		backupBeforeRefresh := requestLogicalBackup(t, tm.owner, runningBackup.Id).JSON200
+		assert.Equal(t, apiclient.LogicalBackupStatusINPROGRESS, backupBeforeRefresh.Status)
+		assert.Zero(t, backupBeforeRefresh.SizeMb)
+		assert.Zero(t, backupBeforeRefresh.DurationMs)
+
+		refreshedBackup := moveClockUntilProgressRefresh(t, tm, runningBackup.Id)
+
+		assert.Equal(t, apiclient.LogicalBackupStatusINPROGRESS, refreshedBackup.Status)
+		assert.Zero(t, refreshedBackup.SizeMb)
 	})
 
 	t.Run("returns 409 already_running to every concurrent start but one", func(t *testing.T) {
