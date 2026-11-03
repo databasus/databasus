@@ -175,7 +175,7 @@ describe('WorkspaceSettingsComponent', () => {
 
   it.each(
     (['read', 'rename', 'delete'] as const).flatMap((operation) =>
-      (['switch', 'session', 'unmount'] as const).flatMap((lifetime) =>
+      (['session', 'unmount'] as const).flatMap((lifetime) =>
         [false, true].map((hasFailed) => ({ operation, lifetime, hasFailed })),
       ),
     ),
@@ -235,16 +235,7 @@ describe('WorkspaceSettingsComponent', () => {
         ).toBe(true),
       );
 
-      const nextWorkspace = { ...workspace, id: 'next-workspace', name: 'Current team' };
-
-      if (lifetime === 'switch') {
-        server.use(mockApi.get('/workspaces/{workspaceId}', 200, nextWorkspace));
-
-        view.rerender(
-          <WorkspaceSettingsComponent {...screenProps} selectedWorkspace={nextWorkspace} />,
-        );
-        await screen.findByDisplayValue(nextWorkspace.name);
-      } else if (lifetime === 'session') {
+      if (lifetime === 'session') {
         act(() => activateSession({ token: 'replacement-token', userId: 'replacement-user' }));
       } else view.unmount();
 
@@ -276,8 +267,6 @@ describe('WorkspaceSettingsComponent', () => {
         screen.queryByText('The requested item was not found. It may have been deleted.'),
       ).toBeNull();
       expect(view.container.querySelector('.ant-alert-error')).toBeNull();
-
-      if (lifetime === 'switch') expect(screen.getByDisplayValue(nextWorkspace.name)).toBeTruthy();
 
       view.unmount();
     },

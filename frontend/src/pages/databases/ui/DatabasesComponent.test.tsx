@@ -1516,26 +1516,6 @@ describe('DatabasesComponent with the creation wizard', () => {
     await expectCardPressed('Created', false);
   });
 
-  it('forgets the created database when the workspace changes while the wizard is open', async () => {
-    const wizardServer = declareWizardServer();
-    wizardServer.isBackupConfigRefused = true;
-    const { user, rerender } = renderDatabasesScreen();
-
-    fireEvent.click(await reachWizardCompletion(user));
-    await screen.findByText(/The database was created/);
-    rerender(<DatabasesComponent workspace={transferTargetWorkspace} isCanManageDBs />);
-    await waitFor(() => expect(screen.queryByRole('button', { name: /^Shop/ })).toBeNull());
-
-    expect(screen.queryByRole('button', { name: /^Created/ })).toBeNull();
-
-    rerender(<DatabasesComponent workspace={workspace} isCanManageDBs />);
-    await findDatabaseCard('Shop');
-    await openAndCancelWizard(user);
-
-    await expectCardPressed('Shop', true);
-    await expectCardPressed('Created', false);
-  });
-
   it('leaves the selection alone and lists the database on a later refresh when its create answer comes after the wizard closed', async () => {
     const wizardServer = declareWizardServer();
     const creation = mockApi.pending('post', '/databases');

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -290,112 +290,6 @@ for (const domain of ['storages', 'notifiers'] as const) {
       expect(document.body.textContent).not.toContain('future_code');
     });
 
-    it.each([false, true])(
-      'retains current resources after an old workspace list finishes with failure=%s',
-      async (hasFailed) => {
-        const oldList =
-          domain === 'storages'
-            ? mockApi.pending('get', '/storages')
-            : mockApi.pending('get', '/notifiers');
-        const currentWorkspace = { ...workspace, id: 'workspace-b', name: 'Team B' };
-        const currentStorages = ['first', 'second'].map((name) => ({
-          id: `${name}-resource`,
-          workspaceId: currentWorkspace.id,
-          name: `Current ${name}`,
-          settings: { type: 'LOCAL' as const },
-        }));
-        const currentNotifiers = currentStorages.map((storage) => ({
-          ...storage,
-          settings: { type: 'DISCORD' as const },
-          lastSendError: null,
-        }));
-        const currentItems = domain === 'storages' ? currentStorages : currentNotifiers;
-
-        server.use(oldList.handler);
-        const onUnavailable = vi.fn();
-        const view = renderScreen(
-          <ResourceScreen workspace={workspace} onUnavailable={onUnavailable} />,
-          { isStrictMode: true },
-        );
-
-        await waitFor(() =>
-          expect(
-            server
-              .getRequests()
-              .some(
-                (request) => new URL(request.url).searchParams.get('workspaceId') === workspace.id,
-              ),
-          ).toBe(true),
-        );
-
-        server.use(
-          domain === 'storages'
-            ? mockApi.get('/storages', 200, { items: currentStorages })
-            : mockApi.get('/notifiers', 200, { items: currentNotifiers }),
-        );
-        server.use(
-          http.get(`*${API_BASE_PATH}/${domain}/:resourceId`, ({ params }) =>
-            HttpResponse.json(currentItems.find((resource) => resource.id === params.resourceId)),
-          ),
-        );
-
-        view.rerender(
-          <ResourceScreen workspace={currentWorkspace} onUnavailable={onUnavailable} />,
-        );
-        await view.user.click(await screen.findByRole('button', { name: currentItems[1].name }));
-
-        await waitFor(() =>
-          expect(
-            screen.getByRole('button', { name: currentItems[1].name }).getAttribute('aria-pressed'),
-          ).toBe('true'),
-        );
-
-        const selectionKey =
-          domain === 'storages'
-            ? `selectedStorageId_${currentWorkspace.id}`
-            : `selectedNotifierId_${currentWorkspace.id}`;
-        const currentPreference = localStorage.getItem(selectionKey);
-
-        expect(currentPreference).toBe(currentItems[1].id);
-
-        const processed = new Promise<void>((resolve) => {
-          server.events.on('response:mocked', function onResponse() {
-            server.events.removeListener('response:mocked', onResponse);
-            resolve();
-          });
-        });
-
-        await act(async () => {
-          oldList.respond(
-            hasFailed
-              ? HttpResponse.json(buildProblem('not_found', 404), { status: 404 })
-              : HttpResponse.json({
-                  items: [
-                    {
-                      ...currentItems[0],
-                      id: 'obsolete-resource',
-                      workspaceId: workspace.id,
-                      name: 'Obsolete resource',
-                    },
-                  ],
-                }),
-          );
-          await processed;
-        });
-
-        for (const resource of currentItems)
-          expect(screen.getByRole('button', { name: resource.name })).toBeTruthy();
-
-        expect(
-          screen.getByRole('button', { name: currentItems[1].name }).getAttribute('aria-pressed'),
-        ).toBe('true');
-        expect(localStorage.getItem(selectionKey)).toBe(currentPreference);
-        expect(screen.queryByText('Obsolete resource')).toBeNull();
-        expect(view.container.querySelector('.ant-alert-error')).toBeNull();
-        expect(onUnavailable).not.toHaveBeenCalled();
-      },
-    );
-
     it('offers retry without empty-list copy when the workspace resource read fails', async () => {
       server.use(mockApi.network('get', domain === 'storages' ? '/storages' : '/notifiers'));
       const view = renderScreen(<ResourceScreen workspace={workspace} />, { isStrictMode: true });
@@ -414,33 +308,27 @@ for (const domain of ['storages', 'notifiers'] as const) {
       expect(await screen.findByText(emptyText)).toBeTruthy();
     });
 
-    it('clears the previous workspace and requests app reconciliation after confirmed loss of access', async () => {
+    it('clears the loaded list, requests app reconciliation and offers retry when a refresh confirms loss of access', async () => {
+      const resource = buildResource('first');
+      const detailRead = createPendingApiResponse();
       server.use(
-        domain === 'storages'
-          ? mockApi.get('/storages', 200, { items: [] })
-          : mockApi.get('/notifiers', 200, { items: [] }),
+        http.get(`*${API_BASE_PATH}/${domain}/:resourceId`, () => detailRead.response),
+        ...mockSelectableResources([resource]),
       );
 
       const onUnavailable = vi.fn();
-      const view = renderScreen(
-        <ResourceScreen workspace={workspace} onUnavailable={onUnavailable} />,
-      );
-      await screen.findByText(emptyText);
+      renderScreen(<ResourceScreen workspace={workspace} onUnavailable={onUnavailable} />);
+      await screen.findByRole('button', { name: resource.name });
 
       server.use(
         domain === 'storages'
           ? mockApi.get('/storages', 404, buildProblem('not_found', 404))
           : mockApi.get('/notifiers', 404, buildProblem('not_found', 404)),
       );
+      detailRead.respond(HttpResponse.json(buildProblem('not_found', 404), { status: 404 }));
 
-      view.rerender(
-        <ResourceScreen
-          workspace={{ ...workspace, id: 'workspace-b', name: 'Team B' }}
-          onUnavailable={onUnavailable}
-        />,
-      );
-
-      await waitFor(() => expect(onUnavailable).toHaveBeenCalledWith('workspace-b'));
+      await waitFor(() => expect(onUnavailable).toHaveBeenCalledWith(workspace.id));
+      await waitFor(() => expect(screen.queryByRole('button', { name: resource.name })).toBeNull());
       expect(screen.queryByText(emptyText)).toBeNull();
       expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
     });

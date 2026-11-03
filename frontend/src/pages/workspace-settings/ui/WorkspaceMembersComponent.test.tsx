@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -173,59 +173,6 @@ describe('WorkspaceMembersComponent', () => {
     Array.from(document.querySelectorAll('.ant-select-item-option')).map(
       (option) => option.textContent,
     );
-
-  it.each([true, false])(
-    'rejects an old membership read after switching workspace with success=%s',
-    async (isSuccess) => {
-      const pending = mockApi.pending('get', '/workspace-members');
-      mockServer.use(pending.handler);
-      const view = renderScreen(
-        <WorkspaceMembersComponent selectedWorkspace={selectedWorkspace} user={owner} />,
-        { isStrictMode: true },
-      );
-
-      await waitFor(() =>
-        expect(
-          mockServer
-            .getRequests()
-            .some((request) => new URL(request.url).pathname.endsWith('/workspace-members')),
-        ).toBe(true),
-      );
-
-      const nextMember = {
-        ...buildMember('next@example.com', 'WORKSPACE_OWNER'),
-        workspaceId: 'next-workspace',
-      };
-      mockMemberList([nextMember]);
-
-      view.rerender(
-        <WorkspaceMembersComponent
-          selectedWorkspace={{ ...selectedWorkspace, id: 'next-workspace' }}
-          user={owner}
-        />,
-      );
-      await screen.findByText(nextMember.email);
-      const response = new Promise<void>((resolve) => {
-        const onResponse = () => {
-          mockServer.events.removeListener('response:mocked', onResponse);
-          resolve();
-        };
-        mockServer.events.on('response:mocked', onResponse);
-      });
-      await act(async () => {
-        pending.respond(
-          isSuccess
-            ? HttpResponse.json({ items: [buildMember('old@example.com', 'WORKSPACE_MEMBER')] })
-            : HttpResponse.json(buildProblem('internal', 500), { status: 500 }),
-        );
-        await response;
-      });
-
-      expect(screen.getByText(nextMember.email)).toBeTruthy();
-      expect(screen.queryByText('old@example.com')).toBeNull();
-      expect(screen.queryByRole('alert')).toBeNull();
-    },
-  );
 
   it.each([false, true])(
     'shows the acknowledged member role when a role change is refused=%s',

@@ -10,8 +10,14 @@ import {
   DatabaseType,
   type Database,
 } from '@/entities/databases';
+import { notifierApi } from '@/entities/notifiers';
 import { storageApi } from '@/entities/storages';
-import { workspaceApi, type Workspace } from '@/entities/workspaces';
+import {
+  workspaceApi,
+  workspaceMemberApi,
+  type Workspace,
+  type WorkspaceMember,
+} from '@/entities/workspaces';
 import { API_BASE_PATH } from '@/shared/api';
 import { activateSession } from '@/shared/auth';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
@@ -867,6 +873,250 @@ describe('Application workspace navigation', () => {
           mutation === 'create' ? thirdWorkspace.id : secondWorkspace.id,
         );
       }
+    },
+  );
+});
+
+describe('Application workspace switch', () => {
+  const buildMember = (email: string): WorkspaceMember => ({
+    id: `${email}-member`,
+    workspaceId: secondWorkspace.id,
+    userId: `${email}-user`,
+    email,
+    name: email.split('@')[0],
+    role: 'WORKSPACE_MEMBER',
+    isInvited: false,
+    createdAt: firstWorkspace.createdAt,
+  });
+  const listScreens = [
+    {
+      tab: 'Databases',
+      path: '/databases',
+      preferencePrefix: 'selectedDatabaseId',
+      searchLabel: 'Search database',
+      buildResource: (workspace: Workspace, name: string) => ({
+        ...firstWorkspaceDatabase,
+        id: `${workspace.id}-${name}`,
+        workspaceId: workspace.id,
+        name,
+      }),
+    },
+    {
+      tab: 'Storages',
+      path: '/storages',
+      preferencePrefix: 'selectedStorageId',
+      buildResource: (workspace: Workspace, name: string) => ({
+        id: `${workspace.id}-${name}`,
+        workspaceId: workspace.id,
+        name,
+        settings: { type: 'LOCAL' },
+      }),
+    },
+    {
+      tab: 'Notifiers',
+      path: '/notifiers',
+      preferencePrefix: 'selectedNotifierId',
+      searchLabel: 'Search notifier',
+      buildResource: (workspace: Workspace, name: string) => ({
+        id: `${workspace.id}-${name}`,
+        workspaceId: workspace.id,
+        name,
+        settings: { type: 'DISCORD' },
+        lastSendError: null,
+      }),
+    },
+  ];
+  const serveResources = (path: string, resources: { id: string; workspaceId: string }[]) =>
+    server.use(
+      http.get(`*${API_BASE_PATH}${path}`, ({ request }) =>
+        HttpResponse.json({
+          items: resources.filter(
+            (resource) =>
+              resource.workspaceId === new URL(request.url).searchParams.get('workspaceId'),
+          ),
+        }),
+      ),
+      http.get(`*${API_BASE_PATH}${path}/:resourceId`, ({ params }) =>
+        HttpResponse.json(resources.find((resource) => resource.id === params.resourceId)),
+      ),
+    );
+  const findResourceCard = (name: string) =>
+    screen.findByRole('button', { name: new RegExp(`^${name}`) });
+  const expectResourceSelected = (name: string) =>
+    waitFor(async () =>
+      expect((await findResourceCard(name)).getAttribute('aria-pressed')).toBe('true'),
+    );
+  const openWorkspaceScreen = async (tab: string) => {
+    await screen.findByRole('combobox', { name: 'Selected workspace' });
+
+    if (tab !== 'Databases') fireEvent.click(await screen.findByRole('button', { name: tab }));
+  };
+
+  const obsoleteName = 'Obsolete answer';
+  const heldReads = [
+    ...listScreens.map((listScreen) => ({
+      tab: listScreen.tab,
+      path: listScreen.path,
+      listScreen,
+      observeRead: () =>
+        listScreen.tab === 'Databases'
+          ? vi.spyOn(databaseApi, 'listAllDatabases')
+          : listScreen.tab === 'Storages'
+            ? vi.spyOn(storageApi, 'listAllStorages')
+            : vi.spyOn(notifierApi, 'listAllNotifiers'),
+      obsoleteBody: {
+        items: [listScreen.buildResource(firstWorkspace, obsoleteName)],
+      } as object,
+    })),
+    {
+      tab: 'Settings',
+      path: '/workspaces/:workspaceId',
+      listScreen: undefined,
+      observeRead: () => vi.spyOn(workspaceApi, 'getWorkspace'),
+      obsoleteBody: { ...firstWorkspace, name: obsoleteName } as object,
+    },
+    {
+      tab: 'Settings',
+      path: '/workspace-members',
+      listScreen: undefined,
+      observeRead: () => vi.spyOn(workspaceMemberApi, 'listAllMembers'),
+      obsoleteBody: { items: [buildMember(obsoleteName)] } as object,
+    },
+  ];
+
+  it.each(
+    heldReads.flatMap((heldRead) => [200, 404, 500].map((status) => ({ ...heldRead, status }))),
+  )(
+    'shows no data of the previous workspace after switching when $path on $tab answers HTTP $status late',
+    async ({ tab, path, listScreen, observeRead, obsoleteBody, status }) => {
+      const currentMember = buildMember('current@example.com');
+      const currentResources = ['Current one', 'Current two'].map((name) =>
+        listScreen?.buildResource(secondWorkspace, name),
+      );
+
+      openApplication([firstWorkspace, secondWorkspace]);
+      server.use(
+        http.get(`*${API_BASE_PATH}/workspace-members`, ({ request }) =>
+          HttpResponse.json({
+            items:
+              new URL(request.url).searchParams.get('workspaceId') === secondWorkspace.id
+                ? [currentMember]
+                : [],
+          }),
+        ),
+      );
+
+      if (listScreen)
+        serveResources(listScreen.path, currentResources as { id: string; workspaceId: string }[]);
+
+      const reads = observeRead();
+      const oldRead = createPendingApiResponse();
+      server.use(
+        http.get(`*${API_BASE_PATH}${path}`, ({ request, params }) => {
+          const readWorkspaceId =
+            params.workspaceId ?? new URL(request.url).searchParams.get('workspaceId');
+
+          return readWorkspaceId === firstWorkspace.id ? oldRead.response : undefined;
+        }),
+      );
+
+      await openWorkspaceScreen(tab);
+      await waitFor(() =>
+        expect(reads.mock.calls.some(([id]) => id === firstWorkspace.id)).toBe(true),
+      );
+      const oldReadIndex = reads.mock.calls.findIndex(([id]) => id === firstWorkspace.id);
+
+      await selectWorkspace(secondWorkspace);
+
+      if (listScreen) {
+        fireEvent.click(await findResourceCard('Current two'));
+        await expectResourceSelected('Current two');
+      } else {
+        await screen.findByDisplayValue(secondWorkspace.name);
+        await screen.findByText(currentMember.email);
+      }
+
+      const workspaceReadCount = getWorkspaceReadCount();
+      const preferenceKey = listScreen && `${listScreen.preferencePrefix}_${secondWorkspace.id}`;
+      const storedPreference = preferenceKey && localStorage.getItem(preferenceKey);
+
+      await releaseAndSettle(
+        reads,
+        () =>
+          oldRead.respond(
+            status === 200
+              ? HttpResponse.json(obsoleteBody)
+              : HttpResponse.json(buildProblem(status === 404 ? 'not_found' : 'internal', status), {
+                  status,
+                }),
+          ),
+        oldReadIndex,
+      );
+
+      if (listScreen) {
+        await expectResourceSelected('Current two');
+        expect(screen.getByRole('button', { name: /^Current one/ })).toBeTruthy();
+        expect(localStorage.getItem(preferenceKey as string)).toBe(storedPreference);
+      } else {
+        expect(screen.getByDisplayValue(secondWorkspace.name)).toBeTruthy();
+        expect(screen.getByText(currentMember.email)).toBeTruthy();
+      }
+
+      expect(screen.queryByRole('button', { name: new RegExp(obsoleteName) })).toBeNull();
+      expect(screen.queryByDisplayValue(obsoleteName)).toBeNull();
+      expect(screen.queryByText(obsoleteName)).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+      expect(document.querySelector('.ant-alert-error')).toBeNull();
+      expect(getWorkspaceSelection().getByText(secondWorkspace.name)).toBeTruthy();
+      expect(getWorkspaceReadCount()).toBe(workspaceReadCount);
+    },
+  );
+
+  it.each(listScreens)(
+    'resets the selection and keeps focus reachable after switching on $tab',
+    async ({ tab, path, preferencePrefix, searchLabel, buildResource }) => {
+      const resourceNumbers = searchLabel ? [1, 2, 3, 4, 5] : [1, 2];
+
+      openApplication([firstWorkspace, secondWorkspace]);
+      serveResources(path, [
+        ...resourceNumbers.map((number) => buildResource(firstWorkspace, `First ${number}`)),
+        ...resourceNumbers.map((number) => buildResource(secondWorkspace, `Second ${number}`)),
+      ]);
+      await openWorkspaceScreen(tab);
+
+      fireEvent.click(await findResourceCard('First 2'));
+      await expectResourceSelected('First 2');
+
+      if (searchLabel) {
+        fireEvent.change(screen.getByRole('textbox', { name: searchLabel }), {
+          target: { value: 'First 2' },
+        });
+        await waitFor(() => expect(screen.queryByRole('button', { name: /^First 1/ })).toBeNull());
+      }
+
+      const workspaceSelector = screen.getByRole('combobox', { name: 'Selected workspace' });
+      workspaceSelector.focus();
+
+      await selectWorkspace(secondWorkspace);
+
+      await expectResourceSelected('Second 1');
+      expect(screen.queryByRole('button', { name: /^First/ })).toBeNull();
+      expect(localStorage.getItem(`${preferencePrefix}_${secondWorkspace.id}`)).toBe(
+        buildResource(secondWorkspace, 'Second 1').id,
+      );
+      expect(document.activeElement).toBe(workspaceSelector);
+
+      if (searchLabel) {
+        const search = screen.getByRole('textbox', { name: searchLabel }) as HTMLInputElement;
+
+        expect(search.value).toBe('');
+      }
+
+      await selectWorkspace(firstWorkspace);
+
+      await expectResourceSelected('First 2');
+      expect(screen.getByRole('button', { name: /^First 1/ })).toBeTruthy();
+      expect(screen.queryByRole('button', { name: /^Second/ })).toBeNull();
     },
   );
 });

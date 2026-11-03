@@ -42,8 +42,10 @@ func StartMinioContainer(t *testing.T) ContainerHandle {
 			"MINIO_ROOT_USER":     MinioRootUser,
 			"MINIO_ROOT_PASSWORD": MinioRootPassword,
 		},
-		Cmd:        []string{"server", "/data"},
-		WaitingFor: wait.ForHTTP("/minio/health/live").WithPort(minioPort).WithStartupTimeout(120 * time.Second),
+		Cmd: []string{"server", "/data"},
+		// The live and ready endpoints answer 200 while S3 requests still fail with "Server not
+		// initialized yet"; only the cluster endpoint waits for the storage layer.
+		WaitingFor: wait.ForHTTP("/minio/health/cluster").WithPort(minioPort).WithStartupTimeout(120 * time.Second),
 	}
 
 	return startContainer(t, req, minioPort)

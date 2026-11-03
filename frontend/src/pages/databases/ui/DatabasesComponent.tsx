@@ -32,7 +32,6 @@ interface Props {
 }
 
 interface DatabaseCollection {
-  workspaceId: string;
   items: Database[];
   storagesByDatabaseId: Map<string, Storage>;
   isReady: boolean;
@@ -45,8 +44,7 @@ const DATABASES_REFRESH_INTERVAL_MS = 30_000;
 // eslint-disable-next-line i18next/no-literal-string -- DOM event name
 const VISIBILITY_CHANGE_EVENT = 'visibilitychange';
 
-const createEmptyCollection = (workspaceId: string): DatabaseCollection => ({
-  workspaceId,
+const createEmptyCollection = (): DatabaseCollection => ({
   items: [],
   storagesByDatabaseId: new Map(),
   isReady: false,
@@ -68,7 +66,7 @@ const mapStoragesByDatabaseId = (
 };
 
 export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }: Props) => {
-  const [collection, setCollection] = useState(() => createEmptyCollection(workspace.id));
+  const [collection, setCollection] = useState(createEmptyCollection);
   const [loadError, setLoadError] = useState<unknown>();
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -81,7 +79,6 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
     if (!isCurrent()) return;
 
     const revision = loadRevision.Invalidate();
-    const workspaceId = workspace.id;
     let isWorkspaceUnavailable = false;
 
     const handleWorkspaceReadError = (error: unknown): never => {
@@ -93,9 +90,9 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
         [403, 404].includes(error.status ?? 0)
       ) {
         isWorkspaceUnavailable = true;
-        setCollection(createEmptyCollection(workspaceId));
+        setCollection(createEmptyCollection());
         setLoadError(undefined);
-        onUnavailable?.(workspaceId);
+        onUnavailable?.(workspace.id);
       }
 
       throw error;
@@ -107,15 +104,14 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
     }
 
     Promise.all([
-      databaseApi.listAllDatabases(workspaceId).catch(handleWorkspaceReadError),
-      backupConfigApi.listAllWorkspaceBackupConfigs(workspaceId).catch(handleWorkspaceReadError),
-      storageApi.listAllStorages(workspaceId).catch(handleWorkspaceReadError),
+      databaseApi.listAllDatabases(workspace.id).catch(handleWorkspaceReadError),
+      backupConfigApi.listAllWorkspaceBackupConfigs(workspace.id).catch(handleWorkspaceReadError),
+      storageApi.listAllStorages(workspace.id).catch(handleWorkspaceReadError),
     ])
       .then(([listedDatabases, listedBackupConfigs, listedStorages]) => {
         if (!isCurrent() || !loadRevision.IsCurrent(revision) || isWorkspaceUnavailable) return;
 
         setCollection({
-          workspaceId,
           items: sortUnavailableDatabasesFirst(listedDatabases),
           storagesByDatabaseId: mapStoragesByDatabaseId(listedBackupConfigs, listedStorages),
           isReady: true,
@@ -133,10 +129,8 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
       });
   };
 
-  const isCurrentWorkspaceAnswer = () => isCurrent() && latestWorkspaceId.current === workspace.id;
-
   const acceptDatabase = (database: Database) => {
-    if (!isCurrentWorkspaceAnswer() || database.workspaceId !== workspace.id) return;
+    if (!isCurrent() || database.workspaceId !== workspace.id) return;
 
     setCollection((current) => ({
       ...current,
@@ -153,7 +147,7 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
   };
 
   const acceptAddedDatabase = (database: Database) => {
-    if (!isCurrentWorkspaceAnswer() || database.workspaceId !== workspace.id) return;
+    if (!isCurrent() || database.workspaceId !== workspace.id) return;
 
     addDatabaseToList(database);
     selection.select(database.id);
@@ -161,7 +155,7 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
   };
 
   const acceptCopiedDatabase = (copiedDatabase: Database, sourceDatabaseId: string) => {
-    if (!isCurrentWorkspaceAnswer() || copiedDatabase.workspaceId !== workspace.id) return;
+    if (!isCurrent() || copiedDatabase.workspaceId !== workspace.id) return;
 
     addDatabaseToList(copiedDatabase);
 
@@ -185,7 +179,7 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
   };
 
   const removeDatabase = (databaseId: string) => {
-    if (!isCurrentWorkspaceAnswer()) return;
+    if (!isCurrent()) return;
 
     if (latestSelectedDatabaseId.current === databaseId) selection.remove(databaseId);
 
@@ -202,19 +196,18 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
   const loadRevision = useRequestRevision();
   const detailScrollRef = useRef<HTMLDivElement>(null);
   const databaseCreatedInWizard = useRef<Database | undefined>(undefined);
-  const databases = collection.workspaceId === workspace.id ? collection.items : [];
+  const databases = collection.items;
   const selection = useScopedSelection({
     // eslint-disable-next-line i18next/no-literal-string -- browser preference key
     scopeKey: `selectedDatabaseId_${workspace.id}`,
     itemIds: databases.map((database) => database.id),
-    isReady: collection.workspaceId === workspace.id && collection.isReady,
+    isReady: collection.isReady,
     isMobile,
   });
   const selectedDatabaseId = selection.selectedItemId;
-  // A late answer runs a handler from the render that started the action, so its selection and
-  // workspace can be stale.
+  // A late answer runs a handler from the render that started the action, so its selection can be
+  // stale.
   const latestSelectedDatabaseId = useLatestRef(selectedDatabaseId);
-  const latestWorkspaceId = useLatestRef(workspace.id);
 
   const refreshIfVisible = useEffectEvent(() => {
     if (document.visibilityState !== 'hidden' && collection.isReady) loadDatabases(true);
@@ -225,10 +218,6 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
   });
 
   useEffect(() => {
-    setCollection(createEmptyCollection(workspace.id));
-    setIsShowAddDatabase(false);
-    databaseCreatedInWizard.current = undefined;
-    setSearchQuery('');
     startDatabasesLoad();
 
     const refresh = () => refreshIfVisible();
@@ -236,11 +225,10 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
     document.addEventListener(VISIBILITY_CHANGE_EVENT, refresh);
 
     return () => {
-      loadRevision.Invalidate();
       clearInterval(interval);
       document.removeEventListener(VISIBILITY_CHANGE_EVENT, refresh);
     };
-  }, [workspace.id, loadRevision]);
+  }, []);
 
   const filteredDatabases = databases.filter((database) =>
     database.name.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -340,7 +328,7 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
         />
       ) : null}
 
-      {isShowAddDatabase && collection.workspaceId === workspace.id && (
+      {isShowAddDatabase && (
         <Modal
           title={t('databases.create.title')}
           footer={<div />}
