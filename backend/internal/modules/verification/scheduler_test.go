@@ -165,8 +165,6 @@ func TestVerificationScheduler(t *testing.T) {
 				verification := team.start(t, backup.Id)
 				agent := team.App.CreateVerificationAgent(t, team.Admin)
 
-				status, body := newProtocolAgent(t, team.App, agent).recordHeartbeat(agent.Agent.ID, heartbeatBody(nil))
-				require.Equal(t, http.StatusOK, status, string(body))
 				claim(t, team, agent)
 
 				team.App.ExecuteSQL(

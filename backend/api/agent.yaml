@@ -40,7 +40,11 @@ paths:
       operationId: claimVerification
       tags: [verification]
       summary: Claim a pending verification
-      description: Claim a pending verification using the authenticated agent token
+      description: >-
+        Claim a pending verification using the authenticated agent token. New work is assigned only
+        to an agent whose last accepted heartbeat (`lastSeenAt`) is at most five minutes old. A
+        rejected heartbeat neither establishes nor extends that time. Authentication, rate limits and
+        request validation apply first, whatever the age of the heartbeat.
       parameters:
         - $ref: "#/components/parameters/AgentId"
       requestBody:
@@ -58,7 +62,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/VerificationAssignment"
         "204":
-          description: No verification fits the available capacity
+          description: >-
+            No work is assigned, because no verification fits the available capacity or the agent has
+            no accepted heartbeat from the last five minutes
         default:
           $ref: "#/components/responses/Problem"
   /agent/verifications/{agentId}/{verificationId}/backup-stream:

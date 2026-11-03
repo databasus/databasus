@@ -73,6 +73,7 @@ This is the project's common language. Each concept has one term in the document
 | Verification config | verification config, `VerificationConfig` | The settings of a database that decide when its backups are verified automatically and which outcomes notify. |
 | Verification trigger | verification trigger, `VerificationTrigger` | What started a verification: a user, the interval schedule or a completed backup. |
 | Verification agent | verification agent, `VerificationAgent` in the API | The program on the user's machine that runs verifications. |
+| Assignment eligibility | assignment eligibility | Whether a verification agent has accepted contact recent enough to be considered for new work, judged from `lastSeenAt` when it calls `claimVerification`. Registration differs: it keeps the agent listed and counted whatever its contact. Capacity differs too: it decides whether one particular verification fits the agent's resource budget. No field stores eligibility. |
 | Instance health | `HealthReport`, `HealthProblem`, `getInstanceHealth` | Whether this instance’s local dependencies, verification-agent freshness and periodic work pass their monitoring checks; distinct from a healthcheck of a user’s database. |
 | Healthcheck | healthcheck | A scheduled check that a user's database answers. |
 | Healthcheck config | `HealthcheckConfig` | The settings of a database that decide whether and how often it is checked, how many failed checks make it unavailable, whether status changes notify and how long attempts are kept. |
