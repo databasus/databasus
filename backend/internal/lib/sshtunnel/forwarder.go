@@ -60,7 +60,7 @@ type Forwarder struct {
 	isClosed    bool
 }
 
-// Ctx bounds the first dial only. The forwarder outlives the request that opened it, so redials run
+// Ctx bounds the first dial and handshake only. The forwarder outlives the request that opened it, so redials run
 // on its own lifetime instead, and Close is what ends it.
 func Open(ctx context.Context, spec OpenSpec) (*Forwarder, error) {
 	authMethods, err := buildAuthMethods(spec.Settings)
@@ -292,13 +292,27 @@ func (f *Forwarder) dialAndCacheBastionLocked(ctx context.Context) error {
 		return fmt.Errorf("failed to bound the SSH tunnel handshake: %w", err)
 	}
 
+	stopClosingOnEnd := context.AfterFunc(ctx, func() { _ = bastionConn.Close() })
+
 	sshConn, channels, requests, err := ssh.NewClientConn(bastionConn, f.bastionAddress, f.clientConfig)
 	if err != nil {
+		stopClosingOnEnd()
+
 		_ = bastionConn.Close()
 
 		f.logger.ErrorContext(ctx, "failed to authenticate with the ssh tunnel host", slog.Any("error", err))
 
+		if ctx.Err() != nil {
+			err = context.Cause(ctx)
+		}
+
 		return fmt.Errorf("failed to authenticate with the SSH tunnel host: %w", err)
+	}
+
+	if !stopClosingOnEnd() {
+		_ = sshConn.Close()
+
+		return fmt.Errorf("failed to authenticate with the SSH tunnel host: %w", context.Cause(ctx))
 	}
 
 	f.logger.DebugContext(ctx, "connected to the ssh tunnel host")

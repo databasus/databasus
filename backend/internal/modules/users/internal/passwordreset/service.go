@@ -10,6 +10,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"databasus-backend/internal/lib/apierror"
+	"databasus-backend/internal/lib/audit"
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/mailer"
@@ -37,6 +38,7 @@ type Deps struct {
 	Transactor   *database.Transactor
 	Clock        clock.Source
 	Accounts     *accounts.Service
+	AuditLog     *audit.Log
 	Mailer       mailer.Sender
 	RateLimiter  ratelimit.Counter
 	Turnstile    *turnstile.Client
@@ -48,6 +50,7 @@ type Service struct {
 	transactor  *database.Transactor
 	clock       clock.Source
 	accounts    *accounts.Service
+	auditLog    *audit.Log
 	mailer      mailer.Sender
 	rateLimiter ratelimit.Counter
 	turnstile   *turnstile.Client
@@ -60,6 +63,7 @@ func NewService(deps Deps) *Service {
 		transactor:  deps.Transactor,
 		clock:       deps.Clock,
 		accounts:    deps.Accounts,
+		auditLog:    deps.AuditLog,
 		mailer:      deps.Mailer,
 		rateLimiter: deps.RateLimiter,
 		turnstile:   deps.Turnstile,
@@ -132,7 +136,11 @@ func (s *Service) RequestReset(ctx context.Context, request ResetRequest) error 
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to send the reset code",
 			slog.String("user_id", user.ID.String()), slog.Any("error", err))
+
+		return nil
 	}
+
+	s.recordResetCodeSent(ctx, user)
 
 	return nil
 }
@@ -186,6 +194,20 @@ func (s *Service) CompleteReset(ctx context.Context, completion ResetCompletion)
 // of them has expired.
 func (s *Service) DeleteResetCodesPastRetention(ctx context.Context, now time.Time) (int64, error) {
 	return s.resetCodes.deleteCreatedBefore(ctx, now.Add(-resetCodeRetention))
+}
+
+// recordResetCodeSent names no author, because anyone can request a code for any address. A failure
+// is logged and not returned, because an error answer would tell that the address has an account.
+func (s *Service) recordResetCodeSent(ctx context.Context, user accounts.UserRecord) {
+	err := s.auditLog.Record(ctx, audit.Event{
+		Author:      nil,
+		WorkspaceID: nil,
+		Message:     "Password reset code sent to " + user.Email,
+	})
+	if err != nil {
+		s.logger.ErrorContext(ctx, "failed to write the audit event of the reset code",
+			slog.String("user_id", user.ID.String()), slog.Any("error", err))
+	}
 }
 
 // verifyResetCode answers the user's newest code when the given value matches it. An older code

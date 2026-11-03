@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -52,6 +53,41 @@ func TestTestNotifier(t *testing.T) {
 		lastSendError := getNotifier(t, tm.owner, createdNotifier.Id).LastSendError
 		require.NotNil(t, lastSendError)
 		assert.Equal(t, *testResult.Error, *lastSendError)
+	})
+
+	t.Run("reports a slack rate limit at once when retry-after does not fit a test send", func(t *testing.T) {
+		t.Parallel()
+
+		slackAPI := startRateLimitedSlack(t, "60")
+		tm := newTeam(t, apptest.WithNotifierEndpoints(apptest.NotifierEndpoints{SlackPostMessageURL: slackAPI.URL}))
+		slackNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id, newSlackNotifierSettings(t))
+		testedAt := time.Now()
+
+		testResult := testNotifier(t, tm.owner, slackNotifier.Id)
+
+		assert.False(t, testResult.IsDelivered)
+		require.NotNil(t, testResult.Error)
+		assert.Contains(t, *testResult.Error, "rate-limit")
+		assert.Less(t, time.Since(testedAt), 20*time.Second)
+
+		lastSendError := getNotifier(t, tm.owner, slackNotifier.Id).LastSendError
+		require.NotNil(t, lastSendError)
+		assert.Contains(t, *lastSendError, "rate-limit")
+	})
+
+	t.Run("ends a slack test send at its own limit when the endpoint never answers", func(t *testing.T) {
+		t.Parallel()
+
+		silentSlack := startSilentEndpoint(t)
+		tm := newTeam(t, apptest.WithNotificationDeliveryTimeout(time.Second),
+			apptest.WithNotifierEndpoints(apptest.NotifierEndpoints{SlackPostMessageURL: silentSlack.URL}))
+		slackNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id, newSlackNotifierSettings(t))
+		testedAt := time.Now()
+
+		testResult := testNotifier(t, tm.owner, slackNotifier.Id)
+
+		assert.False(t, testResult.IsDelivered)
+		assert.Less(t, time.Since(testedAt), 20*time.Second)
 	})
 
 	t.Run("delivers the telegram message under the path prefix of the bot API URL", func(t *testing.T) {

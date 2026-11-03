@@ -60,6 +60,9 @@ func (p *Pipeline) RunBackup(ctx context.Context, spec BackupSpec) (BackupResult
 		var err error
 
 		result, err = p.runBackup(ctx, spec)
+		if err != nil && ctx.Err() != nil {
+			return runcontext.DescribeBackupInterruption(ctx, ctx)
+		}
 
 		return err
 	})

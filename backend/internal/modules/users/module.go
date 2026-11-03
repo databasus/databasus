@@ -171,6 +171,7 @@ func New(deps Deps) Module {
 		Transactor:   deps.Transactor,
 		Clock:        deps.Clock,
 		Accounts:     accountsService,
+		AuditLog:     deps.AuditLog,
 		Mailer:       deps.Mailer,
 		RateLimiter:  deps.RateLimiter,
 		Turnstile:    turnstileClient,

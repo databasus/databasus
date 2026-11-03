@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -345,4 +346,26 @@ func writeStubDumpAndClientTools(t *testing.T, binDir, dumpTool, clientTool, dum
 		Script:         `case "$*" in *--no-data*) exit 0;; esac` + "\n" + dumpScript,
 	})
 	toolstub.Write(t, filepath.Join(binDir, clientTool), toolstub.Spec{IsReadingStdin: true, Script: ""})
+}
+
+func TestRunBackupDuringSetup(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns the time limit error when the limit ends during setup", func(t *testing.T) {
+		t.Parallel()
+
+		runCtx, _, release := runcontext.New(t.Context(), runcontext.Limits{
+			Shutdown:  runcontext.ErrBackupShutdown,
+			Timeout:   runcontext.ErrBackupTimeout,
+			TimeLimit: time.Nanosecond,
+		})
+		defer release()
+
+		<-runCtx.Done()
+
+		_, err := newTestPipeline(t, newDiscardingStorage()).RunBackup(runCtx, newTestBackupSpec())
+
+		require.ErrorIs(t, err, runcontext.ErrBackupTimeout)
+		assert.Equal(t, "backup exceeded the time limit of 23 hours", err.Error())
+	})
 }

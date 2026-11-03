@@ -98,7 +98,8 @@ type Deps struct {
 	FieldEncryptor *crypto.FieldEncryptor
 	Users          users.Module
 	Workspaces     workspaces.Module
-	// DeliveryTimeout ends a send the channel does not answer, a delivery or a test.
+	// DeliveryTimeout ends a send the channel does not answer, a delivery or a test. A provider may
+	// declare a longer limit for its deliveries.
 	DeliveryTimeout time.Duration
 	Endpoints       Endpoints
 	// PublicURL is the address of the instance, from which the default SMTP greeting takes its

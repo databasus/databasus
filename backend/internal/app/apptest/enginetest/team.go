@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 
 	"databasus-backend/internal/app/apptest"
 	apiclient "databasus-backend/internal/lib/apiclient"
@@ -166,6 +167,53 @@ func (tm Team) BackUp(
 	return completedBackup
 }
 
+// RestoreVersionCheck names a backup, the table holding its database's recorded server version and
+// a reachable target whose server runs TargetVersion.
+type RestoreVersionCheck struct {
+	DatabaseID    uuid.UUID
+	BackupID      uuid.UUID
+	SettingsTable string
+	Target        apiclient.RestoreTarget
+	TargetVersion string
+}
+
+// RequireRestoreVersionCheck rewrites the recorded version by SQL, because the API records only
+// versions the server really reported.
+func (tm Team) RequireRestoreVersionCheck(t *testing.T, check RestoreVersionCheck) {
+	t.Helper()
+
+	t.Run("returns the comparison error when the backup's recorded version cannot be parsed", func(t *testing.T) {
+		tm.setRecordedVersion(t, check, "not-a-version")
+
+		response, err := tm.Owner.Client.StartRestoreWithResponse(t.Context(), apiclient.RestoreStart{
+			BackupId: check.BackupID,
+			Target:   check.Target,
+		})
+
+		requireStatus(t, "start the restore", err, http.StatusInternalServerError, response.StatusCode(), response.Body)
+		assert.Contains(t, string(response.Body), string(apiclient.ProblemCodeInternal))
+		assert.NotContains(t, string(response.Body), "lower than")
+		assert.Zero(t, tm.countRestores(t, check.BackupID))
+	})
+
+	t.Run("returns 400 invalid_request when the target is older", func(t *testing.T) {
+		const newerVersion = "99.0"
+
+		tm.setRecordedVersion(t, check, newerVersion)
+
+		response, err := tm.Owner.Client.StartRestoreWithResponse(t.Context(), apiclient.RestoreStart{
+			BackupId: check.BackupID,
+			Target:   check.Target,
+		})
+
+		requireStatus(t, "start the restore", err, http.StatusBadRequest, response.StatusCode(), response.Body)
+		assert.Contains(t, string(response.Body), string(apiclient.ProblemCodeInvalidRequest))
+		assert.Contains(t, string(response.Body), newerVersion)
+		assert.Contains(t, string(response.Body), check.TargetVersion)
+		assert.Zero(t, tm.countRestores(t, check.BackupID))
+	})
+}
+
 // Restore restores the backup into the target and fails the test unless the restore completes.
 func (tm Team) Restore(t *testing.T, backupID uuid.UUID, target apiclient.RestoreTarget) apiclient.Restore {
 	t.Helper()
@@ -264,6 +312,26 @@ func (tm Team) GetTimescaledbVersion(t *testing.T, backupID uuid.UUID) string {
 		"SELECT COALESCE(timescaledb_version, '') FROM backups_logical WHERE id = ?", backupID)
 
 	return timescaledbVersion
+}
+
+func (tm Team) setRecordedVersion(t *testing.T, check RestoreVersionCheck, version string) {
+	t.Helper()
+
+	tm.App.ExecuteSQL(
+		t,
+		"UPDATE "+check.SettingsTable+" SET version = ? WHERE database_id = ?",
+		version,
+		check.DatabaseID,
+	)
+}
+
+func (tm Team) countRestores(t *testing.T, backupID uuid.UUID) int64 {
+	t.Helper()
+
+	var restoreCount int64
+	tm.App.QuerySQL(t, &restoreCount, "SELECT count(*) FROM backups_restores WHERE backup_id = ?", backupID)
+
+	return restoreCount
 }
 
 // createMissingBucketStorage creates an S3 storage on a reachable MinIO whose bucket does not exist,

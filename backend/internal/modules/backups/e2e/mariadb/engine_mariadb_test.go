@@ -152,6 +152,31 @@ func TestBackupMariadbToFailingStorage(t *testing.T) {
 	})
 }
 
+func TestStartMariadbRestoreVersionCheck(t *testing.T) {
+	t.Parallel()
+
+	server := enginetest.ConnectToMysqlFamily(
+		t,
+		containers.StartMariadb(t, "mariadb:10.11"),
+		containers.MariadbRootPassword,
+		"",
+	)
+	server.CreateTestDataTable(t)
+
+	tm := enginetest.NewTeam(t)
+	database := tm.CreateDatabase(t, newMariadbSettings(server, apiclient.MariadbVersionN1011))
+	backup := tm.BackUp(t, database.Id, apiclient.BackupEncryptionNONE)
+	restoredDatabaseName, _ := server.CreateRestoreDatabase(t, "restored_mariadb_version")
+
+	tm.RequireRestoreVersionCheck(t, enginetest.RestoreVersionCheck{
+		DatabaseID:    database.Id,
+		BackupID:      backup.Id,
+		SettingsTable: "databases_mariadb",
+		Target:        toMariadbRestoreTarget(t, newMariadbTarget(server, restoredDatabaseName)),
+		TargetVersion: "10.11",
+	})
+}
+
 func testMariadbRowsRestored(
 	t *testing.T,
 	endpoint containers.Endpoint,

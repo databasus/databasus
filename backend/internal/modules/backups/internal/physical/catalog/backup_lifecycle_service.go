@@ -147,7 +147,7 @@ func (s *BackupLifecycle) transition(ctx context.Context, spec backupTransition)
 				return nil
 			}
 
-			if !errors.Is(err, errBackupSuperseded) && !errors.Is(err, config.ErrStaleStoragePublication) {
+			if !isBackupUnpublishable(err) {
 				return err
 			}
 		case BackupStatusError:
@@ -160,13 +160,19 @@ func (s *BackupLifecycle) transition(ctx context.Context, spec backupTransition)
 			panic("terminal backup transition requires a terminal status")
 		}
 
-		if err != nil && !errors.Is(err, errBackupSuperseded) {
+		if err != nil && !isBackupUnpublishable(err) {
 			return err
 		}
 
 		return s.storages.RequestFileDeletions(ctx, backupFileReferences(spec.Backup))
 	})
 	return isChanged, err
+}
+
+// isBackupUnpublishable answers true when the backup can no longer become completed: another
+// transition ended its row, or its storage changed. Its files then only wait for deletion.
+func isBackupUnpublishable(err error) bool {
+	return errors.Is(err, errBackupSuperseded) || errors.Is(err, config.ErrStaleStoragePublication)
 }
 
 func backupFileReferences(backup *Backup) []storages.StoredFileReference {

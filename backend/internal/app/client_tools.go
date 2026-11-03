@@ -21,31 +21,44 @@ func newClientToolsChecker(clientToolsDir string) *clienttools.Checker {
 	))
 }
 
-// checkClientTools logs the verdict of every bundle and returns ErrFatalClientTools when a fatal
-// one fails, or the reason the bundle root was not found. A broken bundle that is not fatal only
-// disables the versions it serves.
-func (a *App) checkClientTools(ctx context.Context) error {
-	if a.environment.clientToolsDirErr != nil {
-		a.logger.ErrorContext(
+// getClientToolsChecker builds the checker on first use, from the bundle root a test application may
+// have overridden. The same checker serves the health check, which reuses its verdicts.
+func (e *Environment) getClientToolsChecker() *clienttools.Checker {
+	if e.clientToolsChecker == nil {
+		e.clientToolsChecker = newClientToolsChecker(e.ClientToolsDir)
+	}
+
+	return e.clientToolsChecker
+}
+
+// CheckClientTools logs the verdict of every bundle and returns ErrFatalClientTools when a fatal one
+// fails, or the reason the bundle root was not found. A broken bundle that is not fatal only disables
+// the versions it serves. The server runs it before it opens the database, so an image with a broken
+// fatal bundle leaves the schema at the version the previous image can run.
+func (e *Environment) CheckClientTools(ctx context.Context) error {
+	logger := e.Logging.GetLogger()
+
+	if e.clientToolsDirErr != nil {
+		logger.ErrorContext(
 			ctx,
 			"client tools could not be found",
-			slog.Any("error", a.environment.clientToolsDirErr),
+			slog.Any("error", e.clientToolsDirErr),
 		)
 
-		return a.environment.clientToolsDirErr
+		return e.clientToolsDirErr
 	}
 
 	isFatalBundleBroken := false
 
-	for _, result := range a.clientToolsChecker.Check(ctx) {
-		bundleLogger := a.logger.With(
+	for _, result := range e.getClientToolsChecker().Check(ctx) {
+		bundleLogger := logger.With(
 			slog.String("db", result.Bundle.Engine),
 			slog.String("version", result.Bundle.Version),
 			slog.String("path", result.Bundle.BinDir),
 		)
 
 		if result.IsPassed() {
-			if a.environment.Config.ShowDbInstallationVerificationLogs {
+			if e.Config.ShowDbInstallationVerificationLogs {
 				bundleLogger.InfoContext(ctx, "client tools verified")
 			}
 

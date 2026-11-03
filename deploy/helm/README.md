@@ -302,12 +302,22 @@ helm install databasus oci://ghcr.io/databasus/charts/databasus \
 
 ## Health Checks
 
-Both probes target `/api/v1/system/version` — a dependency-free endpoint — rather than the deep
+All three probes target `/api/v1/system/version` — a dependency-free endpoint — rather than the deep
 `/api/v1/system/health` monitoring endpoint, so an instance that is degraded but still serving
 traffic is never restarted or pulled out of the Service.
 
+The startup probe holds the other two back until the port answers, because migrations and startup
+cleanup run before the port opens. By default it allows 10 minutes (`periodSeconds` x
+`failureThreshold`), after which Kubernetes restarts the container.
+
 | Parameter                           | Description                              | Default Value              |
 | ----------------------------------- | ---------------------------------------- | -------------------------- |
+| `startupProbe.enabled`              | Enable startup probe                     | `true`                     |
+| `startupProbe.httpGet.path`         | Startup request path                     | `/api/v1/system/version`   |
+| `startupProbe.httpGet.port`         | Startup target port (named or numeric)   | `http`                     |
+| `startupProbe.periodSeconds`        | Startup probe interval                   | `10`                       |
+| `startupProbe.timeoutSeconds`       | Startup probe timeout                    | `5`                        |
+| `startupProbe.failureThreshold`     | Failures before the container restarts   | `60`                       |
 | `livenessProbe.enabled`             | Enable liveness probe                    | `true`                     |
 | `livenessProbe.httpGet.path`        | Liveness request path                    | `/api/v1/system/version`   |
 | `livenessProbe.httpGet.port`        | Liveness target port (named or numeric)  | `http`                     |

@@ -65,6 +65,48 @@ func TestNotify(t *testing.T) {
 			assert.Contains(t, lastSendError, "timed out")
 		})
 
+	t.Run("retries slack when retry-after outlasts the default delivery timeout", func(t *testing.T) {
+		t.Parallel()
+
+		slackAPI := startRateLimitedSlack(t, "1")
+		tm := newTeam(t, apptest.WithNotificationDeliveryTimeout(200*time.Millisecond),
+			apptest.WithNotifierEndpoints(apptest.NotifierEndpoints{SlackPostMessageURL: slackAPI.URL}))
+		slackNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id, newSlackNotifierSettings(t))
+
+		tm.app.Notify(t, []uuid.UUID{slackNotifier.Id}, getBackupFailedNotification())
+		tm.app.WaitForNotificationDeliveries(t)
+
+		assert.Equal(t, int64(2), slackAPI.getRequestCount())
+		assert.Nil(t, getNotifier(t, tm.owner, slackNotifier.Id).LastSendError)
+	})
+
+	t.Run("fails the slack delivery at once when retry-after does not fit", func(t *testing.T) {
+		t.Parallel()
+
+		slackAPI := startRateLimitedSlack(t, "3600")
+		tm := newTeam(t, apptest.WithNotifierEndpoints(apptest.NotifierEndpoints{SlackPostMessageURL: slackAPI.URL}))
+		slackNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id, newSlackNotifierSettings(t))
+		notifiedAt := time.Now()
+
+		tm.app.Notify(t, []uuid.UUID{slackNotifier.Id}, getBackupFailedNotification())
+
+		assert.Contains(t, waitForSendError(t, tm.owner, slackNotifier.Id), "rate-limit")
+		assert.Less(t, time.Since(notifiedAt), 20*time.Second)
+		assert.Equal(t, int64(1), slackAPI.getRequestCount())
+	})
+
+	t.Run("fails the slack delivery when the endpoint never answers", func(t *testing.T) {
+		t.Parallel()
+
+		silentSlack := startSilentEndpoint(t)
+		tm := newTeam(t, apptest.WithNotifierEndpoints(apptest.NotifierEndpoints{SlackPostMessageURL: silentSlack.URL}))
+		slackNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id, newSlackNotifierSettings(t))
+
+		tm.app.Notify(t, []uuid.UUID{slackNotifier.Id}, getBackupFailedNotification())
+
+		assert.Contains(t, waitForSendError(t, tm.owner, slackNotifier.Id), "Timeout")
+	})
+
 	t.Run("sends the first 2000 characters of a longer message", func(t *testing.T) {
 		t.Parallel()
 
@@ -419,6 +461,45 @@ func startBlockingEndpoint(t *testing.T, status int) *blockingEndpoint {
 	started.URL = server.URL
 
 	return started
+}
+
+// rateLimitedSlack answers its first request with a rate limit and every later one with success.
+type rateLimitedSlack struct {
+	URL          string
+	requestCount *atomic.Int64
+}
+
+func (s rateLimitedSlack) getRequestCount() int64 {
+	return s.requestCount.Load()
+}
+
+func startRateLimitedSlack(t *testing.T, retryAfter string) rateLimitedSlack {
+	t.Helper()
+
+	requestCount := &atomic.Int64{}
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		if requestCount.Add(1) == 1 {
+			writer.Header().Set("Retry-After", retryAfter)
+			writer.WriteHeader(http.StatusTooManyRequests)
+
+			return
+		}
+
+		_, _ = writer.Write([]byte(`{"ok":true}`))
+	}))
+	t.Cleanup(server.Close)
+
+	return rateLimitedSlack{URL: server.URL, requestCount: requestCount}
+}
+
+func newSlackNotifierSettings(t *testing.T) apiclient.NotifierSettings {
+	t.Helper()
+
+	return newSlackSettings(t, apiclient.SlackNotifierSettings{
+		Type:         apiclient.SlackNotifierSettingsTypeSLACK,
+		BotToken:     optional("xoxb-test-token"),
+		TargetChatId: "C012AB3CD",
+	})
 }
 
 // startSilentEndpoint accepts every request and never answers it until the test ends.

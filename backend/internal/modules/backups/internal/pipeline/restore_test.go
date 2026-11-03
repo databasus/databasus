@@ -168,6 +168,32 @@ func TestRestoreFromStorage(t *testing.T) {
 		},
 	)
 
+	t.Run("reports the storage failure when the archive download fails", func(t *testing.T) {
+		t.Parallel()
+
+		sink, pgRestore := openStubPostgresqlRestoreSink(t, toolstub.Spec{IsReadingStdin: false, Script: ""})
+		postgresqlSink, isPostgresqlSink := sink.(*postgresqlRestoreSink)
+		require.True(t, isPostgresqlSink)
+		postgresqlSink.spec.ParallelJobs = 2
+
+		restorePipeline := newTestPipeline(t, newDiscardingStorage())
+
+		err := restorePipeline.restoreFromStorage(t.Context(), newStubRestoreRun(
+			newUnencryptedStoredBackup(),
+			&memoryStorageReader{
+				file:         []byte("part of the archive"),
+				failAtEndErr: errors.New("connection reset by peer"),
+			},
+			sink,
+			getStoredCompressionNone(),
+		))
+
+		require.ErrorContains(t, err, "connection reset by peer")
+		require.ErrorContains(t, err, "the restore tool did not start")
+		assert.NotContains(t, err.Error(), "partially restored")
+		assert.Empty(t, pgRestore.GetInvocations(t))
+	})
+
 	t.Run("feeds the restore tool the whole dump of an encrypted backup", func(t *testing.T) {
 		t.Parallel()
 		sink, pgRestore := openStubPostgresqlRestoreSink(t, toolstub.Spec{IsReadingStdin: true, Script: ""})

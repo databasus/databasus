@@ -67,7 +67,13 @@ func (e *mongodbEngine) OpenRestoreTarget(ctx context.Context, spec restoreTarge
 	}
 
 	isDowngrade, err := mongodb_engine.IsBackupVersionHigherThanRestoreVersion(sourceSettings.Version, targetVersion)
-	if err != nil || isDowngrade {
+	if err != nil {
+		tunnel.Close()
+
+		return nil, err
+	}
+
+	if isDowngrade {
 		tunnel.Close()
 
 		return nil, fmt.Errorf("%w: the backup is of MongoDB %s and the target runs MongoDB %s",
