@@ -261,15 +261,17 @@ export const ApplicationScreen = () => {
           <br />
           {CONTAINER_ARCH}
           {isNewGitHubVersionAvailable && (
-            <a
-              className="pointer-events-auto ml-1 text-success"
-              aria-label={t('app.navigation.newVersionAvailable')}
-              href="https://github.com/databasus/databasus/releases/latest"
-              target="_blank"
-              rel="noreferrer"
-            >
-              ↗
-            </a>
+            <Tooltip title={t('app.navigation.newVersionAvailable')} trigger={['hover', 'focus']}>
+              <a
+                className="pointer-events-auto ml-1 inline-flex"
+                aria-label={t('app.navigation.newVersionAvailable')}
+                href="https://github.com/databasus/databasus/releases/latest"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <span className="inline-flex h-2 w-2 rounded-full bg-success" />
+              </a>
+            </Tooltip>
           )}
         </div>
       </AppShell>

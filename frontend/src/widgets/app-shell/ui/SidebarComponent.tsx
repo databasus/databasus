@@ -1,5 +1,5 @@
 import { CloseOutlined } from '@ant-design/icons';
-import { Drawer, Tooltip } from 'antd';
+import { Button, Drawer, Tooltip } from 'antd';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -87,23 +87,30 @@ export const SidebarComponent = ({
       <div className="h-full min-h-0 max-w-[60px] min-w-[60px] overflow-y-auto rounded bg-surface py-2 shadow">
         <div className="flex h-full flex-col">
           <div className="flex-1">
-            {filteredTabs.map((tab) => (
-              <div key={tab.text} className="flex justify-center">
-                <button
-                  type="button"
-                  aria-label={tab.text}
-                  className={`flex h-[50px] w-[50px] cursor-pointer items-center justify-center rounded select-none ${selectedTab === tab.name ? 'bg-hover' : 'hover:bg-hover'}`}
-                  onClick={() => handleTabClick(tab)}
-                  style={{ marginTop: tab.marginTop }}
-                >
-                  <div className="mb-1">
-                    <div className="flex justify-center">
-                      <img src={tab.icon} width={20} alt={tab.text} loading="lazy" />
-                    </div>
-                  </div>
-                </button>
-              </div>
-            ))}
+            {filteredTabs.map((tab) => {
+              const isSelected = selectedTab === tab.name;
+
+              return (
+                <div key={tab.text} className="flex justify-center">
+                  <Button
+                    type={isSelected ? 'primary' : 'text'}
+                    aria-label={tab.text}
+                    aria-current={isSelected ? 'page' : undefined}
+                    className="!h-[50px] !w-[50px] select-none"
+                    onClick={() => handleTabClick(tab)}
+                    style={{ marginTop: tab.marginTop }}
+                    icon={
+                      <img
+                        src={isSelected ? tab.selectedIcon : tab.icon}
+                        width={20}
+                        alt=""
+                        loading="lazy"
+                      />
+                    }
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -141,18 +148,26 @@ export const SidebarComponent = ({
           {filteredTabs.map((tab, index) => {
             const showDivider =
               index < filteredTabs.length - 1 && filteredTabs[index + 1]?.marginTop !== '0px';
+            const isSelected = selectedTab === tab.name;
 
             return (
               <div key={tab.text}>
-                <button
-                  type="button"
+                <Button
+                  block
+                  type={isSelected ? 'primary' : 'text'}
                   aria-label={tab.text}
-                  className={`flex w-full cursor-pointer items-center gap-3 rounded px-3 py-3 select-none ${selectedTab === tab.name ? 'bg-hover text-accent' : 'text-content hover:bg-surface'}`}
+                  aria-current={isSelected ? 'page' : undefined}
+                  className="!h-auto !justify-start !gap-3 !px-3 !py-3 text-left !whitespace-normal select-none"
                   onClick={() => handleTabClick(tab)}
                 >
-                  <img src={tab.icon} width={24} alt={tab.text} loading="lazy" />
+                  <img
+                    src={isSelected ? tab.selectedIcon : tab.icon}
+                    width={24}
+                    alt=""
+                    loading="lazy"
+                  />
                   <span className="text-sm font-medium">{tab.text}</span>
-                </button>
+                </Button>
                 {showDivider && <div className="my-2 border-t border-border" />}
               </div>
             );

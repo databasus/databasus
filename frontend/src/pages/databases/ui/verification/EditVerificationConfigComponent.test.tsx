@@ -1,10 +1,11 @@
 // @vitest-environment happy-dom
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
-import { type MockInstance, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { API_BASE_PATH } from '../../../../shared/api';
 import { activateSession, invalidateSession } from '../../../../shared/auth';
+import { DICTIONARIES, useLocale } from '../../../../shared/i18n';
 import { buildProblem, mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
 import { createPendingApiResponse } from '../../../../shared/lib/test/pendingApiResponse';
 import { releaseAndSettle } from '../../../../shared/lib/test/releaseAndSettle';
@@ -106,6 +107,17 @@ const saveAndGetSubmittedConfig = async (submitted: VerificationConfigInput[]) =
 const saveAndGetSubmittedSchedule = async (submitted: VerificationConfigInput[]) =>
   (await saveAndGetSubmittedConfig(submitted)).schedule;
 
+const EditorWithLanguageSwitch = ({ databaseId }: { databaseId: string }) => {
+  const { setLocale } = useLocale();
+
+  return (
+    <>
+      <button onClick={() => setLocale('fr')}>Change language</button>
+      <EditVerificationConfigComponent databaseId={databaseId} onClose={() => {}} />
+    </>
+  );
+};
+
 describe('EditVerificationConfigComponent', () => {
   beforeEach(() => {
     vi.stubEnv('TZ', 'Europe/Moscow');
@@ -153,6 +165,27 @@ describe('EditVerificationConfigComponent', () => {
     expect(screen.queryByText('Verification time of day')).toBeNull();
   });
 
+  it('keeps the draft when the language changes', async () => {
+    const config = buildConfig({ schedule: { type: 'CRON', cronExpression: '0 2 * * *' } });
+    const submitted = serveConfig(config);
+    renderScreen(<EditorWithLanguageSwitch databaseId={config.databaseId} />);
+
+    await typeCronExpression('0 3 * * *');
+    fireEvent.click(screen.getByRole('button', { name: 'Change language' }));
+
+    const translatedField = await screen.findByLabelText(DICTIONARIES.fr.schedules.cronExpression);
+
+    expect((translatedField as HTMLInputElement).value).toBe('0 3 * * *');
+    expect(
+      isDisabled(
+        screen.getByRole('button', {
+          name: new RegExp(`${DICTIONARIES.fr.common.actions.save}$`),
+        }),
+      ),
+    ).toBe(false);
+    expect(submitted).toHaveLength(0);
+  });
+
   it('shows an expression with no date to run on as invalid and keeps Save disabled', async () => {
     renderConfig({ type: 'CRON', cronExpression: '0 2 * * *' });
 
@@ -196,7 +229,6 @@ describe('EditVerificationConfigComponent', () => {
   });
 
   it('offers a retry and Cancel after a failed load, and a successful retry shows the form', async () => {
-    const showAlert = vi.spyOn(window, 'alert').mockImplementation(() => {});
     const onClose = vi.fn();
 
     mockServer.use(
@@ -212,7 +244,6 @@ describe('EditVerificationConfigComponent', () => {
     const retryButton = await screen.findByRole('button', { name: 'Retry' });
 
     expect(screen.getByText(REFUSAL_MESSAGE)).toBeTruthy();
-    expect(showAlert).not.toHaveBeenCalled();
 
     fireEvent.click(getCancelButton());
     expect(onClose).toHaveBeenCalledTimes(1);
@@ -225,7 +256,6 @@ describe('EditVerificationConfigComponent', () => {
   });
 
   it('keeps the input and shows the reason when the server refuses a save', async () => {
-    const showAlert = vi.spyOn(window, 'alert').mockImplementation(() => {});
     const { onClose } = renderEditor(buildConfig({ schedule: { type: 'HOURLY' } }));
 
     await chooseOption({ label: 'Verification interval', optionTitle: 'After backup' });
@@ -241,7 +271,6 @@ describe('EditVerificationConfigComponent', () => {
     expect(await screen.findByText(REFUSAL_MESSAGE)).toBeTruthy();
     expect(screen.getByText(/^Runs automatically after each successful backup/)).toBeTruthy();
     expect(onClose).not.toHaveBeenCalled();
-    expect(showAlert).not.toHaveBeenCalled();
     expect(isDisabled(getCancelButton())).toBe(false);
   });
 
@@ -337,8 +366,7 @@ describe('EditVerificationConfigComponent', () => {
         ? HttpResponse.json(config)
         : HttpResponse.json(buildProblem('permission_denied', 403), { status });
 
-    const expectNoFeedback = (showAlert: MockInstance) => {
-      expect(showAlert).not.toHaveBeenCalled();
+    const expectNoFeedback = () => {
       expect(screen.queryByText(REFUSAL_MESSAGE)).toBeNull();
       expect(screen.queryByRole('alert')).toBeNull();
     };
@@ -375,7 +403,6 @@ describe('EditVerificationConfigComponent', () => {
     it.each(ANSWER_OUTCOMES)(
       'shows nothing for a $outcome load answer after unmount',
       async ({ status }) => {
-        const showAlert = vi.spyOn(window, 'alert').mockImplementation(() => {});
         const loadCall = vi.spyOn(verificationConfigApi, 'getByDatabaseId');
         const heldLoad = createPendingApiResponse();
 
@@ -392,14 +419,13 @@ describe('EditVerificationConfigComponent', () => {
           heldLoad.respond(buildAnswer(buildConfig(), status)),
         );
 
-        expectNoFeedback(showAlert);
+        expectNoFeedback();
       },
     );
 
     it.each(ANSWER_OUTCOMES)(
       'shows nothing for a $outcome load answer after a session change',
       async ({ status }) => {
-        const showAlert = vi.spyOn(window, 'alert').mockImplementation(() => {});
         const loadCall = vi.spyOn(verificationConfigApi, 'getByDatabaseId');
         const heldLoad = createPendingApiResponse();
 
@@ -418,7 +444,7 @@ describe('EditVerificationConfigComponent', () => {
           heldLoad.respond(buildAnswer(buildConfig(), status)),
         );
 
-        expectNoFeedback(showAlert);
+        expectNoFeedback();
         expect(screen.queryByRole('button', { name: /Save$/ })).toBeNull();
       },
     );
@@ -426,7 +452,6 @@ describe('EditVerificationConfigComponent', () => {
     it.each(ANSWER_OUTCOMES)(
       'keeps the second database for a $outcome load answer of the first one',
       async ({ status }) => {
-        const showAlert = vi.spyOn(window, 'alert').mockImplementation(() => {});
         const loadCall = vi.spyOn(verificationConfigApi, 'getByDatabaseId');
         const heldLoad = createPendingApiResponse();
 
@@ -451,7 +476,7 @@ describe('EditVerificationConfigComponent', () => {
           0,
         );
 
-        expectNoFeedback(showAlert);
+        expectNoFeedback();
         expect(screen.getByLabelText('Weekday')).toBeTruthy();
       },
     );
@@ -459,14 +484,13 @@ describe('EditVerificationConfigComponent', () => {
     it.each(ANSWER_OUTCOMES)(
       'shows no feedback for a $outcome save answer after unmount',
       async ({ status }) => {
-        const showAlert = vi.spyOn(window, 'alert').mockImplementation(() => {});
         const onClose = vi.fn();
         const { config, heldSave, saveCall, view } = await startHeldSave(onClose);
 
         view.unmount();
         await releaseAndSettle(saveCall, () => heldSave.respond(buildAnswer(config, status)));
 
-        expectNoFeedback(showAlert);
+        expectNoFeedback();
         expect(onClose).not.toHaveBeenCalled();
       },
     );
@@ -474,7 +498,6 @@ describe('EditVerificationConfigComponent', () => {
     it.each(ANSWER_OUTCOMES)(
       'shows no feedback for a $outcome save answer after a session change',
       async ({ status }) => {
-        const showAlert = vi.spyOn(window, 'alert').mockImplementation(() => {});
         const onClose = vi.fn();
 
         activateSession({ token: 'first-token', userId: 'first-user' });
@@ -486,7 +509,7 @@ describe('EditVerificationConfigComponent', () => {
         });
         await releaseAndSettle(saveCall, () => heldSave.respond(buildAnswer(config, status)));
 
-        expectNoFeedback(showAlert);
+        expectNoFeedback();
         expect(onClose).not.toHaveBeenCalled();
       },
     );
@@ -494,7 +517,6 @@ describe('EditVerificationConfigComponent', () => {
     it.each(ANSWER_OUTCOMES)(
       'leaves the section untouched for a $outcome save answer after the database changed',
       async ({ status }) => {
-        const showAlert = vi.spyOn(window, 'alert').mockImplementation(() => {});
         const onClose = vi.fn();
         const { config, heldSave, saveCall, view } = await startHeldSave(onClose);
 
@@ -507,7 +529,7 @@ describe('EditVerificationConfigComponent', () => {
 
         await releaseAndSettle(saveCall, () => heldSave.respond(buildAnswer(config, status)));
 
-        expectNoFeedback(showAlert);
+        expectNoFeedback();
         expect(onClose).not.toHaveBeenCalled();
         expect(screen.getByLabelText('Weekday')).toBeTruthy();
         expect(isDisabled(getSaveButton())).toBe(true);

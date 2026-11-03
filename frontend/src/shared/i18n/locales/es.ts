@@ -108,9 +108,7 @@ export const es: typeof en = {
     },
     oauthCallback: {
       failedTitle: 'Error de autenticación',
-      codeNotFound: 'No se encontró el código de autorización',
-      stateMissing: 'Falta el parámetro state de OAuth',
-      invalidProvider: 'Proveedor de OAuth no válido',
+      notCompleted: 'No se completó el inicio de sesión. Empiece de nuevo.',
       returnToSignIn: 'Volver al inicio de sesión',
       completing: 'Completando la autenticación...',
     },

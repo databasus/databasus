@@ -3,12 +3,20 @@ import { expect, type Locator } from '@playwright/test';
 export const enlargeText = async (region: Locator) => {
   const probe = region.locator('input, button, label').first();
   const before = await probe.evaluate((element) => parseFloat(getComputedStyle(element).fontSize));
-  await region.evaluate((root) => {
+  await region.evaluate(async (root) => {
     const sizes = Array.from(root.querySelectorAll<HTMLElement>('*')).map((element) => ({
       element,
       size: parseFloat(getComputedStyle(element).fontSize),
     }));
     for (const { element, size } of sizes) element.style.fontSize = `${size * 2}px`;
+
+    // AntD controls animate font-size, so the enlarged layout exists only after these transitions.
+    await Promise.allSettled(
+      root
+        .getAnimations({ subtree: true })
+        .filter((animation) => animation instanceof CSSTransition)
+        .map((animation) => animation.finished),
+    );
   });
   await expect(probe).toHaveCSS('font-size', `${before * 2}px`);
 };

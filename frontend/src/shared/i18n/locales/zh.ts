@@ -107,9 +107,7 @@ export const zh: typeof en = {
     },
     oauthCallback: {
       failedTitle: '认证失败',
-      codeNotFound: '未找到授权码',
-      stateMissing: '缺少 OAuth state 参数',
-      invalidProvider: '无效的 OAuth 提供方',
+      notCompleted: '登录未完成，请重新开始。',
       returnToSignIn: '返回登录',
       completing: '正在完成认证…',
     },

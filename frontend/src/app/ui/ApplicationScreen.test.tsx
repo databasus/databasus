@@ -1,13 +1,15 @@
 // @vitest-environment happy-dom
 import { act, screen, within } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { activateSession } from '@/shared/auth';
 import { mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 import { ApplicationScreen } from './ApplicationScreen';
+
+vi.hoisted(() => vi.stubEnv('VITE_APP_VERSION', 'dev'));
 
 const mockServer = setUpMockApi();
 
@@ -54,7 +56,7 @@ const renderDiskUsage = async ({
       HttpResponse.json({ stargazers_count: 1 }),
     ),
     http.get('https://api.github.com/repos/databasus/databasus/releases/latest', () =>
-      HttpResponse.json({ tag_name: 'v0.0.0' }),
+      HttpResponse.json({ tag_name: 'v99.0.0' }),
     ),
   );
 
@@ -81,6 +83,12 @@ const renderDiskUsage = async ({
 
   return within(screen.getByRole('banner'));
 };
+
+it('hides the new version link in a development build', async () => {
+  await renderDiskUsage({ usedPercent: 50, theme: 'light' });
+
+  expect(screen.queryByRole('link', { name: 'New version available' })).toBeNull();
+});
 
 describe.each(['light', 'dark'] as const)('ApplicationScreen in %s theme', (theme) => {
   it.each([50, 85])('hides the disk summary at %s percent', async (usedPercent) => {

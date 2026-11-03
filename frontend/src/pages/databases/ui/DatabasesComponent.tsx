@@ -1,4 +1,4 @@
-import { Alert, Button, Modal, Spin } from 'antd';
+import { Alert, Button, Input, Modal, Spin } from 'antd';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -264,11 +264,11 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
           {isCanManageDBs && addDatabaseButton}
 
           <div className="mb-2">
-            <input
+            <Input
+              aria-label={t('databases.list.searchPlaceholder')}
               placeholder={t('databases.list.searchPlaceholder')}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full border-b border-border p-1 text-muted"
+              onChange={(event) => setSearchQuery(event.target.value)}
             />
           </div>
         </>

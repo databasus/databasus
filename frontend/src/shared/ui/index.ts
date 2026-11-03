@@ -9,3 +9,4 @@ export { LanguageThemeControlComponent } from './LanguageThemeControlComponent';
 export { StarButtonComponent } from './StarButtonComponent';
 export { ThemeToggleComponent } from './ThemeToggleComponent';
 export { ResourceListDetail } from './ResourceListDetail';
+export { WRAPPING_SELECT_CLASS_NAME } from './wrappingSelectClassName';

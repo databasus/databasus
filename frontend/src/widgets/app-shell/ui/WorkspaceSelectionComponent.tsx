@@ -2,6 +2,7 @@ import { Button, Select } from 'antd';
 import { useTranslation } from 'react-i18next';
 
 import { type Workspace } from '@/entities/workspaces';
+import { WRAPPING_SELECT_CLASS_NAME } from '@/shared/ui';
 
 interface Props {
   canCreateWorkspace: boolean;
@@ -24,7 +25,7 @@ export const WorkspaceSelectionComponent = ({
       {workspaces.length > 0 && (
         <Select
           aria-label={t('app.workspaceSelection.selected')}
-          className="w-full min-w-0 md:w-[240px]"
+          className={`w-full min-w-0 md:w-[240px] ${WRAPPING_SELECT_CLASS_NAME}`}
           showSearch
           optionFilterProp="label"
           value={selectedWorkspace?.id}

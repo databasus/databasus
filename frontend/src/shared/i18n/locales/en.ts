@@ -107,9 +107,7 @@ export const en = {
     },
     oauthCallback: {
       failedTitle: 'Authentication Failed',
-      codeNotFound: 'Authorization code not found',
-      stateMissing: 'OAuth state parameter missing',
-      invalidProvider: 'Invalid OAuth provider',
+      notCompleted: 'Sign-in did not finish. Please start again.',
       returnToSignIn: 'Return to sign in',
       completing: 'Completing authentication...',
     },

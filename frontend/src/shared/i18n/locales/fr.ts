@@ -108,9 +108,7 @@ export const fr: typeof en = {
     },
     oauthCallback: {
       failedTitle: "Échec de l'authentification",
-      codeNotFound: "Code d'autorisation introuvable",
-      stateMissing: 'Paramètre state OAuth manquant',
-      invalidProvider: 'Fournisseur OAuth non valide',
+      notCompleted: "La connexion n'a pas abouti. Recommencez.",
       returnToSignIn: 'Retour à la connexion',
       completing: "Finalisation de l'authentification...",
     },

@@ -3,6 +3,7 @@ import { expect } from '@playwright/test';
 import { DICTIONARIES } from '../../src/shared/i18n/dictionaries';
 import { accountFixtures } from '../accountFixtures';
 import { assertAccountReflow } from '../assertAccountReflow';
+import { assertSelectedNavigationEntry } from '../assertSelectedNavigationEntry';
 import { assertThemeTextColor } from '../assertThemeTextColor';
 import { test } from '../browserTest';
 import { enlargeText } from '../enlargeText';
@@ -207,6 +208,60 @@ test('keeps navigation reachable when the viewport crosses the 768px boundary', 
     page.getByRole('heading', { name: dictionary.users.list.title, exact: true }),
   ).toBeVisible();
 });
+
+for (const theme of ['light', 'dark']) {
+  test(`shows the selected section on the sidebar in the ${theme} theme`, async ({ page }) => {
+    await page.setViewportSize({ width: 769, height: 900 });
+    await openAccount({ page, theme });
+
+    const navigation = DICTIONARIES.en.app.navigation;
+    const profile = page.getByRole('button', { name: navigation.profile, exact: true });
+    const users = page.getByRole('button', { name: navigation.users, exact: true });
+
+    await profile.click();
+    await page.mouse.move(0, 0);
+    await assertSelectedNavigationEntry({ entry: profile, iconName: 'profile' });
+    await expect(page.locator('[aria-current="page"]')).toHaveCount(1);
+
+    await users.click();
+    await page.mouse.move(0, 0);
+    await assertSelectedNavigationEntry({ entry: users, iconName: 'user-card' });
+    await expect(profile).not.toHaveAttribute('aria-current');
+    await expect(page.locator('[aria-current="page"]')).toHaveCount(1);
+  });
+
+  test(`shows the selected section in the narrow menu in the ${theme} theme`, async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 900 });
+    await openAccount({ page, theme });
+
+    const navigation = DICTIONARIES.en.app.navigation;
+    const menu = page.getByRole('button', { name: navigation.menu, exact: true });
+    const profile = page.getByRole('button', { name: navigation.profile, exact: true });
+    const users = page.getByRole('button', { name: navigation.users, exact: true });
+
+    await openAccountTab({ page, locale: 'en', tab: 'profile' });
+    await menu.click();
+    await page.mouse.move(0, 0);
+    await assertSelectedNavigationEntry({
+      entry: profile,
+      iconName: 'profile',
+      label: profile.getByText(navigation.profile, { exact: true }),
+    });
+    await expect(page.locator('[aria-current="page"]')).toHaveCount(1);
+
+    await users.click();
+    await expect(menu).toBeFocused();
+    await menu.click();
+    await page.mouse.move(0, 0);
+    await assertSelectedNavigationEntry({
+      entry: users,
+      iconName: 'user-card',
+      label: users.getByText(navigation.users, { exact: true }),
+    });
+    await expect(profile).not.toHaveAttribute('aria-current');
+    await expect(page.locator('[aria-current="page"]')).toHaveCount(1);
+  });
+}
 
 test('retains the profile draft and sidebar when language is selected with the keyboard at 320px', async ({
   page,

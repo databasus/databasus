@@ -417,9 +417,18 @@ describe('DatabasesComponent', () => {
     expect(countRequests('/databases')).toBe(1);
   });
 
+  it('labels the search field', async () => {
+    declareListResponses(
+      ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo'].map((name) => buildDatabase(name)),
+    );
+    declarePendingDetailRequests();
+
+    renderDatabasesScreen();
+
+    expect(await screen.findByLabelText('Search database')).toBeTruthy();
+  });
+
   it('offers a retry instead of an empty list when the first list load fails', async () => {
-    const showAlert = vi.fn();
-    vi.stubGlobal('alert', showAlert);
     let listRequests = 0;
     mockServer.use(
       http.get(`*${API_BASE_PATH}/databases`, () =>
@@ -437,12 +446,9 @@ describe('DatabasesComponent', () => {
 
     expect(await findDatabaseCard('Alpha')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
-    expect(showAlert).not.toHaveBeenCalled();
   });
 
   it('keeps the list without feedback when a background refresh fails', async () => {
-    const showAlert = vi.fn();
-    vi.stubGlobal('alert', showAlert);
     let listRequests = 0;
     mockServer.use(
       http.get(`*${API_BASE_PATH}/databases`, () =>
@@ -471,7 +477,6 @@ describe('DatabasesComponent', () => {
 
     expect((await findDatabaseCard('Alpha')).getAttribute('aria-pressed')).toBe('true');
     expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
-    expect(showAlert).not.toHaveBeenCalled();
   });
 
   it('keeps the selected database when a background network failure precedes a successful refresh', async () => {

@@ -45,7 +45,7 @@ const openProfile = async (isTwoFactorAuthRequired: boolean) => {
   );
 
   renderApp();
-  fireEvent.click(await screen.findByAltText('Profile'));
+  fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
   await screen.findByDisplayValue('owner@example.com');
   fireEvent.change(screen.getByPlaceholderText('Enter new password'), {
     target: { value: 'replacement-password' },

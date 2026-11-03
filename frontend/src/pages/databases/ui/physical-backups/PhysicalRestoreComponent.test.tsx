@@ -12,7 +12,7 @@ import {
   createDefaultDatabaseSettings,
 } from '../../../../entities/databases';
 import { API_BASE_PATH } from '../../../../shared/api';
-import { DICTIONARIES } from '../../../../shared/i18n';
+import { DICTIONARIES, useLocale } from '../../../../shared/i18n';
 import { buildProblem, mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
 import { createPendingApiResponse } from '../../../../shared/lib/test/pendingApiResponse';
 import { releaseAndSettle } from '../../../../shared/lib/test/releaseAndSettle';
@@ -130,7 +130,36 @@ const SwitchableRestoreScreen = () => {
   );
 };
 
+const RestoreScreenWithLanguageSwitch = () => {
+  const { setLocale } = useLocale();
+
+  return (
+    <>
+      <button onClick={() => setLocale('fr')}>Change language</button>
+      <PhysicalRestoreComponent database={database} onClose={() => {}} />
+    </>
+  );
+};
+
 describe('PhysicalRestoreComponent', () => {
+  it('keeps the restore commands when the language changes', async () => {
+    const { heldRequests, requestBodies } = declareHeldTokenRequests();
+    renderScreen(<RestoreScreenWithLanguageSwitch />);
+
+    const latestRequest = await waitForHeldRequest(heldRequests, LATEST_TARGET);
+    latestRequest.respond(issueToken('latest-token'));
+    await waitFor(() => expect(queryCommandWithToken('latest-token')).toBeTruthy());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Change language' }));
+
+    expect(
+      await screen.findByText(DICTIONARIES.fr.backups.physical.restore.scriptTitles.host),
+    ).toBeTruthy();
+    expect(screen.queryByText(restoreCopy.scriptTitles.host)).toBeNull();
+    expect(queryCommandWithToken('latest-token')).toBeTruthy();
+    expect(requestBodies).toHaveLength(1);
+  });
+
   it('names the target time, restore method and environment fields', async () => {
     const { heldRequests } = declareHeldTokenRequests();
     renderPointInTimeRestore();
