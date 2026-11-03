@@ -116,12 +116,17 @@ func (d *Delivery) send(
 		return err
 	}
 
-	sendCtx, cancel := context.WithTimeout(ctx, d.timeout)
+	timeout := d.timeout
+	if longerProvider, isLonger := provider.(providers.DeliveryTimeoutProvider); isLonger {
+		timeout = longerProvider.GetDeliveryTimeout()
+	}
+
+	sendCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	sendErr := provider.Send(sendCtx, recipient.Settings, message)
 	if sendErr != nil && errors.Is(sendCtx.Err(), context.DeadlineExceeded) {
-		return fmt.Errorf("the delivery timed out after %s: %w", d.timeout, sendErr)
+		return fmt.Errorf("the delivery timed out after %s: %w", timeout, sendErr)
 	}
 
 	return sendErr

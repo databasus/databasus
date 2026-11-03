@@ -92,6 +92,10 @@ spec:
             {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.startupProbe.enabled }}
+          startupProbe:
+            {{- toYaml (omit .Values.startupProbe "enabled") | nindent 12 }}
+          {{- end }}
           {{- if .Values.livenessProbe.enabled }}
           livenessProbe:
             {{- toYaml (omit .Values.livenessProbe "enabled") | nindent 12 }}

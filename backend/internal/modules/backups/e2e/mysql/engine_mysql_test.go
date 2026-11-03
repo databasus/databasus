@@ -144,6 +144,31 @@ func TestBackupMysqlToFailingStorage(t *testing.T) {
 	})
 }
 
+func TestStartMysqlRestoreVersionCheck(t *testing.T) {
+	t.Parallel()
+
+	server := enginetest.ConnectToMysqlFamily(
+		t,
+		containers.StartMysql(t, "mysql:8.0"),
+		containers.MysqlRootPassword,
+		"",
+	)
+	server.CreateTestDataTable(t)
+
+	tm := enginetest.NewTeam(t)
+	database := tm.CreateDatabase(t, newMysqlSettings(server, apiclient.MysqlVersionN80))
+	backup := tm.BackUp(t, database.Id, apiclient.BackupEncryptionNONE)
+	restoredDatabaseName, _ := server.CreateRestoreDatabase(t, "restored_mysql_version")
+
+	tm.RequireRestoreVersionCheck(t, enginetest.RestoreVersionCheck{
+		DatabaseID:    database.Id,
+		BackupID:      backup.Id,
+		SettingsTable: "databases_mysql",
+		Target:        toMysqlRestoreTarget(t, newMysqlTarget(server, restoredDatabaseName)),
+		TargetVersion: "8.0",
+	})
+}
+
 func testMysqlRowsRestored(
 	t *testing.T,
 	endpoint containers.Endpoint,

@@ -26,11 +26,12 @@ type Environment struct {
 	AgentBinariesDir string
 	// ClientToolsDir is the client tool bundle root of this architecture. It is empty when
 	// clientToolsDirErr says why the root was not found: the console commands run no client tool,
-	// so only Serve refuses to start without it.
-	ClientToolsDir    string
-	clientToolsDirErr error
-	Logging           *logging.Logging
-	Clock             clock.Source
+	// so only the server refuses to start without it.
+	ClientToolsDir     string
+	clientToolsDirErr  error
+	clientToolsChecker *clienttools.Checker
+	Logging            *logging.Logging
+	Clock              clock.Source
 	// Mailer sends the instance's own mail through the operator's server. A test application
 	// records the messages instead.
 	Mailer mailer.Sender
@@ -123,12 +124,13 @@ func NewEnvironment(ctx context.Context, loadedConfig config.Config, clockSource
 	clientToolsDir, clientToolsDirErr := findClientToolsDir()
 
 	return &Environment{
-		Config:            loadedConfig,
-		AgentBinariesDir:  "agent-binaries",
-		ClientToolsDir:    clientToolsDir,
-		clientToolsDirErr: clientToolsDirErr,
-		Logging:           loadedLogging,
-		Clock:             clockSource,
+		Config:             loadedConfig,
+		AgentBinariesDir:   "agent-binaries",
+		ClientToolsDir:     clientToolsDir,
+		clientToolsDirErr:  clientToolsDirErr,
+		clientToolsChecker: nil,
+		Logging:            loadedLogging,
+		Clock:              clockSource,
 		Mailer: mailer.NewInstanceSender(mailer.Deps{
 			Settings: loadedConfig.GetInstanceMailSettings(),
 			Logger:   loadedLogging.GetLogger(),

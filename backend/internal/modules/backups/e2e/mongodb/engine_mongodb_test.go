@@ -141,6 +141,26 @@ func TestBackupMongodbToFailingStorage(t *testing.T) {
 	})
 }
 
+func TestStartMongodbRestoreVersionCheck(t *testing.T) {
+	t.Parallel()
+
+	server := connectToMongodb(t, containers.StartMongodb(t, "mongo:7.0"), "")
+	server.createTestDataCollection(t)
+
+	tm := enginetest.NewTeam(t)
+	database := tm.CreateDatabase(t, server.newSettings(apiclient.MongodbVersionN7))
+	backup := tm.BackUp(t, database.Id, apiclient.BackupEncryptionNONE)
+	restoredDatabaseName := server.newRestoreDatabaseName(t, "restored_mongodb_version")
+
+	tm.RequireRestoreVersionCheck(t, enginetest.RestoreVersionCheck{
+		DatabaseID:    database.Id,
+		BackupID:      backup.Id,
+		SettingsTable: "databases_mongodb",
+		Target:        toMongodbRestoreTarget(t, server.newTarget(restoredDatabaseName)),
+		TargetVersion: "7",
+	})
+}
+
 func testMongodbDocumentsRestored(
 	t *testing.T,
 	endpoint containers.Endpoint,

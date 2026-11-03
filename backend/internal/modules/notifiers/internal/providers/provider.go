@@ -5,6 +5,7 @@ package providers
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -28,6 +29,12 @@ type Provider interface {
 	MergeStoredSecrets(merge SecretMerge) (Settings, error)
 	Send(ctx context.Context, settings Settings, message notification.Notification) error
 	GetRepository() SettingsRepository
+}
+
+// DeliveryTimeoutProvider is a provider whose deliveries need longer than the general limit, such as
+// one that waits out a rate limit. A test send ignores it, because a person is waiting for the answer.
+type DeliveryTimeoutProvider interface {
+	GetDeliveryTimeout() time.Duration
 }
 
 // SecretMerge names both sides, so a swapped call cannot keep the stored settings over the edit.

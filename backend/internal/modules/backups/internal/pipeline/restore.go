@@ -177,8 +177,9 @@ func (p *Pipeline) restoreFromStorage(runCtx context.Context, run restoreRun) er
 	}
 
 	streamErr := getBackupStreamFailure(backupStreamTrackers{
-		storageRead:   storageRead,
-		decodedStream: decodedStreamRead,
+		storageRead:               storageRead,
+		decodedStream:             decodedStreamRead,
+		isDownloadedBeforeRestore: run.sink.IsArchiveFileNeeded(),
 	})
 	if streamErr != nil {
 		return streamErr

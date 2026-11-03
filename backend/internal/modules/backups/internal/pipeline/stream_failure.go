@@ -9,6 +9,8 @@ import (
 type backupStreamTrackers struct {
 	storageRead   *io_utils.FailureTrackingReader
 	decodedStream *io_utils.FailureTrackingReader
+	// isDownloadedBeforeRestore means every read of the stream happens before the restore tool starts.
+	isDownloadedBeforeRestore bool
 }
 
 // getBackupStreamFailure must be consulted before the restore tool's own exit error: a truncated
@@ -25,6 +27,10 @@ func getBackupStreamFailure(trackers backupStreamTrackers) error {
 
 	if readError == nil {
 		return nil
+	}
+
+	if trackers.isDownloadedBeforeRestore {
+		return fmt.Errorf("%w: %w", errBackupDownloadFailed, readError)
 	}
 
 	return fmt.Errorf("%w: %w", errBackupStreamFailed, readError)

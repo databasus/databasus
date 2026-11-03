@@ -69,7 +69,13 @@ func (e *mariadbEngine) OpenRestoreTarget(ctx context.Context, spec restoreTarge
 	}
 
 	isDowngrade, err := mariadb_engine.IsBackupVersionHigherThanRestoreVersion(sourceSettings.Version, targetVersion)
-	if err != nil || isDowngrade {
+	if err != nil {
+		tunnel.Close()
+
+		return nil, err
+	}
+
+	if isDowngrade {
 		tunnel.Close()
 
 		return nil, fmt.Errorf("%w: the backup is of MariaDB %s and the target runs MariaDB %s",

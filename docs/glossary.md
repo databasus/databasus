@@ -40,7 +40,7 @@ This is the project's common language. Each concept has one term in the document
 | Invitation | invitation | A user with the status `INVITED`, created when a workspace adds an address that has no user. The user finishes the sign-up with that address. |
 | Password reset | password reset | Replacing a forgotten password with a code emailed to the user. |
 | Actor | actor | The user on whose behalf a request runs: user ID and global role. |
-| Audit event | audit event | A record of who did what to which object, written in the transaction of the action. |
+| Audit event | audit event | A record of who did what to which object, written in the transaction of the action, or right after an action outside the database. |
 | Audit author | audit author | The user an audit event names as the one who acted, kept in the event as a snapshot of user ID, email and name. |
 | Backup config | backup config, `backups.BackupConfig` | The settings that say how a database is backed up: whether backups run, the storage, the encryption, the notification triggers and the schedule and retention of its backup method. A database has one backup config, of the method its type implies. |
 | Backup method | backup method, `backups.Method`, `LOGICAL`, `PHYSICAL` | How a database is backed up: a physical PostgreSQL database physically, every other database logically. |

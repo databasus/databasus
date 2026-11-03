@@ -17,11 +17,15 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/app"
+	"databasus-backend/internal/engines/clienttools"
+	mysqlengine "databasus-backend/internal/engines/mysql"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	apiclient "databasus-backend/internal/lib/apiclient"
 	"databasus-backend/internal/lib/config"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/testdb"
 	"databasus-backend/internal/lib/testwait"
+	"databasus-backend/internal/lib/toolstub"
 )
 
 const (
@@ -222,6 +226,7 @@ func TestBinary(t *testing.T) {
 
 	t.Run("stops the server and a console command without changes when the schema is newer", func(t *testing.T) {
 		host := newOperatorHost(t)
+		writeWorkingPostgresqlClients(t, host)
 		databaseDsn := testdb.Open(t)
 		environment := newDatabaseEnvironment(databaseDsn)
 		email := "rolled-back@databasus.local"
@@ -255,6 +260,7 @@ func TestBinary(t *testing.T) {
 
 	t.Run("stops on a failed migration without opening the port and applies it after the fix", func(t *testing.T) {
 		host := newOperatorHost(t)
+		writeWorkingPostgresqlClients(t, host)
 		databaseDsn := testdb.OpenEmpty(t)
 		environment := newDatabaseEnvironment(databaseDsn)
 		executeStatement(t, databaseDsn, "CREATE TABLE users (id INT)")
@@ -270,6 +276,44 @@ func TestBinary(t *testing.T) {
 		listRun := runBinary(t, host, environment, "--list-admins")
 
 		require.Equal(t, 0, listRun.exitCode, listRun.output)
+	})
+
+	t.Run("refuses to start before migrating when a postgresql client is broken", func(t *testing.T) {
+		host := newOperatorHost(t)
+		writeBrokenClients(t, pgshared.GetClientToolBundles(host.getClientToolsRoot(t)))
+		databaseDsn := testdb.OpenEmpty(t)
+
+		serverRun := runBinary(t, host, newDatabaseEnvironment(databaseDsn))
+
+		assert.NotEqual(t, 0, serverRun.exitCode, serverRun.output)
+		assert.Contains(t, serverRun.output, "client tools check failed")
+		requireNoMigrationRan(t, databaseDsn, serverRun)
+	})
+
+	t.Run("refuses to start before migrating when the client tools cannot be found", func(t *testing.T) {
+		databaseDsn := testdb.OpenEmpty(t)
+
+		serverRun := runBinary(t, newOperatorHost(t), newDatabaseEnvironment(databaseDsn))
+
+		assert.NotEqual(t, 0, serverRun.exitCode, serverRun.output)
+		assert.Contains(t, serverRun.output, "client tools could not be found")
+		requireNoMigrationRan(t, databaseDsn, serverRun)
+	})
+
+	t.Run("goes on to migrate when only a mysql client is broken", func(t *testing.T) {
+		host := newOperatorHost(t)
+		writeWorkingPostgresqlClients(t, host)
+		writeBrokenClients(t, mysqlengine.GetClientToolBundles(host.getClientToolsRoot(t)))
+		databaseDsn := testdb.OpenEmpty(t)
+		executeStatement(t, databaseDsn, "CREATE TABLE users (id INT)")
+
+		serverRun := runBinary(t, host, newDatabaseEnvironment(databaseDsn))
+
+		assert.NotEqual(t, 0, serverRun.exitCode, serverRun.output)
+		assert.Contains(t, serverRun.output, "client tools check failed - support disabled")
+		assert.Contains(t, serverRun.output, "mysql")
+		assert.Contains(t, serverRun.output, firstMigration)
+		assert.NotContains(t, serverRun.output, "http server listening")
 	})
 }
 
@@ -292,6 +336,75 @@ func newOperatorHost(t *testing.T) operatorHost {
 		workingDirectory: workingDirectory,
 		dataDirectory:    filepath.Join(rootDirectory, "databasus-data"),
 	}
+}
+
+// getClientToolsRoot is where the binary finds its client tools from this host's working directory.
+func (h operatorHost) getClientToolsRoot(t *testing.T) string {
+	t.Helper()
+
+	return filepath.Join(filepath.Dir(h.workingDirectory), "assets", "tools", filepath.Base(getRealClientToolsRoot(t)))
+}
+
+func getRealClientToolsRoot(t *testing.T) string {
+	t.Helper()
+
+	workingDirectory, err := os.Getwd()
+	require.NoError(t, err)
+
+	realClientToolsRoot, err := clienttools.FindBundleRoot(workingDirectory)
+	require.NoError(t, err)
+
+	return realClientToolsRoot
+}
+
+// writeWorkingPostgresqlClients lets a server run pass the client tool check and reach the database.
+// Stubs answer for the real clients, because some of those need libraries the machine may lack.
+func writeWorkingPostgresqlClients(t *testing.T, host operatorHost) {
+	t.Helper()
+
+	for _, bundle := range pgshared.GetClientToolBundles(host.getClientToolsRoot(t)) {
+		for _, command := range bundle.RequiredCommands {
+			toolstub.Write(t, filepath.Join(bundle.BinDir, command), toolstub.Spec{
+				IsReadingStdin: false,
+				Script:         fmt.Sprintf("echo '%s (PostgreSQL) %s.0'", command, bundle.ReleaseLine),
+			})
+		}
+	}
+}
+
+func writeBrokenClients(t *testing.T, bundles []clienttools.Bundle) {
+	t.Helper()
+
+	for _, bundle := range bundles {
+		for _, command := range bundle.RequiredCommands {
+			toolstub.Write(t, filepath.Join(bundle.BinDir, command), toolstub.Spec{
+				IsReadingStdin: false,
+				Script:         "exit 1",
+			})
+		}
+	}
+}
+
+func requireNoMigrationRan(t *testing.T, databaseDsn string, serverRun binaryRun) {
+	t.Helper()
+
+	assert.NotContains(t, serverRun.output, "running database migrations")
+
+	db, err := database.Open(t.Context(), databaseDsn)
+	require.NoError(t, err)
+
+	defer func() {
+		sqlDB, sqlErr := db.DB()
+		if sqlErr == nil {
+			_ = sqlDB.Close()
+		}
+	}()
+
+	var isMigrationTablePresent bool
+	require.NoError(t, db.WithContext(t.Context()).
+		Raw("SELECT to_regclass('goose_db_version') IS NOT NULL").
+		Scan(&isMigrationTablePresent).Error)
+	assert.False(t, isMigrationTablePresent, serverRun.output)
 }
 
 type binaryRun struct {

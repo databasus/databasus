@@ -20,6 +20,9 @@ const (
 	// defaultBackoff is the wait before a retry when Slack sends no Retry-After header.
 	defaultBackoff    = 2 * time.Second
 	backoffMultiplier = 1.5
+	// deliveryTimeout leaves room for four waits of a typical 30-second Retry-After. Each request stays
+	// limited by the HTTP client, so an endpoint that does not answer still fails within 30 seconds.
+	deliveryTimeout = 3 * time.Minute
 )
 
 type Deps struct {
@@ -96,7 +99,12 @@ func (p *Provider) MergeStoredSecrets(merge providers.SecretMerge) (providers.Se
 	return incomingSettings, nil
 }
 
-// Send retries while Slack rate-limits the message, waiting as long as its Retry-After header asks.
+func (p *Provider) GetDeliveryTimeout() time.Duration {
+	return deliveryTimeout
+}
+
+// Send retries while Slack rate-limits the message, waiting as long as its Retry-After header asks,
+// and gives up at once when that wait does not fit the time left.
 func (p *Provider) Send(ctx context.Context, settings providers.Settings, message notification.Notification) error {
 	slackSettings, err := providers.CastSettings[Settings](settings)
 	if err != nil {
@@ -187,6 +195,11 @@ func (p *Provider) postMessage(ctx context.Context, botToken string, payload []b
 }
 
 func waitForRetry(ctx context.Context, wait time.Duration) error {
+	deadline, hasDeadline := ctx.Deadline()
+	if hasDeadline && time.Until(deadline) < wait {
+		return fmt.Errorf("%w: it asked to wait %s", errRateLimited, wait)
+	}
+
 	timer := time.NewTimer(wait)
 	defer timer.Stop()
 

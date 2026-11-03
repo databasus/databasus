@@ -180,7 +180,7 @@ Settings stay in columns rather than in a JSON document for two reasons. The dat
 
 Test support lives in `lib` too: `testdb`, `testwait`, the contract-checking clients `apiclient` and `agentclienttest` with `contracttest`, `toolstub`, the source and provider containers in `testcontainers`, SSH settings in `testcontainers/bastion`, proxy and timeout behavior in `httpclienttest`, and mail assertions in `mailpittest`. Storage-provider-only support lives in `storages/internal/providers/providertest`. Production dependency checks keep test support out of both binaries.
 
-Audit events are written through `lib/audit` in the transaction of the operation they describe. Each event stores a snapshot of its audit author's user ID, email and name as they were at the time of the action. The event reads the same after the user changes or is deleted, and reading it needs no join with `users`. `workspaces` serves every audit log view, the global one included: each view shows the name of the workspace an event belongs to, which only `workspaces` can read, and `workspaces` can apply each view's access rule.
+Audit events are written through `lib/audit` in the transaction of the operation they describe. An event about an effect outside the database, such as a sent email, is written right after that effect. Each event stores a snapshot of its audit author's user ID, email and name as they were at the time of the action. The event reads the same after the user changes or is deleted, and reading it needs no join with `users`. `workspaces` serves every audit log view, the global one included: each view shows the name of the workspace an event belongs to, which only `workspaces` can read, and `workspaces` can apply each view's access rule.
 
 ## Data
 

@@ -1,9 +1,12 @@
 package users_test
 
 import (
+	"context"
+	"log/slog"
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -40,6 +43,69 @@ func TestRequestPasswordReset(t *testing.T) {
 		oldPasswordSignIn := signIn(t, app, admin.Email, apptest.TestPassword)
 		requireProblem(t, oldPasswordSignIn.StatusCode(), oldPasswordSignIn.Body, http.StatusUnauthorized,
 			apiclient.ProblemCodeInvalidCredentials)
+	})
+
+	t.Run("records an audit event when a reset code is sent", func(t *testing.T) {
+		t.Parallel()
+
+		app := apptest.New(t)
+		admin := app.CreateAdmin(t)
+
+		response := requestPasswordReset(t, app, admin.Email)
+
+		require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
+		code := readLatestMailedCode(t, app, admin.Email)
+		resetCodeEvents := listResetCodeAuditEvents(t, admin, admin.Email)
+		require.Len(t, resetCodeEvents, 1)
+		assert.Nil(t, resetCodeEvents[0].Author)
+		assert.Nil(t, resetCodeEvents[0].Workspace)
+		assert.NotContains(t, resetCodeEvents[0].Message, code)
+	})
+
+	t.Run("writes no audit event for an address without a user", func(t *testing.T) {
+		t.Parallel()
+
+		app := apptest.New(t)
+		admin := app.CreateAdmin(t)
+		unknownEmail := apptest.NewTestEmail("unknown")
+
+		response := requestPasswordReset(t, app, unknownEmail)
+
+		require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
+		assert.Empty(t, listResetCodeAuditEvents(t, admin, unknownEmail))
+	})
+
+	t.Run("writes no audit event when the mail server refuses the code", func(t *testing.T) {
+		t.Parallel()
+
+		app := apptest.New(t)
+		admin := app.CreateAdmin(t)
+		app.Mail.RefuseSends()
+
+		response := requestPasswordReset(t, app, admin.Email)
+
+		require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
+		assert.Len(t, app.Mail.GetRefusedMessagesTo(admin.Email), 1)
+		assert.Empty(t, listResetCodeAuditEvents(t, admin, admin.Email))
+	})
+
+	t.Run("answers alike when the audit event cannot be written", func(t *testing.T) {
+		t.Parallel()
+
+		logSink := &resetAuditLogSink{}
+		app := apptest.New(t, apptest.WithLogSink(logSink))
+		admin := app.CreateAdmin(t)
+		app.ExecuteSQL(t, `CREATE FUNCTION refuse_reset_code_event() RETURNS trigger AS $$ BEGIN
+			IF NEW.message LIKE 'Password reset code%' THEN RAISE EXCEPTION 'audit write refused'; END IF;
+			RETURN NEW; END $$ LANGUAGE plpgsql`)
+		app.ExecuteSQL(t, `CREATE TRIGGER refuse_reset_code_event BEFORE INSERT ON lib_audit_events
+			FOR EACH ROW EXECUTE FUNCTION refuse_reset_code_event()`)
+
+		response := requestPasswordReset(t, app, admin.Email)
+
+		require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
+		assert.Len(t, app.Mail.GetMessagesTo(admin.Email), 1)
+		assert.True(t, logSink.isWriteFailureLogged())
 	})
 
 	t.Run("answers alike and mails nothing for an address without a user", func(t *testing.T) {
@@ -555,6 +621,46 @@ func requestResetCode(t *testing.T, app *apptest.App, email string) string {
 	require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
 
 	return readLatestMailedCode(t, app, email)
+}
+
+// listResetCodeAuditEvents reads the global audit log and keeps the events about the address's code.
+func listResetCodeAuditEvents(t *testing.T, admin apptest.Session, email string) []apiclient.AuditEvent {
+	t.Helper()
+
+	var resetCodeEvents []apiclient.AuditEvent
+
+	for _, event := range apptest.ListAllAuditEvents(t, admin, apiclient.ListAuditEventsParams{}) {
+		if strings.HasPrefix(event.Message, "Password reset code sent to "+email) {
+			resetCodeEvents = append(resetCodeEvents, event)
+		}
+	}
+
+	return resetCodeEvents
+}
+
+// resetAuditLogSink notices the error record of a reset code event that could not be written.
+type resetAuditLogSink struct {
+	isLogged atomic.Bool
+}
+
+func (s *resetAuditLogSink) Enabled(_ context.Context, level slog.Level) bool {
+	return level >= slog.LevelError
+}
+
+func (s *resetAuditLogSink) Handle(_ context.Context, record slog.Record) error {
+	if strings.Contains(record.Message, "audit event of the reset code") {
+		s.isLogged.Store(true)
+	}
+
+	return nil
+}
+
+func (s *resetAuditLogSink) WithAttrs([]slog.Attr) slog.Handler { return s }
+
+func (s *resetAuditLogSink) WithGroup(string) slog.Handler { return s }
+
+func (s *resetAuditLogSink) isWriteFailureLogged() bool {
+	return s.isLogged.Load()
 }
 
 func requestPasswordReset(t *testing.T, app *apptest.App, email string) *apiclient.RequestPasswordResetResponse {

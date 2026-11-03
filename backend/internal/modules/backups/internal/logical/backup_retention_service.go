@@ -52,8 +52,17 @@ func (s *Service) applyRetention(ctx context.Context, enabledConfig config.Logic
 		}
 
 		isRemoved, err := s.removeExpiredBackup(ctx, expiredBackup.ID)
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+
 		if err != nil {
-			return err
+			s.logger.ErrorContext(ctx, "failed to remove an expired logical backup",
+				slog.Any("backup_id", expiredBackup.ID),
+				slog.Any("database_id", expiredBackup.DatabaseID),
+				slog.Any("error", err))
+
+			continue
 		}
 
 		if isRemoved {

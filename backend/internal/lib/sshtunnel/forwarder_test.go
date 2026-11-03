@@ -125,32 +125,7 @@ func TestOpen(t *testing.T) {
 	// without an explicit deadline this blocks forever while holding clientMutex, taking Close with it.
 	t.Run("fails instead of hanging when the bastion accepts but never handshakes", func(t *testing.T) {
 		t.Parallel()
-		var listenConfig net.ListenConfig
-		silentBastion, err := listenConfig.Listen(t.Context(), "tcp", "127.0.0.1:0")
-		require.NoError(t, err)
-		t.Cleanup(func() { _ = silentBastion.Close() })
-
-		go func() {
-			for {
-				conn, err := silentBastion.Accept()
-				if err != nil {
-					return
-				}
-
-				t.Cleanup(func() { _ = conn.Close() })
-			}
-		}()
-
-		silentAddress, isTCPAddress := silentBastion.Addr().(*net.TCPAddr)
-		require.True(t, isTCPAddress)
-
-		openSpec := testOpenSpec(Settings{
-			Host:     "127.0.0.1",
-			Port:     silentAddress.Port,
-			Username: containers.SSHBastionUsername,
-			AuthType: AuthTypePassword,
-			Password: containers.SSHBastionPassword,
-		})
+		openSpec := testOpenSpec(newSilentBastionSettings(t))
 		openSpec.HandshakeTimeout = 2 * time.Second
 
 		openErrors := make(chan error, 1)
@@ -169,6 +144,36 @@ func TestOpen(t *testing.T) {
 			require.Error(t, openErr)
 		case <-time.After(15 * time.Second):
 			t.Fatal("Open blocked on the SSH handshake instead of timing out")
+		}
+	})
+
+	t.Run("ends the first handshake when the context ends", func(t *testing.T) {
+		t.Parallel()
+
+		openSpec := testOpenSpec(newSilentBastionSettings(t))
+		openSpec.HandshakeTimeout = 10 * time.Minute
+
+		openCtx, cancelOpen := context.WithCancel(t.Context())
+		defer cancelOpen()
+
+		openErrors := make(chan error, 1)
+
+		go func() {
+			forwarder, err := Open(openCtx, openSpec)
+			if forwarder != nil {
+				forwarder.Close()
+			}
+
+			openErrors <- err
+		}()
+
+		cancelOpen()
+
+		select {
+		case openErr := <-openErrors:
+			require.ErrorIs(t, openErr, context.Canceled)
+		case <-time.After(15 * time.Second):
+			t.Fatal("Open kept waiting for the SSH handshake after its context ended")
 		}
 	})
 }
@@ -326,6 +331,38 @@ func bastionSettings(bastion containers.Endpoint) Settings {
 	return Settings{
 		Host:     bastion.Host,
 		Port:     bastion.Port,
+		Username: containers.SSHBastionUsername,
+		AuthType: AuthTypePassword,
+		Password: containers.SSHBastionPassword,
+	}
+}
+
+// newSilentBastionSettings points at a bastion that completes the TCP connect and then says nothing.
+func newSilentBastionSettings(t *testing.T) Settings {
+	t.Helper()
+
+	var listenConfig net.ListenConfig
+	silentBastion, err := listenConfig.Listen(t.Context(), "tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = silentBastion.Close() })
+
+	go func() {
+		for {
+			conn, err := silentBastion.Accept()
+			if err != nil {
+				return
+			}
+
+			t.Cleanup(func() { _ = conn.Close() })
+		}
+	}()
+
+	silentAddress, isTCPAddress := silentBastion.Addr().(*net.TCPAddr)
+	require.True(t, isTCPAddress)
+
+	return Settings{
+		Host:     "127.0.0.1",
+		Port:     silentAddress.Port,
 		Username: containers.SSHBastionUsername,
 		AuthType: AuthTypePassword,
 		Password: containers.SSHBastionPassword,

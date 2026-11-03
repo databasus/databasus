@@ -69,7 +69,13 @@ func (e *mysqlEngine) OpenRestoreTarget(ctx context.Context, spec restoreTargetS
 	}
 
 	isDowngrade, err := mysql_engine.IsBackupVersionHigherThanRestoreVersion(sourceSettings.Version, targetVersion)
-	if err != nil || isDowngrade {
+	if err != nil {
+		tunnel.Close()
+
+		return nil, err
+	}
+
+	if isDowngrade {
 		tunnel.Close()
 
 		return nil, fmt.Errorf("%w: the backup is of MySQL %s and the target runs MySQL %s",

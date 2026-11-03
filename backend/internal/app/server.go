@@ -28,12 +28,7 @@ const frontendDirectory = "./ui/build"
 // loops and job passes within the shutdown limit. A busy port returns an error before any loop
 // starts.
 func (a *App) Serve(ctx context.Context, address string) error {
-	err := a.checkClientTools(ctx)
-	if err != nil {
-		return err
-	}
-
-	err = cleanFolder(a.environment.Config.TempFolder)
+	err := cleanFolder(a.environment.Config.TempFolder)
 	if err != nil {
 		a.logger.ErrorContext(ctx, "failed to clean temp folder", slog.Any("error", err))
 	}

@@ -18,6 +18,9 @@ var (
 	errBackupStreamFailed = errors.New(
 		"backup stream from storage failed mid-restore, target database is left partially restored",
 	)
+	errBackupDownloadFailed = errors.New(
+		"backup download from storage failed, the restore tool did not start",
+	)
 )
 
 // TargetConnectionError is a restore target that could not be reached or that refused the

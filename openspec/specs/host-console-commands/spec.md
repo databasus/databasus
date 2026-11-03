@@ -118,3 +118,18 @@ A command that works with accounts or settings SHALL apply the migrations of the
 
 - **WHEN** `databasus healthcheck` runs through the link on `PATH` while the server does not listen on its port
 - **THEN** the command prints that the check failed and exits with a non-zero code
+
+### Requirement: Asking for help succeeds
+
+Starting the program with `-h`, `-help` or `--help` SHALL print the usage text and exit with code 0, without reading settings or opening the internal database. An unknown flag SHALL still print the usage text and exit with code 2.
+
+#### Scenario: Help is requested
+
+- **WHEN** an operator runs the program with `--help`, where the connection string is neither set nor published
+- **THEN** the usage text is printed and the program exits with code 0
+- **AND** the output has no message about a missing connection string
+
+#### Scenario: An unknown flag
+
+- **WHEN** an operator runs the program with a flag it does not know
+- **THEN** the usage text is printed and the program exits with code 2

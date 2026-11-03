@@ -279,8 +279,6 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		IsDisabled:   environment.Config.IsDisableAnonymousTelemetry,
 	})
 
-	clientToolsChecker := newClientToolsChecker(environment.ClientToolsDir)
-
 	subscribeToWorkspaceDeleting(workspacesModule, databasesModule, notifiersModule, storagesModule)
 	subscribeToNotifierTransferring(notifiersModule, databasesModule)
 	subscribeToStorageTransferring(storagesModule, backupsModule)
@@ -317,7 +315,7 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		jobHealthPolicies:  newJobHealthPolicies(jobs, environment.StorageFileTimings),
 		jobs:               jobs, runner: runner,
 		inspectDisk:        diskusage.Get,
-		clientToolsChecker: clientToolsChecker,
+		clientToolsChecker: environment.getClientToolsChecker(),
 		shutdownBudget:     shutdownBudget,
 	}, nil
 }

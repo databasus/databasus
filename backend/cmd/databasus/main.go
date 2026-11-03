@@ -5,6 +5,8 @@ package main
 
 import (
 	"context"
+	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"log/slog"
@@ -36,6 +38,10 @@ func run(ctx context.Context, arguments []string, standardOutput, errorOutput io
 	}
 
 	options, err := parseOptions(arguments, errorOutput)
+	if errors.Is(err, flag.ErrHelp) {
+		return 0
+	}
+
 	if err != nil {
 		return 2
 	}
@@ -85,6 +91,13 @@ func probeStorage(ctx context.Context, environment *app.Environment, standardOut
 
 func serve(ctx context.Context, environment *app.Environment, standardOutput io.Writer) int {
 	defer flushLogs(ctx, environment)
+
+	err := environment.CheckClientTools(ctx)
+	if err != nil {
+		environment.Logging.GetLogger().ErrorContext(ctx, "failed to start the application", slog.Any("error", err))
+
+		return 1
+	}
 
 	application, err := app.New(ctx, environment)
 	if err != nil {

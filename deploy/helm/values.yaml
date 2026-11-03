@@ -149,6 +149,18 @@ livenessProbe:
   timeoutSeconds: 5
   failureThreshold: 3
 
+# Holds the liveness and readiness probes back until the port answers, because migrations
+# and startup cleanup run before the port opens. Allows 10 minutes (periodSeconds x
+# failureThreshold), after which Kubernetes restarts the container.
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /api/v1/system/version
+    port: http
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 60
+
 readinessProbe:
   enabled: true
   httpGet:

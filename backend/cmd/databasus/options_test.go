@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"io"
 	"testing"
 
@@ -116,4 +117,33 @@ func TestSelectCommand(t *testing.T) {
 			require.ErrorIs(t, err, refusedCase.expectedError)
 		})
 	}
+}
+
+func TestRun(t *testing.T) {
+	t.Parallel()
+
+	for _, helpFlag := range []string{"-h", "-help", "--help"} {
+		t.Run("exits with zero on help with "+helpFlag, func(t *testing.T) {
+			t.Parallel()
+
+			var standardOutput, errorOutput bytes.Buffer
+
+			exitCode := run(t.Context(), []string{helpFlag}, &standardOutput, &errorOutput)
+
+			assert.Equal(t, 0, exitCode)
+			assert.Contains(t, errorOutput.String(), "Usage of databasus")
+			assert.NotContains(t, standardOutput.String()+errorOutput.String(), "DATABASE_DSN")
+		})
+	}
+
+	t.Run("exits with two on an unknown flag", func(t *testing.T) {
+		t.Parallel()
+
+		var standardOutput, errorOutput bytes.Buffer
+
+		exitCode := run(t.Context(), []string{"--no-such-flag"}, &standardOutput, &errorOutput)
+
+		assert.Equal(t, 2, exitCode)
+		assert.Contains(t, errorOutput.String(), "Usage of databasus")
+	})
 }

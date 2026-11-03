@@ -34,7 +34,9 @@ type backupMetadata struct {
 func (s *Service) runBackup(runCtx context.Context, backup LogicalBackup, backupDatabase databases.Database) {
 	startedAt := s.clock.Now()
 
-	backupConfig, err := s.configs.GetLogicalBackupConfig(runCtx, backup.DatabaseID)
+	// A stop must not cut this read short: without the config a failure cannot send its notification,
+	// and the stop reaches the very next step anyway.
+	backupConfig, err := s.configs.GetLogicalBackupConfig(context.WithoutCancel(runCtx), backup.DatabaseID)
 	if err != nil {
 		s.failBackup(runCtx, backup, backupDatabase, nil, startedAt, err)
 
