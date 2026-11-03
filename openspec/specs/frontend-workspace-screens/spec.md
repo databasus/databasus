@@ -46,6 +46,31 @@ Changing workspace SHALL invalidate previous lists, details, editor completions 
 - **WHEN** the user selects another workspace and edits its settings while an earlier access refresh remains pending
 - **THEN** that refresh cannot replace the selected workspace or discard its draft, whether it returns an older workspace list or fails
 
+#### Scenario: The database list establishes that workspace access disappeared
+
+- **WHEN** an initial or background database list load receives a current HTTP 403 or 404 for the databases or for the workspace backup configurations or storages required to display them
+- **THEN** the workspace database list and details are cleared before accessible-workspace refresh completes
+- **AND** the unavailable workspace is removed from navigation without a page reload
+- **AND** another accessible workspace is selected or the permitted empty-workspace experience is shown when none remains
+
+#### Scenario: Workspace refresh fails after database access is lost
+
+- **WHEN** the database list establishes workspace unavailability and refreshing accessible workspaces then fails
+- **THEN** the obsolete database content remains absent and translated recovery with an explicit Retry action is offered
+- **AND** a successful retry restores an accessible workspace selection without restoring the unavailable content
+
+#### Scenario: An access refusal follows a temporary collection failure
+
+- **WHEN** an initial or background database list load first receives a network failure or HTTP 500 from one required workspace read and later receives a current HTTP 403 or 404 from another
+- **THEN** the later refusal clears the workspace database content and refreshes accessible workspace selection even while another required read remains pending
+- **AND** multiple access refusals from that load start at most one workspace reconciliation
+- **AND** no local Retry action for the unavailable workspace remains
+
+#### Scenario: An obsolete database list refusal arrives after switching workspaces
+
+- **WHEN** the user has selected another workspace and an earlier database list load returns HTTP 403 or 404
+- **THEN** the refusal does not remove a workspace, refresh workspace navigation, change the selection, or publish old feedback
+
 ### Requirement: Resource selection remains valid within its workspace
 
 Database, storage and notifier selection SHALL be remembered separately for each workspace and revalidated against successfully loaded items. Changing the workspace or preference key SHALL read that scope's preference without writing the previous selection into it. Desktop initial load SHALL select the remembered available item or the first item; mobile initial load SHALL show the list. Explicit selection, back-to-list, create and delete SHALL preserve the existing list/detail behavior. Creating an item or copying a database SHALL select the new item. After removing the selected item, by deletion or by transfer to another workspace, selection SHALL move to the first remaining item in list order, or become empty. A background refresh that establishes the selected item is gone SHALL apply the same validity rule.

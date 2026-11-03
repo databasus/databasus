@@ -474,6 +474,38 @@ describe('DatabasesComponent', () => {
     expect(showAlert).not.toHaveBeenCalled();
   });
 
+  it('keeps the selected database when a background network failure precedes a successful refresh', async () => {
+    const alphaDatabase = buildDatabase('Alpha');
+    const bravoDatabase = buildDatabase('Bravo');
+    const databaseReads = vi.spyOn(databaseApi, 'listAllDatabases');
+    declareListResponses([alphaDatabase]);
+    declarePendingDetailRequests();
+
+    renderDatabasesScreen();
+    await findDatabaseCard('Alpha');
+
+    const failedRead = mockApi.pending('get', '/databases');
+    mockServer.use(failedRead.handler);
+
+    fireEvent(document, new Event('visibilitychange'));
+    await waitFor(() => expect(databaseReads).toHaveBeenCalledTimes(2));
+    await releaseAndSettle(databaseReads, () => failedRead.respond(HttpResponse.error()));
+
+    expect((await findDatabaseCard('Alpha')).getAttribute('aria-pressed')).toBe('true');
+    expect(localStorage.getItem(SELECTED_DATABASE_PREFERENCE_KEY)).toBe(alphaDatabase.id);
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+
+    declareListResponses([bravoDatabase]);
+
+    fireEvent(document, new Event('visibilitychange'));
+
+    expect((await findDatabaseCard('Bravo')).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.queryByRole('button', { name: /^Alpha/ })).toBeNull();
+    expect(localStorage.getItem(SELECTED_DATABASE_PREFERENCE_KEY)).toBe(bravoDatabase.id);
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+  });
+
   it('keeps showing the newly selected database when the previous one responds last', async () => {
     const alphaDatabase = buildDatabase('Alpha');
     const bravoDatabase = { ...buildDatabase('Bravo'), name: 'Bravo' };
