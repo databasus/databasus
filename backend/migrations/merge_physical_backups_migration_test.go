@@ -182,7 +182,7 @@ func TestMergePhysicalBackupsMigration(t *testing.T) {
 			"backups_physical_pkey", "idx_backups_physical_database_id_status_created_at",
 			"idx_backups_physical_database_id_timeline_id", "idx_backups_physical_root_full_start_lsn",
 			"idx_backups_physical_parent_backup_id", "idx_backups_physical_database_id_kind_created_at",
-			"uq_backups_physical_database_in_progress",
+			"uq_backups_physical_database_in_progress", "idx_backups_physical_storage_id",
 		}, listStrings(t, db, "SELECT indexname FROM pg_indexes WHERE tablename = 'backups_physical'"))
 		for _, reference := range []string{"database", "storage", "parent_backup", "root_full_backup"} {
 			assert.Equal(

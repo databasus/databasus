@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 
 	"databasus-backend/internal/lib/database"
@@ -138,14 +139,18 @@ func (r *backupRepository) listNewestPerDatabase(
 ) ([]LogicalBackup, error) {
 	var listedBackups []LogicalBackup
 
-	err := database.Conn(ctx, r.db).Raw("SELECT "+backupColumns+` FROM (
-			SELECT *, row_number() OVER (PARTITION BY database_id ORDER BY created_at DESC, id DESC) AS position
+	err := database.Conn(ctx, r.db).
+		Raw("SELECT "+backupColumns+` FROM unnest(?::uuid[]) AS requested (requested_database_id)
+		CROSS JOIN LATERAL (
+			SELECT *
 			FROM backups_logical
-			WHERE database_id IN ?
-		) AS ranked
-		WHERE position <= ?
-		ORDER BY database_id, created_at DESC, id DESC`, databaseIDs, count).
-		Scan(&listedBackups).Error
+			WHERE database_id = requested.requested_database_id
+			ORDER BY created_at DESC, id DESC
+			LIMIT ?
+		) AS newest
+		ORDER BY database_id, created_at DESC, id DESC`, pq.Array(databaseIDs), count).
+		Scan(&listedBackups).
+		Error
 	if err != nil {
 		return nil, fmt.Errorf("list the newest logical backups per database: %w", err)
 	}

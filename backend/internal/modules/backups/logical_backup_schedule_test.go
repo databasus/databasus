@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"testing"
 	"time"
 
@@ -85,6 +86,75 @@ func TestLogicalBackupScheduler(t *testing.T) {
 		tm.app.Clock.Set(firstSlot.Add(24*time.Hour + 30*time.Second))
 		runSchedulerPassUntilBackupFails(t, tm, databaseID, 4)
 	})
+
+	t.Run(
+		"retries only the database whose newest backups stay under its tries with long histories",
+		func(t *testing.T) {
+			tm := newTeam(t)
+			exhaustedDatabaseID, exhaustedStorageID := createDroppedSourceDatabase(t, tm, server)
+			retriedDatabaseID, retriedStorageID := createDroppedSourceDatabase(t, tm, server)
+			retryingSettings := newDailyBackupSettings()
+			retryingSettings.IsRetryIfFailed = true
+			retryingSettings.MaxFailedTriesCount = 3
+			saveLogicalBackupSettings(t, tm.owner, exhaustedDatabaseID, exhaustedStorageID, retryingSettings,
+				apiclient.BackupEncryptionNONE)
+			saveLogicalBackupSettings(t, tm.owner, retriedDatabaseID, retriedStorageID, retryingSettings,
+				apiclient.BackupEncryptionNONE)
+
+			slot := getNextDailySlot()
+			tm.app.Clock.Set(slot.Add(time.Hour))
+			newestBackupTime := slot.Add(30 * time.Minute)
+
+			failed := []apiclient.LogicalBackupStatus{apiclient.LogicalBackupStatusFAILED}
+			completed := []apiclient.LogicalBackupStatus{apiclient.LogicalBackupStatusCOMPLETED}
+			exhaustedNewestBackupID := insertLogicalBackupHistory(t, tm, logicalBackupHistory{
+				databaseID:       exhaustedDatabaseID,
+				storageID:        exhaustedStorageID,
+				newestBackupTime: newestBackupTime,
+				statuses:         slices.Concat(slices.Repeat(failed, 3), slices.Repeat(completed, 40)),
+			})
+			retriedNewestBackupID := insertLogicalBackupHistory(t, tm, logicalBackupHistory{
+				databaseID:       retriedDatabaseID,
+				storageID:        retriedStorageID,
+				newestBackupTime: newestBackupTime,
+				statuses:         slices.Concat(failed, slices.Repeat(completed, 2), slices.Repeat(failed, 40)),
+			})
+
+			tm.app.RunJobPass(t, logicalBackupSchedulerJobName)
+
+			assert.Equal(t, exhaustedNewestBackupID, listLogicalBackupIDs(t, tm.owner, exhaustedDatabaseID)[0])
+			assert.Zero(t, countRunningLogicalBackups(t, tm.owner, exhaustedDatabaseID))
+			assert.NotEqual(t, retriedNewestBackupID, listLogicalBackupIDs(t, tm.owner, retriedDatabaseID)[0])
+			waitForNewestBackupToFail(t, tm, retriedDatabaseID)
+		},
+	)
+}
+
+// logicalBackupHistory lists statuses newest first, one minute apart from newestBackupTime.
+type logicalBackupHistory struct {
+	databaseID       uuid.UUID
+	storageID        uuid.UUID
+	newestBackupTime time.Time
+	statuses         []apiclient.LogicalBackupStatus
+}
+
+// insertLogicalBackupHistory writes finished backups directly, because the API cannot create past ones,
+// and returns the ID of the newest. It writes the oldest first, as time would, so a read that forgets to
+// order by time gets the oldest rows.
+func insertLogicalBackupHistory(t *testing.T, tm team, history logicalBackupHistory) uuid.UUID {
+	t.Helper()
+
+	var newestBackupID uuid.UUID
+
+	for position, status := range slices.Backward(history.statuses) {
+		newestBackupID = uuid.New()
+		tm.app.ExecuteSQL(t, `INSERT INTO backups_logical (id, database_id, storage_id, status, file_name, created_at)
+			VALUES (?, ?, ?, ?, ?, ?)`,
+			newestBackupID, history.databaseID, history.storageID, string(status), "history-"+newestBackupID.String(),
+			history.newestBackupTime.Add(-time.Duration(position)*time.Minute))
+	}
+
+	return newestBackupID
 }
 
 // newDailyBackupSettings backs up every day at 04:00 UTC and never retries a failed backup.
@@ -129,6 +199,12 @@ func runSchedulerPassUntilBackupFails(t *testing.T, tm team, databaseID uuid.UUI
 	tm.app.RunJobPass(t, logicalBackupSchedulerJobName)
 
 	require.Len(t, listLogicalBackupIDs(t, tm.owner, databaseID), backupCount)
+
+	waitForNewestBackupToFail(t, tm, databaseID)
+}
+
+func waitForNewestBackupToFail(t *testing.T, tm team, databaseID uuid.UUID) {
+	t.Helper()
 
 	testwait.Until(t, "the scheduled backup fails", func(context.Context) error {
 		newestBackup := getLogicalBackupPage(t, tm.owner, newLogicalBackupListParams(databaseID)).Items[0]
