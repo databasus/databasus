@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #MISE description="Print the backend packages of a CI test group"
 #MISE dir="backend"
-#USAGE arg "<group>" help="physical, logical, physical-api, agent-e2e, browser-e2e or other, optionally with a -<shard>-of-<count> suffix"
+#USAGE arg "<group>" help="physical, logical, physical-api, agent-e2e or other, optionally with a -<shard>-of-<count> suffix"
 # CI runs one group per runner, so the groups must cover every package exactly once. The other
 # group drops only the subtrees the named groups take and e2e/upgrade, which test-upgrade runs, so
 # a new package lands in it, whatever its directory. A group named
@@ -16,10 +16,9 @@ case "$group_name" in
         grep -Ev '/postgresqlphysical(/|$)' ;;
     physical-api) go list ./internal/modules/backups/physicalapitests/... ;;
     agent-e2e) go list ./internal/agent/e2e/... ;;
-    browser-e2e) go list ./internal/app/browsertests/... ;;
     other)
         go list ./... |
-            grep -Ev '/internal/(modules/backups/(physicalapitests|e2e)(/|$)|agent/e2e(/|$)|app/browsertests(/|$))|^databasus-backend/e2e/upgrade(/|$)'
+            grep -Ev '/internal/(modules/backups/(physicalapitests|e2e)(/|$)|agent/e2e(/|$))|^databasus-backend/e2e/upgrade(/|$)'
         ;;
-    *) echo "unknown test group: $group (expected physical, logical, physical-api, agent-e2e, browser-e2e or other)" >&2; exit 1 ;;
+    *) echo "unknown test group: $group (expected physical, logical, physical-api, agent-e2e or other)" >&2; exit 1 ;;
 esac

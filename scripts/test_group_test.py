@@ -28,8 +28,25 @@ class PackageCoverageTest(unittest.TestCase):
         tools = re.search(r"install_args:\s*['\"]?([^'\"\n]+)", job).group(1).split()
         self.assertIn("golangci-lint", tools)
 
+    def test_no_backend_package_runs_browser_scenarios(self):
+        selection = subprocess.run(
+            ["bash", str(ROOT / "mise-tasks/backend/test-group-packages")],
+            cwd=ROOT / "backend",
+            env={**os.environ, "usage_group": "browser-e2e"},
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(selection.returncode, 0)
+
+        workflow = (ROOT / ".github/workflows/ci-release.yml").read_text()
+        job = re.search(r"^  test-backend:\n(.*?)(?=^  [a-zA-Z0-9_-]+:|\Z)", workflow, re.M | re.S).group(1)
+        self.assertNotIn("browser", job)
+
+        go_files_naming_playwright = [str(path) for path in (ROOT / "backend").rglob("*.go") if "playwright" in path.read_text(errors="replace").lower()]
+        self.assertEqual(go_files_naming_playwright, [])
+
     def test_every_package_except_the_upgrade_test_belongs_to_exactly_one_group(self):
-        groups = ("physical", "logical", "physical-api", "agent-e2e", "browser-e2e", "other")
+        groups = ("physical", "logical", "physical-api", "agent-e2e", "other")
         selections = {}
         for group in groups:
             packages = subprocess.check_output(["bash", str(ROOT / "mise-tasks/backend/test-group-packages")], cwd=ROOT / "backend", env={**os.environ, "usage_group": group}, text=True).splitlines()
@@ -40,8 +57,6 @@ class PackageCoverageTest(unittest.TestCase):
 
         self.assertEqual(set(all_packages), set().union(*selections.values()))
         self.assertEqual(len(all_packages), sum(len(packages) for packages in selections.values()))
-        self.assertEqual(selections["browser-e2e"], {"databasus-backend/internal/app/browsertests"})
-        self.assertNotIn("databasus-backend/internal/app/browsertests", selections["other"])
         self.assertIn("databasus-backend/migrations", selections["other"])
         self.assertIn("databasus-backend/tools/archlint", selections["other"])
 
@@ -49,6 +64,38 @@ class PackageCoverageTest(unittest.TestCase):
         upgrade_task = (ROOT / "mise-tasks/backend/test-upgrade").read_text()
 
         self.assertIn("./e2e/upgrade/...", upgrade_task)
+
+
+class UpgradeTaskImageTest(unittest.TestCase):
+    def run_upgrade_task(self, extra_environment):
+        workspace = Path(tempfile.mkdtemp(prefix="test-upgrade-"))
+        self.addCleanup(shutil.rmtree, workspace, ignore_errors=True)
+        calls_path = workspace / "calls"
+        stubs = {
+            "git": 'echo v9.9.9\n',
+            "docker": f'echo "docker $*" >>"{calls_path}"\n',
+            "go": f'echo "go image=$DATABASUS_IMAGE" >>"{calls_path}"\n',
+        }
+
+        for name, body in stubs.items():
+            stub_path = workspace / name
+            stub_path.write_text("#!/usr/bin/env bash\n" + body)
+            stub_path.chmod(0o755)
+
+        environment = {**os.environ, "PATH": f"{workspace}:{os.environ['PATH']}", **extra_environment}
+        subprocess.run(["bash", str(ROOT / "mise-tasks/backend/test-upgrade")], cwd=workspace, env=environment, check=True, capture_output=True, timeout=TIMEOUT)
+
+        return calls_path.read_text().splitlines()
+
+    def test_builds_the_image_and_tests_it_without_a_named_image(self):
+        calls = self.run_upgrade_task({"DATABASUS_IMAGE": ""})
+
+        self.assertEqual(calls, ["docker build --tag databasus-candidate:local ..", "go image=databasus-candidate:local"])
+
+    def test_tests_a_named_image_without_building(self):
+        calls = self.run_upgrade_task({"DATABASUS_IMAGE": "named:image"})
+
+        self.assertEqual(calls, ["go image=named:image"])
 
 
 class ShardFixture(unittest.TestCase):

@@ -12,6 +12,9 @@ import (
 	"databasus-backend/internal/lib/testwait"
 )
 
+// The scenario must watch 150 seconds of real samples, which is longer than the default wait.
+const idleSamplesLimit = 5 * time.Minute
+
 func TestIdlePhysicalWalSource(t *testing.T) {
 	t.Parallel()
 
@@ -39,22 +42,30 @@ func TestIdlePhysicalWalSource(t *testing.T) {
 			})
 
 			startedAt := time.Now().UTC()
-			testwait.Until(t, "samples cover 150 seconds of an idle source", func(ctx context.Context) error {
-				var activePID int
-				require.NoError(
-					t,
-					source.QueryRow(ctx, "SELECT active_pid FROM pg_replication_slots WHERE slot_name=$1", slot).
-						Scan(&activePID),
-				)
-				require.Equal(t, receiverPID, activePID)
-				statistics := team.statistics(t)
-				if statistics.Current == nil || statistics.Current.SampledAt.Before(startedAt.Add(150*time.Second)) {
-					return fmt.Errorf("the idle observation window is not complete")
-				}
-				assert.Zero(t, statistics.Current.ReceiverRestarts)
-				assert.Zero(t, statistics.Current.ReceiverPauses)
-				return nil
-			})
+			testwait.Within(idleSamplesLimit).Until(
+				t,
+				"samples cover 150 seconds of an idle source",
+				func(ctx context.Context) error {
+					var activePID int
+					require.NoError(
+						t,
+						source.QueryRow(ctx, "SELECT active_pid FROM pg_replication_slots WHERE slot_name=$1", slot).
+							Scan(&activePID),
+					)
+					require.Equal(t, receiverPID, activePID)
+
+					statistics := team.statistics(t)
+					if statistics.Current == nil ||
+						statistics.Current.SampledAt.Before(startedAt.Add(150*time.Second)) {
+						return fmt.Errorf("the idle observation window is not complete")
+					}
+
+					assert.Zero(t, statistics.Current.ReceiverRestarts)
+					assert.Zero(t, statistics.Current.ReceiverPauses)
+
+					return nil
+				},
+			)
 		},
 	)
 }

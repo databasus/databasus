@@ -1,0 +1,54 @@
+# Mirrors the production deployment from the root README.md. Only the browser publishes a port:
+# the application is reached over this project's network, as a user's browser reaches a deployment.
+services:
+  databasus:
+    image: ${E2E_IMAGE:?}
+    pull_policy: never
+    environment:
+      IS_DISABLE_ANONYMOUS_TELEMETRY: "true"
+    volumes:
+      - databasus-data:/databasus-data
+    healthcheck:
+      test: ["CMD", "databasus", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 180s
+      start_interval: 1s
+
+  databases:
+    image: postgres:18@sha256:3a4264520e121176619f54ff867d12774bc81e95e7b84db58d63bccdb6144b81
+    environment:
+      POSTGRES_DB: e2e_backed_up
+      POSTGRES_USER: e2e
+      POSTGRES_PASSWORD: ${E2E_DATABASE_PASSWORD:?}
+    healthcheck:
+      test: ["CMD", "pg_isready", "--host=127.0.0.1", "--username=e2e", "--dbname=e2e_backed_up"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+      start_interval: 1s
+
+  # The server is the driver of the locked Python Playwright package, so nothing is downloaded at run time.
+  # This image supplies the browsers of that version: pyproject.toml pins the same one.
+  browser:
+    image: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea
+    init: true
+    shm_size: 1g
+    user: pwuser
+    command: ["/playwright-driver/node", "/playwright-driver/package/cli.js", "run-server", "--port=3000", "--host=0.0.0.0"]
+    volumes:
+      - ${E2E_PLAYWRIGHT_DRIVER:?}:/playwright-driver:ro,z
+    ports:
+      - "127.0.0.1::3000"
+    healthcheck:
+      test: ["CMD", "bash", "-c", "</dev/tcp/127.0.0.1/3000"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+      start_interval: 1s
+
+volumes:
+  databasus-data:

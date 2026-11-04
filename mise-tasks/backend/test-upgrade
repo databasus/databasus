@@ -17,4 +17,9 @@ if [[ -z "${DATABASUS_IMAGE:-}" ]]; then
 fi
 export DATABASUS_PREVIOUS_IMAGE="databasus/databasus:${previous_release}"
 echo "upgrading ${DATABASUS_PREVIOUS_IMAGE} to ${DATABASUS_IMAGE}"
-go test ${CI:+-race} -count=1 -timeout 30m ./e2e/upgrade/...
+# The race detector slows the test in CI, and this limit has not been measured with it.
+package_timeout=15m
+if [[ -n "${CI:-}" ]]; then
+    package_timeout=30m
+fi
+go test ${CI:+-race} -count=1 -timeout "$package_timeout" ./e2e/upgrade/...

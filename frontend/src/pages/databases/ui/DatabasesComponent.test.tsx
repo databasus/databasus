@@ -507,7 +507,9 @@ describe('DatabasesComponent', () => {
 
     expect((await findDatabaseCard('Bravo')).getAttribute('aria-pressed')).toBe('true');
     expect(screen.queryByRole('button', { name: /^Alpha/ })).toBeNull();
-    expect(localStorage.getItem(SELECTED_DATABASE_PREFERENCE_KEY)).toBe(bravoDatabase.id);
+    await waitFor(() =>
+      expect(localStorage.getItem(SELECTED_DATABASE_PREFERENCE_KEY)).toBe(bravoDatabase.id),
+    );
     expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
   });
 

@@ -28,12 +28,6 @@ class RaceDetectorInCiTest(unittest.TestCase):
                 self.assertNotIn("go test -race", command)
                 self.assertNotRegex(command, r"go test -(?!-)")
 
-    def test_browser_runner_adds_the_race_detector_only_under_ci(self):
-        runner = (ROOT / "frontend/tooling/runBrowserE2E.ts").read_text()
-
-        self.assertIn("...(process.env.CI ? ['-race'] : [])", runner)
-        self.assertNotIn("'test', '-race'", runner)
-
 
 if __name__ == "__main__":
     unittest.main()

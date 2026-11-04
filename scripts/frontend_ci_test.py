@@ -7,6 +7,8 @@ import tomllib
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
+DOWNLOAD_ATTEMPTS_ALLOWED_TO_FAIL = ["Download the storage candidate", "Download the storage candidate (attempt 2)"]
+E2E_TASKS = ("e2e:browser", "e2e:unit", "e2e:lifecycle")
 
 
 def get_job(workflow, name):
@@ -14,6 +16,13 @@ def get_job(workflow, name):
     if match is None:
         raise AssertionError(f"Missing workflow job: {name}")
     return match.group(1)
+
+
+def get_step_names_allowed_to_fail(job):
+    head_of_job, *steps = re.split(r"(?m)^      - name: ", job)
+    if "continue-on-error" in head_of_job:
+        raise AssertionError("the whole job must not be allowed to fail")
+    return [step.splitlines()[0] for step in steps if "continue-on-error" in step]
 
 
 def check_frontend_toolchain(workflow):
@@ -66,7 +75,7 @@ class FrontendCiTest(unittest.TestCase):
         release = get_job(self.workflow, "determine-version")
         prerequisites = re.findall(r"[a-zA-Z0-9_-]+", re.search(r"needs:\s*\[([^]]+)\]", release).group(1))
         self.assertEqual(set(prerequisites), {
-            "lint-backend", "test-backend", "test-frontend", "test-frontend-browser-ui", "test-frontend-browser-e2e", "test-verification-agent",
+            "lint-backend", "test-backend", "test-frontend", "test-frontend-browser-ui", "test-e2e-browser", "test-verification-agent",
             "e2e-verification-agent-podman", "test-filesystems", "test-upgrade", "lint-workflows", "build-image", "build-verification-image", "code-scanning",
         })
 
@@ -89,26 +98,52 @@ class FrontendCiTest(unittest.TestCase):
         self.assertEqual(package["devDependencies"]["@playwright/test"], environment["playwrightVersion"])
         self.assertIn("lint:styles", package["scripts"])
 
-    def test_real_api_browser_is_independent_and_required_before_release(self):
-        job = get_job(self.workflow, "test-frontend-browser-e2e")
-        self.assertNotIn("needs:", job)
-        self.assertIn("install_args: 'go node pnpm'", job)
-        self.assertIn("pnpm --dir frontend install --frozen-lockfile", job)
-        self.assertIn("docker compose up -d backend-db-test", job)
-        self.assertIn("backend-db-test pg_isready", job)
-        self.assertIn("pnpm --dir frontend test:browser --project=e2e", job)
-        self.assertIn("pnpm --dir frontend exec vitest run --config vitest.browser-e2e.config.ts", job)
-        self.assertIn("frontend/browser-results/e2e-*/status.json", job)
-        self.assertNotIn("continue-on-error", job)
+    def test_browser_end_to_end_suite_runs_on_the_candidate_image_and_is_required_before_release(self):
+        job = get_job(self.workflow, "test-e2e-browser")
+        self.assertIn("needs: [build-storage-image]", job)
+        self.assertIn("github.ref != 'refs/heads/develop' && github.head_ref != 'develop'", job)
+        self.assertIn("install_args: 'python uv'", job)
+        self.assertIn("databasus-storage-test.tar.zst | docker load", job)
+        self.assertEqual(job.count("DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}"), 2)
+        self.assertLess(job.index("run: mise run e2e:unit\n"), job.index("run: mise run e2e:browser\n"))
+        self.assertLess(job.index("run: mise run e2e:browser\n"), job.index("run: mise run e2e:lifecycle\n"))
+        self.assertIn("run: mise run e2e:lifecycle\n", job)
+        self.assertNotIn("upload-artifact", job)
+        self.assertNotIn("backend-db-test", job)
+        self.assertNotIn("--project=e2e", job)
+        self.assertEqual(get_step_names_allowed_to_fail(job), DOWNLOAD_ATTEMPTS_ALLOWED_TO_FAIL)
+        self.assertNotIn("lint-backend", job)
+        self.assertNotIn("test-backend", job)
 
         for action in re.findall(r"uses: ([^\s]+)", job):
             self.assertRegex(action, r"@[a-f0-9]{40}$")
 
         release = get_job(self.workflow, "determine-version")
-        self.assertIn("test-frontend-browser-e2e,", release)
+        self.assertIn("test-e2e-browser,", release)
         self.assertNotIn("always()", release)
         self.assertNotIn("failure()", release)
         self.assertNotIn("continue-on-error", release)
+
+        self.assertNotIn("test-frontend-browser-e2e", self.workflow)
+        self.assertNotIn("mise run full", self.workflow)
+        self.assertEqual(self.workflow.count("mise run e2e:browser"), 1)
+
+    def test_browser_end_to_end_suite_installs_only_through_the_pinned_uv_and_its_lockfile(self):
+        configuration = tomllib.loads((ROOT / "mise.toml").read_text())
+
+        self.assertRegex(configuration["tools"]["uv"], r"^\d+\.\d+\.\d+$")
+
+        for task_name in E2E_TASKS:
+            with self.subTest(task_name=task_name):
+                self.assertTrue(configuration["tasks"][task_name]["run"].startswith("uv run --locked --project e2e/browser "))
+
+    def test_full_run_is_the_visible_command_of_the_browser_end_to_end_suite(self):
+        tasks = tomllib.loads((ROOT / "mise.toml").read_text())["tasks"]
+
+        self.assertNotIn("e2e", tasks)
+        self.assertTrue(tasks["e2e:browser"]["hide"])
+        self.assertEqual(tasks["full"]["run"], "scripts/test.sh --full")
+        self.assertEqual(tasks["test"]["run"], "scripts/test.sh")
 
     def test_detects_runtime_drift_and_mutable_dependency_installs(self):
         for changed in (

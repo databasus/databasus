@@ -32,7 +32,7 @@ RELEASE_GATE_JOBS = {
     "test-backend",
     "test-frontend",
     "test-frontend-browser-ui",
-    "test-frontend-browser-e2e",
+    "test-e2e-browser",
     "test-verification-agent",
     "e2e-verification-agent-podman",
     "test-filesystems",
@@ -74,6 +74,38 @@ class ReleaseGateTest(unittest.TestCase):
         jobs = get_jobs(CI_RELEASE)
 
         self.assertEqual(RELEASE_GATE_JOBS - get_transitive_needs(jobs, "determine-version"), set())
+
+    def test_browser_end_to_end_check_waits_only_for_its_image(self):
+        jobs = get_jobs(CI_RELEASE)
+
+        self.assertEqual(get_transitive_needs(jobs, "test-e2e-browser"), {"build-storage-image"})
+
+    def test_upgrade_check_waits_only_for_its_image_and_tests_it(self):
+        jobs = get_jobs(CI_RELEASE)
+
+        self.assertEqual(get_transitive_needs(jobs, "test-upgrade"), {"build-storage-image"})
+        self.assertRegex(
+            jobs["test-upgrade"],
+            r"DATABASUS_IMAGE: databasus-storage-test:\$\{\{ github\.sha \}\}\n\s+run: mise run backend:test-upgrade\n",
+        )
+
+    def test_backend_matrix_reports_every_group_and_every_shard(self):
+        test_backend = get_jobs(CI_RELEASE)["test-backend"]
+
+        self.assertEqual(
+            set(re.findall(r"- group: (\S+)", test_backend)),
+            {
+                "other",
+                "agent-e2e",
+                "logical",
+                "physical-1-of-3",
+                "physical-2-of-3",
+                "physical-3-of-3",
+                "physical-api-1-of-3",
+                "physical-api-2-of-3",
+                "physical-api-3-of-3",
+            },
+        )
 
     def test_jobs_after_the_gate_run_only_when_it_passed(self):
         jobs = get_jobs(CI_RELEASE)

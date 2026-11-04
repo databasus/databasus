@@ -9,6 +9,7 @@ The rules for every module are in the root `AGENTS.md`.
 
 - [UI kit and icons](#ui-kit-and-icons)
 - [React component structure](#react-component-structure)
+- [Effects and rendering](#effects-and-rendering)
 - [Vertical spacing](#vertical-spacing)
 - [Clipboard operations](#clipboard-operations)
 - [Forms](#forms)
@@ -74,6 +75,15 @@ export const ReactComponent = ({ someValue }: Props): JSX.Element => {
 
 ---
 
+## Effects and rendering
+
+- Declare every dependency an effect reads. Use `useEffectEvent` for a function called only by an effect that must read current values without changing when the effect runs. Async handlers use `useLatestRef`, because `useEffectEvent` cannot serve them.
+- A lint exemption applies to one line and includes its reason. Keep `react/set-state-in-effect` off: pending flags and resets at the start of a load are intentional, and rewriting them risks the tested handling of late responses.
+- Rendering follows the configured React rules for pure calls, immutable inputs and ref access. Component files export components and constants at runtime.
+- Plain elements with click handlers need keyboard interaction and appropriate semantics; images need `alt` text.
+
+---
+
 ## Vertical spacing
 
 Follow [Blank lines separate logical steps](../AGENTS.md#blank-lines-separate-logical-steps) in the root rules.
@@ -106,6 +116,8 @@ Apply the [frontend-localization skill](../.agents/skills/frontend-localization/
 The frontend architecture and the reasons behind its boundaries are in [docs/architecture.md](../docs/architecture.md#frontend). Apply the [feature-sliced-design skill](../.agents/skills/feature-sliced-design/SKILL.md) when placing or reorganizing code, defining public APIs or changing dependencies. Apply the [testing skill](../.agents/skills/testing/SKILL.md) when writing, changing, running or reviewing tests, and the [run-app skill](../.agents/skills/run-app/SKILL.md) before starting or viewing the app.
 
 API request and response types come from the generated contract. Keep generated schema aliases tied to their domain owner; do not handwrite copies of the contract. Other independently meaningful domain or view-state types get their own named logical unit; tiny aliases tightly coupled to that unit may stay with it.
+
+Only `main.tsx` and `vite-env.d.ts` sit at the source root beside the global style sheet; every other script module belongs to a layer.
 
 ## Verification
 

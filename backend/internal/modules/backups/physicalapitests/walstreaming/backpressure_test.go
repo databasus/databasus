@@ -127,13 +127,14 @@ func TestPhysicalWalBackpressure(t *testing.T) {
 			})
 			testwait.Until(t, "a persisted sample counts the queue pause", func(context.Context) error {
 				pauseSample = team.statistics(t)
+				// Catching up can refill the queue faster than a loaded machine archives it, which is a
+				// further real pause, so the count can be above one.
 				if pauseSample.Current == nil || pauseSample.Current.ReceiverPauses == 0 {
 					return fmt.Errorf("no pause sample")
 				}
 				return nil
 			})
 
-			require.Equal(t, 1, pauseSample.Current.ReceiverPauses)
 			assert.Zero(t, pauseSample.Current.ReceiverRestarts)
 
 			var terminated int

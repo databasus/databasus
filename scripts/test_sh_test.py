@@ -12,6 +12,7 @@ import unittest
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
+BROWSER_SUITE_CALL = "mise run e2e:browser"
 FULL_RUN_LOCK_NAME = "databasus-full-test.lock"
 WAIT_TIMEOUT_SECONDS = 30
 RUN_LABEL_FILTER = "label=databasus.test-run="
@@ -48,7 +49,6 @@ STUB_SOURCES = {
             echo "databasus-backend/internal/lib/ordinary"
             echo "databasus-backend/internal/lib/slow"
             echo "databasus-backend/internal/lib/slower"
-            echo "databasus-backend/internal/app/browsertests"
             if [[ "$2" == ./... ]]; then
                 echo "databasus-backend/migrations"
                 echo "databasus-backend/tools/archlint"
@@ -56,6 +56,8 @@ STUB_SOURCES = {
                 echo "databasus-backend/internal/lib/e2e/upgrade"
                 echo "databasus-backend/e2e/upgrade"
                 echo "databasus-backend/e2e/upgrade/upgradecheck"
+                echo "databasus-backend/internal/agent/e2e"
+                echo "databasus-backend/internal/modules/backups/e2e/mysql"
             fi
             exit "${STUB_GO_LIST_EXIT_STATUS:-0}"
         else
@@ -78,6 +80,9 @@ STUB_SOURCES = {
             sleep "${STUB_UPGRADE_TEST_SECONDS:-0}"
             exit "${STUB_UPGRADE_TEST_EXIT_STATUS:-0}"
         fi
+        if [[ "${*: -1}" == e2e:browser ]]; then
+            exit "${STUB_BROWSER_SUITE_EXIT_STATUS:-0}"
+        fi
     """,
 }
 
@@ -85,7 +90,6 @@ SLOW_PACKAGE_LIST = """# A comment
 databasus-backend/internal/lib/slower
 databasus-backend/internal/lib/slow
 databasus-backend/internal/lib/removed
-databasus-backend/internal/app/browsertests
 databasus-backend/e2e/upgrade
 """
 
@@ -101,7 +105,7 @@ def get_package_limit(go_selection):
 
 
 def find_stale_entries(listed_packages, module_packages):
-    tested_packages = {package for package in module_packages if not re.search(r"/internal/app/browsertests(/|$)|^databasus-backend/e2e/upgrade(/|$)", package)}
+    tested_packages = {package for package in module_packages if not re.search(r"^databasus-backend/e2e/upgrade(/|$)", package)}
 
     return [package for package in listed_packages if package not in tested_packages]
 
@@ -142,9 +146,12 @@ class TestScriptTestCase(unittest.TestCase):
         self.environment.pop("DATABASUS_TEST_RUN_ID", None)
         self.environment.pop("CI", None)
 
-    def start_script(self, extra_environment=None):
+    def start_full_script(self, extra_environment=None):
+        return self.start_script(extra_environment, ["--full"])
+
+    def start_script(self, extra_environment=None, arguments=()):
         script = subprocess.Popen(
-            ["bash", str(self.checkout / "scripts" / "test.sh")],
+            ["bash", str(self.checkout / "scripts" / "test.sh"), *arguments],
             env={**self.environment, **(extra_environment or {})},
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -207,11 +214,17 @@ class TestScriptTestCase(unittest.TestCase):
 
         return script.returncode, stdout, stderr
 
-    def test_a_second_full_run_waits_for_the_first_and_says_so(self):
-        full_run_lock = self.hold_lock(FULL_RUN_LOCK_NAME, fcntl.LOCK_EX)
-        script = self.start_script()
+    def test_a_routine_run_waits_for_another_run_and_says_so(self):
+        self.assert_waits_for_another_run(self.start_script)
 
-        self.wait_for_output_line(script, "waiting for another full test run to finish")
+    def test_a_full_run_waits_for_another_run_and_says_so(self):
+        self.assert_waits_for_another_run(self.start_full_script)
+
+    def assert_waits_for_another_run(self, start_run):
+        full_run_lock = self.hold_lock(FULL_RUN_LOCK_NAME, fcntl.LOCK_EX)
+        script = start_run()
+
+        self.wait_for_output_line(script, "waiting for another test run to finish")
         released_at = time.time()
         full_run_lock.close()
         exit_status, _, stderr = self.finish_script(script)
@@ -237,16 +250,62 @@ class TestScriptTestCase(unittest.TestCase):
         compose_calls = [call for _, call in self.read_calls() if call.startswith("docker compose")]
         self.assertEqual(compose_calls, ["docker compose up -d backend-db-test"])
 
-    def test_default_selection_excludes_browser_ownership(self):
-        script = self.start_script()
-        _, errors = script.communicate(timeout=30)
-        self.assertEqual(script.returncode, 0, errors)
+    def test_the_routine_run_starts_neither_the_upgrade_test_nor_the_browser_suite(self):
+        exit_status, _, stderr = self.finish_script(self.start_script())
+        self.assertEqual(exit_status, 0, stderr)
+
+        self.assertIsNone(self.find_call(self.get_upgrade_test_call()))
+        self.assertIsNone(self.find_call(BROWSER_SUITE_CALL))
+
+    def test_no_run_starts_the_filesystem_suite_or_the_lifecycle_probes(self):
+        for start_run in (self.start_script, self.start_full_script):
+            with self.subTest(start_run=start_run.__name__):
+                self.calls_path.write_text("")
+                exit_status, _, stderr = self.finish_script(start_run())
+                self.assertEqual(exit_status, 0, stderr)
+
+                self.assertIsNone(self.find_call("mise run test-filesystem"))
+                self.assertIsNone(self.find_call("mise run e2e:lifecycle"))
+
+    def test_the_routine_run_selects_no_end_to_end_package(self):
+        exit_status, _, stderr = self.finish_script(self.start_script())
+        self.assertEqual(exit_status, 0, stderr)
 
         selected_packages = self.get_selected_packages()
-        self.assertIn("databasus-backend/internal/lib/ordinary", selected_packages)
-        self.assertNotIn("databasus-backend/internal/app/browsertests", selected_packages)
+        self.assertNotIn("databasus-backend/internal/agent/e2e", selected_packages)
+        self.assertNotIn("databasus-backend/internal/modules/backups/e2e/mysql", selected_packages)
 
-    def test_default_selection_covers_the_whole_module_except_the_upgrade_test(self):
+    def test_the_full_run_selects_the_end_to_end_packages_but_not_the_upgrade_test(self):
+        exit_status, _, stderr = self.finish_script(self.start_full_script())
+        self.assertEqual(exit_status, 0, stderr)
+
+        selected_packages = self.get_selected_packages()
+        self.assertIn("databasus-backend/internal/agent/e2e", selected_packages)
+        self.assertIn("databasus-backend/internal/modules/backups/e2e/mysql", selected_packages)
+        self.assertNotIn("databasus-backend/e2e/upgrade", selected_packages)
+
+    def test_the_full_run_starts_the_browser_suite_after_the_upgrade_test(self):
+        exit_status, _, stderr = self.finish_script(self.start_full_script())
+        self.assertEqual(exit_status, 0, stderr)
+
+        upgrade_call = self.find_call(self.get_upgrade_test_call())
+        browser_call = self.find_call(BROWSER_SUITE_CALL)
+        self.assertIsNotNone(upgrade_call)
+        self.assertIsNotNone(browser_call)
+        self.assertLess(upgrade_call[0], browser_call[0])
+
+    def test_the_full_run_skips_the_browser_suite_when_the_upgrade_test_fails(self):
+        exit_status, _, _ = self.finish_script(self.start_full_script({"STUB_UPGRADE_TEST_EXIT_STATUS": "1"}))
+
+        self.assertNotEqual(exit_status, 0)
+        self.assertIsNone(self.find_call(BROWSER_SUITE_CALL))
+
+    def test_the_full_run_fails_when_the_browser_suite_fails(self):
+        exit_status, _, _ = self.finish_script(self.start_full_script({"STUB_BROWSER_SUITE_EXIT_STATUS": "1"}))
+
+        self.assertNotEqual(exit_status, 0)
+
+    def test_default_selection_covers_new_directories_of_the_module_except_the_upgrade_test(self):
         script = self.start_script()
         exit_status, _, stderr = self.finish_script(script)
         self.assertEqual(exit_status, 0, stderr)
@@ -259,7 +318,6 @@ class TestScriptTestCase(unittest.TestCase):
         self.assertIn("databasus-backend/internal/lib/e2e/upgrade", selected_packages)
         self.assertNotIn("databasus-backend/e2e/upgrade", selected_packages)
         self.assertNotIn("databasus-backend/e2e/upgrade/upgradecheck", selected_packages)
-        self.assertNotIn("databasus-backend/internal/app/browsertests", selected_packages)
 
     def test_every_package_runs_exactly_once(self):
         script = self.start_script()
@@ -297,7 +355,6 @@ class TestScriptTestCase(unittest.TestCase):
 
         selected_packages = self.get_selected_packages()
         self.assertNotIn("databasus-backend/internal/lib/removed", selected_packages)
-        self.assertNotIn("databasus-backend/internal/app/browsertests", selected_packages)
         self.assertNotIn("databasus-backend/e2e/upgrade", selected_packages)
 
     def test_slow_packages_run_under_a_lower_package_limit_than_the_others(self):
@@ -308,6 +365,20 @@ class TestScriptTestCase(unittest.TestCase):
         slow_limit = get_package_limit(self.get_selection_of("databasus-backend/internal/lib/slow"))
         other_limit = get_package_limit(self.get_selection_of("databasus-backend/internal/lib/ordinary"))
         self.assertLess(slow_limit, other_limit)
+
+    def test_every_package_process_has_a_timeout_of_15_minutes(self):
+        exit_status, _, stderr = self.finish_script(self.start_script())
+        self.assertEqual(exit_status, 0, stderr)
+
+        for selection in self.get_go_selections():
+            self.assertEqual(selection[selection.index("-timeout") + 1], "15m")
+
+    def test_the_upgrade_test_has_a_timeout_of_15_minutes_and_30_in_ci(self):
+        upgrade_task = (REPOSITORY_ROOT / "mise-tasks/backend/test-upgrade").read_text()
+
+        self.assertIn("package_timeout=15m\n", upgrade_task)
+        self.assertIn('if [[ -n "${CI:-}" ]]; then\n    package_timeout=30m\n', upgrade_task)
+        self.assertIn('-timeout "$package_timeout" ./e2e/upgrade/...', upgrade_task)
 
     def test_a_failure_does_not_stop_the_tests_of_a_package(self):
         script = self.start_script()
@@ -391,8 +462,26 @@ class TestScriptTestCase(unittest.TestCase):
         self.assertIn("[backend-other] output of go test", stdout)
         self.assertIn("[frontend] output of pnpm", stdout)
 
+    def test_a_frontend_failure_fails_the_routine_run_and_names_the_suite(self):
+        script = self.start_script({"STUB_PNPM_EXIT_STATUS": "1"})
+
+        exit_status, _, stderr = self.finish_script(script)
+
+        self.assertNotEqual(exit_status, 0)
+        self.assertIn("frontend", stderr)
+        self.assertIsNone(self.find_call(self.get_upgrade_test_call()))
+
+    def test_a_backend_failure_fails_the_routine_run_and_names_the_suite(self):
+        script = self.start_script({"STUB_GO_TEST_EXIT_STATUS": "1"})
+
+        exit_status, _, stderr = self.finish_script(script)
+
+        self.assertNotEqual(exit_status, 0)
+        self.assertIn("backend-other", stderr)
+        self.assertIsNone(self.find_call(self.get_upgrade_test_call()))
+
     def test_a_frontend_failure_lets_the_backend_finish_and_skips_the_upgrade_test(self):
-        script = self.start_script({"STUB_PNPM_EXIT_STATUS": "1", "STUB_GO_TEST_SECONDS": "1"})
+        script = self.start_full_script({"STUB_PNPM_EXIT_STATUS": "1", "STUB_GO_TEST_SECONDS": "1"})
 
         exit_status, _, stderr = self.finish_script(script)
 
@@ -403,7 +492,7 @@ class TestScriptTestCase(unittest.TestCase):
         self.assertIsNone(self.find_call(self.get_upgrade_test_call()))
 
     def test_a_backend_failure_lets_the_frontend_finish_and_names_the_suite(self):
-        script = self.start_script({"STUB_GO_SLOW_TEST_EXIT_STATUS": "1", "STUB_PNPM_SECONDS": "1"})
+        script = self.start_full_script({"STUB_GO_SLOW_TEST_EXIT_STATUS": "1", "STUB_PNPM_SECONDS": "1"})
 
         exit_status, _, stderr = self.finish_script(script)
 
@@ -414,7 +503,7 @@ class TestScriptTestCase(unittest.TestCase):
         self.assertIsNone(self.find_call(self.get_upgrade_test_call()))
 
     def test_an_interrupt_stops_every_suite(self):
-        script = self.start_script({"STUB_GO_TEST_SECONDS": "60", "STUB_PNPM_SECONDS": "60"})
+        script = self.start_full_script({"STUB_GO_TEST_SECONDS": "60", "STUB_PNPM_SECONDS": "60"})
         self.wait_for_call(f"pnpm --dir {self.checkout}/frontend test")
         while len(self.get_go_selections()) < 2:
             time.sleep(0.05)
@@ -428,14 +517,14 @@ class TestScriptTestCase(unittest.TestCase):
         self.assertIsNone(self.find_call(self.get_upgrade_test_call()))
 
     def test_discovery_stops_verification_when_go_list_fails_after_partial_output(self):
-        script = self.start_script({"STUB_GO_LIST_EXIT_STATUS": "7"})
+        script = self.start_full_script({"STUB_GO_LIST_EXIT_STATUS": "7"})
         exit_status, _, _ = self.finish_script(script)
         self.assertEqual(exit_status, 7)
         self.assertIsNone(self.find_call("go test"))
         self.assertIsNone(self.find_call(self.get_upgrade_test_call()))
 
     def test_the_upgrade_test_runs_after_the_packages_pass(self):
-        script = self.start_script()
+        script = self.start_full_script()
 
         exit_status, _, stderr = self.finish_script(script)
 
@@ -447,7 +536,7 @@ class TestScriptTestCase(unittest.TestCase):
         self.assertLess(test_call[0], upgrade_call[0])
 
     def test_the_upgrade_test_does_not_run_and_no_image_is_built_when_a_package_fails(self):
-        script = self.start_script({"STUB_GO_TEST_EXIT_STATUS": "1"})
+        script = self.start_full_script({"STUB_GO_TEST_EXIT_STATUS": "1"})
 
         exit_status, _, _ = self.finish_script(script)
 
@@ -457,7 +546,7 @@ class TestScriptTestCase(unittest.TestCase):
         self.assertIsNone(self.find_call("docker build"))
 
     def test_the_run_fails_when_the_upgrade_test_fails(self):
-        script = self.start_script({"STUB_UPGRADE_TEST_EXIT_STATUS": "1"})
+        script = self.start_full_script({"STUB_UPGRADE_TEST_EXIT_STATUS": "1"})
 
         exit_status, _, _ = self.finish_script(script)
 
@@ -466,7 +555,7 @@ class TestScriptTestCase(unittest.TestCase):
         self.assertIsNotNone(self.find_call(self.get_upgrade_test_call()))
 
     def test_an_interrupt_during_the_upgrade_test_removes_its_containers_networks_and_volumes(self):
-        script = self.start_script({"STUB_UPGRADE_TEST_SECONDS": "60"})
+        script = self.start_full_script({"STUB_UPGRADE_TEST_SECONDS": "60"})
         test_call = self.wait_for_call("go test")
         run_id = test_call[1].split("run_id=", 1)[1]
         self.wait_for_call(self.get_upgrade_test_call())
@@ -526,13 +615,13 @@ class TestScriptTestCase(unittest.TestCase):
         workflow = (REPOSITORY_ROOT / ".github/workflows/ci-release.yml").read_text()
         self.assertNotIn("cleanup_test_db", workflow)
         self.assertNotIn("Reset the shared", workflow)
-        self.assertEqual(workflow.count("docker exec backend-db-test pg_isready"), 3)
+        self.assertEqual(workflow.count("docker exec backend-db-test pg_isready"), 2)
         self.assertNotRegex(workflow, r"nc -z[^\n]*5004")
 
     def test_ci_starts_only_the_test_postgresql_server(self):
         workflow = (REPOSITORY_ROOT / ".github/workflows/ci-release.yml").read_text()
         compose_starts = re.findall(r"docker compose (?:-f docker-compose\.yml )?up -d[^\n]*", workflow)
-        self.assertEqual(len(compose_starts), 3)
+        self.assertEqual(len(compose_starts), 2)
         for compose_start in compose_starts:
             self.assertRegex(compose_start, r"up -d backend-db-test$")
         self.assertNotIn("docker exec backend-db pg_isready", workflow)

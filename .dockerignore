@@ -73,3 +73,6 @@ hk.pkl
 mise.toml
 mise-tasks
 process-compose.yaml
+
+# The browser end-to-end suite drives the image from outside
+e2e/browser

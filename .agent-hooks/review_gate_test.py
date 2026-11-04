@@ -991,10 +991,10 @@ class ChangeVerificationParsingTest(unittest.TestCase):
             checks = self.parse(verification_section("pnpm --dir frontend test:browser --project=ui"))
         self.assertEqual(checks, [review_gate.Check(".", ("pnpm", "--dir", "frontend", "test:browser", "--project=ui"))])
 
-    def test_accepts_exact_real_api_browser_form_without_execution(self):
+    def test_accepts_exact_browser_suite_form_without_execution(self):
         with mock.patch.object(review_gate.subprocess, "run", side_effect=AssertionError("must not run")):
-            checks = self.parse(verification_section("pnpm --dir frontend test:browser --project=e2e"))
-        self.assertEqual(checks, [review_gate.Check(".", ("pnpm", "--dir", "frontend", "test:browser", "--project=e2e"))])
+            checks = self.parse(verification_section("mise run e2e:browser"))
+        self.assertEqual(checks, [review_gate.Check(".", ("mise", "run", "e2e:browser"))])
 
     def test_rejects_unbounded_browser_forms_and_shell_arguments(self):
         commands = (
@@ -1002,8 +1002,12 @@ class ChangeVerificationParsingTest(unittest.TestCase):
             "pnpm --dir frontend test:browser --project=other",
             "pnpm --dir frontend test:browser --project ui",
             "pnpm --dir frontend test:browser --project=ui --headed",
-            "pnpm --dir frontend test:browser --project=e2e --headed",
-            "pnpm --dir frontend test:browser --project=e2e;touch",
+            "pnpm --dir frontend test:browser --project=e2e",
+            "mise run e2e",
+            "mise run full",
+            "mise run e2e:browser --headed",
+            "mise run e2e:browser;touch",
+            "mise run e2e:browser ./x",
             "pnpm --dir frontend arbitrary-script --project=ui",
             "pnpm --dir frontend test:browser --project=ui;touch",
             "pnpm --dir frontend test:browser --project=ui && touch /tmp/x",
@@ -1021,7 +1025,7 @@ class ChangeVerificationParsingTest(unittest.TestCase):
                 "mise run test",
                 "",
                 "pnpm --dir frontend test:browser --project=ui",
-                "pnpm --dir frontend test:browser --project=e2e",
+                "mise run e2e:browser",
             )
         )
 
@@ -1030,7 +1034,7 @@ class ChangeVerificationParsingTest(unittest.TestCase):
             [
                 review_gate.Check(".", ("mise", "run", "test")),
                 review_gate.Check(".", ("pnpm", "--dir", "frontend", "test:browser", "--project=ui")),
-                review_gate.Check(".", ("pnpm", "--dir", "frontend", "test:browser", "--project=e2e")),
+                review_gate.Check(".", ("mise", "run", "e2e:browser")),
             ],
         )
 
@@ -1614,9 +1618,19 @@ class ImplementationGateReviewTest(ShortReplyAssertions, SummaryAssertions, unit
         self.assertIn("A bug fix has a test that reproduces the bug and fails on the code before the fix.", tests_role)
         self.assertIn("waits for a condition up to a limit instead of a fixed pause", tests_role)
         self.assertIn(
-            "A change that adds or changes tests in a backend package, a verification agent package or the frontend names `mise run test`",
+            "A change that adds or changes tests in a backend package or a verification agent package outside the end-to-end ones, or the frontend names `mise run test`",
             tests_role,
         )
+        self.assertIn(
+            "A task that changes tests in `backend/internal/agent/e2e`, `backend/internal/modules/backups/e2e` or `backend/e2e/upgrade`, the verification agent's code or the `Dockerfile` names the command that repeats those tests in its own verification.",
+            tests_role,
+        )
+        self.assertIn("No section or task verification runs `mise run full`, which agents run only on the user's direct request.", tests_role)
+        self.assertIn("A verification that runs `mise run full` is a `missing_test` finding that asks for the specific commands instead.", tests_role)
+        self.assertIn("Naming `mise run full` as something a task adds or edits, with a verification that runs another command, is never a finding.", tests_role)
+        self.assertIn("and so is a task that leaves out its own command.", tests_role)
+        self.assertIn("a change that adds or changes scenarios of the browser end-to-end suite in `e2e/browser/scenarios` also names `mise run e2e:browser` there", tests_role)
+        self.assertIn("A section that leaves out the command it owes is a `missing_test` finding", tests_role)
         self.assertIn("such as the hook tests in `.agent-hooks/`, need an explicit verification in their task instead", tests_role)
 
     def test_blocks_turn_with_budget_reason_when_third_wave_of_reviewers_does_not_fit(self):
@@ -1836,7 +1850,7 @@ class ManualReviewTest(unittest.TestCase):
             repository.set_stub(name, {"exit_code": 1, "output": "must not run"})
         repository.complete_tasks(verification_section=verification_section(
             "mise run test",
-            "pnpm --dir frontend test:browser --project=e2e",
+            "mise run e2e:browser",
         ))
 
         process = self.run_review(repository)
@@ -2285,12 +2299,21 @@ class ProposalGateReviewTest(ShortReplyAssertions, SummaryAssertions, unittest.T
         tasks_role = prompt[prompt.index("### Role: tasks") : prompt.index("### Role: repeat review")]
 
         self.assertIn(
-            "tasks add or change tests in a backend package, a verification agent package or the frontend has a `## Change verification` section",
+            "tasks add or change tests in a backend package or a verification agent package outside the end-to-end ones, or the frontend has a `## Change verification` section",
             tasks_role,
         )
         self.assertIn("section that names `mise run test`, which runs the tests of every such package", tasks_role)
         self.assertIn("Running `mise run test` in a task or in the section is never a finding.", tasks_role)
-        self.assertIn("a section that leaves it out, is a `tasks` finding that asks for it", tasks_role)
+        self.assertIn("a section that leaves out the command it owes, is a `tasks` finding that asks for it", tasks_role)
+        self.assertIn(
+            "A task that changes tests in `backend/internal/agent/e2e`, `backend/internal/modules/backups/e2e` or `backend/e2e/upgrade`, the verification agent's code or the `Dockerfile` names the command that repeats those tests in its own verification.",
+            tasks_role,
+        )
+        self.assertIn("No section or task verification runs `mise run full`, which agents run only on the user's direct request.", tasks_role)
+        self.assertIn("A verification that runs `mise run full` is a `tasks` finding that asks for the specific commands instead.", tasks_role)
+        self.assertIn("Naming `mise run full` as something a task adds or edits, with a verification that runs another command, is never a finding.", tasks_role)
+        self.assertIn("and so is a task that leaves out its own command.", tasks_role)
+        self.assertIn("a change adding or changing scenarios of the browser end-to-end suite in `e2e/browser/scenarios` also names `mise run e2e:browser` there", tasks_role)
         self.assertIn("such as the hook tests in `.agent-hooks/`, need an explicit verification in their task instead", tasks_role)
 
     def test_blocks_turn_with_budget_reason_when_third_wave_of_reviewers_does_not_fit(self):

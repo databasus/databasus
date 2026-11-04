@@ -96,6 +96,10 @@ This is the project's common language. Each concept has one term in the document
 | Release gate | `is-release-gate` | The set of CI checks a commit on `main` must pass before a version is selected. |
 | Release analysis | `.github/workflows/ci-release.yml:analyze` | The CodeQL analysis that runs as part of the release gate. |
 | Severity gate | `codeql-severity-gate` | The release gate job that reads CodeQL alerts by severity and stops the release on an open critical one. |
+| Browser end-to-end suite | `e2e/browser` | The Python suite that tests the application image as a black box through its screens. It imports nothing from the backend or the frontend. |
+| Critical path | `test_critical_path.py` | The path a new user depends on, tested through the screens of the application image: first instance admin, sign-in, a PostgreSQL database added through the wizard, its first logical backup, a restore into an empty database and a comparison of the rows. |
+| Supervisor | `e2e/browser/supervisor.py` | The process that owns one run of the browser end-to-end suite: it starts the run's compose project and `pytest`, masks the output and removes what the run started. |
+| Lifecycle probe | `e2e/browser/lifecycle` | A whole run of the browser end-to-end suite through its public command that fails, gets interrupted or overlaps on purpose, to check its exit status, its output and that nothing of it remains. |
 | Image check | `scripts/check_image.sh` | The smoke checks of a built application image plus its Trivy scans. |
 | Smoke check | smoke check | One start-and-probe check of a running image. |
 | CodeQL alert | code scanning alert | A result of the static analysis, which can be dismissed on GitHub. |

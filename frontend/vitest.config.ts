@@ -1,5 +1,5 @@
 import { fileURLToPath, URL } from 'node:url';
-import { configDefaults, defineConfig } from 'vitest/config';
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
@@ -13,7 +13,6 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.test.{ts,tsx}', 'tooling/**/*.test.ts'],
-    exclude: [...configDefaults.exclude, 'tooling/runBrowserE2E.test.ts'],
     setupFiles: ['src/shared/lib/test/conditionWait.ts'],
     // The only time limit of a test. Its waits follow conditions, so this bounds a hung test and
     // does not pace a healthy one, however loaded the machine is.

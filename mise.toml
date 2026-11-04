@@ -11,6 +11,7 @@ golangci-lint = "2.11.3"
 "aqua:air-verse/air" = "1.67.4"
 "npm:chrome-devtools-mcp" = "1.11.0"
 python = "3.14.7"
+uv = "0.13.7"
 "npm:@fission-ai/openspec" = "1.11.0"
 "go:golang.org/x/tools/gopls" = "v0.24.0"
 "npm:typescript-language-server" = "6.0.2"
@@ -34,8 +35,12 @@ description = "Start the app locally: dev database, test fixtures, WAL backup so
 run = "scripts/dev.sh"
 
 [tasks.test]
-description = "Run every backend test package and the frontend tests, then the upgrade test"
+description = "Run the backend test packages without the end-to-end ones and the frontend tests"
 run = "scripts/test.sh"
+
+[tasks.full]
+description = "Run every backend test package and the frontend tests, then the upgrade test, then the browser end-to-end suite"
+run = "scripts/test.sh --full"
 
 [tasks.pull-testcontainers]
 description = "Pull the database images the backend tests use"
@@ -67,6 +72,22 @@ git ls-files -z --cached --others --exclude-standard '*.sh' tools/lsp mise-tasks
         fi
     done | xargs -0 -r shellcheck
 """
+
+[tasks."e2e:browser"]
+description = "Run the browser end-to-end suite on the application image: DATABASUS_IMAGE, or one built from the checkout"
+hide = true
+run = "uv run --locked --project e2e/browser python e2e/browser/supervisor.py"
+env = { PYTHONDONTWRITEBYTECODE = "1", UV_PYTHON_PREFERENCE = "only-system" }
+
+[tasks."e2e:unit"]
+description = "Run the browser end-to-end suite's own tests that need no Docker daemon"
+run = "uv run --locked --project e2e/browser pytest e2e/browser/unit"
+env = { PYTHONDONTWRITEBYTECODE = "1", UV_PYTHON_PREFERENCE = "only-system" }
+
+[tasks."e2e:lifecycle"]
+description = "Drive the browser end-to-end command through failures, interruptions, crashes and overlapping runs"
+run = "uv run --locked --project e2e/browser pytest e2e/browser/lifecycle"
+env = { PYTHONDONTWRITEBYTECODE = "1", UV_PYTHON_PREFERENCE = "only-system" }
 
 [tasks.lint-workflows]
 description = "Check the GitHub Actions workflows with actionlint"

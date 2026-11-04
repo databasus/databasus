@@ -24,7 +24,7 @@ writable roots: it holds the hook trust that the doctor checks.
 Examples outside an agent: `mise run doctor --client claude` and
 `mise run review support-codex-review-pipeline --client codex`.
 Change verification accepts exactly `mise run test`, `pnpm --dir frontend test:browser --project=ui`
-and `pnpm --dir frontend test:browser --project=e2e`; these are parsed without execution.
+and `mise run e2e:browser`; these are parsed without execution.
 The plan gates intercept ExitPlanMode only in Claude Code; Codex runs the Stop gates.
 Codex 0.164.0 needs persisted project trust to load a new clone's .codex/ layer; a command-line
 trust override alone is insufficient. The project's chrome-devtools entry replaces the global one.
@@ -231,17 +231,17 @@ class ChangeVerificationError(Exception):
 
 CHANGE_VERIFICATION_HEADING = "## Change verification"
 # Verification entries describe commands for the implementing agent, not for review to execute.
-# Each form is a whole command: one run checks everything, so no form takes arguments.
+# Each form is a whole command, so no form takes arguments.
 VERIFICATION_FORMS = (
     ("mise", "run", "test"),
     ("pnpm", "--dir", "frontend", "test:browser", "--project=ui"),
-    ("pnpm", "--dir", "frontend", "test:browser", "--project=e2e"),
+    ("mise", "run", "e2e:browser"),
 )
 ALLOWED_VERIFICATION_FORMS = (
     "Allowed forms, one command per line in one ```sh block, each with nothing after it:\n"
     "- `mise run test`\n"
     "- `pnpm --dir frontend test:browser --project=ui`\n"
-    "- `pnpm --dir frontend test:browser --project=e2e`"
+    "- `mise run e2e:browser`"
 )
 
 

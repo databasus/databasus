@@ -10,7 +10,8 @@ Rules for writing Go code in `backend/`, which holds the server and the verifica
 |---|---|
 | `mise run backend:lint` | Check the backend code, the contracts and the generated code without changing files |
 | `mise run backend:format` | Format the Go code |
-| `mise run test` | Check the work: every backend package and the frontend tests, then the upgrade test |
+| `mise run test` | Check the work: the backend packages without the end-to-end ones and the frontend tests |
+| `mise run full` | Check everything else too: the end-to-end packages, the upgrade test and the browser end-to-end suite. |
 | `go test -count=1 -run 'TestName/scenario' <package>` | Repeat one failing test; [`docs/testing.md`](../docs/testing.md#commands) gives the full command |
 | `mise run generate-api` | Regenerate servers, clients and frontend types after editing `api/*.yaml` |
 | `goose -dir migrations create <name> sql` | Create a migration stub, then fill it by hand |
@@ -27,13 +28,16 @@ Rules for writing Go code in `backend/`, which holds the server and the verifica
 
 - A module or a `lib` service takes its dependencies through `Deps` in `New(deps Deps)`. A `Deps` literal lists every field. `exhaustruct` fails the build when one is missing, so adding a dependency forces every call site to supply it.
 - No package-level variable holds a dependency, and no package does work at import time.
-- Configuration values arrive through `Deps`. A module never reads the environment.
+- Read the environment only in `lib/config` and pass configuration values through `Deps`.
+- Test libraries belong only to test files and test-support packages. Engines import neither Gin nor GORM; the verification agent's additional boundaries are below.
+- Take the caller's context, or `t.Context()` in tests. Only commands and application composition create root contexts.
 
 ## Handlers, services, repositories
 
 - A handler implements the generated strict server interface: it takes the decoded request, calls one service method with the request context and returns the generated response type. It holds no logic, and it checks nothing beyond what the contract already enforces.
 - A service checks access first: it looks the object up, answers "not found" when it is missing, then calls `workspaces.Authorize`. It opens transactions with `Transaction(ctx, fn)` of the `*database.Transactor` from `Deps` and writes the audit event inside the same transaction, or right after an effect outside the database, such as a sent email.
 - A repository runs every query through `database.Conn(ctx, r.db)`. A lookup that finds nothing returns `false` as its second value, never `gorm.ErrRecordNotFound`. A repository changes one column with one `UPDATE`, never by saving the whole row. It uses no GORM associations and no `Preload` across tables.
+- Repositories are normally unexported and exposed through a `Repositories` bundle built in `module.go` with `NewRepositories`. Export a repository only when another package names its type or constructs it directly.
 
 ## Errors
 
@@ -96,6 +100,9 @@ ALTER TABLE storages_s3
 - `mise run backend:format` sets the formatting. Group statements per [Blank lines separate logical steps](../AGENTS.md#blank-lines-separate-logical-steps).
 - `modernize` enforces current standard-library idioms. Use `omitzero` instead of `omitempty` for `time.Time`, `time.Duration`, structs, slices and maps.
 - Every HTTP operation is described in the contract; Go code carries no API annotations.
+- A `switch` on an enum covers every value. Use the fixed import aliases declared in the lint configuration.
+- Only commands and tools print directly or exit the process; application code logs through its logger and returns errors.
+- A lint suppression names the specific rule and explains its reason. Immutable shared tables and process-level test fixture synchronization need such a suppression; application dependencies still belong to their owning instance.
 
 ## Verification agent
 

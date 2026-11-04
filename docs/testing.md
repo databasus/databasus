@@ -12,11 +12,11 @@ This document describes the kinds of tests, what they share and how runs are org
 - Our own database, modules and services are never mocked. Fakes replace only systems we cannot run locally and failures that are unsafe to cause for real.
 - Independent tests run in parallel within and across packages, and alongside runs from other worktrees on the same machine. Tests that change process environment settings or share a bounded engine-version fixture stay sequential.
 - A test never takes a shared resource under a fixed name.
-- Every check runs locally. The review hook tests are the only manual check, and CI repeats all the others on a clean machine.
+- Every check runs locally. The review hook tests and the interruption test of the browser end-to-end suite are the only manual checks, and CI repeats all the others on a clean machine.
 
 ## Layers
 
-Paths under `internal/` are inside `backend/`.
+Paths under `internal/` are inside `backend/`. The table distinguishes the test surfaces and the real systems each needs.
 
 | Layer                    | What it checks                                                                                                      | Where it lives                                             | What is real                                                                            |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------- |
@@ -28,6 +28,7 @@ Paths under `internal/` are inside `backend/`.
 | Architecture linter tests | each rule of the linter fails on a violation and passes on clean code                                              | `backend/tools/archlint/*_test.go`                         | the linter on fixture modules; no database                                              |
 | Upgrade tests            | an instance of the previous release keeps its data after an upgrade to the current code, and its backups restore    | `backend/e2e/upgrade/`                                     | both images, real data written through the API                                          |
 | Filesystem tests         | the image on the host filesystems and permission setups that users run                                              | `e2e/docker-storage/`                                      | Docker on the host                                                                      |
+| Browser end-to-end suite | the critical path, sign-in and workspace resources through the screens of the application image | `e2e/browser/` | the image, its internal database, a PostgreSQL server, Chromium |
 | Frontend tests           | screens for every answer the contract allows                                                                        | `frontend/src/**/*.test.tsx`                               | the components; the network is mocked through `mockApi`, typed by the contract          |
 
 - Module API tests cover most behavior. A module whose API tests outlast one package may split them into test-only packages under its directory, such as `internal/modules/backups/physicalapitests/`.
@@ -53,13 +54,10 @@ Each application owns its directories, encryption key, service state and lifecyc
 
 ### Live jobs and real time
 
-- `apptest.WithPhysicalBackupLoops()` runs `backups_physical_scheduler`, `backups_physical_request_scheduler` and `backups_physical_wal_stream_manager` for the test application's lifetime. They use the system clock, and `App.Clock` is nil.
-- `apptest.WithAgentBinariesDir()` also selects the system clock, because a real agent needs heartbeat timestamps and rate limits to advance with its process.
-- `apptest.WithWalStreamTimings` shortens forced WAL rotation, archive staleness and the queue pause size for one application.
-- `RunJobPass` runs one pass of either scheduler job in either mode and returns after dispatching its backups, so the test waits for the outcome through the API.
-- The physical cleaner runs only through `RunJobPass("backups_physical_cleaner")`.
-- An explicit `backups_physical_wal_stream_manager` pass requires the live jobs, because the manager starts long-lived streamers.
-- Physical backup execution has a separate system clock for duration, progress and stall detection. This clock follows the real PostgreSQL process even when the schedule clock is fixed.
+Live physical backup jobs and tests serving a real agent use the system clock rather than the movable test clock. The agent's heartbeats and rate limits must advance with its process. Physical backup duration, progress and stall detection also follow real time, even when the schedule clock is fixed. The [test application options](../backend/internal/app/apptest/options.go) select these modes.
+
+- A scheduler pass returns after dispatching backups; wait for their outcome through the API.
+- The physical cleaner runs only through an explicit pass. Streamer-management passes require live-job mode, because they start long-lived streamers.
 - Tests with live jobs seed timestamps with margins of minutes. Negative checks use explicit passes, and live-job checks wait for positive outcomes.
 
 ### Restarting and cleanup
@@ -87,54 +85,66 @@ Tests from every worktree on a machine share one Docker daemon, so nothing a tes
 
 ## Waiting
 
-The [testing skill](../.agents/skills/testing/SKILL.md#waiting) gives the rules for waiting, and the linter rejects `time.Sleep` and `Eventually` in tests. Time that drives behavior comes from the clock in `Deps`, so a test of a schedule or a timeout can move it.
+The [testing skill](../.agents/skills/testing/SKILL.md#waiting) defines condition-wait limits and their exceptions; fixed sleeps and `Eventually` are rejected by lint. Move the injected clock when time drives behavior. Go's timeout covers the whole package, so a call that hangs outside a bounded wait can still consume that timeout.
 
 ## Verification agent end-to-end tests
 
-These tests run the real agent binary against a real backend, so they prove that the agent and the server agree. `mise run agent:e2e` runs `internal/agent/e2e`. `mise run agent:test` excludes this package and needs neither an engine nor the test database.
+These tests run the real agent binary against a real backend, proving that they agree on the contract and can restore a backup. The separate agent unit-test command needs neither a container engine nor the test database. [Commands](#commands) lists both runs and the rootful Podman subset; source servers still use Docker in that subset.
 
-- **Setup.** `TestMain` builds the agent once with the server's version and once with an older one for the update scenario. Each scenario runs its own copy through `lib/process`.
-- **Coverage.** The suite covers PostgreSQL 12–18, TimescaleDB on 17, schema-limited backups, damaged backup bytes, the disk budget, leftovers, restore container privileges, daemon commands and background self-update.
-- **The gateway** on the agent's link is the one allowed stand-in. It forwards traffic and can hold claims, hold the backup stream or lower `maxContainerDiskMb` in a claim response. It never creates a verification or accepts a report in the backend's place.
-- **Podman.** `DATABASUS_AGENT_E2E_ENGINE_HOST` selects the agent's engine, and an empty value uses Docker. Source servers stay on Docker. `mise run agent:e2e-podman` runs three scenarios on the rootful socket `/run/podman/podman.sock`, overridden by `E2E_ENGINE_SOCKET`.
-- **Concurrency.** Test functions run concurrently and separate runs can overlap, because agents have unique IDs, directories, ports and engine labels. The scenarios of `TestVerifyBackup` run one after another, because each agent takes its network from Docker's default address pools.
-- **Cleanup.** Every scenario waits for its containers and networks to disappear, and a detached daemon has an explicit PID cleanup. Failed scenarios print the agent output and logs.
-- **Runtime.** A run takes about five minutes with cached images, and the package has a 30-minute timeout.
-- **CI** runs the Docker suite in the `agent-e2e` backend group and the Podman subset as its own check.
+- **Allowed stand-in.** A forwarding gateway may delay traffic or reduce a claimed resource budget. It never creates verifications or accepts reports in the backend's place.
+- **Concurrency.** Tests and separate runs may overlap through unique resources. The scenarios of `TestVerifyBackup` stay sequential because each agent allocates networks from Docker's default address pools.
+- **Cleanup.** Each scenario waits for its containers and networks to disappear and explicitly cleans up detached daemon PIDs. Failed scenarios print agent output and logs.
 
 ## Frontend tests
 
 Screen tests render real components and mock only the network, typed by the contract, so they cover every answer the contract allows. The [testing skill](../.agents/skills/testing/SKILL.md#frontend-screen-tests) gives the authoring rules.
 
 - **Environment.** Screen tests select happy-dom with `// @vitest-environment happy-dom` on the first line. Pure logic, API and architecture fixtures keep the default node environment.
-- **Rendering.** `renderScreen` from `shared/lib/test` supplies the real providers and an in-memory router, and its options select `locale`, `theme`, `route` and `isStrictMode`. Whole-application tests use the app-level renderer, because App supplies its own providers and browser router.
-- **HTTP.** `mockApi` provides typed responses, and `inspectApiRequest` checks the declared operation. The harness rejects all-method handlers and pathname wildcards, and it fails teardown on an unexpected request even when the component catches the rejection. Raw deferred handlers use `createPendingApiResponse`.
+- **Rendering.** `renderScreen` from `shared/lib/test` supplies real providers, an in-memory router and options for locale, theme, route and Strict Mode. Whole-application tests use the app-level renderer, because App supplies its own providers and browser router.
+- **HTTP.** The harness supplies `mockApi` for contract-typed responses and helpers for request inspection. It rejects all-method handlers and pathname wildcards, and fails teardown on an unexpected request even when the component catches the rejection. Use its controlled responses for overlapping requests.
 - **Cleanup** unmounts before cancelling pending responses, then restores storage, document state, dayjs locale, global overrides and fake clocks. Components own their timers, listeners and late-response guards.
-- **Limits.** `frontend/vitest.config.ts` holds the one test limit and `shared/lib/test/conditionWait.ts` the one wait limit, so only a hung test fails.
+- **Limits.** Test and condition-wait limits are shared across the suite, rather than selected by each test.
 - **Tooling tests.** Node runner and style fixtures live under `frontend/tooling/*.test.ts`. Playwright scenarios stay outside Vitest discovery. Expected-failure fixtures run in isolated child Vitest processes.
 
 ## Browser UI tests
 
-These tests exercise the production build in a real browser, for what happy-dom cannot establish: geometry, focus, fonts and images. Screen tests stay the faster layer for overlapping responses and editing-session policy. `pnpm --dir frontend test:browser --project=ui` needs Docker and no backend services, because the HTTP responses are finite synthetic fixtures.
+These tests exercise the production build in a real browser, for what happy-dom cannot establish: geometry, focus, fonts and images. Screen tests stay the faster layer for overlapping responses and editing-session policy. The [browser UI command](#commands) needs Docker and no backend services, because HTTP responses are finite synthetic fixtures.
 
-- **Environment.** The entry point builds a cached image from the digest-pinned Playwright image in `frontend/browser/environment.json`. Each run gets a unique temporary checkout, container name and unprivileged user. It removes only its own container and directory.
-- **HTTP.** `frontend/browser/HttpFixture.ts` types response builders through generated operations and records undeclared requests and page errors. Teardown fails even if application code catches an HTTP failure. Only same-origin GET navigation and static resources pass through.
+- **Environment.** Each run uses a digest-pinned browser image, an unprivileged user and its own temporary checkout and container. Cleanup removes only that run's resources.
+- **HTTP.** Fixtures follow generated operations and fail teardown on undeclared requests or page errors, even when application code catches the HTTP failure. Only same-origin GET navigation and static resources pass through.
 - **Scenarios** live in `frontend/browser/scenarios` and need no external provider account. Non-English assertions read the interface dictionaries.
-- **Visual references** live in `frontend/browser/references`. Ordinary runs use `updateSnapshots: 'none'`, so a missing or changed image fails. To replace references on purpose, run `pnpm --dir frontend test:browser:update` and inspect the result.
+- **Visual references** live in `frontend/browser/references`. A missing or changed image fails an ordinary run. Use the explicit update command from [Commands](#commands) to replace references, then inspect the result.
 - **Failure artifacts** go to the unique run directory under `frontend/browser-results/`, and CI uploads them.
 
-## Real-API browser tests
+## Browser end-to-end suite
 
-These tests run the production browser against the real application, covering sign-in and workspace resources without HTTP fixtures. `pnpm --dir frontend test:browser --project=e2e` needs the pinned tools, frontend dependencies, `.env` copied from `.env.example`, and the shared test database from `docker compose up -d backend-db-test`.
+These tests exercise the application image through its screens, without importing backend or frontend code or using paths into those trees from scenarios and fixtures. They need Docker and the pinned tools, but no `.env`, running application or shared test database. The standalone command tests `DATABASUS_IMAGE` when set, or builds an image from the checkout; CI requires an explicit image.
 
-- **Supervisor.** The public Node supervisor runs only `backend/internal/app/browsertests`. That package builds the frontend, constructs `apptest`, creates its account through the API and starts a loopback gateway on a free port. The gateway proxies `/api/`, serves runtime configuration and supplies SPA fallback.
-- **Selection.** The Go package belongs exclusively to the `browser-e2e` selection, so ordinary backend testing needs no frontend runtime. Release versioning depends on this CI job.
-- **Lifecycle probes.** `pnpm --dir frontend exec vitest run --config vitest.browser-e2e.config.ts` selects `frontend/tooling/runBrowserE2E.test.ts`, which checks exits, diagnostics and cleanup through failure, interruption and overlapping runs. `frontend/vitest.browser-e2e.config.ts` gives these probes their own 180-second limit, and default `pnpm test` excludes them.
-- **Evidence.** E2E traces, video and automatic screenshots are disabled. The supervisor keeps only nonsensitive lifecycle fields in `frontend/browser-results/e2e-<runId>/status.json`. Database retention follows the [Isolation](#isolation) rules.
+- **Isolation.** Each run has its own application, source database and browser environment. Runs may overlap without taking a lock or conflicting with development ports.
+- **Evidence.** The critical path creates a database connection, takes a backup and restores it. It compares source and restored rows with the rows it wrote; screen status alone cannot prove success.
+- **Cleanup.** Every outcome removes all resources the run created, including its image if it built one. Removal failures fail the run and name the resource. Startup also removes leftovers whose supervisor has died. Failed runs retain no resources and print container log tails with passwords and bearer tokens masked.
+- **Checks of the suite.** Separate commands cover its unit logic and lifecycle failures, interruption and overlapping runs. CI runs these checks against the candidate image and skips probes requiring an image build. Interrupting the lifecycle command itself remains a manual check, described in [Checking work](#checking-work).
 
 ## Checking work
 
-`mise run test` is the one routine local test command, for developers and agents alike. A change that adds or changes tests or the code they cover owes this run, and the OpenSpec change verification of such a change names it. A change that edits only documentation owes no run.
+`mise run test` is the one routine local test command, for developers and agents alike. A change that adds or changes tests outside the end-to-end packages, or the code they cover, owes this run, and the OpenSpec change verification of such a change names it. A change that edits only documentation owes no run.
+
+`mise run full` runs everything `mise run test` runs, the end-to-end packages of the verification agent and of backups, the upgrade test and the browser end-to-end suite. An agent [does not start it on its own](../AGENTS.md#tests), and CI runs these suites on every pull request.
+
+`mise run test` leaves those suites out, so an agent also runs by hand the specific ones its change touches:
+
+- A change to scenarios in `e2e/browser/scenarios` or to the `Dockerfile` runs `mise run e2e:browser`, and the change verification names a scenario change's command.
+- A change to tests in `backend/internal/agent/e2e` or to the verification agent's code runs `mise run agent:e2e`, or the Go test command for the affected tests.
+- A change to tests in `backend/internal/modules/backups/e2e` runs the Go test command for the affected tests.
+- A change to `backend/e2e/upgrade` runs `mise run backend:test-upgrade`.
+
+A break in the backup pipeline can pass `mise run test`. When a change touches that pipeline, run the affected tests in `backend/internal/modules/backups/e2e` by hand.
+
+A change to the browser end-to-end suite's own code owes its commands too:
+
+- A change to its code outside the scenarios runs `mise run e2e:unit`.
+- A change to how a run starts or cleans up also runs `mise run e2e:lifecycle`.
+- A change to the lifecycle command also runs `uv run --project e2e/browser pytest e2e/browser/lifecycle_interruption`.
 
 ### What `mise run test` runs
 
@@ -144,50 +154,73 @@ After installing the frontend dependencies from the lockfile, the command runs t
 - all other backend packages, with a higher limit, so they do not wait for slow ones;
 - the frontend unit and screen tests.
 
-The upgrade test starts after all three pass.
+`mise run full` adds the end-to-end packages to the first process. After all three pass it runs the upgrade test, then the browser end-to-end suite, one after the other, because each builds an image and they disturb each other's timing under load.
 
 - Output lines carry the name of their process, and the summary names each process that failed.
-- The run allows 30 minutes per package and holds a machine-wide lock, so only one full run goes at a time.
-- A package missing from the list runs with the fast packages, so a new package needs no entry. A package belongs in the list when it starts containers or networks or runs for over a minute. A script test fails on an entry the run does not select.
-- Migration tests and architecture linter tests run here and, in CI, in the `other` group.
+- The run allows 15 minutes per package and holds a machine-wide lock, so only one `mise run test` or `mise run full` goes at a time.
+- A package missing from the list runs with the fast packages, so a new package needs no entry. A package belongs in the list when it starts containers or networks or runs for over a minute. A script test fails on an entry that neither `mise run test` nor `mise run full` selects.
+- Migration tests and architecture linter tests run here too.
 
 ### What runs separately
 
-- The browser suites and the filesystem tests (`mise run test-filesystem`) have their own commands.
+- The browser UI tests and the filesystem tests (`mise run test-filesystem`) have their own commands.
 - The review hook tests in `.agent-hooks/` run by hand, by an agent that changes the hooks.
+- The interruption test in `e2e/browser/lifecycle_interruption` runs by hand, by an agent that changes the lifecycle command.
 
 ### CI
 
-- CI runs every suite except the review hook tests on every pull request, split into shards by measured test duration. Physical backup and WAL streaming tests are the slow groups and get their own shards.
+- CI runs every suite except the review hook tests and the interruption test of the browser end-to-end suite on every pull request, split into shards by measured test duration. Physical backup and WAL streaming tests are the slow groups and get their own shards.
 - CI runs backend tests with `-race`, and a data race fails the test. Local runs leave it out, because it makes them several times slower. To reproduce a race, add `-race` to the command that repeats the test.
 
 ### Upgrade test
 
-- It starts from the newest release tag by version. CI runs it as the check `test-upgrade` against the image built for the commit. `mise run backend:test-upgrade` runs it alone and builds the image from the checkout unless `DATABASUS_IMAGE` names one.
-- After the server assertions it runs the actual verification agent from release 3.64.0, pinned by image digest, through a successful self-update and through a manual replacement of the binary (spec `upgrade-test`).
-- Both agent scenarios use the local Unix Docker socket and host networking on Linux. Cleanup removes their containers, labeled restore resources and anonymous volumes.
+The upgrade test starts from the newest release tag by version and checks the image built from the checkout, unless `DATABASUS_IMAGE` names one. After the server assertions, it checks self-update and manual replacement using an actual older agent pinned by image digest. The `upgrade-test` spec defines that fixture and its acceptance criteria.
+
+The agent scenarios require a local Unix Docker socket and Linux host networking. Cleanup removes their containers, labeled restore resources and anonymous volumes.
+
+#### Manual agent recovery
+
+Self-update needs write access to the directory holding the agent's executable. Permission or read-only filesystem errors in its update logs, together with no recent accepted heartbeat on the server, indicate a failed replacement. The upgrade test verifies this recovery procedure:
+
+1. Stop the agent. For its built-in daemon, run the installed binary's `stop` command by absolute path, from its existing working directory as its normal account. For a service or container, stop its supervisor instead.
+2. Replace the executable using an account permitted to write to its directory. Download from the connected server to a temporary file, choosing `arch=amd64` or `arch=arm64` for the agent's machine. For example, replacing the server address and installed path:
+
+   ```sh
+   curl --fail --location --output /opt/databasus-agent/verification-agent.new \
+     "https://your-databasus-host/api/v1/system/verification-agent?arch=amd64" && \
+   chmod 755 /opt/databasus-agent/verification-agent.new && \
+   mv -f /opt/databasus-agent/verification-agent.new /opt/databasus-agent/verification-agent
+   ```
+
+   For a container, deploy the updated image instead.
+3. Preserve `databasus-verification.json`, its token and resource settings. Restart the daemon with the installed binary's absolute path and `start` command, as the same account from the existing working directory, without resupplying setup credentials or resource flags. Restart a service or container through its supervisor with the existing settings.
+
+Confirm accepted server contact and a completed backup verification. A successful local `version` or `status` command alone does not prove recovery, and no new token is needed.
 
 ### Speed
 
-On a Fedora machine with the default btrfs, Docker's storage slows a full run the most. [`docs/machine-setup.md`](machine-setup.md) explains the fix.
+Container creation and temporary-file I/O can limit local test speed. [Preparing a machine](machine-setup.md) describes storage considerations without requiring a particular host setup.
 
 ## Commands
 
-To repeat one failing test, call its runner directly. This takes no lock and builds no image.
+To repeat one failing test, call its Go or frontend runner directly. This takes no lock and builds no image.
 
 | What                                          | Command                                                                                              |
 | --------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | Everything routine                            | `mise run test`                                                                                      |
+| Routine run, end-to-end packages, upgrade test and browser end-to-end suite | `mise run full`                                                                                      |
 | One backend test, in `backend/`, see below    | `go test -count=1 -run 'TestName/scenario text' ./internal/modules/<module>/...`                     |
 | Verification agent unit tests                 | `mise run agent:test`                                                                                |
 | Verification agent end-to-end tests on Docker | `mise run agent:e2e`                                                                                 |
 | Verification agent subset on rootful Podman   | `mise run agent:e2e-podman`                                                                          |
 | Frontend                                      | `pnpm test` in `frontend/`, or `pnpm test -t 'scenario text'`                                        |
 | Frontend production browser UI                | `pnpm --dir frontend test:browser --project=ui`                                                     |
-| Frontend production browser with real API      | `pnpm --dir frontend test:browser --project=e2e`                                                    |
 | Update browser visual references              | `pnpm --dir frontend test:browser:update`                                                          |
 | Upgrade test                                  | `mise run backend:test-upgrade`                                                                      |
 | Filesystem tests                              | `mise run test-filesystem`                                                                           |
+| Browser end-to-end suite alone                | `mise run e2e:browser`                                                                               |
+| Its parts that need no Docker daemon          | `mise run e2e:unit`                                                                                  |
+| Its lifecycle probes                          | `mise run e2e:lifecycle`                                                                             |
 | Review hook tests, by hand                    | `python3 -m unittest discover -s .agent-hooks -p '*_test.py'`                                        |
 
 The bundled PostgreSQL clients need the libedit shim on Fedora, and parallel test binaries collide on the Ryuk reaper name, so the full command that repeats a backend test is:

@@ -62,7 +62,7 @@ Starting a backup, a restore or a verification answers 202 with the resource in 
 
 ## Pagination
 
-A list takes `limit` and `after` and returns `items` and `nextCursor`. The cursor is opaque. `nextCursor` is absent on the last page. A list has a fixed order, documented in the operation. `OFFSET` and counts of rows for paging are not offered. A figure that is not a paging count may sit on the page, as [`totalUsageMb`](../../../docs/architecture.md#http-api) does.
+A list takes `limit` and `after` and returns `items` and `nextCursor`. The cursor is opaque. `nextCursor` is absent on the last page. A list has a fixed order, documented in the operation. `OFFSET` and counts of rows for paging are not offered. A figure that is not a paging count may sit on the page.
 
 ## Downloads
 

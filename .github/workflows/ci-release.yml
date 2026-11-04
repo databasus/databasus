@@ -202,44 +202,63 @@ jobs:
           path: frontend/browser-results/
           retention-days: 7
 
-  test-frontend-browser-e2e:
+  test-e2e-browser:
     if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
+    needs: [build-storage-image]
     runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
+      - name: Download the storage candidate
+        id: download-the-storage-candidate-1
+        continue-on-error: true
+        timeout-minutes: 3
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: databasus-storage-test
+          path: /tmp
+
+      - name: Download the storage candidate (attempt 2)
+        id: download-the-storage-candidate-2
+        if: steps.download-the-storage-candidate-1.outcome == 'failure'
+        continue-on-error: true
+        timeout-minutes: 3
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: databasus-storage-test
+          path: /tmp
+
+      - name: Download the storage candidate (attempt 3)
+        id: download-the-storage-candidate-3
+        if: steps.download-the-storage-candidate-2.outcome == 'failure'
+        timeout-minutes: 3
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: databasus-storage-test
+          path: /tmp
+
+      - name: Load the storage candidate
+        run: zstd -dc /tmp/databasus-storage-test.tar.zst | docker load
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: 'go node pnpm'
+          install_args: 'python uv'
 
-      - name: Install dependencies
-        run: |
-          pnpm --dir frontend install --frozen-lockfile
-          cd backend
-          go mod download
+      - name: Check the suite's own code
+        run: mise run e2e:unit
 
-      - name: Prepare the isolated test database
-        run: |
-          cp .env.example .env
-          docker compose up -d backend-db-test
-          timeout 60 bash -c 'until docker exec backend-db-test pg_isready -U postgres; do sleep 2; done'
+      - name: Run the browser end-to-end suite
+        env:
+          DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}
+        run: mise run e2e:browser
 
-      - name: Verify production browser against the real API
-        run: pnpm --dir frontend test:browser --project=e2e
-
-      - name: Verify browser ownership and failure propagation
-        run: pnpm --dir frontend exec vitest run --config vitest.browser-e2e.config.ts
-
-      - name: Upload sanitized browser lifecycle status
-        if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: frontend-browser-e2e
-          path: frontend/browser-results/e2e-*/status.json
-          retention-days: 7
+      - name: Check the suite's cleanup and failure handling
+        env:
+          DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}
+        run: mise run e2e:lifecycle
 
   test-verification-agent:
     if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
@@ -871,7 +890,7 @@ jobs:
         test-backend,
         test-frontend,
         test-frontend-browser-ui,
-        test-frontend-browser-e2e,
+        test-e2e-browser,
         test-verification-agent,
         e2e-verification-agent-podman,
         test-filesystems,

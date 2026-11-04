@@ -15,6 +15,9 @@ const (
 	instancePublishedPort = "4005/tcp"
 	instanceDataPath      = "/databasus-data"
 	cleanupTimeout        = 2 * time.Minute
+	// startupLimit matches the limit of the testcontainers start-up waits. An upgraded instance also
+	// runs its migrations during this wait, which can take longer than an ordinary wait's limit.
+	startupLimit = 5 * time.Minute
 )
 
 var errInstanceExited = errors.New("the instance exited during start-up")
@@ -111,25 +114,26 @@ func prepareSourceServer(t *testing.T, docker *dockerHost, resources upgradeReso
 
 	var sourceHostPort int
 
-	err = testwait.Poll(t, "the source server to accept connections", func(ctx context.Context) error {
-		state, stateErr := docker.getContainerState(ctx, resources.sourceContainerName, sourcePublishedPort)
-		if stateErr != nil {
-			return stateErr
-		}
+	err = testwait.Within(startupLimit).
+		Poll(t, "the source server to accept connections", func(ctx context.Context) error {
+			state, stateErr := docker.getContainerState(ctx, resources.sourceContainerName, sourcePublishedPort)
+			if stateErr != nil {
+				return stateErr
+			}
 
-		if !state.isRunning {
-			return fmt.Errorf("container %s is not running", resources.sourceContainerName)
-		}
+			if !state.isRunning {
+				return fmt.Errorf("container %s is not running", resources.sourceContainerName)
+			}
 
-		connection, connectErr := connectToSourceDatabase(ctx, state.hostPort, sourceDatabaseName)
-		if connectErr != nil {
-			return connectErr
-		}
+			connection, connectErr := connectToSourceDatabase(ctx, state.hostPort, sourceDatabaseName)
+			if connectErr != nil {
+				return connectErr
+			}
 
-		sourceHostPort = state.hostPort
+			sourceHostPort = state.hostPort
 
-		return connection.Close(ctx)
-	})
+			return connection.Close(ctx)
+		})
 	if err != nil {
 		return 0, docker.withLogTail(t.Context(), resources.sourceContainerName, err)
 	}
@@ -278,22 +282,23 @@ func startInstance(t *testing.T, docker *dockerHost, spec containerSpec) (*apiCl
 		hostPort  int
 	)
 
-	err = testwait.Poll(t, "instance "+spec.name+" to answer its health check", func(ctx context.Context) error {
-		state, stateErr := docker.getContainerState(ctx, spec.name, instancePublishedPort)
-		if stateErr != nil {
-			return stateErr
-		}
+	err = testwait.Within(startupLimit).
+		Poll(t, "instance "+spec.name+" to answer its health check", func(ctx context.Context) error {
+			state, stateErr := docker.getContainerState(ctx, spec.name, instancePublishedPort)
+			if stateErr != nil {
+				return stateErr
+			}
 
-		if !state.isRunning {
-			hasExited = true
+			if !state.isRunning {
+				hasExited = true
 
-			return nil
-		}
+				return nil
+			}
 
-		hostPort = state.hostPort
+			hostPort = state.hostPort
 
-		return newAPIClient(hostPort).get(ctx, "/system/health", nil)
-	})
+			return newAPIClient(hostPort).get(ctx, "/system/health", nil)
+		})
 	if err != nil {
 		return nil, docker.withLogTail(t.Context(), spec.name, err)
 	}

@@ -4,8 +4,13 @@ set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
 source "$root/scripts/fedora.sh"
 
+is_full_run=false
+if [[ "${1:-}" == --full ]]; then
+    is_full_run=true
+fi
+
 lock_directory=${TMPDIR:-/tmp}
-# Full runs take turns; a single package run never takes this lock.
+# `mise run test` and `mise run full` take turns; a single package run never takes this lock.
 full_run_lock="$lock_directory/databasus-full-test.lock"
 # The containers helpers and the upgrade test label every container, network and volume they create
 # with this ID, so the trap removes only what this run started.
@@ -46,7 +51,7 @@ suite_names=()
 
 exec {full_run_lock_fd}>"$full_run_lock"
 if ! flock -n "$full_run_lock_fd"; then
-    echo "waiting for another full test run to finish"
+    echo "waiting for another test run to finish"
     flock "$full_run_lock_fd"
 fi
 
@@ -71,10 +76,15 @@ mise run backend:pull-testcontainers
 
 cd "$root/backend"
 discovered_packages=$(go list ./...)
-mapfile -t backend_packages < <(grep -Ev '/internal/app/browsertests(/|$)|^databasus-backend/e2e/upgrade(/|$)' <<<"$discovered_packages")
+excluded_packages='^databasus-backend/(e2e/upgrade|internal/agent/e2e|internal/modules/backups/e2e)(/|$)'
+if [[ "$is_full_run" == true ]]; then
+    excluded_packages='^databasus-backend/e2e/upgrade(/|$)'
+fi
+mapfile -t backend_packages < <(grep -Ev "$excluded_packages" <<<"$discovered_packages")
 mapfile -t listed_slow_packages < <(grep -Ev '^(#|$)' test-slow-packages.txt)
 
-# An entry the run does not select is left to scripts/test_sh_test.py, because here it would only stop a whole run.
+# An entry this run does not select is skipped. scripts/test_sh_test.py names one that neither command
+# selects, because here it would only stop a whole run.
 declare -A is_backend_package=()
 for package in "${backend_packages[@]}"; do
     is_backend_package[$package]=1
@@ -113,12 +123,12 @@ pnpm --dir "$root/frontend" install --frozen-lockfile
 # faster and Docker runs out of network address pools. The others mostly compute.
 if ((${#slow_packages[@]} > 0)); then
     start_suite backend-slow env TESTCONTAINERS_RYUK_DISABLED=true \
-        go test ${CI:+-race} -p=8 -count=1 -timeout 30m "${slow_packages[@]}"
+        go test ${CI:+-race} -p=8 -count=1 -timeout 15m "${slow_packages[@]}"
 fi
 
 if ((${#other_packages[@]} > 0)); then
     start_suite backend-other env TESTCONTAINERS_RYUK_DISABLED=true \
-        go test ${CI:+-race} -p=16 -count=1 -timeout 30m "${other_packages[@]}"
+        go test ${CI:+-race} -p=16 -count=1 -timeout 15m "${other_packages[@]}"
 fi
 
 start_suite frontend pnpm --dir "$root/frontend" test
@@ -137,6 +147,9 @@ if ((${#failed_suites[@]} > 0)); then
     exit 1
 fi
 
-# The upgrade test builds the image unless DATABASUS_IMAGE names one, so it runs only after every
-# package passed.
-mise run backend:test-upgrade
+if [[ "$is_full_run" == true ]]; then
+    # Each of these builds the image unless DATABASUS_IMAGE names one, so they run only after every
+    # package passed, and one after the other, because they disturb each other's timing under load.
+    mise run backend:test-upgrade
+    mise run e2e:browser
+fi

@@ -20,3 +20,4 @@ plans/
 
 .pnpm-store
 __pycache__/
+e2e/browser/.venv/

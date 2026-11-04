@@ -144,7 +144,7 @@ type engineSourceSpec struct {
 func prepareEngineSource(t *testing.T, docker *dockerHost, spec engineSourceSpec) error {
 	t.Helper()
 
-	err := testwait.Poll(t, spec.label+" to accept connections", func(ctx context.Context) error {
+	err := testwait.Within(startupLimit).Poll(t, spec.label+" to accept connections", func(ctx context.Context) error {
 		state, stateErr := docker.getContainerState(ctx, spec.containerName, spec.publishedPort)
 		if stateErr != nil {
 			return stateErr
