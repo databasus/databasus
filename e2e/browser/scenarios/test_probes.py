@@ -3,6 +3,7 @@
 import os
 import subprocess
 import threading
+from pathlib import Path
 
 import pytest
 from playwright.sync_api import Page
@@ -41,8 +42,9 @@ def test_passes_after_the_application_and_the_browser_are_ready(page: Page):
 
 
 @pytest.mark.skipif(_probe != "interrupt", reason="selected by E2E_PROBE=interrupt")
-def test_waits_for_an_interruption_after_the_application_and_the_browser_are_ready(page: Page):
+def test_waits_for_an_interruption_after_the_application_and_the_browser_are_ready(page: Page, tmp_path: Path):
     open_application(page)
+    print(f"E2E_PYTEST_TEMP_ROOT: {tmp_path.parent}", flush=True)
     print(INTERRUPT_READY, flush=True)
 
     threading.Event().wait()

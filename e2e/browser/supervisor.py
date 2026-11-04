@@ -15,6 +15,7 @@ from supervisor_file import (
     SupervisorRecord,
     get_process_start_time,
     get_project_name,
+    get_run_directory,
     remove_run_directory,
     write_supervisor_record,
 )
@@ -126,7 +127,10 @@ class Supervisor:
         }
 
         return self._run_masked(
-            [sys.executable, "-m", "pytest", "--capture=no", scenarios],
+            [
+                sys.executable, "-m", "pytest", "--capture=no",
+                "--basetemp", str(get_run_directory(self.run_id) / "pytest"), scenarios,
+            ],
             environment=environment,
             working_directory=SUITE_DIRECTORY,
         )

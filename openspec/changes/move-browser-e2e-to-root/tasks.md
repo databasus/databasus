@@ -48,6 +48,9 @@
 - [x] 8.3 Capture masked container log tails before teardown and print them for cleanup failures even when scenarios passed. Cover both log streams and secret masking in the cleanup-refusal probe; verify with `mise run e2e:lifecycle` and `mise run e2e:browser`.
 - [x] 8.4 Keep manual agent recovery instructions in the existing testing guide, move alias configuration out of agent instructions, and verify local documentation links, `git diff --check` and `mise run frontend:lint`.
 - [x] 8.5 Give each pytest process a recorded temporary root and cover overlapping subprocesses so one process cannot remove another's temporary files. Verify with `mise run e2e:unit` and `mise run e2e:lifecycle`.
+- [x] 8.6 Put the scenario child's pytest temporary root inside its supervisor's directory and check its removal after SIGTERM and terminal SIGINT. Verify with `mise run e2e:lifecycle` and `mise run e2e:browser`.
+- [x] 8.7 Register independent project, owned-image and directory finalizers before killing runs or refusing their cleanup, and verify the recovery probes with `mise run e2e:lifecycle` and `uv run --project e2e/browser pytest e2e/browser/lifecycle_interruption`.
+- [x] 8.8 Treat an exited but unreaped supervisor as dead, with a real-process regression test. Verify with `mise run e2e:unit` and `mise run e2e:lifecycle`.
 
 ## Change verification
 

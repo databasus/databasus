@@ -107,6 +107,7 @@ A run SHALL stop and remove every container, network and volume it started, its 
 
 - **WHEN** a run receives an interrupt or termination signal after starting its resources
 - **THEN** it exits non-zero, and nothing the run started remains
+- **AND** the supervisor removes the scenario child's temporary root after terminating that child, even if pytest's cleanup callbacks did not run
 
 #### Scenario: Cleanup cannot finish
 
@@ -122,6 +123,7 @@ Before it starts its own resources, a run SHALL remove the resources of earlier 
 
 - **WHEN** an earlier run was killed before its cleanup ran, and a new run starts
 - **THEN** the new run removes the earlier run's containers, networks, volumes, temporary directory and built image before it starts
+- **AND** an exited supervisor counts as dead even while its parent has not reaped its process entry
 
 #### Scenario: Another worktree is running the suite
 
@@ -162,6 +164,8 @@ Each run SHALL generate its own account and database passwords, and SHALL pass t
 `mise run e2e:lifecycle` SHALL run lifecycle probes, each of which drives the public entry point. The probes SHALL go through a failing scenario, a failure with secrets in its output, a refused form, a start-up failure, a failure outside a scenario, an interruption, a cleanup failure, a leftover of a killed run next to a live run, and two overlapping runs. It SHALL also drive the refusal in CI and a named image. When no image is named, it SHALL build one image for its probes and remove it after every outcome, and it SHALL also drive a run that builds its own image, a killed run whose built image the next run removes, and a fresh checkout, including that a run leaves that checkout unchanged. When one is named, it SHALL skip those three and build nothing. With the `CI` environment variable set and no image named, it SHALL refuse and build nothing. It SHALL start an unrelated container of its own outside every run and query it after each probe. It SHALL check the exit status, the diagnostic, the absence of secrets in the captured output, that nothing of those runs remains and that the unrelated container still answers. It SHALL NOT be part of `mise run e2e:browser`.
 
 The probes SHALL also cover refusal to remove a crashed run's project and its built image before startup.
+
+Probes that kill a run or deliberately prevent its cleanup SHALL register unconditional teardown of that exact run's project, owned image and temporary directory before the destructive step. This teardown SHALL still run if a later recovery command or assertion fails.
 
 #### Scenario: Cleanup regresses
 

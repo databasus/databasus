@@ -5,12 +5,12 @@ from pathlib import Path
 
 import pytest
 
-from compose_project import list_remaining_resources, remove_dead_run_project
+from compose_project import list_remaining_resources
 from docker_wrapper import install_docker_wrapper_and_get_path
 from leftover_check import assert_nothing_of_the_project_remains, is_image_present
 from probe_run import INTERRUPT_READY, assert_sweep_came_before, start_probe_run
 from public_command import PublicRun
-from supervisor_file import get_run_directory, read_supervisor_records, remove_run_directory, write_supervisor_record
+from supervisor_file import get_run_directory, read_supervisor_records, write_supervisor_record
 
 
 def _kill_run(run: PublicRun) -> None:
@@ -21,24 +21,13 @@ def _kill_run(run: PublicRun) -> None:
 class TestCrashedRuns:
     @pytest.mark.parametrize("blocked_resource", ["project", "image"])
     def test_stops_before_startup_when_crashed_resources_cannot_be_removed(
-        self, probes_image: str, tmp_path: Path, blocked_resource: str, request: pytest.FixtureRequest
+        self, probes_image: str, tmp_path: Path, blocked_resource: str, register_run_cleanup
     ):
         killed_run = start_probe_run(probes_image, "interrupt")
         project_name = killed_run.get_project_name()
         owned_image = f"{project_name}:sweep-probe"
 
-        def remove_probe_resources() -> None:
-            if killed_run.is_running():
-                killed_run.terminate_supervisor()
-                killed_run.finish()
-
-            assert remove_dead_run_project(project_name), f"could not remove probe project {project_name}"
-            image_removal = subprocess.run(["docker", "image", "rm", owned_image], capture_output=True, text=True)
-
-            assert image_removal.returncode == 0 or "No such image" in image_removal.stderr, owned_image
-            remove_run_directory(killed_run.get_run_id())
-
-        request.addfinalizer(remove_probe_resources)
+        register_run_cleanup(killed_run, built_image=owned_image)
         killed_run.wait_for_output(INTERRUPT_READY)
         subprocess.run(["docker", "image", "tag", probes_image, owned_image], check=True)
         record = next(record for record in read_supervisor_records() if record.run_id == killed_run.get_run_id())
@@ -64,11 +53,12 @@ class TestCrashedRuns:
         assert is_image_present(owned_image)
         assert_nothing_of_the_project_remains(later_run.get_project_name())
 
-    def test_a_later_run_removes_a_killed_run_and_leaves_a_live_one(self, probes_image: str):
+    def test_a_later_run_removes_a_killed_run_and_leaves_a_live_one(self, probes_image: str, register_run_cleanup):
         live_run = start_probe_run(probes_image, "interrupt")
         live_run.wait_for_output(INTERRUPT_READY)
 
         killed_run = start_probe_run(probes_image, "interrupt")
+        register_run_cleanup(killed_run)
         killed_run.wait_for_output(INTERRUPT_READY)
         killed_project_name = killed_run.get_project_name()
         _kill_run(killed_run)

@@ -23,6 +23,8 @@ def assert_failed_and_released(run: PublicRun, diagnostic: str) -> str:
 
 def assert_sweep_came_before(output: str, crashed_run_id: str, start_marker: str) -> None:
     """A run from another worktree may have swept the crashed run first, and then this run prints no removal."""
+    assert start_marker in output, output
+
     removal_marker = f"E2E removing what crashed run {crashed_run_id} left behind"
 
     if removal_marker in output:

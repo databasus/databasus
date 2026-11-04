@@ -1,4 +1,6 @@
 import os
+import subprocess
+import sys
 
 import pytest
 
@@ -16,6 +18,19 @@ class TestIsSupervisorAlive:
         record = SupervisorRecord("run", os.getpid(), "another-start-time", None)
 
         assert not is_supervisor_alive(record)
+
+    def test_is_false_when_the_process_exited_but_its_parent_has_not_reaped_it(self):
+        child = subprocess.Popen([sys.executable, "-c", "import signal; signal.pause()"])
+
+        try:
+            record = SupervisorRecord("exited", child.pid, get_process_start_time(child.pid), None)
+            child.terminate()
+            os.waitid(os.P_PID, child.pid, os.WEXITED | os.WNOWAIT)
+
+            assert not is_supervisor_alive(record)
+        finally:
+            child.terminate()
+            child.wait()
 
 
 class TestReadSupervisorRecords:

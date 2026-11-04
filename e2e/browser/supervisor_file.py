@@ -74,6 +74,9 @@ def get_process_start_time(pid: int) -> str | None:
 
     fields_after_command = process_stat.rpartition(")")[2].split()
 
+    if fields_after_command[0] in {"Z", "X"}:
+        return None
+
     return fields_after_command[19]
 
 

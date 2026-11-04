@@ -105,7 +105,9 @@ The supervisor writes `supervisor.json` with its PID, its process start time and
 
 A compose project with no such directory is a crash in the short window of the directory's removal, so it counts as dead. The directory is written before the project exists, so a live run always has one.
 
-Failure to remove a crashed run's project or built image stops startup and names the remaining resource. Its supervisor record stays for later recovery. Each pytest process also owns a recorded temporary root, so zero-retention cleanup cannot delete another process's temporary files and a later run can recover a killed process's directory.
+An exited process awaiting reaping also counts as dead. Its `/proc` entry still holds its start time, so the liveness check rejects zombie and dead states before comparing that time.
+
+Failure to remove a crashed run's project or built image stops startup and names the remaining resource. Its supervisor record stays for later recovery. Standalone pytest processes own recorded temporary roots, so zero-retention cleanup cannot delete another process's temporary files and a later run can recover a killed process's directory. The supervisor gives its scenario child an explicit temporary root inside the supervisor's directory. It removes that root after the child terminates, even when a signal bypasses pytest's cleanup callbacks.
 
 `mise run e2e:lifecycle` writes the same file for the image it builds for its probes, so the sweep also recovers that image after the command is killed.
 
@@ -160,6 +162,8 @@ An agent runs `mise run full` only on the user's direct request. At the end of a
 Without `DATABASUS_IMAGE`, the command builds one run-unique image for its probes and removes it after every outcome. With `CI` set and no `DATABASUS_IMAGE`, it refuses, so a broken CI job builds nothing. Three probes are skipped when `DATABASUS_IMAGE` names an image: a run that builds its own image, a killed run whose built image the next run removes, and the fresh checkout. Only these need a run to own an image or a clean tree.
 
 The fresh-checkout probe copies tracked and untracked files into a temporary directory rather than touching the developer's `.env`. It compares the file list there before and after a run, ignored files included, because other agents may be writing to the real checkout.
+
+Before deliberately killing a run or blocking its cleanup, a probe registers an independent finalizer for that run's exact project, owned image and directory. The finalizer still runs if the recovery command or an assertion fails; it retains the supervisor record when resource removal fails.
 
 The unrelated service is a small container the command starts itself, outside any run's compose project, and queries after each probe. The shared test PostgreSQL server and the development services may not exist on a CI runner, so they cannot serve as this check.
 

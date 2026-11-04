@@ -6,6 +6,7 @@ import time
 
 import pytest
 
+from lifecycle.run_cleanup import register_run_cleanup
 from public_command import REPOSITORY_ROOT, stop_live_runs
 from supervisor_file import (
     SupervisorRecord,
