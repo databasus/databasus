@@ -63,7 +63,7 @@ The names reviewer SHALL check every name the proposal, design and delta specs i
 
 The consistency reviewer SHALL check that the decisions agree with each other and with the proposal, and that the facts the proposal and design state about the code are true.
 
-The task reviewer SHALL check that a task with a test covers every scenario, that every task has a verification, and that the task order is feasible. The task reviewer SHALL also check that a change whose tasks add or change tests in a backend package, a verification agent package or the frontend has a "Change verification" section, and that the section runs the tests of every such package the tasks' verifications name. Tests that no allowed command form runs, such as the hook tests, SHALL name an explicit verification command in their task instead of this section.
+The task reviewer SHALL check that a task with a test covers every scenario, that every task has a verification, and that the task order is feasible. The task reviewer SHALL also check that a change whose tasks add or change tests in a backend package or a verification agent package outside the end-to-end ones, or the frontend has a "Change verification" section, and that the section runs the tests of every such package the tasks' verifications name. The end-to-end packages are the ones named in the next sentence. It SHALL also check that a change that adds or changes scenarios of the browser end-to-end suite in `e2e/browser/scenarios` names `mise run e2e:browser` in that section, that a task changing tests in `backend/internal/agent/e2e`, `backend/internal/modules/backups/e2e` or `backend/e2e/upgrade`, the verification agent's code or the `Dockerfile` names the command that repeats those tests, and that no section or task verification runs `mise run test-full`. Tests that no allowed command form runs, such as the hook tests, SHALL name an explicit verification command in their task instead of this section.
 
 #### Scenario: A change with two delta specs
 - **WHEN** the full proposal review starts for a change with two delta specs
@@ -91,7 +91,7 @@ The task reviewer SHALL check that a task with a test covers every scenario, tha
 
 #### Scenario: The task reviewer's role
 - **WHEN** the hook starts the task reviewer
-- **THEN** its prompt names the role and requires checking that a task with a test covers every scenario, every task has a verification, the task order is feasible, and the "Change verification" section covers the tested packages
+- **THEN** its prompt names the role and requires checking that a task with a test covers every scenario, every task has a verification, the task order is feasible, and the "Change verification" section covers the tested packages outside the end-to-end ones
 
 #### Scenario: Tests without a verification section
 - **WHEN** the tasks add tests to a backend package and the change has no "Change verification" section
@@ -108,6 +108,22 @@ The task reviewer SHALL check that a task with a test covers every scenario, tha
 #### Scenario: A change with only hook tests
 - **WHEN** the tasks add tests only to the hook tests and the change has no "Change verification" section
 - **THEN** the task reviewer returns no finding about the missing section
+
+#### Scenario: A change to browser end-to-end scenarios
+- **WHEN** a task adds or changes a scenario in `e2e/browser/scenarios` and the "Change verification" section leaves out `mise run e2e:browser`
+- **THEN** the task reviewer returns a `tasks` finding that asks for `mise run e2e:browser`
+
+#### Scenario: A task that changes end-to-end tests without their command
+- **WHEN** a task changes tests in `backend/internal/agent/e2e`, `backend/internal/modules/backups/e2e` or `backend/e2e/upgrade`, the verification agent's code or the `Dockerfile`, and its verification names no command that repeats those tests
+- **THEN** the task reviewer returns a `tasks` finding that asks for that command
+
+#### Scenario: A verification that runs the whole test set
+- **WHEN** the "Change verification" section or a task's verification runs `mise run test-full`
+- **THEN** the task reviewer returns a `tasks` finding that asks for the specific commands instead
+
+#### Scenario: A task that builds the command
+- **WHEN** a task names `mise run test-full` as something it adds or edits, and its verification runs another command
+- **THEN** the task reviewer returns no finding for naming it
 
 ### Requirement: The agent resolves findings itself, except cutting the feature
 A reviewer SHALL return findings, each with a category, a path and a description. The categories are `gap` (a requirement is incomplete, a case is missing, or a new domain term is missing from the glossary), `mismatch` (artifacts contradict each other, the main specs, the code, the architecture rules or the naming rules), `tasks` (a scenario without a task with a test, a task without verification, an infeasible order), `simplify` (the same result for the user, noticeably simpler), `scope` (an option that cuts the feature) and `minor`. The hook SHALL block the turn when there is a `gap`, `mismatch`, `tasks` or `simplify` finding, and require the agent to resolve each one without asking the user. `scope` and `minor` findings MUST NOT block the turn. The agent MUST NOT apply a `scope` finding itself: cutting the task is the user's decision.

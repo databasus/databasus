@@ -63,7 +63,7 @@ The implementing agent SHALL run the relevant formatters, linters and tests befo
 
 The full implementation review SHALL run several read-only reviewers in parallel: one per delta spec of the change, one for documentation and the task list, one for tests, and one for architecture. The delta spec reviewer SHALL find the code and the test for every requirement and scenario, check that the test actually proves the scenario, check the design decisions against the code, and look for bugs. The documentation reviewer SHALL check that everything each task states was done, including its verification, and that documentation agrees with itself and with the code. The documentation reviewer SHALL also check edits to agent instructions made by the change against the requirement "What belongs in agent instructions" of the `agent-instructions` capability.
 
-The tests reviewer SHALL check every test the change added or changed against the repository's testing skill and the testing rules of the module docs: the test fails without the behavior it pins, a bug fix has a test that reproduces the bug, the cases the module doc asks for are covered, the test waits for a condition instead of a fixed pause, and it cleans up its data. The tests reviewer SHALL also check that the change verification commands run the tests of every backend package, verification agent package and frontend test file the change added or changed tests in. Tests that no allowed command form runs, such as the hook tests, SHALL name an explicit verification command in their task instead of this section.
+The tests reviewer SHALL check every test the change added or changed against the repository's testing skill and the testing rules of the module docs: the test fails without the behavior it pins, a bug fix has a test that reproduces the bug, the cases the module doc asks for are covered, the test waits for a condition instead of a fixed pause, and it cleans up its data. The tests reviewer SHALL also check that the change verification commands run the tests of every backend package and verification agent package outside the end-to-end ones, and of every frontend test file, the change added or changed tests in, and that a change adding or changing scenarios of the browser end-to-end suite names `mise run e2e:browser`. It SHALL also check that a task changing tests in `backend/internal/agent/e2e`, `backend/internal/modules/backups/e2e` or `backend/e2e/upgrade`, the verification agent's code or the `Dockerfile` names the command that repeats those tests, and that no section or task verification runs `mise run test-full`. Tests that no allowed command form runs, such as the hook tests, SHALL name an explicit verification command in their task instead of this section.
 
 The architecture reviewer SHALL check all code that belongs to the change, including parts committed or written in earlier requests, against the architecture document and the architecture rules of the module docs: layer direction, module boundaries, roles of files inside a module, data ownership and migrations. It SHALL report a violation that appears only when several edits of the change are read together, such as an import added in one request and used across a module boundary in another. When the change edits an HTTP contract file in the backend contracts, the architecture reviewer SHALL also check the edit against the repository's API design skill and report each broken rule as an `architecture` finding. All backend code belonging to the change SHALL be checked against the architecture rules, without an exemption for code predating the documented layout. For frontend changes, the architecture reviewer SHALL read the frontend architecture section of the architecture document and the applicable module conventions, including the rules for placement, composition, import direction and public APIs. Existing migration findings SHALL be accepted only when individually recorded in the finite baseline; a new or multiplied violation SHALL still be reported.
 
@@ -124,8 +124,28 @@ The architecture reviewer SHALL check all code that belongs to the change, inclu
 
 #### Scenario: Changed tests outside the verification commands
 
-- **WHEN** the change adds tests to a backend package that none of its change verification commands runs
+- **WHEN** the change adds tests to a backend package outside the end-to-end ones that none of its change verification commands runs
 - **THEN** the tests reviewer returns a `missing_test` finding that names the package
+
+#### Scenario: Changed browser scenarios outside the verification commands
+
+- **WHEN** the change adds or changes a browser end-to-end scenario and its change verification commands leave out `mise run e2e:browser`
+- **THEN** the tests reviewer returns a `missing_test` finding that names the scenario
+
+#### Scenario: Changed end-to-end tests without their command
+
+- **WHEN** a task changes tests in `backend/internal/agent/e2e`, `backend/internal/modules/backups/e2e` or `backend/e2e/upgrade`, the verification agent's code or the `Dockerfile`, and its verification names no command that repeats those tests
+- **THEN** the tests reviewer returns a `missing_test` finding that names the task
+
+#### Scenario: A verification that runs the whole test set
+
+- **WHEN** the "Change verification" section or a task's verification runs `mise run test-full`
+- **THEN** the tests reviewer returns a `missing_test` finding that asks for the specific commands instead
+
+#### Scenario: A task that builds the command
+
+- **WHEN** a task names `mise run test-full` as something it adds or edits, and its verification runs another command
+- **THEN** the tests reviewer returns no finding for naming it
 
 #### Scenario: A change with only hook tests
 
@@ -297,7 +317,8 @@ The full implementation review SHALL work within a time budget that ends before 
 The change verification commands SHALL be the lines of the first code block fenced as `sh` under the "Change verification" heading of the change's task list. A block fenced as `bash`, `shell` or without a language does not count. Empty lines and comment lines are skipped. The hook SHALL accept only these command forms:
 
 - the routine local tests: exactly `mise run test`, with no further arguments, which the agent runs from the repository root;
-- isolated frontend browser tests: exactly `pnpm --dir frontend test:browser --project=ui` or `pnpm --dir frontend test:browser --project=e2e`, with no additional arguments.
+- isolated frontend browser tests: exactly `pnpm --dir frontend test:browser --project=ui`, with no additional arguments;
+- the browser end-to-end suite: exactly `mise run e2e:browser`, with no further arguments, which the agent runs from the repository root.
 
 The implementing agent SHALL run these commands before review. The hook SHALL parse them only to validate the section and MUST NOT execute them. A line that is not one of the allowed forms, a section without a closed `sh` block, and a block without commands SHALL each block the turn with the reason and the list of allowed forms. No reviewer starts in that case.
 
@@ -334,11 +355,21 @@ The implementing agent SHALL run these commands before review. The hook SHALL pa
 
 #### Scenario: The isolated real-API browser command
 
-- **WHEN** the verification block contains exactly `pnpm --dir frontend test:browser --project=e2e`
-- **THEN** the hook accepts the command format without executing the real-API browser runner
+- **WHEN** the verification block contains exactly `mise run e2e:browser`
+- **THEN** the hook accepts the command format without executing the suite
 - **AND** the implementing agent remains responsible for running the declared tests and providing verification evidence
 
 #### Scenario: An unbounded browser command
 
-- **WHEN** the block omits the browser project, selects a project other than `ui` or `e2e`, adds arguments or uses a different package script
+- **WHEN** the block omits the browser project, selects a project other than `ui`, adds arguments or uses a different package script
+- **THEN** the hook rejects the command before any reviewer starts
+
+#### Scenario: The removed browser project
+
+- **WHEN** the block contains `pnpm --dir frontend test:browser --project=e2e`
+- **THEN** the hook rejects the command before any reviewer starts
+
+#### Scenario: The end-to-end command with an argument
+
+- **WHEN** the block contains `mise run e2e:browser ./x`
 - **THEN** the hook rejects the command before any reviewer starts

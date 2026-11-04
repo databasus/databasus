@@ -22,13 +22,13 @@ When CI runs the backend lint and the backend tests for a commit, the backend te
 
 ### Requirement: The backend suite runs as whole and sharded groups that cover every test once
 
-CI SHALL run the backend test suite as separate checks on separate runners, and the checks SHALL run at the same time. The `physical` group SHALL run the end-to-end physical backup tests, and the `logical` group SHALL run the end-to-end logical backup tests. The `physical-api` group SHALL run the test packages under `backend/internal/modules/backups/physicalapitests/`, the API tests of physical backups, which are slow because many of them start source servers and wait on real time. A package added under that directory SHALL join the group without any change to the CI configuration. The `agent-e2e` group SHALL run the verification agent's end-to-end scenarios on Docker, the packages under `backend/internal/agent/e2e/`, and a package added under that directory SHALL join the group without any change to the CI configuration. The `browser-e2e` group SHALL contain the test packages owning real-API frontend browser scenarios and SHALL run as the separate `test-frontend-browser-e2e` check. The `other` group SHALL select from the whole backend module and SHALL run every remaining backend package except the upgrade test and its comparison helper package, so that a directory of the module stays outside the groups only when it is named as running in another check. Each backend package other than the upgrade test and its comparison helper SHALL belong to exactly one group, including browser ownership packages in `browser-e2e` rather than `other`. The upgrade test, with its comparison helper, SHALL run as its own check, `test-upgrade`, against the image CI builds for the commit, without waiting for the backend groups. A backend package added outside these named groups SHALL run in the `other` group without any change to the CI configuration.
+CI SHALL run the backend test suite as separate checks on separate runners, and the checks SHALL run at the same time. The `physical` group SHALL run the end-to-end physical backup tests, and the `logical` group SHALL run the end-to-end logical backup tests. The `physical-api` group SHALL run the test packages under `backend/internal/modules/backups/physicalapitests/`, the API tests of physical backups, which are slow because many of them start source servers and wait on real time. A package added under that directory SHALL join the group without any change to the CI configuration. The `agent-e2e` group SHALL run the verification agent's end-to-end scenarios on Docker, the packages under `backend/internal/agent/e2e/`, and a package added under that directory SHALL join the group without any change to the CI configuration. The `other` group SHALL select from the whole backend module and SHALL run every remaining backend package except the upgrade test and its comparison helper package, so that a directory of the module stays outside the groups only when it is named as running in another check. Each backend package other than the upgrade test and its comparison helper SHALL belong to exactly one group. The upgrade test, with its comparison helper, SHALL run as its own check, `test-upgrade`, against the image CI builds for the commit, without waiting for the backend groups. A backend package added outside these named groups SHALL run in the `other` group without any change to the CI configuration.
 
-A group MAY run as several shards. Each shard SHALL run the tests of its group's packages that fall into that shard, and every top-level test of those packages SHALL run in exactly one shard. A test added to a sharded group SHALL run in one of its shards without any change to the CI configuration. How tests are assigned to shards MAY use recorded test durations, and a missing or outdated duration SHALL only change which shard runs a test, never whether it runs. Each backend test check SHALL have every tool its tests run at the version the repository pins. `physical` and `physical-api` SHALL run as three shards each, and `logical`, `agent-e2e`, `browser-e2e` and `other` SHALL each run whole.
+A group MAY run as several shards. Each shard SHALL run the tests of its group's packages that fall into that shard, and every top-level test of those packages SHALL run in exactly one shard. A test added to a sharded group SHALL run in one of its shards without any change to the CI configuration. How tests are assigned to shards MAY use recorded test durations, and a missing or outdated duration SHALL only change which shard runs a test, never whether it runs. Each backend test check SHALL have every tool its tests run at the version the repository pins. `physical` and `physical-api` SHALL run as three shards each, and `logical`, `agent-e2e` and `other` SHALL each run whole.
 
 #### Scenario: The groups cover the suite
 
-- **WHEN** the package lists of the groups, including the browser group, are combined
+- **WHEN** the package lists of the groups are combined
 - **THEN** they contain every backend package except the upgrade test and its comparison helper exactly once
 
 #### Scenario: The shards cover their group
@@ -53,8 +53,8 @@ A group MAY run as several shards. Each shard SHALL run the tests of its group's
 
 #### Scenario: A browser ownership package is selected
 
-- **WHEN** CI selects packages for real-API frontend browser verification
-- **THEN** those packages run once through the dedicated browser check and are excluded from ordinary backend selections
+- **WHEN** CI selects backend packages for its groups
+- **THEN** no backend package runs browser scenarios, and the browser end-to-end suite runs only in its own check
 
 #### Scenario: A new test is added to a sharded group
 
@@ -64,7 +64,7 @@ A group MAY run as several shards. Each shard SHALL run the tests of its group's
 #### Scenario: Checks are reported per group
 
 - **WHEN** CI runs the backend tests
-- **THEN** each whole group and each shard reports its own check, named `test-backend (other)`, `test-backend (logical)`, `test-backend (agent-e2e)`, `test-backend (physical-1-of-3)` through `test-backend (physical-3-of-3)` and `test-backend (physical-api-1-of-3)` through `test-backend (physical-api-3-of-3)`, with `browser-e2e` reported separately as `test-frontend-browser-e2e`
+- **THEN** each whole group and each shard reports its own check, named `test-backend (other)`, `test-backend (logical)`, `test-backend (agent-e2e)`, `test-backend (physical-1-of-3)` through `test-backend (physical-3-of-3)` and `test-backend (physical-api-1-of-3)` through `test-backend (physical-api-3-of-3)`
 
 #### Scenario: The upgrade test runs on its own
 
@@ -174,7 +174,7 @@ The CI backend lint job SHALL run the backend's architecture check next to the l
 
 ### Requirement: CI backend tests run with the race detector
 
-Every CI backend test group SHALL run with the race detector. So SHALL every other CI check that runs backend tests: the verification agent's unit tests, its Podman subset, the upgrade test and the real-API browser test. This SHALL hold for any backend test command a CI step calls, including one that CI does not call today, although the same command runs without the race detector on a developer's machine. A data race SHALL fail the group or check like any other test failure, under the same rules for failed groups as before.
+Every CI backend test group SHALL run with the race detector. So SHALL every other CI check that runs backend tests: the verification agent's unit tests, its Podman subset and the upgrade test. The browser end-to-end suite runs no backend tests and tests an image built without the race detector. This SHALL hold for any backend test command a CI step calls, including one that CI does not call today, although the same command runs without the race detector on a developer's machine. A data race SHALL fail the group or check like any other test failure, under the same rules for failed groups as before.
 
 #### Scenario: A race in one shard
 
@@ -276,24 +276,34 @@ CI SHALL run the browser UI suite as its own check named `test-frontend-browser-
 - **THEN** it runs the documented local entry point with the committed dependency pins and the same screenshot environment
 - **AND** it requires no manually started application
 
-### Requirement: Real-API browser verification gates frontend release
+### Requirement: Browser end-to-end verification gates release
 
-CI SHALL run real-API browser verification as its own check named `test-frontend-browser-e2e`, using the documented local entry point, repository-pinned tools and committed dependency lockfile. It SHALL provision its test database dependencies without requiring a manually started development application. The check SHALL run independently of backend lint and backend test-group results. Release version selection and publication SHALL require its success alongside existing checks. Browser failure SHALL not cancel unrelated test groups, and a failing run SHALL retain sanitized diagnostic evidence.
+CI SHALL run the browser end-to-end suite as its own check named `test-e2e-browser` on every run except a run on `develop` or a pull request from `develop`, using the documented local entry point, repository-pinned tools and committed dependency lockfiles. It SHALL run against the candidate image CI builds for the commit, and it SHALL NOT build another image. It SHALL start once that image is built and SHALL run independently of backend lint and backend test-group results. It SHALL also run `mise run e2e:unit`, and the suite's lifecycle probes against the same image, and a failure there SHALL fail the check. Release version selection and publication SHALL require its success alongside existing checks. Browser failure SHALL not cancel unrelated test groups, and a failing run's printed output SHALL be its diagnostic, with secrets masked.
 
 #### Scenario: Browser end-to-end verification fails on the release branch
 
-- **WHEN** ordinary frontend tests and fixture-based browser checks pass but real-API browser verification fails
+- **WHEN** ordinary frontend tests and fixture-based browser checks pass but the browser end-to-end suite fails
 - **THEN** release version selection and publication do not proceed for that commit
 
 #### Scenario: Backend lint fails while browser verification runs
 
 - **WHEN** backend lint fails for a commit
-- **THEN** real-API browser verification still runs to completion and reports its own status
+- **THEN** the browser end-to-end suite still runs to completion and reports its own status
 
 #### Scenario: CI prepares the real-API browser check
 
-- **WHEN** CI starts the real-API browser check
-- **THEN** it runs the same documented entry point as local verification with pinned tools and isolated test state
+- **WHEN** CI starts the `test-e2e-browser` check
+- **THEN** it runs the same documented entry point as local verification on the commit's candidate image, with pinned tools and isolated test state
+
+#### Scenario: The check loses its image
+
+- **WHEN** the suite runs in CI without an image named for it
+- **THEN** the check fails before any scenario and does not build an image of its own
+
+#### Scenario: A lifecycle probe fails in CI
+
+- **WHEN** a lifecycle probe fails against the candidate image
+- **THEN** `test-e2e-browser` fails, and release version selection does not proceed
 
 ### Requirement: Release requires the security scans
 
