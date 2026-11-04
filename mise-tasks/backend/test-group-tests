@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#MISE hide=true
 #MISE description="Print the -run pattern of a sharded CI test group"
 #MISE dir="backend"
 #USAGE arg "<group>" help="A test group, sharded as <name>-<shard>-of-<count>"

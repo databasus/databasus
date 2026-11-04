@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#MISE hide=true
 #MISE description="Upgrade the newest release to the current code and check that its data survives"
 #MISE dir="backend"
 # Upgrades the newest release to the current code: an image built from the checkout, or the one named

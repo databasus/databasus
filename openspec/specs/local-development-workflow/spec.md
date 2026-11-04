@@ -5,61 +5,95 @@ Defines the commands a developer or an agent uses on a local Fedora host to run 
 
 ## Requirements
 
+### Requirement: Everyday commands are separate from internal tasks
+
+The repository SHALL expose exactly eight everyday mise tasks: `run`, `test`, `test-full`, `lint`, `format`, `doctor`, `review` and `generate-api`. In `mise.toml`, everyday commands SHALL appear first, internal CI/CD commands second, and tool dependencies and environment settings last. Internal tasks SHALL appear in the CI/CD section or in `mise-tasks/`, SHALL be hidden from the default listing, and SHALL remain callable by name from the repository root, backend and frontend. The CI/CD section SHALL explain that its tasks also serve hooks. The repository SHALL NOT retain aliases for `dev`, `full` or the removed root `pull-testcontainers` wrapper.
+
+#### Scenario: Listing commands from a module
+
+- **WHEN** a developer lists mise tasks from the repository root, backend or frontend
+- **THEN** the default list shows exactly the eight everyday tasks
+- **AND** CI and hooks can still invoke the hidden tasks by name
+
+### Requirement: The full command runs the Docker test suites
+
+`mise run test-full` SHALL run the routine backend and frontend suites, adding all backup and verification agent end-to-end packages. After those pass, it SHALL run script tests, review hook tests, browser e2e unit tests, frontend browser UI, the upgrade test, browser end-to-end scenarios, lifecycle checks and lifecycle interruption checks, in that order. A failure SHALL return a non-zero status and prevent later stages from starting. It SHALL NOT update browser visual references. Podman and filesystem tests SHALL remain separate because they require additional host configuration.
+
+#### Scenario: All ordinary Docker checks pass
+
+- **WHEN** every stage passes during `mise run test-full`
+- **THEN** every included suite runs once and the command succeeds
+- **AND** neither the Podman subset nor the filesystem suite runs
+
+#### Scenario: An additional suite fails
+
+- **WHEN** an additional suite fails during `mise run test-full`
+- **THEN** the command fails and no later suite starts
+
+### Requirement: Frontend lint is one complete check
+
+`pnpm lint` in the frontend SHALL check formatting, source rules, architecture, styles, TypeScript and generated API types without changing tracked files. The frontend mise task SHALL call that command. The frontend SHALL expose only `dev`, `build`, `lint`, `format`, `typecheck`, `test`, `test:browser` and `generate:api` scripts. Watch, preview and visual-reference updates SHALL use the existing tools and arguments rather than separate scripts. The commit hook SHALL run each affected module's lint once, including its formatting check.
+
+#### Scenario: A frontend check fails
+
+- **WHEN** any frontend lint check fails
+- **THEN** `pnpm lint`, `mise run frontend:lint` and `mise run lint` fail
+
 ### Requirement: One command starts the local app
 
-The repository SHALL provide `mise run dev`. It SHALL start the development database, the shared backend test fixtures, the live WAL backup source with its load generator, the backend and the frontend development server, and SHALL show the database, the load generator, the backend, the frontend and the seed in one terminal window that lists every process separately, with each process's output available on its own. It SHALL work in a fresh worktree that has a `.env` file but has never generated the backend's API documentation or installed frontend dependencies. When a backend from an earlier run still holds the backend port, the command SHALL stop that process before starting the new backend, so that requests reach the code just started. It SHALL also stop a backend file watcher left over from an earlier run in the same worktree, so that no old watcher rebuilds and restarts a backend after the new run starts. A saved change to a frontend source file SHALL reach the open page without restarting any process.
+The repository SHALL provide `mise run run`. It SHALL start the development database, the shared backend test fixtures, the live WAL backup source with its load generator, the backend and the frontend development server, and SHALL show the database, the load generator, the backend, the frontend and the seed in one terminal window that lists every process separately, with each process's output available on its own. It SHALL work in a fresh worktree that has a `.env` file but has never generated the backend's API documentation or installed frontend dependencies. When a backend from an earlier run still holds the backend port, the command SHALL stop that process before starting the new backend, so that requests reach the code just started. It SHALL also stop a backend file watcher left over from an earlier run in the same worktree, so that no old watcher rebuilds and restarts a backend after the new run starts. A saved change to a frontend source file SHALL reach the open page without restarting any process.
 
 #### Scenario: Developer starts the app
 
-- **WHEN** a developer runs `mise run dev` on a Fedora host with a `.env` file
+- **WHEN** a developer runs `mise run run` on a Fedora host with a `.env` file
 - **THEN** the development database, the shared test fixtures, the WAL backup source, its load generator, the backend and the frontend start
 - **AND** the window lists the database, the load generator, the backend, the frontend and the seed as separate processes with their own output
 
 #### Scenario: Fresh worktree
 
-- **WHEN** a developer runs `mise run dev` in a worktree that has a `.env` file and nothing else prepared
+- **WHEN** a developer runs `mise run run` in a worktree that has a `.env` file and nothing else prepared
 - **THEN** the backend compiles and starts without a separate generation command
 - **AND** the frontend development server starts without a separate dependency installation command
 
 #### Scenario: Stale backend holds the port
 
 - **WHEN** a backend from an earlier run still listens on the backend port
-- **THEN** `mise run dev` stops that process and the new backend serves requests on that port
+- **THEN** `mise run run` stops that process and the new backend serves requests on that port
 
 #### Scenario: Watcher from a killed run survives
 
-- **WHEN** an earlier `mise run dev` in the same worktree was killed without cleanup and its backend file watcher is still running
-- **THEN** `mise run dev` stops that watcher before starting its own
+- **WHEN** an earlier `mise run run` in the same worktree was killed without cleanup and its backend file watcher is still running
+- **THEN** `mise run run` stops that watcher before starting its own
 - **AND** a later saved Go file restarts only the backend of the new run
 
 #### Scenario: Frontend file is saved
 
-- **WHEN** a developer saves a change to a frontend source file while `mise run dev` is running
+- **WHEN** a developer saves a change to a frontend source file while `mise run run` is running
 - **THEN** the open page shows the change without any process being restarted
 
 ### Requirement: Interrupting the local app stops what it started
 
-When a developer interrupts `mise run dev` with Ctrl+C, the backend and the frontend development server SHALL exit, and the development database, the WAL backup source and its load generator SHALL stop. These containers SHALL be stopped rather than removed, so the database's data survives into the next run. The shared test fixtures SHALL keep running, because development sessions in other worktrees use them.
+When a developer interrupts `mise run run` with Ctrl+C, the backend and the frontend development server SHALL exit, and the development database, the WAL backup source and its load generator SHALL stop. These containers SHALL be stopped rather than removed, so the database's data survives into the next run. The shared test fixtures SHALL keep running, because development sessions in other worktrees use them.
 
 #### Scenario: Developer presses Ctrl+C
 
-- **WHEN** a developer presses Ctrl+C in the `mise run dev` window
+- **WHEN** a developer presses Ctrl+C in the `mise run run` window
 - **THEN** no backend or frontend process from that run remains
 - **AND** the development database, the WAL backup source and its load generator are stopped
 
 #### Scenario: Data survives a restart
 
-- **WHEN** a developer interrupts `mise run dev` and runs it again
+- **WHEN** a developer interrupts `mise run run` and runs it again
 - **THEN** the development database still holds the data written during the first run
 
 #### Scenario: Test fixtures are running
 
-- **WHEN** a developer interrupts `mise run dev`
+- **WHEN** a developer interrupts `mise run run`
 - **THEN** the shared test fixtures it started are still running afterwards
 
-### Requirement: One command runs the full backend suite
+### Requirement: One command runs the routine backend suite
 
-The repository SHALL provide `mise run test`. It SHALL assume a Fedora host and, when `libedit` is installed on that host, SHALL make the bundled database clients startable without any further manual step. When `libedit` is missing, it SHALL stop before running tests and name the package to install. It SHALL start the shared test PostgreSQL server and no other development service, pull the database engine and object storage images the backend tests reference, and then run every test package of the backend module except the real-API browser packages and the upgrade test with its comparison helper, each test that asks for a migrated internal database getting one as that capability describes. A migration test that asks for an empty internal database SHALL get one with no migration applied and SHALL apply the migrations it needs itself, and packages that need no database SHALL open none. A package in a new directory of the module SHALL join this run without any change to the selection. After the backend packages and the frontend tests pass, it SHALL run the upgrade test as the requirement "The full run includes the upgrade test" describes. It SHALL NOT prepare internal databases ahead of the tests. It SHALL NOT run the Docker filesystem suite. Its exit status SHALL be non-zero when any step or any test fails.
+The repository SHALL provide `mise run test`. It SHALL assume a Fedora host and, when `libedit` is installed on that host, SHALL make the bundled database clients startable without any further manual step. When `libedit` is missing, it SHALL stop before running tests and name the package to install. It SHALL start the shared test PostgreSQL server and no other development service, pull the database engine and object storage images the backend tests reference, and then run every test package of the backend module except `internal/agent/e2e`, `internal/modules/backups/e2e` and `e2e/upgrade` with its comparison helper, each test that asks for a migrated internal database getting one as that capability describes. A migration test that asks for an empty internal database SHALL get one with no migration applied and SHALL apply the migrations it needs itself, and packages that need no database SHALL open none. A package in a new directory of the module SHALL join this run without any change to the selection. The upgrade test and the browser suites SHALL run only through `mise run test-full` or their explicit suite commands. It SHALL NOT prepare internal databases ahead of the tests. It SHALL NOT run the Docker filesystem suite. Its exit status SHALL be non-zero when any step or any test fails.
 
 #### Scenario: Developer runs the suite on Fedora
 
@@ -94,38 +128,38 @@ The repository SHALL provide `mise run test`. It SHALL assume a Fedora host and,
 - **WHEN** a developer adds a test package in a new top-level directory of the backend module
 - **THEN** `mise run test` runs its tests without any change to the selection
 
-#### Scenario: The upgrade and browser packages stay out of the package step
+#### Scenario: End-to-end packages stay out of the routine run
 
 - **WHEN** `mise run test` selects its backend packages
-- **THEN** it selects neither the real-API browser packages nor the upgrade test and its comparison helper
+- **THEN** it selects no package under `internal/agent/e2e`, `internal/modules/backups/e2e` or `e2e/upgrade`
 
 ### Requirement: The full run includes the upgrade test
 
-After the backend test packages and the frontend tests pass, `mise run test` SHALL run the upgrade test. When the developer names a Databasus image through `DATABASUS_IMAGE`, the upgrade test SHALL use it. Otherwise `mise run test` SHALL build the image from the checkout first. A failed upgrade test SHALL make `mise run test` exit with a non-zero status. When a backend package fails, `mise run test` SHALL stop without building the image or running the upgrade test. A single test package started directly with the Go test command SHALL NOT build an image or run the upgrade test. When the developer interrupts `mise run test` during the upgrade test, the containers, the network and the volume of the upgrade test SHALL be removed, and the shared test PostgreSQL server SHALL keep running.
+After the backend test packages and the frontend tests pass, `mise run test-full` SHALL run the upgrade test. When the developer names a Databasus image through `DATABASUS_IMAGE`, the upgrade test SHALL use it. Otherwise `mise run test-full` SHALL build the image from the checkout first. A failed upgrade test SHALL make `mise run test-full` exit with a non-zero status. When a backend package fails, `mise run test-full` SHALL stop without building the image or running the upgrade test. A single test package started directly with the Go test command SHALL NOT build an image or run the upgrade test. When the developer interrupts `mise run test-full` during the upgrade test, the containers, the network and the volume of the upgrade test SHALL be removed, and the shared test PostgreSQL server SHALL keep running.
 
 #### Scenario: Developer runs the full suite without an image
 
-- **WHEN** a developer runs `mise run test` without `DATABASUS_IMAGE`
+- **WHEN** a developer runs `mise run test-full` without `DATABASUS_IMAGE`
 - **THEN** the image is built from the checkout after the backend packages and the frontend tests pass, and the upgrade test runs against it
 
 #### Scenario: Developer names an image
 
-- **WHEN** a developer runs `mise run test` with `DATABASUS_IMAGE` set to an image they built
-- **THEN** no image is built and the upgrade test runs against the named image
+- **WHEN** a developer runs `mise run test-full` with `DATABASUS_IMAGE` set to an image they built
+- **THEN** the upgrade test builds no application image and runs against the named image
 
 #### Scenario: The upgrade test fails
 
-- **WHEN** the upgrade test fails during `mise run test`
+- **WHEN** the upgrade test fails during `mise run test-full`
 - **THEN** the command exits with a non-zero status
 
 #### Scenario: The frontend tests fail
 
-- **WHEN** the backend packages pass and a frontend test fails during `mise run test`
+- **WHEN** the backend packages pass and a frontend test fails during `mise run test-full`
 - **THEN** no image is built, the upgrade test does not run, and the command exits with a non-zero status
 
 #### Scenario: A backend package fails
 
-- **WHEN** a backend package fails during `mise run test`
+- **WHEN** a backend package fails during `mise run test-full`
 - **THEN** no image is built, the upgrade test does not run, and the command exits with a non-zero status
 
 #### Scenario: A single package run
@@ -135,7 +169,7 @@ After the backend test packages and the frontend tests pass, `mise run test` SHA
 
 #### Scenario: Interrupt during the upgrade test
 
-- **WHEN** a developer presses Ctrl+C while the upgrade test runs during `mise run test`
+- **WHEN** a developer presses Ctrl+C while the upgrade test runs during `mise run test-full`
 - **THEN** none of the upgrade test's containers, its network or its volume remains
 - **AND** the shared test PostgreSQL server is still running
 
@@ -161,7 +195,7 @@ When a developer interrupts `mise run test` with Ctrl+C, every test process of t
 
 ### Requirement: Full backend runs take turns
 
-Only one `mise run test` SHALL run tests on a machine at a time. A `mise run test` started while another one runs, in any worktree, SHALL say that it waits for the other run and SHALL start its tests after the other run ends. A single test package run SHALL NOT wait for a full run, apart from the wait for the reset of the shared test PostgreSQL servers. A full run SHALL NOT remove containers or networks of a package run, SHALL NOT reset or delete an internal database a package run uses, and SHALL reset the shared test PostgreSQL servers only after the package run's process has ended. Tests of old code that change shared objects on those servers can still affect each other across runs, as they can today; this requirement does not cover that.
+Only one `mise run test` or `mise run test-full` SHALL run tests on a machine at a time. Either command started while another one runs, in any worktree, SHALL say that it waits for the other run and SHALL start its tests after the other run ends. A single test package run SHALL NOT wait for a full run, apart from the wait for the reset of the shared test PostgreSQL servers. A full run SHALL NOT remove containers or networks of a package run, SHALL NOT reset or delete an internal database a package run uses, and SHALL reset the shared test PostgreSQL servers only after the package run's process has ended. Tests of old code that change shared objects on those servers can still affect each other across runs, as they can today; this requirement does not cover that.
 
 #### Scenario: Two worktrees start a full run
 
@@ -177,11 +211,11 @@ Only one `mise run test` SHALL run tests on a machine at a time. A `mise run tes
 
 ### Requirement: Test images can be pulled ahead of a run
 
-The repository SHALL provide `mise run pull-testcontainers`. It SHALL pull the database engine images (PostgreSQL, MySQL, MariaDB and MongoDB) and the object storage image that the backend tests reference, and the images the verification agent restores into during its end-to-end scenarios. It SHALL retry each failed pull a bounded number of times, and SHALL exit with a non-zero status when an image still cannot be pulled. Other test images, such as the FTP, SFTP, SMB, mail and Azure storage emulators, are pulled by the tests on first use.
+The repository SHALL provide `mise run backend:pull-testcontainers`. It SHALL pull the database engine images (PostgreSQL, MySQL, MariaDB and MongoDB) and the object storage image that the backend tests reference, and the images the verification agent restores into during its end-to-end scenarios. It SHALL retry each failed pull a bounded number of times, and SHALL exit with a non-zero status when an image still cannot be pulled. Other test images, such as the FTP, SFTP, SMB, mail and Azure storage emulators, are pulled by the tests on first use.
 
 #### Scenario: Pulling succeeds
 
-- **WHEN** a developer runs `mise run pull-testcontainers` with registry access
+- **WHEN** a developer runs `mise run backend:pull-testcontainers` with registry access
 - **THEN** every database engine and object storage image the backend tests reference is present locally afterwards
 - **AND** every image the verification agent restores into during its end-to-end scenarios on Docker is present locally afterwards
 
@@ -269,11 +303,11 @@ Creating a commit SHALL check that each staged file of each module the commit to
 
 ### Requirement: The backend restarts when its source changes
 
-While `mise run dev` is running, saving a change to a backend Go source file SHALL rebuild the backend and replace the running backend with the new build, without the developer touching the process window. A change to a test file alone SHALL NOT restart the backend. When the new code fails to compile, the backend that was already running SHALL keep serving requests, and the compile error SHALL appear in the backend's output in the process window. Interrupting `mise run dev` SHALL leave no backend process from that run, including one started by a restart.
+While `mise run run` is running, saving a change to a backend Go source file SHALL rebuild the backend and replace the running backend with the new build, without the developer touching the process window. A change to a test file alone SHALL NOT restart the backend. When the new code fails to compile, the backend that was already running SHALL keep serving requests, and the compile error SHALL appear in the backend's output in the process window. Interrupting `mise run run` SHALL leave no backend process from that run, including one started by a restart.
 
 #### Scenario: Developer saves a backend change
 
-- **WHEN** a developer changes the response of an endpoint and saves the Go file while `mise run dev` is running
+- **WHEN** a developer changes the response of an endpoint and saves the Go file while `mise run run` is running
 - **THEN** a request to that endpoint returns the new response once the rebuild finishes, without any manual restart
 
 #### Scenario: The change does not compile
@@ -289,12 +323,12 @@ While `mise run dev` is running, saving a change to a backend Go source file SHA
 
 #### Scenario: Interrupt after restarts
 
-- **WHEN** the backend has restarted several times and the developer presses Ctrl+C in the `mise run dev` window
+- **WHEN** the backend has restarted several times and the developer presses Ctrl+C in the `mise run run` window
 - **THEN** no backend process from that run remains
 
 ### Requirement: The local app is seeded with a dev account and databases
 
-When the backend started by `mise run dev` begins answering requests, the seed SHALL make sure the local app contains:
+When the backend started by `mise run run` begins answering requests, the seed SHALL make sure the local app contains:
 
 - the dev account `test@email.com` with password `Q1234567`;
 - a workspace owned by that account;
@@ -304,20 +338,20 @@ When the backend started by `mise run dev` begins answering requests, the seed S
 
 The seed SHALL go through the same public API and validation as the web interface. It SHALL find each item by its name, SHALL create only the items that are missing and SHALL NOT change an item that already exists. When the seed creates a database, it SHALL switch its backups on with the local storage and SHALL start the first backup. The logical database SHALL keep its 3 newest backups, and the WAL-streaming database SHALL keep its 2 newest backup chains.
 
-The seed command, `go run ./cmd/seed_dev` in the backend directory, SHALL also run on its own against the app already answering on the backend port, with the same behavior. The repository SHALL NOT provide a separate task for it. When nothing answers on the backend port, the seed command SHALL exit with a non-zero status and say that the app has to be started with `mise run dev`. When the backend answers its health check with an error status, for example because disk usage is too high, the seed SHALL exit with a non-zero status and show the reason the backend gave, and SHALL create nothing.
+The seed command, `go run ./cmd/seed_dev` in the backend directory, SHALL also run on its own against the app already answering on the backend port, with the same behavior. The repository SHALL NOT provide a separate task for it. When nothing answers on the backend port, the seed command SHALL exit with a non-zero status and say that the app has to be started with `mise run run`. When the backend answers its health check with an error status, for example because disk usage is too high, the seed SHALL exit with a non-zero status and show the reason the backend gave, and SHALL create nothing.
 
-When the seed cannot sign in as the dev account and cannot create it, for example because the account exists with a different password or registration is closed, it SHALL exit with a non-zero status and a message that names the account and the reason the backend gave, and SHALL create nothing. When the instance requires two-factor sign-in, the seed SHALL exit with a non-zero status and a message that names the account and says that two-factor sign-in is required, and SHALL create nothing. When the backend refuses to create a seeded item after sign-in, for example because the dev account is a member that may not create workspaces, the seed SHALL exit with a non-zero status, show the name of that item and the reason the backend gave, and SHALL NOT change any item that already exists. A seed that fails SHALL NOT stop the other processes of `mise run dev`.
+When the seed cannot sign in as the dev account and cannot create it, for example because the account exists with a different password or registration is closed, it SHALL exit with a non-zero status and a message that names the account and the reason the backend gave, and SHALL create nothing. When the instance requires two-factor sign-in, the seed SHALL exit with a non-zero status and a message that names the account and says that two-factor sign-in is required, and SHALL create nothing. When the backend refuses to create a seeded item after sign-in, for example because the dev account is a member that may not create workspaces, the seed SHALL exit with a non-zero status, show the name of that item and the reason the backend gave, and SHALL NOT change any item that already exists. A seed that fails SHALL NOT stop the other processes of `mise run run`.
 
 #### Scenario: First run on an empty app
 
-- **WHEN** a developer runs `mise run dev` against a development database that has no users
+- **WHEN** a developer runs `mise run run` against a development database that has no users
 - **THEN** after the backend starts, signing in as `test@email.com` with `Q1234567` succeeds
 - **AND** the account's workspace lists the local storage and both databases, each with backups switched on and a first backup started
 - **AND** the logical database's backup settings keep 3 backups, and the WAL-streaming database's keep 2 chains
 
 #### Scenario: Second run
 
-- **WHEN** a developer runs `mise run dev` again with the seeded items already present
+- **WHEN** a developer runs `mise run run` again with the seeded items already present
 - **THEN** no item is created a second time
 - **AND** no existing item changes, including one the developer edited after the first run
 
@@ -357,11 +391,11 @@ When the seed cannot sign in as the dev account and cannot create it, for exampl
 #### Scenario: App is not running
 
 - **WHEN** a developer runs the seed command on its own while no backend answers on the backend port
-- **THEN** the command exits with a non-zero status and tells the developer to start the app with `mise run dev`
+- **THEN** the command exits with a non-zero status and tells the developer to start the app with `mise run run`
 
 ### Requirement: Seed credentials exist only in local development
 
-The dev account, its password and the seeded databases SHALL be created only by `mise run dev` and by the seed command run on its own in a development checkout. The production image and the production backend SHALL neither contain the seed nor run it, whatever the environment variables, and SHALL create no account with known credentials. The seed SHALL NOT change the password, the role or the settings of any existing account, including the dev account.
+The dev account, its password and the seeded databases SHALL be created only by `mise run run` and by the seed command run on its own in a development checkout. The production image and the production backend SHALL neither contain the seed nor run it, whatever the environment variables, and SHALL create no account with known credentials. The seed SHALL NOT change the password, the role or the settings of any existing account, including the dev account.
 
 #### Scenario: Production image starts
 
@@ -452,10 +486,10 @@ A scenario SHALL remove every container, network, process and file it started, w
 
 #### Scenario: The full run includes the Docker scenarios
 
-- **WHEN** a developer runs `mise run test`
+- **WHEN** a developer runs `mise run test-full`
 - **THEN** the Docker scenarios of the agent's end-to-end suite run with the other backend packages, and the Podman subset does not run
 
-### Requirement: The full run is the one routine test command
+### Requirement: One routine test command checks a change
 
 `mise run test` SHALL be the one routine local test command. A developer or an agent SHALL use it to check a change that adds or changes tests or the code those tests cover, and the OpenSpec change verification of such a change SHALL name it. The repository SHALL NOT provide a command that takes backend packages or shard names as arguments and runs their tests. The selectors CI uses and the fixed suites `mise run agent:test`, `mise run agent:e2e`, `mise run agent:e2e-podman`, `mise run backend:test-upgrade` and `mise run test-filesystem` SHALL remain. A developer or an agent SHALL still be able to repeat one failing test directly with the Go test command or the frontend test runner while fixing it.
 
@@ -479,9 +513,9 @@ A scenario SHALL remove every container, network, process and file it started, w
 - **WHEN** a developer runs `mise run backend:test-package ./internal/lib/...`
 - **THEN** mise reports that the task does not exist
 
-### Requirement: The full run includes the frontend tests
+### Requirement: The routine run includes the frontend tests
 
-`mise run test` SHALL install the frontend dependencies from the lockfile, as `mise run dev` does, and SHALL run the frontend unit and screen tests at the same time as the backend packages. It SHALL wait for every test process, and a failure in one SHALL NOT stop the others. It SHALL exit with a non-zero status when any fails, and its output SHALL name each failed process and test. The upgrade test SHALL start only after all have passed. The browser suites SHALL stay out of the run.
+`mise run test` SHALL install the frontend dependencies from the lockfile, as `mise run run` does, and SHALL run the frontend unit and screen tests at the same time as the backend packages. It SHALL wait for every test process, and a failure in one SHALL NOT stop the others. It SHALL exit with a non-zero status when any fails, and its output SHALL name each failed process and test. The upgrade and browser suites SHALL stay out of the routine run.
 
 #### Scenario: A fresh worktree
 

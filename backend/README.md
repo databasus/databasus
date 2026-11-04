@@ -8,7 +8,7 @@ Commands run from the repository root, with the tools from `mise.toml` installed
 
 To run the backend together with the frontend, the dev database, the test fixtures and the WAL backup source:
 
-> mise run dev
+> mise run run
 
 The backend runs under [air](.air.toml), which rebuilds and restarts it when a Go file is saved; a build that fails leaves the previous backend serving. Once the backend accepts connections, the [seed command](cmd/seed_dev/doc.go) creates the dev account and the seeded databases if they are missing. To run the seed again against the running app, from `backend/`:
 
@@ -21,6 +21,16 @@ To run tests:
 Before commit:
 
 > mise run lint
+
+# Verification agent
+
+To build the agent directly from the repository root:
+
+```sh
+CGO_ENABLED=0 go -C backend build -o temp/verification-agent/databasus-verification-agent ./cmd/verification-agent
+```
+
+Run `backend/temp/verification-agent/databasus-verification-agent run --help` for connection and resource flags. [Testing](../docs/testing.md#commands) lists the agent's Docker and Podman suites.
 
 # Migrations
 

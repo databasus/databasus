@@ -10,7 +10,7 @@ if [[ "${1:-}" == --full ]]; then
 fi
 
 lock_directory=${TMPDIR:-/tmp}
-# `mise run test` and `mise run full` take turns; a single package run never takes this lock.
+# `mise run test` and `mise run test-full` take turns; a single package run never takes this lock.
 full_run_lock="$lock_directory/databasus-full-test.lock"
 # The containers helpers and the upgrade test label every container, network and volume they create
 # with this ID, so the trap removes only what this run started.
@@ -148,8 +148,16 @@ if ((${#failed_suites[@]} > 0)); then
 fi
 
 if [[ "$is_full_run" == true ]]; then
-    # Each of these builds the image unless DATABASUS_IMAGE names one, so they run only after every
-    # package passed, and one after the other, because they disturb each other's timing under load.
+    cd "$root"
+    python3 -m unittest discover -s scripts -p '*_test.py'
+    python3 -m unittest discover -s .agent-hooks -p '*_test.py'
+    mise run e2e:unit
+
+    # Image and browser suites run sequentially because they disturb each other's timing under load.
+    pnpm --dir frontend test:browser --project=ui
     mise run backend:test-upgrade
     mise run e2e:browser
+    mise run e2e:lifecycle
+    PYTHONDONTWRITEBYTECODE=1 UV_PYTHON_PREFERENCE=only-system \
+        uv run --locked --project e2e/browser pytest e2e/browser/lifecycle_interruption
 fi

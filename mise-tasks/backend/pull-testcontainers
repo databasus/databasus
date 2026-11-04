@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#MISE hide=true
 #MISE description="Pull the database, object storage and agent restore images the backend tests use"
 #MISE dir="backend"
 # For the bare names the tag must start with a digit, so a quoted "postgres:postgres" chown arg in

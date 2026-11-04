@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#MISE hide=true
 #MISE description="Print the backend packages of a CI test group"
 #MISE dir="backend"
 #USAGE arg "<group>" help="physical, logical, physical-api, agent-e2e or other, optionally with a -<shard>-of-<count> suffix"

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+#MISE description="Run the verification agent unit tests, excluding the end-to-end suite"
+#MISE dir="backend"
+#MISE hide=true
+set -euo pipefail
+
+packages=$(go list ./internal/agent/... ./cmd/verification-agent/... | rg -v '/internal/agent/e2e(/|$)')
+# shellcheck disable=SC2086 # go list emits one package path per word
+go test ${CI:+-race} -count=1 -failfast $packages

@@ -17,12 +17,14 @@ def register_run_cleanup(request: pytest.FixtureRequest):
         if built_image is not None:
             record = replace(record, built_image=built_image)
 
-        request.addfinalizer(lambda: _remove_run_resources(run, record))
+        request.addfinalizer(lambda: remove_run_resources(run, record))
 
     return register
 
 
-def _remove_run_resources(run: PublicRun, record: SupervisorRecord) -> None:
+def remove_run_resources(
+    run: PublicRun, record: SupervisorRecord, *, unrelated_container: str | None = None
+) -> None:
     try:
         if run.is_running():
             run.terminate_supervisor()
@@ -35,6 +37,14 @@ def _remove_run_resources(run: PublicRun, record: SupervisorRecord) -> None:
 
         if not is_project_removed and not remaining_resources:
             remaining_resources.append(f"project {project_name}")
+
+        if unrelated_container:
+            container_removal = subprocess.run(
+                ["docker", "rm", "--force", "--volumes", unrelated_container], capture_output=True, text=True
+            )
+
+            if container_removal.returncode != 0 and "No such container" not in container_removal.stderr:
+                remaining_resources.append(f"container {unrelated_container}")
 
         if record.built_image:
             image_removal = subprocess.run(

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#MISE hide=true
 #MISE description="Run the Podman subset of the verification agent end-to-end suite"
 #MISE dir="backend"
 set -euo pipefail

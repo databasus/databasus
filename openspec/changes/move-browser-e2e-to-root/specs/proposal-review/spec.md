@@ -13,7 +13,7 @@ The names reviewer SHALL check every name the proposal, design and delta specs i
 
 The consistency reviewer SHALL check that the decisions agree with each other and with the proposal, and that the facts the proposal and design state about the code are true.
 
-The task reviewer SHALL check that a task with a test covers every scenario, that every task has a verification, and that the task order is feasible. The task reviewer SHALL also check that a change whose tasks add or change tests in a backend package or a verification agent package outside the end-to-end ones, or the frontend has a "Change verification" section, and that the section runs the tests of every such package the tasks' verifications name. The end-to-end packages are the ones named in the next sentence. It SHALL also check that a change that adds or changes scenarios of the browser end-to-end suite in `e2e/browser/scenarios` names `mise run e2e:browser` in that section, that a task changing tests in `backend/internal/agent/e2e`, `backend/internal/modules/backups/e2e` or `backend/e2e/upgrade`, the verification agent's code or the `Dockerfile` names the command that repeats those tests, and that no section or task verification runs `mise run full`. Tests that no allowed command form runs, such as the hook tests, SHALL name an explicit verification command in their task instead of this section.
+The task reviewer SHALL check that a task with a test covers every scenario, that every task has a verification, and that the task order is feasible. The task reviewer SHALL also check that a change whose tasks add or change tests in a backend package or a verification agent package outside the end-to-end ones, or the frontend has a "Change verification" section, and that the section runs the tests of every such package the tasks' verifications name. The end-to-end packages are the ones named in the next sentence. It SHALL also check that a change that adds or changes scenarios of the browser end-to-end suite in `e2e/browser/scenarios` names `mise run e2e:browser` in that section, that a task changing tests in `backend/internal/agent/e2e`, `backend/internal/modules/backups/e2e` or `backend/e2e/upgrade`, the verification agent's code or the `Dockerfile` names the command that repeats those tests, and that no section or task verification runs `mise run test-full`. Tests that no allowed command form runs, such as the hook tests, SHALL name an explicit verification command in their task instead of this section.
 
 #### Scenario: A change with two delta specs
 - **WHEN** the full proposal review starts for a change with two delta specs
@@ -68,9 +68,9 @@ The task reviewer SHALL check that a task with a test covers every scenario, tha
 - **THEN** the task reviewer returns a `tasks` finding that asks for that command
 
 #### Scenario: A verification that runs the whole test set
-- **WHEN** the "Change verification" section or a task's verification runs `mise run full`
+- **WHEN** the "Change verification" section or a task's verification runs `mise run test-full`
 - **THEN** the task reviewer returns a `tasks` finding that asks for the specific commands instead
 
 #### Scenario: A task that builds the command
-- **WHEN** a task names `mise run full` as something it adds or edits, and its verification runs another command
+- **WHEN** a task names `mise run test-full` as something it adds or edits, and its verification runs another command
 - **THEN** the task reviewer returns no finding for naming it

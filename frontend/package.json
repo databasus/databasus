@@ -6,20 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "oxlint",
-    "typecheck": "tsc -b",
+    "lint": "bash lint/check.sh",
     "format": "oxfmt",
-    "format:check": "oxfmt --check",
-    "openapi-typescript": "pnpm --package=openapi-typescript@7.13.0 --package=typescript@5.8.3 dlx openapi-typescript",
-    "generate:api": "pnpm openapi-typescript ../backend/api/openapi.yaml -o src/shared/api/schema.gen.ts",
-    "check:api": "pnpm --silent generate:api --check || { echo 'src/shared/api/schema.gen.ts is out of date, run mise run generate-api' >&2; exit 1; }",
-    "preview": "vite preview",
+    "typecheck": "tsc -b",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "lint:fsd": "node lint/fsd.ts",
-    "lint:styles": "node lint/styles.ts",
     "test:browser": "node tooling/runBrowser.ts",
-    "test:browser:update": "node tooling/runBrowser.ts --project=ui --update-references"
+    "generate:api": "pnpm --package=openapi-typescript@7.13.0 --package=typescript@5.8.3 dlx openapi-typescript ../backend/api/openapi.yaml -o src/shared/api/schema.gen.ts"
   },
   "dependencies": {
     "@ant-design/icons": "^5.6.1",

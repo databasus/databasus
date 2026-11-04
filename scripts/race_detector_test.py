@@ -1,5 +1,4 @@
 from pathlib import Path
-import re
 import unittest
 
 
@@ -15,7 +14,7 @@ class RaceDetectorInCiTest(unittest.TestCase):
 
     def test_commands_shared_with_ci_add_the_race_detector_only_under_ci(self):
         shared_commands = {
-            "agent:test": re.search(r'^\[tasks\."agent:test"\]\n.*?(?=^\[)', (ROOT / "mise.toml").read_text(), re.M | re.S).group(0),
+            "agent:test": (ROOT / "mise-tasks/agent/test").read_text(),
             "agent:e2e-podman": (ROOT / "mise-tasks/agent/e2e-podman").read_text(),
             "agent:e2e": (ROOT / "mise-tasks/agent/e2e").read_text(),
             "scripts/test.sh": (ROOT / "scripts/test.sh").read_text(),

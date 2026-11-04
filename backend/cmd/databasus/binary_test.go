@@ -450,7 +450,7 @@ func newDatabaseEnvironment(databaseDsn string) map[string]string {
 }
 
 // startInProcessServer runs the server in the test process on a free port: the binary always listens
-// on :4005, which another agent's `mise run dev` may hold on a shared machine.
+// on :4005, which another agent's `mise run run` may hold on a shared machine.
 func startInProcessServer(t *testing.T, databaseDsn string) string {
 	t.Helper()
 

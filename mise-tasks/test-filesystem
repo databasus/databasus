@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#MISE hide=true
 #MISE description="Run the Docker filesystem suite; CASE or CASE_GROUP selects a case or a group"
 set -euo pipefail
 

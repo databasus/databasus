@@ -33,7 +33,7 @@ This will compile TypeScript and create an optimized production build.
 To run every frontend check without changing files:
 
 ```bash
-mise run frontend:lint
+pnpm lint
 ```
 
 ### Formatting
@@ -46,11 +46,7 @@ pnpm format
 
 This will automatically format all TypeScript, JavaScript, JSON, CSS, and Markdown files.
 
-To check formatting without changing files:
-
-```bash
-pnpm format:check
-```
+The lint command checks formatting without changing files. To watch tests, use `pnpm exec vitest`; to preview a build, use `pnpm exec vite preview`. The [testing guide](../docs/testing.md#commands) lists browser checks and the command that updates visual references.
 
 ## Workspace resource screens
 

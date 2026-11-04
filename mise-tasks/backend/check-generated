@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#MISE hide=true
 #MISE description="Check that the generated API code matches the contract"
 #MISE dir="backend"
 # Each oapi-codegen config is regenerated into a temporary file and compared with the committed output,

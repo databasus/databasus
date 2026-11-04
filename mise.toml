@@ -1,5 +1,87 @@
 min_version = "2026.10.6"
 
+# User commands
+
+[tasks.run]
+description = "Start the app locally: dev database, test fixtures, WAL backup source, backend and frontend"
+run = "scripts/dev.sh"
+
+[tasks.test]
+description = "Run the backend test packages without the end-to-end ones and the frontend tests"
+run = "scripts/test.sh"
+
+[tasks.test-full]
+description = "Run all Docker-based tests, browser checks and test-runner checks; excludes Podman and filesystem suites"
+run = "scripts/test.sh --full"
+
+[tasks.lint]
+description = "Check every module without changing files"
+run = "mise run --continue-on-error backend:lint ::: frontend:lint ::: lint-shell ::: lint-workflows"
+
+[tasks.format]
+description = "Format every module"
+depends = ["backend:format", "frontend:format"]
+
+[tasks.doctor]
+description = "Check review tools and whether Codex project hooks are enabled and trusted"
+usage = 'flag "--client <client>" help="Review client: codex or claude; defaults to AGENT_REVIEW_CLIENT"'
+run = '.agent-hooks/run.sh doctor ${usage_client:+--client "$usage_client"}'
+
+[tasks.review]
+description = "Manually rerun parallel AI reviews of a finished OpenSpec change; runs no linting or tests"
+usage = 'arg "[change]" help="The OpenSpec change to review; every active change with all tasks checked when omitted"; flag "--client <client>" help="Review client: codex or claude; defaults to AGENT_REVIEW_CLIENT"'
+run = '.agent-hooks/run.sh review "${usage_change:-}" ${usage_client:+--client "$usage_client"}'
+
+[tasks.generate-api]
+description = "Regenerate the servers, the test clients and the frontend types from backend/api/*.yaml"
+run = ["go -C backend generate ./...", "pnpm --dir frontend generate:api"]
+
+# CI/CD commands (also used by hooks)
+# Use the user commands above for everyday development.
+
+[tasks."e2e:browser"]
+description = "Run the browser end-to-end suite on the application image: DATABASUS_IMAGE, or one built from the checkout"
+run = "uv run --locked --project e2e/browser python e2e/browser/supervisor.py"
+env = { PYTHONDONTWRITEBYTECODE = "1", UV_PYTHON_PREFERENCE = "only-system" }
+hide = true
+
+[tasks."e2e:unit"]
+description = "Run the browser end-to-end suite's own tests that need no Docker daemon"
+run = "uv run --locked --project e2e/browser pytest e2e/browser/unit"
+env = { PYTHONDONTWRITEBYTECODE = "1", UV_PYTHON_PREFERENCE = "only-system" }
+hide = true
+
+[tasks."e2e:lifecycle"]
+description = "Drive the browser end-to-end command through failures, interruptions, crashes and overlapping runs"
+run = "uv run --locked --project e2e/browser pytest e2e/browser/lifecycle"
+env = { PYTHONDONTWRITEBYTECODE = "1", UV_PYTHON_PREFERENCE = "only-system" }
+hide = true
+
+[tasks."lint-workflows"]
+description = "Check the GitHub Actions workflows with actionlint"
+run = "actionlint -shellcheck="
+hide = true
+
+[tasks."backend:format"]
+description = "Format the backend"
+dir = "backend"
+run = "golangci-lint fmt ./api/... ./cmd/... ./e2e/... ./internal/... ./migrations/... ./tools/..."
+hide = true
+
+[tasks."frontend:lint"]
+description = "Check frontend formatting, source, architecture, styles, types and generated API types"
+dir = "frontend"
+run = "pnpm lint"
+hide = true
+
+[tasks."frontend:format"]
+description = "Format the frontend"
+dir = "frontend"
+run = "pnpm format"
+hide = true
+
+# Dependencies
+
 [tools]
 go = "1.26.10"
 node = "24.21.0"
@@ -26,134 +108,3 @@ actionlint = "1.7.12"
 [env]
 # The TypeScript wrapper supplies frontend/node_modules before the mise shim changes NODE_PATH.
 _.path = ["{{config_root}}/tools/lsp"]
-
-# Every task of a module sets dir to that module, so it runs the same from any directory. Scripts
-# longer than a few lines are file tasks in mise-tasks/, named after their path there.
-
-[tasks.dev]
-description = "Start the app locally: dev database, test fixtures, WAL backup source, backend and frontend"
-run = "scripts/dev.sh"
-
-[tasks.test]
-description = "Run the backend test packages without the end-to-end ones and the frontend tests"
-run = "scripts/test.sh"
-
-[tasks.full]
-description = "Run every backend test package and the frontend tests, then the upgrade test, then the browser end-to-end suite"
-run = "scripts/test.sh --full"
-
-[tasks.pull-testcontainers]
-description = "Pull the database images the backend tests use"
-run = "mise run backend:pull-testcontainers"
-
-[tasks.generate-api]
-description = "Regenerate the servers, the test clients and the frontend types from backend/api/*.yaml"
-depends = ["backend:generate-api"]
-run = "pnpm --dir frontend generate:api"
-
-# mise cancels the remaining dependencies of a task when one fails, so the module lints run through
-# --continue-on-error and every failing module is reported.
-[tasks.lint]
-description = "Check every module without changing files"
-run = "mise run --continue-on-error backend:lint ::: frontend:lint ::: lint-shell ::: lint-workflows"
-
-[tasks.format]
-description = "Format every module"
-depends = ["backend:format", "frontend:format"]
-
-[tasks.lint-shell]
-description = "Check the shell scripts with shellcheck"
-shell = "bash -euo pipefail -c"
-run = """
-git ls-files -z --cached --others --exclude-standard '*.sh' tools/lsp mise-tasks |
-    while IFS= read -r -d '' script; do
-        if [[ -f "$script" ]]; then
-            printf '%s\\0' "$script"
-        fi
-    done | xargs -0 -r shellcheck
-"""
-
-[tasks."e2e:browser"]
-description = "Run the browser end-to-end suite on the application image: DATABASUS_IMAGE, or one built from the checkout"
-hide = true
-run = "uv run --locked --project e2e/browser python e2e/browser/supervisor.py"
-env = { PYTHONDONTWRITEBYTECODE = "1", UV_PYTHON_PREFERENCE = "only-system" }
-
-[tasks."e2e:unit"]
-description = "Run the browser end-to-end suite's own tests that need no Docker daemon"
-run = "uv run --locked --project e2e/browser pytest e2e/browser/unit"
-env = { PYTHONDONTWRITEBYTECODE = "1", UV_PYTHON_PREFERENCE = "only-system" }
-
-[tasks."e2e:lifecycle"]
-description = "Drive the browser end-to-end command through failures, interruptions, crashes and overlapping runs"
-run = "uv run --locked --project e2e/browser pytest e2e/browser/lifecycle"
-env = { PYTHONDONTWRITEBYTECODE = "1", UV_PYTHON_PREFERENCE = "only-system" }
-
-[tasks.lint-workflows]
-description = "Check the GitHub Actions workflows with actionlint"
-run = "actionlint -shellcheck="
-
-[tasks.doctor]
-description = "Check review tools and whether Codex project hooks are enabled and trusted"
-usage = 'flag "--client <client>" help="Review client: codex or claude; defaults to AGENT_REVIEW_CLIENT"'
-run = '.agent-hooks/run.sh doctor ${usage_client:+--client "$usage_client"}'
-
-[tasks.review]
-description = "Manually rerun parallel AI reviews of a finished OpenSpec change; runs no linting or tests"
-usage = 'arg "[change]" help="The OpenSpec change to review; every active change with all tasks checked when omitted"; flag "--client <client>" help="Review client: codex or claude; defaults to AGENT_REVIEW_CLIENT"'
-run = '.agent-hooks/run.sh review "${usage_change:-}" ${usage_client:+--client "$usage_client"}'
-
-[tasks."backend:lint"]
-description = "Check the backend: contract rules, generated code, formatting, linters and go.mod"
-dir = "backend"
-depends = ["backend:check-generated"]
-run = [
-  "vacuum lint --no-banner --no-style --no-update-check --fail-severity warn --details --all-results --no-clip --ruleset api/vacuum.yaml api/openapi.yaml",
-  "vacuum lint --no-banner --no-style --no-update-check --fail-severity warn --details --all-results --no-clip --ruleset api/vacuum.yaml api/agent.yaml",
-  "golangci-lint fmt --diff ./api/... ./cmd/... ./e2e/... ./internal/... ./migrations/... ./tools/...",
-  "golangci-lint run ./api/... ./cmd/... ./e2e/... ./internal/... ./migrations/... ./tools/...",
-  "go run ./tools/archlint",
-  "go mod tidy -diff",
-]
-
-[tasks."backend:format"]
-description = "Format the backend"
-dir = "backend"
-run = "golangci-lint fmt ./api/... ./cmd/... ./e2e/... ./internal/... ./migrations/... ./tools/..."
-
-[tasks."backend:generate-api"]
-description = "Regenerate the backend servers and test clients from backend/api/*.yaml"
-dir = "backend"
-run = "go generate ./..."
-
-[tasks."agent:build"]
-description = "Build the verification agent binary"
-dir = "backend"
-run = 'CGO_ENABLED=0 go build -ldflags "-X main.Version=${VERSION:-dev}" -o temp/verification-agent/databasus-verification-agent ./cmd/verification-agent'
-
-[tasks."agent:test"]
-description = "Run the verification agent unit tests, excluding the end-to-end suite"
-dir = "backend"
-shell = "bash -euo pipefail -c"
-run = """
-packages=$(go list ./internal/agent/... ./cmd/verification-agent/... | rg -v '/internal/agent/e2e(/|$)')
-# shellcheck disable=SC2086 # go list emits one package path per word
-go test ${CI:+-race} -count=1 -failfast $packages
-"""
-
-[tasks."frontend:lint"]
-description = "Check the frontend: formatting, source, architecture and style lint, types and generated API types"
-dir = "frontend"
-run = [
-  "pnpm format:check",
-  "pnpm lint",
-  "pnpm lint:fsd",
-  "pnpm lint:styles",
-  "pnpm typecheck",
-  "pnpm --silent check:api",
-]
-
-[tasks."frontend:format"]
-description = "Format the frontend"
-dir = "frontend"
-run = "pnpm format"

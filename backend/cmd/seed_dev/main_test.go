@@ -272,7 +272,7 @@ func TestSeed(t *testing.T) {
 		exitCode, output := runSeedForTest(t, params)
 
 		assert.Equal(t, 1, exitCode)
-		assert.Contains(t, output, "mise run dev")
+		assert.Contains(t, output, "mise run run")
 	})
 
 	t.Run("reports the reason without other requests when the backend is unhealthy", func(t *testing.T) {

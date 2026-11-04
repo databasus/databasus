@@ -1004,7 +1004,7 @@ class ChangeVerificationParsingTest(unittest.TestCase):
             "pnpm --dir frontend test:browser --project=ui --headed",
             "pnpm --dir frontend test:browser --project=e2e",
             "mise run e2e",
-            "mise run full",
+            "mise run test-full",
             "mise run e2e:browser --headed",
             "mise run e2e:browser;touch",
             "mise run e2e:browser ./x",
@@ -1625,9 +1625,9 @@ class ImplementationGateReviewTest(ShortReplyAssertions, SummaryAssertions, unit
             "A task that changes tests in `backend/internal/agent/e2e`, `backend/internal/modules/backups/e2e` or `backend/e2e/upgrade`, the verification agent's code or the `Dockerfile` names the command that repeats those tests in its own verification.",
             tests_role,
         )
-        self.assertIn("No section or task verification runs `mise run full`, which agents run only on the user's direct request.", tests_role)
-        self.assertIn("A verification that runs `mise run full` is a `missing_test` finding that asks for the specific commands instead.", tests_role)
-        self.assertIn("Naming `mise run full` as something a task adds or edits, with a verification that runs another command, is never a finding.", tests_role)
+        self.assertIn("No section or task verification runs `mise run test-full`, which agents run only on the user's direct request.", tests_role)
+        self.assertIn("A verification that runs `mise run test-full` is a `missing_test` finding that asks for the specific commands instead.", tests_role)
+        self.assertIn("Naming `mise run test-full` as something a task adds or edits, with a verification that runs another command, is never a finding.", tests_role)
         self.assertIn("and so is a task that leaves out its own command.", tests_role)
         self.assertIn("a change that adds or changes scenarios of the browser end-to-end suite in `e2e/browser/scenarios` also names `mise run e2e:browser` there", tests_role)
         self.assertIn("A section that leaves out the command it owes is a `missing_test` finding", tests_role)
@@ -2309,9 +2309,9 @@ class ProposalGateReviewTest(ShortReplyAssertions, SummaryAssertions, unittest.T
             "A task that changes tests in `backend/internal/agent/e2e`, `backend/internal/modules/backups/e2e` or `backend/e2e/upgrade`, the verification agent's code or the `Dockerfile` names the command that repeats those tests in its own verification.",
             tasks_role,
         )
-        self.assertIn("No section or task verification runs `mise run full`, which agents run only on the user's direct request.", tasks_role)
-        self.assertIn("A verification that runs `mise run full` is a `tasks` finding that asks for the specific commands instead.", tasks_role)
-        self.assertIn("Naming `mise run full` as something a task adds or edits, with a verification that runs another command, is never a finding.", tasks_role)
+        self.assertIn("No section or task verification runs `mise run test-full`, which agents run only on the user's direct request.", tasks_role)
+        self.assertIn("A verification that runs `mise run test-full` is a `tasks` finding that asks for the specific commands instead.", tasks_role)
+        self.assertIn("Naming `mise run test-full` as something a task adds or edits, with a verification that runs another command, is never a finding.", tasks_role)
         self.assertIn("and so is a task that leaves out its own command.", tasks_role)
         self.assertIn("a change adding or changing scenarios of the browser end-to-end suite in `e2e/browser/scenarios` also names `mise run e2e:browser` there", tasks_role)
         self.assertIn("such as the hook tests in `.agent-hooks/`, need an explicit verification in their task instead", tasks_role)

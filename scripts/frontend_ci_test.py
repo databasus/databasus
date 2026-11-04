@@ -65,9 +65,12 @@ class FrontendCiTest(unittest.TestCase):
 
     def test_architecture_verification_is_part_of_the_release_lint_task(self):
         configuration = tomllib.loads((ROOT / "mise.toml").read_text())
-        commands = configuration["tasks"]["frontend:lint"]["run"]
+        self.assertEqual(configuration["tasks"]["frontend:lint"]["run"], "pnpm lint")
+        package = json.loads((ROOT / "frontend/package.json").read_text())
+        self.assertEqual(package["scripts"]["lint"], "bash lint/check.sh")
+        commands = (ROOT / "frontend/lint/check.sh").read_text()
 
-        for command in ("pnpm format:check", "pnpm lint", "pnpm lint:fsd", "pnpm lint:styles", "pnpm typecheck", "pnpm --silent check:api"):
+        for command in ("pnpm exec oxfmt --check", "pnpm exec oxlint", "node lint/fsd.ts", "node lint/styles.ts", "pnpm typecheck", "pnpm --silent generate:api --check"):
             with self.subTest(command=command):
                 self.assertIn(command, commands)
         self.assertIn("needs: [lint-frontend]", get_job(self.workflow, "test-frontend"))
@@ -96,7 +99,7 @@ class FrontendCiTest(unittest.TestCase):
 
         package = json.loads((ROOT / "frontend/package.json").read_text())
         self.assertEqual(package["devDependencies"]["@playwright/test"], environment["playwrightVersion"])
-        self.assertIn("lint:styles", package["scripts"])
+        self.assertIn("lint", package["scripts"])
 
     def test_browser_end_to_end_suite_runs_on_the_candidate_image_and_is_required_before_release(self):
         job = get_job(self.workflow, "test-e2e-browser")
@@ -125,7 +128,7 @@ class FrontendCiTest(unittest.TestCase):
         self.assertNotIn("continue-on-error", release)
 
         self.assertNotIn("test-frontend-browser-e2e", self.workflow)
-        self.assertNotIn("mise run full", self.workflow)
+        self.assertNotIn("mise run test-full", self.workflow)
         self.assertEqual(self.workflow.count("mise run e2e:browser"), 1)
 
     def test_browser_end_to_end_suite_installs_only_through_the_pinned_uv_and_its_lockfile(self):
@@ -142,7 +145,7 @@ class FrontendCiTest(unittest.TestCase):
 
         self.assertNotIn("e2e", tasks)
         self.assertTrue(tasks["e2e:browser"]["hide"])
-        self.assertEqual(tasks["full"]["run"], "scripts/test.sh --full")
+        self.assertEqual(tasks["test-full"]["run"], "scripts/test.sh --full")
         self.assertEqual(tasks["test"]["run"], "scripts/test.sh")
 
     def test_detects_runtime_drift_and_mutable_dependency_installs(self):

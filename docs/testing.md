@@ -12,7 +12,7 @@ This document describes the kinds of tests, what they share and how runs are org
 - Our own database, modules and services are never mocked. Fakes replace only systems we cannot run locally and failures that are unsafe to cause for real.
 - Independent tests run in parallel within and across packages, and alongside runs from other worktrees on the same machine. Tests that change process environment settings or share a bounded engine-version fixture stay sequential.
 - A test never takes a shared resource under a fixed name.
-- Every check runs locally. The review hook tests and the interruption test of the browser end-to-end suite are the only manual checks, and CI repeats all the others on a clean machine.
+- Every check runs locally. CI repeats every suite except the review hook tests and the interruption test of the browser end-to-end suite on a clean machine; `mise run test-full` includes both locally.
 
 ## Layers
 
@@ -81,7 +81,7 @@ Tests from every worktree on a machine share one Docker daemon, so nothing a tes
 - **Storages.** Each test uses its own bucket, container or directory.
 - **Docker networks.** A network a test creates takes a subnet outside Docker's default address pools, through `WithFreeSubnet` in `internal/lib/testcontainers`. The verification agent creates its own networks from those pools.
 - **Everything else.** Ports come from `127.0.0.1:0` or `httptest`, and files from `t.TempDir()`. Containers and processes get unique names and labels, and `t.Cleanup` removes them.
-- **Shared sources.** Local and CI preparation never reset shared source servers. Seed tests own their logical and physical source containers. Development compose sources stay available to `mise run dev`, and test cleanup never removes their databases, roles or replication slots.
+- **Shared sources.** Local and CI preparation never reset shared source servers. Seed tests own their logical and physical source containers. Development compose sources stay available to `mise run run`, and test cleanup never removes their databases, roles or replication slots.
 
 ## Waiting
 
@@ -129,7 +129,7 @@ These tests exercise the application image through its screens, without importin
 
 `mise run test` is the one routine local test command, for developers and agents alike. A change that adds or changes tests outside the end-to-end packages, or the code they cover, owes this run, and the OpenSpec change verification of such a change names it. A change that edits only documentation owes no run.
 
-`mise run full` runs everything `mise run test` runs, the end-to-end packages of the verification agent and of backups, the upgrade test and the browser end-to-end suite. An agent [does not start it on its own](../AGENTS.md#tests), and CI runs these suites on every pull request.
+`mise run test-full` runs every test that needs only the usual Docker development environment. It includes the routine run, the end-to-end packages of the verification agent and of backups, the upgrade test, frontend browser UI, the browser end-to-end suite and its unit, lifecycle and interruption checks, and the script and review hook tests. Podman and filesystem tests remain separate because they require additional host setup. An agent [does not start the full command on its own](../AGENTS.md#tests).
 
 `mise run test` leaves those suites out, so an agent also runs by hand the specific ones its change touches:
 
@@ -154,18 +154,26 @@ After installing the frontend dependencies from the lockfile, the command runs t
 - all other backend packages, with a higher limit, so they do not wait for slow ones;
 - the frontend unit and screen tests.
 
-`mise run full` adds the end-to-end packages to the first process. After all three pass it runs the upgrade test, then the browser end-to-end suite, one after the other, because each builds an image and they disturb each other's timing under load.
+`mise run test-full` adds the end-to-end packages to the backend selection. After the backend and frontend processes pass, it runs these checks in order and stops if one fails:
+
+1. Script tests, review hook tests and browser e2e unit tests.
+2. Frontend browser UI.
+3. Upgrade test.
+4. Browser end-to-end scenarios.
+5. Browser e2e lifecycle checks, then their interruption test.
+
+The image and browser suites run sequentially because they disturb each other's timing under load.
 
 - Output lines carry the name of their process, and the summary names each process that failed.
-- The run allows 15 minutes per package and holds a machine-wide lock, so only one `mise run test` or `mise run full` goes at a time.
-- A package missing from the list runs with the fast packages, so a new package needs no entry. A package belongs in the list when it starts containers or networks or runs for over a minute. A script test fails on an entry that neither `mise run test` nor `mise run full` selects.
+- The run allows 15 minutes per package and holds a machine-wide lock, so only one `mise run test` or `mise run test-full` goes at a time.
+- A package missing from the list runs with the fast packages, so a new package needs no entry. A package belongs in the list when it starts containers or networks or runs for over a minute. A script test fails on an entry that neither `mise run test` nor `mise run test-full` selects.
 - Migration tests and architecture linter tests run here too.
 
 ### What runs separately
 
-- The browser UI tests and the filesystem tests (`mise run test-filesystem`) have their own commands.
-- The review hook tests in `.agent-hooks/` run by hand, by an agent that changes the hooks.
-- The interruption test in `e2e/browser/lifecycle_interruption` runs by hand, by an agent that changes the lifecycle command.
+- The rootful Podman subset (`mise run agent:e2e-podman`) needs its socket configured.
+- The filesystem suite (`mise run test-filesystem`) needs host support for NFS/CIFS and their mount clients.
+- Every suite can also run directly when checking a change that touches it; the [commands](#commands) below include hidden CI tasks, which remain callable by name.
 
 ### CI
 
@@ -208,20 +216,20 @@ To repeat one failing test, call its Go or frontend runner directly. This takes 
 | What                                          | Command                                                                                              |
 | --------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | Everything routine                            | `mise run test`                                                                                      |
-| Routine run, end-to-end packages, upgrade test and browser end-to-end suite | `mise run full`                                                                                      |
+| All tests for the usual Docker development environment | `mise run test-full`                                                                                      |
 | One backend test, in `backend/`, see below    | `go test -count=1 -run 'TestName/scenario text' ./internal/modules/<module>/...`                     |
 | Verification agent unit tests                 | `mise run agent:test`                                                                                |
 | Verification agent end-to-end tests on Docker | `mise run agent:e2e`                                                                                 |
 | Verification agent subset on rootful Podman   | `mise run agent:e2e-podman`                                                                          |
 | Frontend                                      | `pnpm test` in `frontend/`, or `pnpm test -t 'scenario text'`                                        |
 | Frontend production browser UI                | `pnpm --dir frontend test:browser --project=ui`                                                     |
-| Update browser visual references              | `pnpm --dir frontend test:browser:update`                                                          |
+| Update browser visual references              | `pnpm --dir frontend test:browser --project=ui --update-references`                                                          |
 | Upgrade test                                  | `mise run backend:test-upgrade`                                                                      |
 | Filesystem tests                              | `mise run test-filesystem`                                                                           |
 | Browser end-to-end suite alone                | `mise run e2e:browser`                                                                               |
 | Its parts that need no Docker daemon          | `mise run e2e:unit`                                                                                  |
 | Its lifecycle probes                          | `mise run e2e:lifecycle`                                                                             |
-| Review hook tests, by hand                    | `python3 -m unittest discover -s .agent-hooks -p '*_test.py'`                                        |
+| Review hook tests                    | `python3 -m unittest discover -s .agent-hooks -p '*_test.py'`                                        |
 
 The bundled PostgreSQL clients need the libedit shim on Fedora, and parallel test binaries collide on the Ryuk reaper name, so the full command that repeats a backend test is:
 

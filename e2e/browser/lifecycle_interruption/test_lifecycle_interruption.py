@@ -9,6 +9,7 @@ import pytest
 
 from docker_wrapper import install_docker_wrapper_and_get_path
 from leftover_check import is_image_present
+from lifecycle.run_cleanup import remove_run_resources
 from public_command import PublicRun, wait_for_process_to_end
 from supervisor_file import get_run_directory, read_supervisor_records
 
@@ -64,14 +65,24 @@ def lifecycle_run():
         },
     )
 
-    yield run
+    built_probes_record = None
+    try:
+        built_probes_record = _wait_for_built_probes_record(run)
+        yield run
+    finally:
+        try:
+            still_running_pids = [record.pid for record in read_supervisor_records() if is_running_in(run, record.pid)]
+            run.send_signal_to_the_whole_command(signal.SIGTERM)
+            run.finish()
 
-    still_running_pids = [record.pid for record in read_supervisor_records() if is_running_in(run, record.pid)]
-    run.send_signal_to_the_whole_command(signal.SIGTERM)
-    run.finish()
-
-    for pid in still_running_pids:
-        wait_for_process_to_end(pid)
+            for pid in still_running_pids:
+                wait_for_process_to_end(pid)
+        finally:
+            if built_probes_record is not None:
+                remove_run_resources(
+                    run, built_probes_record,
+                    unrelated_container=f"unrelated-to-e2e-{built_probes_record.run_id}",
+                )
 
 
 def _wait_for_built_probes_record(lifecycle_run: PublicRun):
@@ -110,13 +121,6 @@ def _is_in_sessions(pid: int, sessions: set[int]) -> bool:
 
 def _have_probe_runs_released_their_resources(probe_sessions: set[int]) -> bool:
     return not [record for record in read_supervisor_records() if _is_in_sessions(record.pid, probe_sessions)]
-
-
-def _remove_unrelated_container_of_a_killed_command(lifecycle_run_id: str) -> None:
-    subprocess.run(
-        ["docker", "rm", "--force", "--volumes", f"unrelated-to-e2e-{lifecycle_run_id}"],
-        capture_output=True,
-    )
 
 
 class TestLifecycleInterruption:
@@ -171,7 +175,6 @@ class TestLifecycleInterruption:
 
         lifecycle_run.send_signal_to_the_whole_command(signal.SIGKILL)
         lifecycle_run.finish()
-        _remove_unrelated_container_of_a_killed_command(record.run_id)
         _wait_until(
             "the probe runs of the killed lifecycle command to release their resources",
             lambda: _have_probe_runs_released_their_resources(probe_sessions),

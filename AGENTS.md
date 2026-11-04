@@ -46,12 +46,9 @@ The repository's skills live in `.agents/skills/`, which Codex reads directly; C
 
 | Command | Purpose |
 |---|---|
-| `mise run dev` | Start the app locally: dev database, test fixtures, WAL backup source with its load generator, backend and frontend; seeds a dev account with databases and restarts the backend when its code changes |
+| `mise run run` | Start the app locally: dev database, test fixtures, WAL backup source with its load generator, backend and frontend; seeds a dev account with databases and restarts the backend when its code changes |
 | `mise run test` | Check the work: the backend packages without the end-to-end ones and the frontend tests |
-| `mise run full` | Check everything else too: the end-to-end packages, the upgrade test and the browser end-to-end suite. |
-| `mise run test-filesystem` | Run the Docker filesystem suite, mostly left to CI |
-| `mise run e2e:unit`, `mise run e2e:lifecycle` | Check the browser end-to-end suite itself: its parts that need no Docker, and its cleanup through whole runs |
-| `mise run pull-testcontainers` | Pull the database images the backend tests use |
+| `mise run test-full` | Run all tests for the usual Docker development environment; [testing.md](docs/testing.md#checking-work) lists the included suites and the Podman/filesystem exceptions |
 | `mise run lint` | Check every module without changing files; `mise run backend:lint` and `frontend:lint` check one |
 | `mise run format` | Format every module; `backend:format` and `frontend:format` format one |
 | `mise run doctor` | Check review tools and whether Codex project hooks are enabled and trusted |
@@ -77,14 +74,14 @@ Several agents may work on this repo at once, in different worktrees, sharing on
 - The main agent, the one the user talks to, works in the checkout or worktree its session starts in. It creates a new git worktree only when the user explicitly asks for one, and it uses a worktree the user created as it is.
 - A background agent, one the main agent starts, may create a worktree of its own when its work needs one or when the main agent asks it to. The main agent may ask for that.
 - Lint and format whenever you want: they touch nothing shared.
-- [`docs/testing.md`](docs/testing.md#checking-work) says which test run a change owes. `mise run test` and `mise run full` take turns through a machine-wide lock, so one may wait for another; repeating one failing test directly takes no lock.
+- [`docs/testing.md`](docs/testing.md#checking-work) says which test run a change owes. `mise run test` and `mise run test-full` take turns through a machine-wide lock, so one may wait for another; repeating one failing test directly takes no lock.
 - Never stop the shared test PostgreSQL server or prune Docker, because other runs use them. The one exception is the recovery of that server after a crash, while no test run is active, which [`docs/testing.md`](docs/testing.md#isolation) describes.
 
 ---
 
 ## Tests
 
-An agent never runs `mise run full` unless the user directly asks for that run. At the end of implementing a change it runs `mise run test`, and by hand the specific long or end-to-end tests the change touches, as [`docs/testing.md`](docs/testing.md#checking-work) says.
+An agent never runs `mise run test-full` unless the user directly asks for that run. At the end of implementing a change it runs `mise run test`, and by hand the specific long or end-to-end tests the change touches, as [`docs/testing.md`](docs/testing.md#checking-work) says.
 
 When you write, change, run or review tests, load the [testing skill](.agents/skills/testing/SKILL.md) first. It says how to write a test; [`docs/testing.md`](docs/testing.md) says which kinds of tests exist and how they are isolated.
 

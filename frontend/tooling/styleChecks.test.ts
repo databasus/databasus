@@ -395,7 +395,7 @@ describe('Style ownership checks', () => {
   });
 });
 
-describe('lint:styles', () => {
+describe('frontend style checks', () => {
   const runStyleLint = (content: string) => {
     const directory = mkdtempSync(join(tmpdir(), 'databasus-styles-'));
 

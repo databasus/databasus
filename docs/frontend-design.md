@@ -37,6 +37,6 @@ The interface is built from AntD components and icons, with Tailwind for layout 
 
 ## Enforcement
 
-`pnpm --dir frontend lint:styles` parses TypeScript, TSX and CSS, resolves presentation constants and checks color utilities, arbitrary values and focus removal. It accepts semantic references, layout utilities and technical data. Only the theme and WAL palette files define independent colors, and any finding fails lint.
+The style check included in `pnpm --dir frontend lint` parses TypeScript, TSX and CSS, resolves presentation constants and checks color utilities, arbitrary values and focus removal. It accepts semantic references, layout utilities and technical data. Only the theme and WAL palette files define independent colors, and any finding fails lint.
 
 [Testing](testing.md#browser-ui-tests) describes the browser environment, failure artifacts and explicit reference updates.

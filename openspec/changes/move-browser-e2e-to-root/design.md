@@ -71,7 +71,7 @@ Rejected: `testcontainers`. Its cleanup depends on a reaper the repository disab
 
 Rejected: a second mode that builds the backend and the frontend from the checkout and runs them on the host. It would avoid the image build, but it needs a configurable server port, a temporary directory that imitates the image's layout, its own internal database and a `libedit` shim, and CI would not run it. The user chose to run on the image only.
 
-Rejected: running on top of `mise run dev`. It seeds an account, which rules out the first registration, and it is one shared instance, which breaks isolation between worktrees.
+Rejected: running on top of `mise run run`. It seeds an account, which rules out the first registration, and it is one shared instance, which breaks isolation between worktrees.
 
 Rejected: keeping `apptest` as a local mode. It cannot be imported from `e2e/`, and it would keep a second, test-only way of assembling the application.
 
@@ -135,15 +135,21 @@ The old job uploaded `status.json`. With traces, video and screenshots off, it h
 
 ### The change verification of this change gains the new command with the hook edit
 
-The review hook accepts `mise run e2e:browser` only after this change edits it, and it validates `tasks.md` when reviewing this proposal. So the tasks that build the suite run that command themselves, and task 7.2 adds it to the section in the same step that teaches the hook to accept it. The section never names `mise run full`, which the hook rejects.
+The review hook accepts `mise run e2e:browser` only after this change edits it, and it validates `tasks.md` when reviewing this proposal. So the tasks that build the suite run that command themselves, and task 7.2 adds it to the section in the same step that teaches the hook to accept it. The section never names `mise run test-full`, which the hook rejects.
 
-### The routine run stays short and `mise run full` runs everything
+### The routine run stays short and `mise run test-full` runs the Docker suites
 
-`mise run test` selects no package under `internal/agent/e2e` or `internal/modules/backups/e2e` and starts no upgrade test, so it answers in about five minutes. `mise run full` adds them and the browser suite. The other packages that start containers stay in the routine run, because they are the only local check of engines and storages against real servers.
+`mise run test` selects no package under `internal/agent/e2e` or `internal/modules/backups/e2e` and starts no upgrade test, so it answers in about five minutes. `mise run test-full` adds them, script and review hook tests, frontend browser UI, and the browser suite with its unit, lifecycle and interruption checks. Podman and filesystem tests remain separate because they require additional host setup. The other packages that start containers stay in the routine run, because they are the only local check of engines and storages against real servers.
 
-`scripts/test.sh --full` runs the upgrade test and then the browser suite one after another, because each builds an image and they disturb each other's timing under load. CI calls the hidden `mise run e2e:browser` on its candidate image, because `mise run full` would repeat the checks CI already runs in other jobs.
+`scripts/test.sh --full` waits for the backend and frontend packages to pass, then runs script tests, review hook tests, browser e2e unit tests, frontend browser UI, the upgrade test, browser end-to-end scenarios, lifecycle checks and lifecycle interruption checks, in that order. A failure skips every later stage. Image and browser suites run sequentially because they disturb each other's timing under load. CI calls the hidden `mise run e2e:browser` on its candidate image, because `mise run test-full` would repeat the checks CI already runs in other jobs.
 
-Rejected: leaving the backup end-to-end packages in the routine run. They add little to the time, but they were named as slow by the user, and a break in the backup pipeline still reaches `mise run full` and CI. The cost is that such a break can pass `mise run test`.
+Rejected: leaving the backup end-to-end packages in the routine run. They add little to the time, but they were named as slow by the user, and a break in the backup pipeline still reaches `mise run test-full` and CI. The cost is that such a break can pass `mise run test`.
+
+### User commands precede CI/CD commands and dependencies
+
+`mise.toml` lists `run`, `test`, `test-full`, `lint`, `format`, `doctor`, `review` and `generate-api` first, hidden CI/CD tasks next, and tools and environment settings last. File tasks keep the multi-line CI helpers out of that configuration. The old `dev` and `full` names have no aliases. Redundant pull, generation and agent wrappers are removed.
+
+The frontend exposes `dev`, `build`, `lint`, `format`, `typecheck`, `test`, `test:browser` and `generate:api`. Its lint command checks formatting, source rules, architecture, styles, types and generated API types. Commit hooks use the same module checks without a second formatting pass.
 
 ### One wait in a backend test has a limit of two minutes
 
@@ -153,7 +159,7 @@ Rejected: a limit on one whole test. Go has no such setting. A check over `go te
 
 ### Agents do not start the full run on their own
 
-An agent runs `mise run full` only on the user's direct request. At the end of a change it runs `mise run test` and, by hand, the specific long or end-to-end tests the change touches, so the hook accepts `mise run e2e:browser` and rejects `mise run full`. CI still runs every suite, so a break no agent's selection covers still stops the release.
+An agent runs `mise run test-full` only on the user's direct request. At the end of a change it runs `mise run test` and, by hand, the specific long or end-to-end tests the change touches, so the hook accepts `mise run e2e:browser` and rejects `mise run test-full`. CI's existing application suites still gate the release; review hook tests and lifecycle interruption checks remain local.
 
 ### Lifecycle probes run through the public command
 
@@ -163,11 +169,11 @@ Without `DATABASUS_IMAGE`, the command builds one run-unique image for its probe
 
 The fresh-checkout probe copies tracked and untracked files into a temporary directory rather than touching the developer's `.env`. It compares the file list there before and after a run, ignored files included, because other agents may be writing to the real checkout.
 
-Before deliberately killing a run or blocking its cleanup, a probe registers an independent finalizer for that run's exact project, owned image and directory. The finalizer still runs if the recovery command or an assertion fails; it retains the supervisor record when resource removal fails.
+Before deliberately killing a run or blocking its cleanup, a probe registers an independent finalizer for that run's exact project, owned image and directory. The finalizer still runs if the recovery command or an assertion fails; it retains the supervisor record when resource removal fails. The fixture that drives lifecycle-command interruption saves its own record before yielding, then removes the project, owned image, unrelated container and directory during teardown independently of recovery. A subprocess regression forces recovery to fail after SIGKILL and verifies that teardown leaves no resources.
 
 The unrelated service is a small container the command starts itself, outside any run's compose project, and queries after each probe. The shared test PostgreSQL server and the development services may not exist on a CI runner, so they cannot serve as this check.
 
-The pure parts, the row comparison, output masking, the sweep's decision, the lifecycle command's leftover check, the independence scan and the check of published ports, run without a Docker daemon through `mise run e2e:unit`. The test that interrupts and kills the lifecycle command itself needs a full build, so it lives in `e2e/browser/lifecycle_interruption/` and runs by hand when the lifecycle command changes.
+The pure parts, the row comparison, output masking, the sweep's decision, the lifecycle command's leftover check, the independence scan and the check of published ports, run without a Docker daemon through `mise run e2e:unit`. The test that interrupts and kills the lifecycle command itself needs a full build, so it lives in `e2e/browser/lifecycle_interruption/` and runs in `test-full` or directly when the lifecycle command changes.
 
 Rejected: dropping these probes. A regression in cleanup is otherwise invisible until a machine fills with containers.
 

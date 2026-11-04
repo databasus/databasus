@@ -7,7 +7,7 @@
 - TO: `### Requirement: One command runs the routine backend suite`
 
 - FROM: `### Requirement: The full run is the one routine test command`
-- TO: `### Requirement: One routine command checks a change`
+- TO: `### Requirement: One routine test command checks a change`
 
 - FROM: `### Requirement: The full run includes the frontend tests`
 - TO: `### Requirement: The routine run includes the frontend tests`
@@ -51,19 +51,15 @@ The repository SHALL provide `mise run test`. It SHALL assume a Fedora host and,
 - **WHEN** a developer adds a test package in a new top-level directory of the backend module
 - **THEN** `mise run test` runs its tests without any change to the selection
 
-#### Scenario: The upgrade and browser packages stay out of the package step
+#### Scenario: End-to-end packages stay out of the routine run
 
 - **WHEN** `mise run test` selects its backend packages
-- **THEN** it selects neither the upgrade test nor its comparison helper, and no browser end-to-end scenario runs
-
-#### Scenario: The end-to-end packages stay out of the routine run
-
-- **WHEN** `mise run test` selects its backend packages
-- **THEN** it selects no package under `internal/agent/e2e` or `internal/modules/backups/e2e`, and the upgrade test does not start
+- **THEN** it selects no package under `internal/agent/e2e`, `internal/modules/backups/e2e` or `e2e/upgrade`
+- **AND** no browser end-to-end scenario runs
 
 ### Requirement: Slow backend packages do not hold back the others
 
-`mise run test` and `mise run full` SHALL run the backend packages named in a repository list of slow packages separately from all other selected backend packages, in concurrent test processes, so that fast packages start without waiting for slow ones. The list SHALL be ordered by measured time, longest first, and the slow process SHALL receive the packages in that order, with a fixed package limit lower than that of the other process. Both limits SHALL be chosen by measurement. The run SHALL take slow packages only from those it selects anyway, so an entry the run does not select SHALL neither fail the run nor add a package. A script test SHALL fail and name an entry that no longer exists or that neither command selects. A selected package missing from the list SHALL run with the other packages. Every test of every selected package SHALL run exactly once, including when CI runs a package as several shards.
+`mise run test` and `mise run test-full` SHALL run the backend packages named in a repository list of slow packages separately from all other selected backend packages, in concurrent test processes, so that fast packages start without waiting for slow ones. The list SHALL be ordered by measured time, longest first, and the slow process SHALL receive the packages in that order, with a fixed package limit lower than that of the other process. Both limits SHALL be chosen by measurement. The run SHALL take slow packages only from those it selects anyway, so an entry the run does not select SHALL neither fail the run nor add a package. A script test SHALL fail and name an entry that no longer exists or that neither command selects. A selected package missing from the list SHALL run with the other packages. Every test of every selected package SHALL run exactly once, including when CI runs a package as several shards.
 
 #### Scenario: The order and the limits
 
@@ -150,13 +146,13 @@ A scenario SHALL remove every container, network, process and file it started, w
 
 #### Scenario: The full run includes the Docker scenarios
 
-- **WHEN** a developer runs `mise run full`
+- **WHEN** a developer runs `mise run test-full`
 - **THEN** the Docker scenarios of the agent's end-to-end suite run with the other backend packages, and the Podman subset does not run
 - **AND** `mise run test` runs neither
 
 ### Requirement: The routine run includes the frontend tests
 
-`mise run test` SHALL install the frontend dependencies from the lockfile, as `mise run dev` does, and SHALL run the frontend unit and screen tests at the same time as the backend packages. It SHALL wait for every test process, and a failure in one SHALL NOT stop the others. It SHALL exit with a non-zero status when any fails, and its output SHALL name each failed process and test. `mise run test` SHALL NOT start the upgrade test, and `mise run full` SHALL start it only after all have passed. The browser suites SHALL stay out of `mise run test`.
+`mise run test` SHALL install the frontend dependencies from the lockfile, as `mise run run` does, and SHALL run the frontend unit and screen tests at the same time as the backend packages. It SHALL wait for every test process, and a failure in one SHALL NOT stop the others. It SHALL exit with a non-zero status when any fails, and its output SHALL name each failed process and test. `mise run test` SHALL NOT start the upgrade test, and `mise run test-full` SHALL start it only after all have passed. The browser suites SHALL stay out of `mise run test`.
 
 #### Scenario: A fresh worktree
 
@@ -165,12 +161,12 @@ A scenario SHALL remove every container, network, process and file it started, w
 
 #### Scenario: A frontend test fails
 
-- **WHEN** a frontend test fails during `mise run full` while backend packages still run
+- **WHEN** a frontend test fails during `mise run test-full` while backend packages still run
 - **THEN** the backend packages finish, the upgrade test does not start, the output names the failed frontend test, and the command exits with a non-zero status
 
 #### Scenario: A backend package fails
 
-- **WHEN** a package fails in one backend test process during `mise run full` while the other backend process and the frontend tests still run
+- **WHEN** a package fails in one backend test process during `mise run test-full` while the other backend process and the frontend tests still run
 - **THEN** they finish, the upgrade test does not start, the output names the failed process and test, and the command exits with a non-zero status
 
 #### Scenario: Browser suites stay out
@@ -185,11 +181,11 @@ A scenario SHALL remove every container, network, process and file it started, w
 
 ### Requirement: Interrupting the backend suite leaves no test processes or containers
 
-When a developer interrupts `mise run test` or `mise run full` with Ctrl+C, every test process of that run SHALL exit, and every test container and test network that run started SHALL be removed. Test containers and networks started by another run or by a single package run, in this worktree or another one, SHALL NOT be removed. The shared test PostgreSQL server SHALL keep running, so that the next run and other worktrees can use it.
+When a developer interrupts `mise run test` or `mise run test-full` with Ctrl+C, every test process of that run SHALL exit, and every test container and test network that run started SHALL be removed. Test containers and networks started by another run or by a single package run, in this worktree or another one, SHALL NOT be removed. The shared test PostgreSQL server SHALL keep running, so that the next run and other worktrees can use it.
 
 #### Scenario: Developer presses Ctrl+C mid-suite
 
-- **WHEN** a developer presses Ctrl+C while `mise run test` or `mise run full` runs tests
+- **WHEN** a developer presses Ctrl+C while `mise run test` or `mise run test-full` runs tests
 - **THEN** no test process from that run remains
 - **AND** no test container that run started remains
 
@@ -205,23 +201,23 @@ When a developer interrupts `mise run test` or `mise run full` with Ctrl+C, ever
 
 ### Requirement: Test runs take turns
 
-Only one `mise run test` or `mise run full` SHALL run tests on a machine at a time. Such a command started while another one runs, in any worktree, SHALL print `waiting for another test run to finish` and SHALL start its tests after the other run ends. A single test package run SHALL NOT wait for either command, apart from the wait for the reset of the shared test PostgreSQL servers. Neither command SHALL remove containers or networks of a package run, reset or delete an internal database a package run uses, or reset the shared test PostgreSQL servers before the package run's process has ended. Tests of old code that change shared objects on those servers can still affect each other across runs, as they can today; this requirement does not cover that.
+Only one `mise run test` or `mise run test-full` SHALL run tests on a machine at a time. Such a command started while another one runs, in any worktree, SHALL print `waiting for another test run to finish` and SHALL start its tests after the other run ends. A single test package run SHALL NOT wait for either command, apart from the wait for the reset of the shared test PostgreSQL servers. Neither command SHALL remove containers or networks of a package run, reset or delete an internal database a package run uses, or reset the shared test PostgreSQL servers before the package run's process has ended. Tests of old code that change shared objects on those servers can still affect each other across runs, as they can today; this requirement does not cover that.
 
 #### Scenario: Two worktrees start a full run
 
-- **WHEN** an agent in one worktree starts `mise run full` while `mise run test` or `mise run full` of another worktree is running
+- **WHEN** an agent in one worktree starts `mise run test-full` while `mise run test` or `mise run test-full` of another worktree is running
 - **THEN** the second run prints `waiting for another test run to finish`
 - **AND** its tests start after the first run ends
 
 #### Scenario: Two worktrees start the routine run
 
-- **WHEN** an agent in one worktree starts `mise run test` while `mise run test` or `mise run full` of another worktree is running
+- **WHEN** an agent in one worktree starts `mise run test` while `mise run test` or `mise run test-full` of another worktree is running
 - **THEN** the second run prints `waiting for another test run to finish`
 - **AND** its tests start after the first run ends
 
 #### Scenario: A package run during a full run
 
-- **WHEN** an agent runs one backend test package while `mise run full` of another worktree is running its tests
+- **WHEN** an agent runs one backend test package while `mise run test-full` of another worktree is running its tests
 - **THEN** the package run starts its tests without waiting for that run to end
 - **AND** its containers, networks and internal database stay in place until the package run ends
 
@@ -249,9 +245,9 @@ The repository SHALL pin the exact versions of a defined tool set, so that two h
 - **WHEN** a developer runs `mise run e2e:browser` after installing the pinned tools
 - **THEN** the suite's dependencies install through the pinned package manager from the suite's lockfile
 
-### Requirement: One routine command checks a change
+### Requirement: One routine test command checks a change
 
-`mise run test` SHALL be the one routine local test command. A developer or an agent SHALL use it to check a change that adds or changes tests or the code those tests cover, and the OpenSpec change verification of such a change SHALL name it. An agent SHALL NOT run `mise run full` unless the user directly asks for that run. At the end of implementing a change it SHALL run `mise run test`, and by hand the specific long or end-to-end tests the change touches. A change that adds or changes scenarios of the browser end-to-end suite SHALL run and name `mise run e2e:browser`, and a task changing tests in `backend/internal/agent/e2e`, `backend/internal/modules/backups/e2e` or `backend/e2e/upgrade`, the verification agent's code or the `Dockerfile` SHALL name and run the command that repeats those tests. The repository SHALL NOT provide a command that takes backend packages or shard names as arguments and runs their tests. The selectors CI uses and the fixed suites `mise run agent:test`, `mise run agent:e2e`, `mise run agent:e2e-podman`, `mise run backend:test-upgrade` and `mise run test-filesystem` SHALL remain. `mise run e2e` SHALL NOT exist. The browser end-to-end suite SHALL have three commands of its own, none of which `mise run test` runs: the hidden `mise run e2e:browser` runs its scenarios, `mise run e2e:unit` runs its parts that need no Docker daemon and `mise run e2e:lifecycle` runs its lifecycle probes. A change to the suite's other code SHALL run `mise run e2e:unit`, and SHALL also run `mise run e2e:lifecycle` when it changes how a run starts or cleans up. A developer or an agent SHALL still be able to repeat one failing test directly with the Go test command or the frontend test runner while fixing it.
+`mise run test` SHALL be the one routine local test command. A developer or an agent SHALL use it to check a change that adds or changes tests or the code those tests cover, and the OpenSpec change verification of such a change SHALL name it. An agent SHALL NOT run `mise run test-full` unless the user directly asks for that run. At the end of implementing a change it SHALL run `mise run test`, and by hand the specific long or end-to-end tests the change touches. A change that adds or changes scenarios of the browser end-to-end suite SHALL run and name `mise run e2e:browser`, and a task changing tests in `backend/internal/agent/e2e`, `backend/internal/modules/backups/e2e` or `backend/e2e/upgrade`, the verification agent's code or the `Dockerfile` SHALL name and run the command that repeats those tests. The repository SHALL NOT provide a command that takes backend packages or shard names as arguments and runs their tests. The selectors CI uses and the fixed suites `mise run agent:test`, `mise run agent:e2e`, `mise run agent:e2e-podman`, `mise run backend:test-upgrade` and `mise run test-filesystem` SHALL remain. `mise run e2e` SHALL NOT exist. The browser end-to-end suite SHALL have three hidden commands of its own, none of which `mise run test` runs: the hidden `mise run e2e:browser` runs its scenarios, `mise run e2e:unit` runs its parts that need no Docker daemon and `mise run e2e:lifecycle` runs its lifecycle probes. A change to the suite's other code SHALL run `mise run e2e:unit`, and SHALL also run `mise run e2e:lifecycle` when it changes how a run starts or cleans up. A developer or an agent SHALL still be able to repeat one failing test directly with the Go test command or the frontend test runner while fixing it.
 
 #### Scenario: Checking a finished change
 
@@ -280,8 +276,8 @@ The repository SHALL pin the exact versions of a defined tool set, so that two h
 
 #### Scenario: An agent does not start the full run on its own
 
-- **WHEN** an agent finishes implementing a change and the user has not directly asked for `mise run full`
-- **THEN** it runs `mise run test` and the specific long or end-to-end tests the change touches, and it does not run `mise run full`
+- **WHEN** an agent finishes implementing a change and the user has not directly asked for `mise run test-full`
+- **THEN** it runs `mise run test` and the specific long or end-to-end tests the change touches, and it does not run `mise run test-full`
 
 #### Scenario: The removed browser command
 
@@ -295,31 +291,31 @@ The repository SHALL pin the exact versions of a defined tool set, so that two h
 
 ### Requirement: The full run includes the upgrade test
 
-After the backend test packages and the frontend tests pass, `mise run full` SHALL run the upgrade test. When the developer names a Databasus image through `DATABASUS_IMAGE`, the upgrade test SHALL use it. Otherwise `mise run full` SHALL build the image from the checkout first. A failed upgrade test SHALL make `mise run full` exit with a non-zero status. When a backend package fails, `mise run full` SHALL stop without building the image or running the upgrade test. A single test package started directly with the Go test command SHALL NOT build an image or run the upgrade test. When the developer interrupts `mise run full` during the upgrade test, the containers, the network and the volume of the upgrade test SHALL be removed, and the shared test PostgreSQL server SHALL keep running.
+After the backend test packages and the frontend tests pass, `mise run test-full` SHALL run the upgrade test. When the developer names a Databasus image through `DATABASUS_IMAGE`, the upgrade test SHALL use it. Otherwise `mise run test-full` SHALL build the image from the checkout first. A failed upgrade test SHALL make `mise run test-full` exit with a non-zero status. When a backend package fails, `mise run test-full` SHALL stop without building the image or running the upgrade test. A single test package started directly with the Go test command SHALL NOT build an image or run the upgrade test. When the developer interrupts `mise run test-full` during the upgrade test, the containers, the network and the volume of the upgrade test SHALL be removed, and the shared test PostgreSQL server SHALL keep running.
 
 #### Scenario: Developer runs the full suite without an image
 
-- **WHEN** a developer runs `mise run full` without `DATABASUS_IMAGE`
+- **WHEN** a developer runs `mise run test-full` without `DATABASUS_IMAGE`
 - **THEN** the image is built from the checkout after the backend packages and the frontend tests pass, and the upgrade test runs against it
 
 #### Scenario: Developer names an image
 
-- **WHEN** a developer runs `mise run full` with `DATABASUS_IMAGE` set to an image they built
-- **THEN** no image is built and the upgrade test runs against the named image
+- **WHEN** a developer runs `mise run test-full` with `DATABASUS_IMAGE` set to an image they built
+- **THEN** the upgrade test builds no application image and runs against the named image
 
 #### Scenario: The upgrade test fails
 
-- **WHEN** the upgrade test fails during `mise run full`
+- **WHEN** the upgrade test fails during `mise run test-full`
 - **THEN** the command exits with a non-zero status
 
 #### Scenario: The frontend tests fail
 
-- **WHEN** the backend packages pass and a frontend test fails during `mise run full`
+- **WHEN** the backend packages pass and a frontend test fails during `mise run test-full`
 - **THEN** no image is built, the upgrade test does not run, and the command exits with a non-zero status
 
 #### Scenario: A backend package fails
 
-- **WHEN** a backend package fails during `mise run full`
+- **WHEN** a backend package fails during `mise run test-full`
 - **THEN** no image is built, the upgrade test does not run, and the command exits with a non-zero status
 
 #### Scenario: A single package run
@@ -329,34 +325,49 @@ After the backend test packages and the frontend tests pass, `mise run full` SHA
 
 #### Scenario: Interrupt during the upgrade test
 
-- **WHEN** a developer presses Ctrl+C while the upgrade test runs during `mise run full`
+- **WHEN** a developer presses Ctrl+C while the upgrade test runs during `mise run test-full`
 - **THEN** none of the upgrade test's containers, its network or its volume remains
 - **AND** the shared test PostgreSQL server is still running
 
 ## ADDED Requirements
 
-### Requirement: One command runs every suite
+### Requirement: Everyday commands are separate from internal tasks
 
-The repository SHALL provide `mise run full`. It SHALL do everything `mise run test` does, and it SHALL also select the end-to-end packages under `internal/agent/e2e` and `internal/modules/backups/e2e`. After the backend packages and the frontend tests pass, it SHALL run the upgrade test, and after that test passes it SHALL run the browser end-to-end suite. It SHALL take the same machine-wide lock as `mise run test`. It SHALL NOT run the Docker filesystem suite or the suite's lifecycle probes. CI SHALL keep running every suite in its own checks, so it SHALL NOT call `mise run full`.
+The repository SHALL expose exactly eight everyday mise tasks: `run`, `test`, `test-full`, `lint`, `format`, `doctor`, `review` and `generate-api`. In `mise.toml`, everyday commands SHALL appear first, internal CI/CD commands second, and tool dependencies and environment settings last. Internal tasks SHALL appear in the CI/CD section or in `mise-tasks/`, SHALL be hidden from the default listing, and SHALL remain callable by name from the repository root, backend and frontend. The CI/CD section SHALL explain that its tasks also serve hooks. The repository SHALL NOT retain aliases for `dev`, `full` or the removed root `pull-testcontainers` wrapper.
 
-#### Scenario: Developer runs every suite
+#### Scenario: Listing commands from a module
 
-- **WHEN** a developer runs `mise run full`
-- **THEN** the backend packages run with the end-to-end packages among them, then the upgrade test, then the browser end-to-end suite
+- **WHEN** a developer lists mise tasks from the repository root, backend or frontend
+- **THEN** the default list shows exactly the eight everyday tasks
+- **AND** CI and hooks can still invoke the hidden tasks by name
 
-#### Scenario: The upgrade test fails during the full run
+### Requirement: The full command runs the Docker test suites
 
-- **WHEN** the upgrade test fails during `mise run full`
-- **THEN** the browser end-to-end suite does not start, and the command exits with a non-zero status
+`mise run test-full` SHALL run the routine backend and frontend suites, adding all backup and verification agent end-to-end packages. After those pass, it SHALL run script tests, review hook tests, browser e2e unit tests, frontend browser UI, the upgrade test, browser end-to-end scenarios, lifecycle checks and lifecycle interruption checks, in that order. A failure SHALL return a non-zero status and prevent later stages from starting. It SHALL take the same machine-wide lock as `mise run test`, and SHALL NOT update browser visual references. CI SHALL run its individual suites rather than `mise run test-full`. Podman and filesystem tests SHALL remain separate because they require additional host configuration.
 
-#### Scenario: The browser suite fails during the full run
+#### Scenario: All ordinary Docker checks pass
 
-- **WHEN** a browser end-to-end scenario fails during `mise run full`
-- **THEN** the command exits with a non-zero status
+- **WHEN** every stage passes during `mise run test-full`
+- **THEN** every included suite runs once and the command succeeds
+- **AND** neither the Podman subset nor the filesystem suite runs
+
+#### Scenario: An additional suite fails
+
+- **WHEN** an additional suite fails during `mise run test-full`
+- **THEN** the command fails and no later suite starts
+
+### Requirement: Frontend lint is one complete check
+
+`pnpm lint` in the frontend SHALL check formatting, source rules, architecture, styles, TypeScript and generated API types without changing tracked files. The frontend mise task SHALL call that command. The frontend SHALL expose only `dev`, `build`, `lint`, `format`, `typecheck`, `test`, `test:browser` and `generate:api` scripts. Watch, preview and visual-reference updates SHALL use the existing tools and arguments rather than separate scripts. The commit hook SHALL run each affected module's lint once, including its formatting check.
+
+#### Scenario: A frontend check fails
+
+- **WHEN** any frontend lint check fails
+- **THEN** `pnpm lint`, `mise run frontend:lint` and `mise run lint` fail
 
 ### Requirement: A hung wait fails its test in minutes
 
-One `testwait` wait for a condition in a backend test SHALL end after two minutes, unless the test states its own limit because it exists to observe a longer period of real time. Container start-up waits, including those of the upgrade test, keep their own limits. A wait that ends this way SHALL fail its test and name what it waited for and the last state. `mise run test`, `mise run full` and a local upgrade test SHALL give each package a timeout of 15 minutes. In CI the upgrade test SHALL keep 30 minutes, because it runs with the race detector.
+One `testwait` wait for a condition in a backend test SHALL end after two minutes, unless the test states its own limit because it exists to observe a longer period of real time. Container start-up waits, including those of the upgrade test, keep their own limits. A wait that ends this way SHALL fail its test and name what it waited for and the last state. `mise run test`, `mise run test-full` and a local upgrade test SHALL give each package a timeout of 15 minutes. In CI the upgrade test SHALL keep 30 minutes, because it runs with the race detector.
 
 #### Scenario: A condition never holds
 

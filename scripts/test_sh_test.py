@@ -13,6 +13,16 @@ import unittest
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 BROWSER_SUITE_CALL = "mise run e2e:browser"
+FULL_ONLY_CALLS = (
+    "python3 -m unittest discover -s scripts -p *_test.py",
+    "python3 -m unittest discover -s .agent-hooks -p *_test.py",
+    "mise run e2e:unit",
+    "pnpm --dir frontend test:browser --project=ui",
+    "mise run backend:test-upgrade",
+    BROWSER_SUITE_CALL,
+    "mise run e2e:lifecycle",
+    "uv run --locked --project e2e/browser pytest e2e/browser/lifecycle_interruption",
+)
 FULL_RUN_LOCK_NAME = "databasus-full-test.lock"
 WAIT_TIMEOUT_SECONDS = 30
 RUN_LABEL_FILTER = "label=databasus.test-run="
@@ -66,6 +76,7 @@ STUB_SOURCES = {
     """,
     "pnpm": """
         echo "$(date +%s.%N) pnpm $*" >>"$STUB_CALLS"
+        if [[ "pnpm $*" == "${STUB_FAIL_COMMAND:-}" ]]; then exit 1; fi
         if [[ "$3" == install ]]; then
             exit "${STUB_PNPM_INSTALL_EXIT_STATUS:-0}"
         fi
@@ -74,8 +85,17 @@ STUB_SOURCES = {
         echo "$(date +%s.%N) pnpm finished" >>"$STUB_CALLS"
         exit "${STUB_PNPM_EXIT_STATUS:-0}"
     """,
+    "python3": """
+        echo "$(date +%s.%N) python3 $*" >>"$STUB_CALLS"
+        if [[ "python3 $*" == "${STUB_FAIL_COMMAND:-}" ]]; then exit 1; fi
+    """,
+    "uv": """
+        echo "$(date +%s.%N) uv $*" >>"$STUB_CALLS"
+        if [[ "uv $*" == "${STUB_FAIL_COMMAND:-}" ]]; then exit 1; fi
+    """,
     "mise": """
         echo "$(date +%s.%N) mise $*" >>"$STUB_CALLS"
+        if [[ "mise $*" == "${STUB_FAIL_COMMAND:-}" ]]; then exit 1; fi
         if [[ "${*: -1}" == backend:test-upgrade ]]; then
             sleep "${STUB_UPGRADE_TEST_SECONDS:-0}"
             exit "${STUB_UPGRADE_TEST_EXIT_STATUS:-0}"
@@ -257,15 +277,35 @@ class TestScriptTestCase(unittest.TestCase):
         self.assertIsNone(self.find_call(self.get_upgrade_test_call()))
         self.assertIsNone(self.find_call(BROWSER_SUITE_CALL))
 
-    def test_no_run_starts_the_filesystem_suite_or_the_lifecycle_probes(self):
-        for start_run in (self.start_script, self.start_full_script):
-            with self.subTest(start_run=start_run.__name__):
-                self.calls_path.write_text("")
-                exit_status, _, stderr = self.finish_script(start_run())
-                self.assertEqual(exit_status, 0, stderr)
+    def test_the_routine_run_starts_no_full_only_suite(self):
+        exit_status, _, stderr = self.finish_script(self.start_script())
 
-                self.assertIsNone(self.find_call("mise run test-filesystem"))
-                self.assertIsNone(self.find_call("mise run e2e:lifecycle"))
+        self.assertEqual(exit_status, 0, stderr)
+        for command in FULL_ONLY_CALLS:
+            self.assertIsNone(self.find_call(command), command)
+
+    def test_the_full_run_executes_each_extra_suite_once_in_order_after_the_packages(self):
+        exit_status, _, stderr = self.finish_script(self.start_full_script())
+
+        self.assertEqual(exit_status, 0, stderr)
+        calls = [command for _, command in self.read_calls()]
+        full_calls = [command for command in calls if command in FULL_ONLY_CALLS]
+        self.assertEqual(full_calls, list(FULL_ONLY_CALLS))
+        package_completions = [index for index, command in enumerate(calls) if command.startswith("go finished")]
+        self.assertLess(max(package_completions), calls.index(FULL_ONLY_CALLS[0]))
+        self.assertIsNone(self.find_call("mise run test-filesystem"))
+        self.assertIsNone(self.find_call("mise run agent:e2e-podman"))
+
+    def test_the_full_run_fails_and_skips_later_suites_when_an_extra_suite_fails(self):
+        for index, command in enumerate(FULL_ONLY_CALLS):
+            with self.subTest(command=command):
+                self.calls_path.write_text("")
+                exit_status, _, _ = self.finish_script(self.start_full_script({"STUB_FAIL_COMMAND": command}))
+
+                self.assertNotEqual(exit_status, 0)
+                self.assertIsNotNone(self.find_call(command))
+                for later_command in FULL_ONLY_CALLS[index + 1:]:
+                    self.assertIsNone(self.find_call(later_command), later_command)
 
     def test_the_routine_run_selects_no_end_to_end_package(self):
         exit_status, _, stderr = self.finish_script(self.start_script())
