@@ -7,7 +7,7 @@ The interface is built from AntD components and icons, with Tailwind for layout 
 - **Owners.** `frontend/src/shared/theme/getAntdTheme.ts` owns the light and dark AntD algorithms. `ThemeCssVariables.tsx` derives surface, text, border, focus and status roles from its tokens, and `frontend/src/index.css` exposes them as semantic Tailwind utilities.
 - **Consumers** use these roles or AntD tokens, and raw values stay in the theme owner. The independent WAL chart palette owns its series colors and dash patterns.
 - **Roles.** Use `bg-page`, `bg-surface` or `bg-raised` for depth, `text-content` for ordinary text and `text-muted` for secondary text.
-- **Status.** Keep status words and icons beside status colors. Text links and status text have at least 4.5:1 contrast in both modes.
+- **Status.** Keep status words and icons beside status colors. Color contrast is a visual design choice, without an enforced minimum ratio.
 - **Focus** uses a visible outline. Never remove it without a visible keyboard replacement.
 - **Fonts.** Jost ships in `src/app/fonts` for Latin and Cyrillic, a system CJK fallback renders Chinese and no font service is needed at runtime. Commands, paths and diagnostics keep a monospace stack, and `InlineCodeComponent` adds a distinct background.
 

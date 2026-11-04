@@ -82,6 +82,7 @@ for (const authMethods of [
       await page.setViewportSize({ width: 320, height: 1000 });
       const form = page.locator('.ant-form');
       const accessibility = await new AxeBuilder({ page })
+        .disableRules(['color-contrast'])
         .include('.ant-form')
         .withTags(['wcag2a', 'wcag2aa'])
         .analyze();

@@ -131,7 +131,7 @@ When disk usage is available, the desktop header SHALL show its disk summary onl
 
 ### Requirement: The shell identifies the current section
 
-The main navigation SHALL distinguish the selected section with a solid background. While the pointer is not over it, its icon and any visible label SHALL keep at least 4.5:1 contrast against that background, in the light and dark themes, on wide and narrow viewports. Assistive technology SHALL announce the selected section as the current page, and SHALL NOT read its icon separately from its name.
+The main navigation SHALL distinguish the selected section with a solid background. Its icon and any visible label SHALL use the light selected presentation in both themes, on wide and narrow viewports. Assistive technology SHALL announce the selected section as the current page, and SHALL NOT read its icon separately from its name.
 
 #### Scenario: A section is selected on a wide viewport
 

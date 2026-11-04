@@ -34,20 +34,20 @@ export const AppShell = ({
       className="flex min-h-0 min-w-0 flex-col gap-2 bg-page p-2 text-content md:gap-3 md:p-3"
       style={{ height }}
     >
-      <header className="flex min-h-[50px] shrink-0 flex-wrap items-center gap-2 rounded bg-surface px-2 py-2 shadow md:min-h-[60px] md:gap-4 md:p-3">
+      <header className="flex min-h-[50px] shrink-0 flex-wrap items-center gap-2 rounded bg-surface px-2 py-1.5 shadow md:min-h-[60px] md:gap-4 md:px-3">
         <a
           href={getWebsitePageUrl('home', locale)}
           target="_blank"
           rel="noreferrer"
           aria-label={t('common.websiteLink')}
         >
-          <img className="h-[30px] w-[30px] md:h-[40px] md:w-[40px]" src="/logo.svg" alt="" />
+          <img className="h-[30px] w-[30px] p-1 md:h-[40px] md:w-[40px]" src="/logo.svg" alt="" />
         </a>
-        <div className="min-w-0 flex-1 md:flex-initial">{workspaceSelector}</div>
+        <div className="min-w-0 flex-1 md:w-[260px] md:flex-none">{workspaceSelector}</div>
         {!isMobile && (
           <div className="ml-auto flex max-w-full min-w-0 flex-wrap items-center justify-end gap-x-5 gap-y-2">
             <a
-              className="!text-content"
+              className="font-[450] !text-content"
               href={getWebsitePageUrl('installation', locale)}
               target="_blank"
               rel="noreferrer"
@@ -55,7 +55,7 @@ export const AppShell = ({
               {t('app.navigation.docs')}
             </a>
             <a
-              className="!text-content"
+              className="font-[450] !text-content"
               href="https://t.me/databasus_community"
               target="_blank"
               rel="noreferrer"
@@ -63,8 +63,10 @@ export const AppShell = ({
               {t('app.navigation.community')}
             </a>
             {auxiliary}
-            <StarButtonComponent />
-            <LanguageThemeControlComponent />
+            <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
+              <StarButtonComponent />
+              <LanguageThemeControlComponent />
+            </div>
           </div>
         )}
         {isMobile && (

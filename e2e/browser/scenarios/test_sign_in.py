@@ -4,7 +4,11 @@ from playwright.sync_api import Page, expect
 
 from application_screens import create_workspace, open_application, sign_in
 
-STORAGE_KEYS_SURVIVING_SIGN_OUT = ["databasus-locale", "databasus-theme", "lastVersionReload"]
+PREFERENCES_SURVIVING_SIGN_OUT = {
+    "databasus-locale": "fr",
+    "databasus-theme": "dark",
+    "lastVersionReload": "123",
+}
 
 
 class TestSignIn:
@@ -17,23 +21,28 @@ class TestSignIn:
         expect(page.get_by_role("button", name="Forgot password?", exact=True)).to_have_count(0)
 
         sign_in(page, instance_admin)
+
+        profile_button = page.get_by_role("button", name="Profile", exact=True)
+        expect(profile_button).to_be_visible()
+
         create_workspace(page, f"Signing out {uuid.uuid4()}")
 
         assert page.evaluate("() => localStorage.getItem('selected_workspace_id')") is not None
 
-        page.get_by_role("button", name="Profile", exact=True).click()
+        profile_button.click()
 
         expect(page.get_by_role("textbox", name="Email", exact=True)).to_have_value(instance_admin.email)
 
         page.evaluate(
-            """() => {
+            """(preferences) => {
                 localStorage.setItem('selectedDatabaseId_previous-workspace', 'previous-database');
                 localStorage.setItem('logicalBackupListFilter', '{"statuses":["FAILED"]}');
                 localStorage.setItem('physicalBackupsFilters', '{"types":["FULL"]}');
-                localStorage.setItem('databasus-locale', 'en');
-                localStorage.setItem('databasus-theme', 'dark');
-                localStorage.setItem('lastVersionReload', '123');
-            }"""
+                for (const [key, value] of Object.entries(preferences)) {
+                    localStorage.setItem(key, value);
+                }
+            }""",
+            PREFERENCES_SURVIVING_SIGN_OUT,
         )
         page.get_by_role("button", name="Logout").click()
 
@@ -41,4 +50,11 @@ class TestSignIn:
 
         remaining_storage_keys = page.evaluate("() => Object.keys(localStorage).sort()")
 
-        assert remaining_storage_keys == STORAGE_KEYS_SURVIVING_SIGN_OUT
+        assert remaining_storage_keys == sorted(PREFERENCES_SURVIVING_SIGN_OUT)
+
+        surviving_preferences = page.evaluate(
+            "(keys) => Object.fromEntries(keys.map(key => [key, localStorage.getItem(key)]))",
+            list(PREFERENCES_SURVIVING_SIGN_OUT),
+        )
+
+        assert surviving_preferences == PREFERENCES_SURVIVING_SIGN_OUT

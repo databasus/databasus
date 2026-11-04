@@ -261,7 +261,7 @@ export const ApplicationScreen = () => {
                 target="_blank"
                 rel="noreferrer"
               >
-                <span className="inline-flex h-2 w-2 rounded-full bg-success" />
+                <span className="inline-flex h-2 w-2 rounded-full bg-success-fill" />
               </a>
             </Tooltip>
           )}

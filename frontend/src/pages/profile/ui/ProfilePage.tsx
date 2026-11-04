@@ -189,9 +189,9 @@ export function ProfilePage({ onUserChanged }: Props) {
           <div className="mt-5">
             {user ? (
               <>
-                <div className="mb-6">
+                <div className="mb-4">
                   <h3 className="mb-4 text-lg font-semibold">{t('users.profile.information')}</h3>
-                  <div className="max-w-md">
+                  <div className="max-w-xs">
                     <div className="text-xs font-semibold">{t('users.profile.userId')}</div>
                     <div className="mb-4 text-sm text-muted">{user.id}</div>
 
@@ -199,6 +199,7 @@ export function ProfilePage({ onUserChanged }: Props) {
                       htmlFor={controlId + 'field-1'}
                       label={t('users.fields.name')}
                       layout="vertical"
+                      className="!mb-3"
                       validateStatus={isEditNameError ? 'error' : undefined}
                       help={
                         isEditNameError ? (
@@ -209,6 +210,7 @@ export function ProfilePage({ onUserChanged }: Props) {
                       }
                     >
                       <Input
+                        size="small"
                         aria-invalid={isEditNameError}
                         aria-describedby={controlId + 'field-1' + '-error'}
                         id={controlId + 'field-1'}
@@ -220,7 +222,6 @@ export function ProfilePage({ onUserChanged }: Props) {
                         }}
                         status={isEditNameError ? 'error' : undefined}
                         placeholder={t('users.profile.namePlaceholder')}
-                        className="mb-4"
                       />
                     </Form.Item>
 
@@ -228,6 +229,7 @@ export function ProfilePage({ onUserChanged }: Props) {
                       htmlFor={controlId + 'field-2'}
                       label={t('users.fields.email')}
                       layout="vertical"
+                      className="!mb-3"
                       validateStatus={isEditEmailError ? 'error' : undefined}
                       help={
                         isEditEmailError ? (
@@ -238,6 +240,7 @@ export function ProfilePage({ onUserChanged }: Props) {
                       }
                     >
                       <Input
+                        size="small"
                         aria-invalid={isEditEmailError}
                         aria-describedby={controlId + 'field-2' + '-error'}
                         id={controlId + 'field-2'}
@@ -250,7 +253,6 @@ export function ProfilePage({ onUserChanged }: Props) {
                         status={isEditEmailError ? 'error' : undefined}
                         placeholder={t('users.profile.emailPlaceholder')}
                         type="email"
-                        className="mb-4"
                       />
                     </Form.Item>
 
@@ -276,7 +278,7 @@ export function ProfilePage({ onUserChanged }: Props) {
                   </div>
                 </div>
 
-                <div className="mb-8">
+                <div className="mb-6">
                   <Button
                     className="!h-auto min-h-8 max-w-full !whitespace-normal"
                     type="primary"
@@ -298,6 +300,7 @@ export function ProfilePage({ onUserChanged }: Props) {
                       htmlFor={controlId + 'field-3'}
                       label={t('users.fields.newPassword')}
                       layout="vertical"
+                      className="!mb-3"
                       validateStatus={isNewPasswordError ? 'error' : undefined}
                       help={
                         isNewPasswordError ? (
@@ -310,6 +313,7 @@ export function ProfilePage({ onUserChanged }: Props) {
                       }
                     >
                       <Input.Password
+                        size="small"
                         aria-invalid={isNewPasswordError}
                         aria-describedby={controlId + 'field-3' + '-error'}
                         id={controlId + 'field-3'}
@@ -336,6 +340,7 @@ export function ProfilePage({ onUserChanged }: Props) {
                       htmlFor={controlId + 'field-4'}
                       label={t('users.profile.changePassword.confirmPassword')}
                       layout="vertical"
+                      className="!mb-3"
                       validateStatus={isConfirmPasswordError ? 'error' : undefined}
                       help={
                         isConfirmPasswordError ? (
@@ -346,6 +351,7 @@ export function ProfilePage({ onUserChanged }: Props) {
                       }
                     >
                       <Input.Password
+                        size="small"
                         aria-invalid={isConfirmPasswordError}
                         aria-describedby={controlId + 'field-4' + '-error'}
                         id={controlId + 'field-4'}
@@ -367,8 +373,6 @@ export function ProfilePage({ onUserChanged }: Props) {
                         }}
                       />
                     </Form.Item>
-
-                    <div className="mt-3" />
 
                     {(newPassword || confirmPassword) && (
                       <Button

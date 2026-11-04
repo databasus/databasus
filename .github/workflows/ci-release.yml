@@ -100,7 +100,7 @@ jobs:
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: 'go shellcheck jq'
+          install_args: 'go shellcheck jq node pnpm'
 
       - name: Run shellcheck
         run: mise run lint-shell

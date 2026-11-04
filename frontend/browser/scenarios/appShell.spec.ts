@@ -152,13 +152,20 @@ test('keeps workspace creation and navigation reachable when the entire shell us
   await enlargeText(shell);
   await assertAccountReflow(shell);
 
+  const workspaceSelector = page.getByRole('combobox', {
+    name: dictionary.app.workspaceSelection.selected,
+  });
+  await workspaceSelector.focus();
+  await workspaceSelector.press('ArrowDown');
+  await workspaceSelector.press('Tab');
+
   const create = page.getByRole('button', {
     name: dictionary.app.workspaceSelection.createNew,
     exact: true,
   });
   await create.scrollIntoViewIfNeeded();
   await expect(create).toBeInViewport();
-  await create.focus();
+  await expect(create).toBeFocused();
   await create.press('Enter');
 
   const creation = page.getByRole('dialog', {
@@ -172,7 +179,7 @@ test('keeps workspace creation and navigation reachable when the entire shell us
 
   await page.keyboard.press('Escape');
   await expect(creation).not.toBeVisible();
-  await expect(create).toBeFocused();
+  await expect(workspaceSelector).toBeFocused();
 
   const menu = page.getByRole('button', { name: dictionary.app.navigation.menu, exact: true });
   await menu.focus();

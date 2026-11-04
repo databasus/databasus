@@ -57,7 +57,7 @@ export const ChoosePostgresBackupTypeComponent = ({
               aria-pressed={isSelected}
               onClick={() => setSelectedType(option.type)}
               className={`flex cursor-pointer flex-col gap-2 rounded-xl border p-3 text-left transition hover:border-accent ${
-                isSelected ? 'border-accent bg-hover' : 'border-border bg-surface'
+                isSelected ? 'border-accent bg-selected' : 'border-border bg-surface'
               }`}
             >
               <div className="flex items-center gap-2">

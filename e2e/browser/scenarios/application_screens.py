@@ -1,5 +1,4 @@
 import json
-import re
 from dataclasses import dataclass
 
 from playwright.sync_api import Page, expect
@@ -42,7 +41,14 @@ def sign_in(page: Page, account: Account) -> None:
 
 
 def create_workspace(page: Page, name: str) -> None:
-    page.get_by_role("banner").get_by_role("button", name=re.compile("Create workspace|Create new workspace")).click()
+    workspace_selector = page.get_by_role("combobox", name="Selected workspace")
+
+    if workspace_selector.is_visible():
+        workspace_selector.focus()
+        workspace_selector.press("ArrowDown")
+        page.get_by_role("button", name="Create new workspace").click()
+    else:
+        page.get_by_role("banner").get_by_role("button", name="Create workspace", exact=True).click()
 
     dialog = page.get_by_role("dialog", name="Create workspace", exact=True)
     dialog.get_by_role("textbox", name="Workspace name", exact=True).fill(name)

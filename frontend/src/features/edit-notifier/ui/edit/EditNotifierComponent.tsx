@@ -1,4 +1,4 @@
-import { Alert, Button, Form, Input, Select, notification } from 'antd';
+import { Alert, Button, Input, Select, notification } from 'antd';
 import { useEffect, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -9,6 +9,7 @@ import {
   getNotifierLogoFromType,
 } from '../../../../entities/notifiers';
 import { translateApiError } from '../../../../shared/i18n';
+import { WRAPPING_SELECT_CLASS_NAME } from '../../../../shared/ui';
 import { createDefaultNotifierSettings } from '../../lib/createDefaultNotifierSettings';
 import { isNotifierAddressChanged } from '../../lib/isNotifierAddressChanged';
 import { isNotifierSettingsFilled } from '../../lib/isNotifierSettingsFilled';
@@ -100,20 +101,29 @@ export function EditNotifierComponent({
     >
       {noticeHolder}
       {isShowName && (
-        <Form.Item label={t('common.fields.name')} htmlFor={fieldId} layout="vertical">
+        <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
+          <label htmlFor={fieldId} className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
+            {t('common.fields.name')}
+          </label>
           <Input
             id={fieldId}
             value={name}
             onChange={(event) => form.changeName(event.target.value)}
             size="small"
-            className="w-full"
+            className="w-full max-w-[250px]"
             placeholder={t('notifiers.create.namePlaceholder')}
           />
-        </Form.Item>
+        </div>
       )}
 
-      <Form.Item label={t('common.fields.type')} htmlFor={`${fieldId}-type`} layout="vertical">
-        <div className="flex min-w-0 items-center gap-2">
+      <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
+        <label
+          htmlFor={isSaved ? undefined : `${fieldId}-type`}
+          className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2"
+        >
+          {t('common.fields.type')}
+        </label>
+        <div className="flex w-full min-w-0 items-center">
           {isSaved ? (
             <span>{t(NOTIFIER_TYPE_LABEL_KEYS[settings.type])}</span>
           ) : (
@@ -128,12 +138,16 @@ export function EditNotifierComponent({
               }))}
               onChange={(type: NotifierType) => changeSettings(createDefaultNotifierSettings(type))}
               size="small"
-              className="min-w-0 flex-1"
+              className={`w-full max-w-[250px] min-w-0 ${WRAPPING_SELECT_CLASS_NAME}`}
             />
           )}
-          <img src={getNotifierLogoFromType(settings.type)} alt="" className="h-4 w-4" />
+          <img
+            src={getNotifierLogoFromType(settings.type)}
+            alt=""
+            className="ml-2 h-4 w-4 shrink-0"
+          />
         </div>
-      </Form.Item>
+      </div>
 
       <div className="mt-5" />
 

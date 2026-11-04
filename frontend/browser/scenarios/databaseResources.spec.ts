@@ -1,6 +1,7 @@
 import { type Locator, type Page, expect } from '@playwright/test';
 
 import type { components } from '../../src/shared/api/schema.gen';
+import { DICTIONARIES } from '../../src/shared/i18n/dictionaries';
 import { applicationFixtures, workspace } from '../applicationFixtures';
 import { test } from '../browserTest';
 import { apiResponse } from '../HttpFixture';
@@ -200,6 +201,22 @@ const openDatabaseSettings = async (page: Page, theme: 'light' | 'dark') => {
   await openWorkspaceScreen({ page, locale: 'en', tab: 'databases' });
   await page.getByRole('tab', { name: 'Config' }).click();
 };
+
+for (const theme of ['light', 'dark'] as const) {
+  test(`shows white available status text in the ${theme} theme`, async ({ page }) => {
+    await page.route('**/api/v1/databases?**', (route) =>
+      route.fulfill({ json: { items: [{ ...database, healthStatus: 'AVAILABLE' }] } }),
+    );
+    await openAccount({ page, theme });
+    await openWorkspaceScreen({ page, locale: 'en', tab: 'databases' });
+
+    const databaseCard = page.getByRole('button', { name: /^Orders/ });
+    await expect(databaseCard).toBeVisible();
+    await expect(
+      databaseCard.getByText(DICTIONARIES.en.status.health.available, { exact: true }),
+    ).toHaveCSS('color', 'rgb(255, 255, 255)');
+  });
+}
 
 test('shows the copy notice on the dark surface and removes it on its own', async ({ page }) => {
   await openDatabaseSettings(page, 'dark');

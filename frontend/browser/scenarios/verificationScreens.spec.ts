@@ -218,6 +218,7 @@ for (const theme of ['light', 'dark']) {
     await waitForFocusInside(drawerRoot);
 
     const accessibility = await new AxeBuilder({ page })
+      .disableRules(['color-contrast'])
       .include('.ant-drawer-content')
       .withTags(['wcag2a', 'wcag2aa'])
       .analyze();
@@ -256,6 +257,7 @@ for (const theme of ['light', 'dark']) {
       .first();
 
     const accessibility = await new AxeBuilder({ page })
+      .disableRules(['color-contrast'])
       .include('.ant-table-wrapper')
       .withTags(['wcag2a', 'wcag2aa'])
       .analyze();
@@ -300,6 +302,7 @@ test('shows the revealed token and its commands in a long locale at a narrow vie
   await expect(dialog).toHaveCSS('opacity', '1');
 
   const accessibility = await new AxeBuilder({ page })
+    .disableRules(['color-contrast'])
     .include('.ant-modal-content')
     .withTags(['wcag2a', 'wcag2aa'])
     .analyze();

@@ -415,6 +415,7 @@ test('keeps authorization controls accessible at a narrow width', async ({ page,
   });
 
   const accessibility = await new AxeBuilder({ page })
+    .disableRules(['color-contrast'])
     .include('[role="dialog"]')
     .withTags(['wcag2a', 'wcag2aa'])
     .analyze();

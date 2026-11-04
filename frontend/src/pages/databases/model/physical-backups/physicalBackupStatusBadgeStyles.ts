@@ -12,7 +12,7 @@ export const PHYSICAL_BACKUP_STATUS_BADGE_STYLES: Record<
 > = {
   [PhysicalBackupStatus.COMPLETED]: {
     pillClasses: 'bg-success/10 text-success ring-success/30',
-    dotClasses: 'bg-success',
+    dotClasses: 'bg-success-fill',
   },
   [PhysicalBackupStatus.IN_PROGRESS]: {
     pillClasses: 'bg-accent/10 text-accent ring-accent/30',

@@ -205,7 +205,7 @@ export const HealthcheckAttemptsComponent = ({ database }: Props) => {
                   data-status={healthcheckAttempt.status}
                   className={`h-[8px] w-[8px] cursor-pointer rounded-[2px] ${
                     healthcheckAttempt.status === HealthStatus.AVAILABLE
-                      ? 'bg-success'
+                      ? 'bg-success-fill'
                       : 'bg-danger'
                   }`}
                 />

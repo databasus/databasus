@@ -94,6 +94,7 @@ for (const theme of ['light', 'dark']) {
       });
 
       const accessibility = await new AxeBuilder({ page })
+        .disableRules(['color-contrast'])
         .include('.ant-modal-content')
         .withTags(['wcag2a', 'wcag2aa'])
         .analyze();

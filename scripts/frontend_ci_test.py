@@ -63,6 +63,15 @@ class FrontendCiTest(unittest.TestCase):
         package = json.loads((ROOT / "frontend/package.json").read_text())
         self.assertEqual(package["packageManager"], f'pnpm@{configuration["tools"]["pnpm"]}')
 
+    def test_script_suite_installs_its_frontend_tools_before_discovery(self):
+        job = get_job(self.workflow, "lint-shell")
+        tools = re.search(r"install_args:\s*['\"]?([^'\"\n]+)", job)
+
+        self.assertIsNotNone(tools)
+        self.assertTrue({"node", "pnpm"}.issubset(tools.group(1).split()))
+        self.assertRegex(job, r"uses: jdx/mise-action@[a-f0-9]{40}")
+        self.assertLess(job.index("install_args:"), job.index("python3 -m unittest discover"))
+
     def test_architecture_verification_is_part_of_the_release_lint_task(self):
         configuration = tomllib.loads((ROOT / "mise.toml").read_text())
         self.assertEqual(configuration["tasks"]["frontend:lint"]["run"], "pnpm lint")

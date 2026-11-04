@@ -290,7 +290,7 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
       {loadError !== undefined && <LoadFailure error={loadError} onRetry={() => loadDatabases()} />}
 
       {isLoading && !collection.isReady ? (
-        <div className="mx-3 my-3 flex w-62.5 justify-center">
+        <div className="my-3 mr-3 flex w-62.5 justify-center">
           <Spin />
         </div>
       ) : collection.isReady ? (

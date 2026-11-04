@@ -7,27 +7,29 @@ export const getAntdTheme = (resolvedTheme: ResolvedTheme): ThemeConfig => ({
   cssVar: true,
   token: {
     colorPrimary: '#155dfc',
+    colorSuccess: '#00c950',
     ...(resolvedTheme === 'dark'
       ? {
           colorTextDescription: '#bfbfbf',
           colorTextPlaceholder: '#a6a6a6',
-          colorBorder: '#737373',
+          colorBorder: '#424242',
           colorLink: '#91caff',
           colorLinkHover: '#bae0ff',
           colorLinkActive: '#69b1ff',
           colorErrorText: '#ff7875',
-          colorSuccessText: '#95de64',
+          colorSuccessText: '#05df72',
           colorWarningText: '#ffd666',
         }
       : {
           colorTextDescription: '#595959',
           colorTextPlaceholder: '#737373',
-          colorBorder: '#858585',
+          colorBorder: '#d9d9d9',
+          controlItemBgActive: '#dbeafe',
           colorLink: '#155dfc',
           colorLinkHover: '#0042d6',
           colorLinkActive: '#0033a5',
           colorErrorText: '#b42318',
-          colorSuccessText: '#237804',
+          colorSuccessText: '#007a33',
           colorWarningText: '#875800',
         }),
     // eslint-disable-next-line i18next/no-literal-string -- CSS font-family stack

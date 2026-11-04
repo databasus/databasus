@@ -577,6 +577,7 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
       ) : null}
 
       <Modal
+        width={420}
         title={t('workspaces.members.add.title')}
         open={isAddMemberModalOpen}
         onOk={handleAddMember}
@@ -594,13 +595,14 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
           className: 'border-border bg-accent hover:border-border hover:bg-accent',
         }}
       >
-        <div className="py-4">
-          <div className="mb-4">
-            <label htmlFor={memberEmailControlId} className="mb-2 block font-medium text-muted">
+        <div className="py-2">
+          <div className="mb-3">
+            <label htmlFor={memberEmailControlId} className="mb-1 block text-content">
               {t('workspaces.members.fields.email')}
             </label>
             {user.role === UserRole.ADMIN ? (
               <AutoComplete
+                size="small"
                 id={memberEmailControlId}
                 value={addMemberForm.email}
                 onChange={(value) => {
@@ -637,6 +639,7 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
               />
             ) : (
               <Input
+                size="small"
                 id={memberEmailControlId}
                 value={addMemberForm.email}
                 onChange={(e) => {
@@ -653,9 +656,10 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
             <div className="mt-1 text-xs text-muted">{t('workspaces.members.add.hint')}</div>
           </div>
 
-          <div className="mb-4">
-            <div className="mb-2 font-medium text-muted">{t('workspaces.members.fields.role')}</div>
+          <div className="mb-0">
+            <div className="mb-1 text-content">{t('workspaces.members.fields.role')}</div>
             <Select<AssignableWorkspaceRole>
+              size="small"
               aria-label={t('workspaces.members.fields.role')}
               value={addMemberForm.role}
               onChange={(role) => setAddMemberForm({ ...addMemberForm, role })}

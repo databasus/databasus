@@ -34,7 +34,7 @@ export const StorageCardComponent = ({
       type="button"
       aria-label={storage.name}
       aria-pressed={selectedStorageId === storage.id}
-      className={`mb-3 w-full cursor-pointer rounded p-3 text-left break-words shadow ${selectedStorageId === storage.id ? 'bg-hover ' : 'bg-surface '}`}
+      className={`mb-3 w-full cursor-pointer rounded p-3 text-left break-words shadow ${selectedStorageId === storage.id ? 'bg-selected' : 'bg-surface'}`}
       onClick={() => setSelectedStorageId(storage.id)}
     >
       <div className="mb-1 font-bold">{storage.name}</div>

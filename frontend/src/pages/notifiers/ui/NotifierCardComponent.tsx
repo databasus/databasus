@@ -34,7 +34,7 @@ export const NotifierCardComponent = ({
       type="button"
       aria-label={notifier.name}
       aria-pressed={selectedNotifierId === notifier.id}
-      className={`mb-3 w-full cursor-pointer rounded p-3 text-left shadow ${selectedNotifierId === notifier.id ? 'bg-hover' : 'bg-surface'}`}
+      className={`mb-3 w-full cursor-pointer rounded p-3 text-left shadow ${selectedNotifierId === notifier.id ? 'bg-selected' : 'bg-surface'}`}
       onClick={() => setSelectedNotifierId(notifier.id)}
     >
       <div className="mb-1 font-bold">{notifier.name}</div>

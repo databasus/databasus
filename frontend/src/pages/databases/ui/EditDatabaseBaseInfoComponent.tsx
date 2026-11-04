@@ -76,7 +76,7 @@ export const EditDatabaseBaseInfoComponent = ({
               aria-pressed={isSelected}
               onClick={() => selectEngine(engineType)}
               className={`flex h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border text-center text-xs transition hover:border-accent ${
-                isSelected ? 'border-accent bg-hover' : 'border-border bg-surface'
+                isSelected ? 'border-accent bg-selected' : 'border-border bg-surface'
               }`}
             >
               <img src={getDatabaseLogoFromType(engineType)} alt="" className="h-7 w-7" />

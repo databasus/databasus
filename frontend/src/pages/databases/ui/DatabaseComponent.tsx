@@ -90,7 +90,9 @@ export const DatabaseComponent = ({
   return (
     <div className="w-full">
       <Tabs
+        className="[&_.ant-tabs-tab-btn]:!font-normal [&_.ant-tabs-tab-btn]:!text-content [&_.ant-tabs-tab-btn]:![text-shadow:none]"
         type="card"
+        tabBarGutter={8}
         tabBarStyle={{ marginBottom: 0 }}
         activeKey={shownTab}
         onChange={(tab) => setCurrentTab(tab as DatabaseTab)}

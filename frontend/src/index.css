@@ -53,9 +53,12 @@ body {
   --color-muted: var(--app-muted);
   --color-border: var(--app-border);
   --color-hover: var(--app-hover);
+  --color-selected: var(--app-selected);
   --color-accent: var(--app-accent);
   --color-danger: var(--app-danger);
   --color-success: var(--app-success);
+  --color-success-fill: var(--app-success-fill);
+  --color-on-success-fill: var(--app-on-success-fill);
   --color-warning: var(--app-warning);
   --color-code: var(--app-code);
 }

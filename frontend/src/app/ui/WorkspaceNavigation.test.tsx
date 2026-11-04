@@ -112,7 +112,7 @@ const getWorkspaceSelection = () =>
   within(
     screen
       .getByRole('combobox', { name: 'Selected workspace' })
-      .closest('.ant-select') as HTMLElement,
+      .closest('.ant-select-selector') as HTMLElement,
   );
 const selectWorkspace = async (workspace: Workspace) => {
   fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Selected workspace' }));
@@ -790,11 +790,8 @@ describe('Application workspace navigation', () => {
       if (mutation === 'create') {
         server.use(mockApi.post('/workspaces', 201, thirdWorkspace));
 
-        fireEvent.click(
-          within(screen.getByRole('banner')).getByRole('button', {
-            name: /Create workspace|Create new workspace/,
-          }),
-        );
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Selected workspace' }));
+        fireEvent.click(await screen.findByRole('button', { name: /Create new workspace/ }));
         const dialog = within(await screen.findByRole('dialog'));
 
         fireEvent.change(dialog.getByRole('textbox', { name: 'Workspace name' }), {

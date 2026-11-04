@@ -20,7 +20,7 @@ export function ResourceListDetail({
   return (
     <div className="flex min-h-0 min-w-0 flex-1">
       {(!isMobile || !hasSelection) && (
-        <div className="min-h-0 w-full shrink-0 overflow-y-auto md:mx-3 md:w-62.5">{list}</div>
+        <div className="min-h-0 w-full shrink-0 overflow-y-auto md:mr-3 md:w-62.5">{list}</div>
       )}
       {hasSelection && (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">

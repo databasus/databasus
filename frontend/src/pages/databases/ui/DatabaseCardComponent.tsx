@@ -25,7 +25,7 @@ export const DatabaseCardComponent = ({
     <button
       type="button"
       aria-pressed={selectedDatabaseId === database.id}
-      className={`mb-3 block w-full cursor-pointer rounded p-3 text-left shadow ${selectedDatabaseId === database.id ? 'bg-hover' : 'bg-surface'}`}
+      className={`mb-3 block w-full cursor-pointer rounded p-3 text-left shadow ${selectedDatabaseId === database.id ? 'bg-selected' : 'bg-surface'}`}
       onClick={() => setSelectedDatabaseId(database.id)}
     >
       <div className="flex">
@@ -34,8 +34,10 @@ export const DatabaseCardComponent = ({
         {database.healthStatus && (
           <div className="ml-auto shrink-0 pl-1">
             <div
-              className={`rounded px-[6px] py-[2px] text-[10px] text-surface ${
-                database.healthStatus === HealthStatus.AVAILABLE ? 'bg-success' : 'bg-danger'
+              className={`rounded px-[6px] py-[2px] text-[10px] ${
+                database.healthStatus === HealthStatus.AVAILABLE
+                  ? 'bg-success-fill text-on-success-fill'
+                  : 'bg-danger text-surface'
               }`}
             >
               {t(HEALTH_STATUS_LABEL_KEYS[database.healthStatus])}
