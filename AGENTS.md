@@ -12,6 +12,7 @@ How the system is built is described in `docs/`:
 - [`docs/frontend-design.md`](docs/frontend-design.md) — frontend design conventions and their code owners
 - [`docs/frontend-localization.md`](docs/frontend-localization.md) — dictionaries, safe interpolation and regional formats
 - [`docs/google-drive-storage-authorization.md`](docs/google-drive-storage-authorization.md) — how a storage editor authorizes with Google Drive
+- [`docs/verification-agent-manual-update.md`](docs/verification-agent-manual-update.md) — replacing a verification agent binary by hand when its self-update fails
 
 Product behavior is specified in `openspec/specs`.
 
