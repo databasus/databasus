@@ -8,7 +8,7 @@ Everything lives in `shared/i18n`. `LocaleProvider.tsx` owns the i18next instanc
 
 - **English.** In `shared/i18n/locales/en.ts`, use a plain hyphen `-` in any string the user will see. Em dashes (`—`) and en dashes (`–`) are for markdown docs and code comments only.
 - **Other languages** follow their own typography, as [`website/AGENTS.md` - Translation quality](../website/AGENTS.md#translation-quality) sets out: Russian keeps «—» where its grammar wants it, French puts a space before `: ; ! ?` and `%`, and Chinese uses full-width punctuation. The same section lists the canonical interface terms per language.
-- **Translations** are written in the target language, not rendered word for word.
+- **Translations** are edited copy in the target language.
 
 ## Dictionaries
 
@@ -30,8 +30,8 @@ Everything lives in `shared/i18n`. `LocaleProvider.tsx` owns the i18next instanc
 ### Reading text
 
 - Components read text with `const { t } = useTranslation()` from `react-i18next`.
-- Code outside components holds keys, because a constant or parser that called `t()` would freeze the language active when it ran. It stores a `TranslationKey`, or a `LocalizedText` (`{ key, params }`) when the message has parameters. The component translates while rendering (`t(key)`, `translateLocalizedText(text, t)`).
-- State follows the same rule: keep an error or a key in state, not a translated string.
+- Code outside components holds keys. A constant or parser that called `t()` would freeze the language active when it ran. It stores a `TranslationKey`, or a `LocalizedText` (`{ key, params }`) when the message has parameters. The component translates while rendering (`t(key)`, `translateLocalizedText(text, t)`).
+- State follows the same rule: it holds an error or a key, and the text is translated while rendering.
 - Every enum shown to the user has a label table `<TYPE>_LABEL_KEYS: Record<Enum, TranslationKey>` next to its type, exported through the slice's `index.ts`. Never build a key from a value (``t(`status.${value}`)``), because adding an enum member must fail the build.
 
 ### Sentences
@@ -39,26 +39,26 @@ Everything lives in `shared/i18n`. `LocaleProvider.tsx` owns the i18next instanc
 - Sentences stay whole. A sentence with inline markup is one key with named tags in the dictionary (`Run <code>pg_dump</code> first`), rendered through `<Trans i18nKey="..." components={{ code: <InlineCodeComponent />, bold: <strong />, docsLink: <a href={...} /> }} />`.
 - Use `<TransByKey>` from `shared/i18n` when the key is held in a variable, because `Trans` cannot type-check the whole key union.
 - Values are interpolated into a whole sentence (`'Delete {{name}}?'`), never concatenated with translated fragments. When the inserted word would inflect in other languages, each value gets its own sentence key.
-- A user-entered value in a `Trans` sentence, such as a workspace name, is a self-closing tag whose supplied element holds the value: dictionary `Delete <workspaceName/>?`, component `components={{ workspaceName: <strong>{name}</strong> }}`. Never pass it through `values`, because `Trans` would expand placeholder syntax inside it.
-- Inline code in prose goes through `InlineCodeComponent` from `shared/ui`, not a bare `<code>`, because a monospace font alone does not set code apart from the text around it.
+- A user-entered value in a `Trans` sentence, such as a workspace name, is a self-closing tag, and the supplied element holds the value: dictionary `Delete <workspaceName/>?`, component `components={{ workspaceName: <strong>{name}</strong> }}`. Never pass it through `values`, because `Trans` would expand placeholder syntax inside it.
+- Inline code in prose goes through `InlineCodeComponent` from `shared/ui`. A monospace font alone does not set code apart from the text around it.
 - Counts are phrased so one string fits every number: `Members: {{count}}`, not `{{count}} members`. The dictionaries have no plural forms, because Russian's `_few` would be a stray key under `typeof en`.
 - Translated text is never rendered as HTML. No `dangerouslySetInnerHTML`.
 
 ### Formatting, errors and links
 
 - Locale-dependent output comes from hooks, so a language switch re-renders it: `useTranslation` for text, and `useLocale()` for `formatNumber` (instead of `toLocaleString()`) and `formatRelativeTime` (instead of dayjs `fromNow()`).
-- API errors reach the user only through `translateApiError(error, t)`, which picks the text by the error's `code`. Every `code` the contract declares has a translation. Never show `error.message` or the backend's text directly.
-- Links to databasus.com pages go through `getWebsitePageUrl(pageId, locale)` with a page from `WEBSITE_PAGES`, which opens the page in the selected language when the website publishes it.
+- API errors reach the user only through `translateApiError(error, t)`. It picks the text by the error's `code`. Every `code` the contract declares has a translation. Never show `error.message` or the backend's text directly.
+- Links to databasus.com pages go through `getWebsitePageUrl(pageId, locale)` with a page from `WEBSITE_PAGES`. The link opens the page in the selected language when the website publishes it.
 
 ## Clock format and date order
 
-`shared/time/getUserTimeFormat.ts` reads `navigator.language` on purpose. The 12- or 24-hour clock and the day and month order are regional conventions, and the browser reports the user's region, while the language selection only says which words to use. Those reads stay. A bare `toLocaleString()` does not, because digit grouping follows the selected language.
+`shared/time/getUserTimeFormat.ts` reads `navigator.language` on purpose. The 12- or 24-hour clock and the day and month order are regional conventions. The browser reports the user's region, and the language selection only sets the words. A bare `toLocaleString()` is not allowed, because digit grouping follows the selected language.
 
 ## Errors and notice lifetimes
 
-- **Persistent errors** stay API errors, translation keys with parameters, or supported delivery diagnostics, and are translated during rendering. Switching language therefore updates a visible error.
+- **Persistent errors** stay API errors, translation keys with parameters or supported delivery diagnostics. They are translated during rendering, so switching language updates a visible error.
 - **Diagnostic values** render as React text, so angle brackets, braces, hostnames and commands keep their literal characters.
-- **Success notices** capture their language when created and expire after their original lifetime. A locale switch neither recreates a notice nor restarts its deadline.
+- **Success notices** capture their language when created and expire after their original lifetime. A locale switch leaves a visible notice and its deadline as they are.
 - **Editing sessions.** Closing one destroys its own notice, and late results from an obsolete session cannot create one.
 - **Forms.** Field errors render beside their controls and derive from the current state. A language or theme change keeps values, newer edits, expanded settings and successful testing of unchanged settings.
 

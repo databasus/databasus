@@ -22,7 +22,7 @@
 
 - **Databases:** PostgreSQL 12-18, MySQL 5.7, 8.0, 8.4, 9 and 26, MariaDB 5.5, 10, 11, 12 and 13, MongoDB 4.2+, 5, 6, 7, 8 and 9. PostgreSQL is the primary focus.
 - **Schedules:** hourly, daily, weekly, monthly or cron, with an exact run time. Weekly schedules take weekdays, and monthly schedules take calendar days.
-- **Storages:** local disk, S3 and S3-compatible services such as Cloudflare R2, Google Drive, NAS, Azure Blob Storage, FTP, SFTP and rclone, which connects 70+ providers including Dropbox.
+- **Storages:** local disk, S3 and S3-compatible services such as Cloudflare R2, Google Drive, NAS, Azure Blob Storage, FTP, SFTP and rclone. Rclone connects 70+ providers, including Dropbox.
 - **Notifications:** email, Slack, Telegram, Discord, Microsoft Teams, Mattermost and webhooks.
 - **Compression:** balanced compression shrinks dumps 4-8x with about 20% runtime overhead.
 - **Encryption:** AES-256-GCM for backup files, useless to attackers even if the storage is compromised.
@@ -53,7 +53,7 @@ Retention runs automatically after each backup.
 
 ## Security
 
-All data stays in containers and accounts you control. Three runtime layers protect it: AES-256-GCM encryption of sensitive data, backup encryption with a unique key per backup, and read-only database access.
+All data stays in containers and accounts you control. Three runtime layers protect it: AES-256-GCM encryption of sensitive data, backup encryption with a unique key per backup and read-only database access.
 
 Every commit and pull request also passes engineering checks:
 
@@ -106,7 +106,7 @@ See [Security & reliability engineering](https://databasus.com/security#security
 ### Legal and FAQ
 
 - [FAQ](https://databasus.com/faq): backup formats, installation directory, backup types, PITR and disaster recovery.
-- [Privacy Policy](https://databasus.com/privacy): covers the website, the self-hosted app with its optional anonymous telemetry, and payments through Paddle.
+- [Privacy Policy](https://databasus.com/privacy): covers the website, the self-hosted app with its optional anonymous telemetry and payments through Paddle.
 - [Terms of Use](https://databasus.com/terms-of-use): paid services sold through Paddle. The open source software is governed solely by its Apache 2.0 license.
 
 ## Installation

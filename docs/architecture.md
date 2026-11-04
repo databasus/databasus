@@ -4,9 +4,9 @@ Databasus backs up and restores the user's PostgreSQL, MySQL, MariaDB and MongoD
 
 A backup travels through the system like this. A schedule makes a background job start the backup. The backend connects to the user's database over the network or through an SSH tunnel, and runs the dump or replication tool from its own container. The data streams into the storage in small chunks. The backend then records the outcome and sends a notification. Later, a separate verification agent can restore the backup into a disposable container to prove that it works.
 
-Three decisions shape the rest of this document: everything ships in one container, one backend process owns all in-memory state, and nothing of ours runs on the database host.
+Three decisions shape the rest of this document: everything ships in one container, one backend process owns all in-memory state and nothing of ours runs on the database host.
 
-The document goes from the whole system to the backend's structure, then to how backups work, and ends with the frontend and the automatic checks. It states how the system is built and why, and the architecture review hook checks every plan and diff against it. Terms follow the [glossary](glossary.md), [testing.md](testing.md) describes the tests, and `openspec/specs` specifies product behavior, including its exact limits.
+The document goes from the whole system to the backend's structure and then to how backups work. It ends with the frontend and the automatic checks. It states how the system is built and why, and the architecture review hook checks every plan and diff against it. Terms follow the [glossary](glossary.md), [testing.md](testing.md) describes the tests, and `openspec/specs` specifies product behavior, including its exact limits.
 
 ## System
 
@@ -25,7 +25,7 @@ The document goes from the whole system to the backend's structure, then to how 
 ```
 
 - **One image, one container.** Installing is one `docker run`, and upgrading is pulling a newer image. A separate database service was rejected, because users managed two images and two volumes and never upgraded the database. A single static binary was rejected, because users would have to install a dozen client tool versions.
-- **The internal database is PostgreSQL, not SQLite.** It is never external, and the image pins its version.
+- **The internal database is PostgreSQL.** It always runs inside the container, and the image pins its version.
 - **Client tools are vendored** under `assets/`, per engine, major version and architecture, so the build is reproducible and works offline. The `client-tool-bundles` skill covers adding and refreshing them.
 - **One process per installation** (spec `single-instance-runtime`). It owns the cache, the rate-limit counters, task cancellation and the WAL streamers, so there is no worker process and no shared cache service.
 - **Backups run remotely**, over the network or through an SSH tunnel to a jump host. Managed databases forbid host installs, and an agent on the host would double the release and test surface. We tried one and removed it.
@@ -103,7 +103,7 @@ The dependency graph between modules has no cycles. From lowest to highest, the 
 
 - **Handler** decodes the request through the generated strict server, calls one service method and encodes the response.
 - **Service** holds the rules: validation, `Authorize`, transactions, audit events, notifications. It writes no SQL.
-- **Repository** holds `*gorm.DB` and runs every query of its tables through `database.Conn(ctx, r.db)`. Most repositories are unexported and reached through the exported `Repositories` bundle, which `module.go` builds with `NewRepositories`. A repository is exported when another package names its type or builds it directly.
+- **Repository** holds `*gorm.DB` and runs every query of its tables through `database.Conn(ctx, r.db)`. Most repositories are unexported and reached through the exported `Repositories` bundle. `module.go` builds it with `NewRepositories`. A repository is exported when another package names its type or builds it directly.
 
 [The backend rules](../backend/AGENTS.md#handlers-services-repositories) hold the details of each role, including what a repository returns when it finds no row.
 
@@ -114,7 +114,7 @@ Each module owns its part of the internal database. Integrity rules live in the 
 - **Ownership.** Each module reads and writes only its own tables, through its repositories. Data of another module comes through its interface, never through a SQL JOIN.
 - **Table names.** The module's main table carries the module name (`storages`), and every other table starts with it (`storages_s3`, `backups_logical`). A `lib` package may own a table named `lib_<name>_*`, such as `lib_audit_events`, and modules use it only through the package.
 - **References between modules.** A foreign key to another module's table is `ON DELETE RESTRICT`, and `CASCADE` is allowed only inside one module.
-  - A backup row describes a file in a storage, and a cascade would delete the row without asking for the file's deletion. With `RESTRICT`, a missing cleanup fails loudly instead of leaving orphan files.
+  - A backup row describes a file in a storage, and a cascade would delete the row without asking for the file's deletion. With `RESTRICT`, a missing cleanup fails loudly and leaves no orphan files.
   - The database also refuses to delete a storage, notifier or database that is still referenced, and the service answers that refusal with 409 `in_use`.
 - **Invariants live in the schema** when the schema can express them:
   - `NOT NULL` and `DEFAULT`;
@@ -127,7 +127,7 @@ Each module owns its part of the internal database. Integrity rules live in the 
   - A service opens one with `Transaction(ctx, fn)` of the `*database.Transactor` from `Deps`, so it never holds the pool itself.
   - Every repository call made with that context, in any module, joins the transaction through `database.Conn(ctx, r.db)`.
   - Background work that outlives its caller, such as a notification delivery, detaches with `database.WithoutTransaction(ctx)`.
-  - An effect outside the database registers a hook with `database.AfterCommit(ctx, hook)`. The outermost transaction runs its hooks in order after it commits, with a context that no longer carries the transaction, and drops them on rollback.
+  - An effect outside the database registers a hook with `database.AfterCommit(ctx, hook)`. The outermost transaction runs its hooks in order after it commits and drops them on rollback. The hooks get a context without the transaction.
 - **Secrets** of providers and databases are encrypted per field with the master key and decrypted only where they are used. The cipher is AES-GCM, and an encrypted value starts with `enc:`. Account passwords and agent tokens are hashed.
 
 ### Migrations
@@ -135,11 +135,11 @@ Each module owns its part of the internal database. Integrity rules live in the 
 The schema changes only through goose SQL migrations in `backend/migrations`, embedded in the binary and applied at startup. `AutoMigrate` is never used.
 
 - **Order.** Migrations may apply out of order, so a migration merged after a later-numbered one still runs. A migration therefore never depends on the order of migrations within a release.
-- **Transaction.** Every migration runs whole in one transaction, so a failed one leaves no partial changes and the next start applies it again. `-- +goose NO TRANSACTION` is not allowed. `CREATE INDEX CONCURRENTLY` gains nothing here, because migrations run before the server accepts requests.
-- **Older data.** Every migration runs on a fresh install, on an install upgraded through every release, and on an internal database restored from an older dump.
+- **Transaction.** Every migration runs whole in one transaction, so a failed one leaves no partial changes and the next start applies it again. `-- +goose NO TRANSACTION` is not allowed. Migrations run before the server accepts requests, so they can lock tables and need no `CREATE INDEX CONCURRENTLY`.
+- **Older data.** Every migration runs on a fresh install, on an install upgraded through every release and on an internal database restored from an older dump.
   - A migration that adds or tightens a constraint first repairs the rows that would violate it. Otherwise the upgraded instance does not start.
   - A migration that moves encrypted values copies them as they are, because SQL cannot decrypt them.
-- **One-way upgrades.** A binary refuses to start when the database's newest migration is newer than its own, so it stops at startup instead of failing at the first request. An unknown migration older than the binary's newest does not stop it, because releases have deleted or renamed migrations.
+- **One-way upgrades.** A binary refuses to start when the database's newest migration is newer than its own. On a renamed table it would otherwise fail only at its first request. An unknown migration older than the binary's newest does not stop it, because releases have deleted or renamed migrations.
 - **Testing.** The upgrade test from [testing.md](testing.md) runs every migration against data written by the previous release.
 - **Format.** One statement per table, constraint and index, column types aligned, each constraint clause on its own line.
 
@@ -151,7 +151,7 @@ Databasus has three families of interchangeable implementations: database engine
 
 Engines live in `internal/engines/<engine>`: `postgresql`, `mysql`, `mariadb` and `mongodb`. An engine connects, inspects privileges, provisions limited users, dumps, restores and finds its client tool. PostgreSQL also streams base backups, rebuilds their manifests and receives WAL.
 
-- `postgresql` is split into `logical`, `physical` and `shared`, and `mysqlfamily` holds what MySQL and MariaDB share. `clienttools` holds what the client tool sets of every engine share, and it is not an engine.
+- `postgresql` is split into `logical`, `physical` and `shared`, and `mysqlfamily` holds what MySQL and MariaDB share. `clienttools` holds what the client tool sets of every engine share.
 - An engine's sources offer small sets of methods, because a physical PostgreSQL source and a logical one support different sets.
 - A consumer serving several engines through one shape declares the interface it needs, as `ConnectedDatabase` in `databases` does.
 - That consumer maps each database type to its implementation in one registry of its own, as the logical backup pipeline of `backups` does. The provider registry of `databases` cannot hold those entries, because they open work `databases` knows nothing about, and a restore target has settings but no database row.
@@ -164,20 +164,20 @@ Engines live in `internal/engines/<engine>`: `postgresql`, `mysql`, `mariadb` an
 - Each provider owns its behavior, its repository and one table with its settings as explicit columns.
 - The common fields and the type sit in a parent row, in `storages`, `notifiers` or `databases`. Every other table references the parent.
 - The parent repository saves the parent row and, in the same transaction, the provider's settings. A list loads the parents first, then the provider rows in one batch per type.
-- Settings stay in columns because the database keeps enforcing `NOT NULL`, `CHECK` and types, and existing rows get a new field's value from `DEFAULT` instead of a zero value in Go.
+- Settings stay in columns for two reasons. The database keeps enforcing `NOT NULL`, `CHECK` and types. Existing rows get a new field's value from `DEFAULT`.
 - Backup configs have the same shape, with the backup method as the type: `backups_configs`, `backups_configs_logical` and `backups_configs_physical`.
 
 ## Shared code
 
 `internal/lib` holds code without domain logic, one concept per package, so the directory listing tells what is available.
 
-- **Less obvious packages:** `database` also holds constraint errors and keyset cursors, `crypto` holds the master key and both field and stream encryption, `gfs` selects the backups a retention keeps, and `namelist` holds the object-name lists a user enters, such as excluded tables.
+- **Less obvious packages:** `database` also holds constraint errors and keyset cursors, `crypto` holds the master key and both field and stream encryption, `gfs` selects the backups a retention keeps and `namelist` holds the object-name lists a user enters, such as excluded tables.
 - **Test support** lives in `lib` too, and production dependency checks keep it out of both binaries. The main packages are `testdb`, `testwait`, `toolstub`, `testcontainers`, `httpclienttest`, `mailpittest` and the contract-checking clients `apiclient` and `agentclienttest` with `contracttest`. Storage-provider-only support lives in `storages/internal/providers/providertest`.
 
 ### Audit events
 
 - Audit events are written through `lib/audit` in the transaction of the operation they describe, or right after an effect outside the database, such as a sent email.
-- Each event stores a snapshot of its audit author, so it reads the same after the user changes or is deleted, and needs no join with `users`.
+- Each event stores a snapshot of its audit author, so it reads the same after the user changes or is deleted. Reading it needs no join with `users`.
 - `workspaces` serves every audit log view, because only it can read workspace names and apply each view's access rule.
 
 ## HTTP API
@@ -185,12 +185,12 @@ Engines live in `internal/engines/<engine>`: `postgresql`, `mysql`, `mariadb` an
 Two contracts describe the API, and the servers, test clients and frontend types are generated from them. `backend/api/openapi.yaml` describes what the SPA and users' scripts call, with paths relative to `/api/v1`. `backend/api/agent.yaml` describes what the verification agent calls. The `api-design` skill holds the rules for designing an operation.
 
 - **The contract comes first.** A change starts there, and `mise run generate-api` regenerates the code. Generated files (`*.gen.go`, `*.gen.ts`) are never edited by hand.
-- **Implementation.** A module implements its generated strict server in `internal/modules/<name>/internal/httpapi`, or in `internal/agentapi` for `agent.yaml`. Operations are assigned to modules by tag, except the `system` tag, which describes the running instance and is served by `internal/app/systemhttpapi`.
+- **Implementation.** A module implements its generated strict server in `internal/modules/<name>/internal/httpapi`, or in `internal/agentapi` for `agent.yaml`. Operations are assigned to modules by tag. The `system` tag is the exception: it describes the running instance, and `internal/app/systemhttpapi` serves it.
 - **Mounting mistakes.** A route registered without an operation in the contract answers 500, so a mistake cannot expose an operation without its access checks.
 - **Errors** use the `Problem` format (RFC 9457) with a machine-readable `code`, and every operation declares a `default` response with it. An internal error's text never reaches the client, and the frontend chooses its translation by `code`.
 - **Access to the user API.** The `users` middleware authenticates a request, puts the `Actor` into its context and enforces the instance admin mark from `openapi.yaml`. `Authorize` checks workspace access, as [Modules](#modules) describes.
 - **Access to the agent API.** Its operations run on a separate route group behind their own contract guard, and the verification module authenticates each with the agent token.
-- **Lists** are paged with a cursor through `limit` and `after`, and `OFFSET` is not used.
+- **Lists** are paged with a cursor through `limit` and `after`.
 - **`totalUsageMb`.** A physical backup page also carries the storage used by every physical backup of the database. A separate operation would add a request to a refresh that runs every second while saving at most one `SUM`.
 - **Long operations**, such as a backup, a restore or a verification, answer 202 with the resource in its in-progress state.
 - **Starting a physical backup** is the one exception and answers 202 with no body.
@@ -214,9 +214,9 @@ Backups, restores and periodic jobs outlive any single request, so they follow o
 - **Instance health** is the public `/api/v1/system/health` operation (spec `instance-health`). Raw errors stay in logs. `/system/version` and agent downloads do not depend on it, and Helm probes target `/system/version`.
 - **Permitted pass duration** is a monitoring budget that cancels nothing and changes no schedule. The [glossary](glossary.md#code) defines it, and `internal/app/job_health.go` holds the values.
 - **Supervision** uses `background.Group` for the HTTP server and module work that must be drained at shutdown.
-- **External tools** (`pg_dump`, `pg_basebackup`, `pg_receivewal`, `mysqldump` and others) run through `lib/process`, which kills the whole process group when the operation's context ends.
+- **External tools** (`pg_dump`, `pg_basebackup`, `pg_receivewal`, `mysqldump` and others) run through `lib/process`. It kills the whole process group when the operation's context ends.
   - The one exception is the verification agent's daemon start. It uses `os/exec` with `Setsid` and `context.WithoutCancel`, because the daemon must outlive the command that starts it.
-  - After a tool exits, the limit on its standard output covers only waiting for more output, never the time the writer takes to accept it. A slow storage therefore cannot fail a finished dump.
+  - After a tool exits, the limit on its standard output covers only waiting for more output. The writer's time to accept it does not count, so a slow storage cannot fail a finished dump.
 - **Goroutines** start only through `lib` helpers that tie them to a context and recover a panic into an error. A bare `go` statement exists only inside `lib` and in tests.
 - **Cancellation.** A running backup, restore or verification is registered under its ID, and a cancel request ends its context.
 - **TimescaleDB restore cleanup** has its own limit (spec `restores`).
@@ -230,13 +230,13 @@ Backups, restores and periodic jobs outlive any single request, so they follow o
   - WAL streamers stop and keep their replication slots, so the next start resumes them;
   - the process flushes the logs and exits before the embedded PostgreSQL stops (spec `container-shutdown`).
 
-  A second signal neither kills the process nor restarts the shutdown (spec `application-shutdown`). Work still marked in progress at the next start is failed the same way.
+  A second signal during the shutdown has no effect (spec `application-shutdown`). Work still marked in progress at the next start is failed the same way.
 
-- **Time** that drives behavior comes from a clock in `Deps`. SQL receives the current time as a parameter instead of calling `now()`.
+- **Time** that drives behavior comes from a clock in `Deps`. SQL receives the current time as a parameter and never calls `now()`.
 
 ## Backup data flow
 
-Backup and restore data streams in bounded chunks with backpressure. The producer, such as a dump tool, `pg_basebackup` or a storage download, cannot run ahead of the consumer by more than a small window. Memory per operation therefore does not depend on the database size, and a slow storage slows the backup instead of exhausting the host's memory.
+Backup and restore data streams in bounded chunks with backpressure. The producer, such as a dump tool, `pg_basebackup` or a storage download, cannot run ahead of the consumer by more than a small window. Memory per operation therefore does not depend on the database size, and a slow storage only slows the backup.
 
 Backup data does not touch the host's disk, with two exceptions:
 
@@ -249,7 +249,7 @@ Backups are encrypted per file. The key for each file is derived from the master
 
 A file in a storage must never lose its owner, even when a backup crashes halfway. Backup code therefore never calls a storage provider directly: every write and delete goes through the file store of `storages`, and every read goes through its storage reader.
 
-- `WriteFile` records a pending deletion before the first byte leaves and returns a write receipt. The transaction that publishes the backup spends the receipt, which keeps the file.
+- `WriteFile` records a pending deletion before the first byte leaves and returns a write receipt. The transaction that publishes the backup spends the receipt and so keeps the file.
 - Any other outcome leaves the pending deletion in place, and the deletion worker removes the file. That covers a provider error, a crash, a rolled-back publication and a cancellation.
 - A terminal failure asks for the deletion in the same transaction that records the failure.
 - Every write attempt gets its own object name, because a retry that reused a name would address an object a pending deletion already owns.
@@ -257,7 +257,7 @@ A file in a storage must never lose its owner, even when a backup crashes halfwa
 
 ### Storage switches
 
-A storage switch changes the storage of a database that already has backups. The new storage is active at once, and the old files are cleaned up afterwards. Specs `backup-storage-assignment` and `storage-file-cleanup` hold the product rules and limits, `openapi.yaml` holds the responses, and the glossary defines [`StorageSwitch` and `DeletionBatch`](glossary.md#code). This section covers the mechanics they leave open.
+A storage switch changes the storage of a database that already has backups. The new storage is active at once, and the old files are cleaned up afterwards. Specs `backup-storage-assignment` and `storage-file-cleanup` hold the product rules and limits, `openapi.yaml` holds the responses and the glossary defines [`StorageSwitch` and `DeletionBatch`](glossary.md#code). This section covers the mechanics they leave open.
 
 - **Running writes are protected by locks.**
   - A write holds a PostgreSQL session advisory lock keyed by storage ID and file name, from before pending registration until the provider call and receipt preparation finish.
@@ -287,13 +287,13 @@ Physical backups copy a PostgreSQL cluster's files, using the native PostgreSQL 
 - `pg_receivewal` for the WAL stream;
 - `pg_combinebackup` on restore.
 
-PostgreSQL owns the backup format, and we do not implement block-level incrementals. Product rules follow from this choice: PostgreSQL 17 and later only, WAL summarization required for incrementals, no custom tablespaces, and only completed WAL segments uploaded. The specs under `openspec/specs/physical-backups` state them.
+PostgreSQL owns the backup format and the block-level incrementals. Product rules follow from this choice: PostgreSQL 17 and later only, WAL summarization required for incrementals, no custom tablespaces and only completed WAL segments uploaded. The specs under `openspec/specs/physical-backups` state them.
 
 - **Base backup command.** `pg_basebackup` runs with `--pgdata=- --format=tar --wal-method=fetch --compress=server-zstd:5 --no-manifest`. A single tar on stdout streams straight into storage. `fetch` keeps the WAL inside that stream, and a per-backup replication slot pins the WAL until the backup ends.
-- **Server-side compression** sends about a third of the bytes over the source link, which turns a multi-day backup of a terabyte database over a WAN into hours. Client-side compression and local staging were rejected for that reason.
+- **Server-side compression** sends about a third of the bytes over the source link. For a terabyte database over a WAN, that turns a multi-day backup into hours. Client-side compression and local staging were rejected for that reason.
 - **Codec fallback.** Without zstd on the source, the codec falls back to gzip and then to none. Every backup tries zstd first.
 - **Manifest.** With server compression, `pg_basebackup` cannot embed `backup_manifest`, so Databasus rebuilds it from the tar stream and stores it as an encrypted sidecar file for `--incremental`.
-  - Tests check every rebuilt manifest with `pg_verifybackup` from PostgreSQL 18, which can read a compressed tar, so drift from PostgreSQL's format fails in CI.
+  - Tests check every rebuilt manifest with `pg_verifybackup` from PostgreSQL 18. It can read a compressed tar, and any drift from PostgreSQL's format fails in CI.
   - Speaking the replication protocol directly would avoid the rebuild, but we would then maintain our own `pg_basebackup`.
 - **Status changes.** `catalog.BackupLifecycle` owns them through `Start`, `Complete`, `Fail`, `Cancel`, `MarkChainBroken` and the startup sweep `FailLeftInProgress`.
   - Each transition commits with its file obligations.
@@ -307,7 +307,7 @@ PostgreSQL owns the backup format, and we do not implement block-level increment
   - A full scheduler pass, `backups_physical_scheduler`, evaluates every enabled config with a fixed number of queries.
   - The backup request job, `backups_physical_request_scheduler`, evaluates only configs with a pending backup request, so a manual start stays fast.
   - The request job polls committed configs. A wake-up signal would need a call from every writer of a request, and a writer that forgot it would delay its backup with no error.
-- **WAL stream health.** `streamhealth.GetVerdict` computes it from stored samples for the API and the Monitoring tab. Notifications come from the WAL streamer's live tracking, which also pauses the receiver, rebuilds the slot and rotates WAL.
+- **WAL stream health.** `streamhealth.GetVerdict` computes it from stored samples for the API and the Monitoring tab. Notifications come from the WAL streamer's live tracking. That tracking also pauses the receiver, rebuilds the slot and rotates WAL.
 - **Restore.** The user restores from a downloaded restore set with the recovery script Databasus serves.
 
 ## Verification agent
@@ -318,7 +318,7 @@ The verification agent is a CLI worker on a machine the user provides. It proves
 - **New work** goes only to an agent with [assignment eligibility](glossary.md#product) (spec `backup-verification`). The verification service checks it after authentication and request validation, before locking any pending row. An ineligible agent gets the empty `204` of `claimVerification`, and the verification stays pending for another agent.
 - **Heartbeats and claims run independently**, so a first claim may find no accepted heartbeat yet and retries on its next poll.
 - **An agent whose eligibility has expired** stays listed, so an administrator can find and repair it. Work already running continues until the scheduler's stale-run pass requeues or fails it.
-- **Updates.** A background updater checks the server version every ten seconds. Replacement creates a temporary executable beside the running binary and renames it over that binary, so write access to the executable alone is not enough. [Updating the verification agent by hand](verification-agent-manual-update.md) covers the failure case.
+- **Updates.** A background updater checks the server version every ten seconds. Replacement creates a temporary executable beside the running binary and renames it over that binary, so it needs write access to the executable's directory. [Updating the verification agent by hand](verification-agent-manual-update.md) covers the failure case.
 
 ## Configuration
 
@@ -334,11 +334,11 @@ Settings come from environment variables, with `.env` as an optional local sourc
 The backend logs through `log/slog` from `lib/logging`, and every record can be traced to its request or job.
 
 - **Sinks.** Every record goes to stdout and to a rotating JSON file in the data volume. The file is the forensic copy that survives a lost database, so audit events go to it too.
-- **OTLP.** An optional OpenTelemetry collector gets the records too, because OTLP is the one protocol every log backend speaks. When it is down, its records are dropped instead of blocking requests.
+- **OTLP.** An optional OpenTelemetry collector gets the records too, because OTLP is the one protocol every log backend speaks. When it is down, its records are dropped and requests keep running.
 - **Request IDs.** The first middleware gives every request a fresh `request_id`, returned as `X-Request-Id`. An incoming `X-Request-Id` is ignored, so a client cannot stitch its actions into another trace.
 - **Context.** `request_id`, `job_name`, `job_id` and entity IDs added with `logging.With` travel in the context, and the log handler adds them to every record.
 - **Format.** Messages and keys follow [the backend logging rules](../backend/AGENTS.md#logging).
-- **Masking.** Before any sink sees a record, the log handler masks three things: attributes whose names mark a secret (password, token, secret, key, authorization, cookie), known secret patterns inside messages, and email addresses. Audit records identify the author by user ID, so the file keeps its forensic value.
+- **Masking.** Before any sink sees a record, the log handler masks three things: email addresses, attributes whose names mark a secret (password, token, secret, key, authorization, cookie) and known secret patterns inside messages. Audit records identify the author by user ID, so the file keeps its forensic value.
 
 ## Frontend
 
@@ -354,17 +354,17 @@ The [FSD skill](../.agents/skills/feature-sliced-design/SKILL.md) gives the plac
 - **Compose in app.** App owns providers, navigation and the choice of screen. A reusable shell in widgets receives children or slots and does not import pages. Tabs and URLs stay stable when responsibilities move between layers.
 - **Use each slice's public API.** External consumers import its `index.ts`, including for types and dynamic imports.
   - A barrel cannot authorize an otherwise forbidden dependency.
-  - Inside a slice, code uses its own modules directly instead of importing its barrel.
+  - Inside a slice, code imports its own modules directly.
   - Shared libraries and test infrastructure may expose focused entry points without a single shared-layer barrel.
-- **Keep domain operations with their owner.** A domain API facade keeps its URLs, filters, request bodies and product policy in an entity, feature or page. Shared API holds transport, session-token plumbing, generated types and response normalization. Domain-independent cursor traversal may be shared, and sharing it needs no generic CRUD factory.
-- **An alias of a generated schema names a domain concept.** A focused alias is not a duplicate DTO. Keep aliases with their owner, and do not split tiny shape aliases away from the unit they describe.
+- **Keep domain operations with their owner.** A domain API facade keeps its URLs, filters, request bodies and product policy in an entity, feature or page. Shared API holds transport, session-token plumbing, generated types and response normalization. Domain-independent cursor traversal may be shared.
+- **An alias of a generated schema names a domain concept.** Keep aliases with their owner, and keep tiny shape aliases with the unit they describe.
 - **File layout.** `@/` resolves to `frontend/src` in TypeScript, Vite, Vitest and architecture checks, and relative imports follow the same boundaries. Every script module sits in a layer, so the dependency checks can see it. Only `main.tsx` and `vite-env.d.ts` stay at the source root, beside the global style sheet.
 
 ### State and effects
 
 - **Keep state near its lifecycle.** Form drafts, list selection and page-specific async work belong to their screen or interaction. Generic pagination machinery may live in shared. Application lifecycle hooks belong to app, and domain hooks stay with the domain.
 - **Cleanup** invalidates late results, polling and subscriptions, and setup after cleanup must work again.
-- **Effect dependencies.** An effect declares what it reads, so lint rejects an omitted dependency. A function an effect only calls goes through `useEffectEvent`, which keeps the firing unchanged while the function reads current values. `useLatestRef` serves async handlers, which `useEffectEvent` cannot.
+- **Effect dependencies.** An effect declares what it reads, so lint rejects an omitted dependency. A function an effect only calls goes through `useEffectEvent`. The effect then fires as before, and the function reads current values. Async handlers use `useLatestRef`, because `useEffectEvent` cannot serve them.
 - **Exemptions.** A single line may be exempted with a disable comment. Lint cannot check that the comment states its reason, so code review requires it.
 - **`react/set-state-in-effect` stays off.** Most of its findings are a pending flag or a reset at the start of a load. Removing them would rewrite how nearly every screen loads and risk its tested late-answer guarantees for no visible gain.
 
@@ -383,10 +383,10 @@ The [FSD skill](../.agents/skills/feature-sliced-design/SKILL.md) gives the plac
 
 ### Editors and resource pages
 
-- **Request identity is shared, and acceptance policy is local.** `shared/lib/RequestRevision.ts` supplies only monotonic revisions, which keeps editor policy out of shared transport.
+- **Request identity is shared, and acceptance policy is local.** `shared/lib/RequestRevision.ts` supplies only monotonic revisions. Editor policy stays out of shared transport.
   - The storage and notifier editing features own their drafts, acknowledged baselines, persisted IDs and acceptance rules. A response may acknowledge submitted values without replacing newer input or completing the editor, and profile and instance-settings pages follow the same rule.
   - A settings change invalidates test approval, even after a change away and back.
-  - The database connection form has a smaller policy in `useDatabaseConnectionTest`, which owns only test approval. The containers that use the form own saving.
+  - The database connection form has a smaller policy in `useDatabaseConnectionTest`. It owns only test approval, and the containers that use the form own saving.
 - **Resource pages own collection policy.** `pages/storages`, `pages/notifiers` and `pages/databases` own reads, retry, refresh and detail mutations.
   - The application recreates these screens and workspace settings by a key on the workspace, so they do not track a workspace change themselves.
   - `shared/hooks/useScopedSelection` and `shared/ui/ResourceListDetail` hold selection and list layout, and neither knows resource APIs.
@@ -425,5 +425,5 @@ A linter fails the build when one of these rules is broken, so they need no huma
 
 - **Third-party exception.** The server retains two test-library importers for rclone storage support, `github.com/Files-com/files-sdk-go/v3/lib` and `github.com/rclone/Proton-API-Bridge`. `getAcceptedThirdPartyTestImporters` in [`production_dependencies.go`](../backend/tools/archlint/production_dependencies.go) lists them with their reasons, and every other importer is rejected.
 - **Commands.** `mise run lint` runs all module checks, and `mise run backend:lint` and `mise run frontend:lint` run one module's.
-- **Test files.** The linters check them too. The `archlint` rules on imports, the module root, file roles, errors and bare `go` check production files only: a module's API tests build the whole application through `apptest`, which sits above the modules, and tests start goroutines of their own.
+- **Test files.** The linters check them too. The `archlint` rules on imports, the module root, file roles, errors and bare `go` check production files only: a module's API tests build the whole application through `apptest` above the modules. Tests also start goroutines of their own.
 - **Suppressions.** Immutable shared tables and process-level test fixture synchronization require a specific, explained lint suppression. Application dependencies always belong to their owning instance.

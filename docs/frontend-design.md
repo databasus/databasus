@@ -9,12 +9,12 @@ The interface is built from AntD components and icons, with Tailwind for layout 
 - **Roles.** Use `bg-page`, `bg-surface` or `bg-raised` for depth, `text-content` for ordinary text and `text-muted` for secondary text.
 - **Status.** Keep status words and icons beside status colors. Text links and status text have at least 4.5:1 contrast in both modes.
 - **Focus** uses a visible outline. Never remove it without a visible keyboard replacement.
-- **Fonts.** Jost ships in `src/app/fonts` for Latin and Cyrillic, a system CJK fallback renders Chinese, and no font service is needed at runtime. Commands, paths and diagnostics keep a monospace stack, and `InlineCodeComponent` adds a distinct background.
+- **Fonts.** Jost ships in `src/app/fonts` for Latin and Cyrillic, a system CJK fallback renders Chinese and no font service is needed at runtime. Commands, paths and diagnostics keep a monospace stack, and `InlineCodeComponent` adds a distinct background.
 
 ## Density, fields and actions
 
 - **Density.** Prefer AntD's existing sizes to a separate control scale. Keep related fields close and let translated labels wrap. Configuration forms use a compact field size without shrinking readable help text.
-- **Labels.** A visible label identifies the actual control. Shared advanced fields require a caller-owned unique `controlId`, which the input and its help and error descriptions receive.
+- **Labels.** A visible label identifies the actual control. Shared advanced fields require a caller-owned unique `controlId`. The input and its help and error descriptions receive it.
 - **Disclosure.** A disclosure is a keyboard button with expanded state and a controlled region. Optional fields stay hidden until requested, and meaningful configured advanced values stay visible when a session opens.
 - **Dirty state.** A draft is dirty when it differs from its acknowledged baseline. Submit actions appear only for a dirty draft, so toggling a value back removes them. Dependent fields appear only when their prerequisite has a value.
 - **Backup configuration forms** are the exception and keep Save visible, because [`recurring-schedules`](../openspec/specs/recurring-schedules/spec.md) requires it disabled for an incomplete schedule. The logical and physical settings sections also disable it for an unchanged draft, as [`frontend-database-screens`](../openspec/specs/frontend-database-screens/spec.md) says.

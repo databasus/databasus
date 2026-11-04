@@ -1,6 +1,6 @@
 # Testing
 
-A backup is worth something only if it restores, and a mocked database cannot prove that. Databasus tests therefore run the real application against real database servers in containers, and they check what a caller observes. Most tests create their data through the HTTP API, the same way a user does.
+A backup is worth something only if it restores. Proving that takes real database servers. Databasus tests therefore run the real application against servers in containers and check what a caller observes. Most tests create their data through the HTTP API, the same way a user does.
 
 To check your work, run `mise run test`. To repeat one failing test while fixing it, call its runner directly with a command from [Commands](#commands).
 
@@ -8,7 +8,7 @@ This document describes the kinds of tests, what they share and how runs are org
 
 ## Principles
 
-- A test checks what a caller observes: the backend's HTTP API, an engine's behavior against a real database server, or a frontend screen.
+- A test checks what a caller observes: the backend's HTTP API, an engine's behavior against a real database server or a frontend screen.
 - Our own database, modules and services are never mocked. Fakes replace only systems we cannot run locally and failures that are unsafe to cause for real.
 - Independent tests run in parallel within and across packages, and alongside runs from other worktrees on the same machine. Tests that change process environment settings or share a bounded engine-version fixture stay sequential.
 - A test never takes a shared resource under a fixed name.
@@ -39,17 +39,17 @@ Backend tests share one idea: `apptest.New(t)` builds the whole backend with `ap
 
 - its own internal database from `testdb.Open(t)`;
 - a clock that the test moves forward, so schedules and deadlines need no real waiting;
-- fakes for external systems: an email recorder, an HTTP server for webhook and chat notifiers, and a local directory or a MinIO bucket for storages;
+- fakes for external systems: an email recorder, an HTTP server for webhook and chat notifiers and a local directory or a MinIO bucket for storages;
 - background jobs that never run on their own, so the test runs each pass explicitly with `RunJobPass`.
 
 Each application owns its directories, encryption key, service state and lifecycle. Several can stay alive in one test process, and shutting down one leaves the others usable.
 
 ### Talking to the application
 
-- The test talks to the instance over real HTTP through `apiclient.New(t, url)`, and creates its data through the API. The testing skill lists the few cases where direct SQL is allowed.
+- The test talks to the instance over real HTTP through `apiclient.New(t, url)` and creates its data through the API. The testing skill lists the few cases where direct SQL is allowed.
 - `contracttest` fails the test when a response differs from `openapi.yaml` in status, content type, body or field formats. The frontend tests mock responses by the contract, so they rely on this check.
 - A response with `format: binary` keeps its body unread, so the caller can stream it.
-- Tests of agent operations use `agentclienttest`, which checks responses against `agent.yaml` in the same way.
+- Tests of agent operations use `agentclienttest`. It checks responses against `agent.yaml` in the same way.
 
 ### Live jobs and real time
 
@@ -59,7 +59,7 @@ Each application owns its directories, encryption key, service state and lifecyc
 - `RunJobPass` runs one pass of either scheduler job in either mode and returns after dispatching its backups, so the test waits for the outcome through the API.
 - The physical cleaner runs only through `RunJobPass("backups_physical_cleaner")`.
 - An explicit `backups_physical_wal_stream_manager` pass requires the live jobs, because the manager starts long-lived streamers.
-- Physical backup execution has a separate system clock for duration, progress and stall detection, which follows the real PostgreSQL process even when the schedule clock is fixed.
+- Physical backup execution has a separate system clock for duration, progress and stall detection. This clock follows the real PostgreSQL process even when the schedule clock is fixed.
 - Tests with live jobs seed timestamps with margins of minutes. Negative checks use explicit passes, and live-job checks wait for positive outcomes.
 
 ### Restarting and cleanup
@@ -71,7 +71,7 @@ Each application owns its directories, encryption key, service state and lifecyc
 
 Tests from every worktree on a machine share one Docker daemon, so nothing a test creates may collide with another test's resources.
 
-- **Internal database.** All worktrees share one test PostgreSQL server, which a test run never stops.
+- **Internal database.** All worktrees share one test PostgreSQL server. A test run never stops it.
   - `testdb.Open(t)` creates a fresh database with a unique name from a template with every migration applied. The template is keyed by a hash of the migrations and built once, under an advisory lock.
   - A passing test drops its database. A failing test keeps it and prints its address. Each test process removes databases older than an hour with no connections.
   - The server runs without durability, so a crash of the server or the host can corrupt it. A plain recreation does not help, because it keeps the data volume and reuses the existing template.
@@ -81,7 +81,7 @@ Tests from every worktree on a machine share one Docker daemon, so nothing a tes
   - The servers keep data in memory with durability off.
   - Tests sharing a server give a unique name to every database, role, schema and replication slot.
 - **Storages.** Each test uses its own bucket, container or directory.
-- **Docker networks.** A network a test creates takes a subnet outside Docker's default address pools, through `WithFreeSubnet` in `internal/lib/testcontainers`. Those pools stay free for the verification agent, which creates its own networks.
+- **Docker networks.** A network a test creates takes a subnet outside Docker's default address pools, through `WithFreeSubnet` in `internal/lib/testcontainers`. The verification agent creates its own networks from those pools.
 - **Everything else.** Ports come from `127.0.0.1:0` or `httptest`, and files from `t.TempDir()`. Containers and processes get unique names and labels, and `t.Cleanup` removes them.
 - **Shared sources.** Local and CI preparation never reset shared source servers. Seed tests own their logical and physical source containers. Development compose sources stay available to `mise run dev`, and test cleanup never removes their databases, roles or replication slots.
 
@@ -117,7 +117,7 @@ Screen tests render real components and mock only the network, typed by the cont
 
 These tests exercise the production build in a real browser, for what happy-dom cannot establish: geometry, focus, fonts and images. Screen tests stay the faster layer for overlapping responses and editing-session policy. `pnpm --dir frontend test:browser --project=ui` needs Docker and no backend services, because the HTTP responses are finite synthetic fixtures.
 
-- **Environment.** The entry point builds a cached image from the digest-pinned Playwright image in `frontend/browser/environment.json`. Each run gets a unique temporary checkout, container name and unprivileged user, and removes only its own container and directory.
+- **Environment.** The entry point builds a cached image from the digest-pinned Playwright image in `frontend/browser/environment.json`. Each run gets a unique temporary checkout, container name and unprivileged user. It removes only its own container and directory.
 - **HTTP.** `frontend/browser/HttpFixture.ts` types response builders through generated operations and records undeclared requests and page errors. Teardown fails even if application code catches an HTTP failure. Only same-origin GET navigation and static resources pass through.
 - **Scenarios** live in `frontend/browser/scenarios` and need no external provider account. Non-English assertions read the interface dictionaries.
 - **Visual references** live in `frontend/browser/references`. Ordinary runs use `updateSnapshots: 'none'`, so a missing or changed image fails. To replace references on purpose, run `pnpm --dir frontend test:browser:update` and inspect the result.
@@ -148,7 +148,7 @@ The upgrade test starts after all three pass.
 
 - Output lines carry the name of their process, and the summary names each process that failed.
 - The run allows 30 minutes per package and holds a machine-wide lock, so only one full run goes at a time.
-- A package missing from the list runs with the fast packages, so a new package needs no entry. A package that starts containers or networks, or runs for over a minute, belongs in the list. A script test fails on an entry the run does not select.
+- A package missing from the list runs with the fast packages, so a new package needs no entry. A package belongs in the list when it starts containers or networks or runs for over a minute. A script test fails on an entry the run does not select.
 - Migration tests and architecture linter tests run here and, in CI, in the `other` group.
 
 ### What runs separately

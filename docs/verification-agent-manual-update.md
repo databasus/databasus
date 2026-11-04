@@ -13,7 +13,7 @@ The examples use `/opt/databasus-agent/verification-agent`. Use the actual insta
 1. Stop the agent.
    - For the built-in daemon, stay in its existing working directory, so it finds its saved configuration and lock file. Run the installed binary by its absolute path as the normal agent account: `/opt/databasus-agent/verification-agent stop`.
    - For systemd or a container, stop that supervisor instead of using the daemon's `stop` command.
-2. Install the binary, using an account with write access to the executable's directory. Replace the server address, and select `arch=arm64` instead of `arch=amd64` on ARM64:
+2. Install the binary, using an account with write access to the executable's directory. Replace the server address and select `arch=arm64` instead of `arch=amd64` on ARM64:
 
    ```sh
    curl --fail --location --output /opt/databasus-agent/verification-agent.new \
