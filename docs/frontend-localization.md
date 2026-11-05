@@ -1,6 +1,6 @@
 # Frontend localization
 
-The interface ships in English, Russian, Spanish, Portuguese (Brazilian), Chinese (Simplified) and French, through `i18next` and `react-i18next`. A language switch changes words and number grouping immediately, without remounting providers, screens or drafts. Clock and date conventions follow the browser region instead.
+The interface ships in English, Russian, Spanish, Portuguese (Brazilian), Chinese (Simplified), French and Indonesian, through `i18next` and `react-i18next`. A language switch changes words and number grouping immediately, without remounting providers, screens or drafts. Clock and date conventions follow the browser region instead.
 
 Everything lives in `shared/i18n`. `LocaleProvider.tsx` owns the i18next instance, the selected locale, the AntD locale and the dayjs language, and the document language and title follow the same selection.
 
@@ -12,7 +12,7 @@ Everything lives in `shared/i18n`. `LocaleProvider.tsx` owns the i18next instanc
 
 ## Dictionaries
 
-- New copy goes into all six dictionaries in the same change.
+- New copy goes into all seven dictionaries in the same change.
 - English (`locales/en.ts`) defines the keys. Every other dictionary is typed `typeof en`, so a missing or leftover key fails `pnpm build`, and a language cannot ship partly translated.
 - Each dictionary is one object literal in one file. TypeScript's check for leftover keys works only on a literal written in place, so a nested object passed through a variable or a spread escapes it.
 - Keys are grouped by domain (`backups`, `databases`, `storages`, `status`, `errors`, `common`, ...), so moving a component does not rename its keys.

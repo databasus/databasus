@@ -252,7 +252,7 @@ The published documentation SHALL state that the instance can require an emailed
 
 #### Scenario: A reader looks up what protects sign-in
 
-- **WHEN** a reader consults the published security material in any of the six languages
+- **WHEN** a reader consults the published security material in any supported language
 - **THEN** it states that sign-in can require an emailed code, and does not claim that this covers sign-in through an external identity provider
 
 #### Scenario: An owner locked out by a broken mail server
