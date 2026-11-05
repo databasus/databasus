@@ -79,12 +79,12 @@ O Databasus faz uma restauração de verdade para confirmar que os backups serve
 ### 🗄️ **Vários destinos de armazenamento** <a href="https://databasus.com/pt/storages/">(ver suportados)</a>
 
 - **Armazenamento local**: mantenha os backups no seu VPS ou servidor
-- **Armazenamento na nuvem**: S3, Cloudflare R2, Google Drive, NAS, Dropbox, SFTP, Rclone e outros
+- **Armazenamento na nuvem**: S3 (chaves de acesso ou roles IAM), Cloudflare R2, Google Drive, NAS, Dropbox, SFTP, Rclone e outros
 - **Seguro**: todos os dados continuam sob o seu controle
 
 ### 📱 **Notificações** <a href="https://databasus.com/pt/notifiers/">(ver suportados)</a>
 
-- **Vários canais**: e-mail, Telegram, Slack, Discord, Teams, Mattermost, webhooks
+- **Vários canais**: e-mail (SMTP, Amazon SES), Amazon SNS, Telegram, Slack, Discord, Teams, Mattermost, webhooks
 - **Em tempo real**: notificações de sucesso e de falha
 - **Integração com a equipe**: feito para o dia a dia de DevOps
 
@@ -93,6 +93,7 @@ O Databasus faz uma restauração de verdade para confirmar que os backups serve
 - **Criptografia AES-256-GCM**: proteção de nível empresarial para os arquivos de backup
 - **Armazenamento zero-trust**: os backups são criptografados e continuam inúteis para um atacante, então você pode guardá-los com segurança em armazenamentos compartilhados como S3, Azure Blob Storage, etc.
 - **Criptografia de segredos**: qualquer dado sensível é criptografado e nunca fica exposto, nem em logs nem em mensagens de erro
+- **Autenticação com roles IAM**: conecte-se ao Amazon S3, Amazon SES e Amazon SNS sem chaves estáticas usando roles IAM ou credenciais do ambiente da instância ou pod
 - **Usuário somente leitura**: por padrão, o Databasus usa um usuário somente leitura para os backups e nunca guarda nada capaz de alterar os seus dados
 - **Autenticação de dois fatores**: o login por senha pode exigir um código de seis dígitos enviado ao e-mail da conta. Entrar pelo Google ou pelo GitHub continua contando com as verificações desses provedores
 
@@ -256,7 +257,7 @@ Para mais opções (NodePort, TLS, HTTPRoute do Gateway API), veja o [README do 
 4. **Informe a conexão com a base**: preencha as credenciais e os dados de conexão da sua base de dados
 5. **Escolha o armazenamento**: selecione onde guardar os backups (local, S3, Google Drive, etc.)
 6. **Configure a política de retenção**: escolha período de tempo, quantidade ou GFS para definir por quanto tempo os backups ficam guardados
-7. **Adicione notificações** (opcional): configure notificações por e-mail, Telegram, Slack, Mattermost ou webhook
+7. **Adicione notificações** (opcional): configure notificações por e-mail (SMTP, Amazon SES), Amazon SNS, Telegram, Slack, Mattermost ou webhook
 8. **Salve e inicie**: o Databasus valida as configurações e começa a seguir o agendamento dos backups
 
 ### 🔑 Redefinir a senha <a href="https://databasus.com/pt/password/">(docs)</a>

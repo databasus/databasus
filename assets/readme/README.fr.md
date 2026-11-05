@@ -79,12 +79,12 @@ Databasus effectue une vraie restauration pour confirmer que les sauvegardes son
 ### 🗄️ **Plusieurs destinations de stockage** <a href="https://databasus.com/fr/storages/">(voir les stockages pris en charge)</a>
 
 - **Stockage local** : gardez les sauvegardes sur votre VPS ou votre serveur
-- **Stockage cloud** : S3, Cloudflare R2, Google Drive, NAS, Dropbox, SFTP, Rclone et d'autres
+- **Stockage cloud** : S3 (clés d'accès ou rôles IAM), Cloudflare R2, Google Drive, NAS, Dropbox, SFTP, Rclone et d'autres
 - **Sûr** : toutes les données restent sous votre contrôle
 
 ### 📱 **Notifications** <a href="https://databasus.com/fr/notifiers/">(voir les canaux pris en charge)</a>
 
-- **Plusieurs canaux** : e-mail, Telegram, Slack, Discord, Teams, Mattermost, webhooks
+- **Plusieurs canaux** : e-mail (SMTP, Amazon SES), Amazon SNS, Telegram, Slack, Discord, Teams, Mattermost, webhooks
 - **En temps réel** : notifications de succès comme d'échec
 - **Intégration d'équipe** : parfait pour les workflows DevOps
 
@@ -93,6 +93,7 @@ Databasus effectue une vraie restauration pour confirmer que les sauvegardes son
 - **Chiffrement AES-256-GCM** : une protection de niveau entreprise pour les fichiers de sauvegarde
 - **Stockage zero-trust** : les sauvegardes sont chiffrées et restent inutilisables pour un attaquant, vous pouvez donc les déposer sans risque sur un stockage partagé comme S3, Azure Blob Storage, etc.
 - **Chiffrement des secrets** : toute donnée sensible est chiffrée et n'est jamais exposée, pas même dans les logs ou les messages d'erreur
+- **Authentification par rôles IAM** : connectez-vous à Amazon S3, Amazon SES et Amazon SNS sans clés statiques grâce aux rôles IAM ou aux identifiants d'instance/pod
 - **Utilisateur en lecture seule** : par défaut, Databasus sauvegarde via un utilisateur en lecture seule et ne conserve rien qui permette de modifier vos données
 - **Authentification à deux facteurs** : la connexion par mot de passe peut exiger un code à six chiffres envoyé à l'adresse du compte. Se connecter par Google ou GitHub continue de s'appuyer sur les vérifications de ces fournisseurs
 
@@ -256,7 +257,7 @@ Pour les autres options (NodePort, TLS, HTTPRoute pour Gateway API), consultez l
 4. **Renseignez la connexion** : saisissez les identifiants et les paramètres de connexion de votre base
 5. **Choisissez le stockage** : indiquez où déposer vos sauvegardes (local, S3, Google Drive, etc.)
 6. **Configurez la rétention** : période, nombre ou GFS, selon la durée de conservation voulue
-7. **Ajoutez des notifications** (facultatif) : e-mail, Telegram, Slack, Mattermost ou webhook
+7. **Ajoutez des notifications** (facultatif) : e-mail (SMTP, Amazon SES), Amazon SNS, Telegram, Slack, Mattermost ou webhook
 8. **Enregistrez et démarrez** : Databasus valide les paramètres et lance la planification des sauvegardes
 
 ### 🔑 Réinitialiser le mot de passe <a href="https://databasus.com/fr/password/">(docs)</a>

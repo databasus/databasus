@@ -79,12 +79,12 @@ Databasus 会真正执行一次恢复，确认备份可用，而不只是检查�
 ### 🗄️ **多种存储目标** <a href="https://databasus.com/zh/storages/">(查看支持列表)</a>
 
 - **本地存储**：备份留在你的 VPS 或服务器上
-- **云存储**：S3、Cloudflare R2、Google Drive、NAS、Dropbox、SFTP、Rclone 等
+- **云存储**：S3（访问密钥或 IAM 角色）、Cloudflare R2、Google Drive、NAS、Dropbox、SFTP、Rclone 等
 - **安全**：所有数据都在你的掌控之中
 
 ### 📱 **通知** <a href="https://databasus.com/zh/notifiers/">(查看支持列表)</a>
 
-- **多种渠道**：邮件、Telegram、Slack、Discord、Teams、Mattermost、webhook
+- **多种渠道**：邮件（SMTP、Amazon SES）、Amazon SNS、Telegram、Slack、Discord、Teams、Mattermost、webhook
 - **实时更新**：成功和失败都会通知
 - **团队协作**：非常适合 DevOps 的工作流
 
@@ -93,6 +93,7 @@ Databasus 会真正执行一次恢复，确认备份可用，而不只是检查�
 - **AES-256-GCM 加密**：为备份文件提供企业级保护
 - **零信任存储**：备份是加密的，落到攻击者手里也毫无用处，因此可以放心存在 S3 之类的共享存储中
 - **密钥与凭据加密**：任何敏感数据都会加密，绝不外泄，日志和错误信息里也看不到
+- **IAM 角色认证**：通过 IAM 角色或实例/Pod 环境凭证连接 Amazon S3、Amazon SES 和 Amazon SNS，无需维护长期静态密钥
 - **只读用户**：Databasus 默认使用只读用户来备份，不会保存任何能修改你数据的东西
 - **双因素验证**：密码登录可以额外要求发送到账号邮箱的六位验证码。通过 Google 或 GitHub 登录仍然依赖这些服务商自己的验证
 
@@ -256,7 +257,7 @@ helm install databasus oci://ghcr.io/databasus/charts/databasus \
 4. **填写数据库连接**：输入数据库的凭据和连接信息
 5. **选择存储**：决定备份存到哪里（本地、S3、Google Drive 等）
 6. **配置保留策略**：按时间段、数量或 GFS 控制备份保留多久
-7. **添加通知**（可选）：配置邮件、Telegram、Slack、Mattermost 或 webhook 通知
+7. **添加通知**（可选）：配置邮件（SMTP、Amazon SES）、Amazon SNS、Telegram、Slack、Mattermost 或 webhook 通知
 8. **保存并启动**：Databasus 会校验配置，然后按计划开始备份
 
 ### 🔑 重置密码 <a href="https://databasus.com/zh/password/">(文档)</a>

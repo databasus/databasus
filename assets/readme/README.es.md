@@ -79,12 +79,12 @@ Databasus ejecuta una restauración real para confirmar que las copias sirven, e
 ### 🗄️ **Múltiples destinos de almacenamiento** <a href="https://databasus.com/es/storages/">(ver compatibles)</a>
 
 - **Almacenamiento local**: guarde las copias en su VPS o servidor
-- **Almacenamiento en la nube**: S3, Cloudflare R2, Google Drive, NAS, Dropbox, SFTP, Rclone y más
+- **Almacenamiento en la nube**: S3 (claves de acceso o roles IAM), Cloudflare R2, Google Drive, NAS, Dropbox, SFTP, Rclone y más
 - **Seguro**: todos los datos quedan bajo su control
 
 ### 📱 **Notificaciones** <a href="https://databasus.com/es/notifiers/">(ver compatibles)</a>
 
-- **Varios canales**: correo, Telegram, Slack, Discord, Teams, Mattermost, webhooks
+- **Varios canales**: correo (SMTP, Amazon SES), Amazon SNS, Telegram, Slack, Discord, Teams, Mattermost, webhooks
 - **Avisos en tiempo real**: notificaciones de éxito y de fallo
 - **Integración con el equipo**: encaja bien en los flujos de trabajo DevOps
 
@@ -93,6 +93,7 @@ Databasus ejecuta una restauración real para confirmar que las copias sirven, e
 - **Cifrado AES-256-GCM**: protección de nivel empresarial para los archivos de respaldo
 - **Almacenamiento de confianza cero**: las copias están cifradas y resultan inútiles para un atacante, así que puede guardarlas sin riesgo en almacenamientos compartidos como S3, Azure Blob Storage, etc.
 - **Cifrado de los secretos**: todo dato sensible se cifra y nunca se expone, ni siquiera en los registros o en los mensajes de error
+- **Autenticación con roles IAM**: conéctese a Amazon S3, Amazon SES y Amazon SNS sin claves estáticas mediante roles IAM o credenciales del entorno de la instancia o pod
 - **Usuario de solo lectura**: Databasus usa por defecto un usuario de solo lectura para los respaldos y nunca guarda nada que pueda modificar sus datos
 - **Autenticación de dos factores**: el inicio de sesión con contraseña puede exigir un código de seis dígitos enviado al correo de la cuenta. Entrar con Google o GitHub sigue apoyándose en las comprobaciones de esos proveedores
 
@@ -256,7 +257,7 @@ Para más opciones (NodePort, TLS, HTTPRoute para Gateway API), consulte el [REA
 4. **Indique la conexión a la base de datos**: introduzca sus credenciales y los datos de conexión
 5. **Elija el almacenamiento**: seleccione dónde guardar las copias (local, S3, Google Drive, etc.)
 6. **Configure la política de retención**: elija periodo de tiempo, cantidad o GFS para controlar cuánto se conservan las copias
-7. **Añada notificaciones** (opcional): configure avisos por correo, Telegram, Slack, Mattermost o webhook
+7. **Añada notificaciones** (opcional): configure avisos por correo (SMTP, Amazon SES), Amazon SNS, Telegram, Slack, Mattermost o webhook
 8. **Guarde y arranque**: Databasus validará la configuración y pondrá en marcha la programación de respaldos
 
 ### 🔑 Restablecer la contraseña <a href="https://databasus.com/es/password/">(documentación)</a>
