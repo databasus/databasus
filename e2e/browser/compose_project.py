@@ -18,7 +18,15 @@ class ComposeProject:
     database_password: str
 
     def get_command(self, *arguments: str) -> list[str]:
-        return ["docker", "compose", "--project-name", self.name, "--file", str(COMPOSE_FILE), *arguments]
+        return [
+            "docker",
+            "compose",
+            "--project-name",
+            self.name,
+            "--file",
+            str(COMPOSE_FILE),
+            *arguments,
+        ]
 
     def get_environment(self) -> dict[str, str]:
         return {
@@ -63,7 +71,9 @@ def list_project_names() -> list[str]:
         text=True,
         check=True,
     )
-    labelled_projects = {name for name in completed.stdout.split() if name.startswith(PROJECT_NAME_PREFIX)}
+    labelled_projects = {
+        name for name in completed.stdout.split() if name.startswith(PROJECT_NAME_PREFIX)
+    }
 
     return sorted(labelled_projects)
 

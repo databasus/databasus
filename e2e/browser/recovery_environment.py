@@ -20,10 +20,23 @@ def get_recovery_container() -> str:
     return f"{os.environ['E2E_COMPOSE_PROJECT']}-recovery-1"
 
 
-def recovery_exec(*arguments: str, user: str = "postgres", should_check: bool = True) -> subprocess.CompletedProcess:
+def recovery_exec(
+    *arguments: str, user: str = "postgres", should_check: bool = True
+) -> subprocess.CompletedProcess[str]:
     completed = subprocess.run(
-        ["docker", "exec", "--user", user, "--env", f"PATH={HOST_PATH}", get_recovery_container(), *arguments],
-        capture_output=True, text=True, timeout=COMMAND_LIMIT_SECONDS,
+        [
+            "docker",
+            "exec",
+            "--user",
+            user,
+            "--env",
+            f"PATH={HOST_PATH}",
+            get_recovery_container(),
+            *arguments,
+        ],
+        capture_output=True,
+        text=True,
+        timeout=COMMAND_LIMIT_SECONDS,
     )
 
     if should_check:
@@ -34,7 +47,7 @@ def recovery_exec(*arguments: str, user: str = "postgres", should_check: bool = 
 
 @dataclass
 class RecoveryCommand:
-    process: subprocess.Popen
+    process: subprocess.Popen[str]
     log_path: str
     stage: str
 
@@ -61,14 +74,29 @@ def start_page_command(command: PageCommand) -> RecoveryCommand:
     log_path = f"/restore-work/command-{uuid.uuid4().hex}.log"
     process = subprocess.Popen(
         [
-            "docker", "exec", "--interactive", "--user", command.user,
-            "--workdir", "/restore-work", "--env", f"PATH={HOST_PATH}", get_recovery_container(),
-            "sh", "-c", 'exec timeout --kill-after=5 "$2" sh -s > "$1" 2>&1',
-            "recovery-command", log_path, str(COMMAND_LIMIT_SECONDS),
+            "docker",
+            "exec",
+            "--interactive",
+            "--user",
+            command.user,
+            "--workdir",
+            "/restore-work",
+            "--env",
+            f"PATH={HOST_PATH}",
+            get_recovery_container(),
+            "sh",
+            "-c",
+            'exec timeout --kill-after=5 "$2" sh -s > "$1" 2>&1',
+            "recovery-command",
+            log_path,
+            str(COMMAND_LIMIT_SECONDS),
         ],
-        stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
         text=True,
     )
+    assert process.stdin is not None
     process.stdin.write(command.text)
     process.stdin.close()
 

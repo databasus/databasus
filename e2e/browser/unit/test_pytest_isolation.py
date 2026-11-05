@@ -8,11 +8,13 @@ from public_command import REPOSITORY_ROOT
 
 
 class TestPytestIsolation:
-    def test_keeps_a_live_process_temporary_files_when_another_pytest_process_finishes(self, tmp_path: Path):
+    def test_keeps_a_live_process_temporary_files_when_another_pytest_process_finishes(
+        self, tmp_path: Path
+    ) -> None:
         ready_marker = tmp_path / "ready"
         release_marker = tmp_path / "release"
         child_test = tmp_path / "test_temporary_files.py"
-        child_test.write_text('''
+        child_test.write_text("""
 import os
 import time
 from pathlib import Path
@@ -31,10 +33,17 @@ def test_temporary_files(tmp_path):
             time.sleep(0.05)
 
     assert temporary_file.read_text() == "preserve while running"
-''')
+""")
         command = [
-            sys.executable, "-m", "pytest", "-p", "conftest", "-p", "no:cacheprovider",
-            "--tb=short", str(child_test),
+            sys.executable,
+            "-m",
+            "pytest",
+            "-p",
+            "conftest",
+            "-p",
+            "no:cacheprovider",
+            "--tb=short",
+            str(child_test),
         ]
         environment = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
         held_process = subprocess.Popen(
@@ -56,12 +65,18 @@ def test_temporary_files(tmp_path):
 
             while not ready_marker.exists():
                 assert held_process.poll() is None, held_process.communicate()[0]
-                assert time.monotonic() < deadline, "the held pytest process did not create its temporary file"
+                assert time.monotonic() < deadline, (
+                    "the held pytest process did not create its temporary file"
+                )
                 time.sleep(0.05)
 
             other_process = subprocess.run(
-                command, cwd=REPOSITORY_ROOT / "e2e/browser", env=environment,
-                capture_output=True, text=True, timeout=30,
+                command,
+                cwd=REPOSITORY_ROOT / "e2e/browser",
+                env=environment,
+                capture_output=True,
+                text=True,
+                timeout=30,
             )
 
             assert other_process.returncode == 0, other_process.stdout + other_process.stderr

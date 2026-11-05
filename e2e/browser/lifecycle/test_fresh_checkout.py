@@ -6,7 +6,6 @@ import subprocess
 from pathlib import Path
 
 import pytest
-
 from leftover_check import assert_nothing_of_the_project_remains, is_image_present
 from public_command import REPOSITORY_ROOT, FinishedRun, PublicRun
 from supervisor_file import get_run_directory
@@ -27,7 +26,7 @@ def no_named_image(monkeypatch: pytest.MonkeyPatch) -> None:
 class TestFreshCheckout:
     def test_runs_without_dependencies_or_an_environment_file_and_writes_only_its_dependency_directory(
         self, tmp_path: Path
-    ):
+    ) -> None:
         checkout = tmp_path / "checkout"
         _copy_tracked_and_untracked_files(checkout)
         files_before = _hash_files_outside_dependencies(checkout)
@@ -40,7 +39,10 @@ class TestFreshCheckout:
         assert finished_run.exit_code == 0, finished_run.output
         assert _hash_files_outside_dependencies(checkout) == files_before
 
-        built_image = re.search(r"E2E image under test: (\S+)", finished_run.output).group(1)
+        matched_output = re.search(r"E2E image under test: (\S+)", finished_run.output)
+        assert matched_output is not None
+
+        built_image = matched_output.group(1)
 
         assert not is_image_present(built_image)
         assert_nothing_of_the_project_remains(run.get_project_name())
@@ -48,12 +50,14 @@ class TestFreshCheckout:
 
     def test_writes_only_its_dependency_directory_when_a_run_fails_after_signing_in(
         self, tmp_path: Path, probes_image: str
-    ):
+    ) -> None:
         checkout = tmp_path / "checkout"
         _copy_tracked_and_untracked_files(checkout)
         files_before = _hash_files_outside_dependencies(checkout)
 
-        run, finished_run = _run_in_checkout(checkout, {"DATABASUS_IMAGE": probes_image, "E2E_PROBE": "secrets"})
+        run, finished_run = _run_in_checkout(
+            checkout, {"DATABASUS_IMAGE": probes_image, "E2E_PROBE": "secrets"}
+        )
 
         assert finished_run.exit_code != 0, finished_run.output
         assert "deliberate E2E secrets failure" in finished_run.output, finished_run.output

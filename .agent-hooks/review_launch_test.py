@@ -9,23 +9,29 @@ from review_gate_test import CHANGE_NAME, HOOK_PATH
 
 
 class ReviewLaunchTest(unittest.TestCase):
-    def test_doctor_checks_only_selected_cli(self):
+    def test_doctor_checks_only_selected_cli(self) -> None:
         for client in ("codex", "claude"):
             other = "claude" if client == "codex" else "codex"
             for missing in ((), (other,), (client,)):
                 with self.subTest(client=client, missing=missing):
-                    repository = fixtures.HookRepository(self, missing_tools=missing, is_path_isolated=True)
+                    repository = fixtures.HookRepository(
+                        self, missing_tools=missing, is_path_isolated=True
+                    )
                     repository.environment["AGENT_REVIEW_CLIENT"] = client
 
                     process = repository.run_doctor()
 
-                    self.assertEqual(process.returncode, 1 if client in missing else 0, process.stdout + process.stderr)
+                    self.assertEqual(
+                        process.returncode,
+                        1 if client in missing else 0,
+                        process.stdout + process.stderr,
+                    )
                     self.assertIn(f"Review client: {client}", process.stdout)
                     self.assertIn(f"{client}:", process.stdout)
                     self.assertNotIn(f"{other}:", process.stdout)
                     self.assertEqual(repository.reviewer_calls(), [])
 
-    def test_launcher_forwards_selection_and_keeps_terminal_failures_as_text(self):
+    def test_launcher_forwards_selection_and_keeps_terminal_failures_as_text(self) -> None:
         for client in ("codex", "claude"):
             for action in ("doctor", "review", "snapshot"):
                 for failure in ("missing-mise", "missing-tools", "success"):
@@ -52,20 +58,30 @@ class ReviewLaunchTest(unittest.TestCase):
                             self.assertEqual(process.stdout, "")
                             self.assertTrue(process.stderr.strip())
 
-    def test_tracked_mise_tasks_forward_option_and_agent_environment(self):
+    def test_tracked_mise_tasks_forward_option_and_agent_environment(self) -> None:
         mise_path = shutil.which("mise")
+        assert mise_path is not None
         configuration = tomllib.loads((HOOK_PATH.parent.parent / "mise.toml").read_text())
         for action in ("doctor", "review"):
             for inherited, explicit, selected in (
-                ("codex", None, "codex"), ("claude", None, "claude"),
-                ("codex", "claude", "claude"), ("invalid", "codex", "codex"),
-                (None, "codex", "codex"), (None, "claude", "claude"), (None, None, None),
+                ("codex", None, "codex"),
+                ("claude", None, "claude"),
+                ("codex", "claude", "claude"),
+                ("invalid", "codex", "codex"),
+                (None, "codex", "codex"),
+                (None, "claude", "claude"),
+                (None, None, None),
             ):
                 with self.subTest(action=action, inherited=inherited, explicit=explicit):
-                    repository = fixtures.HookConfigurationTest.create_repository(self)
+                    repository = fixtures.create_configured_repository(self)
                     task = configuration["tasks"][action]
-                    task_config = "[tasks." + action + "]\n" + "\n".join(
-                        f"{key} = {json.dumps(value)}" for key, value in task.items()) + "\n"
+                    task_config = (
+                        "[tasks."
+                        + action
+                        + "]\n"
+                        + "\n".join(f"{key} = {json.dumps(value)}" for key, value in task.items())
+                        + "\n"
+                    )
                     repository.write("mise.toml", task_config)
                     repository.complete_tasks()
 
@@ -81,16 +97,26 @@ class ReviewLaunchTest(unittest.TestCase):
                     if explicit is not None:
                         arguments.extend(["--client", explicit])
 
-                    process = subprocess.run(arguments, cwd=repository.root, env=repository.environment,
-                                             stdin=subprocess.DEVNULL, text=True, capture_output=True)
+                    process = subprocess.run(
+                        arguments,
+                        cwd=repository.root,
+                        env=repository.environment,
+                        stdin=subprocess.DEVNULL,
+                        text=True,
+                        capture_output=True,
+                    )
 
-                    self.assertEqual(process.returncode, 0 if selected else 2, process.stdout + process.stderr)
+                    self.assertEqual(
+                        process.returncode, 0 if selected else 2, process.stdout + process.stderr
+                    )
                     if selected:
                         self.assertIn(f"Review client: {selected}", process.stdout)
                     else:
                         self.assertIn("--client codex or --client claude", process.stderr)
                     if action == "review" and selected:
                         self.assertTrue(repository.reviewer_calls())
-                        self.assertTrue(all(call["name"] == selected for call in repository.reviewer_calls()))
+                        self.assertTrue(
+                            all(call["name"] == selected for call in repository.reviewer_calls())
+                        )
                     else:
                         self.assertEqual(repository.reviewer_calls(), [])

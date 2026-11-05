@@ -15,7 +15,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  lint-python:
+    uses: ./.github/workflows/lint-python.yml
+
   push-dev-image:
+    needs: [lint-python]
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     permissions:

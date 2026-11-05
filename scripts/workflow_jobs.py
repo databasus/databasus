@@ -3,9 +3,11 @@
 import re
 
 
-def get_jobs(workflow):
+def get_jobs(workflow: str) -> dict[str, str]:
     jobs_section = workflow[workflow.index("\njobs:\n") :]
     return {
         match.group(1): match.group(2)
-        for match in re.finditer(r"^  ([a-zA-Z0-9_-]+):\n(.*?)(?=^  [a-zA-Z0-9_-]+:\n|\Z)", jobs_section, re.M | re.S)
+        for match in re.finditer(
+            r"^  ([a-zA-Z0-9_-]+):\n(.*?)(?=^  [a-zA-Z0-9_-]+:\n|\Z)", jobs_section, re.M | re.S
+        )
     }

@@ -4,7 +4,7 @@ import subprocess
 from compose_project import COMPOSE_FILE, ComposeProject
 
 
-def test_only_the_browser_publishes_a_port():
+def test_only_the_browser_publishes_a_port() -> None:
     completed = subprocess.run(
         ["docker", "compose", "--file", str(COMPOSE_FILE), "config", "--format", "json"],
         env=ComposeProject("ports-check", "image", "password").get_environment(),

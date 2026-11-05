@@ -1,16 +1,17 @@
-from dataclasses import asdict
-from functools import cache
 import hashlib
 import json
 import os
+from dataclasses import asdict
+from functools import cache
 from pathlib import Path
 
+from review_client import ReviewProfile
 
 EXECUTION_POLICY_VERSION = 1
 
 
 @cache
-def get_review_profile_identity(root, profile):
+def get_review_profile_identity(root: Path, profile: ReviewProfile) -> str:
     hooks_dir = Path(__file__).resolve().parent
     inputs = set(hooks_dir.glob("*-prompt.md")) | set(hooks_dir.glob("*.schema.json"))
 
@@ -29,5 +30,9 @@ def get_review_profile_identity(root, profile):
             digests[str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
         except FileNotFoundError:
             digests[str(path)] = None
-    identity = {"profile": asdict(profile), "inputs": digests, "execution_policy": EXECUTION_POLICY_VERSION}
+    identity = {
+        "profile": asdict(profile),
+        "inputs": digests,
+        "execution_policy": EXECUTION_POLICY_VERSION,
+    }
     return hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()

@@ -4,6 +4,15 @@ amends "package://github.com/jdx/hk/releases/download/v2.8.1/hk@2.8.1#/Config.pk
 // rewrite or hide another agent's unstaged edits. mise run format is the only writer.
 
 steps {
+    ["python-lint"] {
+        glob = List(
+            "**/*.py", "**/pyproject.toml", "**/uv.lock", "**/requirements*.txt",
+            "**/poetry.lock", "**/Pipfile", "**/Pipfile.lock", "**/mise.toml",
+            "**/hk.pkl", "**/.gitignore", "**/.ignore", "**/.ruff.toml",
+            "**/ruff.toml", "**/ty.toml", "**/.python-version"
+        )
+        check = "mise run python:lint"
+    }
     ["backend-lint"] {
         dir = "backend"
         glob = "**"

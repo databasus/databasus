@@ -1,12 +1,12 @@
 import json
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 import tomllib
 import unittest
-
+from collections.abc import Sequence
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CHECK_NAMES = ("formatting", "source", "architecture", "styles", "types", "generated-api")
@@ -39,7 +39,7 @@ console.log(`frontend check passed: ${checkName}`);
 
 
 class FrontendLintExitStatusTest(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         temporary_directory = tempfile.TemporaryDirectory(prefix="frontend-lint-")
         self.addCleanup(temporary_directory.cleanup)
         self.workspace = Path(temporary_directory.name)
@@ -59,30 +59,40 @@ class FrontendLintExitStatusTest(unittest.TestCase):
             (lint / script_name).symlink_to(probe)
 
         package = json.loads((ROOT / "frontend/package.json").read_text())
-        (frontend / "package.json").write_text(json.dumps({
-            "packageManager": package["packageManager"],
-            "scripts": {
-                "lint": package["scripts"]["lint"],
-                "typecheck": package["scripts"]["typecheck"],
-                "generate:api": "node lint/generated-api-probe.mjs",
-            },
-        }))
+        (frontend / "package.json").write_text(
+            json.dumps(
+                {
+                    "packageManager": package["packageManager"],
+                    "scripts": {
+                        "lint": package["scripts"]["lint"],
+                        "typecheck": package["scripts"]["typecheck"],
+                        "generate:api": "node lint/generated-api-probe.mjs",
+                    },
+                }
+            )
+        )
 
         repository_configuration = tomllib.loads((ROOT / "mise.toml").read_text())
         tasks = repository_configuration["tasks"]
         configuration = ["[tools]"]
         for tool_name in ("node", "pnpm"):
-            configuration.append(f"{tool_name} = {json.dumps(repository_configuration['tools'][tool_name])}")
+            configuration.append(
+                f"{tool_name} = {json.dumps(repository_configuration['tools'][tool_name])}"
+            )
         for task_name in ("lint", "frontend:lint"):
             configuration.append(f"[tasks.{json.dumps(task_name)}]")
             for field_name in ("run", "dir"):
                 if field_name in tasks[task_name]:
-                    configuration.append(f"{field_name} = {json.dumps(tasks[task_name][field_name])}")
-        for task_name in ("backend:lint", "lint-shell", "lint-workflows"):
+                    configuration.append(
+                        f"{field_name} = {json.dumps(tasks[task_name][field_name])}"
+                    )
+        for task_name in ("backend:lint", "python:lint", "lint-shell", "lint-workflows"):
             configuration.extend((f"[tasks.{json.dumps(task_name)}]", 'run = "true"'))
         (self.workspace / "mise.toml").write_text("\n".join(configuration) + "\n")
 
-    def run_lint(self, command, failing_check):
+    def run_lint(
+        self, command: Sequence[str], failing_check: str
+    ) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             command,
             cwd=self.workspace,
@@ -96,22 +106,26 @@ class FrontendLintExitStatusTest(unittest.TestCase):
             timeout=30,
         )
 
-    def test_succeeds_through_every_entry_point_when_all_frontend_checks_pass(self):
+    def test_succeeds_through_every_entry_point_when_all_frontend_checks_pass(self) -> None:
         for command in LINT_COMMANDS:
             with self.subTest(command=command):
                 lint_process = self.run_lint(command, "")
 
-                self.assertEqual(lint_process.returncode, 0, lint_process.stdout + lint_process.stderr)
+                self.assertEqual(
+                    lint_process.returncode, 0, lint_process.stdout + lint_process.stderr
+                )
                 for check_name in CHECK_NAMES:
                     self.assertIn(f"frontend check passed: {check_name}", lint_process.stdout)
 
-    def test_fails_through_every_entry_point_when_any_frontend_check_fails(self):
+    def test_fails_through_every_entry_point_when_any_frontend_check_fails(self) -> None:
         for check_name in CHECK_NAMES:
             for command in LINT_COMMANDS:
                 with self.subTest(check=check_name, command=command):
                     lint_process = self.run_lint(command, check_name)
 
-                    self.assertNotEqual(lint_process.returncode, 0, lint_process.stdout + lint_process.stderr)
+                    self.assertNotEqual(
+                        lint_process.returncode, 0, lint_process.stdout + lint_process.stderr
+                    )
                     self.assertIn(
                         f"intentional frontend check failure: {check_name}",
                         lint_process.stdout + lint_process.stderr,

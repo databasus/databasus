@@ -1,6 +1,7 @@
 import json
 from dataclasses import dataclass
 
+from api_response import get_api_object
 from playwright.sync_api import Page, expect
 
 GITHUB_REPOSITORY_ADDRESS = "https://api.github.com/repos/databasus/databasus"
@@ -15,7 +16,10 @@ class Account:
 
 def open_application(page: Page) -> None:
     page.route(GITHUB_REPOSITORY_ADDRESS, lambda route: route.fulfill(json={"stargazers_count": 0}))
-    page.route(f"{GITHUB_REPOSITORY_ADDRESS}/releases/latest", lambda route: route.fulfill(json={"tag_name": "dev"}))
+    page.route(
+        f"{GITHUB_REPOSITORY_ADDRESS}/releases/latest",
+        lambda route: route.fulfill(json={"tag_name": "dev"}),
+    )
     page.goto("/")
 
 
@@ -42,7 +46,9 @@ def sign_in(page: Page, account: Account) -> None:
 
 def create_workspace(page: Page, name: str) -> None:
     workspace_selector = page.get_by_role("combobox", name="Selected workspace")
-    create_workspace_button = page.get_by_role("banner").get_by_role("button", name="Create workspace", exact=True)
+    create_workspace_button = page.get_by_role("banner").get_by_role(
+        "button", name="Create workspace", exact=True
+    )
 
     expect(workspace_selector.or_(create_workspace_button)).to_be_visible()
 
@@ -81,9 +87,9 @@ def create_local_storage(page: Page, name: str) -> None:
     expect(page.get_by_role("button", name=name, exact=True)).to_be_visible()
 
 
-def read_api(page: Page, path: str) -> dict:
+def read_api(page: Page, path: str) -> dict[str, object]:
     """Reads the API inside the page, so the session token never reaches Python and its failure output."""
-    response = page.evaluate(
+    response: object = page.evaluate(
         """async (path) => {
             const token = localStorage.getItem('databasus_user_token');
             const response = await fetch(path, { headers: { Authorization: `Bearer ${token}` } });
@@ -91,10 +97,17 @@ def read_api(page: Page, path: str) -> dict:
         }""",
         path,
     )
+    assert isinstance(response, dict)
+    assert isinstance(response.get("isOk"), bool)
+    assert isinstance(response.get("status"), int)
+    body = response.get("body")
+    assert isinstance(body, str)
     assert response["isOk"], f"GET {path} answered {response['status']}"
 
-    return json.loads(response["body"])
+    return get_api_object(json.loads(body))
 
 
 def read_browser_storage(page: Page, key: str) -> str | None:
-    return page.evaluate("(key) => localStorage.getItem(key)", key)
+    value: object = page.evaluate("(key) => localStorage.getItem(key)", key)
+    assert value is None or isinstance(value, str)
+    return value

@@ -21,6 +21,9 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' }}
 
 jobs:
+  lint-python:
+    uses: ./.github/workflows/lint-python.yml
+
   lint-backend:
     runs-on: namespace-profile-8vcpu-16ram-ubuntu-22-x64
     timeout-minutes: 15
@@ -89,13 +92,15 @@ jobs:
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: 'go shellcheck jq node pnpm python'
+          install_args: 'go shellcheck jq node pnpm python uv ruff ty hk'
 
       - name: Run shellcheck
         run: mise run lint-shell
 
       - name: Test the full test run script
-        run: python3 -m unittest discover -s scripts -p '*_test.py'
+        run: |
+          uv sync --locked --project e2e/browser
+          python3 -m unittest discover -s scripts -p '*_test.py'
 
   lint-workflows:
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
@@ -688,6 +693,7 @@ jobs:
       [
         lint-backend,
         lint-frontend,
+        lint-python,
         lint-shell,
         dockerfile-scan,
         dependency-review,

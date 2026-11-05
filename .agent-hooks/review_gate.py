@@ -133,14 +133,9 @@ A review that could not run never accepts the result, and a missing openspec sto
 """
 
 import argparse
-from concurrent.futures import ThreadPoolExecutor
-from contextlib import nullcontext
-from collections.abc import Callable
-from dataclasses import dataclass, replace
 import hashlib
 import json
 import os
-from pathlib import Path
 import re
 import shlex
 import shutil
@@ -148,12 +143,17 @@ import signal
 import subprocess
 import sys
 import time
+from collections.abc import Callable, Mapping, Sequence, Set
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import nullcontext
+from dataclasses import dataclass, replace
+from pathlib import Path
 
-from review_client import ReviewExecution, get_review_profile
-from codex_reviewer import run_codex_reviewer
-from review_profile import get_review_profile_identity
 from codex_hooks import check_project_hooks
-
+from codex_reviewer import run_codex_reviewer
+from review_client import ReviewExecution, ReviewProfile, get_review_profile
+from review_profile import get_review_profile_identity
+from review_state import Finding, HookState, QuickReviewResult, is_finding, is_hook_state
 
 AUTOMATIC_REVIEW_PREFIX = "AUTOMATIC REVIEW:"
 MAX_REVISIONS = 15
@@ -179,7 +179,7 @@ TASK_PATTERN = re.compile(r"^\s*[-*] \[([ xX])\]", re.MULTILINE)
 
 
 class MissingToolError(Exception):
-    def __init__(self, tool):
+    def __init__(self, tool: str) -> None:
         super().__init__(tool)
         self.tool = tool
 
@@ -191,7 +191,7 @@ class Reviewer:
     timeout_seconds: int
 
 
-REVIEW_PROFILE = None
+REVIEW_PROFILE: ReviewProfile
 QUICK_REVIEWER = Reviewer(
     is_full=False,
     schema_path=HOOKS_DIR / "review-result.schema.json",
@@ -202,7 +202,9 @@ IMPLEMENTATION_REVIEWER = Reviewer(
     schema_path=HOOKS_DIR / "implementation-result.schema.json",
     timeout_seconds=1800,
 )
-PROPOSAL_REVIEWER = replace(IMPLEMENTATION_REVIEWER, schema_path=HOOKS_DIR / "proposal-result.schema.json")
+PROPOSAL_REVIEWER = replace(
+    IMPLEMENTATION_REVIEWER, schema_path=HOOKS_DIR / "proposal-result.schema.json"
+)
 OPENSPEC_PLANNING_COMMANDS = (
     "/opsx:propose",
     "/opsx:update",
@@ -224,7 +226,7 @@ HUMANIZER_CONTEXT = (
 @dataclass(frozen=True)
 class Check:
     directory: str
-    arguments: tuple
+    arguments: tuple[str, ...]
 
 
 class ChangeVerificationError(Exception):
@@ -247,10 +249,12 @@ ALLOWED_VERIFICATION_FORMS = (
 )
 
 
-def read_change_verification_block(tasks_text):
+def read_change_verification_block(tasks_text: str) -> list[str] | None:
     lines = tasks_text.splitlines()
     try:
-        start = next(index for index, line in enumerate(lines) if line.strip() == CHANGE_VERIFICATION_HEADING)
+        start = next(
+            index for index, line in enumerate(lines) if line.strip() == CHANGE_VERIFICATION_HEADING
+        )
     except StopIteration:
         return None
 
@@ -267,18 +271,18 @@ def read_change_verification_block(tasks_text):
     raise ChangeVerificationError("the section has no ```sh code block")
 
 
-def read_code_block(lines):
+def read_code_block(lines: list[str]) -> list[str]:
     for index, line in enumerate(lines):
         if line.strip() == "```":
             return lines[:index]
     raise ChangeVerificationError("the ```sh code block is not closed")
 
 
-def parse_verification_command(line):
+def parse_verification_command(line: str) -> Check:
     try:
         words = shlex.split(line)
     except ValueError as error:
-        raise ChangeVerificationError(f"`{line}` cannot be split into words: {error}")
+        raise ChangeVerificationError(f"`{line}` cannot be split into words: {error}") from error
 
     for form in VERIFICATION_FORMS:
         if tuple(words) == form:
@@ -288,7 +292,7 @@ def parse_verification_command(line):
     raise ChangeVerificationError(f"`{line}` is not an allowed command")
 
 
-def parse_change_verification(change_dir):
+def parse_change_verification(change_dir: Path) -> list[Check]:
     try:
         tasks_text = (change_dir / "tasks.md").read_text()
     except OSError:
@@ -298,26 +302,28 @@ def parse_change_verification(change_dir):
         block = read_change_verification_block(tasks_text)
         if block is None:
             return []
-        commands = [line.strip() for line in block if line.strip() and not line.strip().startswith("#")]
+        commands = [
+            line.strip() for line in block if line.strip() and not line.strip().startswith("#")
+        ]
         if not commands:
             raise ChangeVerificationError("the ```sh code block holds no command")
         return [parse_verification_command(line) for line in commands]
     except ChangeVerificationError as error:
         raise ChangeVerificationError(
-            f"The \"Change verification\" section of `{change_dir.name}/tasks.md` is not valid: {error}.\n\n"
+            f'The "Change verification" section of `{change_dir.name}/tasks.md` is not valid: {error}.\n\n'
             f"{ALLOWED_VERIFICATION_FORMS}"
         ) from None
 
 
-def read_payload():
+def read_payload() -> dict[str, object]:
     try:
         value = json.load(sys.stdin)
-    except (json.JSONDecodeError, OSError):
+    except json.JSONDecodeError, OSError:
         return {}
     return value if isinstance(value, dict) else {}
 
 
-def get_field(payload, *names):
+def get_field(payload: Mapping[str, object], *names: str) -> object:
     for name in names:
         value = payload.get(name)
         if value not in (None, ""):
@@ -325,53 +331,52 @@ def get_field(payload, *names):
     return None
 
 
-def emit(value):
+def emit(value: Mapping[str, object]) -> None:
     json.dump(value, sys.stdout, ensure_ascii=False)
     sys.stdout.write("\n")
 
 
-def run_git(root, *args):
+def run_git(root: Path, *args: str) -> bytes:
     return subprocess.run(
         ["git", *args],
         cwd=root,
         check=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
     ).stdout
 
 
-def find_root(payload):
-    cwd = Path(get_field(payload, "workspaceRoot", "cwd") or Path.cwd()).resolve()
+def find_root(payload: dict[str, object]) -> Path:
+    cwd = Path(str(get_field(payload, "workspaceRoot", "cwd") or Path.cwd())).resolve()
     try:
         return Path(run_git(cwd, "rev-parse", "--show-toplevel").decode().strip())
-    except (OSError, subprocess.CalledProcessError):
+    except OSError, subprocess.CalledProcessError:
         return HOOKS_DIR.parent
 
 
-def get_untracked_paths(root):
+def get_untracked_paths(root: Path) -> list[str]:
     try:
         output = run_git(root, "ls-files", "--others", "--exclude-standard", "-z")
-    except (OSError, subprocess.CalledProcessError):
+    except OSError, subprocess.CalledProcessError:
         return []
     return [path for path in output.decode(errors="replace").split("\0") if path]
 
 
-def get_changed_paths(root):
+def get_changed_paths(root: Path) -> list[str]:
     paths = set(get_untracked_paths(root))
     try:
         output = run_git(root, "diff", "--name-only", "-z", "HEAD", "--")
-    except (OSError, subprocess.CalledProcessError):
+    except OSError, subprocess.CalledProcessError:
         output = run_git(root, "diff", "--name-only", "-z", "--cached", "--")
     paths.update(path for path in output.decode(errors="replace").split("\0") if path)
     return sorted(paths)
 
 
-def get_workspace_fingerprint(root):
+def get_workspace_fingerprint(root: Path) -> str:
     digest = hashlib.sha256()
     try:
         digest.update(run_git(root, "rev-parse", "HEAD"))
         digest.update(run_git(root, "diff", "--binary", "HEAD", "--"))
-    except (OSError, subprocess.CalledProcessError):
+    except OSError, subprocess.CalledProcessError:
         digest.update(run_git(root, "diff", "--binary", "--cached", "--"))
         digest.update(run_git(root, "diff", "--binary", "--"))
 
@@ -394,28 +399,28 @@ def get_workspace_fingerprint(root):
     return digest.hexdigest()
 
 
-def get_state_dir(root):
+def get_state_dir(root: Path) -> Path:
     try:
         git_dir = Path(run_git(root, "rev-parse", "--absolute-git-dir").decode().strip())
-    except (OSError, subprocess.CalledProcessError):
+    except OSError, subprocess.CalledProcessError:
         git_dir = root / ".git"
     return git_dir / "agent-review-hooks"
 
 
-def get_session_key(payload):
+def get_session_key(payload: dict[str, object]) -> str:
     session_id = get_field(payload, "session_id", "sessionId") or "unknown"
     return re.sub(r"[^A-Za-z0-9_.-]", "_", str(session_id))
 
 
-def load_state(path):
+def load_state(path: Path) -> HookState:
     try:
         value = json.loads(path.read_text())
-    except (OSError, json.JSONDecodeError):
+    except OSError, json.JSONDecodeError:
         return {}
-    return value if isinstance(value, dict) else {}
+    return value if is_hook_state(value) else {}
 
 
-def save_state(path, state):
+def save_state(path: Path, state: HookState) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(".tmp")
     temporary.write_text(json.dumps(state, ensure_ascii=False))
@@ -423,24 +428,24 @@ def save_state(path, state):
 
 
 class Session:
-    def __init__(self, root, payload):
+    def __init__(self, root: Path, payload: dict[str, object]) -> None:
         self.root = root
         self.payload = payload
         self.state_dir = get_state_dir(root)
         self.key = get_session_key(payload)
 
     @property
-    def request_path(self):
+    def request_path(self) -> Path:
         return self.state_dir / f"{self.key}.json"
 
-    def gate_path(self, gate):
+    def gate_path(self, gate: str) -> Path:
         return self.state_dir / f"{self.key}.{gate}.json"
 
-    def load_request(self):
+    def load_request(self) -> HookState:
         return load_state(self.request_path)
 
 
-def start_session():
+def start_session() -> None:
     emit(
         {
             "hookSpecificOutput": {
@@ -451,7 +456,7 @@ def start_session():
     )
 
 
-def snapshot(session):
+def snapshot(session: Session) -> None:
     prompt = str(get_field(session.payload, "prompt", "userPrompt") or "")
     if prompt.startswith(AUTOMATIC_REVIEW_PREFIX) and session.load_request():
         return
@@ -475,39 +480,49 @@ def snapshot(session):
             pass
 
 
-def has_command(request, commands):
+def has_command(request: HookState, commands: Sequence[str]) -> bool:
     prompt = str(request.get("prompt") or "").lower()
     return any(command in prompt for command in commands)
 
 
-def get_active_changes(root):
+def get_active_changes(root: Path) -> list[Path]:
     changes_dir = root / "openspec" / "changes"
     if not changes_dir.is_dir():
         return []
-    return sorted(path for path in changes_dir.iterdir() if path.is_dir() and path.name != "archive")
+    return sorted(
+        path for path in changes_dir.iterdir() if path.is_dir() and path.name != "archive"
+    )
 
 
-def get_change_state_path(root, gate, change_name):
+def get_change_state_path(root: Path, gate: str, change_name: str) -> Path:
     identity = get_review_profile_identity(root, REVIEW_PROFILE)
     return get_state_dir(root) / REVIEW_PROFILE.client / identity / gate / f"{change_name}.json"
 
 
-def get_changes_with_findings(root):
+def get_changes_with_findings(root: Path) -> set[str]:
     return {
         change_dir.name
         for change_dir in get_active_changes(root)
-        if load_state(get_change_state_path(root, "implementation", change_dir.name)).get("findings")
+        if load_state(get_change_state_path(root, "implementation", change_dir.name)).get(
+            "findings"
+        )
     }
 
 
-def get_openspec_proposal_hashes(root, excluded_changes=frozenset()):
+def get_openspec_proposal_hashes(
+    root: Path, excluded_changes: Set[str] = frozenset()
+) -> dict[str, str]:
     hashes = {}
     for change_dir in get_active_changes(root):
         if change_dir.name in excluded_changes:
             continue
 
         # tasks.md is left out: implementing the change also checks its tasks.
-        paths = [change_dir / "proposal.md", change_dir / "design.md", *change_dir.glob("specs/**/*.md")]
+        paths = [
+            change_dir / "proposal.md",
+            change_dir / "design.md",
+            *change_dir.glob("specs/**/*.md"),
+        ]
         for path in paths:
             try:
                 hashes[str(path.relative_to(root))] = hashlib.sha256(path.read_bytes()).hexdigest()
@@ -520,7 +535,7 @@ def get_openspec_proposal_hashes(root, excluded_changes=frozenset()):
 # after "write this up as a spec", so the turn is also recognized by changed artifacts.
 # Edits to a change that has unaccepted full review findings follow those findings
 # and do not count as a new proposal.
-def is_openspec_planning(request, root):
+def is_openspec_planning(request: HookState, root: Path) -> bool:
     if has_command(request, OPENSPEC_PLANNING_COMMANDS):
         return True
 
@@ -532,7 +547,9 @@ def is_openspec_planning(request, root):
     return any(baseline.get(path) != digest for path, digest in current.items())
 
 
-def read_plan(tool_input):
+def read_plan(tool_input: object) -> str:
+    if not isinstance(tool_input, dict):
+        return ""
     plan = str(tool_input.get("plan") or "").strip()
     if plan:
         return plan
@@ -542,7 +559,9 @@ def read_plan(tool_input):
         return ""
 
 
-def build_review_prompt(session, gate, subject, candidate, paths):
+def build_review_prompt(
+    session: Session, gate: str, subject: str, candidate: str, paths: Sequence[str]
+) -> str:
     request = session.load_request()
     instructions = "\n\n".join(
         [
@@ -550,7 +569,9 @@ def build_review_prompt(session, gate, subject, candidate, paths):
             (HOOKS_DIR / f"{gate}-prompt.md").read_text(),
         ]
     )
-    baseline_paths = "\n".join(f"- {path}" for path in request.get("baseline_paths") or []) or "- none"
+    baseline_paths = (
+        "\n".join(f"- {path}" for path in request.get("baseline_paths") or []) or "- none"
+    )
     changed_paths = "\n".join(f"- {path}" for path in paths) or "- none"
     # This builds a reviewer prompt, not an HTTP response.
     # nosemgrep: python.flask.security.audit.directly-returned-format-string.directly-returned-format-string
@@ -577,7 +598,7 @@ Currently changed paths:
 """
 
 
-def load_reviewer_output(text):
+def load_reviewer_output(text: str) -> dict[str, object]:
     value = json.loads(text)
     if isinstance(value, dict) and isinstance(value.get("structured_output"), dict):
         value = value["structured_output"]
@@ -586,13 +607,15 @@ def load_reviewer_output(text):
     return value
 
 
-def parse_review_result(value):
-    if not isinstance(value.get("ok"), bool) or not isinstance(value.get("reason"), str):
+def parse_review_result(value: dict[str, object]) -> QuickReviewResult:
+    is_accepted = value.get("ok")
+    reason = value.get("reason")
+    if not isinstance(is_accepted, bool) or not isinstance(reason, str):
         raise ValueError("the reviewer result does not match the schema")
-    return value
+    return {"ok": is_accepted, "reason": reason}
 
 
-def get_reviewer_environment():
+def get_reviewer_environment() -> dict[str, str]:
     environment = os.environ.copy()
     environment[REVIEWER_ACTIVE_ENV] = "1"
     for name in ("CLAUDECODE", "CLAUDE_CODE_SESSION_ID"):
@@ -600,7 +623,7 @@ def get_reviewer_environment():
     return environment
 
 
-def run_claude_reviewer(request):
+def run_claude_reviewer(request: ReviewExecution) -> dict[str, object]:
     command = [
         "claude",
         "--print",
@@ -634,29 +657,40 @@ def run_claude_reviewer(request):
         cwd=request.root,
         input=request.prompt,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         env=environment,
         timeout=request.timeout_seconds,
     )
     if process.returncode != 0:
-        raise RuntimeError(process.stderr.strip() or process.stdout.strip() or f"claude exited with code {process.returncode}")
+        raise RuntimeError(
+            process.stderr.strip()
+            or process.stdout.strip()
+            or f"claude exited with code {process.returncode}"
+        )
     return load_reviewer_output(process.stdout)
 
 
-def run_reviewer(root, prompt, reviewer):
+def run_reviewer(root: Path, prompt: str, reviewer: Reviewer) -> dict[str, object]:
     request = ReviewExecution(
-        root=root, prompt=prompt, client=REVIEW_PROFILE.client, model=REVIEW_PROFILE.model,
+        root=root,
+        prompt=prompt,
+        client=REVIEW_PROFILE.client,
+        model=REVIEW_PROFILE.model,
         effort=REVIEW_PROFILE.full_effort if reviewer.is_full else REVIEW_PROFILE.quick_effort,
-        schema_path=reviewer.schema_path, timeout_seconds=reviewer.timeout_seconds,
+        schema_path=reviewer.schema_path,
+        timeout_seconds=reviewer.timeout_seconds,
         environment=get_reviewer_environment(),
     )
-    answer = run_codex_reviewer(request) if request.client == "codex" else run_claude_reviewer(request)
+    answer = (
+        run_codex_reviewer(request) if request.client == "codex" else run_claude_reviewer(request)
+    )
     validate_review_answer(answer, json.loads(request.schema_path.read_text()))
     return answer
 
 
-def validate_review_answer(answer, schema):
+def validate_review_answer(answer: object, schema: object) -> None:
+    if not isinstance(schema, dict):
+        raise ValueError("the reviewer schema must be an object")
     kind = schema["type"]
     if kind == "object":
         if not isinstance(answer, dict) or set(answer) != set(schema["properties"]):
@@ -675,12 +709,12 @@ def validate_review_answer(answer, schema):
         raise ValueError("the reviewer result does not match the schema")
 
 
-def describe_reviewer_error(error):
+def describe_reviewer_error(error: object) -> str:
     message = str(error).strip()[-1200:] or "unknown reviewer error"
     return f"The automatic reviewer ({REVIEW_PROFILE.client}) could not run: {message}"
 
 
-def review(root, prompt):
+def review(root: Path, prompt: str) -> tuple[bool, str]:
     try:
         result = parse_review_result(run_reviewer(root, prompt, QUICK_REVIEWER))
     except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired) as error:
@@ -691,7 +725,7 @@ def review(root, prompt):
     return False, result["reason"].strip() or "The reviewer rejected the result without a reason."
 
 
-def gate_plan_tool(session, gate):
+def gate_plan_tool(session: Session, gate: str) -> None:
     gate_path = session.gate_path(gate)
     state = load_state(gate_path)
     plan = read_plan(get_field(session.payload, "tool_input", "toolInput") or {})
@@ -699,7 +733,10 @@ def gate_plan_tool(session, gate):
         prompt = build_review_prompt(session, gate, "plan", plan, get_changed_paths(session.root))
         is_accepted, reason = review(session.root, prompt)
     else:
-        is_accepted, reason = False, "ExitPlanMode carried no plan text, so the plan could not be reviewed."
+        is_accepted, reason = (
+            False,
+            "ExitPlanMode carried no plan text, so the plan could not be reviewed.",
+        )
 
     if is_accepted:
         save_state(gate_path, {"blocks": 0})
@@ -731,7 +768,13 @@ def gate_plan_tool(session, gate):
 
 # A plan reaches the reviewer through ExitPlanMode, which has its own check, so a finished turn
 # never carries one.
-def get_stop_subject(gate, is_openspec_turn, is_workspace_changed, blocks, is_code_changed=False):
+def get_stop_subject(
+    gate: str,
+    is_openspec_turn: bool,
+    is_workspace_changed: bool,
+    blocks: int,
+    is_code_changed: bool = False,
+) -> str | None:
     if gate == "code-shape":
         return "finished change" if is_code_changed or blocks > 0 else None
 
@@ -744,7 +787,7 @@ def get_stop_subject(gate, is_openspec_turn, is_workspace_changed, blocks, is_co
     return None
 
 
-def gate_stop(session, gate):
+def gate_stop(session: Session, gate: str) -> None:
     request = session.load_request()
     if gate in GATES_YIELDING_TO_PROPOSAL_REVIEW and is_proposal_review_turn(session.root, request):
         emit({})
@@ -766,7 +809,10 @@ def gate_stop(session, gate):
         emit({})
         return
 
-    candidate = str(get_field(session.payload, "last_assistant_message", "lastAssistantMessage") or "(not available)")
+    candidate = str(
+        get_field(session.payload, "last_assistant_message", "lastAssistantMessage")
+        or "(not available)"
+    )
     prompt = build_review_prompt(session, gate, subject, candidate, get_changed_paths(session.root))
     is_accepted, reason = review(session.root, prompt)
 
@@ -795,22 +841,27 @@ def gate_stop(session, gate):
             "a summary of the final state, without retelling this review, its findings or your fixes. "
             "The review will repeat."
         )
-    emit({"decision": "block", "reason": f"{AUTOMATIC_REVIEW_PREFIX} {gate}\n{reason}\n{instruction}"})
+    emit(
+        {
+            "decision": "block",
+            "reason": f"{AUTOMATIC_REVIEW_PREFIX} {gate}\n{reason}\n{instruction}",
+        }
+    )
 
 
-def get_task_marks(change_dir):
+def get_task_marks(change_dir: Path) -> list[str]:
     try:
         return TASK_PATTERN.findall((change_dir / "tasks.md").read_text())
     except OSError:
         return []
 
 
-def is_implemented(change_dir):
+def is_implemented(change_dir: Path) -> bool:
     marks = get_task_marks(change_dir)
     return bool(marks) and " " not in marks
 
 
-def is_unstarted(change_dir):
+def is_unstarted(change_dir: Path) -> bool:
     marks = get_task_marks(change_dir)
     return bool(marks) and all(mark == " " for mark in marks)
 
@@ -818,15 +869,14 @@ def is_unstarted(change_dir):
 # The CLI decides whether the artifacts are complete: it knows the change's schema, an optional
 # design.md and skip_specs. A CLI that cannot start raises MissingToolError, because skipping
 # the proposal review would let an unreviewed proposal pass silently.
-def is_planning_complete(root, change_name):
+def is_planning_complete(root: Path, change_name: str) -> bool:
     try:
         process = subprocess.run(
             ["openspec", "status", "--change", change_name, "--json"],
             cwd=root,
             text=True,
             errors="replace",
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             timeout=OPENSPEC_TIMEOUT_SECONDS,
         )
     except OSError as error:
@@ -837,10 +887,14 @@ def is_planning_complete(root, change_name):
         status = json.loads(process.stdout)
     except json.JSONDecodeError:
         return False
-    return process.returncode == 0 and isinstance(status, dict) and status.get("isPlanningComplete") is True
+    return (
+        process.returncode == 0
+        and isinstance(status, dict)
+        and status.get("isPlanningComplete") is True
+    )
 
 
-def get_file_hashes(root, relative_paths):
+def get_file_hashes(root: Path, relative_paths: Sequence[str]) -> dict[str, str]:
     hashes = {}
     for relative_path in relative_paths:
         try:
@@ -850,37 +904,39 @@ def get_file_hashes(root, relative_paths):
     return hashes
 
 
-def get_paths_changed_since(reviewed_files, current_files):
+def get_paths_changed_since(
+    reviewed_files: dict[str, str], current_files: dict[str, str]
+) -> list[str]:
     paths = set(reviewed_files) | set(current_files)
     return sorted(path for path in paths if reviewed_files.get(path) != current_files.get(path))
 
 
-def get_change_file_hashes(root, change_dir):
+def get_change_file_hashes(root: Path, change_dir: Path) -> dict[str, str]:
     paths = sorted(path for path in change_dir.rglob("*") if path.is_file())
     return get_file_hashes(root, [str(path.relative_to(root)) for path in paths])
 
 
-def get_openspec_file_hashes(root):
+def get_openspec_file_hashes(root: Path) -> dict[str, str]:
     hashes = {}
     for change_dir in get_active_changes(root):
         hashes.update(get_change_file_hashes(root, change_dir))
     return hashes
 
 
-def is_code_path(path):
+def is_code_path(path: str) -> bool:
     return path.startswith(CODE_DIRS) and path.endswith(CODE_SUFFIXES)
 
 
 # Changed code is found by file hashes, as in is_proposal_review_turn: someone else's changed
 # file that was already in the tree before the request does not start the code-shape reviewer.
-def is_code_changed_since_request(root, request):
+def is_code_changed_since_request(root: Path, request: HookState) -> bool:
     current_files = get_file_hashes(root, get_changed_paths(root))
     changed_paths = get_paths_changed_since(request.get("baseline_files") or {}, current_files)
     return any(is_code_path(path) for path in changed_paths)
 
 
 # The conditions go from cheap to expensive: openspec status runs last.
-def is_proposal_review_turn(root, request):
+def is_proposal_review_turn(root: Path, request: HookState) -> bool:
     current_files = get_file_hashes(root, get_changed_paths(root))
     change_names = set()
     for path in get_paths_changed_since(request.get("baseline_files") or {}, current_files):
@@ -891,11 +947,12 @@ def is_proposal_review_turn(root, request):
 
     changes_dir = root / "openspec" / "changes"
     return bool(change_names) and all(
-        is_unstarted(changes_dir / name) and is_planning_complete(root, name) for name in sorted(change_names)
+        is_unstarted(changes_dir / name) and is_planning_complete(root, name)
+        for name in sorted(change_names)
     )
 
 
-def get_output_tail(output):
+def get_output_tail(output: str | bytes | None) -> str:
     if isinstance(output, bytes):
         output = output.decode(errors="replace")
     return "\n".join((output or "").rstrip().splitlines()[-CHECK_OUTPUT_LINES:]) or "(no output)"
@@ -903,7 +960,7 @@ def get_output_tail(output):
 
 # `mise` starts bash, bash starts `go test`, and `go test` starts test binaries that hold a test slot
 # database and containers. Each check runs in its own process group, so a timeout kills them all.
-def stop_process_group(process):
+def stop_process_group(process: subprocess.Popen[str]) -> str | bytes | None:
     try:
         os.killpg(process.pid, signal.SIGKILL)
     except ProcessLookupError:
@@ -913,20 +970,32 @@ def stop_process_group(process):
     except subprocess.TimeoutExpired as error:
         # A descendant that left the group still holds the pipe, so the output read so far is all there is.
         # TimeoutExpired carries it as bytes even for a text-mode process; get_output_tail decodes it.
+        assert process.stdout is not None
         process.stdout.close()
         process.wait()
         return error.output
 
 
-def run_checks(root, checks, check_timeout_seconds=CHECK_TIMEOUT_SECONDS, total_timeout_seconds=CHECKS_TOTAL_TIMEOUT_SECONDS):
+def run_checks(
+    root: Path,
+    checks: Sequence[Check],
+    check_timeout_seconds: float = CHECK_TIMEOUT_SECONDS,
+    total_timeout_seconds: float = CHECKS_TOTAL_TIMEOUT_SECONDS,
+) -> str | None:
     deadline = time.monotonic() + total_timeout_seconds
     for check in checks:
         command = f"`{' '.join(check.arguments)}` in `{check.directory}`"
         remaining_seconds = max(deadline - time.monotonic(), 0)
         if check_timeout_seconds <= remaining_seconds:
-            timeout_seconds, exceeded_limit = check_timeout_seconds, f"its limit of {check_timeout_seconds} seconds per check"
+            timeout_seconds, exceeded_limit = (
+                check_timeout_seconds,
+                f"its limit of {check_timeout_seconds} seconds per check",
+            )
         else:
-            timeout_seconds, exceeded_limit = remaining_seconds, f"the total limit of {total_timeout_seconds} seconds for all checks"
+            timeout_seconds, exceeded_limit = (
+                remaining_seconds,
+                f"the total limit of {total_timeout_seconds} seconds for all checks",
+            )
 
         try:
             # The hooks run on Python 3.6 or newer.
@@ -957,9 +1026,9 @@ def run_checks(root, checks, check_timeout_seconds=CHECK_TIMEOUT_SECONDS, total_
 @dataclass(frozen=True)
 class ReviewTarget:
     change_dir: Path
-    state: dict
+    state: HookState
     accepted: str
-    files: dict
+    files: dict[str, str]
 
 
 @dataclass(frozen=True)
@@ -968,14 +1037,14 @@ class FullReview:
     title: str
     subject: str
     reviewer: Reviewer
-    categories: tuple
-    non_blocking_categories: tuple
-    summary_categories: tuple
-    category_notes: dict
-    first_roles: tuple
+    categories: tuple[str, ...]
+    non_blocking_categories: tuple[str, ...]
+    summary_categories: tuple[str, ...]
+    category_notes: dict[str, str]
+    first_roles: tuple[str, ...]
     files_title: str
-    select_targets: Callable
-    get_checks: Callable | None
+    select_targets: Callable[[Session], list[ReviewTarget]]
+    get_checks: Callable[[Path, Sequence[ReviewTarget]], list[Check]] | None
     block_instruction: str
     optional_findings_title: str
     summary_instruction: str
@@ -989,11 +1058,11 @@ class ReviewJob:
     prompt: str
 
 
-def format_paths(paths):
+def format_paths(paths: Sequence[str]) -> str:
     return "\n".join(f"- {path}" for path in paths) or "- none"
 
 
-def format_findings(full_review, findings):
+def format_findings(full_review: FullReview, findings: Sequence[Finding]) -> str:
     order = {category: index for index, category in enumerate(full_review.categories)}
     lines = []
     for finding in sorted(findings, key=lambda finding: order[finding["category"]]):
@@ -1002,7 +1071,9 @@ def format_findings(full_review, findings):
     return "\n".join(lines)
 
 
-def build_full_review_prompt(session, full_review, change_dir, role, details):
+def build_full_review_prompt(
+    session: Session, full_review: FullReview, change_dir: Path, role: str, details: str
+) -> str:
     request = session.load_request()
     instructions = "\n\n".join(
         [
@@ -1010,7 +1081,10 @@ def build_full_review_prompt(session, full_review, change_dir, role, details):
             (HOOKS_DIR / f"{full_review.gate}-prompt.md").read_text(),
         ]
     )
-    candidate = str(get_field(session.payload, "last_assistant_message", "lastAssistantMessage") or "(not available)")
+    candidate = str(
+        get_field(session.payload, "last_assistant_message", "lastAssistantMessage")
+        or "(not available)"
+    )
     # This builds a reviewer prompt, not an HTTP response.
     # nosemgrep: python.flask.security.audit.directly-returned-format-string.directly-returned-format-string
     return f"""{instructions}
@@ -1033,51 +1107,64 @@ Agent response:
 """
 
 
-def build_review_jobs(session, full_review, target):
+def build_review_jobs(
+    session: Session, full_review: FullReview, target: ReviewTarget
+) -> list[ReviewJob]:
     change_dir = target.change_dir
     findings = target.state.get("findings")
     if findings:
-        changed_since_review = get_paths_changed_since(target.state.get("reviewed_files") or {}, target.files)
+        changed_since_review = get_paths_changed_since(
+            target.state.get("reviewed_files") or {}, target.files
+        )
         details = (
             f"Previous review findings:\n{format_findings(full_review, findings)}\n\n"
             f"Paths changed after the previous review:\n{format_paths(changed_since_review)}"
         )
-        prompt = build_full_review_prompt(session, full_review, change_dir, "repeat review", details)
+        prompt = build_full_review_prompt(
+            session, full_review, change_dir, "repeat review", details
+        )
         return [ReviewJob(change_dir.name, prompt)]
 
     details = f"{full_review.files_title}:\n{format_paths(sorted(target.files))}"
     spec_paths = sorted(change_dir.glob("specs/**/spec.md"))
     roles = [f"delta spec `{path.relative_to(session.root)}`" for path in spec_paths]
     roles.extend(full_review.first_roles)
-    return [ReviewJob(change_dir.name, build_full_review_prompt(session, full_review, change_dir, role, details)) for role in roles]
+    return [
+        ReviewJob(
+            change_dir.name,
+            build_full_review_prompt(session, full_review, change_dir, role, details),
+        )
+        for role in roles
+    ]
 
 
-def parse_findings(full_review, value):
+def parse_findings(full_review: FullReview, value: dict[str, object]) -> list[Finding]:
     findings = value.get("findings")
     if not isinstance(findings, list):
         raise ValueError("the reviewer result does not match the schema")
 
     for finding in findings:
-        if (
-            not isinstance(finding, dict)
-            or finding.get("category") not in full_review.categories
-            or not isinstance(finding.get("file"), str)
-            or not isinstance(finding.get("summary"), str)
-        ):
+        if not is_finding(finding) or finding["category"] not in full_review.categories:
             raise ValueError("the reviewer result does not match the schema")
-    return [{"category": finding["category"], "file": finding["file"], "summary": finding["summary"]} for finding in findings]
+    return [finding for finding in findings if is_finding(finding)]
 
 
-def run_review_job(root, full_review, job, deadline):
+def run_review_job(
+    root: Path, full_review: FullReview, job: ReviewJob, deadline: float
+) -> tuple[list[Finding], str | None]:
     if deadline - time.monotonic() < full_review.reviewer.timeout_seconds:
         return [], describe_reviewer_error(BUDGET_EXHAUSTED_ERROR)
     try:
-        return parse_findings(full_review, run_reviewer(root, job.prompt, full_review.reviewer)), None
+        return parse_findings(
+            full_review, run_reviewer(root, job.prompt, full_review.reviewer)
+        ), None
     except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired) as error:
         return [], describe_reviewer_error(error)
 
 
-def block_full_review(session, full_review, report, instruction):
+def block_full_review(
+    session: Session, full_review: FullReview, report: str, instruction: str
+) -> None:
     gate_path = session.gate_path(full_review.gate)
     blocks = int(load_state(gate_path).get("blocks") or 0) + 1
     save_state(gate_path, {"blocks": blocks})
@@ -1091,7 +1178,12 @@ def block_full_review(session, full_review, report, instruction):
         )
         return
 
-    emit({"decision": "block", "reason": f"{AUTOMATIC_REVIEW_PREFIX} {full_review.gate}\n{report}\n\n{instruction}"})
+    emit(
+        {
+            "decision": "block",
+            "reason": f"{AUTOMATIC_REVIEW_PREFIX} {full_review.gate}\n{report}\n\n{instruction}",
+        }
+    )
 
 
 @dataclass(frozen=True)
@@ -1102,31 +1194,57 @@ class FullReviewOutcome:
     has_summary_findings: bool = False
 
 
-def run_full_review(session, full_review, targets, deadline, executor=None):
+def run_full_review(
+    session: Session,
+    full_review: FullReview,
+    targets: Sequence[ReviewTarget],
+    deadline: float,
+    executor: ThreadPoolExecutor | None = None,
+) -> FullReviewOutcome:
     root = session.root
     try:
         for target in targets:
             parse_change_verification(target.change_dir)
         checks = full_review.get_checks(root, targets) if full_review.get_checks else []
     except ChangeVerificationError as error:
-        return FullReviewOutcome(False, f"{error}\n\nNo check or reviewer ran.", "Fix the section. " + FULL_REVIEW_REPLY_INSTRUCTION)
+        return FullReviewOutcome(
+            False,
+            f"{error}\n\nNo check or reviewer ran.",
+            "Fix the section. " + FULL_REVIEW_REPLY_INSTRUCTION,
+        )
 
     if checks:
-        checks_timeout_seconds = min(CHECKS_TOTAL_TIMEOUT_SECONDS, max(deadline - time.monotonic(), 0))
+        checks_timeout_seconds = min(
+            CHECKS_TOTAL_TIMEOUT_SECONDS, max(deadline - time.monotonic(), 0)
+        )
         check_failure = run_checks(root, checks, total_timeout_seconds=checks_timeout_seconds)
         if check_failure:
-            return FullReviewOutcome(False, f"{check_failure}\n\nNo reviewer ran.", "Fix the failure. " + FULL_REVIEW_REPLY_INSTRUCTION)
+            return FullReviewOutcome(
+                False,
+                f"{check_failure}\n\nNo reviewer ran.",
+                "Fix the failure. " + FULL_REVIEW_REPLY_INSTRUCTION,
+            )
 
     jobs = [job for target in targets for job in build_review_jobs(session, full_review, target)]
-    with (ThreadPoolExecutor(max_workers=MAX_PARALLEL_REVIEWERS) if executor is None else nullcontext(executor)) as review_executor:
-        results = list(review_executor.map(lambda job: run_review_job(root, full_review, job, deadline), jobs))
+    with (
+        ThreadPoolExecutor(max_workers=MAX_PARALLEL_REVIEWERS)
+        if executor is None
+        else nullcontext(executor)
+    ) as review_executor:
+        results = list(
+            review_executor.map(lambda job: run_review_job(root, full_review, job, deadline), jobs)
+        )
 
     reports = []
     has_blocking = False
     has_summary_findings = False
     for target in targets:
         change_name = target.change_dir.name
-        change_results = [result for job, result in zip(jobs, results) if job.change_name == change_name]
+        change_results = [
+            result
+            for job, result in zip(jobs, results, strict=True)
+            if job.change_name == change_name
+        ]
         findings = [finding for change_findings, _ in change_results for finding in change_findings]
         errors = [error for _, error in change_results if error]
         is_blocking = bool(errors) or any(
@@ -1137,7 +1255,9 @@ def run_full_review(session, full_review, targets, deadline, executor=None):
         if is_blocking and not errors:
             save_state(state_path, {"findings": findings, "reviewed_files": target.files})
         elif not is_blocking:
-            save_state(state_path, {"accepted": target.accepted, "findings": [], "reviewed_files": {}})
+            save_state(
+                state_path, {"accepted": target.accepted, "findings": [], "reviewed_files": {}}
+            )
 
         has_blocking = has_blocking or is_blocking
         has_summary_findings = has_summary_findings or any(
@@ -1150,12 +1270,14 @@ def run_full_review(session, full_review, targets, deadline, executor=None):
     report = "\n\n".join(reports)
     if has_blocking:
         return FullReviewOutcome(
-            False, f"{full_review.title} did not accept the {full_review.subject}.\n\n{report}", full_review.block_instruction
+            False,
+            f"{full_review.title} did not accept the {full_review.subject}.\n\n{report}",
+            full_review.block_instruction,
         )
     return FullReviewOutcome(True, report, has_summary_findings=has_summary_findings)
 
 
-def gate_full_review(session, full_review, deadline):
+def gate_full_review(session: Session, full_review: FullReview, deadline: float) -> None:
     targets = full_review.select_targets(session)
     if not targets:
         emit({})
@@ -1172,7 +1294,11 @@ def gate_full_review(session, full_review, deadline):
     # After fix rounds the agent's last response covers only the fixes, and before the review it could
     # not know the outcome, so the agent writes the summary of the whole work in a separate turn.
     if full_review.should_always_ask_for_summary or previous_blocks or outcome.has_summary_findings:
-        optional_findings = f"\n\n{full_review.optional_findings_title}:\n\n{outcome.report}" if outcome.report else ""
+        optional_findings = (
+            f"\n\n{full_review.optional_findings_title}:\n\n{outcome.report}"
+            if outcome.report
+            else ""
+        )
         emit(
             {
                 "decision": "block",
@@ -1183,33 +1309,55 @@ def gate_full_review(session, full_review, deadline):
         return
 
     if outcome.report:
-        emit({"systemMessage": f"{full_review.title} accepted the {full_review.subject}. {full_review.optional_findings_title}:\n\n{outcome.report}"})
+        emit(
+            {
+                "systemMessage": f"{full_review.title} accepted the {full_review.subject}. {full_review.optional_findings_title}:\n\n{outcome.report}"
+            }
+        )
         return
     emit({})
 
 
-def select_implementation_targets(session):
+def select_implementation_targets(session: Session) -> list[ReviewTarget]:
     root = session.root
     request = session.load_request()
     fingerprint = get_workspace_fingerprint(root)
-    if "baseline" not in request or request["baseline"] == fingerprint or has_command(request, OPENSPEC_PLANNING_COMMANDS):
+    if (
+        "baseline" not in request
+        or request["baseline"] == fingerprint
+        or has_command(request, OPENSPEC_PLANNING_COMMANDS)
+    ):
         return []
 
-    change_dirs = [change_dir for change_dir in get_active_changes(root) if is_implemented(change_dir)]
-    states = {change_dir: load_state(get_change_state_path(root, "implementation", change_dir.name)) for change_dir in change_dirs}
-    unaccepted_states = {change_dir: state for change_dir, state in states.items() if state.get("accepted") != fingerprint}
+    change_dirs = [
+        change_dir for change_dir in get_active_changes(root) if is_implemented(change_dir)
+    ]
+    states = {
+        change_dir: load_state(get_change_state_path(root, "implementation", change_dir.name))
+        for change_dir in change_dirs
+    }
+    unaccepted_states = {
+        change_dir: state
+        for change_dir, state in states.items()
+        if state.get("accepted") != fingerprint
+    }
     return build_implementation_targets(root, fingerprint, unaccepted_states)
 
 
-def build_implementation_targets(root, fingerprint, states_by_change_dir):
+def build_implementation_targets(
+    root: Path, fingerprint: str, states_by_change_dir: dict[Path, HookState]
+) -> list[ReviewTarget]:
     if not states_by_change_dir:
         return []
 
     files = get_file_hashes(root, get_changed_paths(root))
-    return [ReviewTarget(change_dir, state, fingerprint, files) for change_dir, state in states_by_change_dir.items()]
+    return [
+        ReviewTarget(change_dir, state, fingerprint, files)
+        for change_dir, state in states_by_change_dir.items()
+    ]
 
 
-def select_proposal_targets(session):
+def select_proposal_targets(session: Session) -> list[ReviewTarget]:
     root = session.root
     baseline = session.load_request().get("openspec_files")
     if not isinstance(baseline, dict):
@@ -1219,7 +1367,9 @@ def select_proposal_targets(session):
     for change_dir in get_active_changes(root):
         files = get_change_file_hashes(root, change_dir)
         prefix = f"{change_dir.relative_to(root)}/"
-        baseline_files = {path: digest for path, digest in baseline.items() if path.startswith(prefix)}
+        baseline_files = {
+            path: digest for path, digest in baseline.items() if path.startswith(prefix)
+        }
         if files == baseline_files or not is_unstarted(change_dir):
             continue
 
@@ -1231,8 +1381,11 @@ def select_proposal_targets(session):
     return targets
 
 
-def get_proposal_checks(root, targets):
-    return [Check(".", ("openspec", "validate", target.change_dir.name, "--strict")) for target in targets]
+def get_proposal_checks(root: Path, targets: Sequence[ReviewTarget]) -> list[Check]:
+    return [
+        Check(".", ("openspec", "validate", target.change_dir.name, "--strict"))
+        for target in targets
+    ]
 
 
 IMPLEMENTATION_REVIEW = FullReview(
@@ -1280,7 +1433,8 @@ PROPOSAL_REVIEW = FullReview(
     block_instruction="Resolve every gap, mismatch, tasks and simplify finding yourself, without asking the user: "
     "fix the change's artifacts, and reject a false finding. "
     "Do not apply scope findings: cutting the feature needs the user's consent, and the user sees them in the summary. "
-    "Minor findings are optional. If a reviewer could not run, find the cause of the failure. " + FULL_REVIEW_REPLY_INSTRUCTION,
+    "Minor findings are optional. If a reviewer could not run, find the cause of the failure. "
+    + FULL_REVIEW_REPLY_INSTRUCTION,
     optional_findings_title="Findings that do not block the turn",
     summary_instruction="Do not change files any more. Write the user a summary of the proposal as if there had been no review: "
     "what is proposed and which decisions were made. "
@@ -1290,7 +1444,9 @@ PROPOSAL_REVIEW = FullReview(
     should_always_ask_for_summary=False,
     repeat_limit_note="",
 )
-FULL_REVIEWS = {full_review.gate: full_review for full_review in (IMPLEMENTATION_REVIEW, PROPOSAL_REVIEW)}
+FULL_REVIEWS = {
+    full_review.gate: full_review for full_review in (IMPLEMENTATION_REVIEW, PROPOSAL_REVIEW)
+}
 
 
 MANUAL_REVIEW_SESSION_ID = "manual-review"
@@ -1298,7 +1454,9 @@ MANUAL_REVIEW_REQUEST = (
     "The user started `mise run review` by hand: review the current working tree as the finished implementation "
     "of the change, as the hooks do when the agent finishes its last task."
 )
-MANUAL_REVIEW_CANDIDATE = "(none: the user started the review by hand, so there is no agent response to check)"
+MANUAL_REVIEW_CANDIDATE = (
+    "(none: the user started the review by hand, so there is no agent response to check)"
+)
 # The Stop gates that review a finished change; necessity reviews only proposals.
 MANUAL_REVIEW_QUICK_GATES = ("diff", "architecture", "code-shape")
 
@@ -1308,27 +1466,37 @@ class ManualReviewError(Exception):
 
 
 class ManualSession(Session):
-    def __init__(self, root):
+    def __init__(self, root: Path) -> None:
         super().__init__(
-            root, {"session_id": MANUAL_REVIEW_SESSION_ID, "last_assistant_message": MANUAL_REVIEW_CANDIDATE}
+            root,
+            {
+                "session_id": MANUAL_REVIEW_SESSION_ID,
+                "last_assistant_message": MANUAL_REVIEW_CANDIDATE,
+            },
         )
 
-    def load_request(self):
+    def load_request(self) -> HookState:
         return {"prompt": MANUAL_REVIEW_REQUEST}
 
 
 # A manual run reviews even a state the hook already accepted, because the user asks for it when
 # they doubt the hook's result. Findings of an earlier review are repeated like the hook does,
 # so a run after the fixes checks them instead of starting a new review that finds new details.
-def select_manual_targets(root, change_name):
-    change_dirs = [change_dir for change_dir in get_active_changes(root) if change_name in (None, change_dir.name)]
+def select_manual_targets(root: Path, change_name: str | None) -> list[ReviewTarget]:
+    change_dirs = [
+        change_dir
+        for change_dir in get_active_changes(root)
+        if change_name in (None, change_dir.name)
+    ]
     if change_name and not change_dirs:
         raise ManualReviewError(f"No active OpenSpec change is named `{change_name}`.")
 
     implemented_dirs = [change_dir for change_dir in change_dirs if is_implemented(change_dir)]
     if not implemented_dirs:
         names = ", ".join(f"`{change_dir.name}`" for change_dir in change_dirs) or "none"
-        raise ManualReviewError(f"No active OpenSpec change has every task checked. Active changes: {names}.")
+        raise ManualReviewError(
+            f"No active OpenSpec change has every task checked. Active changes: {names}."
+        )
 
     states = {}
     for change_dir in implemented_dirs:
@@ -1337,20 +1505,24 @@ def select_manual_targets(root, change_name):
     return build_implementation_targets(root, get_workspace_fingerprint(root), states)
 
 
-def run_manual_quick_gate(session, gate, changed_paths):
+def run_manual_quick_gate(
+    session: Session, gate: str, changed_paths: Sequence[str]
+) -> tuple[str, tuple[bool, str] | None]:
     if gate == "code-shape" and not any(is_code_path(path) for path in changed_paths):
         return gate, None
-    prompt = build_review_prompt(session, gate, "finished change", MANUAL_REVIEW_CANDIDATE, changed_paths)
+    prompt = build_review_prompt(
+        session, gate, "finished change", MANUAL_REVIEW_CANDIDATE, changed_paths
+    )
     return gate, review(session.root, prompt)
 
 
-def report_progress(message):
+def report_progress(message: str) -> None:
     print(message, file=sys.stderr, flush=True)
 
 
 # Prints a report for a person or for the agent that reads the output of `! mise run review`,
 # and returns the exit code: 0 when every review accepted the change.
-def run_manual_review(change_name, deadline):
+def run_manual_review(change_name: str | None, deadline: float) -> int:
     print(f"Review client: {REVIEW_PROFILE.client}")
     root = find_root({})
     session = ManualSession(root)
@@ -1362,9 +1534,14 @@ def run_manual_review(change_name, deadline):
 
     change_names = ", ".join(f"`{target.change_dir.name}`" for target in targets)
     changed_paths = get_changed_paths(root)
-    report_progress(f"Reviewing {change_names}: quick and full AI reviewers run in parallel; linting and tests must already be complete.")
+    report_progress(
+        f"Reviewing {change_names}: quick and full AI reviewers run in parallel; linting and tests must already be complete."
+    )
     with ThreadPoolExecutor(max_workers=MAX_PARALLEL_REVIEWERS) as executor:
-        quick_futures = [executor.submit(run_manual_quick_gate, session, gate, changed_paths) for gate in MANUAL_REVIEW_QUICK_GATES]
+        quick_futures = [
+            executor.submit(run_manual_quick_gate, session, gate, changed_paths)
+            for gate in MANUAL_REVIEW_QUICK_GATES
+        ]
         outcome = run_full_review(session, IMPLEMENTATION_REVIEW, targets, deadline, executor)
         quick_results = [future.result() for future in quick_futures]
 
@@ -1376,11 +1553,19 @@ def run_manual_review(change_name, deadline):
             continue
         is_gate_accepted, reason = result
         is_accepted = is_accepted and is_gate_accepted
-        sections.append(f"Quick check `{gate}`: accepted." if is_gate_accepted else f"Quick check `{gate}`: not accepted.\n{reason}")
+        sections.append(
+            f"Quick check `{gate}`: accepted."
+            if is_gate_accepted
+            else f"Quick check `{gate}`: not accepted.\n{reason}"
+        )
 
     is_accepted = is_accepted and outcome.is_accepted
     if outcome.is_accepted:
-        optional_findings = f" {IMPLEMENTATION_REVIEW.optional_findings_title}:\n\n{outcome.report}" if outcome.report else ""
+        optional_findings = (
+            f" {IMPLEMENTATION_REVIEW.optional_findings_title}:\n\n{outcome.report}"
+            if outcome.report
+            else ""
+        )
         sections.append(f"{IMPLEMENTATION_REVIEW.title} accepted the change.{optional_findings}")
     else:
         sections.append(outcome.report)
@@ -1394,7 +1579,7 @@ def run_manual_review(change_name, deadline):
     return 0 if is_accepted else 1
 
 
-def check_environment():
+def check_environment() -> int:
     print(f"Review client: {REVIEW_PROFILE.client}")
     tool_paths = {
         "python": sys.executable,
@@ -1409,12 +1594,14 @@ def check_environment():
         return 1
     if REVIEW_PROFILE.client == "codex":
         root = find_root({})
-        if not check_project_hooks(tool_paths["codex"], root):
+        codex_path = tool_paths["codex"]
+        assert codex_path is not None
+        if not check_project_hooks(codex_path, root):
             return 1
     return 0
 
 
-def stop_for_missing_tool(error):
+def stop_for_missing_tool(error: MissingToolError) -> None:
     message = (
         f"The review hooks could not find `{error.tool}`, so the review did not run. "
         f"Run `mise install` to install the pinned tools and `mise run doctor --client {REVIEW_PROFILE.client}` to check the environment."
@@ -1422,12 +1609,16 @@ def stop_for_missing_tool(error):
     emit({"continue": False, "stopReason": message, "systemMessage": message})
 
 
-def main():
+def main() -> None:
     global REVIEW_PROFILE
     deadline = time.monotonic() + FULL_REVIEW_BUDGET_SECONDS
     parser = argparse.ArgumentParser()
     parser.add_argument("action", choices=("session-start", "snapshot", "doctor", "review", *GATES))
-    parser.add_argument("change", nargs="?", help="the OpenSpec change that `review` checks; all implemented ones when omitted")
+    parser.add_argument(
+        "change",
+        nargs="?",
+        help="the OpenSpec change that `review` checks; all implemented ones when omitted",
+    )
     parser.add_argument("--client")
     arguments = parser.parse_intermixed_args()
 
@@ -1452,7 +1643,9 @@ def main():
         try:
             sys.exit(run_manual_review(arguments.change or None, deadline))
         except MissingToolError as error:
-            print(f"The review could not find `{error.tool}`. Run `mise install`, then `mise run doctor --client {REVIEW_PROFILE.client}`.")
+            print(
+                f"The review could not find `{error.tool}`. Run `mise install`, then `mise run doctor --client {REVIEW_PROFILE.client}`."
+            )
             sys.exit(2)
 
     try:
@@ -1461,7 +1654,7 @@ def main():
         stop_for_missing_tool(error)
 
 
-def run_action(action, deadline):
+def run_action(action: str, deadline: float) -> None:
     payload = read_payload()
     if action == "session-start":
         start_session()

@@ -15,8 +15,8 @@ from leftover_sweep import sweep_dead_runs
 from output_masking import OutputMask
 from supervisor_file import (
     SupervisorRecord,
-    get_process_start_time,
     get_project_name,
+    get_required_process_start_time,
     get_run_directory,
     remove_run_directory,
     write_supervisor_record,
@@ -29,9 +29,19 @@ EXIT_FAILED = 1
 EXIT_INTERRUPTED = 130
 LOG_TAIL_LINES = "200"
 PR_SET_PDEATHSIG = 1
-KNOWN_PROBES = {"scenario", "interrupt", "secrets", "passing", "refused-form", "invalid-host-tools", "unresponsive-engine"}
-PROBE_SCENARIOS = {"refused-form": "scenarios/test_critical_path.py",
-                   "invalid-host-tools": "scenarios/test_critical_path.py"}
+KNOWN_PROBES = {
+    "scenario",
+    "interrupt",
+    "secrets",
+    "passing",
+    "refused-form",
+    "invalid-host-tools",
+    "unresponsive-engine",
+}
+PROBE_SCENARIOS = {
+    "refused-form": "scenarios/test_critical_path.py",
+    "invalid-host-tools": "scenarios/test_critical_path.py",
+}
 DEFAULT_PROBE_SCENARIOS = "scenarios/test_probes.py"
 APPLICATION_ADDRESS = "http://databasus:4005"
 
@@ -45,13 +55,21 @@ class Supervisor:
         self.run_id = secrets.token_hex(6)
         self.probe = os.environ.get("E2E_PROBE", "")
         self.named_image = os.environ.get(IMAGE_VARIABLE, "")
-        self.built_image = None if self.named_image else f"{get_project_name(self.run_id)}:candidate"
-        self.account_password = (self.probe and os.environ.get("E2E_PROBE_PASSWORD")) or secrets.token_urlsafe(24)
-        self.database_password = (self.probe and os.environ.get("E2E_PROBE_DATABASE_PASSWORD")) or secrets.token_urlsafe(24)
+        self.built_image = (
+            None if self.named_image else f"{get_project_name(self.run_id)}:candidate"
+        )
+        self.account_password = (
+            self.probe and os.environ.get("E2E_PROBE_PASSWORD")
+        ) or secrets.token_urlsafe(24)
+        self.database_password = (
+            self.probe and os.environ.get("E2E_PROBE_DATABASE_PASSWORD")
+        ) or secrets.token_urlsafe(24)
         self.output_mask = OutputMask([self.account_password, self.database_password])
+        image = self.named_image or self.built_image
+        assert image is not None
         self.project = ComposeProject(
             name=get_project_name(self.run_id),
-            image=self.named_image or self.built_image,
+            image=image,
             database_password=self.database_password,
         )
 
@@ -65,7 +83,9 @@ class Supervisor:
             for line in container_logs.splitlines():
                 self._report(line)
 
-        self._report(f"E2E duration including setup and cleanup: {time.monotonic() - started_at:.1f}s")
+        self._report(
+            f"E2E duration including setup and cleanup: {time.monotonic() - started_at:.1f}s"
+        )
 
         return cleanup_exit_code or exit_code
 
@@ -90,18 +110,22 @@ class Supervisor:
             SupervisorRecord(
                 run_id=self.run_id,
                 pid=os.getpid(),
-                process_start_time=get_process_start_time(os.getpid()),
+                process_start_time=get_required_process_start_time(os.getpid()),
                 built_image=self.built_image,
             )
         )
-        self._report(f"E2E run: {self.run_id}; project: {self.project.name}; supervisor PID: {os.getpid()}")
+        self._report(
+            f"E2E run: {self.run_id}; project: {self.project.name}; supervisor PID: {os.getpid()}"
+        )
         self._report(f"E2E image under test: {self.project.image}")
 
         sweep_dead_runs(self.run_id, self._report)
 
         if self.built_image:
             self._report(f"E2E building {self.built_image}")
-            build_exit_code = self._run_masked(["docker", "build", "--tag", self.built_image, str(REPOSITORY_ROOT)])
+            build_exit_code = self._run_masked(
+                ["docker", "build", "--tag", self.built_image, str(REPOSITORY_ROOT)]
+            )
             if build_exit_code != 0:
                 self._report("E2E image build failed")
                 return EXIT_FAILED
@@ -121,7 +145,9 @@ class Supervisor:
         email = f"admin-{self.run_id}@example.com"
         self._report(f"E2E browser port: {browser_port}; account: {email}")
 
-        scenarios = PROBE_SCENARIOS.get(self.probe, DEFAULT_PROBE_SCENARIOS) if self.probe else "scenarios"
+        scenarios = (
+            PROBE_SCENARIOS.get(self.probe, DEFAULT_PROBE_SCENARIOS) if self.probe else "scenarios"
+        )
         environment = {
             **self.project.get_environment(),
             "E2E_BASE_URL": APPLICATION_ADDRESS,
@@ -134,8 +160,13 @@ class Supervisor:
 
         return self._run_masked(
             [
-                sys.executable, "-m", "pytest", "--capture=no",
-                "--basetemp", str(get_run_directory(self.run_id) / "pytest"), scenarios,
+                sys.executable,
+                "-m",
+                "pytest",
+                "--capture=no",
+                "--basetemp",
+                str(get_run_directory(self.run_id) / "pytest"),
+                scenarios,
             ],
             environment=environment,
             working_directory=SUITE_DIRECTORY,
@@ -150,13 +181,21 @@ class Supervisor:
             ),
             ContainerLogSource(
                 name="recovery environments",
-                command=["docker", "exec", f"{self.project.name}-recovery-1", "sh", "-c",
-                         'for log in /restore-work/command-*.log; do [ ! -f "$log" ] || tail -n 200 "$log"; done; '
-                         'for container in $(docker ps -aq); do docker logs --tail 200 "$container"; done'],
+                command=[
+                    "docker",
+                    "exec",
+                    f"{self.project.name}-recovery-1",
+                    "sh",
+                    "-c",
+                    'for log in /restore-work/command-*.log; do [ ! -f "$log" ] || tail -n 200 "$log"; done; '
+                    'for container in $(docker ps -aq); do docker logs --tail 200 "$container"; done',
+                ],
             ),
         ]
 
-        return self.output_mask.apply("".join(get_container_log_output(source) for source in sources))
+        return self.output_mask.apply(
+            "".join(get_container_log_output(source) for source in sources)
+        )
 
     def _clean_up(self) -> int:
         try:
@@ -170,12 +209,16 @@ class Supervisor:
             return EXIT_FAILED
 
         if self.built_image:
-            image_removal = subprocess.run(["docker", "image", "rm", self.built_image], capture_output=True, text=True)
+            image_removal = subprocess.run(
+                ["docker", "image", "rm", self.built_image], capture_output=True, text=True
+            )
             if image_removal.returncode != 0 and "No such image" not in image_removal.stderr:
                 remaining_resources.append(f"image {self.built_image}")
 
         if down_exit_code != 0 or remaining_resources:
-            self._report(f"E2E cleanup failed, remaining: {', '.join(remaining_resources) or self.project.name}")
+            self._report(
+                f"E2E cleanup failed, remaining: {', '.join(remaining_resources) or self.project.name}"
+            )
             return EXIT_FAILED
 
         remove_run_directory(self.run_id)
@@ -202,6 +245,7 @@ class Supervisor:
             preexec_fn=_terminate_with_parent,
         )
 
+        assert child.stdout is not None
         try:
             for line in child.stdout:
                 self._report(line.rstrip("\n"))
@@ -241,7 +285,10 @@ def _raise_interrupted(_signal_number: int, _frame: object) -> None:
 
 def main() -> int:
     if os.environ.get("CI") and not os.environ.get(IMAGE_VARIABLE):
-        print(f"E2E refuses to run in CI without {IMAGE_VARIABLE}: it tests the image CI built", flush=True)
+        print(
+            f"E2E refuses to run in CI without {IMAGE_VARIABLE}: it tests the image CI built",
+            flush=True,
+        )
         return EXIT_FAILED
 
     probe = os.environ.get("E2E_PROBE", "")

@@ -14,4 +14,6 @@ def assert_nothing_of_the_project_remains(
 
 
 def is_image_present(image: str) -> bool:
-    return subprocess.run(["docker", "image", "inspect", image], capture_output=True).returncode == 0
+    return (
+        subprocess.run(["docker", "image", "inspect", image], capture_output=True).returncode == 0
+    )

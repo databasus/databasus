@@ -12,9 +12,20 @@ SERVER_PORT = "5432"
 def execute_sql(database: str, statement: str) -> list[str]:
     completed = subprocess.run(
         [
-            "docker", "exec", _get_container_name(),
-            "psql", "--username", SERVER_USER, "--dbname", database,
-            "--no-align", "--tuples-only", "--set", "ON_ERROR_STOP=1", "--command", statement,
+            "docker",
+            "exec",
+            _get_container_name(),
+            "psql",
+            "--username",
+            SERVER_USER,
+            "--dbname",
+            database,
+            "--no-align",
+            "--tuples-only",
+            "--set",
+            "ON_ERROR_STOP=1",
+            "--command",
+            statement,
         ],
         capture_output=True,
         text=True,
@@ -28,7 +39,10 @@ def execute_sql(database: str, statement: str) -> list[str]:
 def prepare_databases(rows: list[str]) -> None:
     values = ", ".join(f"('{row}')" for row in rows)
 
-    execute_sql(BACKED_UP_DATABASE, f"CREATE TABLE {ROWS_TABLE} (id serial PRIMARY KEY, label text NOT NULL)")
+    execute_sql(
+        BACKED_UP_DATABASE,
+        f"CREATE TABLE {ROWS_TABLE} (id serial PRIMARY KEY, label text NOT NULL)",
+    )
     execute_sql(BACKED_UP_DATABASE, f"INSERT INTO {ROWS_TABLE} (label) VALUES {values}")
     execute_sql(BACKED_UP_DATABASE, f"CREATE DATABASE {RESTORE_TARGET_DATABASE}")
 

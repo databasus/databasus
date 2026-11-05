@@ -7,9 +7,13 @@ from public_command import get_running_image
 
 
 class TestNamedImage:
-    def test_tests_a_named_image_without_building_and_leaves_it_in_place(self, probes_image: str, tmp_path: Path):
+    def test_tests_a_named_image_without_building_and_leaves_it_in_place(
+        self, probes_image: str, tmp_path: Path
+    ) -> None:
         build_marker = tmp_path / "docker-build-was-called"
-        path_recording_builds = install_docker_wrapper_and_get_path(tmp_path, f'*" build "*) touch "{build_marker}";;')
+        path_recording_builds = install_docker_wrapper_and_get_path(
+            tmp_path, f'*" build "*) touch "{build_marker}";;'
+        )
         run = start_probe_run(probes_image, "interrupt", PATH=path_recording_builds)
         run.wait_for_output(INTERRUPT_READY)
 

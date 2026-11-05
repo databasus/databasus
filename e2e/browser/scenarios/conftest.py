@@ -1,15 +1,15 @@
 import os
+from collections.abc import Iterator
 
 import pytest
-from playwright.sync_api import Browser, Page, expect, sync_playwright
-
 from application_screens import Account, open_application, register_first_account
+from playwright.sync_api import Browser, Page, expect, sync_playwright
 
 SCREEN_MILLISECONDS = 15_000
 
 
 @pytest.fixture(scope="session")
-def browser() -> Browser:
+def browser() -> Iterator[Browser]:
     expect.set_options(timeout=SCREEN_MILLISECONDS)
 
     with sync_playwright() as playwright:
@@ -43,7 +43,7 @@ def instance_admin(browser: Browser) -> Account:
 
 
 @pytest.fixture
-def page(browser: Browser, instance_admin: Account) -> Page:
+def page(browser: Browser, instance_admin: Account) -> Iterator[Page]:
     scenario_page = _new_page(browser)
 
     yield scenario_page

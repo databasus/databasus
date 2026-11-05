@@ -180,6 +180,34 @@ The image and browser suites run sequentially because they disturb each other's 
 
 - CI runs every suite except the review hook tests and the interruption test of the browser end-to-end suite on every pull request, split into shards by measured test duration. Physical backup and WAL streaming tests are the slow groups and get their own shards.
 - CI runs backend tests with `-race`, and a data race fails the test. Local runs leave it out, because it makes them several times slower. To reproduce a race, add `-race` to the command that repeats the test.
+- The shared `lint-python.yml` workflow checks Python before release version selection and before either dev-image architecture is published. Both publication workflows require its success.
+
+### Python quality checks
+
+`mise run lint` includes every repository-owned Python file. `mise run format` applies Python formatting and safe lint fixes. The hidden `python:lint` and `python:format` tasks run those checks alone, from any repository directory. Tool versions are pinned in `mise.toml`; root `pyproject.toml` defines lint, annotation, formatting and type rules.
+
+The runner selects tracked and eligible untracked `.py` files through Git, including hidden directories and newly added directories, and skips deleted files and ignored dependency environments. It passes the same selection to Ruff lint, Ruff formatting checks and ty. A failed stage does not hide later diagnostics. Checks never change source, the index or the stash. Explicit formatting makes safe automatic fixes and reports remaining lint errors; it does not rewrite types.
+
+Type checking prepares pytest and Playwright from `e2e/browser/uv.lock` through locked uv execution with the pinned system Python. It needs neither an activated virtual environment nor Docker, browser binaries or a running application. The first run may download the locked packages. Tool or dependency setup failures fail lint. The [Python annotation convention](../AGENTS.md#functions-methods-and-types) applies at function and external-data boundaries.
+
+The hk Python step runs the full check once when selected files include Python source or Python quality, dependency, tool, hook or ignore configuration. Checking the full selection catches errors in unchanged callers. Unrelated documentation does not select the step. The pre-commit hook keeps fixes disabled and stashes nothing.
+
+hk's pinned version omits deleted paths and a rename's old path from its automatic selection. For a deletion-only change or a Python file renamed to another extension, run `hk check --check --all --step python-lint`; an explicit deleted path also selects the step. CI always checks the full Python selection.
+
+Run the checks directly with:
+
+```sh
+mise run python:lint
+mise run python:format
+hk check --check --all --step python-lint
+```
+
+The runner and hook integration tests use the real pinned tools in temporary Git repositories. Prepare their shared dependency environment before running the script tests:
+
+```sh
+mise exec -- uv sync --locked --project e2e/browser
+mise exec -- python3 -m unittest discover -s scripts -p '*_test.py'
+```
 
 ### Upgrade test
 

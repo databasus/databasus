@@ -1,14 +1,16 @@
 import re
 import subprocess
 
-from lifecycle.recovery_resources import assert_private_recovery_is_usable
 from leftover_check import assert_nothing_of_the_project_remains
+from lifecycle.recovery_resources import assert_private_recovery_is_usable
 from probe_run import INTERRUPT_READY, start_probe_run
 from supervisor_file import get_run_directory
 
 
 class TestOverlappingRuns:
-    def test_recovery_resources_keep_answering_after_an_overlapping_run_cleans_up(self, probes_image: str):
+    def test_recovery_resources_keep_answering_after_an_overlapping_run_cleans_up(
+        self, probes_image: str
+    ) -> None:
         first_run = start_probe_run(probes_image, "interrupt")
         second_run = start_probe_run(probes_image, "interrupt")
         first_run.wait_for_output(INTERRUPT_READY)
@@ -28,7 +30,9 @@ class TestOverlappingRuns:
 
         assert_nothing_of_the_project_remains(second_run.get_project_name())
 
-    def test_both_pass_with_their_own_accounts_projects_ports_volumes_and_directories(self, probes_image: str):
+    def test_both_pass_with_their_own_accounts_projects_ports_volumes_and_directories(
+        self, probes_image: str
+    ) -> None:
         first_run = start_probe_run(probes_image)
         second_run = start_probe_run(probes_image)
         first_run.wait_for_output("browser port: ")
@@ -60,7 +64,15 @@ class TestOverlappingRuns:
 
 def _list_project_volumes(project_name: str) -> set[str]:
     completed = subprocess.run(
-        ["docker", "volume", "ls", "--format", "{{.Name}}", "--filter", f"label=com.docker.compose.project={project_name}"],
+        [
+            "docker",
+            "volume",
+            "ls",
+            "--format",
+            "{{.Name}}",
+            "--filter",
+            f"label=com.docker.compose.project={project_name}",
+        ],
         capture_output=True,
         text=True,
         check=True,
@@ -70,8 +82,17 @@ def _list_project_volumes(project_name: str) -> set[str]:
 
 
 def _read_run_identity(output: str) -> dict[str, str]:
+    matched_account = re.search(r"account: (\S+)", output)
+    assert matched_account is not None
+
+    matched_port = re.search(r"browser port: (\d+);", output)
+    assert matched_port is not None
+
+    matched_project = re.search(r"project: (\S+?);", output)
+    assert matched_project is not None
+
     return {
-        "project": re.search(r"project: (\S+?);", output).group(1),
-        "port": re.search(r"browser port: (\d+);", output).group(1),
-        "account": re.search(r"account: (\S+)", output).group(1),
+        "project": matched_project.group(1),
+        "port": matched_port.group(1),
+        "account": matched_account.group(1),
     }
