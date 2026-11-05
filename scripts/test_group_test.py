@@ -18,7 +18,7 @@ class PackageCoverageTest(unittest.TestCase):
     def test_pins_go_when_ci_collects_real_package_coverage(self) -> None:
         workflow = (ROOT / ".github/workflows/ci-release.yml").read_text()
         job = get_required_match(
-            r"^  lint-shell:\n(.*?)(?=^  [a-zA-Z0-9_-]+:|\Z)", workflow, re.M | re.S
+            r"^  test-scripts:\n(.*?)(?=^  [a-zA-Z0-9_-]+:|\Z)", workflow, re.M | re.S
         ).group(1)
         tools = get_required_match(r"install_args:\s*['\"]?([^'\"\n]+)", job).group(1).split()
         self.assertIn("go", tools)

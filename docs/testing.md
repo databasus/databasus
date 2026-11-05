@@ -18,18 +18,18 @@ This document describes the kinds of tests, what they share and how runs are org
 
 Paths under `internal/` are inside `backend/`. The table distinguishes the test surfaces and the real systems each needs.
 
-| Layer                    | What it checks                                                                                                      | Where it lives                                             | What is real                                                                            |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Module API tests         | the behavior of each module through its HTTP operations, and that every response matches the contract               | `internal/modules/<name>/*_test.go`, package `<name>_test` | the application, the internal database, HTTP; external systems are fakes                |
-| Engine tests             | connecting, privileges, dumping and restoring against every supported server version                                | `internal/engines/<engine>/*_test.go`                      | the database servers in containers                                                      |
-| Backup and restore tests | a full backup → restore cycle per engine and version, logical and physical, including SSH tunnels, TLS and failover | `internal/modules/backups/e2e/`                            | the application, source and target servers, storages in containers, the recovery script |
-| Agent tests              | the verification agent's verification pipeline, and the agent against a real backend                                         | `internal/agent/**`, `internal/agent/e2e/`                 | the backend from the test harness, Docker or Podman                                     |
-| Migration tests          | a migration keeps and converts existing rows, on upgrade and on rollback                                            | `backend/migrations/*_test.go`                             | the internal database, empty or fully migrated as the test asks                         |
-| Architecture linter tests | each rule of the linter fails on a violation and passes on clean code                                              | `backend/tools/archlint/*_test.go`                         | the linter on fixture modules; no database                                              |
-| Upgrade tests            | an instance of the previous release keeps its data after an upgrade to the current code, and its backups restore    | `backend/e2e/upgrade/`                                     | both images, real data written through the API                                          |
-| Filesystem tests         | the image on the host filesystems and permission setups that users run                                              | `e2e/docker-storage/`                                      | Docker on the host                                                                      |
-| Browser end-to-end suite | the critical path, sign-in and workspace resources through the screens of the application image | `e2e/browser/` | the image, its internal database, PostgreSQL 18, Chromium, an isolated recovery runner and Docker daemon |
-| Frontend tests           | screens for every answer the contract allows                                                                        | `frontend/src/**/*.test.tsx`                               | the components; the network is mocked through `mockApi`, typed by the contract          |
+| Layer                     | What it checks                                                                                                      | Where it lives                                             | What is real                                                                                             |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Module API tests          | the behavior of each module through its HTTP operations, and that every response matches the contract               | `internal/modules/<name>/*_test.go`, package `<name>_test` | the application, the internal database, HTTP; external systems are fakes                                 |
+| Engine tests              | connecting, privileges, dumping and restoring against every supported server version                                | `internal/engines/<engine>/*_test.go`                      | the database servers in containers                                                                       |
+| Backup and restore tests  | a full backup → restore cycle per engine and version, logical and physical, including SSH tunnels, TLS and failover | `internal/modules/backups/e2e/`                            | the application, source and target servers, storages in containers, the recovery script                  |
+| Agent tests               | the verification agent's verification pipeline, and the agent against a real backend                                | `internal/agent/**`, `internal/agent/e2e/`                 | the backend from the test harness, Docker or Podman                                                      |
+| Migration tests           | a migration keeps and converts existing rows, on upgrade and on rollback                                            | `backend/migrations/*_test.go`                             | the internal database, empty or fully migrated as the test asks                                          |
+| Architecture linter tests | each rule of the linter fails on a violation and passes on clean code                                               | `backend/tools/archlint/*_test.go`                         | the linter on fixture modules; no database                                                               |
+| Upgrade tests             | an instance of the previous release keeps its data after an upgrade to the current code, and its backups restore    | `backend/e2e/upgrade/`                                     | both images, real data written through the API                                                           |
+| Filesystem tests          | the image on the host filesystems and permission setups that users run                                              | `e2e/docker-storage/`                                      | Docker on the host                                                                                       |
+| Browser end-to-end suite  | the critical path, sign-in and workspace resources through the screens of the application image                     | `e2e/browser/`                                             | the image, its internal database, PostgreSQL 18, Chromium, an isolated recovery runner and Docker daemon |
+| Frontend tests            | screens for every answer the contract allows                                                                        | `frontend/src/**/*.test.tsx`                               | the components; the network is mocked through `mockApi`, typed by the contract                           |
 
 - Module API tests cover most behavior. A module whose API tests outlast one package may split them into test-only packages under its directory, such as `internal/modules/backups/physicalapitests/`.
 - A unit test without the application is only for pure logic that has no HTTP entry point or is too slow to enumerate through HTTP. Examples are the scheduler's decision function, retention arithmetic, WAL position math, manifest reconstruction and parsers.
@@ -111,6 +111,7 @@ Screen tests render real components and mock only the network, typed by the cont
 These tests exercise the production build in a real browser, for what happy-dom cannot establish: geometry, focus, fonts and images. Screen tests stay the faster layer for overlapping responses and editing-session policy. The [browser UI command](#commands) needs Docker and no backend services, because HTTP responses are finite synthetic fixtures.
 
 - **Environment.** Each run uses a digest-pinned browser image, an unprivileged user and its own temporary checkout and container. Cleanup removes only that run's resources.
+- **Architecture.** The runner selects native amd64 or arm64 from the host, using the matching pinned Node archive and an architecture-specific image cache. Other architectures fail before scenarios. Both architectures use the committed references and the same zero-pixel comparison threshold; updates always require the explicit command.
 - **HTTP.** Fixtures follow generated operations and fail teardown on undeclared requests or page errors, even when application code catches the HTTP failure. Only same-origin GET navigation and static resources pass through.
 - **Scenarios** live in `frontend/browser/scenarios` and need no external provider account. Non-English assertions read the interface dictionaries.
 - **Visual references** live in `frontend/browser/references`. A missing or changed image fails an ordinary run. Use the explicit update command from [Commands](#commands) to replace references, then inspect the result.
@@ -178,7 +179,11 @@ The image and browser suites run sequentially because they disturb each other's 
 
 ### CI
 
-- CI runs every suite except the review hook tests and the interruption test of the browser end-to-end suite on every pull request, split into shards by measured test duration. Physical backup and WAL streaming tests are the slow groups and get their own shards.
+- The CI and Release workflow runs automatically on pushes to `main` and manually on `develop`. Every existing test suite runs natively on both amd64 and arm64: backend groups, verification agent unit and Docker/Podman tests, frontend tests, browser UI, browser end-to-end scenarios with their unit and lifecycle checks, script tests, filesystem groups and upgrade tests. Review hook tests and the standalone browser lifecycle-interruption test run separately. Lint and security scans run once. Manual runs verify without selecting a release version or publishing artifacts.
+- Backend checks retain nine groups/shards on each architecture. Physical backup and physical API groups each have three shards selected by measured durations; logical, verification agent Docker e2e and the remaining packages run as whole groups. A failure does not cancel other matrix legs. Release version selection waits for every required result on both architectures.
+- The only unavailable-image exclusions are MySQL 5.7 and MariaDB 5.5 server scenarios on arm64. Image preparation and fixtures read the same policy in `backend/internal/lib/testcontainers/unavailable_images.json`; each excluded version reports its reason. Those scenarios still run on amd64, and container-free unsupported-version checks still run on ARM. Other image failures are fatal.
+- Browser end-to-end, filesystem and upgrade tests consume an architecture-specific candidate built from the same commit. Image tags, compressed archives and transport artifacts include the architecture. Before running scenarios, CI checks the actual host, Docker engine and candidate architectures. Matrix configuration and local amd64 results do not establish native ARM runtime success; hosted ARM results supply that evidence.
+- Podman and network-filesystem checks use full GitHub VMs on both architectures. Other backend groups use Ubuntu 22 Namespace profiles for MongoDB kernel compatibility. Network coverage includes CIFS and kernel NFS with `root_squash`; the NFS fixture builds natively from a pinned multi-architecture Debian image and removes only its run's resources. Local fixture-configuration checks do not prove mounted-filesystem behavior.
 - CI runs backend tests with `-race`, and a data race fails the test. Local runs leave it out, because it makes them several times slower. To reproduce a race, add `-race` to the command that repeats the test.
 - The shared `lint-python.yml` workflow checks Python before release version selection and before either dev-image architecture is published. Both publication workflows require its success.
 
@@ -230,6 +235,7 @@ Self-update needs write access to the directory holding the agent's executable. 
    ```
 
    For a container, deploy the updated image instead.
+
 3. Preserve `databasus-verification.json`, its token and resource settings. Restart the daemon with the installed binary's absolute path and `start` command, as the same account from the existing working directory, without resupplying setup credentials or resource flags. Restart a service or container through its supervisor with the existing settings.
 
 Confirm accepted server contact and a completed backup verification. A successful local `version` or `status` command alone does not prove recovery, and no new token is needed.
@@ -242,23 +248,23 @@ Container creation and temporary-file I/O can limit local test speed. [Preparing
 
 To repeat one failing test, call its Go or frontend runner directly. This takes no lock and builds no image.
 
-| What                                          | Command                                                                                              |
-| --------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Backend and frontend test suites              | `mise run test`                                                                                      |
-| All tests for the usual Docker development environment | `mise run test-full`                                                                                      |
-| One backend test, in `backend/`, see below    | `go test -count=1 -run 'TestName/scenario text' ./internal/modules/<module>/...`                     |
-| Verification agent unit tests                 | `mise run agent:test`                                                                                |
-| Verification agent end-to-end tests on Docker | `mise run agent:e2e`                                                                                 |
-| Verification agent subset on rootful Podman   | `mise run agent:e2e-podman`                                                                          |
-| Frontend                                      | `pnpm test` in `frontend/`, or `pnpm test -t 'scenario text'`                                        |
-| Frontend production browser UI                | `pnpm --dir frontend test:browser --project=ui`                                                     |
-| Update browser visual references              | `pnpm --dir frontend test:browser --project=ui --update-references`                                                          |
-| Upgrade test                                  | `mise run backend:test-upgrade`                                                                      |
-| Filesystem tests                              | `mise run test-filesystem`                                                                           |
-| Browser end-to-end suite alone                | `mise run e2e:browser`                                                                               |
-| Its parts that need no Docker daemon          | `mise run e2e:unit`                                                                                  |
-| Its lifecycle probes                          | `mise run e2e:lifecycle`                                                                             |
-| Review hook tests                    | `python3 -m unittest discover -s .agent-hooks -p '*_test.py'`                                        |
+| What                                                   | Command                                                                          |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| Backend and frontend test suites                       | `mise run test`                                                                  |
+| All tests for the usual Docker development environment | `mise run test-full`                                                             |
+| One backend test, in `backend/`, see below             | `go test -count=1 -run 'TestName/scenario text' ./internal/modules/<module>/...` |
+| Verification agent unit tests                          | `mise run agent:test`                                                            |
+| Verification agent end-to-end tests on Docker          | `mise run agent:e2e`                                                             |
+| Verification agent subset on rootful Podman            | `mise run agent:e2e-podman`                                                      |
+| Frontend                                               | `pnpm test` in `frontend/`, or `pnpm test -t 'scenario text'`                    |
+| Frontend production browser UI                         | `pnpm --dir frontend test:browser --project=ui`                                  |
+| Update browser visual references                       | `pnpm --dir frontend test:browser --project=ui --update-references`              |
+| Upgrade test                                           | `mise run backend:test-upgrade`                                                  |
+| Filesystem tests                                       | `mise run test-filesystem`                                                       |
+| Browser end-to-end suite alone                         | `mise run e2e:browser`                                                           |
+| Its parts that need no Docker daemon                   | `mise run e2e:unit`                                                              |
+| Its lifecycle probes                                   | `mise run e2e:lifecycle`                                                         |
+| Review hook tests                                      | `python3 -m unittest discover -s .agent-hooks -p '*_test.py'`                    |
 
 The bundled PostgreSQL clients need the libedit shim on Fedora, and parallel test binaries collide on the Ryuk reaper name, so the full command that repeats a backend test is:
 

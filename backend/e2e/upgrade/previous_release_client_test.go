@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"slices"
 	"strconv"
 	"testing"
@@ -17,20 +18,18 @@ import (
 // predecessor then speaks the new API.
 
 const (
-	accountEmail    = "upgrade-owner@databasus.local"
-	accountPassword = "upgrade-owner-password"
-	accountName     = "Upgrade Owner"
-	workspaceName   = "upgrade workspace"
-	memberEmail     = "upgrade-member@databasus.local"
-	memberName      = "Upgrade Member"
-	memberRole      = "WORKSPACE_MEMBER"
-	// The previous release let a workspace get a second owner; the upgrade keeps the earliest owner
-	// and makes the other one an admin.
-	secondOwnerEmail = "upgrade-second-owner@databasus.local"
-	secondOwnerName  = "Upgrade Second Owner"
-	storageName      = "upgrade local storage"
-	databaseName     = "upgrade source database"
-	backupEncryption = "ENCRYPTED"
+	accountEmail        = "upgrade-owner@databasus.local"
+	accountPassword     = "upgrade-owner-password"
+	accountName         = "Upgrade Owner"
+	workspaceName       = "upgrade workspace"
+	memberEmail         = "upgrade-member@databasus.local"
+	memberName          = "Upgrade Member"
+	memberRole          = "WORKSPACE_MEMBER"
+	workspaceAdminEmail = "upgrade-admin@databasus.local"
+	workspaceAdminName  = "Upgrade Admin"
+	storageName         = "upgrade local storage"
+	databaseName        = "upgrade source database"
+	backupEncryption    = "ENCRYPTED"
 	// The backup config written before the upgrade differs from the logical default in every value.
 	backupScheduleType        = "WEEKLY"
 	backupScheduleTimeOfDay   = "02:30"
@@ -81,30 +80,17 @@ type previousWorkspaceRequest struct {
 }
 
 type previousMemberRequest struct {
-	Email string `json:"email"`
-	Role  string `json:"role"`
+	Email       string `json:"email"`
+	Role        string `json:"role"`
+	WorkspaceID string `json:"workspaceId"`
 }
 
 type previousBackupRequest struct {
-	DatabaseID string `json:"database_id"`
+	DatabaseID string `json:"databaseId"`
 }
 
 type previousBackupList struct {
-	Backups []previousBackup `json:"backups"`
-}
-
-type previousAuditLogList struct {
-	AuditLogs []previousAuditLog `json:"auditLogs"`
-}
-
-type previousAuditLog struct {
-	ID          string  `json:"id"`
-	UserID      *string `json:"userId"`
-	WorkspaceID *string `json:"workspaceId"`
-	Message     string  `json:"message"`
-	CreatedAt   string  `json:"createdAt"`
-	UserEmail   *string `json:"userEmail"`
-	UserName    *string `json:"userName"`
+	Backups []previousBackup `json:"items"`
 }
 
 type previousBackup struct {
@@ -115,7 +101,7 @@ type previousBackup struct {
 }
 
 // writeUpgradeData creates through the previous release what a user has after a while: an account,
-// a workspace with two more members, one of them a second owner, one storage and one notifier of every
+// a workspace with a member and an admin, one storage and one notifier of every
 // type, a database of every logical type, the PostgreSQL one using every notifier and the local
 // storage with an encrypted backup config, and one completed backup.
 func writeUpgradeData(t *testing.T, api *apiClient, sourceHostPort int) (writtenUpgradeData, error) {
@@ -125,7 +111,7 @@ func writeUpgradeData(t *testing.T, api *apiClient, sourceHostPort int) (written
 
 	var signUp previousTokenResponse
 
-	err := api.post(ctx, "/users/signup", previousSignUpRequest{
+	err := api.post(ctx, "/users", previousSignUpRequest{
 		Email:    accountEmail,
 		Password: accountPassword,
 		Name:     accountName,
@@ -207,7 +193,7 @@ func writeUpgradeData(t *testing.T, api *apiClient, sourceHostPort int) (written
 			{Kind: "workspace", Name: workspaceName, Values: map[string]string{"id": workspace.ID}},
 			{Kind: "workspace member", Name: accountEmail, Values: map[string]string{"role": "WORKSPACE_OWNER"}},
 			{Kind: "workspace member", Name: memberEmail, Values: map[string]string{"role": memberRole}},
-			{Kind: "workspace member", Name: secondOwnerEmail, Values: map[string]string{"role": "WORKSPACE_ADMIN"}},
+			{Kind: "workspace member", Name: workspaceAdminEmail, Values: map[string]string{"role": "WORKSPACE_ADMIN"}},
 			{Kind: "backup config", Name: databaseName, Values: map[string]string{
 				"isBackupsEnabled":              "true",
 				"storageId":                     localStorageID,
@@ -240,8 +226,6 @@ func writeUpgradeData(t *testing.T, api *apiClient, sourceHostPort int) (written
 	}, nil
 }
 
-// addMembers signs up two more users and adds them to the workspace as the account that owns it:
-// one as a member and one as a second owner, which the previous release allowed.
 func addMembers(ctx context.Context, api *apiClient, workspaceID string) error {
 	err := addMember(ctx, api, workspaceID, previousSignUpRequest{
 		Email:    memberEmail,
@@ -253,10 +237,10 @@ func addMembers(ctx context.Context, api *apiClient, workspaceID string) error {
 	}
 
 	return addMember(ctx, api, workspaceID, previousSignUpRequest{
-		Email:    secondOwnerEmail,
+		Email:    workspaceAdminEmail,
 		Password: accountPassword,
-		Name:     secondOwnerName,
-	}, "WORKSPACE_OWNER")
+		Name:     workspaceAdminName,
+	}, "WORKSPACE_ADMIN")
 }
 
 func addMember(
@@ -266,13 +250,13 @@ func addMember(
 	signUp previousSignUpRequest,
 	role string,
 ) error {
-	err := api.post(ctx, "/users/signup", signUp, nil)
+	err := api.post(ctx, "/users", signUp, nil)
 	if err != nil {
 		return fmt.Errorf("sign up %s: %w", signUp.Email, err)
 	}
 
-	err = api.post(ctx, "/workspaces/memberships/"+workspaceID+"/members",
-		previousMemberRequest{Email: signUp.Email, Role: role}, nil)
+	err = api.post(ctx, "/workspace-members",
+		previousMemberRequest{Email: signUp.Email, Role: role, WorkspaceID: workspaceID}, nil)
 	if err != nil {
 		return fmt.Errorf("add %s to the workspace: %w", signUp.Email, err)
 	}
@@ -286,31 +270,38 @@ func addMember(
 func switchOnEncryptedBackups(ctx context.Context, api *apiClient, databaseID, storageID string) error {
 	var backupConfig map[string]any
 
-	err := api.get(ctx, "/backup-configs/database/"+databaseID, &backupConfig)
+	err := api.get(ctx, "/backup-configs/"+databaseID, &backupConfig)
 	if err != nil {
 		return fmt.Errorf("read the backup config: %w", err)
 	}
 
 	backupConfig["isBackupsEnabled"] = true
-	backupConfig["storage"] = map[string]any{"id": storageID}
 	backupConfig["storageId"] = storageID
 	backupConfig["encryption"] = backupEncryption
-	backupConfig["backupInterval"] = map[string]any{
+	settings, hasSettings := backupConfig["settings"].(map[string]any)
+	if !hasSettings {
+		return errors.New("previous backup config has no settings")
+	}
+	settings["schedule"] = map[string]any{
 		"type":      backupScheduleType,
 		"timeOfDay": backupScheduleTimeOfDay,
 		"weekday":   backupScheduleWeekday,
 	}
-	backupConfig["retentionPolicyType"] = backupRetentionPolicy
-	backupConfig["retentionGfsHours"] = backupRetentionGfsHours
-	backupConfig["retentionGfsDays"] = backupRetentionGfsDays
-	backupConfig["retentionGfsWeeks"] = backupRetentionGfsWeeks
-	backupConfig["retentionGfsMonths"] = backupRetentionGfsMonths
-	backupConfig["retentionGfsYears"] = backupRetentionGfsYears
-	backupConfig["isRetryIfFailed"] = true
-	backupConfig["maxFailedTriesCount"] = backupMaxFailedTriesCount
-	backupConfig["sendNotificationsOn"] = []string{backupNotificationTrigger}
+	retention, hasRetention := settings["retention"].(map[string]any)
+	if !hasRetention {
+		return errors.New("previous logical backup config has no retention")
+	}
+	retention["policy"] = backupRetentionPolicy
+	retention["gfsHours"] = backupRetentionGfsHours
+	retention["gfsDays"] = backupRetentionGfsDays
+	retention["gfsWeeks"] = backupRetentionGfsWeeks
+	retention["gfsMonths"] = backupRetentionGfsMonths
+	retention["gfsYears"] = backupRetentionGfsYears
+	settings["isRetryIfFailed"] = true
+	settings["maxFailedTriesCount"] = backupMaxFailedTriesCount
+	settings["notificationTriggers"] = []string{backupNotificationTrigger}
 
-	err = api.post(ctx, "/backup-configs/save", backupConfig, nil)
+	err = api.send(ctx, http.MethodPut, "/backup-configs/"+databaseID, backupConfig, nil)
 	if err != nil {
 		return fmt.Errorf("switch on encrypted backups: %w", err)
 	}
@@ -321,7 +312,7 @@ func switchOnEncryptedBackups(ctx context.Context, api *apiClient, databaseID, s
 func makeBackup(t *testing.T, api *apiClient, databaseID string) (previousBackup, error) {
 	t.Helper()
 
-	err := api.post(t.Context(), "/backups", previousBackupRequest{DatabaseID: databaseID}, nil)
+	err := api.post(t.Context(), "/logical-backups", previousBackupRequest{DatabaseID: databaseID}, nil)
 	if err != nil {
 		return previousBackup{}, fmt.Errorf("start the backup: %w", err)
 	}
@@ -331,7 +322,7 @@ func makeBackup(t *testing.T, api *apiClient, databaseID string) (previousBackup
 	err = testwait.Poll(t, "the backup of the previous release to finish", func(ctx context.Context) error {
 		var backupList previousBackupList
 
-		listErr := api.get(ctx, "/backups?database_id="+databaseID+"&limit=1", &backupList)
+		listErr := api.get(ctx, "/logical-backups?databaseId="+databaseID+"&limit=1", &backupList)
 		if listErr != nil {
 			return listErr
 		}
@@ -378,40 +369,7 @@ func makeBackup(t *testing.T, api *apiClient, databaseID string) (previousBackup
 // name the previous release showed for it, and an event without an author is expected to stay
 // without one.
 func readAuditEventItems(ctx context.Context, api *apiClient) ([]upgradecheck.Item, error) {
-	var auditLogList previousAuditLogList
-
-	err := api.get(ctx, "/audit-logs/global?limit=1000", &auditLogList)
-	if err != nil {
-		return nil, fmt.Errorf("list the global audit log: %w", err)
-	}
-
-	auditEventItems := make([]upgradecheck.Item, 0, len(auditLogList.AuditLogs))
-
-	for _, auditLog := range auditLogList.AuditLogs {
-		createdAt, err := normalizeAuditTime(auditLog.CreatedAt)
-		if err != nil {
-			return nil, err
-		}
-
-		authorEmail, authorName := "", ""
-		if auditLog.UserID != nil {
-			authorEmail, authorName = getOptionalValue(auditLog.UserEmail), getOptionalValue(auditLog.UserName)
-		}
-
-		auditEventItems = append(auditEventItems, upgradecheck.Item{
-			Kind: "audit event",
-			Name: auditLog.ID,
-			Values: map[string]string{
-				"message":     auditLog.Message,
-				"createdAt":   createdAt,
-				"workspaceId": getOptionalValue(auditLog.WorkspaceID),
-				"authorEmail": authorEmail,
-				"authorName":  authorName,
-			},
-		})
-	}
-
-	return auditEventItems, nil
+	return listAuditEventItems(ctx, api)
 }
 
 func getOptionalValue(value *string) string {

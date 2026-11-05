@@ -127,6 +127,7 @@ func startContainer(t *testing.T, req testcontainers.ContainerRequest, mappedPor
 // Each failed attempt is logged, so an image that keeps needing a retry still shows up in the output.
 func bootContainer(t *testing.T, req testcontainers.ContainerRequest) testcontainers.Container {
 	t.Helper()
+	skipUnavailableImage(t, req.Image)
 
 	var lastErr error
 

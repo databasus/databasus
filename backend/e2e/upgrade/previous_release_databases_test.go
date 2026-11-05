@@ -17,70 +17,77 @@ const (
 	mongodbDatabaseName = "upgrade mongodb database"
 )
 
-// previousDatabaseRequest carries the settings of one database type, in the field the previous
-// release names after that type.
+type previousDisabledTunnel struct {
+	IsEnabled bool `json:"isEnabled"`
+}
+
 type previousDatabaseRequest struct {
-	WorkspaceID       string                        `json:"workspaceId"`
-	Name              string                        `json:"name"`
-	Type              string                        `json:"type"`
-	PostgresqlLogical *previousPostgresqlConnection `json:"postgresqlLogical,omitempty"`
-	Mysql             *previousMysqlConnection      `json:"mysql,omitempty"`
-	Mariadb           *previousMariadbConnection    `json:"mariadb,omitempty"`
-	Mongodb           *previousMongodbConnection    `json:"mongodb,omitempty"`
-	Notifiers         []previousNotifierReference   `json:"notifiers"`
+	WorkspaceID string   `json:"workspaceId"`
+	Name        string   `json:"name"`
+	Settings    any      `json:"settings"`
+	NotifierIDs []string `json:"notifierIds"`
 }
 
 type previousPostgresqlConnection struct {
-	Version          string   `json:"version"`
-	Host             string   `json:"host"`
-	Port             int      `json:"port"`
-	Username         string   `json:"username"`
-	Password         string   `json:"password"`
-	Database         string   `json:"database"`
-	SslMode          string   `json:"sslMode"`
-	IncludeSchemas   []string `json:"includeSchemas"`
-	ExcludeTables    []string `json:"excludeTables"`
-	ExcludeTableData []string `json:"excludeTableData"`
-	CPUCount         int      `json:"cpuCount"`
+	IsSkipUserMappings bool                   `json:"isSkipUserMappings"`
+	Type               string                 `json:"type"`
+	SSHTunnel          previousDisabledTunnel `json:"sshTunnel"`
+	Version            string                 `json:"version"`
+	Host               string                 `json:"host"`
+	Port               int                    `json:"port"`
+	Username           string                 `json:"username"`
+	Password           string                 `json:"password"`
+	Database           string                 `json:"database"`
+	SslMode            string                 `json:"sslMode"`
+	IncludeSchemas     []string               `json:"includeSchemas"`
+	ExcludeTables      []string               `json:"excludeTables"`
+	ExcludeTableData   []string               `json:"excludeTableData"`
+	CPUCount           int                    `json:"cpuCount"`
 }
 
 type previousMysqlConnection struct {
-	Version       string   `json:"version"`
-	Host          string   `json:"host"`
-	Port          int      `json:"port"`
-	Username      string   `json:"username"`
-	Password      string   `json:"password"`
-	Database      string   `json:"database"`
-	IsHTTPS       bool     `json:"isHttps"`
-	ExcludeTables []string `json:"excludeTables"`
+	Type          string                 `json:"type"`
+	SSHTunnel     previousDisabledTunnel `json:"sshTunnel"`
+	Version       string                 `json:"version"`
+	Host          string                 `json:"host"`
+	Port          int                    `json:"port"`
+	Username      string                 `json:"username"`
+	Password      string                 `json:"password"`
+	Database      string                 `json:"database"`
+	IsHTTPS       bool                   `json:"isHttps"`
+	ExcludeTables []string               `json:"excludeTables"`
 }
 
 type previousMariadbConnection struct {
-	Version             string   `json:"version"`
-	Host                string   `json:"host"`
-	Port                int      `json:"port"`
-	Username            string   `json:"username"`
-	Password            string   `json:"password"`
-	Database            string   `json:"database"`
-	IsHTTPS             bool     `json:"isHttps"`
-	IsExcludeEvents     bool     `json:"isExcludeEvents"`
-	IsSkipGaleraDisable bool     `json:"isSkipGaleraDisable"`
-	ExcludeTables       []string `json:"excludeTables"`
+	Type                string                 `json:"type"`
+	SSHTunnel           previousDisabledTunnel `json:"sshTunnel"`
+	Version             string                 `json:"version"`
+	Host                string                 `json:"host"`
+	Port                int                    `json:"port"`
+	Username            string                 `json:"username"`
+	Password            string                 `json:"password"`
+	Database            string                 `json:"database"`
+	IsHTTPS             bool                   `json:"isHttps"`
+	IsExcludeEvents     bool                   `json:"isExcludeEvents"`
+	IsSkipGaleraDisable bool                   `json:"isSkipGaleraDisable"`
+	ExcludeTables       []string               `json:"excludeTables"`
 }
 
 type previousMongodbConnection struct {
-	Version            string   `json:"version"`
-	Host               string   `json:"host"`
-	Port               int      `json:"port"`
-	Username           string   `json:"username"`
-	Password           string   `json:"password"`
-	Database           string   `json:"database"`
-	AuthDatabase       string   `json:"authDatabase"`
-	IsHTTPS            bool     `json:"isHttps"`
-	IsSrv              bool     `json:"isSrv"`
-	IsDirectConnection bool     `json:"isDirectConnection"`
-	CPUCount           int      `json:"cpuCount"`
-	ExcludeCollections []string `json:"excludeCollections"`
+	Type               string                 `json:"type"`
+	SSHTunnel          previousDisabledTunnel `json:"sshTunnel"`
+	Version            string                 `json:"version"`
+	Host               string                 `json:"host"`
+	Port               int                    `json:"port"`
+	Username           string                 `json:"username"`
+	Password           string                 `json:"password"`
+	Database           string                 `json:"database"`
+	AuthDatabase       string                 `json:"authDatabase"`
+	IsHTTPS            bool                   `json:"isHttps"`
+	IsSrv              bool                   `json:"isSrv"`
+	IsDirectConnection bool                   `json:"isDirectConnection"`
+	CPUCount           int                    `json:"cpuCount"`
+	ExcludeCollections []string               `json:"excludeCollections"`
 }
 
 // writtenDatabases are the databases the previous release saved, keyed by name.
@@ -98,8 +105,13 @@ func createDatabases(
 	notifierReferences []previousNotifierReference,
 ) (writtenDatabases, error) {
 	databases := writtenDatabases{items: nil, ids: map[string]string{}}
+	notifierIDs := make([]string, 0, len(notifierReferences))
+	for _, notifier := range notifierReferences {
+		notifierIDs = append(notifierIDs, notifier.ID)
+	}
 
 	postgresqlConnection := previousPostgresqlConnection{
+		Type: "POSTGRES_LOGICAL", SSHTunnel: previousDisabledTunnel{IsEnabled: false},
 		Version:          sourceVersion,
 		Host:             sourceNetworkAlias,
 		Port:             sourcePort,
@@ -113,6 +125,7 @@ func createDatabases(
 		CPUCount:         1,
 	}
 	mysqlConnection := previousMysqlConnection{
+		Type: "MYSQL", SSHTunnel: previousDisabledTunnel{IsEnabled: false},
 		Version:       mysqlSourceVersion,
 		Host:          mysqlSourceNetworkAlias,
 		Port:          mysqlSourcePort,
@@ -123,6 +136,7 @@ func createDatabases(
 		ExcludeTables: []string{excludedObjectName},
 	}
 	mariadbConnection := previousMariadbConnection{
+		Type: "MARIADB", SSHTunnel: previousDisabledTunnel{IsEnabled: false},
 		Version:             mariadbSourceVersion,
 		Host:                mariadbSourceNetworkAlias,
 		Port:                mysqlSourcePort,
@@ -135,6 +149,7 @@ func createDatabases(
 		ExcludeTables:       []string{excludedObjectName},
 	}
 	mongodbConnection := previousMongodbConnection{
+		Type: "MONGODB", SSHTunnel: previousDisabledTunnel{IsEnabled: false},
 		Version:            mongodbSourceVersion,
 		Host:               mongodbSourceNetworkAlias,
 		Port:               mongodbSourcePort,
@@ -155,9 +170,7 @@ func createDatabases(
 	}{
 		{
 			request: previousDatabaseRequest{
-				WorkspaceID: workspaceID, Name: databaseName, Type: "POSTGRES_LOGICAL",
-				PostgresqlLogical: &postgresqlConnection, Mysql: nil, Mariadb: nil, Mongodb: nil,
-				Notifiers: notifierReferences,
+				WorkspaceID: workspaceID, Name: databaseName, Settings: &postgresqlConnection, NotifierIDs: notifierIDs,
 			},
 			values: map[string]string{
 				"type":                "POSTGRES_LOGICAL",
@@ -177,9 +190,7 @@ func createDatabases(
 		},
 		{
 			request: previousDatabaseRequest{
-				WorkspaceID: workspaceID, Name: mysqlDatabaseName, Type: "MYSQL",
-				PostgresqlLogical: nil, Mysql: &mysqlConnection, Mariadb: nil, Mongodb: nil,
-				Notifiers: []previousNotifierReference{},
+				WorkspaceID: workspaceID, Name: mysqlDatabaseName, Settings: &mysqlConnection, NotifierIDs: []string{},
 			},
 			values: map[string]string{
 				"type":                "MYSQL",
@@ -195,9 +206,7 @@ func createDatabases(
 		},
 		{
 			request: previousDatabaseRequest{
-				WorkspaceID: workspaceID, Name: mariadbDatabaseName, Type: "MARIADB",
-				PostgresqlLogical: nil, Mysql: nil, Mariadb: &mariadbConnection, Mongodb: nil,
-				Notifiers: []previousNotifierReference{},
+				WorkspaceID: workspaceID, Name: mariadbDatabaseName, Settings: &mariadbConnection, NotifierIDs: []string{},
 			},
 			values: map[string]string{
 				"type":                "MARIADB",
@@ -215,9 +224,7 @@ func createDatabases(
 		},
 		{
 			request: previousDatabaseRequest{
-				WorkspaceID: workspaceID, Name: mongodbDatabaseName, Type: "MONGODB",
-				PostgresqlLogical: nil, Mysql: nil, Mariadb: nil, Mongodb: &mongodbConnection,
-				Notifiers: []previousNotifierReference{},
+				WorkspaceID: workspaceID, Name: mongodbDatabaseName, Settings: &mongodbConnection, NotifierIDs: []string{},
 			},
 			values: map[string]string{
 				"type":                "MONGODB",
@@ -238,7 +245,7 @@ func createDatabases(
 	} {
 		var createdDatabase previousCreatedItem
 
-		err := api.post(ctx, "/databases/create", database.request, &createdDatabase)
+		err := api.post(ctx, "/databases", database.request, &createdDatabase)
 		if err != nil {
 			return writtenDatabases{}, fmt.Errorf("create database %q: %w", database.request.Name, err)
 		}

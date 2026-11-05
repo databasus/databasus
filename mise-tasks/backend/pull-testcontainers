@@ -7,7 +7,23 @@
 # namespaced name (owner/image) cannot be confused with anything, so its tag is matched as written.
 set -euo pipefail
 
+architecture=$(uname -m)
+case "$architecture" in
+    aarch64 | arm64) architecture=arm64 ;;
+    x86_64 | amd64 | x64) architecture=amd64 ;;
+    *) echo "unsupported test architecture: $architecture" >&2; exit 1 ;;
+esac
+policy=./internal/lib/testcontainers/unavailable_images.json
+
 # shellcheck disable=SC2016 # the inner script expands $1 and $n itself
 grep -rhoE '"(mysql|mariadb|mongo|postgres):[0-9][a-zA-Z0-9._-]*"|"pgsty/minio:[a-zA-Z0-9._-]+"|"(databasus/verification-postgres|timescale/timescaledb):[a-zA-Z0-9._-]+"|"nicolaka/netshoot:[a-zA-Z0-9._-]+"' ./internal |
     tr -d '"' | sort -u |
+    while IFS= read -r image; do
+        reason=$(jq -r --arg architecture "$architecture" --arg image "$image" '.[$architecture][$image] // empty' "$policy")
+        if [[ -n "$reason" ]]; then
+            echo "Skipping $image on $architecture: $reason" >&2
+        else
+            echo "$image"
+        fi
+    done |
     xargs -P 4 -I {} sh -c 'for n in 1 2 3; do docker pull "$1" && exit 0; echo "retry $1 ($n)"; sleep 3; done; echo "FAILED to pull $1 after 3 attempts"; exit 1' sh {}

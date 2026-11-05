@@ -71,7 +71,7 @@ class FrontendCiTest(unittest.TestCase):
         self.assertEqual(package["packageManager"], f"pnpm@{configuration['tools']['pnpm']}")
 
     def test_script_suite_installs_its_frontend_tools_before_discovery(self) -> None:
-        job = get_job(self.workflow, "lint-shell")
+        job = get_job(self.workflow, "test-scripts")
         tools = re.search(r"install_args:\s*['\"]?([^'\"\n]+)", job)
 
         assert tools is not None
@@ -121,6 +121,7 @@ class FrontendCiTest(unittest.TestCase):
                 "lint-frontend",
                 "lint-python",
                 "lint-shell",
+                "test-scripts",
                 "dockerfile-scan",
                 "dependency-review",
             },
@@ -154,8 +155,13 @@ class FrontendCiTest(unittest.TestCase):
         self.assertIn("needs: [build-storage-image]", job)
         self.assertNotRegex(job, r"(?m)^    if:")
         self.assertIn("install_args: 'python uv'", job)
-        self.assertIn("databasus-storage-test.tar.zst | docker load", job)
-        self.assertEqual(job.count("DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}"), 2)
+        self.assertIn("databasus-storage-test-${{ matrix.arch }}.tar.zst | docker load", job)
+        self.assertEqual(
+            job.count(
+                "DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}-${{ matrix.arch }}"
+            ),
+            2,
+        )
         self.assertLess(
             job.index("run: mise run e2e:unit\n"), job.index("run: mise run e2e:browser\n")
         )

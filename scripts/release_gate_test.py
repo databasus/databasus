@@ -33,6 +33,7 @@ RELEASE_GATE_JOBS = {
     "lint-frontend",
     "lint-python",
     "lint-shell",
+    "test-scripts",
     "lint-workflows",
     "test-backend",
     "test-frontend",
@@ -96,7 +97,7 @@ class ReleaseGateTest(unittest.TestCase):
                     self.assertNotRegex(jobs[job_name], r"(?m)^    continue-on-error:")
 
     def test_script_test_job_installs_the_real_python_and_hook_tools(self) -> None:
-        test_job = get_jobs(CI_RELEASE)["lint-shell"]
+        test_job = get_jobs(CI_RELEASE)["test-scripts"]
         installed_tools = get_required_match(r"install_args: '([^']+)'", test_job).group(1).split()
         self.assertTrue({"python", "uv", "ruff", "ty", "hk"}.issubset(installed_tools))
 
@@ -124,7 +125,7 @@ class ReleaseGateTest(unittest.TestCase):
         self.assertEqual(get_transitive_needs(jobs, "test-upgrade"), {"build-storage-image"})
         self.assertRegex(
             jobs["test-upgrade"],
-            r"DATABASUS_IMAGE: databasus-storage-test:\$\{\{ github\.sha \}\}\n\s+run: mise run backend:test-upgrade\n",
+            r"DATABASUS_IMAGE: databasus-storage-test:\$\{\{ github\.sha \}\}-\$\{\{ matrix\.arch \}\}\n\s+run: mise run backend:test-upgrade\n",
         )
 
     def test_backend_matrix_reports_every_group_and_every_shard(self) -> None:

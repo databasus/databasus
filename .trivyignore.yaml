@@ -8,3 +8,10 @@ misconfigurations:
       directory, then re-executes itself as databasus with gosu, and that
       non-root process initializes PostgreSQL and runs the application. A
       Dockerfile USER directive would break startup.
+  - id: DS-0002
+    paths:
+      - e2e/docker-storage/nfs/Dockerfile
+    statement: >-
+      This privileged kernel-NFS test fixture mounts nfsd and configures exports
+      as root for its entire lifetime. It runs only in the isolated filesystem
+      test network and is removed with that run's resources.

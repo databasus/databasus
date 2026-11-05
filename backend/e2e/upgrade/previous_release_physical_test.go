@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"slices"
 	"testing"
 
@@ -20,7 +21,7 @@ type physicalSourceSpec struct {
 }
 
 type previousPhysicalBackupPage struct {
-	Backups []previousPhysicalBackup `json:"backups"`
+	Backups []previousPhysicalBackup `json:"items"`
 }
 
 type previousPhysicalBackup struct {
@@ -40,12 +41,13 @@ type previousPhysicalBackup struct {
 func writePhysicalBackup(t *testing.T, api *apiClient, source physicalSourceSpec) (string, []upgradecheck.Item, error) {
 	t.Helper()
 	var createdDatabase previousCreatedItem
-	err := api.post(t.Context(), "/databases/create", map[string]any{
-		"workspaceId": source.workspaceID, "name": "upgrade physical database", "type": "POSTGRES_PHYSICAL",
-		"postgresqlPhysical": map[string]any{
+	err := api.post(t.Context(), "/databases", map[string]any{
+		"workspaceId": source.workspaceID, "name": "upgrade physical database",
+		"settings": map[string]any{
+			"type": "POSTGRES_PHYSICAL", "sshTunnel": map[string]any{"isEnabled": false},
 			"version": sourceVersion, "host": sourceNetworkAlias, "port": sourcePort, "username": sourceUsername,
 			"password": sourcePassword, "sslMode": "disable", "backupType": "FULL_INCREMENTAL_WAL_STREAM",
-		}, "notifiers": []any{},
+		}, "notifierIds": []string{},
 	}, &createdDatabase)
 	if err != nil {
 		return "", nil, fmt.Errorf("create the physical database: %w", err)
@@ -53,22 +55,22 @@ func writePhysicalBackup(t *testing.T, api *apiClient, source physicalSourceSpec
 
 	databaseID := createdDatabase.ID
 	var config map[string]any
-	err = api.get(t.Context(), "/backup-configs/physical/database/"+databaseID, &config)
+	err = api.get(t.Context(), "/backup-configs/"+databaseID, &config)
 	if err != nil {
 		return "", nil, err
 	}
 
 	config["isBackupsEnabled"] = true
-	config["storage"] = map[string]any{"id": source.storageID}
-	err = api.post(t.Context(), "/backup-configs/physical/save", config, nil)
+	config["storageId"] = source.storageID
+	err = api.send(t.Context(), http.MethodPut, "/backup-configs/"+databaseID, config, nil)
 	if err != nil {
 		return "", nil, fmt.Errorf("enable physical backups: %w", err)
 	}
 
 	err = api.post(
 		t.Context(),
-		"/backups/physical/database/"+databaseID+"/trigger",
-		map[string]string{"type": "full"},
+		"/physical-backups",
+		map[string]string{"databaseId": databaseID, "kind": "FULL"},
 		nil,
 	)
 	if err != nil {
@@ -80,7 +82,7 @@ func writePhysicalBackup(t *testing.T, api *apiClient, source physicalSourceSpec
 		var page previousPhysicalBackupPage
 		if readErr := api.get(
 			ctx,
-			"/backups/physical/database/"+databaseID+"/backups?type=FULL&limit=100",
+			"/physical-backups?databaseId="+databaseID+"&type=FULL&limit=100",
 			&page,
 		); readErr != nil {
 			return readErr
@@ -108,8 +110,8 @@ func writePhysicalBackup(t *testing.T, api *apiClient, source physicalSourceSpec
 
 	err = api.post(
 		t.Context(),
-		"/backups/physical/database/"+databaseID+"/trigger",
-		map[string]string{"type": "incremental"},
+		"/physical-backups",
+		map[string]string{"databaseId": databaseID, "kind": "INCREMENTAL"},
 		nil,
 	)
 	if err != nil {
@@ -121,7 +123,7 @@ func writePhysicalBackup(t *testing.T, api *apiClient, source physicalSourceSpec
 		var page previousPhysicalBackupPage
 		if err := api.get(
 			ctx,
-			"/backups/physical/database/"+databaseID+"/backups?type=INCREMENTAL&limit=100",
+			"/physical-backups?databaseId="+databaseID+"&type=INCREMENTAL&limit=100",
 			&page,
 		); err != nil {
 			return err
@@ -152,7 +154,7 @@ func writePhysicalBackup(t *testing.T, api *apiClient, source physicalSourceSpec
 	var fullBackupsPage previousPhysicalBackupPage
 	err = api.get(
 		t.Context(),
-		"/backups/physical/database/"+databaseID+"/backups?type=FULL&limit=100",
+		"/physical-backups?databaseId="+databaseID+"&type=FULL&limit=100",
 		&fullBackupsPage,
 	)
 	if err != nil {
@@ -203,7 +205,7 @@ func writePhysicalBackup(t *testing.T, api *apiClient, source physicalSourceSpec
 			var page previousPhysicalBackupPage
 			if readErr := api.get(
 				ctx,
-				"/backups/physical/database/"+databaseID+"/backups?type=WAL&limit=100",
+				"/physical-backups?databaseId="+databaseID+"&type=WAL&limit=100",
 				&page,
 			); readErr != nil {
 				return readErr

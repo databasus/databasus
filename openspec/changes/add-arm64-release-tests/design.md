@@ -1,0 +1,106 @@
+## Context
+
+See [proposal.md](proposal.md) for motivation and scope. This is a change to release verification and its fixtures, not to the application architecture.
+
+The relevant current behavior is:
+
+| Evidence                                                                                                                                                 | Consequence                                                                                                                                                                       |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.github/workflows/ci-release.yml:3` and `:713`                                                                                                          | Checks run on `main` pushes and manual dispatch; version selection is limited to automatic `main` runs. Preserve those events and publication conditions.                         |
+| `.github/workflows/ci-release.yml:339`                                                                                                                   | All nine backend legs use x64 Ubuntu 22 profiles. The comment records a MongoDB 9 startup problem on newer kernels.                                                               |
+| `.github/workflows/ci-release.yml:139`, `:166`, `:192`, `:249`, `:274` and `:562`                                                                        | Frontend, browser, agent and upgrade checks each have one architecture.                                                                                                           |
+| `.github/workflows/ci-release.yml:389` and `:294`                                                                                                        | Client-library compatibility links hardcode the x86_64 multiarch directory.                                                                                                       |
+| `.github/workflows/ci-release.yml:433` and `:494`                                                                                                        | The transferable candidate is amd64-only, and filesystem checks consume one shared artifact. The network group needs a GitHub VM because Namespace lacks NFS/CIFS kernel support. |
+| `.github/workflows/ci-release.yml:689`                                                                                                                   | Version selection already depends on all named test jobs; matrix expansion can retain that barrier.                                                                               |
+| `mise-tasks/backend/pull-testcontainers:11`, `backend/internal/engines/mysql/source_test.go:28` and `backend/internal/engines/mariadb/source_test.go:30` | Image preparation scans source literals and version matrices include old server images without an architecture exclusion.                                                         |
+| `frontend/browser/environment.json:2`, `frontend/browser/Dockerfile:5`, `frontend/tooling/runBrowser.ts:68` and `frontend/playwright.config.ts:13`       | Browser UI forces amd64, downloads x64 Node and uses one reference namespace. Screenshot comparison requires zero changed pixels.                                                 |
+| `e2e/docker-storage/run.sh:10`                                                                                                                           | Samba and NFS are pinned by digest; registry inspection confirmed the NFS digest is an amd64-only manifest.                                                                       |
+| `backend/e2e/upgrade/previous_release_client_test.go:128`                                                                                                | Upgrade preparation still calls the old sign-up path.                                                                                                                             |
+| `backend/internal/modules/backups/e2e/mongodb/engine_mongodb_test.go:102`                                                                                | The SSH scenario creates a real bastion and verifies restored documents; keep that surface.                                                                                       |
+
+[CI run 42104490579](https://github.com/databasus/databasus/actions/runs/42104490579) failed in `test-upgrade` and the logical group. Upgrade preparation received 404 from `POST /api/v1/users/signup` on the selected `v3.65.0` release. MongoDB's SSH backup failed during server selection with an incomplete message-header read and a deadline error. The latter is an observed failure, not an established diagnosis of a race, readiness defect or insufficient timeout.
+
+Registry inspection found no arm64 variant for `mysql:5.7` or `mariadb:5.5`; MySQL 8.0 and later tested lines and MariaDB 10.1 and later tested lines have arm64 variants. The pinned browser-e2e PostgreSQL, Docker-in-Docker and Playwright manifests, Samba, the checked TimescaleDB images and the released-agent fixture also contain arm64 variants. Manifest availability does not establish runtime correctness.
+
+The two new Namespace profiles are already saved: `4vcpu-8ram-ubuntu-22-arm` and `8vcpu-16ram-ubuntu-22-arm`. Their resource sizes, Linux arm64 architecture, Ubuntu 22.04 image and 50 GB cache settings were checked against the x64 profiles. Creating a profile does not prove which kernel a future runner will use.
+
+This design follows `AGENTS.md`, `backend/AGENTS.md` and `frontend/AGENTS.md`. Preserve the ownership boundaries in `docs/architecture.md:51` and `:368`: shared fixture policy stays in test support, engine-specific fixes stay in their engine, and browser e2e continues testing the image externally. Tests follow `.agents/skills/testing/SKILL.md` and `docs/testing.md`, including real dependencies, unique resources, condition-based waits and cleanup. No architecture-document change is required unless implementation establishes a necessary architecture change.
+
+## Goals / Non-Goals
+
+**Goals:** Make architecture an explicit part of test selection, execution, artifacts and release eligibility. Reuse the existing suites and data assertions. Keep each implementation task verifiable locally and distinguish that evidence from a native hosted run.
+
+**Non-Goals:** Redesign the publication pipeline, introduce another permanent CI workflow, change product support or accept cross-architecture physical backups. The proposal lists the remaining scope exclusions.
+
+## Decisions
+
+### 1. Expand existing test jobs and preserve their dependency barrier
+
+Keep existing suite entry points and job identities. Add architecture to every test matrix, including script tests currently embedded in `lint-shell`; moving those tests to a dedicated matrix job is appropriate if it avoids running shell lint twice. Preserve all existing package and shard selectors. Verify coverage as the Cartesian product of architectures and required suite/group/shard identities, with uniqueness checks and mutation cases that remove an ARM leg or disconnect a release dependency. Keep `fail-fast: false` on every test matrix and retain backend `-race`.
+
+Use the matching Ubuntu 22 Namespace profiles for backend tests: 4 vCPU / 8 GB for the eight small legs and 8 vCPU / 16 GB for `other`. General tests can use the existing Namespace profiles, including the new 4-vCPU ARM profile; browser containers keep their own pinned operating system. Use GitHub `ubuntu-24.04` and `ubuntu-24.04-arm` VMs for rootful Podman and network-filesystem checks. Log the actual architecture and kernel and fail on an architecture mismatch rather than trusting the label alone. Install Podman explicitly where the runner image does not provide it; derive library paths through the system's package architecture instead of hardcoding x86_64.
+
+Keep version selection restricted to automatic `main` pushes and dependent on all test matrices, scans and image checks. A matrix job succeeds only when every required leg succeeds. If script tests move, add their new job to this barrier and to the automated transitive-publication checks. Do not add success overrides or develop exemptions. Existing image smoke and vulnerability checks remain native on both architectures. Make the representative pre-release verification-image build native on both architectures as well; keep the publishing matrix and version rules unchanged.
+
+**Alternatives rejected:** A separate ARM-only workflow can drift and fail outside the release barrier. QEMU or forcing amd64 containers would test different binaries. Duplicating all lint and security scans adds work without increasing native test coverage. Removing shards increases contention and hides which slow group failed.
+
+### 2. Transfer one candidate per architecture with explicit identity checks
+
+Expand the existing candidate producer to amd64 and arm64. Include architecture in its image tag, compressed filename and artifact name, for example `databasus-storage-test:<commit>-arm64` and `databasus-storage-test-arm64`. Update every download attempt and every image consumer together. Inspect the loaded image's OS and architecture before scenarios and verify the expected commit-specific tag. Image-producing and consuming matrices may wait for the whole candidate matrix, as GitHub's `needs` operates at job level; neither depends on backend-group completion.
+
+Keep the existing pinned multi-architecture fixture indexes wherever they already provide native variants. Include architecture in uploaded browser failure artifacts. Preserve retry handling for artifact transport, but never use it to repeat a failed test into a passing result. The application candidates remain distinct from the later versioned publication rebuild, as `docs/architecture.md:372` already explains.
+
+**Alternatives rejected:** One artifact name with overwrite enabled creates a cross-architecture race. Rebuilding the app independently in each suite multiplies build cost and loses the shared candidate identity. Consolidating all image-build jobs is unnecessary for the requested coverage.
+
+### 3. Use one explicit unavailable-image policy in preparation and fixtures
+
+Introduce a small test-support policy for the exact `(architecture, image)` exclusions: arm64 with `mysql:5.7` and `mariadb:5.5`. Apply it before starting a fixture and before pulling its image. Keep per-version subtests so a fixture exclusion skips only the corresponding server scenario and prints a reason; unrelated scenarios and container-free unsupported-version tests remain selected.
+
+Keep the exclusion pairs in one small declarative JSON file owned by the test-container package. Embed that file for fixture selection and read the same file from image preparation using a pinned JSON tool. Do not maintain a second shell list or add another executable just to share two exclusions. Policy evaluation accepts an architecture as input for container-free coverage of both branches on the local host; runtime callers supply the actual execution architecture. Normalize the shell and container-engine architecture names explicitly. Tests enumerate excluded pairs, prove amd64 includes both old versions, and prove supported versions and unknown images are not silently excluded. Install every newly used preparation tool explicitly at its repository-pinned version in the affected jobs.
+
+The current source-literal image discovery can remain unless a demonstrated defect requires changing it. Pull failures outside the policy stay fatal. Product engine registries and client bundles are not changed by a server-fixture exclusion.
+
+**Alternatives rejected:** Catching any missing manifest as a skip hides broken tags and authentication failures. Skipping whole engine packages drops valid coverage. Separate shell and backend exclusion lists can disagree.
+
+### 4. Run the browser UI environment natively and retain strict references
+
+Select amd64 or arm64 from the actual execution architecture. Pin the Node archive checksum for each architecture at the same repository-pinned version, use the existing multi-architecture Playwright digest, and pass the matching platform to image build and run. Include architecture and all selected pins in the browser image cache identity. Reject unsupported architectures explicitly.
+
+Keep the current screenshot threshold of zero changed pixels, fixtures, accessibility checks and rendering-readiness waits. First compare native output with the existing references. If native rendering differs, add an explicit architecture namespace for references and create the ARM references only through the documented update command in a native ARM environment. Ordinary runs never update images, borrow another architecture's reference or relax comparison thresholds. Existing amd64 references remain intact unless a reviewed image change requires otherwise.
+
+**Alternatives rejected:** An amd64 browser on an ARM host supplies no native browser evidence. Increasing screenshot tolerance to accommodate platform differences could hide regressions. Automatically accepting the first ARM screenshot would make a failed comparison look successful.
+
+### 5. Preserve native NFS coverage with a pinned fixture
+
+Replace the single-architecture NFS digest with a multi-architecture NFS fixture that preserves the existing export, mount and `root_squash` semantics. Prefer an immutable multi-architecture manifest of an existing suitable server image after checking its entry point and exports. If none provides the existing behavior, build a small repository-owned kernel-NFS fixture from a digest-pinned multi-architecture base and explicitly configure its exports and services. This choice affects fixture packaging only, not suite coverage or product behavior. Readiness must establish an available export, and cleanup remains scoped to the run.
+
+Cover fixture selection, exports, startup failure propagation and cleanup wiring with automated local tests that do not require the host's network-filesystem setup. Actual CIFS and NFS mount results are evidence from the native VM runs, not from those local structural tests.
+
+**Alternatives rejected:** An ARM-only NFS skip contradicts complete filesystem coverage. Emulating the old NFS container does not prove native fixture behavior. Replacing kernel NFS with a userspace substitute without proving root-squash semantics changes what the test establishes.
+
+### 6. Repair failures from evidence and keep the original assertions
+
+Audit all previous-release requests and response shapes against the selected newest release, rather than changing only the first failing sign-up URL. Use that release's actual API for setup, including its membership and configuration rules; use the current API for post-upgrade checks. Keep upgrade coverage for stored secrets, logical restore, physical chains, verification data and released-agent replacement. Existing historical migration assertions remain in their applicable migration tests when a newest release no longer allows constructing a historical state. Do not add route probing, version fallback or reduce the predecessor to an older passing release.
+
+For MongoDB over SSH, collect source and bastion diagnostics and reproduce the failure with `-race` under the logical group's actual concurrency. Trace database readiness, forwarding lifetime, I/O completion and cleanup. Add a regression at the narrowest observable layer that reproduces the established cause before fixing it. Repeated successful runs support the repair but do not replace a regression that pins the fault. Legitimately insufficient operation budgets may be corrected with evidence; retries, fixed sleeps, serialized unrelated tests and weakened assertions are not fixes.
+
+Further flaky tests or important defects exposed by this work are repaired in the touched path under the existing repair authorization; keep the artifacts aligned with any necessary repair. Avoid unrelated refactoring.
+
+**Alternatives rejected:** Hiding the SSH test, increasing a deadline without a diagnosis, or retrying the scenario leaves the underlying failure. Updating only the first stale upgrade route risks discovering the next one after another full hosted run. A compatibility layer in production is unnecessary because the observed upgrade failure is in test preparation.
+
+## Risks / Trade-offs
+
+- **More runners and cache use:** The backend matrix grows from nine to eighteen legs. Preserve measured shards and existing per-group sizes; do not raise concurrency or shorten operation budgets without evidence.
+- **A label or available manifest can still be unusable:** Check the actual runtime architecture and keep the MongoDB-compatible Ubuntu selection. Native startup failures stay failures and are investigated.
+- **Native screenshots may require ARM references:** Keep the explicit update process and report missing ARM reference evidence instead of accepting it automatically.
+- **Network-filesystem and Podman behavior depends on the VM:** Local policy and workflow tests cannot prove native mounts or rootful execution. Preserve separate VM checks and state this limit in the implementation report.
+- **A new release can invalidate the upgrade setup again:** The test must still select the newest release. Keep previous/current clients separate and repair against the selected contract without weakening the post-upgrade assertions.
+- **Failure diagnostics can contain secrets:** Preserve existing masking for URLs, credentials and process output when improving evidence collection.
+
+## Migration Plan
+
+No application data migration or user configuration change is needed. Implement fixture and harness repairs first, then expand workflow matrices and their local coverage tests, then update `docs/testing.md` and all affected command descriptions. Keep the normal `main` trigger and manual dispatch behavior.
+
+The implementation checklist ends after local checks and mandatory review. The user has separately allowed a temporary verification branch/workflow during implementation. A hosted verification run can then gather native evidence for both architectures without changing release eligibility or publishing artifacts; it is not a task that blocks the local pre-commit boundary. Do not describe static matrix checks, cross-compilation or an amd64 run as a successful native ARM run. Any temporary verification workflow must not remain as a second permanent source of suite selection.
+
+Rollback is a normal code/configuration revert. The new Namespace profiles contain no running workloads and can remain available; do not remove them or alter unrelated profiles as part of rollback.
