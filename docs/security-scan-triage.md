@@ -36,5 +36,22 @@ server egress according to their deployment's network policy.
 Notification headings and bodies are plain text. The email provider escapes body text before
 embedding it in HTML and converts line breaks to `<br>`. The Mailpit integration test verifies that
 an HTML link inside an error remains literal text. Authentication email templates still pass their
-trusted HTML through the mailer. The email-injection alert is addressed in code, without a scanner
-exception.
+trusted HTML through the mailer. The HTML injection defect is fixed in code.
+
+CodeQL alert [149](https://github.com/databasus/databasus/security/code-scanning/149),
+`go/email-injection`, also reports data flowing through parsed mail addresses and escaped body text.
+The query's [configuration](https://github.com/github/codeql/blob/main/go/ql/src/Security/CWE-640/EmailInjection.qll)
+defines no sanitization barrier. Its remaining paths include `mail.ParseAddress` followed by
+`mail.Address.String`, and `html.EscapeString` followed by MIME quoted-printable encoding. They are
+false positives for the serialized addresses and escaped notification text.
+
+The mailer tests reject multiple recipients and CRLF injection into a recipient, verify that a
+subject containing `Bcc:` adds neither a header nor a recipient, and check MIME encoding and line
+limits. The email provider's Mailpit test verifies that an attacker-controlled link is delivered as
+literal text and that a line break survives. Run both with:
+
+```sh
+go -C backend test -count=1 ./internal/lib/mailer ./internal/modules/notifiers/internal/providers/email
+```
+
+No CodeQL rule or source path is excluded from analysis.
