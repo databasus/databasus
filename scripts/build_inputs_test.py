@@ -31,7 +31,8 @@ class BuildInputsTest(unittest.TestCase):
                 self.assertRegex(get_jobs(CI_RELEASE)[job_name], r"install_args:.*aqua:aquasecurity/trivy")
 
     def test_semver_version_is_exact(self):
-        self.assertRegex(get_jobs(CI_RELEASE)["determine-version"], r"npm install -g semver@\d+\.\d+\.\d+\n")
+        self.assertRegex(TOOLS["npm:semver"], r"^\d+\.\d+\.\d+$")
+        self.assertRegex(get_jobs(CI_RELEASE)["determine-version"], r"install_args:.*npm:semver")
 
     def test_base_images_use_digests(self):
         base_images = re.findall(r"^FROM (?:--platform=\S+ )?(\S+)", (ROOT / "Dockerfile").read_text(), re.M)

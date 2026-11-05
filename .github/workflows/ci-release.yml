@@ -31,7 +31,7 @@ jobs:
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: 'go golangci-lint vacuum'
+          install_args: 'go golangci-lint vacuum go:golang.org/x/vuln/cmd/govulncheck'
 
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
@@ -52,9 +52,7 @@ jobs:
         run: mise run backend:lint
 
       - name: Scan for reachable vulnerabilities
-        run: |
-          cd backend
-          go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
+        run: mise run security:go
 
   lint-frontend:
     runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
@@ -91,7 +89,7 @@ jobs:
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: 'go shellcheck jq node pnpm'
+          install_args: 'go shellcheck jq node pnpm python'
 
       - name: Run shellcheck
         run: mise run lint-shell
@@ -366,11 +364,10 @@ jobs:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - name: Set up Go
-        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          go-version: '1.26.10'
-          cache: false
+          install_args: 'go golangci-lint'
 
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
@@ -409,11 +406,6 @@ jobs:
           # These paths match what's configured in config.go
           mkdir -p databasus-data/backups
           mkdir -p databasus-data/temp
-
-      - name: Install tools from mise.toml
-        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
-        with:
-          install_args: 'golangci-lint'
 
       - name: Pull testcontainer images
         run: mise run backend:pull-testcontainers
@@ -572,11 +564,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Go
-        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          go-version: '1.26.10'
-          cache: false
+          install_args: 'go'
 
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
@@ -613,11 +604,6 @@ jobs:
 
       - name: Load the storage candidate
         run: zstd -dc /tmp/databasus-storage-test.tar.zst | docker load
-
-      - name: Install tools from mise.toml
-        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
-        with:
-          install: false
 
       - name: Run the upgrade test
         env:
@@ -728,8 +714,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install semver
-        run: npm install -g semver@7.8.6
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: 'node npm:semver'
 
       - name: Get current version
         id: current_version
@@ -794,7 +782,7 @@ jobs:
           echo "bump_type=$BUMP_TYPE" >> "$GITHUB_OUTPUT"
 
           if [ "$BUMP_TYPE" != "none" ]; then
-            NEW_VERSION=$(npx semver -i $BUMP_TYPE $CURRENT_VERSION)
+            NEW_VERSION=$(semver -i $BUMP_TYPE $CURRENT_VERSION)
             echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
             echo "should_release=true" >> "$GITHUB_OUTPUT"
             echo "New version will be: $NEW_VERSION"
@@ -1255,10 +1243,10 @@ jobs:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - name: Set up Helm
-        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          version: v3.14.0
+          install_args: 'helm'
 
       - name: Log in to GHCR
         env:

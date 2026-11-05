@@ -62,6 +62,22 @@ description = "Check the GitHub Actions workflows with actionlint"
 run = "actionlint -shellcheck="
 hide = true
 
+[tasks."security:go"]
+description = "Scan the backend for reachable Go vulnerabilities"
+dir = "backend"
+run = "govulncheck ./..."
+hide = true
+
+[tasks."security:secrets"]
+description = "Scan redacted findings in git history for secrets"
+run = 'gitleaks git --redact --verbose --exit-code 1 --log-opts="${SCANNED_HISTORY:---all}" .'
+hide = true
+
+[tasks."security:semgrep"]
+description = "Scan source and workflows with Semgrep security rules"
+run = "semgrep scan --error --metrics=off --config p/default --config p/github-actions --config p/dockerfile --exclude-rule generic.secrets.security.detected-private-key.detected-private-key"
+hide = true
+
 [tasks."backend:format"]
 description = "Format the backend"
 dir = "backend"
@@ -104,6 +120,11 @@ vacuum = "0.35.1"
 gh = "2.103.3"
 jq = "1.8.2"
 actionlint = "1.7.12"
+gitleaks = "8.30.1"
+"go:golang.org/x/vuln/cmd/govulncheck" = "1.9.0"
+"npm:semver" = "7.8.6"
+helm = "3.14.0"
+"pypi:semgrep" = "1.182.1"
 
 [env]
 # The TypeScript wrapper supplies frontend/node_modules before the mise shim changes NODE_PATH.

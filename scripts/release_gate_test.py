@@ -1,6 +1,7 @@
 from pathlib import Path
 import re
 import sys
+import tomllib
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -10,6 +11,7 @@ from workflow_jobs import get_jobs  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 CI_RELEASE = (ROOT / ".github/workflows/ci-release.yml").read_text()
 CODE_SCANNING = (ROOT / ".github/workflows/codeql.yml").read_text()
+TASKS = tomllib.loads((ROOT / "mise.toml").read_text())["tasks"]
 
 PUBLISHING_JOBS = (
     "push-image",
@@ -178,7 +180,8 @@ class ReleaseGateTest(unittest.TestCase):
         secret_scan = get_jobs(CODE_SCANNING)["secret-scan"]
 
         self.assertIn("${{ inputs.is-release-gate && 'HEAD' || '--all' }}", secret_scan)
-        self.assertIn('--log-opts="$SCANNED_HISTORY"', secret_scan)
+        self.assertIn("mise run security:secrets", secret_scan)
+        self.assertIn('--log-opts="${SCANNED_HISTORY:---all}"', TASKS["security:secrets"]["run"])
         self.assertIn("fetch-depth: 0", secret_scan)
 
     def test_scans_fail_on_what_they_find(self):
@@ -189,8 +192,9 @@ class ReleaseGateTest(unittest.TestCase):
                 self.assertIn(job_name, scan_jobs)
                 self.assertNotIn("continue-on-error", scan_jobs[job_name])
 
-        self.assertIn("--error", scan_jobs["semgrep"])
-        self.assertIn("--exit-code 1", scan_jobs["secret-scan"])
+        self.assertIn("mise run security:semgrep", scan_jobs["semgrep"])
+        self.assertIn("--error", TASKS["security:semgrep"]["run"])
+        self.assertIn("--exit-code 1", TASKS["security:secrets"]["run"])
 
     def test_severity_gate_runs_after_analysis(self):
         severity_gate = get_jobs(CODE_SCANNING)["codeql-severity-gate"]
