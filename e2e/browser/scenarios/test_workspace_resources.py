@@ -51,7 +51,7 @@ class TestWorkspaceResources:
 
         page.get_by_role("button", name="Storages", exact=True).click()
 
-        expect(page.get_by_text("No storages in this workspace yet")).to_be_visible()
+        expect(page.get_by_role("button", name="Add storage", exact=True)).to_be_visible()
         expect(page.get_by_role("button", name=storage_name, exact=True)).to_have_count(0)
         assert read_api(page, f"/api/v1/storages?workspaceId={other_workspace_id}&limit=100")["items"] == []
 
@@ -62,7 +62,9 @@ class TestWorkspaceResources:
 
         page.get_by_role("button", name="Storages", exact=True).click()
 
-        expect(page.get_by_text("No storages in this workspace yet")).to_be_visible()
+        expect(page.get_by_role("button", name="Add storage", exact=True)).to_be_visible()
+        expect(page.get_by_role("button", name=storage_name, exact=True)).to_have_count(0)
+        assert read_api(page, f"/api/v1/storages?workspaceId={other_workspace_id}&limit=100")["items"] == []
 
         workspace_selector = page.get_by_role("combobox", name="Selected workspace")
         workspace_selector.focus()
