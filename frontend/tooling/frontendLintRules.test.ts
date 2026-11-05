@@ -13,11 +13,25 @@ const lintFixture = (content: string) => {
     const fixture = join(directory, 'Fixture.tsx');
     writeFileSync(fixture, content);
 
-    return spawnSync(
-      resolve(frontendRoot, 'node_modules/.bin/oxlint'),
-      ['-c', 'oxlint.config.ts', '-f', 'unix', fixture],
+    const lintRun = spawnSync(
+      process.execPath,
+      [
+        resolve(frontendRoot, 'node_modules/oxlint/bin/oxlint'),
+        '-c',
+        'oxlint.config.ts',
+        '-f',
+        'unix',
+        fixture,
+      ],
       { cwd: frontendRoot, encoding: 'utf8' },
     );
+
+    if (lintRun.error) throw lintRun.error;
+    if (lintRun.signal || lintRun.status === null) {
+      throw new Error(`oxlint terminated with ${lintRun.signal}: ${lintRun.stderr}`);
+    }
+
+    return lintRun;
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
