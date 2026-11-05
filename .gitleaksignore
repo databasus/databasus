@@ -21,6 +21,7 @@ ef33df9f4a03e825d2872d7323cc683888502f8a:app/sponsorship/tiers.ts:generic-api-ke
 36055180ce922b4ecc31e5fb71a356ef575aca1a:website/app/sponsorship/tiers.ts:generic-api-key:12
 
 # Test passwords and tokens, and a field assignment the rule mistakes for a literal.
+8bb575cb65ba7c05b817f794d4323c01d6650c22:backend/internal/modules/notifiers/test_send_test.go:generic-api-key:275
 37e8dcd3b0a5a09d7eb4cec8f2225269823bfa0d:backend/internal/lib/crypto/legacy_master_key_test.go:generic-api-key:18
 37e8dcd3b0a5a09d7eb4cec8f2225269823bfa0d:backend/internal/app/app_test.go:generic-api-key:213
 105777ab6fe2385949397d79a3d712508ba4aae9:backend/internal/features/users/controllers/password_reset_test.go:generic-api-key:432
