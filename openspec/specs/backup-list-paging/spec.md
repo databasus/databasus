@@ -32,7 +32,7 @@ A list SHALL stop requesting further pages and stop showing the loading indicato
 
 ### Requirement: Refresh updates the newest rows without reloading the rest
 
-On each refresh tick, a list SHALL re-request only its first page and merge it into the rows already shown. When that page has a continuation cursor and its last row occurs in the loaded rows with a tail below it, rows below that anchor SHALL stay loaded and the loaded tail's continuation cursor SHALL be preserved. Refreshed rows SHALL replace their loaded copies without duplication. The refresh interval of each list SHALL stay unchanged.
+On each refresh tick while the browser tab is visible, a list SHALL re-request only its first page and merge it into the rows already shown. When that page has a continuation cursor and its last row occurs in the loaded rows with a tail below it, rows below that anchor SHALL stay loaded and the loaded tail's continuation cursor SHALL be preserved. Refreshed rows SHALL replace their loaded copies without duplication. The refresh interval of each list SHALL stay unchanged while the browser tab is visible. Automatic refresh SHALL follow the browser-tab visibility requirement in the frontend-list-loading specification.
 
 When the refreshed first page's last row cannot anchor a loaded tail, including when enough new rows eliminate usable overlap, the list SHALL replace its loaded extent with the refreshed page and use that page's continuation cursor. The same replacement SHALL apply when the refreshed page is empty or reports that it contains the complete list. These fallback cases SHALL NOT cause refresh to request additional pages; older rows that still exist SHALL remain reachable through subsequent scrolling from the refreshed cursor.
 
