@@ -1,13 +1,11 @@
 name: Code scanning
 
 on:
-  pull_request:
-    branches: ["**"]
   schedule:
     # CodeQL query packs and semgrep rulesets are updated over time; a scheduled
     # scan surfaces new findings even when no code has changed.
     - cron: "0 6 * * 1"
-  # ci-release.yml runs these scans on main, so a release waits for them.
+  # ci-release.yml uses the same security gate for releases and manual validation.
   workflow_call:
     inputs:
       is-release-gate:
@@ -18,15 +16,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: codeql-${{ github.event.pull_request.number || github.ref }}
-  # A scan called by a release shares its group with the scheduled run on main.
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: codeql-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' }}
 
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
-    # A pull request from develop is analyzed by the push to main after its merge.
-    if: github.head_ref != 'develop'
     runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
     permissions:
       security-events: write
@@ -94,8 +89,6 @@ jobs:
 
   secret-scan:
     name: Secret scan (gitleaks)
-    # A pull request from develop is scanned by the push to main after its merge.
-    if: github.head_ref != 'develop'
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
     timeout-minutes: 15
     permissions:
@@ -125,8 +118,6 @@ jobs:
 
   semgrep:
     name: Analyze (semgrep)
-    # A pull request from develop is scanned by the push to main after its merge.
-    if: github.head_ref != 'develop'
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
     timeout-minutes: 15
     permissions:

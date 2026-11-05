@@ -1,8 +1,7 @@
 name: Dependency Review
 
 on:
-  pull_request:
-    branches: ["**"]
+  workflow_call:
 
 permissions:
   contents: read
@@ -10,15 +9,24 @@ permissions:
 jobs:
   dependency-review:
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
-    permissions:
-      contents: read
-      pull-requests: write
+    timeout-minutes: 15
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+
+      - name: Select the release baseline
+        id: release-baseline
+        run: |
+          release_tag=$(git describe --tags --match 'v[0-9]*' --abbrev=0)
+          release_commit=$(git rev-parse "${release_tag}^{commit}")
+          echo "commit=$release_commit" >> "$GITHUB_OUTPUT"
 
       - name: Dependency Review
         uses: actions/dependency-review-action@da24556b548a50705dd671f47852072ea4c105d9 # v4.7.1
         with:
           fail-on-severity: high
-          comment-summary-in-pr: on-failure
+          base-ref: ${{ steps.release-baseline.outputs.commit }}
+          head-ref: ${{ github.sha }}
+          comment-summary-in-pr: never

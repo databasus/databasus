@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 import re
 import sys
@@ -25,6 +24,7 @@ RELEASE_GATE_JOBS = {
     "build-image",
     "build-verification-image",
     "dockerfile-scan",
+    "dependency-review",
     "lint-backend",
     "lint-frontend",
     "lint-shell",
@@ -123,34 +123,23 @@ class ReleaseGateTest(unittest.TestCase):
         self.assertIn("platforms: ${{ matrix.platform }}", build_image)
         self.assertNotIn("platforms: linux/amd64", build_image)
 
-        matrix_expression = re.search(r"include: \$\{\{ fromJSON\((.*)\) \}\}", build_image).group(1)
-        main_entries, other_entries = re.fullmatch(
-            r"github\.ref == 'refs/heads/main' && '(.*)' \|\| '(.*)'", matrix_expression
-        ).groups()
         arm64_runner = "namespace-profile-2vcpu-4ram-ubuntu-26-arm"
         amd64_runner = "namespace-profile-4vcpu-8ram-ubuntu-26-x64"
-
         self.assertEqual(
-            {entry["platform"]: entry["runner"] for entry in json.loads(main_entries)},
+            dict(re.findall(r"platform: (\S+)\n\s+runner: (\S+)", build_image)),
             {"linux/amd64": amd64_runner, "linux/arm64": arm64_runner},
         )
-        self.assertEqual(
-            {entry["platform"]: entry["runner"] for entry in json.loads(other_entries)},
-            {"linux/amd64": amd64_runner},
-        )
 
-    def test_image_jobs_run_the_image_check(self):
-        jobs = get_jobs(CI_RELEASE)
+    def test_application_image_runs_the_image_check(self):
+        build_image = get_jobs(CI_RELEASE)["build-image"]
 
-        for job_name in ("build-image", "build-dev-image"):
-            with self.subTest(job_name=job_name):
-                self.assertIn("scripts/check_image.sh", jobs[job_name])
-                self.assertNotIn("Run smoke pings", jobs[job_name])
+        self.assertIn("scripts/check_image.sh", build_image)
+        self.assertNotIn("Run smoke pings", build_image)
 
     def test_code_scanning_runs_as_part_of_the_release_on_main(self):
         code_scanning = get_jobs(CI_RELEASE)["code-scanning"]
 
-        self.assertIn("if: github.ref == 'refs/heads/main'", code_scanning)
+        self.assertNotRegex(code_scanning, r"(?m)^    if:")
         self.assertIn("uses: ./.github/workflows/codeql.yml", code_scanning)
         self.assertIn("is-release-gate: true", code_scanning)
         self.assertIn("security-events: write", code_scanning)
@@ -161,16 +150,29 @@ class ReleaseGateTest(unittest.TestCase):
 
         self.assertIn("workflow_call:", triggers)
         self.assertIn("is-release-gate:", triggers)
-        self.assertIn("pull_request:", triggers)
+        self.assertNotIn("pull_request:", triggers)
         self.assertIn("schedule:", triggers)
         self.assertNotIn("push:", triggers)
 
-    def test_only_pull_requests_cancel_scans(self):
-        self.assertIn("cancel-in-progress: ${{ github.event_name == 'pull_request' }}", CODE_SCANNING)
+    def test_manual_scans_do_not_share_concurrency_with_releases_or_schedules(self):
+        self.assertIn("group: codeql-${{ github.event_name }}-${{ github.ref }}", CODE_SCANNING)
+        self.assertIn("cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' }}", CODE_SCANNING)
 
     def test_release_runs_on_main_are_not_cancelled(self):
-        self.assertIn("group: ci-release-${{ github.ref }}", CI_RELEASE)
-        self.assertRegex(CI_RELEASE, r"cancel-in-progress: \$\{\{ github\.ref != 'refs/heads/main'")
+        self.assertIn("group: ci-release-${{ github.event_name }}-${{ github.ref }}", CI_RELEASE)
+        self.assertIn("cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' }}", CI_RELEASE)
+
+    def test_independent_checks_start_without_waiting_for_lint(self):
+        jobs = get_jobs(CI_RELEASE)
+
+        for job_name in RELEASE_GATE_JOBS - {"test-e2e-browser", "test-filesystems", "test-upgrade"}:
+            with self.subTest(job_name=job_name):
+                self.assertEqual(get_needs(jobs[job_name]), set())
+
+    def test_release_waits_for_both_image_manifests(self):
+        jobs = get_jobs(CI_RELEASE)
+
+        self.assertTrue({"merge-image-manifest", "merge-verification-image-manifest"}.issubset(get_needs(jobs["release"])))
 
     def test_gating_secret_scan_reads_released_history(self):
         secret_scan = get_jobs(CODE_SCANNING)["secret-scan"]

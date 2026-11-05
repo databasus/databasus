@@ -26,7 +26,7 @@ class BuildInputsTest(unittest.TestCase):
             with self.subTest(workflow=workflow_path.name):
                 self.assertNotIn("apt-get install -y trivy", workflow_path.read_text())
 
-        for job_name in ("dockerfile-scan", "build-image", "build-dev-image"):
+        for job_name in ("dockerfile-scan", "build-image"):
             with self.subTest(job_name=job_name):
                 self.assertRegex(get_jobs(CI_RELEASE)[job_name], r"install_args:.*aqua:aquasecurity/trivy")
 

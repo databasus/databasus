@@ -1,0 +1,151 @@
+name: Deploy dev image
+
+on:
+  push:
+    branches: [develop]
+    paths-ignore:
+      - 'website/**'
+      - '.github/workflows/deploy-website.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-dev-image
+  cancel-in-progress: false
+
+jobs:
+  push-dev-image:
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            platform: linux/amd64
+            runner: namespace-profile-2vcpu-4ram-ubuntu-26-x64
+          - arch: arm64
+            platform: linux/arm64
+            runner: namespace-profile-2vcpu-4ram-ubuntu-26-arm
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push dev image by digest
+        id: dev-image-push
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          build-args: |
+            APP_VERSION=dev-${{ github.sha }}
+          outputs: type=image,name=databasus/databasus-dev,push-by-digest=true,name-canonical=true,push=true
+
+      - name: Export image digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.dev-image-push.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload image digest
+        id: upload-image-digest-1
+        continue-on-error: true
+        timeout-minutes: 3
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: digests-dev-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+          overwrite: true
+
+      - name: Upload image digest (attempt 2)
+        id: upload-image-digest-2
+        if: steps.upload-image-digest-1.outcome == 'failure'
+        continue-on-error: true
+        timeout-minutes: 3
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: digests-dev-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+          overwrite: true
+
+      - name: Upload image digest (attempt 3)
+        id: upload-image-digest-3
+        if: steps.upload-image-digest-2.outcome == 'failure'
+        timeout-minutes: 3
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: digests-dev-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+          overwrite: true
+
+  merge-dev-image-manifest:
+    runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
+    timeout-minutes: 10
+    needs: [push-dev-image]
+    permissions:
+      contents: read
+    steps:
+      - name: Download image digests
+        id: download-image-digests-1
+        continue-on-error: true
+        timeout-minutes: 3
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: digests-dev-*
+          merge-multiple: true
+          path: /tmp/digests
+
+      - name: Download image digests (attempt 2)
+        id: download-image-digests-2
+        if: steps.download-image-digests-1.outcome == 'failure'
+        continue-on-error: true
+        timeout-minutes: 3
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: digests-dev-*
+          merge-multiple: true
+          path: /tmp/digests
+
+      - name: Download image digests (attempt 3)
+        id: download-image-digests-3
+        if: steps.download-image-digests-2.outcome == 'failure'
+        timeout-minutes: 3
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: digests-dev-*
+          merge-multiple: true
+          path: /tmp/digests
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Create multi-arch dev manifest
+        working-directory: /tmp/digests
+        run: |
+          platform_image_refs=()
+          for digest in *; do
+            platform_image_refs+=("databasus/databasus-dev@sha256:${digest}")
+          done
+
+          docker buildx imagetools create \
+            -t databasus/databasus-dev:latest \
+            -t "databasus/databasus-dev:${{ github.sha }}" \
+            "${platform_image_refs[@]}"

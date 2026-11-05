@@ -2,12 +2,7 @@ name: CI and Release
 
 on:
   push:
-    branches: ['**']
-    paths-ignore:
-      - 'website/**'
-      - '.github/workflows/deploy-website.yml'
-  pull_request:
-    branches: ['**']
+    branches: [main]
     paths-ignore:
       - 'website/**'
       - '.github/workflows/deploy-website.yml'
@@ -22,13 +17,11 @@ env:
   MISE_TASK_RUN_AUTO_INSTALL: 'false'
 
 concurrency:
-  group: ci-release-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' }}
+  group: ci-release-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' }}
 
-# A pull request from develop runs no checks: the push to main after its merge runs them.
 jobs:
   lint-backend:
-    if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
     runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
     timeout-minutes: 15
     steps:
@@ -64,7 +57,6 @@ jobs:
           go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
 
   lint-frontend:
-    if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
     runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
     timeout-minutes: 15
     steps:
@@ -90,7 +82,6 @@ jobs:
           pnpm build
 
   lint-shell:
-    if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
     runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
     timeout-minutes: 15
     steps:
@@ -108,9 +99,7 @@ jobs:
       - name: Test the full test run script
         run: python3 -m unittest discover -s scripts -p '*_test.py'
 
-  # Unlike the other lint jobs this one also checks pushes to develop, the path work takes to main.
   lint-workflows:
-    if: github.head_ref != 'develop'
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
     timeout-minutes: 15
     steps:
@@ -126,7 +115,6 @@ jobs:
         run: mise run lint-workflows
 
   dockerfile-scan:
-    if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
     timeout-minutes: 15
     permissions:
@@ -146,10 +134,8 @@ jobs:
           trivy config --severity HIGH,CRITICAL --exit-code 1 backend/cmd/verification-agent/images/postgres/Dockerfile
 
   test-frontend:
-    if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
     timeout-minutes: 15
-    needs: [lint-frontend]
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -175,10 +161,8 @@ jobs:
           pnpm test
 
   test-frontend-browser-ui:
-    if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
     runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
     timeout-minutes: 20
-    needs: [lint-frontend]
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -203,7 +187,6 @@ jobs:
           retention-days: 7
 
   test-e2e-browser:
-    if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
     needs: [build-storage-image]
     runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
     timeout-minutes: 30
@@ -261,10 +244,8 @@ jobs:
         run: mise run e2e:lifecycle
 
   test-verification-agent:
-    if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
     runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
     timeout-minutes: 15
-    needs: [lint-backend]
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -288,7 +269,6 @@ jobs:
         run: mise run agent:test
 
   e2e-verification-agent-podman:
-    if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
     # Namespace runners are containers without systemd whose seccomp profile denies
     # pivot_root, so rootful Podman cannot start containers there.
     runs-on: ubuntu-24.04
@@ -353,7 +333,6 @@ jobs:
           sudo podman network ls -q --filter label=databasus.verification.agent_id | xargs -r sudo podman network rm || true
 
   test-backend:
-    if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
     # 22.04 runs Linux 6.8. ubuntu-24.04 moved to Linux 7.0, where mongod 9.0 exits at startup:
     # its kernel check reads Ubuntu's 7.0.0 release string as an rseq-incompatible kernel
     # (SERVER-121912, SERVER-136848).
@@ -454,7 +433,6 @@ jobs:
           go test -race -p=8 -count=1 -failfast -timeout 40m ${run_pattern:+-run "$run_pattern"} $packages
 
   build-storage-image:
-    if: github.head_ref != 'develop'
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
     timeout-minutes: 30
     steps:
@@ -516,7 +494,6 @@ jobs:
           overwrite: true
 
   test-filesystems:
-    if: github.head_ref != 'develop'
     needs: [build-storage-image]
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
@@ -585,7 +562,6 @@ jobs:
         run: mise run test-filesystem
 
   test-upgrade:
-    if: github.head_ref != 'develop'
     needs: [build-storage-image]
     runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
     timeout-minutes: 30
@@ -648,182 +624,19 @@ jobs:
           DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}
         run: mise run backend:test-upgrade
 
-  build-dev-image:
-    runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
-    timeout-minutes: 45
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
-    steps:
-      - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-
-      - name: Build amd64 dev image and load locally
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
-        with:
-          context: .
-          push: false
-          load: true
-          platforms: linux/amd64
-          build-args: |
-            APP_VERSION=dev-${{ github.sha }}
-          tags: |
-            databasus-dev:smoke-${{ github.sha }}
-
-      - name: Install tools from mise.toml
-        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
-        with:
-          install_args: 'aqua:aquasecurity/trivy'
-
-      - name: Check dev image
-        run: scripts/check_image.sh databasus-dev:smoke-${{ github.sha }}
-
-  push-dev-image:
+  build-image:
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 60
-    needs: [build-dev-image, test-filesystems]
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
-    permissions:
-      contents: read
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
         include:
           - arch: amd64
             platform: linux/amd64
-            runner: namespace-profile-2vcpu-4ram-ubuntu-26-x64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-26-x64
           - arch: arm64
             platform: linux/arm64
             runner: namespace-profile-2vcpu-4ram-ubuntu-26-arm
-    steps:
-      - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and push dev image by digest
-        id: dev-image-push
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
-        with:
-          context: .
-          platforms: ${{ matrix.platform }}
-          build-args: |
-            APP_VERSION=dev-${{ github.sha }}
-          outputs: type=image,name=databasus/databasus-dev,push-by-digest=true,name-canonical=true,push=true
-
-      - name: Export image digest
-        run: |
-          mkdir -p /tmp/digests
-          digest="${{ steps.dev-image-push.outputs.digest }}"
-          touch "/tmp/digests/${digest#sha256:}"
-
-      - name: Upload image digest
-        id: upload-image-digest-1
-        continue-on-error: true
-        timeout-minutes: 3
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: digests-dev-${{ matrix.arch }}
-          path: /tmp/digests/*
-          if-no-files-found: error
-          retention-days: 1
-          overwrite: true
-
-      - name: Upload image digest (attempt 2)
-        id: upload-image-digest-2
-        if: steps.upload-image-digest-1.outcome == 'failure'
-        continue-on-error: true
-        timeout-minutes: 3
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: digests-dev-${{ matrix.arch }}
-          path: /tmp/digests/*
-          if-no-files-found: error
-          retention-days: 1
-          overwrite: true
-
-      - name: Upload image digest (attempt 3)
-        id: upload-image-digest-3
-        if: steps.upload-image-digest-2.outcome == 'failure'
-        timeout-minutes: 3
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: digests-dev-${{ matrix.arch }}
-          path: /tmp/digests/*
-          if-no-files-found: error
-          retention-days: 1
-          overwrite: true
-
-  merge-dev-image-manifest:
-    runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
-    timeout-minutes: 10
-    needs: [push-dev-image]
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
-    permissions:
-      contents: read
-    steps:
-      - name: Download image digests
-        id: download-image-digests-1
-        continue-on-error: true
-        timeout-minutes: 3
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          pattern: digests-dev-*
-          merge-multiple: true
-          path: /tmp/digests
-
-      - name: Download image digests (attempt 2)
-        id: download-image-digests-2
-        if: steps.download-image-digests-1.outcome == 'failure'
-        continue-on-error: true
-        timeout-minutes: 3
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          pattern: digests-dev-*
-          merge-multiple: true
-          path: /tmp/digests
-
-      - name: Download image digests (attempt 3)
-        id: download-image-digests-3
-        if: steps.download-image-digests-2.outcome == 'failure'
-        timeout-minutes: 3
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          pattern: digests-dev-*
-          merge-multiple: true
-          path: /tmp/digests
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Create multi-arch dev manifest
-        working-directory: /tmp/digests
-        run: |
-          platform_image_refs=()
-          for digest in *; do
-            platform_image_refs+=("databasus/databasus-dev@sha256:${digest}")
-          done
-
-          docker buildx imagetools create \
-            -t databasus/databasus-dev:latest \
-            -t "databasus/databasus-dev:${{ github.sha }}" \
-            "${platform_image_refs[@]}"
-
-  # arm64 runs on main only: it costs a build and a scan per run, and work from develop meets it on main anyway.
-  build-image:
-    if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 45
-    needs: [lint-backend, lint-frontend, lint-shell, dockerfile-scan]
-    strategy:
-      fail-fast: false
-      matrix:
-        include: ${{ fromJSON(github.ref == 'refs/heads/main' && '[{"arch":"amd64","platform":"linux/amd64","runner":"namespace-profile-4vcpu-8ram-ubuntu-26-x64"},{"arch":"arm64","platform":"linux/arm64","runner":"namespace-profile-2vcpu-4ram-ubuntu-26-arm"}]' || '[{"arch":"amd64","platform":"linux/amd64","runner":"namespace-profile-4vcpu-8ram-ubuntu-26-x64"}]') }}
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -849,18 +662,16 @@ jobs:
         run: scripts/check_image.sh databasus:smoke-${{ github.sha }}
 
   build-verification-image:
-    if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
     timeout-minutes: 45
-    needs: [lint-backend, dockerfile-scan]
     permissions:
       contents: read
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      # Validate the extension Dockerfile builds (amd64, representative major) on
-      # every PR; the full multi-arch matrix is built at release time below.
+      # A representative major checks the Dockerfile before version selection;
+      # publishing builds the full multi-arch matrix.
       - name: Build verification image (amd64, no push)
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
@@ -872,7 +683,6 @@ jobs:
 
   # Reports under its own CodeQL configuration, which scripts/check_codeql_alerts.sh relies on.
   code-scanning:
-    if: github.ref == 'refs/heads/main'
     permissions:
       contents: read
       actions: read
@@ -881,12 +691,19 @@ jobs:
     with:
       is-release-gate: true
 
+  dependency-review:
+    uses: ./.github/workflows/dependency-review.yml
+
   determine-version:
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
     timeout-minutes: 10
     needs:
       [
         lint-backend,
+        lint-frontend,
+        lint-shell,
+        dockerfile-scan,
+        dependency-review,
         test-backend,
         test-frontend,
         test-frontend-browser-ui,
@@ -900,7 +717,7 @@ jobs:
         build-verification-image,
         code-scanning,
       ]
-    if: ${{ github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[skip-release]') }}
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[skip-release]') }}
     outputs:
       should_release: ${{ steps.version_bump.outputs.should_release }}
       new_version: ${{ steps.version_bump.outputs.new_version }}
@@ -1303,7 +1120,7 @@ jobs:
   release:
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
     timeout-minutes: 10
-    needs: [determine-version, merge-image-manifest]
+    needs: [determine-version, merge-image-manifest, merge-verification-image-manifest]
     if: ${{ needs.determine-version.outputs.should_release == 'true' }}
     permissions:
       contents: write

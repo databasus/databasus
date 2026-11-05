@@ -21,7 +21,7 @@ class WorkflowLintTest(unittest.TestCase):
 
         lint_workflows = get_jobs(workflow)["lint-workflows"]
         self.assertIn("mise run lint-workflows", lint_workflows)
-        self.assertRegex(lint_workflows, r"if: github\.head_ref != 'develop'\n")
+        self.assertNotRegex(lint_workflows, r"(?m)^    if:")
 
 
 if __name__ == "__main__":

@@ -82,13 +82,14 @@ class FrontendCiTest(unittest.TestCase):
         for command in ("pnpm exec oxfmt --check", "pnpm exec oxlint", "node lint/fsd.ts", "node lint/styles.ts", "pnpm typecheck", "pnpm --silent generate:api --check"):
             with self.subTest(command=command):
                 self.assertIn(command, commands)
-        self.assertIn("needs: [lint-frontend]", get_job(self.workflow, "test-frontend"))
+        self.assertNotRegex(get_job(self.workflow, "test-frontend"), r"(?m)^    needs:")
 
         release = get_job(self.workflow, "determine-version")
         prerequisites = re.findall(r"[a-zA-Z0-9_-]+", re.search(r"needs:\s*\[([^]]+)\]", release).group(1))
         self.assertEqual(set(prerequisites), {
             "lint-backend", "test-backend", "test-frontend", "test-frontend-browser-ui", "test-e2e-browser", "test-verification-agent",
             "e2e-verification-agent-podman", "test-filesystems", "test-upgrade", "lint-workflows", "build-image", "build-verification-image", "code-scanning",
+            "lint-frontend", "lint-shell", "dockerfile-scan", "dependency-review",
         })
 
     def test_browser_job_uses_the_local_command_and_keeps_failure_artifacts(self):
@@ -113,7 +114,7 @@ class FrontendCiTest(unittest.TestCase):
     def test_browser_end_to_end_suite_runs_on_the_candidate_image_and_is_required_before_release(self):
         job = get_job(self.workflow, "test-e2e-browser")
         self.assertIn("needs: [build-storage-image]", job)
-        self.assertIn("github.ref != 'refs/heads/develop' && github.head_ref != 'develop'", job)
+        self.assertNotRegex(job, r"(?m)^    if:")
         self.assertIn("install_args: 'python uv'", job)
         self.assertIn("databasus-storage-test.tar.zst | docker load", job)
         self.assertEqual(job.count("DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}"), 2)
