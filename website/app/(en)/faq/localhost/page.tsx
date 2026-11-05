@@ -24,6 +24,7 @@ export const metadata: Metadata = {
     description:
       "Learn how to backup PostgreSQL databases running on localhost using Databasus. Configure Docker host network mode for local database backups.",
     type: "article",
+    locale: "en_US",
     url: "https://databasus.com/faq/localhost",
   },
   twitter: {

@@ -23,6 +23,7 @@ export const metadata: Metadata = {
     description:
       "Learn how to manage access, roles, and permissions in Databasus. Control who can sign up, create workspaces, and manage databases with workspace-level and system-level roles.",
     type: "article",
+    locale: "en_US",
     url: "https://databasus.com/access-management",
   },
   twitter: {

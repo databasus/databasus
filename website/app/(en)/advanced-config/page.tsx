@@ -24,6 +24,7 @@ export const metadata: Metadata = {
     description:
       "Optional environment variables for self-hosting Databasus: Google and GitHub sign-in, SMTP email, Cloudflare Turnstile captcha, telemetry, OpenTelemetry log export and a custom analytics script. Not needed for a default install.",
     type: "article",
+    locale: "en_US",
     url: "https://databasus.com/advanced-config",
   },
   twitter: {

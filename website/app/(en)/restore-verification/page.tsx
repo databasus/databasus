@@ -24,6 +24,7 @@ export const metadata: Metadata = {
     description:
       "Prove your database backups are actually restorable. Databasus pulls the latest backup, restores it into a throwaway database container, checks the restored database against the source and reports per-table row counts on every run.",
     type: "article",
+    locale: "en_US",
     url: "https://databasus.com/restore-verification",
   },
   twitter: {

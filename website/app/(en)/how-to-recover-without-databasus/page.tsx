@@ -26,6 +26,7 @@ export const metadata: Metadata = {
     description:
       "Learn how to manually restore your database backups without Databasus. No vendor lock-in: decrypt and restore your backups using standard tools and your secret key.",
     type: "article",
+    locale: "en_US",
     url: "https://databasus.com/how-to-recover-without-databasus",
   },
   twitter: {
