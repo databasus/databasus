@@ -46,7 +46,7 @@ jobs:
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: 'go shellcheck jq node pnpm'
+          install_args: 'go shellcheck jq node pnpm python'
 
       - name: Run shellcheck
         run: mise run lint-shell
@@ -81,3 +81,159 @@ jobs:
           cd frontend
           pnpm test
 
+  lint-backend:
+    runs-on: namespace-profile-8vcpu-16ram-ubuntu-22-x64
+    timeout-minutes: 15
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: 'go golangci-lint vacuum go:golang.org/x/vuln/cmd/govulncheck'
+
+      - name: Set up Go cache
+        uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
+        with:
+          cache: go
+
+      - name: Download Go modules
+        run: |
+          cd backend
+          go mod download
+
+      - name: Verify Go module checksums
+        run: |
+          cd backend
+          go mod verify
+
+      - name: Run the backend lint
+        run: mise run backend:lint
+
+      - name: Scan for reachable vulnerabilities
+        run: mise run security:go
+
+  e2e-verification-agent-podman:
+    # Namespace runners are containers without systemd whose seccomp profile denies
+    # pivot_root, so rootful Podman cannot start containers there.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: 'go'
+
+      - name: Install database client dependencies
+        run: |
+          # The bundled assets/tools clients are Debian-built; Ubuntu ships no libncurses5/libtinfo5
+          # package at all, and the ABI-identical .so.6 satisfies them via these symlinks.
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libedit2 libncurses6 libtinfo6 libpq5 libmariadb3 libgnutls30 zstd netcat-openbsd
+          sudo ln -sf /usr/lib/x86_64-linux-gnu/libncurses.so.6 /usr/lib/x86_64-linux-gnu/libncurses.so.5
+          sudo ln -sf /usr/lib/x86_64-linux-gnu/libtinfo.so.6 /usr/lib/x86_64-linux-gnu/libtinfo.so.5
+
+      - name: Download Go modules
+        run: |
+          cd backend
+          go mod download
+
+      - name: Create .env file for testing
+        run: cp .env.example .env
+
+      - name: Start test containers
+        run: |
+          docker compose -f docker-compose.yml up -d backend-db-test
+
+      - name: Wait for containers to be ready
+        run: |
+          # Wait for test database (postgres listens on 5432 inside the container)
+          timeout 60 bash -c 'until docker exec backend-db-test pg_isready -U postgres; do sleep 2; done'
+
+      - name: Create data and temp directories
+        run: |
+          # Create directories that are used for backups and restore
+          # These paths match what's configured in config.go
+          mkdir -p databasus-data/backups
+          mkdir -p databasus-data/temp
+
+      - name: Start rootful Podman socket
+        run: |
+          sudo apt-get install -y acl
+          sudo systemctl start podman.socket
+          sudo setfacl -m u:"$USER":x /run/podman
+          sudo setfacl -m u:"$USER":rw /run/podman/podman.sock
+          sudo podman version
+          sudo podman info --format '{{.Host.OCIRuntime.Name}}'
+
+      - name: Run e2e tests on Podman
+        run: mise run agent:e2e-podman
+
+      - name: Cleanup
+        if: always()
+        run: |
+          sudo podman ps -aq --filter label=databasus.verification.agent_id | xargs -r sudo podman rm -f || true
+          sudo podman network ls -q --filter label=databasus.verification.agent_id | xargs -r sudo podman network rm || true
+
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          # gitleaks scans every commit, so it needs the full history.
+          fetch-depth: 0
+
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: 'gitleaks'
+
+      # A release reads only its own history, so a finding on an unrelated branch cannot stop it.
+      - name: Scan git history for secrets
+        env:
+          SCANNED_HISTORY: HEAD
+        run: mise run security:secrets
+
+  semgrep:
+    name: Analyze (semgrep)
+    runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: 'python uv pypi:semgrep'
+
+      # Private keys are left to gitleaks, which keeps the allowlist of test keys in .gitleaksignore.
+      - name: Run semgrep
+        run: mise run security:semgrep
+  namespace-socket:
+    runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+    timeout-minutes: 5
+    steps:
+      - name: Inspect socket ownership across the runner and Docker host
+        run: |
+          socket_path="${DOCKER_HOST:-unix:///var/run/docker.sock}"
+          socket_path="${socket_path#unix://}"
+          id
+          stat -Lc '%a %u:%g %n' "$socket_path"
+          cat /proc/self/uid_map /proc/self/gid_map
+          docker run --rm --entrypoint /bin/sh --volume "$socket_path:/engine.sock" \
+            debian:bookworm-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3 \
+            -ec 'id; stat -Lc "%a %u:%g %n" /engine.sock; cat /proc/self/uid_map /proc/self/gid_map'
