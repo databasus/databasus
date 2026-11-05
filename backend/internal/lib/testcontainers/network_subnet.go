@@ -2,6 +2,8 @@ package containers
 
 import (
 	"fmt"
+	// Random test subnets avoid collisions and contain no secrets.
+	// nosemgrep: go.lang.security.audit.crypto.math_random.math-random-used
 	"math/rand/v2"
 	"net/netip"
 	"strings"

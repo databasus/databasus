@@ -107,6 +107,8 @@ const declareFullBackupRequest = (answer: () => Response | Promise<Response>) =>
 
 // A busy AntD button adds its loading icon to the accessible name.
 const findStartButton = (name: string = copy.startFullBackup) =>
+  // Only fixed test fixture names reach this selector.
+  // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
   waitForCondition(() => screen.getByRole('button', { name: new RegExp(name) }));
 
 const isButtonBusy = (button: HTMLElement) => button.classList.contains('ant-btn-loading');

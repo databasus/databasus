@@ -5,6 +5,8 @@ COPY pg_hba.conf /etc/ssl-test/pg_hba.conf
 RUN chown postgres:postgres /etc/ssl-test/server.key /etc/ssl-test/server.crt /etc/ssl-test/pg_hba.conf \
  && chmod 600 /etc/ssl-test/server.key \
  && chmod 644 /etc/ssl-test/server.crt /etc/ssl-test/pg_hba.conf
+# The upstream entrypoint initializes ownership as root and execs PostgreSQL through gosu.
+# nosemgrep: dockerfile.security.missing-user.missing-user
 CMD ["postgres", \
      "-c", "ssl=on", \
      "-c", "ssl_cert_file=/etc/ssl-test/server.crt", \

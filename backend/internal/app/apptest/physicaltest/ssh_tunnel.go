@@ -177,6 +177,8 @@ func waitForBastionAuthenticating(t *testing.T, endpoint containers.Endpoint) {
 		clientConn, channels, requests, err := ssh.NewClientConn(conn, address, &ssh.ClientConfig{
 			User: containers.SSHBastionUsername, Auth: []ssh.AuthMethod{ssh.Password(containers.SSHBastionPassword)},
 			// Each disposable bastion generates a new host key.
+			// The disposable bastion generates a new host key for each test.
+			// nosemgrep: go.lang.security.audit.crypto.insecure_ssh.avoid-ssh-insecure-ignore-host-key
 			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		})
 		if err != nil {

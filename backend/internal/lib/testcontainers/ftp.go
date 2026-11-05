@@ -2,6 +2,8 @@ package containers
 
 import (
 	"context"
+	// Random passive port selection is not a credential or security boundary.
+	// nosemgrep: go.lang.security.audit.crypto.math_random.math-random-used
 	"math/rand/v2"
 	"net"
 	"strconv"

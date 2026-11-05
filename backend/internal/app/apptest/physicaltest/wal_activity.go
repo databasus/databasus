@@ -42,6 +42,8 @@ func waitForWalSummaries(t *testing.T, conn *pgx.Conn, throughLSN uint64) {
 	position := fmt.Sprintf("%X/%X", throughLSN>>32, throughLSN&0xffffffff)
 	testwait.Until(t, "WAL summaries cover the parent backup", func(ctx context.Context) error {
 		var hasSummary bool
+		// The SQL is constant and the formatted WAL position is a bound parameter.
+		// nosemgrep: go.lang.security.audit.sqli.pgx-sqli.pgx-sqli
 		err := conn.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_available_wal_summaries() WHERE start_lsn <= $1::pg_lsn AND end_lsn >= $1::pg_lsn)`, position).
 			Scan(&hasSummary)
 		if err != nil {

@@ -20,6 +20,8 @@ const (
 
 // unmatchableHash is the bcrypt hash of a random secret nobody knows. A sign-in for an address
 // without a usable password is compared against it, so it takes as long as a wrong password.
+// This dummy bcrypt hash equalizes missing-user timing and authenticates no account.
+// nosemgrep: generic.secrets.security.detected-bcrypt-hash.detected-bcrypt-hash
 const unmatchableHash = "$2a$10$J1I5VBn.teMq6ueky2hqy.ECHJ6JOS4AcT6kjk62wWxRONkvkj7n6"
 
 type SignInRequest struct {

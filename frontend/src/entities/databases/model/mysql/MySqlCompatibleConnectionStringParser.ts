@@ -54,6 +54,8 @@ export class MySqlCompatibleConnectionStringParser {
     }
 
     // Try JDBC format first (starts with jdbc:)
+    // The pattern comes from the closed MYSQL/MARIADB scheme table, never from the connection string.
+    // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
     if (new RegExp(`^jdbc:${schemePattern}://`).test(trimmed)) {
       return this.parseJdbc(trimmed, type);
     }
@@ -64,6 +66,8 @@ export class MySqlCompatibleConnectionStringParser {
     }
 
     // Try URI format
+    // The pattern comes from the closed MYSQL/MARIADB scheme table, never from the connection string.
+    // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
     if (new RegExp(`^${schemePattern}://`).test(trimmed)) {
       return this.parseUri(trimmed);
     }

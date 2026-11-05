@@ -87,8 +87,8 @@ func spawnDaemon(ctx context.Context, log *slog.Logger) (int, error) {
 	}
 
 	// Starts this agent's own executable in the background, not a user-supplied command.
-	// nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command
 	//nolint:forbidigo // The detached daemon must outlive its parent; lib/process kills tools with their parent.
+	// nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command
 	cmd := exec.CommandContext(context.WithoutCancel(ctx), execPath, args...)
 	cmd.Dir = cwd
 	cmd.Stderr = logFile

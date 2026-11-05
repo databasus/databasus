@@ -23,7 +23,10 @@ const SkipVerifyMysqlTLSConfigName = "engine-tls-skip-verify"
 //
 //nolint:gochecknoglobals // The external SQL driver registers TLS configurations process-wide; one registration is shared across test-owned connections.
 var RegisterSkipVerifyMysqlTLSConfig = sync.OnceValue(func() error {
+	// The disposable TLS servers present test-owned self-signed certificates.
+	// nosemgrep: problem-based-packs.insecure-transport.go-stdlib.bypass-tls-verification.bypass-tls-verification
 	return mysqldriver.RegisterTLSConfig(SkipVerifyMysqlTLSConfigName, &tls.Config{
+		MinVersion:         tls.VersionTLS12,
 		InsecureSkipVerify: true,
 	})
 })

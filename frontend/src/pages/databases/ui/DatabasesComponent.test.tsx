@@ -213,6 +213,8 @@ const transferSelectedDatabase = async (user: ReturnType<typeof renderScreen>['u
 };
 
 const findDatabaseCard = (name: string) =>
+  // Only fixed test fixture names reach this selector.
+  // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
   screen.findByRole('button', { name: new RegExp(`^${name}`) });
 
 const reachPhysicalWizardBackupStep = async (user: ReturnType<typeof renderScreen>['user']) => {

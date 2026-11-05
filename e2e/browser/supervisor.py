@@ -179,6 +179,8 @@ class Supervisor:
         environment: dict[str, str] | None = None,
         working_directory: Path | None = None,
     ) -> int:
+        # The suite requires Python 3.14 or newer, which supports the errors argument.
+        # nosemgrep: python.lang.compatibility.python36.python36-compatibility-Popen1
         child = subprocess.Popen(
             command,
             env=environment,

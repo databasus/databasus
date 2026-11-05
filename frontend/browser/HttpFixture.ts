@@ -91,6 +91,8 @@ export const installHttpFixtures = async ({
           ? candidate.path === `${url.origin}${url.pathname}`
           : url.origin === applicationOrigin &&
             url.pathname.startsWith('/api/v1/') &&
+            // Fixture path literals are escaped before named path parameters are substituted.
+            // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
             new RegExp(
               `^${candidate.path.replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace(/\{[^}]+\}/g, '[^/]+')}$`,
             ).test(pathname)),

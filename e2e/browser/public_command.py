@@ -44,6 +44,8 @@ class PublicRun:
         if not (environment or {}).get("CI"):
             run_environment.pop("CI", None)
 
+        # The suite requires Python 3.14 or newer, which supports the errors argument.
+        # nosemgrep: python.lang.compatibility.python36.python36-compatibility-Popen1
         self._process = subprocess.Popen(
             command,
             cwd=working_directory,

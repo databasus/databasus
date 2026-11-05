@@ -70,6 +70,8 @@ func removeAbandonedDatabases(ctx context.Context, systemDb *gorm.DB, scope clea
 			continue
 		}
 
+		// The database name passed the strict test-database name parser above.
+		// nosemgrep: go.lang.security.audit.database.string-formatted-query.string-formatted-query
 		_ = systemDb.WithContext(ctx).Exec("DROP DATABASE IF EXISTS " + databaseName).Error
 	}
 

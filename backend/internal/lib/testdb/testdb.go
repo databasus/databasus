@@ -42,6 +42,8 @@ func OpenEmpty(tb testing.TB) string {
 
 	withSystemDatabase(tb, testDsn, func(systemDb *gorm.DB) {
 		require.NoError(tb, removeAbandonedDatabasesOncePerProcess(tb.Context(), systemDb))
+		// The database name is generated from a fixed prefix, timestamp and hexadecimal random suffix.
+		// nosemgrep: go.lang.security.audit.database.string-formatted-query.string-formatted-query
 		require.NoError(tb, systemDb.WithContext(tb.Context()).Exec("CREATE DATABASE "+databaseName).Error)
 	})
 
@@ -78,6 +80,8 @@ func createCopyOfMigrations(
 		return err
 	}
 
+	// Both identifiers are generated internally from fixed prefixes and hexadecimal hashes or suffixes.
+	// nosemgrep: go.lang.security.audit.database.string-formatted-query.string-formatted-query
 	err = systemDb.WithContext(ctx).Exec("CREATE DATABASE " + databaseName + " TEMPLATE " + templateName).Error
 	if err != nil {
 		return fmt.Errorf("copy the template %s: %w", templateName, err)
@@ -123,6 +127,8 @@ func dropDatabase(ctx context.Context, testDsn, databaseName string) error {
 	}
 	defer closeDatabase(systemDb)
 
+	// Only test-owned internally generated database names reach this cleanup.
+	// nosemgrep: go.lang.security.audit.database.string-formatted-query.string-formatted-query
 	return systemDb.WithContext(ctx).Exec("DROP DATABASE IF EXISTS " + databaseName + " WITH (FORCE)").Error
 }
 

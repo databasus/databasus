@@ -363,6 +363,8 @@ func (r *configRepository) updateForceRequest(
 	value *time.Time,
 	servedRequest *time.Time,
 ) (bool, error) {
+	// Only the two constant force-request column names reach this helper; values stay bound parameters.
+	// nosemgrep: go.lang.security.audit.database.string-formatted-query.string-formatted-query
 	query := "UPDATE backups_configs_physical SET " + column + " = ? WHERE database_id = ?"
 	values := []any{value, databaseID}
 

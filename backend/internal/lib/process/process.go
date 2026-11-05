@@ -44,6 +44,8 @@ type Running struct {
 }
 
 func Start(ctx context.Context, spec Spec) (*Running, error) {
+	// Callers select an executable and separate arguments; no shell interprets the command.
+	// nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command
 	cmd := exec.CommandContext(ctx, spec.Path, spec.Args...)
 	if len(spec.Env) > 0 {
 		cmd.Env = append(cmd.Environ(), spec.Env...)
