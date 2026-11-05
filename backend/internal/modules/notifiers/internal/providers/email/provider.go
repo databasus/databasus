@@ -3,6 +3,8 @@ package email
 import (
 	"context"
 	"fmt"
+	"html"
+	"strings"
 
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/mailer"
@@ -138,6 +140,6 @@ func (p *Provider) Send(ctx context.Context, settings providers.Settings, messag
 		Sender:    sender,
 		Recipient: emailSettings.TargetEmail,
 		Subject:   message.Heading,
-		HTMLBody:  message.Message,
+		HTMLBody:  strings.ReplaceAll(html.EscapeString(message.Message), "\n", "<br>"),
 	})
 }

@@ -2,8 +2,10 @@ package email_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -28,7 +30,9 @@ func TestSend(t *testing.T) {
 		mailpitEndpoint := containers.StartMailpit(t)
 		mailpitClient := mailpit.NewClient(fmt.Sprintf("%s:%d", mailpitEndpoint.HTTP.Host, mailpitEndpoint.HTTP.Port))
 
-		err := newProvider(t).Send(t.Context(), newSettings(mailpitEndpoint, mailer.SecurityNone), newNotification())
+		message := newNotification()
+		message.Message = "Backup error: <a href=\"https://attacker.invalid\">inspect</a> & retry\nNext line"
+		err := newProvider(t).Send(t.Context(), newSettings(mailpitEndpoint, mailer.SecurityNone), message)
 		require.NoError(t, err)
 
 		var deliveredMessages []mailpit.Message
@@ -52,6 +56,34 @@ func TestSend(t *testing.T) {
 		assert.Equal(t, "Databasus", deliveredMessages[0].From.Name)
 		require.Len(t, deliveredMessages[0].To, 1)
 		assert.Equal(t, "recipient@databasus.local", deliveredMessages[0].To[0].Address)
+
+		request, err := http.NewRequestWithContext(
+			t.Context(),
+			http.MethodGet,
+			fmt.Sprintf(
+				"http://%s:%d/api/v1/message/%s",
+				mailpitEndpoint.HTTP.Host,
+				mailpitEndpoint.HTTP.Port,
+				deliveredMessages[0].ID,
+			),
+			nil,
+		)
+		require.NoError(t, err)
+		response, err := http.DefaultClient.Do(request)
+		require.NoError(t, err)
+		defer func() { require.NoError(t, response.Body.Close()) }()
+		require.Equal(t, http.StatusOK, response.StatusCode)
+
+		var deliveredContent struct {
+			HTML string `json:"HTML"`
+		}
+		require.NoError(t, json.NewDecoder(response.Body).Decode(&deliveredContent))
+		assert.Contains(
+			t,
+			deliveredContent.HTML,
+			"&lt;a href=&#34;https://attacker.invalid&#34;&gt;inspect&lt;/a&gt; &amp; retry<br>Next line",
+		)
+		assert.NotContains(t, deliveredContent.HTML, "<a href=")
 	})
 
 	t.Run("fails when STARTTLS is asked and the server does not offer it", func(t *testing.T) {
