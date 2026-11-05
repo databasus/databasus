@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   lint-backend:
-    runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+    runs-on: namespace-profile-8vcpu-16ram-ubuntu-22-x64
     timeout-minutes: 15
     steps:
       - name: Check out code
