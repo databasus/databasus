@@ -56,7 +56,7 @@ export function CopyButton({
   return (
     <button
       onClick={copyToClipboard}
-      className={`rounded px-2 py-1 text-xs text-white transition-colors ${
+      className={`w-max whitespace-nowrap rounded px-2 py-1 text-xs text-white transition-colors ${
         isCopied ? "bg-green-500" : "bg-blue-600 hover:bg-blue-700"
       } ${className}`}
     >

@@ -25,6 +25,7 @@ export const metadata: Metadata = {
     description:
       "Compare Databasus and Barman PostgreSQL backup tools. See differences in backup approach, PITR capabilities, ease of use, team features and when to choose each tool.",
     type: "article",
+    locale: "en_US",
     url: "https://databasus.com/databasus-vs-barman",
   },
   twitter: {

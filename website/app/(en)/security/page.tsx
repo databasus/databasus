@@ -25,6 +25,7 @@ export const metadata: Metadata = {
     description:
       "Learn how Databasus ensures enterprise-level security with AES-256-GCM encryption for sensitive data and backups, read-only database access, and comprehensive audit logging.",
     type: "article",
+    locale: "en_US",
     url: "https://databasus.com/security",
   },
   twitter: {

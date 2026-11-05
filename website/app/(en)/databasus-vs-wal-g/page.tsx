@@ -25,6 +25,7 @@ export const metadata: Metadata = {
     description:
       "Compare Databasus and WAL-G PostgreSQL backup tools. See differences in backup approach, multi-database support, ease of use, team features and when to choose each tool.",
     type: "article",
+    locale: "en_US",
     url: "https://databasus.com/databasus-vs-wal-g",
   },
   twitter: {

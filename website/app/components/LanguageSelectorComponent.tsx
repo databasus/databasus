@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { LANGUAGE_SELECTOR_LABELS } from "./landingLabels";
 import {
   LOCALES,
   LOCALE_NATIVE_NAMES,
@@ -25,6 +26,7 @@ export default function LanguageSelectorComponent({
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   const { locale: currentLocale, path } = splitLocaleFromPathname(pathname);
 
@@ -36,7 +38,17 @@ export default function LanguageSelectorComponent({
       }
     };
     document.addEventListener("mousedown", closeOnOutsideClick);
-    return () => document.removeEventListener("mousedown", closeOnOutsideClick);
+    const dismissOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setIsOpen(false);
+      buttonRef.current?.focus();
+    };
+    document.addEventListener("keydown", dismissOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", dismissOnEscape);
+    };
   }, [isOpen]);
 
   return (
@@ -47,11 +59,12 @@ export default function LanguageSelectorComponent({
       onMouseLeave={() => setIsOpen(false)}
     >
       <button
+        ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center border border-[#ffffff20] bg-[#0C0E13] px-2 py-2 text-[14px] text-gray-300 transition-opacity hover:opacity-70 md:px-3 ${
           isSplitEnd ? "h-full rounded-r-lg border-l-0" : "rounded-lg"
         }`}
-        aria-label="Select language"
+        aria-label={LANGUAGE_SELECTOR_LABELS[currentLocale]}
         aria-expanded={isOpen}
       >
         {currentLocale.toUpperCase()}

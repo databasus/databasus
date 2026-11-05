@@ -23,6 +23,7 @@ export const metadata: Metadata = {
     description:
       "Learn how to backup your Supabase PostgreSQL database using Databasus. Step-by-step guide for configuring session pooler or IPv4 address for Supabase backups.",
     type: "article",
+    locale: "en_US",
     url: "https://databasus.com/faq/supabase",
   },
   twitter: {

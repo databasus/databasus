@@ -3,10 +3,11 @@
 import { getLocalizedHref, type Locale } from "@/app/i18n";
 import LanguageSelectorComponent from "./LanguageSelectorComponent";
 
-const NAVBAR_LABELS: Record<
-  Locale | "en",
-  { community: string; starOnGithub: string }
-> = {
+const NAVBAR_LABELS: Record<Locale | "en", { community: string; starOnGithub: string }> = {
+  id: {
+    community: "Komunitas",
+    starOnGithub: "Beri bintang di GitHub, dukunganmu sangat berarti ❤️",
+  },
   en: {
     community: "Community",
     starOnGithub: "Star on GitHub, it's really important ❤️",
@@ -33,11 +34,7 @@ const NAVBAR_LABELS: Record<
   },
 };
 
-export default function DocsNavbarComponent({
-  lang = "en",
-}: {
-  lang?: Locale | "en";
-}) {
+export default function DocsNavbarComponent({ lang = "en" }: { lang?: Locale | "en" }) {
   const labels = NAVBAR_LABELS[lang];
   const homeHref = getLocalizedHref(lang, "");
   return (

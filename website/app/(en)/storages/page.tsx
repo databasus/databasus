@@ -27,6 +27,7 @@ export const metadata: Metadata = {
     description:
       "List of supported storage destinations for Databasus backups including local storage, S3, Cloudflare R2, Google Drive, Azure Blob Storage, NAS, FTP, SFTP, rclone and Dropbox.",
     type: "article",
+    locale: "en_US",
     url: "https://databasus.com/storages",
   },
   twitter: {
