@@ -14,11 +14,11 @@ func (s *Service) CheckStoragePublication(ctx context.Context, publication Stora
 	if err := s.databases.LockDatabaseForBackup(ctx, publication.DatabaseID); err != nil {
 		return err
 	}
-	if err := s.repository.lockDatabaseConfig(ctx, publication.DatabaseID); err != nil {
+	if err := s.repository.LockDatabaseConfig(ctx, publication.DatabaseID); err != nil {
 		return err
 	}
 
-	current, isFound, err := s.repository.get(ctx, publication.DatabaseID, forShareRowLock)
+	current, isFound, err := s.repository.GetBackupConfig(ctx, publication.DatabaseID, ForShareRowLock)
 	if err != nil {
 		return err
 	}

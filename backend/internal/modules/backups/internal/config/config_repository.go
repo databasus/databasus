@@ -16,25 +16,25 @@ import (
 // Repositories are the repositories of the package. module.go builds them from the pool, so the
 // services never hold it.
 type Repositories struct {
-	configs *configRepository
+	Configs *Repository
 }
 
 func NewRepositories(db *gorm.DB) Repositories {
-	return Repositories{configs: &configRepository{db: db}}
+	return Repositories{Configs: &Repository{db: db}}
 }
 
-// configRepository keeps the shared fields of a config in backups_configs and the fields of its method
+// Repository keeps the shared fields of a config in backups_configs and the fields of its method
 // in backups_configs_logical or backups_configs_physical.
-type configRepository struct {
+type Repository struct {
 	db *gorm.DB
 }
 
-// rowLock is the lock a read takes on the config's row until the caller's transaction ends.
-type rowLock string
+// RowLock is the lock a read takes on the config's row until the caller's transaction ends.
+type RowLock string
 
 const (
-	forUpdateRowLock rowLock = " FOR UPDATE"
-	forShareRowLock  rowLock = " FOR SHARE"
+	ForUpdateRowLock RowLock = " FOR UPDATE"
+	ForShareRowLock  RowLock = " FOR SHARE"
 )
 
 type configListFilter struct {
@@ -115,9 +115,9 @@ const (
 		"JOIN backups_configs_physical ON backups_configs_physical.database_id = backups_configs.database_id"
 )
 
-// lockDatabaseConfig serializes the writes of one database's config until the caller's transaction
+// LockDatabaseConfig serializes the writes of one database's config until the caller's transaction
 // ends. A row lock cannot do it before the first save, when the config has no row yet.
-func (r *configRepository) lockDatabaseConfig(ctx context.Context, databaseID uuid.UUID) error {
+func (r *Repository) LockDatabaseConfig(ctx context.Context, databaseID uuid.UUID) error {
 	err := database.Conn(ctx, r.db).
 		Exec("SELECT pg_advisory_xact_lock(hashtextextended(?, 0))", "backups_configs:"+databaseID.String()).
 		Error
@@ -128,92 +128,34 @@ func (r *configRepository) lockDatabaseConfig(ctx context.Context, databaseID uu
 	return nil
 }
 
-func (r *configRepository) get(ctx context.Context, databaseID uuid.UUID, lock rowLock) (backupConfigRow, bool, error) {
+func (r *Repository) GetBackupConfig(
+	ctx context.Context,
+	databaseID uuid.UUID,
+	lock RowLock,
+) (BackupConfig, bool, error) {
 	var rows []backupConfigRow
 
 	err := database.Conn(ctx, r.db).
 		Raw("SELECT "+backupConfigColumns+" FROM backups_configs WHERE database_id = ?"+string(lock), databaseID).
 		Scan(&rows).Error
 	if err != nil {
-		return backupConfigRow{}, false, fmt.Errorf("get the backup config: %w", err)
+		return BackupConfig{}, false, fmt.Errorf("get the backup config: %w", err)
 	}
 
 	if len(rows) == 0 {
-		return backupConfigRow{}, false, nil
+		return BackupConfig{}, false, nil
 	}
 
-	return rows[0], true, nil
+	return rows[0].toConfig(), true, nil
 }
 
-func (r *configRepository) list(ctx context.Context, filter configListFilter) ([]backupConfigRow, error) {
-	query := "SELECT " + backupConfigColumns + " FROM backups_configs WHERE TRUE"
-	values := map[string]any{"limit": filter.limit}
-
-	if filter.databaseIDs != nil {
-		query += " AND database_id IN @databaseIDs"
-		values["databaseIDs"] = filter.databaseIDs
-	}
-
-	if filter.storageID != nil {
-		query += " AND storage_id = @storageID"
-		values["storageID"] = *filter.storageID
-	}
-
-	if filter.afterID != nil {
-		query += " AND database_id > @afterID"
-		values["afterID"] = *filter.afterID
-	}
-
-	query += " ORDER BY database_id LIMIT @limit"
-
-	var rows []backupConfigRow
-
-	err := database.Conn(ctx, r.db).Raw(query, values).Scan(&rows).Error
-	if err != nil {
-		return nil, fmt.Errorf("list the backup configs: %w", err)
-	}
-
-	return rows, nil
-}
-
-func (r *configRepository) listDatabaseIDsByStorage(ctx context.Context, storageID uuid.UUID) ([]uuid.UUID, error) {
-	var databaseIDs []uuid.UUID
-
-	err := database.Conn(ctx, r.db).
-		Raw("SELECT database_id FROM backups_configs WHERE storage_id = ?", storageID).
-		Scan(&databaseIDs).Error
-	if err != nil {
-		return nil, fmt.Errorf("list the databases that back up into the storage: %w", err)
-	}
-
-	return databaseIDs, nil
-}
-
-func (r *configRepository) listLogical(ctx context.Context, databaseIDs []uuid.UUID) ([]LogicalBackupConfig, error) {
-	return r.queryLogical(ctx, logicalConfigQuery+" WHERE backups_configs.database_id IN ?", databaseIDs)
-}
-
-func (r *configRepository) listEnabledLogical(ctx context.Context) ([]LogicalBackupConfig, error) {
-	return r.queryLogical(ctx, logicalConfigQuery+" WHERE backups_configs.is_backups_enabled")
-}
-
-func (r *configRepository) listPhysical(ctx context.Context, databaseIDs []uuid.UUID) ([]PhysicalBackupConfig, error) {
+func (r *Repository) ListPhysical(ctx context.Context, databaseIDs []uuid.UUID) ([]PhysicalBackupConfig, error) {
 	return r.queryPhysical(ctx, physicalConfigQuery+" WHERE backups_configs.database_id IN ?", databaseIDs)
 }
 
-func (r *configRepository) listEnabledPhysical(ctx context.Context) ([]PhysicalBackupConfig, error) {
-	return r.queryPhysical(ctx, physicalConfigQuery+" WHERE backups_configs.is_backups_enabled")
-}
-
-func (r *configRepository) listPhysicalWithPendingRequest(ctx context.Context) ([]PhysicalBackupConfig, error) {
-	return r.queryPhysical(ctx, physicalConfigQuery+" WHERE backups_configs.is_backups_enabled "+
-		"AND backups_configs.storage_id IS NOT NULL "+
-		"AND (force_full_requested_at IS NOT NULL OR force_incremental_requested_at IS NOT NULL)")
-}
-
-// upsertLogical expects the caller's transaction in ctx, so the shared row never exists without the
+// UpsertLogical expects the caller's transaction in ctx, so the shared row never exists without the
 // row of its method.
-func (r *configRepository) upsertLogical(ctx context.Context, config LogicalBackupConfig) error {
+func (r *Repository) UpsertLogical(ctx context.Context, config LogicalBackupConfig) error {
 	err := r.upsertBackupConfig(ctx, MethodLogical, config.BackupConfig)
 	if err != nil {
 		return err
@@ -255,8 +197,8 @@ func (r *configRepository) upsertLogical(ctx context.Context, config LogicalBack
 	return nil
 }
 
-// upsertPhysical keeps the force requests, which only their own writes change.
-func (r *configRepository) upsertPhysical(ctx context.Context, config PhysicalBackupConfig) error {
+// UpsertPhysical keeps the force requests, which only their own writes change.
+func (r *Repository) UpsertPhysical(ctx context.Context, config PhysicalBackupConfig) error {
 	err := r.upsertBackupConfig(ctx, MethodPhysical, config.BackupConfig)
 	if err != nil {
 		return err
@@ -312,8 +254,114 @@ func (r *configRepository) upsertPhysical(ctx context.Context, config PhysicalBa
 	return nil
 }
 
+func (r *Repository) GetLastSelectedStorageID(
+	ctx context.Context,
+	databaseID uuid.UUID,
+) (uuid.UUID, bool, error) {
+	var rows []struct{ LastSelectedStorageID *uuid.UUID }
+	err := database.Conn(ctx, r.db).
+		Raw("SELECT last_selected_storage_id FROM backups_configs WHERE database_id=?", databaseID).
+		Scan(&rows).Error
+	if err != nil {
+		return uuid.Nil, false, fmt.Errorf("read the last selected backup storage: %w", err)
+	}
+	if len(rows) == 0 || rows[0].LastSelectedStorageID == nil {
+		return uuid.Nil, false, nil
+	}
+	return *rows[0].LastSelectedStorageID, true, nil
+}
+
+func (r *Repository) IncrementStorageGeneration(ctx context.Context, databaseID uuid.UUID) error {
+	if err := database.Conn(ctx, r.db).
+		Exec("UPDATE backups_configs SET storage_generation=storage_generation+1 WHERE database_id=?", databaseID).
+		Error; err != nil {
+		return fmt.Errorf("advance storage generation: %w", err)
+	}
+	return nil
+}
+
+func (r *Repository) ResetPhysicalRequests(
+	ctx context.Context,
+	reset PhysicalRequestsReset,
+) error {
+	if err := database.Conn(ctx, r.db).
+		Exec("UPDATE backups_configs_physical SET force_incremental_requested_at=NULL,force_full_requested_at=? WHERE database_id=?", reset.RequestedAt, reset.DatabaseID).
+		Error; err != nil {
+		return fmt.Errorf("reset physical backup requests: %w", err)
+	}
+	return nil
+}
+
+func (r *Repository) LockPhysicalHistory(ctx context.Context, databaseID uuid.UUID) error {
+	return database.Conn(ctx, r.db).
+		Exec("SELECT pg_advisory_xact_lock(hashtextextended('physical-backup:' || ?::text,0))", databaseID).
+		Error
+}
+
+func (r *Repository) list(ctx context.Context, filter configListFilter) ([]backupConfigRow, error) {
+	query := "SELECT " + backupConfigColumns + " FROM backups_configs WHERE TRUE"
+	values := map[string]any{"limit": filter.limit}
+
+	if filter.databaseIDs != nil {
+		query += " AND database_id IN @databaseIDs"
+		values["databaseIDs"] = filter.databaseIDs
+	}
+
+	if filter.storageID != nil {
+		query += " AND storage_id = @storageID"
+		values["storageID"] = *filter.storageID
+	}
+
+	if filter.afterID != nil {
+		query += " AND database_id > @afterID"
+		values["afterID"] = *filter.afterID
+	}
+
+	query += " ORDER BY database_id LIMIT @limit"
+
+	var rows []backupConfigRow
+
+	err := database.Conn(ctx, r.db).Raw(query, values).Scan(&rows).Error
+	if err != nil {
+		return nil, fmt.Errorf("list the backup configs: %w", err)
+	}
+
+	return rows, nil
+}
+
+func (r *Repository) listDatabaseIDsByStorage(ctx context.Context, storageID uuid.UUID) ([]uuid.UUID, error) {
+	var databaseIDs []uuid.UUID
+
+	err := database.Conn(ctx, r.db).
+		Raw("SELECT database_id FROM backups_configs WHERE storage_id = ?", storageID).
+		Scan(&databaseIDs).Error
+	if err != nil {
+		return nil, fmt.Errorf("list the databases that back up into the storage: %w", err)
+	}
+
+	return databaseIDs, nil
+}
+
+func (r *Repository) listLogical(ctx context.Context, databaseIDs []uuid.UUID) ([]LogicalBackupConfig, error) {
+	return r.queryLogical(ctx, logicalConfigQuery+" WHERE backups_configs.database_id IN ?", databaseIDs)
+}
+
+func (r *Repository) listEnabledLogical(ctx context.Context) ([]LogicalBackupConfig, error) {
+	return r.queryLogical(ctx, logicalConfigQuery+" WHERE backups_configs.is_backups_enabled")
+}
+
+func (r *Repository) listEnabledPhysical(ctx context.Context) ([]PhysicalBackupConfig, error) {
+	return r.queryPhysical(ctx, physicalConfigQuery+" WHERE backups_configs.is_backups_enabled")
+}
+
+func (r *Repository) listPhysicalWithPendingRequest(ctx context.Context) ([]PhysicalBackupConfig, error) {
+	return r.queryPhysical(ctx, physicalConfigQuery+" WHERE backups_configs.is_backups_enabled "+
+		"AND backups_configs.storage_id IS NOT NULL "+
+		"AND (force_full_requested_at IS NOT NULL OR force_incremental_requested_at IS NOT NULL)")
+}
+
 // delete removes the config and, through the module's own cascade, the row of its method.
-func (r *configRepository) delete(ctx context.Context, databaseID uuid.UUID) error {
+func (r *Repository) delete(ctx context.Context, databaseID uuid.UUID) error {
 	err := database.Conn(ctx, r.db).Exec("DELETE FROM backups_configs WHERE database_id = ?", databaseID).Error
 	if err != nil {
 		return fmt.Errorf("delete the backup config: %w", err)
@@ -322,7 +370,7 @@ func (r *configRepository) delete(ctx context.Context, databaseID uuid.UUID) err
 	return nil
 }
 
-func (r *configRepository) updateForceFullRequestedAt(
+func (r *Repository) updateForceFullRequestedAt(
 	ctx context.Context,
 	databaseID uuid.UUID,
 	requestedAt time.Time,
@@ -330,7 +378,7 @@ func (r *configRepository) updateForceFullRequestedAt(
 	return r.updateForceRequest(ctx, "force_full_requested_at", databaseID, &requestedAt, nil)
 }
 
-func (r *configRepository) clearForceFullRequestedAt(
+func (r *Repository) clearForceFullRequestedAt(
 	ctx context.Context,
 	databaseID uuid.UUID,
 	requestedAt *time.Time,
@@ -338,7 +386,7 @@ func (r *configRepository) clearForceFullRequestedAt(
 	return r.updateForceRequest(ctx, "force_full_requested_at", databaseID, nil, requestedAt)
 }
 
-func (r *configRepository) updateForceIncrementalRequestedAt(
+func (r *Repository) updateForceIncrementalRequestedAt(
 	ctx context.Context,
 	databaseID uuid.UUID,
 	requestedAt time.Time,
@@ -346,7 +394,7 @@ func (r *configRepository) updateForceIncrementalRequestedAt(
 	return r.updateForceRequest(ctx, "force_incremental_requested_at", databaseID, &requestedAt, nil)
 }
 
-func (r *configRepository) clearForceIncrementalRequestedAt(
+func (r *Repository) clearForceIncrementalRequestedAt(
 	ctx context.Context,
 	databaseID uuid.UUID,
 	requestedAt *time.Time,
@@ -356,7 +404,7 @@ func (r *configRepository) clearForceIncrementalRequestedAt(
 
 // updateForceRequest writes value into the force request column. A clear given the request it served
 // leaves a newer request in place.
-func (r *configRepository) updateForceRequest(
+func (r *Repository) updateForceRequest(
 	ctx context.Context,
 	column string,
 	databaseID uuid.UUID,
@@ -381,7 +429,7 @@ func (r *configRepository) updateForceRequest(
 	return update.RowsAffected > 0, nil
 }
 
-func (r *configRepository) upsertBackupConfig(ctx context.Context, method Method, config BackupConfig) error {
+func (r *Repository) upsertBackupConfig(ctx context.Context, method Method, config BackupConfig) error {
 	err := database.Conn(ctx, r.db).Exec(`INSERT INTO backups_configs (database_id, method, is_backups_enabled,
 		storage_id, last_selected_storage_id, encryption, notification_triggers) VALUES (?, ?, ?, ?, ?, ?, ?::text[])
 		ON CONFLICT (database_id) DO UPDATE SET
@@ -400,24 +448,7 @@ func (r *configRepository) upsertBackupConfig(ctx context.Context, method Method
 	return nil
 }
 
-func (r *configRepository) getLastSelectedStorageID(
-	ctx context.Context,
-	databaseID uuid.UUID,
-) (uuid.UUID, bool, error) {
-	var rows []struct{ LastSelectedStorageID *uuid.UUID }
-	err := database.Conn(ctx, r.db).
-		Raw("SELECT last_selected_storage_id FROM backups_configs WHERE database_id=?", databaseID).
-		Scan(&rows).Error
-	if err != nil {
-		return uuid.Nil, false, fmt.Errorf("read the last selected backup storage: %w", err)
-	}
-	if len(rows) == 0 || rows[0].LastSelectedStorageID == nil {
-		return uuid.Nil, false, nil
-	}
-	return *rows[0].LastSelectedStorageID, true, nil
-}
-
-func (r *configRepository) queryLogical(
+func (r *Repository) queryLogical(
 	ctx context.Context,
 	query string,
 	values ...any,
@@ -437,7 +468,7 @@ func (r *configRepository) queryLogical(
 	return configs, nil
 }
 
-func (r *configRepository) queryPhysical(
+func (r *Repository) queryPhysical(
 	ctx context.Context,
 	query string,
 	values ...any,
@@ -554,34 +585,7 @@ func toTriggerColumn(triggers []NotificationTrigger) pq.StringArray {
 	return column
 }
 
-func (r *configRepository) incrementStorageGeneration(ctx context.Context, databaseID uuid.UUID) error {
-	if err := database.Conn(ctx, r.db).
-		Exec("UPDATE backups_configs SET storage_generation=storage_generation+1 WHERE database_id=?", databaseID).
-		Error; err != nil {
-		return fmt.Errorf("advance storage generation: %w", err)
-	}
-	return nil
-}
-
-type physicalRequestsReset struct {
+type PhysicalRequestsReset struct {
 	DatabaseID  uuid.UUID
 	RequestedAt time.Time
-}
-
-func (r *configRepository) resetPhysicalRequests(
-	ctx context.Context,
-	reset physicalRequestsReset,
-) error {
-	if err := database.Conn(ctx, r.db).
-		Exec("UPDATE backups_configs_physical SET force_incremental_requested_at=NULL,force_full_requested_at=? WHERE database_id=?", reset.RequestedAt, reset.DatabaseID).
-		Error; err != nil {
-		return fmt.Errorf("reset physical backup requests: %w", err)
-	}
-	return nil
-}
-
-func (r *configRepository) lockPhysicalHistory(ctx context.Context, databaseID uuid.UUID) error {
-	return database.Conn(ctx, r.db).
-		Exec("SELECT pg_advisory_xact_lock(hashtextextended('physical-backup:' || ?::text,0))", databaseID).
-		Error
 }

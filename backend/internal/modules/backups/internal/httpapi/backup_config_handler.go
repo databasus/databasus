@@ -81,7 +81,7 @@ func (h *Handler) UpdateBackupConfig(
 		return nil, err
 	}
 
-	savedConfig, err := h.configs.SaveBackupConfig(ctx, actor, updatedConfig)
+	savedConfig, err := h.configSaves.SaveBackupConfig(ctx, actor, updatedConfig)
 	if err != nil {
 		return nil, err
 	}

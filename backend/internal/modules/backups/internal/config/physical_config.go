@@ -112,7 +112,7 @@ func getPhysicalNotificationTriggers() []NotificationTrigger {
 	}
 }
 
-func (c PhysicalBackupConfig) validate() error {
+func (c PhysicalBackupConfig) Validate() error {
 	err := validateSchedule("fullBackupSchedule", c.FullBackupSchedule)
 	if err != nil {
 		return err

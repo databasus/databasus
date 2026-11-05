@@ -23,6 +23,7 @@ import (
 	"databasus-backend/internal/lib/shutdown"
 	"databasus-backend/internal/modules/backups/internal/auditing"
 	"databasus-backend/internal/modules/backups/internal/config"
+	"databasus-backend/internal/modules/backups/internal/configsave"
 	"databasus-backend/internal/modules/backups/internal/download"
 	backupshttpapi "databasus-backend/internal/modules/backups/internal/httpapi"
 	"databasus-backend/internal/modules/backups/internal/logical"
@@ -183,33 +184,16 @@ type Deps struct {
 }
 
 func New(deps Deps) Module {
-	var logicalService *logical.Service
-	var physicalService *physical.Service
 	cancellations := background.NewCancellationRegistry()
+	configRepositories := config.NewRepositories(deps.DB)
 
 	configService := config.NewService(config.Deps{
-		PhysicalConfigSaved: config.PhysicalConfigSavedReactionFunc(
-			func(ctx context.Context, previous *config.PhysicalBackupConfig, saved config.PhysicalBackupConfig) error {
-				return physicalService.ReactToSavedConfig(ctx, previous, saved)
-			},
-		),
-		Repositories: config.NewRepositories(deps.DB),
-		Transactor:   deps.Transactor,
+		Repositories: configRepositories,
 		Logger:       deps.Logger,
 		Clock:        deps.Clock,
 		Workspaces:   deps.Workspaces,
 		Storages:     deps.Storages,
 		Databases:    deps.Databases,
-		PhysicalBackups: config.BackupHistoryRemoverFunc(
-			func(ctx context.Context, removal config.HistoryRemoval) (config.RemovedBackupHistory, error) {
-				return physicalService.RemoveBackupsForStorageChange(ctx, removal)
-			},
-		),
-		LogicalBackups: config.BackupHistoryRemoverFunc(
-			func(ctx context.Context, removal config.HistoryRemoval) (config.RemovedBackupHistory, error) {
-				return logicalService.RemoveBackupsForStorageChange(ctx, removal)
-			},
-		),
 	})
 
 	// One group runs the backups, the restores and the download heartbeats, so the shutdown waits for
@@ -227,7 +211,7 @@ func New(deps Deps) Module {
 	restoreRepositories := restore.NewRepositories(deps.DB)
 	recorder := auditing.NewRecorder(deps.AuditLog, deps.Users)
 
-	logicalService = logical.NewService(logical.Deps{
+	logicalService := logical.NewService(logical.Deps{
 		Repositories:  logical.NewRepositories(deps.DB),
 		Transactor:    deps.Transactor,
 		Logger:        deps.Logger,
@@ -272,7 +256,7 @@ func New(deps Deps) Module {
 		TempDir:        deps.TempDir,
 	})
 
-	physicalService = physical.New(physical.Deps{
+	physicalService := physical.New(physical.Deps{
 		ExecutionClock: deps.PhysicalExecutionClock,
 		Repository:     catalog.NewRepository(deps.DB),
 		Backups:        catalog.NewBackupRepository(deps.DB),
@@ -301,6 +285,19 @@ func New(deps Deps) Module {
 		WalStreamTimings: deps.WalStreamTimings,
 	})
 
+	configSaveService := configsave.NewService(configsave.Deps{
+		Repositories:    configRepositories,
+		Configs:         configService,
+		LogicalBackups:  logicalService,
+		PhysicalBackups: physicalService,
+		Transactor:      deps.Transactor,
+		Logger:          deps.Logger,
+		Clock:           deps.Clock,
+		Workspaces:      deps.Workspaces,
+		Storages:        deps.Storages,
+		Databases:       deps.Databases,
+	})
+
 	return module.New(module.Deps{
 		Physical:       physicalService,
 		Configs:        configService,
@@ -310,15 +307,17 @@ func New(deps Deps) Module {
 		UserStreams:    userStreams,
 		Runs:           runs,
 		Handler: backupshttpapi.NewHandler(backupshttpapi.Deps{
+			ConfigSaves:     configSaveService,
 			PhysicalBackups: physicalService,
 			Configs:         configService,
 			Transfers: transfer.NewService(transfer.Deps{
-				Configs:    configService,
-				Transactor: deps.Transactor,
-				Workspaces: deps.Workspaces,
-				Storages:   deps.Storages,
-				Databases:  deps.Databases,
-				Notifiers:  deps.Notifiers,
+				ConfigSaves: configSaveService,
+				Configs:     configService,
+				Transactor:  deps.Transactor,
+				Workspaces:  deps.Workspaces,
+				Storages:    deps.Storages,
+				Databases:   deps.Databases,
+				Notifiers:   deps.Notifiers,
 			}),
 			LogicalBackups: logicalService,
 			Downloads:      downloadService,

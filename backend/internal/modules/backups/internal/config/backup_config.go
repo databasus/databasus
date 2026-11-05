@@ -101,7 +101,7 @@ func validateCommonFields(config BackupConfig, allowedTriggers []NotificationTri
 	return nil
 }
 
-func normalizeTriggers(triggers []NotificationTrigger) []NotificationTrigger {
+func NormalizeTriggers(triggers []NotificationTrigger) []NotificationTrigger {
 	uniqueTriggers := make([]NotificationTrigger, 0, len(triggers))
 	for _, trigger := range triggers {
 		if !slices.Contains(uniqueTriggers, trigger) {

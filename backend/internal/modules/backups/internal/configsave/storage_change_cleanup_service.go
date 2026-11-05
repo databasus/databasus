@@ -1,10 +1,11 @@
-package config
+package configsave
 
 import (
 	"context"
 
 	"github.com/google/uuid"
 
+	"databasus-backend/internal/modules/backups/internal/config"
 	"databasus-backend/internal/modules/storages"
 )
 
@@ -16,7 +17,7 @@ type storageSwitchScope struct {
 type storageSwitchSave struct {
 	Scope             storageSwitchScope
 	PreviousStorageID *uuid.UUID
-	Config            AnyBackupConfig
+	Config            config.AnyBackupConfig
 }
 
 func (s *Service) requestStorageChangeCleanup(
@@ -29,7 +30,7 @@ func (s *Service) requestStorageChangeCleanup(
 		return false, nil
 	}
 
-	lastSelectedStorageID, hasLastSelectedStorage, err := s.repository.getLastSelectedStorageID(ctx, common.DatabaseID)
+	lastSelectedStorageID, hasLastSelectedStorage, err := s.repository.GetLastSelectedStorageID(ctx, common.DatabaseID)
 	if err != nil {
 		return false, err
 	}
@@ -39,19 +40,19 @@ func (s *Service) requestStorageChangeCleanup(
 		unfinishedStorageID = &lastSelectedStorageID
 	}
 
-	removeHistory := s.logicalBackups
-	if savedConfig.GetMethod() == MethodPhysical {
-		removeHistory = s.physicalBackups
+	removal := config.HistoryRemoval{
+		UnfinishedStorageID: unfinishedStorageID,
+		DatabaseID:          common.DatabaseID,
+		TargetStorageID:     *common.StorageID,
+		ShouldResetAll:      previousStorageID == nil,
 	}
 
-	history, err := removeHistory(
-		ctx,
-		HistoryRemoval{
-			UnfinishedStorageID: unfinishedStorageID, DatabaseID: common.DatabaseID,
-			TargetStorageID: *common.StorageID,
-			ShouldResetAll:  previousStorageID == nil,
-		},
-	)
+	var history config.RemovedBackupHistory
+	if savedConfig.GetMethod() == config.MethodPhysical {
+		history, err = s.physicalBackups.RemoveBackupsForStorageChange(ctx, removal)
+	} else {
+		history, err = s.logicalBackups.RemoveBackupsForStorageChange(ctx, removal)
+	}
 	if err != nil {
 		return false, err
 	}

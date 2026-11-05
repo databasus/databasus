@@ -116,7 +116,7 @@ func getLogicalNotificationTriggers() []NotificationTrigger {
 	}
 }
 
-func (c LogicalBackupConfig) validate() error {
+func (c LogicalBackupConfig) Validate() error {
 	err := validateSchedule("schedule", c.Schedule)
 	if err != nil {
 		return err
