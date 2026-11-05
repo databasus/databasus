@@ -1,0 +1,83 @@
+name: CI diagnostics
+
+on:
+  push:
+    branches: [fix/ci-security-and-tooling]
+
+permissions:
+  contents: read
+
+env:
+  MISE_TASK_RUN_AUTO_INSTALL: 'false'
+
+jobs:
+  test-verification-agent:
+    runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+    timeout-minutes: 15
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: 'go ripgrep'
+
+      - name: Set up Go cache
+        uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
+        with:
+          cache: go
+
+      - name: Download Go modules
+        run: |
+          cd backend
+          go mod download
+
+      - name: Run Go tests
+        run: mise run agent:test
+
+  lint-shell:
+    runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+    timeout-minutes: 15
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: 'go shellcheck jq node pnpm'
+
+      - name: Run shellcheck
+        run: mise run lint-shell
+
+      - name: Test the full test run script
+        run: python3 -m unittest discover -s scripts -p '*_test.py'
+
+  test-frontend:
+    runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
+    timeout-minutes: 15
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: 'node pnpm'
+
+      - name: Set up pnpm cache
+        uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
+        with:
+          cache: pnpm
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          pnpm install --frozen-lockfile
+
+      - name: Run frontend tests
+        run: |
+          cd frontend
+          pnpm test
+
