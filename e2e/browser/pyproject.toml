@@ -7,6 +7,7 @@ dependencies = ["playwright==1.64.1", "pytest==9.0.3"]
 
 [tool.uv]
 package = false
+exclude-newer = "7 days"
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
