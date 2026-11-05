@@ -5,13 +5,10 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
-	"syscall"
 	"testing"
 
 	"github.com/moby/moby/api/pkg/stdcopy"
@@ -32,6 +29,7 @@ type upgradeAgent struct {
 	image       string
 	gatewayURL  string
 	isReadOnly  bool
+	socket      agentDockerSocket
 }
 
 type upgradeAgentSpec struct {
@@ -85,6 +83,7 @@ func newUpgradeAgent(t *testing.T, spec upgradeAgentSpec) *upgradeAgent {
 		docker: spec.docker, binaryPath: binaryPath, workingPath: workingDirectory,
 		agentID: credentials.Agent.ID, token: credentials.Token,
 		image: spec.image, gatewayURL: spec.gatewayURL, isReadOnly: spec.isReadOnly,
+		socket: getAgentDockerSocket(t, spec.docker, spec.image),
 	}
 
 	t.Cleanup(func() {
@@ -123,21 +122,6 @@ func (a *upgradeAgent) startFromSavedConfig(ctx context.Context) error {
 }
 
 func (a *upgradeAgent) startContainer(ctx context.Context, arguments []string) error {
-	engineURL, err := url.Parse(a.docker.client.DaemonHost())
-	if err != nil || engineURL.Scheme != "unix" {
-		return fmt.Errorf("agent upgrade fixture needs a local Unix Docker socket")
-	}
-
-	socket, err := os.Stat(engineURL.Path)
-	if err != nil {
-		return err
-	}
-
-	socketStat, isUnixStat := socket.Sys().(*syscall.Stat_t)
-	if !isUnixStat {
-		return fmt.Errorf("Docker socket has no Unix ownership")
-	}
-
 	uid := os.Getuid()
 	if uid == 0 {
 		uid = 65532
@@ -157,8 +141,8 @@ func (a *upgradeAgent) startContainer(ctx context.Context, arguments []string) e
 		},
 		HostConfig: &container.HostConfig{
 			NetworkMode: "host", SecurityOpt: []string{"label=disable"},
-			GroupAdd: []string{strconv.FormatUint(uint64(socketStat.Gid), 10)},
-			Binds:    []string{binaryMount, a.workingPath + ":/work", engineURL.Path + ":/var/run/docker.sock"},
+			GroupAdd: []string{a.socket.group},
+			Binds:    []string{binaryMount, a.workingPath + ":/work", a.socket.path + ":/var/run/docker.sock"},
 		},
 	})
 	if err != nil {
