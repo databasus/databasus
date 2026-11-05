@@ -44,6 +44,7 @@ const savedDatabase: Database = {
 };
 
 const backupConfig: components['schemas']['BackupConfig'] = {
+  cleanup: { pendingFileCount: 0, failedFileCount: 0 },
   databaseId: savedDatabase.id,
   storageId: storage.id,
   isBackupsEnabled: false,

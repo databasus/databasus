@@ -3,11 +3,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
-import type {
-  BackupConfig,
-  DatabaseTransfer,
-  StorageSwitch,
-} from '../../../entities/backup-configs';
+import type { BackupConfig, DatabaseTransfer } from '../../../entities/backup-configs';
 import {
   type Database,
   DatabaseType,
@@ -58,22 +54,8 @@ const targetStorage: Storage = {
   name: 'Staging disk',
 };
 
-const acceptedSwitch: StorageSwitch = {
-  id: 'switch-id',
-  databaseId: transferredDatabase.id,
-  workspaceId: targetWorkspace.id,
-  targetStorageId: targetStorage.id,
-  previousStorageId: currentStorage.id,
-  status: 'CLEANUP_PENDING',
-  createdAt: '2026-10-30T10:00:00Z',
-  cleanupDeadline: '2026-10-31T10:00:00Z',
-  total: 4,
-  pending: 4,
-  deleted: 0,
-  remaining: 0,
-};
-
 const buildBackupConfig = (databaseId: string): BackupConfig => ({
+  cleanup: { pendingFileCount: 0, failedFileCount: 0 },
   databaseId,
   isBackupsEnabled: true,
   storageId: currentStorage.id,
@@ -312,15 +294,15 @@ describe('DatabaseTransferDialogComponent', () => {
     await chooseSelectOption(screen.getAllByRole('combobox')[1], targetStorage.name);
 
     expect(
-      screen.getByText(/Switching storage removes the old backup history immediately/),
+      screen.getByText(/Switching storage immediately removes the old backup history/),
     ).toBeTruthy();
 
     const warning = screen.getByText(
-      /Switching storage removes the old backup history immediately/,
+      /Switching storage immediately removes the old backup history/,
     );
 
-    expect(warning.textContent).toContain('The new storage becomes active immediately.');
-    expect(warning.textContent).toContain('If the old storage is unreachable, files may remain.');
+    expect(warning.textContent).toContain('activates the new storage.');
+    expect(warning.textContent).toContain('Unreachable storage delays cleanup.');
     expect(transferRequests.sentTransfers).toHaveLength(0);
 
     fireEvent.click(screen.getByRole('button', { name: 'Transfer' }));
@@ -365,30 +347,23 @@ describe('DatabaseTransferDialogComponent', () => {
     expect(onTransferred).not.toHaveBeenCalled();
   });
 
-  it('shows cleanup progress in the target workspace after an accepted switch', async () => {
+  it('acknowledges a committed transfer immediately without showing history', async () => {
     mockTransferOperations([buildBackupConfig(transferredDatabase.id)]);
-    mockServer.use(
-      mockApi.post('/databases/{databaseId}/transfer', 202, acceptedSwitch),
-      http.get(`*${API_BASE_PATH}/storage-switches`, ({ request }) => {
-        expect(new URL(request.url).searchParams.get('workspaceId')).toBe(targetWorkspace.id);
-        return HttpResponse.json({ items: [acceptedSwitch] });
-      }),
+    const onTransferred = vi.fn();
+    renderScreen(
+      <DatabaseTransferDialogComponent
+        database={transferredDatabase}
+        currentStorageId={currentStorage.id}
+        onClose={() => {}}
+        onTransferred={onTransferred}
+      />,
     );
-    renderDialog();
-
     await chooseTargetWorkspace();
-
     await waitFor(() => expect(screen.getAllByRole('combobox')).toHaveLength(2));
-
     await chooseSelectOption(screen.getAllByRole('combobox')[1], targetStorage.name);
     fireEvent.click(screen.getByRole('button', { name: 'Transfer' }));
-
-    expect(
-      await screen.findByText('Storage switched. Old files are being cleaned up.'),
-    ).toBeTruthy();
-    expect(screen.getByText('Files: 4. Pending: 4. Deleted: 0. Remaining: 0.')).toBeTruthy();
-    expect(screen.getByText(targetStorage.name)).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Transfer' })).toBeNull();
+    await waitFor(() => expect(onTransferred).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText('Storage switch history')).toBeNull();
   });
 
   it('blocks a move of the storage when another database backs up into it', async () => {
@@ -483,7 +458,6 @@ describe('DatabaseTransferDialogComponent', () => {
         mockApi.get('/workspaces', 200, {
           items: [sourceWorkspace, targetWorkspace, nextWorkspace],
         }),
-        mockApi.get('/storage-switches', 200, { items: [acceptedSwitch] }),
         pendingTransfer.handler,
       );
 
@@ -543,7 +517,7 @@ describe('DatabaseTransferDialogComponent', () => {
         pendingTransfer.respond(
           hasFailed
             ? HttpResponse.json(buildProblem('internal', 500), { status: 500 })
-            : HttpResponse.json(acceptedSwitch, { status: 202 }),
+            : new HttpResponse(null, { status: 204 }),
         ),
       );
 
@@ -556,11 +530,7 @@ describe('DatabaseTransferDialogComponent', () => {
         );
         expect(screen.getByRole('button', { name: 'Transfer' })).toHaveProperty('disabled', false);
       } else {
-        await screen.findByText('Storage switched. Old files are being cleaned up.');
-
-        expect(screen.getByText('Files: 4. Pending: 4. Deleted: 0. Remaining: 0.')).toBeTruthy();
-        expect(screen.getByText(targetStorage.name)).toBeTruthy();
-        expect(screen.queryByRole('button', { name: 'Transfer' })).toBeNull();
+        await waitFor(() => expect(onTransferred).toHaveBeenCalledTimes(1));
       }
 
       expect(transfers()).toHaveLength(1);
@@ -568,7 +538,7 @@ describe('DatabaseTransferDialogComponent', () => {
         targetWorkspaceId: targetWorkspace.id,
         storage: { type: 'SWITCH_TO_STORAGE', storageId: targetStorage.id },
       });
-      expect(onTransferred).not.toHaveBeenCalled();
+      expect(onTransferred).toHaveBeenCalledTimes(hasFailed ? 0 : 1);
     },
   );
 

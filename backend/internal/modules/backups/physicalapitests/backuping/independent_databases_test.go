@@ -48,7 +48,7 @@ func TestIndependentPhysicalBackupSlots(t *testing.T) {
 		lock := first.App.BeginSQLTransaction(t)
 		// Each backup creates its slot before registering its first file write, so this lock
 		// keeps both slots alive until the test observes them, regardless of backup speed.
-		lock.ExecuteSQL(t, "LOCK TABLE storages_pending_deletions IN SHARE MODE")
+		lock.ExecuteSQL(t, "LOCK TABLE storages_pending_file_deletions IN SHARE MODE")
 
 		first.trigger(t, "full")
 		second.trigger(t, "full")

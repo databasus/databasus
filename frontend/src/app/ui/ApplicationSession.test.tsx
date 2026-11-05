@@ -96,7 +96,6 @@ const seedAccount = () => {
     mockApi.get('/backup-configs', 200, { items: [] }),
     mockApi.get('/storages', 200, { items: [] }),
     mockApi.get('/notifiers', 200, { items: [] }),
-    mockApi.get('/storage-switches', 200, { items: [] }),
     http.get('https://api.github.com/repos/databasus/databasus', () =>
       HttpResponse.json({ stargazers_count: 1 }),
     ),

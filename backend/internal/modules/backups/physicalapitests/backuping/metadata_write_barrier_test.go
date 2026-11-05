@@ -25,7 +25,7 @@ func holdBackupMetadata(t *testing.T, team *backupTeam) *metadataWriteBarrier {
 		IF right(NEW.file_name, 9) = '.metadata' AND NEW.not_before > NEW.created_at THEN
 		PERFORM pg_advisory_xact_lock(1);
 		END IF; RETURN NEW; END $$ LANGUAGE plpgsql`)
-	team.App.ExecuteSQL(t, `CREATE TRIGGER hold_backup_metadata_write BEFORE INSERT ON storages_pending_deletions
+	team.App.ExecuteSQL(t, `CREATE TRIGGER hold_backup_metadata_write BEFORE INSERT ON storages_pending_file_deletions
 		FOR EACH ROW EXECUTE FUNCTION hold_backup_metadata_write()`)
 
 	transaction := team.App.BeginSQLTransaction(t)

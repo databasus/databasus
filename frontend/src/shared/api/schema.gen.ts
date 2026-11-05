@@ -404,7 +404,7 @@ export interface paths {
         post?: never;
         /**
          * Delete a workspace with its notifiers, storages and members
-         * @description Needs the role `WORKSPACE_OWNER`. A workspace that still has databases gets 409 `workspace_not_empty`, and nothing is deleted. The deletion happens completely or not at all.
+         * @description Needs the role `WORKSPACE_OWNER`. A workspace that still has databases gets 409 `workspace_not_empty`. Retained storage references take priority over cleanup and get 409 `in_use`. Otherwise outstanding file cleanup on any affected storage gets 409 `cleanup_pending`; wait for cleanup or explicitly delete those storages individually. No bulk abandonment is available. Outsiders get 404 `not_found`, insufficient roles get 403 `permission_denied`. Instance admins retain workspace access. The deletion happens completely or not at all.
          */
         delete: operations["deleteWorkspace"];
         options?: never;
@@ -674,7 +674,7 @@ export interface paths {
         post?: never;
         /**
          * Delete a storage
-         * @description Needs the role `WORKSPACE_MEMBER` or higher. A storage that a backup config uses or that still holds backups gets 409 `in_use`, and nothing is deleted. Otherwise the files waiting for cleanup are removed first, and the audit log names those left behind.
+         * @description Needs the role `WORKSPACE_MEMBER` or higher. A storage that a backup config uses or that still holds backups gets 409 `in_use`, even with explicit abandonment. Otherwise pending file cleanup returns 409 `cleanup_pending` unless shouldAbandonCleanup is true. Explicit abandonment atomically removes the storage and its queue, recording a bounded audit snapshot. This request never contacts the provider or deletes its bucket or directory. Outsiders get 404 `not_found`, viewers get 403 `permission_denied`; instance admins retain workspace access.
          */
         delete: operations["deleteStorage"];
         options?: never;
@@ -1003,52 +1003,9 @@ export interface paths {
         put?: never;
         /**
          * Move a database to another workspace
-         * @description Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all. SWITCH_TO_STORAGE commits removal of the old backup history and returns 202 with a StorageSwitch and Location header. File cleanup continues in the background. MOVE_WITH_DATABASE preserves history and returns 204.
+         * @description Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all. SWITCH_TO_STORAGE commits removal of the old backup history and queues file cleanup in the background. MOVE_WITH_DATABASE preserves history. Both options return 204 after commit.
          */
         post: operations["transferDatabase"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/storage-switches": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List storage switches accepted in a workspace
-         * @description Needs WORKSPACE_VIEWER in the acceptance workspace. Instance admins can read without membership. Ordered newest first by acceptance time and ID. History remains available after database deletion or later transfers. Invalid limits or cursors get 400 invalid_request.
-         */
-        get: operations["listStorageSwitches"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/storage-switches/{storageSwitchId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The committed storage switch identity */
-                storageSwitchId: string;
-            };
-            cookie?: never;
-        };
-        /**
-         * Read the current cleanup outcome of a committed storage switch
-         * @description Needs WORKSPACE_VIEWER in the workspace at acceptance, including after later transfers or database deletion. Instance admins can read without membership.
-         */
-        get: operations["getStorageSwitch"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1064,7 +1021,7 @@ export interface paths {
         };
         /**
          * List the saved backup configs of a workspace or of a storage
-         * @description Takes exactly one of `workspaceId` and `storageId`; both or neither get 400 `invalid_request`. Ordered by database ID. A database whose config was never saved is not listed. A user who is not a member of the workspace, or of the storage's workspace, gets 404 `not_found`.
+         * @description Takes exactly one of `workspaceId` and `storageId`; both or neither get 400 `invalid_request`. Ordered by database ID. A database whose config was never saved is not listed. A user who is not a member of the workspace, or of the storage's workspace, gets 404 `not_found`. Cleanup summaries also require view access to each database's current workspace; storage ownership alone does not grant that access.
          */
         get: operations["listBackupConfigs"];
         put?: never;
@@ -1092,7 +1049,7 @@ export interface paths {
         get: operations["getBackupConfig"];
         /**
          * Save the backup config of a database
-         * @description Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running. Storage switches return 202 with the committed operation and a Location header; ordinary saves, clearing storage and initial assignments without history return 200.
+         * @description Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running. Every successful save returns 200 with the saved config and computed current cleanup counts. File cleanup runs independently in the background.
          */
         put: operations["updateBackupConfig"];
         post?: never;
@@ -1661,40 +1618,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /** @description A committed storage change with the current durable cleanup outcome */
-        StorageSwitch: {
-            /** Format: uuid */
-            id: string;
-            /** Format: uuid */
-            databaseId: string;
-            /** Format: uuid */
-            workspaceId: string;
-            /** Format: uuid */
-            previousStorageId?: string;
-            /** Format: uuid */
-            targetStorageId: string;
-            /** @enum {string} */
-            status: "CLEANUP_PENDING" | "COMPLETED" | "COMPLETED_WITH_REMAINDERS";
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            completedAt?: string;
-            /** Format: date-time */
-            cleanupDeadline: string;
-            /** Format: int64 */
-            total: number;
-            /** Format: int64 */
-            pending: number;
-            /** Format: int64 */
-            deleted: number;
-            /** Format: int64 */
-            remaining: number;
-        };
-        /** @description Storage switches ordered newest first by acceptance time and ID */
-        StorageSwitchPage: {
-            items: components["schemas"]["StorageSwitch"][];
-            nextCursor?: string;
-        };
         /** @description All editable settings for scheduled availability checks */
         HealthcheckConfigInput: {
             /** @description Whether scheduled availability checks are enabled */
@@ -3129,7 +3052,7 @@ export interface components {
          * @description The cause of the error for programs; a value never changes its meaning
          * @enum {string}
          */
-        ProblemCode: "invalid_request" | "unauthenticated" | "permission_denied" | "not_found" | "rate_limited" | "human_verification_failed" | "invalid_credentials" | "user_deactivated" | "registration_closed" | "email_taken" | "invalid_reset_code" | "oauth_not_configured" | "oauth_failed" | "pending_sign_in_not_usable" | "sign_in_code_not_sent" | "too_many_sign_in_codes" | "sign_in_code_resent_too_soon" | "sign_in_code_incorrect" | "email_not_configured" | "admin_email_missing" | "already_member" | "cannot_change_own_role" | "owner_requires_transfer" | "workspace_not_empty" | "in_use" | "database_connection_failed" | "backup_not_completed" | "already_running" | "not_running" | "no_extendable_chain" | "no_restorable_backup" | "target_time_unreachable" | "insufficient_disk_space" | "instance_unhealthy" | "internal";
+        ProblemCode: "invalid_request" | "unauthenticated" | "permission_denied" | "not_found" | "rate_limited" | "human_verification_failed" | "invalid_credentials" | "user_deactivated" | "registration_closed" | "email_taken" | "invalid_reset_code" | "oauth_not_configured" | "oauth_failed" | "pending_sign_in_not_usable" | "sign_in_code_not_sent" | "too_many_sign_in_codes" | "sign_in_code_resent_too_soon" | "sign_in_code_incorrect" | "email_not_configured" | "admin_email_missing" | "already_member" | "cannot_change_own_role" | "owner_requires_transfer" | "workspace_not_empty" | "in_use" | "cleanup_pending" | "database_connection_failed" | "backup_not_completed" | "already_running" | "not_running" | "no_extendable_chain" | "no_restorable_backup" | "target_time_unreachable" | "insufficient_disk_space" | "instance_unhealthy" | "internal";
         /** @description A field of the request that breaks the contract or a validation rule */
         FieldError: {
             /** @description The path of the field in the request, such as `name` or `settings.bucket` */
@@ -3146,6 +3069,7 @@ export interface components {
         };
         /** @description How a database is backed up */
         BackupConfig: {
+            readonly cleanup: components["schemas"]["BackupCleanup"];
             /**
              * Format: uuid
              * @description The database the config belongs to
@@ -3160,6 +3084,19 @@ export interface components {
             storageId: string | null;
             encryption: components["schemas"]["BackupEncryption"];
             settings: components["schemas"]["BackupSettings"];
+        };
+        /** @description Current deletion obligations attributed to this database and its current workspace; ordinary protected uploads are excluded */
+        BackupCleanup: {
+            /**
+             * Format: int64
+             * @description Outstanding files, including delayed and claimed work
+             */
+            pendingFileCount: number;
+            /**
+             * Format: int64
+             * @description Pending files with a deletion error; a subset of pendingFileCount
+             */
+            failedFileCount: number;
         };
         /** @description The editable fields of a backup config */
         BackupConfigInput: {
@@ -5421,7 +5358,10 @@ export interface operations {
     };
     deleteStorage: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Explicitly abandon all outstanding automatic file cleanup for this storage */
+                shouldAbandonCleanup?: boolean;
+            };
             header?: never;
             path: {
                 /** @description The ID of the storage */
@@ -5950,17 +5890,6 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The storage switch is committed; file cleanup continues in the background */
-            202: {
-                headers: {
-                    /** @description The storage switch status resource */
-                    Location?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StorageSwitch"];
-                };
-            };
             /** @description The database belongs to the target workspace */
             204: {
                 headers: {
@@ -5973,67 +5902,6 @@ export interface operations {
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
-            default: components["responses"]["Problem"];
-        };
-    };
-    listStorageSwitches: {
-        parameters: {
-            query: {
-                /** @description The workspace at acceptance */
-                workspaceId: string;
-                /** @description Filter by the historical database identity */
-                databaseId?: string;
-                /** @description Maximum operations per page */
-                limit?: number;
-                /** @description The nextCursor of the previous page */
-                after?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The matching storage switches with current cleanup outcomes */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StorageSwitchPage"];
-                };
-            };
-            400: components["responses"]["Problem"];
-            401: components["responses"]["Problem"];
-            403: components["responses"]["Problem"];
-            404: components["responses"]["Problem"];
-            default: components["responses"]["Problem"];
-        };
-    };
-    getStorageSwitch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The committed storage switch identity */
-                storageSwitchId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The storage switch with its current cleanup outcome */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StorageSwitch"];
-                };
-            };
-            401: components["responses"]["Problem"];
-            403: components["responses"]["Problem"];
-            404: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };
@@ -6121,17 +5989,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BackupConfig"];
-                };
-            };
-            /** @description The storage switch is committed; file cleanup continues in the background */
-            202: {
-                headers: {
-                    /** @description The storage switch status resource */
-                    Location?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StorageSwitch"];
                 };
             };
             400: components["responses"]["Problem"];

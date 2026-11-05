@@ -738,8 +738,11 @@ paths:
       summary: Delete a workspace with its notifiers, storages and members
       description: >-
         Needs the role `WORKSPACE_OWNER`. A workspace that still has databases gets 409
-        `workspace_not_empty`, and nothing is deleted. The deletion happens completely or not at
-        all.
+        `workspace_not_empty`. Retained storage references take priority over cleanup and get 409 `in_use`.
+        Otherwise outstanding file cleanup on any affected storage gets 409 `cleanup_pending`;
+        wait for cleanup or explicitly delete those storages individually. No bulk abandonment is
+        available. Outsiders get 404 `not_found`, insufficient roles get 403 `permission_denied`.
+        Instance admins retain workspace access. The deletion happens completely or not at all.
       responses:
         "204":
           description: The workspace is deleted
@@ -1379,8 +1382,18 @@ paths:
       summary: Delete a storage
       description: >-
         Needs the role `WORKSPACE_MEMBER` or higher. A storage that a backup config uses or that
-        still holds backups gets 409 `in_use`, and nothing is deleted. Otherwise the files waiting
-        for cleanup are removed first, and the audit log names those left behind.
+        still holds backups gets 409 `in_use`, even with explicit abandonment. Otherwise pending file
+        cleanup returns 409 `cleanup_pending` unless shouldAbandonCleanup is true. Explicit
+        abandonment atomically removes the storage and its queue, recording a bounded audit snapshot.
+        This request never contacts the provider or deletes its bucket or directory. Outsiders get
+        404 `not_found`, viewers get 403 `permission_denied`; instance admins retain workspace access.
+      parameters:
+        - name: shouldAbandonCleanup
+          in: query
+          description: Explicitly abandon all outstanding automatic file cleanup for this storage
+          schema:
+            type: boolean
+            default: false
       responses:
         "204":
           description: The storage is deleted
@@ -1943,9 +1956,8 @@ paths:
         storage along or switches to a storage of the target workspace; a database whose config was
         never saved then gets the default config of its method with that storage. Moving the storage
         gets 409 `in_use` while another database backs up into it. The move happens completely or not
-        at all. SWITCH_TO_STORAGE commits removal of the old backup history and returns 202
-        with a StorageSwitch and Location header. File cleanup continues in the background.
-        MOVE_WITH_DATABASE preserves history and returns 204.
+        at all. SWITCH_TO_STORAGE commits removal of the old backup history and queues file cleanup
+        in the background. MOVE_WITH_DATABASE preserves history. Both options return 204 after commit.
       requestBody:
         description: The target workspace and what happens to the storage and the notifiers.
         required: true
@@ -1954,17 +1966,6 @@ paths:
             schema:
               $ref: "#/components/schemas/DatabaseTransfer"
       responses:
-        "202":
-          description: The storage switch is committed; file cleanup continues in the background
-          headers:
-            Location:
-              description: The storage switch status resource
-              schema:
-                type: string
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/StorageSwitch"
         "204":
           description: The database belongs to the target workspace
         "400":
@@ -1979,79 +1980,6 @@ paths:
           $ref: "#/components/responses/Problem"
         default:
           $ref: "#/components/responses/Problem"
-  /storage-switches:
-    get:
-      operationId: listStorageSwitches
-      tags: [backups]
-      summary: List storage switches accepted in a workspace
-      description: >-
-        Needs WORKSPACE_VIEWER in the acceptance workspace. Instance admins can read without
-        membership. Ordered newest first by acceptance time and ID. History remains available
-        after database deletion or later transfers. Invalid limits or cursors get 400 invalid_request.
-      parameters:
-        - name: workspaceId
-          description: The workspace at acceptance
-          in: query
-          required: true
-          schema: {type: string, format: uuid}
-        - name: databaseId
-          description: Filter by the historical database identity
-          in: query
-          schema: {type: string, format: uuid}
-        - name: limit
-          description: Maximum operations per page
-          in: query
-          schema: {type: integer, minimum: 1, maximum: 100, default: 20}
-        - name: after
-          in: query
-          description: The nextCursor of the previous page
-          schema: {type: string}
-      responses:
-        "200":
-          description: The matching storage switches with current cleanup outcomes
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/StorageSwitchPage"
-        "400":
-          $ref: "#/components/responses/Problem"
-        "401":
-          $ref: "#/components/responses/Problem"
-        "403":
-          $ref: "#/components/responses/Problem"
-        "404":
-          $ref: "#/components/responses/Problem"
-        default:
-          $ref: "#/components/responses/Problem"
-  /storage-switches/{storageSwitchId}:
-    parameters:
-      - name: storageSwitchId
-        description: The committed storage switch identity
-        in: path
-        required: true
-        schema: {type: string, format: uuid}
-    get:
-      operationId: getStorageSwitch
-      tags: [backups]
-      summary: Read the current cleanup outcome of a committed storage switch
-      description: >-
-        Needs WORKSPACE_VIEWER in the workspace at acceptance, including after later transfers
-        or database deletion. Instance admins can read without membership.
-      responses:
-        "200":
-          description: The storage switch with its current cleanup outcome
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/StorageSwitch"
-        "401":
-          $ref: "#/components/responses/Problem"
-        "403":
-          $ref: "#/components/responses/Problem"
-        "404":
-          $ref: "#/components/responses/Problem"
-        default:
-          $ref: "#/components/responses/Problem"
   /backup-configs:
     get:
       operationId: listBackupConfigs
@@ -2061,7 +1989,8 @@ paths:
         Takes exactly one of `workspaceId` and `storageId`; both or neither get 400
         `invalid_request`. Ordered by database ID. A database whose config was never saved is not
         listed. A user who is not a member of the workspace, or of the storage's workspace, gets 404
-        `not_found`.
+        `not_found`. Cleanup summaries also require view access to each database's current workspace;
+        storage ownership alone does not grant that access.
       parameters:
         - name: workspaceId
           in: query
@@ -2138,8 +2067,8 @@ paths:
         400 `invalid_request` with the field in `errors`. A storage that is not in the database's
         workspace gets 400 `invalid_request`. A logical config saved with another storage removes
         the database's logical backups in the same step, and gets 409 `in_use` while one of them is
-        running. Storage switches return 202 with the committed operation and a Location header;
-        ordinary saves, clearing storage and initial assignments without history return 200.
+        running. Every successful save returns 200 with the saved config and computed current cleanup
+        counts. File cleanup runs independently in the background.
       requestBody:
         description: The editable fields of the config.
         required: true
@@ -2154,17 +2083,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BackupConfig"
-        "202":
-          description: The storage switch is committed; file cleanup continues in the background
-          headers:
-            Location:
-              description: The storage switch status resource
-              schema:
-                type: string
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/StorageSwitch"
         "400":
           $ref: "#/components/responses/Problem"
         "401":
@@ -3382,37 +3300,6 @@ components:
           schema:
             $ref: "#/components/schemas/Problem"
   schemas:
-    StorageSwitch:
-      description: A committed storage change with the current durable cleanup outcome
-      type: object
-      required: [id, databaseId, workspaceId, targetStorageId, status, createdAt, cleanupDeadline, total, pending, deleted, remaining]
-      properties:
-        id: {type: string, format: uuid}
-        databaseId: {type: string, format: uuid}
-        workspaceId: {type: string, format: uuid}
-        previousStorageId: {type: string, format: uuid}
-        targetStorageId: {type: string, format: uuid}
-        status:
-          type: string
-          enum: [CLEANUP_PENDING, COMPLETED, COMPLETED_WITH_REMAINDERS]
-        createdAt: {type: string, format: date-time}
-        completedAt: {type: string, format: date-time}
-        cleanupDeadline: {type: string, format: date-time}
-        total: {type: integer, format: int64, minimum: 0}
-        pending: {type: integer, format: int64, minimum: 0}
-        deleted: {type: integer, format: int64, minimum: 0}
-        remaining: {type: integer, format: int64, minimum: 0}
-    StorageSwitchPage:
-      description: Storage switches ordered newest first by acceptance time and ID
-      type: object
-      required: [items]
-      properties:
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/StorageSwitch"
-        nextCursor:
-          type: string
     HealthcheckConfigInput:
       description: All editable settings for scheduled availability checks
       type: object
@@ -5636,6 +5523,7 @@ components:
         - owner_requires_transfer
         - workspace_not_empty
         - in_use
+        - cleanup_pending
         - database_connection_failed
         - backup_not_completed
         - already_running
@@ -5673,8 +5561,12 @@ components:
     BackupConfig:
       type: object
       description: How a database is backed up
-      required: [databaseId, isBackupsEnabled, storageId, encryption, settings]
+      required: [databaseId, isBackupsEnabled, storageId, encryption, settings, cleanup]
       properties:
+        cleanup:
+          readOnly: true
+          allOf:
+            - $ref: "#/components/schemas/BackupCleanup"
         databaseId:
           type: string
           format: uuid
@@ -5691,6 +5583,21 @@ components:
           $ref: "#/components/schemas/BackupEncryption"
         settings:
           $ref: "#/components/schemas/BackupSettings"
+    BackupCleanup:
+      type: object
+      description: Current deletion obligations attributed to this database and its current workspace; ordinary protected uploads are excluded
+      required: [pendingFileCount, failedFileCount]
+      properties:
+        pendingFileCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Outstanding files, including delayed and claimed work
+        failedFileCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Pending files with a deletion error; a subset of pendingFileCount
     BackupConfigInput:
       type: object
       description: The editable fields of a backup config

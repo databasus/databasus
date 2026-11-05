@@ -56,10 +56,13 @@ export const storageApi = {
     );
   },
 
-  async deleteStorage(storageId: string): Promise<void> {
+  async deleteStorage(storageId: string, shouldAbandonCleanup = false): Promise<void> {
     requireSuccess(
       await getApiClient().DELETE('/storages/{storageId}', {
-        params: { path: { storageId } },
+        params: {
+          path: { storageId },
+          query: shouldAbandonCleanup ? { shouldAbandonCleanup: true } : undefined,
+        },
       }),
     );
   },

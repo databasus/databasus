@@ -41,6 +41,7 @@ const secondDatabase: components['schemas']['Database'] = {
 };
 
 const storedConfig: BackupConfig = {
+  cleanup: { pendingFileCount: 0, failedFileCount: 0 },
   databaseId: database.id,
   storageId: null,
   isBackupsEnabled: true,
@@ -127,6 +128,7 @@ const serveDatabasesAndStoredBackupConfig = async (page: Page) => {
   await page.route(/\/api\/v1\/backup-configs\/[^/?]+$/, async (route) => {
     if (route.request().method() === 'PUT') {
       currentConfig = {
+        ...currentConfig,
         ...(route.request().postDataJSON() as BackupConfig),
         databaseId: database.id,
       };

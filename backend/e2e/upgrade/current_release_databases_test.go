@@ -24,6 +24,10 @@ type currentDatabase struct {
 }
 
 type currentBackupConfig struct {
+	Cleanup *struct {
+		PendingFileCount int64 `json:"pendingFileCount"`
+		FailedFileCount  int64 `json:"failedFileCount"`
+	} `json:"cleanup"`
 	IsBackupsEnabled bool           `json:"isBackupsEnabled"`
 	StorageID        *string        `json:"storageId"`
 	Encryption       string         `json:"encryption"`
@@ -120,6 +124,11 @@ func readBackupItems(ctx context.Context, api *apiClient, database currentDataba
 	err := api.get(ctx, "/backup-configs/"+database.ID, &backupConfig)
 	if err != nil {
 		return nil, fmt.Errorf("read the backup config of database %q: %w", database.Name, err)
+	}
+
+	if backupConfig.Cleanup == nil || backupConfig.Cleanup.PendingFileCount != 0 ||
+		backupConfig.Cleanup.FailedFileCount != 0 {
+		return nil, fmt.Errorf("database %q must have zero computed cleanup counts after upgrade", database.Name)
 	}
 
 	if database.Settings["type"] == "POSTGRES_PHYSICAL" {

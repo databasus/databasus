@@ -197,7 +197,7 @@ Every storage provider SHALL treat deletion as removal of all physical state der
 
 The system SHALL retry failed deletions with exponential delay, a maximum delay and jitter, grown from the number of deletion attempts alone. It SHALL persist that attempt count, the next attempt time and a sanitized bounded error message. Each worker pass SHALL have a stable job_name and a fresh job_id, and SHALL report how many obligations are pending, how many are overdue and the age of the oldest one. Every deletion attempt it logs SHALL identify the job, storage, file, attempt and next retry without exposing credentials.
 
-Ordinary deletion obligations SHALL remain retryable until the file is confirmed absent or storage deletion reports the leftovers. Cleanup explicitly owned by a storage switch SHALL instead obey the finite policy below. Exhausting switch cleanup SHALL NOT stop retries of an independent ordinary obligation for the same file.
+Every deletion obligation, including one created by a storage change, SHALL remain retryable until the file is confirmed absent or the user explicitly abandons cleanup by deleting its storage. Five failures or 24 hours SHALL NOT stop retries or remove an obligation. A failed attempt SHALL remain pending, not become a terminal successful or unresolved operation result.
 
 #### Scenario: Storage outage persists
 
@@ -236,131 +236,88 @@ Ordinary deletion obligations SHALL remain retryable until the file is confirmed
 
 ### Requirement: Deleting a storage reports the files it leaves behind
 
-The system SHALL reject deleting a storage configuration while a backup configuration uses it or backup records still reference it, because those records are the only place its file names exist. The database itself SHALL refuse the removal, so that a missing check in the application cannot delete a backup configuration or a backup record together with the storage. A rejected deletion SHALL get `409` with `code` `in_use`, SHALL change nothing and SHALL remove no file from the provider. When nothing references the storage, deletion SHALL attempt the storage's outstanding cleanup and SHALL then succeed. The cleanup SHALL skip a file whose write is still running in the application process. Deletion SHALL record how many files it could not remove or skipped, and their names up to a fixed limit. That record SHALL be somewhere the user can read. Outstanding cleanup SHALL NOT make a storage or a workspace permanently undeletable.
+Deleting a storage referenced by a backup configuration or retained backup SHALL return 409 with code `in_use` and SHALL change nothing, even when the request explicitly abandons cleanup. The stored references SHALL also prevent accidental cascading loss of those configurations and backup records.
+
+For an otherwise unused storage, the server SHALL check all outstanding file obligations, including delayed, failed and currently claimed work, when processing deletion. Without explicit abandonment, outstanding work SHALL return 409 with code `cleanup_pending`, preserving the storage, credentials and obligations and making no provider deletion calls. A stale earlier read SHALL NOT waive this check.
+
+After that refusal the interface SHALL explain that cleanup is still running, recommend waiting, and warn that deleting now stops automatic cleanup and leaves any remaining files for manual removal. It SHALL offer Wait and Delete anyway. Only the explicit Delete anyway action SHALL acknowledge abandonment. Wait SHALL preserve the storage and cleanup work.
+
+An authorized deletion with `shouldAbandonCleanup=true` SHALL remove the unused storage setting and all its outstanding obligations atomically and return 204, without a final remote drain or deleting the external bucket or directory. The readable audit log SHALL record abandonment, the number of outstanding files and their names up to a fixed limit, without claiming those files were confirmed present or deleted. A failed transaction SHALL preserve the storage and every obligation. A deletion with no queued files SHALL succeed without abandonment.
+
+Queue registration and storage deletion SHALL be ordered so a new obligation is either included in the server's check or cannot be registered against the removed storage. An attempt already in progress can finish, but its late answer SHALL NOT recreate an abandoned obligation, undo storage deletion or start another attempt for that storage.
 
 #### Scenario: Storage is deleted while backups still reference it
 
-- **WHEN** a user deletes a storage that still has backup records
-- **THEN** the response is `409` with `code` `in_use`
-- **AND** the backups stay readable and removable through their own deletion path
-- **AND** no file is removed from the provider, the files of the storage's pending cleanup included
+- **WHEN** a user deletes a storage that still has backup records, with or without explicit abandonment
+- **THEN** the response is 409 with code `in_use`, every record and obligation remains, and no file is removed by the request
 
 #### Scenario: Storage is deleted while a backup configuration uses it
 
-- **WHEN** a user deletes a storage that the backup configuration of a database names
-- **THEN** the response is `409` with `code` `in_use`
-- **AND** the database keeps its backup configuration with that storage, and no file is removed from the provider
+- **WHEN** a user explicitly abandons cleanup while deleting a storage named by a backup configuration
+- **THEN** the response is 409 with code `in_use`, and the configuration, storage and obligations remain
 
 #### Scenario: Storage row deleted directly in the database
 
-- **WHEN** the row of a storage is deleted directly in the database while a backup configuration, a logical backup record or a physical backup record references it
-- **THEN** the database refuses the statement
-- **AND** the configuration and the records remain
+- **WHEN** a storage is removed directly while a backup configuration or retained backup references it
+- **THEN** the stored references refuse the deletion rather than cascading away the records that identify its files
 
 #### Scenario: Storage with reachable pending cleanup is deleted
 
-- **WHEN** a storage with no backup records, no backup configuration using it and reachable pending cleanup is deleted
-- **THEN** the pending files are removed from the provider before the deletion commits, so a reader still sees the storage until its files are gone
-- **AND** deletion succeeds
+- **WHEN** an otherwise unused storage has outstanding files and deletion does not acknowledge abandonment
+- **THEN** the response is 409 with code `cleanup_pending`, the warning is offered and nothing changes or contacts the provider
+
+#### Scenario: User chooses to wait
+
+- **WHEN** a user chooses Wait in the cleanup warning
+- **THEN** the warning closes without an abandoning deletion request, and background cleanup continues
+
+#### Scenario: User explicitly deletes during cleanup
+
+- **WHEN** an authorized user chooses Delete anyway for an unused storage with queued files
+- **THEN** the storage and its obligations are removed together, the response is 204, and abandonment is recorded in the audit log
+- **AND** the request does not drain files or delete the external bucket or directory
 
 #### Scenario: Storage with an unreachable provider is deleted
 
-- **WHEN** a storage is deleted while its provider cannot be reached
-- **THEN** deletion still succeeds
-- **AND** the audit log names the storage, how many files were left behind and their names up to a fixed limit
+- **WHEN** the provider is unreachable and the user acknowledges abandonment
+- **THEN** deletion succeeds without waiting for the provider, and the audit records the outstanding work
+
+#### Scenario: A previously empty queue receives work
+
+- **WHEN** an obligation is registered after a client read an empty queue but before its ordinary deletion request is checked
+- **THEN** deletion returns `cleanup_pending` without losing the new work
+
+#### Scenario: A worker returns after abandonment
+
+- **WHEN** a claimed provider attempt answers after explicit deletion committed
+- **THEN** it does not recreate its queue entry or schedule another attempt
+
+#### Scenario: Storage deletion fails after removing obligations
+
+- **WHEN** the storage-deletion transaction fails after changing its obligations
+- **THEN** the storage, credentials, obligations and absence of a successful abandonment audit event are restored together
+
+#### Scenario: An unused storage has no obligations
+
+- **WHEN** a user deletes an unused storage whose queue is empty without acknowledging abandonment
+- **THEN** deletion returns 204 without contacting the provider
 
 #### Scenario: Storage is deleted while a write to it is still running
 
-- **WHEN** a storage that nothing references is deleted while a write of a file to it is still running in the application
-- **THEN** deletion succeeds without removing that file
-- **AND** the audit log counts that file among the files left behind and names it
+- **WHEN** an otherwise unused storage has a protected writer and its user requests deletion
+- **THEN** deletion without explicit abandonment returns `cleanup_pending` without touching the file
+- **AND** explicitly acknowledged deletion can remove the storage and its obligations while warning that the writer's files may remain
 
 #### Scenario: Workspace containing such a storage is deleted
 
-- **WHEN** a workspace is deleted whose storages still hold pending cleanup
-- **THEN** deletion follows the same path as deleting each storage
-- **AND** the caller never sees a raw database constraint error
+- **WHEN** a workspace is deleted while one of its storages has outstanding cleanup
+- **THEN** the whole deletion returns `cleanup_pending` without implicitly abandoning files or exposing a raw constraint error
 
 ### Requirement: Cleanup state contains no provider credentials
 
-Durable cleanup state SHALL contain file identity, scheduling data, retry data and sanitized errors only. It SHALL NOT duplicate provider credentials, tokens, private keys, signed addresses or complete provider configuration.
+Durable cleanup state SHALL contain file identity, database/workspace attribution where needed for authorized current-state reads, scheduling data, retry data and sanitized errors only. It SHALL NOT duplicate provider credentials, tokens, private keys, signed addresses or complete provider configuration.
 
 #### Scenario: Cleanup state is inspected at rest
 
 - **WHEN** an operator or database tool reads durable cleanup state
 - **THEN** the record contains no provider authentication material or reusable signed address
-
-### Requirement: Storage-switch cleanup has a finite durable outcome
-
-A storage switch SHALL durably associate every artifact to delete with its operation and original storage before removing the catalog that names it. A successful deletion or confirmed absence SHALL count once as deleted. At most five failed attempts per artifact SHALL be made for switch-owned cleanup; a 24-hour deadline from acceptance SHALL also end cleanup for unresolved artifacts. Each provider attempt SHALL be bounded by its own timeout and the operation's remaining deadline.
-
-An artifact that exhausts its attempts, whose original storage configuration is deleted, or whose deadline expires SHALL be recorded as unresolved and SHALL NOT be retried on behalf of that switch. The operation SHALL end when every artifact has a deleted or unresolved outcome. It SHALL be complete with remainders when any artifact is unresolved. Terminal outcomes and counts SHALL remain unchanged if an independent obligation later deletes a remaining file. Restarting the application SHALL preserve deadlines, failed-attempt counts and outcomes. A duplicate or late attempt SHALL NOT overwrite a newer outcome, extend the deadline or count an artifact twice.
-
-The operation's artifact set SHALL contain the old catalog's files and known unfinished writes recorded at acceptance. The result SHALL describe that captured set, without claiming that unknown files in the provider were discovered or deleted. An old write that creates another file after acceptance SHALL remain subject to its own recorded cleanup obligation and SHALL NOT extend the switch's artifact set or deadline.
-
-Files of a running write SHALL remain protected. If an old writer outlives the cleanup deadline, its known artifacts SHALL be reported unresolved rather than deleted while still being written. A later independent cleanup obligation remains governed by its own policy.
-
-#### Scenario: Five deletion failures
-
-- **WHEN** deletion of a switch-owned artifact fails five times
-- **THEN** that artifact is recorded unresolved and receives no sixth attempt on behalf of the switch
-
-#### Scenario: A repeated request supersedes an active attempt's queue generation
-
-- **WHEN** a deletion request changes the pending queue's generation during a failing provider call and the worker retries before the old lease expires
-- **THEN** the failed call counts once toward its attributed switch's five-attempt limit
-- **AND** a second worker cannot overwrite the unsettled attribution while that call is still active
-
-#### Scenario: Deadline is reached
-
-- **WHEN** 24 hours have elapsed since acceptance and some switch-owned artifacts remain pending
-- **THEN** the next deletion-worker pass records those artifacts unresolved and finishes the operation without further provider calls
-
-#### Scenario: Application restarts during cleanup
-
-- **WHEN** the application restarts after three failed attempts
-- **THEN** that artifact has at most two failed attempts left and the original deadline remains
-
-#### Scenario: Old storage configuration is deleted
-
-- **WHEN** the previous storage configuration is deleted while its switch cleanup is pending
-- **THEN** confirmed deletions retain their outcome and all other associated artifacts become unresolved
-- **AND** deleting that storage or workspace does not leave an eternally pending switch
-
-#### Scenario: An ordinary obligation also exists
-
-- **WHEN** a switch gives up on a file that an independent ordinary cleanup obligation also names
-- **THEN** the ordinary obligation keeps its retry policy and the switch retains its incomplete outcome
-
-#### Scenario: An independent obligation later deletes a remaining file
-
-- **WHEN** an independent obligation confirms deletion after the switch recorded that file as unresolved
-- **THEN** the switch keeps its terminal incomplete status, original completion time and artifact counts
-
-#### Scenario: An old writer creates another file after acceptance
-
-- **WHEN** an old writer creates a file after the switch captured its cleanup artifacts
-- **THEN** the file cannot enter the new backup history and its independent cleanup obligation remains
-- **AND** the switch's artifact total and deadline stay unchanged
-
-#### Scenario: Another application instance cleans during an active upload
-
-- **WHEN** one application instance is still uploading a captured artifact and the accepting instance runs cleanup before the deadline
-- **THEN** cleanup does not call the provider to delete that artifact or count an attempt, and the artifact remains pending
-- **AND** after the upload finishes, cleanup can delete the discarded file and count its confirmed absence once
-
-#### Scenario: A deleted backup writer drains after storage is cleared
-
-- **WHEN** a running backup is deleted, the storage selection is cleared, and a storage switch is accepted while its writer still drains
-- **THEN** known unfinished files from the last selected storage are captured with their original storage even without surviving backup catalog rows
-- **AND** clearing the selection or restarting the application does not erase that attribution
-
-#### Scenario: A late provider result arrives
-
-- **WHEN** an attempt finishes after its lease or operation deadline and a newer state has already committed
-- **THEN** it cannot change the terminal outcome or double-count the artifact
-
-#### Scenario: Another switch occurs before cleanup finishes
-
-- **WHEN** the database switches from A to B and then from B to C while cleanup of A is pending
-- **THEN** cleanup of A continues against A, cleanup of B addresses only B, and neither operation deletes C's files

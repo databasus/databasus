@@ -223,7 +223,10 @@ func discardArtifactsAfterChainBroken(
 	ctx = context.WithoutCancel(ctx)
 
 	if err := common.Transactor.Transaction(ctx, func(ctx context.Context) error {
-		return common.FileStore.RequestFileDeletions(ctx, references)
+		return common.FileStore.RequestDiscardedFileDeletions(
+			ctx,
+			storages.DiscardedFiles{DatabaseID: common.Publication.Publication.DatabaseID, References: references},
+		)
 	}); err != nil {
 		common.Logger.WarnContext(
 			ctx,

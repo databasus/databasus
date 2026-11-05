@@ -32,7 +32,6 @@ import (
 	"databasus-backend/internal/modules/backups/internal/physical/walstreaming"
 	"databasus-backend/internal/modules/backups/internal/pipeline"
 	"databasus-backend/internal/modules/backups/internal/restore"
-	"databasus-backend/internal/modules/backups/internal/storageswitch"
 	"databasus-backend/internal/modules/backups/internal/transfer"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
@@ -188,11 +187,6 @@ func New(deps Deps) Module {
 	var physicalService *physical.Service
 	cancellations := background.NewCancellationRegistry()
 
-	switchService := storageswitch.NewService(storageswitch.Deps{
-		Repositories: storageswitch.NewRepositories(deps.DB), Storages: deps.Storages,
-		Workspaces: deps.Workspaces,
-	})
-
 	configService := config.NewService(config.Deps{
 		PhysicalConfigSaved: config.PhysicalConfigSavedReactionFunc(
 			func(ctx context.Context, previous *config.PhysicalBackupConfig, saved config.PhysicalBackupConfig) error {
@@ -211,7 +205,6 @@ func New(deps Deps) Module {
 				return physicalService.RemoveBackupsForStorageChange(ctx, removal)
 			},
 		),
-		Switches: switchService,
 		LogicalBackups: config.BackupHistoryRemoverFunc(
 			func(ctx context.Context, removal config.HistoryRemoval) (config.RemovedBackupHistory, error) {
 				return logicalService.RemoveBackupsForStorageChange(ctx, removal)
@@ -318,7 +311,6 @@ func New(deps Deps) Module {
 		Runs:           runs,
 		Handler: backupshttpapi.NewHandler(backupshttpapi.Deps{
 			PhysicalBackups: physicalService,
-			Switches:        switchService,
 			Configs:         configService,
 			Transfers: transfer.NewService(transfer.Deps{
 				Configs:    configService,

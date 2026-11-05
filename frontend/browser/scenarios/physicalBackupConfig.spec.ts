@@ -35,6 +35,7 @@ const database: components['schemas']['Database'] = {
 };
 
 const storedConfig: BackupConfig = {
+  cleanup: { pendingFileCount: 0, failedFileCount: 0 },
   databaseId: database.id,
   storageId: null,
   isBackupsEnabled: true,
@@ -111,7 +112,7 @@ const serveBackupConfigRoutes = async (page: Page) => {
       const submittedConfig = route.request().postDataJSON() as BackupConfig;
 
       submittedConfigs.push(submittedConfig);
-      currentConfig = { ...submittedConfig, databaseId: database.id };
+      currentConfig = { ...currentConfig, ...submittedConfig, databaseId: database.id };
     }
 
     await route.fulfill({ json: currentConfig });

@@ -135,9 +135,13 @@ func streamWithCodecFallback(
 
 func discardAttemptFiles(ctx context.Context, common CommonBackupSpec, fileName string) {
 	err := common.Transactor.Transaction(ctx, func(ctx context.Context) error {
-		return common.FileStore.RequestFileDeletions(ctx, []storages.StoredFileReference{
-			{StorageID: common.StorageID, FileName: fileName},
-		})
+		return common.FileStore.RequestDiscardedFileDeletions(
+			ctx,
+			storages.DiscardedFiles{
+				DatabaseID: common.Publication.Publication.DatabaseID,
+				References: []storages.StoredFileReference{{StorageID: common.StorageID, FileName: fileName}},
+			},
+		)
 	})
 	if err != nil {
 		common.Logger.ErrorContext(

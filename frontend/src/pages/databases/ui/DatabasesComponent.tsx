@@ -2,11 +2,7 @@ import { Button, Input, Modal, Spin } from 'antd';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import {
-  type BackupConfig,
-  backupConfigApi,
-  StorageSwitchHistoryComponent,
-} from '../../../entities/backup-configs';
+import { type BackupConfig, backupConfigApi } from '../../../entities/backup-configs';
 import { databaseApi, sortUnavailableDatabasesFirst } from '../../../entities/databases';
 import type { Database } from '../../../entities/databases';
 import { type Storage, storageApi } from '../../../entities/storages';
@@ -285,8 +281,6 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-      <StorageSwitchHistoryComponent workspaceId={workspace.id} />
-
       {loadError !== undefined && <LoadFailure error={loadError} onRetry={() => loadDatabases()} />}
 
       {isLoading && !collection.isReady ? (

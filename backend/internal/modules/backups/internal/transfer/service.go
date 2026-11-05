@@ -9,7 +9,6 @@ import (
 	"databasus-backend/internal/lib/apierror"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/modules/backups/internal/config"
-	"databasus-backend/internal/modules/backups/internal/storageswitch"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
@@ -55,8 +54,7 @@ func (s *Service) TransferDatabase(
 	ctx context.Context,
 	actor users.Actor,
 	transfer DatabaseTransfer,
-) (*storageswitch.Outcome, error) {
-	var operation *storageswitch.Outcome
+) error {
 	err := s.transactor.Transaction(ctx, func(ctx context.Context) error {
 		transferredDatabase, err := s.getDatabase(ctx, transfer.DatabaseID)
 		if err != nil {
@@ -94,7 +92,7 @@ func (s *Service) TransferDatabase(
 		if transfer.TargetStorageID == nil {
 			err = s.moveStorage(ctx, actor, transferredConfig.GetBackupConfig().StorageID, transfer.TargetWorkspaceID)
 		} else {
-			operation, err = s.switchStorage(ctx, transfer)
+			err = s.switchStorage(ctx, transfer)
 		}
 
 		if err != nil {
@@ -114,7 +112,7 @@ func (s *Service) TransferDatabase(
 
 		return nil
 	})
-	return operation, err
+	return err
 }
 
 // moveStorage is refused with in_use by the configs' transfer check when another database backs up
@@ -135,14 +133,14 @@ func (s *Service) moveStorage(
 	})
 }
 
-func (s *Service) switchStorage(ctx context.Context, transfer DatabaseTransfer) (*storageswitch.Outcome, error) {
+func (s *Service) switchStorage(ctx context.Context, transfer DatabaseTransfer) error {
 	targetStorage, isFound, err := s.storages.GetStorageBlockingTransfer(ctx, *transfer.TargetStorageID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if !isFound || targetStorage.WorkspaceID != transfer.TargetWorkspaceID {
-		return nil, ErrTargetStorageNotInTargetWorkspace
+		return ErrTargetStorageNotInTargetWorkspace
 	}
 
 	return s.configs.SwitchStorage(

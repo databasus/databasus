@@ -133,6 +133,7 @@ const renderBackupListWithRestore = () => {
   let backupListRequests = 0;
   mockServer.use(
     mockApi.get('/backup-configs/{databaseId}', 200, {
+      cleanup: { pendingFileCount: 0, failedFileCount: 0 },
       databaseId: backedUpDatabase.id,
       isBackupsEnabled: true,
       storageId: 'storage-id',

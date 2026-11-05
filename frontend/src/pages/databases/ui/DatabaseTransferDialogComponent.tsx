@@ -8,12 +8,7 @@ import { EditStorageComponent } from '@/features/edit-storage';
 import { useSessionGuard } from '@/shared/auth';
 import { useLatestRef, useRequestRevision } from '@/shared/hooks';
 
-import {
-  type DatabaseTransfer,
-  backupConfigApi,
-  StorageSwitchHistoryComponent,
-  type StorageSwitch,
-} from '../../../entities/backup-configs';
+import { type DatabaseTransfer, backupConfigApi } from '../../../entities/backup-configs';
 import { type Database, databaseApi } from '../../../entities/databases';
 import type { Notifier } from '../../../entities/notifiers';
 import { notifierApi } from '../../../entities/notifiers';
@@ -78,7 +73,6 @@ export const DatabaseTransferDialogComponent = ({
   const [isShowCreateNotifier, setIsShowCreateNotifier] = useState(false);
 
   const [isTransferring, setIsTransferring] = useState(false);
-  const [acceptedSwitch, setAcceptedSwitch] = useState<StorageSwitch>();
 
   const { notification } = App.useApp();
   const isCurrent = useSessionGuard();
@@ -240,7 +234,7 @@ export const DatabaseTransferDialogComponent = ({
   };
 
   const handleTransfer = async () => {
-    if (!isCurrent() || isTransferring || acceptedSwitch) return;
+    if (!isCurrent() || isTransferring) return;
 
     const revision = contextRevision.GetCurrent();
     const targetWorkspaceId = selectedWorkspaceId;
@@ -262,7 +256,7 @@ export const DatabaseTransferDialogComponent = ({
     setIsTransferring(true);
 
     try {
-      const operation = await backupConfigApi.transferDatabase(database.id, transfer);
+      await backupConfigApi.transferDatabase(database.id, transfer);
       if (!isActive()) return;
 
       notification.success({
@@ -272,8 +266,7 @@ export const DatabaseTransferDialogComponent = ({
         }),
       });
 
-      if (operation) setAcceptedSwitch(operation);
-      else onTransferred();
+      onTransferred();
     } catch (e) {
       if (!isActive()) return;
 
@@ -343,7 +336,7 @@ export const DatabaseTransferDialogComponent = ({
       }
       footer={null}
       open={true}
-      onCancel={acceptedSwitch ? onTransferred : onClose}
+      onCancel={onClose}
       maskClosable={false}
       closable={!isTransferring}
       keyboard={!isTransferring}
@@ -372,19 +365,7 @@ export const DatabaseTransferDialogComponent = ({
           }
         />
       )}
-      {acceptedSwitch ? (
-        <>
-          <div>
-            {targetStorages.find((storage) => storage.id === acceptedSwitch.targetStorageId)?.name}
-          </div>
-          <StorageSwitchHistoryComponent
-            workspaceId={acceptedSwitch.workspaceId}
-            databaseId={database.id}
-            initialOperation={acceptedSwitch}
-          />
-          <Button onClick={onTransferred}>{t('common.actions.close')}</Button>
-        </>
-      ) : isLoading ? (
+      {isLoading ? (
         <div className="flex justify-center py-5">
           <Spin />
         </div>

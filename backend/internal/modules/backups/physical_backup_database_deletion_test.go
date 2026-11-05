@@ -108,7 +108,7 @@ func TestDeleteDatabaseWithPhysicalBackups(t *testing.T) {
 					countRows(
 						t,
 						tm,
-						"SELECT COUNT(*) FROM storages_pending_deletions WHERE storage_id = ? AND file_name = ?",
+						"SELECT COUNT(*) FROM storages_pending_file_deletions WHERE storage_id = ? AND file_name = ?",
 						storageID,
 						fileName,
 					),
@@ -122,7 +122,7 @@ func TestDeleteDatabaseWithPhysicalBackups(t *testing.T) {
 					countRows(
 						t,
 						tm,
-						"SELECT COUNT(*) FROM storages_pending_deletions WHERE storage_id = ? AND file_name = ?",
+						"SELECT COUNT(*) FROM storages_pending_file_deletions WHERE storage_id = ? AND file_name = ?",
 						storageID,
 						fileName+".metadata",
 					),

@@ -107,6 +107,8 @@ export const en = {
     },
   },
   errors: {
+    cleanupPending:
+      'File cleanup is still running. Wait for it to finish, or delete the affected storages individually and acknowledge that any remaining files must be removed manually.',
     alreadyMember: 'This user is already a member of the workspace.',
     cannotChangeOwnRole: 'You cannot change your own role in the workspace.',
     ownerRequiresTransfer:
@@ -1361,21 +1363,14 @@ export const en = {
     },
   },
   backups: {
+    cleanup: {
+      pending: 'Deleting old files. Files remaining: {{count}}.',
+      retrying: 'Deletion will be retried for files: {{count}}.',
+      retryStatus: 'Retry status',
+    },
     storageSwitch: {
-      history: 'Storage switch history',
-      pending: 'Storage switched. Old files are being cleaned up.',
-      completed: 'Cleanup completed',
-      remainders:
-        'Storage switched successfully, but deletion of some old files could not be confirmed. Remove these files manually from the old storage.',
-      target: 'Storage after switch: {{storageId}}',
-      database: 'Database: {{databaseId}}',
-      counts:
-        'Files: {{total}}. Pending: {{pending}}. Deleted: {{deleted}}. Remaining: {{remaining}}.',
-      retry: 'Retry status',
-      empty: 'No storage switches.',
-      more: 'Show more',
       warning:
-        'Switching storage removes the old backup history immediately. The new storage becomes active immediately. Files are deleted in the background, with up to five failed attempts and a 24-hour limit. If the old storage is unreachable, files may remain. Any remaining files must be removed manually. New physical backups start with a FULL.',
+        'Switching storage immediately removes the old backup history and activates the new storage. Old files are deleted in the background. Unreachable storage delays cleanup. Explicitly deleting the old storage stops automatic cleanup; any remaining files must be removed manually. New physical backups start with a FULL.',
       confirm: 'Switch storage and remove history',
     },
     encryption: {
@@ -1968,6 +1963,13 @@ export const en = {
     },
   },
   storages: {
+    cleanup: {
+      title: 'Cleanup is still running',
+      warning:
+        'We are still cleaning up this storage. Wait for cleanup to finish. If you delete it now, automatic cleanup will stop and any remaining files must be removed manually.',
+      wait: 'Wait',
+      deleteAnyway: 'Delete anyway',
+    },
     types: {
       local: 'Local storage',
       s3: 'S3',

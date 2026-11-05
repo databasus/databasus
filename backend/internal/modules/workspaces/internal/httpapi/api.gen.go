@@ -62,6 +62,7 @@ const (
 	ProblemCodeAlreadyRunning           ProblemCode = "already_running"
 	ProblemCodeBackupNotCompleted       ProblemCode = "backup_not_completed"
 	ProblemCodeCannotChangeOwnRole      ProblemCode = "cannot_change_own_role"
+	ProblemCodeCleanupPending           ProblemCode = "cleanup_pending"
 	ProblemCodeDatabaseConnectionFailed ProblemCode = "database_connection_failed"
 	ProblemCodeEmailNotConfigured       ProblemCode = "email_not_configured"
 	ProblemCodeEmailTaken               ProblemCode = "email_taken"
@@ -106,6 +107,8 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeBackupNotCompleted:
 		return true
 	case ProblemCodeCannotChangeOwnRole:
+		return true
+	case ProblemCodeCleanupPending:
 		return true
 	case ProblemCodeDatabaseConnectionFailed:
 		return true

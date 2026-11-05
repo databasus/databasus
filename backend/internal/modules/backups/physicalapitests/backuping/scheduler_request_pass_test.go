@@ -300,7 +300,7 @@ func TestPhysicalBackupRequestPass(t *testing.T) {
 
 		targetStorageID := team.App.CreateLocalStorage(t, team.Owner, team.Database.WorkspaceId)
 		switched := team.saveStorage(t, storageConfigSave{StorageID: &targetStorageID, IsEnabled: true})
-		require.Equal(t, http.StatusAccepted, switched.StatusCode(), "%s", switched.Body)
+		require.Equal(t, http.StatusOK, switched.StatusCode(), "%s", switched.Body)
 
 		listedBefore := team.listBackups(t)
 

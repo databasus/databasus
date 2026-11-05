@@ -40,6 +40,7 @@ const backedUpDatabase: Database = {
 };
 
 const backupConfigOfDatabase: BackupConfig = {
+  cleanup: { pendingFileCount: 0, failedFileCount: 0 },
   databaseId: backedUpDatabase.id,
   isBackupsEnabled: true,
   storageId: 'storage-id',

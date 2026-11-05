@@ -1,6 +1,6 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { Select, Tooltip } from 'antd';
-import { useId, useState } from 'react';
+import { type ReactNode, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -23,6 +23,7 @@ interface Props {
   onChange: (config: LogicalBackupConfigInput) => void;
   workspaceId: string;
   canClearStorage: boolean;
+  storageCleanupNotice?: ReactNode;
 }
 
 export const LogicalBackupConfigFields = ({
@@ -30,6 +31,7 @@ export const LogicalBackupConfigFields = ({
   onChange,
   workspaceId,
   canClearStorage,
+  storageCleanupNotice,
 }: Props) => {
   const { t } = useTranslation();
   const [isShowAdvanced, setIsShowAdvanced] = useState(() =>
@@ -75,6 +77,8 @@ export const LogicalBackupConfigFields = ({
           />
         </div>
       </div>
+
+      {storageCleanupNotice}
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('backups.config.encryption')}</div>

@@ -135,9 +135,8 @@ This is the project's common language. Each concept has one term in the document
 | Stored file reference | stored file reference, `storages.StoredFileReference` | The storage and the name of one stored file, which backup code keeps to read or delete the file later. |
 | Storage reader | storage reader, `storages.StorageReader` | Opens the files of one storage for reading, so a restore or a download reads many files without looking the storage up for each. |
 | Background write | background write, `storages.BackgroundWrite` | A write of a file that runs beside the producer feeding it through a pipe, as a dump does; it ends with a write receipt or an error. |
-| Storage switch operation | storage switch, `StorageSwitch` | A committed change of a database’s storage, with a fixed cleanup artifact set and an acceptance workspace. The new storage is active while cleanup may still be pending. |
-| Deletion batch | deletion batch, `DeletionBatch` | The storages-owned cleanup attribution for an operation: a captured set of files with finite attempts, a deadline and durable outcomes. A batch tracks results; an individual pending deletion drives a file’s deletion attempt and may also serve independent obligations. |
-| Pending deletion | pending deletion | A recorded obligation to delete a file from a storage, carried out by the deletion worker. |
+| Cleanup scope | `CleanupScope` | A database and the workspace that accepted its storage reassignment. Current cleanup counts include only outstanding files attributed to that pair. |
+| Pending deletion | pending deletion, `PendingDeletion` | One durable queue entry per storage and file name, retried until confirmed absence or explicit storage removal. Reassignment attribution is optional; protected uploads use the same queue. |
 | Deletion worker | deletion worker | The background job of the storages module that deletes files with a pending deletion. |
 | Console command | console command | An operation of the Databasus binary that the operator runs on the host or in the container instead of starting the server, such as a password reset. The `healthcheck` subcommand is not one: it only asks the running server. |
 | Migration | migration | A goose SQL file in `backend/migrations`, the only way to change the schema. |

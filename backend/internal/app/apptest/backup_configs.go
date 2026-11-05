@@ -44,12 +44,9 @@ func SaveBackupConfigWithStorage(tb testing.TB, member Session, use StorageUse) 
 		tb.Fatalf("save the backup config: %v", err)
 	}
 
-	if response.StatusCode() != http.StatusOK && response.StatusCode() != http.StatusAccepted {
+	if response.StatusCode() != http.StatusOK {
 		tb.Fatalf("save the backup config answered %d: %s", response.StatusCode(), response.Body)
 	}
 
-	if response.JSON202 != nil {
-		return GetBackupConfig(tb, member, use.DatabaseID)
-	}
 	return *response.JSON200
 }

@@ -28,7 +28,10 @@ func getEmailKeyParts() []string {
 }
 
 var (
-	urlCredentialsPattern = regexp.MustCompile(`([a-zA-Z][a-zA-Z0-9+.-]*)://[^\s:/@]+:[^\s@]*@`)
+	urlCredentialsPattern  = regexp.MustCompile(`([a-zA-Z][a-zA-Z0-9+.-]*)://[^\s:/@]+:[^\s@]*@`)
+	signedURLSecretPattern = regexp.MustCompile(
+		`(?i)([?&](?:amp;)?(?:sig|signature|awsaccesskeyid|googleaccessid|x-amz-(?:signature|credential|security-token)|x-goog-(?:signature|credential))=)[^&\s"'<>]*`,
+	)
 	keyValueSecretPattern = regexp.MustCompile(
 		`(?i)\b(password|passwd|secret|token|api[_-]?key|authorization)\s*=\s*\S+`,
 	)
@@ -110,11 +113,15 @@ func Redact(message string) string {
 
 // Credentials and addresses reach the message through fmt.Sprintf at call sites - audit messages
 // in particular embed raw user emails, and those messages are now exported off-box.
-// The strings.Contains guards keep three regex scans off the hot path: this runs on every record,
+// The strings.Contains guards keep regex scans off the hot path: this runs on every record,
 // and the overwhelming majority of messages contain none of these markers.
 func redactMessage(message string) string {
 	if strings.Contains(message, "://") {
 		message = urlCredentialsPattern.ReplaceAllString(message, "$1://"+redactedValue+":"+redactedValue+"@")
+	}
+
+	if strings.Contains(message, "?") {
+		message = signedURLSecretPattern.ReplaceAllString(message, "${1}"+redactedValue)
 	}
 
 	if strings.Contains(message, "=") {
@@ -209,7 +216,7 @@ func stripURLCredentials(value string) string {
 	// while still showing that credentials were present.
 	parsed.User = url.User("redacted")
 
-	return parsed.String()
+	return signedURLSecretPattern.ReplaceAllString(parsed.String(), "${1}"+redactedValue)
 }
 
 func maskEmails(value string) string {

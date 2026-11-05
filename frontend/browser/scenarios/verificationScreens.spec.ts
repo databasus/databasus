@@ -83,6 +83,7 @@ test.use({
         path: '/backup-configs/{databaseId}',
         status: 200,
         body: {
+          cleanup: { pendingFileCount: 0, failedFileCount: 0 },
           databaseId: database.id,
           storageId: null,
           isBackupsEnabled: false,

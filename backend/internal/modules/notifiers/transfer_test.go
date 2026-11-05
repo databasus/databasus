@@ -155,7 +155,7 @@ func TestTransferDatabaseWithNotifiers(t *testing.T) {
 			})
 		require.NoError(t, err)
 
-		require.Equal(t, http.StatusAccepted, response.StatusCode(), string(response.Body))
+		require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
 		assert.Equal(t, targetWorkspace.Id, getNotifier(t, tm.owner, createdNotifier.Id).WorkspaceId)
 		assert.Equal(t, targetWorkspace.Id, getDatabaseWorkspaceID(t, tm, databaseID))
 		assert.Equal(t, []uuid.UUID{createdNotifier.Id}, listAttachedNotifierIDs(t, tm.app, databaseID))

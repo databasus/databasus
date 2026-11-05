@@ -4,8 +4,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-
-	"databasus-backend/internal/modules/backups/internal/storageswitch"
 )
 
 func (s *Service) LockBackupConfig(ctx context.Context, databaseID uuid.UUID) (AnyBackupConfig, error) {
@@ -33,23 +31,22 @@ type StorageSwitchAssignment struct {
 func (s *Service) SwitchStorage(
 	ctx context.Context,
 	assignment StorageSwitchAssignment,
-) (*storageswitch.Outcome, error) {
+) error {
 	previous, err := s.LockBackupConfig(ctx, assignment.DatabaseID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	scope := storageSwitchScope{WorkspaceID: assignment.WorkspaceID, IsTransfer: true}
-	var saved SavedBackupConfig
 
 	switch typed := previous.(type) {
 	case LogicalBackupConfig:
 		typed.StorageID = &assignment.StorageID
-		saved, err = s.saveLogicalBackupConfig(ctx, scope, typed)
+		_, err = s.saveLogicalBackupConfig(ctx, scope, typed)
 	case PhysicalBackupConfig:
 		typed.StorageID = &assignment.StorageID
-		saved, err = s.savePhysicalBackupConfig(ctx, scope, typed)
+		_, err = s.savePhysicalBackupConfig(ctx, scope, typed)
 	default:
-		return nil, ErrMethodMismatch
+		return ErrMethodMismatch
 	}
-	return saved.StorageSwitch, err
+	return err
 }

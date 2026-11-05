@@ -1,9 +1,8 @@
-import { getApiClient, requireData } from '../../../shared/api';
+import { getApiClient, requireData, requireSuccess } from '../../../shared/api';
 import { collectCursorPages } from '../../../shared/lib/collectCursorPages';
 import type { BackupConfig } from '../model/BackupConfig';
 import type { BackupConfigInput } from '../model/BackupConfigInput';
 import type { DatabaseTransfer } from '../model/DatabaseTransfer';
-import type { StorageSwitch } from '../model/StorageSwitch';
 
 // The largest page the contract serves, so a workspace's configs arrive in as few requests as
 // possible.
@@ -43,10 +42,7 @@ export const backupConfigApi = {
     );
   },
 
-  async updateBackupConfig(
-    databaseId: string,
-    input: BackupConfigInput,
-  ): Promise<BackupConfig | StorageSwitch> {
+  async updateBackupConfig(databaseId: string, input: BackupConfigInput): Promise<BackupConfig> {
     return requireData(
       await getApiClient().PUT('/backup-configs/{databaseId}', {
         params: { path: { databaseId } },
@@ -55,16 +51,12 @@ export const backupConfigApi = {
     );
   },
 
-  async transferDatabase(
-    databaseId: string,
-    transfer: DatabaseTransfer,
-  ): Promise<StorageSwitch | undefined> {
+  async transferDatabase(databaseId: string, transfer: DatabaseTransfer): Promise<void> {
     const response = await getApiClient().POST('/databases/{databaseId}/transfer', {
       params: { path: { databaseId } },
       body: transfer,
     });
-    if (response.response.status === 204) return;
-    return requireData(response);
+    requireSuccess(response);
   },
 
   async hasBackupHistory(databaseId: string, isPhysical: boolean): Promise<boolean> {

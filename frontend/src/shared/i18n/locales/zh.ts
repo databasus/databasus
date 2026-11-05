@@ -106,6 +106,8 @@ export const zh: typeof en = {
     },
   },
   errors: {
+    cleanupPending:
+      '文件清理仍在进行中。请等待清理完成，或逐个删除受影响的存储，并确认剩余文件需要手动删除。',
     alreadyMember: '该用户已经是工作区成员。',
     cannotChangeOwnRole: '你不能更改自己在工作区中的角色。',
     ownerRequiresTransfer: '不能更改或移除所有者。请先将所有权转让给其他成员。',
@@ -1310,21 +1312,15 @@ export const zh: typeof en = {
     },
   },
   backups: {
+    cleanup: {
+      pending: '正在删除旧文件。剩余文件：{{count}}。',
+      retrying: '将重试删除的文件：{{count}}。',
+      retryStatus: '刷新状态',
+    },
     storageSwitch: {
-      history: '存储切换历史',
-      pending: '存储已切换，正在后台清理旧文件。',
-      completed: '清理已完成',
-      remainders: '存储已成功切换，但无法确认部分旧文件是否已删除。请从旧存储中手动删除这些文件。',
-      target: '切换后的存储：{{storageId}}',
-      database: '数据库：{{databaseId}}',
-      counts:
-        '文件总数：{{total}}。待处理：{{pending}}。已删除：{{deleted}}。未删除：{{remaining}}。',
-      retry: '重新查询状态',
-      empty: '暂无存储切换记录。',
-      more: '显示更多',
       warning:
-        '切换存储后，旧备份历史将立即移除，新存储会立即启用。旧文件将在后台删除，最多允许五次失败尝试，且清理时间不超过24小时。如果旧存储无法访问，可能会留下文件。剩余文件需要手动删除。新的物理备份将从FULL开始。',
-      confirm: '切换存储并删除历史',
+        '切换存储会立即移除旧备份历史并启用新存储。旧文件将在后台删除。存储不可访问会延迟清理。明确删除旧存储将停止自动清理，剩余文件需要手动删除。新的物理备份从 FULL 开始。',
+      confirm: '切换存储并移除历史记录',
     },
     encryption: {
       none: '无',
@@ -1874,6 +1870,13 @@ export const zh: typeof en = {
     },
   },
   storages: {
+    cleanup: {
+      title: '清理仍在进行中',
+      warning:
+        '我们仍在清理此存储。请等待清理完成。如果现在删除，自动清理将停止，剩余文件需要手动删除。',
+      wait: '等待',
+      deleteAnyway: '仍然删除',
+    },
     types: {
       local: '本地存储',
       s3: 'S3',

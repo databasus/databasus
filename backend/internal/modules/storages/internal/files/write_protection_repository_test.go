@@ -12,12 +12,12 @@ import (
 
 func TestCrossInstanceWriteProtection(t *testing.T) {
 	t.Parallel()
-	for _, scenario := range []string{"active upload", "canceled upload", "elapsed cleanup deadline", "storage drain"} {
+	for _, scenario := range []string{"active upload", "canceled upload", "expired upload window"} {
 		t.Run("protects a peer's unfinished write with "+scenario, func(t *testing.T) {
 			t.Parallel()
 			files := newTestFiles(t)
 			peerDeps := Deps{
-				Repository: files.repository, Batches: NewDeletionBatchRepository(files.db),
+				Repository:      files.repository,
 				WriteProtection: NewWriteProtectionRepository(files.db),
 				Transactor:      files.transactor, Locator: files.locator, Logger: files.job.logger,
 				Clock: files.clock, Timings: testTimings(), Uploads: files.uploads,
@@ -28,39 +28,21 @@ func TestCrossInstanceWriteProtection(t *testing.T) {
 			ctx, cancelWrite := context.WithCancel(t.Context())
 			defer cancelWrite()
 
-			var batch DeletionBatch
-			var terminal DeletionBatch
-
 			files.provider.onSave = func() {
-				batch = files.requestBatch(t, reference)
 				files.requestDeletions(t, reference)
 
 				if scenario == "canceled upload" {
 					cancelWrite()
 				}
-				if scenario == "elapsed cleanup deadline" {
+				if scenario == "expired upload window" {
 					files.clock.Advance(24 * time.Hour)
-				}
-				if scenario == "storage drain" {
-					request, err := peer.PrepareDrain(t.Context(), reference.StorageID, time.Minute)
-					require.NoError(t, err)
-					assert.Equal(t, []string{reference.FileName}, peer.DrainFiles(t.Context(), request))
 				}
 
 				require.NoError(t, peer.RunPass(t.Context(), files.clock.Now()))
 				assert.Empty(t, files.provider.getDeleted())
-				terminal = files.getBatch(t, batch.ID)
-				if scenario == "elapsed cleanup deadline" {
-					assert.Equal(t, CleanupWithRemainders, terminal.Status)
-				} else {
-					assert.Equal(t, CleanupPending, terminal.Status)
-				}
-
-				var failedAttempts int
-				require.NoError(t, files.db.WithContext(t.Context()).Raw(
-					"SELECT failed_attempts FROM storages_deletion_batch_items WHERE batch_id=?", batch.ID).
-					Scan(&failedAttempts).Error)
-				assert.Zero(t, failedAttempts)
+				pending, isPending := files.findPending(t, reference)
+				require.True(t, isPending)
+				assert.Zero(t, pending.AttemptCount)
 			}
 
 			_, writeErr := files.store.WriteFile(ctx, reference, strings.NewReader("payload"))
@@ -69,11 +51,8 @@ func TestCrossInstanceWriteProtection(t *testing.T) {
 			require.NoError(t, peer.RunPass(t.Context(), files.clock.Now()))
 			assert.Equal(t, []string{reference.FileName}, files.provider.getDeleted())
 
-			if scenario == "elapsed cleanup deadline" {
-				assert.Equal(t, terminal, files.getBatch(t, batch.ID))
-			} else {
-				assert.Equal(t, CleanupCompleted, files.getBatch(t, batch.ID).Status)
-			}
+			_, isPending := files.findPending(t, reference)
+			assert.False(t, isPending)
 		})
 	}
 }

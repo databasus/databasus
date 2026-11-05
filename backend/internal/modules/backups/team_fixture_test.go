@@ -240,10 +240,7 @@ func saveLogicalBackupConfig(
 
 	response := updateBackupConfig(t, session, databaseID,
 		newLogicalBackupConfigInput(t, &storageID, newLogicalBackupSettings()))
-	require.Contains(t, []int{http.StatusOK, http.StatusAccepted}, response.StatusCode(), string(response.Body))
-	if response.JSON202 != nil {
-		return apptest.GetBackupConfig(t, session, databaseID)
-	}
+	require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
 	return *response.JSON200
 }
 

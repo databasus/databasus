@@ -17,7 +17,7 @@ import (
 
 func TestLateWalStoragePublication(t *testing.T) {
 	t.Parallel()
-	t.Run("keeps files first registered after acceptance outside the captured cleanup set", func(t *testing.T) {
+	t.Run("queues late files without publishing into the replaced storage", func(t *testing.T) {
 		t.Parallel()
 
 		team := newWalTeam(t, walTeamSpec{})
@@ -46,7 +46,7 @@ func TestLateWalStoragePublication(t *testing.T) {
 			PERFORM pg_advisory_xact_lock(hashtextextended('%s',0)); END IF; RETURN NEW; END $$ LANGUAGE plpgsql`, oldStorage.StorageID, team.Database.Id, lockKey))
 		team.App.ExecuteSQL(
 			t,
-			`CREATE TRIGGER hold_wal_registration BEFORE INSERT ON storages_pending_deletions FOR EACH ROW EXECUTE FUNCTION hold_wal_registration()`,
+			`CREATE TRIGGER hold_wal_registration BEFORE INSERT ON storages_pending_file_deletions FOR EACH ROW EXECUTE FUNCTION hold_wal_registration()`,
 		)
 
 		rotateWal(t, source)
@@ -63,7 +63,7 @@ func TestLateWalStoragePublication(t *testing.T) {
 
 		targetWorkspace := apptest.CreateWorkspace(t, otherOwner, "Late WAL files")
 		target := apptest.CreateStorageNamespace(t, otherOwner, targetWorkspace.Id)
-		operation := apptest.TransferToStorage(
+		apptest.TransferToStorage(
 			t,
 			otherOwner,
 			apptest.StorageSwitchTransfer{
@@ -73,15 +73,23 @@ func TestLateWalStoragePublication(t *testing.T) {
 			},
 		)
 
+		var capturedFiles []string
+		team.App.QuerySQL(
+			t,
+			&capturedFiles,
+			"SELECT file_name FROM storages_pending_file_deletions WHERE storage_id=?",
+			oldStorage.StorageID,
+		)
+		require.NotEmpty(t, capturedFiles)
+
 		registrationLock.Commit(t)
 		var lateFiles []string
 		testwait.Until(
 			t,
 			"the old WAL writer creates and discards files after switch acceptance",
 			func(context.Context) error {
-				team.App.QuerySQL(t, &lateFiles, `SELECT pending.file_name FROM storages_pending_deletions pending
-				WHERE pending.storage_id=? AND pending.is_ordinary AND pending.generation>0 AND pending.updated_at>?
-				AND NOT EXISTS (SELECT 1 FROM storages_deletion_batch_items item WHERE item.batch_id=(SELECT deletion_batch_id FROM backups_storage_switches WHERE id=?) AND item.storage_id=pending.storage_id AND item.file_name=pending.file_name)`, oldStorage.StorageID, operation.CreatedAt, operation.Id)
+				team.App.QuerySQL(t, &lateFiles, `SELECT pending.file_name FROM storages_pending_file_deletions pending
+				WHERE pending.storage_id=? AND pending.cleanup_database_id=? AND pending.file_name LIKE ? AND pending.generation>0 AND pending.file_name NOT IN ?`, oldStorage.StorageID, team.Database.Id, team.Database.Id.String()+"-WAL-%", capturedFiles)
 				if len(lateFiles) < 2 {
 					return fmt.Errorf("the late WAL artifact and metadata have not been discarded yet")
 				}
@@ -102,10 +110,6 @@ func TestLateWalStoragePublication(t *testing.T) {
 		)
 		assert.Zero(t, oldSegments)
 
-		outcome := apptest.GetStorageSwitch(t, team.Owner, operation.Id)
-		assert.Equal(t, operation.Total, outcome.Total)
-		assert.Equal(t, operation.CleanupDeadline, outcome.CleanupDeadline)
-
 		team.App.ResumePhysicalJobs(t)
 		testwait.Until(t, "independent cleanup removes the late writer files", func(context.Context) error {
 			team.App.RunJobPass(t, "storage_file_deletion")
@@ -113,7 +117,7 @@ func TestLateWalStoragePublication(t *testing.T) {
 			team.App.QuerySQL(
 				t,
 				&pending,
-				"SELECT count(*) FROM storages_pending_deletions WHERE storage_id=? AND file_name IN ?",
+				"SELECT count(*) FROM storages_pending_file_deletions WHERE storage_id=? AND file_name IN ?",
 				oldStorage.StorageID,
 				lateFiles,
 			)
@@ -122,10 +126,6 @@ func TestLateWalStoragePublication(t *testing.T) {
 			}
 			return nil
 		})
-
-		outcome = apptest.GetStorageSwitch(t, team.Owner, operation.Id)
-		assert.Equal(t, operation.Total, outcome.Total)
-		assert.Equal(t, operation.CleanupDeadline, outcome.CleanupDeadline)
 	})
 	t.Run("rejects the old streamer's uploads after another instance accepts the switch", func(t *testing.T) {
 		t.Parallel()
@@ -158,7 +158,7 @@ func TestLateWalStoragePublication(t *testing.T) {
 		team.App.WaitForPhysicalBackups(t)
 		team.App.PausePhysicalJobs(t)
 
-		operation := apptest.TransferToStorage(t, otherOwner, apptest.StorageSwitchTransfer{
+		apptest.TransferToStorage(t, otherOwner, apptest.StorageSwitchTransfer{
 			DatabaseID: team.Database.Id, WorkspaceID: targetWorkspace.Id, StorageID: target.StorageID,
 		})
 
@@ -172,7 +172,7 @@ func TestLateWalStoragePublication(t *testing.T) {
 		team.App.QuerySQL(
 			t,
 			&acceptedGeneration,
-			"SELECT generation FROM storages_pending_deletions WHERE storage_id=? AND file_name=?",
+			"SELECT generation FROM storages_pending_file_deletions WHERE storage_id=? AND file_name=?",
 			oldStorage.StorageID,
 			oldFileName,
 		)
@@ -181,27 +181,25 @@ func TestLateWalStoragePublication(t *testing.T) {
 		team.App.QuerySQL(
 			t,
 			&captured,
-			"SELECT count(*) FROM storages_deletion_batch_items WHERE batch_id=(SELECT deletion_batch_id FROM backups_storage_switches WHERE id=?) AND storage_id=? AND file_name=?",
-			operation.Id,
+			"SELECT count(*) FROM storages_pending_file_deletions WHERE cleanup_database_id=? AND storage_id=? AND file_name=?",
+			team.Database.Id,
 			oldStorage.StorageID,
 			oldFileName,
 		)
 		require.Equal(t, 1, captured)
 		otherInstance.RunJobPass(t, "storage_file_deletion")
-		var capturedStatus string
+		var capturedCount int
 		team.App.QuerySQL(
 			t,
-			&capturedStatus,
-			"SELECT status FROM storages_deletion_batch_items WHERE batch_id=(SELECT deletion_batch_id FROM backups_storage_switches WHERE id=?) AND storage_id=? AND file_name=?",
-			operation.Id,
+			&capturedCount,
+			"SELECT count(*) FROM storages_pending_file_deletions WHERE cleanup_database_id=? AND storage_id=? AND file_name=?",
+			team.Database.Id,
 			oldStorage.StorageID,
 			oldFileName,
 		)
-		require.Equal(t, "PENDING", capturedStatus, "a peer's active upload must remain protected from deletion")
+		require.Equal(t, 1, capturedCount, "a peer's active upload must remain protected from deletion")
 
-		outcomeWhileWriting := apptest.GetStorageSwitch(t, otherOwner, operation.Id)
-		assert.Equal(t, operation.Total, outcomeWhileWriting.Total)
-		assert.Positive(t, outcomeWhileWriting.Pending)
+		assert.Positive(t, apptest.GetBackupConfig(t, otherOwner, team.Database.Id).Cleanup.PendingFileCount)
 
 		held.Release()
 		select {
@@ -215,7 +213,7 @@ func TestLateWalStoragePublication(t *testing.T) {
 			team.App.QuerySQL(
 				t,
 				&generation,
-				"SELECT generation FROM storages_pending_deletions WHERE storage_id=? AND file_name=?",
+				"SELECT generation FROM storages_pending_file_deletions WHERE storage_id=? AND file_name=?",
 				oldStorage.StorageID,
 				oldFileName,
 			)
@@ -232,14 +230,14 @@ func TestLateWalStoragePublication(t *testing.T) {
 				otherInstance.RunJobPass(t, "storage_file_deletion")
 				team.App.QuerySQL(
 					t,
-					&capturedStatus,
-					"SELECT status FROM storages_deletion_batch_items WHERE batch_id=(SELECT deletion_batch_id FROM backups_storage_switches WHERE id=?) AND storage_id=? AND file_name=?",
-					operation.Id,
+					&capturedCount,
+					"SELECT count(*) FROM storages_pending_file_deletions WHERE cleanup_database_id=? AND storage_id=? AND file_name=?",
+					team.Database.Id,
 					oldStorage.StorageID,
 					oldFileName,
 				)
-				if capturedStatus != "DELETED" {
-					return fmt.Errorf("the discarded upload remains %s", capturedStatus)
+				if capturedCount != 0 {
+					return fmt.Errorf("the discarded upload remains pending")
 				}
 				return nil
 			},
@@ -302,9 +300,5 @@ func TestLateWalStoragePublication(t *testing.T) {
 		for _, fileName := range newFiles {
 			target.RequireFile(t, fileName)
 		}
-
-		outcome := apptest.GetStorageSwitch(t, team.Owner, operation.Id)
-		assert.Equal(t, operation.Total, outcome.Total)
-		assert.Equal(t, operation.CleanupDeadline, outcome.CleanupDeadline)
 	})
 }

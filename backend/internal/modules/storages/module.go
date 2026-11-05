@@ -60,24 +60,22 @@ type (
 	// LocalFolders are the folders a local storage writes through.
 	LocalFolders = providers.LocalFolders
 	// FileTimings are the deadlines of the file lifecycle.
-	FileTimings          = files.Timings
-	DeletionBatch        = files.DeletionBatch
-	DeletionBatchRequest = files.DeletionBatchRequest
-	DeletionBatchStatus  = files.DeletionBatchStatus
+	FileTimings         = files.Timings
+	DiscardedFiles      = files.DiscardedFiles
+	FileDeletionRequest = files.FileDeletionRequest
+	CleanupScope        = files.CleanupScope
+	CleanupSummary      = files.CleanupSummary
 )
 
 const (
-	CleanupPending        = files.CleanupPending
-	CleanupCompleted      = files.CleanupCompleted
-	CleanupWithRemainders = files.CleanupWithRemainders
-	TypeLocal             = providers.TypeLocal
-	TypeS3                = providers.TypeS3
-	TypeGoogleDrive       = providers.TypeGoogleDrive
-	TypeNAS               = providers.TypeNAS
-	TypeAzureBlob         = providers.TypeAzureBlob
-	TypeFTP               = providers.TypeFTP
-	TypeSFTP              = providers.TypeSFTP
-	TypeRclone            = providers.TypeRclone
+	TypeLocal       = providers.TypeLocal
+	TypeS3          = providers.TypeS3
+	TypeGoogleDrive = providers.TypeGoogleDrive
+	TypeNAS         = providers.TypeNAS
+	TypeAzureBlob   = providers.TypeAzureBlob
+	TypeFTP         = providers.TypeFTP
+	TypeSFTP        = providers.TypeSFTP
+	TypeRclone      = providers.TypeRclone
 )
 
 // ProductionFileTimings is the policy of a running instance; tests pass shorter timings.
@@ -107,8 +105,9 @@ type Module interface {
 	// ConfirmFileWrites and RequestFileDeletions refuse to run outside a transaction in ctx.
 	ConfirmFileWrites(ctx context.Context, receipts []WriteReceipt) error
 	RequestFileDeletions(ctx context.Context, references []StoredFileReference) error
-	RequestDeletionBatch(ctx context.Context, request DeletionBatchRequest) (DeletionBatch, error)
-	GetDeletionBatches(ctx context.Context, ids []uuid.UUID) ([]DeletionBatch, error)
+	RequestDiscardedFileDeletions(ctx context.Context, request DiscardedFiles) error
+	RequestScopedFileDeletions(ctx context.Context, request FileDeletionRequest) error
+	GetCleanupSummaries(ctx context.Context, scopes []CleanupScope) (map[CleanupScope]CleanupSummary, error)
 	GetPendingFileReferences(ctx context.Context, prefix string) ([]StoredFileReference, error)
 	GetStorageReader(ctx context.Context, storageID uuid.UUID) (StorageReader, error)
 
@@ -187,7 +186,6 @@ func New(deps Deps) Module {
 
 	fileDeps := files.Deps{
 		Repository:      files.NewPendingDeletionRepository(deps.DB),
-		Batches:         files.NewDeletionBatchRepository(deps.DB),
 		WriteProtection: files.NewWriteProtectionRepository(deps.DB),
 		Transactor:      deps.Transactor,
 		Locator:         files.NewLocator(files.LocatorDeps{Registry: registry, Settings: settingsReader}),
@@ -203,7 +201,7 @@ func New(deps Deps) Module {
 		Repositories:  repositories,
 		Settings:      settingsReader,
 		Registry:      registry,
-		FileDeletions: deletionJob,
+		FileDeletions: fileStore,
 		Transactor:    deps.Transactor,
 		Logger:        deps.Logger,
 		AuditLog:      deps.AuditLog,

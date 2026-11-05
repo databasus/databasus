@@ -108,6 +108,8 @@ export const pt: typeof en = {
     },
   },
   errors: {
+    cleanupPending:
+      'A limpeza de arquivos ainda está em andamento. Aguarde a conclusão ou exclua os armazenamentos afetados individualmente, confirmando que os arquivos restantes terão que ser removidos manualmente.',
     alreadyMember: 'Este usuário já é membro do espaço de trabalho.',
     cannotChangeOwnRole: 'Você não pode alterar seu próprio papel no espaço de trabalho.',
     ownerRequiresTransfer:
@@ -1384,22 +1386,14 @@ export const pt: typeof en = {
     },
   },
   backups: {
+    cleanup: {
+      pending: 'Excluindo arquivos antigos. Arquivos restantes: {{count}}.',
+      retrying: 'A exclusão será tentada novamente para arquivos: {{count}}.',
+      retryStatus: 'Atualizar status',
+    },
     storageSwitch: {
-      history: 'Histórico de trocas de armazenamento',
-      pending:
-        'O armazenamento foi alterado. Os arquivos antigos estão sendo excluídos em segundo plano.',
-      completed: 'Limpeza concluída',
-      remainders:
-        'O armazenamento foi alterado com sucesso, mas não foi possível confirmar a exclusão de alguns arquivos antigos. Exclua-os manualmente do armazenamento anterior.',
-      target: 'Armazenamento após a troca: {{storageId}}',
-      database: 'Banco de dados: {{databaseId}}',
-      counts:
-        'Arquivos: {{total}}. Pendentes: {{pending}}. Excluídos: {{deleted}}. Restantes: {{remaining}}.',
-      retry: 'Consultar status novamente',
-      empty: 'Nenhuma troca de armazenamento.',
-      more: 'Mostrar mais',
       warning:
-        'Ao trocar o armazenamento, o histórico anterior de backups é removido imediatamente e o novo armazenamento entra em uso na hora. Os arquivos são excluídos em segundo plano, com limite de cinco tentativas malsucedidas e 24 horas. Se o armazenamento anterior estiver inacessível, alguns arquivos poderão permanecer nele. Os arquivos restantes devem ser removidos manualmente. Os novos backups físicos começam com um FULL.',
+        'A troca de armazenamento remove imediatamente o histórico de backups anterior e ativa o novo armazenamento. Os arquivos antigos são excluídos em segundo plano. Um armazenamento inacessível atrasa a limpeza. Excluir explicitamente o armazenamento anterior interrompe a limpeza automática; os arquivos restantes precisam ser removidos manualmente. Novos backups físicos começam com um FULL.',
       confirm: 'Trocar armazenamento e remover histórico',
     },
     encryption: {
@@ -2008,6 +2002,13 @@ export const pt: typeof en = {
     },
   },
   storages: {
+    cleanup: {
+      title: 'A limpeza ainda está em andamento',
+      warning:
+        'Ainda estamos limpando este armazenamento. Aguarde a conclusão da limpeza. Se você excluí-lo agora, a limpeza automática será interrompida e os arquivos restantes terão que ser removidos manualmente.',
+      wait: 'Aguardar',
+      deleteAnyway: 'Excluir mesmo assim',
+    },
     types: {
       local: 'Armazenamento local',
       s3: 'S3',

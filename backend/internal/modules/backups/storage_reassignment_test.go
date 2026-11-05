@@ -42,18 +42,23 @@ func TestReassignLogicalBackupStorage(t *testing.T) {
 			assert.Equal(t, 1, countLogicalBackups(t, tm, databaseID))
 			assert.Zero(
 				t,
-				countRows(t, tm, "SELECT count(*) FROM backups_storage_switches WHERE database_id=?", databaseID),
+				countRows(
+					t,
+					tm,
+					"SELECT count(*) FROM storages_pending_file_deletions WHERE cleanup_database_id=?",
+					databaseID,
+				),
 			)
 
 			saveLogicalBackupConfig(t, tm.owner, databaseID, targetStorageID)
 			assert.Zero(t, countLogicalBackups(t, tm, databaseID))
 			assert.Equal(
 				t,
-				1,
+				2,
 				countRows(
 					t,
 					tm,
-					"SELECT count(*) FROM backups_storage_switches WHERE database_id=? AND previous_storage_id IS NULL",
+					"SELECT count(*) FROM storages_pending_file_deletions WHERE cleanup_database_id=?",
 					databaseID,
 				),
 			)
@@ -110,7 +115,7 @@ func TestRefuseLogicalStorageSwitchDuringWork(t *testing.T) {
 					countRows(
 						t,
 						tm,
-						"SELECT count(*) FROM backups_storage_switches WHERE database_id=?",
+						"SELECT count(*) FROM storages_pending_file_deletions WHERE cleanup_database_id=?",
 						database.databaseID,
 					),
 				)
@@ -146,11 +151,11 @@ func TestRollbackStorageSwitch(t *testing.T) {
 			} else {
 				tm.app.ExecuteSQL(
 					t,
-					`CREATE FUNCTION refuse_switch_deletion() RETURNS trigger AS $$ BEGIN RAISE EXCEPTION 'batch item refused'; END $$ LANGUAGE plpgsql`,
+					`CREATE FUNCTION refuse_switch_deletion() RETURNS trigger AS $$ BEGIN RAISE EXCEPTION 'deletion refused'; END $$ LANGUAGE plpgsql`,
 				)
 				tm.app.ExecuteSQL(
 					t,
-					`CREATE TRIGGER refuse_switch_deletion BEFORE INSERT ON storages_deletion_batch_items FOR EACH ROW EXECUTE FUNCTION refuse_switch_deletion()`,
+					`CREATE TRIGGER refuse_switch_deletion BEFORE INSERT ON storages_pending_file_deletions FOR EACH ROW EXECUTE FUNCTION refuse_switch_deletion()`,
 				)
 			}
 
@@ -165,9 +170,13 @@ func TestRollbackStorageSwitch(t *testing.T) {
 			assert.Equal(t, 1, countLogicalBackups(t, tm, databaseID))
 			assert.Zero(
 				t,
-				countRows(t, tm, "SELECT count(*) FROM backups_storage_switches WHERE database_id=?", databaseID),
+				countRows(
+					t,
+					tm,
+					"SELECT count(*) FROM storages_pending_file_deletions WHERE cleanup_database_id=?",
+					databaseID,
+				),
 			)
-			assert.Zero(t, countRows(t, tm, "SELECT count(*) FROM storages_deletion_batches"))
 			tm.app.RunJobPass(t, storageFileDeletionJobName)
 			assert.True(t, tm.app.IsLocalStorageFilePresent(t, oldBackup.fileName))
 		})
@@ -191,7 +200,7 @@ func TestRollbackReassignedLogicalStorage(t *testing.T) {
 			newLogicalBackupConfigInput(t, nil, newLogicalBackupSettings()),
 		)
 		require.Equal(t, http.StatusOK, cleared.StatusCode(), "%s", cleared.Body)
-		tm.app.RefuseStorageDeletionBatches(t)
+		tm.app.RefuseStorageFileDeletions(t)
 
 		assigned := updateBackupConfig(
 			t,
@@ -205,12 +214,16 @@ func TestRollbackReassignedLogicalStorage(t *testing.T) {
 		assert.Contains(t, listLogicalBackupIDs(t, tm.owner, databaseID), backup.id)
 		assert.Zero(
 			t,
-			countRows(t, tm, "SELECT count(*) FROM backups_storage_switches WHERE database_id=?", databaseID),
+			countRows(
+				t,
+				tm,
+				"SELECT count(*) FROM storages_pending_file_deletions WHERE cleanup_database_id=?",
+				databaseID,
+			),
 		)
-		assert.Zero(t, countRows(t, tm, "SELECT count(*) FROM storages_deletion_batches"))
 		assert.Zero(
 			t,
-			countRows(t, tm, "SELECT count(*) FROM storages_pending_deletions WHERE storage_id=?", oldStorageID),
+			countRows(t, tm, "SELECT count(*) FROM storages_pending_file_deletions WHERE storage_id=?", oldStorageID),
 		)
 		tm.app.RunJobPass(t, storageFileDeletionJobName)
 		assert.True(t, tm.app.IsLocalStorageFilePresent(t, backup.fileName))

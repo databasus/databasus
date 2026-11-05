@@ -12,6 +12,7 @@ import (
 
 	"databasus-backend/internal/app/apptest"
 	apiclient "databasus-backend/internal/lib/apiclient"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/workspaces"
 )
 
@@ -110,7 +111,34 @@ func TestDeleteWorkspace(t *testing.T) {
 			)
 		})
 
-	t.Run("deletes the workspace and removes the file its storage was about to clean up", func(t *testing.T) {
+	t.Run("prioritizes workspace_not_empty when it has a database and pending cleanup", func(t *testing.T) {
+		t.Parallel()
+
+		tm := newTeam(t)
+		storageID := tm.app.CreateLocalStorage(t, tm.owner, tm.workspace.Id)
+		databaseID := tm.app.InsertDatabase(t, tm.workspace.Id)
+		tm.app.WriteUnpublishedFile(t, storageID, "pending.dump")
+
+		response := deleteWorkspace(t, tm.owner, tm.workspace.Id)
+
+		requireProblem(
+			t,
+			response.StatusCode(),
+			response.Body,
+			http.StatusConflict,
+			apiclient.ProblemCodeWorkspaceNotEmpty,
+		)
+		assert.Equal(t, 1, countRows(t, tm.app, "SELECT count(*) FROM databases WHERE id=?", databaseID))
+		assert.Equal(t, 1, countRows(t, tm.app, "SELECT count(*) FROM storages WHERE id=?", storageID))
+		assert.Equal(
+			t,
+			1,
+			countRows(t, tm.app, "SELECT count(*) FROM storages_pending_file_deletions WHERE storage_id=?", storageID),
+		)
+		assert.True(t, tm.app.IsLocalStorageFilePresent(t, "pending.dump"))
+	})
+
+	t.Run("refuses workspace deletion when its storage has pending cleanup", func(t *testing.T) {
 		t.Parallel()
 
 		tm := newTeam(t)
@@ -121,10 +149,112 @@ func TestDeleteWorkspace(t *testing.T) {
 
 		response := deleteWorkspace(t, tm.owner, tm.workspace.Id)
 
-		require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
-		assert.False(t, tm.app.IsLocalStorageFilePresent(t, pendingFileName))
-		assert.Equal(t, 0, countRows(t, tm.app, "SELECT COUNT(*) FROM storages WHERE id = ?", storageID))
-		assert.Equal(t, 0, countRows(t, tm.app, "SELECT COUNT(*) FROM storages_local WHERE storage_id = ?", storageID))
+		requireProblem(
+			t,
+			response.StatusCode(),
+			response.Body,
+			http.StatusConflict,
+			apiclient.ProblemCodeCleanupPending,
+		)
+		assert.True(t, tm.app.IsLocalStorageFilePresent(t, pendingFileName))
+		assert.Equal(t, 1, countRows(t, tm.app, "SELECT COUNT(*) FROM storages WHERE id = ?", storageID))
+		assert.Equal(t, 1, countRows(t, tm.app, "SELECT COUNT(*) FROM storages_local WHERE storage_id = ?", storageID))
+	})
+
+	t.Run(
+		"rolls back all subscribers with retained references after processing storage with pending cleanup",
+		func(t *testing.T) {
+			t.Parallel()
+
+			tm := newTeam(t)
+			tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
+			createWebhookNotifier(t, tm.owner, tm.workspace.Id)
+			pendingStorageID := tm.app.CreateLocalStorage(t, tm.owner, tm.workspace.Id)
+			referencedStorageID := tm.app.CreateLocalStorage(t, tm.owner, tm.workspace.Id)
+			for _, storage := range []struct {
+				id   uuid.UUID
+				name string
+			}{
+				{id: pendingStorageID, name: "A pending cleanup"},
+				{id: referencedStorageID, name: "Z retained backup"},
+			} {
+				listed, err := tm.owner.Client.GetStorageWithResponse(t.Context(), storage.id)
+				require.NoError(t, err)
+				require.Equal(t, http.StatusOK, listed.StatusCode())
+
+				renamed, err := tm.owner.Client.UpdateStorageWithResponse(
+					t.Context(),
+					storage.id,
+					apiclient.StorageUpdate{
+						Name: storage.name, Settings: listed.JSON200.Settings,
+					},
+				)
+				require.NoError(t, err)
+				require.Equal(t, http.StatusOK, renamed.StatusCode())
+			}
+
+			tm.app.WriteUnpublishedFile(t, pendingStorageID, "pending.dump")
+			externalWorkspace := apptest.CreateWorkspace(t, tm.owner, "External database")
+			externalDatabaseID := tm.app.InsertDatabase(t, externalWorkspace.Id)
+			tm.app.ExecuteSQL(t, `INSERT INTO backups_logical (id, database_id, storage_id, status, file_name)
+			VALUES (?, ?, ?, 'COMPLETED', 'retained.dump')`, uuid.New(), externalDatabaseID, referencedStorageID)
+
+			response := deleteWorkspace(t, tm.owner, tm.workspace.Id)
+
+			requireProblem(t, response.StatusCode(), response.Body, http.StatusConflict, apiclient.ProblemCodeInUse)
+			requireWorkspaceMembersAndContentListed(
+				t,
+				tm,
+				workspaceContent{databaseCount: 0, notifierCount: 1, storageCount: 2},
+			)
+			assert.Equal(
+				t,
+				1,
+				countRows(
+					t,
+					tm.app,
+					"SELECT count(*) FROM storages_pending_file_deletions WHERE storage_id=?",
+					pendingStorageID,
+				),
+			)
+		},
+	)
+
+	t.Run("retains cleanup on external storage after its attributed workspace is removed", func(t *testing.T) {
+		t.Parallel()
+
+		tm := newTeam(t)
+		externalWorkspace := apptest.CreateWorkspace(t, tm.owner, "Surviving storage")
+		externalStorageID := tm.app.CreateLocalStorage(t, tm.owner, externalWorkspace.Id)
+		tm.app.RequestStorageFileDeletions(t, storages.FileDeletionRequest{
+			References: []storages.StoredFileReference{{StorageID: externalStorageID, FileName: "orphan.dump"}},
+			Scope:      &storages.CleanupScope{DatabaseID: uuid.New(), WorkspaceID: tm.workspace.Id},
+		})
+
+		response := deleteWorkspace(t, tm.owner, tm.workspace.Id)
+
+		require.Equal(t, http.StatusNoContent, response.StatusCode(), "%s", response.Body)
+		assert.Equal(
+			t,
+			1,
+			countRows(
+				t,
+				tm.app,
+				"SELECT count(*) FROM storages_pending_file_deletions WHERE storage_id=? AND cleanup_workspace_id=?",
+				externalStorageID,
+				tm.workspace.Id,
+			),
+		)
+		tm.app.RunJobPass(t, "storage_file_deletion")
+		assert.Zero(
+			t,
+			countRows(
+				t,
+				tm.app,
+				"SELECT count(*) FROM storages_pending_file_deletions WHERE storage_id=?",
+				externalStorageID,
+			),
+		)
 	})
 
 	t.Run("keeps the accounts and the other workspaces of the deleted workspace's members", func(t *testing.T) {

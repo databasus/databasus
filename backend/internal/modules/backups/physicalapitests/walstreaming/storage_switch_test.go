@@ -56,10 +56,7 @@ func TestTransferPhysicalWalStorage(t *testing.T) {
 				DatabaseID: team.Database.Id, WorkspaceID: targetWorkspace.Id, StorageID: target.StorageID,
 			})
 
-			if isStorageCleared {
-				assert.Nil(t, operation.PreviousStorageId)
-			}
-			assert.Positive(t, operation.Total)
+			assert.Positive(t, operation.Cleanup.PendingFileCount)
 
 			moved, err := team.Owner.Client.GetDatabaseWithResponse(t.Context(), team.Database.Id)
 			require.NoError(t, err)
@@ -70,8 +67,8 @@ func TestTransferPhysicalWalStorage(t *testing.T) {
 			team.App.QuerySQL(
 				t,
 				&attributedFiles,
-				"SELECT count(*) FROM storages_deletion_batch_items WHERE batch_id=(SELECT deletion_batch_id FROM backups_storage_switches WHERE id=?) AND storage_id=?",
-				operation.Id,
+				"SELECT count(*) FROM storages_pending_file_deletions WHERE cleanup_database_id=? AND storage_id=?",
+				team.Database.Id,
 				team.StorageID,
 			)
 			assert.Positive(t, attributedFiles)
@@ -173,8 +170,7 @@ func TestReassignPhysicalWalStorage(t *testing.T) {
 				},
 			)
 			require.NoError(t, err)
-			require.Equal(t, http.StatusAccepted, assigned.StatusCode(), "%s", assigned.Body)
-			require.Nil(t, assigned.JSON202.PreviousStorageId)
+			require.Equal(t, http.StatusOK, assigned.StatusCode(), "%s", assigned.Body)
 
 			rotateWal(t, source)
 			var files []string

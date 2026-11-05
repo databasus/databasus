@@ -80,7 +80,7 @@ func TestCancelPhysicalWorkAfterConfigSave(t *testing.T) {
 		catalog.App.QuerySQL(
 			t,
 			&pendingFiles,
-			"SELECT file_name FROM storages_pending_deletions WHERE storage_id=?",
+			"SELECT file_name FROM storages_pending_file_deletions WHERE storage_id=?",
 			catalog.StorageID,
 		)
 		for _, suffix := range []string{"", ".metadata", ".manifest"} {

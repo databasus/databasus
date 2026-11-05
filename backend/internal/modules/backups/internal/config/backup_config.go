@@ -7,6 +7,8 @@ import (
 	"slices"
 
 	"github.com/google/uuid"
+
+	"databasus-backend/internal/modules/storages"
 )
 
 // Method is how a database is backed up. A physical PostgreSQL database is backed up physically and
@@ -47,6 +49,7 @@ const (
 
 // BackupConfig holds what the configs of both methods share.
 type BackupConfig struct {
+	Cleanup           storages.CleanupSummary
 	StorageGeneration int64
 	DatabaseID        uuid.UUID
 	IsBackupsEnabled  bool

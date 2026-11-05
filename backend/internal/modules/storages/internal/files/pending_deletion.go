@@ -10,10 +10,12 @@ import (
 // status column, because a row exists exactly while nobody has committed to keeping the file it
 // names.
 type PendingDeletion struct {
-	ID        uuid.UUID `gorm:"column:id;primaryKey;type:uuid"`
-	StorageID uuid.UUID `gorm:"column:storage_id;not null;type:uuid"`
-	FileName  string    `gorm:"column:file_name;not null;type:text"`
-	NotBefore time.Time `gorm:"column:not_before;not null"`
+	CleanupDatabaseID  *uuid.UUID `gorm:"column:cleanup_database_id;type:uuid"`
+	CleanupWorkspaceID *uuid.UUID `gorm:"column:cleanup_workspace_id;type:uuid"`
+	ID                 uuid.UUID  `gorm:"column:id;primaryKey;type:uuid"`
+	StorageID          uuid.UUID  `gorm:"column:storage_id;not null;type:uuid"`
+	FileName           string     `gorm:"column:file_name;not null;type:text"`
+	NotBefore          time.Time  `gorm:"column:not_before;not null"`
 	// Generation is what a write receipt matches. Every event that takes the file away from its
 	// writer raises it, which invalidates the receipt the writer is holding.
 	Generation int `gorm:"column:generation;not null"`
@@ -26,7 +28,7 @@ type PendingDeletion struct {
 }
 
 func (PendingDeletion) TableName() string {
-	return "storages_pending_deletions"
+	return "storages_pending_file_deletions"
 }
 
 func (p *PendingDeletion) GetReference() StoredFileReference {

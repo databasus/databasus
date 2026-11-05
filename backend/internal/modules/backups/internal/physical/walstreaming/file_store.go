@@ -15,5 +15,6 @@ type FileStore interface {
 	) (storages.WriteReceipt, error)
 	StartBackgroundWrite(ctx context.Context, spec storages.BackgroundWriteSpec) storages.BackgroundWrite
 	ConfirmFileWrites(ctx context.Context, receipts []storages.WriteReceipt) error
+	RequestDiscardedFileDeletions(ctx context.Context, request storages.DiscardedFiles) error
 	RequestFileDeletions(ctx context.Context, references []storages.StoredFileReference) error
 }

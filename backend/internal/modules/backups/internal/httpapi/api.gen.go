@@ -403,6 +403,7 @@ const (
 	ProblemCodeAlreadyRunning           ProblemCode = "already_running"
 	ProblemCodeBackupNotCompleted       ProblemCode = "backup_not_completed"
 	ProblemCodeCannotChangeOwnRole      ProblemCode = "cannot_change_own_role"
+	ProblemCodeCleanupPending           ProblemCode = "cleanup_pending"
 	ProblemCodeDatabaseConnectionFailed ProblemCode = "database_connection_failed"
 	ProblemCodeEmailNotConfigured       ProblemCode = "email_not_configured"
 	ProblemCodeEmailTaken               ProblemCode = "email_taken"
@@ -447,6 +448,8 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeBackupNotCompleted:
 		return true
 	case ProblemCodeCannotChangeOwnRole:
+		return true
+	case ProblemCodeCleanupPending:
 		return true
 	case ProblemCodeDatabaseConnectionFailed:
 		return true
@@ -636,27 +639,6 @@ const (
 func (e StorageMovedWithDatabaseType) Valid() bool {
 	switch e {
 	case StorageMovedWithDatabaseTypeMOVEWITHDATABASE:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for StorageSwitchStatus.
-const (
-	StorageSwitchStatusCLEANUPPENDING          StorageSwitchStatus = "CLEANUP_PENDING"
-	StorageSwitchStatusCOMPLETED               StorageSwitchStatus = "COMPLETED"
-	StorageSwitchStatusCOMPLETEDWITHREMAINDERS StorageSwitchStatus = "COMPLETED_WITH_REMAINDERS"
-)
-
-// Valid indicates whether the value is a known member of the StorageSwitchStatus enum.
-func (e StorageSwitchStatus) Valid() bool {
-	switch e {
-	case StorageSwitchStatusCLEANUPPENDING:
-		return true
-	case StorageSwitchStatusCOMPLETED:
-		return true
-	case StorageSwitchStatusCOMPLETEDWITHREMAINDERS:
 		return true
 	default:
 		return false
@@ -888,8 +870,19 @@ func (e WalStreamStreamerState) Valid() bool {
 	}
 }
 
+// BackupCleanup Current deletion obligations attributed to this database and its current workspace; ordinary protected uploads are excluded
+type BackupCleanup struct {
+	// FailedFileCount Pending files with a deletion error; a subset of pendingFileCount
+	FailedFileCount int64 `json:"failedFileCount"`
+
+	// PendingFileCount Outstanding files, including delayed and claimed work
+	PendingFileCount int64 `json:"pendingFileCount"`
+}
+
 // BackupConfig How a database is backed up
 type BackupConfig struct {
+	Cleanup *BackupCleanup `json:"cleanup,omitempty"`
+
 	// DatabaseId The database the config belongs to
 	DatabaseId openapi_types.UUID `json:"databaseId"`
 
@@ -1583,32 +1576,6 @@ type StorageMovedWithDatabase struct {
 // StorageMovedWithDatabaseType Always `MOVE_WITH_DATABASE`
 type StorageMovedWithDatabaseType string
 
-// StorageSwitch A committed storage change with the current durable cleanup outcome
-type StorageSwitch struct {
-	CleanupDeadline   time.Time           `json:"cleanupDeadline"`
-	CompletedAt       *time.Time          `json:"completedAt,omitempty"`
-	CreatedAt         time.Time           `json:"createdAt"`
-	DatabaseId        openapi_types.UUID  `json:"databaseId"`
-	Deleted           int64               `json:"deleted"`
-	Id                openapi_types.UUID  `json:"id"`
-	Pending           int64               `json:"pending"`
-	PreviousStorageId *openapi_types.UUID `json:"previousStorageId,omitempty"`
-	Remaining         int64               `json:"remaining"`
-	Status            StorageSwitchStatus `json:"status"`
-	TargetStorageId   openapi_types.UUID  `json:"targetStorageId"`
-	Total             int64               `json:"total"`
-	WorkspaceId       openapi_types.UUID  `json:"workspaceId"`
-}
-
-// StorageSwitchStatus defines model for StorageSwitch.Status.
-type StorageSwitchStatus string
-
-// StorageSwitchPage Storage switches ordered newest first by acceptance time and ID
-type StorageSwitchPage struct {
-	Items      []StorageSwitch `json:"items"`
-	NextCursor *string         `json:"nextCursor,omitempty"`
-}
-
 // StorageSwitchedOnTransfer The database switches to a storage of the target workspace; the backups in its previous storage are removed from the catalog and their files are deleted in the background
 type StorageSwitchedOnTransfer struct {
 	// StorageId The storage of the target workspace
@@ -2086,21 +2053,6 @@ type ListRestoresParams struct {
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 
 	// After The `nextCursor` of the previous page
-	After *string `form:"after,omitempty" json:"after,omitempty"`
-}
-
-// ListStorageSwitchesParams defines parameters for ListStorageSwitches.
-type ListStorageSwitchesParams struct {
-	// WorkspaceId The workspace at acceptance
-	WorkspaceId openapi_types.UUID `form:"workspaceId" json:"workspaceId"`
-
-	// DatabaseId Filter by the historical database identity
-	DatabaseId *openapi_types.UUID `form:"databaseId,omitempty" json:"databaseId,omitempty"`
-
-	// Limit Maximum operations per page
-	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
-
-	// After The nextCursor of the previous page
 	After *string `form:"after,omitempty" json:"after,omitempty"`
 }
 
@@ -2675,12 +2627,6 @@ type ServerInterface interface {
 	// CancelRestore Cancel a running restore
 	// (POST /restores/{restoreId}/cancel)
 	CancelRestore(c *gin.Context, restoreId RestoreId)
-	// ListStorageSwitches List storage switches accepted in a workspace
-	// (GET /storage-switches)
-	ListStorageSwitches(c *gin.Context, params ListStorageSwitchesParams)
-	// GetStorageSwitch Read the current cleanup outcome of a committed storage switch
-	// (GET /storage-switches/{storageSwitchId})
-	GetStorageSwitch(c *gin.Context, storageSwitchId openapi_types.UUID)
 	// GetWalStream Read the current values of a WAL stream
 	// (GET /wal-streams/{databaseId})
 	GetWalStream(c *gin.Context, databaseId DatabaseId)
@@ -3309,82 +3255,6 @@ func (siw *ServerInterfaceWrapper) CancelRestore(c *gin.Context) {
 	siw.Handler.CancelRestore(c, restoreId)
 }
 
-// ListStorageSwitches operation middleware
-func (siw *ServerInterfaceWrapper) ListStorageSwitches(c *gin.Context) {
-
-	var err error
-	_ = err
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params ListStorageSwitchesParams
-
-	// ------------- Required query parameter "workspaceId" -------------
-
-	err = runtime.BindQueryParameterWithOptions("form", true, true, "workspaceId", c.Request.URL.Query(), &params.WorkspaceId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter workspaceId: %w", err), http.StatusBadRequest)
-		return
-	}
-
-	// ------------- Optional query parameter "databaseId" -------------
-
-	err = runtime.BindQueryParameterWithOptions("form", true, false, "databaseId", c.Request.URL.Query(), &params.DatabaseId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter databaseId: %w", err), http.StatusBadRequest)
-		return
-	}
-
-	// ------------- Optional query parameter "limit" -------------
-
-	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", c.Request.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter limit: %w", err), http.StatusBadRequest)
-		return
-	}
-
-	// ------------- Optional query parameter "after" -------------
-
-	err = runtime.BindQueryParameterWithOptions("form", true, false, "after", c.Request.URL.Query(), &params.After, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter after: %w", err), http.StatusBadRequest)
-		return
-	}
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.ListStorageSwitches(c, params)
-}
-
-// GetStorageSwitch operation middleware
-func (siw *ServerInterfaceWrapper) GetStorageSwitch(c *gin.Context) {
-
-	var err error
-	_ = err
-
-	// ------------- Path parameter "storageSwitchId" -------------
-	var storageSwitchId openapi_types.UUID
-
-	err = runtime.BindStyledParameterWithOptions("simple", "storageSwitchId", c.Param("storageSwitchId"), &storageSwitchId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter storageSwitchId: %w", err), http.StatusBadRequest)
-		return
-	}
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.GetStorageSwitch(c, storageSwitchId)
-}
-
 // GetWalStream operation middleware
 func (siw *ServerInterfaceWrapper) GetWalStream(c *gin.Context) {
 
@@ -3474,8 +3344,6 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	}
 
 	router.POST(options.BaseURL+"/databases/:databaseId/transfer", wrapper.TransferDatabase)
-	router.GET(options.BaseURL+"/storage-switches", wrapper.ListStorageSwitches)
-	router.GET(options.BaseURL+"/storage-switches/:storageSwitchId", wrapper.GetStorageSwitch)
 	router.GET(options.BaseURL+"/backup-configs", wrapper.ListBackupConfigs)
 	router.GET(options.BaseURL+"/backup-configs/:databaseId", wrapper.GetBackupConfig)
 	router.PUT(options.BaseURL+"/backup-configs/:databaseId", wrapper.UpdateBackupConfig)
@@ -3692,30 +3560,6 @@ func (response UpdateBackupConfig200JSONResponse) VisitUpdateBackupConfigRespons
 	return err
 }
 
-type UpdateBackupConfig202ResponseHeaders struct {
-	Location *string
-}
-
-type UpdateBackupConfig202JSONResponse struct {
-	Body    StorageSwitch
-	Headers UpdateBackupConfig202ResponseHeaders
-}
-
-func (response UpdateBackupConfig202JSONResponse) VisitUpdateBackupConfigResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	if response.Headers.Location != nil {
-		w.Header().Set("Location", fmt.Sprint(*response.Headers.Location))
-	}
-	w.WriteHeader(202)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
 type UpdateBackupConfig400ApplicationProblemPlusJSONResponse struct {
 	ProblemApplicationProblemPlusJSONResponse
 }
@@ -3812,30 +3656,6 @@ type TransferDatabaseRequestObject struct {
 
 type TransferDatabaseResponseObject interface {
 	VisitTransferDatabaseResponse(w http.ResponseWriter) error
-}
-
-type TransferDatabase202ResponseHeaders struct {
-	Location *string
-}
-
-type TransferDatabase202JSONResponse struct {
-	Body    StorageSwitch
-	Headers TransferDatabase202ResponseHeaders
-}
-
-func (response TransferDatabase202JSONResponse) VisitTransferDatabaseResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	if response.Headers.Location != nil {
-		w.Header().Set("Location", fmt.Sprint(*response.Headers.Location))
-	}
-	w.WriteHeader(202)
-	_, err := buf.WriteTo(w)
-	return err
 }
 
 type TransferDatabase204Response struct {
@@ -5661,186 +5481,6 @@ func (response CancelRestoredefaultApplicationProblemPlusJSONResponse) VisitCanc
 	return err
 }
 
-type ListStorageSwitchesRequestObject struct {
-	Params ListStorageSwitchesParams
-}
-
-type ListStorageSwitchesResponseObject interface {
-	VisitListStorageSwitchesResponse(w http.ResponseWriter) error
-}
-
-type ListStorageSwitches200JSONResponse StorageSwitchPage
-
-func (response ListStorageSwitches200JSONResponse) VisitListStorageSwitchesResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type ListStorageSwitches400ApplicationProblemPlusJSONResponse struct {
-	ProblemApplicationProblemPlusJSONResponse
-}
-
-func (response ListStorageSwitches400ApplicationProblemPlusJSONResponse) VisitListStorageSwitchesResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type ListStorageSwitches401ApplicationProblemPlusJSONResponse Problem
-
-func (response ListStorageSwitches401ApplicationProblemPlusJSONResponse) VisitListStorageSwitchesResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(401)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type ListStorageSwitches403ApplicationProblemPlusJSONResponse Problem
-
-func (response ListStorageSwitches403ApplicationProblemPlusJSONResponse) VisitListStorageSwitchesResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(403)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type ListStorageSwitches404ApplicationProblemPlusJSONResponse Problem
-
-func (response ListStorageSwitches404ApplicationProblemPlusJSONResponse) VisitListStorageSwitchesResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(404)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type ListStorageSwitchesdefaultApplicationProblemPlusJSONResponse struct {
-	Body       Problem
-	StatusCode int
-}
-
-func (response ListStorageSwitchesdefaultApplicationProblemPlusJSONResponse) VisitListStorageSwitchesResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(response.StatusCode)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type GetStorageSwitchRequestObject struct {
-	StorageSwitchId openapi_types.UUID `json:"storageSwitchId"`
-}
-
-type GetStorageSwitchResponseObject interface {
-	VisitGetStorageSwitchResponse(w http.ResponseWriter) error
-}
-
-type GetStorageSwitch200JSONResponse StorageSwitch
-
-func (response GetStorageSwitch200JSONResponse) VisitGetStorageSwitchResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type GetStorageSwitch401ApplicationProblemPlusJSONResponse struct {
-	ProblemApplicationProblemPlusJSONResponse
-}
-
-func (response GetStorageSwitch401ApplicationProblemPlusJSONResponse) VisitGetStorageSwitchResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(401)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type GetStorageSwitch403ApplicationProblemPlusJSONResponse Problem
-
-func (response GetStorageSwitch403ApplicationProblemPlusJSONResponse) VisitGetStorageSwitchResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(403)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type GetStorageSwitch404ApplicationProblemPlusJSONResponse Problem
-
-func (response GetStorageSwitch404ApplicationProblemPlusJSONResponse) VisitGetStorageSwitchResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(404)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type GetStorageSwitchdefaultApplicationProblemPlusJSONResponse struct {
-	Body       Problem
-	StatusCode int
-}
-
-func (response GetStorageSwitchdefaultApplicationProblemPlusJSONResponse) VisitGetStorageSwitchResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(response.StatusCode)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
 type GetWalStreamRequestObject struct {
 	DatabaseId DatabaseId `json:"databaseId"`
 }
@@ -6076,12 +5716,6 @@ type StrictServerInterface interface {
 	// CancelRestore Cancel a running restore
 	// (POST /restores/{restoreId}/cancel)
 	CancelRestore(ctx context.Context, request CancelRestoreRequestObject) (CancelRestoreResponseObject, error)
-	// ListStorageSwitches List storage switches accepted in a workspace
-	// (GET /storage-switches)
-	ListStorageSwitches(ctx context.Context, request ListStorageSwitchesRequestObject) (ListStorageSwitchesResponseObject, error)
-	// GetStorageSwitch Read the current cleanup outcome of a committed storage switch
-	// (GET /storage-switches/{storageSwitchId})
-	GetStorageSwitch(ctx context.Context, request GetStorageSwitchRequestObject) (GetStorageSwitchResponseObject, error)
 	// GetWalStream Read the current values of a WAL stream
 	// (GET /wal-streams/{databaseId})
 	GetWalStream(ctx context.Context, request GetWalStreamRequestObject) (GetWalStreamResponseObject, error)
@@ -6750,58 +6384,6 @@ func (sh *strictHandler) CancelRestore(ctx *gin.Context, restoreId RestoreId) {
 		sh.options.HandlerErrorFunc(ctx, err)
 	} else if validResponse, ok := response.(CancelRestoreResponseObject); ok {
 		if err := validResponse.VisitCancelRestoreResponse(ctx.Writer); err != nil {
-			sh.options.ResponseErrorHandlerFunc(ctx, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// ListStorageSwitches operation middleware
-func (sh *strictHandler) ListStorageSwitches(ctx *gin.Context, params ListStorageSwitchesParams) {
-	var request ListStorageSwitchesRequestObject
-
-	request.Params = params
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.ListStorageSwitches(ctx, request.(ListStorageSwitchesRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "ListStorageSwitches")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		sh.options.HandlerErrorFunc(ctx, err)
-	} else if validResponse, ok := response.(ListStorageSwitchesResponseObject); ok {
-		if err := validResponse.VisitListStorageSwitchesResponse(ctx.Writer); err != nil {
-			sh.options.ResponseErrorHandlerFunc(ctx, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// GetStorageSwitch operation middleware
-func (sh *strictHandler) GetStorageSwitch(ctx *gin.Context, storageSwitchId openapi_types.UUID) {
-	var request GetStorageSwitchRequestObject
-
-	request.StorageSwitchId = storageSwitchId
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetStorageSwitch(ctx, request.(GetStorageSwitchRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetStorageSwitch")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		sh.options.HandlerErrorFunc(ctx, err)
-	} else if validResponse, ok := response.(GetStorageSwitchResponseObject); ok {
-		if err := validResponse.VisitGetStorageSwitchResponse(ctx.Writer); err != nil {
 			sh.options.ResponseErrorHandlerFunc(ctx, err)
 		}
 	} else if response != nil {

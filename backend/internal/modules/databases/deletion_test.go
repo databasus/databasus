@@ -89,7 +89,7 @@ func TestDeleteDatabase(t *testing.T) {
 		assert.NotContains(t, string(response.Body), refusedBackupDeletionMessage)
 		assert.Equal(t, []uuid.UUID{savedDatabase.Id}, tm.listDatabaseIDs(t))
 		assert.Equal(t, 1, tm.countRows(t, "SELECT COUNT(*) FROM backups_logical WHERE id = ?", storedBackup.id))
-		assert.Zero(t, tm.countRows(t, "SELECT COUNT(*) FROM storages_pending_deletions WHERE storage_id = ?",
+		assert.Zero(t, tm.countRows(t, "SELECT COUNT(*) FROM storages_pending_file_deletions WHERE storage_id = ?",
 			storageID))
 
 		tm.app.RunJobPass(t, storageFileDeletionJob)
@@ -191,7 +191,7 @@ func insertPublishedLogicalBackup(t *testing.T, tm team, spec logicalBackupSpec)
 	storedBackup := storedLogicalBackup{id: uuid.New(), fileName: "backup-" + uuid.NewString()}
 
 	tm.app.WriteUnpublishedFile(t, spec.storageID, storedBackup.fileName)
-	tm.app.ExecuteSQL(t, "DELETE FROM storages_pending_deletions WHERE storage_id = ? AND file_name = ?",
+	tm.app.ExecuteSQL(t, "DELETE FROM storages_pending_file_deletions WHERE storage_id = ? AND file_name = ?",
 		spec.storageID, storedBackup.fileName)
 	tm.app.InsertBackupConfigUsingStorage(t, apptest.StorageUse{DatabaseID: spec.databaseID, StorageID: spec.storageID})
 	tm.app.ExecuteSQL(t, `INSERT INTO backups_logical (id, database_id, storage_id, status, file_name)

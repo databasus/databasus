@@ -108,6 +108,8 @@ export const es: typeof en = {
     },
   },
   errors: {
+    cleanupPending:
+      'La limpieza de archivos sigue en curso. Espera a que termine o elimina los almacenamientos afectados de forma individual, aceptando que tendrás que eliminar manualmente los archivos restantes.',
     alreadyMember: 'Este usuario ya es miembro del espacio de trabajo.',
     cannotChangeOwnRole: 'No puede cambiar su propio rol en el espacio de trabajo.',
     ownerRequiresTransfer:
@@ -1395,22 +1397,14 @@ export const es: typeof en = {
     },
   },
   backups: {
+    cleanup: {
+      pending: 'Eliminando archivos antiguos. Archivos pendientes: {{count}}.',
+      retrying: 'Se reintentará la eliminación de archivos: {{count}}.',
+      retryStatus: 'Actualizar estado',
+    },
     storageSwitch: {
-      history: 'Historial de cambios de almacenamiento',
-      pending:
-        'El almacenamiento se ha cambiado. Los archivos antiguos se están eliminando en segundo plano.',
-      completed: 'Limpieza completada',
-      remainders:
-        'El almacenamiento se cambió correctamente, pero no se pudo confirmar la eliminación de algunos archivos antiguos. Elimínalos manualmente del almacenamiento anterior.',
-      target: 'Almacenamiento tras el cambio: {{storageId}}',
-      database: 'Base de datos: {{databaseId}}',
-      counts:
-        'Archivos: {{total}}. Pendientes: {{pending}}. Eliminados: {{deleted}}. Restantes: {{remaining}}.',
-      retry: 'Consultar el estado de nuevo',
-      empty: 'No hay cambios de almacenamiento.',
-      more: 'Mostrar más',
       warning:
-        'Al cambiar el almacenamiento, el historial anterior de copias de seguridad se elimina inmediatamente y el nuevo almacenamiento pasa a utilizarse de inmediato. Los archivos se eliminan en segundo plano, con un límite de cinco intentos fallidos y 24 horas. Si el almacenamiento anterior no está disponible, pueden quedar archivos. Los archivos restantes deben eliminarse manualmente. Las nuevas copias físicas comienzan con una FULL.',
+        'Cambiar de almacenamiento elimina inmediatamente el historial de copias anterior y activa el nuevo almacenamiento. Los archivos antiguos se eliminan en segundo plano. Un almacenamiento inaccesible retrasa la limpieza. Eliminar explícitamente el almacenamiento anterior detiene la limpieza automática; los archivos restantes deben eliminarse manualmente. Las nuevas copias físicas comienzan con una FULL.',
       confirm: 'Cambiar almacenamiento y eliminar historial',
     },
     encryption: {
@@ -2019,6 +2013,13 @@ export const es: typeof en = {
     },
   },
   storages: {
+    cleanup: {
+      title: 'La limpieza sigue en curso',
+      warning:
+        'Todavía estamos limpiando este almacenamiento. Espera a que termine la limpieza. Si lo eliminas ahora, la limpieza automática se detendrá y tendrás que eliminar manualmente los archivos restantes.',
+      wait: 'Esperar',
+      deleteAnyway: 'Eliminar de todos modos',
+    },
     types: {
       local: 'Almacenamiento local',
       s3: 'S3',

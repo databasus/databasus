@@ -7,13 +7,53 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestRunPass(t *testing.T) {
 	t.Parallel()
+
+	t.Run("counts only dispatched attempts when the first file exhausts a batch lease", func(t *testing.T) {
+		t.Parallel()
+
+		files := newTestFiles(t)
+		storageID := files.createStorage(t)
+		references := []StoredFileReference{
+			{StorageID: storageID, FileName: "first.dump"},
+			{StorageID: storageID, FileName: "second.dump"},
+		}
+		files.requestDeletions(t, references...)
+		files.provider.setDeleteErr(context.DeadlineExceeded)
+		files.provider.onDelete = func() { files.clock.Advance(testTimings().AttemptLease) }
+
+		files.runPass(t)
+
+		var skippedReference StoredFileReference
+		for _, reference := range references {
+			pending, isPending := files.findPending(t, reference)
+			require.True(t, isPending)
+
+			if pending.LastError == nil {
+				skippedReference = reference
+				assert.Zero(t, pending.AttemptCount)
+			} else {
+				assert.Equal(t, 1, pending.AttemptCount)
+			}
+		}
+		require.NotEmpty(t, skippedReference.FileName)
+		files.provider.onDelete = nil
+		files.clock.Advance(testTimings().RetryBaseDelay)
+
+		files.runPass(t)
+
+		pending, isPending := files.findPending(t, skippedReference)
+		require.True(t, isPending)
+		require.NotNil(t, pending.LastError)
+		assert.Equal(t, 1, pending.AttemptCount)
+		assert.Equal(t, files.clock.Now().Add(testTimings().RetryBaseDelay), pending.NotBefore.UTC())
+	})
+
 	t.Run("persists timeout failures and backs off ordinary deletions", func(t *testing.T) {
 		t.Parallel()
 		files := newTestFiles(t)
@@ -192,6 +232,36 @@ func TestRunPass(t *testing.T) {
 		assert.False(t, isPending)
 	})
 
+	t.Run(
+		"redacts signed URL credentials from persisted errors and logs when a provider refuses deletion",
+		func(t *testing.T) {
+			t.Parallel()
+
+			files := newTestFiles(t)
+			reference := StoredFileReference{StorageID: files.createStorage(t), FileName: "signed.dump"}
+			files.requestDeletions(t, reference)
+			files.provider.setDeleteErr(
+				errors.New(
+					"delete https://blob.example.com/backups/signed.dump?sv=2026-01-01&sig=azureSignature%2Bsecret failed; https://bucket.example.com/signed.dump?X-Amz-Credential=awsCredential%2Fscope&X-Amz-Signature=awsSignature&X-Amz-Security-Token=awsSession failed",
+				),
+			)
+
+			files.runPass(t)
+
+			pending, isPending := files.findPending(t, reference)
+			require.True(t, isPending)
+			require.NotNil(t, pending.LastError)
+			attempt, isLogged := files.logs.findRecord("file deletion attempt failed, retrying")
+			require.True(t, isLogged)
+			for _, credential := range []string{"azureSignature", "awsCredential", "awsSignature", "awsSession"} {
+				assert.NotContains(t, *pending.LastError, credential)
+				assert.NotContains(t, attempt["error"], credential)
+			}
+			assert.Contains(t, *pending.LastError, "blob.example.com")
+			assert.Contains(t, attempt["error"], "bucket.example.com")
+		},
+	)
+
 	t.Run("logs the file and the retry of a failed attempt", func(t *testing.T) {
 		t.Parallel()
 		files := newTestFiles(t)
@@ -214,75 +284,6 @@ func TestRunPass(t *testing.T) {
 	})
 }
 
-func TestDrainFiles(t *testing.T) {
-	t.Parallel()
-
-	t.Run("removes every pending file of the storage", func(t *testing.T) {
-		t.Parallel()
-		files := newTestFiles(t)
-		storageID := files.createStorage(t)
-		files.requestDeletions(t,
-			StoredFileReference{StorageID: storageID, FileName: "backup-1"},
-			StoredFileReference{StorageID: storageID, FileName: "backup-2"},
-		)
-
-		remainingFileNames := files.drain(t, storageID, time.Minute)
-
-		assert.Empty(t, remainingFileNames)
-		assert.ElementsMatch(t, []string{"backup-1", "backup-2"}, files.provider.getDeleted())
-	})
-
-	t.Run("names the files it could not remove", func(t *testing.T) {
-		t.Parallel()
-		files := newTestFiles(t)
-		files.provider.setDeleteErr(errors.New("storage is unavailable"))
-		storageID := files.createStorage(t)
-		files.requestDeletions(t, StoredFileReference{StorageID: storageID, FileName: "backup-1"})
-
-		remainingFileNames := files.drain(t, storageID, time.Minute)
-
-		assert.Equal(t, []string{"backup-1"}, remainingFileNames)
-	})
-
-	t.Run("skips a file whose write is still running", func(t *testing.T) {
-		t.Parallel()
-		files := newTestFiles(t)
-		storageID := files.createStorage(t)
-		reference := StoredFileReference{StorageID: storageID, FileName: "backup-1"}
-
-		var remainingFileNames []string
-
-		files.provider.onSave = func() {
-			remainingFileNames = files.drain(t, storageID, time.Minute)
-		}
-
-		_, err := files.store.WriteFile(t.Context(), reference, strings.NewReader("payload"))
-		require.NoError(t, err)
-
-		assert.Equal(t, []string{"backup-1"}, remainingFileNames)
-		assert.Empty(t, files.provider.getDeleted(), "a deletion never pulls a file from under its writer")
-	})
-
-	t.Run("starts no file once the budget on the clock is spent", func(t *testing.T) {
-		t.Parallel()
-		files := newTestFiles(t)
-		storageID := files.createStorage(t)
-		files.requestDeletions(t,
-			StoredFileReference{StorageID: storageID, FileName: "backup-1"},
-			StoredFileReference{StorageID: storageID, FileName: "backup-2"},
-		)
-
-		files.provider.onDelete = func() {
-			files.clock.Advance(2 * time.Minute)
-		}
-
-		remainingFileNames := files.drain(t, storageID, time.Minute)
-
-		assert.Len(t, files.provider.getDeleted(), 1)
-		assert.Len(t, remainingFileNames, 1, "the second file starts after the budget ran out")
-	})
-}
-
 func TestGetRetryDelay(t *testing.T) {
 	t.Parallel()
 
@@ -290,7 +291,6 @@ func TestGetRetryDelay(t *testing.T) {
 		t.Parallel()
 		job := NewDeletionJob(nil, Deps{
 			Repository:      nil,
-			Batches:         nil,
 			WriteProtection: nil,
 			Transactor:      nil,
 			Locator:         nil,
@@ -326,21 +326,5 @@ func TestSanitizeError(t *testing.T) {
 		truncated := sanitizeError(errors.New(strings.Repeat("x", maxPersistedErrorLength*2)))
 
 		assert.Len(t, truncated, maxPersistedErrorLength)
-	})
-}
-
-func (f *testFiles) drain(t *testing.T, storageID uuid.UUID, budget time.Duration) []string {
-	t.Helper()
-
-	pendingDeletions, err := f.repository.ListByStorage(t.Context(), storageID)
-	require.NoError(t, err)
-
-	located, err := f.locator.LocateStorage(t.Context(), storageID)
-	require.NoError(t, err)
-
-	return f.job.DrainFiles(t.Context(), DrainRequest{
-		Storage:          located,
-		PendingDeletions: pendingDeletions,
-		Budget:           budget,
 	})
 }

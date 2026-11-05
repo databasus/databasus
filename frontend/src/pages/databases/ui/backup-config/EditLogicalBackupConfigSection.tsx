@@ -1,4 +1,7 @@
+import type { ReactNode } from 'react';
+
 import {
+  type BackupConfig,
   type LogicalBackupConfigInput,
   toLogicalBackupConfigInput,
 } from '../../../../entities/backup-configs';
@@ -11,10 +14,16 @@ import { LogicalBackupConfigFields } from './LogicalBackupConfigFields';
 interface Props {
   database: Database;
   onCancel: () => void;
-  onSaved: () => void;
+  onSaved: (config: BackupConfig) => void;
+  storageCleanupNotice?: ReactNode;
 }
 
-export const EditLogicalBackupConfigSection = ({ database, onCancel, onSaved }: Props) => (
+export const EditLogicalBackupConfigSection = ({
+  database,
+  onCancel,
+  onSaved,
+  storageCleanupNotice,
+}: Props) => (
   <EditBackupConfigSection<LogicalBackupConfigInput>
     database={database}
     isPhysical={false}
@@ -28,6 +37,7 @@ export const EditLogicalBackupConfigSection = ({ database, onCancel, onSaved }: 
         onChange={onChange}
         workspaceId={database.workspaceId}
         canClearStorage
+        storageCleanupNotice={storageCleanupNotice}
       />
     )}
     onCancel={onCancel}

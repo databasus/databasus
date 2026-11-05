@@ -79,7 +79,6 @@ func newTestFilesWithTimings(t *testing.T, timings Timings) *testFiles {
 
 	deps := Deps{
 		Repository:      repository,
-		Batches:         NewDeletionBatchRepository(db),
 		WriteProtection: NewWriteProtectionRepository(db),
 		Transactor:      database.NewTransactor(db),
 		Locator:         locator,
@@ -179,7 +178,9 @@ func (f *testFiles) isDue(t *testing.T, reference StoredFileReference) bool {
 }
 
 func (f *testFiles) getLiveWriteCount() int {
-	return len(f.store.getLiveWriteIDs())
+	count := 0
+	_ = f.store.withLiveWrites(func(ids []uuid.UUID) error { count = len(ids); return nil })
+	return count
 }
 
 func referencesOf(rows []PendingDeletion) []StoredFileReference {

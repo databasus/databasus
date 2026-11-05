@@ -35,8 +35,8 @@ func TestChangePhysicalBackupStorage(t *testing.T) {
 			targetHistory := secondCatalog.seedHistory(t, 2)
 
 			response := catalog.saveStorageSelection(t, &secondStorageID)
-			require.Equal(t, http.StatusAccepted, response.StatusCode(), "%s", response.Body)
-			require.NotNil(t, response.JSON202)
+			require.Equal(t, http.StatusOK, response.StatusCode(), "%s", response.Body)
+			require.NotNil(t, response.JSON200)
 
 			catalog.assertFullGone(t, running.ID)
 			catalog.assertFullPresent(t, surviving.ID)
@@ -50,8 +50,8 @@ func TestChangePhysicalBackupStorage(t *testing.T) {
 			catalog.App.QuerySQL(
 				t,
 				&capturedFiles,
-				`SELECT file_name FROM storages_deletion_batch_items WHERE batch_id=(SELECT deletion_batch_id FROM backups_storage_switches WHERE id=?)`,
-				response.JSON202.Id,
+				`SELECT file_name FROM storages_pending_file_deletions WHERE cleanup_database_id=?`,
+				catalog.DatabaseID,
 			)
 			for _, name := range []string{*oldWal.FileName, *unneededTargetWal.FileName, oldHistory.FileName} {
 				assert.Contains(t, capturedFiles, name)
@@ -124,7 +124,7 @@ func TestChangePhysicalBackupStorage(t *testing.T) {
 		)
 		catalog.App.ExecuteSQL(
 			t,
-			`CREATE TRIGGER refuse_switch_cleanup BEFORE INSERT ON storages_deletion_batch_items FOR EACH ROW EXECUTE FUNCTION refuse_switch_cleanup()`,
+			`CREATE TRIGGER refuse_switch_cleanup BEFORE INSERT ON storages_pending_file_deletions FOR EACH ROW EXECUTE FUNCTION refuse_switch_cleanup()`,
 		)
 
 		backupConfig := apptest.GetBackupConfig(t, catalog.Owner, catalog.DatabaseID)
@@ -151,13 +151,8 @@ func TestChangePhysicalBackupStorage(t *testing.T) {
 
 func (catalog *catalogFixture) saveStorageConfig(t *testing.T, storageID uuid.UUID) {
 	t.Helper()
-	config := apptest.GetBackupConfig(t, catalog.Owner, catalog.DatabaseID)
 	response := catalog.saveStorageSelection(t, &storageID)
-	status := http.StatusOK
-	if config.StorageId != nil && *config.StorageId != storageID {
-		status = http.StatusAccepted
-	}
-	require.Equal(t, status, response.StatusCode(), "%s", response.Body)
+	require.Equal(t, http.StatusOK, response.StatusCode(), "%s", response.Body)
 }
 
 func (catalog *catalogFixture) saveStorageSelection(
@@ -209,7 +204,7 @@ func TestReassignUnfinishedPhysicalFiles(t *testing.T) {
 			catalog.App.RestartModules(t)
 			assert.Nil(t, apptest.GetBackupConfig(t, catalog.Owner, catalog.DatabaseID).StorageId)
 
-			var operation apiclient.StorageSwitch
+			var operation apiclient.BackupConfig
 			if isTransfer {
 				workspace := apptest.CreateWorkspace(t, catalog.Owner, "Reassigned unfinished physical files")
 				targetStorageID := catalog.App.CreateLocalStorage(t, catalog.Owner, workspace.Id)
@@ -219,13 +214,12 @@ func TestReassignUnfinishedPhysicalFiles(t *testing.T) {
 			} else {
 				targetStorageID := catalog.App.CreateLocalStorage(t, catalog.Owner, catalog.WorkspaceID)
 				assigned := catalog.saveStorageSelection(t, &targetStorageID)
-				require.Equal(t, http.StatusAccepted, assigned.StatusCode(), "%s", assigned.Body)
-				require.NotNil(t, assigned.JSON202)
-				operation = *assigned.JSON202
+				require.Equal(t, http.StatusOK, assigned.StatusCode(), "%s", assigned.Body)
+				require.NotNil(t, assigned.JSON200)
+				operation = *assigned.JSON200
 			}
 
-			assert.Nil(t, operation.PreviousStorageId)
-			assert.EqualValues(t, 1, operation.Total)
+			assert.EqualValues(t, 1, operation.Cleanup.PendingFileCount)
 
 			var capturedFiles []struct {
 				StorageID uuid.UUID
@@ -234,8 +228,8 @@ func TestReassignUnfinishedPhysicalFiles(t *testing.T) {
 			catalog.App.QuerySQL(
 				t,
 				&capturedFiles,
-				`SELECT storage_id,file_name FROM storages_deletion_batch_items WHERE batch_id=(SELECT deletion_batch_id FROM backups_storage_switches WHERE id=?)`,
-				operation.Id,
+				`SELECT storage_id,file_name FROM storages_pending_file_deletions WHERE cleanup_database_id=?`,
+				catalog.DatabaseID,
 			)
 			require.Len(t, capturedFiles, 1)
 			assert.Equal(t, secondStorageID, capturedFiles[0].StorageID)
@@ -248,7 +242,12 @@ func TestReassignUnfinishedPhysicalFiles(t *testing.T) {
 func (catalog *catalogFixture) pendingFiles(t *testing.T, storageID uuid.UUID) []string {
 	t.Helper()
 	var names []string
-	catalog.App.QuerySQL(t, &names, "SELECT file_name FROM storages_pending_deletions WHERE storage_id = ?", storageID)
+	catalog.App.QuerySQL(
+		t,
+		&names,
+		"SELECT file_name FROM storages_pending_file_deletions WHERE storage_id = ?",
+		storageID,
+	)
 	return names
 }
 
@@ -274,7 +273,7 @@ func TestRollbackReassignedPhysicalStorage(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, cleared.StatusCode(), "%s", cleared.Body)
 
-		catalog.App.RefuseStorageDeletionBatches(t)
+		catalog.App.RefuseStorageFileDeletions(t)
 		targetStorageID := catalog.App.CreateLocalStorage(t, catalog.Owner, catalog.WorkspaceID)
 		assigned, err := catalog.Owner.Client.UpdateBackupConfigWithResponse(
 			t.Context(),
@@ -294,16 +293,5 @@ func TestRollbackReassignedPhysicalStorage(t *testing.T) {
 		catalog.assertIncrementalPresent(t, incremental.ID)
 		catalog.assertWalPresent(t, wal.ID)
 		assert.Empty(t, catalog.pendingFiles(t, catalog.StorageID))
-
-		var operations, batches int
-		catalog.App.QuerySQL(
-			t,
-			&operations,
-			"SELECT count(*) FROM backups_storage_switches WHERE database_id=?",
-			catalog.DatabaseID,
-		)
-		catalog.App.QuerySQL(t, &batches, "SELECT count(*) FROM storages_deletion_batches")
-		assert.Zero(t, operations)
-		assert.Zero(t, batches)
 	})
 }

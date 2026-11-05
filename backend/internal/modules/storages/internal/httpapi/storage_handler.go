@@ -141,7 +141,14 @@ func (h *Handler) DeleteStorage(
 		return nil, err
 	}
 
-	err = h.storages.DeleteStorage(ctx, actor, request.StorageId)
+	err = h.storages.DeleteStorage(
+		ctx,
+		actor,
+		storage.Deletion{
+			StorageID:            request.StorageId,
+			ShouldAbandonCleanup: request.Params.ShouldAbandonCleanup != nil && *request.Params.ShouldAbandonCleanup,
+		},
+	)
 	if err != nil {
 		return nil, err
 	}

@@ -43,7 +43,7 @@ func TestCancelLogicalBackup(t *testing.T) {
 		assert.False(t, tm.app.IsLocalStorageFilePresent(t, cancelledFileName))
 		assert.False(t, tm.app.IsLocalStorageFilePresent(t, cancelledFileName+".metadata"))
 		assert.Zero(t, countRows(t, tm,
-			"SELECT COUNT(*) FROM storages_pending_deletions WHERE file_name IN (?, ?)",
+			"SELECT COUNT(*) FROM storages_pending_file_deletions WHERE file_name IN (?, ?)",
 			cancelledFileName, cancelledFileName+".metadata"))
 	})
 

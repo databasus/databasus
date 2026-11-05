@@ -138,7 +138,7 @@ func TestRecoverQueuedPhysicalWal(t *testing.T) {
 				team.App.QuerySQL(
 					t,
 					&releasedFailures,
-					`SELECT count(*) FROM storages_pending_deletions WHERE storage_id=? AND file_name LIKE ? AND generation>0 AND NOT EXISTS(SELECT 1 FROM backups_physical_wal_segments WHERE id=?)`,
+					`SELECT count(*) FROM storages_pending_file_deletions WHERE storage_id=? AND file_name LIKE ? AND generation>0 AND NOT EXISTS(SELECT 1 FROM backups_physical_wal_segments WHERE id=?)`,
 					team.StorageID,
 					team.Database.Id.String()+"-WAL-tl%-"+claimedSegments[0].WalFilename+"-%.zst",
 					claimedSegments[0].ID,

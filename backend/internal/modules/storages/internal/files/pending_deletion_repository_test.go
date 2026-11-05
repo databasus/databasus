@@ -67,11 +67,19 @@ func TestInsertOrTake(t *testing.T) {
 
 		require.NoError(
 			t,
-			files.repository.InsertOrTake(t.Context(), []StoredFileReference{reference}, files.clock.Now()),
+			files.repository.InsertOrTake(
+				t.Context(),
+				FileDeletionRequest{References: []StoredFileReference{reference}, Scope: nil},
+				files.clock.Now(),
+			),
 		)
 		require.NoError(
 			t,
-			files.repository.InsertOrTake(t.Context(), []StoredFileReference{reference}, files.clock.Now()),
+			files.repository.InsertOrTake(
+				t.Context(),
+				FileDeletionRequest{References: []StoredFileReference{reference}, Scope: nil},
+				files.clock.Now(),
+			),
 		)
 
 		pending, isPending := files.findPending(t, reference)
@@ -88,7 +96,7 @@ func TestInsertOrTake(t *testing.T) {
 
 		err := files.repository.InsertOrTake(
 			t.Context(),
-			[]StoredFileReference{reference, reference},
+			FileDeletionRequest{References: []StoredFileReference{reference, reference}, Scope: nil},
 			files.clock.Now(),
 		)
 
@@ -103,7 +111,14 @@ func TestInsertOrTake(t *testing.T) {
 		t.Parallel()
 		files := newTestFiles(t)
 
-		assert.NoError(t, files.repository.InsertOrTake(t.Context(), nil, files.clock.Now()))
+		assert.NoError(
+			t,
+			files.repository.InsertOrTake(
+				t.Context(),
+				FileDeletionRequest{References: nil, Scope: nil},
+				files.clock.Now(),
+			),
+		)
 	})
 
 	t.Run("takes the row from its writer by raising the generation", func(t *testing.T) {
@@ -116,7 +131,11 @@ func TestInsertOrTake(t *testing.T) {
 
 		require.NoError(
 			t,
-			files.repository.InsertOrTake(t.Context(), []StoredFileReference{reference}, files.clock.Now()),
+			files.repository.InsertOrTake(
+				t.Context(),
+				FileDeletionRequest{References: []StoredFileReference{reference}, Scope: nil},
+				files.clock.Now(),
+			),
 		)
 
 		isCompleted, err := files.repository.CompleteIfGeneration(t.Context(), pending.ID, pending.Generation)
@@ -197,7 +216,11 @@ func TestClaimDue(t *testing.T) {
 		reference := StoredFileReference{StorageID: files.createStorage(t), FileName: "backup-1"}
 		require.NoError(
 			t,
-			files.repository.InsertOrTake(t.Context(), []StoredFileReference{reference}, files.clock.Now()),
+			files.repository.InsertOrTake(
+				t.Context(),
+				FileDeletionRequest{References: []StoredFileReference{reference}, Scope: nil},
+				files.clock.Now(),
+			),
 		)
 
 		claimed, err := files.repository.ClaimDue(t.Context(), files.newClaimRequest(nil))
@@ -208,7 +231,7 @@ func TestClaimDue(t *testing.T) {
 		pending, isPending := files.findPending(t, reference)
 		require.True(t, isPending)
 		assert.Equal(t, 1, pending.Generation)
-		assert.Equal(t, 1, pending.AttemptCount)
+		assert.Zero(t, pending.AttemptCount)
 		assert.False(t, files.isDue(t, reference), "a claimed row is not due again until its lease runs out")
 	})
 
@@ -218,7 +241,11 @@ func TestClaimDue(t *testing.T) {
 		reference := StoredFileReference{StorageID: files.createStorage(t), FileName: "backup-1"}
 		require.NoError(
 			t,
-			files.repository.InsertOrTake(t.Context(), []StoredFileReference{reference}, files.clock.Now()),
+			files.repository.InsertOrTake(
+				t.Context(),
+				FileDeletionRequest{References: []StoredFileReference{reference}, Scope: nil},
+				files.clock.Now(),
+			),
 		)
 
 		live, _ := files.findPending(t, reference)
@@ -237,7 +264,11 @@ func TestClaimDue(t *testing.T) {
 		free := StoredFileReference{StorageID: storageID, FileName: "free"}
 		require.NoError(
 			t,
-			files.repository.InsertOrTake(t.Context(), []StoredFileReference{held, free}, files.clock.Now()),
+			files.repository.InsertOrTake(
+				t.Context(),
+				FileDeletionRequest{References: []StoredFileReference{held, free}, Scope: nil},
+				files.clock.Now(),
+			),
 		)
 
 		isHeld := make(chan struct{})
@@ -250,7 +281,7 @@ func TestClaimDue(t *testing.T) {
 			_ = files.inTransaction(t, func(ctx context.Context) error {
 				if err := files.repository.InsertOrTake(
 					ctx,
-					[]StoredFileReference{held},
+					FileDeletionRequest{References: []StoredFileReference{held}, Scope: nil},
 					files.clock.Now(),
 				); err != nil {
 					return err

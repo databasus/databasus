@@ -1,4 +1,9 @@
-import { toPhysicalBackupConfigInput } from '../../../../entities/backup-configs';
+import type { ReactNode } from 'react';
+
+import {
+  type BackupConfig,
+  toPhysicalBackupConfigInput,
+} from '../../../../entities/backup-configs';
 import {
   type Database,
   DatabaseType,
@@ -15,10 +20,16 @@ import { PhysicalBackupConfigFields } from './PhysicalBackupConfigFields';
 interface Props {
   database: Database;
   onCancel: () => void;
-  onSaved: () => void;
+  onSaved: (config: BackupConfig) => void;
+  storageCleanupNotice?: ReactNode;
 }
 
-export const EditPhysicalBackupConfigSection = ({ database, onCancel, onSaved }: Props) => {
+export const EditPhysicalBackupConfigSection = ({
+  database,
+  onCancel,
+  onSaved,
+  storageCleanupNotice,
+}: Props) => {
   const backupType =
     database.settings.type === DatabaseType.POSTGRES_PHYSICAL
       ? database.settings.backupType
@@ -43,6 +54,7 @@ export const EditPhysicalBackupConfigSection = ({ database, onCancel, onSaved }:
           workspaceId={database.workspaceId}
           backupType={backupType}
           canClearStorage
+          storageCleanupNotice={storageCleanupNotice}
         />
       )}
       onCancel={onCancel}

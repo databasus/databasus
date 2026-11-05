@@ -99,7 +99,7 @@ func TestSaveBackupConfigRacingDatabaseTransfer(t *testing.T) {
 					require.NoError(t, transferOutcome.Err)
 					require.Equal(
 						t,
-						http.StatusAccepted,
+						http.StatusNoContent,
 						transferOutcome.Response.StatusCode(),
 						"%s",
 						transferOutcome.Response.Body,
@@ -109,13 +109,13 @@ func TestSaveBackupConfigRacingDatabaseTransfer(t *testing.T) {
 					if scenario == "destination storage" {
 						require.Equal(
 							t,
-							http.StatusAccepted,
+							http.StatusOK,
 							saveOutcome.Response.StatusCode(),
 							"%s",
 							saveOutcome.Response.Body,
 						)
-						require.NotNil(t, saveOutcome.Response.JSON202)
-						assert.Equal(t, destination.Id, saveOutcome.Response.JSON202.WorkspaceId)
+						require.NotNil(t, saveOutcome.Response.JSON200)
+						assert.Equal(t, &destinationStorageID, saveOutcome.Response.JSON200.StorageId)
 						assert.Equal(
 							t,
 							&destinationStorageID,
@@ -130,11 +130,13 @@ func TestSaveBackupConfigRacingDatabaseTransfer(t *testing.T) {
 						assert.Equal(t, &transferStorageID, apptest.GetBackupConfig(t, tm.owner, databaseID).StorageId)
 					}
 
-					formerHistory, err := tm.owner.Client.ListStorageSwitchesWithResponse(t.Context(),
-						&apiclient.ListStorageSwitchesParams{WorkspaceId: tm.workspace.Id, DatabaseId: &databaseID})
-					require.NoError(t, err)
-					require.NotNil(t, formerHistory.JSON200)
-					assert.Empty(t, formerHistory.JSON200.Items)
+					assert.Zero(t, countRows(
+						t,
+						tm,
+						"SELECT count(*) FROM storages_pending_file_deletions WHERE cleanup_database_id=? AND cleanup_workspace_id=?",
+						databaseID,
+						tm.workspace.Id,
+					))
 				},
 			)
 		}

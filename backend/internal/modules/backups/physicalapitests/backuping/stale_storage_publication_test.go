@@ -131,7 +131,7 @@ func (run staleStorageRun) assertUnpublished(t *testing.T) {
 	// run asked for the deletion itself.
 	var requestedDeletionCount int64
 	run.team.App.QuerySQL(t, &requestedDeletionCount,
-		"SELECT count(*) FROM storages_pending_deletions WHERE file_name=? AND generation>0", run.fileName)
+		"SELECT count(*) FROM storages_pending_file_deletions WHERE file_name=? AND generation>0", run.fileName)
 	assert.Equal(t, int64(1), requestedDeletionCount)
 
 	run.team.App.Clock.Advance(3 * time.Second)

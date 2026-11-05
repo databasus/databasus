@@ -11,7 +11,7 @@ import {
   DatabaseType,
   createDefaultDatabaseSettings,
 } from '../../../../entities/databases';
-import { mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
+import { setUpMockApi } from '../../../../shared/lib/test/mockApi';
 import { renderScreen } from '../../../../shared/lib/test/renderScreen';
 import { ShowPhysicalBackupConfigComponent } from './ShowPhysicalBackupConfigComponent';
 
@@ -24,6 +24,7 @@ const database: Database = {
   notifierIds: [],
 };
 const config: BackupConfig = {
+  cleanup: { pendingFileCount: 0, failedFileCount: 0 },
   databaseId: database.id,
   storageId: null,
   isBackupsEnabled: true,
@@ -60,7 +61,7 @@ describe('ShowPhysicalBackupConfigComponent', () => {
   });
 
   it('shows a saved weekday 0 as Sunday', async () => {
-    mockServer.use(mockApi.get('/storage-switches', 200, { items: [] }));
+    mockServer.use();
 
     renderScreen(
       <ShowPhysicalBackupConfigComponent

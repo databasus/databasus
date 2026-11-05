@@ -61,7 +61,7 @@ func TestTransferDatabase(t *testing.T) {
 			response := requestDatabaseTransfer(t, tm.owner, databaseID,
 				newDatabaseTransfer(t, targetWorkspace.Id, newStorageSwitchedOnTransfer(t, targetStorageID)))
 
-			require.Equal(t, http.StatusAccepted, response.StatusCode(), string(response.Body))
+			require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
 			assert.Equal(t, []uuid.UUID{databaseID}, listWorkspaceDatabaseIDs(t, tm.owner, targetWorkspace.Id))
 			assert.Equal(t, []uuid.UUID{sourceStorageID}, listWorkspaceStorageIDs(t, tm.owner, tm.workspace.Id))
 			assert.Equal(t, &targetStorageID, apptest.GetBackupConfig(t, tm.owner, databaseID).StorageId)
@@ -88,7 +88,7 @@ func TestTransferDatabase(t *testing.T) {
 		response := requestDatabaseTransfer(t, tm.owner, databaseID,
 			newDatabaseTransfer(t, targetWorkspace.Id, newStorageSwitchedOnTransfer(t, targetStorageID)))
 
-		require.Equal(t, http.StatusAccepted, response.StatusCode(), string(response.Body))
+		require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
 		assert.Equal(t, []uuid.UUID{databaseID}, listWorkspaceDatabaseIDs(t, tm.owner, targetWorkspace.Id))
 
 		switchedConfig := apptest.GetBackupConfig(t, tm.owner, databaseID)
@@ -125,7 +125,7 @@ func TestTransferDatabase(t *testing.T) {
 		transfer.IsMovingNotifiers = true
 		response := requestDatabaseTransfer(t, tm.owner, databaseID, transfer)
 
-		require.Equal(t, http.StatusAccepted, response.StatusCode(), string(response.Body))
+		require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
 		assert.Equal(t, []uuid.UUID{ownNotifier.Id}, listWorkspaceNotifierIDs(t, tm.owner, targetWorkspace.Id))
 		assert.Equal(t, []uuid.UUID{sharedNotifier.Id}, listWorkspaceNotifierIDs(t, tm.owner, tm.workspace.Id))
 		assert.Equal(t, []uuid.UUID{neighbourDatabaseID}, listWorkspaceDatabaseIDs(t, tm.owner, tm.workspace.Id))
@@ -149,7 +149,7 @@ func TestTransferDatabase(t *testing.T) {
 		transfer.TargetNotifierIds = &[]uuid.UUID{targetNotifier.Id}
 		response := requestDatabaseTransfer(t, tm.owner, databaseID, transfer)
 
-		require.Equal(t, http.StatusAccepted, response.StatusCode(), string(response.Body))
+		require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
 		assert.Equal(t, []uuid.UUID{targetNotifier.Id}, listAttachedNotifierIDsOfDatabase(t, tm, databaseID))
 		assert.Equal(t, []uuid.UUID{sourceNotifier.Id}, listWorkspaceNotifierIDs(t, tm.owner, tm.workspace.Id))
 	})

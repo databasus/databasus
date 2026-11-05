@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import {
   type LogicalBackupConfigInput,
   type LogicalBackupSettings,
-  StorageSwitchHistoryComponent,
+  type BackupCleanup,
   BACKUP_ENCRYPTION_LABEL_KEYS,
 } from '../../../../entities/backup-configs';
 import type { Database } from '../../../../entities/databases';
@@ -23,9 +23,13 @@ import { LoadFailure } from '../../../../shared/ui';
 import { LOGICAL_NOTIFICATION_TRIGGER_LABEL_KEYS } from '../../model/LogicalNotificationTriggerLabelKeys';
 import { LogicalRetentionPolicy } from '../../model/LogicalRetentionPolicy';
 import { RETENTION_PERIOD_LABEL_KEYS } from '../../model/RetentionPeriodLabelKeys';
+import { StorageCleanupNotice } from './StorageCleanupNotice';
 
 interface Props {
   database: Database;
+  cleanup?: BackupCleanup;
+  cleanupError?: unknown;
+  onRetryCleanup?: () => void;
   backupConfig: LogicalBackupConfigInput;
 }
 
@@ -51,7 +55,12 @@ const getGfsRetentionTexts = (retention: LogicalBackupSettings['retention']): Lo
   return texts;
 };
 
-export const ShowLogicalBackupConfigComponent = ({ database, backupConfig }: Props) => {
+export const ShowLogicalBackupConfigComponent = ({
+  backupConfig,
+  cleanup,
+  cleanupError,
+  onRetryCleanup,
+}: Props) => {
   const { t } = useTranslation();
   const listSeparator = t('common.listSeparator');
   const [storage, setStorage] = useState<Storage>();
@@ -98,13 +107,36 @@ export const ShowLogicalBackupConfigComponent = ({ database, backupConfig }: Pro
 
   return (
     <div>
-      <StorageSwitchHistoryComponent workspaceId={database.workspaceId} databaseId={database.id} />
       <div className="mb-1 flex w-full items-center">
         <div className="min-w-[150px] pr-2">{t('backups.config.backupsEnabled')}</div>
         <div className={backupConfig.isBackupsEnabled ? '' : 'font-bold text-danger'}>
           {backupConfig.isBackupsEnabled ? t('common.answers.yes') : t('common.answers.no')}
         </div>
       </div>
+
+      <div className="mb-1 flex w-full items-center">
+        <div className="min-w-[150px] pr-2">{t('backups.config.storage')}</div>
+        <div className="flex items-center">
+          <div>{storage?.name || ''}</div>
+          {storage && (
+            <img
+              src={getStorageLogoFromType(storage.settings.type)}
+              alt=""
+              className="ml-1 h-4 w-4"
+            />
+          )}
+        </div>
+      </div>
+
+      {storageLoadError !== undefined && (
+        <LoadFailure
+          className="mb-1"
+          error={storageLoadError}
+          onRetry={() => setStorageLoadAttempt((attempt) => attempt + 1)}
+        />
+      )}
+
+      <StorageCleanupNotice cleanup={cleanup} error={cleanupError} onRetry={onRetryCleanup} />
 
       {backupConfig.isBackupsEnabled ? (
         <>
@@ -184,28 +216,6 @@ export const ShowLogicalBackupConfigComponent = ({ database, backupConfig }: Pro
               )}
             </div>
           </div>
-
-          <div className="mb-1 flex w-full items-center">
-            <div className="min-w-[150px] pr-2">{t('backups.config.storage')}</div>
-            <div className="flex items-center">
-              <div>{storage?.name || ''}</div>
-              {storage && (
-                <img
-                  src={getStorageLogoFromType(storage.settings.type)}
-                  alt=""
-                  className="ml-1 h-4 w-4"
-                />
-              )}
-            </div>
-          </div>
-
-          {storageLoadError !== undefined && (
-            <LoadFailure
-              className="mb-1"
-              error={storageLoadError}
-              onRetry={() => setStorageLoadAttempt((attempt) => attempt + 1)}
-            />
-          )}
 
           <div className="mb-1 flex w-full items-center">
             <div className="min-w-[150px] pr-2">{t('backups.config.encryption')}</div>

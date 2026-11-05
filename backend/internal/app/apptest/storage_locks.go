@@ -37,6 +37,6 @@ func (a *App) InstallStorageWriteBarrier(tb testing.TB) {
 		END IF; RETURN NEW; END $$ LANGUAGE plpgsql`)
 	a.ExecuteSQL(
 		tb,
-		`CREATE TRIGGER hold_physical_stream_write BEFORE INSERT ON storages_pending_deletions FOR EACH ROW EXECUTE FUNCTION hold_physical_stream_write()`,
+		`CREATE TRIGGER hold_physical_stream_write BEFORE INSERT ON storages_pending_file_deletions FOR EACH ROW EXECUTE FUNCTION hold_physical_stream_write()`,
 	)
 }

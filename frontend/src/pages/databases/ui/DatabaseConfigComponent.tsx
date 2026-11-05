@@ -10,6 +10,7 @@ import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
+  type BackupConfig,
   toLogicalBackupConfigInput,
   toPhysicalBackupConfigInput,
 } from '../../../entities/backup-configs';
@@ -21,6 +22,8 @@ import { EditLogicalBackupConfigSection } from './backup-config/EditLogicalBacku
 import { EditPhysicalBackupConfigSection } from './backup-config/EditPhysicalBackupConfigSection';
 import { ShowLogicalBackupConfigComponent } from './backup-config/ShowLogicalBackupConfigComponent';
 import { ShowPhysicalBackupConfigComponent } from './backup-config/ShowPhysicalBackupConfigComponent';
+import { StorageCleanupNotice } from './backup-config/StorageCleanupNotice';
+import { useBackupCleanup } from './backup-config/useBackupCleanup';
 import { useBackupConfigLoad } from './backup-config/useBackupConfigLoad';
 import { DatabaseSettingsSection } from './DatabaseSettingsSection';
 import { DatabaseTransferDialogComponent } from './DatabaseTransferDialogComponent';
@@ -74,7 +77,11 @@ export const DatabaseConfigComponent = ({
   const [isRemoving, setIsRemoving] = useState(false);
   const [isShowCopyConfirm, setIsShowCopyConfirm] = useState(false);
   const [isShowTransferDialog, setIsShowTransferDialog] = useState(false);
-  const { backupConfig, backupConfigError, reloadBackupConfig } = useBackupConfigLoad(database.id);
+  const { backupConfig, backupConfigError, reloadBackupConfig, acknowledgeBackupConfig } =
+    useBackupConfigLoad({
+      databaseId: database.id,
+      workspaceId: database.workspaceId,
+    });
   const [actionError, setActionError] = useState<unknown>();
   const [connectionFailureReason, setConnectionFailureReason] = useState<string>();
 
@@ -174,10 +181,10 @@ export const DatabaseConfigComponent = ({
     onDatabaseChanged(savedDatabase);
   };
 
-  const acceptSavedBackupConfig = () => {
+  const acceptSavedBackupConfig = (savedConfig: BackupConfig) => {
     clearActionFailure();
     closeSection();
-    reloadBackupConfig();
+    acknowledgeBackupConfig(savedConfig);
     onDatabaseChanged(database);
   };
 
@@ -194,6 +201,12 @@ export const DatabaseConfigComponent = ({
         if (isActive()) setIsSavingName(false);
       });
   };
+
+  const { cleanup, cleanupError, retryCleanup } = useBackupCleanup({
+    databaseId: database.id,
+    workspaceId: database.workspaceId,
+    initial: backupConfig?.cleanup,
+  });
 
   const isPhysicalDatabase = database.settings.type === DatabaseType.POSTGRES_PHYSICAL;
   const isLogicalDatabase = database.settings.type === DatabaseType.POSTGRES_LOGICAL;
@@ -337,6 +350,13 @@ export const DatabaseConfigComponent = ({
                 database={database}
                 onCancel={closeSection}
                 onSaved={acceptSavedBackupConfig}
+                storageCleanupNotice={
+                  <StorageCleanupNotice
+                    cleanup={cleanup}
+                    error={cleanupError}
+                    onRetry={retryCleanup}
+                  />
+                }
               />
             ) : (
               <EditLogicalBackupConfigSection
@@ -344,17 +364,30 @@ export const DatabaseConfigComponent = ({
                 database={database}
                 onCancel={closeSection}
                 onSaved={acceptSavedBackupConfig}
+                storageCleanupNotice={
+                  <StorageCleanupNotice
+                    cleanup={cleanup}
+                    error={cleanupError}
+                    onRetry={retryCleanup}
+                  />
+                }
               />
             )
           ) : physicalBackupConfig ? (
             <ShowPhysicalBackupConfigComponent
               database={database}
               backupConfig={physicalBackupConfig}
+              cleanup={cleanup}
+              cleanupError={cleanupError}
+              onRetryCleanup={retryCleanup}
             />
           ) : logicalBackupConfig ? (
             <ShowLogicalBackupConfigComponent
               database={database}
               backupConfig={logicalBackupConfig}
+              cleanup={cleanup}
+              cleanupError={cleanupError}
+              onRetryCleanup={retryCleanup}
             />
           ) : (
             backupConfigError === undefined && <Spin />

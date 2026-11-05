@@ -93,7 +93,7 @@ export const PhysicalBackupsComponent = ({
   });
 
   const { backupConfig, isBackupConfigLoading, backupConfigError, reloadBackupConfig } =
-    useBackupConfigLoad(database.id);
+    useBackupConfigLoad({ databaseId: database.id, workspaceId: database.workspaceId });
 
   const backupActions = usePhysicalBackupActions({
     databaseId: database.id,

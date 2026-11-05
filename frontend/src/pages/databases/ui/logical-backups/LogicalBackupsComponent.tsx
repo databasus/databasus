@@ -78,7 +78,7 @@ export const LogicalBackupsComponent = ({
   });
 
   const { backupConfig, isBackupConfigLoading, backupConfigError, reloadBackupConfig } =
-    useBackupConfigLoad(database.id);
+    useBackupConfigLoad({ databaseId: database.id, workspaceId: database.workspaceId });
 
   const backupActions = useLogicalBackupActions({
     databaseId: database.id,

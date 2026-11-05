@@ -108,6 +108,8 @@ export const fr: typeof en = {
     },
   },
   errors: {
+    cleanupPending:
+      'Le nettoyage des fichiers est toujours en cours. Attendez sa fin ou supprimez les stockages concernés un par un, en confirmant que les fichiers restants devront être supprimés manuellement.',
     alreadyMember: "Cet utilisateur est déjà membre de l'espace de travail.",
     cannotChangeOwnRole: "Vous ne pouvez pas modifier votre propre rôle dans l'espace de travail.",
     ownerRequiresTransfer:
@@ -1402,22 +1404,14 @@ export const fr: typeof en = {
     },
   },
   backups: {
+    cleanup: {
+      pending: 'Suppression des anciens fichiers. Fichiers restants : {{count}}.',
+      retrying: 'La suppression sera retentée pour les fichiers : {{count}}.',
+      retryStatus: 'Actualiser le statut',
+    },
     storageSwitch: {
-      history: 'Historique des changements de stockage',
-      pending:
-        'Le stockage a été changé. Les anciens fichiers sont en cours de suppression en arrière-plan.',
-      completed: 'Nettoyage terminé',
-      remainders:
-        'Le stockage a été changé, mais la suppression de certains anciens fichiers n’a pas pu être confirmée. Supprimez-les manuellement de l’ancien stockage.',
-      target: 'Stockage après le changement : {{storageId}}',
-      database: 'Base de données : {{databaseId}}',
-      counts:
-        'Fichiers : {{total}}. En attente : {{pending}}. Supprimés : {{deleted}}. Restants : {{remaining}}.',
-      retry: 'Actualiser le statut',
-      empty: 'Aucun changement de stockage.',
-      more: 'Afficher plus',
       warning:
-        'Changer de stockage supprime immédiatement l’ancien historique des sauvegardes et le nouveau stockage est utilisé aussitôt. Les fichiers sont supprimés en arrière-plan, dans la limite de cinq tentatives échouées et de 24 heures. Si l’ancien stockage est inaccessible, des fichiers peuvent y rester. Les fichiers restants doivent être supprimés manuellement. Les nouvelles sauvegardes physiques commencent par une FULL.',
+        'Changer de stockage supprime immédiatement l’ancien historique des sauvegardes et active le nouveau stockage. Les anciens fichiers sont supprimés en arrière-plan. Un stockage inaccessible retarde le nettoyage. La suppression explicite de l’ancien stockage arrête le nettoyage automatique ; les fichiers restants doivent être supprimés manuellement. Les nouvelles sauvegardes physiques commencent par une FULL.',
       confirm: 'Changer de stockage et supprimer l’historique',
     },
     encryption: {
@@ -2032,6 +2026,13 @@ export const fr: typeof en = {
     },
   },
   storages: {
+    cleanup: {
+      title: 'Le nettoyage est toujours en cours',
+      warning:
+        'Nous nettoyons encore ce stockage. Attendez la fin du nettoyage. Si vous le supprimez maintenant, le nettoyage automatique s’arrêtera et vous devrez supprimer manuellement les fichiers restants.',
+      wait: 'Attendre',
+      deleteAnyway: 'Supprimer quand même',
+    },
     types: {
       local: 'Stockage local',
       s3: 'S3',

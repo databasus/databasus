@@ -128,6 +128,39 @@ describe('WorkspaceSettingsComponent', () => {
     expect(screen.queryByRole('button', { name: /Add member/i })).toBeNull();
   });
 
+  it('keeps the workspace and explains individual storage deletion when cleanup is pending', async () => {
+    server.use(
+      mockApi.get('/workspaces/{workspaceId}', 200, workspace),
+      mockApi.get('/databases', 200, { items: [] }),
+      mockApi.delete('/workspaces/{workspaceId}', 409, buildProblem('cleanup_pending', 409)),
+    );
+    mockChildren();
+    const onDeleted = vi.fn();
+    renderScreen(
+      <WorkspaceSettingsComponent
+        selectedWorkspace={workspace}
+        user={user}
+        onDeleted={onDeleted}
+      />,
+    );
+    await screen.findByDisplayValue(workspace.name);
+    fireEvent.click(screen.getByRole('button', { name: 'Delete workspace' }));
+    fireEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Delete Workspace' }),
+    );
+
+    await screen.findByText(
+      'File cleanup is still running. Wait for it to finish, or delete the affected storages individually and acknowledge that any remaining files must be removed manually.',
+    );
+
+    expect(screen.getByDisplayValue(workspace.name)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Delete anyway/i })).toBeNull();
+    expect(onDeleted).not.toHaveBeenCalled();
+    const deletions = server.getRequests().filter((request) => request.method === 'DELETE');
+    expect(deletions).toHaveLength(1);
+    expect(new URL(deletions[0].url).searchParams.has('shouldAbandonCleanup')).toBe(false);
+  });
+
   it.each(['rename', 'delete'] as const)(
     'reconciles workspace unavailability when %s returns 404',
     async (operation) => {

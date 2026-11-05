@@ -450,7 +450,10 @@ func (u *WalUploader) discardAttempt(ctx context.Context, objectName string) {
 	ctx = context.WithoutCancel(ctx)
 
 	if err := u.deps.Transactor.Transaction(ctx, func(ctx context.Context) error {
-		return u.deps.FileStore.RequestFileDeletions(ctx, references)
+		return u.deps.FileStore.RequestDiscardedFileDeletions(
+			ctx,
+			storages.DiscardedFiles{DatabaseID: u.deps.DatabaseID, References: references},
+		)
 	}); err != nil {
 		u.deps.Logger.WarnContext(
 			ctx,

@@ -9,7 +9,7 @@ import {
   createDefaultDatabaseSettings,
 } from '../../../../entities/databases';
 import type { Schedule } from '../../../../entities/schedules';
-import { mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
+import { setUpMockApi } from '../../../../shared/lib/test/mockApi';
 import { renderScreen } from '../../../../shared/lib/test/renderScreen';
 import { ShowLogicalBackupConfigComponent } from './ShowLogicalBackupConfigComponent';
 
@@ -25,6 +25,7 @@ const database: Database = {
 const renderWeeklyConfig = (weekday: number) => {
   const schedule: Schedule = { type: 'WEEKLY', timeOfDay: '12:00', weekday };
   const config: BackupConfig = {
+    cleanup: { pendingFileCount: 0, failedFileCount: 0 },
     databaseId: database.id,
     storageId: null,
     isBackupsEnabled: true,
@@ -48,7 +49,7 @@ const renderWeeklyConfig = (weekday: number) => {
     },
   };
 
-  mockServer.use(mockApi.get('/storage-switches', 200, { items: [] }));
+  mockServer.use();
 
   renderScreen(
     <ShowLogicalBackupConfigComponent

@@ -59,7 +59,7 @@ func TestReassignPhysicalStorage(t *testing.T) {
 				}
 
 				assigned := team.saveStorage(t, storageConfigSave{StorageID: &team.StorageID, IsEnabled: !isDisabled})
-				require.Equal(t, http.StatusAccepted, assigned.StatusCode(), "%s", assigned.Body)
+				require.Equal(t, http.StatusOK, assigned.StatusCode(), "%s", assigned.Body)
 				require.Empty(t, team.listBackups(t))
 
 				if isDisabled {
@@ -90,7 +90,7 @@ func TestEnableSwitchedPhysicalStorage(t *testing.T) {
 		team.App.ExecuteSQL(t, "UPDATE backups_physical SET storage_id=? WHERE id=?", targetStorageID, full.ID)
 
 		switched := team.saveStorage(t, storageConfigSave{StorageID: &targetStorageID, IsEnabled: false})
-		require.Equal(t, http.StatusAccepted, switched.StatusCode(), "%s", switched.Body)
+		require.Equal(t, http.StatusOK, switched.StatusCode(), "%s", switched.Body)
 
 		team.App.RunJobPass(t, "backups_physical_scheduler")
 		require.Len(t, team.listBackups(t), 1)
@@ -114,15 +114,16 @@ func TestRollbackRunningPhysicalStorageSwitch(t *testing.T) {
 		t.Parallel()
 
 		team := newBackupTeam(t, backupTeamSpec{})
+		team.App.ExecuteSQL(
+			t,
+			`CREATE FUNCTION refuse_switch_files() RETURNS trigger AS $$ BEGIN IF NEW.cleanup_database_id IS NOT NULL THEN RAISE EXCEPTION 'cleanup refused'; END IF; RETURN NEW; END $$ LANGUAGE plpgsql`,
+		)
+		team.App.ExecuteSQL(
+			t,
+			`CREATE TRIGGER refuse_switch_files BEFORE INSERT ON storages_pending_file_deletions FOR EACH ROW EXECUTE FUNCTION refuse_switch_files()`,
+		)
+
 		backup, releaseStorage := startHeldPhysicalStream(t, team, "full")
-		team.App.ExecuteSQL(
-			t,
-			`CREATE FUNCTION refuse_switch_files() RETURNS trigger AS $$ BEGIN RAISE EXCEPTION 'switch refused'; END $$ LANGUAGE plpgsql`,
-		)
-		team.App.ExecuteSQL(
-			t,
-			`CREATE TRIGGER refuse_switch_files BEFORE INSERT ON storages_deletion_batch_items FOR EACH ROW EXECUTE FUNCTION refuse_switch_files()`,
-		)
 
 		targetStorageID := team.App.CreateLocalStorage(t, team.Owner, team.Database.WorkspaceId)
 		response := team.saveStorage(t, storageConfigSave{StorageID: &targetStorageID, IsEnabled: true})

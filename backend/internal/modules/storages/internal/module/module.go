@@ -111,17 +111,21 @@ func (m *Module) GetJobs() []background.Job {
 	return []background.Job{m.deletionJob.GetJob()}
 }
 
-func (m *Module) RequestDeletionBatch(
-	ctx context.Context,
-	request files.DeletionBatchRequest,
-) (files.DeletionBatch, error) {
-	return m.files.RequestDeletionBatch(ctx, request)
+func (m *Module) RequestScopedFileDeletions(ctx context.Context, request files.FileDeletionRequest) error {
+	return m.files.RequestScopedFileDeletions(ctx, request)
 }
 
-func (m *Module) GetDeletionBatches(ctx context.Context, ids []uuid.UUID) ([]files.DeletionBatch, error) {
-	return m.files.GetDeletionBatches(ctx, ids)
+func (m *Module) GetCleanupSummaries(
+	ctx context.Context,
+	scopes []files.CleanupScope,
+) (map[files.CleanupScope]files.CleanupSummary, error) {
+	return m.files.GetCleanupSummaries(ctx, scopes)
 }
 
 func (m *Module) GetPendingFileReferences(ctx context.Context, prefix string) ([]files.StoredFileReference, error) {
 	return m.files.GetPendingFileReferences(ctx, prefix)
+}
+
+func (m *Module) RequestDiscardedFileDeletions(ctx context.Context, request files.DiscardedFiles) error {
+	return m.files.RequestDiscardedFileDeletions(ctx, request)
 }

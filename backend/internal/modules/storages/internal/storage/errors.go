@@ -7,6 +7,11 @@ import (
 )
 
 var (
+	ErrCleanupPending = &apierror.Problem{
+		Code:   apierror.CodeCleanupPending,
+		Detail: "automatic file cleanup is still pending",
+		Errors: nil,
+	}
 	ErrStorageNotFound = &apierror.Problem{
 		Code:   apierror.CodeNotFound,
 		Detail: "the storage does not exist",

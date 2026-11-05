@@ -192,3 +192,25 @@ func Test_RedactMessage_WithTimestampsAndRatios_LeavesThemIntact(t *testing.T) {
 		assert.Equal(t, message, redactMessage(message))
 	}
 }
+
+func TestSignedURLRedaction(t *testing.T) {
+	t.Parallel()
+
+	t.Run(
+		"preserves diagnostic parameters when signed credentials appear in errors or endpoint attributes",
+		func(t *testing.T) {
+			t.Parallel()
+
+			endpoint := "https://user:passwordValue@blob.example.com/file?sv=2026&sig=azureValue%2Bsecret&X-Amz-Signature=awsValue&X-Amz-Credential=identity%2Fscope&X-Goog-Signature=googleValue&X-Goog-Credential=googleIdentity%2Fscope&Signature=oldSignature&AWSAccessKeyId=accessIdentity&X-Amz-Security-Token=sessionValue"
+
+			for _, redacted := range []string{Redact("delete " + endpoint + ": failed"), redactAttr(slog.String("endpoint_url", endpoint)).Value.String()} {
+				for _, credential := range []string{"passwordValue", "azureValue", "awsValue", "identity", "googleValue", "googleIdentity", "oldSignature", "accessIdentity", "sessionValue"} {
+					assert.NotContains(t, redacted, credential)
+				}
+
+				assert.Contains(t, redacted, "blob.example.com/file")
+				assert.Contains(t, redacted, "sv=2026")
+			}
+		},
+	)
+}

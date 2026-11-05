@@ -39,7 +39,7 @@ func TestPhysicalWalResumeAfterSlotAdvance(t *testing.T) {
 			team.App.QuerySQL(
 				t,
 				&failedWrites,
-				"SELECT count(*) FROM storages_pending_deletions WHERE storage_id=? AND file_name LIKE ? AND generation>0",
+				"SELECT count(*) FROM storages_pending_file_deletions WHERE storage_id=? AND file_name LIKE ? AND generation>0",
 				team.StorageID,
 				team.Database.Id.String()+"-WAL-tl%-"+queuedWalName+"-%.zst",
 			)

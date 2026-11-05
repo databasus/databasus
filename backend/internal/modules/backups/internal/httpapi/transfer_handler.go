@@ -43,16 +43,10 @@ func (h *Handler) TransferDatabase(
 		return nil, errUnknownStorageOption
 	}
 
-	operation, err := h.transfers.TransferDatabase(ctx, actor, databaseTransfer)
+	err = h.transfers.TransferDatabase(ctx, actor, databaseTransfer)
 	if err != nil {
 		return nil, err
 	}
 
-	if operation != nil {
-		return TransferDatabase202JSONResponse{
-			Body:    toStorageSwitch(*operation),
-			Headers: TransferDatabase202ResponseHeaders{Location: storageSwitchLocation(operation.Operation.ID)},
-		}, nil
-	}
 	return TransferDatabase204Response{}, nil
 }

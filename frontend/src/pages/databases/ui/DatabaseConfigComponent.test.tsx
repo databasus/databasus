@@ -20,6 +20,7 @@ import { API_BASE_PATH, type ApiComponents } from '../../../shared/api';
 import { activateSession, invalidateSession } from '../../../shared/auth';
 import { useLocale } from '../../../shared/i18n';
 import { DICTIONARIES } from '../../../shared/i18n/dictionaries';
+import { waitForCondition } from '../../../shared/lib/test/conditionWait';
 import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
 import { createPendingApiResponse } from '../../../shared/lib/test/pendingApiResponse';
 import { releaseAndSettle } from '../../../shared/lib/test/releaseAndSettle';
@@ -318,6 +319,7 @@ describe('DatabaseConfigComponent', () => {
   });
 
   it('ignores a late backup configuration failure from an earlier load of the same database', async () => {
+    const configRead = vi.spyOn(backupConfigApi, 'getBackupConfig');
     const showAlert = vi.fn();
     vi.stubGlobal('alert', showAlert);
     const earlierBackupConfigLoads = [createPendingApiResponse(), createPendingApiResponse()];
@@ -351,16 +353,12 @@ describe('DatabaseConfigComponent', () => {
     view.rerender(renderConfig(savedDatabase));
     await screen.findByText('Shop');
 
-    const earlierLoadsFailed = new Promise<void>((resolve) => {
-      let failedLoads = 0;
-      mockServer.events.on('response:mocked', ({ response }) => {
-        if (response.status === 500 && ++failedLoads === earlierBackupConfigLoads.length) resolve();
-      });
-    });
     await act(async () => {
       for (const earlierLoad of earlierBackupConfigLoads)
         earlierLoad.respond(HttpResponse.json(buildProblem('internal', 500), { status: 500 }));
-      await earlierLoadsFailed;
+      await Promise.allSettled(
+        configRead.mock.results.slice(0, earlierBackupConfigLoads.length).map((read) => read.value),
+      );
     });
 
     expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
@@ -1204,6 +1202,7 @@ describe('DatabaseConfigComponent backup configuration', () => {
     settings: Partial<typeof logicalSettings> = {},
     retention: Partial<typeof logicalSettings.retention> = {},
   ): BackupConfig => ({
+    cleanup: { pendingFileCount: 0, failedFileCount: 0 },
     databaseId: logicalDatabase.id,
     storageId: null,
     isBackupsEnabled: true,
@@ -1216,6 +1215,7 @@ describe('DatabaseConfigComponent backup configuration', () => {
   });
 
   const physicalConfig: BackupConfig = {
+    cleanup: { pendingFileCount: 0, failedFileCount: 0 },
     databaseId: physicalDatabase.id,
     storageId: null,
     isBackupsEnabled: true,
@@ -1288,7 +1288,6 @@ describe('DatabaseConfigComponent backup configuration', () => {
   ];
 
   const declareBackupConfigRequests = () => [
-    mockApi.get('/storage-switches', 200, { items: [] }),
     mockApi.get('/logical-backups', 200, { items: [] }),
     mockApi.get('/physical-backups', 200, { items: [], totalUsageMb: 0 }),
     mockApi.get('/storages', 200, { items: [] }),
@@ -1720,7 +1719,6 @@ describe('DatabaseConfigComponent backup configuration', () => {
               buildStorage({ id: String(params.storageId), name: 'Shown archive' }),
             ),
           ),
-          mockApi.get('/storage-switches', 200, { items: [] }),
           backupHistory,
         ]);
 
@@ -1764,7 +1762,7 @@ describe('DatabaseConfigComponent backup configuration', () => {
           fireEvent.click(await screen.findByRole('button', { name: /Save$/ }));
 
           expect(
-            await screen.findByText(/Switching storage removes the old backup history immediately/),
+            await screen.findByText(/Switching storage immediately removes the old backup history/),
           ).toBeTruthy();
           expect(submitted).toHaveLength(1);
 
@@ -1782,30 +1780,16 @@ describe('DatabaseConfigComponent backup configuration', () => {
   it.each(BACKUP_EDITORS)(
     'shows an accepted storage switch in the $kind configuration view after a save',
     async ({ database, config }) => {
-      const acceptedSwitch = {
-        id: 'switch-id',
-        databaseId: database.id,
-        workspaceId: database.workspaceId,
-        targetStorageId: 'target-storage',
-        status: 'CLEANUP_PENDING' as const,
-        createdAt: '2026-10-30T10:00:00Z',
-        cleanupDeadline: '2026-10-31T10:00:00Z',
-        total: 2,
-        pending: 2,
-        deleted: 0,
-        remaining: 0,
-      };
+      const acknowledged = { ...config, cleanup: { pendingFileCount: 2, failedFileCount: 0 } };
       let isSwitchAccepted = false;
       renderSavedDatabaseConfig(database, [
-        mockApi.get('/backup-configs/{databaseId}', 200, config),
+        http.get(`*${API_BASE_PATH}/backup-configs/:databaseId`, () =>
+          HttpResponse.json(isSwitchAccepted ? acknowledged : config),
+        ),
         http.put(`*${API_BASE_PATH}/backup-configs/:databaseId`, () => {
           isSwitchAccepted = true;
-          return HttpResponse.json(acceptedSwitch, { status: 202 });
+          return HttpResponse.json(acknowledged);
         }),
-        http.get(`*${API_BASE_PATH}/storage-switches`, () =>
-          HttpResponse.json({ items: isSwitchAccepted ? [acceptedSwitch] : [] }),
-        ),
-        mockApi.get('/storage-switches/{storageSwitchId}', 200, acceptedSwitch),
         mockApi.get('/logical-backups', 200, { items: [] }),
         mockApi.get('/physical-backups', 200, { items: [], totalUsageMb: 0 }),
         mockApi.get('/storages', 200, { items: [] }),
@@ -1816,9 +1800,420 @@ describe('DatabaseConfigComponent backup configuration', () => {
 
       fireEvent.click(saveButton);
 
+      expect(await screen.findByText('Deleting old files. Files remaining: 2.')).toBeTruthy();
+    },
+  );
+
+  it('keeps earlier cleanup visible when a second reassignment adds no files', async () => {
+    let currentConfig = { ...buildLogicalConfig(), storageId: 'archive-a' };
+    const storages = ['a', 'b', 'c'].map((archive) => ({
+      id: `archive-${archive}`,
+      workspaceId: logicalDatabase.workspaceId,
+      name: `Archive ${archive.toUpperCase()}`,
+      settings: { type: 'LOCAL' as const },
+    }));
+    const savedSelections: string[] = [];
+    renderSavedDatabaseConfig(logicalDatabase, [
+      http.get(`*${API_BASE_PATH}/backup-configs/:databaseId`, () =>
+        HttpResponse.json(currentConfig),
+      ),
+      http.put(`*${API_BASE_PATH}/backup-configs/:databaseId`, async ({ request }) => {
+        const config = (await request.json()) as BackupConfigInput;
+        savedSelections.push(config.storageId!);
+        currentConfig = {
+          ...config,
+          databaseId: logicalDatabase.id,
+          storageId: config.storageId!,
+          cleanup: { pendingFileCount: 4, failedFileCount: 1 },
+        };
+        return HttpResponse.json(currentConfig);
+      }),
+      mockApi.get('/storages', 200, { items: storages }),
+      http.get(`*${API_BASE_PATH}/storages/:storageId`, ({ params }) =>
+        HttpResponse.json(storages.find((storage) => storage.id === params.storageId)),
+      ),
+      mockApi.get('/logical-backups', 200, { items: [] }),
+    ]);
+    await screen.findByText('Archive A');
+
+    for (const archive of ['B', 'C']) {
+      await openBackupSection();
+      const storageField = screen.getByText('Storage').parentElement!;
+      fireEvent.mouseDown(storageField.querySelector('.ant-select-selector')!);
+      const option = await waitFor(() => {
+        const storageOption = document.querySelector(
+          `.ant-select-item-option[title="Archive ${archive}"]`,
+        );
+        expect(storageOption).toBeTruthy();
+        return storageOption!;
+      });
+      fireEvent.click(option);
+      fireEvent.click(screen.getByRole('button', { name: /Save$/ }));
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Switch storage and remove history' }),
+      );
+      await screen.findByText('Deleting old files. Files remaining: 4.');
+    }
+
+    expect(savedSelections).toEqual(['archive-b', 'archive-c']);
+    expect(screen.getByText('Deletion will be retried for files: 1.')).toBeTruthy();
+    mockServer.use(
+      mockApi.get('/backup-configs/{databaseId}', 200, {
+        ...currentConfig,
+        cleanup: { pendingFileCount: 0, failedFileCount: 0 },
+      }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByText('Deleting old files. Files remaining: 4.')).toBeNull(),
+    );
+    expect(screen.getByText('Archive C')).toBeTruthy();
+  });
+
+  it.each(BACKUP_EDITORS)(
+    'keeps the last cleanup count on failure and retries only reads in the $kind view',
+    async ({ database, config }) => {
+      const pendingConfig = {
+        ...config,
+        isBackupsEnabled: false,
+        cleanup: { pendingFileCount: 4, failedFileCount: 2 },
+      };
+      let configReads = 0;
+      renderSavedDatabaseConfig(database, [
+        http.get(`*${API_BASE_PATH}/backup-configs/:databaseId`, () => {
+          configReads++;
+          return configReads === 1
+            ? HttpResponse.json(pendingConfig)
+            : HttpResponse.json(buildProblem('internal', 500), { status: 500 });
+        }),
+        mockApi.get('/storages', 200, { items: [] }),
+      ]);
+      await screen.findByText('Deleting old files. Files remaining: 4.');
+      expect(screen.getByText('Deletion will be retried for files: 2.')).toBeTruthy();
+
+      await screen.findByRole('button', { name: 'Retry status' });
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(6000);
+      });
+      expect(configReads).toBe(2);
+      expect(screen.getByText('Deleting old files. Files remaining: 4.')).toBeTruthy();
+      mockServer.use(mockApi.get('/backup-configs/{databaseId}', 200, config));
+      fireEvent.click(screen.getByRole('button', { name: 'Retry status' }));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1);
+      });
+      await waitForCondition(() =>
+        expect(screen.queryByText('Deleting old files. Files remaining: 4.')).toBeNull(),
+      );
+      const readsAfterCompletion = countRequests('/backup-configs/database-id', 'GET');
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(6000);
+      });
+      expect(countRequests('/backup-configs/database-id', 'GET')).toBe(readsAfterCompletion);
+      expect(mockServer.getRequests().filter((request) => request.method !== 'GET')).toHaveLength(
+        0,
+      );
+    },
+  );
+
+  it.each(BACKUP_EDITORS)(
+    'retains cleanup and offers read retry when polling fails during a $kind draft',
+    async ({ database, config }) => {
+      const configRead = vi.spyOn(backupConfigApi, 'getBackupConfig');
+      const pendingConfig = { ...config, cleanup: { pendingFileCount: 4, failedFileCount: 1 } };
+      renderSavedDatabaseConfig(database, [
+        mockApi.get('/backup-configs/{databaseId}', 200, pendingConfig),
+        ...declareBackupConfigRequests(),
+      ]);
+
+      await screen.findByText('Deleting old files. Files remaining: 4.');
+      await openBackupSection();
+      toggleSuccessTrigger();
+      const isDraftChecked = (screen.getAllByRole('checkbox')[0] as HTMLInputElement).checked;
+      const polling = mockApi.pending('get', '/backup-configs/{databaseId}');
+      mockServer.use(polling.handler);
+      const readsBeforePolling = configRead.mock.calls.length;
+
+      await waitFor(() => expect(configRead.mock.calls.length).toBeGreaterThan(readsBeforePolling));
+      await releaseAndSettle(configRead, () =>
+        polling.respond(HttpResponse.json(buildProblem('internal', 500), { status: 500 })),
+      );
+
+      expect(screen.getByText('Deleting old files. Files remaining: 4.')).toBeTruthy();
+      expect(screen.getByText('Deletion will be retried for files: 1.')).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Retry status' })).toBeTruthy();
+
+      mockServer.use(mockApi.get('/backup-configs/{databaseId}', 200, config));
+      fireEvent.click(screen.getByRole('button', { name: 'Retry status' }));
+      await waitFor(() =>
+        expect(screen.queryByText('Deleting old files. Files remaining: 4.')).toBeNull(),
+      );
+
+      expect(screen.getAllByRole('checkbox')[0]).toHaveProperty('checked', isDraftChecked);
+      expect(screen.getByRole('button', { name: /Save$/ })).toHaveProperty('disabled', false);
+      expect(mockServer.getRequests().filter((request) => request.method !== 'GET')).toHaveLength(
+        0,
+      );
+    },
+  );
+
+  it.each(BACKUP_EDITORS)(
+    'retains acknowledged cleanup when a read fails after saving the $kind config',
+    async ({ database, config }) => {
+      const onDatabaseChanged = vi.fn();
+      const acknowledgedConfig = {
+        ...config,
+        cleanup: { pendingFileCount: 7, failedFileCount: 2 },
+      };
+      renderSavedDatabaseConfig(
+        database,
+        [
+          mockApi.get('/backup-configs/{databaseId}', 200, config),
+          mockApi.put('/backup-configs/{databaseId}', 200, acknowledgedConfig),
+          ...declareBackupConfigRequests(),
+        ],
+        onDatabaseChanged,
+      );
+
+      await screen.findByText('Backups enabled');
+      const saveButton = await openBackupSection();
+      toggleSuccessTrigger();
+      mockServer.use(
+        mockApi.get('/backup-configs/{databaseId}', 500, buildProblem('internal', 500)),
+      );
+
+      fireEvent.click(saveButton);
+
+      await waitFor(() => expect(onDatabaseChanged).toHaveBeenCalledOnce());
+
+      expect(screen.getByText('Deleting old files. Files remaining: 7.')).toBeTruthy();
+      await screen.findByRole('button', { name: 'Retry status' });
+      expect(screen.getByText('Deletion will be retried for files: 2.')).toBeTruthy();
+      expect(screen.queryByRole('button', { name: /Save$/ })).toBeNull();
+      expect(mockServer.getRequests().filter((request) => request.method === 'PUT')).toHaveLength(
+        1,
+      );
+    },
+  );
+
+  it.each(BACKUP_EDITORS)(
+    'preserves the active draft when cleanup completes in the $kind view',
+    async ({ database, config }) => {
+      const configRead = vi.spyOn(backupConfigApi, 'getBackupConfig');
+      const archive = {
+        id: 'draft-archive',
+        workspaceId: database.workspaceId,
+        name: 'Draft archive',
+        settings: { type: 'LOCAL' as const },
+      };
+      const view = renderSavedDatabaseConfig(database, [
+        mockApi.get('/backup-configs/{databaseId}', 200, {
+          ...config,
+          cleanup: { pendingFileCount: 2, failedFileCount: 0 },
+        }),
+        mockApi.get('/storages', 200, { items: [archive] }),
+        mockApi.get('/logical-backups', 200, { items: [] }),
+        mockApi.get('/physical-backups', 200, { items: [], totalUsageMb: 0 }),
+      ]);
+      await screen.findByText('Deleting old files. Files remaining: 2.');
+      await openBackupSection();
+      const polling = mockApi.pending('get', '/backup-configs/{databaseId}');
+      mockServer.use(polling.handler);
+      const readsBeforePolling = configRead.mock.calls.length;
+      toggleSuccessTrigger();
+      const successTrigger = screen.getAllByRole('checkbox')[0];
+      const isDraftChecked = (successTrigger as HTMLInputElement).checked;
+      if (config.settings.type === 'LOGICAL') await chooseRetentionPolicy(COUNT_POLICY);
+      const retentionLabel =
+        config.settings.type === 'LOGICAL' ? 'Most recent backups' : 'Most recent full backups';
+      const retentionInput = screen.getByRole('spinbutton', { name: retentionLabel });
+      fireEvent.change(retentionInput, { target: { value: '37' } });
+      fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Storage' }));
+      fireEvent.click(await screen.findByText('Draft archive'));
+      retentionInput.focus();
+      view.container.style.height = '200px';
+      view.container.style.overflowY = 'auto';
+      view.container.scrollTop = 180;
+
+      await waitFor(() => expect(configRead.mock.calls.length).toBeGreaterThan(readsBeforePolling));
+      await releaseAndSettle(configRead, () =>
+        polling.respond(
+          HttpResponse.json({
+            ...config,
+            cleanup: { pendingFileCount: 0, failedFileCount: 0 },
+          }),
+        ),
+      );
+
+      expect(screen.getAllByRole('checkbox')[0]).toHaveProperty('checked', isDraftChecked);
+      expect(screen.getByRole('spinbutton', { name: retentionLabel })).toHaveProperty(
+        'value',
+        '37',
+      );
       expect(
-        await screen.findByText('Storage switched. Old files are being cleaned up.'),
-      ).toBeTruthy();
+        screen
+          .getByRole('combobox', { name: 'Storage' })
+          .closest('.ant-select')
+          ?.querySelector('.ant-select-selection-item')?.textContent,
+      ).toBe('Draft archive');
+      expect(document.activeElement).toBe(retentionInput);
+      expect(view.container.scrollTop).toBe(180);
+      expect(screen.getByRole('button', { name: /Save$/ })).toBeTruthy();
+      expect(mockServer.getRequests().filter((request) => request.method === 'PUT')).toHaveLength(
+        0,
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(screen.queryByText('Deleting old files. Files remaining: 2.')).toBeNull();
+    },
+  );
+
+  it.each(['database', 'workspace', 'session', 'unmount'] as const)(
+    'cancels a scheduled cleanup poll before it starts after a %s change',
+    async (contextChange) => {
+      const initialRead = createPendingApiResponse();
+      const configRead = vi.spyOn(backupConfigApi, 'getBackupConfig');
+      mockServer.use(
+        http.get(`*${API_BASE_PATH}/backup-configs/:databaseId`, async () =>
+          (await initialRead.response).clone(),
+        ),
+        mockApi.get('/storages', 200, { items: [] }),
+        mockApi.get('/notifiers', 200, { items: [] }),
+        mockApi.pending('get', '/healthcheck-configs/{databaseId}').handler,
+        mockApi.pending('get', '/verification-configs/{databaseId}').handler,
+      );
+      const renderConfig = (database: Database) => (
+        <DatabaseConfigComponent
+          database={database}
+          onDatabaseChanged={() => {}}
+          onDatabaseDeleted={() => {}}
+          onDatabaseCopied={() => {}}
+          onDatabaseTransferred={() => {}}
+          isCanManageDBs
+        />
+      );
+      const view = renderScreen(renderConfig(logicalDatabase), { isStrictMode: true });
+      await waitFor(() => expect(configRead.mock.calls.length).toBeGreaterThan(0));
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      await releaseAndSettle(configRead, () =>
+        initialRead.respond(
+          HttpResponse.json({
+            ...buildLogicalConfig(),
+            cleanup: { pendingFileCount: 3, failedFileCount: 0 },
+          }),
+        ),
+      );
+      expect(screen.getByText('Deleting old files. Files remaining: 3.')).toBeTruthy();
+      const initialReads = configRead.mock.calls.length;
+      mockServer.use(mockApi.get('/backup-configs/{databaseId}', 200, buildLogicalConfig()));
+
+      if (contextChange === 'database' || contextChange === 'workspace') {
+        view.rerender(
+          renderConfig({
+            ...logicalDatabase,
+            id: contextChange === 'database' ? 'new-database' : logicalDatabase.id,
+            workspaceId: 'new-workspace',
+          }),
+        );
+        await waitForCondition(() =>
+          expect(configRead.mock.calls.length).toBeGreaterThan(initialReads),
+        );
+        await act(async () => {
+          await Promise.allSettled(
+            configRead.mock.results.slice(initialReads).map((read) => read.value),
+          );
+        });
+      } else if (contextChange === 'session') {
+        act(() => activateSession({ token: 'replacement-session', userId: 'replacement-user' }));
+      } else {
+        view.unmount();
+      }
+      const readsAfterScopeChange = configRead.mock.calls.length;
+      const requestsAfterScopeChange = mockServer
+        .getRequests()
+        .filter((request) => request.url.includes('/backup-configs/')).length;
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(6000);
+      });
+
+      expect(configRead.mock.calls.length).toBe(readsAfterScopeChange);
+      expect(
+        mockServer.getRequests().filter((request) => request.url.includes('/backup-configs/')),
+      ).toHaveLength(requestsAfterScopeChange);
+      view.unmount();
+    },
+  );
+
+  it.each(['database', 'workspace', 'session', 'unmount'] as const)(
+    'ignores obsolete cleanup after a %s change',
+    async (contextChange) => {
+      const configRead = vi.spyOn(backupConfigApi, 'getBackupConfig');
+      const oldRead = mockApi.pending('get', '/backup-configs/{databaseId}');
+      mockServer.use(
+        mockApi.get('/backup-configs/{databaseId}', 200, {
+          ...buildLogicalConfig(),
+          cleanup: { pendingFileCount: 3, failedFileCount: 0 },
+        }),
+        mockApi.get('/storages', 200, { items: [] }),
+        mockApi.get('/notifiers', 200, { items: [] }),
+        mockApi.pending('get', '/healthcheck-configs/{databaseId}').handler,
+      );
+      mockServer.use(mockApi.pending('get', '/verification-configs/{databaseId}').handler);
+      const renderConfig = (database: Database) => (
+        <DatabaseConfigComponent
+          database={database}
+          onDatabaseChanged={() => {}}
+          onDatabaseDeleted={() => {}}
+          onDatabaseCopied={() => {}}
+          onDatabaseTransferred={() => {}}
+          isCanManageDBs
+        />
+      );
+      const view = renderScreen(renderConfig(logicalDatabase), { isStrictMode: true });
+      await screen.findByText('Deleting old files. Files remaining: 3.');
+      const readsBeforePolling = configRead.mock.calls.length;
+      mockServer.use(oldRead.handler);
+      await waitFor(() => expect(configRead.mock.calls.length).toBeGreaterThan(readsBeforePolling));
+      const obsoleteReadIndex = configRead.mock.calls.length - 1;
+      mockServer.use(
+        mockApi.get('/backup-configs/{databaseId}', 200, {
+          ...buildLogicalConfig(),
+          databaseId: 'new-database',
+        }),
+      );
+      if (contextChange === 'database' || contextChange === 'workspace') {
+        view.rerender(
+          renderConfig({
+            ...logicalDatabase,
+            id: contextChange === 'database' ? 'new-database' : logicalDatabase.id,
+            workspaceId: 'new-workspace',
+          }),
+        );
+        if (contextChange === 'database')
+          await waitFor(() =>
+            expect(screen.queryByText('Deleting old files. Files remaining: 3.')).toBeNull(),
+          );
+      } else if (contextChange === 'session') {
+        act(() => activateSession({ token: 'new-session', userId: 'new-user' }));
+      } else view.unmount();
+
+      await releaseAndSettle(
+        configRead,
+        () => {
+          oldRead.respond(
+            contextChange === 'database' || contextChange === 'unmount'
+              ? HttpResponse.json({
+                  ...buildLogicalConfig(),
+                  cleanup: { pendingFileCount: 99, failedFileCount: 1 },
+                })
+              : HttpResponse.json(buildProblem('internal', 500), { status: 500 }),
+          );
+        },
+        obsoleteReadIndex,
+      );
+
+      expect(screen.queryByText('Deleting old files. Files remaining: 99.')).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Retry status' })).toBeNull();
     },
   );
 
@@ -1842,6 +2237,7 @@ describe('DatabaseConfigComponent backup configuration', () => {
     type PhysicalSettings = Extract<BackupConfig['settings'], { type: 'PHYSICAL' }>;
 
     const buildPhysicalConfig = (settings: Partial<PhysicalSettings> = {}): BackupConfig => ({
+      cleanup: { pendingFileCount: 0, failedFileCount: 0 },
       databaseId: incrementalDatabase.id,
       storageId: null,
       isBackupsEnabled: true,

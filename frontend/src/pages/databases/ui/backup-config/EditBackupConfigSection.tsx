@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import {
   type BackupConfig,
   type BackupConfigInput,
-  StorageSwitchHistoryComponent,
   backupConfigApi,
 } from '../../../../entities/backup-configs';
 import type { Database } from '../../../../entities/databases';
@@ -27,7 +26,7 @@ interface Props<TDraft extends BackupConfigSectionDraft> {
   isComplete: (draft: TDraft) => boolean;
   renderFields: (draft: TDraft, onChange: (draft: TDraft) => void) => ReactNode;
   onCancel: () => void;
-  onSaved: () => void;
+  onSaved: (config: BackupConfig) => void;
 }
 
 export const EditBackupConfigSection = <TDraft extends BackupConfigSectionDraft>({
@@ -59,10 +58,13 @@ export const EditBackupConfigSection = <TDraft extends BackupConfigSectionDraft>
     setSaveError(undefined);
 
     try {
-      await backupConfigApi.updateBackupConfig(database.id, toInput(savedDraft));
+      const savedConfig = await backupConfigApi.updateBackupConfig(
+        database.id,
+        toInput(savedDraft),
+      );
       if (!isActive()) return;
 
-      onSaved();
+      onSaved(savedConfig);
     } catch (error) {
       if (!isActive()) return;
 
@@ -176,8 +178,6 @@ export const EditBackupConfigSection = <TDraft extends BackupConfigSectionDraft>
           {t('common.actions.save')}
         </Button>
       </div>
-
-      <StorageSwitchHistoryComponent workspaceId={database.workspaceId} databaseId={database.id} />
 
       {isShowStorageSwitchWarning && (
         <ConfirmationComponent

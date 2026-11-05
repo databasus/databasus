@@ -3,8 +3,11 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { HttpResponse } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { Storage } from '../../../entities/storages';
+import { type Storage, storageApi } from '../../../entities/storages';
+import { activateSession } from '../../../shared/auth';
+import { DICTIONARIES, type Locale, useLocale } from '../../../shared/i18n';
 import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
+import { releaseAndSettle } from '../../../shared/lib/test/releaseAndSettle';
 import { renderScreen } from '../../../shared/lib/test/renderScreen';
 import { StorageComponent } from './StorageComponent';
 
@@ -371,6 +374,7 @@ describe('StorageComponent', () => {
         },
       };
 
+      const testCall = vi.spyOn(storageApi, 'testStorage');
       const oldTest = mockApi.pending('post', '/storages/{storageId}/test');
       mockServer.use(
         mockApi.get('/storages/{storageId}', 200, storage),
@@ -405,24 +409,21 @@ describe('StorageComponent', () => {
       await waitFor(() => expect(onStorageChanged).toHaveBeenCalledWith(changedStorage));
 
       const notices = screen.queryAllByText('Connection test successful!').length;
-      const processed = new Promise<void>((resolve) => {
-        mockServer.events.on('response:mocked', function onResponse() {
-          mockServer.events.removeListener('response:mocked', onResponse);
-          resolve();
-        });
-      });
 
-      await act(async () => {
-        oldTest.respond(
-          outcome === 'request'
-            ? HttpResponse.json(buildProblem('internal', 500), { status: 500 })
-            : HttpResponse.json({
-                isConnected: outcome === 'success',
-                error: outcome === 'connection' ? 'Obsolete connection failure' : undefined,
-              }),
-        );
-        await processed;
-      });
+      await releaseAndSettle(
+        testCall,
+        () => {
+          oldTest.respond(
+            outcome === 'request'
+              ? HttpResponse.json(buildProblem('internal', 500), { status: 500 })
+              : HttpResponse.json({
+                  isConnected: outcome === 'success',
+                  error: outcome === 'connection' ? 'Obsolete connection failure' : undefined,
+                }),
+          );
+        },
+        0,
+      );
 
       expect(onStorageChanged).toHaveBeenCalledTimes(1);
       expect(view.container.querySelector('.ant-alert-error')).toBeNull();
@@ -486,4 +487,235 @@ describe('StorageComponent', () => {
       expect(screen.queryByText(localStorageOfWorkspace.name)).toBeNull();
     },
   );
+  it('requires a second action after cleanup refusal and retains the warning on explicit failure', async () => {
+    const onStorageDeleted = vi.fn();
+    mockServer.use(
+      mockApi.get('/storages/{storageId}', 200, localStorageOfWorkspace),
+      mockApi.delete('/storages/{storageId}', 409, buildProblem('cleanup_pending', 409)),
+    );
+    const view = renderStorage(onStorageDeleted);
+
+    await view.user.click(await screen.findByRole('button', { name: 'Remove' }));
+    await view.user.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove' }),
+    );
+    await screen.findByRole('button', { name: 'Delete anyway' });
+
+    const ordinaryRemoval = mockServer
+      .getRequests()
+      .filter((request) => request.method === 'DELETE');
+    expect(ordinaryRemoval).toHaveLength(1);
+    expect(new URL(ordinaryRemoval[0].url).searchParams.has('shouldAbandonCleanup')).toBe(false);
+
+    await view.user.click(screen.getByRole('button', { name: 'Wait' }));
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(onStorageDeleted).not.toHaveBeenCalled();
+
+    await view.user.click(screen.getByRole('button', { name: 'Remove' }));
+    await view.user.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove' }),
+    );
+    await screen.findByRole('button', { name: 'Delete anyway' });
+    mockServer.use(mockApi.delete('/storages/{storageId}', 500, buildProblem('internal', 500)));
+    await view.user.click(screen.getByRole('button', { name: 'Delete anyway' }));
+    expect(
+      await within(screen.getByRole('dialog')).findByText(
+        'An internal server error occurred. Please try again later.',
+      ),
+    ).toBeTruthy();
+    expect(
+      new URL(
+        mockServer.getRequests().filter((request) => request.method === 'DELETE')[2].url,
+      ).searchParams.get('shouldAbandonCleanup'),
+    ).toBe('true');
+
+    const explicitRemoval = mockApi.pending('delete', '/storages/{storageId}');
+    mockServer.use(explicitRemoval.handler);
+    const abandonAction = await screen.findByRole('button', { name: /Delete anyway/ });
+    await waitFor(() => expect(abandonAction).toHaveProperty('disabled', false));
+    fireEvent.click(abandonAction);
+    fireEvent.click(abandonAction);
+    await waitFor(() =>
+      expect(
+        mockServer.getRequests().filter((request) => request.method === 'DELETE'),
+      ).toHaveLength(4),
+    );
+    expect(screen.getByRole('button', { name: 'Wait' })).toHaveProperty('disabled', true);
+    explicitRemoval.respond(new HttpResponse(null, { status: 204 }));
+    await waitFor(() => expect(onStorageDeleted).toHaveBeenCalledOnce());
+  });
+
+  it.each(['storage', 'session'] as const)(
+    'closes an open cleanup warning when the %s changes',
+    async (contextChange) => {
+      const otherStorage = {
+        ...localStorageOfWorkspace,
+        id: 'other-storage',
+        name: 'Other archive',
+      };
+      mockServer.use(
+        mockApi.get('/storages/{storageId}', 200, localStorageOfWorkspace),
+        mockApi.delete('/storages/{storageId}', 409, buildProblem('cleanup_pending', 409)),
+      );
+      const renderSelectedStorage = (storageId: string, sessionKey = 'initial') => (
+        <StorageComponent
+          key={sessionKey}
+          storageId={storageId}
+          onStorageChanged={() => {}}
+          onStorageDeleted={() => {}}
+          onStorageTransferred={() => {}}
+          isCanManageStorages
+        />
+      );
+      const view = renderScreen(renderSelectedStorage(localStorageOfWorkspace.id));
+
+      await view.user.click(await screen.findByRole('button', { name: 'Remove' }));
+      await view.user.click(
+        within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove' }),
+      );
+      await screen.findByRole('button', { name: 'Delete anyway' });
+
+      mockServer.use(mockApi.get('/storages/{storageId}', 200, otherStorage));
+
+      if (contextChange === 'storage') {
+        view.rerender(renderSelectedStorage(otherStorage.id));
+        await screen.findByText(otherStorage.name);
+      } else {
+        act(() => activateSession({ token: 'replacement-session', userId: 'replacement-user' }));
+      }
+
+      expect(screen.queryByRole('dialog')).toBeNull();
+
+      if (contextChange === 'session') {
+        view.rerender(renderSelectedStorage(otherStorage.id, 'replacement'));
+        await screen.findByText(otherStorage.name);
+      }
+
+      await view.user.click(screen.getByRole('button', { name: 'Remove' }));
+      await view.user.click(
+        within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove' }),
+      );
+      await screen.findByRole('button', { name: 'Delete anyway' });
+
+      const removals = mockServer.getRequests().filter((request) => request.method === 'DELETE');
+      expect(removals).toHaveLength(2);
+      expect(new URL(removals[1].url).pathname).toContain(otherStorage.id);
+      expect(new URL(removals[1].url).searchParams.has('shouldAbandonCleanup')).toBe(false);
+    },
+  );
+
+  it.each(['storage', 'session', 'unmount'] as const)(
+    'rejects a cleanup refusal after the %s changes',
+    async (contextChange) => {
+      const deleteCall = vi.spyOn(storageApi, 'deleteStorage');
+      const removal = mockApi.pending('delete', '/storages/{storageId}');
+      const onStorageDeleted = vi.fn();
+      mockServer.use(
+        mockApi.get('/storages/{storageId}', 200, localStorageOfWorkspace),
+        removal.handler,
+      );
+      const renderSelectedStorage = (storageId: string) => (
+        <StorageComponent
+          storageId={storageId}
+          onStorageChanged={() => {}}
+          onStorageDeleted={onStorageDeleted}
+          onStorageTransferred={() => {}}
+          isCanManageStorages
+        />
+      );
+      const view = renderScreen(renderSelectedStorage(localStorageOfWorkspace.id));
+      await view.user.click(await screen.findByRole('button', { name: 'Remove' }));
+      await view.user.click(
+        within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove' }),
+      );
+      await waitFor(() =>
+        expect(mockServer.getRequests().some((request) => request.method === 'DELETE')).toBe(true),
+      );
+
+      const obsoleteDeleteIndex = deleteCall.mock.calls.length - 1;
+
+      if (contextChange === 'storage') view.rerender(renderSelectedStorage('other-storage'));
+      else if (contextChange === 'session')
+        act(() => activateSession({ token: 'new-session', userId: 'new-user' }));
+      else view.unmount();
+
+      await releaseAndSettle(
+        deleteCall,
+        () => {
+          removal.respond(HttpResponse.json(buildProblem('cleanup_pending', 409), { status: 409 }));
+        },
+        obsoleteDeleteIndex,
+      );
+
+      expect(screen.queryByRole('button', { name: 'Delete anyway' })).toBeNull();
+      expect(onStorageDeleted).not.toHaveBeenCalled();
+      expect(
+        mockServer.getRequests().filter((request) => request.method === 'DELETE'),
+      ).toHaveLength(1);
+    },
+  );
+
+  it.each(['ru', 'fr', 'es', 'pt', 'zh'] as const)(
+    'translates an open cleanup warning into %s without acknowledging deletion',
+    async (locale: Locale) => {
+      const ChangeLanguage = () => {
+        const { setLocale } = useLocale();
+        return <button onClick={() => setLocale(locale)}>Switch language</button>;
+      };
+      mockServer.use(
+        mockApi.get('/storages/{storageId}', 200, localStorageOfWorkspace),
+        mockApi.delete('/storages/{storageId}', 409, buildProblem('cleanup_pending', 409)),
+      );
+      renderScreen(
+        <>
+          <ChangeLanguage />
+          <StorageComponent
+            storageId={localStorageOfWorkspace.id}
+            onStorageChanged={() => {}}
+            onStorageDeleted={() => {}}
+            onStorageTransferred={() => {}}
+            isCanManageStorages
+          />
+        </>,
+      );
+      fireEvent.click(await screen.findByRole('button', { name: 'Remove' }));
+      fireEvent.click(
+        within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove' }),
+      );
+      await screen.findByRole('button', { name: 'Delete anyway' });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Switch language' }));
+
+      const dictionary = DICTIONARIES[locale];
+      const warning = screen.getByRole('dialog', { name: dictionary.storages.cleanup.title });
+      expect(within(warning).getByText(dictionary.storages.cleanup.warning)).toBeTruthy();
+      expect(
+        within(warning).getByRole('button', { name: dictionary.storages.cleanup.deleteAnyway }),
+      ).toBeTruthy();
+      fireEvent.click(
+        within(warning).getByRole('button', { name: dictionary.storages.cleanup.wait }),
+      );
+      expect(screen.queryByRole('dialog')).toBeNull();
+      expect(
+        mockServer.getRequests().filter((request) => request.method === 'DELETE'),
+      ).toHaveLength(1);
+    },
+  );
+
+  it('offers no deletion to a viewer', async () => {
+    mockServer.use(mockApi.get('/storages/{storageId}', 200, localStorageOfWorkspace));
+    renderScreen(
+      <StorageComponent
+        storageId={localStorageOfWorkspace.id}
+        onStorageChanged={() => {}}
+        onStorageDeleted={() => {}}
+        onStorageTransferred={() => {}}
+        isCanManageStorages={false}
+      />,
+    );
+    await screen.findByText(localStorageOfWorkspace.name);
+
+    expect(screen.queryByRole('button', { name: 'Remove' })).toBeNull();
+  });
 });

@@ -31,6 +31,7 @@ const CONTRACT_ERROR_CODE_KEYS = {
   owner_requires_transfer: 'errors.ownerRequiresTransfer',
   workspace_not_empty: 'errors.workspaceNotEmpty',
   in_use: 'errors.inUse',
+  cleanup_pending: 'errors.cleanupPending',
   database_connection_failed: 'errors.databaseConnectionFailed',
   backup_not_completed: 'errors.backupNotCompleted',
   already_running: 'errors.alreadyRunning',

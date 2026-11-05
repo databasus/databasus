@@ -35,6 +35,7 @@ const transferredStorage: Storage = {
 };
 
 const backupConfigOfStorage: BackupConfig = {
+  cleanup: { pendingFileCount: 0, failedFileCount: 0 },
   databaseId: 'database-id',
   isBackupsEnabled: true,
   storageId: transferredStorage.id,

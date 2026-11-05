@@ -3,7 +3,6 @@ package files
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -73,12 +72,12 @@ func (r *PendingDeletionRepository) InsertIfAbsent(
 	var inserted []PendingDeletion
 
 	result := database.Conn(ctx, r.db).Raw(`
-		INSERT INTO storages_pending_deletions (id, storage_id, file_name, not_before, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?)
+		INSERT INTO storages_pending_file_deletions (id, storage_id, file_name, not_before, created_at, updated_at)
+		SELECT ?, id, ?, ?, ?, ? FROM storages WHERE id = ? FOR KEY SHARE
 		ON CONFLICT (storage_id, file_name) DO NOTHING
 		RETURNING *`,
-		registration.ID, registration.Reference.StorageID, registration.Reference.FileName,
-		registration.NotBefore, registration.Now, registration.Now,
+		registration.ID, registration.Reference.FileName,
+		registration.NotBefore, registration.Now, registration.Now, registration.Reference.StorageID,
 	).Scan(&inserted)
 	if result.Error != nil {
 		return nil, fmt.Errorf("insert pending deletion: %w", result.Error)
@@ -95,34 +94,37 @@ func (r *PendingDeletionRepository) InsertIfAbsent(
 // from a writer that is still running and stops it publishing.
 func (r *PendingDeletionRepository) InsertOrTake(
 	ctx context.Context,
-	references []StoredFileReference,
+	request FileDeletionRequest,
 	now time.Time,
 ) error {
-	unique := deduplicateReferences(references)
+	unique := deduplicateReferences(request.References)
 	if len(unique) == 0 {
 		return nil
 	}
 
-	placeholders := make([]string, 0, len(unique))
-	args := make([]any, 0, len(unique)*5+2)
-
 	for _, reference := range unique {
-		placeholders = append(placeholders, "(?, ?, ?, ?, ?)")
-		args = append(args, reference.StorageID, reference.FileName, now, now, now)
-	}
+		if reference.FileName == "" {
+			continue
+		}
 
-	args = append(args, now, now)
+		var databaseID, workspaceID *uuid.UUID
+		if request.Scope != nil {
+			databaseID, workspaceID = &request.Scope.DatabaseID, &request.Scope.WorkspaceID
+		}
 
-	statement := fmt.Sprintf(`
-		INSERT INTO storages_pending_deletions (storage_id, file_name, not_before, created_at, updated_at)
-		VALUES %s
-		ON CONFLICT (storage_id, file_name) DO UPDATE
-		SET is_ordinary = true, not_before = ?,
-		    generation = storages_pending_deletions.generation + 1,
-		    updated_at = ?`, strings.Join(placeholders, ", "))
-
-	if err := database.Conn(ctx, r.db).Exec(statement, args...).Error; err != nil {
-		return fmt.Errorf("record pending deletions: %w", err)
+		if err := database.Conn(ctx, r.db).Exec(`
+            INSERT INTO storages_pending_file_deletions
+                (storage_id, file_name, not_before, created_at, updated_at, cleanup_database_id, cleanup_workspace_id)
+            SELECT id, ?, ?, ?, ?, ?, ? FROM storages WHERE id = ? FOR KEY SHARE
+            ON CONFLICT (storage_id, file_name) DO UPDATE
+            SET generation = storages_pending_file_deletions.generation + 1,
+                not_before = CASE WHEN storages_pending_file_deletions.attempt_count = 0 THEN least(storages_pending_file_deletions.not_before, EXCLUDED.not_before) ELSE storages_pending_file_deletions.not_before END,
+                cleanup_database_id = coalesce(storages_pending_file_deletions.cleanup_database_id, EXCLUDED.cleanup_database_id),
+                cleanup_workspace_id = coalesce(storages_pending_file_deletions.cleanup_workspace_id, EXCLUDED.cleanup_workspace_id),
+                updated_at = EXCLUDED.updated_at`,
+			reference.FileName, now, now, now, databaseID, workspaceID, reference.StorageID).Error; err != nil {
+			return fmt.Errorf("record pending deletion: %w", err)
+		}
 	}
 
 	return nil
@@ -197,14 +199,13 @@ func (r *PendingDeletionRepository) ClaimDue(ctx context.Context, request ClaimR
 	args = append(args, request.Limit)
 
 	statement := fmt.Sprintf(`
-		UPDATE storages_pending_deletions
+		UPDATE storages_pending_file_deletions
 		SET generation = generation + 1,
-		    attempt_count = attempt_count + 1,
 		    not_before = ?,
 		    updated_at = ?
 		WHERE id IN (
 			SELECT id
-			FROM storages_pending_deletions
+			FROM storages_pending_file_deletions
 			WHERE not_before <= ? %s
 			AND pg_try_advisory_xact_lock(hashtextextended('storages-file-write:' || storage_id::text || ':' || file_name,0))
 			ORDER BY not_before
@@ -232,7 +233,7 @@ func (r *PendingDeletionRepository) GetPendingDeletionSummary(
 		SELECT count(*)                                                                  AS pending,
 		       count(*) FILTER (WHERE not_before <= @now)                                AS overdue,
 		       coalesce(extract(epoch FROM @now - min(created_at)) * 1000, 0)::bigint     AS oldest_age_ms
-		FROM storages_pending_deletions`, map[string]any{"now": now}).Scan(&summary).Error
+		FROM storages_pending_file_deletions`, map[string]any{"now": now}).Scan(&summary).Error
 	if err != nil {
 		return PendingDeletionSummary{}, fmt.Errorf("summarize pending deletions: %w", err)
 	}
@@ -273,13 +274,31 @@ type AttemptLock struct {
 	ShouldAllowExpired bool
 }
 
+func (r *PendingDeletionRepository) StartAttempt(
+	ctx context.Context,
+	pending PendingDeletion,
+	now time.Time,
+) (bool, error) {
+	result := database.Conn(ctx, r.db).Model(&PendingDeletion{}).
+		Where("id = ? AND generation = ? AND not_before > ?", pending.ID, pending.Generation, now).
+		Updates(map[string]any{
+			"attempt_count": gorm.Expr("attempt_count + 1"),
+			"updated_at":    now,
+		})
+	if result.Error != nil {
+		return false, fmt.Errorf("start deletion attempt: %w", result.Error)
+	}
+
+	return result.RowsAffected == 1, nil
+}
+
 func (r *PendingDeletionRepository) LockAttempt(
 	ctx context.Context,
 	lock AttemptLock,
 ) (bool, error) {
 	var ids []uuid.UUID
 	err := database.Conn(ctx, r.db).
-		Raw(`SELECT id FROM storages_pending_deletions WHERE id=? AND generation=? AND (not_before>? OR ?) FOR UPDATE`, lock.Pending.ID, lock.Pending.Generation, lock.Now, lock.ShouldAllowExpired).
+		Raw(`SELECT id FROM storages_pending_file_deletions WHERE id=? AND generation=? AND (not_before>? OR ?) FOR UPDATE`, lock.Pending.ID, lock.Pending.Generation, lock.Now, lock.ShouldAllowExpired).
 		Scan(&ids).
 		Error
 	if err != nil {
@@ -294,7 +313,7 @@ func (r *PendingDeletionRepository) ListReferencesByPrefix(
 ) ([]StoredFileReference, error) {
 	references := []StoredFileReference{}
 	if err := database.Conn(ctx, r.db).
-		Raw("SELECT storage_id,file_name FROM storages_pending_deletions WHERE left(file_name,length(?))=?", prefix, prefix).
+		Raw("SELECT storage_id,file_name FROM storages_pending_file_deletions WHERE left(file_name,length(?))=?", prefix, prefix).
 		Scan(&references).
 		Error; err != nil {
 		return nil, fmt.Errorf("list unfinished files: %w", err)

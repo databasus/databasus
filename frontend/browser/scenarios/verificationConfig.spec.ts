@@ -84,6 +84,7 @@ const serveDatabaseConfigScreenRoutes = async (page: Page) => {
   await page.route(/\/api\/v1\/backup-configs\/[^/?]+$/, (route) =>
     route.fulfill({
       json: {
+        cleanup: { pendingFileCount: 0, failedFileCount: 0 },
         databaseId: database.id,
         storageId: null,
         isBackupsEnabled: false,

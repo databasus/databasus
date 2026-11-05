@@ -1,5 +1,6 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { Select, Tooltip } from 'antd';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -22,6 +23,7 @@ interface Props {
   workspaceId: string;
   backupType: PhysicalDatabaseBackupType;
   canClearStorage: boolean;
+  storageCleanupNotice?: ReactNode;
 }
 
 export const PhysicalBackupConfigFields = ({
@@ -30,6 +32,7 @@ export const PhysicalBackupConfigFields = ({
   workspaceId,
   backupType,
   canClearStorage,
+  storageCleanupNotice,
 }: Props) => {
   const { t } = useTranslation();
 
@@ -86,6 +89,8 @@ export const PhysicalBackupConfigFields = ({
           />
         </div>
       </div>
+
+      {storageCleanupNotice}
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('backups.config.encryption')}</div>

@@ -18,7 +18,6 @@ import (
 // Deps is what both the store and the deletion job need, so the two constructors cannot drift apart.
 type Deps struct {
 	Repository      *PendingDeletionRepository
-	Batches         *DeletionBatchRepository
 	WriteProtection *WriteProtectionRepository
 	Transactor      *database.Transactor
 	Locator         StorageLocator
@@ -34,7 +33,6 @@ type Deps struct {
 // claims it.
 type Store struct {
 	repository      *PendingDeletionRepository
-	batches         *DeletionBatchRepository
 	writeProtection *WriteProtectionRepository
 	transactor      *database.Transactor
 	locator         StorageLocator
@@ -50,7 +48,6 @@ type Store struct {
 func NewStore(deps Deps) *Store {
 	return &Store{
 		repository:      deps.Repository,
-		batches:         deps.Batches,
 		writeProtection: deps.WriteProtection,
 		transactor:      deps.Transactor,
 		locator:         deps.Locator,
@@ -186,7 +183,7 @@ func (s *Store) RequestFileDeletions(ctx context.Context, references []StoredFil
 		}
 	}
 
-	return s.repository.InsertOrTake(ctx, namedReferences, s.clock.Now())
+	return s.repository.InsertOrTake(ctx, FileDeletionRequest{References: namedReferences, Scope: nil}, s.clock.Now())
 }
 
 // makeEligibleNow logs a failure instead of returning it, because the write is over either way. A
@@ -220,22 +217,6 @@ func (s *Store) leaveLiveWrites(id uuid.UUID) {
 	defer s.liveWritesMutex.Unlock()
 
 	delete(s.liveWrites, id)
-}
-
-// getLiveWriteIDs is safe for a storage being deleted, because the deletion holds the storage's row
-// lock, so no new write to it can register after this snapshot.
-func (s *Store) getLiveWriteIDs() map[uuid.UUID]struct{} {
-	liveWriteIDs := map[uuid.UUID]struct{}{}
-
-	_ = s.withLiveWrites(func(excludedIDs []uuid.UUID) error {
-		for _, id := range excludedIDs {
-			liveWriteIDs[id] = struct{}{}
-		}
-
-		return nil
-	})
-
-	return liveWriteIDs
 }
 
 // withLiveWrites holds the mutex across claim, which keeps the exclusion list from going stale

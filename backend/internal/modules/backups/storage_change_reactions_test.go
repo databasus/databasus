@@ -3,6 +3,7 @@ package backups_test
 import (
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -39,6 +40,62 @@ func TestMoveLogicalBackupConfigToAnotherStorage(t *testing.T) {
 		assert.False(t, tm.app.IsLocalStorageFilePresent(t, completedBackup.fileName))
 		assert.False(t, tm.app.IsLocalStorageFilePresent(t, failedBackup.fileName))
 	})
+
+	t.Run(
+		"keeps the selected storage and retries cleanup when the previous storage is unreachable",
+		func(t *testing.T) {
+			t.Parallel()
+
+			tm := newTeam(t)
+			databaseID := tm.insertLogicalDatabase(t)
+			source := apptest.CreateStorageNamespace(t, tm.owner, tm.workspace.Id)
+			target := apptest.CreateStorageNamespace(t, tm.owner, tm.workspace.Id)
+			saveLogicalBackupConfig(t, tm.owner, databaseID, source.StorageID)
+			oldBackup := insertLogicalBackupInStorage(t, tm, databaseID, source.StorageID, "COMPLETED")
+			source.MakeUnavailable(t, tm.owner)
+
+			response := updateBackupConfig(t, tm.owner, databaseID,
+				newLogicalBackupConfigInput(t, &target.StorageID, newLogicalBackupSettings()))
+
+			require.Equal(t, http.StatusOK, response.StatusCode(), "%s", response.Body)
+			require.NotNil(t, response.JSON200)
+			assert.Equal(t, &target.StorageID, response.JSON200.StorageId)
+			require.NotNil(t, response.JSON200.Cleanup)
+			assert.EqualValues(t, 2, response.JSON200.Cleanup.PendingFileCount)
+			assert.Zero(t, response.JSON200.Cleanup.FailedFileCount)
+			assert.Empty(t, listLogicalBackupIDs(t, tm.owner, databaseID))
+
+			newBackup := insertLogicalBackupInStorage(t, tm, databaseID, target.StorageID, "COMPLETED")
+
+			tm.app.RunJobPass(t, storageFileDeletionJobName)
+
+			failedCleanup := apptest.GetBackupConfig(t, tm.owner, databaseID)
+
+			assert.Equal(t, &target.StorageID, failedCleanup.StorageId)
+			assert.EqualValues(t, 2, failedCleanup.Cleanup.PendingFileCount)
+			assert.EqualValues(t, 2, failedCleanup.Cleanup.FailedFileCount)
+			assert.Equal(t, []uuid.UUID{newBackup.id}, listLogicalBackupIDs(t, tm.owner, databaseID))
+			assert.Equal(t, 2, countRows(t, tm, `SELECT count(*) FROM storages_pending_file_deletions
+			WHERE storage_id=? AND cleanup_database_id=? AND cleanup_workspace_id=?
+			AND attempt_count=1 AND last_error IS NOT NULL AND not_before>?`,
+				source.StorageID, databaseID, tm.workspace.Id, tm.app.Clock.Now()))
+			source.RequireFile(t, oldBackup.fileName)
+			target.RequireFile(t, newBackup.fileName)
+
+			tm.app.Clock.Advance(time.Hour)
+
+			tm.app.RunJobPass(t, storageFileDeletionJobName)
+
+			assert.Equal(t, 2, countRows(t, tm, `SELECT count(*) FROM storages_pending_file_deletions
+			WHERE storage_id=? AND cleanup_database_id=? AND attempt_count=2 AND last_error IS NOT NULL
+			AND not_before>?`, source.StorageID, databaseID, tm.app.Clock.Now()))
+			requireConfigStorage(t, tm, databaseID, target.StorageID)
+			assert.Equal(t, failedCleanup.Cleanup, apptest.GetBackupConfig(t, tm.owner, databaseID).Cleanup)
+			assert.Equal(t, []uuid.UUID{newBackup.id}, listLogicalBackupIDs(t, tm.owner, databaseID))
+			source.RequireFile(t, oldBackup.fileName)
+			target.RequireFile(t, newBackup.fileName)
+		},
+	)
 
 	t.Run("returns 409 in_use and keeps the storage and the backups while a logical backup is in progress",
 		func(t *testing.T) {
@@ -171,7 +228,7 @@ func insertLogicalBackupInStorage(
 	seededBackup := seededLogicalBackup{id: uuid.New(), fileName: "backup-" + uuid.NewString()}
 
 	tm.app.WriteUnpublishedFile(t, storageID, seededBackup.fileName)
-	tm.app.ExecuteSQL(t, "DELETE FROM storages_pending_deletions WHERE storage_id = ? AND file_name = ?",
+	tm.app.ExecuteSQL(t, "DELETE FROM storages_pending_file_deletions WHERE storage_id = ? AND file_name = ?",
 		storageID, seededBackup.fileName)
 	tm.app.ExecuteSQL(t, `INSERT INTO backups_logical (id, database_id, storage_id, status, file_name)
 		VALUES (?, ?, ?, ?, ?)`, seededBackup.id, databaseID, storageID, status, seededBackup.fileName)
@@ -210,11 +267,8 @@ func savePhysicalBackupConfigWithStorage(
 		Encryption:       readConfig.Encryption,
 		Settings:         fromPhysicalBackupSettings(t, physical),
 	})
-	require.Contains(t, []int{http.StatusOK, http.StatusAccepted}, response.StatusCode(), string(response.Body))
+	require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
 
-	if response.JSON202 != nil {
-		return apptest.GetBackupConfig(t, tm.owner, databaseID)
-	}
 	return *response.JSON200
 }
 

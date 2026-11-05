@@ -32,7 +32,7 @@ func TestStorageReferencesMigration(t *testing.T) {
 				"fk_backups_physical_storage",
 				"fk_backups_physical_wal_segments_storage",
 				"fk_backups_physical_wal_history_files_storage",
-				"fk_storages_pending_deletions_storage_id",
+				"fk_storages_pending_file_deletions_storage_id",
 			},
 		).Scan(&deleteActions).Error)
 
@@ -47,7 +47,7 @@ func TestStorageReferencesMigration(t *testing.T) {
 			"fk_backups_physical_storage":                   "r",
 			"fk_backups_physical_wal_segments_storage":      "r",
 			"fk_backups_physical_wal_history_files_storage": "r",
-			"fk_storages_pending_deletions_storage_id":      "c",
+			"fk_storages_pending_file_deletions_storage_id": "c",
 		}, deleteActionByConstraint)
 	})
 

@@ -61,6 +61,7 @@ const buildStorage = (name: string): Storage => ({
 });
 
 const buildBackupConfig = (database: Database, storage: Storage): BackupConfig => ({
+  cleanup: { pendingFileCount: 0, failedFileCount: 0 },
   databaseId: database.id,
   isBackupsEnabled: true,
   storageId: storage.id,
@@ -88,7 +89,6 @@ const SELECTED_DATABASE_PREFERENCE_KEY = `selectedDatabaseId_${workspace.id}`;
 
 const declarePendingDetailRequests = () =>
   mockServer.use(
-    mockApi.get('/storage-switches', 200, { items: [] }),
     mockApi.pending('get', '/databases/{databaseId}').handler,
     mockApi.pending('get', '/backup-configs/{databaseId}').handler,
     mockApi.pending('get', '/logical-backups').handler,
@@ -193,7 +193,6 @@ const declareTransferRequests = (...listedDatabasePages: Database[][]) => {
             : [],
       }),
     ),
-    mockApi.get('/storage-switches', 200, { items: [] }),
     mockApi.get('/workspaces', 200, { items: [workspace, transferTargetWorkspace] }),
     http.get(`*${API_BASE_PATH}/databases/:databaseId`, ({ params }) =>
       HttpResponse.json(
@@ -264,7 +263,6 @@ describe('DatabasesComponent', () => {
           buildDatabase('Delta', 'UNAVAILABLE'),
         ],
       }),
-      mockApi.get('/storage-switches', 200, { items: [] }),
       mockApi.get('/backup-configs', 200, { items: [] }),
       mockApi.get('/storages', 200, { items: [] }),
       mockApi.pending('get', '/databases/{databaseId}').handler,
@@ -302,7 +300,6 @@ describe('DatabasesComponent', () => {
 
     mockServer.use(
       mockApi.get('/databases', 200, { items: [ordersDatabase, usersDatabase, draftDatabase] }),
-      mockApi.get('/storage-switches', 200, { items: [] }),
       mockApi.get('/storages', 200, { items: [nightlyStorage, archiveStorage] }),
       http.get(`*${API_BASE_PATH}/backup-configs`, ({ request }) => {
         backupConfigListQueries.push(new URL(request.url).searchParams);
@@ -364,7 +361,6 @@ describe('DatabasesComponent', () => {
     );
 
     mockServer.use(
-      mockApi.get('/storage-switches', 200, { items: [] }),
       http.get(`*${API_BASE_PATH}/databases/:databaseId`, ({ params }) =>
         HttpResponse.json(params.databaseId === bravoDatabase.id ? bravoDatabase : alphaDatabase),
       ),
@@ -396,7 +392,6 @@ describe('DatabasesComponent', () => {
     localStorage.setItem(SELECTED_DATABASE_PREFERENCE_KEY, bravoDatabase.id);
     declareListResponses([alphaDatabase, bravoDatabase]);
     mockServer.use(
-      mockApi.get('/storage-switches', 200, { items: [] }),
       mockApi.get('/databases/{databaseId}', 200, bravoDatabase),
       mockApi.delete('/databases/{databaseId}', 403, buildProblem('permission_denied', 403)),
       ...declareSettingsRequests(),
@@ -521,7 +516,6 @@ describe('DatabasesComponent', () => {
     declareListResponses([alphaDatabase, bravoDatabase]);
 
     mockServer.use(
-      mockApi.get('/storage-switches', 200, { items: [] }),
       http.get(`*${API_BASE_PATH}/databases/:databaseId`, ({ params }) =>
         params.databaseId === alphaDatabase.id
           ? pendingAlpha.response
@@ -565,7 +559,6 @@ describe('DatabasesComponent', () => {
     const renamedDatabase = { ...shopDatabase, name: 'Storefront' };
     declareListResponses([shopDatabase], [renamedDatabase]);
     mockServer.use(
-      mockApi.get('/storage-switches', 200, { items: [] }),
       mockApi.get('/databases/{databaseId}', 200, shopDatabase),
       mockApi.put('/databases/{databaseId}', 200, renamedDatabase),
       ...declareSettingsRequests(),
@@ -590,7 +583,6 @@ describe('DatabasesComponent', () => {
     const shopDatabase = buildDatabase('Shop', 'AVAILABLE', DatabaseType.MYSQL);
     declareListResponses([shopDatabase]);
     mockServer.use(
-      mockApi.get('/storage-switches', 200, { items: [] }),
       mockApi.get('/databases/{databaseId}', 200, shopDatabase),
       mockApi.post('/database-tests', 200, { isConnected: true }),
       mockApi.put('/databases/{databaseId}', 200, shopDatabase),
@@ -615,7 +607,6 @@ describe('DatabasesComponent', () => {
     const shopDatabase = buildDatabase('Shop', 'AVAILABLE', DatabaseType.MYSQL);
     declareListResponses([shopDatabase]);
     mockServer.use(
-      mockApi.get('/storage-switches', 200, { items: [] }),
       mockApi.get('/databases/{databaseId}', 200, shopDatabase),
       mockApi.post('/database-tests', 200, { isConnected: true }),
       mockApi.put('/databases/{databaseId}', 403, buildProblem('permission_denied', 403)),
@@ -649,7 +640,6 @@ describe('DatabasesComponent', () => {
       } as Database;
       declareListResponses([shopDatabase], [savedDatabase]);
       mockServer.use(
-        mockApi.get('/storage-switches', 200, { items: [] }),
         mockApi.get('/databases/{databaseId}', 200, shopDatabase),
         mockApi.post('/database-tests', 200, { isConnected: true }),
         mockApi.put('/databases/{databaseId}', 200, savedDatabase),
@@ -713,7 +703,6 @@ describe('DatabasesComponent', () => {
         HttpResponse.json({ items: [storedBackupConfig] }),
       ),
       mockApi.get('/storages', 200, { items: [archiveStorage] }),
-      mockApi.get('/storage-switches', 200, { items: [] }),
       mockApi.get('/databases/{databaseId}', 200, ordersDatabase),
       http.get(`*${API_BASE_PATH}/backup-configs/:databaseId`, () =>
         HttpResponse.json(storedBackupConfig),
@@ -751,7 +740,6 @@ describe('DatabasesComponent', () => {
     };
     declareListResponses([shopDatabase]);
     mockServer.use(
-      mockApi.get('/storage-switches', 200, { items: [] }),
       mockApi.get('/databases/{databaseId}', 200, shopDatabase),
       mockApi.put('/databases/{databaseId}', 200, {
         ...shopDatabase,
@@ -781,7 +769,6 @@ describe('DatabasesComponent', () => {
     const copiedDatabase = { ...buildDatabase('Copy of Shop'), id: 'shop-copy-id' };
     declareListResponses([shopDatabase], [shopDatabase, copiedDatabase]);
     mockServer.use(
-      mockApi.get('/storage-switches', 200, { items: [] }),
       http.get(`*${API_BASE_PATH}/databases/:databaseId`, ({ params }) =>
         HttpResponse.json(params.databaseId === copiedDatabase.id ? copiedDatabase : shopDatabase),
       ),
@@ -808,7 +795,6 @@ describe('DatabasesComponent', () => {
     const shopDatabase = buildDatabase('Shop');
     declareListResponses([shopDatabase]);
     mockServer.use(
-      mockApi.get('/storage-switches', 200, { items: [] }),
       mockApi.get('/databases/{databaseId}', 200, shopDatabase),
       mockApi.post('/databases/{databaseId}/copy', 403, buildProblem('permission_denied', 403)),
       ...declareSettingsRequests(),
@@ -929,7 +915,6 @@ describe('DatabasesComponent with a late rename', () => {
       ),
       mockApi.get('/backup-configs', 200, { items: [] }),
       mockApi.get('/storages', 200, { items: [] }),
-      mockApi.get('/storage-switches', 200, { items: [] }),
       http.get(`*${API_BASE_PATH}/databases/:databaseId`, ({ params }) =>
         HttpResponse.json(params.databaseId === bravoDatabase.id ? bravoDatabase : shopDatabase),
       ),
@@ -988,7 +973,6 @@ describe('DatabasesComponent with late database actions', () => {
       ),
       mockApi.get('/backup-configs', 200, { items: [] }),
       mockApi.get('/storages', 200, { items: [] }),
-      mockApi.get('/storage-switches', 200, { items: [] }),
       http.get(`*${API_BASE_PATH}/databases/:databaseId`, ({ params }) =>
         HttpResponse.json(params.databaseId === bravoDatabase.id ? bravoDatabase : shopDatabase),
       ),
@@ -1393,7 +1377,6 @@ describe('DatabasesComponent with the creation wizard', () => {
         }),
       ),
       mockApi.get('/storages', 200, { items: [archiveStorage] }),
-      mockApi.get('/storage-switches', 200, { items: [] }),
       http.get(`*${API_BASE_PATH}/databases/:databaseId`, ({ params }) =>
         HttpResponse.json(
           params.databaseId === createdDatabase.id ? createdDatabase : shopDatabase,

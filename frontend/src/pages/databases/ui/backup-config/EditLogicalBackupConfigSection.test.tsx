@@ -7,7 +7,6 @@ import type {
   BackupConfig,
   BackupConfigInput,
   LogicalBackupConfigInput,
-  StorageSwitch,
 } from '../../../../entities/backup-configs';
 import {
   type Database,
@@ -45,24 +44,12 @@ const logicalSettings: LogicalBackupConfigInput['settings'] = {
   notificationTriggers: [],
 };
 const config: BackupConfig = {
+  cleanup: { pendingFileCount: 0, failedFileCount: 0 },
   databaseId: database.id,
   storageId: null,
   isBackupsEnabled: true,
   encryption: 'NONE',
   settings: logicalSettings,
-};
-const acceptedStorageSwitch: StorageSwitch = {
-  id: 'switch-id',
-  databaseId: database.id,
-  workspaceId: database.workspaceId,
-  targetStorageId: 'target-storage',
-  status: 'CLEANUP_PENDING',
-  createdAt: '2026-10-30T10:00:00Z',
-  cleanupDeadline: '2026-10-31T10:00:00Z',
-  total: 2,
-  pending: 2,
-  deleted: 0,
-  remaining: 0,
 };
 
 const chooseStorage = async (name = 'Archive') => {
@@ -116,7 +103,6 @@ const renderConfig = (
       settings: { ...logicalSettings, schedule, retention, notificationTriggers },
     }),
     mockApi.get('/logical-backups', 200, { items: [] }),
-    mockApi.get('/storage-switches', 200, { items: [] }),
     mockApi.get('/storages', 200, { items: [] }),
     http.put(`*${API_BASE_PATH}/backup-configs/:databaseId`, async ({ request }) => {
       const saved = (await request.json()) as LogicalBackupConfigInput;
@@ -172,10 +158,12 @@ describe('EditLogicalBackupConfigSection', () => {
           },
         ],
       }),
-      mockApi.get('/storage-switches', 200, { items: [] }),
       http.put(`*${API_BASE_PATH}/backup-configs/:databaseId`, async ({ request }) => {
         submitted.push((await request.json()) as BackupConfigInput);
-        return HttpResponse.json(acceptedStorageSwitch, { status: 202 });
+        return HttpResponse.json({
+          ...config,
+          cleanup: { pendingFileCount: 2, failedFileCount: 0 },
+        });
       }),
     );
     renderScreen(
@@ -186,15 +174,15 @@ describe('EditLogicalBackupConfigSection', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Save$/ }));
 
     expect(
-      await screen.findByText(/Switching storage removes the old backup history immediately/),
+      await screen.findByText(/Switching storage immediately removes the old backup history/),
     ).toBeTruthy();
 
     const warning = screen.getByText(
-      /Switching storage removes the old backup history immediately/,
+      /Switching storage immediately removes the old backup history/,
     );
 
-    expect(warning.textContent).toContain('The new storage becomes active immediately.');
-    expect(warning.textContent).toContain('If the old storage is unreachable, files may remain.');
+    expect(warning.textContent).toContain('activates the new storage.');
+    expect(warning.textContent).toContain('Unreachable storage delays cleanup.');
     expect(submitted).toHaveLength(0);
 
     fireEvent.click(screen.getByRole('button', { name: 'Switch storage and remove history' }));
@@ -209,7 +197,6 @@ describe('EditLogicalBackupConfigSection', () => {
     mockServer.use(
       mockApi.get('/backup-configs/{databaseId}', 200, config),
       mockApi.get('/logical-backups', 200, { items: [] }),
-      mockApi.get('/storage-switches', 200, { items: [] }),
       mockApi.get('/storages', 200, { items: [] }),
       mockApi.put('/backup-configs/{databaseId}', 403, buildProblem('permission_denied', 403)),
     );
@@ -231,7 +218,6 @@ describe('EditLogicalBackupConfigSection', () => {
     mockServer.use(
       mockApi.get('/backup-configs/{databaseId}', 200, config),
       mockApi.get('/logical-backups', 200, { items: [] }),
-      mockApi.get('/storage-switches', 200, { items: [] }),
       mockApi.get('/storages', 200, { items: [] }),
     );
     const { user } = renderScreen(

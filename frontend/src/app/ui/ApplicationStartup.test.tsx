@@ -150,7 +150,6 @@ const seedWorkspaceContent = () =>
     mockApi.get('/databases', 200, { items: [] }),
     mockApi.get('/backup-configs', 200, { items: [] }),
     mockApi.get('/storages', 200, { items: [] }),
-    mockApi.get('/storage-switches', 200, { items: [] }),
   );
 
 it.each(['ADMIN', 'MEMBER'] as const)(

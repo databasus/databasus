@@ -46,7 +46,7 @@ func TestSaveLogicalBackupConfigRacingBackupStart(t *testing.T) {
 
 			require.Equal(t, http.StatusAccepted, startBackupStatus)
 
-			if roundSaveStatus == http.StatusAccepted {
+			if roundSaveStatus == http.StatusOK {
 				assert.Zero(t, countRows(t, tm,
 					"SELECT COUNT(*) FROM backups_logical WHERE database_id = ? AND storage_id = ?",
 					databaseID, previousStorageID), "round %d", round)

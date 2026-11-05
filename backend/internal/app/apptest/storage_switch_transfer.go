@@ -16,7 +16,7 @@ type StorageSwitchTransfer struct {
 	StorageID   uuid.UUID
 }
 
-func TransferToStorage(t *testing.T, owner Session, target StorageSwitchTransfer) apiclient.StorageSwitch {
+func TransferToStorage(t *testing.T, owner Session, target StorageSwitchTransfer) apiclient.BackupConfig {
 	t.Helper()
 
 	var storage apiclient.DatabaseTransferStorage
@@ -34,7 +34,6 @@ func TransferToStorage(t *testing.T, owner Session, target StorageSwitchTransfer
 		},
 	)
 	require.NoError(t, err)
-	require.Equal(t, http.StatusAccepted, response.StatusCode(), "%s", response.Body)
-	require.NotNil(t, response.JSON202)
-	return *response.JSON202
+	require.Equal(t, http.StatusNoContent, response.StatusCode(), "%s", response.Body)
+	return GetBackupConfig(t, owner, target.DatabaseID)
 }

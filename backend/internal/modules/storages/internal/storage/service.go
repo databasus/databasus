@@ -24,8 +24,8 @@ type Deps struct {
 	Repositories Repositories
 	Settings     *SettingsReader
 	Registry     *providers.Registry
-	// FileDeletions removes the pending files of a storage that is being deleted.
-	FileDeletions *files.DeletionJob
+
+	FileDeletions *files.Store
 	Transactor    *database.Transactor
 	Logger        *slog.Logger
 	AuditLog      *audit.Log
@@ -39,7 +39,7 @@ type Service struct {
 	repository    *storageRepository
 	settings      *SettingsReader
 	registry      *providers.Registry
-	fileDeletions *files.DeletionJob
+	fileDeletions *files.Store
 	transactor    *database.Transactor
 	logger        *slog.Logger
 	audit         auditRecorder

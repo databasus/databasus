@@ -33,6 +33,7 @@ const (
 	CodeOwnerRequiresTransfer    Code = "owner_requires_transfer"
 	CodeWorkspaceNotEmpty        Code = "workspace_not_empty"
 	CodeInUse                    Code = "in_use"
+	CodeCleanupPending           Code = "cleanup_pending"
 	CodeDatabaseConnectionFailed Code = "database_connection_failed"
 	CodeAlreadyRunning           Code = "already_running"
 	CodeNoExtendableChain        Code = "no_extendable_chain"
@@ -96,6 +97,8 @@ func describeCode(code Code) (int, string) {
 		return http.StatusConflict, "Owner requires transfer"
 	case CodeWorkspaceNotEmpty:
 		return http.StatusConflict, "Workspace not empty"
+	case CodeCleanupPending:
+		return http.StatusConflict, "Cleanup pending"
 	case CodeInUse:
 		return http.StatusConflict, "In use"
 	case CodeDatabaseConnectionFailed:

@@ -95,7 +95,6 @@ const openApplication = (
     mockApi.pending('get', '/healthcheck-configs/{databaseId}').handler,
     mockApi.get('/storages', 200, { items: [] }),
     mockApi.get('/backup-configs', 200, { items: [] }),
-    mockApi.get('/storage-switches', 200, { items: [] }),
     mockApi.get('/workspace-members', 200, { items: [] }),
     mockApi.get('/audit-events', 200, { items: [] }),
     http.get('https://api.github.com/repos/databasus/databasus', () =>

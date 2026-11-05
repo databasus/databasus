@@ -12,7 +12,6 @@ import (
 	"databasus-backend/internal/lib/apierror"
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/database"
-	"databasus-backend/internal/modules/backups/internal/storageswitch"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
@@ -30,7 +29,6 @@ type Deps struct {
 	// LogicalBackups removes a database's logical backups when its config moves to another storage.
 	LogicalBackups      BackupHistoryRemoverFunc
 	PhysicalBackups     BackupHistoryRemoverFunc
-	Switches            *storageswitch.Service
 	PhysicalConfigSaved PhysicalConfigSavedReactionFunc
 }
 
@@ -46,7 +44,6 @@ type Service struct {
 	databases           databases.Module
 	logicalBackups      BackupHistoryRemoverFunc
 	physicalBackups     BackupHistoryRemoverFunc
-	switches            *storageswitch.Service
 	physicalConfigSaved PhysicalConfigSavedReactionFunc
 }
 
@@ -61,7 +58,6 @@ func NewService(deps Deps) *Service {
 		databases:           deps.Databases,
 		logicalBackups:      deps.LogicalBackups,
 		physicalBackups:     deps.PhysicalBackups,
-		switches:            deps.Switches,
 		physicalConfigSaved: deps.PhysicalConfigSaved,
 	}
 }
@@ -81,7 +77,17 @@ func (s *Service) GetBackupConfig(
 		return nil, err
 	}
 
-	return s.ReadBackupConfig(ctx, databaseID)
+	readConfig, err := s.ReadBackupConfig(ctx, databaseID)
+	if err != nil {
+		return nil, err
+	}
+
+	configs, err := s.withCleanup(ctx, actor, []AnyBackupConfig{readConfig})
+	if err != nil {
+		return nil, err
+	}
+
+	return configs[0], nil
 }
 
 // ReadBackupConfig returns the saved config or the default of the database's method, fitted to the
@@ -247,6 +253,11 @@ func (s *Service) ListBackupConfigs(ctx context.Context, actor users.Actor, quer
 		return Page{}, err
 	}
 
+	pageConfigs, err = s.withCleanup(ctx, actor, pageConfigs)
+	if err != nil {
+		return Page{}, err
+	}
+
 	page := Page{Configs: pageConfigs, NextCursor: nil}
 
 	if len(listedRows) > limit {
@@ -258,25 +269,25 @@ func (s *Service) ListBackupConfigs(ctx context.Context, actor users.Actor, quer
 }
 
 // A transfer can commit between the initial access check and the locks. The locked database decides
-// both storage ownership and the workspace that may read an accepted operation.
+// both storage ownership and cleanup attribution.
 func (s *Service) SaveBackupConfig(
 	ctx context.Context,
 	actor users.Actor,
 	savedConfig AnyBackupConfig,
-) (SavedBackupConfig, error) {
+) (AnyBackupConfig, error) {
 	databaseID := savedConfig.GetBackupConfig().DatabaseID
 
 	configDatabase, err := s.getDatabase(ctx, databaseID)
 	if err != nil {
-		return SavedBackupConfig{}, err
+		return nil, err
 	}
 
 	err = s.authorizeDatabase(ctx, actor, configDatabase, workspaces.ActionEditContent)
 	if err != nil {
-		return SavedBackupConfig{}, err
+		return nil, err
 	}
 
-	var saved SavedBackupConfig
+	var saved AnyBackupConfig
 	err = s.transactor.Transaction(ctx, func(ctx context.Context) error {
 		if _, err := s.LockBackupConfig(ctx, databaseID); err != nil {
 			return err
@@ -313,11 +324,23 @@ func (s *Service) SaveBackupConfig(
 		default:
 			return ErrMethodMismatch
 		}
-		return err
+		if err != nil {
+			return err
+		}
+
+		configs, err := s.withCleanup(ctx, actor, []AnyBackupConfig{saved})
+		if err != nil {
+			return err
+		}
+
+		saved = configs[0]
+
+		return nil
 	})
 	if err != nil {
-		return SavedBackupConfig{}, err
+		return nil, err
 	}
+
 	return saved, nil
 }
 
@@ -353,15 +376,14 @@ func (s *Service) saveLogicalBackupConfig(
 	ctx context.Context,
 	scope storageSwitchScope,
 	savedConfig LogicalBackupConfig,
-) (SavedBackupConfig, error) {
+) (AnyBackupConfig, error) {
 	savedConfig.NotificationTriggers = normalizeTriggers(savedConfig.NotificationTriggers)
 
 	err := savedConfig.validate()
 	if err != nil {
-		return SavedBackupConfig{}, err
+		return nil, err
 	}
 
-	var operation *storageswitch.Outcome
 	err = s.transactor.Transaction(ctx, func(ctx context.Context) error {
 		if err := s.databases.LockDatabaseForBackup(ctx, savedConfig.DatabaseID); err != nil {
 			return err
@@ -384,7 +406,7 @@ func (s *Service) saveLogicalBackupConfig(
 			previousStorageID = previousConfig.StorageID
 		}
 
-		operation, err = s.acceptStorageSwitch(
+		hasReassignedStorage, err := s.requestStorageChangeCleanup(
 			ctx,
 			storageSwitchSave{Scope: scope, PreviousStorageID: previousStorageID, Config: savedConfig},
 		)
@@ -396,16 +418,16 @@ func (s *Service) saveLogicalBackupConfig(
 			return err
 		}
 
-		if operation != nil {
+		if hasReassignedStorage {
 			return s.repository.incrementStorageGeneration(ctx, savedConfig.DatabaseID)
 		}
 		return nil
 	})
 	if err != nil {
-		return SavedBackupConfig{}, err
+		return nil, err
 	}
 
-	return SavedBackupConfig{Config: savedConfig, StorageSwitch: operation}, nil
+	return savedConfig, nil
 }
 
 // The physical reaction runs after commit, so concurrent backups already see the new storage.
@@ -413,17 +435,16 @@ func (s *Service) savePhysicalBackupConfig(
 	ctx context.Context,
 	scope storageSwitchScope,
 	savedConfig PhysicalBackupConfig,
-) (SavedBackupConfig, error) {
+) (AnyBackupConfig, error) {
 	savedConfig.NotificationTriggers = normalizeTriggers(savedConfig.NotificationTriggers)
 
 	err := savedConfig.validate()
 	if err != nil {
-		return SavedBackupConfig{}, err
+		return nil, err
 	}
 
 	var previousConfig *PhysicalBackupConfig
 
-	var operation *storageswitch.Outcome
 	err = s.transactor.Transaction(ctx, func(ctx context.Context) error {
 		if err := s.repository.lockPhysicalHistory(ctx, savedConfig.DatabaseID); err != nil {
 			return err
@@ -477,7 +498,7 @@ func (s *Service) savePhysicalBackupConfig(
 			previousStorageID = previousConfig.StorageID
 		}
 
-		operation, err = s.acceptStorageSwitch(
+		hasReassignedStorage, err := s.requestStorageChangeCleanup(
 			ctx,
 			storageSwitchSave{Scope: scope, PreviousStorageID: previousStorageID, Config: savedConfig},
 		)
@@ -489,13 +510,13 @@ func (s *Service) savePhysicalBackupConfig(
 			return err
 		}
 
-		if operation != nil || !isSameStorage(previousStorageID, savedConfig.StorageID) {
+		if hasReassignedStorage || !isSameStorage(previousStorageID, savedConfig.StorageID) {
 			if err := s.repository.incrementStorageGeneration(ctx, savedConfig.DatabaseID); err != nil {
 				return err
 			}
 		}
 
-		if operation != nil {
+		if hasReassignedStorage {
 			if err := s.databases.ResetBackupHistory(ctx, savedConfig.DatabaseID); err != nil {
 				return err
 			}
@@ -514,10 +535,10 @@ func (s *Service) savePhysicalBackupConfig(
 		})
 	})
 	if err != nil {
-		return SavedBackupConfig{}, err
+		return nil, err
 	}
 
-	return SavedBackupConfig{Config: savedConfig, StorageSwitch: operation}, nil
+	return savedConfig, nil
 }
 
 // checkStorageInWorkspace answers a storage that does not exist like one of another workspace, so a

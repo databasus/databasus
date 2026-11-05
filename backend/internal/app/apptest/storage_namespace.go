@@ -56,6 +56,12 @@ func (namespace StorageNamespace) RequireFile(t *testing.T, fileName string) {
 	require.Positive(t, object.Size)
 }
 
+func (namespace StorageNamespace) RequireFileAbsent(t *testing.T, fileName string) {
+	t.Helper()
+	_, err := namespace.Client.StatObject(t.Context(), namespace.Bucket, fileName, minio.StatObjectOptions{})
+	require.Equal(t, http.StatusNotFound, minio.ToErrorResponse(err).StatusCode)
+}
+
 func (namespace StorageNamespace) MakeUnavailable(t *testing.T, owner Session) {
 	t.Helper()
 	namespace.setEndpoint(t, owner, "http://127.0.0.1:1")

@@ -550,6 +550,7 @@ describe('DatabaseComponent backup configuration answers', () => {
       ),
       http.get('*/api/v1/backup-configs/:databaseId', ({ params }) =>
         HttpResponse.json({
+          cleanup: { pendingFileCount: 0, failedFileCount: 0 },
           databaseId: params.databaseId,
           storageId: null,
           isBackupsEnabled: true,
@@ -557,7 +558,6 @@ describe('DatabaseComponent backup configuration answers', () => {
           settings,
         }),
       ),
-      mockApi.get('/storage-switches', 200, { items: [] }),
       mockApi.get('/logical-backups', 200, { items: [] }),
       mockApi.get('/physical-backups', 200, { items: [], totalUsageMb: 0 }),
       mockApi.pending('get', '/healthcheck-attempts').handler,
@@ -604,6 +604,7 @@ describe('DatabaseComponent backup configuration answers', () => {
         save.respond(
           answer.status === 200
             ? HttpResponse.json({
+                cleanup: { pendingFileCount: 0, failedFileCount: 0 },
                 databaseId: databases[0].id,
                 storageId: null,
                 isBackupsEnabled: true,

@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -41,9 +40,6 @@ func TestPhysicalBackupRunOverlap(t *testing.T) {
 			backup, releaseStorage := startHeldPhysicalStream(t, team, "full")
 			resume := apptest.SuspendPhysicalBackupProcess(t, backup.ID)
 			releaseStorage()
-
-			var acceptedTotal int64
-			var acceptedSwitch struct{ ID uuid.UUID }
 			var attemptFiles []string
 			team.App.QuerySQL(t, &attemptFiles, "SELECT file_name FROM backups_physical WHERE id=?", backup.ID)
 			require.Len(t, attemptFiles, 1)
@@ -71,29 +67,13 @@ func TestPhysicalBackupRunOverlap(t *testing.T) {
 						StorageID:   target.StorageID,
 					},
 				)
-				assert.Positive(t, operation.Total)
-				if action == "delete then clear then switch" {
-					assert.Nil(t, operation.PreviousStorageId)
-				}
+				assert.Positive(t, operation.Cleanup.PendingFileCount)
 
 				moved, err := team.Owner.Client.GetDatabaseWithResponse(t.Context(), team.Database.Id)
 				require.NoError(t, err)
 				require.NotNil(t, moved.JSON200)
 				assert.Equal(t, targetWorkspace.Id, moved.JSON200.WorkspaceId)
 				assert.Equal(t, &target.StorageID, apptest.GetBackupConfig(t, team.Owner, team.Database.Id).StorageId)
-
-				team.App.QuerySQL(
-					t,
-					&acceptedSwitch,
-					"SELECT id FROM backups_storage_switches WHERE database_id=?",
-					team.Database.Id,
-				)
-				team.App.QuerySQL(
-					t,
-					&acceptedTotal,
-					"SELECT total FROM storages_deletion_batches WHERE id=(SELECT deletion_batch_id FROM backups_storage_switches WHERE id=?)",
-					acceptedSwitch.ID,
-				)
 
 				team.StorageID = target.StorageID
 				require.Empty(t, team.listBackups(t))
@@ -102,8 +82,8 @@ func TestPhysicalBackupRunOverlap(t *testing.T) {
 				team.App.QuerySQL(
 					t,
 					&capturedFiles,
-					`SELECT file_name FROM storages_deletion_batch_items WHERE batch_id=(SELECT deletion_batch_id FROM backups_storage_switches WHERE id=?)`,
-					acceptedSwitch.ID,
+					`SELECT file_name FROM storages_pending_file_deletions WHERE cleanup_database_id=?`,
+					team.Database.Id,
 				)
 
 				for _, suffix := range []string{"", ".metadata", ".manifest"} {
@@ -156,19 +136,6 @@ func TestPhysicalBackupRunOverlap(t *testing.T) {
 
 			assert.Equal(t, "FULL", nextBackup.Type)
 			if isStorageSwitch {
-				var settledTotal int64
-				team.App.QuerySQL(
-					t,
-					&settledTotal,
-					"SELECT total FROM storages_deletion_batches WHERE id=(SELECT deletion_batch_id FROM backups_storage_switches WHERE id=?)",
-					acceptedSwitch.ID,
-				)
-				assert.Equal(
-					t,
-					acceptedTotal,
-					settledTotal,
-					"late old writer files must not extend the accepted cleanup set",
-				)
 				var oldHistory int
 				team.App.QuerySQL(t, &oldHistory, "SELECT count(*) FROM backups_physical WHERE id=?", backup.ID)
 				assert.Zero(t, oldHistory)
@@ -181,7 +148,7 @@ func TestPhysicalBackupRunOverlap(t *testing.T) {
 			team.App.QuerySQL(
 				t,
 				&pendingFiles,
-				"SELECT file_name FROM storages_pending_deletions WHERE storage_id=?",
+				"SELECT file_name FROM storages_pending_file_deletions WHERE storage_id=?",
 				sourceStorageID,
 			)
 			for _, suffix := range []string{"", ".metadata", ".manifest"} {

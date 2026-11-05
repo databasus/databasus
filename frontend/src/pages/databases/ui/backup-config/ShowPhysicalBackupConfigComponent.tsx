@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import {
   type PhysicalBackupConfigInput,
-  StorageSwitchHistoryComponent,
+  type BackupCleanup,
   BACKUP_ENCRYPTION_LABEL_KEYS,
 } from '../../../../entities/backup-configs';
 import type { Database } from '../../../../entities/databases';
@@ -25,9 +25,13 @@ import { FullBackupsRetentionPolicy } from '../../model/physical-backups/FullBac
 import { PHYSICAL_NOTIFICATION_TRIGGER_LABEL_KEYS } from '../../model/physical-backups/PhysicalNotificationTriggerLabelKeys';
 import { PhysicalRetentionPolicy } from '../../model/physical-backups/PhysicalRetentionPolicy';
 import { PHYSICAL_RETENTION_POLICY_LABEL_KEYS } from '../../model/physical-backups/PhysicalRetentionPolicyLabelKeys';
+import { StorageCleanupNotice } from './StorageCleanupNotice';
 
 interface Props {
   database: Database;
+  cleanup?: BackupCleanup;
+  cleanupError?: unknown;
+  onRetryCleanup?: () => void;
   backupConfig: PhysicalBackupConfigInput;
 }
 
@@ -54,8 +58,10 @@ const getGfsRetentionTexts = (retention: FullBackupsRetention): LocalizedText[] 
 };
 
 export const ShowPhysicalBackupConfigComponent = ({
-  database,
   backupConfig,
+  cleanup,
+  cleanupError,
+  onRetryCleanup,
 }: Props): JSX.Element => {
   const { t } = useTranslation();
   const listSeparator = t('common.listSeparator');
@@ -151,13 +157,36 @@ export const ShowPhysicalBackupConfigComponent = ({
 
   return (
     <div>
-      <StorageSwitchHistoryComponent workspaceId={database.workspaceId} databaseId={database.id} />
       <div className="mb-1 flex w-full items-center">
         <div className="min-w-[180px] pr-2">{t('backups.config.backupsEnabled')}</div>
         <div className={backupConfig.isBackupsEnabled ? '' : 'font-bold text-danger'}>
           {backupConfig.isBackupsEnabled ? t('common.answers.yes') : t('common.answers.no')}
         </div>
       </div>
+
+      <div className="mb-1 flex w-full items-center">
+        <div className="min-w-[180px] pr-2">{t('backups.config.storage')}</div>
+        <div className="flex items-center">
+          <div>{storage?.name || '-'}</div>
+          {storage && (
+            <img
+              src={getStorageLogoFromType(storage.settings.type)}
+              alt=""
+              className="ml-1 h-4 w-4"
+            />
+          )}
+        </div>
+      </div>
+
+      {storageLoadError !== undefined && (
+        <LoadFailure
+          className="mb-1"
+          error={storageLoadError}
+          onRetry={() => setStorageLoadAttempt((attempt) => attempt + 1)}
+        />
+      )}
+
+      <StorageCleanupNotice cleanup={cleanup} error={cleanupError} onRetry={onRetryCleanup} />
 
       {backupConfig.isBackupsEnabled && (
         <>
@@ -204,28 +233,6 @@ export const ShowPhysicalBackupConfigComponent = ({
                 )}
               </div>
             </div>
-          )}
-
-          <div className="mb-1 flex w-full items-center">
-            <div className="min-w-[180px] pr-2">{t('backups.config.storage')}</div>
-            <div className="flex items-center">
-              <div>{storage?.name || '-'}</div>
-              {storage && (
-                <img
-                  src={getStorageLogoFromType(storage.settings.type)}
-                  alt=""
-                  className="ml-1 h-4 w-4"
-                />
-              )}
-            </div>
-          </div>
-
-          {storageLoadError !== undefined && (
-            <LoadFailure
-              className="mb-1"
-              error={storageLoadError}
-              onRetry={() => setStorageLoadAttempt((attempt) => attempt + 1)}
-            />
           )}
 
           <div className="mb-1 flex w-full items-center">

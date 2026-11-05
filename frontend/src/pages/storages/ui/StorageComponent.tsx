@@ -1,10 +1,10 @@
 import { ArrowRightOutlined, CloseOutlined, DeleteOutlined } from '@ant-design/icons';
-import { Alert, App, Button, Input, Spin } from 'antd';
-import { useEffect, useEffectEvent, useState } from 'react';
+import { Alert, App, Button, Input, Modal, Spin } from 'antd';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { EditStorageComponent } from '@/features/edit-storage';
-import { useSessionGuard } from '@/shared/auth';
+import { useSession, useSessionGuard } from '@/shared/auth';
 import { useLatestRef, useRequestRevision } from '@/shared/hooks';
 
 import { type Storage, storageApi } from '../../../entities/storages';
@@ -50,6 +50,7 @@ export const StorageComponent = ({
 
   const [isShowRemoveConfirm, setIsShowRemoveConfirm] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
+  const [isShowCleanupWarning, setIsShowCleanupWarning] = useState(false);
 
   const [isShowTransferDialog, setIsShowTransferDialog] = useState(false);
 
@@ -91,7 +92,9 @@ export const StorageComponent = ({
 
   // A storage that a backup config uses or that still holds backups is refused with in_use; the
   // generic in_use text names only databases, so the storage has its own.
-  const remove = async () => {
+  const remove = async (shouldAbandonCleanup = false) => {
+    if (!storage || !isCurrent() || isRemoving || !isCanManageStorages) return;
+
     const revision = contextRevision.GetCurrent();
     const isActive = () => isCurrent() && contextRevision.IsCurrent(revision);
     setError(undefined);
@@ -103,7 +106,7 @@ export const StorageComponent = ({
     setIsRemoving(true);
 
     try {
-      await storageApi.deleteStorage(storage.id);
+      await storageApi.deleteStorage(storage.id, shouldAbandonCleanup);
       if (!isActive()) return;
 
       onStorageDeleted();
@@ -112,7 +115,9 @@ export const StorageComponent = ({
 
       setIsShowRemoveConfirm(false);
 
-      if (e instanceof ApiError && e.code === STORAGE_IN_USE_CODE) {
+      if (e instanceof ApiError && e.code === 'cleanup_pending') {
+        setIsShowCleanupWarning(true);
+      } else if (e instanceof ApiError && e.code === STORAGE_IN_USE_CODE) {
         setIsDeleteBlocked(true);
       } else {
         setError(e);
@@ -211,7 +216,9 @@ export const StorageComponent = ({
   };
 
   const { notification } = App.useApp();
+  const waitButtonRef = useRef<HTMLButtonElement>(null);
   const isCurrent = useSessionGuard();
+  const session = useSession();
   const contextRevision = useRequestRevision();
   const savedTestRevision = useRequestRevision();
   const latestName = useLatestRef(editStorage?.name);
@@ -225,12 +232,13 @@ export const StorageComponent = ({
     setIsEditSettings(false);
     setIsShowTransferDialog(false);
     setIsShowRemoveConfirm(false);
+    setIsShowCleanupWarning(false);
     startSettingsLoad();
 
     return () => {
       contextRevision.Invalidate();
     };
-  }, [storageId, contextRevision]);
+  }, [storageId, contextRevision, session]);
 
   const isNameUnsaved = isEditName && editStorage?.name !== storage?.name;
 
@@ -397,7 +405,7 @@ export const StorageComponent = ({
 
         {isShowRemoveConfirm && (
           <ConfirmationComponent
-            onConfirm={remove}
+            onConfirm={() => void remove()}
             onDecline={() => setIsShowRemoveConfirm(false)}
             description={t('storages.config.removeConfirmation')}
             actionText={t('common.actions.remove')}
@@ -405,6 +413,54 @@ export const StorageComponent = ({
           />
         )}
       </div>
+
+      {isShowCleanupWarning && (
+        <Modal
+          title={t('storages.cleanup.title')}
+          afterOpenChange={(isOpen) => {
+            if (isOpen) waitButtonRef.current?.focus();
+          }}
+          open
+          onCancel={() => {
+            if (!isRemoving) setIsShowCleanupWarning(false);
+          }}
+          closable={!isRemoving}
+          keyboard={!isRemoving}
+          maskClosable={false}
+          footer={
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button
+                key="wait"
+                ref={waitButtonRef}
+                className="!h-auto min-h-8 max-w-full !whitespace-normal"
+                disabled={isRemoving}
+                onClick={() => setIsShowCleanupWarning(false)}
+              >
+                {t('storages.cleanup.wait')}
+              </Button>
+              <Button
+                key="delete"
+                className="!h-auto min-h-8 max-w-full !whitespace-normal"
+                danger
+                type="primary"
+                loading={isRemoving}
+                disabled={isRemoving}
+                onClick={() => void remove(true)}
+              >
+                {t('storages.cleanup.deleteAnyway')}
+              </Button>
+            </div>
+          }
+        >
+          <p>{t('storages.cleanup.warning')}</p>
+          {error !== undefined && (
+            <Alert type="error" showIcon message={translateApiError(error, t)} />
+          )}
+          {isDeleteBlocked && (
+            <Alert type="error" showIcon message={t('storages.config.removeBlockedByBackups')} />
+          )}
+        </Modal>
+      )}
 
       {isShowTransferDialog && storage && (
         <StorageTransferDialogComponent

@@ -60,6 +60,10 @@ func toBackupConfigBody(savedConfig config.AnyBackupConfig) (BackupConfig, error
 	sharedConfig := savedConfig.GetBackupConfig()
 
 	return BackupConfig{
+		Cleanup: &BackupCleanup{
+			PendingFileCount: sharedConfig.Cleanup.PendingFileCount,
+			FailedFileCount:  sharedConfig.Cleanup.FailedFileCount,
+		},
 		DatabaseId:       sharedConfig.DatabaseID,
 		IsBackupsEnabled: sharedConfig.IsBackupsEnabled,
 		StorageId:        sharedConfig.StorageID,
