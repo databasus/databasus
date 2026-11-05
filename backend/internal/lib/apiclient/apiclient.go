@@ -10,6 +10,7 @@ import (
 
 	contract "databasus-backend/api"
 	"databasus-backend/internal/lib/contracttest"
+	"databasus-backend/internal/lib/httpclienttest"
 	"databasus-backend/internal/lib/httpserver"
 )
 
@@ -33,7 +34,7 @@ func New(tb testing.TB, baseURL string, options ...ClientOption) *ClientWithResp
 	}
 
 	checkingDoer := contracttest.New(
-		contracttest.Deps{TB: tb, ContractRouter: contractRouter, HTTPClient: &http.Client{}},
+		contracttest.Deps{TB: tb, ContractRouter: contractRouter, HTTPClient: httpclienttest.New(tb)},
 	)
 
 	client, err := NewClientWithResponses(baseURL+apiBasePath, append([]ClientOption{WithHTTPClient(checkingDoer)},

@@ -13,17 +13,19 @@ import (
 
 	"databasus-backend/internal/app/apptest"
 	"databasus-backend/internal/lib/agentclient"
+	"databasus-backend/internal/lib/httpclienttest"
 )
 
 type protocolAgent struct {
 	test        *testing.T
 	app         *apptest.App
 	credentials apptest.CreatedVerificationAgent
+	httpClient  *http.Client
 }
 
 func newProtocolAgent(t *testing.T, app *apptest.App, credentials apptest.CreatedVerificationAgent) protocolAgent {
 	t.Helper()
-	return protocolAgent{test: t, app: app, credentials: credentials}
+	return protocolAgent{test: t, app: app, credentials: credentials, httpClient: httpclienttest.New(t)}
 }
 
 func (a protocolAgent) recordHeartbeat(id uuid.UUID, body agentclient.HeartbeatRequest) (int, []byte) {
@@ -83,7 +85,7 @@ func (a protocolAgent) postRawJSON(path, body string) (int, []byte) {
 	request.Header.Set("Authorization", "Bearer "+a.credentials.Token)
 	request.Header.Set("Content-Type", "application/json")
 
-	response, err := http.DefaultClient.Do(request)
+	response, err := a.httpClient.Do(request)
 	require.NoError(a.test, err)
 	defer func() { require.NoError(a.test, response.Body.Close()) }()
 	responseBody, err := io.ReadAll(response.Body)
