@@ -11,6 +11,7 @@ import { FULL_BACKUPS_RETENTION_POLICY_LABEL_KEYS } from '../../model/physical-b
 import { hasIncrementalBackups } from '../../model/physical-backups/hasIncrementalBackups';
 import type { PhysicalBackupConfigDraft } from '../../model/physical-backups/PhysicalBackupConfigDraft';
 import { PhysicalRetentionPolicy } from '../../model/physical-backups/PhysicalRetentionPolicy';
+import { GfsRetentionHint } from './GfsRetentionHint';
 import { RetentionNumberInput } from './RetentionNumberInput';
 
 type PhysicalRetentionDraft = PhysicalBackupConfigDraft['settings']['retention'];
@@ -165,17 +166,21 @@ export const PhysicalRetentionFields = ({ retention, backupType, onChange }: Pro
             )}
 
             {fullBackups.policy === FullBackupsRetentionPolicy.GFS && (
-              <div className="flex flex-col gap-1">
-                {GFS_FIELDS.map(({ field, labelKey }) => (
-                  <NumberField
-                    key={field}
-                    label={t(labelKey)}
-                    minimum={0}
-                    value={fullBackups[field]}
-                    onChange={(period) => updateFullBackups({ [field]: period })}
-                  />
-                ))}
-              </div>
+              <>
+                <GfsRetentionHint />
+
+                <div className="flex flex-col gap-1">
+                  {GFS_FIELDS.map(({ field, labelKey }) => (
+                    <NumberField
+                      key={field}
+                      label={t(labelKey)}
+                      minimum={0}
+                      value={fullBackups[field]}
+                      onChange={(period) => updateFullBackups({ [field]: period })}
+                    />
+                  ))}
+                </div>
+              </>
             )}
           </div>
         )}

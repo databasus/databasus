@@ -1,4 +1,4 @@
-import { Button, Empty, Input, Modal, Spin } from 'antd';
+import { Button, Input, Modal, Spin } from 'antd';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -134,9 +134,6 @@ export const NotifiersComponent = ({ workspace, isCanManageNotifiers, onUnavaila
   );
   const list = (
     <>
-      {collection.isReady && notifiers.length === 0 && (
-        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('notifiers.list.empty')} />
-      )}
       {notifiers.length >= 5 && isCanManageNotifiers && addButton}
       {notifiers.length >= 5 && (
         <Input

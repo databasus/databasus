@@ -196,6 +196,7 @@ describe('DatabaseTransferDialogComponent', () => {
     fireEvent.click(screen.getByRole('radio', { name: 'Transfer notifiers with database' }));
     await screen.findByText('Source alerts');
 
+    fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Storage' }));
     fireEvent.click(screen.getByRole('button', { name: 'Create new storage' }));
     const editor = within(await screen.findByRole('region', { name: 'Storage settings' }));
 
@@ -404,6 +405,7 @@ describe('DatabaseTransferDialogComponent', () => {
     await chooseTargetWorkspace();
     const workspaceInput = screen.getAllByRole('combobox')[0];
 
+    fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Storage' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Create new storage' }));
     const editor = within(await screen.findByRole('region', { name: 'Storage settings' }));
 
@@ -566,6 +568,7 @@ describe('DatabaseTransferDialogComponent', () => {
         ).toBe(true),
       );
 
+      fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Storage' }));
       fireEvent.click(screen.getByRole('button', { name: 'Create new storage' }));
       const editorRegion = await screen.findByRole('region', { name: 'Storage settings' });
       const editor = within(editorRegion);

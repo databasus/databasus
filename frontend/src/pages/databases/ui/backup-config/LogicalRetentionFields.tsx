@@ -1,6 +1,6 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
-import { Button, Select, Tooltip } from 'antd';
-import { useId, useState } from 'react';
+import { Select, Tooltip } from 'antd';
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { LogicalBackupSettings } from '../../../../entities/backup-configs';
@@ -10,6 +10,7 @@ import { LogicalRetentionPolicy } from '../../model/LogicalRetentionPolicy';
 import { LOGICAL_RETENTION_POLICY_LABEL_KEYS } from '../../model/LogicalRetentionPolicyLabelKeys';
 import { RetentionPeriod } from '../../model/RetentionPeriod';
 import { RETENTION_PERIOD_LABEL_KEYS } from '../../model/RetentionPeriodLabelKeys';
+import { GfsRetentionHint } from './GfsRetentionHint';
 import { RetentionNumberInput } from './RetentionNumberInput';
 
 type LogicalRetention = LogicalBackupSettings['retention'];
@@ -46,7 +47,6 @@ const GfsPeriodField = ({ label, value, onChange }: GfsPeriodFieldProps) => {
 
 export const LogicalRetentionFields = ({ settings, onChange }: Props) => {
   const { t } = useTranslation();
-  const [isShowGfsHint, setIsShowGfsHint] = useState(false);
   const countInputId = useId();
 
   const { retention, schedule } = settings;
@@ -123,25 +123,7 @@ export const LogicalRetentionFields = ({ settings, onChange }: Props) => {
 
         {retention.policy === LogicalRetentionPolicy.GFS && (
           <>
-            <div>
-              <Button
-                type="link"
-                size="small"
-                className="!h-auto !px-0 text-left text-xs !whitespace-normal"
-                aria-expanded={isShowGfsHint}
-                onClick={() => setIsShowGfsHint(!isShowGfsHint)}
-              >
-                {isShowGfsHint
-                  ? t('backups.logical.config.retention.hideGfsHint')
-                  : t('backups.logical.config.retention.showGfsHint')}
-              </Button>
-
-              {isShowGfsHint && (
-                <div className="mt-1 max-w-[280px] text-xs text-muted">
-                  {t('backups.logical.config.retention.gfsHint')}
-                </div>
-              )}
-            </div>
+            <GfsRetentionHint />
 
             <div className="flex flex-col gap-1">
               {isGfsHoursShown(schedule) && (

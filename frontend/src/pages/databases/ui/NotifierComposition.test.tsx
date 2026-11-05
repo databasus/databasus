@@ -58,7 +58,13 @@ const chooseOption = async (combobox: HTMLElement, label: string) => {
   fireEvent.click(option);
 };
 
-const fillNotifierCreation = async (interaction: ReturnType<typeof renderScreen>['user']) => {
+const fillNotifierCreation = async (
+  interaction: ReturnType<typeof renderScreen>['user'],
+  composition: 'selection' | 'transfer',
+) => {
+  if (composition === 'selection')
+    await interaction.click(await screen.findByRole('combobox', { name: 'Notifiers' }));
+
   await interaction.click(await screen.findByRole('button', { name: 'Create new notifier' }));
   const editor = await screen.findByRole('region', { name: 'Notifier settings' });
   const dialog = within(editor.closest('[role=dialog]') as HTMLElement);
@@ -147,7 +153,7 @@ describe('Database notifier creation composition', () => {
           currentNotifier.name,
         );
       }
-      const dialog = await fillNotifierCreation(view.user);
+      const dialog = await fillNotifierCreation(view.user, composition);
 
       fireEvent.click(dialog.getByRole('button', { name: 'Send test notification' }));
       fireEvent.click(await dialog.findByRole('button', { name: 'Save' }));
@@ -174,7 +180,9 @@ describe('Database notifier creation composition', () => {
       );
 
       if (contextChange !== 'unmount') {
-        await screen.findByRole('button', { name: 'Create new notifier' });
+        await screen.findByRole(composition === 'selection' ? 'combobox' : 'button', {
+          name: composition === 'selection' ? 'Notifiers' : 'Create new notifier',
+        });
         if (contextChange === 'workspace' && composition === 'transfer')
           await chooseOption(
             screen.getByRole('combobox', { name: 'Notifiers (optional)' }),
@@ -284,7 +292,7 @@ describe('Database notifier creation composition', () => {
 
         await waitFor(() => expect(screen.getAllByRole('combobox')).toHaveLength(3));
       }
-      const dialog = await fillNotifierCreation(view.user);
+      const dialog = await fillNotifierCreation(view.user, composition);
       const nameInput = dialog.getByRole('textbox', { name: 'Name' });
 
       fireEvent.click(dialog.getByRole('button', { name: /Send test notification/ }));
@@ -403,7 +411,7 @@ describe('Database notifier creation composition', () => {
           existingTarget.name,
         );
       }
-      const dialog = await fillNotifierCreation(view.user);
+      const dialog = await fillNotifierCreation(view.user, composition);
 
       fireEvent.click(dialog.getByRole('button', { name: 'Send test notification' }));
       fireEvent.click(await dialog.findByRole('button', { name: 'Save' }));

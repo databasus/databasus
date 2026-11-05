@@ -602,7 +602,6 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
             </label>
             {user.role === UserRole.ADMIN ? (
               <AutoComplete
-                size="small"
                 id={memberEmailControlId}
                 value={addMemberForm.email}
                 onChange={(value) => {
@@ -639,7 +638,6 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
               />
             ) : (
               <Input
-                size="small"
                 id={memberEmailControlId}
                 value={addMemberForm.email}
                 onChange={(e) => {
@@ -659,7 +657,6 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
           <div className="mb-0">
             <div className="mb-1 text-content">{t('workspaces.members.fields.role')}</div>
             <Select<AssignableWorkspaceRole>
-              size="small"
               aria-label={t('workspaces.members.fields.role')}
               value={addMemberForm.role}
               onChange={(role) => setAddMemberForm({ ...addMemberForm, role })}

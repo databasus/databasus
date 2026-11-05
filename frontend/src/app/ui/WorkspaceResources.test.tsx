@@ -36,10 +36,7 @@ for (const domain of ['storages', 'notifiers'] as const) {
         onUnavailable={onUnavailable}
       />
     );
-  const emptyText =
-    domain === 'storages'
-      ? 'No storages in this workspace yet'
-      : 'No notifiers in this workspace yet';
+  const addActionName = domain === 'storages' ? 'Add storage' : 'Add notifier';
   const listPath = domain === 'storages' ? '/storages' : '/notifiers';
   const buildResource = (name: string) => ({
     id: `${name}-resource`,
@@ -142,7 +139,7 @@ for (const domain of ['storages', 'notifiers'] as const) {
         mutation.respond(new HttpResponse(null, { status: 204 }));
 
         if (isLastResource) {
-          await screen.findByText(emptyText);
+          await screen.findByRole('button', { name: addActionName });
 
           await waitFor(() => expect(localStorage.getItem(selectionKey)).toBeNull());
         } else {
@@ -223,7 +220,7 @@ for (const domain of ['storages', 'notifiers'] as const) {
         screen.getByRole('button', { name: refusedResource.name }).getAttribute('aria-pressed'),
       ).toBe('true');
       expect(localStorage.getItem(selectionKey)).toBe(refusedResource.id);
-      expect(screen.queryByText(emptyText)).toBeNull();
+      expect(screen.getByRole('button', { name: addActionName })).toBeTruthy();
       expect(onUnavailable).not.toHaveBeenCalled();
     });
 
@@ -252,7 +249,7 @@ for (const domain of ['storages', 'notifiers'] as const) {
 
         expect(await screen.findByText(reason)).toBeTruthy();
         expect(document.body.textContent).not.toContain('private proxy page');
-        expect(screen.queryByText(emptyText)).toBeNull();
+        expect(screen.queryByRole('button', { name: addActionName })).toBeNull();
 
         server.use(
           domain === 'storages'
@@ -262,7 +259,7 @@ for (const domain of ['storages', 'notifiers'] as const) {
 
         await view.user.click(screen.getByRole('button', { name: 'Retry' }));
 
-        expect(await screen.findByText(emptyText)).toBeTruthy();
+        expect(await screen.findByRole('button', { name: addActionName })).toBeTruthy();
         expect(screen.queryByText(reason)).toBeNull();
       },
     );
@@ -290,12 +287,12 @@ for (const domain of ['storages', 'notifiers'] as const) {
       expect(document.body.textContent).not.toContain('future_code');
     });
 
-    it('offers retry without empty-list copy when the workspace resource read fails', async () => {
+    it('offers retry before showing the add action when the workspace resource read fails', async () => {
       server.use(mockApi.network('get', domain === 'storages' ? '/storages' : '/notifiers'));
       const view = renderScreen(<ResourceScreen workspace={workspace} />, { isStrictMode: true });
       const retry = await screen.findByRole('button', { name: 'Retry' });
 
-      expect(screen.queryByText(emptyText)).toBeNull();
+      expect(screen.queryByRole('button', { name: addActionName })).toBeNull();
 
       server.use(
         domain === 'storages'
@@ -305,7 +302,7 @@ for (const domain of ['storages', 'notifiers'] as const) {
 
       await view.user.click(retry);
 
-      expect(await screen.findByText(emptyText)).toBeTruthy();
+      expect(await screen.findByRole('button', { name: addActionName })).toBeTruthy();
     });
 
     it('clears the loaded list, requests app reconciliation and offers retry when a refresh confirms loss of access', async () => {
@@ -329,7 +326,7 @@ for (const domain of ['storages', 'notifiers'] as const) {
 
       await waitFor(() => expect(onUnavailable).toHaveBeenCalledWith(workspace.id));
       await waitFor(() => expect(screen.queryByRole('button', { name: resource.name })).toBeNull());
-      expect(screen.queryByText(emptyText)).toBeNull();
+      expect(screen.queryByRole('button', { name: addActionName })).toBeNull();
       expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
     });
   });

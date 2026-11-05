@@ -346,12 +346,16 @@ describe('EditPhysicalBackupConfigSection', () => {
     await screen.findByText('Previous archive', { selector: '.ant-select-selection-item' });
 
     await view.user.click(screen.getByRole('switch'));
+    await view.user.click(await screen.findByRole('combobox', { name: 'Storage' }));
     await view.user.click(screen.getByRole('button', { name: 'Create new storage' }));
     const dialog = within(await screen.findByRole('dialog', { name: 'Add storage' }));
     await view.user.type(dialog.getByRole('textbox', { name: 'Name' }), 'Discarded nested archive');
     await view.user.click(dialog.getByRole('button', { name: 'Close' }));
 
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole('combobox', { name: 'Storage' })),
+    );
     expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('false');
     expect(
       screen.getByText('Previous archive', { selector: '.ant-select-selection-item' }),

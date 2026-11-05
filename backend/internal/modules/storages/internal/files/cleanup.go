@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+
+	"databasus-backend/internal/lib/database"
 )
 
 type CleanupScope struct {
@@ -26,7 +28,28 @@ func (s *Store) RequestScopedFileDeletions(ctx context.Context, request FileDele
 		return ErrTransactionRequired
 	}
 
-	return s.repository.InsertOrTake(ctx, request, s.clock.Now())
+	return s.requestFileDeletions(ctx, request)
+}
+
+func (s *Store) requestFileDeletions(ctx context.Context, request FileDeletionRequest) error {
+	if len(request.References) == 0 {
+		return nil
+	}
+
+	if err := s.repository.InsertOrTake(ctx, request, s.clock.Now()); err != nil {
+		return err
+	}
+
+	return database.AfterCommit(ctx, func(context.Context) {
+		s.requestDeletionPass()
+	})
+}
+
+func (s *Store) requestDeletionPass() {
+	select {
+	case s.deletionRequests <- struct{}{}:
+	default:
+	}
 }
 
 func (s *Store) GetCleanupSummaries(

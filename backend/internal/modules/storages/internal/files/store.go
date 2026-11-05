@@ -41,22 +41,24 @@ type Store struct {
 	timings         Timings
 	uploads         *background.Group
 
-	liveWritesMutex sync.Mutex
-	liveWrites      map[uuid.UUID]struct{}
+	liveWritesMutex  sync.Mutex
+	liveWrites       map[uuid.UUID]struct{}
+	deletionRequests chan struct{}
 }
 
 func NewStore(deps Deps) *Store {
 	return &Store{
-		repository:      deps.Repository,
-		writeProtection: deps.WriteProtection,
-		transactor:      deps.Transactor,
-		locator:         deps.Locator,
-		logger:          deps.Logger,
-		clock:           deps.Clock,
-		timings:         deps.Timings,
-		uploads:         deps.Uploads,
-		liveWritesMutex: sync.Mutex{},
-		liveWrites:      make(map[uuid.UUID]struct{}),
+		repository:       deps.Repository,
+		writeProtection:  deps.WriteProtection,
+		transactor:       deps.Transactor,
+		locator:          deps.Locator,
+		logger:           deps.Logger,
+		clock:            deps.Clock,
+		timings:          deps.Timings,
+		uploads:          deps.Uploads,
+		liveWritesMutex:  sync.Mutex{},
+		liveWrites:       make(map[uuid.UUID]struct{}),
+		deletionRequests: make(chan struct{}, 1),
 	}
 }
 
@@ -183,7 +185,7 @@ func (s *Store) RequestFileDeletions(ctx context.Context, references []StoredFil
 		}
 	}
 
-	return s.repository.InsertOrTake(ctx, FileDeletionRequest{References: namedReferences, Scope: nil}, s.clock.Now())
+	return s.requestFileDeletions(ctx, FileDeletionRequest{References: namedReferences, Scope: nil})
 }
 
 // makeEligibleNow logs a failure instead of returning it, because the write is over either way. A
@@ -214,9 +216,11 @@ func (s *Store) joinLiveWrites(id uuid.UUID) {
 
 func (s *Store) leaveLiveWrites(id uuid.UUID) {
 	s.liveWritesMutex.Lock()
-	defer s.liveWritesMutex.Unlock()
 
 	delete(s.liveWrites, id)
+	s.liveWritesMutex.Unlock()
+
+	s.requestDeletionPass()
 }
 
 // withLiveWrites holds the mutex across claim, which keeps the exclusion list from going stale

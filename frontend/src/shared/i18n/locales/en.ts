@@ -1149,7 +1149,6 @@ export const en = {
       bot: 'Bot account',
     },
     list: {
-      empty: 'No notifiers in this workspace yet',
       addNotifier: 'Add notifier',
       searchPlaceholder: 'Search notifier',
       noSearchResults: 'No notifiers found matching "{{query}}"',
@@ -1966,7 +1965,7 @@ export const en = {
     cleanup: {
       title: 'Cleanup is still running',
       warning:
-        'We are still cleaning up this storage. Wait for cleanup to finish. If you delete it now, automatic cleanup will stop and any remaining files must be removed manually.',
+        'We are deleting backup files that are no longer needed, usually because a database was deleted or switched to another storage. Cleanup normally finishes quickly. If you delete this storage now, automatic cleanup will stop and you will need to delete any remaining backup files manually.',
       wait: 'Wait',
       deleteAnyway: 'Delete anyway',
     },
@@ -1999,7 +1998,6 @@ export const en = {
       privateKey: 'Private key',
     },
     list: {
-      empty: 'No storages in this workspace yet',
       addStorage: 'Add storage',
       description: 'Storage - is a place where backups will be stored (local disk, S3, etc.)',
       backToList: '← Back to storages',

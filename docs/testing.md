@@ -41,7 +41,7 @@ Backend tests share one idea: `apptest.New(t)` builds the whole backend with `ap
 - its own internal database from `testdb.Open(t)`;
 - a clock that the test moves forward, so schedules and deadlines need no real waiting;
 - fakes for external systems: an email recorder, an HTTP server for webhook and chat notifiers and a local directory or a MinIO bucket for storages;
-- background jobs that never run on their own, so the test runs each pass explicitly with `RunJobPass`.
+- background jobs that stay stopped by default, so the test runs each pass explicitly with `RunJobPass`. Scheduling tests can start selected jobs with `StartJobRunner`, which the harness stops before closing the application. `WithStorageFileTimings` lets a cleanup latency test retain the production interval, so a short test interval cannot hide a missing wake signal.
 
 Each application owns its directories, encryption key, service state and lifecycle. Several can stay alive in one test process, and shutting down one leaves the others usable.
 

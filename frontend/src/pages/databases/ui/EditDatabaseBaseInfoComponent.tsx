@@ -56,7 +56,6 @@ export const EditDatabaseBaseInfoComponent = ({
           id={nameFieldId}
           value={editingName}
           onChange={(e) => setEditingName(e.target.value)}
-          size="small"
           placeholder={t('databases.create.namePlaceholder')}
           className="grow"
         />

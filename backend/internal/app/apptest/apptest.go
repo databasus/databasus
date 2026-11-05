@@ -1,7 +1,7 @@
 // Package apptest builds the real application for backend API tests: the routes and middleware of
 // the server, an internal database of the test's own, a clock the test moves and background jobs
-// that run only when the test runs their passes. Physical backup loops run only with
-// WithPhysicalBackupLoops.
+// that normally run only when the test runs their passes. Scheduling tests start selected jobs
+// with StartJobRunner. Physical backup loops run only with WithPhysicalBackupLoops.
 package apptest
 
 import (
@@ -70,6 +70,7 @@ func New(tb testing.TB, options ...Option) *App {
 		agentBinariesDir:             "",
 		logSink:                      nil,
 		walStreamTimings:             nil,
+		storageFileTimings:           nil,
 		notificationDeliveryTimeout:  0,
 		// A test never reaches the real Slack or Telegram: an unset address points at a host that
 		// does not resolve.
@@ -170,6 +171,9 @@ func New(tb testing.TB, options ...Option) *App {
 	}
 
 	environment.StorageFileTimings = getTestFileTimings()
+	if applied.storageFileTimings != nil {
+		environment.StorageFileTimings = *applied.storageFileTimings
+	}
 
 	if applied.walStreamTimings != nil {
 		environment.WalStreamTimings = *applied.walStreamTimings

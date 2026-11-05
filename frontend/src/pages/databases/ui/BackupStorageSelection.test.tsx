@@ -32,7 +32,7 @@ describe('Composed backup storage creation', () => {
       mockApi.put('/storages/{storageId}', 200, { ...storage, name: 'Newer' }),
     );
     const onSelect = vi.fn();
-    renderScreen(
+    const view = renderScreen(
       <BackupStorageSelection
         workspaceId={storage.workspaceId}
         selectedStorageId="previous-id"
@@ -41,7 +41,14 @@ describe('Composed backup storage creation', () => {
       />,
     );
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Create new storage' }));
+    expect(screen.queryByRole('button', { name: 'Create new storage' })).toBeNull();
+
+    await view.user.click(await screen.findByRole('combobox', { name: 'Storage' }));
+    await view.user.tab();
+
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Create new storage' }));
+
+    await view.user.keyboard('{Enter}');
     const dialog = within(await screen.findByRole('dialog'));
 
     fireEvent.change(dialog.getByRole('textbox', { name: 'Name' }), {
@@ -99,6 +106,7 @@ describe('Composed backup storage creation', () => {
         { isStrictMode: true },
       );
 
+      fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Storage' }));
       fireEvent.click(await screen.findByRole('button', { name: 'Create new storage' }));
       const dialog = within(await screen.findByRole('dialog'));
 
@@ -161,6 +169,7 @@ describe('Composed backup storage creation', () => {
 
       server.use(mockApi.get('/storages', 200, { items: [existingStorage] }));
 
+      fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Storage' }));
       fireEvent.click(await screen.findByRole('button', { name: 'Create new storage' }));
       const dialog = within(await screen.findByRole('dialog'));
 
@@ -226,6 +235,7 @@ describe('Composed backup storage creation', () => {
     const props = { workspaceId: storage.workspaceId, canClear: true, onSelect };
     const view = renderScreen(<BackupStorageSelection {...props} />);
 
+    fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Storage' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Create new storage' }));
     const editor = within(await screen.findByRole('dialog'));
 

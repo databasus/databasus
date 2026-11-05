@@ -1,4 +1,4 @@
-import { Button, Empty, Modal, Spin } from 'antd';
+import { Button, Modal, Spin } from 'antd';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -125,9 +125,6 @@ export const StoragesComponent = ({ workspace, isCanManageStorages, onUnavailabl
   );
   const list = (
     <>
-      {collection.isReady && storages.length === 0 && (
-        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('storages.list.empty')} />
-      )}
       {storages.length >= 5 && isCanManageStorages && addButton}
       {storages.map((resource) => (
         <StorageCardComponent

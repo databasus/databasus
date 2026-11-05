@@ -1186,7 +1186,6 @@ export const fr: typeof en = {
       bot: 'Compte bot',
     },
     list: {
-      empty: 'Cet espace de travail ne contient pas encore de canal de notification',
       addNotifier: 'Ajouter un canal de notification',
       searchPlaceholder: 'Rechercher un canal de notification',
       noSearchResults: 'Aucun canal de notification ne correspond à « {{query}} »',
@@ -2029,7 +2028,7 @@ export const fr: typeof en = {
     cleanup: {
       title: 'Le nettoyage est toujours en cours',
       warning:
-        'Nous nettoyons encore ce stockage. Attendez la fin du nettoyage. Si vous le supprimez maintenant, le nettoyage automatique s’arrêtera et vous devrez supprimer manuellement les fichiers restants.',
+        'Nous supprimons les fichiers de sauvegarde devenus inutiles, généralement après la suppression d’une base de données ou son passage à un autre stockage. Le nettoyage se termine habituellement rapidement. Si vous supprimez ce stockage maintenant, le nettoyage automatique s’arrêtera et vous devrez supprimer manuellement les fichiers de sauvegarde restants.',
       wait: 'Attendre',
       deleteAnyway: 'Supprimer quand même',
     },
@@ -2062,7 +2061,6 @@ export const fr: typeof en = {
       privateKey: 'Clé privée',
     },
     list: {
-      empty: 'Cet espace de travail ne contient pas encore de stockage',
       addStorage: 'Ajouter un stockage',
       description:
         "Un stockage est l'endroit où les sauvegardes sont conservées (disque local, S3, etc.)",

@@ -1104,7 +1104,6 @@ export const zh: typeof en = {
       bot: '机器人账号',
     },
     list: {
-      empty: '此工作空间中暂无通知器',
       addNotifier: '添加通知渠道',
       searchPlaceholder: '搜索通知渠道',
       noSearchResults: '没有找到与“{{query}}”匹配的通知渠道',
@@ -1873,7 +1872,7 @@ export const zh: typeof en = {
     cleanup: {
       title: '清理仍在进行中',
       warning:
-        '我们仍在清理此存储。请等待清理完成。如果现在删除，自动清理将停止，剩余文件需要手动删除。',
+        '我们正在删除此存储中不再需要的备份文件，通常是因为数据库已被删除或改用了其他存储。清理一般很快就会完成。如果你现在删除此存储，自动清理将停止，剩余的备份文件需要你手动删除。',
       wait: '等待',
       deleteAnyway: '仍然删除',
     },
@@ -1906,7 +1905,6 @@ export const zh: typeof en = {
       privateKey: '私钥',
     },
     list: {
-      empty: '此工作空间中暂无存储',
       addStorage: '添加存储',
       description: '存储是存放备份的位置（本地磁盘、S3 等）',
       backToList: '← 返回存储列表',

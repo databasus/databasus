@@ -23,14 +23,15 @@ type RunnerDeps struct {
 
 // Job is a periodic piece of work. Run does one pass, and now is the clock's time at its start.
 type Job struct {
-	Name     string
-	Interval time.Duration
-	Run      func(ctx context.Context, now time.Time) error
+	Name       string
+	Interval   time.Duration
+	Run        func(ctx context.Context, now time.Time) error
+	WakeSignal <-chan struct{}
 }
 
-// Runner runs every job in its own loop. The first pass runs right away, and each next pass starts
-// one interval after the previous one ended. The intervals use real time; a test application never
-// starts the runner and runs passes itself with RunPass.
+// Runner runs every job in its own loop. The first pass runs right away, and later passes start
+// after the interval or a wake signal. A signal buffered during a pass starts another pass after it
+// finishes. Intervals use real time; tests normally run passes explicitly with RunPass.
 type Runner struct {
 	logger    *slog.Logger
 	clock     clock.Source
@@ -118,13 +119,15 @@ func (r *Runner) Wait(ctx context.Context) error {
 }
 
 func (r *Runner) runLoop(ctx context.Context, job *scheduledJob) {
-	for {
+	for ctx.Err() == nil {
 		_ = r.runPass(ctx, job)
 
 		timer := time.NewTimer(job.job.Interval)
 
 		select {
 		case <-timer.C:
+		case <-job.job.WakeSignal:
+			timer.Stop()
 		case <-ctx.Done():
 			timer.Stop()
 

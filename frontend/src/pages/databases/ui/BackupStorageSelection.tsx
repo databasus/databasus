@@ -1,4 +1,4 @@
-import { Button, Modal, Select } from 'antd';
+import { Button, Modal, Select, type GetRef } from 'antd';
 import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -25,6 +25,13 @@ export function BackupStorageSelection({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<unknown>();
   const [isCreating, setIsCreating] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const createStorage = () => {
+    setIsDropdownOpen(false);
+    storageSelectRef.current?.focus();
+    setIsCreating(true);
+  };
 
   const acceptStorage = (storage: Storage) => {
     if (!isCurrent() || currentWorkspace.current !== storage.workspaceId) return;
@@ -63,6 +70,7 @@ export function BackupStorageSelection({
   const isCurrent = useSessionGuard();
   const requests = useRequestRevision();
   const acknowledgedStorages = useRef<Storage[]>([]);
+  const storageSelectRef = useRef<GetRef<typeof Select>>(null);
   const createButtonRef = useRef<HTMLButtonElement>(null);
   const currentWorkspace = useLatestRef(workspaceId);
 
@@ -74,6 +82,7 @@ export function BackupStorageSelection({
     acknowledgedStorages.current = [];
     setStorages([]);
     setIsCreating(false);
+    setIsDropdownOpen(false);
     startStoragesLoad();
 
     return () => {
@@ -81,16 +90,15 @@ export function BackupStorageSelection({
     };
   }, [workspaceId, requests]);
 
-  // Read when the form closes, because the button can appear after the form opened.
-  const returnFocusToButton = useEffectEvent(() => {
-    createButtonRef.current?.focus();
+  const returnFocusToSelect = useEffectEvent(() => {
+    storageSelectRef.current?.focus();
   });
 
   useEffect(() => {
     if (!isCreating) return;
 
     return () => {
-      returnFocusToButton();
+      returnFocusToSelect();
     };
   }, [isCreating]);
 
@@ -102,6 +110,7 @@ export function BackupStorageSelection({
         <LoadFailure className="w-full" error={error} onRetry={() => void load()} />
       )}
       <Select
+        ref={storageSelectRef}
         id={controlId}
         aria-label={t('backups.config.storage')}
         allowClear={canClear}
@@ -109,7 +118,41 @@ export function BackupStorageSelection({
         value={selectedStorageId}
         onChange={(storageId) => onSelect(storageId)}
         size="small"
-        className="min-w-0 flex-1"
+        className="max-w-[200px] min-w-0 flex-1"
+        open={isDropdownOpen}
+        onOpenChange={setIsDropdownOpen}
+        onInputKeyDown={(event) => {
+          if (event.key === 'Tab' && !event.shiftKey && isDropdownOpen) {
+            event.preventDefault();
+            event.stopPropagation();
+            createButtonRef.current?.focus();
+          }
+        }}
+        popupRender={(menu) => (
+          <>
+            {storages.length > 0 && menu}
+            <div className="mt-1 border-t border-border pt-1">
+              <Button
+                ref={createButtonRef}
+                type="text"
+                block
+                className="!h-auto min-h-8 !justify-start !whitespace-normal !text-accent"
+                onClick={createStorage}
+                onKeyDown={(event) => {
+                  event.stopPropagation();
+
+                  if (event.key === 'Escape' || (event.key === 'Tab' && event.shiftKey)) {
+                    event.preventDefault();
+                    if (event.key === 'Escape') setIsDropdownOpen(false);
+                    storageSelectRef.current?.focus();
+                  }
+                }}
+              >
+                {t('backups.config.createNewStorage')}
+              </Button>
+            </div>
+          </>
+        )}
         options={storages.map((storage) => ({ label: storage.name, value: storage.id }))}
         placeholder={t('backups.config.selectStorage')}
       />
@@ -120,9 +163,6 @@ export function BackupStorageSelection({
           className="h-4 w-4"
         />
       )}
-      <Button ref={createButtonRef} size="small" onClick={() => setIsCreating(true)}>
-        {t('backups.config.createNewStorage')}
-      </Button>
       {isCreating && (
         <Modal
           title={t('backups.config.addStorageTitle')}

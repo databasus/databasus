@@ -124,7 +124,7 @@ export const VerificationsComponent = ({ database, isCanManageDBs, scrollContain
 
       {hasAgents === false && (
         <Alert
-          className="mt-3 max-w-[400px]"
+          className="!mt-3 max-w-[400px]"
           type="warning"
           showIcon
           message={

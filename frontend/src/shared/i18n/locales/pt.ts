@@ -1171,7 +1171,6 @@ export const pt: typeof en = {
       bot: 'Conta de bot',
     },
     list: {
-      empty: 'Este espaço de trabalho ainda não tem notificadores',
       addNotifier: 'Adicionar canal de notificação',
       searchPlaceholder: 'Buscar canal de notificação',
       noSearchResults: 'Nenhum canal de notificação encontrado para "{{query}}"',
@@ -2005,7 +2004,7 @@ export const pt: typeof en = {
     cleanup: {
       title: 'A limpeza ainda está em andamento',
       warning:
-        'Ainda estamos limpando este armazenamento. Aguarde a conclusão da limpeza. Se você excluí-lo agora, a limpeza automática será interrompida e os arquivos restantes terão que ser removidos manualmente.',
+        'Estamos excluindo arquivos de backup que não são mais necessários, geralmente porque um banco de dados foi excluído ou passou a usar outro armazenamento. A limpeza costuma terminar rapidamente. Se você excluir este armazenamento agora, a limpeza automática será interrompida e será necessário excluir manualmente os arquivos de backup restantes.',
       wait: 'Aguardar',
       deleteAnyway: 'Excluir mesmo assim',
     },
@@ -2038,7 +2037,6 @@ export const pt: typeof en = {
       privateKey: 'Chave privada',
     },
     list: {
-      empty: 'Este espaço de trabalho ainda não tem armazenamentos',
       addStorage: 'Adicionar armazenamento',
       description:
         'Armazenamento é o lugar onde os backups ficam guardados (disco local, S3, etc.)',

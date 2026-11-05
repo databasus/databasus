@@ -54,7 +54,12 @@ func NewDeletionJob(store *Store, deps Deps) *DeletionJob {
 }
 
 func (j *DeletionJob) GetJob() background.Job {
-	return background.Job{Name: DeletionJobName, Interval: j.timings.WorkerTick, Run: j.RunPass}
+	return background.Job{
+		Name:       DeletionJobName,
+		Interval:   j.timings.WorkerTick,
+		Run:        j.RunPass,
+		WakeSignal: j.store.deletionRequests,
+	}
 }
 
 // RunPass makes one pass over the due obligations.
@@ -66,6 +71,10 @@ func (j *DeletionJob) RunPass(ctx context.Context, now time.Time) error {
 
 	for _, pending := range claimed {
 		j.attemptDeletion(ctx, pending)
+	}
+
+	if len(claimed) == j.timings.ClaimBatchSize {
+		j.store.requestDeletionPass()
 	}
 
 	j.reportSummary(ctx)

@@ -22,6 +22,37 @@ import (
 func TestRunner(t *testing.T) {
 	t.Parallel()
 
+	t.Run("runs another pass before the interval when a signal arrives during a pass", func(t *testing.T) {
+		t.Parallel()
+
+		wakeSignal := make(chan struct{}, 1)
+		releasePass := make(chan struct{})
+		var passCount atomic.Int64
+		runner := NewRunner(newRunnerDeps(slog.New(slog.DiscardHandler)), Job{
+			Name:       "signaled",
+			Interval:   time.Hour,
+			WakeSignal: wakeSignal,
+			Run: func(ctx context.Context, _ time.Time) error {
+				if passCount.Add(1) == 1 {
+					select {
+					case <-releasePass:
+					case <-ctx.Done():
+						return ctx.Err()
+					}
+				}
+
+				return nil
+			},
+		})
+		startUntilTestEnds(t, runner)
+		waitForPassCount(t, &passCount, 1)
+
+		wakeSignal <- struct{}{}
+		close(releasePass)
+
+		waitForPassCount(t, &passCount, 2)
+	})
+
 	t.Run("adds job_name and a job_id of its own to the records of every pass", func(t *testing.T) {
 		t.Parallel()
 		capturer := &recordCapturer{mutex: sync.Mutex{}, records: nil}

@@ -826,6 +826,7 @@ describe('the backup configuration step of the wizard', () => {
       declareWizardRequests();
       const { rerenderWizard, user } = renderRerenderableWizard();
       await reachBackupStep();
+      await user.click(await screen.findByRole('combobox', { name: 'Storage' }));
       await user.click(await screen.findByRole('button', { name: 'Create new storage' }));
       const dialog = within(await screen.findByRole('dialog', { name: 'Add storage' }));
       await user.type(dialog.getByRole('textbox', { name: 'Name' }), 'Nested archive');

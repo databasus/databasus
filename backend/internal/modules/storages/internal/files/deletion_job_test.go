@@ -3,16 +3,55 @@ package files
 import (
 	"context"
 	"errors"
+	"fmt"
+	"log/slog"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"databasus-backend/internal/lib/background"
+	"databasus-backend/internal/lib/testwait"
 )
 
 func TestRunPass(t *testing.T) {
 	t.Parallel()
+
+	t.Run("drains several batches before the periodic tick when cleanup is requested", func(t *testing.T) {
+		t.Parallel()
+
+		files := newTestFiles(t)
+		storageID := files.createStorage(t)
+		references := make([]StoredFileReference, 0, 2*testTimings().ClaimBatchSize+1)
+		for index := range cap(references) {
+			references = append(references, StoredFileReference{
+				StorageID: storageID,
+				FileName:  fmt.Sprintf("backup-%d.dump", index),
+			})
+		}
+		files.requestDeletions(t, references...)
+		runner := background.NewRunner(background.RunnerDeps{
+			Logger: slog.New(slog.DiscardHandler),
+			Clock:  files.clock,
+		}, files.job.GetJob())
+		jobsCtx, cancelJobs := context.WithCancel(t.Context())
+		runner.Start(jobsCtx)
+		t.Cleanup(func() {
+			cancelJobs()
+			require.NoError(t, runner.Wait(context.WithoutCancel(t.Context())))
+		})
+
+		testwait.Within(5*time.Second).
+			Until(t, "all cleanup batches finish before the periodic tick", func(context.Context) error {
+				if len(files.provider.getDeleted()) != len(references) {
+					return fmt.Errorf("deleted %d of %d files", len(files.provider.getDeleted()), len(references))
+				}
+
+				return nil
+			})
+	})
 
 	t.Run("counts only dispatched attempts when the first file exhausts a batch lease", func(t *testing.T) {
 		t.Parallel()

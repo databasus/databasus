@@ -54,6 +54,40 @@ const chooseOption = async (
 };
 
 describe('PhysicalBackupConfigFields', () => {
+  it.each(['FULL', 'FULL_INCREMENTAL', 'FULL_INCREMENTAL_WAL_STREAM'] as const)(
+    'explains GFS without changing retention values for %s backups',
+    async (backupType) => {
+      const view = renderFields(backupType);
+      const dailyCount = screen.getByRole('spinbutton', { name: 'Daily' });
+
+      await view.user.clear(dailyCount);
+      await view.user.type(dailyCount, '9');
+
+      const hintButton = screen.getByRole('button', {
+        name: 'What is GFS (Grandfather-Father-Son)?',
+      });
+
+      expect(hintButton.getAttribute('aria-expanded')).toBe('false');
+
+      await view.user.click(hintButton);
+
+      expect(hintButton.getAttribute('aria-expanded')).toBe('true');
+      expect(screen.getByText(/GFS \(Grandfather-Father-Son\) rotation:/)).toBeTruthy();
+      expect(dailyCount).toHaveProperty('value', '9');
+
+      await view.user.click(screen.getByRole('button', { name: 'Hide' }));
+
+      expect(screen.queryByText(/GFS \(Grandfather-Father-Son\) rotation:/)).toBeNull();
+      expect(dailyCount).toHaveProperty('value', '9');
+
+      await chooseOption(view, { controlName: 'Full backups', optionName: 'Count' });
+
+      expect(
+        screen.queryByRole('button', { name: 'What is GFS (Grandfather-Father-Son)?' }),
+      ).toBeNull();
+    },
+  );
+
   it('labels the fields of each schedule separately', async () => {
     renderFields(
       'FULL_INCREMENTAL',

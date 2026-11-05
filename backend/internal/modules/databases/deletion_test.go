@@ -1,8 +1,12 @@
 package databases_test
 
 import (
+	"context"
+	"fmt"
 	"net/http"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -11,6 +15,8 @@ import (
 	"databasus-backend/internal/app/apptest"
 	apiclient "databasus-backend/internal/lib/apiclient"
 	containers "databasus-backend/internal/lib/testcontainers"
+	"databasus-backend/internal/lib/testwait"
+	"databasus-backend/internal/modules/storages"
 )
 
 const storageFileDeletionJob = "storage_file_deletion"
@@ -20,6 +26,63 @@ func TestDeleteDatabase(t *testing.T) {
 	t.Parallel()
 
 	postgresServer := containers.StartPostgres(t, "postgres:16")
+
+	t.Run("removes local backup files within five seconds when a database is deleted", func(t *testing.T) {
+		tm := newTeam(t, apptest.WithStorageFileTimings(storages.ProductionFileTimings()))
+		storageID := tm.app.CreateLocalStorage(t, tm.owner, tm.workspace.Id)
+		savedDatabase := tm.createDatabase(
+			t,
+			newPostgresqlLogicalSettings(t, newPostgresqlContainerTarget(postgresServer)),
+		)
+		storedBackup := insertPublishedLogicalBackup(t, tm, logicalBackupSpec{
+			databaseID: savedDatabase.Id,
+			storageID:  storageID,
+			status:     "COMPLETED",
+		})
+		backupFiles := []string{storedBackup.fileName, storedBackup.fileName + ".metadata"}
+		tm.app.PublishStorageFile(t, storages.StoredFileReference{
+			StorageID: storageID,
+			FileName:  backupFiles[1],
+		}, strings.NewReader("backup metadata"))
+		runner := tm.app.StartJobRunner(t, []string{storageFileDeletionJob})
+		testwait.Until(t, "initial file cleanup pass completes", func(context.Context) error {
+			for _, snapshot := range runner.GetSnapshots() {
+				if snapshot.LastCompletedAt != nil && !snapshot.IsRunning {
+					return nil
+				}
+			}
+
+			return fmt.Errorf("file cleanup has not completed its initial pass")
+		})
+
+		deletionStarted := time.Now()
+		response := deleteDatabase(t, tm.owner, savedDatabase.Id)
+		require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
+
+		testwait.Within(5*time.Second).
+			Until(t, "local backup files are removed without the periodic tick", func(context.Context) error {
+				for _, fileName := range backupFiles {
+					if tm.app.IsLocalStorageFilePresent(t, fileName) {
+						return fmt.Errorf("backup file %s still exists", fileName)
+					}
+				}
+
+				if tm.countRows(
+					t,
+					"SELECT count(*) FROM storages_pending_file_deletions WHERE storage_id = ?",
+					storageID,
+				) != 0 {
+					return fmt.Errorf("file cleanup still has pending deletions")
+				}
+
+				return nil
+			})
+		t.Logf("local backup files removed in %s", time.Since(deletionStarted))
+
+		removedStorage, err := tm.owner.Client.DeleteStorageWithResponse(t.Context(), storageID, nil)
+		require.NoError(t, err)
+		assert.Equal(t, http.StatusNoContent, removedStorage.StatusCode(), string(removedStorage.Body))
+	})
 
 	t.Run("deletes the database with its backups and removes their files", func(t *testing.T) {
 		tm := newTeam(t)

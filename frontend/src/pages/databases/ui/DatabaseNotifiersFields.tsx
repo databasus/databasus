@@ -1,4 +1,4 @@
-import { Button, Modal, Select, Spin } from 'antd';
+import { Button, Modal, Select, Spin, type GetRef } from 'antd';
 import {
   type Dispatch,
   type SetStateAction,
@@ -33,6 +33,13 @@ export const DatabaseNotifiersFields = ({
   const [notifiers, setNotifiers] = useState<Notifier[]>([]);
   const [isNotifiersLoading, setIsNotifiersLoading] = useState(false);
   const [isShowCreateNotifier, setShowCreateNotifier] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const createNotifier = () => {
+    setIsDropdownOpen(false);
+    notifierSelectRef.current?.focus();
+    setShowCreateNotifier(true);
+  };
 
   const acceptNotifier = (notifier: Notifier) => {
     if (!isCurrent() || notifier.workspaceId !== workspaceId) return;
@@ -74,6 +81,7 @@ export const DatabaseNotifiersFields = ({
   const isCurrent = useSessionGuard();
   const listRevision = useRequestRevision();
   const acknowledgedNotifiers = useRef<Notifier[]>([]);
+  const notifierSelectRef = useRef<GetRef<typeof Select>>(null);
   const createButtonRef = useRef<HTMLButtonElement>(null);
 
   const startNotifiersLoad = useEffectEvent(() => {
@@ -83,6 +91,7 @@ export const DatabaseNotifiersFields = ({
   useEffect(() => {
     acknowledgedNotifiers.current = [];
     setShowCreateNotifier(false);
+    setIsDropdownOpen(false);
     startNotifiersLoad();
 
     return () => {
@@ -90,16 +99,15 @@ export const DatabaseNotifiersFields = ({
     };
   }, [workspaceId, listRevision]);
 
-  // Read when the form closes, because the button can appear after the form opened.
-  const returnFocusToButton = useEffectEvent(() => {
-    createButtonRef.current?.focus();
+  const returnFocusToSelect = useEffectEvent(() => {
+    notifierSelectRef.current?.focus();
   });
 
   useEffect(() => {
     if (!isShowCreateNotifier) return;
 
     return () => {
-      returnFocusToButton();
+      returnFocusToSelect();
     };
   }, [isShowCreateNotifier]);
 
@@ -124,18 +132,50 @@ export const DatabaseNotifiersFields = ({
         <div className="min-w-37.5 pr-2">{t('databases.notifiers.title')}</div>
 
         <Select
+          ref={notifierSelectRef}
           aria-label={t('databases.notifiers.title')}
           mode="multiple"
           value={notifierIds}
           onChange={onNotifierIdsChange}
           size="small"
-          className="max-w-50 grow"
+          className="max-w-50 min-w-0 flex-1"
+          open={isDropdownOpen}
+          onOpenChange={setIsDropdownOpen}
+          onInputKeyDown={(event) => {
+            if (event.key === 'Tab' && !event.shiftKey && isDropdownOpen) {
+              event.preventDefault();
+              event.stopPropagation();
+              createButtonRef.current?.focus();
+            }
+          }}
+          popupRender={(menu) => (
+            <>
+              {notifiers.length > 0 && menu}
+              <div className="mt-1 border-t border-border pt-1">
+                <Button
+                  ref={createButtonRef}
+                  type="text"
+                  block
+                  className="!h-auto min-h-8 !justify-start !whitespace-normal !text-accent"
+                  onClick={createNotifier}
+                  onKeyDown={(event) => {
+                    event.stopPropagation();
+
+                    if (event.key === 'Escape' || (event.key === 'Tab' && event.shiftKey)) {
+                      event.preventDefault();
+                      if (event.key === 'Escape') setIsDropdownOpen(false);
+                      notifierSelectRef.current?.focus();
+                    }
+                  }}
+                >
+                  {t('databases.notifiers.createNew')}
+                </Button>
+              </div>
+            </>
+          )}
           options={[...notifiers.map((n) => ({ label: n.name, value: n.id }))]}
           placeholder={t('databases.notifiers.selectPlaceholder')}
         />
-        <Button ref={createButtonRef} onClick={() => setShowCreateNotifier(true)}>
-          {t('databases.notifiers.createNew')}
-        </Button>
       </div>
 
       {isShowCreateNotifier && (

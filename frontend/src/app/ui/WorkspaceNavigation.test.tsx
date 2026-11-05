@@ -756,12 +756,12 @@ describe('Application workspace navigation', () => {
     const retry = await screen.findByRole('button', { name: 'Retry' });
 
     expect(screen.queryByRole('combobox', { name: 'Selected workspace' })).toBeNull();
-    expect(screen.queryByText('No notifiers in this workspace yet')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Add notifier' })).toBeNull();
 
     server.use(mockApi.get('/workspaces', 200, { items: [secondWorkspace] }));
 
     fireEvent.click(retry);
-    await screen.findByText('No notifiers in this workspace yet');
+    await screen.findByRole('button', { name: 'Add notifier' });
 
     expect(getWorkspaceSelection().getByText(secondWorkspace.name)).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();

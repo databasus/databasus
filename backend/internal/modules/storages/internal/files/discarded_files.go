@@ -27,10 +27,9 @@ func (s *Store) RequestDiscardedFileDeletions(ctx context.Context, request Disca
 			scope = &originalScope
 		}
 
-		if err := s.repository.InsertOrTake(
+		if err := s.requestFileDeletions(
 			ctx,
 			FileDeletionRequest{References: []StoredFileReference{reference}, Scope: scope},
-			s.clock.Now(),
 		); err != nil {
 			return err
 		}

@@ -1180,7 +1180,6 @@ export const es: typeof en = {
       bot: 'Cuenta de bot',
     },
     list: {
-      empty: 'Este espacio de trabajo aún no tiene notificadores',
       addNotifier: 'Añadir canal de notificación',
       searchPlaceholder: 'Buscar canal de notificación',
       noSearchResults: 'No se encontraron canales de notificación que coincidan con "{{query}}"',
@@ -2016,7 +2015,7 @@ export const es: typeof en = {
     cleanup: {
       title: 'La limpieza sigue en curso',
       warning:
-        'Todavía estamos limpiando este almacenamiento. Espera a que termine la limpieza. Si lo eliminas ahora, la limpieza automática se detendrá y tendrás que eliminar manualmente los archivos restantes.',
+        'Estamos eliminando archivos de copias de seguridad que ya no se necesitan, normalmente porque se eliminó una base de datos o se cambió su almacenamiento. La limpieza suele terminar pronto. Si elimina este almacenamiento ahora, la limpieza automática se detendrá y tendrá que eliminar manualmente los archivos de copias de seguridad restantes.',
       wait: 'Esperar',
       deleteAnyway: 'Eliminar de todos modos',
     },
@@ -2049,7 +2048,6 @@ export const es: typeof en = {
       privateKey: 'Clave privada',
     },
     list: {
-      empty: 'Este espacio de trabajo aún no tiene almacenamientos',
       addStorage: 'Añadir almacenamiento',
       description:
         'Un almacenamiento es el lugar donde se guardan las copias de seguridad (disco local, S3, etc.)',

@@ -86,7 +86,7 @@ export const ShowPhysicalBackupConfigComponent = ({
     return (
       <>
         <div className="mt-4 mb-1 flex w-full items-center">
-          <div className="max-w-[150px] min-w-[150px] pr-2">{label}</div>
+          <div className="max-w-[180px] min-w-[180px] pr-2">{label}</div>
           <div>{t(SCHEDULE_TYPE_LABEL_KEYS[schedule.type])}</div>
         </div>
 

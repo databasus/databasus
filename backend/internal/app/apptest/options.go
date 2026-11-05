@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"databasus-backend/internal/modules/backups"
+	"databasus-backend/internal/modules/storages"
 )
 
 // Option changes the test application before it is built.
@@ -28,6 +29,7 @@ type settings struct {
 	notificationDeliveryTimeout time.Duration
 	notifierEndpoints           NotifierEndpoints
 	walStreamTimings            *backups.WalStreamTimings
+	storageFileTimings          *storages.FileTimings
 }
 
 // NotifierEndpoints are the addresses a test points the Slack and Telegram notifiers at.
@@ -117,6 +119,12 @@ func WithPhysicalBackupLoops() Option {
 func WithWalStreamTimings(timings backups.WalStreamTimings) Option {
 	return func(applied *settings) {
 		applied.walStreamTimings = &timings
+	}
+}
+
+func WithStorageFileTimings(timings storages.FileTimings) Option {
+	return func(applied *settings) {
+		applied.storageFileTimings = &timings
 	}
 }
 

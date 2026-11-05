@@ -202,6 +202,7 @@ Backups, restores and periodic jobs outlive any single request, so they follow o
 
 - **Background jobs** run through `background.Runner`, and each run of a job is a pass.
   - The runner puts `job_name` and `job_id` into the pass's context and never overlaps two passes of one job.
+  - A job can receive a wake signal to run before its next interval. A buffered signal received during a pass schedules another pass after it finishes.
   - A failed or panicked pass is logged, and the next pass still runs on schedule. Starting a runner twice panics, because it is always a bug.
   - Health reads use copied [job snapshots](glossary.md#code) and remain available while a pass blocks.
 - **Instance health** is the public `/api/v1/system/health` operation (spec `instance-health`). Raw errors stay in logs. `/system/version` and agent downloads do not depend on it, and Helm probes target `/system/version`.
@@ -242,6 +243,7 @@ A file in a storage must never lose its owner, even when a backup crashes halfwa
 - `WriteFile` records a pending deletion before the first byte leaves and returns a write receipt. The transaction that publishes the backup spends the receipt and so keeps the file.
 - Any other outcome leaves the pending deletion in place, and the deletion worker removes the file. That covers a provider error, a crash, a rolled-back publication and a cancellation.
 - A terminal failure asks for the deletion in the same transaction that records the failure.
+- A committed deletion request wakes the deletion worker immediately. Full batches schedule another pass, and a finished write wakes cleanup again so files protected during the write can be removed. The periodic pass remains available for retries and recovery after a restart.
 - Every write attempt gets its own object name, because a retry that reused a name would address an object a pending deletion already owns.
 - A provider's delete removes every object it derives from the name, such as chunk objects, part manifests and incomplete multipart uploads. Only a confirmed absence counts as success.
 

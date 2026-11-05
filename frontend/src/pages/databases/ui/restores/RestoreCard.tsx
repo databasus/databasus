@@ -76,8 +76,8 @@ export const RestoreCard = ({
           )}
 
           {restore.status === RestoreStatus.COMPLETED && (
-            <div className="flex items-center">
-              <CheckCircleOutlined className="mr-2 text-success" style={{ fontSize: 16 }} />
+            <div className="flex items-center text-success">
+              <CheckCircleOutlined className="mr-2" style={{ fontSize: 16 }} />
 
               <div>{t(RESTORE_STATUS_LABEL_KEYS[restore.status])}</div>
             </div>
