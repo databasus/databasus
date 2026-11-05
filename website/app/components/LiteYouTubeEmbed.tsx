@@ -1,17 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { VIDEO_PLAY_LABELS } from "./copyLabels";
 
 interface LiteYouTubeEmbedProps {
   videoId: string;
   title: string;
   thumbnailSrc: string;
+  readonly playLabel?: string;
 }
 
 export default function LiteYouTubeEmbed({
   videoId,
   title,
   thumbnailSrc,
+  playLabel = VIDEO_PLAY_LABELS.en.replace("{title}", title),
 }: LiteYouTubeEmbedProps) {
   const [isIframeLoaded, setIsIframeLoaded] = useState(false);
 
@@ -20,10 +23,7 @@ export default function LiteYouTubeEmbed({
   };
 
   return (
-    <div
-      className="relative w-full overflow-hidden rounded-lg"
-      style={{ paddingBottom: "56.25%" }}
-    >
+    <div className="relative w-full overflow-hidden rounded-lg" style={{ paddingBottom: "56.25%" }}>
       {!isIframeLoaded ? (
         <>
           <img
@@ -35,7 +35,7 @@ export default function LiteYouTubeEmbed({
           <button
             onClick={handleClick}
             className="absolute cursor-pointer left-0 top-0 z-10 flex h-full w-full items-center justify-center transition-all hover:bg-opacity-20"
-            aria-label={`Play ${title}`}
+            aria-label={playLabel}
           >
             <div className="flex items-center justify-center rounded-xl bg-blue-600 px-3 py-1 transition-transform hover:scale-105">
               <svg

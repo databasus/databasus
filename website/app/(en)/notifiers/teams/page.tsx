@@ -24,6 +24,7 @@ export const metadata: Metadata = {
     description:
       "Step-by-step guide to set up Microsoft Teams notifications for PostgreSQL backup alerts with Databasus. Learn how to create Teams webhook and configure notifications.",
     type: "article",
+    locale: "en_US",
     url: "https://databasus.com/notifiers/teams",
   },
   twitter: {

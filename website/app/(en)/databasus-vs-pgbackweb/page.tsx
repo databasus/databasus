@@ -23,6 +23,7 @@ export const metadata: Metadata = {
     description:
       "Compare Databasus and PgBackWeb PostgreSQL backup tools. See differences in features, security, team support, storage options, notifications and ease of use.",
     type: "article",
+    locale: "en_US",
     url: "https://databasus.com/databasus-vs-pgbackweb",
   },
   twitter: {

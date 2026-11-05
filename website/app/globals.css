@@ -68,8 +68,8 @@ body {
   color: var(--foreground);
   font-family: Jost, Arial, Helvetica, sans-serif;
   line-height: 1.6;
-  background-color: #0F1115;
-color: #fff;
+  background-color: #0f1115;
+  color: #fff;
 }
 
 /* Article/prose context headings - Dark mode */
@@ -159,8 +159,9 @@ article code {
   border-radius: 0.25rem;
   font-size: 0.9em;
   color: #f87171;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+    monospace;
   border: 1px solid #ffffff20;
   word-break: break-word;
   overflow-wrap: break-word;
@@ -410,5 +411,14 @@ article {
     letter-spacing: 0.05em;
     display: block;
     margin-bottom: 0.25rem;
+  }
+}
+@media (width < 64rem) {
+  div:has(> .docs-mobile-navigation) {
+    flex-wrap: wrap;
+  }
+
+  .docs-mobile-navigation ~ main {
+    flex-basis: 100%;
   }
 }

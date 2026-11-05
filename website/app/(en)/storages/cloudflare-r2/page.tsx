@@ -22,6 +22,7 @@ export const metadata: Metadata = {
     description:
       "Step-by-step guide to configure Cloudflare R2 storage for PostgreSQL backups with Databasus. Learn how to set up S3-compatible storage with R2.",
     type: "article",
+    locale: "en_US",
     url: "https://databasus.com/storages/cloudflare-r2",
   },
   twitter: {

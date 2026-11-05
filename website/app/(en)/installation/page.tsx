@@ -31,6 +31,7 @@ export const metadata: Metadata = {
     description:
       "Learn how to install Databasus using automated script, Docker run, Docker Compose, Helm for Kubernetes or Caddy reverse proxy. Simple zero-config installation for your self-hosted PostgreSQL backup system.",
     type: "article",
+    locale: "en_US",
     url: "https://databasus.com/installation",
   },
   twitter: {

@@ -23,6 +23,7 @@ export const metadata: Metadata = {
     description:
       "List of supported notification channels for Databasus backup alerts including Slack, Discord, Telegram, Microsoft Teams, Email and Webhooks.",
     type: "article",
+    locale: "en_US",
     url: "https://databasus.com/notifiers",
   },
   twitter: {
