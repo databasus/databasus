@@ -162,11 +162,12 @@ start_failing_databasus() {
 
 assert_storage_permission_failure() {
     local container_name="$1"
+    local operation_description="${2:-Required operation:}"
     local container_logs
 
     container_logs="$(docker logs "${container_name}" 2>&1)"
     grep -Eq 'ERROR: Databasus cannot write to .+ as UID [0-9]+ and GID [0-9]+\.' <<<"${container_logs}"
-    grep -Fq "Required operation:" <<<"${container_logs}"
+    grep -Fq "${operation_description}" <<<"${container_logs}"
     grep -Fq "Set PUID and PGID or fix the mounted directory permissions:" <<<"${container_logs}"
     grep -Fq "https://databasus.com/advanced-config/#docker-storage-permissions" <<<"${container_logs}"
     if grep -Fq "Starting PostgreSQL..." <<<"${container_logs}"; then
@@ -522,9 +523,8 @@ run_wrong_owner() {
         --env PUID=999 \
         --env PGID=999 \
         --volume "${data_root}:/databasus-data"
-    assert_storage_permission_failure "${container_name}"
-    docker logs "${container_name}" 2>&1 | grep -F \
-        "Required operation: save a file through local storage." >/dev/null
+    assert_storage_permission_failure "${container_name}" \
+        "Failed operation: save a file through local storage:"
 }
 
 run_unwritable_data_root() {
