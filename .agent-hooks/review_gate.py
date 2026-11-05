@@ -14,6 +14,8 @@ Changing a hook command invalidates its previous approval. Run `mise run doctor 
 to inspect native loading and trust; approve modified definitions with `/hooks` in Codex CLI
 at the repository root. If an editor does not expose that approval, use the CLI and restart
 the editor's agent session. The doctor never changes trust or starts a paid model call.
+For linked worktrees, the doctor accepts hook sources from the current worktree or the repository's
+main checkout, while still checking every configured command, its enabled state and its trust.
 Hooks pass --client explicitly. Terminal actions use --client first, then AGENT_REVIEW_CLIENT,
 and reject absent or invalid selection. Agent shell environments declare their own client.
 Only the selected CLI must be installed and signed in; failure never switches clients.
