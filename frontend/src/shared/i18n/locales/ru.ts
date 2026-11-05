@@ -1129,6 +1129,8 @@ export const ru: typeof en = {
       discord: 'Discord',
       teams: 'Teams',
       mattermost: 'Mattermost',
+      ses: 'Amazon SES',
+      sns: 'Amazon SNS',
     },
     notificationTypes: {
       all: 'Все',
@@ -1160,6 +1162,8 @@ export const ru: typeof en = {
         discord: 'Уведомления в Discord',
         teams: 'Уведомления в Teams',
         mattermost: 'Уведомления в Mattermost',
+        ses: 'Уведомления через Amazon SES',
+        sns: 'Уведомления через Amazon SNS',
       },
       hasSendError: 'Есть ошибка отправки',
     },
@@ -1350,6 +1354,42 @@ export const ru: typeof en = {
         copyToken: '2. Скопируйте токен: его показывают только один раз, сразу после создания',
         addBotToChannel: '3. Добавьте бота в команду и в канал',
       },
+    },
+    ses: {
+      fromEmail: 'Email отправителя',
+      fromEmailTooltip: 'Подтвержденный email или домен в Amazon SES',
+      targetEmail: 'Email получателя',
+      region: 'Регион AWS',
+      authType: 'Способ аутентификации',
+      authTypes: {
+        iamRole: 'IAM-роль',
+        keys: 'Ключи доступа',
+      },
+      accessKey: 'Ключ доступа',
+      secretKey: 'Секретный ключ',
+      roleArn: 'ARN роли',
+      roleArnTooltip: 'ARN IAM-роли для переключения через STS (необязательно)',
+      externalId: 'Внешний идентификатор (External ID)',
+      iamRoleNotice:
+        'Если оставить ARN роли пустым, будет использоваться роль окружения: профиль инстанса EC2, роль задачи ECS или EKS Pod Identity / IRSA.',
+    },
+    sns: {
+      topicArn: 'ARN темы (Topic ARN)',
+      topicArnTooltip:
+        'ARN темы Amazon SNS (например, arn:aws:sns:us-east-1:123456789012:my-topic)',
+      region: 'Регион AWS',
+      authType: 'Способ аутентификации',
+      authTypes: {
+        keys: 'Ключи доступа',
+        iamRole: 'IAM-роль',
+      },
+      accessKey: 'Ключ доступа',
+      secretKey: 'Секретный ключ',
+      roleArn: 'ARN роли',
+      roleArnTooltip: 'ARN IAM-роли для переключения через STS (необязательно)',
+      externalId: 'Внешний идентификатор (External ID)',
+      iamRoleNotice:
+        'Если оставить ARN роли пустым, будет использоваться роль окружения: профиль инстанса EC2, роль задачи ECS или EKS Pod Identity / IRSA.',
     },
   },
   backups: {
@@ -1976,6 +2016,10 @@ export const ru: typeof en = {
       reducedRedundancy: 'Reduced Redundancy',
       glacierIr: 'Glacier Instant Retrieval',
     },
+    s3AuthTypes: {
+      keys: 'Ключи доступа',
+      iamRole: 'IAM-роль',
+    },
     azureBlobAuthMethods: {
       accountKey: 'Ключ учетной записи',
       connectionString: 'Строка подключения',
@@ -2052,6 +2096,9 @@ export const ru: typeof en = {
       accessKey: 'Ключ доступа',
       secretKey: 'Секретный ключ',
       endpoint: 'Эндпоинт',
+      authType: 'Способ аутентификации',
+      roleArn: 'ARN роли',
+      externalId: 'Внешний идентификатор (External ID)',
       folderPrefix: 'Префикс папки',
       prefix: 'Префикс',
       blobPrefix: 'Префикс блобов',
@@ -2082,6 +2129,10 @@ export const ru: typeof en = {
         cloudflareR2Guide: 'Как подключить Cloudflare R2?',
         endpointTooltip:
           'URL своего S3-совместимого эндпоинта (необязательно, для AWS S3 оставьте пустым)',
+        roleArnTooltip:
+          'ARN IAM-роли для переключения через STS (например, arn:aws:iam::123456789012:role/RoleName)',
+        iamRoleNotice:
+          'Если оставить ARN роли пустым, будут использоваться учетные данные IAM из окружения хоста или контейнера: профиль инстанса EC2, роль задачи ECS или EKS Pod Identity / IRSA.',
         prefixTooltip:
           "Необязательный префикс для ключей всех объектов (например, 'backups/' или 'my_team/'). С некоторыми S3-совместимыми хранилищами может не работать. После создания его нельзя изменить, иначе бекапы потеряются.",
         useVirtualHostedStyle: 'Использовать virtual-hosted стиль',

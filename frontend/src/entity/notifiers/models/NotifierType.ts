@@ -6,4 +6,6 @@ export enum NotifierType {
   DISCORD = 'DISCORD',
   TEAMS = 'TEAMS',
   MATTERMOST = 'MATTERMOST',
+  SES = 'SES',
+  SNS = 'SNS',
 }

@@ -679,8 +679,72 @@ func buildTestS3Transport(t *testing.T, isSkipTLSVerify bool) *http.Transport {
 		SkipTLSVerify: isSkipTLSVerify,
 	}
 
-	params, err := storage.getClientParams(encryptor)
+	params, err := storage.getClientParams(context.Background(), encryptor)
 	require.NoError(t, err)
 
 	return params.transport
+}
+
+func Test_S3Storage_Validate_KeysMode(t *testing.T) {
+	encryptor := encryption.GetFieldEncryptor()
+
+	storageWithoutBucket := &S3Storage{
+		AuthType:    S3AuthTypeKeys,
+		S3AccessKey: "key",
+		S3SecretKey: "secret",
+	}
+	require.Error(t, storageWithoutBucket.Validate(encryptor))
+
+	storageWithoutAccessKey := &S3Storage{
+		AuthType:    S3AuthTypeKeys,
+		S3Bucket:    "bucket",
+		S3SecretKey: "secret",
+	}
+	require.Error(t, storageWithoutAccessKey.Validate(encryptor))
+
+	storageWithoutSecretKey := &S3Storage{
+		AuthType:    S3AuthTypeKeys,
+		S3Bucket:    "bucket",
+		S3AccessKey: "key",
+	}
+	require.Error(t, storageWithoutSecretKey.Validate(encryptor))
+
+	validStorage := &S3Storage{
+		AuthType:    S3AuthTypeKeys,
+		S3Bucket:    "bucket",
+		S3AccessKey: "key",
+		S3SecretKey: "secret",
+	}
+	require.NoError(t, validStorage.Validate(encryptor))
+}
+
+func Test_S3Storage_Validate_IAMRoleMode(t *testing.T) {
+	encryptor := encryption.GetFieldEncryptor()
+
+	storageWithoutRegion := &S3Storage{
+		AuthType: S3AuthTypeIAMRole,
+		S3Bucket: "bucket",
+	}
+	require.Error(t, storageWithoutRegion.Validate(encryptor))
+
+	validIAMStorage := &S3Storage{
+		AuthType: S3AuthTypeIAMRole,
+		S3Bucket: "bucket",
+		S3Region: "us-east-1",
+	}
+	require.NoError(t, validIAMStorage.Validate(encryptor))
+}
+
+func Test_S3Storage_HideSensitiveData_ClearsKeysAndExternalID(t *testing.T) {
+	storage := &S3Storage{
+		S3AccessKey: "access",
+		S3SecretKey: "secret",
+		ExternalID:  "ext-id",
+	}
+
+	storage.HideSensitiveData()
+
+	assert.Empty(t, storage.S3AccessKey)
+	assert.Empty(t, storage.S3SecretKey)
+	assert.Empty(t, storage.ExternalID)
 }

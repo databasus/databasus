@@ -21,6 +21,7 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 
+	"databasus-backend/internal/util/aws_auth"
 	"databasus-backend/internal/util/encryption"
 )
 
@@ -61,12 +62,15 @@ const (
 )
 
 type S3Storage struct {
-	StorageID   uuid.UUID `json:"storageId"   gorm:"primaryKey;type:uuid;column:storage_id"`
-	S3Bucket    string    `json:"s3Bucket"    gorm:"not null;type:text;column:s3_bucket"`
-	S3Region    string    `json:"s3Region"    gorm:"not null;type:text;column:s3_region"`
-	S3AccessKey string    `json:"s3AccessKey" gorm:"not null;type:text;column:s3_access_key"`
-	S3SecretKey string    `json:"s3SecretKey" gorm:"not null;type:text;column:s3_secret_key"`
-	S3Endpoint  string    `json:"s3Endpoint"  gorm:"type:text;column:s3_endpoint"`
+	StorageID   uuid.UUID  `json:"storageId"   gorm:"primaryKey;type:uuid;column:storage_id"`
+	S3Bucket    string     `json:"s3Bucket"    gorm:"not null;type:text;column:s3_bucket"`
+	S3Region    string     `json:"s3Region"    gorm:"not null;type:text;column:s3_region"`
+	AuthType    S3AuthType `json:"authType"    gorm:"not null;type:text;column:auth_type;default:'KEYS'"`
+	S3AccessKey string     `json:"s3AccessKey" gorm:"type:text;column:s3_access_key;default:''"`
+	S3SecretKey string     `json:"s3SecretKey" gorm:"type:text;column:s3_secret_key;default:''"`
+	RoleARN     string     `json:"roleArn"     gorm:"type:text;column:role_arn;default:''"`
+	ExternalID  string     `json:"externalId"  gorm:"type:text;column:external_id;default:''"`
+	S3Endpoint  string     `json:"s3Endpoint"  gorm:"type:text;column:s3_endpoint"`
 
 	S3Prefix                string         `json:"s3Prefix"                gorm:"type:text;column:s3_prefix"`
 	S3UseVirtualHostedStyle bool           `json:"s3UseVirtualHostedStyle" gorm:"default:false;column:s3_use_virtual_hosted_style"`
@@ -303,11 +307,27 @@ func (s *S3Storage) Validate(encryptor encryption.FieldEncryptor) error {
 	if s.S3Bucket == "" {
 		return errors.New("S3 bucket is required")
 	}
-	if s.S3AccessKey == "" {
-		return errors.New("S3 access key is required")
+
+	authType := s.AuthType
+	if authType == "" {
+		authType = S3AuthTypeKeys
 	}
-	if s.S3SecretKey == "" {
-		return errors.New("S3 secret key is required")
+
+	switch authType {
+	case S3AuthTypeKeys:
+		if s.S3AccessKey == "" {
+			return errors.New("S3 access key is required")
+		}
+
+		if s.S3SecretKey == "" {
+			return errors.New("S3 secret key is required")
+		}
+	case S3AuthTypeIAMRole:
+		if s.S3Region == "" {
+			return errors.New("S3 region is required for IAM role authentication")
+		}
+	default:
+		return fmt.Errorf("unknown S3 auth type: %s", authType)
 	}
 
 	return nil
@@ -344,6 +364,7 @@ func (s *S3Storage) TestConnection(encryptor encryption.FieldEncryptor) error {
 func (s *S3Storage) HideSensitiveData() {
 	s.S3AccessKey = ""
 	s.S3SecretKey = ""
+	s.ExternalID = ""
 }
 
 func (s *S3Storage) EncryptSensitiveData(encryptor encryption.FieldEncryptor) error {
@@ -363,6 +384,13 @@ func (s *S3Storage) EncryptSensitiveData(encryptor encryption.FieldEncryptor) er
 		}
 	}
 
+	if s.ExternalID != "" {
+		s.ExternalID, err = encryptor.Encrypt(s.ExternalID)
+		if err != nil {
+			return fmt.Errorf("failed to encrypt S3 external ID: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -373,6 +401,8 @@ func (s *S3Storage) Update(incoming *S3Storage) {
 	s.S3UseVirtualHostedStyle = incoming.S3UseVirtualHostedStyle
 	s.SkipTLSVerify = incoming.SkipTLSVerify
 	s.S3StorageClass = incoming.S3StorageClass
+	s.AuthType = incoming.AuthType
+	s.RoleARN = incoming.RoleARN
 
 	if incoming.S3AccessKey != "" {
 		s.S3AccessKey = incoming.S3AccessKey
@@ -380,6 +410,10 @@ func (s *S3Storage) Update(incoming *S3Storage) {
 
 	if incoming.S3SecretKey != "" {
 		s.S3SecretKey = incoming.S3SecretKey
+	}
+
+	if incoming.ExternalID != "" {
+		s.ExternalID = incoming.ExternalID
 	}
 
 	// we do not allow to change the prefix after creation,
@@ -774,7 +808,7 @@ func (s *S3Storage) buildObjectKey(fileName string) string {
 }
 
 func (s *S3Storage) getClient(ctx context.Context, encryptor encryption.FieldEncryptor) (*minio.Client, error) {
-	params, err := s.getClientParams(encryptor)
+	params, err := s.getClientParams(ctx, encryptor)
 	if err != nil {
 		return nil, err
 	}
@@ -795,15 +829,14 @@ func (s *S3Storage) getClient(ctx context.Context, encryptor encryption.FieldEnc
 type clientParams struct {
 	endpoint     string
 	useSSL       bool
-	accessKey    string
-	secretKey    string
+	credentials  *credentials.Credentials
 	bucketLookup minio.BucketLookupType
 	transport    *http.Transport
 }
 
 func newMinioClient(params clientParams, region string) (*minio.Client, error) {
 	return minio.New(params.endpoint, &minio.Options{
-		Creds:        credentials.NewStaticV4(params.accessKey, params.secretKey, ""),
+		Creds:        params.credentials,
 		Secure:       params.useSSL,
 		Region:       region,
 		BucketLookup: params.bucketLookup,
@@ -811,7 +844,7 @@ func newMinioClient(params clientParams, region string) (*minio.Client, error) {
 	})
 }
 
-func (s *S3Storage) getClientParams(encryptor encryption.FieldEncryptor) (clientParams, error) {
+func (s *S3Storage) getClientParams(ctx context.Context, encryptor encryption.FieldEncryptor) (clientParams, error) {
 	endpoint := s.S3Endpoint
 	useSSL := true
 
@@ -826,14 +859,46 @@ func (s *S3Storage) getClientParams(encryptor encryption.FieldEncryptor) (client
 		endpoint = fmt.Sprintf("s3.%s.amazonaws.com", s.S3Region)
 	}
 
-	accessKey, err := encryptor.Decrypt(s.S3AccessKey)
-	if err != nil {
-		return clientParams{}, fmt.Errorf("failed to decrypt S3 access key: %w", err)
+	var accessKey, secretKey, externalID string
+	var err error
+
+	if s.S3AccessKey != "" {
+		accessKey, err = encryptor.Decrypt(s.S3AccessKey)
+		if err != nil {
+			return clientParams{}, fmt.Errorf("failed to decrypt S3 access key: %w", err)
+		}
 	}
 
-	secretKey, err := encryptor.Decrypt(s.S3SecretKey)
+	if s.S3SecretKey != "" {
+		secretKey, err = encryptor.Decrypt(s.S3SecretKey)
+		if err != nil {
+			return clientParams{}, fmt.Errorf("failed to decrypt S3 secret key: %w", err)
+		}
+	}
+
+	if s.ExternalID != "" {
+		externalID, err = encryptor.Decrypt(s.ExternalID)
+		if err != nil {
+			return clientParams{}, fmt.Errorf("failed to decrypt S3 external ID: %w", err)
+		}
+	}
+
+	authType := s.AuthType
+	if authType == "" {
+		authType = S3AuthTypeKeys
+	}
+
+	minioCreds, err := aws_auth.BuildMinioCredentials(ctx, aws_auth.Config{
+		AuthType:   aws_auth.AuthType(authType),
+		Region:     s.S3Region,
+		AccessKey:  accessKey,
+		SecretKey:  secretKey,
+		RoleARN:    s.RoleARN,
+		ExternalID: externalID,
+		Endpoint:   endpoint,
+	})
 	if err != nil {
-		return clientParams{}, fmt.Errorf("failed to decrypt S3 secret key: %w", err)
+		return clientParams{}, fmt.Errorf("failed to build S3 credentials: %w", err)
 	}
 
 	bucketLookup := minio.BucketLookupAuto
@@ -844,8 +909,7 @@ func (s *S3Storage) getClientParams(encryptor encryption.FieldEncryptor) (client
 	return clientParams{
 		endpoint:     endpoint,
 		useSSL:       useSSL,
-		accessKey:    accessKey,
-		secretKey:    secretKey,
+		credentials:  minioCreds,
 		bucketLookup: bucketLookup,
 		transport:    getSharedTransport(s.SkipTLSVerify),
 	}, nil

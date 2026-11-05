@@ -10,7 +10,9 @@ import (
 	discord_notifier "databasus-backend/internal/features/notifiers/models/discord"
 	"databasus-backend/internal/features/notifiers/models/email_notifier"
 	mattermost_notifier "databasus-backend/internal/features/notifiers/models/mattermost"
+	"databasus-backend/internal/features/notifiers/models/ses"
 	slack_notifier "databasus-backend/internal/features/notifiers/models/slack"
+	"databasus-backend/internal/features/notifiers/models/sns"
 	teams_notifier "databasus-backend/internal/features/notifiers/models/teams"
 	telegram_notifier "databasus-backend/internal/features/notifiers/models/telegram"
 	webhook_notifier "databasus-backend/internal/features/notifiers/models/webhook"
@@ -32,6 +34,8 @@ type Notifier struct {
 	DiscordNotifier    *discord_notifier.DiscordNotifier       `json:"discordNotifier"        gorm:"foreignKey:NotifierID"`
 	TeamsNotifier      *teams_notifier.TeamsNotifier           `json:"teamsNotifier,omitzero" gorm:"foreignKey:NotifierID;constraint:OnDelete:CASCADE"`
 	MattermostNotifier *mattermost_notifier.MattermostNotifier `json:"mattermostNotifier"     gorm:"foreignKey:NotifierID"`
+	SESNotifier        *ses_notifier.SESNotifier               `json:"sesNotifier"            gorm:"foreignKey:NotifierID"`
+	SNSNotifier        *sns_notifier.SNSNotifier               `json:"snsNotifier"            gorm:"foreignKey:NotifierID"`
 }
 
 func (n *Notifier) TableName() string {
@@ -41,6 +45,10 @@ func (n *Notifier) TableName() string {
 func (n *Notifier) FillDefaults() {
 	if n.NotifierType == NotifierTypeEmail && n.EmailNotifier != nil {
 		n.EmailNotifier.FillDefaults()
+	}
+
+	if n.NotifierType == NotifierTypeSNS && n.SNSNotifier != nil {
+		n.SNSNotifier.FillDefaults()
 	}
 }
 
@@ -110,6 +118,14 @@ func (n *Notifier) Update(incoming *Notifier) {
 		if n.MattermostNotifier != nil && incoming.MattermostNotifier != nil {
 			n.MattermostNotifier.Update(incoming.MattermostNotifier)
 		}
+	case NotifierTypeSES:
+		if n.SESNotifier != nil && incoming.SESNotifier != nil {
+			n.SESNotifier.Update(incoming.SESNotifier)
+		}
+	case NotifierTypeSNS:
+		if n.SNSNotifier != nil && incoming.SNSNotifier != nil {
+			n.SNSNotifier.Update(incoming.SNSNotifier)
+		}
 	}
 }
 
@@ -129,6 +145,10 @@ func (n *Notifier) getSpecificNotifier() NotificationSender {
 		return n.TeamsNotifier
 	case NotifierTypeMattermost:
 		return n.MattermostNotifier
+	case NotifierTypeSES:
+		return n.SESNotifier
+	case NotifierTypeSNS:
+		return n.SNSNotifier
 	default:
 		panic("unknown notifier type: " + string(n.NotifierType))
 	}

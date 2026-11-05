@@ -21,6 +21,8 @@ const NOTIFY_TO_KEYS: Record<NotifierType, TranslationKey> = {
   [NotifierType.DISCORD]: 'notifiers.card.notifyTo.discord',
   [NotifierType.TEAMS]: 'notifiers.card.notifyTo.teams',
   [NotifierType.MATTERMOST]: 'notifiers.card.notifyTo.mattermost',
+  [NotifierType.SES]: 'notifiers.card.notifyTo.ses',
+  [NotifierType.SNS]: 'notifiers.card.notifyTo.sns',
 };
 
 export const NotifierCardComponent = ({

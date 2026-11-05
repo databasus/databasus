@@ -31,5 +31,9 @@ export type { MattermostNotifier } from './models/mattermost/MattermostNotifier'
 export { MattermostDeliveryMode } from './models/mattermost/MattermostDeliveryMode';
 export { MATTERMOST_DELIVERY_MODE_LABEL_KEYS } from './models/mattermost/MattermostDeliveryModeLabelKeys';
 export { validateMattermostNotifier } from './models/mattermost/validateMattermostNotifier';
+export type { SESAuthType, SESNotifier } from './models/ses/SESNotifier';
+export { validateSESNotifier } from './models/ses/validateSESNotifier';
+export type { SNSAuthType, SNSNotifier } from './models/sns/SNSNotifier';
+export { validateSNSNotifier } from './models/sns/validateSNSNotifier';
 export { NOTIFIER_TYPE_LABEL_KEYS } from './models/NotifierTypeLabelKeys';
 export { NOTIFICATION_TYPE_LABEL_KEYS } from './models/NotificationTypeLabelKeys';

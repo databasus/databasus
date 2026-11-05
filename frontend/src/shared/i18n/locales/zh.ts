@@ -1085,6 +1085,8 @@ export const zh: typeof en = {
       discord: 'Discord',
       teams: 'Teams',
       mattermost: 'Mattermost',
+      ses: 'Amazon SES',
+      sns: 'Amazon SNS',
     },
     notificationTypes: {
       all: '全部',
@@ -1115,6 +1117,8 @@ export const zh: typeof en = {
         discord: '通过 Discord 通知',
         teams: '通过 Teams 通知',
         mattermost: '通过 Mattermost 通知',
+        ses: '通过 Amazon SES 通知',
+        sns: '通过 Amazon SNS 通知',
       },
       hasSendError: '发送出错',
     },
@@ -1300,6 +1304,41 @@ export const zh: typeof en = {
         copyToken: '2. 复制创建后显示的令牌（只显示一次）',
         addBotToChannel: '3. 把机器人加入团队和频道',
       },
+    },
+    ses: {
+      fromEmail: '发件人邮箱',
+      fromEmailTooltip: '在 Amazon SES 中已验证的电子邮件地址或域名',
+      targetEmail: '目标邮箱',
+      region: 'AWS 区域',
+      authType: '认证方式',
+      authTypes: {
+        iamRole: 'IAM 角色',
+        keys: '访问密钥',
+      },
+      accessKey: '访问密钥',
+      secretKey: '秘密访问密钥',
+      roleArn: '角色 ARN',
+      roleArnTooltip: '可选的通过 STS 代入的 IAM 角色 ARN',
+      externalId: '外部 ID',
+      iamRoleNotice:
+        '留空角色 ARN 将使用环境中的 IAM 角色（EC2 实例配置文件、ECS 任务角色或 EKS Pod Identity / IRSA）。',
+    },
+    sns: {
+      topicArn: '主题 ARN',
+      topicArnTooltip: 'Amazon SNS 主题 ARN（例如 arn:aws:sns:us-east-1:123456789012:my-topic）',
+      region: 'AWS 区域',
+      authType: '认证方式',
+      authTypes: {
+        keys: '访问密钥',
+        iamRole: 'IAM 角色',
+      },
+      accessKey: '访问密钥',
+      secretKey: '秘密访问密钥',
+      roleArn: '角色 ARN',
+      roleArnTooltip: '可选的通过 STS 代入的 IAM 角色 ARN',
+      externalId: '外部 ID',
+      iamRoleNotice:
+        '留空角色 ARN 将使用环境中的 IAM 角色（EC2 实例配置文件、ECS 任务角色或 EKS Pod Identity / IRSA）。',
     },
   },
   backups: {
@@ -1881,6 +1920,10 @@ export const zh: typeof en = {
       reducedRedundancy: 'Reduced Redundancy',
       glacierIr: 'Glacier Instant Retrieval',
     },
+    s3AuthTypes: {
+      keys: '访问密钥',
+      iamRole: 'IAM 角色',
+    },
     azureBlobAuthMethods: {
       accountKey: '账户密钥',
       connectionString: '连接字符串',
@@ -1953,6 +1996,9 @@ export const zh: typeof en = {
       accessKey: '访问密钥',
       secretKey: '秘密访问密钥',
       endpoint: '端点',
+      authType: '认证方式',
+      roleArn: '角色 ARN',
+      externalId: '外部 ID',
       folderPrefix: '文件夹前缀',
       prefix: '前缀',
       blobPrefix: 'Blob 前缀',
@@ -1981,6 +2027,10 @@ export const zh: typeof en = {
       s3: {
         cloudflareR2Guide: '如何配合 Cloudflare R2 使用？',
         endpointTooltip: '自定义 S3 兼容端点的 URL（可选，使用 AWS S3 时留空）',
+        roleArnTooltip:
+          '可选的通过 STS 代入的 IAM 角色 ARN（例如 arn:aws:iam::123456789012:role/RoleName）',
+        iamRoleNotice:
+          '留空角色 ARN 将使用主机或容器的环境 IAM 凭据：EC2 实例配置文件、ECS 任务角色或 EKS Pod Identity / IRSA。',
         prefixTooltip:
           "所有对象键的可选前缀（例如 'backups/' 或 'my_team/'）。部分 S3 兼容存储可能不支持。创建后无法修改（否则会丢失备份）。",
         useVirtualHostedStyle: '使用虚拟主机式域名',

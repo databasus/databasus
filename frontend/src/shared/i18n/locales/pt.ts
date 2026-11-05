@@ -1144,6 +1144,8 @@ export const pt: typeof en = {
       discord: 'Discord',
       teams: 'Teams',
       mattermost: 'Mattermost',
+      ses: 'Amazon SES',
+      sns: 'Amazon SNS',
     },
     notificationTypes: {
       all: 'Todos',
@@ -1175,6 +1177,8 @@ export const pt: typeof en = {
         discord: 'Notificações no Discord',
         teams: 'Notificações no Teams',
         mattermost: 'Notificações no Mattermost',
+        ses: 'Notificações no Amazon SES',
+        sns: 'Notificações no Amazon SNS',
       },
       hasSendError: 'Com erro de envio',
     },
@@ -1365,6 +1369,41 @@ export const pt: typeof en = {
         copyToken: '2. Copie o token, que aparece uma única vez, logo após a criação',
         addBotToChannel: '3. Adicione o bot à equipe e ao canal',
       },
+    },
+    ses: {
+      fromEmail: 'E-mail do remetente',
+      fromEmailTooltip: 'Um endereço de e-mail ou domínio verificado no Amazon SES',
+      targetEmail: 'E-mail de destino',
+      region: 'Região AWS',
+      authType: 'Tipo de autenticação',
+      authTypes: {
+        iamRole: 'Função IAM',
+        keys: 'Chaves de acesso',
+      },
+      accessKey: 'Chave de acesso',
+      secretKey: 'Chave secreta',
+      roleArn: 'ARN da função',
+      roleArnTooltip: 'ARN da função IAM opcional para assumir via STS',
+      externalId: 'ID externo',
+      iamRoleNotice:
+        'Deixar o ARN da função em branco usará a função IAM do ambiente (perfil de instância EC2, função de tarefa ECS ou EKS Pod Identity / IRSA).',
+    },
+    sns: {
+      topicArn: 'ARN do tópico',
+      topicArnTooltip: 'ARN do tópico Amazon SNS (ex: arn:aws:sns:us-east-1:123456789012:my-topic)',
+      region: 'Região AWS',
+      authType: 'Tipo de autenticação',
+      authTypes: {
+        keys: 'Chaves de acesso',
+        iamRole: 'Função IAM',
+      },
+      accessKey: 'Chave de acesso',
+      secretKey: 'Chave secreta',
+      roleArn: 'ARN da função',
+      roleArnTooltip: 'ARN da função IAM opcional para assumir via STS',
+      externalId: 'ID externo',
+      iamRoleNotice:
+        'Deixar o ARN da função em branco usará a função IAM do ambiente (perfil de instância EC2, função de tarefa ECS ou EKS Pod Identity / IRSA).',
     },
   },
   backups: {
@@ -2004,6 +2043,10 @@ export const pt: typeof en = {
       reducedRedundancy: 'Reduced Redundancy',
       glacierIr: 'Glacier Instant Retrieval',
     },
+    s3AuthTypes: {
+      keys: 'Chaves de acesso',
+      iamRole: 'Função IAM',
+    },
     azureBlobAuthMethods: {
       accountKey: 'Chave da conta',
       connectionString: 'String de conexão',
@@ -2081,6 +2124,9 @@ export const pt: typeof en = {
       accessKey: 'Chave de acesso',
       secretKey: 'Chave secreta',
       endpoint: 'Endpoint',
+      authType: 'Tipo de autenticação',
+      roleArn: 'ARN da função',
+      externalId: 'ID externo',
       folderPrefix: 'Prefixo da pasta',
       prefix: 'Prefixo',
       blobPrefix: 'Prefixo dos blobs',
@@ -2111,6 +2157,10 @@ export const pt: typeof en = {
         cloudflareR2Guide: 'Como usar com o Cloudflare R2?',
         endpointTooltip:
           'URL de um endpoint compatível com S3 (opcional; deixe em branco para o AWS S3)',
+        roleArnTooltip:
+          'ARN da função IAM opcional para assumir via STS (ex: arn:aws:iam::123456789012:role/RoleName)',
+        iamRoleNotice:
+          'Deixar o ARN da função em branco usará as credenciais IAM do ambiente: perfil de instância EC2, função de tarefa ECS ou EKS Pod Identity / IRSA.',
         prefixTooltip:
           "Prefixo opcional para todas as chaves de objeto (por exemplo, 'backups/' ou 'my_team/'). Pode não funcionar com alguns armazenamentos compatíveis com S3. Não pode ser alterado depois da criação (caso contrário, os backups serão perdidos).",
         useVirtualHostedStyle: 'Usar estilo virtual-hosted',

@@ -17,6 +17,8 @@ import {
   validateTeamsNotifier,
   validateTelegramNotifier,
   validateWebhookNotifier,
+  validateSESNotifier,
+  validateSNSNotifier,
 } from '../../../../entity/notifiers';
 import { getNotifierLogoFromType } from '../../../../entity/notifiers/models/getNotifierLogoFromType';
 import { translateApiError } from '../../../../shared/i18n';
@@ -24,7 +26,9 @@ import { ToastHelper } from '../../../../shared/toast';
 import { EditDiscordNotifierComponent } from './notifiers/EditDiscordNotifierComponent';
 import { EditEmailNotifierComponent } from './notifiers/EditEmailNotifierComponent';
 import { EditMattermostNotifierComponent } from './notifiers/EditMattermostNotifierComponent';
+import { EditSESNotifierComponent } from './notifiers/EditSESNotifierComponent';
 import { EditSlackNotifierComponent } from './notifiers/EditSlackNotifierComponent';
+import { EditSNSNotifierComponent } from './notifiers/EditSNSNotifierComponent';
 import { EditTeamsNotifierComponent } from './notifiers/EditTeamsNotifierComponent';
 import { EditTelegramNotifierComponent } from './notifiers/EditTelegramNotifierComponent';
 import { EditWebhookNotifierComponent } from './notifiers/EditWebhookNotifierComponent';
@@ -49,6 +53,8 @@ const SELECTABLE_NOTIFIER_TYPES = [
   NotifierType.DISCORD,
   NotifierType.TEAMS,
   NotifierType.MATTERMOST,
+  NotifierType.SES,
+  NotifierType.SNS,
 ];
 
 export function EditNotifierComponent({
@@ -179,6 +185,31 @@ export function EditNotifierComponent({
       };
     }
 
+    if (type === NotifierType.SES) {
+      notifier.sesNotifier = {
+        fromEmail: '',
+        targetEmail: '',
+        region: 'us-east-1',
+        authType: 'IAM_ROLE',
+        accessKey: '',
+        secretKey: '',
+        roleArn: '',
+        externalId: '',
+      };
+    }
+
+    if (type === NotifierType.SNS) {
+      notifier.snsNotifier = {
+        topicArn: '',
+        region: 'us-east-1',
+        authType: 'KEYS',
+        accessKey: '',
+        secretKey: '',
+        roleArn: '',
+        externalId: '',
+      };
+    }
+
     setNotifier(
       JSON.parse(
         JSON.stringify({
@@ -242,6 +273,14 @@ export function EditNotifierComponent({
 
     if (notifier.notifierType === NotifierType.MATTERMOST && notifier.mattermostNotifier) {
       return validateMattermostNotifier(!notifier.id, notifier.mattermostNotifier);
+    }
+
+    if (notifier.notifierType === NotifierType.SES && notifier.sesNotifier) {
+      return validateSESNotifier(notifier.sesNotifier);
+    }
+
+    if (notifier.notifierType === NotifierType.SNS && notifier.snsNotifier) {
+      return validateSNSNotifier(notifier.snsNotifier);
     }
 
     return false;
@@ -360,6 +399,28 @@ export function EditNotifierComponent({
 
         {notifier?.notifierType === NotifierType.MATTERMOST && (
           <EditMattermostNotifierComponent
+            notifier={notifier}
+            setNotifier={setNotifier}
+            setUnsaved={() => {
+              setIsUnsaved(true);
+              setIsTestNotificationSuccess(false);
+            }}
+          />
+        )}
+
+        {notifier?.notifierType === NotifierType.SES && (
+          <EditSESNotifierComponent
+            notifier={notifier}
+            setNotifier={setNotifier}
+            setUnsaved={() => {
+              setIsUnsaved(true);
+              setIsTestNotificationSuccess(false);
+            }}
+          />
+        )}
+
+        {notifier?.notifierType === NotifierType.SNS && (
+          <EditSNSNotifierComponent
             notifier={notifier}
             setNotifier={setNotifier}
             setUnsaved={() => {

@@ -1158,6 +1158,8 @@ export const fr: typeof en = {
       discord: 'Discord',
       teams: 'Teams',
       mattermost: 'Mattermost',
+      ses: 'Amazon SES',
+      sns: 'Amazon SNS',
     },
     notificationTypes: {
       all: 'Toutes',
@@ -1189,6 +1191,8 @@ export const fr: typeof en = {
         discord: 'Notifications sur Discord',
         teams: 'Notifications sur Teams',
         mattermost: 'Notifications sur Mattermost',
+        ses: 'Notifications sur Amazon SES',
+        sns: 'Notifications sur Amazon SNS',
       },
       hasSendError: "Erreur d'envoi",
     },
@@ -1382,6 +1386,41 @@ export const fr: typeof en = {
         copyToken: '2. Copiez le jeton, affiché une seule fois après la création',
         addBotToChannel: "3. Ajoutez le bot à l'équipe et au canal",
       },
+    },
+    ses: {
+      fromEmail: "E-mail de l'expéditeur",
+      fromEmailTooltip: 'Adresse e-mail ou domaine vérifié dans Amazon SES',
+      targetEmail: 'E-mail de destination',
+      region: 'Région AWS',
+      authType: "Type d'authentification",
+      authTypes: {
+        iamRole: 'Rôle IAM',
+        keys: "Clés d'accès",
+      },
+      accessKey: "Clé d'accès",
+      secretKey: 'Clé secrète',
+      roleArn: 'ARN du rôle',
+      roleArnTooltip: 'ARN du rôle IAM facultatif à assumer via STS',
+      externalId: 'ID externe',
+      iamRoleNotice:
+        'Laisser le rôle ARN vide utilisera le rôle IAM de l’environnement (profil d’instance, rôle de conteneur ou Pod Identity).',
+    },
+    sns: {
+      topicArn: 'ARN du sujet',
+      topicArnTooltip: 'ARN du sujet Amazon SNS (ex. arn:aws:sns:us-east-1:123456789012:my-topic)',
+      region: 'Région AWS',
+      authType: "Type d'authentification",
+      authTypes: {
+        keys: "Clés d'accès",
+        iamRole: 'Rôle IAM',
+      },
+      accessKey: "Clé d'accès",
+      secretKey: 'Clé secrète',
+      roleArn: 'ARN du rôle',
+      roleArnTooltip: 'ARN du rôle IAM facultatif à assumer via STS',
+      externalId: 'ID externe',
+      iamRoleNotice:
+        'Laisser le rôle ARN vide utilisera le rôle IAM de l’environnement (profil d’instance, rôle de conteneur ou Pod Identity).',
     },
   },
   backups: {
@@ -2027,6 +2066,10 @@ export const fr: typeof en = {
       reducedRedundancy: 'Reduced Redundancy',
       glacierIr: 'Glacier Instant Retrieval',
     },
+    s3AuthTypes: {
+      keys: "Clés d'accès",
+      iamRole: 'Rôle IAM',
+    },
     azureBlobAuthMethods: {
       accountKey: 'Clé du compte',
       connectionString: 'Chaîne de connexion',
@@ -2104,6 +2147,9 @@ export const fr: typeof en = {
       accessKey: "Clé d'accès",
       secretKey: 'Clé secrète',
       endpoint: 'Endpoint',
+      authType: "Type d'authentification",
+      roleArn: 'ARN du rôle',
+      externalId: 'ID externe',
       folderPrefix: 'Préfixe de dossier',
       prefix: 'Préfixe',
       blobPrefix: 'Préfixe des blobs',
@@ -2134,6 +2180,9 @@ export const fr: typeof en = {
         cloudflareR2Guide: 'Comment utiliser Cloudflare R2 ?',
         endpointTooltip:
           "URL d'un endpoint compatible S3 personnalisé (facultatif, laissez vide pour AWS S3)",
+        roleArnTooltip: 'ARN du rôle IAM facultatif à assumer via STS',
+        iamRoleNotice:
+          'Laisser le rôle ARN vide utilisera les identifiants IAM de l’environnement hôte ou conteneur.',
         prefixTooltip:
           "Préfixe facultatif pour toutes les clés d'objet (par ex. 'backups/' ou 'my_team/'). Peut ne pas fonctionner avec certains stockages compatibles S3. Non modifiable après la création (sinon les sauvegardes seront perdues).",
         useVirtualHostedStyle: 'Utiliser le style virtual-hosted',

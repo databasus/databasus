@@ -1124,6 +1124,8 @@ export const en = {
       discord: 'Discord',
       teams: 'Teams',
       mattermost: 'Mattermost',
+      ses: 'Amazon SES',
+      sns: 'Amazon SNS',
     },
     notificationTypes: {
       all: 'All',
@@ -1155,6 +1157,8 @@ export const en = {
         discord: 'Notify to Discord',
         teams: 'Notify to Teams',
         mattermost: 'Notify to Mattermost',
+        ses: 'Notify to Amazon SES',
+        sns: 'Notify to Amazon SNS',
       },
       hasSendError: 'Has send error',
     },
@@ -1345,6 +1349,41 @@ export const en = {
         copyToken: '2. Copy the token shown once after creation',
         addBotToChannel: '3. Add the bot to the team and to the channel',
       },
+    },
+    ses: {
+      fromEmail: 'From email',
+      fromEmailTooltip: 'A verified email address or domain in Amazon SES',
+      targetEmail: 'Target email',
+      region: 'AWS Region',
+      authType: 'Auth type',
+      authTypes: {
+        iamRole: 'IAM Role',
+        keys: 'Access Keys',
+      },
+      accessKey: 'Access Key',
+      secretKey: 'Secret Key',
+      roleArn: 'Role ARN',
+      roleArnTooltip: 'Optional IAM Role ARN to assume via STS',
+      externalId: 'External ID',
+      iamRoleNotice:
+        'Leaving Role ARN blank uses the ambient IAM role from EC2 instance profile, ECS task role, or EKS Pod Identity / IRSA.',
+    },
+    sns: {
+      topicArn: 'Topic ARN',
+      topicArnTooltip: 'Amazon SNS Topic ARN (e.g. arn:aws:sns:us-east-1:123456789012:my-topic)',
+      region: 'AWS Region',
+      authType: 'Auth type',
+      authTypes: {
+        keys: 'Access Keys',
+        iamRole: 'IAM Role',
+      },
+      accessKey: 'Access Key',
+      secretKey: 'Secret Key',
+      roleArn: 'Role ARN',
+      roleArnTooltip: 'Optional IAM Role ARN to assume via STS',
+      externalId: 'External ID',
+      iamRoleNotice:
+        'Leaving Role ARN blank uses the ambient IAM role from EC2 instance profile, ECS task role, or EKS Pod Identity / IRSA.',
     },
   },
   backups: {
@@ -1968,6 +2007,10 @@ export const en = {
       reducedRedundancy: 'Reduced Redundancy',
       glacierIr: 'Glacier Instant Retrieval',
     },
+    s3AuthTypes: {
+      keys: 'Access Keys',
+      iamRole: 'IAM Role',
+    },
     azureBlobAuthMethods: {
       accountKey: 'Account key',
       connectionString: 'Connection string',
@@ -2044,6 +2087,9 @@ export const en = {
       accessKey: 'Access key',
       secretKey: 'Secret key',
       endpoint: 'Endpoint',
+      authType: 'Auth type',
+      roleArn: 'Role ARN',
+      externalId: 'External ID',
       folderPrefix: 'Folder prefix',
       prefix: 'Prefix',
       blobPrefix: 'Blob prefix',
@@ -2073,6 +2119,10 @@ export const en = {
       s3: {
         cloudflareR2Guide: 'How to use with Cloudflare R2?',
         endpointTooltip: 'Custom S3-compatible endpoint URL (optional, leave empty for AWS S3)',
+        roleArnTooltip:
+          'Optional IAM Role ARN to assume via STS (e.g. arn:aws:iam::123456789012:role/RoleName)',
+        iamRoleNotice:
+          'Leaving Role ARN blank will use the host or container ambient IAM credentials: EC2 instance profile, ECS task role, or EKS Pod Identity / IRSA.',
         prefixTooltip:
           "Optional prefix for all object keys (e.g., 'backups/' or 'my_team/'). May not work with some S3-compatible storages. Cannot be changed after creation (otherwise backups will be lost).",
         useVirtualHostedStyle: 'Use virtual-hosted style',

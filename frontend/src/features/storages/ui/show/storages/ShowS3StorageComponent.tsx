@@ -30,14 +30,32 @@ export function ShowS3StorageComponent({ storage }: Props) {
       </div>
 
       <div className="mb-1 flex items-center">
-        <div className="min-w-[110px] pr-2">{t('storages.fields.accessKey')}</div>
-        {'*************'}
+        <div className="min-w-[110px] pr-2">{t('storages.fields.authType')}</div>
+        {storage?.s3Storage?.authType === 'IAM_ROLE'
+          ? t('storages.s3AuthTypes.iamRole')
+          : t('storages.s3AuthTypes.keys')}
       </div>
 
-      <div className="mb-1 flex items-center">
-        <div className="min-w-[110px] pr-2">{t('storages.fields.secretKey')}</div>
-        {'*************'}
-      </div>
+      {storage?.s3Storage?.authType === 'IAM_ROLE' ? (
+        storage?.s3Storage?.roleArn ? (
+          <div className="mb-1 flex items-center">
+            <div className="min-w-[110px] pr-2">{t('storages.fields.roleArn')}</div>
+            {storage.s3Storage.roleArn}
+          </div>
+        ) : null
+      ) : (
+        <>
+          <div className="mb-1 flex items-center">
+            <div className="min-w-[110px] pr-2">{t('storages.fields.accessKey')}</div>
+            {'*************'}
+          </div>
+
+          <div className="mb-1 flex items-center">
+            <div className="min-w-[110px] pr-2">{t('storages.fields.secretKey')}</div>
+            {'*************'}
+          </div>
+        </>
+      )}
 
       <div className="mb-1 flex items-center">
         <div className="min-w-[110px] pr-2">{t('storages.fields.endpoint')}</div>

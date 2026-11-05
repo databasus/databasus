@@ -9,7 +9,9 @@ import { getNotifierLogoFromType } from '../../../../entity/notifiers/models/get
 import { ShowDiscordNotifierComponent } from './notifier/ShowDiscordNotifierComponent';
 import { ShowEmailNotifierComponent } from './notifier/ShowEmailNotifierComponent';
 import { ShowMattermostNotifierComponent } from './notifier/ShowMattermostNotifierComponent';
+import { ShowSESNotifierComponent } from './notifier/ShowSESNotifierComponent';
 import { ShowSlackNotifierComponent } from './notifier/ShowSlackNotifierComponent';
+import { ShowSNSNotifierComponent } from './notifier/ShowSNSNotifierComponent';
 import { ShowTeamsNotifierComponent } from './notifier/ShowTeamsNotifierComponent';
 import { ShowTelegramNotifierComponent } from './notifier/ShowTelegramNotifierComponent';
 import { ShowWebhookNotifierComponent } from './notifier/ShowWebhookNotifierComponent';
@@ -57,6 +59,14 @@ export function ShowNotifierComponent({ notifier }: Props) {
 
         {notifier?.notifierType === NotifierType.MATTERMOST && (
           <ShowMattermostNotifierComponent notifier={notifier} />
+        )}
+
+        {notifier?.notifierType === NotifierType.SES && (
+          <ShowSESNotifierComponent notifier={notifier} />
+        )}
+
+        {notifier?.notifierType === NotifierType.SNS && (
+          <ShowSNSNotifierComponent notifier={notifier} />
         )}
       </div>
     </div>

@@ -10,4 +10,6 @@ const (
 	NotifierTypeDiscord    NotifierType = "DISCORD"
 	NotifierTypeTeams      NotifierType = "TEAMS"
 	NotifierTypeMattermost NotifierType = "MATTERMOST"
+	NotifierTypeSES        NotifierType = "SES"
+	NotifierTypeSNS        NotifierType = "SNS"
 )

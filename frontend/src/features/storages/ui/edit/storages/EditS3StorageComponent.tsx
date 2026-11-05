@@ -1,5 +1,5 @@
 import { DownOutlined, InfoCircleOutlined, UpOutlined } from '@ant-design/icons';
-import { Checkbox, Input, Select, Tooltip } from 'antd';
+import { Checkbox, Input, Radio, Select, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -105,9 +105,9 @@ export function EditS3StorageComponent({
       </div>
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.accessKey')}</div>
-        <Input.Password
-          value={storage?.s3Storage?.s3AccessKey || ''}
+        <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.authType')}</div>
+        <Radio.Group
+          value={storage?.s3Storage?.authType || 'KEYS'}
           onChange={(e) => {
             if (!storage?.s3Storage) return;
 
@@ -115,48 +115,139 @@ export function EditS3StorageComponent({
               ...storage,
               s3Storage: {
                 ...storage.s3Storage,
-                s3AccessKey: e.target.value.trim(),
+                authType: e.target.value,
               },
             });
             setUnsaved();
           }}
           size="small"
-          className="w-full max-w-[250px]"
-          // eslint-disable-next-line i18next/no-literal-string -- AWS example access key
-          placeholder="AKIAIOSFODNN7EXAMPLE"
-          autoComplete="off"
-          data-1p-ignore
-          data-lpignore="true"
-          data-form-type="other"
-        />
+        >
+          <Radio.Button value="KEYS">{t('storages.s3AuthTypes.keys')}</Radio.Button>
+          <Radio.Button value="IAM_ROLE">{t('storages.s3AuthTypes.iamRole')}</Radio.Button>
+        </Radio.Group>
       </div>
 
-      <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.secretKey')}</div>
-        <Input.Password
-          value={storage?.s3Storage?.s3SecretKey || ''}
-          onChange={(e) => {
-            if (!storage?.s3Storage) return;
+      {(storage?.s3Storage?.authType || 'KEYS') === 'KEYS' ? (
+        <>
+          <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
+            <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">
+              {t('storages.fields.accessKey')}
+            </div>
+            <Input.Password
+              value={storage?.s3Storage?.s3AccessKey || ''}
+              onChange={(e) => {
+                if (!storage?.s3Storage) return;
 
-            setStorage({
-              ...storage,
-              s3Storage: {
-                ...storage.s3Storage,
-                s3SecretKey: e.target.value.trim(),
-              },
-            });
-            setUnsaved();
-          }}
-          size="small"
-          autoComplete="off"
-          data-1p-ignore
-          data-lpignore="true"
-          data-form-type="other"
-          className="w-full max-w-[250px]"
-          // eslint-disable-next-line i18next/no-literal-string -- AWS example secret key
-          placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-        />
-      </div>
+                setStorage({
+                  ...storage,
+                  s3Storage: {
+                    ...storage.s3Storage,
+                    s3AccessKey: e.target.value.trim(),
+                  },
+                });
+                setUnsaved();
+              }}
+              size="small"
+              className="w-full max-w-[250px]"
+              // eslint-disable-next-line i18next/no-literal-string -- AWS example access key
+              placeholder="AKIAIOSFODNN7EXAMPLE"
+              autoComplete="off"
+              data-1p-ignore
+              data-lpignore="true"
+              data-form-type="other"
+            />
+          </div>
+
+          <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
+            <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">
+              {t('storages.fields.secretKey')}
+            </div>
+            <Input.Password
+              value={storage?.s3Storage?.s3SecretKey || ''}
+              onChange={(e) => {
+                if (!storage?.s3Storage) return;
+
+                setStorage({
+                  ...storage,
+                  s3Storage: {
+                    ...storage.s3Storage,
+                    s3SecretKey: e.target.value.trim(),
+                  },
+                });
+                setUnsaved();
+              }}
+              size="small"
+              autoComplete="off"
+              data-1p-ignore
+              data-lpignore="true"
+              data-form-type="other"
+              className="w-full max-w-[250px]"
+              // eslint-disable-next-line i18next/no-literal-string -- AWS example secret key
+              placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+            />
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
+            <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.roleArn')}</div>
+            <div className="flex items-center">
+              <Input
+                value={storage?.s3Storage?.roleArn || ''}
+                onChange={(e) => {
+                  if (!storage?.s3Storage) return;
+
+                  setStorage({
+                    ...storage,
+                    s3Storage: {
+                      ...storage.s3Storage,
+                      roleArn: e.target.value.trim(),
+                    },
+                  });
+                  setUnsaved();
+                }}
+                size="small"
+                className="w-full max-w-[250px]"
+                // eslint-disable-next-line i18next/no-literal-string -- AWS example role ARN
+                placeholder="arn:aws:iam::123456789012:role/RoleName"
+              />
+              <Tooltip className="cursor-pointer" title={t('storages.edit.s3.roleArnTooltip')}>
+                <InfoCircleOutlined className="ml-2" style={{ color: 'gray' }} />
+              </Tooltip>
+            </div>
+          </div>
+
+          <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
+            <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">
+              {t('storages.fields.externalId')}
+            </div>
+            <Input.Password
+              value={storage?.s3Storage?.externalId || ''}
+              onChange={(e) => {
+                if (!storage?.s3Storage) return;
+
+                setStorage({
+                  ...storage,
+                  s3Storage: {
+                    ...storage.s3Storage,
+                    externalId: e.target.value.trim(),
+                  },
+                });
+                setUnsaved();
+              }}
+              size="small"
+              className="w-full max-w-[250px]"
+              placeholder={t('storages.edit.optionalPlaceholder', {
+                // eslint-disable-next-line i18next/no-literal-string -- example external ID
+                example: 'my-external-id',
+              })}
+              autoComplete="off"
+            />
+          </div>
+
+          <div className="mb-2 text-xs text-gray-500">{t('storages.edit.s3.iamRoleNotice')}</div>
+        </>
+      )}
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.endpoint')}</div>

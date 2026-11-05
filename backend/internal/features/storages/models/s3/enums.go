@@ -1,5 +1,12 @@
 package s3_storage
 
+type S3AuthType string
+
+const (
+	S3AuthTypeKeys    S3AuthType = "KEYS"
+	S3AuthTypeIAMRole S3AuthType = "IAM_ROLE"
+)
+
 type S3StorageClass string
 
 const (

@@ -9,4 +9,6 @@ export const NOTIFIER_TYPE_LABEL_KEYS: Record<NotifierType, TranslationKey> = {
   [NotifierType.DISCORD]: 'notifiers.types.discord',
   [NotifierType.TEAMS]: 'notifiers.types.teams',
   [NotifierType.MATTERMOST]: 'notifiers.types.mattermost',
+  [NotifierType.SES]: 'notifiers.types.ses',
+  [NotifierType.SNS]: 'notifiers.types.sns',
 };
