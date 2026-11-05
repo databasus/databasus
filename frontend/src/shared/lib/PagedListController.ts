@@ -26,6 +26,52 @@ export const createInitialPagedListState = <
   firstLoadError: undefined,
 });
 
+const isPageValueEqual = ({
+  currentValue,
+  refreshedValue,
+}: {
+  currentValue: unknown;
+  refreshedValue: unknown;
+}): boolean => {
+  if (currentValue === refreshedValue) return true;
+
+  if (
+    currentValue === null ||
+    refreshedValue === null ||
+    typeof currentValue !== 'object' ||
+    typeof refreshedValue !== 'object'
+  ) {
+    return false;
+  }
+
+  if (Array.isArray(currentValue) || Array.isArray(refreshedValue)) {
+    return (
+      Array.isArray(currentValue) &&
+      Array.isArray(refreshedValue) &&
+      currentValue.length === refreshedValue.length &&
+      currentValue.every((value, index) =>
+        isPageValueEqual({ currentValue: value, refreshedValue: refreshedValue[index] }),
+      )
+    );
+  }
+
+  const currentFields = currentValue as Record<string, unknown>;
+  const refreshedFields = refreshedValue as Record<string, unknown>;
+  const fieldNames = Object.keys(currentFields);
+
+  return (
+    fieldNames.length === Object.keys(refreshedFields).length &&
+    fieldNames.every(
+      (fieldName) =>
+        Object.prototype.hasOwnProperty.call(refreshedFields, fieldName) &&
+        isPageValueEqual({
+          currentValue: currentFields[fieldName],
+          refreshedValue: refreshedFields[fieldName],
+        }),
+    )
+  );
+};
+
 export class PagedListController<TItem, TCursor, TMetadata = undefined> {
   private state = createInitialPagedListState<TItem, TCursor, TMetadata>();
 
@@ -89,12 +135,19 @@ export class PagedListController<TItem, TCursor, TMetadata = undefined> {
       const isPendingCursorInvalid =
         list === firstPage &&
         (firstPage.nextCursor === undefined || firstPage.nextCursor !== this.state.list.nextCursor);
-      if (isPendingCursorInvalid) {
-        this.nextPageRequest = undefined;
-        this.updateState({ list, isLoadingMore: false });
-      } else {
-        this.updateState({ list });
-      }
+      if (isPendingCursorInvalid) this.nextPageRequest = undefined;
+
+      const isListUnchanged =
+        isPageValueEqual({ currentValue: this.state.list.items, refreshedValue: list.items }) &&
+        isPageValueEqual({
+          currentValue: this.state.list.nextCursor,
+          refreshedValue: list.nextCursor,
+        }) &&
+        isPageValueEqual({ currentValue: this.state.list.metadata, refreshedValue: list.metadata });
+      const isLoadingMore = isPendingCursorInvalid ? false : this.state.isLoadingMore;
+      if (isListUnchanged && isLoadingMore === this.state.isLoadingMore) return;
+
+      this.updateState({ list: isListUnchanged ? this.state.list : list, isLoadingMore });
     } catch {
       // The next refresh tries again, and the shown rows stay until one succeeds.
     } finally {

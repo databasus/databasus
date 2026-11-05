@@ -2,6 +2,9 @@ import { useEffect } from 'react';
 
 import { type PagedListParams, usePagedList } from './usePagedList';
 
+// eslint-disable-next-line i18next/no-literal-string -- DOM event name
+const VISIBILITY_CHANGE_EVENT = 'visibilitychange';
+
 interface Params<TItem, TCursor, TMetadata = undefined> extends PagedListParams<
   TItem,
   TCursor,
@@ -10,8 +13,6 @@ interface Params<TItem, TCursor, TMetadata = undefined> extends PagedListParams<
   refreshIntervalMs: number;
 }
 
-// Pages a newest-first list as the user scrolls and keeps it current: each tick
-// re-requests only the first page and merges it into the loaded rows.
 export function usePolledPagedList<TItem, TCursor, TMetadata = undefined>({
   refreshIntervalMs,
   ...pagedListParams
@@ -21,9 +22,17 @@ export function usePolledPagedList<TItem, TCursor, TMetadata = undefined>({
   const { refreshFirstPage } = pagedList;
 
   useEffect(() => {
-    const intervalId = setInterval(() => void refreshFirstPage(), refreshIntervalMs);
+    const refreshIfVisible = () => {
+      if (document.visibilityState !== 'hidden') void refreshFirstPage();
+    };
 
-    return () => clearInterval(intervalId);
+    const intervalId = setInterval(refreshIfVisible, refreshIntervalMs);
+    document.addEventListener(VISIBILITY_CHANGE_EVENT, refreshIfVisible);
+
+    return () => {
+      clearInterval(intervalId);
+      document.removeEventListener(VISIBILITY_CHANGE_EVENT, refreshIfVisible);
+    };
   }, [refreshFirstPage, refreshIntervalMs]);
 
   return pagedList;

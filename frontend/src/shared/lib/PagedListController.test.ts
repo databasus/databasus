@@ -25,18 +25,234 @@ const createDeferredPage = () => {
 
 const createController = (fetchPage: (cursor: string | undefined) => Promise<RowPage>) => {
   const onError = vi.fn();
+  const onStateChange = vi.fn();
   const controller = new PagedListController<Row, string>(
     { fetchPage, getItemKey: (row) => row.id, onError },
-    () => {},
+    onStateChange,
   );
 
-  return { controller, onError };
+  return { controller, onError, onStateChange };
 };
 
 const getLoadedIds = (controller: PagedListController<Row, string>) =>
   controller.getState().list.items.map((row) => row.id);
 
 describe('PagedListController', () => {
+  it.each([
+    {
+      name: 'a paged first page',
+      loadedPages: [{ items: rows('a', 'b'), nextCursor: 'after-b' }],
+      refreshedPage: { items: rows('a', 'b'), nextCursor: 'after-b' },
+    },
+    {
+      name: 'a complete first page',
+      loadedPages: [{ items: rows('a', 'b') }],
+      refreshedPage: { items: rows('a', 'b') },
+    },
+    {
+      name: 'an empty complete list',
+      loadedPages: [{ items: [] }],
+      refreshedPage: { items: [] },
+    },
+    {
+      name: 'a preserved loaded tail',
+      loadedPages: [
+        { items: rows('a', 'b'), nextCursor: 'after-b' },
+        { items: rows('c', 'd'), nextCursor: 'after-d' },
+      ],
+      refreshedPage: { items: rows('a', 'b'), nextCursor: 'after-b' },
+    },
+  ])(
+    'keeps the list reference when the refreshed page is unchanged with $name',
+    async ({ loadedPages, refreshedPage }) => {
+      const fetchPage = vi.fn();
+      for (const page of loadedPages) fetchPage.mockResolvedValueOnce(page);
+      fetchPage.mockResolvedValueOnce(refreshedPage);
+      const { controller, onStateChange } = createController(fetchPage);
+
+      await controller.reload();
+      for (let pageNumber = 1; pageNumber < loadedPages.length; pageNumber += 1) {
+        await controller.loadNextPage();
+      }
+      const loadedState = controller.getState();
+      onStateChange.mockClear();
+
+      await controller.refreshFirstPage();
+
+      expect(controller.getState().list).toBe(loadedState.list);
+      expect(controller.getState()).toBe(loadedState);
+      expect(onStateChange).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    {
+      name: 'a row changes status',
+      firstPage: { items: [{ id: 'a', status: 'running' }] },
+      refreshedPage: { items: [{ id: 'a', status: 'completed' }] },
+    },
+    {
+      name: 'rows change order',
+      firstPage: { items: rows('a', 'b') },
+      refreshedPage: { items: rows('b', 'a') },
+    },
+    {
+      name: 'a nested value changes',
+      firstPage: { items: [{ id: 'a', storage: { name: 'Local', isAvailable: false } }] },
+      refreshedPage: { items: [{ id: 'a', storage: { name: 'Local', isAvailable: true } }] },
+    },
+    {
+      name: 'a nested array changes',
+      firstPage: { items: [{ id: 'a', logs: ['Starting'] }] },
+      refreshedPage: { items: [{ id: 'a', logs: ['Starting', 'Finished'] }] },
+    },
+    {
+      name: 'a null value is replaced',
+      firstPage: { items: [{ id: 'a', error: null }] },
+      refreshedPage: { items: [{ id: 'a', error: { message: 'Failed' } }] },
+    },
+    {
+      name: 'the effective continuation cursor changes',
+      firstPage: { items: rows('a', 'b'), nextCursor: 'first-cursor' },
+      refreshedPage: { items: rows('a', 'b'), nextCursor: 'new-cursor' },
+    },
+  ])('publishes the refreshed list when $name', async ({ firstPage, refreshedPage }) => {
+    const fetchPage = vi.fn().mockResolvedValueOnce(firstPage).mockResolvedValueOnce(refreshedPage);
+    const { controller, onStateChange } = createController(fetchPage);
+
+    await controller.reload();
+    const loadedState = controller.getState();
+    onStateChange.mockClear();
+
+    await controller.refreshFirstPage();
+
+    expect(controller.getState().list).toEqual(refreshedPage);
+    expect(controller.getState()).not.toBe(loadedState);
+    expect(onStateChange).toHaveBeenCalledOnce();
+  });
+
+  it('keeps the list reference when object property order changes', async () => {
+    const firstPage = {
+      items: [{ id: 'a', status: 'completed', storage: { name: 'Local', errors: [] } }],
+    };
+    const refreshedPage = {
+      items: [{ storage: { errors: [], name: 'Local' }, status: 'completed', id: 'a' }],
+      nextCursor: undefined,
+      metadata: undefined,
+    };
+    const fetchPage = vi.fn().mockResolvedValueOnce(firstPage).mockResolvedValueOnce(refreshedPage);
+    const { controller, onStateChange } = createController(fetchPage);
+
+    await controller.reload();
+    const loadedState = controller.getState();
+    onStateChange.mockClear();
+
+    await controller.refreshFirstPage();
+
+    expect(controller.getState()).toBe(loadedState);
+    expect(onStateChange).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      name: 'retains list state when total usage is unchanged',
+      refreshedUsageMb: 100,
+      shouldPublish: false,
+    },
+    {
+      name: 'publishes the list when only total usage changes',
+      refreshedUsageMb: 200,
+      shouldPublish: true,
+    },
+  ])('$name', async ({ refreshedUsageMb, shouldPublish }) => {
+    const fetchPage = vi
+      .fn()
+      .mockResolvedValueOnce({ items: rows('a'), metadata: 100 })
+      .mockResolvedValueOnce({ items: rows('a'), metadata: refreshedUsageMb });
+    const onStateChange = vi.fn();
+    const controller = new PagedListController<Row, string, number>(
+      { fetchPage, getItemKey: (row) => row.id, onError: vi.fn() },
+      onStateChange,
+    );
+
+    await controller.reload();
+    const loadedState = controller.getState();
+    onStateChange.mockClear();
+
+    await controller.refreshFirstPage();
+
+    expect(controller.getState().list.metadata).toBe(refreshedUsageMb);
+    expect(onStateChange).toHaveBeenCalledTimes(shouldPublish ? 1 : 0);
+
+    if (!shouldPublish) expect(controller.getState()).toBe(loadedState);
+  });
+
+  it('preserves the next page and loading state when an unchanged refresh overlaps it', async () => {
+    const nextPage = createDeferredPage();
+    const fetchPage = vi
+      .fn()
+      .mockResolvedValueOnce({ items: rows('a', 'b'), nextCursor: 'after-b' })
+      .mockReturnValueOnce(nextPage.promise)
+      .mockResolvedValueOnce({ items: rows('a', 'b'), nextCursor: 'after-b' });
+    const { controller, onStateChange } = createController(fetchPage);
+
+    await controller.reload();
+    const pendingNext = controller.loadNextPage();
+    const loadingState = controller.getState();
+    onStateChange.mockClear();
+
+    await controller.refreshFirstPage();
+
+    expect(controller.getState()).toBe(loadingState);
+    expect(controller.getState().isLoadingMore).toBe(true);
+    expect(onStateChange).not.toHaveBeenCalled();
+
+    await controller.loadNextPage();
+
+    expect(fetchPage).toHaveBeenCalledTimes(3);
+
+    nextPage.resolvePage({ items: rows('c') });
+    await pendingNext;
+
+    expect(getLoadedIds(controller)).toEqual(['a', 'b', 'c']);
+    expect(controller.getState().isLoadingMore).toBe(false);
+  });
+
+  it.each([
+    { name: 'the same rows become complete', refreshedPage: { items: rows('a', 'b') } },
+    { name: 'the list becomes empty', refreshedPage: { items: [] } },
+    {
+      name: 'the effective cursor changes',
+      refreshedPage: { items: rows('a', 'b'), nextCursor: 'new-cursor' },
+    },
+  ])('invalidates a pending next page when $name', async ({ refreshedPage }) => {
+    const nextPage = createDeferredPage();
+    const fetchPage = vi
+      .fn()
+      .mockResolvedValueOnce({ items: rows('a', 'b'), nextCursor: 'after-b' })
+      .mockReturnValueOnce(nextPage.promise)
+      .mockResolvedValueOnce(refreshedPage);
+    const { controller, onStateChange } = createController(fetchPage);
+
+    await controller.reload();
+    const pendingNext = controller.loadNextPage();
+    onStateChange.mockClear();
+
+    await controller.refreshFirstPage();
+
+    expect(controller.getState().list).toEqual(refreshedPage);
+    expect(controller.getState().isLoadingMore).toBe(false);
+    expect(onStateChange).toHaveBeenCalledOnce();
+
+    const refreshedState = controller.getState();
+
+    nextPage.resolvePage({ items: rows('stale') });
+    await pendingNext;
+
+    expect(controller.getState()).toBe(refreshedState);
+    expect(onStateChange).toHaveBeenCalledOnce();
+  });
+
   it('loads the first page on reload', async () => {
     const fetchPage = vi.fn().mockResolvedValue({ items: rows('a', 'b'), nextCursor: 'after-b' });
     const { controller } = createController(fetchPage);
@@ -486,6 +702,35 @@ describe('PagedListController', () => {
       expect(controller.getState().list.nextCursor).toBeUndefined();
     },
   );
+
+  it.each(['success', 'error'])(
+    'publishes no state or errors when a pending refresh returns %s after deactivation',
+    async (outcome) => {
+      const refreshPage = createDeferredPage();
+      const fetchPage = vi
+        .fn()
+        .mockResolvedValueOnce({ items: rows('current'), nextCursor: 'after-current' })
+        .mockReturnValueOnce(refreshPage.promise);
+      const { controller, onError, onStateChange } = createController(fetchPage);
+
+      await controller.reload();
+
+      const refresh = controller.refreshFirstPage();
+      controller.deactivate();
+      const deactivatedState = controller.getState();
+      onStateChange.mockClear();
+
+      if (outcome === 'success') refreshPage.resolvePage({ items: rows('late') });
+      else refreshPage.rejectPage(new Error('late refresh'));
+
+      await refresh;
+
+      expect(controller.getState()).toBe(deactivatedState);
+      expect(onStateChange).not.toHaveBeenCalled();
+      expect(onError).not.toHaveBeenCalled();
+    },
+  );
+
   it.each(['success', 'error'])(
     'publishes no state or errors after deactivation with a pending %s',
     async (outcome) => {
