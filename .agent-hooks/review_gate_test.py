@@ -1618,9 +1618,12 @@ class ImplementationGateReviewTest(ShortReplyAssertions, SummaryAssertions, unit
         self.assertIn("A bug fix has a test that reproduces the bug and fails on the code before the fix.", tests_role)
         self.assertIn("waits for a condition up to a limit instead of a fixed pause", tests_role)
         self.assertIn(
-            "A change that adds or changes tests in a backend package or a verification agent package outside the end-to-end ones, or the frontend names `mise run test`",
+            "Select verification commands according to the scope rule in `AGENTS.md` and `docs/testing.md#checking-work`.",
             tests_role,
         )
+        self.assertIn("For a small, localized change, accept targeted package or screen tests named in the task's own verification", tests_role)
+        self.assertIn("Do not require `mise run test` solely because ordinary tests were added or changed.", tests_role)
+        self.assertIn("When the scope rule requires `mise run test`, the change names it in its `## Change verification` section.", tests_role)
         self.assertIn(
             "A task that changes tests in `backend/internal/agent/e2e`, `backend/internal/modules/backups/e2e` or `backend/e2e/upgrade`, the verification agent's code or the `Dockerfile` names the command that repeats those tests in its own verification.",
             tests_role,
@@ -2299,10 +2302,12 @@ class ProposalGateReviewTest(ShortReplyAssertions, SummaryAssertions, unittest.T
         tasks_role = prompt[prompt.index("### Role: tasks") : prompt.index("### Role: repeat review")]
 
         self.assertIn(
-            "tasks add or change tests in a backend package or a verification agent package outside the end-to-end ones, or the frontend has a `## Change verification` section",
+            "Select verification commands according to the scope rule in `AGENTS.md` and `docs/testing.md#checking-work`.",
             tasks_role,
         )
-        self.assertIn("section that names `mise run test`, which runs the tests of every such package", tasks_role)
+        self.assertIn("For a small, localized change, accept targeted package or screen tests named in the task's own verification", tasks_role)
+        self.assertIn("Do not require `mise run test` solely because ordinary tests were added or changed.", tasks_role)
+        self.assertIn("When the scope rule requires `mise run test`, the change has a `## Change verification` section that names it.", tasks_role)
         self.assertIn("Running `mise run test` in a task or in the section is never a finding.", tasks_role)
         self.assertIn("a section that leaves out the command it owes, is a `tasks` finding that asks for it", tasks_role)
         self.assertIn(

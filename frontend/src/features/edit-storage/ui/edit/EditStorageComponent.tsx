@@ -108,7 +108,7 @@ export function EditStorageComponent({
   return (
     <section
       aria-label={t('storages.config.settingsTitle')}
-      className="min-w-0 [&_.ant-btn]:!h-auto [&_.ant-btn]:min-h-6 [&_.ant-btn]:leading-normal [&_.ant-btn]:!whitespace-normal"
+      className="min-w-0 [&_.ant-btn]:!h-auto [&_.ant-btn]:min-h-8 [&_.ant-btn]:leading-normal [&_.ant-btn]:!whitespace-normal"
     >
       {noticeHolder}
       {errorText && <Alert type="error" showIcon message={errorText} />}
@@ -232,9 +232,8 @@ export function EditStorageComponent({
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        {!isTestConnectionSuccess ? (
+        {!isTestConnectionSuccess && (
           <Button
-            className="mr-1"
             disabled={isTestingConnection || !isAllDataFilled}
             loading={isTestingConnection}
             type="primary"
@@ -243,13 +242,10 @@ export function EditStorageComponent({
           >
             {t('storages.actions.testConnection')}
           </Button>
-        ) : (
-          <div />
         )}
 
-        {isUnsaved && isTestConnectionSuccess ? (
+        {isUnsaved && isTestConnectionSuccess && (
           <Button
-            className="mr-1"
             disabled={isSaving || !isAllDataFilled}
             loading={isSaving}
             type="primary"
@@ -258,23 +254,12 @@ export function EditStorageComponent({
           >
             {t('common.actions.save')}
           </Button>
-        ) : (
-          <div />
         )}
 
-        {isShowClose ? (
-          <Button
-            className="mr-1"
-            disabled={isSaving}
-            type="primary"
-            danger
-            ghost
-            onClick={onClose}
-          >
+        {isShowClose && (
+          <Button disabled={isSaving} type="primary" danger ghost onClick={onClose}>
             {t('common.actions.cancel')}
           </Button>
-        ) : (
-          <div />
         )}
       </div>
     </section>

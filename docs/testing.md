@@ -2,7 +2,7 @@
 
 A backup is worth something only if it restores. Proving that takes real database servers. Databasus tests therefore run the real application against servers in containers and check what a caller observes. Most tests create their data through the HTTP API, the same way a user does.
 
-To check your work, run `mise run test`. To repeat one failing test while fixing it, call its runner directly with a command from [Commands](#commands).
+Choose checks for the scope of the change as [the project rules](../AGENTS.md#tests) require. [Checking work](#checking-work) describes the selection. To repeat one failing test while fixing it, call its runner directly with a command from [Commands](#commands).
 
 This document describes the kinds of tests, what they share and how runs are organized, in that order. The [testing skill](../.agents/skills/testing/SKILL.md) explains how to write one test, and [architecture.md](architecture.md) describes the code the tests rely on.
 
@@ -127,11 +127,11 @@ These tests exercise the application image through its screens, without importin
 
 ## Checking work
 
-`mise run test` is the one routine local test command, for developers and agents alike. A change that adds or changes tests outside the end-to-end packages, or the code they cover, owes this run, and the OpenSpec change verification of such a change names it. A change that edits only documentation owes no run.
+Follow [the project rules](../AGENTS.md#tests) when deciding whether a change needs `mise run test`. For a localized functional change, run the affected package or screen tests directly. For a presentation change, run the frontend checks and verify the affected layout in a browser. Documentation-only changes need no test run. OpenSpec change verification names the commands selected for the change.
 
 `mise run test-full` runs every test that needs only the usual Docker development environment. It includes the routine run, the end-to-end packages of the verification agent and of backups, the upgrade test, frontend browser UI, the browser end-to-end suite and its unit, lifecycle and interruption checks, and the script and review hook tests. Podman and filesystem tests remain separate because they require additional host setup. An agent [does not start the full command on its own](../AGENTS.md#tests).
 
-`mise run test` leaves those suites out, so an agent also runs by hand the specific ones its change touches:
+Whether checking a change with targeted tests or with `mise run test`, an agent also runs by hand the specific long or end-to-end suites its change touches:
 
 - A change to scenarios in `e2e/browser/scenarios` or to the `Dockerfile` runs `mise run e2e:browser`, and the change verification names a scenario change's command.
 - A change to tests in `backend/internal/agent/e2e` or to the verification agent's code runs `mise run agent:e2e`, or the Go test command for the affected tests.
@@ -215,7 +215,7 @@ To repeat one failing test, call its Go or frontend runner directly. This takes 
 
 | What                                          | Command                                                                                              |
 | --------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Everything routine                            | `mise run test`                                                                                      |
+| Backend and frontend test suites              | `mise run test`                                                                                      |
 | All tests for the usual Docker development environment | `mise run test-full`                                                                                      |
 | One backend test, in `backend/`, see below    | `go test -count=1 -run 'TestName/scenario text' ./internal/modules/<module>/...`                     |
 | Verification agent unit tests                 | `mise run agent:test`                                                                                |

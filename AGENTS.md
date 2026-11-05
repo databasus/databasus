@@ -81,7 +81,9 @@ Several agents may work on this repo at once, in different worktrees, sharing on
 
 ## Tests
 
-An agent never runs `mise run test-full` unless the user directly asks for that run. At the end of implementing a change it runs `mise run test`, and by hand the specific long or end-to-end tests the change touches, as [`docs/testing.md`](docs/testing.md#checking-work) says.
+Choose checks in proportion to the change. Run `mise run test` for substantial features or broad changes to application behavior, or when the user explicitly requests it. Do not run it automatically for small, localized fixes such as button spacing, styling, copy edits or an isolated bug fix; run only the checks relevant to the affected code and behavior. Documentation-only changes need no test run. [`docs/testing.md`](docs/testing.md#checking-work) describes how to select the relevant checks, including long and end-to-end tests.
+
+An agent never runs `mise run test-full` unless the user directly asks for that run.
 
 When you write, change, run or review tests, load the [testing skill](.agents/skills/testing/SKILL.md) first. It says how to write a test; [`docs/testing.md`](docs/testing.md) says which kinds of tests exist and how they are isolated.
 
