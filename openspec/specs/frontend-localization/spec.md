@@ -8,7 +8,7 @@ Lets a user read the Databasus interface in their own language, and gives the pr
 
 ### Requirement: The interface renders in the selected language
 
-The frontend SHALL render all user-facing copy in one of six languages: English, Russian, Spanish, Portuguese, Chinese and French. Copy includes labels, placeholders, button text, headings, table columns, empty states, confirmation dialogs, tooltips and validation messages.
+The frontend SHALL render all user-facing copy in one of seven languages: English, Russian, Spanish, Portuguese, Chinese, French and Indonesian. Copy includes labels, placeholders, button text, headings, table columns, empty states, confirmation dialogs, tooltips and validation messages.
 
 Technical strings are excluded and stay identical in every language: command lines and code blocks, connection strings, cron expressions, database engine and tool names, file paths, and duration readouts such as `2h 15m 3s` in full, and the unit words in size readouts such as the `GB` in `1.4 GB`. The digits in a size or a count are not excluded; see the number formatting requirement below.
 
@@ -33,11 +33,17 @@ A transient success notice already displayed when the user changes language MAY 
 - **AND** persistent feedback and failures use the new language immediately
 - **AND** the next success notice is created in the new language
 
+#### Scenario: A user selects Indonesian
+
+- **WHEN** a user selects Indonesian
+- **THEN** the interface renders current product copy in Indonesian
+- **AND** technical strings and values exchanged with the backend remain unchanged
+
 ### Requirement: The language control sits beside the theme control
 
 The language control SHALL be presented together with the light/dark theme control as a single paired element, and SHALL appear everywhere that element appears: the main navigation bar, the narrow-viewport sidebar, and the authentication screen. A user SHALL be able to choose a language before signing in.
 
-The control SHALL show which language is currently active, and SHALL list all six by their native names rather than by language code or flag.
+The control SHALL show which language is currently active, and SHALL list all seven by their native names rather than by language code or flag. Indonesian SHALL appear as Bahasa Indonesia.
 
 #### Scenario: Choosing a language before signing in
 
@@ -48,7 +54,7 @@ The control SHALL show which language is currently active, and SHALL list all si
 #### Scenario: Opening the language list
 
 - **WHEN** a user moves the pointer onto the language control
-- **THEN** the list of six languages opens without requiring a click
+- **THEN** the list of seven languages opens without requiring a click
 - **AND** moving the pointer from the control to the list does not close it
 
 #### Scenario: Narrow viewport
