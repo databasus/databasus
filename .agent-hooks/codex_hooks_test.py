@@ -23,6 +23,22 @@ class CodexHooksDoctorTest(unittest.TestCase):
 
         return repository
 
+    def create_linked_worktree(self, repository):
+        repository.git("add", ".codex/hooks.json")
+        repository.git("commit", "--quiet", "-m", "add project hooks")
+        worktree = repository.root.parent / "linked worktree"
+        repository.git("worktree", "add", "--quiet", "--detach", str(worktree))
+        repository.root = worktree
+
+        configuration = json.loads((repository.stubs_dir / "codex.json").read_text())
+        configuration["hooks_response"]["data"][0]["cwd"] = str(worktree)
+        repository.set_stub("codex", configuration)
+
+    def set_hook_source(self, repository, source_path):
+        configuration = json.loads((repository.stubs_dir / "codex.json").read_text())
+        configuration["hooks_response"]["data"][0]["hooks"][0]["sourcePath"] = str(source_path)
+        repository.set_stub("codex", configuration)
+
     def test_reports_unapproved_hooks_instead_of_a_healthy_environment(self):
         repository = self.create_repository(trust_status="modified")
 
@@ -41,6 +57,74 @@ class CodexHooksDoctorTest(unittest.TestCase):
         self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
         self.assertIn("1 trusted and enabled", process.stdout)
         self.assertEqual(repository.reviewer_calls(), [])
+
+    def test_accepts_main_checkout_hooks_when_running_in_a_linked_worktree(self):
+        repository = self.create_repository()
+        self.create_linked_worktree(repository)
+
+        process = repository.run_doctor()
+
+        self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+        self.assertIn("1 trusted and enabled", process.stdout)
+        self.assertEqual(repository.reviewer_calls(), [])
+
+    def test_accepts_worktree_hooks_when_running_in_a_linked_worktree(self):
+        repository = self.create_repository()
+        self.create_linked_worktree(repository)
+        self.set_hook_source(repository, repository.root / ".codex/hooks.json")
+
+        process = repository.run_doctor()
+
+        self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+        self.assertIn("1 trusted and enabled", process.stdout)
+        self.assertEqual(repository.reviewer_calls(), [])
+
+    def test_refuses_different_main_checkout_commands_when_running_in_a_linked_worktree(self):
+        repository = self.create_repository()
+        self.create_linked_worktree(repository)
+        configuration = json.loads((repository.stubs_dir / "codex.json").read_text())
+        configuration["hooks_response"]["data"][0]["hooks"][0]["command"] += " --different-command"
+        repository.set_stub("codex", configuration)
+
+        process = repository.run_doctor()
+
+        self.assertEqual(process.returncode, 1, process.stdout + process.stderr)
+        self.assertIn("stop: not loaded", process.stdout)
+
+    def test_refuses_unrelated_checkout_hooks_when_running_in_a_linked_worktree(self):
+        repository = self.create_repository()
+        self.create_linked_worktree(repository)
+        unrelated_repository = HookRepository(self)
+        self.set_hook_source(repository, unrelated_repository.root / ".codex/hooks.json")
+
+        process = repository.run_doctor()
+
+        self.assertEqual(process.returncode, 1, process.stdout + process.stderr)
+        self.assertIn("stop: not loaded", process.stdout)
+
+    def test_refuses_other_worktree_hooks_when_running_in_a_linked_worktree(self):
+        repository = self.create_repository()
+        self.create_linked_worktree(repository)
+        other_worktree = repository.root.parent / "other worktree"
+        repository.git("worktree", "add", "--quiet", "--detach", str(other_worktree))
+        self.set_hook_source(repository, other_worktree / ".codex/hooks.json")
+
+        process = repository.run_doctor()
+
+        self.assertEqual(process.returncode, 1, process.stdout + process.stderr)
+        self.assertIn("stop: not loaded", process.stdout)
+
+    def test_refuses_disabled_or_unapproved_main_checkout_hooks_in_a_linked_worktree(self):
+        for trust_status, is_enabled, failure in (("modified", True, "modified"), ("trusted", False, "disabled")):
+            with self.subTest(trust_status=trust_status, is_enabled=is_enabled):
+                repository = self.create_repository(trust_status=trust_status, is_enabled=is_enabled)
+                self.create_linked_worktree(repository)
+
+                process = repository.run_doctor()
+
+                self.assertEqual(process.returncode, 1, process.stdout + process.stderr)
+                self.assertIn(f"stop: {failure}", process.stdout)
+                self.assertEqual(repository.reviewer_calls(), [])
 
     def test_refuses_disabled_or_unloaded_hooks(self):
         for is_loaded in (True, False):

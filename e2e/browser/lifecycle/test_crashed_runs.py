@@ -7,6 +7,7 @@ import pytest
 
 from compose_project import list_remaining_resources
 from docker_wrapper import install_docker_wrapper_and_get_path
+from lifecycle.recovery_resources import assert_private_recovery_is_usable
 from leftover_check import assert_nothing_of_the_project_remains, is_image_present
 from probe_run import INTERRUPT_READY, assert_sweep_came_before, start_probe_run
 from public_command import PublicRun
@@ -68,6 +69,7 @@ class TestCrashedRuns:
         assert_sweep_came_before(later_run.output, killed_run.get_run_id(), "E2E browser port")
         assert_nothing_of_the_project_remains(killed_project_name)
         assert not get_run_directory(killed_run.get_run_id()).exists()
+        assert_private_recovery_is_usable(live_run.get_project_name())
         assert live_run.is_running()
         assert list_remaining_resources(live_run.get_project_name())
 

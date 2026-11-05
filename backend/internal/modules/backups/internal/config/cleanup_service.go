@@ -10,7 +10,7 @@ import (
 	"databasus-backend/internal/modules/workspaces"
 )
 
-func (s *Service) withCleanup(
+func (s *Service) AddCleanupSummaries(
 	ctx context.Context,
 	actor users.Actor,
 	configs []AnyBackupConfig,

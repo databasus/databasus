@@ -53,12 +53,32 @@ class TestFailingRuns:
             "deliberate E2E secrets failure",
         )
 
-        for stream in ("probe-stream-pytest", "probe-stream-databases", "probe-stream-application"):
+        for stream in ("probe-stream-pytest", "probe-stream-databases", "probe-stream-application", "probe-stream-recovery", "probe-stream-nested"):
             assert stream in output, f"{stream} did not reach the output:\n{output}"
         assert "synthetic-local-value" not in output
         assert PROBE_PASSWORD not in output
         assert PROBE_DATABASE_PASSWORD not in output
         assert BEARER_TOKEN not in output
+        assert "synthetic-restore-marker" not in output
+
+    def test_preserves_masked_logs_when_the_private_recovery_engine_stops_answering(self, probes_image: str):
+        output = assert_failed_and_released(
+            start_probe_run(
+                probes_image,
+                "unresponsive-engine",
+                E2E_PROBE_PASSWORD=PROBE_PASSWORD,
+                E2E_PROBE_DATABASE_PASSWORD=PROBE_DATABASE_PASSWORD,
+            ),
+            "deliberate unresponsive private engine failure",
+        )
+
+        for stream in ("probe-unresponsive-databases", "probe-unresponsive-application", "probe-unresponsive-recovery"):
+            assert stream in output, f"{stream} did not reach the output:\n{output}"
+        assert "timed out" in output
+        assert PROBE_PASSWORD not in output
+        assert PROBE_DATABASE_PASSWORD not in output
+        assert BEARER_TOKEN not in output
+        assert "synthetic-restore-marker" not in output
 
     def test_fails_and_names_the_remains_when_a_resource_cannot_be_removed_after_every_scenario_passed(
         self, probes_image: str, tmp_path: Path
@@ -97,4 +117,10 @@ class TestFailingRuns:
         assert_failed_and_released(
             start_probe_run(probes_image, "scenario", PATH=path_without_port),
             "E2E run failed",
+        )
+
+    def test_executes_and_refuses_the_invalid_host_tools_command_from_the_form(self, probes_image: str):
+        assert_failed_and_released(
+            start_probe_run(probes_image, "invalid-host-tools"),
+            "deliberate invalid Host tools command failure from UI",
         )

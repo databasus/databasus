@@ -22,6 +22,7 @@ export const metadata: Metadata = {
     description:
       "Learn how to reset user passwords, list administrators and create accounts in Databasus using the built-in command-line tool. Quick and secure password recovery for your PostgreSQL backup system.",
     type: "article",
+    locale: "en_US",
     url: "https://databasus.com/password",
   },
   twitter: {

@@ -9,6 +9,7 @@ import (
 	"databasus-backend/internal/lib/apierror"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/modules/backups/internal/config"
+	"databasus-backend/internal/modules/backups/internal/configsave"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
@@ -17,34 +18,37 @@ import (
 )
 
 type Deps struct {
-	Configs    *config.Service
-	Transactor *database.Transactor
-	Workspaces workspaces.Module
-	Storages   storages.Module
-	Databases  databases.Module
-	Notifiers  notifiers.Module
+	ConfigSaves *configsave.Service
+	Configs     *config.Service
+	Transactor  *database.Transactor
+	Workspaces  workspaces.Module
+	Storages    storages.Module
+	Databases   databases.Module
+	Notifiers   notifiers.Module
 }
 
 // Service runs the database transfer. The modules it calls join its transaction through the context,
 // so a failure in any step leaves the database, its config, its storage and its notifiers as they
 // were.
 type Service struct {
-	configs    *config.Service
-	transactor *database.Transactor
-	workspaces workspaces.Module
-	storages   storages.Module
-	databases  databases.Module
-	notifiers  notifiers.Module
+	configSaves *configsave.Service
+	configs     *config.Service
+	transactor  *database.Transactor
+	workspaces  workspaces.Module
+	storages    storages.Module
+	databases   databases.Module
+	notifiers   notifiers.Module
 }
 
 func NewService(deps Deps) *Service {
 	return &Service{
-		configs:    deps.Configs,
-		transactor: deps.Transactor,
-		workspaces: deps.Workspaces,
-		storages:   deps.Storages,
-		databases:  deps.Databases,
-		notifiers:  deps.Notifiers,
+		configSaves: deps.ConfigSaves,
+		configs:     deps.Configs,
+		transactor:  deps.Transactor,
+		workspaces:  deps.Workspaces,
+		storages:    deps.Storages,
+		databases:   deps.Databases,
+		notifiers:   deps.Notifiers,
 	}
 }
 
@@ -143,9 +147,9 @@ func (s *Service) switchStorage(ctx context.Context, transfer DatabaseTransfer) 
 		return ErrTargetStorageNotInTargetWorkspace
 	}
 
-	return s.configs.SwitchStorage(
+	return s.configSaves.SwitchStorage(
 		ctx,
-		config.StorageSwitchAssignment{
+		configsave.StorageSwitchAssignment{
 			DatabaseID:  transfer.DatabaseID,
 			StorageID:   targetStorage.ID,
 			WorkspaceID: transfer.TargetWorkspaceID,

@@ -1,8 +1,6 @@
 package config
 
 import (
-	"context"
-
 	"github.com/google/uuid"
 
 	"databasus-backend/internal/modules/storages"
@@ -19,5 +17,3 @@ type HistoryRemoval struct {
 	TargetStorageID     uuid.UUID
 	ShouldResetAll      bool
 }
-
-type BackupHistoryRemoverFunc func(context.Context, HistoryRemoval) (RemovedBackupHistory, error)

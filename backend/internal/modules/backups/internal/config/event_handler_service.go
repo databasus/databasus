@@ -49,19 +49,19 @@ func (s *Service) OnDatabaseCopied(ctx context.Context, event databases.Database
 		return nil
 	}
 
-	return s.repository.upsertLogical(ctx, originalConfigs[0].copyFor(event.CopiedDatabaseID))
+	return s.repository.UpsertLogical(ctx, originalConfigs[0].copyFor(event.CopiedDatabaseID))
 }
 
 // OnDatabaseBackupTypeChanged fits the saved physical config to the new type in the change's
 // transaction, so a config the validation refuses is never left behind. It takes the lock a save takes,
 // so a save that runs meanwhile either commits first and is fitted here or waits and sees the new type.
 func (s *Service) OnDatabaseBackupTypeChanged(ctx context.Context, event databases.DatabaseBackupTypeChanged) error {
-	err := s.repository.lockDatabaseConfig(ctx, event.DatabaseID)
+	err := s.repository.LockDatabaseConfig(ctx, event.DatabaseID)
 	if err != nil {
 		return err
 	}
 
-	physicalConfigs, err := s.repository.listPhysical(ctx, []uuid.UUID{event.DatabaseID})
+	physicalConfigs, err := s.repository.ListPhysical(ctx, []uuid.UUID{event.DatabaseID})
 	if err != nil {
 		return err
 	}
@@ -72,12 +72,12 @@ func (s *Service) OnDatabaseBackupTypeChanged(ctx context.Context, event databas
 
 	fittedConfig := physicalConfigs[0].coerceToBackupType(event.NewBackupType)
 
-	err = fittedConfig.validate()
+	err = fittedConfig.Validate()
 	if err != nil {
 		return fmt.Errorf("fit the backup config to the backup type %s: %w", event.NewBackupType, err)
 	}
 
-	err = s.repository.upsertPhysical(ctx, fittedConfig)
+	err = s.repository.UpsertPhysical(ctx, fittedConfig)
 	if err != nil {
 		return err
 	}

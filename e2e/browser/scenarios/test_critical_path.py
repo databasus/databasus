@@ -15,6 +15,8 @@ from database_server import (
     read_rows,
 )
 from row_comparison import RowComparison
+from physical_backup_chain import build_physical_chain
+from physical_restore import check_invalid_host_tools, restore_both_environments
 
 LONG_OPERATION_MILLISECONDS = 120_000
 SOURCE_ROWS = ["first row before the backup", "second row before the backup"]
@@ -109,3 +111,11 @@ class TestCriticalPath:
 
         assert backed_up_difference is None, f"the backed-up database differs: {backed_up_difference}"
         assert restored_difference is None, f"the restored database differs: {restored_difference}"
+
+        page.get_by_role("dialog", name="Restore from backup").get_by_role("button", name="Close", exact=True).last.click()
+        _, archived_writes = build_physical_chain(page, storage_name)
+
+        if os.environ.get("E2E_PROBE") == "invalid-host-tools":
+            check_invalid_host_tools(page)
+
+        restore_both_environments(page, archived_writes)

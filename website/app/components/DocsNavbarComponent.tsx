@@ -2,11 +2,13 @@
 
 import { getLocalizedHref, type Locale } from "@/app/i18n";
 import LanguageSelectorComponent from "./LanguageSelectorComponent";
+import { LANDING_LABELS } from "./landingLabels";
 
-const NAVBAR_LABELS: Record<
-  Locale | "en",
-  { community: string; starOnGithub: string }
-> = {
+const NAVBAR_LABELS: Record<Locale | "en", { community: string; starOnGithub: string }> = {
+  id: {
+    community: "Komunitas",
+    starOnGithub: "Beri bintang di GitHub, dukunganmu sangat berarti ❤️",
+  },
   en: {
     community: "Community",
     starOnGithub: "Star on GitHub, it's really important ❤️",
@@ -33,11 +35,7 @@ const NAVBAR_LABELS: Record<
   },
 };
 
-export default function DocsNavbarComponent({
-  lang = "en",
-}: {
-  lang?: Locale | "en";
-}) {
+export default function DocsNavbarComponent({ lang = "en" }: { lang?: Locale | "en" }) {
   const labels = NAVBAR_LABELS[lang];
   const homeHref = getLocalizedHref(lang, "");
   return (
@@ -46,7 +44,7 @@ export default function DocsNavbarComponent({
         <a href={homeHref} className="flex items-center">
           <img
             src="/logo.svg"
-            alt="Databasus logo"
+            alt={lang === "id" ? LANDING_LABELS.id.logoAlt : "Databasus logo"}
             className="shrink-0 sm:h-[35px] sm:w-[35px] md:h-[35px] md:w-[35px]"
             fetchPriority="high"
             loading="eager"

@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { HttpResponse, http } from 'msw';
@@ -119,6 +120,39 @@ const getRowAction = (name: string) => screen.getAllByRole('button', { name })[0
 const leaveTab = () => fireEvent.click(screen.getByRole('button', { name: 'Toggle tab' }));
 
 describe('PhysicalBackupsComponent', () => {
+  it.each([
+    ['Full backup', 'FULL'],
+    ['Incremental backup', 'INCREMENTAL'],
+  ])('requests %s with the public backup kind when chosen in the menu', async (label, kind) => {
+    const requestedBackups: unknown[] = [];
+    const user = userEvent.setup();
+    server.use(
+      mockApi.get('/backup-configs/{databaseId}', 200, config),
+      mockApi.get('/physical-backups', 200, { items: [], totalUsageMb: 0 }),
+      http.post(`*${API_BASE_PATH}/physical-backups`, async ({ request }) => {
+        requestedBackups.push(await request.json());
+
+        return new HttpResponse(null, { status: 202 });
+      }),
+    );
+    renderScreen(
+      <PhysicalBackupsComponent
+        database={{
+          ...database,
+          settings: { ...database.settings, backupType: 'FULL_INCREMENTAL_WAL_STREAM' },
+        }}
+        isCanManageDBs
+      />,
+    );
+    await screen.findByRole('button', { name: physicalListCopy.backUpNow });
+
+    await user.hover(document.querySelector('.ant-dropdown-trigger')!);
+    await user.click(await screen.findByRole('menuitem', { name: label }));
+
+    await waitFor(() => expect(requestedBackups).toHaveLength(1));
+    expect(requestedBackups).toEqual([{ databaseId: database.id, kind }]);
+  });
+
   describe('with a failing load', () => {
     it('shows the reason with a retry, ends the spinner and does not say backups are disabled when the config cannot load', async () => {
       const showAlert = vi.fn();

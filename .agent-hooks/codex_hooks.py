@@ -65,6 +65,17 @@ def get_project_hooks(executable, root):
                 process.wait()
 
 
+def get_project_hook_sources(root):
+    worktrees = subprocess.run(
+        ["git", "worktree", "list", "--porcelain", "-z"],
+        cwd=root, capture_output=True, check=True, timeout=10,
+    )
+    main_checkout_record = worktrees.stdout.split(b"\0", 1)[0]
+    main_checkout = Path(os.fsdecode(main_checkout_record.removeprefix(b"worktree ")))
+
+    return {(checkout / ".codex/hooks.json").resolve() for checkout in (root, main_checkout)}
+
+
 def check_project_hooks(executable, root):
     configuration_path = root / ".codex/hooks.json"
     if not configuration_path.is_file():
@@ -84,10 +95,11 @@ def check_project_hooks(executable, root):
         if not configured_hooks or any(entry.get("errors") for entry in entries):
             raise ValueError("project hook configuration is empty or invalid")
 
+        project_hook_sources = get_project_hook_sources(root)
         loaded_hooks = {
             (hook["eventName"], hook["command"]): hook
             for entry in entries for hook in entry["hooks"]
-            if Path(hook["sourcePath"]) == configuration_path
+            if Path(hook["sourcePath"]).resolve() in project_hook_sources
         }
 
         failures = []
@@ -106,7 +118,7 @@ def check_project_hooks(executable, root):
             return False
         print(f"Codex project hooks: {len(configured_hooks)} trusted and enabled")
         return True
-    except (OSError, ValueError, KeyError, TypeError) as error:
+    except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
         print(f"Codex project hooks: could not inspect hooks/list ({type(error).__name__}: {error})")
         print("Inside the Codex sandbox, `codex app-server` cannot write its home directory, so run this check outside the sandbox.")
         return False
