@@ -43,7 +43,8 @@ CodeQL alert [149](https://github.com/databasus/databasus/security/code-scanning
 The query's [configuration](https://github.com/github/codeql/blob/main/go/ql/src/Security/CWE-640/EmailInjection.qll)
 defines no sanitization barrier. Its remaining paths include `mail.ParseAddress` followed by
 `mail.Address.String`, and `html.EscapeString` followed by MIME quoted-printable encoding. They are
-false positives for the serialized addresses and escaped notification text.
+false positives for the serialized addresses and escaped notification text. Alert 149 is dismissed
+as a false positive with this rationale and the regression coverage below.
 
 The mailer tests reject multiple recipients and CRLF injection into a recipient, verify that a
 subject containing `Bcc:` adds neither a header nor a recipient, and check MIME encoding and line
