@@ -132,7 +132,7 @@ jobs:
           trivy config --severity HIGH,CRITICAL --exit-code 1 backend/cmd/verification-agent/images/postgres/Dockerfile
 
   test-frontend:
-    runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
+    runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
     timeout-minutes: 15
     steps:
       - name: Check out code
