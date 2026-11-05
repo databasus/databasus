@@ -100,6 +100,7 @@ func TestPhysicalWalSamples(t *testing.T) {
 				require.NoError(t, err)
 			}
 
+			getActiveWalSlot(t, source)
 			setLogin(false)
 			var first streamStatistics
 			testwait.Until(t, "the source outage appears in a persisted sample", func(context.Context) error {
@@ -118,6 +119,7 @@ func TestPhysicalWalSamples(t *testing.T) {
 			setLogin(true)
 			team.App.RestartModules(t)
 			team.waitForReceiver(t)
+			getActiveWalSlot(t, source)
 			setLogin(false)
 			testwait.Until(t, "the new session keeps the original outage time", func(context.Context) error {
 				next := team.statistics(t)
