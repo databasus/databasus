@@ -1,4 +1,6 @@
 import uuid
+import json
+import time
 
 from playwright.sync_api import Page, expect
 
@@ -42,7 +44,10 @@ class TestSignIn:
                     localStorage.setItem(key, value);
                 }
             }""",
-            PREFERENCES_SURVIVING_SIGN_OUT,
+            {
+                **PREFERENCES_SURVIVING_SIGN_OUT,
+                "githubLatestVersion": json.dumps({"version": "0.0.0", "fetchedAt": int(time.time() * 1000)}),
+            },
         )
         page.get_by_role("button", name="Logout").click()
 
@@ -50,7 +55,11 @@ class TestSignIn:
 
         remaining_storage_keys = page.evaluate("() => Object.keys(localStorage).sort()")
 
-        assert remaining_storage_keys == sorted(PREFERENCES_SURVIVING_SIGN_OUT)
+        assert remaining_storage_keys == sorted([*PREFERENCES_SURVIVING_SIGN_OUT, "githubLatestVersion"])
+
+        public_version_cache = json.loads(page.evaluate("() => localStorage.getItem('githubLatestVersion')"))
+        assert isinstance(public_version_cache["version"], str)
+        assert isinstance(public_version_cache["fetchedAt"], int)
 
         surviving_preferences = page.evaluate(
             "(keys) => Object.fromEntries(keys.map(key => [key, localStorage.getItem(key)]))",
