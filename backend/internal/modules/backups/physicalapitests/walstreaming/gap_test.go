@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/app/apptest"
@@ -80,6 +80,7 @@ func TestIncrementalPhysicalBackupAfterWalGap(t *testing.T) {
 			}
 			require.True(t, hasGap)
 
+			previousBackups := team.listBackups(t)
 			team.call(
 				t,
 				apptest.PhysicalStartRequest(team.Database.Id, "INCREMENTAL"),
@@ -87,16 +88,25 @@ func TestIncrementalPhysicalBackupAfterWalGap(t *testing.T) {
 				nil,
 			)
 			team.App.RunJobPass(t, "backups_physical_scheduler")
-			team.App.WaitForPhysicalBackups(t)
+			testwait.Until(t, "the requested incremental backup completes", func(context.Context) error {
+				for _, backup := range team.listBackups(t) {
+					if backup.Type != "INCREMENTAL" ||
+						slices.ContainsFunc(previousBackups, func(previous backupRow) bool {
+							return previous.ID == backup.ID
+						}) {
+						continue
+					}
 
-			hasIncremental := false
-			for _, backup := range team.listBackups(t) {
-				if backup.Type == "INCREMENTAL" {
-					assert.Equal(t, "COMPLETED", backup.Status)
-					hasIncremental = true
+					if backup.Status == "IN_PROGRESS" {
+						return fmt.Errorf("incremental backup %s is still running", backup.ID)
+					}
+
+					require.Equal(t, "COMPLETED", backup.Status)
+					return nil
 				}
-			}
-			assert.True(t, hasIncremental)
+
+				return fmt.Errorf("the requested incremental backup has not started")
+			})
 		},
 	)
 }
