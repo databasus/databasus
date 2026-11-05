@@ -263,12 +263,12 @@ class TestScriptTestCase(unittest.TestCase):
     def get_selection_of(self, package):
         return next(selection for selection in self.get_go_selections() if package in selection)
 
-    def test_the_run_starts_only_the_test_postgresql_server(self):
+    def test_the_run_starts_the_shared_test_postgresql_server_without_recreating_it(self):
         exit_status, _, stderr = self.finish_script(self.start_script())
         self.assertEqual(exit_status, 0, stderr)
 
         compose_calls = [call for _, call in self.read_calls() if call.startswith("docker compose")]
-        self.assertEqual(compose_calls, ["docker compose up -d backend-db-test"])
+        self.assertEqual(compose_calls, ["docker compose up -d --no-recreate backend-db-test"])
 
     def test_the_routine_run_starts_neither_the_upgrade_test_nor_the_browser_suite(self):
         exit_status, _, stderr = self.finish_script(self.start_script())
