@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Starts review_gate.py with the Python and OpenSpec versions pinned in mise.toml, so a Claude Code
-# started from an IDE without the mise shims on PATH runs the same hook as a terminal one.
+# Starts review_gate.py for .claude/settings.json and .codex/hooks.json with the pinned tools,
+# so Claude Code and Codex started without the mise shims on PATH run the same hooks as a terminal.
 # A hook that cannot run stops the agent with the reason instead of letting the turn pass unreviewed.
 # Only bash builtins and coreutils run before mise, because nothing else is guaranteed on PATH yet.
 
@@ -9,7 +9,13 @@ set -uo pipefail
 hooks_dir="$(cd "${BASH_SOURCE[0]%/*}" && pwd)"
 root="${hooks_dir%/*}"
 action="${1:-}"
-environment_check_hint="Run \`mise install\` to install the pinned tools and \`just doctor\` to check the environment."
+environment_check_hint="Run \`mise install\` to install the pinned tools and \`mise run doctor --client codex\` to check the environment."
+
+# A person starts doctor and review, not a hook, so they print text and exit with a code.
+is_terminal_action=false
+if [[ "$action" == "doctor" || "$action" == "review" ]]; then
+    is_terminal_action=true
+fi
 
 find_mise() {
     if command -v mise; then
@@ -40,11 +46,11 @@ stop_agent() {
 
 if ! mise_path="$(find_mise)"; then
     reason="The review hooks could not find the version manager mise on PATH or in \$HOME/.local/bin."
-    if [[ "$action" == "doctor" ]]; then
+    if [[ "$is_terminal_action" == true ]]; then
         printf '%s\n' "$reason" >&2
         exit 1
     fi
-    stop_agent "$reason Install mise, then $environment_check_hint"
+    stop_agent "$reason Install mise first. $environment_check_hint"
 fi
 
 # mise exec runs a command even when a pinned version is missing: python3 and openspec then resolve
@@ -59,7 +65,7 @@ if [[ $missing_check_exit_code -ne 0 || -n "$missing_tools" ]]; then
     fi
     reason="$reason
 $missing_tools"
-    if [[ "$action" == "doctor" ]]; then
+    if [[ "$is_terminal_action" == true ]]; then
         printf '%s\n' "$reason" >&2
         exit 1
     fi
@@ -71,7 +77,7 @@ fi
 export MISE_EXEC_AUTO_INSTALL=false
 command=("$mise_path" -C "$root" exec -- python3 "$hooks_dir/review_gate.py" "$@")
 
-if [[ "$action" == "doctor" ]]; then
+if [[ "$is_terminal_action" == true ]]; then
     exec "${command[@]}"
 fi
 

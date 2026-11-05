@@ -1,6 +1,0 @@
-export enum WorkspaceRole {
-  OWNER = 'WORKSPACE_OWNER',
-  ADMIN = 'WORKSPACE_ADMIN',
-  MEMBER = 'WORKSPACE_MEMBER',
-  VIEWER = 'WORKSPACE_VIEWER',
-}

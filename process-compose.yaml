@@ -5,7 +5,6 @@ processes:
     command: |
       echo "backend http://localhost:4005"
       echo "frontend http://localhost:5173"
-      echo "API docs http://localhost:4005/api/v1/docs/swagger/index.html"
 
   backend:
     command: air

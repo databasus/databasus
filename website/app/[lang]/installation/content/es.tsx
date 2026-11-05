@@ -545,9 +545,9 @@ sudo curl -sSL https://raw.githubusercontent.com/databasus/databasus/refs/heads/
               <p>
                 Devuelve <code>200</code> cuando todo está bien, o{" "}
                 <code>503</code> con el motivo cuando algo necesita atención:
-                base de datos interna, caché, uso de disco (por encima del 95%),
-                herramientas cliente de bases de datos, planificador de copias y
-                actividad del agente de verificación. El endpoint no requiere
+                base de datos interna, uso de disco (por encima del 95%),
+                herramientas cliente de bases de datos, tareas en segundo plano
+                y actividad del agente de verificación. El endpoint no requiere
                 autenticación y tiene CORS abierto para monitores basados en
                 navegador.
               </p>

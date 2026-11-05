@@ -554,9 +554,9 @@ sudo curl -sSL https://raw.githubusercontent.com/databasus/databasus/refs/heads/
               <p>
                 Renvoie <code>200</code> quand tout va bien, ou <code>503</code>{" "}
                 avec une raison quand quelque chose demande de l&apos;attention
-                : base de données interne, cache, occupation disque (au-delà de
-                95 %), outils clients de bases de données, planificateur de
-                backups et vivacité de l&apos;agent de vérification.
+                : base de données interne, occupation disque (au-delà de 95 %),
+                outils clients de bases de données, tâches de fond et vivacité
+                de l&apos;agent de vérification.
                 L&apos;endpoint est accessible sans authentification, et CORS
                 est ouvert pour les outils de monitoring qui tournent dans le
                 navigateur.

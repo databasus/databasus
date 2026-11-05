@@ -1,11 +1,6 @@
 main
 .env
 pgdata_test/
-swagger/
-swagger/*
-swagger/docs.go
-swagger/swagger.json
-swagger/swagger.yaml
 ui/build/*
 pgdata-for-restore/
 temp/

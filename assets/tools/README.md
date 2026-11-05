@@ -3,8 +3,8 @@ CI, and the Docker image all read from one place. The Go backend
 resolves them at runtime via `runtime.GOOS`+`runtime.GOARCH` →
 `assets/tools/<arch-key>/<db>/<db>-<v>/bin/<command>`.
 
-`AGENTS.md` in this directory carries the checklist for adding a version and
-for refreshing a patch level. Read it before changing anything here.
+The checklist for adding a version and for refreshing a patch level is the
+`client-tool-bundles` skill in `.agents/skills/client-tool-bundles/SKILL.md`.
 
 Layout (one subtree per arch, identical shape):
 
@@ -22,7 +22,7 @@ assets/tools/<arch>/
     mongodump, mongorestore
 ```
 
-`<arch>` keys (mapping in `backend/internal/util/tools/paths.go`):
+`<arch>` keys (mapping in `backend/internal/engines/clienttools/bundle_root.go`):
 
 | GOOS / GOARCH     | key   | size    |
 |-------------------|-------|---------|
@@ -75,7 +75,7 @@ by `tools/refresh-mariadb-bundle.sh`:
 | `mariadb-13.0` | 13.0.2   | `repo/13.0/ubuntu`, `ubu2204`          |
 
 MariaDB ships three client tiers, mapped to server versions in
-`backend/internal/util/tools/mariadb.go`:
+`backend/internal/engines/mariadb/version.go`:
 
 - `10.6` (legacy) serves MariaDB 5.5 and 10.1. It exists because the newer
   clients query `generation_expression`, a column MariaDB added in 10.2.
@@ -129,8 +129,7 @@ binaries, and the loader picks them before the image's copies.
 image as a dependency of `postgresql-common`. A change that drops that package
 takes the MariaDB interactive client with it. It is also the one soname a
 non-Debian development host is missing — Fedora ships the upstream
-`libedit.so.0` — which is what `just run` and `just test` at the repository
-root shim around.
+`libedit.so.0` — which is what `mise run run` and `mise run test` shim around.
 
 To refresh a tool set, run the script for that engine, or drop the
 corresponding `bin/` contents in place, and commit. For PostgreSQL the source

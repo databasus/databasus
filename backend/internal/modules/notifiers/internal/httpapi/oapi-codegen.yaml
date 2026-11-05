@@ -1,0 +1,10 @@
+package: httpapi
+output: api.gen.go
+generate:
+  models: true
+  gin-server: true
+  strict-server: true
+output-options:
+  include-tags: [notifiers]
+compatibility:
+  always-prefix-enum-values: true

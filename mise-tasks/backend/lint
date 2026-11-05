@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+#MISE description="Check the backend: contract rules, generated code, formatting, linters and go.mod"
+#MISE dir="backend"
+#MISE hide=true
+set -euo pipefail
+
+mise run backend:check-generated
+vacuum lint --no-banner --no-style --no-update-check --fail-severity warn --details --all-results --no-clip --ruleset api/vacuum.yaml api/openapi.yaml
+vacuum lint --no-banner --no-style --no-update-check --fail-severity warn --details --all-results --no-clip --ruleset api/vacuum.yaml api/agent.yaml
+golangci-lint fmt --diff ./api/... ./cmd/... ./e2e/... ./internal/... ./migrations/... ./tools/... || {
+    echo 'Run mise run format to format the backend' >&2
+    exit 1
+}
+golangci-lint run ./api/... ./cmd/... ./e2e/... ./internal/... ./migrations/... ./tools/...
+go run ./tools/archlint
+go mod tidy -diff

@@ -69,7 +69,10 @@ assets/tools/win-x64
 **/__pycache__
 
 # Local tooling config
-lefthook.yml
+hk.pkl
 mise.toml
+mise-tasks
 process-compose.yaml
-**/Justfile
+
+# The browser end-to-end suite drives the image from outside
+e2e/browser

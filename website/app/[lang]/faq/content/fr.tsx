@@ -413,27 +413,6 @@ export default function FAQPage() {
                 pendant longtemps, donc rien ne casse.
               </p>
 
-              <p>
-                Vous pouvez lire le raisonnement complet dans les architecture
-                decision records :{" "}
-                <a
-                  href="https://github.com/databasus/databasus/blob/main/adr/0008-why-pg17-native-backups-with-mandatory-wal-summary.md"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  ADR-0008: PG17-native backups with mandatory WAL summary
-                </a>{" "}
-                et{" "}
-                <a
-                  href="https://github.com/databasus/databasus/blob/main/adr/0009-why-remote-physical-backups-instead-of-agents.md"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  ADR-0009: remote physical backups instead of agents
-                </a>
-                .
-              </p>
-
               <h2 id="backup-databasus">
                 Comment sauvegarder Databasus lui-même ?
               </h2>

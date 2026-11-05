@@ -5,7 +5,6 @@ pgdata/
 pgdata-test/
 mysqldata/
 mariadbdata/
-victoria-logs-data/
 wal-queue/
 temp/
 node_modules/
@@ -13,13 +12,12 @@ node_modules/
 /articles
 
 .DS_Store
-.vscode/settings.json
 .claude/*
 !.claude/agents/
 !.claude/settings.json
 !.claude/skills
-backend/cleanup_test_db.exe
 plans/
 
 .pnpm-store
 __pycache__/
+e2e/browser/.venv/

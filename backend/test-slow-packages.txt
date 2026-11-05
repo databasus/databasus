@@ -1,0 +1,37 @@
+# Backend packages that scripts/test.sh runs in a process of their own, so that the others do not
+# wait for them: those measured at over 60 seconds and those whose tests start containers or networks.
+# The order is longest first by one local run. A package missing here runs with the others; an entry
+# the run does not select fails scripts/test_sh_test.py.
+databasus-backend/internal/engines/postgresql/physical
+databasus-backend/internal/agent/e2e
+databasus-backend/internal/modules/storages/internal/providers
+databasus-backend/internal/modules/storages/internal/providers/s3
+databasus-backend/internal/modules/backups/physicalapitests/walstreaming
+databasus-backend/internal/modules/backups/e2e/mariadb
+databasus-backend/internal/modules/backups/e2e/postgresql
+databasus-backend/internal/modules/backups/e2e/postgresqlphysical/pg17
+databasus-backend/internal/engines/mysql
+databasus-backend/internal/engines/mariadb
+databasus-backend/internal/modules/backups/e2e/mysql
+databasus-backend/internal/modules/databases
+databasus-backend/internal/engines/postgresql/logical
+databasus-backend/internal/modules/storages/internal/providers/azureblob
+databasus-backend/internal/lib/testcontainers
+databasus-backend/internal/engines/mongodb
+databasus-backend/internal/app/apptest
+databasus-backend/internal/modules/verification
+databasus-backend/cmd/seed_dev
+databasus-backend/internal/modules/storages
+databasus-backend/internal/modules/backups/physicalapitests/backuping
+databasus-backend/internal/modules/backups/internal/pipeline
+databasus-backend/internal/modules/backups/physicalapitests/catalog
+databasus-backend/internal/modules/backups/e2e/postgresqlphysical/pg18
+databasus-backend/internal/modules/backups/e2e/mongodb
+databasus-backend/internal/modules/storages/internal/providers/nas
+databasus-backend/internal/modules/backups
+databasus-backend/internal/modules/backups/physicalapitests/streamstatistics
+databasus-backend/internal/modules/healthcheck
+databasus-backend/internal/lib/sshtunnel
+databasus-backend/internal/modules/notifiers
+databasus-backend/internal/modules/notifiers/internal/providers/email
+databasus-backend/internal/modules/storages/internal/providers/sftp

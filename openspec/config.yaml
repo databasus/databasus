@@ -4,18 +4,25 @@ context: |
   Databasus - PostgreSQL/MySQL/MariaDB/MongoDB backup and restore platform,
   self-hosted, Docker-deployed.
 
-  Stack: Go + Gin + GORM + PostgreSQL (backend/), Go CLI (agent/verification/),
+  Stack: Go + Gin + GORM + PostgreSQL (backend/, including the verification
+  agent),
   React 19 + TypeScript + Vite + Ant Design 5 + Tailwind (frontend/),
   Next.js 16 static export (website/).
 
-  Per-folder rules live in backend/AGENTS.md, agent/verification/AGENTS.md,
-  frontend/AGENTS.md, website/AGENTS.md; the root AGENTS.md holds the
-  engineering philosophy. A change under a folder answers to both.
+  The architecture is in docs/architecture.md, the test setup in
+  docs/testing.md and the terms in docs/glossary.md. Per-folder rules live in
+  backend/AGENTS.md, frontend/AGENTS.md, website/AGENTS.md; the root
+  AGENTS.md holds the rules for every module. A change under a folder answers
+  to both.
 
   Conventions that shape planning:
-  - Before any OpenSpec message or action, load the repository Humanizer skill
-    and apply its embedded mode to all agent-authored prose. Preserve exact
+  - Load the repository Humanizer skill once per context, before the first
+    OpenSpec message or action, as AGENTS.md says, and apply its embedded
+    mode to all agent-authored prose. Preserve exact
     commands, paths, identifiers, schemas, templates, quotations and facts.
+  - Run mise run doctor before writing or applying a change, and stop and
+    show the user the output if it fails, as the "Environment check before
+    a change" section of AGENTS.md says.
   - English only in code, comments, identifiers, API strings and commit
     messages. AGENTS.md enumerates every place translated end-user content
     is allowed; a change that needs another one amends that rule explicitly
@@ -28,7 +35,8 @@ context: |
   - Names state intent. Getters take Get, predicates read as questions,
     booleans take is/can/has/should.
   - Work happens on a Fedora host with the tools pinned in mise.toml.
-    Commands are just (repository root, backend, agent) and pnpm (frontend).
+    Commands are mise tasks (mise run <task>, from any directory)
+    and pnpm (frontend).
   - Review hooks gate plans, finished turns, full proposals and full
     implementations. Resolve their findings as the "Review hooks" section
     of AGENTS.md says.
@@ -49,23 +57,24 @@ rules:
     - Humanize all prose in embedded mode before writing the artifact.
     - For each decision, name the alternatives rejected and why. A decision with no alternatives listed is a description, not a decision.
     - Ground claims about current state in file:line references.
-    - Ground architecture decisions in the module AGENTS.md architecture rules and the accepted ADRs in adr/.
+    - Ground architecture decisions in docs/architecture.md and the module AGENTS.md architecture rules. A decision that changes the architecture changes docs/architecture.md in the same change.
     - Say which module AGENTS.md rules the approach is constrained by.
   tasks:
     - Humanize all prose in embedded mode before writing the artifact.
-    - Each task's verification is a local command the agent runs itself, never "should work". Valid checks are the tests of the touched packages and of the packages that test the same feature (just test-package ./internal/features/<feature>/... in backend/), just lint at the root or in a module, just build and just test in agent/verification, pnpm lint, pnpm typecheck, pnpm test, pnpm build, or an automated test that pins the behavior.
-    - Every task is one the agent can complete and verify on its own. Every task closes without the user stepping in and without the full backend suite. Keep these out of tasks and out of other tasks' verification, including a final verification task - the full backend suite (just test at the root), the Docker filesystem suite (just test-filesystem), deploys, CI pipeline runs, any check that needs a push, and manual app runs or browser clicking. The full backend suite resets the test containers other agents share, so it is left to the developer and CI.
+    - Each task's verification is a local command the agent runs itself, never "should work". Valid checks are mise run test, mise run e2e:browser, mise run agent:e2e, mise run backend:test-upgrade, mise run e2e:unit, mise run e2e:lifecycle, a direct Go test command or frontend test runner call that repeats the tests the task touches, mise run lint or a module lint task such as mise run backend:lint, go -C backend build ./cmd/verification-agent, pnpm lint, pnpm typecheck, pnpm build, or an automated test that pins the behavior.
+    - Every task is one the agent can complete and verify on its own. Every task closes without the user stepping in. Keep these out of tasks and out of other tasks' verification, including a final verification task - the Docker filesystem suite (mise run test-filesystem), deploys, CI pipeline runs, any check that needs a push, and manual app runs or browser clicking.
     - Order by dependency, smallest slice first when the work is repetitive.
-    - When the tasks add or change tests in a backend package, a verification agent package or the frontend, end tasks.md with a "## Change verification" section that runs every such package the tasks' verifications name. It is the last section, has no checkboxes and holds one code block fenced as sh, with one command per line. The full implementation review runs these commands, and only three forms are allowed - just test-package followed by package paths starting with ./ (runs in backend/), just --justfile agent/verification/Justfile test with nothing after it, and pnpm --dir frontend test with optional test paths or filters. Arguments hold only letters, digits, dots, slashes, underscores, hyphens, equals signs, at signs and colons. The hook tests in .agent-hooks/ need no section, because the hook's module check runs them.
+    - When the tasks add or change tests in a backend package or a verification agent package outside the end-to-end ones, or the frontend, end tasks.md with a "## Change verification" section that names mise run test; a change that adds or changes scenarios of the browser end-to-end suite in e2e/browser/scenarios also names mise run e2e:browser. A task that changes tests in backend/internal/agent/e2e, backend/internal/modules/backups/e2e or backend/e2e/upgrade, the verification agent's code or the Dockerfile names the command that repeats those tests in its own verification. No section or task verification runs mise run test-full, which agents run only on the user's direct request. The section is the last one, has no checkboxes and holds one code block fenced as sh, with one command per line. The implementing agent runs these commands before review; review only validates the section and reads the verification evidence. Allowed forms are exactly mise run test, pnpm --dir frontend test:browser --project=ui and mise run e2e:browser, each with nothing after it. The hook tests in .agent-hooks/ need no section; their tasks name an explicit local verification command instead.
     - End the task list at the pre-commit boundary. The change is complete when implementation, required documentation, verification and mandatory review are finished, and the working tree is ready to commit.
     - Never add tasks for committing, pushing, creating or updating a pull request, requesting pull request review, merging, or any later Git or repository-hosting workflow. Completion status updates must be ready for inclusion in the same commit as the implementation.
 
 operations:
   apply:
     guidance:
-      - Run the linter for every directory the diff touches before finishing.
+      - Follow the implementation verification and review order in the Review hooks section of AGENTS.md.
       - Resolve every blocking review hook finding before finishing; never apply a scope finding without the user's consent.
-      - Never commit or push without explicit approval. A "pack" request, as the OpenSpec section of AGENTS.md describes it, is approval to commit, not to push. No AI attribution trailers in commit messages.
+      - Once the full implementation review accepts the change, write the full summary of the change. Open it by saying that the automatic review passed and accepted the change in its current state, and end with a short list of what the review made you fix.
+      - Never commit or push without explicit approval. A "pack" request, as the OpenSpec section of AGENTS.md describes it, is approval to commit and, from a linked worktree, to merge that commit into the local develop branch, not to push. No AI attribution trailers in commit messages.
   archive:
     guidance:
       - Confirm the module AGENTS.md files were updated if the change introduced a convention.

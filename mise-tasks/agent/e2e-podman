@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+#MISE hide=true
+#MISE description="Run the Podman subset of the verification agent end-to-end suite"
+#MISE dir="backend"
+set -euo pipefail
+
+engine_socket="${E2E_ENGINE_SOCKET:-/run/podman/podman.sock}"
+if ! python3 - "$engine_socket" <<'PY'
+import os
+import socket
+import sys
+
+path = sys.argv[1]
+try:
+    if not os.access(path, os.R_OK | os.W_OK):
+        raise PermissionError(path)
+    with socket.socket(socket.AF_UNIX) as connection:
+        connection.connect(path)
+except OSError as error:
+    print(f"Cannot open engine socket {path}: {error}", file=sys.stderr)
+    sys.exit(1)
+PY
+then
+    if [[ ! -e "$engine_socket" ]]; then
+        printf 'Start the rootful socket with: sudo systemctl enable --now podman.socket\n' >&2
+    else
+        printf 'Grant access with: sudo setfacl -m u:%s:rw %q\n' "$USER" "$engine_socket" >&2
+    fi
+    exit 1
+fi
+
+# shellcheck source=scripts/fedora.sh
+source ../scripts/fedora.sh
+apply_libedit_shim
+export DATABASUS_AGENT_E2E_ENGINE_HOST="unix://$engine_socket"
+go test ${CI:+-race} -count=1 -timeout 30m -v \
+    -run '^(TestVerifyBackup|TestRestoreContainer)$/^(completes_with_an_encrypted_backup_on_postgres_18|fails_after_one_attempt_when_the_backup_is_broken|runs_without_root_or_capabilities_when_restoring_a_backup)$' \
+    ./internal/agent/e2e/...

@@ -105,7 +105,7 @@ The container SHALL refuse startup when it detects data at the deprecated Postgr
 
 ### Requirement: One filesystem suite runs locally and in CI
 
-The repository SHALL provide `just test-filesystem` as the single entry point for the Docker filesystem suite. It SHALL build or accept a local candidate image and run the same cases locally and in CI. The suite SHALL sort every case into exactly one case group: `permissions`, `network`, `upgrades` or `lifecycle`. It SHALL run every group when no group or case is selected, the cases of one group when a group is selected, and a single case when a case is selected. An unknown group SHALL fail the run before any case starts.
+The repository SHALL provide `mise run test-filesystem` as the single entry point for the Docker filesystem suite. It SHALL build or accept a local candidate image and run the same cases locally and in CI. The suite SHALL sort every case into exactly one case group: `permissions`, `network`, `upgrades` or `lifecycle`. It SHALL run every group when no group or case is selected, the cases of one group when a group is selected, and a single case when a case is selected. An unknown group SHALL fail the run before any case starts.
 
 CI SHALL build the candidate once and run each case group as its own check from that same candidate. The candidate SHALL pass between CI jobs only as a short-lived workflow artifact and SHALL NOT be pushed to or pulled from an image registry.
 
@@ -113,12 +113,12 @@ Each positive case SHALL start the real container and invoke `databasus --test-s
 
 #### Scenario: Developer runs the complete suite
 
-- **WHEN** a developer runs `just test-filesystem` without an image reference, a group or a case
-- **THEN** the recipe builds a local candidate and runs every case group against it
+- **WHEN** a developer runs `mise run test-filesystem` without an image reference, a group or a case
+- **THEN** the task builds a local candidate and runs every case group against it
 
 #### Scenario: Developer runs one group
 
-- **WHEN** a developer runs `just test-filesystem` with the `network` group selected
+- **WHEN** a developer runs `mise run test-filesystem` with the `network` group selected
 - **THEN** only the cases of the `network` group run
 
 #### Scenario: An unknown group is selected

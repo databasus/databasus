@@ -12,16 +12,26 @@ The frontend SHALL render all user-facing copy in one of six languages: English,
 
 Technical strings are excluded and stay identical in every language: command lines and code blocks, connection strings, cron expressions, database engine and tool names, file paths, and duration readouts such as `2h 15m 3s` in full, and the unit words in size readouts such as the `GB` in `1.4 GB`. The digits in a size or a count are not excluded; see the number formatting requirement below.
 
+A transient success notice already displayed when the user changes language MAY retain its creation language until its existing bounded lifetime ends. This exception SHALL NOT extend that lifetime or apply to persistent feedback, validation errors or operation failures. Notices created after the switch SHALL use the selected language.
+
 #### Scenario: A user switches language
 
 - **WHEN** a user selects Russian
-- **THEN** every visible label, button and message re-renders in Russian without a page reload
+- **THEN** every visible label, button and message re-renders in Russian without a page reload, except a transient success notice already displayed before the switch
+- **AND** an already displayed transient success notice may retain its creation language only until its existing bounded lifetime ends
 - **AND** command blocks, connection strings and engine names remain byte-identical to what English showed
 
 #### Scenario: Switching language keeps what is on screen
 
 - **WHEN** a user switches the language while a form on the page holds unsaved input, or from the language control inside the open narrow-viewport sidebar
 - **THEN** the form keeps its input and the sidebar stays open, both now labelled in the new language
+
+#### Scenario: A transient success notice spans a language switch
+
+- **WHEN** a success notice is already visible and the user selects another language
+- **THEN** that notice may retain its creation language until it expires without restarting its lifetime
+- **AND** persistent feedback and failures use the new language immediately
+- **AND** the next success notice is created in the new language
 
 ### Requirement: The language control sits beside the theme control
 
@@ -214,9 +224,9 @@ Every translated message SHALL reach the page as text, never as markup. A value 
 - **WHEN** a translated message contains angle brackets that are not part of the interface's own formatting
 - **THEN** they are shown as characters rather than interpreted as elements
 
-### Requirement: Backend errors are translated by code, with the message as fallback
+### Requirement: Backend errors are translated by code without a free-text fallback
 
-The frontend SHALL translate an error response by its stable error code when the backend supplies one, and SHALL display the backend's message text only when no code is present or the frontend has no translation for it. This change does not add codes to the backend.
+The frontend SHALL translate an error response by its stable error code when that code has a translation. When the code is absent or unknown, it SHALL show a general error message in the selected language. It MUST NOT use the response's message, title, detail, raw code or request address as fallback copy. This change does not add backend codes or change the HTTP contract.
 
 #### Scenario: The backend supplies a known error code
 
@@ -226,12 +236,12 @@ The frontend SHALL translate an error response by its stable error code when the
 #### Scenario: The backend supplies no code
 
 - **WHEN** a request fails with only a free-text message
-- **THEN** the user sees that message as-is, in a container whose surrounding copy is translated
+- **THEN** the user sees a general translated error rather than that message
 
 #### Scenario: The backend supplies an unrecognized code
 
-- **WHEN** a request fails with an error code the frontend has no translation for
-- **THEN** the user sees the backend's message text rather than a raw code or a blank message
+- **WHEN** a request fails with an error code the frontend has no translation for and a nonempty message
+- **THEN** the user sees a general translated error rather than the message or raw code
 
 #### Scenario: The backend supplies an unrecognized code and no message
 
@@ -240,5 +250,73 @@ The frontend SHALL translate an error response by its stable error code when the
 
 #### Scenario: The request fails without an answer from the backend
 
-- **WHEN** the server cannot be reached, or answers with an error status but no error description
+- **WHEN** the server cannot be reached, or answers with an error status but no usable error description
 - **THEN** the user sees a message in the selected language rather than a request address or a status line
+
+### Requirement: Every error code in the contract has a translation
+
+For every error code the API contract declares, every interface dictionary SHALL hold a translated message. A contract code without a translation SHALL fail the frontend type check, which names the missing code, so a new code cannot reach users as raw text. A failed call to a contract operation SHALL reach the user through the same translation by code as every other backend error.
+
+#### Scenario: A code is added to the contract
+
+- **WHEN** a developer adds an error code to the contract, regenerates the frontend types and adds no translation
+- **THEN** the frontend checks fail and name the missing code
+
+#### Scenario: A contract operation fails
+
+- **WHEN** a call to a contract operation answers `Problem` with `code` `internal`
+- **THEN** the user sees the translated message for that code in the selected language
+
+### Requirement: Technical error diagnostics require an explicitly supported code
+
+An error's technical detail SHALL be displayed only when its known code explicitly allows diagnostic text under the API contract. Connection failure reasons for `database_connection_failed` and required/free disk bytes for `insufficient_disk_space` SHALL remain available as plain text with translated surrounding copy. Unrecognized errors MUST NOT expose technical detail through that mechanism.
+
+#### Scenario: Connection diagnostics are useful
+
+- **WHEN** a request fails with `database_connection_failed` and a connection reason
+- **THEN** the user sees the translated connection-failure message and that reason rendered as text
+
+#### Scenario: Disk diagnostics are useful
+
+- **WHEN** a request fails with `insufficient_disk_space` and the required and free byte counts
+- **THEN** the user sees the translated capacity message and those diagnostic counts
+
+#### Scenario: An unknown code supplies diagnostic-looking text
+
+- **WHEN** an unknown code includes a nonempty detail, including markup-like text
+- **THEN** the user sees only the general translated error and no part of that detail
+
+#### Scenario: A code resembles an inherited property
+
+- **WHEN** an unrecognized code matches a built-in object-property name
+- **THEN** it still selects the general translated error and exposes no server text
+
+### Requirement: Active notifier-form feedback follows language changes
+
+Validation and operation errors still displayed in the notifier form SHALL re-render in the selected language without resetting the draft, expanded sections or pending operations. User-entered values and explicitly supported technical diagnostics SHALL remain literal text. Already displayed transient success notices MAY retain the language used when they were created until their bounded lifetime ends; later notices SHALL use the current language.
+
+#### Scenario: A user changes language after validation fails
+
+- **WHEN** the notifier form shows a validation error and the user selects another language
+- **THEN** the error and field labels change language while field values and expanded sections remain unchanged
+
+#### Scenario: A request fails after a language switch
+
+- **WHEN** a settings test starts in one language, the user switches languages and the active request then fails
+- **THEN** the resulting error uses the newly selected language
+- **AND** the switch sends no additional test request
+
+#### Scenario: A diagnostic contains markup-like or interpolation-like text
+
+- **WHEN** a supported test diagnostic or user-entered value contains angle brackets or placeholder syntax
+- **THEN** it is displayed literally within the translated message and creates no markup or substituted value
+
+### Requirement: The language menu supports keyboard selection
+
+The paired language control SHALL expose an accessible name and support opening, selection and dismissal from the keyboard, including when its visible presentation is compact. Existing pointer-hover and touch/click opening behavior and the six native language names SHALL remain available.
+
+#### Scenario: A user changes language without a pointer
+
+- **WHEN** a user focuses the language control, opens its menu and selects a language from the keyboard
+- **THEN** the interface changes language and the selected language is indicated
+- **AND** closing the menu leaves focus on the control

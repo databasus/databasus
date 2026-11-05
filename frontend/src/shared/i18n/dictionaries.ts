@@ -14,6 +14,3 @@ export type Locale = keyof typeof DICTIONARIES;
 export const SUPPORTED_LOCALES = Object.keys(DICTIONARIES) as Locale[];
 
 export const DEFAULT_LOCALE: Locale = 'en';
-
-export const isSupportedLocale = (value: string | null | undefined): value is Locale =>
-  value !== null && value !== undefined && SUPPORTED_LOCALES.includes(value as Locale);

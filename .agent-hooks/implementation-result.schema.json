@@ -8,7 +8,7 @@
         "properties": {
           "category": {
             "type": "string",
-            "enum": ["bug", "spec_mismatch", "missing_test", "docs", "minor"]
+            "enum": ["bug", "spec_mismatch", "missing_test", "architecture", "docs", "minor"]
           },
           "file": {
             "type": "string"

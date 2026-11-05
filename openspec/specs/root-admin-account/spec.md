@@ -171,7 +171,7 @@ After the change, the administrator SHALL sign in with the new address, and the 
 
 The ordinary password reset SHALL work for the bootstrap administrator on the same terms as for any other user: a code is sent to the stored address, and it expires, is single-use and is rate-limited exactly as it is elsewhere. On a new instance this holds from the moment the account is created; on an upgraded one it holds as soon as the owner replaces the placeholder address.
 
-A reset requested while an upgraded account still holds the placeholder address `admin` SHALL NOT deliver a code, because no mail server can reach that address. What the caller is told in that case is the existing behavior of the reset flow and is not specified here.
+A reset requested while an upgraded account still holds the placeholder address `admin` SHALL NOT deliver a code, because no mail server can reach that address. The caller SHALL get the same answer as for any other address, as the requirement on password reset requests says.
 
 #### Scenario: Resetting the administrator's password by email
 
@@ -179,13 +179,23 @@ A reset requested while an upgraded account still holds the placeholder address 
 - **THEN** a reset code is sent to that address
 - **AND** submitting the code sets a new password
 
+#### Scenario: Reset requested for the placeholder address
+
+- **WHEN** somebody requests a password reset for the address `admin` on an upgraded instance whose administrator still holds it
+- **THEN** the answer is the same as for any other address
+- **AND** no code is sent
+
 ### Requirement: Sign-in refuses cleanly and discloses nothing about the accounts an instance holds
 
 A failed sign-in SHALL NOT tell the caller that an account with the login `admin` exists on the instance, SHALL NOT suggest signing in under that login, and SHALL NOT reveal how many accounts the instance holds. This applies regardless of how many accounts there are.
 
+A failed password sign-in SHALL give the same answer, with the same status and the same error code, whether the address belongs to no account, to an account that has not finished sign-up, to an account that has no password, or to an account whose password does not match. The answer SHALL say that the account is deactivated only after the password is verified. A caller who does not know an account's password therefore cannot learn from the status or the error code of a sign-in which addresses have accounts.
+
 A sign-in attempt for an account that has no password - one created through an external identity provider, or an unclaimed account on an instance that has not yet been upgraded - SHALL be refused the way an incorrect password is refused, and SHALL leave the instance serving other requests.
 
 **BREAKING**: an instance holding a single user previously answered a sign-in attempt with an unknown address by naming the `admin` login. That response is removed; an owner recovers the address from the console instead.
+
+**BREAKING**: sign-in previously answered an unknown address, an account that had not finished sign-up and a deactivated account each with its own message before checking the password. Those three answers are replaced by the answer for an incorrect password.
 
 #### Scenario: Mistyped address on a single-user instance
 
@@ -197,6 +207,26 @@ A sign-in attempt for an account that has no password - one created through an e
 - **WHEN** somebody submits the password form for an account that signs in through Google or GitHub
 - **THEN** the attempt is refused in the same way an incorrect password is refused
 - **AND** the instance keeps answering every other request
+
+#### Scenario: Unknown address and wrong password
+
+- **WHEN** one sign-in uses an address that belongs to no account and another uses an existing account's address with a wrong password
+- **THEN** both get the same status and the same error code
+
+#### Scenario: Invited account that has not finished sign-up
+
+- **WHEN** somebody signs in with the address of an account that was invited and has not finished sign-up
+- **THEN** the response is the same as for a wrong password
+
+#### Scenario: Deactivated account with a wrong password
+
+- **WHEN** somebody signs in to a deactivated account with a wrong password
+- **THEN** the response is the same as for a wrong password
+
+#### Scenario: Deactivated account with its correct password
+
+- **WHEN** somebody signs in to a deactivated account with its correct password
+- **THEN** the response says that the account is deactivated and carries no access token
 
 ### Requirement: An owner can recover the administrator addresses from the host
 
@@ -359,3 +389,105 @@ The console password reset SHALL refuse a password shorter than eight characters
 
 - **WHEN** an operator resets the password of the account whose address is `admin` to a password of at least eight characters
 - **THEN** the account signs in with the address `admin` and the new password
+
+### Requirement: A password reset request discloses nothing about the accounts an instance holds
+
+A request for a password reset code SHALL give the same successful answer whether the address belongs to an active account, to an account that is not active, or to no account. Only an active account SHALL receive a code. A request refused by the rate limit SHALL answer that the limit was reached. The limit counts requests per address whether or not an account exists, so that answer reveals nothing either.
+
+#### Scenario: Reset requested for an account that is not active
+
+- **WHEN** somebody requests a reset code for the address of a deactivated account
+- **THEN** the answer is the same as for an active account
+- **AND** no code is sent
+
+#### Scenario: Reset requested for an unknown address
+
+- **WHEN** somebody requests a reset code for an address that belongs to no account
+- **THEN** the answer is the same as for an active account
+- **AND** no message is sent
+
+#### Scenario: Rate limit for known and unknown addresses
+
+- **WHEN** somebody sends three reset requests within an hour for an address that belongs to no account and three for an active account's address, and then a fourth request for each
+- **THEN** both fourth requests get the same status and the same error code, saying that the limit was reached
+
+### Requirement: A password reset code accepts five attempts
+
+A password reset code SHALL accept at most five attempts to complete a reset. After five attempts it SHALL stop working, and the correct value SHALL get the same refusal as a wrong code. The count SHALL survive a failed attempt and a server restart, and simultaneous attempts SHALL NOT check the code more than five times in total. A new code SHALL start with all five attempts.
+
+#### Scenario: Correct code after five wrong attempts
+
+- **WHEN** somebody enters a wrong code five times for an address and then enters the correct code
+- **THEN** the reset is refused as an invalid reset code
+- **AND** the password is unchanged
+
+#### Scenario: Correct code after four wrong attempts
+
+- **WHEN** somebody enters a wrong code four times for an address and then enters the correct code
+- **THEN** the password is replaced
+
+#### Scenario: A failed attempt stays counted
+
+- **WHEN** somebody enters a wrong code and the request is refused
+- **THEN** the stored count for that code has grown by one
+
+#### Scenario: Simultaneous wrong attempts
+
+- **WHEN** more than five wrong attempts for one code arrive at the same time
+- **THEN** the correct code is refused afterwards
+- **AND** the stored count for that code does not exceed five
+
+#### Scenario: A new code after an exhausted one
+
+- **WHEN** a code has been exhausted, the user requests a new one, and somebody enters a wrong code four times and then the new code
+- **THEN** the new code replaces the password
+
+#### Scenario: Simultaneous correct attempts
+
+- **WHEN** two requests with the same correct code and different new passwords arrive at the same time
+- **THEN** exactly one is answered as a completed reset and the other is refused as an invalid reset code
+- **AND** the account signs in with the password of the accepted request
+
+### Requirement: Only the newest password reset code completes a reset
+
+Only the newest code issued for a user SHALL be able to complete a reset. An older code SHALL be refused from the moment a newer one exists, and SHALL stay refused after the newest code is exhausted or used. An older code SHALL NOT replace the password after a completed reset.
+
+#### Scenario: Older code while the newest one is usable
+
+- **WHEN** a user requests two codes and somebody enters the first
+- **THEN** the reset is refused as an invalid reset code
+
+#### Scenario: Older code after the newest one is exhausted
+
+- **WHEN** a user requests two codes, the second is exhausted, and somebody enters the first
+- **THEN** the reset is refused as an invalid reset code
+
+#### Scenario: Older code after a completed reset
+
+- **WHEN** a user requests two codes, completes a reset with the second, and somebody enters the first
+- **THEN** the reset is refused as an invalid reset code
+- **AND** the password stays the one set by the completed reset
+
+### Requirement: The status, error code and detail of an answer to an entered password reset code disclose nothing about the accounts an instance holds
+
+When the new password is long enough, a wrong, used, exhausted, expired or older code and an address without an active account SHALL all get the same status, error code and detail, so a caller learns nothing about the accounts from them.
+
+#### Scenario: Unknown address, inactive account and wrong code
+
+- **WHEN** somebody enters a code for an address without an account, a code for a deactivated account's address and a wrong code for an active account's address
+- **THEN** all three answers have the same status, error code and detail
+
+### Requirement: The new password is processed only after the reset code is verified
+
+The server SHALL NOT process the new password beyond checking its minimum length until the code is verified, so that a caller without a valid code cannot make the server hash a password. A password shorter than the minimum SHALL be refused naming the password field, whatever the code, and that refusal SHALL NOT spend an attempt of the code.
+
+#### Scenario: Wrong code with a password the server cannot process
+
+- **WHEN** somebody enters a wrong code together with a new password longer than the server can hash
+- **THEN** the reset is refused as an invalid reset code
+
+#### Scenario: Wrong code with a short password
+
+- **WHEN** somebody enters a wrong code together with a new password shorter than the minimum
+- **THEN** the request is refused as invalid, naming the new password field
+- **AND** the stored count for that code does not grow

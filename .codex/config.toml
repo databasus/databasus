@@ -1,0 +1,11 @@
+# Keep the root and module instructions within the project document limit.
+project_doc_max_bytes = 65536
+
+[shell_environment_policy.set]
+AGENT_REVIEW_CLIENT = "codex"
+
+[mcp_servers.chrome-devtools]
+# Use the same shell launcher as the Claude Code browser server.
+command = "bash"
+# Resolve the launcher from any directory in the checkout or worktree.
+args = ["-c", "exec \"$(git rev-parse --show-toplevel)/scripts/browser-mcp.sh\""]

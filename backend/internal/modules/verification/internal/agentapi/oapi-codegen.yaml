@@ -1,0 +1,8 @@
+package: agentapi
+output: api.gen.go
+generate:
+  models: true
+  gin-server: true
+  strict-server: true
+compatibility:
+  always-prefix-enum-values: true

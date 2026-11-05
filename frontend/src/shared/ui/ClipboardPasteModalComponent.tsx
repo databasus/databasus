@@ -39,10 +39,9 @@ export function ClipboardPasteModalComponent({ open, onSubmit, onCancel }: Props
         </div>
       }
     >
-      <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-        {t('app.clipboardPaste.description')}
-      </p>
+      <p className="mb-2 text-sm text-muted">{t('app.clipboardPaste.description')}</p>
       <Input.TextArea
+        aria-label={t('app.clipboardPaste.title')}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder={t('app.clipboardPaste.placeholder')}

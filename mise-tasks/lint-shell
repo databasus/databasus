@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+#MISE description="Check the shell scripts with shellcheck"
+#MISE dir="."
+#MISE hide=true
+set -euo pipefail
+
+git ls-files -z --cached --others --exclude-standard '*.sh' tools/lsp mise-tasks |
+    while IFS= read -r -d '' script; do
+        if [[ -f "$script" ]]; then
+            printf '%s\0' "$script"
+        fi
+    done | xargs -0 -r shellcheck

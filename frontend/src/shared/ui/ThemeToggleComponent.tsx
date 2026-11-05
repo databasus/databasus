@@ -1,73 +1,34 @@
+import { SunOutlined, MoonOutlined, DesktopOutlined } from '@ant-design/icons';
 import { Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { THEME_MODE_LABEL_KEYS, useTheme } from '../theme';
-
-const SunIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="18"
-    height="18"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <circle cx="12" cy="12" r="4" />
-    <path d="M12 2v2" />
-    <path d="M12 20v2" />
-    <path d="m4.93 4.93 1.41 1.41" />
-    <path d="m17.66 17.66 1.41 1.41" />
-    <path d="M2 12h2" />
-    <path d="M20 12h2" />
-    <path d="m6.34 17.66-1.41 1.41" />
-    <path d="m19.07 4.93-1.41 1.41" />
-  </svg>
-);
-
-const MoonIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="18"
-    height="18"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
-  </svg>
-);
-
-const SystemIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="18"
-    height="18"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <rect width="20" height="14" x="2" y="3" rx="2" />
-    <line x1="8" x2="16" y1="21" y2="21" />
-    <line x1="12" x2="12" y1="17" y2="21" />
-  </svg>
-);
+import { useDropdownFocus } from './useDropdownFocus';
 
 interface Props {
   isSplitEnd?: boolean;
 }
 
 export function ThemeToggleComponent({ isSplitEnd = false }: Props) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const changeOpen = (isNextOpen: boolean) => {
+    setIsOpen(isNextOpen);
+    if (!isNextOpen) controlRef.current?.focus();
+  };
+
+  const getCurrentIcon = () => {
+    if (theme === 'system') {
+      return <DesktopOutlined aria-hidden />;
+    }
+    return resolvedTheme === 'dark' ? <MoonOutlined aria-hidden /> : <SunOutlined aria-hidden />;
+  };
   const { t } = useTranslation();
+  const controlRef = useRef<HTMLButtonElement>(null);
+  const focusMenu = useDropdownFocus(isOpen);
+
   const { theme, setTheme, resolvedTheme } = useTheme();
 
   const items: MenuProps['items'] = [
@@ -75,48 +36,83 @@ export function ThemeToggleComponent({ isSplitEnd = false }: Props) {
       key: 'light',
       label: (
         <div className="flex items-center gap-2">
-          <SunIcon />
+          <SunOutlined aria-hidden />
           <span>{t(THEME_MODE_LABEL_KEYS.light)}</span>
         </div>
       ),
-      onClick: () => setTheme('light'),
+      onClick: () => {
+        setTheme('light');
+        changeOpen(false);
+      },
     },
     {
       key: 'dark',
       label: (
         <div className="flex items-center gap-2">
-          <MoonIcon />
+          <MoonOutlined aria-hidden />
           <span>{t(THEME_MODE_LABEL_KEYS.dark)}</span>
         </div>
       ),
-      onClick: () => setTheme('dark'),
+      onClick: () => {
+        setTheme('dark');
+        changeOpen(false);
+      },
     },
     {
       key: 'system',
       label: (
         <div className="flex items-center gap-2">
-          <SystemIcon />
+          <DesktopOutlined aria-hidden />
           <span>{t(THEME_MODE_LABEL_KEYS.system)}</span>
         </div>
       ),
-      onClick: () => setTheme('system'),
+      onClick: () => {
+        setTheme('system');
+        changeOpen(false);
+      },
     },
   ];
 
-  const getCurrentIcon = () => {
-    if (theme === 'system') {
-      return <SystemIcon />;
-    }
-    return resolvedTheme === 'dark' ? <MoonIcon /> : <SunIcon />;
-  };
-
   return (
-    <Dropdown menu={{ items, selectedKeys: [theme] }} trigger={['click']} placement="bottomRight">
+    <Dropdown
+      open={isOpen}
+      onOpenChange={changeOpen}
+      popupRender={(menu) => <div ref={focusMenu}>{menu}</div>}
+      menu={{
+        selectable: true,
+        items,
+        selectedKeys: [theme],
+        onKeyDown: (event) => {
+          if (event.key === 'Enter') event.preventDefault();
+          if (event.key === 'Escape') {
+            event.preventDefault();
+            event.stopPropagation();
+            changeOpen(false);
+          }
+        },
+      }}
+      trigger={['click']}
+      placement="bottomRight"
+    >
       <button
-        className={`flex cursor-pointer items-center gap-1.5 border border-gray-200 bg-white px-2.5 py-1 text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 ${
+        ref={controlRef}
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        onKeyDown={(event) => {
+          if (['ArrowDown', 'Enter', ' '].includes(event.key)) {
+            event.preventDefault();
+            changeOpen(true);
+          } else if (event.key === 'Escape' && isOpen) {
+            event.preventDefault();
+            event.stopPropagation();
+            changeOpen(false);
+          }
+        }}
+        className={`flex cursor-pointer items-center gap-1.5 border border-border bg-surface px-2.5 py-1 text-sm text-content transition-colors hover:bg-hover ${
           isSplitEnd ? 'rounded-r-md border-l-0' : 'rounded-md'
         }`}
-        title={t('app.theme.title', { theme: t(THEME_MODE_LABEL_KEYS[theme]) })}
+        aria-label={t('app.theme.title', { theme: t(THEME_MODE_LABEL_KEYS[theme]) })}
       >
         {getCurrentIcon()}
         <span className="hidden sm:inline">{t(THEME_MODE_LABEL_KEYS[theme])}</span>

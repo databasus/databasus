@@ -29,3 +29,46 @@ The single application process SHALL own cache entries, publish-subscribe subscr
 - **WHEN** the application process starts
 - **THEN** its transient runtime providers are available inside that process
 - **AND** startup does not wait for a shared transient-state service
+
+### Requirement: The image is the whole installation
+
+The supplied Docker image SHALL contain everything one installation runs: the backend, the web interface, the internal PostgreSQL database and the client tools of every supported engine version. Installing SHALL take one container with one data volume, and upgrading SHALL take a newer image on the same volume. The internal database SHALL run inside that container and SHALL NOT be replaced by an external server.
+
+#### Scenario: Fresh install
+
+- **WHEN** an operator starts the image with an empty data volume
+- **THEN** Databasus starts with its internal database and serves the web interface without any other service
+
+#### Scenario: Upgrade
+
+- **WHEN** an operator replaces the container with a newer image on the same data volume
+- **THEN** the internal database is migrated and every workspace, database, storage, notifier and backup remains
+
+### Requirement: The Helm chart lets a slow start finish
+
+The supplied Helm chart SHALL give the application up to 10 minutes to start answering on its port before it counts as failed, and the liveness and readiness probes SHALL apply only after that start has succeeded. Once started, an instance that stops answering SHALL be restarted as quickly as the liveness probe settings say. An operator SHALL be able to change or disable this startup allowance through the chart's values.
+
+#### Scenario: A start takes longer than the liveness allowance
+
+- **WHEN** the application needs several minutes for its migrations and startup work before it opens its port
+- **THEN** the pod is not restarted during that time and receives traffic once the port answers
+
+#### Scenario: An instance hangs after starting
+
+- **WHEN** an instance that has started stops answering
+- **THEN** the liveness probe restarts it under its own settings, without waiting for the startup allowance
+
+#### Scenario: An operator disables the allowance
+
+- **WHEN** an operator renders the chart with the startup probe disabled
+- **THEN** the workload has no startup probe and the liveness and readiness probes stay as configured
+
+#### Scenario: A start never finishes
+
+- **WHEN** the port has not answered 10 minutes after the container starts
+- **THEN** Kubernetes restarts the container
+
+#### Scenario: An operator changes the allowance
+
+- **WHEN** an operator renders the chart with a different startup probe period or failure threshold
+- **THEN** the workload's startup probe carries those values

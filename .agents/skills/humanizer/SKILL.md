@@ -63,7 +63,7 @@ Start a paragraph with its subject. Answer the question the reader meant rather 
 
 ## Language: conversation and artifacts
 
-Write to the user in the language they are using. Keep repository artifacts in English: code, comments, documentation, specs, plans, review findings, commit messages and pull request text. The project's `AGENTS.md` lists the narrow exceptions.
+Write to the user in the language they are using. Keep repository artifacts in English: code, comments, documentation, specs, plans, review findings, commit messages and pull request text. An uncommitted working document, such as a plan or an analysis, may follow the user's language until it is committed. The project's `AGENTS.md` lists the narrow exceptions.
 
 The reader knows English. Keep established technical terms, tool and library names, API names, flags, paths and commands in English instead of inventing a native equivalent or transliterating one; "bind-mount", "race condition", "retry" and "backpressure" read better untranslated. Translate the sentence around the term, never the term itself. Explain a term because it is new to this conversation, not because it is English.
 

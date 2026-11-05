@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+#MISE hide=true
+#MISE description="Upgrade the newest release to the current code and check that its data survives"
+#MISE dir="backend"
+# Upgrades the newest release to the current code: an image built from the checkout, or the one named
+# in DATABASUS_IMAGE. The newest release is chosen by version rather than by reachability, because
+# releases are tagged on main and develop does not contain those tags.
+set -euo pipefail
+
+previous_release=$(git tag --list 'v*' --sort=-v:refname | head -1)
+if [[ -z "$previous_release" ]]; then
+    echo "no v* release tag in this checkout; fetch the tags with git fetch --tags" >&2
+    exit 1
+fi
+if [[ -z "${DATABASUS_IMAGE:-}" ]]; then
+    export DATABASUS_IMAGE=databasus-candidate:local
+    docker build --tag "$DATABASUS_IMAGE" ..
+fi
+export DATABASUS_PREVIOUS_IMAGE="databasus/databasus:${previous_release}"
+echo "upgrading ${DATABASUS_PREVIOUS_IMAGE} to ${DATABASUS_IMAGE}"
+# The race detector slows the test in CI, and this limit has not been measured with it.
+package_timeout=15m
+if [[ -n "${CI:-}" ]]; then
+    package_timeout=30m
+fi
+go test ${CI:+-race} -count=1 -timeout "$package_timeout" ./e2e/upgrade/...

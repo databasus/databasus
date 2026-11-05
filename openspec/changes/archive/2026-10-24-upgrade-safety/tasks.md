@@ -1,0 +1,27 @@
+## 1. Refusing a newer schema
+
+- [x] 1.1 Add the check from design.md "The check compares the newest versions" to `database.Migrate`, with `ErrSchemaNewerThanBinary` in `backend/internal/lib/database/errors.go`. Make `app.New` log and return the message the `internal-database-migrations` requirement asks for. Add tests in `internal/lib/database` for three cases: a database with a version newer than every embedded one is refused and left unchanged; a database with an unknown version older than the newest embedded one migrates; a database at the newest version starts. Add tests in `internal/app` and `cmd/databasus` that the server and a console command exit with the message on a newer schema. Verify with `just test-package ./internal/lib/database/... ./internal/app/... ./cmd/databasus/...` in `backend/`.
+- [x] 1.2 Add the one-way upgrade rule to "Migrations" in `docs/architecture.md`, as design.md "`docs/architecture.md` states that an upgrade is one-way" says. Add `e2e/upgrade/` to the layout block of "Backend layout" with the import rule from design.md. Verify that `rg -n "one-way|newer than its own|e2e/upgrade" docs/architecture.md` shows the bullet and the layout entry.
+
+## 2. The wait helper
+
+- [x] 2.1 Add `backend/internal/lib/testwait` with `Until` and `Poll` as design.md "`testwait` arrives with its first consumer" describes. Add tests for a condition that becomes true, a timeout that reports the description and the last message, and a cancelled test context, for both functions. Verify with `just test-package ./internal/lib/testwait/...` in `backend/`.
+
+## 3. The upgrade test
+
+- [x] 3.1 Add `e2e/` to the target layout in `backend/.golangci.yml` and add `./e2e/...` to `lint` and `format` in `backend/Justfile`. Verify with `just lint` in `backend/`.
+- [x] 3.2 Add the `test-upgrade` recipe to `backend/Justfile` as design.md "The previous release is the newest release tag by version" describes. Verify that `just --dry-run test-upgrade` in `backend/` prints the recipe script, which picks the tag with `git tag --list 'v*' --sort=-v:refname` and builds the image only when `DATABASUS_IMAGE` is empty, and that a real `just test-upgrade` run prints `upgrading databasus/databasus:<newest tag> to databasus-candidate:local` after building the image. With `DATABASUS_IMAGE` set, a real run prints that image and builds none.
+- [x] 3.3 Write `backend/e2e/upgrade` as design.md "The upgrade test is a Go test that drives two images" and "Writing against the old API and reading against the new one live in separate files" describe, covering every scenario of the `upgrade-test` requirements. Put the comparison in `e2e/upgrade/upgradecheck`, with a test that feeds it a notifier whose webhook URL was emptied and checks that the failure names the notifier and the value; this pins the scenario of a migration that loses a value without building a broken image. The upgrade flow returns an error instead of failing the test itself, removes its containers, network and volume before returning on success and on error, and the error carries the end of the failed instance's log; the test functions turn it into a failure. Add a test in `e2e/upgrade` that runs the flow with the current image set to `postgres:16` and an entrypoint that exits at once, asserts that the flow returns an error holding the end of that container's log, and then, right after the flow returns and in the same test, checks through the Docker API that no container, network or volume with the unique names the flow generated remains. Verify with `just test-package ./e2e/upgrade/upgradecheck/...` and `just test-upgrade` in `backend/`, both passing against the current checkout.
+
+## 4. Running it
+
+- [x] 4.1 Make `scripts/test.sh` run `just --justfile backend/Justfile test-upgrade` after the backend packages pass, with the run ID exported, and extend its exit trap to volumes with the run's label. Extend `scripts/test_sh_test.py` with cases: the upgrade test runs after the packages pass; it does not run, with no image build, when a package fails; and on interrupt the trap removes labelled volumes as well as containers and networks. Verify with `python3 -m unittest discover -s scripts -p '*_test.py'` at the root and `just lint-shell`.
+- [x] 4.2 Add the `test-upgrade` job to `.github/workflows/ci-release.yml` as design.md "CI and the full run" describes, pinning every action to a commit SHA, and add it to the `needs` of `determine-version`. Verify that `rg -n "test-upgrade" .github/workflows/ci-release.yml` shows the job and the `needs` entry and that `actionlint -ignore 'is unknown. available labels' .github/workflows/ci-release.yml` passes; the ignored rule rejects the Namespace runner labels the file already used before this change. Also verify that the combined output of `just test-group-packages` for `physical`, `logical`, `wal-usecases` and `other` in `backend/` does not list `e2e/upgrade`.
+- [x] 4.3 Update "Runs" in `docs/testing.md`: the upgrade test exists, runs in `just test` and as the CI check `test-upgrade`, and the sentence saying it does not exist yet is removed. Verify with `rg -n "upgrade test does not exist" docs` printing nothing.
+- [x] 4.4 Run `just lint` at the root and fix what it reports. Verify that it exits with status 0.
+
+## Change verification
+
+```sh
+just test-package ./internal/lib/database/... ./internal/app/... ./cmd/databasus/... ./internal/lib/testwait/... ./internal/lib/logging/... ./e2e/upgrade/upgradecheck/...
+```

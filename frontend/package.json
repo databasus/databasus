@@ -6,13 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "oxlint",
-    "typecheck": "tsc -b",
+    "lint": "bash lint/check.sh",
     "format": "oxfmt",
-    "format:check": "oxfmt --check",
-    "preview": "vite preview",
+    "typecheck": "tsc -b",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:browser": "node tooling/runBrowser.ts",
+    "generate:api": "pnpm --package=openapi-typescript@7.13.0 --package=typescript@5.8.3 dlx openapi-typescript ../backend/api/openapi.yaml -o src/shared/api/schema.gen.ts"
   },
   "dependencies": {
     "@ant-design/icons": "^5.6.1",
@@ -21,6 +20,7 @@
     "cron-parser": "^5.5.0",
     "dayjs": "^1.11.20",
     "i18next": "^26.4.2",
+    "openapi-fetch": "^0.17.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-i18next": "^17.0.14",
@@ -29,13 +29,25 @@
     "tailwindcss": "^4.3.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@feature-sliced/steiger-plugin": "0.8.1",
+    "@playwright/test": "1.64.1",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "14.6.8",
+    "@types/color-name": "2.0.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.7.0",
-    "@vitest/coverage-v8": "^3.2.4",
+    "color-name": "2.1.0",
     "eslint-plugin-i18next": "^6.1.5",
+    "happy-dom": "^21.0.4",
+    "msw": "^2.15.0",
     "oxfmt": "^0.72.0",
     "oxlint": "^1.87.0",
+    "postcss": "8.5.32",
+    "postcss-value-parser": "4.2.0",
+    "steiger": "0.8.1",
     "typescript": "~5.8.3",
     "vite": "^6.4.2",
     "vitest": "^3.2.4"

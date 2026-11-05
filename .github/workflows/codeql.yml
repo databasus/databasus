@@ -1,27 +1,30 @@
 name: Code scanning
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: ["**"]
   schedule:
     # CodeQL query packs and semgrep rulesets are updated over time; a scheduled
     # scan surfaces new findings even when no code has changed.
     - cron: "0 6 * * 1"
+  # ci-release.yml uses the same security gate for releases and manual validation.
+  workflow_call:
+    inputs:
+      is-release-gate:
+        type: boolean
+        required: true
 
 permissions:
   contents: read
 
+env:
+  MISE_TASK_RUN_AUTO_INSTALL: 'false'
+
 concurrency:
-  group: codeql-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: codeql-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' }}
 
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
-    # A pull request from develop is analyzed by the push to main after its merge.
-    if: github.head_ref != 'develop'
     runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
     permissions:
       security-events: write
@@ -43,12 +46,11 @@ jobs:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - name: Set up Go
+      - name: Install tools from mise.toml
         if: matrix.language == 'go'
-        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          go-version: "1.26.3"
-          cache: false
+          install_args: 'go'
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4.35.4
@@ -62,10 +64,33 @@ jobs:
         with:
           category: "/language:${{ matrix.language }}"
 
+  # The analysis uploads its results and passes whatever it found, so this job decides by severity.
+  codeql-severity-gate:
+    name: CodeQL severity gate
+    needs: [analyze]
+    if: inputs.is-release-gate
+    runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: read
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: 'gh jq'
+
+      - name: Check CodeQL alerts of the release analysis
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/check_codeql_alerts.sh "$GITHUB_REPOSITORY" "$GITHUB_REF" "$GITHUB_SHA"
+
   secret-scan:
     name: Secret scan (gitleaks)
-    # A pull request from develop is scanned by the push to main after its merge.
-    if: github.head_ref != 'develop'
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
     timeout-minutes: 15
     permissions:
@@ -78,36 +103,33 @@ jobs:
           # gitleaks scans every commit, so it needs the full history.
           fetch-depth: 0
 
-      - name: Install gitleaks
-        env:
-          GITLEAKS_VERSION: "8.30.1"
-          GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
-        run: |
-          curl -sSfL -o /tmp/gitleaks.tar.gz "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
-          echo "${GITLEAKS_SHA256}  /tmp/gitleaks.tar.gz" | sha256sum --check
-          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: 'gitleaks'
 
+      # A release reads only its own history, so a finding on an unrelated branch cannot stop it.
       - name: Scan git history for secrets
-        run: /tmp/gitleaks git --redact --exit-code 1 .
+        env:
+          SCANNED_HISTORY: ${{ inputs.is-release-gate && 'HEAD' || '--all' }}
+        run: mise run security:secrets
 
   semgrep:
     name: Analyze (semgrep)
-    # A pull request from develop is scanned by the push to main after its merge.
-    if: github.head_ref != 'develop'
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
     timeout-minutes: 15
     permissions:
       contents: read
-    container:
-      image: semgrep/semgrep@sha256:451b3d875c00dac7ed5db5293e584a07de11449a409c10b3c2d2652f429630b6 # 1.182.1
 
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: 'python uv pypi:semgrep'
+
       # Private keys are left to gitleaks, which keeps the allowlist of test keys in .gitleaksignore.
       - name: Run semgrep
-        run: >-
-          semgrep scan --error --metrics=off
-          --config p/default --config p/github-actions --config p/dockerfile
-          --exclude-rule generic.secrets.security.detected-private-key.detected-private-key
+        run: mise run security:semgrep

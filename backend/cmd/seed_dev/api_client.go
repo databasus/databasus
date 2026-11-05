@@ -11,17 +11,6 @@ import (
 	"strings"
 )
 
-// The backend answers a refusal with {"error": "..."} and an unhealthy check with
-// {"status": "..."}; either text is the reason the developer needs to see.
-type apiError struct {
-	StatusCode int
-	Reason     string
-}
-
-func (e *apiError) Error() string {
-	return e.Reason
-}
-
 type apiClient struct {
 	httpClient *http.Client
 	baseURL    string
@@ -34,6 +23,10 @@ func (c *apiClient) get(ctx context.Context, path string, response any) error {
 
 func (c *apiClient) post(ctx context.Context, path string, body, response any) error {
 	return c.send(ctx, http.MethodPost, path, body, response)
+}
+
+func (c *apiClient) put(ctx context.Context, path string, body, response any) error {
+	return c.send(ctx, http.MethodPut, path, body, response)
 }
 
 func (c *apiClient) send(ctx context.Context, method, path string, body, response any) error {
@@ -87,18 +80,10 @@ func (c *apiClient) send(ctx context.Context, method, path string, body, respons
 
 func readRefusalReason(statusCode int, responseBody []byte) string {
 	var refusal struct {
-		Error  string `json:"error"`
-		Status string `json:"status"`
+		Detail string `json:"detail"`
 	}
-
-	if json.Unmarshal(responseBody, &refusal) == nil {
-		if refusal.Error != "" {
-			return refusal.Error
-		}
-
-		if refusal.Status != "" {
-			return refusal.Status
-		}
+	if json.Unmarshal(responseBody, &refusal) == nil && refusal.Detail != "" {
+		return refusal.Detail
 	}
 
 	if text := strings.TrimSpace(string(responseBody)); text != "" {

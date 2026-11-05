@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"maps"
 	"net/http"
-	"slices"
 
 	"github.com/google/uuid"
 )
@@ -66,28 +65,36 @@ func seedDevApp(ctx context.Context, httpClient *http.Client, params seedParams,
 		return err
 	}
 
-	var existingDatabases []namedItem
-	if err := client.get(ctx, "/databases?workspace_id="+workspaceID.String(), &existingDatabases); err != nil {
+	existingDatabases, err := listAll(ctx, client, "/databases?limit=100&workspaceId="+workspaceID.String())
+	if err != nil {
 		return fmt.Errorf("list databases of workspace %q: %w", params.WorkspaceName, err)
 	}
 
-	if !hasDatabaseNamed(existingDatabases, params.LogicalDatabaseName) {
+	if _, isFound := findNamedItem(existingDatabases, params.LogicalDatabaseName); !isFound {
 		if err := createLogicalDatabase(ctx, client, workspaceID, storageID, params); err != nil {
 			return err
 		}
 
-		logger.Info("created database with logical backups", "name", params.LogicalDatabaseName)
+		logger.InfoContext(
+			ctx,
+			"created database with logical backups",
+			slog.String("name", params.LogicalDatabaseName),
+		)
 	}
 
-	if !hasDatabaseNamed(existingDatabases, params.WalDatabaseName) {
+	if _, isFound := findNamedItem(existingDatabases, params.WalDatabaseName); !isFound {
 		if err := createWalDatabase(ctx, client, workspaceID, storageID, params); err != nil {
 			return err
 		}
 
-		logger.Info("created database with WAL-streaming backups", "name", params.WalDatabaseName)
+		logger.InfoContext(
+			ctx,
+			"created database with WAL-streaming backups",
+			slog.String("name", params.WalDatabaseName),
+		)
 	}
 
-	logger.Info(fmt.Sprintf("dev app is seeded: sign in as %s", params.Email))
+	logger.InfoContext(ctx, "dev app is seeded", slog.String("sign_in_email", params.Email))
 
 	return nil
 }
@@ -102,7 +109,7 @@ func checkBackendHealth(ctx context.Context, client *apiClient, baseURL string) 
 		return fmt.Errorf("backend at %s reports itself unhealthy: %w", baseURL, err)
 	}
 
-	return fmt.Errorf("backend at %s does not answer, start the app with `just run`: %w", baseURL, err)
+	return fmt.Errorf("backend at %s does not answer, start the app with `mise run run`: %w", baseURL, err)
 }
 
 func signInOrSignUp(
@@ -113,10 +120,10 @@ func signInOrSignUp(
 ) (string, error) {
 	var signIn signInResponse
 
-	signInErr := client.post(ctx, "/users/signin",
+	signInErr := client.post(ctx, "/sessions",
 		signInRequest{Email: params.Email, Password: params.Password}, &signIn)
 	if signInErr == nil {
-		if signIn.Token == "" {
+		if signIn.Outcome != "COMPLETED" {
 			return "", fmt.Errorf(
 				"cannot sign in as %s: the instance requires two-factor sign-in", params.Email)
 		}
@@ -128,9 +135,9 @@ func signInOrSignUp(
 		return "", fmt.Errorf("sign in as %s: %w", params.Email, signInErr)
 	}
 
-	var signUp signInResponse
+	var signUp sessionResponse
 
-	signUpErr := client.post(ctx, "/users/signup", signUpRequest{
+	signUpErr := client.post(ctx, "/users", signUpRequest{
 		Email:    params.Email,
 		Password: params.Password,
 		Name:     "Dev",
@@ -140,7 +147,7 @@ func signInOrSignUp(
 			params.Email, signInErr, signUpErr)
 	}
 
-	logger.Info("registered the dev account")
+	logger.InfoContext(ctx, "registered the dev account")
 
 	return signUp.Token, nil
 }
@@ -151,15 +158,13 @@ func findOrCreateWorkspace(
 	workspaceName string,
 	logger *slog.Logger,
 ) (uuid.UUID, error) {
-	var listedWorkspaces listWorkspacesResponse
-	if err := client.get(ctx, "/workspaces", &listedWorkspaces); err != nil {
+	existingWorkspaces, err := listAll(ctx, client, "/workspaces?limit=100")
+	if err != nil {
 		return uuid.Nil, fmt.Errorf("list workspaces: %w", err)
 	}
 
-	for _, workspace := range listedWorkspaces.Workspaces {
-		if workspace.Name == workspaceName {
-			return workspace.ID, nil
-		}
+	if workspace, isFound := findNamedItem(existingWorkspaces, workspaceName); isFound {
+		return workspace.ID, nil
 	}
 
 	var createdWorkspace namedItem
@@ -168,7 +173,7 @@ func findOrCreateWorkspace(
 		return uuid.Nil, fmt.Errorf("cannot create workspace %q: %w", workspaceName, err)
 	}
 
-	logger.Info("created workspace", "name", workspaceName)
+	logger.InfoContext(ctx, "created workspace", slog.String("name", workspaceName))
 
 	return createdWorkspace.ID, nil
 }
@@ -180,27 +185,25 @@ func findOrCreateLocalStorage(
 	storageName string,
 	logger *slog.Logger,
 ) (uuid.UUID, error) {
-	var listedStorages []namedItem
-	if err := client.get(ctx, "/storages?workspace_id="+workspaceID.String(), &listedStorages); err != nil {
+	existingStorages, err := listAll(ctx, client, "/storages?limit=100&workspaceId="+workspaceID.String())
+	if err != nil {
 		return uuid.Nil, fmt.Errorf("list storages: %w", err)
 	}
 
-	for _, storage := range listedStorages {
-		if storage.Name == storageName {
-			return storage.ID, nil
-		}
+	if storage, isFound := findNamedItem(existingStorages, storageName); isFound {
+		return storage.ID, nil
 	}
 
 	var createdStorage namedItem
-	if err := client.post(ctx, "/storages", createLocalStorageRequest{
+	if err := client.post(ctx, "/storages", createStorageRequest{
 		WorkspaceID: workspaceID,
-		Type:        "LOCAL",
 		Name:        storageName,
+		Settings:    localStorageSettings{Type: "LOCAL"},
 	}, &createdStorage); err != nil {
 		return uuid.Nil, fmt.Errorf("cannot create storage %q: %w", storageName, err)
 	}
 
-	logger.Info("created storage", "name", storageName)
+	logger.InfoContext(ctx, "created storage", slog.String("name", storageName))
 
 	return createdStorage.ID, nil
 }
@@ -216,34 +219,37 @@ func createLogicalDatabase(
 	databaseID, err := createDatabase(ctx, client, createDatabaseRequest{
 		WorkspaceID: workspaceID,
 		Name:        params.LogicalDatabaseName,
-		Type:        "POSTGRES_LOGICAL",
-		PostgresqlLogical: &postgresqlLogicalSource{
-			Version:  "16",
-			Host:     source.Host,
-			Port:     source.Port,
-			Username: source.Username,
-			Password: source.Password,
-			Database: source.Database,
-			CpuCount: 1,
+		NotifierIDs: []uuid.UUID{},
+		Settings: postgresqlLogicalSettings{
+			Type:               "POSTGRES_LOGICAL",
+			Host:               source.Host,
+			Port:               source.Port,
+			Username:           source.Username,
+			Password:           source.Password,
+			Database:           source.Database,
+			SslMode:            "disable",
+			SSHTunnel:          disabledSSHTunnel{IsEnabled: false},
+			IncludeSchemas:     []string{},
+			ExcludeTables:      []string{},
+			ExcludeTableData:   []string{},
+			CPUCount:           1,
+			IsSkipUserMappings: false,
 		},
 	})
 	if err != nil {
 		return err
 	}
 
-	err = switchOnBackups(ctx, client, params.LogicalDatabaseName,
-		"/backup-configs/database/"+databaseID.String(), "/backup-configs/save",
+	err = switchOnBackups(ctx, client, params.LogicalDatabaseName, databaseID, storageID,
 		map[string]any{
-			"storage":             map[string]any{"id": storageID},
-			"storageId":           storageID,
-			"retentionPolicyType": "COUNT",
-			"retentionCount":      logicalBackupsRetentionCount,
+			"policy": "COUNT",
+			"count":  logicalBackupsRetentionCount,
 		})
 	if err != nil {
 		return err
 	}
 
-	if err := client.post(ctx, "/backups", makeLogicalBackupRequest{DatabaseID: databaseID}, nil); err != nil {
+	if err := client.post(ctx, "/logical-backups", startLogicalBackupRequest{DatabaseID: databaseID}, nil); err != nil {
 		return fmt.Errorf("cannot start the first backup of database %q: %w", params.LogicalDatabaseName, err)
 	}
 
@@ -261,35 +267,38 @@ func createWalDatabase(
 	databaseID, err := createDatabase(ctx, client, createDatabaseRequest{
 		WorkspaceID: workspaceID,
 		Name:        params.WalDatabaseName,
-		Type:        "POSTGRES_PHYSICAL",
-		PostgresqlPhysical: &postgresqlPhysicalSource{
-			Version:    "18",
+		NotifierIDs: []uuid.UUID{},
+		Settings: postgresqlPhysicalSettings{
+			Type:       "POSTGRES_PHYSICAL",
 			BackupType: "FULL_INCREMENTAL_WAL_STREAM",
 			Host:       source.Host,
 			Port:       source.Port,
 			Username:   source.Username,
 			Password:   source.Password,
+			SslMode:    "disable",
+			SSHTunnel:  disabledSSHTunnel{IsEnabled: false},
 		},
 	})
 	if err != nil {
 		return err
 	}
 
-	err = switchOnBackups(ctx, client, params.WalDatabaseName,
-		"/backup-configs/physical/database/"+databaseID.String(), "/backup-configs/physical/save",
+	err = switchOnBackups(ctx, client, params.WalDatabaseName, databaseID, storageID,
 		map[string]any{
-			"storage":              map[string]any{"id": storageID},
-			"storageId":            storageID,
-			"retention":            "CHAINS",
-			"chainsRetention":      map[string]any{"count": walChainsRetentionCount},
-			"fullBackupsRetention": map[string]any{},
+			"policy":      "CHAINS",
+			"chainsCount": walChainsRetentionCount,
+			"fullBackups": nil,
 		})
 	if err != nil {
 		return err
 	}
 
-	if err := client.post(ctx, "/backups/physical/database/"+databaseID.String()+"/trigger",
-		triggerPhysicalBackupRequest{Type: "auto"}, nil); err != nil {
+	if err := client.post(
+		ctx,
+		"/physical-backups",
+		map[string]any{"databaseId": databaseID, "kind": "AUTO"},
+		nil,
+	); err != nil {
 		return fmt.Errorf("cannot start the first backup of database %q: %w", params.WalDatabaseName, err)
 	}
 
@@ -298,39 +307,51 @@ func createWalDatabase(
 
 func createDatabase(ctx context.Context, client *apiClient, database createDatabaseRequest) (uuid.UUID, error) {
 	var createdDatabase namedItem
-	if err := client.post(ctx, "/databases/create", database, &createdDatabase); err != nil {
+	if err := client.post(ctx, "/databases", database, &createdDatabase); err != nil {
 		return uuid.Nil, fmt.Errorf("cannot create database %q: %w", database.Name, err)
 	}
 
 	return createdDatabase.ID, nil
 }
 
-// The backend fills a new database's backup settings with its defaults on the first read. The seed
-// changes only the fields it owns and sends the rest back as read, so it never restates defaults
-// such as the schedule or the WAL lag threshold.
+// A database's backup config reads as its defaults until the first save. The seed changes only the
+// storage and the retention fields it owns and sends the rest back as read, so it never restates
+// defaults such as the schedule or the WAL lag threshold.
 func switchOnBackups(
 	ctx context.Context,
 	client *apiClient,
-	databaseName, readPath, savePath string,
-	seededFields map[string]any,
+	databaseName string,
+	databaseID, storageID uuid.UUID,
+	seededRetentionFields map[string]any,
 ) error {
-	var backupConfig map[string]any
-	if err := client.get(ctx, readPath, &backupConfig); err != nil {
+	configPath := "/backup-configs/" + databaseID.String()
+
+	var backupConfig struct {
+		Encryption string         `json:"encryption"`
+		Settings   map[string]any `json:"settings"`
+	}
+	if err := client.get(ctx, configPath, &backupConfig); err != nil {
 		return fmt.Errorf("read backup settings of database %q: %w", databaseName, err)
 	}
 
-	backupConfig["isBackupsEnabled"] = true
-	maps.Copy(backupConfig, seededFields)
+	retention, _ := backupConfig.Settings["retention"].(map[string]any)
+	if retention == nil {
+		retention = map[string]any{}
+	}
 
-	if err := client.post(ctx, savePath, backupConfig, nil); err != nil {
+	maps.Copy(retention, seededRetentionFields)
+	backupConfig.Settings["retention"] = retention
+
+	backupConfigInput := map[string]any{
+		"isBackupsEnabled": true,
+		"storageId":        storageID,
+		"encryption":       backupConfig.Encryption,
+		"settings":         backupConfig.Settings,
+	}
+
+	if err := client.put(ctx, configPath, backupConfigInput, nil); err != nil {
 		return fmt.Errorf("cannot switch on backups of database %q: %w", databaseName, err)
 	}
 
 	return nil
-}
-
-func hasDatabaseNamed(existingDatabases []namedItem, name string) bool {
-	return slices.ContainsFunc(existingDatabases, func(database namedItem) bool {
-		return database.Name == name
-	})
 }

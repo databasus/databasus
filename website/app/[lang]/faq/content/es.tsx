@@ -400,27 +400,6 @@ export default function FAQPage() {
                 que nada se rompe.
               </p>
 
-              <p>
-                Puede leer el razonamiento completo en los registros de
-                decisiones de arquitectura:{" "}
-                <a
-                  href="https://github.com/databasus/databasus/blob/main/adr/0008-why-pg17-native-backups-with-mandatory-wal-summary.md"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  ADR-0008: PG17-native backups with mandatory WAL summary
-                </a>{" "}
-                y{" "}
-                <a
-                  href="https://github.com/databasus/databasus/blob/main/adr/0009-why-remote-physical-backups-instead-of-agents.md"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  ADR-0009: remote physical backups instead of agents
-                </a>
-                .
-              </p>
-
               <h2 id="backup-databasus">
                 ¿Cómo respaldar el propio Databasus?
               </h2>

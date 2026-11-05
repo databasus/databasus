@@ -1,0 +1,63 @@
+## 1. Suite skeleton on the image
+
+- [x] 1.1 Pin `uv` in `mise.toml`, create `e2e/browser/pyproject.toml` and its lockfile with `playwright==1.64.1` and `pytest`, ignore `.venv`, add the hidden tasks `e2e:browser` and `e2e:unit` with their fixed environment, and verify with `uv lock --check --project e2e/browser` and `uv run --project e2e/browser pytest --version`
+- [x] 1.2 Write `e2e/browser/compose.yaml` with the `databases`, `databasus` and `browser` services on one network, publishing only the browser's port, pin the Playwright image by digest next to a comment naming the Python package pin, add a unit test that reads the resolved compose configuration and fails when another service publishes a port, and verify with `E2E_IMAGE=e2e-check E2E_DATABASE_PASSWORD=e2e-check E2E_PLAYWRIGHT_DRIVER=/tmp docker compose -f e2e/browser/compose.yaml config --quiet` and `uv run --project e2e/browser pytest e2e/browser/unit`
+- [x] 1.3 Write the supervisor `e2e/browser/supervisor.py`: the frozen dependency install, `DATABASUS_IMAGE` or a run-unique build, the refusal when `CI` is set without an image, readiness through `docker compose up --wait`, the Chromium connection, `pytest` as a child and cleanup after every outcome, with a sign-up form scenario proving the path, and verify with `mise run e2e:browser`
+- [x] 1.4 Add a unit test that scans `e2e/browser/scenarios`, which holds the scenarios and their fixtures, for imports and paths into `backend/` and `frontend/` and for route interception outside the allowed external services, and that scans the whole of `e2e/browser` for imports from those trees, and verify with `mise run e2e:unit`
+
+## 2. Scenarios
+
+- [x] 2.1 Add the session fixture that registers the first instance admin through the interface and the scenario that checks the admin notice and access to the instance settings, and verify with `mise run e2e:browser`
+- [x] 2.2 Port `frontend/browser/e2e/signIn.spec.ts` to Python, asserting that an instance without a mail server offers no password reset, and verify with `mise run e2e:browser`
+- [x] 2.3 Port `frontend/browser/e2e/workspaceResources.spec.ts` to Python, with its API reads made inside the page so a session token never reaches Python, and verify with `mise run e2e:browser`
+- [x] 2.4 Add the critical path scenario through the restore, with a row comparison through `psql` whose difference report has a unit test, and verify with `mise run e2e:browser` and `mise run e2e:unit`
+
+## 3. Secrets
+
+- [x] 3.1 Pass everything a run prints through masking of generated passwords and bearer tokens, run `pytest` with a short traceback and without local values, keep traces, video and screenshots off, and verify with a masking test in `mise run e2e:unit`
+
+## 4. Lifecycle
+
+- [x] 4.1 Add the supervisor file `~/.cache/databasus-e2e/<runId>/supervisor.json`, with the run's PID, its process start time and built image name, and the sweep of runs whose supervisor died, and verify with the sweep's decision test, which also covers a reused PID, in `mise run e2e:unit`
+- [x] 4.2 Add `mise run e2e:lifecycle` with probes through the public command for a failing scenario, a failure after sign-in that puts the generated password and a synthetic bearer token into the `pytest` output, the `databases` container log and the `databasus` container log, all of which the failed run prints, a refused form with a wrong database password, a start-up failure, a failure outside a scenario, an interruption, a cleanup failure, a killed run's leftovers next to a live run, two overlapping runs that also compare their accounts, compose projects, volumes, published ports and directories, CI without an image for both commands, and a named image that is neither rebuilt nor removed, each checking the exit status, the diagnostic, leftovers and an unrelated container the command starts and queries, with the secrets probe also asserting that the public command's captured output contains neither value, building one run-unique image for all of them when `DATABASUS_IMAGE` is not set, recording it in a supervisor file and removing it after every outcome, add a unit test that feeds the leftover check a surviving container and asserts that the failure names it, and verify with `mise run e2e:lifecycle` and `mise run e2e:unit`
+- [x] 4.3 Add the probes that run only when no image is named: a run-unique image that is gone afterwards, a killed run whose built image the next run removes, and a copy of the tracked and untracked files without dependencies or an environment file, which runs `mise run e2e:browser` and compares its file list, ignored files included, before and after. Add `e2e/browser/lifecycle_interruption/`, a test of the lifecycle command itself that starts it without `DATABASUS_IMAGE`, interrupts it after its image is built and sees the image gone, then repeats with a kill, starts a run and sees that run remove the image and the supervisor directory. Verify with `mise run e2e:lifecycle` and `uv run --project e2e/browser pytest e2e/browser/lifecycle_interruption`, then build a tag named with a unique suffix, run `DATABASUS_IMAGE=<tag> mise run e2e:lifecycle`, see that these probes are reported as skipped, that no image was built and that the tag remains, and remove the tag
+
+## 5. Replace the old suite
+
+- [x] 5.1 Replace the `test-frontend-browser-e2e` job with `test-e2e-browser` in `.github/workflows/ci-release.yml`, keeping its `if`, needing only `build-storage-image`, installing `python` and `uv`, loading the candidate like `test-upgrade`, running `mise run e2e:unit`, then `mise run e2e:browser` and `mise run e2e:lifecycle` with `DATABASUS_IMAGE` set and no artifact upload, and updating the `determine-version` dependency. Make `scripts/frontend_ci_test.py` assert each of these, including that no backend lint or test group is needed, update `scripts/release_gate_test.py`, and verify with `mise run lint-workflows` and `python3 -m unittest discover -s scripts -p '*_test.py'`
+- [x] 5.2 Reject `pnpm --dir frontend test:browser --project=e2e` in `.agent-hooks/review_gate.py`, update its docstring and tests, make the same edit to the allowed forms and to the rule on which changes must name which command in `.agent-hooks/implementation-prompt.md`, `.agent-hooks/proposal-prompt.md` and `openspec/config.yaml`, and verify with `python3 -m unittest discover -s .agent-hooks -p '*_test.py'` and with `rg -F -- '--project=e2e' .agent-hooks/implementation-prompt.md .agent-hooks/proposal-prompt.md openspec/config.yaml` finding nothing
+- [x] 5.3 Delete `frontend/browser/e2e`, `backend/internal/app/browsertests`, `frontend/tooling/runBrowserE2E.ts`, `runBrowserE2EInside.ts`, `runBrowserE2E.test.ts`, `removeBrowserContainer.ts` with its test, `frontend/vitest.browser-e2e.config.ts`, the exclude at `frontend/vitest.config.ts:16`, the `e2e` project of `frontend/playwright.config.ts` and the `--project=e2e` branch of `frontend/tooling/runBrowser.ts`, and verify with `pnpm --dir frontend typecheck`, `pnpm --dir frontend lint` and `pnpm --dir frontend test:browser --project=ui`
+- [x] 5.4 Remove the `browser-e2e` group from `mise-tasks/backend/test-group-packages` and `scripts/test.sh`, update `scripts/test_sh_test.py`, `scripts/test_group_test.py` and `scripts/race_detector_test.py`, and verify with `python3 -m unittest discover -s scripts -p '*_test.py'` and `mise run backend:lint`
+
+## 6. Documents
+
+- [x] 6.1 Update `docs/testing.md` (the layers table, the real-API section, the commands and the failure policy), `docs/architecture.md` (the root `e2e/` directory), `docs/glossary.md` (browser end-to-end suite, critical path, supervisor and lifecycle probe) and the command table in `AGENTS.md`, search the repository for `--project=e2e`, `browsertests`, `browser-e2e`, `test-frontend-browser-e2e`, `runBrowserE2E` and `removeBrowserContainer` outside `openspec/changes/archive` and this change, and verify with `mise run lint` and that search finding only the main specs this change's delta specs replace, the rejection test in `.agent-hooks/review_gate_test.py`, the suite's package name in `e2e/browser/pyproject.toml` and `e2e/browser/uv.lock`, and the absence assertions in `scripts/frontend_ci_test.py` and `scripts/test_group_test.py`
+
+## 7. Routine and full runs
+
+- [x] 7.1 Add `mise run test-full` and make `scripts/test.sh` select the end-to-end packages, script and review hook tests, browser e2e unit tests, frontend browser UI, the upgrade test, browser end-to-end scenarios, lifecycle checks and lifecycle interruption checks only for it, keeping Podman and filesystem suites separate, rename the `e2e` task to the hidden `e2e:browser`, and cover the selections and the order in `scripts/test_sh_test.py` and the task pins in `scripts/frontend_ci_test.py`, and verify with `python3 -m unittest discover -s scripts -p '*_test.py'`, `mise run test` and `mise run e2e:browser`
+- [x] 7.2 Accept `mise run e2e:browser` and reject `mise run e2e` and `mise run test-full` in `.agent-hooks/review_gate.py`, update its prompts, tests and `openspec/config.yaml`, add `mise run e2e:browser` to the "Change verification" section below, and verify with `python3 -m unittest discover -s .agent-hooks -p '*_test.py'` and with `rg -lF 'mise run e2e:browser'` over the prompts and the config listing all three
+- [x] 7.3 Update `AGENTS.md`, `backend/AGENTS.md`, `docs/testing.md` and `docs/machine-setup.md`, and verify with `mise run lint` and a search for `mise run e2e` that finds only `mise run e2e:browser`, `e2e:unit`, `e2e:lifecycle` and the hook's rejection test
+
+- [x] 7.4 Limit one `testwait.Until` to two minutes with `testwait.Within(limit).Until` for the test that observes real time and `testwait.Within(limit).Poll` for the upgrade test's start-up waits, lower the local package timeout from 30 to 15 minutes in `scripts/test.sh` and `mise-tasks/backend/test-upgrade`, stop `TestPhysicalWalBackpressure` from requiring exactly one pause, update `docs/testing.md` and the testing skill, and verify with `go test ./internal/lib/testwait/` in `backend/`, `mise run backend:test-upgrade` and `mise run test`
+
+- [x] 7.5 Keep the eight user commands first in `mise.toml`, hidden CI/CD tasks second and dependencies last; rename `dev` to `run`, remove redundant wrappers and reduce frontend scripts to eight with a complete `pnpm lint`. Update command references and verify with `mise tasks validate`, `python3 -m unittest discover -s scripts -p '*_test.py'`, `mise run lint`, `mise run test` and `pnpm --dir frontend build`.
+
+## 8. Cleanup and recovery guarantees
+
+- [x] 8.1 Guarantee teardown of the unrelated fixture container during readiness failure or interruption, and register cleanup of every public run independently of the shared image fixture. Verify with `mise run e2e:unit`, `mise run e2e:lifecycle` and `uv run --project e2e/browser pytest e2e/browser/lifecycle_interruption`.
+- [x] 8.2 Stop startup and name the remaining resources when a crashed run's project or built image cannot be removed. Add lifecycle probes for both refusals and verify with `mise run e2e:lifecycle`.
+- [x] 8.3 Capture masked container log tails before teardown and print them for cleanup failures even when scenarios passed. Cover both log streams and secret masking in the cleanup-refusal probe; verify with `mise run e2e:lifecycle` and `mise run e2e:browser`.
+- [x] 8.4 Keep manual agent recovery instructions in the existing testing guide, move alias configuration out of agent instructions, and verify local documentation links, `git diff --check` and `mise run frontend:lint`.
+- [x] 8.5 Give each pytest process a recorded temporary root and cover overlapping subprocesses so one process cannot remove another's temporary files. Verify with `mise run e2e:unit` and `mise run e2e:lifecycle`.
+- [x] 8.6 Put the scenario child's pytest temporary root inside its supervisor's directory and check its removal after SIGTERM and terminal SIGINT. Verify with `mise run e2e:lifecycle` and `mise run e2e:browser`.
+- [x] 8.7 Register independent project, owned-image, unrelated-container and directory finalizers before killing runs or refusing their cleanup, including the lifecycle-command interruption fixture; add a subprocess regression that forces recovery after SIGKILL to fail, and verify the recovery probes with `mise run e2e:lifecycle` and `uv run --project e2e/browser pytest e2e/browser/lifecycle_interruption`.
+- [x] 8.8 Treat an exited but unreaped supervisor as dead, with a real-process regression test. Verify with `mise run e2e:unit` and `mise run e2e:lifecycle`.
+
+## Change verification
+
+```sh
+mise run test
+pnpm --dir frontend test:browser --project=ui
+mise run e2e:browser
+```

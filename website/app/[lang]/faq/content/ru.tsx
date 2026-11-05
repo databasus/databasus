@@ -381,26 +381,6 @@ export default function FAQPage() {
                 так что ничего не сломается.
               </p>
 
-              <p>
-                Полную аргументацию можно прочитать в архитектурных решениях:{" "}
-                <a
-                  href="https://github.com/databasus/databasus/blob/main/adr/0008-why-pg17-native-backups-with-mandatory-wal-summary.md"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  ADR-0008: родные бекапы PG17 с обязательной WAL-сводкой
-                </a>{" "}
-                и{" "}
-                <a
-                  href="https://github.com/databasus/databasus/blob/main/adr/0009-why-remote-physical-backups-instead-of-agents.md"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  ADR-0009: удаленные физические бекапы вместо агентов
-                </a>
-                .
-              </p>
-
               <h2 id="backup-databasus">Как забекапить сам Databasus?</h2>
 
               <p>

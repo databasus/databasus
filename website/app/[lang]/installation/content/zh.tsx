@@ -505,8 +505,8 @@ sudo curl -sSL https://raw.githubusercontent.com/databasus/databasus/refs/heads/
 
               <p>
                 一切正常时返回 <code>200</code>；有情况需要关注时返回{" "}
-                <code>503</code> 并附带原因：内部数据库、缓存、磁盘使用率（超过
-                95%）、数据库客户端工具、备份调度器以及验证代理的存活状态。
+                <code>503</code> 并附带原因：内部数据库、磁盘使用率（超过
+                95%）、数据库客户端工具、后台任务以及验证代理的存活状态。
                 无需认证，CORS 开放，方便浏览器端的监控工具使用。
               </p>
 

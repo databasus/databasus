@@ -4,6 +4,10 @@
 # patches in downstream; Fedora ships the upstream libedit.so.0. The ABI is identical, so renaming
 # via symlink is safe.
 apply_libedit_shim() {
+    if ldconfig -p | awk '/libedit\.so\.2 / {has_libedit = 1} END {exit !has_libedit}'; then
+        return 0
+    fi
+
     local shim_dir="${LIBEDIT_SHIM_DIR:-$HOME/.local/lib/databasus-compat}"
     local libedit=/usr/lib64/libedit.so.0
 

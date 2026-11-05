@@ -2,8 +2,9 @@ version: "2"
 
 run:
   timeout: 5m
-  tests: false
+  tests: true
   concurrency: 4
+  relative-path-mode: gomod
 
 linters:
   default: standard
@@ -17,10 +18,172 @@ linters:
     - errname
     - noctx
     - modernize
+    - forbidigo
+    - sloglint
+    - depguard
+    - exhaustive
+    - exhaustruct
+    - revive
+    - nolintlint
+    - usetesting
+    - testifylint
+    - thelper
+    - tparallel
+    - gochecknoglobals
+    - gochecknoinits
+    - importas
 
   settings:
+    # A generated package reads as its role next to the others: storageshttpapi.Handler rather than
+    # httpapi.Handler, and contract.OpenAPI rather than api.OpenAPI beside the httpapi packages.
+    importas:
+      no-unaliased: true
+      alias:
+        - pkg: databasus-backend/internal/modules/(\w+)/internal/httpapi
+          alias: ${1}httpapi
+        - pkg: databasus-backend/internal/app/systemhttpapi
+          alias: systemhttpapi
+        - pkg: databasus-backend/internal/lib/apiclient
+          alias: apiclient
+        - pkg: databasus-backend/api
+          alias: contract
+        # Three PostgreSQL packages named shared, logical and physical would clash with other
+        # packages of the same name in one file.
+        - pkg: databasus-backend/internal/engines/postgresql/shared
+          alias: pgshared
+        - pkg: databasus-backend/internal/engines/postgresql/logical
+          alias: pglogical
+        - pkg: databasus-backend/internal/engines/postgresql/physical
+          alias: pgphysical
+
     errcheck:
       check-type-assertions: true
+
+    forbidigo:
+      analyze-types: true
+      forbid:
+        - pattern: ^time\.Sleep$
+          msg: wait for a condition with testwait.Until or move the clock from Deps
+        - pattern: ^(assert|require)\.(Eventually|Eventuallyf|EventuallyWithT|EventuallyWithTf)$
+          msg: wait for a condition with testwait.Until
+        - pattern: ^fmt\.Print(f|ln)?$
+          msg: log through the logger from Deps; only commands and tools print
+        - pattern: ^os\.Exit$
+          msg: return an error; only commands and tools exit
+        - pattern: ^os\.(Getenv|LookupEnv|Environ)$
+          msg: read settings through lib/config and pass them in Deps
+        - pattern: ^context\.(Background|TODO)$
+          msg: take the caller's context, or t.Context() in tests
+        - pattern: ^gorm\.DB$
+          pkg: ^gorm\.io/gorm$
+          msg: only repositories hold the database
+        - pattern: ^database\.Conn$
+          msg: only repositories run queries
+        - pattern: ^exec\.(Command|CommandContext)$
+          pkg: ^os/exec$
+          msg: start external tools through lib/process
+
+    sloglint:
+      attr-only: true
+      context: all
+      static-msg: true
+      key-naming-case: snake
+
+    depguard:
+      rules:
+        test-libraries:
+          files:
+            - "!$test"
+            - "!**/internal/lib/testdb/**"
+            - "!**/internal/lib/testwait/**"
+            - "!**/internal/lib/toolstub/**"
+            - "!**/internal/lib/cache/cachetest/**"
+            - "!**/internal/lib/ratelimit/ratelimittest/**"
+            - "!**/internal/lib/testcontainers/**"
+            - "!**/internal/lib/httpclienttest/**"
+            - "!**/internal/modules/storages/internal/providers/providertest/**"
+            - "!**/internal/lib/apiclient/**"
+            - "!**/internal/lib/contracttest/**"
+            - "!**/internal/lib/agentclienttest/**"
+            - "!**/internal/app/apptest/**"
+          deny:
+            - pkg: github.com/stretchr/testify
+              desc: test libraries belong in test files and test-only packages
+            - pkg: github.com/testcontainers/testcontainers-go
+              desc: test libraries belong in test files and test-only packages
+        verification-agent:
+          files:
+            - "**/internal/agent/**"
+            - "**/cmd/verification-agent/**"
+          deny:
+            - pkg: github.com/gin-gonic/gin
+              desc: the verification agent has no HTTP server
+            - pkg: gorm.io
+              desc: the verification agent has no database schema
+        engines:
+          files:
+            - "**/internal/engines/**"
+          deny:
+            - pkg: github.com/gin-gonic/gin
+              desc: engine drivers know no HTTP
+            - pkg: gorm.io
+              desc: engine drivers know no tables
+
+    exhaustruct:
+      include:
+        - .+\.Deps$
+
+    revive:
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: empty-block
+        - name: error-naming
+        - name: error-return
+        - name: error-strings
+        - name: errorf
+        - name: increment-decrement
+        - name: indent-error-flow
+        - name: range
+        - name: receiver-naming
+        - name: redefines-builtin-id
+        - name: superfluous-else
+        - name: time-naming
+        - name: unexported-return
+        - name: unreachable-code
+        - name: unused-parameter
+        - name: var-declaration
+        - name: var-naming
+
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+      allow-unused: false
+
+  exclusions:
+    rules:
+      - path: ^(cmd|tools)/
+        linters: [forbidigo]
+        text: only commands and tools (print|exit)
+      - path: ^internal/lib/config/
+        linters: [forbidigo]
+        text: read settings through lib/config
+      - path: ^(cmd|internal/app)/
+        linters: [forbidigo]
+        text: take the caller's context
+      - path: ^internal/lib/clock/
+        linters: [forbidigo]
+        text: wait for a condition with testwait.Until or move the clock
+      # Test files start the binary under test or re-execute the test binary, not an external tool a
+      # cancelled operation could strand.
+      - path: (^internal/lib/process/|_test\.go$)
+        linters: [forbidigo]
+        text: start external tools through lib/process
+      - path: (^internal/(app|lib)/|(^|/)module\.go$|(^|/)([a-z0-9_]+_)?repository(_test)?\.go$|_test\.go$)
+        linters: [forbidigo]
+        text: only repositories (hold the database|run queries)
 
 formatters:
   enable:

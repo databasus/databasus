@@ -2,39 +2,36 @@ name: CI and Release
 
 on:
   push:
-    branches: ["**"]
+    branches: [main]
     paths-ignore:
-      - "website/**"
-      - ".github/workflows/deploy-website.yml"
-  pull_request:
-    branches: ["**"]
-    paths-ignore:
-      - "website/**"
-      - ".github/workflows/deploy-website.yml"
+      - 'website/**'
+      - '.github/workflows/deploy-website.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
-concurrency:
-  group: ci-release-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' }}
+# mise installs every tool of mise.toml before a task by default, so each job installs only the
+# tools its tasks need through install_args.
+env:
+  MISE_TASK_RUN_AUTO_INSTALL: 'false'
 
-# A pull request from develop runs no checks: the push to main after its merge runs them.
+concurrency:
+  group: ci-release-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' }}
+
 jobs:
   lint-backend:
-    if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
-    runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+    runs-on: namespace-profile-8vcpu-16ram-ubuntu-22-x64
     timeout-minutes: 15
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - name: Set up Go
-        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          go-version: "1.26.3"
-          cache: false
+          install_args: 'go golangci-lint vacuum go:golang.org/x/vuln/cmd/govulncheck'
 
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
@@ -46,32 +43,18 @@ jobs:
           cd backend
           go mod download
 
-      - name: Install golangci-lint
-        run: |
-          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.3
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
-
-      - name: Install swag for swagger generation
-        run: go install github.com/swaggo/swag/cmd/swag@v1.16.4
-
-      - name: Generate swagger docs
+      - name: Verify Go module checksums
         run: |
           cd backend
-          swag init -d . -g cmd/main.go -o swagger
+          go mod verify
 
-      - name: Run golangci-lint
-        run: |
-          cd backend
-          golangci-lint run
+      - name: Run the backend lint
+        run: mise run backend:lint
 
-      - name: Verify go mod tidy
-        run: |
-          cd backend
-          go mod tidy
-          git diff --exit-code go.mod go.sum || (echo "go mod tidy made changes, please run 'go mod tidy' and commit the changes" && exit 1)
+      - name: Scan for reachable vulnerabilities
+        run: mise run security:go
 
   lint-frontend:
-    if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
     runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
     timeout-minutes: 15
     steps:
@@ -81,22 +64,15 @@ jobs:
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: "node pnpm"
+          install_args: 'node pnpm'
 
       - name: Install dependencies
         run: |
           cd frontend
           pnpm install --frozen-lockfile
 
-      - name: Check formatting
-        run: |
-          cd frontend
-          pnpm format:check
-
-      - name: Check if linter was run
-        run: |
-          cd frontend
-          pnpm lint
+      - name: Run the frontend lint
+        run: mise run frontend:lint
 
       - name: Build frontend
         run: |
@@ -104,7 +80,6 @@ jobs:
           pnpm build
 
   lint-shell:
-    if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
     runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
     timeout-minutes: 15
     steps:
@@ -114,13 +89,30 @@ jobs:
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: "just shellcheck"
+          install_args: 'go shellcheck jq node pnpm python'
 
       - name: Run shellcheck
-        run: just lint-shell
+        run: mise run lint-shell
+
+      - name: Test the full test run script
+        run: python3 -m unittest discover -s scripts -p '*_test.py'
+
+  lint-workflows:
+    runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
+    timeout-minutes: 15
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: 'actionlint'
+
+      - name: Run actionlint
+        run: mise run lint-workflows
 
   dockerfile-scan:
-    if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
     timeout-minutes: 15
     permissions:
@@ -129,38 +121,27 @@ jobs:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - name: Install Trivy
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y wget apt-transport-https gnupg
-          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo gpg --batch --no-tty --yes --dearmor -o /usr/share/keyrings/trivy.gpg
-          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" | sudo tee /etc/apt/sources.list.d/trivy.list
-          sudo apt-get update
-          sudo apt-get install -y trivy
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: 'aqua:aquasecurity/trivy'
 
       - name: Trivy Dockerfile misconfiguration scan
         run: |
           trivy config --severity HIGH,CRITICAL --exit-code 1 Dockerfile
-          trivy config --severity HIGH,CRITICAL --exit-code 1 agent/verification/images/postgres/Dockerfile
+          trivy config --severity HIGH,CRITICAL --exit-code 1 backend/cmd/verification-agent/images/postgres/Dockerfile
 
   test-frontend:
-    if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
-    runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
+    runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
     timeout-minutes: 15
-    needs: [lint-frontend]
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          package_json_file: frontend/package.json
-
-      - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: "20"
+          install_args: 'node pnpm'
 
       - name: Set up pnpm cache
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
@@ -177,81 +158,9 @@ jobs:
           cd frontend
           pnpm test
 
-  lint-verification-agent:
-    if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
+  test-frontend-browser-ui:
     runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
-    timeout-minutes: 15
-    steps:
-      - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-
-      - name: Set up Go
-        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
-        with:
-          go-version: "1.26.3"
-          cache: false
-
-      - name: Set up Go cache
-        uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
-        with:
-          cache: go
-
-      - name: Download Go modules
-        run: |
-          cd agent/verification
-          go mod download
-
-      - name: Install golangci-lint
-        run: |
-          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.3
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
-
-      - name: Run golangci-lint
-        run: |
-          cd agent/verification
-          golangci-lint run
-
-      - name: Verify go mod tidy
-        run: |
-          cd agent/verification
-          go mod tidy
-          git diff --exit-code go.mod go.sum || (echo "go mod tidy made changes, please run 'go mod tidy' and commit the changes" && exit 1)
-
-  test-verification-agent:
-    if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
-    runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
-    timeout-minutes: 15
-    needs: [lint-verification-agent]
-    steps:
-      - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-
-      - name: Set up Go
-        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
-        with:
-          go-version: "1.26.3"
-          cache: false
-
-      - name: Set up Go cache
-        uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
-        with:
-          cache: go
-
-      - name: Download Go modules
-        run: |
-          cd agent/verification
-          go mod download
-
-      - name: Run Go tests
-        run: |
-          cd agent/verification
-          go test -race -count=1 -failfast ./internal/...
-
-  e2e-verification-agent:
-    if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
-    runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
-    timeout-minutes: 30
-    needs: [lint-verification-agent]
+    timeout-minutes: 20
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -259,27 +168,109 @@ jobs:
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: "just"
+          install_args: 'node pnpm'
 
-      - name: Run e2e tests
-        run: |
-          cd agent/verification
-          just e2e
+      - name: Install dependencies
+        run: pnpm --dir frontend install --frozen-lockfile
 
-      - name: Cleanup
-        if: always()
+      - name: Verify production browser UI
+        run: pnpm --dir frontend test:browser --project=ui
+
+      - name: Upload synthetic browser failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: frontend-browser-ui
+          path: frontend/browser-results/
+          retention-days: 7
+
+  test-e2e-browser:
+    needs: [build-storage-image]
+    runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+    timeout-minutes: 30
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Download the storage candidate
+        id: download-the-storage-candidate-1
+        continue-on-error: true
+        timeout-minutes: 3
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: databasus-storage-test
+          path: /tmp
+
+      - name: Download the storage candidate (attempt 2)
+        id: download-the-storage-candidate-2
+        if: steps.download-the-storage-candidate-1.outcome == 'failure'
+        continue-on-error: true
+        timeout-minutes: 3
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: databasus-storage-test
+          path: /tmp
+
+      - name: Download the storage candidate (attempt 3)
+        id: download-the-storage-candidate-3
+        if: steps.download-the-storage-candidate-2.outcome == 'failure'
+        timeout-minutes: 3
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: databasus-storage-test
+          path: /tmp
+
+      - name: Load the storage candidate
+        run: zstd -dc /tmp/databasus-storage-test.tar.zst | docker load
+
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: 'python uv'
+
+      - name: Check the suite's own code
+        run: mise run e2e:unit
+
+      - name: Run the browser end-to-end suite
+        env:
+          DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}
+        run: mise run e2e:browser
+
+      - name: Check the suite's cleanup and failure handling
+        env:
+          DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}
+        run: mise run e2e:lifecycle
+
+  test-verification-agent:
+    runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+    timeout-minutes: 15
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: 'go ripgrep'
+
+      - name: Set up Go cache
+        uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
+        with:
+          cache: go
+
+      - name: Download Go modules
         run: |
-          cd agent/verification/e2e
-          docker compose down -v --rmi local || true
-          rm -rf artifacts || true
+          cd backend
+          go mod download
+
+      - name: Run Go tests
+        run: mise run agent:test
 
   e2e-verification-agent-podman:
-    if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
     # Namespace runners are containers without systemd whose seccomp profile denies
     # pivot_root, so rootful Podman cannot start containers there.
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    needs: [lint-verification-agent]
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -287,30 +278,60 @@ jobs:
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: "just"
+          install_args: 'go python'
+
+      - name: Install database client dependencies
+        run: |
+          # The bundled assets/tools clients are Debian-built; Ubuntu ships no libncurses5/libtinfo5
+          # package at all, and the ABI-identical .so.6 satisfies them via these symlinks.
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libedit2 libncurses6 libtinfo6 libpq5 libmariadb3 libgnutls30 zstd netcat-openbsd
+          sudo ln -sf /usr/lib/x86_64-linux-gnu/libncurses.so.6 /usr/lib/x86_64-linux-gnu/libncurses.so.5
+          sudo ln -sf /usr/lib/x86_64-linux-gnu/libtinfo.so.6 /usr/lib/x86_64-linux-gnu/libtinfo.so.5
+
+      - name: Download Go modules
+        run: |
+          cd backend
+          go mod download
+
+      - name: Create .env file for testing
+        run: cp .env.example .env
+
+      - name: Start test containers
+        run: |
+          docker compose -f docker-compose.yml up -d backend-db-test
+
+      - name: Wait for containers to be ready
+        run: |
+          # Wait for test database (postgres listens on 5432 inside the container)
+          timeout 60 bash -c 'until docker exec backend-db-test pg_isready -U postgres; do sleep 2; done'
+
+      - name: Create data and temp directories
+        run: |
+          # Create directories that are used for backups and restore
+          # These paths match what's configured in config.go
+          mkdir -p databasus-data/backups
+          mkdir -p databasus-data/temp
 
       - name: Start rootful Podman socket
         run: |
+          sudo apt-get install -y acl
           sudo systemctl start podman.socket
+          sudo setfacl -m u:"$USER":x /run/podman
+          sudo setfacl -m u:"$USER":rw /run/podman/podman.sock
           sudo podman version
           sudo podman info --format '{{.Host.OCIRuntime.Name}}'
 
       - name: Run e2e tests on Podman
-        run: |
-          cd agent/verification
-          just e2e-podman
+        run: mise run agent:e2e-podman
 
       - name: Cleanup
         if: always()
         run: |
-          cd agent/verification/e2e
-          docker compose down -v --rmi local || true
-          rm -rf artifacts || true
           sudo podman ps -aq --filter label=databasus.verification.agent_id | xargs -r sudo podman rm -f || true
           sudo podman network ls -q --filter label=databasus.verification.agent_id | xargs -r sudo podman network rm || true
 
   test-backend:
-    if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
     # 22.04 runs Linux 6.8. ubuntu-24.04 moved to Linux 7.0, where mongod 9.0 exits at startup:
     # its kernel check reads Ubuntu's 7.0.0 release string as an rseq-incompatible kernel
     # (SERVER-121912, SERVER-136848).
@@ -324,6 +345,8 @@ jobs:
         include:
           - group: other
             runner: namespace-profile-8vcpu-16ram-ubuntu-22-x64
+          - group: agent-e2e
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
           - group: logical
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
           - group: physical-1-of-3
@@ -332,21 +355,20 @@ jobs:
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
           - group: physical-3-of-3
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
-          - group: wal-usecases-1-of-3
+          - group: physical-api-1-of-3
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
-          - group: wal-usecases-2-of-3
+          - group: physical-api-2-of-3
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
-          - group: wal-usecases-3-of-3
+          - group: physical-api-3-of-3
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - name: Set up Go
-        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          go-version: "1.26.3"
-          cache: false
+          install_args: 'go golangci-lint'
 
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
@@ -372,23 +394,12 @@ jobs:
 
       - name: Start test containers
         run: |
-          docker compose -f docker-compose.yml up -d
+          docker compose -f docker-compose.yml up -d backend-db-test
 
       - name: Wait for containers to be ready
         run: |
-          # Wait for main dev database (postgres listens on 5432 inside the container)
-          timeout 60 bash -c 'until docker exec backend-db pg_isready -U postgres; do sleep 2; done'
-
           # Wait for test database (postgres listens on 5432 inside the container)
           timeout 60 bash -c 'until docker exec backend-db-test pg_isready -U postgres; do sleep 2; done'
-
-          # 5004 = shared logical-postgres-16 fixture; 5007-5008 = shared physical-postgres 17/18
-          # primary sources. The per-version, no-summary, tablespace, mTLS and restore-target
-          # physical containers — like the per-version logical PG tests — run on testcontainers and
-          # need no fixed port.
-          timeout 60 bash -c 'until nc -z 127.0.0.1 5004; do sleep 2; done'
-          timeout 60 bash -c 'until nc -z 127.0.0.1 5007; do sleep 2; done'
-          timeout 60 bash -c 'until nc -z 127.0.0.1 5008; do sleep 2; done'
 
       - name: Create data and temp directories
         run: |
@@ -397,53 +408,24 @@ jobs:
           mkdir -p databasus-data/backups
           mkdir -p databasus-data/temp
 
-      - name: Provision per-worker test databases and run migrations
-        env:
-          TEST_PARALLEL_WORKERS: "8"
-        run: |
-          cd backend
-          go install github.com/pressly/goose/v3/cmd/goose@v3.27.1
-          go_binary_directory="$(go env GOPATH)/bin"
-          export PATH="${go_binary_directory}:${PATH}"
-          set -a && . ../.env && set +a
-          # cleanup_test_db creates databasus_w0..w{workers-1} and resets the test PG
-          # containers. Then migrate each slot DB so every
-          # parallel `go test` worker connects to a migrated metadata DB.
-          go run ./cmd/cleanup_test_db
-          for i in $(seq 0 $((TEST_PARALLEL_WORKERS - 1))); do
-            dbstring=$(echo "$GOOSE_TEST_DBSTRING" | sed -E "s#/([^/?]+)\?#/\1_w$i?#")
-            echo "migrating slot $i"
-            GOOSE_DBSTRING="$dbstring" goose -dir ./migrations up
-          done
-
-      - name: Install tools from mise.toml
-        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
-        with:
-          install_args: "just"
-
       - name: Pull testcontainer images
-        run: just pull-testcontainers
+        run: mise run backend:pull-testcontainers
 
       - name: Run Go tests
         env:
           # Ryuk stays disabled to match scripts/test.sh, so CI and local runs share one code path.
-          TESTCONTAINERS_RYUK_DISABLED: "true"
-          # Each package runs in its own metadata DB, so packages run in parallel.
-          # -p must equal the provisioned worker count.
-          TEST_PARALLEL_WORKERS: "8"
+          TESTCONTAINERS_RYUK_DISABLED: 'true'
           TEST_GROUP: ${{ matrix.group }}
         run: |
           cd backend
-          # Separate assignments let a failing recipe stop the step instead of running no tests.
-          packages=$(just test-group-packages "$TEST_GROUP")
-          run_pattern=$(just test-group-tests "$TEST_GROUP")
-          # Each leg runs one group on its own runner, so a group needs more wall-clock than the
-          # 15m scripts/test.sh allows on a developer machine.
+          # Separate assignments let a failing task stop the step instead of running no tests.
+          packages=$(mise run backend:test-group-packages "$TEST_GROUP")
+          run_pattern=$(mise run backend:test-group-tests "$TEST_GROUP")
+          # Each leg runs one group on its own runner and allows extra time for CI contention.
           # shellcheck disable=SC2086 # one import path per word
-          go test -p=8 -count=1 -failfast -timeout 40m ${run_pattern:+-run "$run_pattern"} $packages
+          go test -race -p=8 -count=1 -failfast -timeout 40m ${run_pattern:+-run "$run_pattern"} $packages
 
   build-storage-image:
-    if: github.head_ref != 'develop'
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
     timeout-minutes: 30
     steps:
@@ -505,7 +487,6 @@ jobs:
           overwrite: true
 
   test-filesystems:
-    if: github.head_ref != 'develop'
     needs: [build-storage-image]
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
@@ -565,156 +546,81 @@ jobs:
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: "just"
+          install: false
 
       - name: Run filesystem suite
         env:
           DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}
           CASE_GROUP: ${{ matrix.group }}
-        run: just test-filesystem
+        run: mise run test-filesystem
 
-  build-dev-image:
+  test-upgrade:
+    needs: [build-storage-image]
     runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
-    timeout-minutes: 45
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
+    timeout-minutes: 30
     steps:
-      - name: Check out code
+      # The previous release is the newest v* tag, which lives on main, so the checkout needs every tag.
+      - name: Check out code with tags
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-
-      - name: Build amd64 dev image and load locally
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
-          context: .
-          push: false
-          load: true
-          platforms: linux/amd64
-          build-args: |
-            APP_VERSION=dev-${{ github.sha }}
-          tags: |
-            databasus-dev:smoke-${{ github.sha }}
+          fetch-depth: 0
 
-      - name: Run smoke pings against dev image
-        run: |
-          # 0770 keeps the traversal bit off for others, so the smoke run only passes
-          # while the in-container postgres account reaches PGDATA through its group.
-          mkdir -p /tmp/databasus-dev-smoke-data
-          chmod 770 /tmp/databasus-dev-smoke-data
-          docker run -d --name databasus-dev-smoke \
-            -p 4005:4005 \
-            -v /tmp/databasus-dev-smoke-data:/databasus-data \
-            databasus-dev:smoke-${{ github.sha }}
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: 'go'
 
-          for i in $(seq 1 60); do
-            health_body=$(mktemp)
-            code=$(curl -s -o "$health_body" -w '%{http_code}' http://localhost:4005/api/v1/system/health || true)
-            if [ "$code" = "200" ] && grep -q '"status"' "$health_body"; then
-              echo "healthcheck OK after ${i} attempt(s)"
-              rm -f "$health_body"
-              break
-            fi
-            rm -f "$health_body"
-            if [ "$i" -eq 60 ]; then
-              echo "healthcheck never returned valid JSON (last code: ${code})"
-              docker logs databasus-dev-smoke
-              exit 1
-            fi
-            sleep 2
-          done
+      - name: Set up Go cache
+        uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
+        with:
+          cache: go
 
-          body=$(curl -sf http://localhost:4005/)
-          if ! echo "$body" | grep -q 'id="root"'; then
-            echo "index.html did not contain React root div"
-            echo "$body"
-            exit 1
-          fi
-          echo "index.html OK"
+      - name: Download the storage candidate
+        id: download-the-storage-candidate-1
+        continue-on-error: true
+        timeout-minutes: 3
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: databasus-storage-test
+          path: /tmp
 
-          for arch in amd64 arm64; do
-            echo "Checking verification agent download for $arch..."
-            out=$(mktemp)
-            http=$(curl -sS -o "$out" -w '%{http_code}' "http://localhost:4005/api/v1/system/verification-agent?arch=$arch")
-            if [ "$http" != "200" ]; then
-              echo "verification agent ($arch) download failed: HTTP $http"
-              head -c 200 "$out" || true
-              docker logs databasus-dev-smoke
-              rm -f "$out"
-              exit 1
-            fi
-            magic=$(head -c 4 "$out" | od -An -t x1 | tr -d ' ')
-            if [ "$magic" != "7f454c46" ]; then
-              echo "verification agent ($arch) is not an ELF binary (first 4 bytes: $magic)"
-              head -c 200 "$out" || true
-              docker logs databasus-dev-smoke
-              rm -f "$out"
-              exit 1
-            fi
-            size=$(stat -c%s "$out")
-            echo "verification agent ($arch) OK (${size} bytes)"
-            rm -f "$out"
-          done
+      - name: Download the storage candidate (attempt 2)
+        id: download-the-storage-candidate-2
+        if: steps.download-the-storage-candidate-1.outcome == 'failure'
+        continue-on-error: true
+        timeout-minutes: 3
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: databasus-storage-test
+          path: /tmp
 
-          # A console command is the only user of the credential start.sh publishes for
-          # processes that miss PID 1's environment, so nothing else here notices when
-          # publishing breaks.
-          echo "Checking that a console command reaches the metadata database..."
-          console_output=$(mktemp)
-          if ! docker exec databasus-dev-smoke ./main --list-admins >"$console_output" 2>&1; then
-            echo "console command could not reach the metadata database"
-            cat "$console_output"
-            docker logs databasus-dev-smoke
-            rm -f "$console_output"
-            exit 1
-          fi
-          rm -f "$console_output"
-          echo "console command OK"
+      - name: Download the storage candidate (attempt 3)
+        id: download-the-storage-candidate-3
+        if: steps.download-the-storage-candidate-2.outcome == 'failure'
+        timeout-minutes: 3
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: databasus-storage-test
+          path: /tmp
 
-          # A broken non-PostgreSQL bundle only logs a warning and disables that engine,
-          # so the container stays healthy. The image ships every bundle, so any such
-          # warning here means one of them cannot run in the image.
-          echo "Checking that every bundled client tool runs in the image..."
-          if docker logs databasus-dev-smoke 2>&1 | grep -F "client tools check failed"; then
-            echo "a bundled client tool cannot run in the image"
-            exit 1
-          fi
-          echo "client tools OK"
+      - name: Load the storage candidate
+        run: zstd -dc /tmp/databasus-storage-test.tar.zst | docker load
 
-      - name: Install Trivy
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y wget apt-transport-https gnupg
-          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo gpg --batch --no-tty --yes --dearmor -o /usr/share/keyrings/trivy.gpg
-          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" | sudo tee /etc/apt/sources.list.d/trivy.list
-          sudo apt-get update
-          sudo apt-get install -y trivy
+      - name: Run the upgrade test
+        env:
+          DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}
+        run: mise run backend:test-upgrade
 
-      - name: Trivy scan dev image (CRITICAL, blocking)
-        run: trivy image --severity CRITICAL --ignore-unfixed --pkg-types os,library --scanners vuln --exit-code 1 databasus-dev:smoke-${{ github.sha }}
-
-      - name: Trivy scan dev image (HIGH, advisory)
-        if: always()
-        run: trivy image --severity HIGH --ignore-unfixed --pkg-types os,library --scanners vuln --exit-code 0 databasus-dev:smoke-${{ github.sha }}
-
-      - name: Cleanup smoke container
-        if: always()
-        run: |
-          docker rm -f databasus-dev-smoke || true
-          docker rmi databasus-dev:smoke-${{ github.sha }} || true
-          rm -rf /tmp/databasus-dev-smoke-data || true
-
-  push-dev-image:
+  build-image:
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 60
-    needs: [build-dev-image, test-filesystems]
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
-    permissions:
-      contents: read
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
         include:
           - arch: amd64
             platform: linux/amd64
-            runner: namespace-profile-2vcpu-4ram-ubuntu-26-x64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-26-x64
           - arch: arm64
             platform: linux/arm64
             runner: namespace-profile-2vcpu-4ram-ubuntu-26-arm
@@ -722,279 +628,83 @@ jobs:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and push dev image by digest
-        id: dev-image-push
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
-        with:
-          context: .
-          platforms: ${{ matrix.platform }}
-          build-args: |
-            APP_VERSION=dev-${{ github.sha }}
-          outputs: type=image,name=databasus/databasus-dev,push-by-digest=true,name-canonical=true,push=true
-
-      - name: Export image digest
-        run: |
-          mkdir -p /tmp/digests
-          digest="${{ steps.dev-image-push.outputs.digest }}"
-          touch "/tmp/digests/${digest#sha256:}"
-
-      - name: Upload image digest
-        id: upload-image-digest-1
-        continue-on-error: true
-        timeout-minutes: 3
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: digests-dev-${{ matrix.arch }}
-          path: /tmp/digests/*
-          if-no-files-found: error
-          retention-days: 1
-          overwrite: true
-
-      - name: Upload image digest (attempt 2)
-        id: upload-image-digest-2
-        if: steps.upload-image-digest-1.outcome == 'failure'
-        continue-on-error: true
-        timeout-minutes: 3
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: digests-dev-${{ matrix.arch }}
-          path: /tmp/digests/*
-          if-no-files-found: error
-          retention-days: 1
-          overwrite: true
-
-      - name: Upload image digest (attempt 3)
-        id: upload-image-digest-3
-        if: steps.upload-image-digest-2.outcome == 'failure'
-        timeout-minutes: 3
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: digests-dev-${{ matrix.arch }}
-          path: /tmp/digests/*
-          if-no-files-found: error
-          retention-days: 1
-          overwrite: true
-
-  merge-dev-image-manifest:
-    runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
-    timeout-minutes: 10
-    needs: [push-dev-image]
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
-    permissions:
-      contents: read
-    steps:
-      - name: Download image digests
-        id: download-image-digests-1
-        continue-on-error: true
-        timeout-minutes: 3
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          pattern: digests-dev-*
-          merge-multiple: true
-          path: /tmp/digests
-
-      - name: Download image digests (attempt 2)
-        id: download-image-digests-2
-        if: steps.download-image-digests-1.outcome == 'failure'
-        continue-on-error: true
-        timeout-minutes: 3
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          pattern: digests-dev-*
-          merge-multiple: true
-          path: /tmp/digests
-
-      - name: Download image digests (attempt 3)
-        id: download-image-digests-3
-        if: steps.download-image-digests-2.outcome == 'failure'
-        timeout-minutes: 3
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          pattern: digests-dev-*
-          merge-multiple: true
-          path: /tmp/digests
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Create multi-arch dev manifest
-        working-directory: /tmp/digests
-        run: |
-          platform_image_refs=()
-          for digest in *; do
-            platform_image_refs+=("databasus/databasus-dev@sha256:${digest}")
-          done
-
-          docker buildx imagetools create \
-            -t databasus/databasus-dev:latest \
-            -t "databasus/databasus-dev:${{ github.sha }}" \
-            "${platform_image_refs[@]}"
-
-  build-image:
-    if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
-    runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
-    timeout-minutes: 45
-    needs: [lint-backend, lint-frontend, lint-shell, lint-verification-agent, dockerfile-scan]
-    steps:
-      - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-
-      - name: Build amd64 image and load locally
+      - name: Build image and load locally
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
           context: .
           push: false
           load: true
-          platforms: linux/amd64
+          platforms: ${{ matrix.platform }}
           build-args: |
             APP_VERSION=ci-${{ github.sha }}
           tags: |
             databasus:smoke-${{ github.sha }}
 
-      - name: Run smoke pings against built image
-        run: |
-          # 0770 keeps the traversal bit off for others, so the smoke run only passes
-          # while the in-container postgres account reaches PGDATA through its group.
-          mkdir -p /tmp/databasus-smoke-data
-          chmod 770 /tmp/databasus-smoke-data
-          docker run -d --name databasus-smoke \
-            -p 4005:4005 \
-            -v /tmp/databasus-smoke-data:/databasus-data \
-            databasus:smoke-${{ github.sha }}
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: 'aqua:aquasecurity/trivy'
 
-          for i in $(seq 1 60); do
-            health_body=$(mktemp)
-            code=$(curl -s -o "$health_body" -w '%{http_code}' http://localhost:4005/api/v1/system/health || true)
-            if [ "$code" = "200" ] && grep -q '"status"' "$health_body"; then
-              echo "healthcheck OK after ${i} attempt(s)"
-              rm -f "$health_body"
-              break
-            fi
-            rm -f "$health_body"
-            if [ "$i" -eq 60 ]; then
-              echo "healthcheck never returned valid JSON (last code: ${code})"
-              docker logs databasus-smoke
-              exit 1
-            fi
-            sleep 2
-          done
-
-          body=$(curl -sf http://localhost:4005/)
-          if ! echo "$body" | grep -q 'id="root"'; then
-            echo "index.html did not contain React root div"
-            echo "$body"
-            exit 1
-          fi
-          echo "index.html OK"
-
-          for arch in amd64 arm64; do
-            echo "Checking verification agent download for $arch..."
-            out=$(mktemp)
-            http=$(curl -sS -o "$out" -w '%{http_code}' "http://localhost:4005/api/v1/system/verification-agent?arch=$arch")
-            if [ "$http" != "200" ]; then
-              echo "verification agent ($arch) download failed: HTTP $http"
-              head -c 200 "$out" || true
-              docker logs databasus-smoke
-              rm -f "$out"
-              exit 1
-            fi
-            magic=$(head -c 4 "$out" | od -An -t x1 | tr -d ' ')
-            if [ "$magic" != "7f454c46" ]; then
-              echo "verification agent ($arch) is not an ELF binary (first 4 bytes: $magic)"
-              head -c 200 "$out" || true
-              docker logs databasus-smoke
-              rm -f "$out"
-              exit 1
-            fi
-            size=$(stat -c%s "$out")
-            echo "verification agent ($arch) OK (${size} bytes)"
-            rm -f "$out"
-          done
-
-          # A console command is the only user of the credential start.sh publishes for
-          # processes that miss PID 1's environment, so nothing else here notices when
-          # publishing breaks.
-          echo "Checking that a console command reaches the metadata database..."
-          console_output=$(mktemp)
-          if ! docker exec databasus-smoke ./main --list-admins >"$console_output" 2>&1; then
-            echo "console command could not reach the metadata database"
-            cat "$console_output"
-            docker logs databasus-smoke
-            rm -f "$console_output"
-            exit 1
-          fi
-          rm -f "$console_output"
-          echo "console command OK"
-
-          # A broken non-PostgreSQL bundle only logs a warning and disables that engine,
-          # so the container stays healthy. The image ships every bundle, so any such
-          # warning here means one of them cannot run in the image.
-          echo "Checking that every bundled client tool runs in the image..."
-          if docker logs databasus-smoke 2>&1 | grep -F "client tools check failed"; then
-            echo "a bundled client tool cannot run in the image"
-            exit 1
-          fi
-          echo "client tools OK"
-
-      - name: Install Trivy
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y wget apt-transport-https gnupg
-          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo gpg --batch --no-tty --yes --dearmor -o /usr/share/keyrings/trivy.gpg
-          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" | sudo tee /etc/apt/sources.list.d/trivy.list
-          sudo apt-get update
-          sudo apt-get install -y trivy
-
-      - name: Trivy scan release image (CRITICAL, blocking)
-        run: trivy image --severity CRITICAL --ignore-unfixed --pkg-types os,library --scanners vuln --exit-code 1 databasus:smoke-${{ github.sha }}
-
-      - name: Trivy scan release image (HIGH, advisory)
-        if: always()
-        run: trivy image --severity HIGH --ignore-unfixed --pkg-types os,library --scanners vuln --exit-code 0 databasus:smoke-${{ github.sha }}
-
-      - name: Cleanup smoke container
-        if: always()
-        run: |
-          docker rm -f databasus-smoke || true
-          docker rmi databasus:smoke-${{ github.sha }} || true
-          rm -rf /tmp/databasus-smoke-data || true
+      - name: Check image
+        run: scripts/check_image.sh databasus:smoke-${{ github.sha }}
 
   build-verification-image:
-    if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
     timeout-minutes: 45
-    needs: [lint-verification-agent, dockerfile-scan]
     permissions:
       contents: read
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      # Validate the extension Dockerfile builds (amd64, representative major) on
-      # every PR; the full multi-arch matrix is built at release time below.
+      # A representative major checks the Dockerfile before version selection;
+      # publishing builds the full multi-arch matrix.
       - name: Build verification image (amd64, no push)
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
-          context: agent/verification/images/postgres
+          context: backend/cmd/verification-agent/images/postgres
           push: false
           platforms: linux/amd64
           build-args: |
             PG_MAJOR=16
 
+  # Reports under its own CodeQL configuration, which scripts/check_codeql_alerts.sh relies on.
+  code-scanning:
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    uses: ./.github/workflows/codeql.yml
+    with:
+      is-release-gate: true
+
+  dependency-review:
+    uses: ./.github/workflows/dependency-review.yml
+
   determine-version:
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
     timeout-minutes: 10
-    needs: [lint-backend, test-backend, test-frontend, test-verification-agent, e2e-verification-agent, e2e-verification-agent-podman, test-filesystems]
-    if: ${{ github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[skip-release]') }}
+    needs:
+      [
+        lint-backend,
+        lint-frontend,
+        lint-shell,
+        dockerfile-scan,
+        dependency-review,
+        test-backend,
+        test-frontend,
+        test-frontend-browser-ui,
+        test-e2e-browser,
+        test-verification-agent,
+        e2e-verification-agent-podman,
+        test-filesystems,
+        test-upgrade,
+        lint-workflows,
+        build-image,
+        build-verification-image,
+        code-scanning,
+      ]
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[skip-release]') }}
     outputs:
       should_release: ${{ steps.version_bump.outputs.should_release }}
       new_version: ${{ steps.version_bump.outputs.new_version }}
@@ -1005,8 +715,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install semver
-        run: npm install -g semver
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: 'node npm:semver'
 
       - name: Get current version
         id: current_version
@@ -1071,7 +783,7 @@ jobs:
           echo "bump_type=$BUMP_TYPE" >> "$GITHUB_OUTPUT"
 
           if [ "$BUMP_TYPE" != "none" ]; then
-            NEW_VERSION=$(npx semver -i $BUMP_TYPE $CURRENT_VERSION)
+            NEW_VERSION=$(semver -i $BUMP_TYPE $CURRENT_VERSION)
             echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
             echo "should_release=true" >> "$GITHUB_OUTPUT"
             echo "New version will be: $NEW_VERSION"
@@ -1247,7 +959,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        major: ["12", "13", "14", "15", "16", "17", "18"]
+        major: ['12', '13', '14', '15', '16', '17', '18']
         arch: [amd64, arm64]
         include:
           - arch: amd64
@@ -1280,7 +992,7 @@ jobs:
         id: verification-image-push
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
-          context: agent/verification/images/postgres
+          context: backend/cmd/verification-agent/images/postgres
           platforms: ${{ matrix.platform }}
           build-args: |
             PG_MAJOR=${{ matrix.major }}
@@ -1340,7 +1052,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        major: ["12", "13", "14", "15", "16", "17", "18"]
+        major: ['12', '13', '14', '15', '16', '17', '18']
     steps:
       - name: Download image digests
         id: download-image-digests-1
@@ -1397,7 +1109,7 @@ jobs:
   release:
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
     timeout-minutes: 10
-    needs: [determine-version, merge-image-manifest]
+    needs: [determine-version, merge-image-manifest, merge-verification-image-manifest]
     if: ${{ needs.determine-version.outputs.should_release == 'true' }}
     permissions:
       contents: write
@@ -1532,10 +1244,10 @@ jobs:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - name: Set up Helm
-        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          version: v3.14.0
+          install_args: 'helm'
 
       - name: Log in to GHCR
         env:

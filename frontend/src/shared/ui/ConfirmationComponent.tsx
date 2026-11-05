@@ -1,5 +1,5 @@
 import { Button, Modal } from 'antd';
-import type { JSX, ReactNode } from 'react';
+import { useEffect, useRef, useState, type JSX, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface Props {
@@ -8,7 +8,7 @@ interface Props {
 
   // Rendered as React content, never as HTML: a sentence with inline markup is a Trans element.
   description: ReactNode;
-  actionButtonColor: 'blue' | 'red';
+  isDestructive: boolean;
 
   actionText: string;
   cancelText?: string;
@@ -19,12 +19,26 @@ export function ConfirmationComponent({
   onConfirm,
   onDecline,
   description,
-  actionButtonColor,
+  isDestructive,
   actionText,
   cancelText,
   hideCancelButton = false,
 }: Props): JSX.Element {
+  const [invokingControl] = useState(() =>
+    document.activeElement instanceof HTMLElement ? document.activeElement : null,
+  );
+  const isMounted = useRef(false);
   const { t } = useTranslation();
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+      queueMicrotask(() => {
+        if (!isMounted.current && invokingControl?.isConnected) invokingControl.focus();
+      });
+    };
+  }, [invokingControl]);
 
   return (
     <Modal
@@ -35,22 +49,20 @@ export function ConfirmationComponent({
     >
       <div>{description}</div>
 
-      <div className="mt-5 flex">
+      <div className="mt-5 flex flex-wrap justify-end gap-2">
         {!hideCancelButton && (
           <Button
-            className="ml-auto"
+            className="h-auto min-h-8 max-w-full whitespace-normal"
             onClick={() => onDecline()}
-            danger={actionButtonColor !== 'red'}
-            type="primary"
           >
             {cancelText || t('common.actions.cancel')}
           </Button>
         )}
 
         <Button
-          className="ml-1"
+          className="h-auto min-h-8 max-w-full whitespace-normal"
           onClick={() => onConfirm()}
-          danger={actionButtonColor === 'red'}
+          danger={isDestructive}
           type="primary"
         >
           {actionText}

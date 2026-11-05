@@ -129,28 +129,29 @@ Databasus SHALL delete samples older than 7 days at least once an hour, whether 
 
 ### Requirement: Only users who can view the database can read its WAL stream statistics
 
-The WAL stream statistics of a database SHALL be returned only to an authenticated user who can view that database. Any other request SHALL be refused, the same way the other physical backup endpoints refuse it. The statistics SHALL contain no connection details, credentials, error messages from the source or WAL contents.
+The WAL stream statistics of a database and the current values of its WAL stream SHALL be returned only to an authenticated user who can view that database. A user who is neither a member of the database's workspace nor an instance admin SHALL get `404` with `code` `not_found`, the same answer as for a database that does not exist. A request without a valid session SHALL get `401` with `code` `unauthenticated`. The statistics and the current values SHALL contain no connection details, credentials, error messages from the source or WAL contents.
 
 #### Scenario: Member of the database's workspace
 
-- **WHEN** a member of the workspace that owns the database requests its statistics
-- **THEN** the statistics are returned
+- **WHEN** a member of the workspace that owns the database requests its statistics and its current values
+- **THEN** both are returned
 
 #### Scenario: User from another workspace
 
-- **WHEN** a user without access to the database's workspace requests its statistics
-- **THEN** the request is refused
+- **WHEN** a user without access to the database's workspace requests its statistics or its current values
+- **THEN** the response is `404` with `code` `not_found`
+- **AND** no statistics or values are returned
 
 #### Scenario: Unauthenticated request
 
-- **WHEN** a request without valid authentication asks for statistics
-- **THEN** the request is refused with an authentication error
+- **WHEN** a request without valid authentication asks for statistics or current values
+- **THEN** the response is `401` with `code` `unauthenticated`
 
 #### Scenario: Nonexistent database
 
-- **WHEN** an authenticated user requests statistics for a database ID that does not exist
-- **THEN** the request is refused
-- **AND** no statistics are returned
+- **WHEN** an authenticated user requests statistics or current values for a database ID that does not exist
+- **THEN** the response is `404` with `code` `not_found`
+- **AND** no statistics or values are returned
 
 ### Requirement: The statistics API is a documented, unit-explicit contract
 
@@ -781,7 +782,7 @@ When a full backup is what repairs the situation, the verdict banner SHALL offer
 
 The not streaming verdict SHALL never offer the button, because Databasus takes no backups while streaming is off. The collecting data verdict SHALL not offer it either: it lasts at most two minutes, and the restore sentence already says whether a first full backup exists.
 
-The button SHALL request a full backup at once, the same way the Backups tab does. While the request runs, the button SHALL show that it is working and SHALL not accept another click. After the request succeeds, the tab SHALL refresh at once, so the banner says that a full backup is on its way without waiting for the next scheduled refresh. A failed request SHALL show the error and leave the button available.
+The button SHALL request a full backup at once, the same way the Backups tab does. While the request runs, the button SHALL show that it is working and SHALL not accept another click. After the request succeeds, the tab SHALL refresh at once, so the banner says that a full backup is on its way without waiting for the next scheduled refresh. While the tab is open, a failed request SHALL show the error and leave the button available.
 
 #### Scenario: Broken chain fixed from the tab
 
@@ -797,7 +798,7 @@ The button SHALL request a full backup at once, the same way the Backups tab doe
 
 #### Scenario: Request refused
 
-- **WHEN** the full backup request fails
+- **WHEN** the full backup request fails while the tab is open
 - **THEN** the tab shows the error
 - **AND** the button can be pressed again
 
@@ -904,7 +905,7 @@ The tab SHALL stop growing at a maximum width of about 1150 px, so on wide scree
 
 ### Requirement: The API serves the current values every second
 
-A second authenticated endpoint SHALL return the current values of a database's running WAL stream, read from the running streamer at the time of the request and not stored: the time of the reading, the local queue and its pause size, whether receiving runs, the archive progress point, the time the newest WAL segment was archived, and how much is not saved to storage yet. The values from the source database, its current position, the slot's status, the slot lag and the remaining allowance, SHALL come from the newest probe of the source that the streamer already makes, at least every 10 seconds, together with the time of that probe; the endpoint SHALL not open a connection to the source itself. Only users who can view the database SHALL read it. While no streamer runs for the database, the response SHALL say so and carry no values.
+A second authenticated endpoint SHALL return the current values of a database's running WAL stream, read from the running streamer at the time of the request and not stored: the time of the reading, the local queue and its pause size, whether receiving runs, the archive progress point, the time the newest WAL segment was archived, and how much is not saved to storage yet. The values from the source database, its current position, the slot's status, the slot lag and the remaining allowance, SHALL come from the newest probe of the source that the streamer already makes, at least every 10 seconds, together with the time of that probe; the endpoint SHALL not open a connection to the source itself. Only users who can view the database SHALL read it, with the answers of the requirement on reading WAL stream statistics. While no streamer runs for the database, the response SHALL say so and carry no values.
 
 #### Scenario: Buffer drains between two samples
 
@@ -928,5 +929,39 @@ A second authenticated endpoint SHALL return the current values of a database's 
 
 #### Scenario: Member without access
 
-- **WHEN** a user who cannot view the database requests its current values
-- **THEN** the request is refused
+- **WHEN** a user who is not a member of the database's workspace and not an instance admin requests its current values
+- **THEN** the response is `404` with `code` `not_found`, as the requirement on reading WAL stream statistics states
+
+### Requirement: The full backup request keeps one owner while the Monitoring tab is open
+
+While a full backup request runs, switching the interface language or receiving a scheduled refresh SHALL keep the button busy, and the button SHALL accept no other click. Messages about the request SHALL use the language current when they appear. Leaving the tab means opening another tab of the database page or selecting another database. When the user leaves, the request SHALL continue on the server, but its answer, including a failure, SHALL show no feedback, start no refresh and leave no refresh running. Hiding the browser tab SHALL not count as leaving.
+
+#### Scenario: The language changes during a request
+
+- **WHEN** the user presses the full backup button, switches the interface language while the request runs and a scheduled refresh arrives
+- **THEN** the button stays busy until the request has answered and the refresh after it has landed, and only one request was sent
+
+#### Scenario: The request fails in the new language
+
+- **WHEN** the language changes while the request runs and the request then fails
+- **THEN** the error appears in the new language, and the button can be pressed again
+
+#### Scenario: The request succeeds in the new language
+
+- **WHEN** the language changes while the request runs and the request then succeeds
+- **THEN** the success message appears in the new language
+
+#### Scenario: The user leaves during a request
+
+- **WHEN** the user opens another tab of the database, such as Backups, while a full backup request runs and the request then succeeds
+- **THEN** no message appears and no statistics request follows
+
+#### Scenario: The request fails after the user leaves
+
+- **WHEN** the user opens another tab of the database while a full backup request runs and the request then fails
+- **THEN** no error appears, and on return the button is offered again because no full backup is pending
+
+#### Scenario: The browser tab is hidden during a request
+
+- **WHEN** the user hides the browser tab while a full backup request runs and the request then succeeds
+- **THEN** the message appears and the button stays busy until the refresh after it has landed

@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { getLocalizedHref, isTranslatedPath, type Locale } from "@/app/i18n";
+import { getLocalizedHref, type Locale } from "@/app/i18n";
 
 interface NavItem {
   title: string;
@@ -56,15 +56,6 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    title: "Contribute",
-    href: "/contribute",
-    children: [
-      { title: "How to add storage", href: "/contribute/how-to-add-storage" },
-      { title: "How to add notifier", href: "/contribute/how-to-add-notifier" },
-    ],
-  },
-
-  {
     title: "Comparisons",
     href: "/pgdump-alternative",
     children: [
@@ -98,9 +89,6 @@ const SIDEBAR_TITLES: Record<Locale, Record<string, string>> = {
     FAQ: "FAQ",
     "How to backup localhost": "Как бекапить localhost",
     "How to backup Supabase": "Как бекапить Supabase",
-    Contribute: "Участие в разработке",
-    "How to add storage": "Как добавить хранилище",
-    "How to add notifier": "Как добавить уведомления",
     Comparisons: "Сравнения",
     "pg_dump alternative": "Альтернатива pg_dump",
     "Manual recovery from backup without Databasus":
@@ -118,9 +106,6 @@ const SIDEBAR_TITLES: Record<Locale, Record<string, string>> = {
     FAQ: "Preguntas frecuentes",
     "How to backup localhost": "Cómo respaldar localhost",
     "How to backup Supabase": "Cómo respaldar Supabase",
-    Contribute: "Contribuir",
-    "How to add storage": "Cómo añadir un almacenamiento",
-    "How to add notifier": "Cómo añadir un notificador",
     Comparisons: "Comparaciones",
     "pg_dump alternative": "Alternativa a pg_dump",
     "Manual recovery from backup without Databasus":
@@ -138,9 +123,6 @@ const SIDEBAR_TITLES: Record<Locale, Record<string, string>> = {
     FAQ: "Perguntas frequentes",
     "How to backup localhost": "Como fazer backup do localhost",
     "How to backup Supabase": "Como fazer backup do Supabase",
-    Contribute: "Contribuir",
-    "How to add storage": "Como adicionar um armazenamento",
-    "How to add notifier": "Como adicionar um notificador",
     Comparisons: "Comparações",
     "pg_dump alternative": "Alternativa ao pg_dump",
     "Manual recovery from backup without Databasus":
@@ -158,9 +140,6 @@ const SIDEBAR_TITLES: Record<Locale, Record<string, string>> = {
     FAQ: "常见问题",
     "How to backup localhost": "如何备份 localhost",
     "How to backup Supabase": "如何备份 Supabase",
-    Contribute: "参与贡献",
-    "How to add storage": "如何添加存储",
-    "How to add notifier": "如何添加通知器",
     Comparisons: "对比",
     "pg_dump alternative": "pg_dump 替代方案",
     "Manual recovery from backup without Databasus":
@@ -178,9 +157,6 @@ const SIDEBAR_TITLES: Record<Locale, Record<string, string>> = {
     FAQ: "FAQ",
     "How to backup localhost": "Sauvegarder localhost",
     "How to backup Supabase": "Sauvegarder Supabase",
-    Contribute: "Contribuer",
-    "How to add storage": "Ajouter un stockage",
-    "How to add notifier": "Ajouter un notificateur",
     Comparisons: "Comparaisons",
     "pg_dump alternative": "Alternative à pg_dump",
     "Manual recovery from backup without Databasus":
@@ -207,9 +183,7 @@ export default function DocsSidebarComponent({
 
   const localizeHref = (href: string) => {
     if (lang === "en") return href;
-    const path = href.replace(/^\//, "");
-    // Untranslated pages (e.g. Contribute) keep their English URLs in every locale.
-    return isTranslatedPath(path) ? getLocalizedHref(lang, path) : href;
+    return getLocalizedHref(lang, href.replace(/^\//, ""));
   };
   const localizeTitle = (title: string) =>
     lang === "en" ? title : (SIDEBAR_TITLES[lang][title] ?? title);

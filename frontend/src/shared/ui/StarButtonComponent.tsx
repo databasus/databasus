@@ -1,23 +1,8 @@
+import { StarOutlined } from '@ant-design/icons';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useLocale } from '../i18n';
-
-const StarIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-  </svg>
-);
 
 export function StarButtonComponent() {
   const { t } = useTranslation();
@@ -48,16 +33,16 @@ export function StarButtonComponent() {
       href="https://github.com/databasus/databasus"
       target="_blank"
       rel="noopener noreferrer"
-      className="flex cursor-pointer items-center rounded-md border !border-gray-200 !bg-white text-sm !text-gray-700 transition-colors hover:!bg-gray-50 dark:!border-gray-600 dark:!bg-gray-700 dark:!text-gray-200 dark:hover:!bg-gray-600"
+      className="flex cursor-pointer items-center rounded-md border !border-border !bg-surface text-sm !text-content transition-colors hover:!bg-hover"
       aria-label={t('app.starButton.ariaLabel')}
     >
-      <div className="flex items-center gap-2 border-r border-gray-200 px-2.5 py-1 !text-black dark:border-gray-600 dark:!text-white">
-        <StarIcon />
+      <div className="flex items-center gap-2 border-r border-border px-2.5 py-1 !text-content">
+        <StarOutlined aria-hidden />
         <span>{t('app.starButton.label')}</span>
       </div>
 
       {!isLoading && starCount !== null && (
-        <span className="px-2.5 py-1 !text-black dark:!text-white">{formatNumber(starCount)}</span>
+        <span className="px-2.5 py-1 !text-content">{formatNumber(starCount)}</span>
       )}
     </a>
   );

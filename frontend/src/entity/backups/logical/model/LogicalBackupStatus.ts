@@ -1,7 +1,0 @@
-export enum LogicalBackupStatus {
-  IN_PROGRESS = 'IN_PROGRESS',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
-  DELETED = 'DELETED',
-  CANCELED = 'CANCELED',
-}

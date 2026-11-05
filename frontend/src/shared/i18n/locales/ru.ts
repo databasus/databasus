@@ -6,22 +6,19 @@ export const ru: typeof en = {
   },
   common: {
     actions: {
-      add: 'Добавить',
       back: 'Назад',
       cancel: 'Отмена',
       close: 'Закрыть',
-      confirm: 'Подтвердить',
       continue: 'Продолжить',
       copy: 'Копировать',
       create: 'Создать',
       delete: 'Удалить',
-      download: 'Скачать',
       edit: 'Изменить',
       ok: 'OK',
-      refresh: 'Обновить',
       remove: 'Удалить',
       retry: 'Повторить',
       save: 'Сохранить',
+      transfer: 'Перенести',
     },
     answers: {
       no: 'Нет',
@@ -37,15 +34,16 @@ export const ru: typeof en = {
       username: 'Имя пользователя',
     },
     states: {
-      disabled: 'Выключено',
       enabled: 'Включено',
       loading: 'Загрузка...',
     },
     messages: {
       copiedToClipboard: 'Скопировано в буфер обмена',
+      addressChangedEnterSecretAgain: 'Адрес изменился. Введите это значение заново.',
     },
     // Joins translated words into one list (Chinese uses 、)
     listSeparator: ', ',
+    websiteLink: 'Сайт Databasus',
     confirmation: {
       title: 'Подтверждение',
     },
@@ -62,6 +60,7 @@ export const ru: typeof en = {
       system: 'Системная',
     },
     navigation: {
+      menu: 'Меню навигации',
       databases: 'Базы данных',
       storages: 'Хранилища',
       notifiers: 'Каналы уведомлений',
@@ -77,16 +76,11 @@ export const ru: typeof en = {
     diskUsage: {
       title: 'Место на диске',
       hint: 'Чтобы делать бекапы локально и восстанавливаться из них, на диске должно хватать места. Для восстановления нужно столько же свободного места, сколько занимает бекап.',
-      compactSummary: 'Занято {{used}} из {{total}} GB<lineBreak/>({{percent}}%)',
       summary: 'Занято {{used}} из {{total}} GB ({{percent}}%)',
     },
     workspaceSelection: {
-      createShort: 'Создать',
       create: 'Создать рабочее пространство',
       selected: 'Рабочее пространство',
-      placeholder: 'Выберите рабочее пространство',
-      search: 'Поиск рабочих пространств...',
-      notFound: 'Рабочие пространства не найдены',
       createNew: '+ Новое рабочее пространство',
     },
     starButton: {
@@ -100,29 +94,40 @@ export const ru: typeof en = {
         'Автоматический доступ к буферу обмена недоступен. Вставьте содержимое в поле ниже.',
       placeholder: 'Вставьте строку подключения...',
     },
-    auth: {
-      accountsCheckFailed: 'Не удалось проверить, есть ли на инстансе учетные записи: {{error}}',
-    },
     oauthCallback: {
       failedTitle: 'Не удалось войти',
-      codeNotFound: 'Не найден код авторизации',
-      stateMissing: 'Нет параметра state OAuth',
-      invalidProvider: 'Неизвестный OAuth-провайдер',
+      notCompleted: 'Вход не завершён. Начните заново.',
       returnToSignIn: 'Вернуться ко входу',
       completing: 'Завершаем вход...',
     },
     oauthStorage: {
-      configNotFound: 'Не найдены настройки хранилища Google Drive',
-      exchangeFailed: 'Не удалось обменять код OAuth на токен',
-      unsupportedType: 'Этот тип хранилища не поддерживает OAuth',
-      invalidState: 'Некорректный параметр state OAuth',
-      paramNotFound:
-        'Не найдены параметры OAuth. Проверьте, правильно ли настроен адрес перенаправления.',
-      addStorageTitle: 'Добавить хранилище',
-      storageDescription: 'Хранилище — место, где хранятся бекапы (локальный диск, S3 и т. п.)',
+      waiting: 'Завершаем авторизацию хранилища...',
+      complete: 'Ответ получен. Вернитесь в редактор хранилища.',
+      restart:
+        'Не удалось связаться с исходным редактором. Закройте это окно и запустите авторизацию заново из редактора.',
     },
   },
   errors: {
+    cleanupPending:
+      'Очистка файлов ещё идёт. Дождитесь её завершения или удалите затронутые хранилища по отдельности, подтвердив, что оставшиеся файлы придётся удалить вручную.',
+    alreadyMember: 'Этот пользователь уже участник рабочего пространства.',
+    cannotChangeOwnRole: 'Нельзя изменить свою собственную роль в рабочем пространстве.',
+    ownerRequiresTransfer:
+      'Владельца нельзя изменить или удалить. Сначала передайте владение другому участнику.',
+    workspaceNotEmpty:
+      'В рабочем пространстве еще есть базы данных. Сначала удалите их, затем удалите рабочее пространство.',
+    databaseConnectionFailed: 'Не удалось подключиться к базе данных: {{detail}}',
+    inUse:
+      'Он ещё используется базой данных, идущим бэкапом или восстановлением. Повторите, когда он освободится.',
+    backupNotCompleted: 'Проверить можно только завершённую резервную копию.',
+    alreadyRunning: 'Это уже выполняется. Дождитесь завершения и попробуйте снова.',
+    noExtendableChain: 'Перед инкрементальным бэкапом выполните полный бэкап.',
+    noRestorableBackup: 'Нет завершённого бэкапа, из которого можно восстановить данные.',
+    targetTimeUnreachable:
+      'Доступных бэкапов и WAL недостаточно для восстановления на выбранный момент.',
+    notRunning: 'Это уже не выполняется, отменять нечего.',
+    instanceUnhealthy: 'Экземпляр Databasus работает с ошибками.',
+    insufficientDiskSpace: 'На сервере Databasus не хватает свободного места на диске: {{detail}}',
     unknown: 'Что-то пошло не так. Попробуйте еще раз.',
     networkUnreachable: 'Сервер Databasus недоступен. Проверьте подключение и попробуйте еще раз.',
     requestFailed: 'Сервер не смог выполнить запрос (HTTP {{status}}). Попробуйте позже.',
@@ -134,17 +139,32 @@ export const ru: typeof en = {
       'За последний час для этого аккаунта запросили слишком много кодов входа. Попробуйте позже.',
     signInCodeResentTooSoon:
       'Код отправлен меньше минуты назад. Подождите минуту, прежде чем запрашивать новый.',
-    rateLimitExceeded: 'Слишком много попыток. Подождите немного и попробуйте снова.',
+    rateLimited: 'Слишком много попыток. Подождите немного и попробуйте снова.',
     emailNotConfigured: 'Почтовый сервер не настроен.',
     adminEmailMissing:
       'У вашего аккаунта нет корректного адреса почты, на который можно отправить тестовое письмо.',
+    invalidRequest:
+      'Сервер отклонил запрос как некорректный. Обновите страницу и попробуйте еще раз.',
+    notFound: 'Запрошенный объект не найден. Возможно, его удалили.',
+    internal: 'На сервере произошла внутренняя ошибка. Попробуйте позже.',
+    unauthenticated: 'Сессия завершилась. Войдите снова.',
+    permissionDenied: 'У вас нет прав на это действие.',
+    humanVerificationFailed: 'Проверка на робота не пройдена. Пройдите ее и попробуйте снова.',
+    invalidCredentials: 'Неверная почта или пароль.',
+    userDeactivated: 'Аккаунт деактивирован. Попросите администратора активировать его.',
+    registrationClosed:
+      'Регистрация на этом сервере закрыта. Попросите администратора пригласить вас.',
+    emailTaken: 'Этот адрес почты уже занят.',
+    invalidResetCode: 'Код сброса неверный или устарел. Запросите новый.',
+    oauthNotConfigured: 'Вход через этого провайдера на сервере не настроен.',
+    oauthFailed:
+      'Провайдер входа не подтвердил ваш аккаунт. Проверьте, что почта у него подтверждена, и попробуйте снова.',
   },
   status: {
     logicalBackup: {
       inProgress: 'Выполняется',
       completed: 'Успешно',
       failed: 'Ошибка',
-      deleted: 'Удален',
       canceled: 'Отменен',
     },
     physicalBackup: {
@@ -182,7 +202,7 @@ export const ru: typeof en = {
       offline: 'Не в сети',
     },
   },
-  intervals: {
+  schedules: {
     types: {
       hourly: 'Ежечасно',
       daily: 'Ежедневно',
@@ -199,18 +219,19 @@ export const ru: typeof en = {
       sat: 'Сб',
       sun: 'Вс',
     },
-    periods: {
-      day: '1 день',
-      week: '1 неделя',
-      month: '1 месяц',
-      threeMonths: '3 месяца',
-      sixMonths: '6 месяцев',
-      year: '1 год',
-      twoYears: '2 года',
-      threeYears: '3 года',
-      fourYears: '4 года',
-      fiveYears: '5 лет',
-      forever: 'Бессрочно',
+    weekday: 'День недели',
+    dayOfMonth: 'День месяца',
+    cronExpression: 'Cron-выражение (UTC)',
+    timeOfDay: 'Время',
+    nextRun: 'Следующий запуск: {{time}}',
+    invalidCron: 'Некорректное cron-выражение',
+    cronHelp: {
+      format: 'Формат cron: минута, час, день, месяц, день недели (UTC)',
+      examples: 'Примеры:',
+      dailyAt2am: 'Ежедневно в 2:00 UTC',
+      every6Hours: 'Каждые 6 часов',
+      mondaysAt3am: 'Каждый понедельник в 3:00 UTC',
+      twiceAMonth: '1-го и 15-го числа в 4:30 UTC',
     },
   },
   auditLogs: {
@@ -222,10 +243,9 @@ export const ru: typeof en = {
       created: 'Время',
     },
     systemUser: 'Система',
-    loadedOfTotal: 'Загружено: {{loaded}} из {{total}}',
     empty: 'Записей в журнале нет.',
     loadingMore: 'Загружаем еще записи...',
-    allLoaded: 'Все записи загружены (всего {{count}})',
+    allLoaded: 'Все записи загружены',
   },
   settings: {
     title: 'Настройки Databasus',
@@ -264,6 +284,8 @@ export const ru: typeof en = {
       docs: 'Как подключить почтовый сервер, описано <docsLink>в документации по SMTP</docsLink>.',
       sendTestEmail: 'Отправить тестовое письмо',
       testEmailSent: 'Тестовое письмо отправлено на {{email}}',
+      testEmailNotDelivered:
+        'Почтовый сервер не принял тестовое письмо на <email/>: <failureDetail/>',
     },
     healthcheck: {
       title: 'Проверка доступности',
@@ -312,6 +334,8 @@ export const ru: typeof en = {
       title: 'Добавить базу данных для бекапа',
       namePlaceholder: 'Моя любимая БД',
       creating: 'Создаем базу данных...',
+      finishing: 'Завершаем настройку базы данных...',
+      createdButNotFinished: 'База данных создана, но настройка не завершена. Причина: {{reason}}',
       complete: 'Завершить',
       backupType: {
         title: 'Выберите тип бекапа',
@@ -332,10 +356,7 @@ export const ru: typeof en = {
       lastBackupError: {
         title: 'Ошибка последнего бекапа',
         errorLabel: 'Ошибка:',
-        clearHint: 'Чтобы убрать эту ошибку, сделайте одно из двух:',
-        clearByTestingConnection:
-          '- проверьте подключение кнопкой ниже (даже если вы уже изменили настройки);',
-        clearByNextBackup: '- дождитесь следующего бекапа без ошибок;',
+        clearedByNextBackup: 'Ошибка исчезнет после следующего успешного бекапа.',
       },
       sections: {
         database: 'Настройки базы данных',
@@ -361,7 +382,6 @@ export const ru: typeof en = {
       replace: 'Заменить',
     },
     fields: {
-      databaseType: 'Тип базы данных',
       version: 'Версия {{engine}}',
       databaseName: 'Имя БД',
       sslMode: 'Режим SSL',
@@ -393,6 +413,7 @@ export const ru: typeof en = {
       connectionStringParsed: 'Поля заполнены из строки подключения',
       connectionStringParsedWithoutPassword:
         'Поля заполнены из строки подключения. Введите пароль вручную.',
+      connectionTestFailed: 'Не удалось подключиться к базе данных: {{error}}',
       connectionTestPassed: {
         title: 'Подключение проверено',
         description: 'Можно переходить к следующему шагу',
@@ -556,7 +577,7 @@ export const ru: typeof en = {
         transferExisting: 'Перенести вместе с текущим хранилищем',
         selectFromTarget: 'Выбрать хранилище в целевом рабочем пространстве',
         blocked:
-          'Баз данных с этим хранилищем: {{count}}. Перенос заблокирован, потому что от хранилища зависят другие базы данных.',
+          'Это хранилище используют и другие базы данных, поэтому его нельзя перенести вместе с этой базой.',
         canTransfer: 'Хранилище можно перенести',
         selectPlaceholder: 'Выберите хранилище',
         createNew: 'Создать хранилище',
@@ -745,14 +766,14 @@ export const ru: typeof en = {
       notifyWhenUnavailable: 'Уведомлять о недоступности',
       checkIntervalMinutes: 'Интервал проверки (мин)',
       attemptsBeforeDown: 'Попыток до недоступности',
-      storeAttemptsDays: 'Хранить историю (дней)',
+      attemptRetentionDays: 'Хранить историю (дней)',
       tooltips: {
         enable: 'Включает или выключает проверку доступности этой базы данных',
         notifyWhenUnavailable: 'Отправлять уведомления, когда база данных становится недоступной',
         checkIntervalMinutes: 'Как часто проверять доступность базы данных (в минутах)',
         attemptsBeforeDown:
           'Сколько неудачных попыток нужно, чтобы база данных считалась недоступной',
-        storeAttemptsDays: 'Сколько дней хранить историю проверок доступности',
+        attemptRetentionDays: 'Сколько дней хранить историю проверок доступности',
       },
     },
   },
@@ -837,6 +858,7 @@ export const ru: typeof en = {
         description:
           'Этого пользователя пока нет в системе, но он уже приглашен в рабочее пространство. После регистрации с этим адресом он автоматически станет участником.',
       },
+      invitedMark: 'Приглашен',
       roleChanged: 'Роль участника изменена',
       remove: {
         tooltip: 'Удалить участника',
@@ -878,6 +900,7 @@ export const ru: typeof en = {
       newPassword: 'Новый пароль',
     },
     validation: {
+      emailInvalid: 'Введите корректный адрес электронной почты',
       nameRequired: 'Укажите имя',
       emailRequired: 'Укажите email',
       passwordTooShort: 'Пароль слишком короткий. Минимальная длина: {{minLength}}',
@@ -950,12 +973,12 @@ export const ru: typeof en = {
         passwordsDoNotMatch: 'Новые пароли не совпадают',
         changing: 'Меняем пароль...',
         submit: 'Сменить пароль',
-        signedInWithNewPassword: 'Вы вошли с новым паролем',
+        signInRequired: 'Пароль изменён. Войдите снова с новым паролем.',
       },
     },
     list: {
       title: 'Пользователи Databasus',
-      loadedOfTotal: 'Пользователей: {{loaded}} из {{total}}',
+      loaded: 'Загружено пользователей: {{count}}',
       searchPlaceholder: 'Поиск по email или имени...',
       empty: 'Пользователи не найдены.',
       allLoaded: 'Все пользователи загружены (всего {{count}})',
@@ -979,6 +1002,7 @@ export const ru: typeof en = {
   },
   verification: {
     triggers: {
+      afterBackup: 'После резервного копирования',
       manual: 'Вручную',
       scheduled: 'По расписанию',
     },
@@ -994,18 +1018,6 @@ export const ru: typeof en = {
       afterBackup: 'После бекапа',
       afterBackupHint:
         'Запускается автоматически после каждого успешного бекапа. Если в очереди уже есть ожидающие проверки, они отменяются, чтобы очередь не росла бесконечно, когда бекапы делаются быстрее проверок.',
-      weekday: 'День недели проверки',
-      dayOfMonth: 'День месяца проверки',
-      timeOfDay: 'Время проверки',
-      cron: {
-        expression: 'Cron-выражение (UTC)',
-        format: 'Формат cron: минута, час, день, месяц, день недели (UTC)',
-        examples: 'Примеры:',
-        exampleEverySunday: '- {{expression}} — каждое воскресенье в 4:00 UTC',
-        exampleEverySixHours: '- {{expression}} — каждые 6 часов',
-        nextRun: 'Следующий запуск: {{dateTime}}<lineBreak/>({{relativeTime}})',
-        invalid: 'Некорректное cron-выражение',
-      },
       notifications: 'Уведомления',
       noNotifications: 'Нет',
     },
@@ -1032,7 +1044,6 @@ export const ru: typeof en = {
       },
       details: {
         title: 'Подробности проверки восстановления',
-        loadFailed: 'Не удалось загрузить подробности проверки.',
         cancellationReason: 'Причина отмены',
         failure: 'Ошибка',
         sections: {
@@ -1071,7 +1082,7 @@ export const ru: typeof en = {
       },
       capacity: {
         cpu: '{{count}} CPU',
-        ram: '{{count}} GB RAM',
+        ram: '{{size}} RAM',
         disk: 'диск {{count}} GB',
         jobs: 'задач: {{count}}',
         notReported: 'данных пока нет',
@@ -1164,7 +1175,6 @@ export const ru: typeof en = {
       hasSendError: 'Есть ошибка отправки',
     },
     create: {
-      title: 'Добавить канал уведомлений',
       namePlaceholder: 'Мой чат',
     },
     config: {
@@ -1179,11 +1189,11 @@ export const ru: typeof en = {
         clearByNextNotification: '- дождитесь следующего уведомления, отправленного без ошибок;',
       },
       removeConfirmation: 'Удалить этот канал уведомлений? Это действие нельзя отменить.',
-      removeBlockedByDatabases:
-        'Канал уведомлений используется базами данных. Сначала уберите его из этих баз данных.',
     },
+    secretKeptPlaceholder: 'Сохранено — оставьте пустым, чтобы не менять',
     testNotification: {
       send: 'Отправить тестовое уведомление',
+      notDelivered: 'Тестовое сообщение не доставлено: {{error}}',
       sent: {
         title: 'Тестовое уведомление отправлено',
         description: 'Уведомление успешно отправлено',
@@ -1207,6 +1217,11 @@ export const ru: typeof en = {
       skipTls: 'Не проверять TLS',
     },
     email: {
+      validation: {
+        targetEmail: 'Укажите корректный адрес электронной почты',
+        smtpHost: 'Укажите SMTP-сервер',
+        smtpPort: 'Укажите порт от 1 до 65535',
+      },
       targetEmail: 'Email получателя',
       targetEmailTooltip: 'Адрес, на который будут приходить уведомления',
       smtpHost: 'SMTP-хост',
@@ -1273,9 +1288,12 @@ export const ru: typeof en = {
       customHeaders: 'Пользовательские заголовки',
       customHeadersTooltip:
         'Дополнительные HTTP-заголовки для запроса к вебхуку (например, Authorization, X-API-Key)',
-      savedHeadersHidden: '*Сохраненные заголовки скрыты из соображений безопасности',
+      savedHeadersHidden:
+        '*Значения сохранённых заголовков скрыты. Оставьте значение пустым, чтобы не менять его',
       headers: 'Заголовки',
       headerNamePlaceholder: 'Имя заголовка',
+      headerNameInvalid:
+        "Используйте только латинские буквы, цифры и символы !#$%&'*+-.^_`|~. Пробелы недопустимы.",
       headerValuePlaceholder: 'Значение заголовка',
       addHeader: 'Добавить заголовок',
       hiddenHeaderValue: '(скрыто)',
@@ -1314,8 +1332,6 @@ export const ru: typeof en = {
       powerAutomateUrlLabel: 'URL Power Automate:',
       powerAutomateUrlTooltip:
         'HTTP-адрес из вашего потока Power Automate (триггер When an HTTP request is received)',
-      showFullUrl: 'Показать',
-      hideFullUrl: 'Скрыть',
     },
     mattermost: {
       howToConnect: 'Как подключить Mattermost?',
@@ -1353,6 +1369,16 @@ export const ru: typeof en = {
     },
   },
   backups: {
+    cleanup: {
+      pending: 'Удаляем старые файлы. Осталось: {{count}}.',
+      retrying: 'Повторим удаление файлов: {{count}}.',
+      retryStatus: 'Обновить статус',
+    },
+    storageSwitch: {
+      warning:
+        'Смена хранилища сразу удалит старую историю резервных копий и активирует новое хранилище. Старые файлы удаляются в фоне. Недоступность хранилища задерживает очистку. Явное удаление старого хранилища остановит автоматическую очистку, и оставшиеся файлы придётся удалить вручную. Новые физические копии начнутся с FULL.',
+      confirm: 'Сменить хранилище и удалить историю',
+    },
     encryption: {
       none: 'Нет',
       encrypted: 'Включено',
@@ -1383,6 +1409,7 @@ export const ru: typeof en = {
       },
     },
     filters: {
+      toggle: 'Фильтры',
       allTypes: 'Все типы',
       allStatuses: 'Все статусы',
       before: 'До',
@@ -1395,27 +1422,9 @@ export const ru: typeof en = {
       addStorageTitle: 'Добавить хранилище',
       storageDescription:
         'Хранилище — это место, где хранятся бекапы (локальный диск, S3, Google Drive и т. д.)',
-      storageChangeWarning: 'Если сменить хранилище, все бекапы в этом хранилище будут удалены.',
-      storageChangeAcknowledge: 'Понятно',
       encryption: 'Шифрование',
       notifications: 'Уведомления',
       noNotifications: 'Нет',
-      schedule: {
-        weekday: 'День недели',
-        dayOfMonth: 'День месяца',
-        cronExpression: 'Cron-выражение (UTC)',
-        timeOfDay: 'Время',
-        nextRun: 'Следующий запуск: {{time}}',
-        invalidCron: 'Некорректное cron-выражение',
-        cronHelp: {
-          format: 'Формат cron: минута, час, день, месяц, день недели (UTC)',
-          examples: 'Примеры:',
-          dailyAt2am: 'Ежедневно в 2:00 UTC',
-          every6Hours: 'Каждые 6 часов',
-          mondaysAt3am: 'Каждый понедельник в 3:00 UTC',
-          twiceAMonth: '1-го и 15-го числа в 4:30 UTC',
-        },
-      },
       gfs: {
         hourly: 'Ежечасных: {{count}}',
         daily: 'Ежедневных: {{count}}',
@@ -1426,6 +1435,19 @@ export const ru: typeof en = {
       },
     },
     logical: {
+      retentionPeriods: {
+        day: '1 день',
+        week: '1 неделя',
+        month: '1 месяц',
+        threeMonths: '3 месяца',
+        sixMonths: '6 месяцев',
+        year: '1 год',
+        twoYears: '2 года',
+        threeYears: '3 года',
+        fourYears: '4 года',
+        fiveYears: '5 лет',
+        forever: 'Бессрочно',
+      },
       retentionPolicyTypes: {
         gfs: 'GFS (хранить последние N ежечасных, ежедневных, еженедельных, ежемесячных и ежегодных бекапов)',
         timePeriod: 'За период (последние N дней)',
@@ -1468,9 +1490,6 @@ export const ru: typeof en = {
       },
       config: {
         interval: 'Интервал бекапов',
-        weekday: 'День недели',
-        dayOfMonth: 'День месяца',
-        timeOfDay: 'Время бекапа',
         encryptionTooltip:
           'Зашифрованные файлы бекапов в хранилище (S3, локальном и т. д.) нельзя использовать напрямую. Восстановить бекапы можно через Databasus, а скачать в расшифрованном виде — кнопкой «Скачать».',
         retentionPolicy: 'Политика хранения',
@@ -1529,6 +1548,8 @@ export const ru: typeof en = {
       list: {
         totalUsage: 'Занято всего: {{size}}',
         backUpNow: 'Сделать бекап',
+        startRequirement:
+          'Чтобы запустить бекап, включите бекапы и выберите хранилище в настройках бекапов.',
         fullBackup: 'Полный бекап',
         incrementalBackup: 'Инкрементальный бекап',
         restore: 'Восстановить',
@@ -1589,7 +1610,9 @@ export const ru: typeof en = {
       restore: {
         errorHints: {
           downloadInProgress:
-            'Для этой базы данных уже идет загрузка для восстановления. Дождитесь ее окончания и попробуйте еще раз.',
+            'У вас уже скачивается бекап или выполняется загрузка для восстановления. Дождитесь её окончания и попробуйте ещё раз.',
+          noRestorableBackup:
+            'Запустите полный бекап, дождитесь его завершения и попробуйте ещё раз.',
           targetTimeUnreachable:
             'До выбранного момента времени восстановиться нельзя: в WAL есть разрыв или время выходит за доступный диапазон. Выберите другое время или восстановите последнюю доступную точку.',
         },
@@ -1604,6 +1627,7 @@ export const ru: typeof en = {
           'Ссылка на скачивание одноразовая и действует 15 минут. Если команда завершилась ошибкой 401, откройте это окно заново, чтобы получить новую ссылку.',
         copied: 'Скопировано',
         methods: {
+          label: 'Способ восстановления',
           script: 'Через скрипт',
           manual: 'Вручную',
         },
@@ -1687,13 +1711,6 @@ export const ru: typeof en = {
           broken: 'Сломано',
           needsAttention: 'Требует внимания',
           info: 'Для информации',
-        },
-        keepingUpStates: {
-          unknown: 'Неизвестно',
-          fallingBehind: 'Отстает',
-          catchingUp: 'Догоняет',
-          idle: 'Тишина',
-          keepingUp: 'Успевает',
         },
         banner: {
           collectingDataDescription: 'Стриминг запущен, первые цифры появятся в течение минуты.',
@@ -1957,6 +1974,13 @@ export const ru: typeof en = {
     },
   },
   storages: {
+    cleanup: {
+      title: 'Очистка ещё идёт',
+      warning:
+        'Удаляем из этого хранилища ненужные файлы бекапов. Обычно они остаются после удаления базы или выбора для нее другого хранилища. Дождитесь завершения очистки — как правило, это недолго. Если удалить хранилище сейчас, автоматическая очистка прекратится, а оставшиеся файлы бекапов придется удалить вручную.',
+      wait: 'Подождать',
+      deleteAnyway: 'Всё равно удалить',
+    },
     types: {
       local: 'Локальное хранилище',
       s3: 'S3',
@@ -1981,6 +2005,7 @@ export const ru: typeof en = {
       connectionString: 'Строка подключения',
     },
     sftpAuthMethods: {
+      both: 'Пароль и приватный ключ',
       password: 'Пароль',
       privateKey: 'Закрытый ключ',
     },
@@ -2000,23 +2025,13 @@ export const ru: typeof en = {
         sftp: 'Тип: SFTP',
         rclone: 'Тип: Rclone',
       },
-      hasSaveError: 'Есть ошибка сохранения',
     },
     config: {
       namePlaceholder: 'Введите название...',
       settingsTitle: 'Настройки хранилища',
-      lastSaveError: {
-        title: 'Ошибка сохранения',
-        errorLabel: 'Ошибка:',
-        clearHint: 'Чтобы убрать эту ошибку, сделайте одно из двух:',
-        clearByTestingConnection:
-          '- проверьте подключение кнопкой ниже (даже если вы уже изменили настройки);',
-        clearByNextSave: '- дождитесь, когда следующий бекап сохранится без ошибок;',
-      },
-      removeConfirmation:
-        'Удалить это хранилище? Это действие нельзя отменить. Бекапы, которые лежат в этом хранилище, тоже будут удалены.',
-      removeBlockedByDatabases:
-        'Хранилище используется базами данных. Сначала уберите его из настроек этих баз данных.',
+      removeConfirmation: 'Удалить это хранилище? Это действие нельзя отменить.',
+      removeBlockedByBackups:
+        'Хранилище указано в настройках бэкапов или в нём ещё лежат бэкапы. Сначала переключите эти настройки на другое хранилище и удалите его бэкапы.',
     },
     actions: {
       testConnection: 'Проверить подключение',
@@ -2025,6 +2040,7 @@ export const ru: typeof en = {
       title: 'Подключение работает',
       description: 'Подключение к хранилищу проверено',
     },
+    connectionTestFailed: 'Не удалось подключиться к хранилищу: {{error}}',
     transfer: {
       title: 'Перенос хранилища в другое рабочее пространство',
       blockedByDatabases:
@@ -2096,6 +2112,23 @@ export const ru: typeof en = {
       googleDrive: {
         guideLink: 'Как подключить Google Drive?',
         authorize: 'Авторизоваться',
+        authorized: 'Авторизовано',
+        waiting: 'Ожидаем авторизацию Google...',
+        exchanging: 'Обмениваем код авторизации...',
+        cancel: 'Отменить авторизацию',
+        restart: 'Начать авторизацию заново',
+        reconnect: 'Подключить заново',
+        reconnectHelp:
+          'Для повторного подключения введите секрет клиента. При ошибке сохранённые учётные данные останутся прежними.',
+        expired: 'Срок авторизации истёк. Начните заново.',
+        refused: 'В авторизации Google отказано. Можно попробовать снова.',
+        exchangeFailed: 'Не удалось обменять код авторизации. Начните заново.',
+        missingRefreshToken:
+          'Google не вернул refresh token. Повторите авторизацию и разрешите доступ в автономном режиме.',
+        popupBlocked:
+          'Окно авторизации заблокировано. Разрешите всплывающие окна и попробуйте снова.',
+        unavailable:
+          'Авторизация недоступна в этом браузере. Проверьте поддержку BroadcastChannel и попробуйте снова.',
       },
       nas: {
         shareWithSlashWarning:
@@ -2120,6 +2153,10 @@ export const ru: typeof en = {
           'Не проверять TLS-сертификат. Включите, если FTP-сервер использует самоподписанный сертификат. Внимание: это снижает безопасность.',
       },
       sftp: {
+        savedPassword: 'Пароль сохранён. Оставьте поле пустым, чтобы сохранить его.',
+        savedPrivateKey: 'Приватный ключ сохранён. Оставьте поле пустым, чтобы сохранить его.',
+        requiredPassword: 'Введите пароль для этого способа входа.',
+        requiredPrivateKey: 'Введите приватный ключ для этого способа входа.',
         privateKeyTooltip:
           'Вставьте закрытый SSH-ключ в формате PEM. Поддерживаются ключи RSA, DSA, ECDSA и Ed25519.',
         skipHostKeyVerification: 'Не проверять ключ хоста',

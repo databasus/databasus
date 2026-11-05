@@ -1,5 +1,0 @@
-export enum WalStreamSourceState {
-  REACHABLE = 'REACHABLE',
-  UNREACHABLE = 'UNREACHABLE',
-  SLOT_MISSING = 'SLOT_MISSING',
-}

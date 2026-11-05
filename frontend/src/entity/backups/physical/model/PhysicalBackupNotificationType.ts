@@ -1,6 +1,0 @@
-export enum PhysicalBackupNotificationType {
-  BACKUP_SUCCESS = 'BACKUP_SUCCESS',
-  BACKUP_FAILED = 'BACKUP_FAILED',
-  CHAIN_BROKEN = 'CHAIN_BROKEN',
-  WAL_GAP = 'WAL_GAP',
-}

@@ -1,0 +1,11 @@
+package: httpapi
+output: api.gen.go
+generate:
+  embedded-spec: true
+  models: true
+  gin-server: true
+  strict-server: true
+output-options:
+  include-tags: [healthcheck]
+compatibility:
+  always-prefix-enum-values: true

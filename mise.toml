@@ -1,22 +1,131 @@
+min_version = "2026.10.6"
+
+# User commands
+
+[tasks.run]
+description = "Start the app locally: dev database, test fixtures, WAL backup source, backend and frontend"
+run = "scripts/dev.sh"
+
+[tasks.test]
+description = "Run the backend test packages without the end-to-end ones and the frontend tests"
+run = "scripts/test.sh"
+
+[tasks.test-full]
+description = "Run all Docker-based tests, browser checks and test-runner checks; excludes Podman and filesystem suites"
+run = "scripts/test.sh --full"
+
+[tasks.lint]
+description = "Check every module without changing files"
+run = "mise run --continue-on-error backend:lint ::: frontend:lint ::: lint-shell ::: lint-workflows"
+
+[tasks.format]
+description = "Format every module"
+depends = ["backend:format", "frontend:format"]
+
+[tasks.doctor]
+description = "Check review tools and whether Codex project hooks are enabled and trusted"
+usage = 'flag "--client <client>" help="Review client: codex or claude; defaults to AGENT_REVIEW_CLIENT"'
+run = '.agent-hooks/run.sh doctor ${usage_client:+--client "$usage_client"}'
+
+[tasks.review]
+description = "Manually rerun parallel AI reviews of a finished OpenSpec change; runs no linting or tests"
+usage = 'arg "[change]" help="The OpenSpec change to review; every active change with all tasks checked when omitted"; flag "--client <client>" help="Review client: codex or claude; defaults to AGENT_REVIEW_CLIENT"'
+run = '.agent-hooks/run.sh review "${usage_change:-}" ${usage_client:+--client "$usage_client"}'
+
+[tasks.generate-api]
+description = "Regenerate the servers, the test clients and the frontend types from backend/api/*.yaml"
+run = ["go -C backend generate ./...", "pnpm --dir frontend generate:api"]
+
+# CI/CD commands (also used by hooks)
+# Use the user commands above for everyday development.
+
+[tasks."e2e:browser"]
+description = "Run the browser end-to-end suite on the application image: DATABASUS_IMAGE, or one built from the checkout"
+run = "uv run --locked --project e2e/browser python e2e/browser/supervisor.py"
+env = { PYTHONDONTWRITEBYTECODE = "1", UV_PYTHON_PREFERENCE = "only-system" }
+hide = true
+
+[tasks."e2e:unit"]
+description = "Run the browser end-to-end suite's own tests that need no Docker daemon"
+run = "uv run --locked --project e2e/browser pytest e2e/browser/unit"
+env = { PYTHONDONTWRITEBYTECODE = "1", UV_PYTHON_PREFERENCE = "only-system" }
+hide = true
+
+[tasks."e2e:lifecycle"]
+description = "Drive the browser end-to-end command through failures, interruptions, crashes and overlapping runs"
+run = "uv run --locked --project e2e/browser pytest e2e/browser/lifecycle"
+env = { PYTHONDONTWRITEBYTECODE = "1", UV_PYTHON_PREFERENCE = "only-system" }
+hide = true
+
+[tasks."lint-workflows"]
+description = "Check the GitHub Actions workflows with actionlint"
+run = "actionlint -shellcheck="
+hide = true
+
+[tasks."security:go"]
+description = "Scan the backend for reachable Go vulnerabilities"
+dir = "backend"
+run = "govulncheck ./..."
+hide = true
+
+[tasks."security:secrets"]
+description = "Scan redacted findings in git history for secrets"
+run = 'gitleaks git --redact --verbose --exit-code 1 --log-opts="${SCANNED_HISTORY:---all}" .'
+hide = true
+
+[tasks."security:semgrep"]
+description = "Scan source and workflows with Semgrep security rules"
+run = "semgrep scan --error --metrics=off --config p/default --config p/github-actions --config p/dockerfile --exclude-rule generic.secrets.security.detected-private-key.detected-private-key"
+hide = true
+
+[tasks."backend:format"]
+description = "Format the backend"
+dir = "backend"
+run = "golangci-lint fmt ./api/... ./cmd/... ./e2e/... ./internal/... ./migrations/... ./tools/..."
+hide = true
+
+[tasks."frontend:lint"]
+description = "Check frontend formatting, source, architecture, styles, types and generated API types"
+dir = "frontend"
+run = "pnpm lint"
+hide = true
+
+[tasks."frontend:format"]
+description = "Format the frontend"
+dir = "frontend"
+run = "pnpm format"
+hide = true
+
+# Dependencies
+
 [tools]
-go = "1.26.3"
+go = "1.26.10"
 node = "24.21.0"
 pnpm = "9.15.9"
-just = "1.58.0"
-lefthook = "2.2.1"
+hk = "2.8.1"
 process-compose = "1.122.0"
 "aqua:pressly/goose" = "3.27.3"
-swag = "1.16.4"
 golangci-lint = "2.11.3"
 "aqua:air-verse/air" = "1.67.4"
 "npm:chrome-devtools-mcp" = "1.11.0"
 python = "3.14.7"
+uv = "0.13.7"
 "npm:@fission-ai/openspec" = "1.11.0"
 "go:golang.org/x/tools/gopls" = "v0.24.0"
 "npm:typescript-language-server" = "6.0.2"
 ripgrep = "15.2.0"
 shellcheck = "0.11.0"
+vacuum = "0.35.1"
+"aqua:aquasecurity/trivy" = "0.76.1"
+gh = "2.103.3"
+jq = "1.8.2"
+actionlint = "1.7.12"
+gitleaks = "8.30.1"
+"go:golang.org/x/vuln/cmd/govulncheck" = "1.9.0"
+"npm:semver" = "7.8.6"
+helm = "3.14.0"
+"pypi:semgrep" = "1.182.1"
 
 [env]
-# tools/lsp/typescript-language-server explains why it shadows the mise shim.
+# The TypeScript wrapper supplies frontend/node_modules before the mise shim changes NODE_PATH.
 _.path = ["{{config_root}}/tools/lsp"]

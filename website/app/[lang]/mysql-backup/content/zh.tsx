@@ -424,8 +424,8 @@ export default function MysqlBackupPage() {
 
               <p className="text-gray-400 text-sm md:text-base mb-4">
                 Databasus 完全开源，采用 Apache 2.0
-                许可证。你可以审阅每一行代码、Fork
-                它、参与贡献。个人和企业均可免费使用
+                许可证。你可以审阅每一行代码并 Fork
+                它。个人和企业均可免费使用
               </p>
               <div>
                 <img

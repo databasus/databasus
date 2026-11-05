@@ -4,7 +4,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  font-family: 'Jost', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  font-family: 'Jost', system-ui, -apple-system, 'Segoe UI', 'Noto Sans CJK SC', sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
@@ -12,25 +12,6 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-div,
-p,
-span,
-a,
-button,
-input,
-textarea,
-select,
-option,
-label,
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-family: 'Jost', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
 }
 
 :root,
@@ -63,3 +44,38 @@ body {
   cursor: pointer;
 }
 /* END OF SCROLLBAR STYLING */
+
+@theme inline {
+  --color-page: var(--app-page);
+  --color-surface: var(--app-surface);
+  --color-raised: var(--app-raised);
+  --color-content: var(--app-content);
+  --color-muted: var(--app-muted);
+  --color-border: var(--app-border);
+  --color-hover: var(--app-hover);
+  --color-selected: var(--app-selected);
+  --color-accent: var(--app-accent);
+  --color-danger: var(--app-danger);
+  --color-success: var(--app-success);
+  --color-success-fill: var(--app-success-fill);
+  --color-on-success-fill: var(--app-on-success-fill);
+  --color-warning: var(--app-warning);
+  --color-code: var(--app-code);
+}
+
+body {
+  color: var(--app-content);
+  background: var(--app-page);
+}
+
+:focus-visible {
+  outline: 2px solid var(--app-focus);
+  outline-offset: 2px;
+}
+
+code,
+pre,
+kbd,
+samp {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}

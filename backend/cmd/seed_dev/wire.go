@@ -18,11 +18,15 @@ type signUpRequest struct {
 	Name     string `json:"name"`
 }
 
-// A sign-in answers with a token, or with a pending sign-in when the instance requires a second
-// factor; a sign-up always answers with a token.
+// A sign-in answers with a token, or with the outcome CODE_REQUIRED and no token when the instance
+// requires a second factor.
 type signInResponse struct {
-	Token           string `json:"token"`
-	PendingSignInID string `json:"pendingSignInId"`
+	Outcome string `json:"outcome"`
+	Token   string `json:"token"`
+}
+
+type sessionResponse struct {
+	Token string `json:"token"`
 }
 
 type namedItem struct {
@@ -30,52 +34,64 @@ type namedItem struct {
 	Name string    `json:"name"`
 }
 
-type listWorkspacesResponse struct {
-	Workspaces []namedItem `json:"workspaces"`
+// namedItemPage is one page of a contract list, such as the workspaces, the storages or the databases.
+type namedItemPage struct {
+	Items      []namedItem `json:"items"`
+	NextCursor *string     `json:"nextCursor"`
 }
 
 type createWorkspaceRequest struct {
 	Name string `json:"name"`
 }
 
-type createLocalStorageRequest struct {
-	WorkspaceID  uuid.UUID `json:"workspaceId"`
-	Type         string    `json:"type"`
-	Name         string    `json:"name"`
-	LocalStorage struct{}  `json:"localStorage"`
+type createStorageRequest struct {
+	WorkspaceID uuid.UUID            `json:"workspaceId"`
+	Name        string               `json:"name"`
+	Settings    localStorageSettings `json:"settings"`
+}
+
+type localStorageSettings struct {
+	Type string `json:"type"`
 }
 
 type createDatabaseRequest struct {
-	WorkspaceID        uuid.UUID                 `json:"workspaceId"`
-	Name               string                    `json:"name"`
-	Type               string                    `json:"type"`
-	PostgresqlLogical  *postgresqlLogicalSource  `json:"postgresqlLogical,omitempty"`
-	PostgresqlPhysical *postgresqlPhysicalSource `json:"postgresqlPhysical,omitempty"`
+	WorkspaceID uuid.UUID   `json:"workspaceId"`
+	Name        string      `json:"name"`
+	NotifierIDs []uuid.UUID `json:"notifierIds"`
+	Settings    any         `json:"settings"`
 }
 
-type postgresqlLogicalSource struct {
-	Version  string `json:"version"`
-	Host     string `json:"host"`
-	Port     int    `json:"port"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Database string `json:"database"`
-	CpuCount int    `json:"cpuCount"`
+type disabledSSHTunnel struct {
+	IsEnabled bool `json:"isEnabled"`
 }
 
-type postgresqlPhysicalSource struct {
-	Version    string `json:"version"`
-	BackupType string `json:"backupType"`
-	Host       string `json:"host"`
-	Port       int    `json:"port"`
-	Username   string `json:"username"`
-	Password   string `json:"password"`
+type postgresqlLogicalSettings struct {
+	Type               string            `json:"type"`
+	Host               string            `json:"host"`
+	Port               int               `json:"port"`
+	Username           string            `json:"username"`
+	Password           string            `json:"password"`
+	Database           string            `json:"database"`
+	SslMode            string            `json:"sslMode"`
+	SSHTunnel          disabledSSHTunnel `json:"sshTunnel"`
+	IncludeSchemas     []string          `json:"includeSchemas"`
+	ExcludeTables      []string          `json:"excludeTables"`
+	ExcludeTableData   []string          `json:"excludeTableData"`
+	CPUCount           int               `json:"cpuCount"`
+	IsSkipUserMappings bool              `json:"isSkipUserMappings"`
 }
 
-type makeLogicalBackupRequest struct {
-	DatabaseID uuid.UUID `json:"database_id"`
+type postgresqlPhysicalSettings struct {
+	Type       string            `json:"type"`
+	BackupType string            `json:"backupType"`
+	Host       string            `json:"host"`
+	Port       int               `json:"port"`
+	Username   string            `json:"username"`
+	Password   string            `json:"password"`
+	SslMode    string            `json:"sslMode"`
+	SSHTunnel  disabledSSHTunnel `json:"sshTunnel"`
 }
 
-type triggerPhysicalBackupRequest struct {
-	Type string `json:"type"`
+type startLogicalBackupRequest struct {
+	DatabaseID uuid.UUID `json:"databaseId"`
 }

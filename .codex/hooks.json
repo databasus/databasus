@@ -1,0 +1,69 @@
+{
+  "description": "Databasus review hooks shared with Claude Code; reviewers run in Codex.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "\"$(git rev-parse --show-toplevel)/.agent-hooks/run.sh\" session-start --client codex",
+            "timeout": 10,
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "command": "\"$(git rev-parse --show-toplevel)/.agent-hooks/run.sh\" snapshot --client codex",
+            "timeout": 30,
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "command": "\"$(git rev-parse --show-toplevel)/.agent-hooks/run.sh\" diff --client codex",
+            "statusMessage": "Reviewing the diff",
+            "timeout": 600,
+            "type": "command"
+          },
+          {
+            "command": "\"$(git rev-parse --show-toplevel)/.agent-hooks/run.sh\" necessity --client codex",
+            "statusMessage": "Checking whether the task is needed",
+            "timeout": 600,
+            "type": "command"
+          },
+          {
+            "command": "\"$(git rev-parse --show-toplevel)/.agent-hooks/run.sh\" architecture --client codex",
+            "statusMessage": "Checking architecture",
+            "timeout": 600,
+            "type": "command"
+          },
+          {
+            "command": "\"$(git rev-parse --show-toplevel)/.agent-hooks/run.sh\" code-shape --client codex",
+            "statusMessage": "Checking code shape",
+            "timeout": 600,
+            "type": "command"
+          },
+          {
+            "command": "\"$(git rev-parse --show-toplevel)/.agent-hooks/run.sh\" implementation --client codex",
+            "statusMessage": "Full implementation review",
+            "timeout": 7200,
+            "type": "command"
+          },
+          {
+            "command": "\"$(git rev-parse --show-toplevel)/.agent-hooks/run.sh\" proposal --client codex",
+            "statusMessage": "Full proposal review",
+            "timeout": 7200,
+            "type": "command"
+          }
+        ]
+      }
+    ]
+  }
+}

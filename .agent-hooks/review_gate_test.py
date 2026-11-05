@@ -3,6 +3,7 @@ import io
 import json
 import os
 import shutil
+import shlex
 import signal
 from pathlib import Path
 import subprocess
@@ -10,6 +11,7 @@ import sys
 import tempfile
 import textwrap
 import time
+import tomllib
 import unittest
 from unittest import mock
 
@@ -19,7 +21,7 @@ import review_gate
 HOOK_PATH = Path(__file__).resolve().parent / "review_gate.py"
 CHANGE_NAME = "add-widgets"
 PROPOSAL_NAME = "add-gadgets"
-STUB_NAMES = ("claude", "openspec", "golangci-lint", "pnpm", "npm", "just")
+STUB_NAMES = ("codex", "claude", "openspec", "golangci-lint", "pnpm", "npm", "mise")
 
 # The stub stands in for every external command: it takes its answer from <stubs>/<name>.json
 # and records each call in <stubs>/calls, so a test sees the arguments, the working directory
@@ -37,51 +39,134 @@ STUB_SOURCE = textwrap.dedent(
     stubs_dir = Path(os.environ["REVIEW_GATE_STUBS"])
     name = Path(sys.argv[0]).name
     arguments = sys.argv[1:]
-    prompt = sys.stdin.read() if name == "claude" else ""
+    prompt = sys.stdin.read() if name == "claude" or (name == "codex" and "exec" in arguments) else ""
     calls_dir = stubs_dir / "calls"
     calls_dir.mkdir(exist_ok=True)
-    (calls_dir / f"{name}-{uuid.uuid4().hex}.json").write_text(
+    call_path = calls_dir / f"{name}-{uuid.uuid4().hex}.json"
+    call_temporary_path = call_path.with_suffix(".tmp")
+    call_temporary_path.write_text(
         json.dumps(
             {
                 "name": name,
                 "arguments": arguments,
                 "cwd": os.getcwd(),
                 "prompt": prompt,
-                "effort_env": os.environ.get("CLAUDE_CODE_EFFORT_LEVEL"),
+                "effort_env": (next((argument.split("=", 1)[1].strip(chr(34)) for argument in arguments
+                                     if argument.startswith("model_reasoning_effort=")), None)
+                               if name == "codex" else os.environ.get("CLAUDE_CODE_EFFORT_LEVEL")),
+                "hook_active": os.environ.get("AGENT_REVIEW_HOOK_ACTIVE"),
+                "session_env": os.environ.get("CLAUDECODE"),
+                "answer_mode": (oct(Path(arguments[arguments.index("--output-last-message") + 1]).parent.stat().st_mode & 0o777)
+                                if "--output-last-message" in arguments else None),
                 "started_at": time.time_ns(),
             }
         )
     )
 
+    call_temporary_path.replace(call_path)
+
     config_path = stubs_dir / f"{name}.json"
     config = json.loads(config_path.read_text()) if config_path.exists() else {}
+    if name == "codex" and "app-server" in arguments:
+        if config.get("app_server_error"):
+            print("WARNING: startup warning", file=sys.stderr)
+            print(config["app_server_error"], file=sys.stderr)
+            sys.exit(1)
+        for line in sys.stdin:
+            request = json.loads(line)
+            if request.get("method") == "initialize":
+                print(json.dumps({"id": request["id"], "result": {}}), flush=True)
+            elif request.get("method") == "hooks/list":
+                print(json.dumps({"id": request["id"], "result": config.get("hooks_response", {"data": []})}), flush=True)
+            elif request.get("method") == "config/read":
+                print(json.dumps({"id": request["id"], "result": {"config": {"features": config.get("features", {})}}}), flush=True)
+        sys.exit(0)
     if name == "openspec":
         config = config.get(arguments[0], {})
     elif name == "npm":
         config = config.get(arguments[-1], {})
 
+    if name == "codex" and any(argument.startswith('mcp_servers."') for argument in arguments):
+        sys.stderr.write("invalid transport: CLI dotted keys preserve quote characters")
+        sys.exit(1)
+
+    if config.get("reject_overrides") and any(argument.startswith("mcp_servers=") for argument in arguments):
+        sys.stderr.write("managed policy rejects reviewer restrictions")
+        sys.exit(2)
+
+    if config.get("nested_snapshot") and name == "codex" and "exec" in arguments:
+        import subprocess
+        subprocess.run([sys.executable, config["nested_snapshot"], "snapshot", "--client", "codex"],
+                       input=json.dumps({"session_id": "session-1", "prompt": "nested reviewer"}),
+                       text=True, check=True, capture_output=True)
+
+    required_efforts = set(config.get("wait_for_efforts", []))
+    if required_efforts and (name == "claude" or "exec" in arguments):
+        deadline = time.monotonic() + 3
+        while True:
+            started_efforts = {
+                json.loads(path.read_text())["effort_env"]
+                for path in calls_dir.glob("*.json")
+            }
+            if required_efforts <= started_efforts:
+                break
+            if time.monotonic() >= deadline:
+                sys.stderr.write("reviewers did not run concurrently")
+                sys.exit(1)
+            time.sleep(0.01)
+
+    if name == "codex" and "exec" not in arguments:
+        if config.get("metadata_exit_code"):
+            sys.exit(config["metadata_exit_code"])
+        time.sleep(config.get("metadata_seconds", 0))
+        if "mcp" in arguments:
+            sys.stdout.write(json.dumps(config.get("servers", [{"name": "browser"}])))
+        elif "plugin" in arguments:
+            sys.stdout.write(json.dumps(config.get("plugins", {"installed": [{"pluginId": "external@market"}]})))
+        sys.exit(0)
+
+    concurrent_target = config.get("wait_for_concurrent")
+    if concurrent_target:
+        import fcntl
+        def update_concurrency(delta):
+            with (stubs_dir / "concurrency.lock").open("a") as lock:
+                fcntl.flock(lock, fcntl.LOCK_EX)
+                state_path = stubs_dir / "concurrency.json"
+                state = json.loads(state_path.read_text()) if state_path.exists() else {"active": 0, "peak": 0}
+                state["active"] += delta
+                state["peak"] = max(state["peak"], state["active"])
+                state_path.write_text(json.dumps(state))
+                return state
+        state = update_concurrency(1)
+        deadline = time.monotonic() + 5
+        while state["peak"] < concurrent_target:
+            if time.monotonic() >= deadline:
+                sys.stderr.write("reviewers did not reach the concurrency barrier")
+                sys.exit(1)
+            time.sleep(0.01)
+            state = update_concurrency(0)
+
     time.sleep(config.get("sleep_seconds", 0))
     if config.get("exit_code"):
-        sys.stdout.write(config.get("output", ""))
+        sys.stderr.write(config.get("output", ""))
         sys.exit(config["exit_code"])
 
-    result = config.get("result", {"ok": True, "reason": "", "findings": []})
+    is_full = "Role:" in prompt
+    result = config.get("result", {"findings": []} if is_full else {"ok": True, "reason": ""})
+    result = config.get("full_result" if is_full else "quick_result", result)
     if name == "claude":
         sys.stdout.write(json.dumps({"structured_output": result}))
+    elif name == "codex":
+        answer_path = Path(arguments[arguments.index("--output-last-message") + 1])
+        if not config.get("missing_answer"):
+            answer_path.write_text(config.get("answer_text", json.dumps(result)))
+        sys.stdout.write(config.get("progress", '{"ok": false, "reason": "misleading progress"}'))
     elif name == "openspec" and arguments[0] == "status":
         sys.stdout.write(config.get("output", json.dumps({"isPlanningComplete": True})))
     else:
         sys.stdout.write(config.get("output", ""))
-    """
-)
-PASSING_HOOK_TEST = textwrap.dedent(
-    """
-    import unittest
-
-
-    class SampleTest(unittest.TestCase):
-        def test_passes(self):
-            self.assertTrue(True)
+    if concurrent_target:
+        update_concurrency(-1)
     """
 )
 FAILING_HOOK_TEST = textwrap.dedent(
@@ -157,6 +242,12 @@ class HookRepository:
         test_case.addCleanup(temporary_dir.cleanup)
         base = Path(temporary_dir.name)
 
+        self.review_client = getattr(test_case, "review_client", "claude")
+        self.full_effort = "high" if self.review_client == "codex" else "medium"
+        self.quick_effort = "medium" if self.review_client == "codex" else "low"
+        if hasattr(test_case, "review_client"):
+            missing_tools = (*missing_tools, "claude" if self.review_client == "codex" else "codex")
+
         self.root = base / "repo"
         self.stubs_dir = base / "stubs"
         bin_dir = base / "bin"
@@ -182,14 +273,19 @@ class HookRepository:
             self.environment["PATH"] = f"{bin_dir}{os.pathsep}{system_dir}"
         else:
             self.environment["PATH"] = f"{bin_dir}{os.pathsep}{os.environ['PATH']}"
+
+        self.environment["AGENT_REVIEW_CLIENT"] = self.review_client
+        self.environment["CODEX_HOME"] = str(base / "codex-home")
         self.environment["REVIEW_GATE_STUBS"] = str(self.stubs_dir)
         self.environment["PYTHONDONTWRITEBYTECODE"] = "1"
 
         self.git("init", "--quiet")
         self.git("config", "user.email", "test@example.com")
         self.git("config", "user.name", "test")
+
         self.write("README.md", "test repository\n")
         self.write_change(spec_names=("widgets",), tasks="- [x] 1.1 Build\n- [ ] 1.2 Verify\n")
+
         self.git("add", ".")
         self.git("commit", "--quiet", "-m", "init")
 
@@ -216,10 +312,14 @@ class HookRepository:
         self.write(f"openspec/changes/{name}/tasks.md", f"# Tasks\n\n- [x] 1.1 Build\n- [x] 1.2 Verify\n{verification_section}")
 
     def set_reviewer_result(self, result):
-        self.set_stub("claude", {"result": result})
+        if "ok" in result and "findings" in result:
+            self.set_stub(self.review_client, {"quick_result": {"ok": result["ok"], "reason": result["reason"]},
+                                              "full_result": {"findings": result["findings"]}})
+        else:
+            self.set_stub(self.review_client, {"result": result})
 
     def set_reviewer_failure(self, output):
-        self.set_stub("claude", {"exit_code": 1, "output": output})
+        self.set_stub(self.review_client, {"exit_code": 1, "output": output})
 
     def set_stub(self, name, config):
         (self.stubs_dir / f"{name}.json").write_text(json.dumps(config))
@@ -229,13 +329,14 @@ class HookRepository:
         if not calls_dir.is_dir():
             return []
         calls = [json.loads(path.read_text()) for path in calls_dir.iterdir()]
+        calls.sort(key=lambda call: call["started_at"])
         return [call for call in calls if name is None or call["name"] == name]
 
     def check_calls(self):
-        return [call for call in self.calls() if call["name"] in ("golangci-lint", "pnpm", "npm", "just")]
+        return [call for call in self.calls() if call["name"] in ("golangci-lint", "pnpm", "npm", "mise")]
 
     def reviewer_calls(self):
-        return [call for call in self.calls() if call["name"] == "claude"]
+        return [call for call in self.calls() if call["name"] == "claude" or (call["name"] == "codex" and "exec" in call["arguments"])]
 
     def clear_calls(self):
         for path in (self.stubs_dir / "calls").glob("*.json"):
@@ -269,6 +370,7 @@ class HookRepository:
         full_review = review_gate.FULL_REVIEWS[action]
         shrunk_review = replace(full_review, reviewer=replace(full_review.reviewer, timeout_seconds=reviewer_timeout_seconds))
         stdout = io.StringIO()
+
         with (
             mock.patch.dict(os.environ, self.environment, clear=True),
             mock.patch.dict(review_gate.FULL_REVIEWS, {action: shrunk_review}),
@@ -281,6 +383,7 @@ class HookRepository:
             mock.patch.object(sys, "stdout", stdout),
         ):
             review_gate.main()
+
         return json.loads(stdout.getvalue())
 
     def submit_prompt(self, prompt, session_id="session-1"):
@@ -326,9 +429,9 @@ THIRD_WAVE_BUDGET_SECONDS = 14
 THIRD_WAVE_REVIEWER_TIMEOUT_SECONDS = 6
 THIRD_WAVE_REVIEWER_SECONDS = 5.5
 # These keep the production relationship, budget >= checks total + 2 x reviewer limit, while the check
-# and the reviewers use almost all of their limits.
-TWO_WAVES_CHECKS_TIMEOUT_SECONDS = 2
-TWO_WAVES_REVIEWER_TIMEOUT_SECONDS = 4
+# and two reviewer waves exceed one reviewer deadline. Two seconds per subprocess allow startup under host contention.
+TWO_WAVES_CHECKS_TIMEOUT_SECONDS = 4
+TWO_WAVES_REVIEWER_TIMEOUT_SECONDS = 6
 TWO_WAVES_BUDGET_SECONDS = TWO_WAVES_CHECKS_TIMEOUT_SECONDS + 2 * TWO_WAVES_REVIEWER_TIMEOUT_SECONDS + 2
 
 
@@ -344,15 +447,52 @@ class SummaryAssertions:
         self.assertIn("Leave out review rounds, findings and the fixes made for them.", reason)
         self.assertNotIn("each round", reason)
 
+    def assert_accepts_change_and_asks_for_summary(self, response):
+        self.assertEqual(response["decision"], "block")
+        self.assertIn("Full implementation review accepted the change.", response["reason"])
+        self.assertIn("the automatic review passed and accepted the change in its current state", response["reason"])
+        self.assertIn("End with a short list of what the review made you fix", response["reason"])
+
 
 class SessionStartTest(unittest.TestCase):
-    def test_tells_agent_to_load_communication_skill(self):
-        repository = HookRepository(self)
+    def test_tells_agent_to_load_communication_skill_on_start_and_compaction(self):
+        for client in ("codex", "claude"):
+            for source in ("startup", "compact"):
+                with self.subTest(client=client, source=source):
+                    repository = HookRepository(self)
+                    repository.environment["AGENT_REVIEW_CLIENT"] = client
+                    response = repository.run_hook("session-start", {"hook_event_name": "SessionStart", "session_id": "session-1", "source": source})
+                    self.assertIn(".agents/skills/humanizer/SKILL.md", response["hookSpecificOutput"]["additionalContext"])
 
-        response = repository.run_hook("session-start", {"hook_event_name": "SessionStart", "session_id": "session-1"})
 
-        context = response["hookSpecificOutput"]["additionalContext"]
-        self.assertIn(".agents/skills/humanizer/SKILL.md", context)
+
+class ReviewClientSelectionTest(unittest.TestCase):
+    def test_resolves_client_through_session_start_and_snapshot(self):
+        for action in ("session-start", "snapshot"):
+            for inherited, explicit, is_valid in (
+                (None, None, False), ("invalid", None, False),
+                ("claude", None, True), ("codex", None, True),
+                ("invalid", "codex", True), ("codex", "claude", True),
+                ("claude", "invalid", False),
+            ):
+                with self.subTest(action=action, inherited=inherited, explicit=explicit):
+                    repository = HookRepository(self)
+                    repository.environment.pop("AGENT_REVIEW_CLIENT", None)
+                    if inherited is not None:
+                        repository.environment["AGENT_REVIEW_CLIENT"] = inherited
+
+                    arguments = [sys.executable, str(HOOK_PATH), action]
+                    if explicit is not None:
+                        arguments.extend(["--client", explicit])
+
+                    process = subprocess.run(arguments, cwd=repository.root, env=repository.environment,
+                                             input=json.dumps({"session_id": "selection"}),
+                                             text=True, capture_output=True)
+
+                    self.assertEqual(process.returncode, 0 if is_valid else 2, process.stderr)
+                    if not is_valid:
+                        self.assertIn("--client codex or --client claude", process.stderr)
+                    self.assertEqual(repository.reviewer_calls(), [])
 
 
 class Launcher:
@@ -421,7 +561,7 @@ class LauncherTest(unittest.TestCase):
         launcher.install_mise(launcher.home / ".local" / "bin")
         payload = json.dumps({"hook_event_name": "Stop", "session_id": "session-1"})
 
-        process = launcher.run("naming", stdin=payload)
+        process = launcher.run("code-shape", stdin=payload)
 
         self.assertEqual(process.returncode, 0)
         self.assertEqual(json.loads(process.stdout), {})
@@ -432,7 +572,7 @@ class LauncherTest(unittest.TestCase):
             ["-C", root, "ls", "--current", "--missing", "--no-truncate", "python", "npm:@fission-ai/openspec"],
         )
         [call] = launcher.mise_calls("exec")
-        self.assertEqual(call["arguments"], ["-C", root, "exec", "--", "python3", str(HOOK_PATH), "naming"])
+        self.assertEqual(call["arguments"], ["-C", root, "exec", "--", "python3", str(HOOK_PATH), "code-shape"])
         self.assertEqual(call["exec_auto_install"], "false")
         self.assertEqual(call["stdin"], payload)
 
@@ -443,7 +583,7 @@ class LauncherTest(unittest.TestCase):
 
         process = launcher.run("proposal")
 
-        self.assert_stops_agent(process, "not installed", MISSING_OPENSPEC_LINE, "mise install", "just doctor")
+        self.assert_stops_agent(process, "not installed", MISSING_OPENSPEC_LINE, "mise install", "mise run doctor")
         self.assertEqual(launcher.mise_calls("exec"), [])
 
     def test_stops_agent_without_running_hook_when_missing_tools_check_fails(self):
@@ -453,7 +593,7 @@ class LauncherTest(unittest.TestCase):
 
         process = launcher.run("diff")
 
-        self.assert_stops_agent(process, "mise exited with code 1", "is not trusted", "just doctor")
+        self.assert_stops_agent(process, "mise exited with code 1", "is not trusted", "mise run doctor")
         self.assertEqual(launcher.mise_calls("exec"), [])
 
     def test_stops_agent_when_version_manager_is_missing(self):
@@ -461,7 +601,7 @@ class LauncherTest(unittest.TestCase):
 
         process = launcher.run("diff")
 
-        self.assert_stops_agent(process, "could not find the version manager mise", "just doctor")
+        self.assert_stops_agent(process, "could not find the version manager mise", "Install mise first.", "mise run doctor")
 
     def test_stops_agent_with_action_and_exit_code_when_hook_crashes(self):
         launcher = Launcher(self)
@@ -470,7 +610,7 @@ class LauncherTest(unittest.TestCase):
 
         process = launcher.run("implementation")
 
-        self.assert_stops_agent(process, "`implementation`", "exit code 3", "just doctor")
+        self.assert_stops_agent(process, "`implementation`", "exit code 3", "mise run doctor")
 
     def test_keeps_stop_message_valid_json_when_error_output_has_quotes_and_control_characters(self):
         launcher = Launcher(self)
@@ -505,6 +645,26 @@ class LauncherTest(unittest.TestCase):
         self.assertIn(MISSING_OPENSPEC_LINE, process.stderr)
         self.assertEqual(launcher.mise_calls("exec"), [])
 
+    def test_review_passes_change_and_exits_with_code_of_manual_review(self):
+        launcher = Launcher(self)
+        launcher.install_mise(launcher.bin_dir)
+        launcher.set_mise_answer("exec", stdout="Result: the review did not accept the change.\n", exit_code=1)
+
+        process = launcher.run("review", "add-widgets")
+
+        self.assertEqual(process.returncode, 1)
+        self.assertEqual(process.stdout, "Result: the review did not accept the change.\n")
+        [call] = launcher.mise_calls("exec")
+        self.assertEqual(call["arguments"][-3:], [str(HOOK_PATH), "review", "add-widgets"])
+
+    def test_review_exits_with_code_1_when_version_manager_is_missing(self):
+        launcher = Launcher(self)
+
+        process = launcher.run("review")
+
+        self.assertEqual(process.returncode, 1)
+        self.assertIn("could not find the version manager mise", process.stderr)
+
     def test_doctor_exits_with_code_1_when_version_manager_is_missing(self):
         launcher = Launcher(self)
 
@@ -524,8 +684,8 @@ class MissingToolTest(unittest.TestCase):
 
         self.assertIs(response["continue"], False)
         self.assertIn("could not find `openspec`", response["stopReason"])
-        self.assertIn("just doctor", response["stopReason"])
-        self.assertIn("just doctor", response["systemMessage"])
+        self.assertIn("mise run doctor", response["stopReason"])
+        self.assertIn("mise run doctor", response["systemMessage"])
         self.assertEqual(repository.reviewer_calls(), [])
 
 
@@ -540,6 +700,7 @@ class DoctorTest(unittest.TestCase):
         self.assertEqual(
             process.stdout.splitlines(),
             [
+                "Review client: claude",
                 f"python: {sys.executable}",
                 f"git: {repository.root.parent / 'system-bin' / 'git'}",
                 f"openspec: {bin_dir / 'openspec'}",
@@ -596,15 +757,164 @@ class RunChecksTest(unittest.TestCase):
         self.assertIn("End of output:\n(no output)", failure)
 
 
+class HookConfigurationTest(unittest.TestCase):
+    def setUp(self):
+        root = HOOK_PATH.parent.parent
+        self.claude_config = json.loads((root / ".claude/settings.json").read_text())
+        self.claude_hooks = self.claude_config["hooks"]
+        self.codex_hooks = json.loads((root / ".codex/hooks.json").read_text())["hooks"]
+
+    def get_hooks(self, configuration, event):
+        return [hook for group in configuration.get(event, []) for hook in group["hooks"]]
+
+    def test_matches_actions_timeouts_and_status_messages_when_both_clients_finish_turns(self):
+        self.assertEqual(set(self.codex_hooks), {"SessionStart", "UserPromptSubmit", "Stop"})
+        for event in self.codex_hooks:
+            claude_hooks = self.get_hooks(self.claude_hooks, event)
+            codex_hooks = self.get_hooks(self.codex_hooks, event)
+
+            self.assertEqual(
+                [shlex.split(hook["command"])[-3] for hook in claude_hooks],
+                [shlex.split(hook["command"])[-3] for hook in codex_hooks],
+                event,
+            )
+
+            for claude_hook, codex_hook in zip(claude_hooks, codex_hooks, strict=True):
+                action = shlex.split(claude_hook["command"])[-3]
+                with self.subTest(event=event, action=action):
+                    self.assertEqual(codex_hook["command"], f'"$(git rev-parse --show-toplevel)/.agent-hooks/run.sh" {action} --client codex')
+                    self.assertEqual(
+                        {key: value for key, value in claude_hook.items() if key != "command"},
+                        {key: value for key, value in codex_hook.items() if key != "command"},
+                    )
+
+    def test_intercepts_plans_only_when_client_is_claude_code(self):
+        [plan_group] = self.claude_hooks["PreToolUse"]
+        self.assertEqual(plan_group["matcher"], "ExitPlanMode")
+        self.assertEqual(
+            [shlex.split(hook["command"])[-3] for hook in plan_group["hooks"]],
+            ["plan", "necessity", "architecture"],
+        )
+        self.assertNotIn("PreToolUse", self.codex_hooks)
+        self.assertNotIn("plan", [shlex.split(hook["command"])[-3] for hook in self.get_hooks(self.codex_hooks, "Stop")])
+
+    def test_matches_browser_launcher_without_a_helper_tag_in_project_settings(self):
+        root = HOOK_PATH.parent.parent
+        codex_config = tomllib.loads((root / ".codex/config.toml").read_text())
+        browser_config = json.loads((root / ".mcp.json").read_text())["mcpServers"]["chrome-devtools"]
+
+        self.assertEqual(codex_config["mcp_servers"]["chrome-devtools"], browser_config)
+        self.assertNotIn("GOFLAGS", codex_config["shell_environment_policy"]["set"])
+        self.assertNotIn("GOFLAGS", self.claude_config["env"])
+        self.assertEqual(codex_config["shell_environment_policy"]["set"]["AGENT_REVIEW_CLIENT"], "codex")
+        self.assertEqual(self.claude_config["env"]["AGENT_REVIEW_CLIENT"], "claude")
+
+    def create_repository(self):
+        repository = HookRepository(self)
+        shutil.copytree(HOOK_PATH.parent, repository.root / ".agent-hooks", ignore=shutil.ignore_patterns("__pycache__"))
+        repository.git("add", ".agent-hooks")
+        repository.git("commit", "--quiet", "-m", "Add hook configuration fixture")
+
+        repository.environment.pop("CLAUDE_PROJECT_DIR", None)
+        mise_stub = Path(repository.environment["PATH"].split(os.pathsep)[0]) / "mise"
+        mise_stub.write_text(
+            f"#!{sys.executable}\n"
+            "import os, sys\n"
+            "if sys.argv[3] == 'exec':\n"
+            "    os.execv(sys.executable, [sys.executable, *sys.argv[6:]])\n"
+        )
+
+        return repository
+
+    def run_client_hook(self, repository, action, payload, client="codex", event_override=None):
+        event = event_override or {"session-start": "SessionStart", "snapshot": "UserPromptSubmit"}.get(action, "Stop")
+        configuration = self.codex_hooks if client == "codex" else self.claude_hooks
+        hook = next(hook for hook in self.get_hooks(configuration, event) if hook["command"].endswith(f" {action} --client {client}"))
+
+        repository.environment["CLAUDE_PROJECT_DIR"] = str(repository.root)
+        subdirectory = repository.root / "nested folder"
+        subdirectory.mkdir(exist_ok=True)
+
+        process = subprocess.run(
+            ["bash", "-c", hook["command"]],
+            cwd=subdirectory,
+            env=repository.environment,
+            input=json.dumps({"hook_event_name": event, "session_id": "codex-session", "cwd": str(subdirectory), **payload}),
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+
+        return json.loads(process.stdout) if process.stdout.strip() else None
+
+    def test_runs_every_tracked_hook_from_nested_directory_with_inherited_other_client(self):
+        for client, configuration in (("codex", self.codex_hooks), ("claude", self.claude_hooks)):
+            repository = self.create_repository()
+            repository.environment["AGENT_REVIEW_CLIENT"] = "claude" if client == "codex" else "codex"
+            for event in ("SessionStart", "UserPromptSubmit", "Stop", "PreToolUse"):
+                for hook in self.get_hooks(configuration, event):
+                    action = shlex.split(hook["command"])[-3]
+                    with self.subTest(client=client, event=event, action=action):
+                        response = self.run_client_hook(repository, action, {"prompt": "Read the repository", "tool_input": {"plan": "Inspect the repository"}}, client, event)
+                        if action == "session-start":
+                            self.assertIn(".agents/skills/humanizer/SKILL.md", response["hookSpecificOutput"]["additionalContext"])
+                        elif action == "snapshot":
+                            self.assertIsNone(response)
+                        else:
+                            self.assertEqual(response, {})
+
+            self.assertTrue((repository.root / ".git/agent-review-hooks/codex-session.json").is_file())
+
+    def test_runs_codex_reviewers_with_required_effort_when_codex_finishes_changes(self):
+        for gate, effort, reviewer_count in (("diff", "medium", 1), ("implementation", "high", 4)):
+            with self.subTest(gate=gate):
+                repository = self.create_repository()
+                self.run_client_hook(repository, "snapshot", {"prompt": "Continue implementing widgets"})
+                repository.write("src/widgets.py", "WIDGETS = []\n")
+                if gate == "implementation":
+                    repository.complete_tasks()
+
+                response = self.run_client_hook(repository, gate, {"last_assistant_message": "Done."})
+
+                if gate == "implementation":
+                    self.assertIn("Full implementation review accepted the change.", response["reason"])
+                else:
+                    self.assertEqual(response, {})
+                reviewer_calls = repository.reviewer_calls()
+                self.assertEqual(len(reviewer_calls), reviewer_count)
+                for reviewer_call in reviewer_calls:
+                    self.assertEqual(reviewer_call["name"], "codex")
+                    self.assertIn(f'model_reasoning_effort="{effort}"', reviewer_call["arguments"])
+
+    def test_preserves_user_request_baseline_when_codex_submits_automatic_review_continuation(self):
+        repository = self.create_repository()
+        repository.write("existing.md", "Existing user edit\n")
+        self.run_client_hook(repository, "snapshot", {"prompt": "Add widgets"})
+
+        request_path = repository.root / ".git/agent-review-hooks/codex-session.json"
+        original_request = json.loads(request_path.read_text())
+
+        repository.write("src/widgets.py", "WIDGETS = []\n")
+        self.run_client_hook(repository, "snapshot", {"prompt": f"{review_gate.AUTOMATIC_REVIEW_PREFIX} Fix the widgets"})
+
+        self.assertEqual(json.loads(request_path.read_text()), original_request)
+        response = self.run_client_hook(repository, "diff", {"last_assistant_message": "Fixed."})
+
+        self.assertEqual(response, {})
+        [reviewer_call] = repository.reviewer_calls()
+        self.assertIn("src/widgets.py", reviewer_call["prompt"])
+        self.assertIn("Add widgets", reviewer_call["prompt"])
+
+
 class FullReviewBudgetTest(unittest.TestCase):
-    def get_hook_timeouts(self, gate):
-        config = json.loads((HOOK_PATH.parent.parent / ".claude" / "settings.json").read_text())
+    def get_hook_timeouts(self, gate, config_path):
+        config = json.loads((HOOK_PATH.parent.parent / config_path).read_text())
         return [
             hook["timeout"]
             for groups in config["hooks"].values()
             for group in groups
             for hook in group["hooks"]
-            if hook["command"].endswith(f'run.sh\" {gate}')
+            if shlex.split(hook["command"])[-3] == gate
         ]
 
     def test_budget_fits_checks_and_two_reviewer_waves(self):
@@ -615,9 +925,11 @@ class FullReviewBudgetTest(unittest.TestCase):
             )
 
     def test_budget_ends_before_full_review_hook_timeouts(self):
-        for gate in review_gate.FULL_REVIEWS:
-            [timeout_seconds] = self.get_hook_timeouts(gate)
-            self.assertLess(review_gate.FULL_REVIEW_BUDGET_SECONDS, timeout_seconds, gate)
+        for config_path in (".claude/settings.json", ".codex/hooks.json"):
+            for gate in review_gate.FULL_REVIEWS:
+                with self.subTest(configuration=config_path, gate=gate):
+                    [timeout_seconds] = self.get_hook_timeouts(gate, config_path)
+                    self.assertLess(review_gate.FULL_REVIEW_BUDGET_SECONDS, timeout_seconds, gate)
 
 
 class ChangeVerificationParsingTest(unittest.TestCase):
@@ -639,65 +951,98 @@ class ChangeVerificationParsingTest(unittest.TestCase):
         self.assertIn(f"`{CHANGE_NAME}/tasks.md`", message)
         self.assertIn(review_gate.ALLOWED_VERIFICATION_FORMS, message)
 
-    def test_rejects_full_backend_suite(self):
-        self.assert_rejected(verification_section("just test"), "`just test` is not an allowed command")
+    def test_accepts_the_full_run_without_execution(self):
+        with mock.patch.object(review_gate.subprocess, "run", side_effect=AssertionError("must not run")):
+            checks = self.parse(verification_section("mise run test"))
+        self.assertEqual(checks, [review_gate.Check(".", ("mise", "run", "test"))])
 
-    def test_rejects_shell_operator_as_forbidden_character(self):
+    def test_rejects_removed_narrow_commands(self):
+        commands = (
+            "mise run backend:test-package ./internal/features/intervals/...",
+            "mise run backend:test-group physical-api-1-of-3",
+            "mise run agent:test",
+            "pnpm --dir frontend test",
+            "mise run test-filesystem",
+        )
+        for command in commands:
+            with self.subTest(command=command):
+                self.assert_rejected(verification_section(command), f"`{command}` is not an allowed command")
+
+    def test_rejects_old_just_form(self):
         self.assert_rejected(
-            verification_section("just test-package ./internal/features/intervals/... && rm -rf /tmp/x"),
-            "the argument `&&`",
+            verification_section("just test-package ./internal/features/intervals/..."),
+            "`just test-package ./internal/features/intervals/...` is not an allowed command",
         )
 
-    def test_rejects_argument_with_forbidden_character(self):
+    def test_rejects_shell_operator_after_the_full_run(self):
         self.assert_rejected(
-            verification_section("just test-package ./internal/a;rm"),
-            "the argument `./internal/a;rm` in `just test-package ./internal/a;rm` has a forbidden character",
+            verification_section("mise run test && rm -rf /tmp/x"),
+            "`mise run test && rm -rf /tmp/x` does not match the form `mise run test`",
         )
 
-    def test_runs_backend_package_tests_in_backend_directory(self):
-        checks = self.parse(verification_section("just test-package ./internal/features/intervals/..."))
+    def test_rejects_arguments_after_the_full_run(self):
+        self.assert_rejected(verification_section("mise run test ./x"), "does not match the form `mise run test`")
 
-        self.assertEqual(checks, [review_gate.Check("backend", ("just", "test-package", "./internal/features/intervals/..."))])
+    def test_rejects_shell_substitution_in_the_full_run(self):
+        self.assert_rejected(verification_section("mise run test;rm"), "`mise run test;rm` is not an allowed command")
+
+    def test_accepts_exact_isolated_browser_form_without_execution(self):
+        with mock.patch.object(review_gate.subprocess, "run", side_effect=AssertionError("must not run")):
+            checks = self.parse(verification_section("pnpm --dir frontend test:browser --project=ui"))
+        self.assertEqual(checks, [review_gate.Check(".", ("pnpm", "--dir", "frontend", "test:browser", "--project=ui"))])
+
+    def test_accepts_exact_browser_suite_form_without_execution(self):
+        with mock.patch.object(review_gate.subprocess, "run", side_effect=AssertionError("must not run")):
+            checks = self.parse(verification_section("mise run e2e:browser"))
+        self.assertEqual(checks, [review_gate.Check(".", ("mise", "run", "e2e:browser"))])
+
+    def test_rejects_unbounded_browser_forms_and_shell_arguments(self):
+        commands = (
+            "pnpm --dir frontend test:browser",
+            "pnpm --dir frontend test:browser --project=other",
+            "pnpm --dir frontend test:browser --project ui",
+            "pnpm --dir frontend test:browser --project=ui --headed",
+            "pnpm --dir frontend test:browser --project=e2e",
+            "mise run e2e",
+            "mise run test-full",
+            "mise run e2e:browser --headed",
+            "mise run e2e:browser;touch",
+            "mise run e2e:browser ./x",
+            "pnpm --dir frontend arbitrary-script --project=ui",
+            "pnpm --dir frontend test:browser --project=ui;touch",
+            "pnpm --dir frontend test:browser --project=ui && touch /tmp/x",
+            "pnpm --dir frontend test:browser --project=$(touch)",
+        )
+        for command in commands:
+            with self.subTest(command=command):
+                with self.assertRaises(review_gate.ChangeVerificationError):
+                    self.parse(verification_section(command))
 
     def test_accepts_every_allowed_form_and_skips_empty_and_comment_lines(self):
         checks = self.parse(
             verification_section(
-                "# backend",
-                "just test-package ./internal/features/intervals/... ./internal/features/backups/...",
+                "# everything",
+                "mise run test",
                 "",
-                "just --justfile agent/verification/Justfile test",
-                "pnpm --dir frontend test src/features/widgets --reporter=dot",
+                "pnpm --dir frontend test:browser --project=ui",
+                "mise run e2e:browser",
             )
         )
 
         self.assertEqual(
             checks,
             [
-                review_gate.Check(
-                    "backend", ("just", "test-package", "./internal/features/intervals/...", "./internal/features/backups/...")
-                ),
-                review_gate.Check(".", ("just", "--justfile", "agent/verification/Justfile", "test")),
-                review_gate.Check(".", ("pnpm", "--dir", "frontend", "test", "src/features/widgets", "--reporter=dot")),
+                review_gate.Check(".", ("mise", "run", "test")),
+                review_gate.Check(".", ("pnpm", "--dir", "frontend", "test:browser", "--project=ui")),
+                review_gate.Check(".", ("mise", "run", "e2e:browser")),
             ],
         )
 
-    def test_rejects_backend_package_tests_without_package(self):
-        self.assert_rejected(verification_section("just test-package"), "does not match the form `just test-package <package>...`")
-
-    def test_rejects_package_path_without_leading_dot_slash(self):
-        self.assert_rejected(verification_section("just test-package internal/features/intervals/..."), "must start with `./`")
-
-    def test_rejects_arguments_after_verification_agent_form(self):
-        self.assert_rejected(
-            verification_section("just --justfile agent/verification/Justfile test ./internal/..."),
-            "does not match the form `just --justfile agent/verification/Justfile test`",
-        )
-
     def test_rejects_section_with_only_bash_fenced_block(self):
-        self.assert_rejected(verification_section("pnpm --dir frontend test", fence="bash"), "the section has no ```sh code block")
+        self.assert_rejected(verification_section("mise run test", fence="bash"), "the section has no ```sh code block")
 
     def test_rejects_unclosed_block(self):
-        self.assert_rejected("\n## Change verification\n\n```sh\npnpm --dir frontend test\n", "the ```sh code block is not closed")
+        self.assert_rejected("\n## Change verification\n\n```sh\nmise run test\n", "the ```sh code block is not closed")
 
     def test_rejects_block_without_commands(self):
         self.assert_rejected(verification_section("# nothing yet", ""), "the ```sh code block holds no command")
@@ -791,51 +1136,105 @@ class DiffGateTest(unittest.TestCase):
         repository.stop("diff")
 
         [call] = repository.reviewer_calls()
-        self.assertIn("| `agent/**` | `agent/verification/AGENTS.md` |", call["prompt"])
+        self.assertNotIn("| `agent/**` |", call["prompt"])
+        self.assertIn("| `backend/**` | `backend/AGENTS.md` |", call["prompt"])
 
-    def test_runs_claude_reviewer_on_opus_with_low_effort(self):
+    def test_runs_selected_quick_profile(self):
         repository = HookRepository(self)
         repository.submit_prompt("Add a widget")
         repository.write("src/widgets.py", "WIDGETS = []\n")
 
         repository.stop("diff")
 
-        [call] = repository.calls("claude")
-        self.assertIn("--model opus --effort low", " ".join(call["arguments"]))
-        self.assertEqual(call["effort_env"], "low")
+        [call] = repository.reviewer_calls()
+        self.assertEqual(call["name"], repository.review_client)
+        self.assertEqual(get_effort(call), repository.quick_effort)
+        self.assertEqual(call["effort_env"], repository.quick_effort)
 
-    def test_stops_agent_after_fourth_rejection(self):
+    def test_stops_agent_after_revision_limit(self):
         repository = HookRepository(self)
         repository.set_reviewer_result({"ok": False, "reason": "No test for an empty list."})
         repository.submit_prompt("Add a widget")
 
         responses = []
-        for attempt in range(4):
+        for attempt in range(review_gate.MAX_REVISIONS + 1):
             repository.write("src/widgets.py", f"WIDGETS = [{attempt}]\n")
             responses.append(repository.stop("diff"))
 
-        self.assertEqual([response.get("decision") for response in responses[:3]], ["block", "block", "block"])
-        self.assertIs(responses[3]["continue"], False)
+        self.assertEqual(
+            [response.get("decision") for response in responses[:-1]],
+            ["block"] * review_gate.MAX_REVISIONS,
+        )
+        self.assertIs(responses[-1]["continue"], False)
 
 
-class NamingGateTest(unittest.TestCase):
+class ArchitectureGateTest(unittest.TestCase):
+    def test_architecture_prompt_reads_authoritative_frontend_architecture(self):
+        repository = HookRepository(self)
+        repository.submit_prompt("Improve a screen")
+        repository.write("frontend/src/pages/Settings.tsx", "export {};\n")
+
+        repository.stop("architecture")
+
+        [call] = repository.reviewer_calls()
+        self.assertIn('`docs/architecture.md`: "Frontend"', call["prompt"])
+        self.assertIn('`frontend/AGENTS.md`: the applicable frontend conventions', call["prompt"])
+
+    def test_architecture_prompt_checks_http_contract_against_api_design_skill(self):
+        repository = HookRepository(self)
+        repository.submit_prompt("Add a widget")
+        repository.write("src/widgets.py", "WIDGETS = []\n")
+
+        repository.stop("architecture")
+
+        [call] = repository.reviewer_calls()
+        self.assertIn(
+            "When a plan adds or changes an HTTP operation, or a finished change edits a file under `backend/api/`, "
+            "also read `.agents/skills/api-design/SKILL.md` and check the operation or the edit against it.",
+            call["prompt"],
+        )
+
+    def test_architecture_prompt_leaves_split_inside_package_to_code_shape_check(self):
+        repository = HookRepository(self)
+        repository.submit_prompt("Add a widget")
+        repository.write("src/widgets.py", "WIDGETS = []\n")
+
+        repository.stop("architecture")
+
+        [call] = repository.reviewer_calls()
+        self.assertIn(
+            "leave the split of code into files and functions inside a package to the code-shape check.",
+            call["prompt"],
+        )
+
+
+class FullReviewSchemaTest(unittest.TestCase):
+    def test_reviewer_schemas_allow_exactly_the_categories_of_their_full_review(self):
+        for full_review in (review_gate.IMPLEMENTATION_REVIEW, review_gate.PROPOSAL_REVIEW):
+            with self.subTest(full_review.gate):
+                schema = json.loads(full_review.reviewer.schema_path.read_text())
+                category_enum = schema["properties"]["findings"]["items"]["properties"]["category"]["enum"]
+                self.assertEqual(tuple(category_enum), full_review.categories)
+
+
+class CodeShapeGateTest(unittest.TestCase):
     def test_runs_reviewer_when_turn_changes_backend_go_file(self):
         repository = HookRepository(self)
         repository.submit_prompt("Add a widget")
         repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
 
-        response = repository.stop("naming")
+        response = repository.stop("code-shape")
 
         self.assertEqual(response, {})
         [call] = repository.reviewer_calls()
-        self.assertIn("## Naming review", call["prompt"])
+        self.assertIn("## Code shape review", call["prompt"])
 
     def test_runs_reviewer_when_turn_changes_agent_go_file(self):
         repository = HookRepository(self)
         repository.submit_prompt("Add a heartbeat field")
-        repository.write("agent/verification/internal/heartbeat/heartbeat.go", "package heartbeat\n")
+        repository.write("backend/internal/agent/heartbeat/heartbeat.go", "package heartbeat\n")
 
-        repository.stop("naming")
+        repository.stop("code-shape")
 
         self.assertEqual(len(repository.reviewer_calls()), 1)
 
@@ -844,7 +1243,7 @@ class NamingGateTest(unittest.TestCase):
         repository.submit_prompt("Add a widget")
         repository.write("frontend/src/pages/widgets/ui/WidgetsPage.tsx", "export {};\n")
 
-        repository.stop("naming")
+        repository.stop("code-shape")
 
         self.assertEqual(len(repository.reviewer_calls()), 1)
 
@@ -853,7 +1252,7 @@ class NamingGateTest(unittest.TestCase):
         repository.submit_prompt("Add a page")
         repository.write("website/app/[lang]/pricing/page.tsx", "export {};\n")
 
-        repository.stop("naming")
+        repository.stop("code-shape")
 
         self.assertEqual(len(repository.reviewer_calls()), 1)
 
@@ -863,7 +1262,7 @@ class NamingGateTest(unittest.TestCase):
         repository.submit_prompt("Add a widget")
         repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
 
-        response = repository.stop("naming")
+        response = repository.stop("code-shape")
 
         self.assertEqual(response["decision"], "block")
         self.assertIn("GetRunningVerificationIDs", response["reason"])
@@ -873,7 +1272,7 @@ class NamingGateTest(unittest.TestCase):
         repository.submit_prompt("Fix the docs")
         repository.write("backend/AGENTS.md", "# AGENTS.md\n")
 
-        response = repository.stop("naming")
+        response = repository.stop("code-shape")
 
         self.assertEqual(response, {})
         self.assertEqual(repository.reviewer_calls(), [])
@@ -883,7 +1282,7 @@ class NamingGateTest(unittest.TestCase):
         repository.submit_prompt("Bump Vite")
         repository.write("frontend/vite.config.ts", "export default {};\n")
 
-        repository.stop("naming")
+        repository.stop("code-shape")
 
         self.assertEqual(repository.reviewer_calls(), [])
 
@@ -893,7 +1292,7 @@ class NamingGateTest(unittest.TestCase):
         repository.submit_prompt("Fix the docs")
         repository.write("backend/AGENTS.md", "# AGENTS.md\n")
 
-        repository.stop("naming")
+        repository.stop("code-shape")
 
         self.assertEqual(repository.reviewer_calls(), [])
 
@@ -902,22 +1301,76 @@ class NamingGateTest(unittest.TestCase):
         repository.submit_prompt("Write a spec")
         repository.write_proposal()
 
-        response = repository.stop("naming")
+        response = repository.stop("code-shape")
 
         self.assertEqual(response, {})
         self.assertEqual(repository.reviewer_calls(), [])
 
-    def test_runs_claude_reviewer_on_opus_with_low_effort(self):
+    def test_runs_selected_quick_profile(self):
         repository = HookRepository(self)
         repository.submit_prompt("Add a widget")
         repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
 
-        repository.stop("naming")
+        repository.stop("code-shape")
 
-        [call] = repository.calls("claude")
-        self.assertIn("--model opus --effort low", " ".join(call["arguments"]))
+        [call] = repository.reviewer_calls()
+        self.assertEqual(call["name"], repository.review_client)
+        self.assertEqual(get_effort(call), repository.quick_effort)
 
-class ImplementationGateStartTest(unittest.TestCase):
+    def test_prompt_holds_code_to_logical_units_rule_and_reads_created_files_in_full(self):
+        prompt = self.get_finished_turn_prompt()
+
+        self.assertIn('"Code is split into logical units"', prompt)
+        self.assertIn("Read every source file the turn created in full", prompt)
+
+    def test_prompt_rejects_new_file_or_function_with_two_concepts_and_concept_added_to_other_file(self):
+        prompt = self.get_finished_turn_prompt()
+
+        self.assertIn(
+            "Reject a new file or a new function that holds more than one concept, "
+            "and a concept the turn added to an existing file that holds a different one.",
+            prompt,
+        )
+
+    def test_prompt_leaves_placement_across_packages_to_architecture_check(self):
+        prompt = self.get_finished_turn_prompt()
+
+        self.assertIn(
+            "Do not judge which package, module, layer or role a unit belongs to; the architecture check does that.",
+            prompt,
+        )
+
+    def test_prompt_accepts_additions_to_files_whose_content_architecture_fixes(self):
+        prompt = self.get_finished_turn_prompt()
+
+        self.assertIn(
+            "an event or a contract type in `module.go`, an error in `errors.go`, "
+            "an enum next to its entity, a method in its role file.",
+            prompt,
+        )
+
+    def test_prompt_does_not_judge_concepts_mixed_before_turn(self):
+        prompt = self.get_finished_turn_prompt()
+
+        self.assertIn("Do not judge concepts that were already mixed in a file before the turn.", prompt)
+
+    def test_prompt_treats_comment_that_restates_code_as_naming_problem(self):
+        prompt = self.get_finished_turn_prompt()
+
+        self.assertIn("A comment that restates what the code does is a naming problem", prompt)
+
+    def get_finished_turn_prompt(self):
+        repository = HookRepository(self)
+        repository.submit_prompt("Add a widget")
+        repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
+
+        repository.stop("code-shape")
+
+        [call] = repository.reviewer_calls()
+        return call["prompt"]
+
+
+class ImplementationGateStartTest(SummaryAssertions, unittest.TestCase):
     def test_runs_full_review_when_agent_completes_last_task(self):
         repository = HookRepository(self)
         repository.submit_prompt("Continue")
@@ -925,8 +1378,8 @@ class ImplementationGateStartTest(unittest.TestCase):
 
         response = repository.stop("implementation")
 
-        self.assertEqual(response, {})
-        self.assertEqual(len(repository.reviewer_calls()), 3)
+        self.assert_accepts_change_and_asks_for_summary(response)
+        self.assertEqual(len(repository.reviewer_calls()), 4)
 
     def test_skips_review_when_tasks_remain_unchecked(self):
         repository = HookRepository(self)
@@ -972,7 +1425,7 @@ class ImplementationGateStartTest(unittest.TestCase):
 
         repository.stop("implementation")
 
-        self.assertEqual(len(repository.reviewer_calls()), 3)
+        self.assertEqual(len(repository.reviewer_calls()), 4)
 
     def test_skips_review_when_prompt_has_openspec_planning_command(self):
         repository = HookRepository(self)
@@ -1012,137 +1465,21 @@ class ImplementationGateStartTest(unittest.TestCase):
         self.assertEqual(json.loads(process.stdout), {})
 
 
-class ImplementationGateChecksTest(ShortReplyAssertions, unittest.TestCase):
-    def test_runs_only_backend_linter_when_change_touches_backend(self):
+class ImplementationGateChecksTest(ShortReplyAssertions, SummaryAssertions, unittest.TestCase):
+    def test_runs_no_verification_commands_when_implementation_review_starts(self):
         repository = HookRepository(self)
         repository.submit_prompt("Continue")
         repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
-        repository.complete_tasks()
+        repository.set_stub("golangci-lint", {"exit_code": 1, "output": "must not run"})
+        repository.complete_tasks(verification_section=verification_section("mise run test", "pnpm --dir frontend test:browser --project=ui"))
 
-        repository.stop("implementation")
+        response = repository.stop("implementation")
 
-        [call] = repository.check_calls()
-        self.assertEqual(call["name"], "golangci-lint")
-        self.assertEqual(call["arguments"], ["run", "./cmd/...", "./internal/..."])
-        self.assertEqual(Path(call["cwd"]), repository.root / "backend")
-
-    def test_runs_agent_linter_in_verification_agent_directory(self):
-        repository = HookRepository(self)
-        repository.submit_prompt("Continue")
-        repository.write("agent/verification/internal/heartbeat/heartbeat.go", "package heartbeat\n")
-        repository.complete_tasks()
-
-        repository.stop("implementation")
-
-        [call] = repository.check_calls()
-        self.assertEqual(call["arguments"], ["run", "./cmd/...", "./internal/...", "./e2e/..."])
-        self.assertEqual(Path(call["cwd"]), repository.root / "agent" / "verification")
-
-    def test_runs_only_frontend_linter_when_change_touches_frontend(self):
-        repository = HookRepository(self)
-        repository.submit_prompt("Continue")
-        repository.write("frontend/src/pages/widgets/ui/WidgetsPage.tsx", "export {};\n")
-        repository.complete_tasks()
-
-        repository.stop("implementation")
-
-        self.assertEqual([call["arguments"] for call in repository.check_calls()], [["--dir", "frontend", "lint"]])
-
-    def test_runs_website_lint_and_build_when_change_touches_website(self):
-        repository = HookRepository(self)
-        repository.submit_prompt("Continue")
-        repository.write("website/app/[lang]/pricing/page.tsx", "export {};\n")
-        repository.complete_tasks()
-
-        repository.stop("implementation")
-
-        self.assertEqual(
-            sorted(call["arguments"] for call in repository.calls("npm")),
-            [["--prefix", "website", "run", "build"], ["--prefix", "website", "run", "lint"]],
-        )
-
-    def test_runs_no_checks_when_change_touches_no_module(self):
-        repository = HookRepository(self)
-        repository.submit_prompt("Continue")
-        repository.write("docs/widgets.md", "# Widgets\n")
-        repository.complete_tasks()
-
-        repository.stop("implementation")
-
+        self.assert_accepts_change_and_asks_for_summary(response)
         self.assertEqual(repository.check_calls(), [])
-        self.assertEqual(len(repository.reviewer_calls()), 3)
+        self.assertEqual(len(repository.reviewer_calls()), 4)
 
-    def test_blocks_turn_with_output_tail_when_linter_fails(self):
-        repository = HookRepository(self)
-        repository.set_stub("golangci-lint", {"exit_code": 1, "output": "service.go:12:2: ineffectual assignment to err\n"})
-        repository.submit_prompt("Continue")
-        repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
-        repository.complete_tasks()
-
-        response = repository.stop("implementation")
-
-        self.assertEqual(response["decision"], "block")
-        self.assertIn("`golangci-lint run ./cmd/... ./internal/...` in `backend`", response["reason"])
-        self.assertIn("service.go:12:2: ineffectual assignment to err", response["reason"])
-        self.assert_asks_for_short_reply(response["reason"])
-        self.assertEqual(repository.reviewer_calls(), [])
-
-    def test_never_runs_formatters_and_runs_just_only_from_change_verification_block(self):
-        repository = HookRepository(self)
-        repository.submit_prompt("Continue")
-        repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
-        repository.write("frontend/src/pages/widgets/ui/WidgetsPage.tsx", "export {};\n")
-        repository.complete_tasks(verification_section=verification_section("just test-package ./internal/features/widgets/..."))
-
-        response = repository.stop("implementation")
-
-        self.assertEqual(response, {})
-        self.assertEqual([call["arguments"] for call in repository.calls("just")], [["test-package", "./internal/features/widgets/..."]])
-        arguments = [" ".join(call["arguments"]) for call in repository.check_calls()]
-        self.assertEqual(len(arguments), 3)
-        self.assertFalse(any("fmt" in argument or "format" in argument for argument in arguments))
-        self.assertEqual(len(repository.reviewer_calls()), 3)
-
-    def test_blocks_turn_with_command_and_output_tail_when_package_test_fails(self):
-        repository = HookRepository(self)
-        repository.set_stub("just", {"exit_code": 1, "output": "--- FAIL: Test_CreateInterval_WhenOverlapping_ReturnsConflict\n"})
-        repository.submit_prompt("Continue")
-        repository.write("backend/internal/features/intervals/service.go", "package intervals\n")
-        repository.complete_tasks(verification_section=verification_section("just test-package ./internal/features/intervals/..."))
-
-        response = repository.stop("implementation")
-
-        self.assertEqual(response["decision"], "block")
-        self.assertIn("`just test-package ./internal/features/intervals/...` in `backend` exited with code 1", response["reason"])
-        self.assertIn("--- FAIL: Test_CreateInterval_WhenOverlapping_ReturnsConflict", response["reason"])
-        self.assert_asks_for_short_reply(response["reason"])
-        self.assertEqual(repository.reviewer_calls(), [])
-
-    def test_runs_backend_package_tests_in_backend_directory_after_linter(self):
-        repository = HookRepository(self)
-        repository.submit_prompt("Continue")
-        repository.write("backend/internal/features/intervals/service.go", "package intervals\n")
-        repository.complete_tasks(verification_section=verification_section("just test-package ./internal/features/intervals/..."))
-
-        repository.stop("implementation")
-
-        [linter_call] = repository.calls("golangci-lint")
-        [test_call] = repository.calls("just")
-        self.assertEqual(test_call["arguments"], ["test-package", "./internal/features/intervals/..."])
-        self.assertEqual(Path(test_call["cwd"]), repository.root / "backend")
-        self.assertLess(linter_call["started_at"], test_call["started_at"])
-
-    def test_runs_command_named_by_two_changes_once(self):
-        repository = HookRepository(self)
-        repository.submit_prompt("Continue")
-        repository.complete_tasks(verification_section=verification_section("pnpm --dir frontend test"))
-        repository.write_change(spec_names=("gizmos",), tasks="- [x] 1.1 Build\n" + verification_section("pnpm --dir frontend test"), name="add-gizmos")
-
-        repository.stop("implementation")
-
-        self.assertEqual([call["arguments"] for call in repository.calls("pnpm")], [["--dir", "frontend", "test"]])
-
-    def test_starts_reviewers_without_test_run_when_change_has_no_verification_section(self):
+    def test_starts_reviewers_without_checks_when_change_has_no_verification_section(self):
         repository = HookRepository(self)
         repository.submit_prompt("Continue")
         repository.write("frontend/src/pages/widgets/ui/WidgetsPage.tsx", "export {};\n")
@@ -1150,37 +1487,36 @@ class ImplementationGateChecksTest(ShortReplyAssertions, unittest.TestCase):
 
         response = repository.stop("implementation")
 
-        self.assertEqual(response, {})
-        self.assertEqual([call["arguments"] for call in repository.check_calls()], [["--dir", "frontend", "lint"]])
-        self.assertEqual(len(repository.reviewer_calls()), 3)
+        self.assert_accepts_change_and_asks_for_summary(response)
+        self.assertEqual(repository.check_calls(), [])
+        self.assertEqual(len(repository.reviewer_calls()), 4)
 
-    def test_blocks_turn_before_any_check_when_verification_section_is_malformed(self):
+    def test_runs_no_shared_verification_command_when_two_changes_name_it(self):
         repository = HookRepository(self)
         repository.submit_prompt("Continue")
-        repository.write("backend/internal/features/intervals/service.go", "package intervals\n")
-        repository.complete_tasks(verification_section=verification_section("just test"))
+        repository.complete_tasks(verification_section=verification_section("mise run test"))
+        repository.write_change(spec_names=("gizmos",), tasks="- [x] 1.1 Build\n" + verification_section("mise run test"), name="add-gizmos")
+
+        response = repository.stop("implementation")
+
+        self.assert_accepts_change_and_asks_for_summary(response)
+        self.assertEqual(repository.check_calls(), [])
+        self.assertEqual(len(repository.reviewer_calls()), 8)
+
+    def test_blocks_turn_before_reviewers_when_verification_section_is_malformed(self):
+        repository = HookRepository(self)
+        repository.submit_prompt("Continue")
+        repository.complete_tasks(verification_section=verification_section("mise run agent:test"))
 
         response = repository.stop("implementation")
 
         self.assertEqual(response["decision"], "block")
-        self.assertIn("`just test` is not an allowed command", response["reason"])
+        self.assertIn("`mise run agent:test` is not an allowed command", response["reason"])
         self.assertIn(review_gate.ALLOWED_VERIFICATION_FORMS, response["reason"])
-        self.assertIn("No check or reviewer ran.", response["reason"])
         self.assertEqual(repository.check_calls(), [])
         self.assertEqual(repository.reviewer_calls(), [])
 
-    def test_runs_hook_tests_when_change_touches_hooks(self):
-        repository = HookRepository(self)
-        repository.submit_prompt("Continue")
-        repository.write(".agent-hooks/sample_test.py", PASSING_HOOK_TEST)
-        repository.complete_tasks()
-
-        response = repository.stop("implementation")
-
-        self.assertEqual(response, {})
-        self.assertEqual(len(repository.reviewer_calls()), 3)
-
-    def test_blocks_turn_when_hook_tests_fail(self):
+    def test_runs_no_hook_tests_when_change_touches_hooks(self):
         repository = HookRepository(self)
         repository.submit_prompt("Continue")
         repository.write(".agent-hooks/sample_test.py", FAILING_HOOK_TEST)
@@ -1188,13 +1524,24 @@ class ImplementationGateChecksTest(ShortReplyAssertions, unittest.TestCase):
 
         response = repository.stop("implementation")
 
-        self.assertEqual(response["decision"], "block")
-        self.assertIn("gate returned block for an accepted turn", response["reason"])
-        self.assertEqual(repository.reviewer_calls(), [])
+        self.assert_accepts_change_and_asks_for_summary(response)
+        self.assertEqual(repository.check_calls(), [])
+        self.assertEqual(len(repository.reviewer_calls()), 4)
+
+    def test_does_not_claim_checks_passed_when_reviewer_prompt_is_built(self):
+        repository = HookRepository(self)
+        repository.submit_prompt("Continue")
+        repository.complete_tasks()
+
+        repository.stop("implementation")
+
+        for call in repository.reviewer_calls():
+            self.assertNotIn("The hook already ran the linters", call["prompt"])
+            self.assertIn("does not run linters, builds or tests", call["prompt"])
 
 
-class ImplementationGateReviewTest(ShortReplyAssertions, unittest.TestCase):
-    def test_runs_reviewer_per_spec_and_one_for_docs_on_claude_with_medium_effort(self):
+class ImplementationGateReviewTest(ShortReplyAssertions, SummaryAssertions, unittest.TestCase):
+    def test_runs_selected_full_profile_per_spec_and_for_architecture_docs_and_tests(self):
         repository = HookRepository(self)
         repository.write_change(spec_names=("widgets", "gadgets"), tasks="- [x] 1.1 Build\n")
         repository.submit_prompt("Continue")
@@ -1202,21 +1549,44 @@ class ImplementationGateReviewTest(ShortReplyAssertions, unittest.TestCase):
 
         repository.stop("implementation")
 
-        calls = repository.calls("claude")
-        self.assertEqual(len(calls), 4)
+        calls = repository.reviewer_calls()
+        self.assertEqual(len(calls), 5)
         for call in calls:
-            self.assertIn("--model opus --effort medium", " ".join(call["arguments"]))
-            self.assertEqual(call["effort_env"], "medium")
+            self.assertEqual(call["name"], repository.review_client)
+            self.assertEqual(call["effort_env"], repository.full_effort)
         roles = sorted(line for call in calls for line in call["prompt"].splitlines() if line.startswith("Role:"))
         self.assertEqual(
             roles,
             [
+                "Role: architecture",
                 f"Role: delta spec `openspec/changes/{CHANGE_NAME}/specs/gadgets/spec.md`",
                 f"Role: delta spec `openspec/changes/{CHANGE_NAME}/specs/widgets/spec.md`",
                 "Role: documentation and tasks",
                 "Role: tests",
             ],
         )
+
+    def test_implementation_architecture_reviewer_prompt_checks_all_backend_files_and_contract(self):
+        repository = HookRepository(self)
+        repository.submit_prompt("Continue")
+        repository.complete_tasks()
+
+        repository.stop("implementation")
+
+        [call] = [call for call in repository.reviewer_calls() if "\nRole: architecture\n" in call["prompt"]]
+        prompt = call["prompt"]
+        architecture_role = prompt[prompt.index("### Role: architecture") : prompt.index("### Role: documentation and tasks")]
+
+        self.assertIn("Read `docs/architecture.md` completely", architecture_role)
+        self.assertIn("including parts committed or written in earlier requests", architecture_role)
+        self.assertIn(
+            "When the change edits an HTTP contract file under `backend/api/`, read `.agents/skills/api-design/SKILL.md`",
+            architecture_role,
+        )
+        self.assertIn("Check all backend files belonging to the change", architecture_role)
+        self.assertIn("including every command", architecture_role)
+        self.assertIn("Frontend architecture rules remain applicable.", architecture_role)
+        self.assertNotIn("keeps its existing structure", architecture_role)
 
     def test_implementation_docs_reviewer_prompt_checks_agent_instructions(self):
         repository = HookRepository(self)
@@ -1238,23 +1608,37 @@ class ImplementationGateReviewTest(ShortReplyAssertions, unittest.TestCase):
 
         repository.stop("implementation")
 
-        self.assertEqual(len(repository.reviewer_calls()), 4)
+        self.assertEqual(len(repository.reviewer_calls()), 5)
         [call] = [call for call in repository.reviewer_calls() if "\nRole: tests\n" in call["prompt"]]
         prompt = call["prompt"]
         tests_role = prompt[prompt.index("### Role: tests") : prompt.index("### Role: repeat review")]
+
         self.assertIn("`.agents/skills/testing/SKILL.md`", tests_role)
         self.assertIn("The test fails without the behavior it pins.", tests_role)
         self.assertIn("A bug fix has a test that reproduces the bug and fails on the code before the fix.", tests_role)
         self.assertIn("waits for a condition up to a limit instead of a fixed pause", tests_role)
         self.assertIn(
-            "run the tests of every backend package, verification agent package and frontend test file in which the change added or changed tests",
+            "Select verification commands according to the scope rule in `AGENTS.md` and `docs/testing.md#checking-work`.",
             tests_role,
         )
-        self.assertIn("such as the hook tests in `.agent-hooks/`, count as covered", tests_role)
+        self.assertIn("For a small, localized change, accept targeted package or screen tests named in the task's own verification", tests_role)
+        self.assertIn("Do not require `mise run test` solely because ordinary tests were added or changed.", tests_role)
+        self.assertIn("When the scope rule requires `mise run test`, the change names it in its `## Change verification` section.", tests_role)
+        self.assertIn(
+            "A task that changes tests in `backend/internal/agent/e2e`, `backend/internal/modules/backups/e2e` or `backend/e2e/upgrade`, the verification agent's code or the `Dockerfile` names the command that repeats those tests in its own verification.",
+            tests_role,
+        )
+        self.assertIn("No section or task verification runs `mise run test-full`, which agents run only on the user's direct request.", tests_role)
+        self.assertIn("A verification that runs `mise run test-full` is a `missing_test` finding that asks for the specific commands instead.", tests_role)
+        self.assertIn("Naming `mise run test-full` as something a task adds or edits, with a verification that runs another command, is never a finding.", tests_role)
+        self.assertIn("and so is a task that leaves out its own command.", tests_role)
+        self.assertIn("a change that adds or changes scenarios of the browser end-to-end suite in `e2e/browser/scenarios` also names `mise run e2e:browser` there", tests_role)
+        self.assertIn("A section that leaves out the command it owes is a `missing_test` finding", tests_role)
+        self.assertIn("such as the hook tests in `.agent-hooks/`, need an explicit verification in their task instead", tests_role)
 
     def test_blocks_turn_with_budget_reason_when_third_wave_of_reviewers_does_not_fit(self):
         repository = HookRepository(self)
-        repository.set_stub("claude", {"sleep_seconds": THIRD_WAVE_REVIEWER_SECONDS})
+        repository.set_stub(repository.review_client, {"sleep_seconds": THIRD_WAVE_REVIEWER_SECONDS})
         repository.write_change(spec_names=("widgets", *(f"spec{index}" for index in range(10))), tasks="- [x] 1.1 Build\n")
         repository.submit_prompt("Continue")
         repository.complete_tasks()
@@ -1265,10 +1649,10 @@ class ImplementationGateReviewTest(ShortReplyAssertions, unittest.TestCase):
         self.assertIn(review_gate.BUDGET_EXHAUSTED_ERROR, response["reason"])
         self.assertEqual(len(repository.reviewer_calls()), 12)
 
-    def test_runs_two_waves_of_reviewers_after_checks_use_their_total_limit(self):
+    def test_runs_two_waves_of_reviewers_without_running_checks(self):
         repository = HookRepository(self)
-        repository.set_stub("golangci-lint", {"sleep_seconds": TWO_WAVES_CHECKS_TIMEOUT_SECONDS - 0.1})
-        repository.set_stub("claude", {"sleep_seconds": TWO_WAVES_REVIEWER_TIMEOUT_SECONDS - 0.2})
+        repository.set_stub("golangci-lint", {"sleep_seconds": TWO_WAVES_CHECKS_TIMEOUT_SECONDS - 2})
+        repository.set_stub(repository.review_client, {"sleep_seconds": TWO_WAVES_REVIEWER_TIMEOUT_SECONDS - 2})
         repository.write_change(spec_names=("widgets", *(f"spec{index}" for index in range(4))), tasks="- [x] 1.1 Build\n")
         repository.submit_prompt("Continue")
         repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
@@ -1281,9 +1665,9 @@ class ImplementationGateReviewTest(ShortReplyAssertions, unittest.TestCase):
             checks_timeout_seconds=TWO_WAVES_CHECKS_TIMEOUT_SECONDS,
         )
 
-        self.assertEqual(response, {})
-        self.assertEqual(len(repository.calls("golangci-lint")), 1)
-        self.assertEqual(len(repository.reviewer_calls()), 7)
+        self.assert_accepts_change_and_asks_for_summary(response)
+        self.assertEqual(repository.check_calls(), [])
+        self.assertEqual(len(repository.reviewer_calls()), 8)
 
     def test_blocks_turn_and_requires_agent_to_resolve_findings_when_reviewer_finds_bug(self):
         repository = HookRepository(self)
@@ -1298,6 +1682,23 @@ class ImplementationGateReviewTest(ShortReplyAssertions, unittest.TestCase):
         self.assertIn("without asking the user", response["reason"])
         self.assert_asks_for_short_reply(response["reason"])
 
+    def test_blocks_turn_and_asks_to_move_code_or_change_architecture_doc_when_reviewer_finds_architecture_violation(self):
+        repository = HookRepository(self)
+        repository.set_reviewer_result({"findings": [finding("architecture", "The service imports another module's repository.")]})
+        repository.submit_prompt("Continue")
+        repository.complete_tasks()
+
+        response = repository.stop("implementation")
+
+        self.assertEqual(response["decision"], "block")
+        self.assertIn("[architecture] src/widgets.py:10: The service imports another module's repository.", response["reason"])
+        self.assertIn(
+            "On an architecture finding, move the code to follow docs/architecture.md, "
+            "or change docs/architecture.md in the same change when the rule itself is wrong.",
+            response["reason"],
+        )
+        self.assert_asks_for_short_reply(response["reason"])
+
     def test_marks_minor_findings_optional_when_turn_is_blocked(self):
         repository = HookRepository(self)
         repository.set_reviewer_result(
@@ -1310,7 +1711,7 @@ class ImplementationGateReviewTest(ShortReplyAssertions, unittest.TestCase):
 
         self.assertIn("[minor] (optional) src/widgets.py:10: Long function.", response["reason"])
 
-    def test_accepts_change_and_shows_minor_findings_to_user(self):
+    def test_accepts_change_and_asks_for_summary_with_minor_findings_once(self):
         repository = HookRepository(self)
         repository.set_reviewer_result({"findings": [finding("minor", "Long function.")]})
         repository.submit_prompt("Continue")
@@ -1318,11 +1719,11 @@ class ImplementationGateReviewTest(ShortReplyAssertions, unittest.TestCase):
 
         response = repository.stop("implementation")
         repository.clear_calls()
-        repeated_response = repository.stop("implementation")
+        summary_response = repository.stop("implementation")
 
-        self.assertNotIn("decision", response)
-        self.assertIn("Long function.", response["systemMessage"])
-        self.assertEqual(repeated_response, {})
+        self.assert_accepts_change_and_asks_for_summary(response)
+        self.assertIn("[minor] (optional) src/widgets.py:10: Long function.", response["reason"])
+        self.assertEqual(summary_response, {})
         self.assertEqual(repository.calls(), [])
 
     def test_blocks_turn_when_reviewer_answer_does_not_match_schema(self):
@@ -1355,7 +1756,13 @@ class ImplementationGateRepeatTest(SummaryAssertions, unittest.TestCase):
         repository.write("src/widgets.py", "WIDGETS = []\n")
         repository.write("src/gadgets.py", "GADGETS = []\n")
         repository.complete_tasks()
+
         repository.stop("implementation")
+        snapshot_path = repository.root / ".git/agent-review-hooks/session-1.json"
+        original_snapshot = snapshot_path.read_bytes()
+
+        repository.submit_prompt("AUTOMATIC REVIEW: implementation\nFix the findings")
+        self.assertEqual(snapshot_path.read_bytes(), original_snapshot)
         repository.clear_calls()
 
     def test_repeat_runs_one_reviewer_with_previous_findings_and_paths_changed_after_review(self):
@@ -1383,9 +1790,9 @@ class ImplementationGateRepeatTest(SummaryAssertions, unittest.TestCase):
         repository.clear_calls()
         repository.stop("implementation")
 
-        self.assertEqual(len(repository.reviewer_calls()), 3)
+        self.assertEqual(len(repository.reviewer_calls()), 4)
 
-    def test_asks_for_summary_without_review_once_after_repeat_accepts_change(self):
+    def test_asks_for_summary_with_review_fixes_once_after_repeat_accepts_change(self):
         repository = HookRepository(self)
         self.block_with_bug(repository)
         repository.set_reviewer_result({"findings": [finding("minor", "Long function.")]})
@@ -1395,26 +1802,211 @@ class ImplementationGateRepeatTest(SummaryAssertions, unittest.TestCase):
         repository.clear_calls()
         summary_response = repository.stop("implementation")
 
-        self.assertEqual(response["decision"], "block")
-        self.assertIn("accepted the change", response["reason"])
-        self.assertIn("summary of the implementation", response["reason"])
-        self.assert_asks_for_summary_without_review(response["reason"])
+        self.assert_accepts_change_and_asks_for_summary(response)
         self.assertIn("Long function.", response["reason"])
         self.assertEqual(summary_response, {})
         self.assertEqual(repository.calls(), [])
 
-    def test_stops_agent_with_remaining_findings_after_third_block(self):
+    def test_stops_agent_with_remaining_findings_after_repeat_limit(self):
         repository = HookRepository(self)
         self.block_with_bug(repository)
+        repeat_responses = []
+        for attempt in range(review_gate.MAX_FULL_REVIEW_REVISIONS):
+            repository.write("src/widgets.py", f"WIDGETS = ({attempt},)\n")
+            repeat_responses.append(repository.stop("implementation"))
+
+        last_response = repeat_responses[-1]
+
+        self.assertEqual(
+            [response.get("decision") for response in repeat_responses[:-1]],
+            ["block"] * (review_gate.MAX_FULL_REVIEW_REVISIONS - 1),
+        )
+        self.assertIs(last_response["continue"], False)
+        self.assertIn("Race between the check and the write.", last_response["stopReason"])
+        self.assertIn("the change is not accepted", last_response["stopReason"])
+        self.assertIn("`mise run review`", last_response["stopReason"])
+
+
+def get_effort(call):
+    return call["effort_env"]
+
+
+class ManualReviewTest(unittest.TestCase):
+    def run_review(self, repository, *arguments):
+        return subprocess.run(
+            [sys.executable, str(HOOK_PATH), "review", *arguments],
+            cwd=repository.root,
+            env=repository.environment,
+            stdin=subprocess.DEVNULL,
+            text=True,
+            capture_output=True,
+        )
+
+    def test_runs_no_verification_commands_when_manual_review_starts(self):
+        repository = HookRepository(self)
+        repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
+        repository.write("frontend/src/widgets.ts", "export {};\n")
+        repository.write("website/app/widgets.tsx", "export {};\n")
+        repository.write("backend/internal/agent/widgets/widgets.go", "package widgets\n")
+        repository.write(".agent-hooks/sample_test.py", FAILING_HOOK_TEST)
+        for name in ("golangci-lint", "pnpm", "npm", "mise"):
+            repository.set_stub(name, {"exit_code": 1, "output": "must not run"})
+        repository.complete_tasks(verification_section=verification_section(
+            "mise run test",
+            "mise run e2e:browser",
+        ))
+
+        process = self.run_review(repository)
+
+        self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+        self.assertEqual(repository.check_calls(), [])
+        self.assertEqual(len(repository.reviewer_calls()), 7)
+
+    def test_runs_manual_reviewers_concurrently_across_quick_and_full_reviews(self):
+        repository = HookRepository(self)
+        repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
+        repository.complete_tasks()
+        repository.set_stub(repository.review_client, {"wait_for_efforts": ["medium", "high"] if repository.review_client == "codex" else ["low", "medium"]})
+
+        process = self.run_review(repository)
+
+        self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+        self.assertEqual(len(repository.reviewer_calls()), 7)
+
+    def test_runs_quick_checks_and_full_review_and_exits_with_code_0_when_everything_accepts(self):
+        repository = HookRepository(self)
+        repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
+        repository.complete_tasks()
+
+        process = self.run_review(repository)
+
+        self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+
+        efforts = sorted(get_effort(call) for call in repository.reviewer_calls())
+        self.assertEqual(efforts, sorted([repository.quick_effort] * 3 + [repository.full_effort] * 4))
+        quick_prompts = [call["prompt"] for call in repository.reviewer_calls() if get_effort(call) == repository.quick_effort]
+        self.assertTrue(all("started `mise run review` by hand" in prompt for prompt in quick_prompts))
+
+        self.assertEqual(repository.check_calls(), [])
+        self.assertIn("Quick check `code-shape`: accepted.", process.stdout)
+        self.assertIn("Full implementation review accepted the change.", process.stdout)
+        self.assertIn("Result: the review accepted the change in its current state.", process.stdout)
+
+    def test_skips_code_shape_when_no_code_file_changed(self):
+        repository = HookRepository(self)
+        repository.complete_tasks()
+
+        process = self.run_review(repository)
+
+        self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+        self.assertEqual(len([call for call in repository.reviewer_calls() if get_effort(call) == repository.quick_effort]), 2)
+        self.assertIn("Quick check `code-shape`: skipped", process.stdout)
+
+    def test_runs_whole_review_again_when_hook_already_accepted_state(self):
+        repository = HookRepository(self)
+        repository.submit_prompt("Continue")
+        repository.complete_tasks()
+        repository.stop("implementation")
+        repository.clear_calls()
+
+        process = self.run_review(repository, CHANGE_NAME)
+
+        self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+        full_prompts = [call["prompt"] for call in repository.reviewer_calls() if get_effort(call) == repository.full_effort]
+        self.assertEqual(len(full_prompts), 4)
+        self.assertFalse(any("\nRole: repeat review\n" in prompt for prompt in full_prompts))
+
+    def test_exits_with_code_1_and_prints_findings_that_next_stop_hook_repeats(self):
+        repository = HookRepository(self)
+        repository.set_reviewer_result({"ok": True, "reason": "", "findings": [finding("bug", "Race between the check and the write.")]})
+        repository.complete_tasks()
+
+        process = self.run_review(repository)
+        repository.clear_calls()
+        repository.submit_prompt("Run mise review and fix what it finds")
         repository.write("src/widgets.py", "WIDGETS = ()\n")
-        second_response = repository.stop("implementation")
-        repository.write("src/widgets.py", "WIDGETS = (1,)\n")
+        repository.stop("implementation")
 
-        third_response = repository.stop("implementation")
+        self.assertEqual(process.returncode, 1)
+        self.assertIn("[bug] src/widgets.py:10: Race between the check and the write.", process.stdout)
+        self.assertIn("Result: the review did not accept the change.", process.stdout)
+        [call] = repository.reviewer_calls()
+        self.assertIn("Role: repeat review", call["prompt"])
 
-        self.assertEqual(second_response["decision"], "block")
-        self.assertIs(third_response["continue"], False)
-        self.assertIn("Race between the check and the write.", third_response["stopReason"])
+    def test_repeats_review_over_findings_of_previous_manual_run(self):
+        repository = HookRepository(self)
+        repository.set_reviewer_result({"ok": True, "reason": "", "findings": [finding("bug", "Race between the check and the write.")]})
+        repository.complete_tasks()
+        self.run_review(repository)
+        repository.clear_calls()
+        repository.set_reviewer_result({"ok": True, "reason": "", "findings": []})
+        repository.write("src/widgets.py", "WIDGETS = ()\n")
+
+        process = self.run_review(repository)
+
+        self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+        [full_prompt] = [call["prompt"] for call in repository.reviewer_calls() if get_effort(call) == repository.full_effort]
+        self.assertIn("\nRole: repeat review\n", full_prompt)
+        self.assertIn("Race between the check and the write.", full_prompt)
+
+    def test_exits_with_code_1_and_names_failed_quick_check(self):
+        repository = HookRepository(self)
+        repository.set_reviewer_result({"ok": False, "reason": "README.md: the command is not documented.", "findings": []})
+        repository.complete_tasks()
+
+        process = self.run_review(repository)
+
+        self.assertEqual(process.returncode, 1)
+        self.assertIn("Quick check `diff`: not accepted.\nREADME.md: the command is not documented.", process.stdout)
+
+    def test_skips_manual_review_inside_reviewer(self):
+        repository = HookRepository(self)
+        repository.submit_prompt("Implement widgets")
+        repository.complete_tasks()
+        snapshot_path = repository.root / ".git/agent-review-hooks/session-1.json"
+        original_snapshot = snapshot_path.read_bytes()
+        repository.environment["AGENT_REVIEW_HOOK_ACTIVE"] = "1"
+
+        process = self.run_review(repository, CHANGE_NAME)
+
+        self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+        self.assertEqual(repository.calls(), [])
+        self.assertEqual(snapshot_path.read_bytes(), original_snapshot)
+        self.assertIn("skipped", process.stdout)
+
+    def test_reports_selected_client_when_reviewer_cannot_run(self):
+        for failure in ("missing", "authentication failed", "model unavailable"):
+            with self.subTest(failure=failure):
+                repository = HookRepository(self, missing_tools=(self.review_client,) if failure == "missing" else ())
+                repository.complete_tasks()
+                if failure != "missing":
+                    repository.set_reviewer_failure(failure)
+
+                process = self.run_review(repository)
+
+                self.assertEqual(process.returncode, 1, process.stdout + process.stderr)
+                self.assertIn(f"Review client: {self.review_client}", process.stdout)
+                self.assertIn(self.review_client if failure == "missing" else failure, process.stdout)
+                self.assertFalse(any(call["name"] != self.review_client for call in repository.reviewer_calls()))
+
+    def test_exits_with_code_2_without_reviewers_when_tasks_remain_unchecked(self):
+        repository = HookRepository(self)
+
+        process = self.run_review(repository)
+
+        self.assertEqual(process.returncode, 2)
+        self.assertIn(f"No active OpenSpec change has every task checked. Active changes: `{CHANGE_NAME}`.", process.stdout)
+        self.assertEqual(repository.calls(), [])
+
+    def test_exits_with_code_2_when_named_change_does_not_exist(self):
+        repository = HookRepository(self)
+        repository.complete_tasks()
+
+        process = self.run_review(repository, "add-gizmos")
+
+        self.assertEqual(process.returncode, 2)
+        self.assertIn("No active OpenSpec change is named `add-gizmos`.", process.stdout)
+        self.assertEqual(repository.calls(), [])
 
 
 class NecessityDuringImplementationReviewTest(unittest.TestCase):
@@ -1455,7 +2047,18 @@ class ProposalGateStartTest(unittest.TestCase):
         response = repository.stop("proposal")
 
         self.assertEqual(response, {})
-        self.assertEqual(len(repository.reviewer_calls()), 3)
+        self.assertEqual(len(repository.reviewer_calls()), 6)
+
+    def test_reviews_complete_proposal_from_command_skill_and_plain_requests(self):
+        for request in ("/opsx:propose add-gadgets", "Use openspec-propose to add gadgets", "Write a spec for gadgets"):
+            with self.subTest(request=request):
+                repository = HookRepository(self)
+                repository.submit_prompt(request)
+                repository.write_proposal()
+
+                self.assertEqual(repository.stop("proposal"), {})
+                self.assertEqual(len(repository.reviewer_calls()), 6)
+                self.assertEqual(repository.calls("openspec")[0]["arguments"][0], "status")
 
     def test_skips_review_without_calling_openspec_when_tasks_are_missing(self):
         repository = HookRepository(self)
@@ -1543,7 +2146,7 @@ class ProposalGateStartTest(unittest.TestCase):
 
         repository.stop("proposal")
 
-        self.assertEqual(len(repository.reviewer_calls()), 3)
+        self.assertEqual(len(repository.reviewer_calls()), 6)
 
     def test_skips_archived_changes(self):
         repository = HookRepository(self)
@@ -1576,41 +2179,105 @@ class ProposalGateValidationTest(unittest.TestCase):
     def test_blocks_turn_without_running_command_when_verification_section_has_forbidden_command(self):
         repository = HookRepository(self)
         repository.submit_prompt("Write a spec")
-        repository.write_proposal(tasks="- [ ] 1.1 Build\n" + verification_section("just test"))
+        repository.write_proposal(tasks="- [ ] 1.1 Build\n" + verification_section("mise run backend:test-package ./internal/lib/..."))
 
         response = repository.stop("proposal")
 
         self.assertEqual(response["decision"], "block")
-        self.assertIn("`just test` is not an allowed command", response["reason"])
+        self.assertIn("`mise run backend:test-package ./internal/lib/...` is not an allowed command", response["reason"])
         self.assertIn(review_gate.ALLOWED_VERIFICATION_FORMS, response["reason"])
-        self.assertEqual(repository.calls("just"), [])
+        self.assertEqual(repository.calls("mise"), [])
         self.assertEqual([call["arguments"][0] for call in repository.calls("openspec")], ["status"])
         self.assertEqual(repository.reviewer_calls(), [])
 
 
 class ProposalGateReviewTest(ShortReplyAssertions, SummaryAssertions, unittest.TestCase):
-    def test_runs_reviewer_per_spec_and_for_proposal_and_tasks_on_claude_with_medium_effort(self):
+    def test_runs_selected_full_profile_per_spec_and_proposal_role(self):
         repository = HookRepository(self)
         repository.submit_prompt("Write a spec")
         repository.write_proposal(spec_names=("gadgets", "gizmos"))
 
         repository.stop("proposal")
 
-        calls = repository.calls("claude")
-        self.assertEqual(len(calls), 4)
+        calls = repository.reviewer_calls()
+        self.assertEqual(len(calls), 7)
         for call in calls:
-            self.assertIn("--model opus --effort medium", " ".join(call["arguments"]))
-            self.assertEqual(call["effort_env"], "medium")
+            self.assertEqual(call["name"], repository.review_client)
+            self.assertEqual(call["effort_env"], repository.full_effort)
         roles = sorted(line for call in calls for line in call["prompt"].splitlines() if line.startswith("Role:"))
         self.assertEqual(
             roles,
             [
+                "Role: architecture",
                 f"Role: delta spec `openspec/changes/{PROPOSAL_NAME}/specs/gadgets/spec.md`",
                 f"Role: delta spec `openspec/changes/{PROPOSAL_NAME}/specs/gizmos/spec.md`",
+                "Role: names",
+                "Role: necessity",
                 "Role: proposal and design",
                 "Role: tasks",
             ],
         )
+
+    def test_runs_seven_reviewers_of_two_spec_proposal_at_most_six_at_a_time(self):
+        repository = HookRepository(self)
+        repository.set_stub(repository.review_client, {"wait_for_concurrent": 6})
+        repository.submit_prompt("Write a spec")
+        repository.write_proposal(spec_names=("gadgets", "gizmos"))
+
+        response = repository.stop("proposal")
+
+        self.assertEqual(response, {})
+        self.assertEqual(len(repository.reviewer_calls()), 7)
+        concurrency = json.loads((repository.stubs_dir / "concurrency.json").read_text())
+        self.assertEqual(concurrency, {"active": 0, "peak": 6})
+
+    def get_proposal_role_section(self, repository, role, next_role):
+        [call] = [call for call in repository.reviewer_calls() if f"\nRole: {role}\n" in call["prompt"]]
+        prompt = call["prompt"]
+        return prompt[prompt.index(f"### Role: {role}") : prompt.index(f"### Role: {next_role}")]
+
+    def test_necessity_reviewer_prompt_returns_simplify_or_scope(self):
+        repository = HookRepository(self)
+        repository.submit_prompt("Write a spec")
+        repository.write_proposal()
+
+        repository.stop("proposal")
+
+        necessity_role = self.get_proposal_role_section(repository, "necessity", "architecture")
+        self.assertIn('"The best code is unwritten"', necessity_role)
+        self.assertIn("Return a `simplify` finding when the user loses nothing", necessity_role)
+        self.assertIn("a `scope` finding when the user loses a feature, screen, scenario or setting", necessity_role)
+
+    def test_architecture_reviewer_prompt_checks_design_and_operations_and_exempts_old_code(self):
+        repository = HookRepository(self)
+        repository.submit_prompt("Write a spec")
+        repository.write_proposal()
+
+        repository.stop("proposal")
+
+        architecture_role = self.get_proposal_role_section(repository, "architecture", "names")
+        self.assertIn("Read `docs/architecture.md` completely", architecture_role)
+        self.assertIn(
+            "When the change adds or changes an HTTP operation, read `.agents/skills/api-design/SKILL.md`",
+            architecture_role,
+        )
+        self.assertIn("Check all backend files belonging to the change", architecture_role)
+        self.assertIn("including every command", architecture_role)
+        self.assertIn("Frontend architecture rules remain applicable.", architecture_role)
+        self.assertNotIn("keeps its existing structure", architecture_role)
+
+    def test_names_reviewer_prompt_checks_naming_rules_data_section_and_glossary(self):
+        repository = HookRepository(self)
+        repository.submit_prompt("Write a spec")
+        repository.write_proposal()
+
+        repository.stop("proposal")
+
+        names_role = self.get_proposal_role_section(repository, "names", "proposal and design")
+        self.assertIn('the sections "Naming" and "Functions, methods and types" of `AGENTS.md`', names_role)
+        self.assertIn('the table naming rules in the "Data" section of `docs/architecture.md`', names_role)
+        self.assertIn("is a `mismatch` finding that names the rule and suggests a name", names_role)
+        self.assertIn("`docs/glossary.md` does not define, while the change does not add it, is a `gap` finding", names_role)
 
     def test_tasks_reviewer_prompt_requires_every_scenario_covered_by_task_with_test(self):
         repository = HookRepository(self)
@@ -1633,17 +2300,30 @@ class ProposalGateReviewTest(ShortReplyAssertions, SummaryAssertions, unittest.T
         [call] = [call for call in repository.reviewer_calls() if "\nRole: tasks\n" in call["prompt"]]
         prompt = call["prompt"]
         tasks_role = prompt[prompt.index("### Role: tasks") : prompt.index("### Role: repeat review")]
+
         self.assertIn(
-            "tasks add or change tests in a backend package, a verification agent package or the frontend has a `## Change verification` section",
+            "Select verification commands according to the scope rule in `AGENTS.md` and `docs/testing.md#checking-work`.",
             tasks_role,
         )
-        self.assertIn("run the tests of every such package the tasks' verifications name", tasks_role)
-        self.assertIn("a package the section leaves out, is a `tasks` finding that names the package", tasks_role)
-        self.assertIn("such as the hook tests in `.agent-hooks/`, need no section", tasks_role)
+        self.assertIn("For a small, localized change, accept targeted package or screen tests named in the task's own verification", tasks_role)
+        self.assertIn("Do not require `mise run test` solely because ordinary tests were added or changed.", tasks_role)
+        self.assertIn("When the scope rule requires `mise run test`, the change has a `## Change verification` section that names it.", tasks_role)
+        self.assertIn("Running `mise run test` in a task or in the section is never a finding.", tasks_role)
+        self.assertIn("a section that leaves out the command it owes, is a `tasks` finding that asks for it", tasks_role)
+        self.assertIn(
+            "A task that changes tests in `backend/internal/agent/e2e`, `backend/internal/modules/backups/e2e` or `backend/e2e/upgrade`, the verification agent's code or the `Dockerfile` names the command that repeats those tests in its own verification.",
+            tasks_role,
+        )
+        self.assertIn("No section or task verification runs `mise run test-full`, which agents run only on the user's direct request.", tasks_role)
+        self.assertIn("A verification that runs `mise run test-full` is a `tasks` finding that asks for the specific commands instead.", tasks_role)
+        self.assertIn("Naming `mise run test-full` as something a task adds or edits, with a verification that runs another command, is never a finding.", tasks_role)
+        self.assertIn("and so is a task that leaves out its own command.", tasks_role)
+        self.assertIn("a change adding or changing scenarios of the browser end-to-end suite in `e2e/browser/scenarios` also names `mise run e2e:browser` there", tasks_role)
+        self.assertIn("such as the hook tests in `.agent-hooks/`, need an explicit verification in their task instead", tasks_role)
 
     def test_blocks_turn_with_budget_reason_when_third_wave_of_reviewers_does_not_fit(self):
         repository = HookRepository(self)
-        repository.set_stub("claude", {"sleep_seconds": THIRD_WAVE_REVIEWER_SECONDS})
+        repository.set_stub(repository.review_client, {"sleep_seconds": THIRD_WAVE_REVIEWER_SECONDS})
         repository.submit_prompt("Write a spec")
         repository.write_proposal(spec_names=tuple(f"spec{index}" for index in range(11)))
 
@@ -1655,8 +2335,8 @@ class ProposalGateReviewTest(ShortReplyAssertions, SummaryAssertions, unittest.T
 
     def test_runs_two_waves_of_reviewers_after_validation_uses_checks_total_limit(self):
         repository = HookRepository(self)
-        repository.set_stub("openspec", {"validate": {"sleep_seconds": TWO_WAVES_CHECKS_TIMEOUT_SECONDS - 0.1}})
-        repository.set_stub("claude", {"sleep_seconds": TWO_WAVES_REVIEWER_TIMEOUT_SECONDS - 0.2})
+        repository.set_stub("openspec", {"validate": {"sleep_seconds": TWO_WAVES_CHECKS_TIMEOUT_SECONDS - 2}})
+        repository.set_stub(repository.review_client, {"sleep_seconds": TWO_WAVES_REVIEWER_TIMEOUT_SECONDS - 2})
         repository.submit_prompt("Write a spec")
         repository.write_proposal(spec_names=tuple(f"spec{index}" for index in range(5)))
 
@@ -1668,7 +2348,7 @@ class ProposalGateReviewTest(ShortReplyAssertions, SummaryAssertions, unittest.T
         )
 
         self.assertEqual(response, {})
-        self.assertEqual(len(repository.reviewer_calls()), 7)
+        self.assertEqual(len(repository.reviewer_calls()), 10)
 
     def test_blocks_turn_and_requires_agent_to_resolve_simplify_finding_without_asking_user(self):
         repository = HookRepository(self)
@@ -1736,7 +2416,13 @@ class ProposalGateRepeatTest(ShortReplyAssertions, SummaryAssertions, unittest.T
         repository.set_reviewer_result({"findings": [finding("gap", "The answer for an empty list is missing.", file="specs/gadgets/spec.md:8")]})
         repository.submit_prompt("Write a spec")
         repository.write_proposal()
+
         repository.stop("proposal")
+        snapshot_path = repository.root / ".git/agent-review-hooks/session-1.json"
+        original_snapshot = snapshot_path.read_bytes()
+
+        repository.submit_prompt("AUTOMATIC REVIEW: proposal\nFix the findings")
+        self.assertEqual(snapshot_path.read_bytes(), original_snapshot)
         repository.clear_calls()
 
     def test_blocks_turn_with_gap_and_asks_for_short_reply_without_summary(self):
@@ -1796,19 +2482,23 @@ class ProposalGateRepeatTest(ShortReplyAssertions, SummaryAssertions, unittest.T
         self.assertIn("List every scope finding separately: what the user loses and what they save", response["reason"])
         self.assert_asks_for_summary_without_review(response["reason"])
 
-    def test_stops_agent_with_remaining_findings_after_third_block(self):
+    def test_stops_agent_with_remaining_findings_after_repeat_limit(self):
         repository = HookRepository(self)
         self.block_with_gap(repository)
-        repository.write(f"openspec/changes/{PROPOSAL_NAME}/design.md", "# Design\n\nSecond attempt.\n")
-        second_response = repository.stop("proposal")
-        repository.write(f"openspec/changes/{PROPOSAL_NAME}/design.md", "# Design\n\nThird attempt.\n")
+        repeat_responses = []
+        for attempt in range(review_gate.MAX_FULL_REVIEW_REVISIONS):
+            repository.write(f"openspec/changes/{PROPOSAL_NAME}/design.md", f"# Design\n\nAttempt {attempt}.\n")
+            repeat_responses.append(repository.stop("proposal"))
 
-        third_response = repository.stop("proposal")
+        last_response = repeat_responses[-1]
 
-        self.assertEqual(second_response["decision"], "block")
-        self.assertIs(third_response["continue"], False)
-        self.assertIn("Full proposal review", third_response["stopReason"])
-        self.assertIn("The answer for an empty list is missing.", third_response["stopReason"])
+        self.assertEqual(
+            [response.get("decision") for response in repeat_responses[:-1]],
+            ["block"] * (review_gate.MAX_FULL_REVIEW_REVISIONS - 1),
+        )
+        self.assertIs(last_response["continue"], False)
+        self.assertIn("Full proposal review", last_response["stopReason"])
+        self.assertIn("The answer for an empty list is missing.", last_response["stopReason"])
 
 
 class QuickGatesDuringProposalReviewTest(unittest.TestCase):
@@ -1817,9 +2507,26 @@ class QuickGatesDuringProposalReviewTest(unittest.TestCase):
         repository.submit_prompt("Write a spec")
         repository.write_proposal()
 
-        responses = [repository.stop(gate) for gate in ("necessity", "architecture", "diff")]
+        responses = [repository.stop(gate) for gate in ("necessity", "architecture", "diff", "code-shape")]
 
-        self.assertEqual(responses, [{}, {}, {}])
+        self.assertEqual(responses, [{}, {}, {}, {}])
+        self.assertEqual(repository.reviewer_calls(), [])
+
+    def test_skips_code_shape_that_blocked_earlier_in_request_when_turn_leaves_only_ready_proposal(self):
+        repository = HookRepository(self)
+        repository.set_reviewer_result({"ok": False, "reason": "service.go mixes two concepts."})
+        repository.submit_prompt("Add a widget")
+        repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
+
+        self.assertEqual(repository.stop("code-shape")["decision"], "block")
+        repository.clear_calls()
+
+        (repository.root / "backend/internal/features/widgets/service.go").unlink()
+        repository.write_proposal()
+
+        response = repository.stop("code-shape")
+
+        self.assertEqual(response, {})
         self.assertEqual(repository.reviewer_calls(), [])
 
     def test_skips_quick_checks_in_summary_turn_after_accepted_review(self):
@@ -1830,9 +2537,9 @@ class QuickGatesDuringProposalReviewTest(unittest.TestCase):
         repository.stop("proposal")
         repository.clear_calls()
 
-        responses = [repository.stop(gate, message="Proposal summary.") for gate in ("necessity", "architecture", "diff")]
+        responses = [repository.stop(gate, message="Proposal summary.") for gate in ("necessity", "architecture", "diff", "code-shape")]
 
-        self.assertEqual(responses, [{}, {}, {}])
+        self.assertEqual(responses, [{}, {}, {}, {}])
         self.assertEqual(repository.reviewer_calls(), [])
 
     def test_runs_necessity_when_agent_wrote_only_proposal(self):
@@ -1856,6 +2563,31 @@ class QuickGatesDuringProposalReviewTest(unittest.TestCase):
         self.assertEqual(response, {})
         self.assertEqual(len(repository.reviewer_calls()), 1)
         self.assertEqual(repository.calls("openspec"), [])
+
+
+PARITY_TEST_CLASSES = (
+    DiffGateTest, CodeShapeGateTest,
+    ImplementationGateStartTest, ImplementationGateChecksTest, ImplementationGateReviewTest,
+    ImplementationGateRepeatTest, ManualReviewTest, NecessityDuringImplementationReviewTest,
+    ProposalGateStartTest, ProposalGateValidationTest, ProposalGateReviewTest,
+    ProposalGateRepeatTest, QuickGatesDuringProposalReviewTest,
+)
+
+
+def load_tests(loader, standard_tests, pattern):
+    suite = unittest.TestSuite()
+    parity_types = {}
+    for group in standard_tests:
+        for test in group:
+            if type(test) not in PARITY_TEST_CLASSES:
+                suite.addTest(test)
+                continue
+            for client in ("claude", "codex"):
+                key = (type(test), client)
+                if key not in parity_types:
+                    parity_types[key] = type(f"{type(test).__name__}_{client}", (type(test),), {"review_client": client})
+                suite.addTest(parity_types[key](test._testMethodName))
+    return suite
 
 
 if __name__ == "__main__":
