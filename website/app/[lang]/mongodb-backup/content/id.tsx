@@ -119,7 +119,7 @@ export default function MongodbBackupPage() {
                 name: "Bisakah melakukan backup database MongoDB Atlas dengan Databasus?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Ya, Databasus bekerja dengan MongoDB Atlas. Karena menggunakan backup logical melalui mongodump, cukup sediakan kredensial koneksi MongoDB standar, tanpa izin atau role Atlas khusus. Masukkan connection string Atlas dan Databasus menangani sisanya.",
+                  text: "Ya, Databasus bekerja dengan MongoDB Atlas. Karena menggunakan backup logis melalui mongodump, cukup sediakan kredensial koneksi MongoDB standar, tanpa izin atau role Atlas khusus. Masukkan connection string Atlas dan Databasus menangani sisanya.",
                 },
               },
               {
@@ -140,10 +140,10 @@ export default function MongodbBackupPage() {
               },
               {
                 "@type": "Question",
-                name: "Apakah Databasus mendukung backup incremental MongoDB?",
+                name: "Apakah Databasus mendukung backup inkremental MongoDB?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus berfokus pada backup logical penuh menggunakan mongodump, bukan backup incremental. Untuk sebagian besar kebutuhan, backup penuh terjadwal (per jam, harian, mingguan) menyediakan titik pemulihan yang cukup. MongoDB Atlas sudah menawarkan point-in-time recovery native, dan backup incremental eksternal tidak mudah di-restore ke cluster Atlas.",
+                  text: "Databasus berfokus pada backup logis penuh menggunakan mongodump, bukan backup inkremental. Untuk sebagian besar kebutuhan, backup penuh terjadwal (per jam, harian, mingguan) menyediakan titik pemulihan yang cukup. MongoDB Atlas sudah menawarkan point-in-time recovery native, dan backup inkremental eksternal tidak mudah di-restore ke cluster Atlas.",
                 },
               },
             ],
@@ -519,7 +519,7 @@ export default function MongodbBackupPage() {
                 </h3>
                 <p className="text-gray-400 text-sm md:text-base">
                   Databasus terhubung ke database MongoDB di cloud, termasuk MongoDB Atlas, AWS
-                  DocumentDB, serta deployment self-hosted. Karena menggunakan backup logical
+                  DocumentDB, serta deployment self-hosted. Karena menggunakan backup logis
                   melalui mongodump, cukup sediakan kredensial koneksi standar, tanpa izin cloud
                   khusus atau akses filesystem
                 </p>
@@ -659,7 +659,7 @@ export default function MongodbBackupPage() {
             <FaqItem
               number="3"
               question="Bisakah melakukan backup database MongoDB Atlas dengan Databasus?"
-              answer="Ya, Databasus bekerja dengan MongoDB Atlas. Karena menggunakan backup logical melalui mongodump, cukup sediakan kredensial koneksi MongoDB standar, tanpa izin Atlas khusus, IP whitelisting selain server Databasus, atau role administratif. Masukkan connection string Atlas (tersedia di dashboard Atlas) dan Databasus menangani sisanya."
+              answer="Ya, Databasus bekerja dengan MongoDB Atlas. Karena menggunakan backup logis melalui mongodump, cukup sediakan kredensial koneksi MongoDB standar, tanpa izin Atlas khusus, IP whitelisting selain server Databasus, atau role administratif. Masukkan connection string Atlas (tersedia di dashboard Atlas) dan Databasus menangani sisanya."
             />
             <FaqItem
               number="4"
@@ -717,8 +717,8 @@ export default function MongodbBackupPage() {
             />
             <FaqItem
               number="8"
-              question="Apakah Databasus mendukung backup incremental MongoDB atau oplog tailing?"
-              answer="Databasus berfokus pada backup logical penuh menggunakan mongodump, bukan backup incremental atau point-in-time recovery berbasis oplog. Untuk sebagian besar kebutuhan, backup penuh terjadwal (per jam, harian, mingguan) menyediakan titik pemulihan yang cukup tanpa kerumitan pengelolaan oplog. MongoDB Atlas sudah menawarkan backup berkelanjutan native dengan point-in-time recovery, dan backup incremental eksternal tidak mudah di-restore ke cluster Atlas."
+              question="Apakah Databasus mendukung backup inkremental MongoDB atau oplog tailing?"
+              answer="Databasus berfokus pada backup logis penuh menggunakan mongodump, bukan backup inkremental atau point-in-time recovery berbasis oplog. Untuk sebagian besar kebutuhan, backup penuh terjadwal (per jam, harian, mingguan) menyediakan titik pemulihan yang cukup tanpa kerumitan pengelolaan oplog. MongoDB Atlas sudah menawarkan backup berkelanjutan native dengan point-in-time recovery, dan backup inkremental eksternal tidak mudah di-restore ke cluster Atlas."
             />
             <FaqItem
               number="9"

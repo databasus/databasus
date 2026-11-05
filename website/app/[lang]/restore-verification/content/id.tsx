@@ -308,7 +308,7 @@ export default function RestoreVerificationPage() {
               <ul>
                 <li>
                   <strong>After backup</strong> memberikan jaminan terkuat: setiap backup yang
-                  berhasil diverifikasi begitu selesai.
+                  berhasil langsung diverifikasi begitu proses backup selesai.
                 </li>
                 <li>
                   <strong>Hourly, daily, weekly, monthly</strong> memilih frekuensi dan waktu

@@ -299,8 +299,7 @@ export default function DatabasusVsPgBackWebPage() {
               <ul>
                 <li>
                   <strong>Ruang kerja</strong>: Kelompokkan database, kanal notifikasi, dan
-                  penyimpanan untuk proyek atau tim berbeda. Pengguna hanya melihat ruang kerja yang
-                  mengundangnya.
+                  penyimpanan untuk proyek atau tim berbeda. Pengguna hanya melihat ruang kerja tempat mereka diundang.
                 </li>
                 <li>
                   <strong>Kontrol akses berbasis peran</strong>: Tingkat izin untuk mengontrol

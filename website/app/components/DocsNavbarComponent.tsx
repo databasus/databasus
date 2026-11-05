@@ -2,6 +2,7 @@
 
 import { getLocalizedHref, type Locale } from "@/app/i18n";
 import LanguageSelectorComponent from "./LanguageSelectorComponent";
+import { LANDING_LABELS } from "./landingLabels";
 
 const NAVBAR_LABELS: Record<Locale | "en", { community: string; starOnGithub: string }> = {
   id: {
@@ -43,7 +44,7 @@ export default function DocsNavbarComponent({ lang = "en" }: { lang?: Locale | "
         <a href={homeHref} className="flex items-center">
           <img
             src="/logo.svg"
-            alt="Databasus logo"
+            alt={lang === "id" ? LANDING_LABELS.id.logoAlt : "Databasus logo"}
             className="shrink-0 sm:h-[35px] sm:w-[35px] md:h-[35px] md:w-[35px]"
             fetchPriority="high"
             loading="eager"

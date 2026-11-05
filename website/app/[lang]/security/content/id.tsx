@@ -324,7 +324,7 @@ export default function SecurityPage() {
               <p>
                 Menemukan kerentanan? Laporkan lewat tab GitHub Security. Lihat{" "}
                 <a
-                  href="https://github.com/databasus/databasus?tab=security-ov-file#readme"
+                  href="https://github.com/databasus/databasus?tab=security-ov-file"
                   target="_blank"
                   rel="noopener noreferrer"
                 >

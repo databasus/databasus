@@ -74,14 +74,14 @@ export default function DatabasusVsWalGPage() {
               <h1 id="databasus-vs-wal-g">Databasus vs WAL-G</h1>
               <p className="text-lg text-gray-400">
                 Databasus dan WAL-G sama-sama dirancang untuk pemulihan bencana dengan RTO dan RPO
-                minimal. Keduanya mendukung backup physical PostgreSQL, pengarsipan WAL, dan
+                minimal. Keduanya mendukung backup fisik PostgreSQL, pengarsipan WAL, dan
                 Point-in-Time Recovery. Databasus menjalankan backup dari jarak jauh menggunakan
                 tool native PostgreSQL 17 yang sudah teruji, bukan membuat ulang mekanismenya,
                 melalui antarmuka web yang mudah digunakan. Databasus bisa digunakan untuk database
-                dengan ukuran dan kompleksitas apa pun. Backup physical memerlukan PostgreSQL 17
-                atau yang lebih baru; pada versi sebelumnya, hanya backup logical{" "}
+                dengan ukuran dan kompleksitas apa pun. Backup fisik memerlukan PostgreSQL 17
+                atau yang lebih baru; pada versi sebelumnya, hanya backup logis{" "}
                 <code>pg_dump</code> yang tersedia. WAL-G adalah tool command-line dengan engine
-                sendiri, sehingga mendukung backup physical pada versi PostgreSQL yang jauh lebih
+                sendiri, sehingga mendukung backup fisik pada versi PostgreSQL yang jauh lebih
                 lama. WAL-G menggunakan protokol streaming khusus untuk performa yang sedikit lebih
                 baik, mendukung backup delta (hanya page yang berubah), dan mendukung lebih banyak
                 engine database, termasuk MS SQL, FoundationDB, dan Greenplum.
@@ -114,11 +114,11 @@ export default function DatabasusVsWalGPage() {
                   </tr>
                   <tr>
                     <td>Jenis backup</td>
-                    <td data-label="Databasus">Logical + Physical</td>
-                    <td data-label="WAL-G">Physical (pengarsipan WAL)</td>
+                    <td data-label="Databasus">Logis + Fisik</td>
+                    <td data-label="WAL-G">Fisik (pengarsipan WAL)</td>
                   </tr>
                   <tr>
-                    <td>Versi PostgreSQL untuk backup physical</td>
+                    <td>Versi PostgreSQL untuk backup fisik</td>
                     <td data-label="Databasus">17+ (native)</td>
                     <td data-label="WAL-G">9.x+ (engine sendiri)</td>
                   </tr>
@@ -133,7 +133,7 @@ export default function DatabasusVsWalGPage() {
                     <td data-label="WAL-G">✅ PITR</td>
                   </tr>
                   <tr>
-                    <td>Backup incremental</td>
+                    <td>Backup inkremental</td>
                     <td data-label="Databasus">✅ Tingkat blok (PG 17+)</td>
                     <td data-label="WAL-G">Backup delta (hanya page yang berubah)</td>
                   </tr>
@@ -267,7 +267,7 @@ export default function DatabasusVsWalGPage() {
                   terpusat.
                 </li>
                 <li>
-                  <strong>DBA dan pemulihan bencana</strong>: Backup physical, pengarsipan WAL, dan
+                  <strong>DBA dan pemulihan bencana</strong>: Backup fisik, pengarsipan WAL, dan
                   PITR untuk sistem kritis yang mensyaratkan kehilangan data mendekati nol.
                 </li>
                 <li>
@@ -301,11 +301,11 @@ export default function DatabasusVsWalGPage() {
                 Kedua tool menggunakan strategi backup yang berbeda secara mendasar, masing-masing
                 dengan keunggulannya:
               </p>
-              <h3 id="backup-databasus">Databasus: Backup logical + physical</h3>
-              <p>Databasus mendukung strategi backup logical maupun physical:</p>
+              <h3 id="backup-databasus">Databasus: Backup logis + fisik</h3>
+              <p>Databasus mendukung strategi backup logis maupun fisik:</p>
               <ul>
                 <li>
-                  <strong>Backup physical, incremental, dan WAL</strong>: Berjalan dari jarak jauh
+                  <strong>Backup fisik, inkremental, dan WAL</strong>: Berjalan dari jarak jauh
                   melalui protokol replikasi PostgreSQL dengan tool native PostgreSQL 17:{" "}
                   <code>pg_basebackup</code>, <code>pg_basebackup --incremental</code> tingkat blok
                   yang menggunakan ringkasan WAL di sisi server, <code>pg_receivewal</code>, dan{" "}
@@ -314,7 +314,7 @@ export default function DatabasusVsWalGPage() {
                   baru.
                 </li>
                 <li>
-                  <strong>Backup logical</strong>: Menggunakan <code>pg_dump</code> untuk backup
+                  <strong>Backup logis</strong>: Menggunakan <code>pg_dump</code> untuk backup
                   portabel yang bisa di-restore ke versi PostgreSQL lain. Ini juga satu-satunya
                   jenis backup pada PostgreSQL sebelum versi 17 dan pendekatan untuk MySQL, MariaDB,
                   serta MongoDB.
@@ -329,13 +329,13 @@ export default function DatabasusVsWalGPage() {
                   backup, mengurangi ukuran hingga 4-8x.
                 </li>
                 <li>
-                  <strong>Akses read-only</strong>: Backup logical hanya memerlukan izin SELECT,
+                  <strong>Akses read-only</strong>: Backup logis hanya memerlukan izin SELECT,
                   sehingga mengurangi risiko keamanan.
                 </li>
               </ul>
-              <h3 id="backup-wal-g">WAL-G: Backup physical dengan pengarsipan WAL</h3>
+              <h3 id="backup-wal-g">WAL-G: Backup fisik dengan pengarsipan WAL</h3>
               <p>
-                WAL-G membuat backup tingkat file (physical) dengan pengarsipan WAL berkelanjutan:
+                WAL-G membuat backup tingkat file (fisik) dengan pengarsipan WAL berkelanjutan:
               </p>
               <ul>
                 <li>
@@ -367,18 +367,18 @@ export default function DatabasusVsWalGPage() {
                 </li>
                 <li>
                   <strong>Restore cluster penuh</strong>: Restore seluruh cluster database ke titik
-                  waktu tertentu dari backup physical.
+                  waktu tertentu dari backup fisik.
                 </li>
                 <li>
-                  <strong>Restore logical</strong>: Restore dari backup logical terjadwal ke titik
+                  <strong>Restore logis</strong>: Restore dari backup logis terjadwal ke titik
                   backup mana pun.
                 </li>
                 <li>
-                  <strong>Restore satu klik</strong>: Unduh dan restore backup logical langsung dari
+                  <strong>Restore satu klik</strong>: Unduh dan restore backup logis langsung dari
                   antarmuka web.
                 </li>
                 <li>
-                  <strong>Kompatibilitas lintas versi</strong>: Backup logical bisa di-restore ke
+                  <strong>Kompatibilitas lintas versi</strong>: Backup logis bisa di-restore ke
                   versi PostgreSQL yang berbeda.
                 </li>
               </ul>
@@ -477,8 +477,8 @@ export default function DatabasusVsWalGPage() {
               <ul>
                 <li>
                   <strong>Ruang kerja</strong>: Kelompokkan database, kanal notifikasi, dan
-                  penyimpanan berdasarkan proyek atau tim. Pengguna hanya melihat ruang kerja yang
-                  mengundang mereka.
+                  penyimpanan berdasarkan proyek atau tim. Pengguna hanya melihat ruang kerja tempat
+                  mereka diundang.
                 </li>
                 <li>
                   <strong>Kontrol akses berbasis role</strong>: Tetapkan izin viewer, editor, atau
@@ -675,7 +675,7 @@ export default function DatabasusVsWalGPage() {
                 </p>
                 <ul className="text-white mb-0">
                   <li>
-                    Memerlukan backup physical atau incremental pada PostgreSQL sebelum versi 17
+                    Memerlukan backup fisik atau inkremental pada PostgreSQL sebelum versi 17
                     (WAL-G memiliki engine backup sendiri)
                   </li>
                   <li>
@@ -692,10 +692,10 @@ export default function DatabasusVsWalGPage() {
                 </ul>
               </div>
               <p>
-                Kedua tool mendukung backup physical, pengarsipan WAL, dan PITR, serta dirancang
+                Kedua tool mendukung backup fisik, pengarsipan WAL, dan PITR, serta dirancang
                 untuk pemulihan bencana dengan RTO dan RPO minimal. Databasus bisa digunakan untuk
                 database dengan ukuran dan kompleksitas apa pun, menyediakan antarmuka web, fitur
-                tim, serta backup logical dan physical untuk database self-hosted maupun yang
+                tim, serta backup logis dan fisik untuk database self-hosted maupun yang
                 dikelola cloud.
                 <br />
                 <br />

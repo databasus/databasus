@@ -394,7 +394,7 @@ export const id: typeof en = {
       },
       cpuCountTooltip:
         'Jumlah core CPU untuk backup dan restore. Nilai lebih tinggi bisa mempercepat proses, tetapi memakai lebih banyak sumber daya.',
-      excludeTablesPlaceholder: 'Tidak ada tabel yang dikecualikan',
+      excludeTablesPlaceholder: 'Tanpa pengecualian tabel',
       excludeTablesTooltip:
         'Nama tabel yang dikecualikan dari backup. Tempel daftar yang dipisahkan dengan koma atau baris baru.',
       serverCaCertificateTooltip:
@@ -405,10 +405,10 @@ export const id: typeof en = {
           '<docsLink>Baca panduan ini</docsLink> untuk mempelajari cara melakukan backup database Supabase',
         includeSchemasPlaceholder: 'Semua schema (default)',
         excludeTablesTooltip:
-          "Tabel yang sama sekali tidak disertakan dalam backup: tabel ini tidak akan ada setelah restore. Gunakan 'tablename' atau 'schema.tablename'. Nama tanpa schema hanya cocok dengan tabel pada search path default, biasanya 'public'; gunakan '*.tablename' untuk mencocokkan semua schema. Mendukung pola glob (misalnya 'logs_*'). Tempel daftar yang dipisahkan dengan koma atau baris baru.",
+          "Tabel yang sama sekali tidak disertakan dalam backup: tabel ini tidak akan ada setelah restore. Gunakan 'tablename' atau 'schema.tablename'. Nama tanpa schema hanya cocok dengan tabel pada search path default, biasanya 'public'; gunakan '*.tablename' untuk mencocokkan tabel dengan nama tersebut di setiap schema. Mendukung pola glob (misalnya 'logs_*'). Tempel daftar yang dipisahkan dengan koma atau baris baru.",
         excludeTableDataTooltip:
-          "Tabel yang di-backup tanpa baris datanya: setelah restore, struktur, index, dan constraint tetap ada, tetapi tabel kosong. Gunakan 'tablename' atau 'schema.tablename'. Nama tanpa schema hanya cocok dengan tabel pada search path default, biasanya 'public'; gunakan '*.tablename' untuk mencocokkan semua schema. Mendukung pola glob (misalnya 'logs_*'). Tabel yang tercantum di kedua kolom akan dikecualikan sepenuhnya. Partisi dari tabel berpartisi harus dicantumkan dengan namanya sendiri atau pola seperti 'events_*'. Jika tabel lain dalam backup memiliki foreign key yang merujuk ke baris tabel yang dikosongkan, restore gagal membuat ulang foreign key tersebut. Tempel daftar yang dipisahkan dengan koma atau baris baru.",
-        excludeTableDataPlaceholder: 'Tidak ada data tabel yang dikecualikan',
+          "Tabel yang di-backup tanpa baris datanya: setelah restore, struktur, index, dan constraint tetap ada, tetapi tabel kosong. Gunakan 'tablename' atau 'schema.tablename'. Nama tanpa schema hanya cocok dengan tabel pada search path default, biasanya 'public'; gunakan '*.tablename' untuk mencocokkan tabel dengan nama tersebut di setiap schema. Mendukung pola glob (misalnya 'logs_*'). Tabel yang tercantum di kedua kolom akan dikecualikan sepenuhnya. Partisi dari tabel berpartisi harus dicantumkan dengan namanya sendiri atau pola seperti 'events_*'. Jika tabel lain dalam backup memiliki foreign key yang merujuk ke baris tabel yang dikosongkan, restore gagal membuat ulang foreign key tersebut. Tempel daftar yang dipisahkan dengan koma atau baris baru.",
+        excludeTableDataPlaceholder: 'Tanpa pengecualian data',
         skipUserMappingsTooltip:
           'Lewati restore user mapping (perintah CREATE USER MAPPING). Aktifkan jika role backup tidak bisa membaca kredensial mapping. Jika tidak, mapping diekspor tanpa opsi dan membuat restore gagal untuk FDW seperti oracle_fdw.',
         excludeExtensionsTooltip:
@@ -877,7 +877,7 @@ export const id: typeof en = {
     },
     signUp: {
       title: 'Daftar',
-      namePlaceholder: 'Nama lengkap',
+      namePlaceholder: 'John Doe',
       submit: 'Daftar',
       administersInstance:
         'Ini adalah akun pertama di instance ini dan akan menjadi admin instance.',
@@ -1506,7 +1506,7 @@ export const id: typeof en = {
         errorHints: {
           noRestorableBackup: 'Jalankan backup penuh, tunggu sampai selesai, lalu coba lagi.',
           downloadInProgress:
-            'Unduhan untuk restore database ini sedang berlangsung. Tunggu sampai selesai, lalu coba lagi.',
+            'Unduhan backup atau streaming restore sedang berlangsung. Tunggu sampai selesai, lalu coba lagi.',
           targetTimeUnreachable:
             'Waktu tujuan tidak dapat dicapai karena ada celah WAL atau waktunya di luar rentang yang tersedia. Pilih waktu lain atau restore titik terbaru yang tersedia.',
         },
@@ -1915,7 +1915,7 @@ export const id: typeof en = {
       namePlaceholder: 'Masukkan nama...',
       settingsTitle: 'Pengaturan penyimpanan',
       removeConfirmation:
-        'Yakin ingin menghapus penyimpanan ini? Tindakan ini tidak bisa dibatalkan. Backup yang memakai penyimpanan ini juga akan dihapus.',
+        'Yakin ingin menghapus penyimpanan ini? Tindakan ini tidak bisa dibatalkan.',
       removeBlockedByBackups:
         'Konfigurasi backup menggunakan penyimpanan ini atau masih ada backup di dalamnya. Arahkan konfigurasi backup tersebut ke penyimpanan lain dan hapus backup di penyimpanan ini terlebih dahulu.',
     },
@@ -1976,7 +1976,7 @@ export const id: typeof en = {
       remotePathTooltip: 'Path direktori remote untuk menyimpan backup (opsional)',
       local: {
         diskSpaceWarning:
-          'Hati-hati: penyimpanan lokal bisa kehabisan ruang disk. Sebaiknya gunakan S3 atau penyimpanan tanpa batas kapasitas',
+          'Hati-hati: penyimpanan lokal bisa kehabisan memori ROM. Sebaiknya gunakan S3 atau penyimpanan tanpa batas kapasitas',
       },
       s3: {
         cloudflareR2Guide: 'Bagaimana cara menggunakan Cloudflare R2?',
@@ -2048,7 +2048,7 @@ export const id: typeof en = {
       },
       rclone: {
         configTooltip:
-          "Tempel isi rclone.conf di sini. Jalankan 'rclone config file' dan salin isinya. Konfigurasi ini mendukung lebih dari 70 penyedia penyimpanan cloud.",
+          "Tempel isi rclone.conf di sini. Jalankan 'rclone config file' dan salin isinya. Konfigurasi ini mendukung 70+ penyedia penyimpanan cloud.",
         configHiddenNote:
           '*konten disembunyikan agar data sensitif tidak terekspos. Untuk memperbarui konfigurasi yang ada, masukkan konfigurasi baru di sini',
         docsLink: 'Dokumentasi Rclone',

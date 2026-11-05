@@ -135,7 +135,7 @@ export default function MysqlBackupPage() {
                 name: "Bisakah melakukan backup database MySQL di AWS RDS, Google Cloud SQL atau Azure?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Ya, Databasus bekerja dengan database MySQL di cloud, termasuk AWS RDS for MySQL, Google Cloud SQL, Azure Database for MySQL dan PlanetScale. Karena menggunakan backup logical melalui mysqldump, Databasus hanya memerlukan kredensial koneksi MySQL standar, tanpa izin cloud khusus.",
+                  text: "Ya, Databasus bekerja dengan database MySQL di cloud, termasuk AWS RDS for MySQL, Google Cloud SQL, Azure Database for MySQL dan PlanetScale. Karena menggunakan backup logis melalui mysqldump, Databasus hanya memerlukan kredensial koneksi MySQL standar, tanpa izin cloud khusus.",
                 },
               },
               {
@@ -526,7 +526,7 @@ export default function MysqlBackupPage() {
                 <p className="text-gray-400 text-sm md:text-base">
                   Databasus terhubung ke database MySQL di cloud, termasuk AWS RDS for MySQL, Google
                   Cloud SQL, Azure Database for MySQL dan PlanetScale. Karena menggunakan backup
-                  logical melalui mysqldump, cukup sediakan kredensial koneksi standar, tanpa izin
+                  logis melalui mysqldump, cukup sediakan kredensial koneksi standar, tanpa izin
                   cloud khusus atau akses filesystem
                 </p>
               </div>
@@ -740,12 +740,12 @@ export default function MysqlBackupPage() {
             <FaqItem
               number="5"
               question="Bisakah melakukan backup database MySQL di AWS RDS, Google Cloud SQL atau Azure?"
-              answer="Ya, Databasus bekerja dengan database MySQL di cloud, termasuk AWS RDS for MySQL, Google Cloud SQL, Azure Database for MySQL dan PlanetScale. Karena menggunakan backup logical melalui mysqldump, cukup sediakan kredensial koneksi MySQL standar (host, port, username, password), tanpa izin cloud khusus, role IAM, atau akses filesystem."
+              answer="Ya, Databasus bekerja dengan database MySQL di cloud, termasuk AWS RDS for MySQL, Google Cloud SQL, Azure Database for MySQL dan PlanetScale. Karena menggunakan backup logis melalui mysqldump, cukup sediakan kredensial koneksi MySQL standar (host, port, username, password), tanpa izin cloud khusus, role IAM, atau akses filesystem."
             />
             <FaqItem
               number="6"
               question="Bagaimana penjadwalan backup MySQL di Databasus bekerja?"
-              answer="Jadwalkan backup MySQL per jam, harian, mingguan, atau bulanan, atau gunakan ekspresi cron untuk pengaturan presisi. Pilih hari dan waktu tertentu, misalnya pukul 3 AM saat trafik rendah. Databasus menangani sisanya: menghubungkan ke MySQL, menjalankan mysqldump, mengompresi hasil, mengenkripsinya, dan meng-upload ke tujuan penyimpanan."
+              answer="Jadwalkan backup MySQL per jam, harian, mingguan, atau bulanan, atau gunakan ekspresi cron untuk pengaturan presisi. Pilih hari dan waktu tertentu, misalnya pukul 3 pagi saat trafik rendah. Databasus menangani sisanya: menghubungkan ke MySQL, menjalankan mysqldump, mengompresi hasil, mengenkripsinya, dan meng-upload ke tujuan penyimpanan."
             />
             <FaqItem
               number="7"
@@ -778,7 +778,7 @@ export default function MysqlBackupPage() {
             <FaqItem
               number="9"
               question="Bisakah backup MySQL di-restore ke server atau penyedia cloud lain?"
-              answer="Ya, karena Databasus membuat backup logical mysqldump standar, backup bisa di-restore ke server MySQL mana pun, baik versi berbeda, penyedia cloud lain, maupun mesin development lokal. Unduh backup dari Databasus (otomatis didekripsi), lalu gunakan perintah mysql untuk restore. Databasus menampilkan perintah restore yang tepat untuk setiap backup."
+              answer="Ya, karena Databasus membuat backup logis mysqldump standar, backup bisa di-restore ke server MySQL mana pun, baik versi berbeda, penyedia cloud lain, maupun mesin development lokal. Unduh backup dari Databasus (otomatis didekripsi), lalu gunakan perintah mysql untuk restore. Databasus menampilkan perintah restore yang tepat untuk setiap backup."
             />
             <FaqItem
               number="10"
@@ -790,7 +790,7 @@ export default function MysqlBackupPage() {
               question="Apa perbedaan Databasus dengan MySQL Enterprise Backup atau Percona XtraBackup?"
               answer={
                 <>
-                  MySQL Enterprise Backup dan Percona XtraBackup membuat backup physical (biner)
+                  MySQL Enterprise Backup dan Percona XtraBackup membuat backup fisik (biner)
                   yang memerlukan akses filesystem langsung ke direktori data MySQL. Keduanya lebih
                   cepat untuk database sangat besar, tetapi:
                   <br />
@@ -799,9 +799,9 @@ export default function MysqlBackupPage() {
                   <br />• Proses setup dan restore lebih rumit
                   <br />
                   <br />
-                  Databasus menggunakan backup logical (mysqldump) yang bekerja dengan server MySQL
+                  Databasus menggunakan backup logis (mysqldump) yang bekerja dengan server MySQL
                   mana pun yang bisa dihubungi, termasuk semua penyedia cloud. Untuk sebagian besar
-                  database di bawah 100GB, backup logical praktis dan jauh lebih mudah dikelola.
+                  database di bawah 100GB, backup logis praktis dan jauh lebih mudah dikelola.
                 </>
               }
             />

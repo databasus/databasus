@@ -409,8 +409,7 @@ export default function DatabasusVsBarmanPage() {
               <ul>
                 <li>
                   <strong>Ruang kerja</strong>: Atur database, kanal notifikasi, dan penyimpanan
-                  berdasarkan proyek atau tim. Pengguna hanya melihat ruang kerja yang
-                  mengundangnya.
+                  berdasarkan proyek atau tim. Pengguna hanya melihat ruang kerja tempat mereka diundang.
                 </li>
                 <li>
                   <strong>Kontrol akses berbasis peran</strong>: Tetapkan izin viewer, editor, atau

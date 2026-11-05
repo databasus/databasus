@@ -160,7 +160,7 @@ def decrypt_backup(backup_file, metadata_file, master_key):
                 chunk_index += 1
 
         print(f"Successfully decrypted {chunk_index} chunks to {output_file}")
-
+        
     except ValueError as e:
         # Clean up partial output file after files are closed
         if "MAC check failed" in str(e) and os.path.exists(output_file):
@@ -500,8 +500,8 @@ mongorestore --host hostname:27017 --username username --password password \\
               <ul>
                 <li>
                   <strong>Minta bantuan AI</strong>. Asisten AI seperti ChatGPT, Claude, atau Gemini
-                  bisa membantu penggunaan tool kompresi dan prosedur restore database. Jelaskan
-                  kendalanya agar mereka bisa memandu prosesnya.
+                  sangat membantu dalam penggunaan tool kompresi dan prosedur restore database.
+                  Jelaskan kendalanya agar mereka bisa memandu prosesnya.
                 </li>
                 <li>
                   <strong>

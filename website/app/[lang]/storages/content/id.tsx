@@ -117,7 +117,7 @@ export default function StoragesPage() {
                   <strong>SFTP</strong> - Server SSH File Transfer Protocol
                 </li>
                 <li>
-                  <strong>rclone</strong> - Hubungkan lebih dari 70 penyedia penyimpanan cloud
+                  <strong>rclone</strong> - Terhubung ke 70+ penyedia penyimpanan cloud
                   melalui rclone
                 </li>
               </ul>

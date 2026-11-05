@@ -10,7 +10,7 @@ import { VIDEO_PLAY_LABELS } from "@/app/components/copyLabels";
 export const metadata: Metadata = {
   title: "Backup PostgreSQL | Databasus",
   description:
-    "Alat gratis dan open source untuk backup PostgreSQL terjadwal (juga mendukung MySQL dan MongoDB). Simpan secara lokal atau di cloud. Notifikasi ke Slack, Discord, Telegram, email, webhook, dan lainnya.",
+    "Alat gratis dan open source untuk backup PostgreSQL terjadwal (juga mendukung MySQL dan MongoDB). Simpan secara lokal dan di cloud. Notifikasi ke Slack, Discord, Telegram, email, webhook, dan lainnya.",
   keywords:
     "PostgreSQL, backup, pemantauan, database, backup terjadwal, Docker, self-hosted, open source, S3, Google Drive, notifikasi Slack, Discord, DevOps, pemantauan database, pg_dump, restore database, enkripsi, AES-256, enkripsi backup",
   robots: "index, follow",
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     url: getLocalizedUrl("id", ""),
     title: "Backup PostgreSQL | Databasus",
     description:
-      "Alat gratis dan open source untuk backup PostgreSQL terjadwal (juga mendukung MySQL dan MongoDB). Simpan secara lokal atau di cloud. Notifikasi ke Slack, Discord, Telegram, email, webhook, dan lainnya.",
+      "Alat gratis dan open source untuk backup PostgreSQL terjadwal (juga mendukung MySQL dan MongoDB). Simpan secara lokal dan di cloud. Notifikasi ke Slack, Discord, Telegram, email, webhook, dan lainnya.",
     images: [
       {
         url: "https://databasus.com/images/index/dashboard.png",
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Backup PostgreSQL | Databasus",
     description:
-      "Alat gratis dan open source untuk backup PostgreSQL terjadwal (juga mendukung MySQL dan MongoDB). Simpan secara lokal atau di cloud. Notifikasi ke Slack, Discord, Telegram, email, webhook, dan lainnya.",
+      "Alat gratis dan open source untuk backup PostgreSQL terjadwal (juga mendukung MySQL dan MongoDB). Simpan secara lokal dan di cloud. Notifikasi ke Slack, Discord, Telegram, email, webhook, dan lainnya.",
     images: ["https://databasus.com/images/index/dashboard.png"],
   },
   applicationName: "Databasus",
@@ -62,7 +62,7 @@ export default function Index() {
             "@type": "SoftwareApplication",
             name: "Databasus",
             description:
-              "Alat gratis dan open source untuk backup PostgreSQL terjadwal (juga mendukung MySQL dan MongoDB). Simpan secara lokal atau di cloud. Notifikasi ke Slack, Discord, Telegram, email, webhook, dan lainnya.",
+              "Alat gratis dan open source untuk backup PostgreSQL terjadwal (juga mendukung MySQL dan MongoDB). Simpan secara lokal dan di cloud. Notifikasi ke Slack, Discord, Telegram, email, webhook, dan lainnya.",
             url: getLocalizedUrl("id", ""),
             image: "https://databasus.com/images/index/dashboard.png",
             logo: "https://databasus.com/logo.svg",
@@ -75,7 +75,7 @@ export default function Index() {
               "Backup PostgreSQL terjadwal",
               "Beragam tujuan penyimpanan (S3, Google Drive, Dropbox, SFTP, rclone, dan lainnya)",
               "Notifikasi real-time (Slack, Telegram, Discord, Webhook, email, dan lainnya)",
-              "Pemantauan kesehatan database",
+              "Pemantauan ketersediaan database",
               "Self-hosted melalui Docker",
               "Open source dan gratis",
               "Mendukung PostgreSQL 12-18",
@@ -186,7 +186,7 @@ export default function Index() {
                 name: "Apa perbedaan Databasus dengan PgBackRest, Barman, atau pg_dump?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus mengutamakan kesederhanaan. Antarmuka web modern memudahkan pengelolaan backup banyak database sekaligus, dengan penjadwalan, kompresi, berbagai tujuan penyimpanan, pemantauan kesehatan, dan notifikasi real-time bawaan. Berbeda dari pgBackRest dan WAL-G, Databasus membuat backup fisik, incremental, dan WAL menggunakan mekanisme native PostgreSQL 17, bukan membuat mesin backup sendiri. Databasus terhubung ke database dari jarak jauh dan menjangkau jaringan tertutup melalui SSH tunnel ke server atau bastion, sehingga database yang tidak terbuka ke publik tetap bisa di-backup dan dikelola dari satu dashboard.",
+                  text: "Databasus mengutamakan kesederhanaan. Antarmuka web modern memudahkan pengelolaan backup banyak database sekaligus, dengan penjadwalan, kompresi, berbagai tujuan penyimpanan, pemantauan ketersediaan, dan notifikasi real-time bawaan. Berbeda dari pgBackRest dan WAL-G, Databasus membuat backup fisik, inkremental, dan WAL menggunakan mekanisme native PostgreSQL 17, bukan membuat mesin backup sendiri. Databasus terhubung ke database dari jarak jauh dan menjangkau jaringan tertutup melalui SSH tunnel ke server atau bastion, sehingga database yang tidak terbuka ke publik tetap bisa di-backup dan dikelola dari satu dashboard.",
                 },
               },
               {
@@ -210,7 +210,7 @@ export default function Index() {
                 name: "Jenis backup apa saja yang didukung Databasus?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus mendukung backup fisik, penuh, incremental, WAL, dan logis. Backup fisik menyalin seluruh cluster database pada tingkat file, lebih cepat untuk backup dan restore dataset besar dibanding dump logis, serta dibangun di atas mekanisme backup native PostgreSQL 17. Dengan begitu, kami mengandalkan alat PostgreSQL yang telah teruji, bukan membuatnya ulang. Backup penuh adalah salinan cluster lengkap yang mandiri dan menjadi dasar setiap rantai backup. Backup incremental hanya menyimpan perubahan sejak backup sebelumnya, sehingga ukurannya kecil dan prosesnya cepat. WAL streaming menangkap aliran penulisan database secara terus-menerus untuk Point-in-time recovery (PITR), pemulihan bencana, dan kehilangan data mendekati nol. Backup logis berupa dump native database dalam format biner khusus engine-nya, dikompresi dan dialirkan langsung ke penyimpanan tanpa file perantara. Semua jenis backup ini bisa berjalan melalui SSH tunnel jika koneksi harus tetap privat, sehingga database tidak perlu dibuka ke publik. SSH tunneling sudah tersedia secara bawaan.",
+                  text: "Databasus mendukung backup fisik, penuh, inkremental, WAL, dan logis. Backup fisik menyalin seluruh cluster database pada tingkat file, lebih cepat untuk backup dan restore dataset besar dibanding dump logis, serta dibangun di atas mekanisme backup native PostgreSQL 17. Dengan begitu, kami mengandalkan alat PostgreSQL yang telah teruji, bukan membuatnya ulang. Backup penuh adalah salinan cluster lengkap yang mandiri dan menjadi dasar setiap rantai backup. Backup inkremental hanya menyimpan perubahan sejak backup sebelumnya, sehingga ukurannya kecil dan prosesnya cepat. WAL streaming menangkap aliran penulisan database secara terus-menerus untuk Point-in-time recovery (PITR), pemulihan bencana, dan kehilangan data mendekati nol. Backup logis berupa dump native database dalam format biner khusus engine-nya, dikompresi dan dialirkan langsung ke penyimpanan tanpa file perantara. Semua jenis backup ini bisa berjalan melalui SSH tunnel jika koneksi harus tetap privat, sehingga database tidak perlu dibuka ke publik. SSH tunneling sudah tersedia secara bawaan.",
                 },
               },
               {
@@ -603,10 +603,10 @@ export default function Index() {
               </div>
               <div>
                 <h3 className="text-lg md:text-xl 2xl:text-2xl font-bold mb-4 md:mb-5">
-                  Backup logis, fisik, incremental, dan WAL
+                  Backup logis, fisik, inkremental, dan WAL
                 </h3>
                 <p className="text-gray-400 text-sm md:text-base">
-                  Databasus mendukung backup logis dan fisik (penuh serta incremental), dengan
+                  Databasus mendukung backup logis dan fisik (penuh serta inkremental), dengan
                   WAL-streaming untuk Point-in-Time Recovery. Dengan begitu, Databasus cocok untuk
                   pemulihan bencana dan bisa digunakan pada database self-hosted maupun cloud.
                   Gunakan mode jarak jauh untuk database yang dikelola cloud atau bisa diakses
@@ -1080,12 +1080,12 @@ export default function Index() {
                   Databasus mengutamakan kesederhanaan. Antarmuka web modern memudahkan pengelolaan
                   backup banyak database sekaligus, menggantikan file konfigurasi rumit dan alat
                   command-line. Berbeda dari script pg_dump biasa, Databasus menyediakan
-                  penjadwalan, kompresi, beragam tujuan penyimpanan, pemantauan kesehatan, dan
+                  penjadwalan, kompresi, beragam tujuan penyimpanan, pemantauan ketersediaan, dan
                   notifikasi real-time bawaan yang semuanya dikelola melalui antarmuka web
                   sederhana.
                   <br />
                   <br />
-                  Berbeda dari pgBackRest dan WAL-G, Databasus membuat backup fisik, incremental,
+                  Berbeda dari pgBackRest dan WAL-G, Databasus membuat backup fisik, inkremental,
                   dan WAL menggunakan mekanisme native PostgreSQL 17, bukan membuat mesin backup
                   sendiri. Databasus terhubung ke database dari jarak jauh dan menjangkau jaringan
                   tertutup melalui SSH tunnel ke server atau bastion, sehingga database yang tidak
@@ -1178,7 +1178,7 @@ export default function Index() {
             <FaqItem
               number="9"
               question="Apakah Databasus merupakan alternatif pg_dump?"
-              answer="Tidak sepenuhnya. Databasus berfokus pada pemulihan bencana dengan RTO dan RPO rendah, sehingga lebih dekat dengan alternatif pgBackRest atau WAL-G. Databasus berusaha membuat pemulihan bencana semudah pg_dump. Namun, untuk backup logis, Databasus memang menjadi alternatif pg_dump dan menggunakannya di balik layar, dengan tambahan antarmuka web yang mudah digunakan, penjadwalan otomatis, beragam tujuan penyimpanan, notifikasi real-time, pemantauan kesehatan, dan enkripsi backup. Backup logis juga tersedia untuk MySQL, MariaDB, dan MongoDB."
+              answer="Tidak sepenuhnya. Databasus berfokus pada pemulihan bencana dengan RTO dan RPO rendah, sehingga lebih dekat dengan alternatif pgBackRest atau WAL-G. Databasus berusaha membuat pemulihan bencana semudah pg_dump. Namun, untuk backup logis, Databasus memang menjadi alternatif pg_dump dan menggunakannya di balik layar, dengan tambahan antarmuka web yang mudah digunakan, penjadwalan otomatis, beragam tujuan penyimpanan, notifikasi real-time, pemantauan ketersediaan, dan enkripsi backup. Backup logis juga tersedia untuk MySQL, MariaDB, dan MongoDB."
             />
             <FaqItem
               number="10"
@@ -1205,7 +1205,7 @@ export default function Index() {
               question="Jenis backup apa saja yang didukung Databasus?"
               answer={
                 <>
-                  Databasus mendukung backup fisik, penuh, incremental, WAL, dan logis. Jadi,
+                  Databasus mendukung backup fisik, penuh, inkremental, WAL, dan logis. Jadi,
                   Databasus cocok bagi yang menginginkan dump logis sederhana maupun alat pemulihan
                   bencana yang andal.
                   <ul className="list-disc list-inside mt-3 space-y-2">
@@ -1220,7 +1220,7 @@ export default function Index() {
                       setiap rantai backup
                     </li>
                     <li>
-                      <strong>Incremental</strong>: hanya menyimpan perubahan sejak backup
+                      <strong>Inkremental</strong>: hanya menyimpan perubahan sejak backup
                       sebelumnya, sehingga ukurannya kecil dan prosesnya cepat
                     </li>
                     <li>
@@ -1235,7 +1235,7 @@ export default function Index() {
                     </li>
                   </ul>
                   <br />
-                  Backup fisik, incremental, dan WAL menggunakan mekanisme native PostgreSQL 17,
+                  Backup fisik, inkremental, dan WAL menggunakan mekanisme native PostgreSQL 17,
                   sehingga membutuhkan PostgreSQL 17 atau lebih baru. Pada versi lama, hanya backup
                   logis yang tersedia. Ini memang disengaja: sebagian besar database production
                   sudah menggunakan PostgreSQL 17 atau lebih baru, dan dalam sekitar dua tahun versi

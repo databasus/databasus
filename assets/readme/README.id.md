@@ -107,7 +107,7 @@ Databasus melakukan restore sungguhan untuk memastikan backup bisa dipakai, buka
 
 ### 🎨 **Ramah pengguna**
 
-- **UI hasil polesan desainer**: antarmuka bersih dan intuitif, dibuat dengan perhatian pada detail
+- **UI yang disempurnakan desainer**: antarmuka bersih dan intuitif, dibuat dengan perhatian pada detail
 - **Tema gelap dan terang**: pilih tampilan yang cocok dengan alur kerja kamu
 - **Adaptif di mobile**: cek backup dari mana saja dan perangkat apa pun
 
@@ -121,7 +121,7 @@ Databasus melakukan restore sungguhan untuk memastikan backup bisa dipakai, buka
 ### 🐳 **Self-hosted dan aman**
 
 - **Berbasis Docker**: deployment dan pengelolaan mudah
-- **Privasi dulu**: semua data tetap di infrastruktur kamu
+- **Mengutamakan privasi**: semua data tetap di infrastruktur kamu
 - **Open source**: lisensi Apache 2.0, setiap baris kode bisa diperiksa
 - **SSH bawaan**: hubungkan ke Databasus lewat tunnel SSH
 
@@ -270,13 +270,13 @@ docker exec -it databasus ./main --new-password="YourNewSecurePassword123" --ema
 
 Ganti `owner@example.com` dengan alamat email akun yang password-nya ingin kamu reset.
 
-Kalau kamu tidak ingat alamat mana yang mengelola instance, daftar akun administrator:
+Jika kamu tidak ingat alamat mana yang mengelola instance, tampilkan daftar akun administrator:
 
 ```bash
 docker exec -it databasus ./main --list-admins
 ```
 
-Output-nya mencantumkan setiap akun administrator beserta alamat email, nama tampilan, tanggal pembuatan, dan status aktifnya, lalu menandai akun yang dikenali instance sebagai administrator. Tidak ada materi password yang dicetak.
+Output-nya mencantumkan setiap akun administrator beserta alamat email, nama tampilan, tanggal pembuatan, dan status aktifnya, lalu menandai akun yang dikenali instance sebagai administrator. Tidak ada informasi terkait password yang ditampilkan.
 
 Untuk membuat akun tanpa mendaftar lewat browser, misalnya dari skrip deployment, buat dari konsol:
 
@@ -294,7 +294,7 @@ Setelah instalasi, sebaiknya kamu juga <a href="https://databasus.com/id/faq/#ba
 
 ## 🛡️ Rekayasa keamanan dan keandalan
 
-Databasus bekerja dengan data sensitif, jadi mencegah kerentanan, akses tidak sah, dan kebocoran data menjadi prioritas utama. Kami berinvestasi di kedua sisi sistem: di kode itu sendiri (pemeriksaan izin, enkripsi, penanganan secret yang hati-hati) dan di infrastruktur sekitarnya (analisis dependensi, respons CVE, praktik DevSecOps). Pipeline di bawah berjalan otomatis pada setiap commit dan PR. Tidak ada satu lapisan pun yang cukup sendirian, tetapi bersama-sama lapisan ini mengurangi peluang kode rentan, dependensi tidak aman, image rusak, atau backup yang tidak bisa di-restore masuk ke rilis.
+Databasus bekerja dengan data sensitif, jadi mencegah kerentanan, akses tidak sah, dan kebocoran data menjadi prioritas utama. Kami berinvestasi di kedua sisi sistem: di kode itu sendiri (pemeriksaan izin, enkripsi, penanganan secret yang hati-hati) dan di infrastruktur sekitarnya (analisis dependensi, respons CVE, praktik terbaik DevSecOps). Pipeline di bawah berjalan otomatis pada setiap commit dan PR. Tidak ada satu lapisan pun yang cukup sendirian, tetapi bersama-sama lapisan ini mengurangi peluang kode rentan, dependensi tidak aman, image rusak, atau backup yang tidak bisa di-restore masuk ke rilis.
 
 Untuk analisis statis, kami menggabungkan beberapa pemeriksaan independen. CodeQL memindai seluruh codebase untuk masalah keamanan. Di setiap PR, gitleaks memindai secret yang bocor dan semgrep memeriksa kode terhadap aturan keamanan. Dockerfile dan workflow CI mendapat aturan tambahan sendiri (referensi action yang di-pin, izin least-privilege, image dasar yang mencurigakan), sehingga pola tidak aman ditandai sebelum sempat di-merge. Selain pemeriksaan per-PR itu, Codex Security dari OpenAI menjalankan audit berkala yang lebih dalam pada seluruh codebase. Ini program terpisah yang menangkap masalah arsitektural dan lintas area yang bisa terlewat oleh pemindaian sempit saat PR.
 
@@ -304,13 +304,13 @@ Sebelum rilis, Trivy memindai image aplikasi pada kedua arsitektur. Pemeriksaan 
 
 Jalur kritis dicakup oleh unit test dan integration test, dijalankan terhadap container database sungguhan untuk setiap engine dan versi mayor yang didukung. Restore adalah jalur yang paling penting bagi alat backup, jadi kami mengujinya secara eksplisit: setiap PR menjalankan siklus backup lalu restore penuh terhadap container nyata yang sama, memastikan backup benar-benar bisa di-restore end-to-end, bukan hanya berhasil ditulis. Sisa pipeline CI/CD menjalankan lint, type-check, seluruh test suite, smoke test image, dan build multi-arsitektur pada setiap PR. Rilis hanya terbit setelah semua pemeriksaan itu dan pemindaian keamanan lolos, tanpa alert CodeQL critical yang masih terbuka.
 
-Menemukan kerentanan? Laporkan lewat tab Security di GitHub. Lihat [SECURITY.md](https://github.com/databasus/databasus?tab=security-ov-file#readme). Laporan keamanan adalah antrean kerja dengan prioritas tertinggi. Untuk keamanan aplikasi saat berjalan (AES-256-GCM saat disimpan, penyimpanan zero-trust, secret terenkripsi, pengguna database read-only secara default), lihat [Keamanan kelas enterprise](#-keamanan-kelas-enterprise-dokumentasi) di bagian Fitur di atas.
+Menemukan kerentanan? Laporkan lewat tab Security di GitHub. Lihat [SECURITY.md](https://github.com/databasus/databasus?tab=security-ov-file). Laporan keamanan adalah antrean kerja dengan prioritas tertinggi. Untuk keamanan aplikasi saat berjalan (AES-256-GCM saat disimpan, penyimpanan zero-trust, secret terenkripsi, pengguna database read-only secara default), lihat [Keamanan kelas enterprise](#-keamanan-kelas-enterprise-dokumentasi) di bagian Fitur di atas.
 
 ---
 
 ## 📝 Lisensi
 
-Proyek ini dilisensikan di bawah Apache 2.0 License. Lihat file [LICENSE](../../LICENSE) untuk detailnya
+Proyek ini menggunakan lisensi Apache 2.0 License. Lihat file [LICENSE](../../LICENSE) untuk detailnya
 
 ## 💬 Komunitas
 
