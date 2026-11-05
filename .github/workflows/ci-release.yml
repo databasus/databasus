@@ -317,6 +317,7 @@ jobs:
         run: |
           sudo apt-get install -y acl
           sudo systemctl start podman.socket
+          sudo setfacl -m u:"$USER":x /run/podman
           sudo setfacl -m u:"$USER":rw /run/podman/podman.sock
           sudo podman version
           sudo podman info --format '{{.Host.OCIRuntime.Name}}'
