@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildChownCommand,
+  buildDockerRunCommand,
+  buildPgCtlStartCommand,
   buildDockerScriptCommand,
   buildManualSteps,
   buildScriptCommand,
@@ -42,6 +45,19 @@ describe('buildScriptCommand', () => {
     expect(command).not.toContain('--pg-bin');
     expect(command).not.toContain('--target-time');
     expect(command).toContain(`"${bundleUrl}" "./databasus-restore"`);
+  });
+
+  it('keeps shell expansions literal in the selected paths', () => {
+    const command = buildScriptCommand({
+      scriptUrl,
+      bundleUrl,
+      outputDir: './restore $HOME/`date`',
+      pgBin: '/opt/pg tools',
+      targetTime: '',
+    });
+
+    expect(command).toContain('"./restore \\$HOME/\\`date\\`"');
+    expect(command).toContain('--pg-bin "/opt/pg tools"');
   });
 
   it('includes --pg-bin when a bin path is set', () => {
@@ -241,5 +257,29 @@ describe('buildManualSteps', () => {
     );
     expect(combine?.code).toContain('pg_combinebackup bundle/recon/full');
     expect(combine!.code.indexOf('base.tar')).toBeLessThan(combine!.code.indexOf('docker run'));
+  });
+});
+
+describe('restore startup commands', () => {
+  it('preserves spaces and literal shell characters in ownership and Host startup paths', () => {
+    const dataDir = './restore $HOME/18/docker';
+
+    expect(buildChownCommand(dataDir)).toBe(
+      'chown -R postgres:postgres "./restore \\$HOME/18/docker"',
+    );
+    expect(buildPgCtlStartCommand({ dataDir, pgBin: '/opt/pg tools' })).toBe(
+      '"/opt/pg tools/pg_ctl" -D "./restore \\$HOME/18/docker" start',
+    );
+  });
+
+  it.each([
+    ['/restore work', '"/restore work:/var/lib/postgresql"'],
+    ['./restore work', '"$PWD/./restore work:/var/lib/postgresql"'],
+  ])('mounts %s and starts the selected digest-pinned image', (hostDir, mount) => {
+    const image = 'postgres:18@sha256:abcdef';
+
+    expect(buildDockerRunCommand({ hostDir, containerDir: '/var/lib/postgresql', image })).toBe(
+      `docker run -e POSTGRES_PASSWORD=... -v ${mount} "${image}"`,
+    );
   });
 });

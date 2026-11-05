@@ -26,3 +26,16 @@ class TestOutputMask:
         output_mask = OutputMask([""])
 
         assert output_mask.apply("text") == "text"
+
+
+    def test_masks_restore_query_tokens_in_plain_and_encoded_diagnostics(self):
+        from urllib.parse import quote
+
+        url = 'http://databasus:4005/api/v1/physical-restore-sets?token=restore-secret&other=visible'
+        output_mask = OutputMask([])
+
+        for diagnostic in (url, quote(url, safe=''), quote(quote(url, safe=''), safe='')):
+            masked_line = output_mask.apply(diagnostic)
+
+            assert 'restore-secret' not in masked_line
+            assert 'other=visible' in masked_line

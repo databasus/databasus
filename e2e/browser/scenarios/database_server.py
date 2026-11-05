@@ -18,6 +18,7 @@ def execute_sql(database: str, statement: str) -> list[str]:
         ],
         capture_output=True,
         text=True,
+        timeout=120,
     )
     assert completed.returncode == 0, f"psql failed on {database}: {completed.stderr}"
 

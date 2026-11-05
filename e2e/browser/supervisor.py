@@ -6,9 +6,11 @@ import secrets
 import signal
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from compose_project import ComposeProject, list_remaining_resources
+from container_logs import ContainerLogSource, get_container_log_output
 from leftover_sweep import sweep_dead_runs
 from output_masking import OutputMask
 from supervisor_file import (
@@ -27,8 +29,9 @@ EXIT_FAILED = 1
 EXIT_INTERRUPTED = 130
 LOG_TAIL_LINES = "200"
 PR_SET_PDEATHSIG = 1
-KNOWN_PROBES = {"scenario", "interrupt", "secrets", "passing", "refused-form"}
-PROBE_SCENARIOS = {"refused-form": "scenarios/test_critical_path.py"}
+KNOWN_PROBES = {"scenario", "interrupt", "secrets", "passing", "refused-form", "invalid-host-tools", "unresponsive-engine"}
+PROBE_SCENARIOS = {"refused-form": "scenarios/test_critical_path.py",
+                   "invalid-host-tools": "scenarios/test_critical_path.py"}
 DEFAULT_PROBE_SCENARIOS = "scenarios/test_probes.py"
 APPLICATION_ADDRESS = "http://databasus:4005"
 
@@ -53,6 +56,7 @@ class Supervisor:
         )
 
     def run(self) -> int:
+        started_at = time.monotonic()
         exit_code = self._run_until_signals_are_ignored()
         container_logs = self._get_masked_container_logs()
         cleanup_exit_code = self._clean_up()
@@ -60,6 +64,8 @@ class Supervisor:
         if exit_code != 0 or cleanup_exit_code != 0:
             for line in container_logs.splitlines():
                 self._report(line)
+
+        self._report(f"E2E duration including setup and cleanup: {time.monotonic() - started_at:.1f}s")
 
         return cleanup_exit_code or exit_code
 
@@ -136,18 +142,21 @@ class Supervisor:
         )
 
     def _get_masked_container_logs(self) -> str:
-        try:
-            completed = subprocess.run(
-                self.project.get_command("logs", "--no-color", "--tail", LOG_TAIL_LINES),
-                env=self.project.get_environment(),
-                capture_output=True,
-                text=True,
-                errors="replace",
-            )
+        sources = [
+            ContainerLogSource(
+                name="Compose containers",
+                command=self.project.get_command("logs", "--no-color", "--tail", LOG_TAIL_LINES),
+                environment=self.project.get_environment(),
+            ),
+            ContainerLogSource(
+                name="recovery environments",
+                command=["docker", "exec", f"{self.project.name}-recovery-1", "sh", "-c",
+                         'for log in /restore-work/command-*.log; do [ ! -f "$log" ] || tail -n 200 "$log"; done; '
+                         'for container in $(docker ps -aq); do docker logs --tail 200 "$container"; done'],
+            ),
+        ]
 
-            return self.output_mask.apply(completed.stdout + completed.stderr)
-        except Exception as failure:
-            return self.output_mask.apply(f"E2E could not read the container logs: {failure}")
+        return self.output_mask.apply("".join(get_container_log_output(source) for source in sources))
 
     def _clean_up(self) -> int:
         try:

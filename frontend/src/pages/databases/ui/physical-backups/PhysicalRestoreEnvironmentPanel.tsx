@@ -188,7 +188,9 @@ export const PhysicalRestoreEnvironmentPanel = ({
                   i18nKey="backups.physical.restore.afterItFinishes.host.start"
                   components={{
                     command: (
-                      <InlineCodeComponent>{buildPgCtlStartCommand(dataDir)}</InlineCodeComponent>
+                      <InlineCodeComponent>
+                        {buildPgCtlStartCommand({ dataDir, pgBin })}
+                      </InlineCodeComponent>
                     ),
                   }}
                 />
@@ -224,7 +226,7 @@ export const PhysicalRestoreEnvironmentPanel = ({
                     {buildDockerRunCommand({
                       hostDir: outputDir,
                       containerDir: containerVolumeDir(pgVersion),
-                      pgVersion,
+                      image: dockerImage,
                     })}
                   </InlineCodeComponent>
                 </li>
@@ -243,7 +245,7 @@ export const PhysicalRestoreEnvironmentPanel = ({
                     {buildDockerRunCommand({
                       hostDir: dataDir,
                       containerDir: containerDataDir(pgVersion),
-                      pgVersion,
+                      image: dockerImage,
                     })}
                   </InlineCodeComponent>
                 </li>

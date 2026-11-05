@@ -1,15 +1,6 @@
 /* eslint-disable i18next/no-literal-string -- shell commands and paths, shown verbatim in every language */
 import type { TranslationKey } from '../../../../shared/i18n';
 
-// Builds the shell commands the restore dialog shows. Pure string assembly - no
-// network or React - so the wiring (which flag appears when, host vs Docker) is
-// unit-tested in isolation. The served recovery_script.sh accepts optional
-// `--pg-bin <dir>` / `--combine-image <image>` flags plus positional
-// `<bundle> [output-dir]`; the manual steps mirror what that script does by hand for
-// users who would rather not pipe curl into sh. Decompression always runs with the
-// host's zstd; on Docker only the version-specific pg_combinebackup runs in a
-// container.
-
 export type RestoreEnvironment = 'host' | 'docker';
 
 // PostgreSQL 18 moved the Docker image's PGDATA to a version-specific path and the
@@ -37,23 +28,40 @@ export const defaultPgBinDir = (pgVersion: string): string =>
 
 export const defaultDockerImage = (pgVersion: string): string => `postgres:${pgVersion}`;
 
-export const buildChownCommand = (dataDir: string): string =>
-  `chown -R postgres:postgres ${dataDir}`;
+const escapeShellArgument = (value: string): string => value.replace(/[\\$`"]/g, '\\$&');
 
-export const buildPgCtlStartCommand = (dataDir: string): string => `pg_ctl -D ${dataDir} start`;
+const quoteShellArgument = (value: string): string => `"${escapeShellArgument(value)}"`;
+
+export const buildChownCommand = (dataDir: string): string =>
+  `chown -R postgres:postgres ${quoteShellArgument(dataDir)}`;
+
+interface PgCtlStartCommandParams {
+  dataDir: string;
+  pgBin: string;
+}
+
+export const buildPgCtlStartCommand = ({ dataDir, pgBin }: PgCtlStartCommandParams): string => {
+  const binary = pgBin.trim() ? quoteShellArgument(`${pgBin.trim()}/pg_ctl`) : 'pg_ctl';
+
+  return `${binary} -D ${quoteShellArgument(dataDir)} start`;
+};
 
 interface DockerRunCommandParams {
   hostDir: string;
   containerDir: string;
-  pgVersion: string;
+  image: string;
 }
 
 export const buildDockerRunCommand = ({
   hostDir,
   containerDir,
-  pgVersion,
-}: DockerRunCommandParams): string =>
-  `docker run -e POSTGRES_PASSWORD=... -v "$PWD/${hostDir}:${containerDir}" ${defaultDockerImage(pgVersion)}`;
+  image,
+}: DockerRunCommandParams): string => {
+  const mount = `${escapeShellArgument(hostDir)}:${escapeShellArgument(containerDir)}`;
+  const source = hostDir.startsWith('/') ? `"${mount}"` : `"$PWD/${mount}"`;
+
+  return `docker run -e POSTGRES_PASSWORD=... -v ${source} ${quoteShellArgument(image)}`;
+};
 
 interface ScriptCommandParams {
   scriptUrl: string;
@@ -178,10 +186,12 @@ export const buildScriptCommand = ({
   pgBin,
   targetTime,
 }: ScriptCommandParams): string => {
-  const pgBinArg = pgBin.trim() ? `--pg-bin "${pgBin.trim()}" ` : '';
-  const targetArg = targetTime.trim() ? `--target-time "${targetTime.trim()}" ` : '';
+  const pgBinArg = pgBin.trim() ? `--pg-bin ${quoteShellArgument(pgBin.trim())} ` : '';
+  const targetArg = targetTime.trim()
+    ? `--target-time ${quoteShellArgument(targetTime.trim())} `
+    : '';
 
-  return `curl -fsSL "${scriptUrl}" | sh -s -- ${pgBinArg}${targetArg}"${bundleUrl}" "${outputDir}"`;
+  return `curl -fsSL ${quoteShellArgument(scriptUrl)} | sh -s -- ${pgBinArg}${targetArg}${quoteShellArgument(bundleUrl)} ${quoteShellArgument(outputDir)}`;
 };
 
 // Runs the script on the host (host zstd decompresses the bundle); only
@@ -194,9 +204,11 @@ export const buildDockerScriptCommand = ({
   image,
   targetTime,
 }: DockerScriptCommandParams): string => {
-  const targetArg = targetTime.trim() ? `--target-time "${targetTime.trim()}" ` : '';
+  const targetArg = targetTime.trim()
+    ? `--target-time ${quoteShellArgument(targetTime.trim())} `
+    : '';
 
-  return `curl -fsSL "${scriptUrl}" | sh -s -- --combine-image "${image}" ${targetArg}"${bundleUrl}" "${outputDir}"`;
+  return `curl -fsSL ${quoteShellArgument(scriptUrl)} | sh -s -- --combine-image ${quoteShellArgument(image)} ${targetArg}${quoteShellArgument(bundleUrl)} ${quoteShellArgument(outputDir)}`;
 };
 
 export const buildManualSteps = ({

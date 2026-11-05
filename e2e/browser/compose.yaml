@@ -22,12 +22,56 @@ services:
       POSTGRES_DB: e2e_backed_up
       POSTGRES_USER: e2e
       POSTGRES_PASSWORD: ${E2E_DATABASE_PASSWORD:?}
+    volumes:
+      - ./prepare_source.sh:/docker-entrypoint-initdb.d/prepare-source.sh:ro,z
+    command: ["postgres", "-c", "wal_level=replica", "-c", "summarize_wal=on", "-c", "max_wal_senders=10", "-c", "max_replication_slots=10"]
     healthcheck:
       test: ["CMD", "pg_isready", "--host=127.0.0.1", "--username=e2e", "--dbname=e2e_backed_up"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 60s
+      start_interval: 1s
+
+  recovery-engine:
+    image: docker:29.9.2-dind@sha256:9e79b879b177fbd72c34376a3dd3d91747da5db49e1f560f76aea59561471977
+    privileged: true
+    environment:
+      DOCKER_TLS_CERTDIR: ""
+    entrypoint: ["dockerd"]
+    command: ["--host=unix:///run/recovery-engine/docker.sock", "--storage-driver=overlay2"]
+    volumes:
+      - recovery-socket:/run/recovery-engine
+      - recovery-engine-data:/var/lib/docker
+      - recovery-work:/restore-work
+    healthcheck:
+      test: ["CMD", "docker", "--host=unix:///run/recovery-engine/docker.sock", "info"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+      start_interval: 1s
+
+  recovery:
+    image: postgres:18@sha256:3a4264520e121176619f54ff867d12774bc81e95e7b84db58d63bccdb6144b81
+    init: true
+    entrypoint: ["sh", "/prepare-recovery.sh"]
+    environment:
+      DOCKER_HOST: unix:///run/recovery-engine/docker.sock
+      E2E_POSTGRES_IMAGE: postgres:18@sha256:3a4264520e121176619f54ff867d12774bc81e95e7b84db58d63bccdb6144b81
+    depends_on:
+      recovery-engine:
+        condition: service_healthy
+    volumes:
+      - ./prepare_recovery.sh:/prepare-recovery.sh:ro,z
+      - recovery-socket:/run/recovery-engine
+      - recovery-work:/restore-work
+    healthcheck:
+      test: ["CMD", "test", "-f", "/tmp/recovery-ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 180s
       start_interval: 1s
 
   # The server is the driver of the locked Python Playwright package, so nothing is downloaded at run time.
@@ -52,3 +96,6 @@ services:
 
 volumes:
   databasus-data:
+  recovery-socket:
+  recovery-engine-data:
+  recovery-work:

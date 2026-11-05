@@ -11,7 +11,7 @@ import {
 import { usePersistentState, usePolledPagedList } from '../../../../shared/hooks';
 import { translateApiError, useLocale } from '../../../../shared/i18n';
 import { ConfirmationComponent, LoadFailure } from '../../../../shared/ui';
-import { type TriggerPhysicalBackupType, physicalBackupsApi } from '../../api/physicalBackupsApi';
+import { physicalBackupsApi } from '../../api/physicalBackupsApi';
 import { formatBackupSize } from '../../lib/formatBackupSize';
 import { type PhysicalBackupListItem } from '../../model/physical-backups/PhysicalBackupListItem';
 import { type PhysicalBackupsFilters } from '../../model/physical-backups/PhysicalBackupsFilters';
@@ -112,14 +112,16 @@ export const PhysicalBackupsComponent = ({
 
   const backupNowMenu: MenuProps = {
     items: [
-      { key: 'full', label: t('backups.physical.list.fullBackup') },
+      { key: 'FULL', label: t('backups.physical.list.fullBackup') },
       {
-        key: 'incremental',
+        key: 'INCREMENTAL',
         label: t('backups.physical.list.incrementalBackup'),
         disabled: !isIncrementalAllowed,
       },
     ],
-    onClick: ({ key }) => void backupActions.startBackup(key as TriggerPhysicalBackupType),
+    onClick: ({ key }) => {
+      if (key === 'FULL' || key === 'INCREMENTAL') void backupActions.startBackup(key);
+    },
   };
 
   const rowActions: PhysicalBackupRowActions = {

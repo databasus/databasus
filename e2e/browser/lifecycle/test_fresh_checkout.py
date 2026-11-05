@@ -56,7 +56,7 @@ class TestFreshCheckout:
         run, finished_run = _run_in_checkout(checkout, {"DATABASUS_IMAGE": probes_image, "E2E_PROBE": "secrets"})
 
         assert finished_run.exit_code != 0, finished_run.output
-        assert "deliberate E2E secrets failure" in finished_run.output
+        assert "deliberate E2E secrets failure" in finished_run.output, finished_run.output
         assert _hash_files_outside_dependencies(checkout) == files_before
         assert_nothing_of_the_project_remains(run.get_project_name())
         assert not get_run_directory(run.get_run_id()).exists()

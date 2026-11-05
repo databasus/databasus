@@ -1,0 +1,170 @@
+import os
+import re
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
+
+from playwright.sync_api import Page, expect
+
+from application_screens import read_api
+from condition_wait import wait_until
+from database_server import BACKED_UP_DATABASE, SERVER_HOST_ON_COMPOSE_NETWORK, SERVER_PORT, SERVER_USER, execute_sql
+
+MARKER_TABLE = "e2e_physical_markers"
+PHYSICAL_ROWS = ["A before full", "B before incremental", "C first archived WAL", "D second archived WAL"]
+
+
+@dataclass(frozen=True)
+class ArchivedWrite:
+    filename: str
+    position: str
+
+
+@dataclass(frozen=True)
+class BackupCadence:
+    label: str
+    cron: str
+
+
+@dataclass(frozen=True)
+class BackupSelection:
+    database_id: str
+    kind: str
+
+
+def read_physical_rows() -> list[str]:
+    return execute_sql(BACKED_UP_DATABASE, f"SELECT label FROM {MARKER_TABLE} ORDER BY id")
+
+
+def write_marker(index: int) -> None:
+    execute_sql(BACKED_UP_DATABASE, f"INSERT INTO {MARKER_TABLE} VALUES ({index}, '{PHYSICAL_ROWS[index]}')")
+
+
+def _set_future_cadence(page: Page, schedule: BackupCadence) -> None:
+    cadence = page.get_by_role("group", name=schedule.label, exact=True)
+    schedule_type = cadence.get_by_role("combobox", name=schedule.label, exact=True)
+    schedule_type.focus()
+    schedule_type.press("ArrowDown")
+    page.locator(".ant-select-dropdown").filter(visible=True).get_by_title(
+        "Cron", exact=True).filter(visible=True).last.click()
+    expect(cadence.get_by_title("Cron", exact=True)).to_be_visible()
+    cadence.get_by_role("textbox", name="Cron expression (UTC)", exact=True).fill(schedule.cron)
+
+
+def add_physical_database(page: Page, storage_name: str) -> str:
+    page.get_by_role("button", name="Databases", exact=True).click()
+    page.get_by_role("button", name="Add database").click()
+    page.get_by_placeholder("My favourite DB").fill("Critical path physical database")
+    page.get_by_role("button", name="Continue", exact=True).click()
+    page.get_by_role("button", name=re.compile("^Physical")).click()
+    page.get_by_role("button", name="Continue", exact=True).click()
+    page.get_by_role("radio", name=re.compile(r"^Full \+ incremental \+ WAL streaming")).check()
+    page.get_by_label("Host", exact=True).fill(SERVER_HOST_ON_COMPOSE_NETWORK)
+    page.get_by_label("Port", exact=True).fill(SERVER_PORT)
+    page.get_by_label("Username", exact=True).fill(SERVER_USER)
+    page.get_by_label("Password", exact=True).fill(os.environ["E2E_DATABASE_PASSWORD"])
+    page.get_by_role("button", name="Test connection", exact=True).click()
+    expect(page.get_by_text("Connection test passed", exact=True)).to_be_visible()
+    page.get_by_role("button", name="Continue", exact=True).click()
+    page.get_by_role("button", name="Skip", exact=True).click()
+    page.get_by_role("button", name="Yes, I accept risks", exact=True).click()
+
+    future = datetime.now(timezone.utc) + timedelta(days=2)
+    _set_future_cadence(page, BackupCadence(label="Full backup cadence", cron=f"0 0 {future.day} {future.month} *"))
+    _set_future_cadence(page, BackupCadence(label="Incremental backup cadence", cron=f"0 */6 {future.day} {future.month} *"))
+    page.get_by_role("dialog").get_by_role("combobox", name="Storage", exact=True).click()
+    page.get_by_title(storage_name, exact=True).click()
+    page.get_by_role("button", name="Continue", exact=True).click()
+    with page.expect_response(lambda response: response.url.endswith('/api/v1/databases')
+                              and response.request.method == 'POST') as created_database:
+        page.get_by_role("button", name="Complete", exact=True).click()
+    expect(page.get_by_role("dialog")).to_be_hidden()
+
+    return created_database.value.json()["id"]
+
+
+def list_backups(page: Page, database_id: str) -> list[dict]:
+    backups = read_api(page, f"/api/v1/physical-backups?databaseId={database_id}&limit=100")["items"]
+    failed = [backup for backup in backups if backup["status"] in ("ERROR", "CHAIN_BROKEN")]
+    assert not failed, f"physical backup failed: {failed}"
+
+    return backups
+
+
+def wait_for_backup(page: Page, selection: BackupSelection) -> dict:
+    backups = wait_until(
+        f"completed {selection.kind} backup",
+        lambda: list_backups(page, selection.database_id),
+        lambda rows: any(row["type"] == selection.kind and row["status"] == "COMPLETED" for row in rows),
+    )
+    matching = [backup for backup in backups if backup["type"] == selection.kind]
+    assert len(matching) == 1, f"unrelated {selection.kind} backups appeared: {matching}"
+    backup = matching[0]
+    expect(page.locator(f'tr[data-row-key="{backup["id"]}"]')).to_contain_text("Successful")
+
+    return backup
+
+
+def build_physical_chain(page: Page, storage_name: str) -> tuple[str, list[ArchivedWrite]]:
+    print("E2E physical: full backup", flush=True)
+    execute_sql(BACKED_UP_DATABASE, f"CREATE TABLE {MARKER_TABLE} (id integer PRIMARY KEY, label text NOT NULL)")
+    write_marker(0)
+
+    database_id = add_physical_database(page, storage_name)
+    full_backup = wait_for_backup(page, BackupSelection(database_id=database_id, kind="FULL"))
+
+    write_marker(1)
+    execute_sql(BACKED_UP_DATABASE,
+                "SELECT pg_logical_emit_message(true, 'browser-e2e', repeat('x', 1024 * 1024)) "
+                "FROM generate_series(1, 32)")
+    execute_sql(BACKED_UP_DATABASE, "CHECKPOINT")
+    execute_sql(BACKED_UP_DATABASE, "SELECT pg_switch_wal()")
+    stop_lsn = full_backup["stopLsn"]
+    assert re.fullmatch(r"[0-9A-Fa-f]+/[0-9A-Fa-f]+", stop_lsn)
+    wait_until("WAL summaries through the full backup", lambda: execute_sql(
+        BACKED_UP_DATABASE,
+        f"SELECT EXISTS (SELECT FROM pg_available_wal_summaries() "
+        f"WHERE start_lsn <= '{stop_lsn}'::pg_lsn AND end_lsn >= '{stop_lsn}'::pg_lsn)"),
+        lambda rows: rows == ["t"])
+
+    print("E2E physical: incremental backup", flush=True)
+    page.get_by_role("button", name="Back up now", exact=True).locator('..').get_by_role("button").last.click()
+    with page.expect_response(lambda response: response.url.endswith('/api/v1/physical-backups')
+                              and response.request.method == 'POST') as started_backup:
+        page.get_by_role("menuitem", name="Incremental backup", exact=True).click()
+    assert started_backup.value.status == 202, f"UI incremental backup refused: {started_backup.value.text()}"
+    incremental_backup = wait_for_backup(page, BackupSelection(database_id=database_id, kind="INCREMENTAL"))
+    assert incremental_backup["rootFullBackupId"] == full_backup["id"]
+    assert "parentIncrementalBackupId" not in incremental_backup, incremental_backup
+    assert len([backup for backup in list_backups(page, database_id) if backup["type"] == "FULL"]) == 1
+
+    print("E2E physical: two later WAL segments", flush=True)
+    archived_writes = []
+    for index in (2, 3):
+        filename = execute_sql(
+            BACKED_UP_DATABASE,
+            f"WITH marker AS (INSERT INTO {MARKER_TABLE} VALUES ({index}, '{PHYSICAL_ROWS[index]}') RETURNING id) "
+            f"SELECT pg_walfile_name(pg_logical_emit_message(true, 'browser-e2e', '{PHYSICAL_ROWS[index]}')) "
+            "FROM marker",
+        )[0]
+        position = execute_sql(BACKED_UP_DATABASE, "SELECT pg_current_wal_lsn()::text")[0]
+        archived_writes.append(ArchivedWrite(filename, position))
+        execute_sql(BACKED_UP_DATABASE, "SELECT pg_switch_wal()")
+
+    assert archived_writes[0].filename != archived_writes[1].filename
+    wait_until("both post-incremental WAL files in archived ranges", lambda: list_backups(page, database_id),
+               lambda backups: all(any(
+                   backup["type"] == "WAL" and backup["status"] == "COMPLETED"
+                   and backup["fromWalFilename"] <= write.filename <= backup["toWalFilename"]
+                   for backup in backups) for write in archived_writes))
+    wait_until("archive progress through the final write", lambda: read_api(page, f"/api/v1/wal-streams/{database_id}"),
+               lambda live: bool(live.get("current")) and
+               _parse_lsn(live["current"].get("archiveProgressLsn") or "0/0") >= _parse_lsn(archived_writes[-1].position))
+    expect(page.get_by_role("row").filter(has=page.get_by_text("WAL", exact=True)).filter(
+        has=page.get_by_text("Successful", exact=True)).first).to_be_visible()
+
+    return database_id, archived_writes
+
+
+def _parse_lsn(position: str) -> int:
+    high, low = position.split('/')
+    return (int(high, 16) << 32) + int(low, 16)
