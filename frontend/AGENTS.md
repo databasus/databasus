@@ -28,50 +28,7 @@ The rules for every module are in the root `AGENTS.md`.
 
 ## React component structure
 
-Write React components with the following structure:
-
-```typescript
-interface Props {
-   someValue: SomeValue;
-}
-
-const someHelperFunction = () => {
-    ...
-}
-
-export const ReactComponent = ({ someValue }: Props): JSX.Element => {
-    // First put states
-    const [someState, setSomeState] = useState<...>(...)
-
-    // Then place functions
-    const loadSomeData = async () => {
-        ...
-    }
-
-    // Then hooks
-    useEffect(() => {
-       loadSomeData();
-    });
-
-    // Then calculated values
-    const calculatedValue = someValue.calculate();
-
-    return <div> ... </div>
-}
-```
-
-### Structure order
-
-1. **Props interface** — Define component props
-2. **Helper functions** (outside component) — Pure utility functions
-3. **Component declaration**
-   - **States** — `useState` declarations
-   - **Plain functions** — Event handlers, async operations, in-component formatters. Anything that does _not_ call a React hook.
-   - **Hooks** — `useRef`, `useLatestRef`, `useEffectEvent`, `useCallback`, `useMemo`, `useEffect`. A function wrapped in `useCallback` is a hook — it lives here, not in the functions section.
-   - **Calculated values** — Derived data computed inline (e.g. an AntD `columns` array).
-   - **Return** — JSX markup
-
-**All hooks (including every `useEffect`) come below every plain function definition.** If a `useEffect` reads a handler, the handler must be defined above it — don't reorder by putting handlers below the effects.
+Group related code and arrange declarations so their dependencies are easy to follow from top to bottom. There is no mandatory order for state, hooks, derived values, handlers or effects. Do not reorder code or raise review findings solely to enforce a section order.
 
 ---
 
