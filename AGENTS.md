@@ -213,7 +213,7 @@ Databasus handles sensitive data, so security is a layered defence. When working
 - Keep Dockerfiles free of secrets, floating base-image tags and unjustified root. If root-at-start is required (PUID/PGID remap, volume chown, initdb), drop privileges with `gosu` before `exec`-ing the app.
 - Never log secrets, tokens or credentials. Redact at the logger layer, not at call sites.
 
-The README's `🛡️ Security & reliability engineering` section is the public-facing version of these practices — keep both consistent if substance changes. That section, like the rest of `README.md`, exists in 6 languages: a substantive edit lands in the English file and in all five `assets/readme/README.<locale>.md` copies.
+The README's `🛡️ Security & reliability engineering` section is the public-facing version of these practices — keep both consistent if substance changes. That section, like the rest of `README.md`, exists in 7 languages: a substantive edit lands in the English file and in all six `assets/readme/README.<locale>.md` copies.
 
 ---
 
