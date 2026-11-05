@@ -1,11 +1,45 @@
 package mysql
 
 import (
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"databasus-backend/internal/engines/clienttools"
 )
+
+func TestGetClientToolBundles(t *testing.T) {
+	t.Parallel()
+
+	for _, architecture := range []struct {
+		name     string
+		versions []string
+	}{
+		{"x64", []string{"5.7", "8.0", "8.4", "9", "26"}},
+		{"arm", []string{"8.0", "8.4", "9", "26"}},
+	} {
+		t.Run("reports missing shipped bundles when architecture is "+architecture.name, func(t *testing.T) {
+			t.Parallel()
+			bundles := GetClientToolBundles(filepath.Join(t.TempDir(), architecture.name))
+			versions := make([]string, 0, len(bundles))
+			for _, bundle := range bundles {
+				versions = append(versions, bundle.Version)
+			}
+
+			assert.Equal(t, architecture.versions, versions)
+			for _, bundleCheck := range clienttools.NewChecker(bundles).Check(t.Context()) {
+				assert.NotEmpty(
+					t,
+					bundleCheck.Errors,
+					"missing MySQL %s must fail its check",
+					bundleCheck.Bundle.Version,
+				)
+			}
+		})
+	}
+}
 
 func TestParseClientVersion(t *testing.T) {
 	t.Parallel()

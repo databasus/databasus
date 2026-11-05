@@ -64,6 +64,10 @@ func GetClientToolBundles(root string) []clienttools.Bundle {
 	bundles := make([]clienttools.Bundle, 0, len(supportedVersions))
 
 	for _, version := range supportedVersions {
+		if version == Version57 && filepath.Base(root) == "arm" {
+			continue
+		}
+
 		bundles = append(bundles, clienttools.Bundle{
 			Engine:           "mysql",
 			Version:          string(version),
