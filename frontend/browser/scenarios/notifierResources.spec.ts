@@ -36,6 +36,14 @@ for (const theme of ['light', 'dark']) {
         name: dictionary.notifiers.list.addNotifier,
         exact: true,
       });
+
+      await expect(dialog).toBeVisible();
+      await dialog.evaluate(async (element) => {
+        await Promise.allSettled(
+          element.getAnimations({ subtree: true }).map((animation) => animation.finished),
+        );
+      });
+
       const type = dialog.getByRole('combobox', {
         name: dictionary.common.fields.type,
         exact: true,
@@ -44,9 +52,20 @@ for (const theme of ['light', 'dark']) {
       if (provider !== 'telegram') {
         await type.focus();
         await type.press('ArrowDown');
-        await page
-          .getByRole('option', { name: dictionary.notifiers.types[provider], exact: true })
-          .click();
+
+        const providerOption = page.getByRole('option', {
+          name: dictionary.notifiers.types[provider],
+          exact: true,
+        });
+
+        await expect(providerOption).toBeVisible();
+        await page.evaluate(async () => {
+          await Promise.allSettled(document.getAnimations().map((animation) => animation.finished));
+        });
+        await providerOption.click();
+
+        await expect(type).toHaveAttribute('aria-expanded', 'false');
+        await expect(providerOption).toBeHidden();
       }
 
       const providerFieldLabels = {
@@ -87,11 +106,6 @@ for (const theme of ['light', 'dark']) {
       await dialog
         .getByRole('textbox', { name: dictionary.common.fields.name, exact: true })
         .fill('Retained notifier draft');
-      await dialog.evaluate(async (element) => {
-        await Promise.allSettled(
-          element.getAnimations({ subtree: true }).map((animation) => animation.finished),
-        );
-      });
 
       const accessibility = await new AxeBuilder({ page })
         .disableRules(['color-contrast'])
