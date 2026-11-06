@@ -1,0 +1,128 @@
+name: ARM release reliability verification (temporary)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/arm64-release-tests-verification]
+    paths: [.github/workflows/arm-release-reliability-temporary.yml]
+
+permissions:
+  contents: read
+
+env:
+  MISE_TASK_RUN_AUTO_INSTALL: 'false'
+
+jobs:
+  verify-reliability:
+    name: verify-reliability (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: namespace-profile-8vcpu-16ram-ubuntu-22-x64
+          - arch: arm64
+            runner: namespace-profile-8vcpu-16ram-ubuntu-22-arm
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Check native runner architecture
+        run: scripts/check_native_architecture.sh ${{ matrix.arch }}
+
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: 'go golangci-lint jq'
+
+      - name: Set up Go cache
+        uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
+        with:
+          cache: go
+
+      - name: Install database client dependencies
+        run: |
+          # The bundled assets/tools clients are Debian-built; Ubuntu ships no libncurses5/libtinfo5
+          # package at all, and the ABI-identical .so.6 satisfies them via these symlinks.
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq dpkg-dev libedit2 libncurses6 libtinfo6 libpq5 libmariadb3 libgnutls30 zstd netcat-openbsd
+          library_directory="/usr/lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
+          sudo ln -sf "${library_directory}/libncurses.so.6" "${library_directory}/libncurses.so.5"
+          sudo ln -sf "${library_directory}/libtinfo.so.6" "${library_directory}/libtinfo.so.5"
+
+      - name: Download Go modules
+        run: |
+          cd backend
+          go mod download
+
+      - name: Create .env file for testing
+        run: cp .env.example .env
+
+      - name: Start test containers
+        run: |
+          docker compose -f docker-compose.yml up -d backend-db-test
+
+      - name: Wait for containers to be ready
+        run: |
+          # Wait for test database (postgres listens on 5432 inside the container)
+          timeout 60 bash -c 'until docker exec backend-db-test pg_isready -U postgres; do sleep 2; done'
+
+      - name: Create data and temp directories
+        run: |
+          # Create directories that are used for backups and restore
+          # These paths match what's configured in config.go
+          mkdir -p databasus-data/backups
+          mkdir -p databasus-data/temp
+
+      - name: Pull testcontainer images
+        run: mise run backend:pull-testcontainers
+
+      - name: Prove the WAL shutdown assertion catches an unreleased claim
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: 'true'
+        run: |
+          cd backend
+          python3 - <<'PYTHON'
+          import re
+          from pathlib import Path
+          source = Path('internal/modules/backups/internal/physical/catalog/wal_streamer_repository.go')
+          original = source.read_text()
+          changed, count = re.subn(
+              r'(func \(r \*WalStreamerRepository\) MarkStopped\([^\n]+\) error \{)\n.*?\n\}',
+              r'\1\n\treturn nil\n}', original, count=1, flags=re.S,
+          )
+          assert count == 1, 'shutdown mutation did not match'
+          source.write_text(changed)
+          PYTHON
+          if go test -race -count=1 -timeout 10m -run '^TestWalStreamShutdown$/releases_fresh_ownership' ./internal/modules/backups/physicalapitests/walstreaming > /tmp/wal-missing-release.log 2>&1; then
+            cat /tmp/wal-missing-release.log
+            echo 'The shutdown regression accepted a missing ownership release' >&2
+            exit 1
+          fi
+          cat /tmp/wal-missing-release.log
+          grep -F 'expected: "FAILED"' /tmp/wal-missing-release.log
+          grep -F 'actual  : "RUNNING"' /tmp/wal-missing-release.log
+          git restore -- internal/modules/backups/internal/physical/catalog/wal_streamer_repository.go
+
+      - name: Repeat repaired WAL shutdown ten times
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: 'true'
+        run: |
+          cd backend
+          go test -race -parallel=2 -count=10 -timeout 20m -run '^TestWalStreamShutdown$/releases_fresh_ownership' ./internal/modules/backups/physicalapitests/walstreaming
+
+      - name: Repeat MongoDB SSH backup and restore ten times
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: 'true'
+        run: |
+          cd backend
+          go test -race -parallel=2 -count=10 -timeout 40m -run '^TestBackupAndRestoreMongodbOverSshTunnel$' ./internal/modules/backups/e2e/mongodb
+
+      - name: Run all logical engines concurrently
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: 'true'
+        run: |
+          cd backend
+          go test -race -p=8 -parallel=2 -count=1 -timeout 40m ./internal/modules/backups/e2e/mysql ./internal/modules/backups/e2e/mariadb ./internal/modules/backups/e2e/mongodb ./internal/modules/backups/e2e/postgresql
