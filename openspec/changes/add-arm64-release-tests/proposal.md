@@ -23,13 +23,14 @@ None.
 ### Modified Capabilities
 
 - `ci-pipeline`: Require native, complete release testing on both architectures, matching candidate images, explicit unavailable-image exclusions and publication dependencies on every required result. Remove the existing architecture and develop exclusions from the affected image/browser requirements.
+- `frontend-database-screens`: Let the scheduler own the first physical backup after creation, preventing a redundant manual request from queuing another backup while retaining logical startup and explicit manual queueing.
 - `frontend-screen-testing`: Run the pinned browser UI environment natively on either supported architecture while preserving explicit visual-reference updates and strict comparison failures.
 
 ## Impact
 
 - CI: release workflow matrices, runner selection, image artifacts, client-library setup, script-test execution and release dependency checks. The dev-image publishing workflow and its trigger rules remain outside this change.
 - Backend: shared test-container support, engine-version scenarios, logical e2e, the upgrade harness and any backup/tunnel code whose defect is established by a regression test.
-- Frontend: browser runner, pinned environment, image construction, harness tests and visual-reference selection if native rendering requires architecture-specific references. Application UI and translations remain unchanged.
+- Frontend: browser runner, pinned environment, image construction, harness tests and visual-reference selection if native rendering requires architecture-specific references. The creation wizard stops sending a redundant first-physical-backup request; layout and translations remain unchanged.
 - End-to-end infrastructure: browser image consumers and the network-filesystem fixture; existing isolation, cleanup and secret masking remain required.
 - Documentation: `docs/testing.md` and any descriptions of changed test commands or fixture setup. The application architecture is unchanged.
 - Constraints: root `AGENTS.md`, `backend/AGENTS.md` and `frontend/AGENTS.md`, including their test, dependency and verification rules.

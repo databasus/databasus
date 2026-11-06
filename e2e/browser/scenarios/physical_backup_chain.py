@@ -14,7 +14,7 @@ from database_server import (
     SERVER_USER,
     execute_sql,
 )
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Page, Request, expect
 
 MARKER_TABLE = "e2e_physical_markers"
 PHYSICAL_ROWS = [
@@ -98,13 +98,27 @@ def add_physical_database(page: Page, storage_name: str) -> str:
     page.get_by_role("dialog").get_by_role("combobox", name="Storage", exact=True).click()
     page.get_by_title(storage_name, exact=True).click()
     page.get_by_role("button", name="Continue", exact=True).click()
-    with page.expect_response(
-        lambda response: (
-            response.url.endswith("/api/v1/databases") and response.request.method == "POST"
+
+    manual_backup_requests: list[str] = []
+
+    def record_manual_backup(request: Request) -> None:
+        if request.method == "POST" and request.url.endswith("/api/v1/physical-backups"):
+            manual_backup_requests.append(request.url)
+
+    page.on("request", record_manual_backup)
+    try:
+        with page.expect_response(
+            lambda response: (
+                response.url.endswith("/api/v1/databases") and response.request.method == "POST"
+            )
+        ) as created_database:
+            page.get_by_role("button", name="Complete", exact=True).click()
+        expect(page.get_by_role("dialog")).to_be_hidden()
+        assert not manual_backup_requests, (
+            "the physical wizard requested a manual backup in addition to its scheduled initial full"
         )
-    ) as created_database:
-        page.get_by_role("button", name="Complete", exact=True).click()
-    expect(page.get_by_role("dialog")).to_be_hidden()
+    finally:
+        page.remove_listener("request", record_manual_backup)
 
     database = get_api_object(created_database.value.json())
     database_id = database.get("id")
