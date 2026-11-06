@@ -68,7 +68,10 @@ func (s *Service) reclaimDroppedRunningJobs(
 		logger := s.logger.With(slog.Any("verification_id", row.ID), slog.Any("agent_id", agent.ID))
 		logger.InfoContext(ctx, "reclaiming dropped verification")
 
-		if err := s.RequeueOrFail(ctx, row, FailureReasonAgentDroppedJob, nil); err != nil {
+		if err := s.RequeueOrFail(
+			ctx,
+			VerificationFailure{Verification: row, Reason: FailureReasonAgentDroppedJob},
+		); err != nil {
 			logger.ErrorContext(ctx, "failed to reclaim dropped verification", slog.Any("error", err))
 		}
 	}

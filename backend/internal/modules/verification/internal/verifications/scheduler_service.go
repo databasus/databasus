@@ -126,7 +126,10 @@ func (s *Service) reapStaleRuns(ctx context.Context, logger *slog.Logger) error 
 			// The owning agent is gone, but Requeue clears agent_id so a
 			// different agent can pick the run up. If none does, the stale
 			// PENDING reaper retires it after maxPendingDuration.
-			if failErr := s.RequeueOrFail(ctx, row, FailureReasonAgentRemoved, nil); failErr != nil {
+			if failErr := s.RequeueOrFail(
+				ctx,
+				VerificationFailure{Verification: row, Reason: FailureReasonAgentRemoved},
+			); failErr != nil {
 				logger.ErrorContext(ctx,
 					"failed to requeue or fail RUNNING verification for removed agent",
 					slog.Any("error", failErr),
@@ -138,7 +141,10 @@ func (s *Service) reapStaleRuns(ctx context.Context, logger *slog.Logger) error 
 		}
 
 		if !hasFreshAcceptedHeartbeat(&agent, now) {
-			if failErr := s.RequeueOrFail(ctx, row, FailureReasonAgentLostContact, nil); failErr != nil {
+			if failErr := s.RequeueOrFail(
+				ctx,
+				VerificationFailure{Verification: row, Reason: FailureReasonAgentLostContact},
+			); failErr != nil {
 				logger.ErrorContext(ctx,
 					"failed to requeue or fail stale RUNNING verification",
 					slog.Any("error", failErr),
@@ -156,7 +162,10 @@ func (s *Service) reapStaleRuns(ctx context.Context, logger *slog.Logger) error 
 	}
 
 	for _, row := range stalePending {
-		if failErr := s.RequeueOrFail(ctx, row, FailureReasonUnclaimedTooLong, nil); failErr != nil {
+		if failErr := s.RequeueOrFail(
+			ctx,
+			VerificationFailure{Verification: row, Reason: FailureReasonUnclaimedTooLong},
+		); failErr != nil {
 			logger.ErrorContext(ctx,
 				"failed to fail stale PENDING verification",
 				slog.Any("error", failErr),

@@ -23,3 +23,7 @@ export const stubClipboardWrite = (writeText: (text: string) => Promise<void>) =
 export const stubClipboardUnavailable = () => {
   overrideProperty(window, 'isSecureContext', false);
 };
+
+export const stubClipboardCommand = (execCommand: Document['execCommand']) => {
+  overrideProperty(document, 'execCommand', execCommand);
+};

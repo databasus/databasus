@@ -115,15 +115,17 @@ type SuccessReport struct {
 
 func (r *verificationRepository) WriteSuccessReport(ctx context.Context, success SuccessReport) error {
 	fields := map[string]any{
-		"status":                      VerificationStatusCompleted,
-		"finished_at":                 success.FinishedAt,
-		"pg_restore_exit_code":        success.Report.PgRestoreExitCode,
-		"restore_duration_ms":         success.Report.RestoreDurationMs,
-		"verify_duration_ms":          success.Report.VerifyDurationMs,
-		"db_size_bytes_after_restore": success.Report.RestoredDatabaseSizeBytes,
-		"table_count":                 success.Report.TableCount,
-		"schema_count":                success.Report.SchemaCount,
-		"fail_message":                nil,
+		"status":                          VerificationStatusCompleted,
+		"finished_at":                     success.FinishedAt,
+		"pg_restore_exit_code":            success.Report.PgRestoreExitCode,
+		"restore_duration_ms":             success.Report.RestoreDurationMs,
+		"verify_duration_ms":              success.Report.VerifyDurationMs,
+		"db_size_bytes_after_restore":     success.Report.RestoredDatabaseSizeBytes,
+		"table_count":                     success.Report.TableCount,
+		"schema_count":                    success.Report.SchemaCount,
+		"fail_message":                    nil,
+		"failure_diagnostic_output":       nil,
+		"is_failure_diagnostic_truncated": false,
 	}
 
 	result := database.Conn(ctx, r.db).Model(&Verification{}).
@@ -255,13 +257,15 @@ func (r *verificationRepository) Requeue(ctx context.Context, verificationID uui
 	result := db.Model(&Verification{}).
 		Where("id = ?", verificationID).
 		Updates(map[string]any{
-			"status":        VerificationStatusPending,
-			"agent_id":      nil,
-			"started_at":    nil,
-			"finished_at":   nil,
-			"created_at":    now,
-			"attempt_count": gorm.Expr("attempt_count + 1"),
-			"fail_message":  nil,
+			"status":                          VerificationStatusPending,
+			"agent_id":                        nil,
+			"started_at":                      nil,
+			"finished_at":                     nil,
+			"created_at":                      now,
+			"attempt_count":                   gorm.Expr("attempt_count + 1"),
+			"fail_message":                    nil,
+			"failure_diagnostic_output":       nil,
+			"is_failure_diagnostic_truncated": false,
 		})
 	if result.Error != nil {
 		return result.Error
@@ -285,6 +289,8 @@ func (r *verificationRepository) MarkTerminal(ctx context.Context, terminal Term
 	db := database.Conn(ctx, r.db)
 
 	updates := make(map[string]any, len(terminal.Fields)+2)
+	updates["failure_diagnostic_output"] = nil
+	updates["is_failure_diagnostic_truncated"] = false
 	maps.Copy(updates, terminal.Fields)
 	updates["status"] = terminal.Status
 	updates["finished_at"] = terminal.FinishedAt
@@ -322,12 +328,33 @@ type VerificationPageQuery struct {
 
 func (r *verificationRepository) ListPage(ctx context.Context, query VerificationPageQuery) ([]*Verification, error) {
 	verifications := []*Verification{}
-	statement := database.Conn(ctx, r.db).Where("database_id = ?", query.DatabaseID)
+	statement := database.Conn(ctx, r.db).
+		Omit("failure_diagnostic_output", "is_failure_diagnostic_truncated").
+		Where("database_id = ?", query.DatabaseID)
 	if query.After != nil {
 		statement = statement.Where("(created_at, id) < (?, ?)", query.After.Time, query.After.ID)
 	}
 	err := statement.Order("created_at DESC, id DESC").Limit(query.Limit).Find(&verifications).Error
 	return verifications, wrapQueryError(err)
+}
+
+func (r *verificationRepository) LockVerification(ctx context.Context, id uuid.UUID) (*Verification, bool, error) {
+	var verification Verification
+	err := database.Conn(ctx, r.db).
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("id = ?", id).
+		First(&verification).
+		Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, false, nil
+	}
+
+	if err != nil {
+		return nil, false, err
+	}
+
+	return &verification, true, nil
 }
 
 func (r *verificationRepository) insertTableStats(

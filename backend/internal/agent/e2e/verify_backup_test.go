@@ -140,6 +140,15 @@ func verifyBackup(t *testing.T, scenario backupScenario) {
 	}
 
 	requireNoLeftovers(t, engine, credentials.Agent.ID)
+
+	if scenario.isBroken {
+		details, err := team.Owner.Client.GetVerificationWithResponse(t.Context(), verificationID)
+		require.NoError(t, err)
+		require.NotNil(t, details.JSON200)
+		require.NotNil(t, details.JSON200.FailureDiagnostic)
+		assert.Contains(t, details.JSON200.FailureDiagnostic.Output, "pg_restore:")
+		assert.False(t, details.JSON200.FailureDiagnostic.IsTruncated)
+	}
 }
 
 func requireCompleted(t *testing.T, verification apptest.Verification) {

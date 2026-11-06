@@ -982,6 +982,13 @@ export const id: typeof en = {
       details: {
         title: 'Detail verifikasi restore',
         cancellationReason: 'Alasan pembatalan',
+        diagnostic: {
+          title: 'Detail kesalahan',
+          truncated: 'Sebagian keluaran di tengah dihilangkan agar tidak melebihi batas 64 KB.',
+          unavailable: 'Tidak ada diagnostik terperinci yang disimpan untuk verifikasi ini.',
+          copied: 'Diagnostik disalin',
+          copyFailed: 'Diagnostik tidak dapat disalin. Pilih dan salin teks secara manual.',
+        },
         failure: 'Kegagalan',
         sections: { status: 'Status', timeline: 'Linimasa', results: 'Hasil dan diagnostik' },
         fields: {

@@ -9,6 +9,7 @@ import { type VerificationDetails } from '@/pages/databases/model/verification/V
 import { VerificationStatus } from '@/pages/databases/model/verification/VerificationStatus';
 import { type VerificationTableStat } from '@/pages/databases/model/verification/VerificationTableStat';
 import { formatOptionalDuration } from '@/pages/databases/ui/verification/formatOptionalDuration';
+import { VerificationFailureDetails } from '@/pages/databases/ui/verification/VerificationFailureDetails';
 import { VerificationStatusLabel } from '@/pages/databases/ui/verification/VerificationStatusLabel';
 import { VerificationTriggerTag } from '@/pages/databases/ui/verification/VerificationTriggerTag';
 import { type LocaleContextValue, useLocale } from '@/shared/i18n';
@@ -68,6 +69,7 @@ export const VerificationDetailDrawer = ({ verificationId, isOpen, onClose, onCl
   const { t } = useTranslation();
   const { formatNumber, formatRelativeTime } = useLocale();
   const [verification, setVerification] = useState<VerificationDetails | undefined>();
+  const [requestedVerificationId, setRequestedVerificationId] = useState<string>();
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<unknown>();
   const [loadRevision] = useState(() => new RequestRevision());
@@ -76,6 +78,7 @@ export const VerificationDetailDrawer = ({ verificationId, isOpen, onClose, onCl
     const revision = loadRevision.Invalidate();
 
     setIsLoading(true);
+    setRequestedVerificationId(verificationId);
     setLoadError(undefined);
 
     try {
@@ -110,7 +113,6 @@ export const VerificationDetailDrawer = ({ verificationId, isOpen, onClose, onCl
       title: t('verification.runs.details.tableStats.schema'),
       dataIndex: 'schemaName',
       key: 'schemaName',
-      width: 140,
       render: (schemaName: string) => <span className="font-mono text-xs">{schemaName}</span>,
     },
     {
@@ -123,7 +125,6 @@ export const VerificationDetailDrawer = ({ verificationId, isOpen, onClose, onCl
       title: t('verification.runs.details.tableStats.rows'),
       dataIndex: 'rowCount',
       key: 'rowCount',
-      width: 120,
       align: 'right',
       render: (rowCount: number) => <span className="tabular-nums">{formatNumber(rowCount)}</span>,
       sorter: (a, b) => a.rowCount - b.rowCount,
@@ -142,7 +143,7 @@ export const VerificationDetailDrawer = ({ verificationId, isOpen, onClose, onCl
       }}
       maskClosable={true}
     >
-      {isLoading ? (
+      {isLoading || requestedVerificationId !== verificationId ? (
         <Skeleton active paragraph={{ rows: 10 }} />
       ) : loadError !== undefined || !verification ? (
         <LoadFailure error={loadError} onRetry={() => void loadVerification()} />
@@ -166,6 +167,13 @@ export const VerificationDetailDrawer = ({ verificationId, isOpen, onClose, onCl
                 }
               />
             ))}
+
+          {isOpen && verification.status === VerificationStatus.FAILED && (
+            <VerificationFailureDetails
+              key={verificationId}
+              diagnostic={verification.failureDiagnostic}
+            />
+          )}
 
           {renderSection(
             t('verification.runs.details.sections.status'),
@@ -246,6 +254,8 @@ export const VerificationDetailDrawer = ({ verificationId, isOpen, onClose, onCl
             </div>
           ) : (
             <Table
+              className="[&_.ant-table-column-title]:min-w-0 [&_td]:wrap-anywhere [&_th]:wrap-anywhere"
+              tableLayout="fixed"
               bordered
               size="small"
               columns={tableStatColumns}

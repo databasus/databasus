@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"databasus-backend/internal/engines/postgresql/logical/pgrestore"
 	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/verification/internal/agents"
 	"databasus-backend/internal/modules/verification/internal/verifications"
@@ -124,6 +125,15 @@ func toReport(report VerificationReport) *verifications.ReportRequest {
 			RowCount:   table.RowCount,
 		}
 	}
+
+	var diagnostic *pgrestore.FailureDiagnostic
+	if report.FailureDiagnostic != nil {
+		diagnostic = &pgrestore.FailureDiagnostic{
+			Output:      report.FailureDiagnostic.Output,
+			IsTruncated: report.FailureDiagnostic.IsTruncated,
+		}
+	}
+
 	return &verifications.ReportRequest{
 		Status:                    verifications.VerificationStatus(report.Status),
 		PgRestoreExitCode:         report.PgRestoreExitCode,
@@ -135,5 +145,6 @@ func toReport(report VerificationReport) *verifications.ReportRequest {
 		SchemaCount:               report.SchemaCount,
 		TableStats:                tables,
 		FailMessage:               report.FailMessage,
+		FailureDiagnostic:         diagnostic,
 	}
 }

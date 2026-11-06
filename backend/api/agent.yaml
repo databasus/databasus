@@ -314,6 +314,20 @@ components:
         failMessage:
           type: string
           nullable: true
+        failureDiagnostic:
+          $ref: "#/components/schemas/VerificationFailureDiagnostic"
+    VerificationFailureDiagnostic:
+      description: Sanitized failure output for FAILED reports only. Omit when unavailable. Limited to 65536 decoded UTF-8 bytes including omission markers.
+      type: object
+      required: [output, isTruncated]
+      properties:
+        output:
+          type: string
+          minLength: 1
+          maxLength: 65536
+          description: Nonempty output. More than 65536 decoded UTF-8 bytes is invalid_request without mutation.
+        isTruncated:
+          type: boolean
     Problem:
       type: object
       description: An error in the RFC 9457 format. The client chooses its text by `code`

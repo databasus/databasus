@@ -37,7 +37,17 @@ func fromDetails(verification *verifications.Verification) VerificationDetails {
 	for index, stat := range verification.TableStats {
 		stats[index] = VerificationTableStat{SchemaName: stat.SchemaName, Name: stat.Name, RowCount: stat.RowCount}
 	}
+
+	var diagnostic *VerificationFailureDiagnostic
+	if verification.FailureDiagnosticOutput != nil {
+		diagnostic = &VerificationFailureDiagnostic{
+			Output:      *verification.FailureDiagnosticOutput,
+			IsTruncated: verification.IsFailureDiagnosticTruncated,
+		}
+	}
+
 	return VerificationDetails{
+		FailureDiagnostic:         diagnostic,
 		AgentId:                   verification.AgentID,
 		AttemptCount:              verification.AttemptCount,
 		BackupId:                  verification.BackupID,

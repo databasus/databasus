@@ -71,6 +71,7 @@ This is the project's common language. Each concept has one term in the document
 | Retention | retention | The rule that decides which backups are kept, including the grandfather-father-son (GFS) policy. |
 | Schedule | schedule | When something runs: every N hours, daily, weekly, monthly or a cron expression. |
 | Verification | verification, `verification_runs` | A check that a backup restores: the agent restores it into a disposable container and compares what it finds. Table names call one verification a run because the module prefix already says "verification". |
+| Failure diagnostic | failure diagnostic, `failureDiagnostic` in the API | The bounded, sanitized diagnostic of a verification's final failed attempt. It is separate from the short failure summary (`failMessage`) used in lists and notifications. |
 | Verification config | verification config, `VerificationConfig` | The settings of a database that decide when its backups are verified automatically and which outcomes notify. |
 | Verification trigger | verification trigger, `VerificationTrigger` | What started a verification: a user, the interval schedule or a completed backup. |
 | Verification agent | verification agent, `VerificationAgent` in the API | The program on the user's machine that runs verifications. |

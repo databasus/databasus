@@ -3564,10 +3564,24 @@ components:
         - type: object
           required: [tableStats]
           properties:
+            failureDiagnostic:
+              $ref: "#/components/schemas/VerificationFailureDiagnostic"
             tableStats:
               type: array
               items:
                 $ref: "#/components/schemas/VerificationTableStat"
+    VerificationFailureDiagnostic:
+      description: Sanitized output of the final failed attempt, available only in verification details.
+      type: object
+      required: [output, isTruncated]
+      properties:
+        output:
+          description: At most 65536 decoded UTF-8 bytes, including an omission marker when truncated.
+          type: string
+          minLength: 1
+          maxLength: 65536
+        isTruncated:
+          type: boolean
     VerificationAgentPage:
       description: Verification Agent Page
       type: object

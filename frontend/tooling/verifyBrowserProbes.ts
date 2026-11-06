@@ -14,7 +14,7 @@ export const verifyBrowserProbes = async () => {
     const applicationConfigUrl = pathToFileURL(resolve('playwright.config.ts')).href;
     await writeFile(
       config,
-      `import configuration from ${JSON.stringify(applicationConfigUrl)}; export default { ...configuration, projects: configuration.projects.filter(project => project.name === 'ui').map(project => ({ ...project, testDir: ${JSON.stringify(directory)} })), testDir: ${JSON.stringify(directory)}, testMatch: 'probe.spec.mjs', outputDir: ${JSON.stringify(join(directory, 'artifacts'))}, snapshotPathTemplate: ${JSON.stringify(join(directory, 'references/{arg}{ext}'))} };`,
+      `import configuration from ${JSON.stringify(applicationConfigUrl)}; export default { ...configuration, tsconfig: ${JSON.stringify(resolve('tsconfig.node.json'))}, projects: configuration.projects.filter(project => project.name === 'ui').map(project => ({ ...project, testDir: ${JSON.stringify(directory)} })), testDir: ${JSON.stringify(directory)}, testMatch: 'probe.spec.mjs', outputDir: ${JSON.stringify(join(directory, 'artifacts'))}, snapshotPathTemplate: ${JSON.stringify(join(directory, 'references/{arg}{ext}'))} };`,
     );
 
     const fixtureUrl = pathToFileURL(resolve('browser/browserTest.ts')).href;

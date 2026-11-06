@@ -218,3 +218,40 @@ pg_restore: warning: errors ignored on restore: 1
 		assert.True(t, strings.HasSuffix(result.StderrTail, "TAIL-MARKER"))
 	})
 }
+
+func TestRestoreFailureDiagnostic(t *testing.T) {
+	t.Parallel()
+	t.Run(
+		"preserves the first cause and masks the target password when stderr exceeds the log tail",
+		func(t *testing.T) {
+			t.Parallel()
+			stderr := "pg_restore: error: type geometry does not exist " + testConn().Password + "\n" + strings.Repeat(
+				"archive object\n",
+				6000,
+			) + "pg_restore: warning: errors ignored on restore: 1"
+			executor := &fakeExecRunner{result: ExecResult{ExitCode: 1, Stderr: stderr}}
+			restorer := NewRestorer(slog.New(slog.DiscardHandler))
+
+			restoreResult, err := restorer.RunPgRestore(t.Context(), executor, testSpec(1))
+
+			require.ErrorIs(t, err, ErrRestoreFailed)
+			require.NotNil(t, restoreResult.FailureDiagnostic)
+			assert.Contains(t, restoreResult.FailureDiagnostic.Output, "type geometry does not exist")
+			assert.NotContains(t, restoreResult.StderrTail, "type geometry does not exist")
+			assert.NotContains(t, restoreResult.FailureDiagnostic.Output, testConn().Password)
+			assert.Contains(t, restoreResult.FailureDiagnostic.Output, "errors ignored on restore: 1")
+			assert.LessOrEqual(t, len(restoreResult.FailureDiagnostic.Output), pgrestore.MaxFailureDiagnosticBytes)
+			assert.True(t, restoreResult.FailureDiagnostic.IsTruncated)
+		},
+	)
+	t.Run("omits the diagnostic when execution produces no stderr", func(t *testing.T) {
+		t.Parallel()
+		executor := &fakeExecRunner{err: errors.New("exec unavailable")}
+		restorer := NewRestorer(slog.New(slog.DiscardHandler))
+
+		restoreResult, err := restorer.RunPgRestore(t.Context(), executor, testSpec(1))
+
+		require.Error(t, err)
+		assert.Nil(t, restoreResult.FailureDiagnostic)
+	})
+}

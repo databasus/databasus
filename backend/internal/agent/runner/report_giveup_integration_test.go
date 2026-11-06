@@ -107,11 +107,12 @@ func TestExecuteJobReportGiveup(t *testing.T) {
 
 		runnerUnderTest := NewRunner(
 			Deps{
-				APIClient: client,
-				Capacity:  testCapacity(),
-				Pool:      NewPool(2),
-				Spawner:   okSpawner(),
-				Restorer:  &fakeRestorer{runResult: restore.Result{PgRestoreExitCode: 0}},
+				DiagnosticSecrets: nil,
+				APIClient:         client,
+				Capacity:          testCapacity(),
+				Pool:              NewPool(2),
+				Spawner:           okSpawner(),
+				Restorer:          &fakeRestorer{runResult: restore.Result{PgRestoreExitCode: 0}},
 				StatsCollector: &fakeStats{stats: verifier.Stats{
 					DBSizeBytes: 9_000_000,
 					SchemaCount: 2,
