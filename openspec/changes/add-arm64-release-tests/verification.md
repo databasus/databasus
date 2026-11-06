@@ -2,6 +2,12 @@
 
 Local execution uses native Linux amd64. Selection tests exercise ARM inputs without emulation; they do not establish native ARM execution.
 
+## Latest continuation status
+
+Native run `42188840075` passed every backend group on both architectures with the two-scenario budget, including ARM `other` (provider package 159.242s, app harness 347.063s, backup API tests 690.311s). Both upgrade suites, agent Docker/Podman suites, strict browser UI checks and all filesystem groups also passed. The ARM frontend readiness repair below awaits its native follow-up; real-backend browser checks are still finishing. This is not a fully passing run.
+
+After that frontend repair, the nineteen targeted storage selection/lifecycle tests and all 187 frontend files / 2561 tests passed locally. Frontend formatting, lint and the production build passed. The initial full unit command inside the sandbox failed on prohibited child processes and loopback listeners; the identical command outside the sandbox passed in 80.19s. Container checks remain blocked locally by the shared Docker daemon, and the historical MongoDB timeout's cause remains unestablished. The corresponding completion decisions are pending user input.
+
 ## Local checks at the first implementation snapshot
 
 | Check                                                                                                | Result                                                                                                                         |
@@ -99,3 +105,11 @@ The browser follow-up finished successfully on both architectures. ARM passed 36
 After dispatching all diagnostic runs, the temporary reliability workflow was removed from the final working tree. Active hosted runs retain their dispatched snapshots. Subsequent cleanup changes only this workflow and the change documentation; the production workflow and application/scenario code tested at `725672bc` remain unchanged.
 
 The amd64 provider package passed ten isolated repetitions (1336.818s); the 32 KiB mutation had failed at 37.419s against the unchanged 6.4s limit. ARM's full `other` run also passed its isolated provider package (185.908s), but its remaining packages failed while `TestDownloadLogicalBackupWhileAnotherStreams` waited for preparation of the large real backup. The source payload and all token/conflict assertions are unchanged. The runner recorded 72.63% five-minute CPU pressure, no OOM or CPU-quota throttling, and registration requests taking 9–18s. The `other` exception of eight scenarios per binary is removed; all groups now retain eight package processes with two parallel scenarios each. Workflow regression coverage rejects restoring that exception. A new native run must verify the combined budget.
+
+ARM's provider package also passed all ten isolated repetitions (1544.277s); its 32 KiB mutation failed at 40.656s. Both mutation runs failed specifically at the unchanged segment-write assertion, while the ordinary runs retained every provider scenario. All 159 script tests passed again after the universal two-scenario budget, along with Python lint, shellcheck, actionlint and strict OpenSpec validation.
+
+The x64 A/B/A experiment completed with all four packages passing at parallelism 4, 2 and 4. MongoDB took 87.359s, 73.999s and 85.584s; PostgreSQL took 224.520s, 217.077s and 225.875s. Peak recorded cgroup memory was 5,401,841,664 bytes, with no OOM or CPU-quota throttling; socket-throttling events also occurred in these successful runs. Neither architecture reproduced the historical SSH timeout. Its cause remains unestablished, and task 1.2 remains open pending the user's decision about its completion criterion.
+
+Full native [run 42188840075](https://github.com/databasus/databasus/actions/runs/42188840075), snapshot `0d725604`, checks the combined two-scenario budget with the temporary workflow removed. Superseded run `42185314987` was cancelled after collecting its ARM download-fixture failure; it is not accepted as a complete passing run. No application or download-test code changed for the budget repair.
+
+That run's ARM frontend leg failed one of 2561 tests: the composed storage-creation scenario clicked Save again after creation but never observed its assigned-ID callback. The test waited for the Type control to disappear, without requiring Save to be enabled and no longer loading. AntD's button handler discards loading clicks. The repair adds that readiness condition and one user-event click, retaining the newer input, callback, single-create assertions and shared wait limits. The unchanged test passed locally; after the repair, all nineteen storage selection/lifecycle tests passed. Native verification of the repair remains pending.

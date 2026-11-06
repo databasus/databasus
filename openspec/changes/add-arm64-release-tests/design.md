@@ -90,6 +90,8 @@ Further flaky tests or important defects exposed by this work are repaired in th
 
 Run the storage-provider package's elapsed-time regression without other test packages or scenarios competing for the runner: execute that package first with `-race -p=1 -parallel=1`, then execute the rest of `other` with its existing budgets. Preserve its 50 ms egress delay, payloads, connection count and 6.4s segment-write limit. Command-level tests require every package exactly once and propagate failures from both stages; a native 32 KiB chunk mutation must still fail the timing assertion. This isolates a measurement rather than changing a storage guarantee.
 
+The composed storage-creation test must wait for the second Save button to be enabled and no longer loading before clicking it through user-event. The assigned ID becoming visible does not express that control's readiness; AntD discards clicks while loading. Preserve the newer input, assigned-ID callback, single creation request and shared wait limits. Native ARM run `42188840075` reached the final callback wait without a callback; local success alone does not establish that the intermittent failure is resolved.
+
 **Alternatives rejected:** Hiding the SSH test, increasing a deadline without a diagnosis, or retrying the scenario leaves the underlying failure. Updating only the first stale upgrade route risks discovering the next one after another full hosted run. A compatibility layer in production is unnecessary because the observed upgrade failure is in test preparation.
 
 ## Risks / Trade-offs
@@ -105,7 +107,7 @@ Run the storage-provider package's elapsed-time regression without other test pa
 
 No application data migration or user configuration change is needed. Implement fixture and harness repairs first, then expand workflow matrices and their local coverage tests, then update `docs/testing.md` and all affected command descriptions. Keep the normal `main` trigger and manual dispatch behavior.
 
-The implementation checklist ends after local checks and mandatory review. The user has separately allowed a temporary verification branch/workflow during implementation. A hosted verification run can then gather native evidence for both architectures without changing release eligibility or publishing artifacts; it is not a task that blocks the local pre-commit boundary. Do not describe static matrix checks, cross-compilation or an amd64 run as a successful native ARM run. Any temporary verification workflow must not remain as a second permanent source of suite selection.
+The implementation checklist ends after local checks and mandatory review. The user has separately allowed a temporary verification branch/workflow during implementation. A hosted verification run can then gather native evidence for both architectures without changing release eligibility or publishing artifacts; it is not a task that blocks the local pre-commit boundary. Do not describe static matrix checks, cross-compilation or an amd64 run as a successful native ARM run. Any temporary verification workflow must not remain as a second permanent source of suite selection. Browser recovery preparation requires Docker's `image save --platform` capability to export exactly the server's platform; `docs/testing.md` records that prerequisite.
 
 Rollback is a normal code/configuration revert. The new Namespace profiles contain no running workloads and can remain available; do not remove them or alter unrelated profiles as part of rollback.
 

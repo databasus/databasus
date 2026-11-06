@@ -68,7 +68,12 @@ describe('Composed backup storage creation', () => {
     expect(onSelect).not.toHaveBeenCalled();
     expect(dialog.getByDisplayValue('Newer')).toBeTruthy();
 
-    fireEvent.click(await dialog.findByRole('button', { name: /Save/ }));
+    const saveButton = await dialog.findByRole('button', { name: /Save/ });
+    await waitFor(() => {
+      expect(saveButton.hasAttribute('disabled')).toBe(false);
+      expect(saveButton.classList.contains('ant-btn-loading')).toBe(false);
+    });
+    await view.user.click(saveButton);
 
     await waitFor(() => expect(onSelect).toHaveBeenCalledWith(storage.id));
     expect(
