@@ -6,17 +6,6 @@ import (
 	"databasus-backend/internal/modules/storages"
 )
 
-// streamOutcome is the codec-agnostic result of one runStream attempt. Exactly
-// one of three shapes is valid, discriminated by the fields below:
-//
-//  1. isCompressionUnsupported == true — the source build rejected this codec
-//     before streaming any data. Retryable: the Execute-level loop advances to
-//     the next codec. Only Stderr is meaningful.
-//  2. Status == Completed — success; the LSN / size / encryption / compression /
-//     manifest fields are populated and ErrorReason is nil.
-//  3. otherwise — terminal failure already classified into
-//     (Status, ErrorReason, ErrorMessage); the thin FULL/INCR adapters copy
-//     these straight onto their typed result.
 type streamOutcome struct {
 	// isCompressionUnsupported is a retry signal, not a terminal status and not a
 	// COMPLETED outcome — it is consumed only by the codec-fallback loop and never
