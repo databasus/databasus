@@ -132,6 +132,10 @@ func startContainer(t *testing.T, req testcontainers.ContainerRequest, mappedPor
 func bootContainer(t *testing.T, req testcontainers.ContainerRequest) testcontainers.Container {
 	t.Helper()
 	skipUnavailableImage(t, req.Image)
+	imageName := req.Image
+	if imageName == "" {
+		imageName = req.Repo + ":" + req.Tag
+	}
 
 	var lastErr error
 
@@ -149,7 +153,7 @@ func bootContainer(t *testing.T, req testcontainers.ContainerRequest) testcontai
 					context.WithoutCancel(t.Context()),
 					testcontainers.StopTimeout(0),
 				); err != nil {
-					t.Logf("failed to terminate %s container: %v", req.Image, err)
+					t.Logf("failed to terminate %s container: %v", imageName, err)
 				}
 			})
 
@@ -157,16 +161,16 @@ func bootContainer(t *testing.T, req testcontainers.ContainerRequest) testcontai
 		}
 
 		lastErr = err
-		t.Logf("attempt %d/%d to start %s container failed: %v", attempt, containerBootAttempts, req.Image, err)
-		logContainerOutputTail(t, container, req.Image)
+		t.Logf("attempt %d/%d to start %s container failed: %v", attempt, containerBootAttempts, imageName, err)
+		logContainerOutputTail(t, container, imageName)
 
 		// GenericContainer hands back the half-started container alongside the error.
 		if err := testcontainers.TerminateContainer(container); err != nil {
-			t.Logf("failed to terminate %s container after a failed start: %v", req.Image, err)
+			t.Logf("failed to terminate %s container after a failed start: %v", imageName, err)
 		}
 	}
 
-	t.Fatalf("failed to start %s container after %d attempts: %v", req.Image, containerBootAttempts, lastErr)
+	t.Fatalf("failed to start %s container after %d attempts: %v", imageName, containerBootAttempts, lastErr)
 
 	return nil
 }

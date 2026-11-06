@@ -14,6 +14,7 @@ from compose_project import POSTGRES_IMAGE, ComposeProject, list_remaining_resou
 from container_logs import ContainerLogSource, get_container_log_output
 from leftover_sweep import sweep_dead_runs
 from output_masking import OutputMask
+from recovery_image import get_archived_image_id
 from supervisor_file import (
     SupervisorRecord,
     get_project_name,
@@ -154,27 +155,32 @@ class Supervisor:
         if inspection.returncode != 0:
             if self._run_masked(["docker", "pull", POSTGRES_IMAGE]) != 0:
                 return False
-            inspection = subprocess.run(
-                ["docker", "image", "inspect", "--format", "{{.Id}}", POSTGRES_IMAGE],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-
-        self.project = replace(self.project, recovery_image=inspection.stdout.strip())
-        return (
+        server_platform = subprocess.run(
+            ["docker", "version", "--format", "{{.Server.Os}}/{{.Server.Arch}}"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+        archive = self.project.get_recovery_archive()
+        if (
             self._run_masked(
                 [
                     "docker",
                     "image",
                     "save",
+                    "--platform",
+                    server_platform,
                     "--output",
-                    str(self.project.get_recovery_archive()),
+                    str(archive),
                     POSTGRES_IMAGE,
                 ]
             )
-            == 0
-        )
+            != 0
+        ):
+            return False
+
+        self.project = replace(self.project, recovery_image=get_archived_image_id(archive))
+        return True
 
     def _run_scenarios(self) -> int:
         browser_port = self.project.get_browser_port()

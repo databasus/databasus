@@ -1,10 +1,46 @@
+import hashlib
+import io
+import json
 import os
 import subprocess
+import tarfile
 from pathlib import Path
 
 import pytest
+from recovery_image import get_archived_image_id
 
 SUITE_DIRECTORY = Path(__file__).parent.parent
+
+
+@pytest.mark.parametrize("config_path", ["config.json", "blobs/sha256/image-config"])
+def test_uses_the_config_digest_shared_by_legacy_and_containerd_engines(
+    tmp_path: Path, config_path: str
+) -> None:
+    config = b'{"architecture":"arm64","os":"linux","rootfs":{"type":"layers","diff_ids":[]}}'
+    manifest = json.dumps([{"Config": config_path, "RepoTags": None, "Layers": []}]).encode()
+    archive_path = tmp_path / "postgres.tar"
+    with tarfile.open(archive_path, "w") as archive:
+        for filename, content in [("manifest.json", manifest), (config_path, config)]:
+            member = tarfile.TarInfo(filename)
+            member.size = len(content)
+            archive.addfile(member, io.BytesIO(content))
+
+    assert get_archived_image_id(archive_path) == f"sha256:{hashlib.sha256(config).hexdigest()}"
+
+
+@pytest.mark.parametrize("manifest", [[], [{}, {}], [{"Config": 42}]])
+def test_rejects_an_archive_without_one_unambiguous_image_config(
+    tmp_path: Path, manifest: object
+) -> None:
+    archive_path = tmp_path / "postgres.tar"
+    content = json.dumps(manifest).encode()
+    with tarfile.open(archive_path, "w") as archive:
+        member = tarfile.TarInfo("manifest.json")
+        member.size = len(content)
+        archive.addfile(member, io.BytesIO(content))
+
+    with pytest.raises(ValueError, match="exactly one image config"):
+        get_archived_image_id(archive_path)
 
 
 @pytest.mark.parametrize("should_load_fail", [False, True])
