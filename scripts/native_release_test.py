@@ -48,7 +48,7 @@ def check_release_coverage(workflow: str) -> None:
     gates = get_transitive_needs(jobs, "determine-version")
     if (
         'go test -race -p=8 -parallel="$TEST_PARALLELISM"' not in jobs["test-backend"]
-        or "TEST_PARALLELISM: ${{ matrix.group == 'other' && 8 || 2 }}" not in jobs["test-backend"]
+        or "TEST_PARALLELISM: '2'" not in jobs["test-backend"]
     ):
         raise AssertionError("test-backend: container concurrency is unbounded")
     for name in REQUIRED_TEST_JOBS | {"build-storage-image", "build-verification-image"}:
@@ -128,6 +128,10 @@ class NativeReleaseTest(unittest.TestCase):
         mutations = [
             (
                 workflow.replace('-parallel="$TEST_PARALLELISM" ', ""),
+                "container concurrency is unbounded",
+            ),
+            (
+                workflow.replace("TEST_PARALLELISM: '2'", "TEST_PARALLELISM: '8'"),
                 "container concurrency is unbounded",
             ),
             (workflow.replace("- arch: arm64", "- arch: amd64", 1), "incomplete native matrix"),

@@ -59,7 +59,7 @@ class BackendCiExecutionTest(unittest.TestCase):
                     "SELECTED_PACKAGES": "\n".join(packages),
                     "FAILING_PACKAGE": failing_package,
                     "TEST_GROUP": group,
-                    "TEST_PARALLELISM": "8" if group == "other" else "2",
+                    "TEST_PARALLELISM": "2",
                 },
                 capture_output=True,
                 text=True,
@@ -87,7 +87,7 @@ class BackendCiExecutionTest(unittest.TestCase):
             [arg for arg in calls[0] if arg.startswith("databasus-")], [PROVIDER_PACKAGE]
         )
         self.assertIn("-p=8", calls[1])
-        self.assertIn("-parallel=8", calls[1])
+        self.assertIn("-parallel=2", calls[1])
         self.assertCountEqual(
             [arg for call in calls for arg in call if arg.startswith("databasus-")], OTHER_PACKAGES
         )

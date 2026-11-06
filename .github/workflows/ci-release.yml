@@ -553,7 +553,7 @@ jobs:
           TESTCONTAINERS_RYUK_DISABLED: 'true'
           TEST_GROUP: ${{ matrix.group }}
           # Container-heavy binaries share a runner; Go's per-binary default multiplies their load.
-          TEST_PARALLELISM: ${{ matrix.group == 'other' && 8 || 2 }}
+          TEST_PARALLELISM: '2'
         run: |
           cd backend
           # Separate assignments let a failing task stop the step instead of running no tests.
