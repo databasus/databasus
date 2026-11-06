@@ -1,12 +1,11 @@
 import { userApi } from '@/entities/users';
+import { consumeOAuthSignInAttempt } from '@/features/oauth-sign-in/model/OAuthSignInAttempt';
 import {
   beginAuthIntent,
   isCurrentAuthIntent,
   acceptAuthSession,
   type AuthIntent,
 } from '@/shared/auth';
-
-import { consumeOAuthSignInAttempt } from './OAuthSignInAttempt';
 
 export class OAuthCallback {
   private exchange?: ReturnType<typeof userApi.handleGitHubOAuth>;

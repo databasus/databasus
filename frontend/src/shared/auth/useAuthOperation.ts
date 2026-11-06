@@ -6,7 +6,7 @@ import {
   beginAuthIntent,
   isCurrentAuthIntent,
   type AuthIntent,
-} from './session';
+} from '@/shared/auth/session';
 
 export const useAuthOperation = () => {
   const start = () => {

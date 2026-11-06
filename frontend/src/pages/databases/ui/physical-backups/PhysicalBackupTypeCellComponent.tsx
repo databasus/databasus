@@ -4,9 +4,9 @@ import type { TFunction } from 'i18next';
 import type { JSX } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type PhysicalBackupListItem } from '../../model/physical-backups/PhysicalBackupListItem';
-import { PhysicalBackupType } from '../../model/physical-backups/PhysicalBackupType';
-import { PHYSICAL_BACKUP_TYPE_LABEL_KEYS } from '../../model/physical-backups/PhysicalBackupTypeLabelKeys';
+import { type PhysicalBackupListItem } from '@/pages/databases/model/physical-backups/PhysicalBackupListItem';
+import { PhysicalBackupType } from '@/pages/databases/model/physical-backups/PhysicalBackupType';
+import { PHYSICAL_BACKUP_TYPE_LABEL_KEYS } from '@/pages/databases/model/physical-backups/PhysicalBackupTypeLabelKeys';
 
 interface Props {
   backup: PhysicalBackupListItem;

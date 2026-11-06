@@ -1,6 +1,6 @@
 import type { TFunction } from 'i18next';
 
-import type { TranslationKey } from './TranslationKey';
+import type { TranslationKey } from '@/shared/i18n/TranslationKey';
 
 // Returned by code outside components that needs to hand a message with parameters to the UI.
 // It carries the key, not the text, so the component translates it in the current language on

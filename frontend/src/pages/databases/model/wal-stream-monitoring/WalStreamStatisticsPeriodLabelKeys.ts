@@ -1,5 +1,5 @@
-import type { TranslationKey } from '../../../../shared/i18n';
-import { WalStreamStatisticsPeriod } from './WalStreamStatisticsPeriod';
+import { WalStreamStatisticsPeriod } from '@/pages/databases/model/wal-stream-monitoring/WalStreamStatisticsPeriod';
+import type { TranslationKey } from '@/shared/i18n';
 
 export const WAL_STREAM_STATISTICS_PERIOD_LABEL_KEYS: Record<
   WalStreamStatisticsPeriod,

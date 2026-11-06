@@ -3,16 +3,16 @@ import dayjs from 'dayjs';
 import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type Database, HealthStatus } from '../../../../entities/databases';
+import { type Database, HealthStatus } from '@/entities/databases';
 import {
   type HealthcheckAttempt,
   healthcheckAttemptApi,
   healthcheckConfigApi,
-} from '../../../../entities/healthcheck';
-import { useSessionGuard } from '../../../../shared/auth';
-import { useLocale } from '../../../../shared/i18n';
-import { getUserShortTimeFormat } from '../../../../shared/time/getUserTimeFormat';
-import { LoadFailure } from '../../../../shared/ui';
+} from '@/entities/healthcheck';
+import { useSessionGuard } from '@/shared/auth';
+import { useLocale } from '@/shared/i18n';
+import { getUserShortTimeFormat } from '@/shared/time/getUserTimeFormat';
+import { LoadFailure } from '@/shared/ui';
 
 interface Props {
   database: Database;

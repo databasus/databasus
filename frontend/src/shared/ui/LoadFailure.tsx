@@ -1,7 +1,7 @@
 import { Alert, Button } from 'antd';
 import { useTranslation } from 'react-i18next';
 
-import { translateApiError } from '../i18n';
+import { translateApiError } from '@/shared/i18n';
 
 interface Props {
   error: unknown;

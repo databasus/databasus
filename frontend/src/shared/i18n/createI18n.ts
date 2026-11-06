@@ -1,7 +1,7 @@
 import i18next, { type i18n as I18nInstance } from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
-import { DEFAULT_LOCALE, DICTIONARIES, type Locale } from './dictionaries';
+import { DEFAULT_LOCALE, DICTIONARIES, type Locale } from '@/shared/i18n/dictionaries';
 
 const resources = Object.fromEntries(
   Object.entries(DICTIONARIES).map(([locale, dictionary]) => [locale, { translation: dictionary }]),

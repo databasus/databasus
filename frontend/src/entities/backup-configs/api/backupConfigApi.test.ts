@@ -1,9 +1,9 @@
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
 
-import { mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
-import type { DatabaseTransfer } from '../model/DatabaseTransfer';
-import { backupConfigApi } from './backupConfigApi';
+import { backupConfigApi } from '@/entities/backup-configs/api/backupConfigApi';
+import type { DatabaseTransfer } from '@/entities/backup-configs/model/DatabaseTransfer';
+import { mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 
 const server = setUpMockApi();
 const transfer: DatabaseTransfer = {

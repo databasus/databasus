@@ -1,7 +1,7 @@
-import { isWebhookHeaderNameValid } from './isWebhookHeaderNameValid';
-import { isWebhookHeaderValueMissing } from './isWebhookHeaderValueMissing';
-import type { WebhookHeader } from './WebhookHeader';
-import type { WebhookNotifierSettings } from './WebhookNotifierSettings';
+import { isWebhookHeaderNameValid } from '@/entities/notifiers/model/webhook/isWebhookHeaderNameValid';
+import { isWebhookHeaderValueMissing } from '@/entities/notifiers/model/webhook/isWebhookHeaderValueMissing';
+import type { WebhookHeader } from '@/entities/notifiers/model/webhook/WebhookHeader';
+import type { WebhookNotifierSettings } from '@/entities/notifiers/model/webhook/WebhookNotifierSettings';
 
 export const validateWebhookNotifier = (
   settings: WebhookNotifierSettings,

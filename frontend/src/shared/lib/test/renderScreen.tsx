@@ -3,10 +3,10 @@ import userEvent from '@testing-library/user-event';
 import type { ReactElement, ReactNode } from 'react';
 import { MemoryRouter } from 'react-router';
 
-import { LocaleProvider, type Locale } from '../../i18n';
-import { ThemeProvider, type ThemeMode } from '../../theme';
-import { ScreenConfiguration } from './ScreenConfiguration';
-import './screenTestLifecycle';
+import { LocaleProvider, type Locale } from '@/shared/i18n';
+import { ScreenConfiguration } from '@/shared/lib/test/ScreenConfiguration';
+import { ThemeProvider, type ThemeMode } from '@/shared/theme';
+import '@/shared/lib/test/screenTestLifecycle';
 
 interface ScreenOptions {
   locale?: Locale;

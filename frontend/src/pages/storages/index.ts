@@ -1,1 +1,1 @@
-export { StoragesComponent } from './ui/StoragesComponent';
+export { StoragesComponent } from '@/pages/storages/ui/StoragesComponent';

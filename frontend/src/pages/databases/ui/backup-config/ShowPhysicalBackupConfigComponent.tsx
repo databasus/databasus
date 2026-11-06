@@ -7,25 +7,25 @@ import {
   type PhysicalBackupConfigInput,
   type BackupCleanup,
   BACKUP_ENCRYPTION_LABEL_KEYS,
-} from '../../../../entities/backup-configs';
-import type { Database } from '../../../../entities/databases';
+} from '@/entities/backup-configs';
+import type { Database } from '@/entities/databases';
 import {
   SCHEDULE_TYPE_LABEL_KEYS,
   type Schedule,
   ScheduleType,
   WEEKDAY_LABEL_KEYS,
   getLocalScheduleParts,
-} from '../../../../entities/schedules';
-import { type Storage, getStorageLogoFromType, storageApi } from '../../../../entities/storages';
-import { type LocalizedText, translateLocalizedText } from '../../../../shared/i18n';
-import { getUserClockFormat } from '../../../../shared/time';
-import { LoadFailure } from '../../../../shared/ui';
-import { type FullBackupsRetention } from '../../model/physical-backups/FullBackupsRetention';
-import { FullBackupsRetentionPolicy } from '../../model/physical-backups/FullBackupsRetentionPolicy';
-import { PHYSICAL_NOTIFICATION_TRIGGER_LABEL_KEYS } from '../../model/physical-backups/PhysicalNotificationTriggerLabelKeys';
-import { PhysicalRetentionPolicy } from '../../model/physical-backups/PhysicalRetentionPolicy';
-import { PHYSICAL_RETENTION_POLICY_LABEL_KEYS } from '../../model/physical-backups/PhysicalRetentionPolicyLabelKeys';
-import { StorageCleanupNotice } from './StorageCleanupNotice';
+} from '@/entities/schedules';
+import { type Storage, getStorageLogoFromType, storageApi } from '@/entities/storages';
+import { type FullBackupsRetention } from '@/pages/databases/model/physical-backups/FullBackupsRetention';
+import { FullBackupsRetentionPolicy } from '@/pages/databases/model/physical-backups/FullBackupsRetentionPolicy';
+import { PHYSICAL_NOTIFICATION_TRIGGER_LABEL_KEYS } from '@/pages/databases/model/physical-backups/PhysicalNotificationTriggerLabelKeys';
+import { PhysicalRetentionPolicy } from '@/pages/databases/model/physical-backups/PhysicalRetentionPolicy';
+import { PHYSICAL_RETENTION_POLICY_LABEL_KEYS } from '@/pages/databases/model/physical-backups/PhysicalRetentionPolicyLabelKeys';
+import { StorageCleanupNotice } from '@/pages/databases/ui/backup-config/StorageCleanupNotice';
+import { type LocalizedText, translateLocalizedText } from '@/shared/i18n';
+import { getUserClockFormat } from '@/shared/time';
+import { LoadFailure } from '@/shared/ui';
 
 interface Props {
   database: Database;

@@ -6,13 +6,12 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { USER_ROLE_LABEL_KEYS, type User, UserRole, userManagementApi } from '@/entities/users';
+import { UserAuditLogsSidebar } from '@/pages/users/ui/UserAuditLogsSidebar';
 import { useSessionGuard } from '@/shared/auth';
 import { useIsMobile, usePagedList, useRequestRevision } from '@/shared/hooks';
 import { translateApiError, useLocale } from '@/shared/i18n';
 import { getUserTimeFormat } from '@/shared/time';
 import { LoadFailure } from '@/shared/ui';
-
-import { UserAuditLogsSidebar } from './UserAuditLogsSidebar';
 
 const isUserActive = (user: User): boolean => user.status === 'ACTIVE';
 

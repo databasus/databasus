@@ -9,15 +9,15 @@ import {
   WEEKDAY_LABEL_KEYS,
   getLocalScheduleParts,
   getNextCronRun,
-} from '../../../../entities/schedules';
-import { useSessionGuard } from '../../../../shared/auth';
-import { useLocale } from '../../../../shared/i18n';
-import { getUserClockFormat, getUserTimeFormat } from '../../../../shared/time';
-import { LoadFailure } from '../../../../shared/ui';
-import { verificationConfigApi } from '../../api/verificationConfigApi';
-import { type VerificationConfig } from '../../model/verification/VerificationConfig';
-import { VERIFICATION_NOTIFICATION_TYPE_LABEL_KEYS } from '../../model/verification/VerificationNotificationTypeLabelKeys';
-import { VerificationScheduleType } from '../../model/verification/VerificationScheduleType';
+} from '@/entities/schedules';
+import { verificationConfigApi } from '@/pages/databases/api/verificationConfigApi';
+import { type VerificationConfig } from '@/pages/databases/model/verification/VerificationConfig';
+import { VERIFICATION_NOTIFICATION_TYPE_LABEL_KEYS } from '@/pages/databases/model/verification/VerificationNotificationTypeLabelKeys';
+import { VerificationScheduleType } from '@/pages/databases/model/verification/VerificationScheduleType';
+import { useSessionGuard } from '@/shared/auth';
+import { useLocale } from '@/shared/i18n';
+import { getUserClockFormat, getUserTimeFormat } from '@/shared/time';
+import { LoadFailure } from '@/shared/ui';
 
 interface Props {
   databaseId: string;

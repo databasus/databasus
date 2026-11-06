@@ -1,9 +1,9 @@
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-import { API_BASE_PATH } from '../../api';
-import { buildProblem, mockApi, setUpMockApi } from './mockApi';
-import { runIsolatedScenario } from './runIsolatedScenario';
+import { API_BASE_PATH } from '@/shared/api';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { runIsolatedScenario } from '@/shared/lib/test/runIsolatedScenario';
 
 const server = setUpMockApi();
 

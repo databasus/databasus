@@ -2,18 +2,18 @@ import { Alert, App, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import type { Database } from '../../../../entities/databases';
-import { verificationAgentApi } from '../../../../entities/verification-agents';
-import { useSessionGuard } from '../../../../shared/auth';
-import { usePolledPagedList } from '../../../../shared/hooks';
-import { getWebsitePageUrl, translateApiError, useLocale } from '../../../../shared/i18n';
-import { LoadFailure } from '../../../../shared/ui';
-import { verificationRunsApi } from '../../api/verificationRunsApi';
-import { type Verification } from '../../model/verification/Verification';
-import type { VerificationRowActions } from './VerificationActions';
-import { VerificationCards } from './VerificationCards';
-import { VerificationDetailDrawer } from './VerificationDetailDrawer';
-import { VerificationsTable } from './VerificationsTable';
+import type { Database } from '@/entities/databases';
+import { verificationAgentApi } from '@/entities/verification-agents';
+import { verificationRunsApi } from '@/pages/databases/api/verificationRunsApi';
+import { type Verification } from '@/pages/databases/model/verification/Verification';
+import type { VerificationRowActions } from '@/pages/databases/ui/verification/VerificationActions';
+import { VerificationCards } from '@/pages/databases/ui/verification/VerificationCards';
+import { VerificationDetailDrawer } from '@/pages/databases/ui/verification/VerificationDetailDrawer';
+import { VerificationsTable } from '@/pages/databases/ui/verification/VerificationsTable';
+import { useSessionGuard } from '@/shared/auth';
+import { usePolledPagedList } from '@/shared/hooks';
+import { getWebsitePageUrl, translateApiError, useLocale } from '@/shared/i18n';
+import { LoadFailure } from '@/shared/ui';
 
 interface Props {
   database: Database;

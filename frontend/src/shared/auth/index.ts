@@ -8,8 +8,8 @@ export {
   isCurrentAuthIntent,
   abandonAuthIntent,
   acceptAuthSession,
-} from './session';
-export type { SessionSnapshot, AuthIntent } from './session';
-export { useSession } from './useSession';
-export { useAuthOperation } from './useAuthOperation';
-export { useSessionGuard } from './useSessionGuard';
+} from '@/shared/auth/session';
+export type { SessionSnapshot, AuthIntent } from '@/shared/auth/session';
+export { useSession } from '@/shared/auth/useSession';
+export { useAuthOperation } from '@/shared/auth/useAuthOperation';
+export { useSessionGuard } from '@/shared/auth/useSessionGuard';

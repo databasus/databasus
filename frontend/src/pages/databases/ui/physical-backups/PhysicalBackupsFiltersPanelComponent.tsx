@@ -4,11 +4,11 @@ import dayjs from 'dayjs';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type PhysicalBackupsFilters } from '../../model/physical-backups/PhysicalBackupsFilters';
-import { PhysicalBackupStatus } from '../../model/physical-backups/PhysicalBackupStatus';
-import { PHYSICAL_BACKUP_STATUS_LABEL_KEYS } from '../../model/physical-backups/PhysicalBackupStatusLabelKeys';
-import { PhysicalBackupType } from '../../model/physical-backups/PhysicalBackupType';
-import { PHYSICAL_BACKUP_TYPE_LABEL_KEYS } from '../../model/physical-backups/PhysicalBackupTypeLabelKeys';
+import { type PhysicalBackupsFilters } from '@/pages/databases/model/physical-backups/PhysicalBackupsFilters';
+import { PhysicalBackupStatus } from '@/pages/databases/model/physical-backups/PhysicalBackupStatus';
+import { PHYSICAL_BACKUP_STATUS_LABEL_KEYS } from '@/pages/databases/model/physical-backups/PhysicalBackupStatusLabelKeys';
+import { PhysicalBackupType } from '@/pages/databases/model/physical-backups/PhysicalBackupType';
+import { PHYSICAL_BACKUP_TYPE_LABEL_KEYS } from '@/pages/databases/model/physical-backups/PhysicalBackupTypeLabelKeys';
 
 interface Props {
   filters: PhysicalBackupsFilters;

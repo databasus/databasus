@@ -6,8 +6,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
-
-import { type MainTab, SidebarComponent, type SidebarTab } from './SidebarComponent';
+import {
+  type MainTab,
+  SidebarComponent,
+  type SidebarTab,
+} from '@/widgets/app-shell/ui/SidebarComponent';
 
 const server = setUpMockApi();
 

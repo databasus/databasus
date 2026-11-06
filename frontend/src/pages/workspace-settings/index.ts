@@ -1,1 +1,1 @@
-export { WorkspaceSettingsComponent } from './ui/WorkspaceSettingsComponent';
+export { WorkspaceSettingsComponent } from '@/pages/workspace-settings/ui/WorkspaceSettingsComponent';

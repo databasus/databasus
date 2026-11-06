@@ -2,10 +2,10 @@ import { CloseCircleOutlined, CloudUploadOutlined, DeleteOutlined } from '@ant-d
 import type { JSX } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type PhysicalBackupListItem } from '../../model/physical-backups/PhysicalBackupListItem';
-import { PhysicalBackupStatus } from '../../model/physical-backups/PhysicalBackupStatus';
-import { PhysicalBackupType } from '../../model/physical-backups/PhysicalBackupType';
-import { RowActionButton } from '../RowActionButton';
+import { type PhysicalBackupListItem } from '@/pages/databases/model/physical-backups/PhysicalBackupListItem';
+import { PhysicalBackupStatus } from '@/pages/databases/model/physical-backups/PhysicalBackupStatus';
+import { PhysicalBackupType } from '@/pages/databases/model/physical-backups/PhysicalBackupType';
+import { RowActionButton } from '@/pages/databases/ui/RowActionButton';
 
 export interface PhysicalBackupRowActions {
   isCanManageDBs: boolean;

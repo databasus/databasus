@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { quotePostgresqlIdentifier } from './quotePostgresqlIdentifier';
+import { quotePostgresqlIdentifier } from '@/entities/databases/model/postgresql/quotePostgresqlIdentifier';
 
 describe('quotePostgresqlIdentifier', () => {
   it('quotes a Databasus-generated role name containing a hyphen', () => {

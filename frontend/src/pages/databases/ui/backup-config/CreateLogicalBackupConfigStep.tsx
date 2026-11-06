@@ -2,10 +2,10 @@ import { Button } from 'antd';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { LogicalBackupConfigInput } from '../../../../entities/backup-configs';
-import { createDefaultLogicalBackupConfig } from '../../model/createDefaultLogicalBackupConfig';
-import { isLogicalBackupConfigComplete } from '../../model/isLogicalBackupConfigComplete';
-import { LogicalBackupConfigFields } from './LogicalBackupConfigFields';
+import type { LogicalBackupConfigInput } from '@/entities/backup-configs';
+import { createDefaultLogicalBackupConfig } from '@/pages/databases/model/createDefaultLogicalBackupConfig';
+import { isLogicalBackupConfigComplete } from '@/pages/databases/model/isLogicalBackupConfigComplete';
+import { LogicalBackupConfigFields } from '@/pages/databases/ui/backup-config/LogicalBackupConfigFields';
 
 interface Props {
   workspaceId: string;

@@ -1,1 +1,1 @@
-export { InstanceSettingsPage } from './ui/InstanceSettingsPage';
+export { InstanceSettingsPage } from '@/pages/instance-settings/ui/InstanceSettingsPage';

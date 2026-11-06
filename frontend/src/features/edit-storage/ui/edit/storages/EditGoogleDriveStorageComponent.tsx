@@ -2,10 +2,10 @@ import { Alert, Button, Form, Input } from 'antd';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { GoogleDriveStorageSettings } from '../../../../../entities/storages';
-import { getWebsitePageUrl, useLocale } from '../../../../../shared/i18n';
-import { toOptionalValue } from '../../../../../shared/lib';
-import { useGoogleDriveAuthorization } from '../../../model/useGoogleDriveAuthorization';
+import type { GoogleDriveStorageSettings } from '@/entities/storages';
+import { useGoogleDriveAuthorization } from '@/features/edit-storage/model/useGoogleDriveAuthorization';
+import { getWebsitePageUrl, useLocale } from '@/shared/i18n';
+import { toOptionalValue } from '@/shared/lib';
 
 interface Props {
   settings: GoogleDriveStorageSettings;

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { DatabaseType } from '../DatabaseType';
+import { DatabaseType } from '@/entities/databases/model/DatabaseType';
 import {
   MySqlCompatibleConnectionStringParser,
   type ParseError,
   type ParseResult,
-} from './MySqlCompatibleConnectionStringParser';
+} from '@/entities/databases/model/mysql/MySqlCompatibleConnectionStringParser';
 
 const parseMysql = (connectionString: string) =>
   MySqlCompatibleConnectionStringParser.parse(connectionString, DatabaseType.MYSQL);

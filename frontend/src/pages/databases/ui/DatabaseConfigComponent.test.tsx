@@ -6,7 +6,7 @@ import {
   type BackupConfig,
   type BackupConfigInput,
   backupConfigApi,
-} from '../../../entities/backup-configs';
+} from '@/entities/backup-configs';
 import {
   type Database,
   type DatabaseSettings,
@@ -15,19 +15,19 @@ import {
   SshTunnelAuthType,
   createDefaultDatabaseSettings,
   databaseApi,
-} from '../../../entities/databases';
-import { API_BASE_PATH, type ApiComponents } from '../../../shared/api';
-import { activateSession, invalidateSession } from '../../../shared/auth';
-import { useLocale } from '../../../shared/i18n';
-import { DICTIONARIES } from '../../../shared/i18n/dictionaries';
-import { waitForCondition } from '../../../shared/lib/test/conditionWait';
-import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
-import { createPendingApiResponse } from '../../../shared/lib/test/pendingApiResponse';
-import { releaseAndSettle } from '../../../shared/lib/test/releaseAndSettle';
-import { renderScreen } from '../../../shared/lib/test/renderScreen';
-import { stubClipboard } from '../../../shared/lib/test/stubClipboard';
+} from '@/entities/databases';
 // @vitest-environment happy-dom
-import { DatabaseConfigComponent } from './DatabaseConfigComponent';
+import { DatabaseConfigComponent } from '@/pages/databases/ui/DatabaseConfigComponent';
+import { API_BASE_PATH, type ApiComponents } from '@/shared/api';
+import { activateSession, invalidateSession } from '@/shared/auth';
+import { useLocale } from '@/shared/i18n';
+import { DICTIONARIES } from '@/shared/i18n/dictionaries';
+import { waitForCondition } from '@/shared/lib/test/conditionWait';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
+import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
+import { stubClipboard } from '@/shared/lib/test/stubClipboard';
 
 const mockServer = setUpMockApi();
 

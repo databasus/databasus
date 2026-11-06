@@ -1,5 +1,5 @@
-import type { Schedule } from './Schedule';
-import { ScheduleType } from './ScheduleType';
+import type { Schedule } from '@/entities/schedules/model/Schedule';
+import { ScheduleType } from '@/entities/schedules/model/ScheduleType';
 
 interface ScheduleComparison {
   acknowledged: Schedule;

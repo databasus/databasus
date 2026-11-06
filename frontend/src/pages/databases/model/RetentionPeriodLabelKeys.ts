@@ -1,5 +1,5 @@
-import type { TranslationKey } from '../../../shared/i18n';
-import { RetentionPeriod } from './RetentionPeriod';
+import { RetentionPeriod } from '@/pages/databases/model/RetentionPeriod';
+import type { TranslationKey } from '@/shared/i18n';
 
 export const RETENTION_PERIOD_LABEL_KEYS: Record<RetentionPeriod, TranslationKey> = {
   [RetentionPeriod.DAY]: 'backups.logical.retentionPeriods.day',

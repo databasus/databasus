@@ -5,14 +5,14 @@ import {
   type Notifier,
   NotifierType,
   getNotifierLogoFromType,
-} from '../../../../entities/notifiers';
-import { ShowDiscordNotifierComponent } from './notifier/ShowDiscordNotifierComponent';
-import { ShowEmailNotifierComponent } from './notifier/ShowEmailNotifierComponent';
-import { ShowMattermostNotifierComponent } from './notifier/ShowMattermostNotifierComponent';
-import { ShowSlackNotifierComponent } from './notifier/ShowSlackNotifierComponent';
-import { ShowTeamsNotifierComponent } from './notifier/ShowTeamsNotifierComponent';
-import { ShowTelegramNotifierComponent } from './notifier/ShowTelegramNotifierComponent';
-import { ShowWebhookNotifierComponent } from './notifier/ShowWebhookNotifierComponent';
+} from '@/entities/notifiers';
+import { ShowDiscordNotifierComponent } from '@/pages/notifiers/ui/show/notifier/ShowDiscordNotifierComponent';
+import { ShowEmailNotifierComponent } from '@/pages/notifiers/ui/show/notifier/ShowEmailNotifierComponent';
+import { ShowMattermostNotifierComponent } from '@/pages/notifiers/ui/show/notifier/ShowMattermostNotifierComponent';
+import { ShowSlackNotifierComponent } from '@/pages/notifiers/ui/show/notifier/ShowSlackNotifierComponent';
+import { ShowTeamsNotifierComponent } from '@/pages/notifiers/ui/show/notifier/ShowTeamsNotifierComponent';
+import { ShowTelegramNotifierComponent } from '@/pages/notifiers/ui/show/notifier/ShowTelegramNotifierComponent';
+import { ShowWebhookNotifierComponent } from '@/pages/notifiers/ui/show/notifier/ShowWebhookNotifierComponent';
 
 interface Props {
   notifier: Notifier;

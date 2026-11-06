@@ -2,12 +2,11 @@ import { Alert, Button } from 'antd';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { type Database, databaseApi } from '@/entities/databases';
+import { hasSameNotifierIds } from '@/pages/databases/model/hasSameNotifierIds';
+import { DatabaseNotifiersFields } from '@/pages/databases/ui/DatabaseNotifiersFields';
 import { useSessionGuard } from '@/shared/auth';
-
-import { type Database, databaseApi } from '../../../entities/databases';
-import { translateApiError } from '../../../shared/i18n';
-import { hasSameNotifierIds } from '../model/hasSameNotifierIds';
-import { DatabaseNotifiersFields } from './DatabaseNotifiersFields';
+import { translateApiError } from '@/shared/i18n';
 
 interface Props {
   database: Database;

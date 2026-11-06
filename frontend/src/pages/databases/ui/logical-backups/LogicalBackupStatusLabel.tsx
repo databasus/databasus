@@ -8,13 +8,13 @@ import {
 import { Button, Tooltip } from 'antd';
 import { useTranslation } from 'react-i18next';
 
-import { BackupEncryption } from '../../../../entities/backup-configs';
-import type { LogicalBackup } from '../../model/LogicalBackup';
-import { LogicalBackupStatus } from '../../model/LogicalBackupStatus';
-import { LOGICAL_BACKUP_STATUS_LABEL_KEYS } from '../../model/LogicalBackupStatusLabelKeys';
-import { LogicalBackupVerificationStatus } from '../../model/LogicalBackupVerificationStatus';
-import { LOGICAL_BACKUP_VERIFICATION_STATUS_LABEL_KEYS } from '../../model/LogicalBackupVerificationStatusLabelKeys';
-import { VERIFICATION_STATUS_BADGE_STYLES } from '../../model/verificationStatusBadgeStyles';
+import { BackupEncryption } from '@/entities/backup-configs';
+import type { LogicalBackup } from '@/pages/databases/model/LogicalBackup';
+import { LogicalBackupStatus } from '@/pages/databases/model/LogicalBackupStatus';
+import { LOGICAL_BACKUP_STATUS_LABEL_KEYS } from '@/pages/databases/model/LogicalBackupStatusLabelKeys';
+import { LogicalBackupVerificationStatus } from '@/pages/databases/model/LogicalBackupVerificationStatus';
+import { LOGICAL_BACKUP_VERIFICATION_STATUS_LABEL_KEYS } from '@/pages/databases/model/LogicalBackupVerificationStatusLabelKeys';
+import { VERIFICATION_STATUS_BADGE_STYLES } from '@/pages/databases/model/verificationStatusBadgeStyles';
 
 interface Props {
   backup: LogicalBackup;

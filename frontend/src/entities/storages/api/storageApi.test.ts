@@ -1,9 +1,9 @@
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
-import { API_BASE_PATH, type ApiComponents } from '../../../shared/api';
-import { buildProblem, setUpMockApi } from '../../../shared/lib/test/mockApi';
-import { storageApi } from './storageApi';
+import { storageApi } from '@/entities/storages/api/storageApi';
+import { API_BASE_PATH, type ApiComponents } from '@/shared/api';
+import { buildProblem, setUpMockApi } from '@/shared/lib/test/mockApi';
 
 const mockServer = setUpMockApi();
 

@@ -3,8 +3,8 @@ import { screen } from '@testing-library/react';
 import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
 
-import { renderScreen } from '../lib/test/renderScreen';
-import { AdvancedSettingsToggleComponent } from './AdvancedSettingsToggleComponent';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
+import { AdvancedSettingsToggleComponent } from '@/shared/ui/AdvancedSettingsToggleComponent';
 
 const Disclosure = () => {
   const [isExpanded, setIsExpanded] = useState(false);

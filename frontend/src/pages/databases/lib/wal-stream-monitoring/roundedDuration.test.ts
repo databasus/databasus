@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { getMeasurementAge, getRoundedDuration, getSecondsBetween } from './roundedDuration';
+import {
+  getMeasurementAge,
+  getRoundedDuration,
+  getSecondsBetween,
+} from '@/pages/databases/lib/wal-stream-monitoring/roundedDuration';
 
 describe('getRoundedDuration', () => {
   it.each([

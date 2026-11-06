@@ -8,21 +8,23 @@ import {
   type PostgresqlLogicalSettings,
 } from '@/entities/databases';
 import type { PostgresqlRestoreOptions } from '@/entities/restores';
+import type { ConnectionEditorProps } from '@/features/database-connection/lib/ConnectionEditorProps';
+import { isLocalhostConnection } from '@/features/database-connection/lib/isLocalhostConnection';
+import {
+  applyPostgresqlHost,
+  applyPostgresqlSslMode,
+} from '@/features/database-connection/lib/postgresqlHostSsl';
+import { ConnectionCredentialFields } from '@/features/database-connection/ui/ConnectionCredentialFields';
+import { ConnectionFieldRow } from '@/features/database-connection/ui/ConnectionFieldRow';
+import { ConnectionFieldTooltip } from '@/features/database-connection/ui/ConnectionFieldTooltip';
+import { ConnectionHostHint } from '@/features/database-connection/ui/ConnectionHostHint';
+import { ConnectionStringImport } from '@/features/database-connection/ui/ConnectionStringImport';
+import { EditSshTunnelComponent } from '@/features/database-connection/ui/EditSshTunnelComponent';
+import { PostgresqlCertificateFields } from '@/features/database-connection/ui/PostgresqlCertificateFields';
+import { PostgresqlSslModeField } from '@/features/database-connection/ui/PostgresqlSslModeField';
 import type { TranslationKey } from '@/shared/i18n';
 import { NAME_LIST_TOKEN_SEPARATORS, normalizeNameList } from '@/shared/lib';
 import { AdvancedSettingsToggleComponent } from '@/shared/ui';
-
-import type { ConnectionEditorProps } from '../lib/ConnectionEditorProps';
-import { isLocalhostConnection } from '../lib/isLocalhostConnection';
-import { applyPostgresqlHost, applyPostgresqlSslMode } from '../lib/postgresqlHostSsl';
-import { ConnectionCredentialFields } from './ConnectionCredentialFields';
-import { ConnectionFieldRow } from './ConnectionFieldRow';
-import { ConnectionFieldTooltip } from './ConnectionFieldTooltip';
-import { ConnectionHostHint } from './ConnectionHostHint';
-import { ConnectionStringImport } from './ConnectionStringImport';
-import { EditSshTunnelComponent } from './EditSshTunnelComponent';
-import { PostgresqlCertificateFields } from './PostgresqlCertificateFields';
-import { PostgresqlSslModeField } from './PostgresqlSslModeField';
 
 interface Props extends ConnectionEditorProps<PostgresqlLogicalSettings> {
   hasUserChosenSslMode: boolean;

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import type { MongodbSettings } from '../ProviderDatabaseSettings';
-import { SshTunnelAuthType } from '../sshtunnel/SshTunnelAuthType';
-import type { SshTunnelSettings } from '../sshtunnel/SshTunnelSettings';
-import { disableSrvWhenTunneled } from './disableSrvWhenTunneled';
+import { disableSrvWhenTunneled } from '@/entities/databases/model/mongodb/disableSrvWhenTunneled';
+import type { MongodbSettings } from '@/entities/databases/model/ProviderDatabaseSettings';
+import { SshTunnelAuthType } from '@/entities/databases/model/sshtunnel/SshTunnelAuthType';
+import type { SshTunnelSettings } from '@/entities/databases/model/sshtunnel/SshTunnelSettings';
 
 const enabledTunnel = (): SshTunnelSettings => ({
   isEnabled: true,

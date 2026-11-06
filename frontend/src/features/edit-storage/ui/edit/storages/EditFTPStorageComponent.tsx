@@ -3,10 +3,9 @@ import { Checkbox, Input, InputNumber, Tooltip } from 'antd';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import type { FtpStorageSettings } from '@/entities/storages';
+import { toOptionalValue } from '@/shared/lib';
 import { AddressChangedSecretNoticeComponent, AdvancedSettingsToggleComponent } from '@/shared/ui';
-
-import type { FtpStorageSettings } from '../../../../../entities/storages';
-import { toOptionalValue } from '../../../../../shared/lib';
 
 interface Props {
   settings: FtpStorageSettings;

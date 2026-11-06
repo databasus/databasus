@@ -3,9 +3,9 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { renderScreen } from '../../../shared/lib/test/renderScreen';
-import type { Schedule } from '../model/Schedule';
-import { ScheduleEditor } from './ScheduleEditor';
+import type { Schedule } from '@/entities/schedules/model/Schedule';
+import { ScheduleEditor } from '@/entities/schedules/ui/ScheduleEditor';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const renderEditor = (initialSchedule: Schedule | null) => {
   const returnedSchedules: Schedule[] = [];

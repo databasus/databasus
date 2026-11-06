@@ -3,15 +3,14 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
+import type { Notifier, NotifierSettings } from '@/entities/notifiers';
+import { EditNotifierComponent } from '@/features/edit-notifier/ui/edit/EditNotifierComponent';
+import { API_BASE_PATH, type ApiComponents } from '@/shared/api';
 import { activateSession } from '@/shared/auth';
-
-import type { Notifier, NotifierSettings } from '../../../../entities/notifiers';
-import { API_BASE_PATH, type ApiComponents } from '../../../../shared/api';
-import { DICTIONARIES, useLocale } from '../../../../shared/i18n';
-import { buildProblem, mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
-import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-import { ThemeToggleComponent } from '../../../../shared/ui';
-import { EditNotifierComponent } from './EditNotifierComponent';
+import { DICTIONARIES, useLocale } from '@/shared/i18n';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
+import { ThemeToggleComponent } from '@/shared/ui';
 
 const server = setUpMockApi();
 const emailSettings: NotifierSettings = {

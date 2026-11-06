@@ -1,21 +1,14 @@
 import type { ReactNode } from 'react';
 
-import {
-  type BackupConfig,
-  toPhysicalBackupConfigInput,
-} from '../../../../entities/backup-configs';
-import {
-  type Database,
-  DatabaseType,
-  PhysicalDatabaseBackupType,
-} from '../../../../entities/databases';
-import { isPhysicalBackupConfigChanged } from '../../model/physical-backups/isPhysicalBackupConfigChanged';
-import { isPhysicalBackupConfigComplete } from '../../model/physical-backups/isPhysicalBackupConfigComplete';
-import type { PhysicalBackupConfigDraft } from '../../model/physical-backups/PhysicalBackupConfigDraft';
-import { toPhysicalBackupConfigDraft } from '../../model/physical-backups/toPhysicalBackupConfigDraft';
-import { toPhysicalBackupConfigInputFromDraft } from '../../model/physical-backups/toPhysicalBackupConfigInputFromDraft';
-import { EditBackupConfigSection } from './EditBackupConfigSection';
-import { PhysicalBackupConfigFields } from './PhysicalBackupConfigFields';
+import { type BackupConfig, toPhysicalBackupConfigInput } from '@/entities/backup-configs';
+import { type Database, DatabaseType, PhysicalDatabaseBackupType } from '@/entities/databases';
+import { isPhysicalBackupConfigChanged } from '@/pages/databases/model/physical-backups/isPhysicalBackupConfigChanged';
+import { isPhysicalBackupConfigComplete } from '@/pages/databases/model/physical-backups/isPhysicalBackupConfigComplete';
+import type { PhysicalBackupConfigDraft } from '@/pages/databases/model/physical-backups/PhysicalBackupConfigDraft';
+import { toPhysicalBackupConfigDraft } from '@/pages/databases/model/physical-backups/toPhysicalBackupConfigDraft';
+import { toPhysicalBackupConfigInputFromDraft } from '@/pages/databases/model/physical-backups/toPhysicalBackupConfigInputFromDraft';
+import { EditBackupConfigSection } from '@/pages/databases/ui/backup-config/EditBackupConfigSection';
+import { PhysicalBackupConfigFields } from '@/pages/databases/ui/backup-config/PhysicalBackupConfigFields';
 
 interface Props {
   database: Database;

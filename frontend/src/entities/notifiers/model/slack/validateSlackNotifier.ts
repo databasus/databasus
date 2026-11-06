@@ -1,4 +1,4 @@
-import type { SlackNotifierSettings } from './SlackNotifierSettings';
+import type { SlackNotifierSettings } from '@/entities/notifiers/model/slack/SlackNotifierSettings';
 
 export const validateSlackNotifier = (
   isCreate: boolean,

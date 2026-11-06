@@ -2,14 +2,14 @@ import type { JSX } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-import { LocaleProvider } from '../../../../shared/i18n';
-import { type PhysicalBackupListItem } from '../../model/physical-backups/PhysicalBackupListItem';
-import { PhysicalBackupStatus } from '../../model/physical-backups/PhysicalBackupStatus';
-import { PhysicalBackupType } from '../../model/physical-backups/PhysicalBackupType';
+import { type PhysicalBackupListItem } from '@/pages/databases/model/physical-backups/PhysicalBackupListItem';
+import { PhysicalBackupStatus } from '@/pages/databases/model/physical-backups/PhysicalBackupStatus';
+import { PhysicalBackupType } from '@/pages/databases/model/physical-backups/PhysicalBackupType';
 import {
   PhysicalBackupTypeCellComponent,
   WalRangeSegmentsComponent,
-} from './PhysicalBackupTypeCellComponent';
+} from '@/pages/databases/ui/physical-backups/PhysicalBackupTypeCellComponent';
+import { LocaleProvider } from '@/shared/i18n';
 
 // The entity's public API imports its API client, and the client's config
 // module reads window at import time. The tests run in node, so they supply

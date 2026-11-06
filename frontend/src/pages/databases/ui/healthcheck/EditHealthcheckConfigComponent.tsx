@@ -3,12 +3,12 @@ import { Alert, Button, Input, Spin, Switch, Tooltip } from 'antd';
 import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { healthcheckConfigApi } from '../../../../entities/healthcheck';
-import type { HealthcheckConfig } from '../../../../entities/healthcheck';
-import { useSessionGuard } from '../../../../shared/auth';
-import { useLatestRef } from '../../../../shared/hooks';
-import { translateApiError } from '../../../../shared/i18n';
-import { LoadFailure } from '../../../../shared/ui';
+import { healthcheckConfigApi } from '@/entities/healthcheck';
+import type { HealthcheckConfig } from '@/entities/healthcheck';
+import { useSessionGuard } from '@/shared/auth';
+import { useLatestRef } from '@/shared/hooks';
+import { translateApiError } from '@/shared/i18n';
+import { LoadFailure } from '@/shared/ui';
 
 interface Props {
   databaseId: string;

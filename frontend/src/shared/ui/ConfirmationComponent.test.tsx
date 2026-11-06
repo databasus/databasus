@@ -2,8 +2,8 @@
 import { screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { renderScreen } from '../lib/test/renderScreen';
-import { ConfirmationComponent } from './ConfirmationComponent';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
+import { ConfirmationComponent } from '@/shared/ui/ConfirmationComponent';
 
 describe('ConfirmationComponent', () => {
   it('keeps cancellation ordinary when the confirmed action is destructive', () => {

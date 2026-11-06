@@ -1,9 +1,9 @@
-import { API_BASE_PATH, getApiClient, requireData, requireSuccess } from '../../../shared/api';
-import { getApplicationServer } from '../../../shared/config';
-import type { DownloadToken } from '../model/DownloadToken';
-import type { LogicalBackup } from '../model/LogicalBackup';
-import type { LogicalBackupListFilter } from '../model/LogicalBackupListFilter';
-import type { LogicalBackupPage } from '../model/LogicalBackupPage';
+import type { DownloadToken } from '@/pages/databases/model/DownloadToken';
+import type { LogicalBackup } from '@/pages/databases/model/LogicalBackup';
+import type { LogicalBackupListFilter } from '@/pages/databases/model/LogicalBackupListFilter';
+import type { LogicalBackupPage } from '@/pages/databases/model/LogicalBackupPage';
+import { API_BASE_PATH, getApiClient, requireData, requireSuccess } from '@/shared/api';
+import { getApplicationServer } from '@/shared/config';
 
 interface LogicalBackupPageRequest {
   databaseId: string;

@@ -3,17 +3,14 @@ import { Select, Tooltip } from 'antd';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import {
-  BACKUP_ENCRYPTION_OPTION_LABEL_KEYS,
-  BackupEncryption,
-} from '../../../../entities/backup-configs';
-import type { PhysicalDatabaseBackupType } from '../../../../entities/databases';
-import { ScheduleEditor } from '../../../../entities/schedules';
-import { hasIncrementalBackups } from '../../model/physical-backups/hasIncrementalBackups';
-import type { PhysicalBackupConfigDraft } from '../../model/physical-backups/PhysicalBackupConfigDraft';
-import { BackupStorageSelection } from '../BackupStorageSelection';
-import { PhysicalNotificationTriggerFields } from './PhysicalNotificationTriggerFields';
-import { PhysicalRetentionFields } from './PhysicalRetentionFields';
+import { BACKUP_ENCRYPTION_OPTION_LABEL_KEYS, BackupEncryption } from '@/entities/backup-configs';
+import type { PhysicalDatabaseBackupType } from '@/entities/databases';
+import { ScheduleEditor } from '@/entities/schedules';
+import { hasIncrementalBackups } from '@/pages/databases/model/physical-backups/hasIncrementalBackups';
+import type { PhysicalBackupConfigDraft } from '@/pages/databases/model/physical-backups/PhysicalBackupConfigDraft';
+import { PhysicalNotificationTriggerFields } from '@/pages/databases/ui/backup-config/PhysicalNotificationTriggerFields';
+import { PhysicalRetentionFields } from '@/pages/databases/ui/backup-config/PhysicalRetentionFields';
+import { BackupStorageSelection } from '@/pages/databases/ui/BackupStorageSelection';
 
 type PhysicalDraftSettings = PhysicalBackupConfigDraft['settings'];
 

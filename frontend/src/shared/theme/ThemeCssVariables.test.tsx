@@ -2,8 +2,8 @@
 import { act, fireEvent, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { renderScreen } from '../lib/test/renderScreen';
-import { useTheme } from './useTheme';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
+import { useTheme } from '@/shared/theme/useTheme';
 
 const ThemeScreen = () => {
   const { setTheme, resolvedTheme } = useTheme();

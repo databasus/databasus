@@ -6,9 +6,9 @@ import {
   SFTP_AUTH_METHOD_LABEL_KEYS,
   SftpAuthMethod,
   type SftpStorageSettings,
-} from '../../../../../entities/storages';
-import { toOptionalValue } from '../../../../../shared/lib';
-import { AdvancedSettingsToggleComponent } from '../../../../../shared/ui';
+} from '@/entities/storages';
+import { toOptionalValue } from '@/shared/lib';
+import { AdvancedSettingsToggleComponent } from '@/shared/ui';
 
 interface Props {
   settings: SftpStorageSettings;

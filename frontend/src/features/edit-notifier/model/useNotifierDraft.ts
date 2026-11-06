@@ -1,18 +1,20 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 
-import { getSessionSnapshot, isCurrentSession, subscribeSession } from '@/shared/auth';
-
 import {
   type Notifier,
   type NotifierSettings,
   NotifierType,
   notifierApi,
-} from '../../../entities/notifiers';
-import { RequestRevision } from '../../../shared/lib/RequestRevision';
-import { createDefaultNotifierSettings } from '../lib/createDefaultNotifierSettings';
-import { isNotifierSettingsFilled } from '../lib/isNotifierSettingsFilled';
-import { acknowledgeNotifierSettings } from './acknowledgeNotifierSettings';
-import { type NotifierDraft, isNotifierDraftUnchanged } from './NotifierDraft';
+} from '@/entities/notifiers';
+import { createDefaultNotifierSettings } from '@/features/edit-notifier/lib/createDefaultNotifierSettings';
+import { isNotifierSettingsFilled } from '@/features/edit-notifier/lib/isNotifierSettingsFilled';
+import { acknowledgeNotifierSettings } from '@/features/edit-notifier/model/acknowledgeNotifierSettings';
+import {
+  type NotifierDraft,
+  isNotifierDraftUnchanged,
+} from '@/features/edit-notifier/model/NotifierDraft';
+import { getSessionSnapshot, isCurrentSession, subscribeSession } from '@/shared/auth';
+import { RequestRevision } from '@/shared/lib/RequestRevision';
 
 interface Options {
   workspaceId: string;

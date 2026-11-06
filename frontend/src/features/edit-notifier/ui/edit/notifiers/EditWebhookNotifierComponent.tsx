@@ -3,24 +3,23 @@ import { Button, Form, Input, Select, Tooltip } from 'antd';
 import { useId, useMemo } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { AddressChangedSecretNoticeComponent, InlineCodeComponent } from '@/shared/ui';
-
-import type { WebhookHeader, WebhookNotifierSettings } from '../../../../../entities/notifiers';
+import type { WebhookHeader, WebhookNotifierSettings } from '@/entities/notifiers';
 import {
   NOTIFICATION_CATEGORY_LABEL_KEYS,
   NotificationCategory,
   WebhookMethod,
   isWebhookHeaderValueMissing,
   isWebhookHeaderNameValid,
-} from '../../../../../entities/notifiers';
-import type { TranslationKey } from '../../../../../shared/i18n';
-import { toOptionalValue } from '../../../../../shared/lib';
-import { DEFAULT_ACCEPTED_CATEGORIES } from '../../../lib/defaultAcceptedCategories';
+} from '@/entities/notifiers';
+import { DEFAULT_ACCEPTED_CATEGORIES } from '@/features/edit-notifier/lib/defaultAcceptedCategories';
 import {
   EXAMPLE_GET_QUERY,
   getExamplePostBody,
   getExamplePostHeaderLines,
-} from '../../../lib/webhookExampleRequest';
+} from '@/features/edit-notifier/lib/webhookExampleRequest';
+import type { TranslationKey } from '@/shared/i18n';
+import { toOptionalValue } from '@/shared/lib';
+import { AddressChangedSecretNoticeComponent, InlineCodeComponent } from '@/shared/ui';
 
 interface Props {
   settings: WebhookNotifierSettings;

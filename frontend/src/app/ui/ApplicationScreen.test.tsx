@@ -3,11 +3,10 @@ import { act, screen, within } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
+import { ApplicationScreen } from '@/app/ui/ApplicationScreen';
 import { activateSession } from '@/shared/auth';
 import { mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
-
-import { ApplicationScreen } from './ApplicationScreen';
 
 vi.hoisted(() => vi.stubEnv('VITE_APP_VERSION', 'dev'));
 

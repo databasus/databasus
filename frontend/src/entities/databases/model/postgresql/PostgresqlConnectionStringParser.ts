@@ -1,5 +1,5 @@
-import type { LocalizedText } from '../../../../shared/i18n';
-import { PostgresSslMode } from './PostgresSslMode';
+import { PostgresSslMode } from '@/entities/databases/model/postgresql/PostgresSslMode';
+import type { LocalizedText } from '@/shared/i18n';
 
 const IPV4_PATTERN = /^\d{1,3}(\.\d{1,3}){3}$/;
 

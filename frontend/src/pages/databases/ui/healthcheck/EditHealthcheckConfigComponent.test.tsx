@@ -3,14 +3,14 @@ import { act, fireEvent, screen } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { healthcheckConfigApi } from '../../../../entities/healthcheck';
-import { API_BASE_PATH, type ApiComponents } from '../../../../shared/api';
-import { activateSession, invalidateSession } from '../../../../shared/auth';
-import { buildProblem, mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
-import { createPendingApiResponse } from '../../../../shared/lib/test/pendingApiResponse';
-import { releaseAndSettle } from '../../../../shared/lib/test/releaseAndSettle';
-import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-import { EditHealthcheckConfigComponent } from './EditHealthcheckConfigComponent';
+import { healthcheckConfigApi } from '@/entities/healthcheck';
+import { EditHealthcheckConfigComponent } from '@/pages/databases/ui/healthcheck/EditHealthcheckConfigComponent';
+import { API_BASE_PATH, type ApiComponents } from '@/shared/api';
+import { activateSession, invalidateSession } from '@/shared/auth';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
+import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const mockServer = setUpMockApi();
 const databaseId = 'database-id';

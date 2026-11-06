@@ -1,5 +1,5 @@
-import { LanguageSelectorComponent } from './LanguageSelectorComponent';
-import { ThemeToggleComponent } from './ThemeToggleComponent';
+import { LanguageSelectorComponent } from '@/shared/ui/LanguageSelectorComponent';
+import { ThemeToggleComponent } from '@/shared/ui/ThemeToggleComponent';
 
 // Language and theme are both per-browser display preferences, so they share one split button:
 // language on the left, theme on the right.

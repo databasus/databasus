@@ -7,7 +7,7 @@ import {
   DatabaseType,
   getDatabaseLogoFromType,
   isPostgresType,
-} from '../../../entities/databases';
+} from '@/entities/databases';
 
 interface Props {
   name: string;

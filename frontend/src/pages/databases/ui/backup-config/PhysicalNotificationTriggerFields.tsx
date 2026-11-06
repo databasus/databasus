@@ -1,11 +1,11 @@
 import { Checkbox } from 'antd';
 import { useTranslation } from 'react-i18next';
 
-import type { PhysicalDatabaseBackupType } from '../../../../entities/databases';
-import { getShownPhysicalNotificationTriggers } from '../../model/physical-backups/getShownPhysicalNotificationTriggers';
-import type { PhysicalBackupConfigDraft } from '../../model/physical-backups/PhysicalBackupConfigDraft';
-import type { PhysicalNotificationTrigger } from '../../model/physical-backups/PhysicalNotificationTrigger';
-import { PHYSICAL_NOTIFICATION_TRIGGER_LABEL_KEYS } from '../../model/physical-backups/PhysicalNotificationTriggerLabelKeys';
+import type { PhysicalDatabaseBackupType } from '@/entities/databases';
+import { getShownPhysicalNotificationTriggers } from '@/pages/databases/model/physical-backups/getShownPhysicalNotificationTriggers';
+import type { PhysicalBackupConfigDraft } from '@/pages/databases/model/physical-backups/PhysicalBackupConfigDraft';
+import type { PhysicalNotificationTrigger } from '@/pages/databases/model/physical-backups/PhysicalNotificationTrigger';
+import { PHYSICAL_NOTIFICATION_TRIGGER_LABEL_KEYS } from '@/pages/databases/model/physical-backups/PhysicalNotificationTriggerLabelKeys';
 
 type PhysicalNotificationTriggers = PhysicalBackupConfigDraft['settings']['notificationTriggers'];
 

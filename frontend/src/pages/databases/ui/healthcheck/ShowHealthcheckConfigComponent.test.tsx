@@ -3,16 +3,16 @@ import { act, fireEvent, screen } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { healthcheckConfigApi } from '../../../../entities/healthcheck';
-import { API_BASE_PATH, type ApiComponents } from '../../../../shared/api';
-import { activateSession, invalidateSession } from '../../../../shared/auth';
-import { useLocale } from '../../../../shared/i18n';
-import { DICTIONARIES } from '../../../../shared/i18n/dictionaries';
-import { buildProblem, mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
-import { createPendingApiResponse } from '../../../../shared/lib/test/pendingApiResponse';
-import { releaseAndSettle } from '../../../../shared/lib/test/releaseAndSettle';
-import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-import { ShowHealthcheckConfigComponent } from './ShowHealthcheckConfigComponent';
+import { healthcheckConfigApi } from '@/entities/healthcheck';
+import { ShowHealthcheckConfigComponent } from '@/pages/databases/ui/healthcheck/ShowHealthcheckConfigComponent';
+import { API_BASE_PATH, type ApiComponents } from '@/shared/api';
+import { activateSession, invalidateSession } from '@/shared/auth';
+import { useLocale } from '@/shared/i18n';
+import { DICTIONARIES } from '@/shared/i18n/dictionaries';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
+import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const mockServer = setUpMockApi();
 const FIRST_DATABASE_ID = 'first-database-id';

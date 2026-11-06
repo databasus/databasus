@@ -3,16 +3,15 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { DatabaseType, createDefaultDatabaseSettings } from '@/entities/databases';
-import { mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
-import { stubClipboard } from '@/shared/lib/test/stubClipboard';
-
 import {
   buildCreateDraft,
   buildEditDraft,
   buildRestoreDraft,
   renderEditableForm,
   renderRestoreForm,
-} from './connectionForm.fixture';
+} from '@/features/database-connection/ui/connectionForm.fixture';
+import { mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { stubClipboard } from '@/shared/lib/test/stubClipboard';
 
 const mockServer = setUpMockApi();
 

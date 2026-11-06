@@ -8,10 +8,6 @@ import {
   PostgresSslMode,
   createDefaultDatabaseSettings,
 } from '@/entities/databases';
-import { en } from '@/shared/i18n/locales/en';
-import { setUpMockApi } from '@/shared/lib/test/mockApi';
-import { stubClipboard } from '@/shared/lib/test/stubClipboard';
-
 import {
   NO_RESTORE_OPTIONS,
   buildCreateDraft,
@@ -19,7 +15,10 @@ import {
   buildRestoreDraft,
   renderEditableForm,
   renderRestoreForm,
-} from './connectionForm.fixture';
+} from '@/features/database-connection/ui/connectionForm.fixture';
+import { en } from '@/shared/i18n/locales/en';
+import { setUpMockApi } from '@/shared/lib/test/mockApi';
+import { stubClipboard } from '@/shared/lib/test/stubClipboard';
 
 setUpMockApi();
 

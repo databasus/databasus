@@ -1,4 +1,4 @@
-import type { NotifierSettings } from './NotifierSettings';
+import type { NotifierSettings } from '@/entities/notifiers/model/NotifierSettings';
 
 export type NotifierType = NotifierSettings['type'];
 

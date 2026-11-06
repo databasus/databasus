@@ -1,8 +1,8 @@
 import { type RefObject, useState } from 'react';
 
-import { usePagedList } from '../../../shared/hooks';
-import { auditEventApi } from '../api/auditEventApi';
-import type { AuditEvent } from './AuditEvent';
+import { auditEventApi } from '@/entities/audit-logs/api/auditEventApi';
+import type { AuditEvent } from '@/entities/audit-logs/model/AuditEvent';
+import { usePagedList } from '@/shared/hooks';
 
 interface Params {
   // The filters choose the view: none for the global one, authorUserId for a user's and

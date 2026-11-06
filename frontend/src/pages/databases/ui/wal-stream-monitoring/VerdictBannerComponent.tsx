@@ -10,19 +10,19 @@ import { Button, theme } from 'antd';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { translateLocalizedText } from '../../../../shared/i18n';
 import {
   getMeasurementAge,
   getSecondsBetween,
-} from '../../lib/wal-stream-monitoring/roundedDuration';
-import { getToneColors } from '../../lib/wal-stream-monitoring/toneColors';
-import { UNCONFIRMED_STATE_AFTER_MS } from '../../lib/wal-stream-monitoring/verdictBanner';
-import { FullBackupAction } from '../../model/wal-stream-monitoring/FullBackupAction';
-import type { ReasonTexts } from '../../model/wal-stream-monitoring/ReasonTexts';
-import type { VerdictBanner } from '../../model/wal-stream-monitoring/VerdictBanner';
-import { VerdictIcon } from '../../model/wal-stream-monitoring/VerdictIcon';
-import { WalStreamReasonLevel } from '../../model/wal-stream-monitoring/WalStreamReasonLevel';
-import { MonitoringTextComponent } from './MonitoringTextComponent';
+} from '@/pages/databases/lib/wal-stream-monitoring/roundedDuration';
+import { getToneColors } from '@/pages/databases/lib/wal-stream-monitoring/toneColors';
+import { UNCONFIRMED_STATE_AFTER_MS } from '@/pages/databases/lib/wal-stream-monitoring/verdictBanner';
+import { FullBackupAction } from '@/pages/databases/model/wal-stream-monitoring/FullBackupAction';
+import type { ReasonTexts } from '@/pages/databases/model/wal-stream-monitoring/ReasonTexts';
+import type { VerdictBanner } from '@/pages/databases/model/wal-stream-monitoring/VerdictBanner';
+import { VerdictIcon } from '@/pages/databases/model/wal-stream-monitoring/VerdictIcon';
+import { WalStreamReasonLevel } from '@/pages/databases/model/wal-stream-monitoring/WalStreamReasonLevel';
+import { MonitoringTextComponent } from '@/pages/databases/ui/wal-stream-monitoring/MonitoringTextComponent';
+import { translateLocalizedText } from '@/shared/i18n';
 
 interface Props {
   banner: VerdictBanner;

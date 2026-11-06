@@ -1,1 +1,5 @@
-export { getUserClockFormat, getUserTimeFormat, getUserShortTimeFormat } from './getUserTimeFormat';
+export {
+  getUserClockFormat,
+  getUserTimeFormat,
+  getUserShortTimeFormat,
+} from '@/shared/time/getUserTimeFormat';

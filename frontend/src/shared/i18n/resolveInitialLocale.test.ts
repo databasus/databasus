@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { SUPPORTED_LOCALES } from './dictionaries';
-import { resolveInitialLocale } from './resolveInitialLocale';
+import { SUPPORTED_LOCALES } from '@/shared/i18n/dictionaries';
+import { resolveInitialLocale } from '@/shared/i18n/resolveInitialLocale';
 
 const ALL_LOCALES = ['en', 'ru', 'es', 'pt', 'zh', 'fr', 'id'];
 

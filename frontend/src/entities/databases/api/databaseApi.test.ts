@@ -1,12 +1,15 @@
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
-import { API_BASE_PATH, type ApiComponents } from '../../../shared/api';
-import { buildProblem, setUpMockApi } from '../../../shared/lib/test/mockApi';
-import { createDefaultDatabaseSettings } from '../model/createDefaultDatabaseSettings';
-import type { DatabaseCreateDraft, DatabaseEditDraft } from '../model/DatabaseConnectionDraft';
-import { DatabaseType } from '../model/DatabaseType';
-import { databaseApi } from './databaseApi';
+import { databaseApi } from '@/entities/databases/api/databaseApi';
+import { createDefaultDatabaseSettings } from '@/entities/databases/model/createDefaultDatabaseSettings';
+import type {
+  DatabaseCreateDraft,
+  DatabaseEditDraft,
+} from '@/entities/databases/model/DatabaseConnectionDraft';
+import { DatabaseType } from '@/entities/databases/model/DatabaseType';
+import { API_BASE_PATH, type ApiComponents } from '@/shared/api';
+import { buildProblem, setUpMockApi } from '@/shared/lib/test/mockApi';
 
 const mockServer = setUpMockApi();
 

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { createEmptySshTunnelSettings } from './createEmptySshTunnelSettings';
-import { isSshTunnelReadyToTest } from './isSshTunnelReadyToTest';
-import { SshTunnelAuthType } from './SshTunnelAuthType';
-import type { SshTunnelSettings } from './SshTunnelSettings';
+import { createEmptySshTunnelSettings } from '@/entities/databases/model/sshtunnel/createEmptySshTunnelSettings';
+import { isSshTunnelReadyToTest } from '@/entities/databases/model/sshtunnel/isSshTunnelReadyToTest';
+import { SshTunnelAuthType } from '@/entities/databases/model/sshtunnel/SshTunnelAuthType';
+import type { SshTunnelSettings } from '@/entities/databases/model/sshtunnel/SshTunnelSettings';
 
 function enabledTunnel(): SshTunnelSettings {
   return {

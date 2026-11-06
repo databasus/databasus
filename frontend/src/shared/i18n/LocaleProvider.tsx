@@ -3,13 +3,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { I18nextProvider } from 'react-i18next';
 
-import { createI18n } from './createI18n';
-import { DEFAULT_LOCALE, type Locale, SUPPORTED_LOCALES } from './dictionaries';
-import { formatNumber } from './formatNumber';
-import { formatRelativeTime } from './formatRelativeTime';
-import { LocaleContext } from './localeContext';
-import { LOCALE_SETTINGS } from './localeSettings';
-import { resolveInitialLocale } from './resolveInitialLocale';
+import { createI18n } from '@/shared/i18n/createI18n';
+import { DEFAULT_LOCALE, type Locale, SUPPORTED_LOCALES } from '@/shared/i18n/dictionaries';
+import { formatNumber } from '@/shared/i18n/formatNumber';
+import { formatRelativeTime } from '@/shared/i18n/formatRelativeTime';
+import { LocaleContext } from '@/shared/i18n/localeContext';
+import { LOCALE_SETTINGS } from '@/shared/i18n/localeSettings';
+import { resolveInitialLocale } from '@/shared/i18n/resolveInitialLocale';
 
 // eslint-disable-next-line i18next/no-literal-string -- localStorage key
 const LOCALE_STORAGE_KEY = 'databasus-locale';

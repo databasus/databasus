@@ -2,9 +2,9 @@
 import { screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { DICTIONARIES } from '../../../shared/i18n/dictionaries';
-import { renderScreen } from '../../../shared/lib/test/renderScreen';
-import { AuthNavbarComponent } from './AuthNavbarComponent';
+import { AuthNavbarComponent } from '@/pages/auth/ui/AuthNavbarComponent';
+import { DICTIONARIES } from '@/shared/i18n/dictionaries';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 describe('AuthNavbarComponent', () => {
   it('names the logo link in the selected language', () => {

@@ -1,7 +1,7 @@
 import type { TFunction } from 'i18next';
 
-import { API_ERROR_CODES, type ApiComponents, ApiError } from '../api';
-import type { TranslationKey } from './TranslationKey';
+import { API_ERROR_CODES, type ApiComponents, ApiError } from '@/shared/api';
+import type { TranslationKey } from '@/shared/i18n/TranslationKey';
 
 // Every code the contract declares. A code added to the contract without a key here fails
 // pnpm typecheck, so it never reaches the user as raw text.

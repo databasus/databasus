@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { EmailNotifierSecurity } from './EmailNotifierSecurity';
-import { getDefaultEmailNotifierSecurity } from './getDefaultEmailNotifierSecurity';
-import { getSecurityAfterPortChange } from './getSecurityAfterPortChange';
+import { EmailNotifierSecurity } from '@/entities/notifiers/model/email/EmailNotifierSecurity';
+import { getDefaultEmailNotifierSecurity } from '@/entities/notifiers/model/email/getDefaultEmailNotifierSecurity';
+import { getSecurityAfterPortChange } from '@/entities/notifiers/model/email/getSecurityAfterPortChange';
 
 describe('getDefaultEmailNotifierSecurity', () => {
   it('returns tls only for port 465', () => {

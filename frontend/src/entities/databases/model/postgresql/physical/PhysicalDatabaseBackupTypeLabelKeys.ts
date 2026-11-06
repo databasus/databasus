@@ -1,5 +1,5 @@
-import type { TranslationKey } from '../../../../../shared/i18n';
-import { PhysicalDatabaseBackupType } from './PhysicalDatabaseBackupType';
+import { PhysicalDatabaseBackupType } from '@/entities/databases/model/postgresql/physical/PhysicalDatabaseBackupType';
+import type { TranslationKey } from '@/shared/i18n';
 
 export const PHYSICAL_DATABASE_BACKUP_TYPE_LABEL_KEYS: Record<
   PhysicalDatabaseBackupType,

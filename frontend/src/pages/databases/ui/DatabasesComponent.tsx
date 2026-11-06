@@ -2,23 +2,18 @@ import { Button, Input, Modal, Spin } from 'antd';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type BackupConfig, backupConfigApi } from '../../../entities/backup-configs';
-import { databaseApi, sortUnavailableDatabasesFirst } from '../../../entities/databases';
-import type { Database } from '../../../entities/databases';
-import { type Storage, storageApi } from '../../../entities/storages';
-import type { Workspace } from '../../../entities/workspaces';
-import { ApiError } from '../../../shared/api';
-import { useSessionGuard } from '../../../shared/auth';
-import {
-  useIsMobile,
-  useLatestRef,
-  useRequestRevision,
-  useScopedSelection,
-} from '../../../shared/hooks';
-import { ResourceListDetail, LoadFailure } from '../../../shared/ui';
-import { CreateDatabaseComponent } from './CreateDatabaseComponent';
-import { DatabaseCardComponent } from './DatabaseCardComponent';
-import { DatabaseComponent } from './DatabaseComponent';
+import { type BackupConfig, backupConfigApi } from '@/entities/backup-configs';
+import { databaseApi, sortUnavailableDatabasesFirst } from '@/entities/databases';
+import type { Database } from '@/entities/databases';
+import { type Storage, storageApi } from '@/entities/storages';
+import type { Workspace } from '@/entities/workspaces';
+import { CreateDatabaseComponent } from '@/pages/databases/ui/CreateDatabaseComponent';
+import { DatabaseCardComponent } from '@/pages/databases/ui/DatabaseCardComponent';
+import { DatabaseComponent } from '@/pages/databases/ui/DatabaseComponent';
+import { ApiError } from '@/shared/api';
+import { useSessionGuard } from '@/shared/auth';
+import { useIsMobile, useLatestRef, useRequestRevision, useScopedSelection } from '@/shared/hooks';
+import { ResourceListDetail, LoadFailure } from '@/shared/ui';
 
 interface Props {
   workspace: Workspace;

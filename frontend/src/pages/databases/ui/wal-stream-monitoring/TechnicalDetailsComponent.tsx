@@ -1,13 +1,13 @@
 import { useTranslation } from 'react-i18next';
 
-import type { MonitoringTone } from '../../model/wal-stream-monitoring/MonitoringTone';
-import type { PathStage } from '../../model/wal-stream-monitoring/PathStage';
-import type { ReasonTexts } from '../../model/wal-stream-monitoring/ReasonTexts';
-import type { WalStreamStatistics } from '../../model/wal-stream-monitoring/WalStreamStatistics';
-import { ChangesPathComponent } from './ChangesPathComponent';
-import { MonitoringTipsComponent } from './MonitoringTipsComponent';
-import { WalStreamTechnicalChartsComponent } from './WalStreamChartsComponent';
-import { WalStreamRawValuesComponent } from './WalStreamRawValuesComponent';
+import type { MonitoringTone } from '@/pages/databases/model/wal-stream-monitoring/MonitoringTone';
+import type { PathStage } from '@/pages/databases/model/wal-stream-monitoring/PathStage';
+import type { ReasonTexts } from '@/pages/databases/model/wal-stream-monitoring/ReasonTexts';
+import type { WalStreamStatistics } from '@/pages/databases/model/wal-stream-monitoring/WalStreamStatistics';
+import { ChangesPathComponent } from '@/pages/databases/ui/wal-stream-monitoring/ChangesPathComponent';
+import { MonitoringTipsComponent } from '@/pages/databases/ui/wal-stream-monitoring/MonitoringTipsComponent';
+import { WalStreamTechnicalChartsComponent } from '@/pages/databases/ui/wal-stream-monitoring/WalStreamChartsComponent';
+import { WalStreamRawValuesComponent } from '@/pages/databases/ui/wal-stream-monitoring/WalStreamRawValuesComponent';
 
 interface Props {
   statistics: WalStreamStatistics;

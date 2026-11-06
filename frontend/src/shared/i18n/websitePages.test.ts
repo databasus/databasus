@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
+import { WEBSITE_PAGES, getWebsitePageUrl } from '@/shared/i18n/websitePages';
+
 import websiteI18nSource from '../../../../website/app/i18n.ts?raw';
-import { WEBSITE_PAGES, getWebsitePageUrl } from './websitePages';
 
 const readTranslatedPaths = (source: string): string[] => {
   const list = source.match(/TRANSLATED_PATHS\s*=\s*\[([\s\S]*?)\]\s*as const/);

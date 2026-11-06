@@ -2,7 +2,7 @@ import { InfoCircleOutlined } from '@ant-design/icons';
 import { InputNumber, Switch, Tooltip } from 'antd';
 import { useTranslation } from 'react-i18next';
 
-import type { LogicalBackupSettings } from '../../../../entities/backup-configs';
+import type { LogicalBackupSettings } from '@/entities/backup-configs';
 
 interface Props {
   settings: LogicalBackupSettings;

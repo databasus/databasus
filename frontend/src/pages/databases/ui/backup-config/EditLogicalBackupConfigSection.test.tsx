@@ -7,16 +7,12 @@ import type {
   BackupConfig,
   BackupConfigInput,
   LogicalBackupConfigInput,
-} from '../../../../entities/backup-configs';
-import {
-  type Database,
-  DatabaseType,
-  createDefaultDatabaseSettings,
-} from '../../../../entities/databases';
-import { API_BASE_PATH } from '../../../../shared/api';
-import { buildProblem, mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
-import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-import { EditLogicalBackupConfigSection } from './EditLogicalBackupConfigSection';
+} from '@/entities/backup-configs';
+import { type Database, DatabaseType, createDefaultDatabaseSettings } from '@/entities/databases';
+import { EditLogicalBackupConfigSection } from '@/pages/databases/ui/backup-config/EditLogicalBackupConfigSection';
+import { API_BASE_PATH } from '@/shared/api';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const mockServer = setUpMockApi();
 const database: Database = {

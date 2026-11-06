@@ -3,7 +3,7 @@ import { Button } from 'antd';
 import type { JSX } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { CommandToCopy } from './useCopiedCommand';
+import type { CommandToCopy } from '@/pages/databases/ui/physical-backups/useCopiedCommand';
 
 interface Props {
   id: string;

@@ -2,14 +2,17 @@ import { Spin } from 'antd';
 import type { JSX } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { useLocale } from '../../../../shared/i18n';
-import { formatBackupSize } from '../../lib/formatBackupSize';
-import { getPhysicalBackupDuration } from '../../lib/physical-backups/getPhysicalBackupDuration';
-import { type PhysicalBackupListItem } from '../../model/physical-backups/PhysicalBackupListItem';
-import { PhysicalBackupActions, type PhysicalBackupRowActions } from './PhysicalBackupActions';
-import { PhysicalBackupCreatedAt } from './PhysicalBackupCreatedAt';
-import { PhysicalBackupStatusBadge } from './PhysicalBackupStatusBadge';
-import { PhysicalBackupTypeCellComponent } from './PhysicalBackupTypeCellComponent';
+import { formatBackupSize } from '@/pages/databases/lib/formatBackupSize';
+import { getPhysicalBackupDuration } from '@/pages/databases/lib/physical-backups/getPhysicalBackupDuration';
+import { type PhysicalBackupListItem } from '@/pages/databases/model/physical-backups/PhysicalBackupListItem';
+import {
+  PhysicalBackupActions,
+  type PhysicalBackupRowActions,
+} from '@/pages/databases/ui/physical-backups/PhysicalBackupActions';
+import { PhysicalBackupCreatedAt } from '@/pages/databases/ui/physical-backups/PhysicalBackupCreatedAt';
+import { PhysicalBackupStatusBadge } from '@/pages/databases/ui/physical-backups/PhysicalBackupStatusBadge';
+import { PhysicalBackupTypeCellComponent } from '@/pages/databases/ui/physical-backups/PhysicalBackupTypeCellComponent';
+import { useLocale } from '@/shared/i18n';
 
 interface Props {
   backups: PhysicalBackupListItem[];

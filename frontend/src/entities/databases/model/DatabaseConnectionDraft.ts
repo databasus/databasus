@@ -1,5 +1,5 @@
-import type { DatabaseSettings } from './DatabaseSettings';
-import type { PostgresqlPhysicalSettings } from './ProviderDatabaseSettings';
+import type { DatabaseSettings } from '@/entities/databases/model/DatabaseSettings';
+import type { PostgresqlPhysicalSettings } from '@/entities/databases/model/ProviderDatabaseSettings';
 
 // A physical backup is restored by other means, so a restore target never has that type.
 export type RestoreTargetSettings = Exclude<DatabaseSettings, PostgresqlPhysicalSettings>;

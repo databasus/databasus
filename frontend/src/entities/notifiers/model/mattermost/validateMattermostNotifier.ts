@@ -1,5 +1,5 @@
-import { MattermostDeliveryMode } from './MattermostDeliveryMode';
-import type { MattermostNotifierSettings } from './MattermostNotifierSettings';
+import { MattermostDeliveryMode } from '@/entities/notifiers/model/mattermost/MattermostDeliveryMode';
+import type { MattermostNotifierSettings } from '@/entities/notifiers/model/mattermost/MattermostNotifierSettings';
 
 const MATTERMOST_CHANNEL_ID_LENGTH = 26;
 

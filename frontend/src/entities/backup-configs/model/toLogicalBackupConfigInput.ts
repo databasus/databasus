@@ -1,6 +1,6 @@
-import type { BackupConfig } from './BackupConfig';
-import { BackupSettingsType } from './BackupSettingsType';
-import type { LogicalBackupConfigInput } from './LogicalBackupConfigInput';
+import type { BackupConfig } from '@/entities/backup-configs/model/BackupConfig';
+import { BackupSettingsType } from '@/entities/backup-configs/model/BackupSettingsType';
+import type { LogicalBackupConfigInput } from '@/entities/backup-configs/model/LogicalBackupConfigInput';
 
 export const toLogicalBackupConfigInput = (
   backupConfig: BackupConfig,

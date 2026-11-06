@@ -4,8 +4,8 @@ import {
   PostgresqlConnectionStringParser,
   type ParseError,
   type ParseResult,
-} from './PostgresqlConnectionStringParser';
-import { PostgresSslMode } from './PostgresSslMode';
+} from '@/entities/databases/model/postgresql/PostgresqlConnectionStringParser';
+import { PostgresSslMode } from '@/entities/databases/model/postgresql/PostgresSslMode';
 
 describe('PostgresqlConnectionStringParser', () => {
   // Helper to assert successful parse

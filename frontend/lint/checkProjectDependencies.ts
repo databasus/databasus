@@ -1,12 +1,7 @@
 import { relative, sep } from 'node:path';
 
+import type { ArchitectureFinding } from './architectureFinding.ts';
 import type { FrontendDependency } from './frontendDependencies.ts';
-
-export interface ArchitectureFinding {
-  rule: string;
-  source: string;
-  target?: string;
-}
 
 export const LAYERS = ['app', 'pages', 'widgets', 'features', 'entities', 'shared'];
 

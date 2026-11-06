@@ -1,4 +1,4 @@
-import type { TranslationKey } from '../../../shared/i18n';
+import type { TranslationKey } from '@/shared/i18n';
 
 export const S3_STORAGE_CLASS_LABEL_KEYS: ReadonlyMap<string, TranslationKey> = new Map([
   ['STANDARD', 'storages.s3StorageClasses.standard'],

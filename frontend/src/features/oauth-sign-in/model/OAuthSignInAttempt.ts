@@ -1,6 +1,5 @@
+import { getOAuthRedirectUri } from '@/features/oauth-sign-in/model/getOAuthRedirectUri';
 import { beginAuthIntent } from '@/shared/auth';
-
-import { getOAuthRedirectUri } from './getOAuthRedirectUri';
 
 export type OAuthProvider = 'github' | 'google';
 export interface OAuthSignInAttempt {

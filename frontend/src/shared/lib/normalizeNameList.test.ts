@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { normalizeNameList } from './normalizeNameList';
+import { normalizeNameList } from '@/shared/lib/normalizeNameList';
 
 describe('normalizeNameList', () => {
   it('trims separators glued to pasted names', () => {

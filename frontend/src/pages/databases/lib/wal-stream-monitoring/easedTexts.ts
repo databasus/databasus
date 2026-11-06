@@ -1,5 +1,5 @@
-import type { MonitoringText } from '../../model/wal-stream-monitoring/MonitoringText';
-import type { MonitoringTextParam } from '../../model/wal-stream-monitoring/MonitoringTextParam';
+import type { MonitoringText } from '@/pages/databases/model/wal-stream-monitoring/MonitoringText';
+import type { MonitoringTextParam } from '@/pages/databases/model/wal-stream-monitoring/MonitoringTextParam';
 
 const easeOutCubic = (progress: number): number =>
   1 - (1 - Math.min(1, Math.max(0, progress))) ** 3;

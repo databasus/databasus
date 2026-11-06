@@ -2,9 +2,9 @@
 import { screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { DICTIONARIES } from '../../../../shared/i18n/dictionaries';
-import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-import { LogicalBackupsFiltersPanelComponent } from './LogicalBackupsFiltersPanelComponent';
+import { LogicalBackupsFiltersPanelComponent } from '@/pages/databases/ui/logical-backups/LogicalBackupsFiltersPanelComponent';
+import { DICTIONARIES } from '@/shared/i18n/dictionaries';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 describe('LogicalBackupsFiltersPanelComponent', () => {
   it('names the status and date filters by their translated labels', () => {

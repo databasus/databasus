@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { inspectApiRequest } from './inspectApiRequest';
+import { inspectApiRequest } from '@/shared/lib/test/inspectApiRequest';
 
 describe('inspectApiRequest', () => {
   it('inspects the declared path, query and body of outgoing requests', async () => {

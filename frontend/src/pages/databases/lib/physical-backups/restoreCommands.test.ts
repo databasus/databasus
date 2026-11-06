@@ -10,7 +10,7 @@ import {
   clusterDataDir,
   containerDataDir,
   containerVolumeDir,
-} from './restoreCommands';
+} from '@/pages/databases/lib/physical-backups/restoreCommands';
 
 const scriptUrl = 'https://app.example.com/api/v1/physical-recovery-scripts';
 const bundleUrl = 'https://app.example.com/api/v1/physical-restore-sets?token=abc';

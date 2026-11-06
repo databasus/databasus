@@ -5,7 +5,7 @@ import {
   type PagedListOptions,
   type PagedListState,
   createInitialPagedListState,
-} from '../lib/PagedListController';
+} from '@/shared/lib/PagedListController';
 
 const SCROLL_LOAD_THRESHOLD_PX = 100;
 

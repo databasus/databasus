@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
-import type { AuditEvent } from '../model/AuditEvent';
+import type { AuditEvent } from '@/entities/audit-logs/model/AuditEvent';
 
 interface Props {
   author: AuditEvent['author'];

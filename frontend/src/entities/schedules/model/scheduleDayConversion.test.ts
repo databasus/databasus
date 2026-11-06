@@ -6,7 +6,7 @@ import {
   getLocalWeekday,
   getUtcDayOfMonth,
   getUtcWeekday,
-} from './scheduleDayConversion';
+} from '@/entities/schedules/model/scheduleDayConversion';
 
 const zones = ['UTC', 'Europe/Moscow', 'America/New_York'];
 const moments = ['2026-10-15T12:00:00Z', '2026-11-15T12:00:00Z', '2027-02-15T12:00:00Z'];

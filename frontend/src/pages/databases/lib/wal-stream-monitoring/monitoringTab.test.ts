@@ -5,8 +5,8 @@ import {
   DatabaseType,
   PhysicalDatabaseBackupType,
   createDefaultDatabaseSettings,
-} from '../../../../entities/databases';
-import { isMonitoringTabShown } from './monitoringTab';
+} from '@/entities/databases';
+import { isMonitoringTabShown } from '@/pages/databases/lib/wal-stream-monitoring/monitoringTab';
 
 // The entity's public API imports its API client, and the client's config module reads window at
 // import time. The tests run in node, so they supply window.

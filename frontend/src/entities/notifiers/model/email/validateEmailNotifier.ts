@@ -1,4 +1,4 @@
-import type { EmailNotifierSettings } from './EmailNotifierSettings';
+import type { EmailNotifierSettings } from '@/entities/notifiers/model/email/EmailNotifierSettings';
 
 export const validateEmailNotifier = (
   settings: EmailNotifierSettings,

@@ -13,28 +13,31 @@ import {
   type BackupConfig,
   toLogicalBackupConfigInput,
   toPhysicalBackupConfigInput,
-} from '../../../entities/backup-configs';
-import { type Database, DatabaseType, databaseApi } from '../../../entities/databases';
-import { useSessionGuard } from '../../../shared/auth';
-import { translateApiError } from '../../../shared/i18n';
-import { ConfirmationComponent, LoadFailure } from '../../../shared/ui';
-import { EditLogicalBackupConfigSection } from './backup-config/EditLogicalBackupConfigSection';
-import { EditPhysicalBackupConfigSection } from './backup-config/EditPhysicalBackupConfigSection';
-import { ShowLogicalBackupConfigComponent } from './backup-config/ShowLogicalBackupConfigComponent';
-import { ShowPhysicalBackupConfigComponent } from './backup-config/ShowPhysicalBackupConfigComponent';
-import { StorageCleanupNotice } from './backup-config/StorageCleanupNotice';
-import { useBackupCleanup } from './backup-config/useBackupCleanup';
-import { useBackupConfigLoad } from './backup-config/useBackupConfigLoad';
-import { DatabaseSettingsSection } from './DatabaseSettingsSection';
-import { DatabaseTransferDialogComponent } from './DatabaseTransferDialogComponent';
-import { EditDatabaseConnectionSection } from './EditDatabaseConnectionSection';
-import { EditDatabaseNotifiersSection } from './EditDatabaseNotifiersSection';
-import { EditIconButton } from './EditIconButton';
-import { EditHealthcheckConfigComponent, ShowHealthcheckConfigComponent } from './healthcheck';
-import { ShowDatabaseNotifiersComponent } from './show/ShowDatabaseNotifiersComponent';
-import { ShowDatabaseSpecificDataComponent } from './show/ShowDatabaseSpecificDataComponent';
-import { EditVerificationConfigComponent } from './verification/EditVerificationConfigComponent';
-import { ShowVerificationConfigComponent } from './verification/ShowVerificationConfigComponent';
+} from '@/entities/backup-configs';
+import { type Database, DatabaseType, databaseApi } from '@/entities/databases';
+import { EditLogicalBackupConfigSection } from '@/pages/databases/ui/backup-config/EditLogicalBackupConfigSection';
+import { EditPhysicalBackupConfigSection } from '@/pages/databases/ui/backup-config/EditPhysicalBackupConfigSection';
+import { ShowLogicalBackupConfigComponent } from '@/pages/databases/ui/backup-config/ShowLogicalBackupConfigComponent';
+import { ShowPhysicalBackupConfigComponent } from '@/pages/databases/ui/backup-config/ShowPhysicalBackupConfigComponent';
+import { StorageCleanupNotice } from '@/pages/databases/ui/backup-config/StorageCleanupNotice';
+import { useBackupCleanup } from '@/pages/databases/ui/backup-config/useBackupCleanup';
+import { useBackupConfigLoad } from '@/pages/databases/ui/backup-config/useBackupConfigLoad';
+import { DatabaseSettingsSection } from '@/pages/databases/ui/DatabaseSettingsSection';
+import { DatabaseTransferDialogComponent } from '@/pages/databases/ui/DatabaseTransferDialogComponent';
+import { EditDatabaseConnectionSection } from '@/pages/databases/ui/EditDatabaseConnectionSection';
+import { EditDatabaseNotifiersSection } from '@/pages/databases/ui/EditDatabaseNotifiersSection';
+import { EditIconButton } from '@/pages/databases/ui/EditIconButton';
+import {
+  EditHealthcheckConfigComponent,
+  ShowHealthcheckConfigComponent,
+} from '@/pages/databases/ui/healthcheck';
+import { ShowDatabaseNotifiersComponent } from '@/pages/databases/ui/show/ShowDatabaseNotifiersComponent';
+import { ShowDatabaseSpecificDataComponent } from '@/pages/databases/ui/show/ShowDatabaseSpecificDataComponent';
+import { EditVerificationConfigComponent } from '@/pages/databases/ui/verification/EditVerificationConfigComponent';
+import { ShowVerificationConfigComponent } from '@/pages/databases/ui/verification/ShowVerificationConfigComponent';
+import { useSessionGuard } from '@/shared/auth';
+import { translateApiError } from '@/shared/i18n';
+import { ConfirmationComponent, LoadFailure } from '@/shared/ui';
 
 interface Props {
   database: Database;

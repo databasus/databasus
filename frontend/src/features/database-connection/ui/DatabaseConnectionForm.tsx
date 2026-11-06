@@ -12,17 +12,16 @@ import {
   toDatabaseSettingsTarget,
 } from '@/entities/databases';
 import type { PostgresqlRestoreOptions } from '@/entities/restores';
+import { isConnectionAddressChanged } from '@/features/database-connection/lib/isConnectionAddressChanged';
+import { isConnectionDraftFilled } from '@/features/database-connection/lib/isConnectionDraftFilled';
+import { useDatabaseConnectionTest } from '@/features/database-connection/model/useDatabaseConnectionTest';
+import { ConnectionTestFeedback } from '@/features/database-connection/ui/ConnectionTestFeedback';
+import { EditMongodbConnectionComponent } from '@/features/database-connection/ui/EditMongodbConnectionComponent';
+import { EditMySqlCompatibleConnectionComponent } from '@/features/database-connection/ui/EditMySqlCompatibleConnectionComponent';
+import { EditPostgresqlLogicalConnectionComponent } from '@/features/database-connection/ui/EditPostgresqlLogicalConnectionComponent';
+import { EditPostgresqlPhysicalConnectionComponent } from '@/features/database-connection/ui/EditPostgresqlPhysicalConnectionComponent';
 import { useSessionGuard } from '@/shared/auth';
 import { translateApiError } from '@/shared/i18n';
-
-import { isConnectionAddressChanged } from '../lib/isConnectionAddressChanged';
-import { isConnectionDraftFilled } from '../lib/isConnectionDraftFilled';
-import { useDatabaseConnectionTest } from '../model/useDatabaseConnectionTest';
-import { ConnectionTestFeedback } from './ConnectionTestFeedback';
-import { EditMongodbConnectionComponent } from './EditMongodbConnectionComponent';
-import { EditMySqlCompatibleConnectionComponent } from './EditMySqlCompatibleConnectionComponent';
-import { EditPostgresqlLogicalConnectionComponent } from './EditPostgresqlLogicalConnectionComponent';
-import { EditPostgresqlPhysicalConnectionComponent } from './EditPostgresqlPhysicalConnectionComponent';
 
 interface CommonProps<Draft extends DatabaseConnectionDraft> {
   draft: Draft;

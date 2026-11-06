@@ -1,6 +1,6 @@
 import type { GlobalToken } from 'antd';
 
-import { MonitoringTone } from '../../model/wal-stream-monitoring/MonitoringTone';
+import { MonitoringTone } from '@/pages/databases/model/wal-stream-monitoring/MonitoringTone';
 
 interface ToneColors {
   background: string;

@@ -10,6 +10,12 @@ import {
   SshTunnelAuthType,
   createDefaultDatabaseSettings,
 } from '@/entities/databases';
+import {
+  buildCreateDraft,
+  buildEditDraft,
+  renderEditableForm,
+} from '@/features/database-connection/ui/connectionForm.fixture';
+import { DatabaseConnectionForm } from '@/features/database-connection/ui/DatabaseConnectionForm';
 import { API_BASE_PATH, type ApiComponents } from '@/shared/api';
 import { useLocale } from '@/shared/i18n';
 import { en } from '@/shared/i18n/locales/en';
@@ -17,9 +23,6 @@ import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { watchNoticeTimer } from '@/shared/lib/test/noticeTimer';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
 import { stubClipboard, stubClipboardUnavailable } from '@/shared/lib/test/stubClipboard';
-
-import { buildCreateDraft, buildEditDraft, renderEditableForm } from './connectionForm.fixture';
-import { DatabaseConnectionForm } from './DatabaseConnectionForm';
 
 const mockServer = setUpMockApi();
 

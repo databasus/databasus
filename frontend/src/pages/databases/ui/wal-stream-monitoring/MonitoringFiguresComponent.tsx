@@ -1,19 +1,19 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type TranslationKey, useLocale } from '../../../../shared/i18n';
-import { formatBytes } from '../../../../shared/lib';
-import { useTheme } from '../../../../shared/theme';
-import { WAL_STREAM_CHART_COLORS } from '../../lib/wal-stream-monitoring/chartColors';
+import { WAL_STREAM_CHART_COLORS } from '@/pages/databases/lib/wal-stream-monitoring/chartColors';
 import {
   interpolateMonitoringTexts,
   interpolateNumber,
-} from '../../lib/wal-stream-monitoring/easedTexts';
-import { formatBytesPerSecond } from '../../lib/wal-stream-monitoring/monitoringTextValues';
-import type { MonitoringFigures } from '../../model/wal-stream-monitoring/MonitoringFigures';
-import type { MonitoringText } from '../../model/wal-stream-monitoring/MonitoringText';
-import { MonitoringTextComponent } from './MonitoringTextComponent';
-import { useEasedTransition } from './useEasedTransition';
+} from '@/pages/databases/lib/wal-stream-monitoring/easedTexts';
+import { formatBytesPerSecond } from '@/pages/databases/lib/wal-stream-monitoring/monitoringTextValues';
+import type { MonitoringFigures } from '@/pages/databases/model/wal-stream-monitoring/MonitoringFigures';
+import type { MonitoringText } from '@/pages/databases/model/wal-stream-monitoring/MonitoringText';
+import { MonitoringTextComponent } from '@/pages/databases/ui/wal-stream-monitoring/MonitoringTextComponent';
+import { useEasedTransition } from '@/pages/databases/ui/wal-stream-monitoring/useEasedTransition';
+import { type TranslationKey, useLocale } from '@/shared/i18n';
+import { formatBytes } from '@/shared/lib';
+import { useTheme } from '@/shared/theme';
 
 interface Props {
   figures: MonitoringFigures;

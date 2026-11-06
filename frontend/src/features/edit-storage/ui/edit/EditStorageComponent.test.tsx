@@ -3,17 +3,17 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { HttpResponse, http } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { Storage, StorageSettings } from '../../../../entities/storages';
-import { API_BASE_PATH, type ApiComponents } from '../../../../shared/api';
-import { activateSession } from '../../../../shared/auth';
-import { useLocale } from '../../../../shared/i18n';
-import { en } from '../../../../shared/i18n/locales/en';
-import { ru } from '../../../../shared/i18n/locales/ru';
-import { mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
-import { watchNoticeTimer } from '../../../../shared/lib/test/noticeTimer';
-import { createPendingApiResponse } from '../../../../shared/lib/test/pendingApiResponse';
-import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-import { EditStorageComponent } from './EditStorageComponent';
+import type { Storage, StorageSettings } from '@/entities/storages';
+import { EditStorageComponent } from '@/features/edit-storage/ui/edit/EditStorageComponent';
+import { API_BASE_PATH, type ApiComponents } from '@/shared/api';
+import { activateSession } from '@/shared/auth';
+import { useLocale } from '@/shared/i18n';
+import { en } from '@/shared/i18n/locales/en';
+import { ru } from '@/shared/i18n/locales/ru';
+import { mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { watchNoticeTimer } from '@/shared/lib/test/noticeTimer';
+import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const mockServer = setUpMockApi();
 

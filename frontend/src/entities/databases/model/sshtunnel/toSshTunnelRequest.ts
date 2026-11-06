@@ -1,5 +1,5 @@
-import { toOptionalValue } from '../../../../shared/lib';
-import type { SshTunnelSettings } from './SshTunnelSettings';
+import type { SshTunnelSettings } from '@/entities/databases/model/sshtunnel/SshTunnelSettings';
+import { toOptionalValue } from '@/shared/lib';
 
 // A disabled tunnel sends nothing but the switch, and an empty secret is left out so a saved
 // database keeps the one it stored while the tunnel's address stays the stored one.

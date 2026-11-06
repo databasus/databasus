@@ -1,4 +1,4 @@
-import { DatabaseType } from './DatabaseType';
+import { DatabaseType } from '@/entities/databases/model/DatabaseType';
 
 export const getDatabaseLogoFromType = (type: DatabaseType) => {
   switch (type) {

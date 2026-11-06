@@ -1,5 +1,5 @@
 /* eslint-disable i18next/no-literal-string -- shell commands and paths, shown verbatim in every language */
-import type { TranslationKey } from '../../../../shared/i18n';
+import type { TranslationKey } from '@/shared/i18n';
 
 export type RestoreEnvironment = 'host' | 'docker';
 

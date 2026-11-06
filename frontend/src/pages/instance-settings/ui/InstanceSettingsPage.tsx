@@ -6,14 +6,13 @@ import { Trans, useTranslation } from 'react-i18next';
 import { type InstanceSettings, type InstanceSettingsUpdate, settingsApi } from '@/entities/users';
 import { InstanceAuditLogs } from '@/pages/instance-settings/ui/InstanceAuditLogs';
 import { MailServer } from '@/pages/instance-settings/ui/MailServer';
+import { VerificationAgentsComponent } from '@/pages/instance-settings/ui/verification-agents/VerificationAgentsComponent';
 import { useSessionGuard } from '@/shared/auth';
 import { getApplicationServer } from '@/shared/config';
 import { useRequestRevision } from '@/shared/hooks';
 import { getWebsitePageUrl, translateApiError, useLocale } from '@/shared/i18n';
 import { BrowserClipboard } from '@/shared/lib/BrowserClipboard';
 import { LoadFailure } from '@/shared/ui';
-
-import { VerificationAgentsComponent } from './verification-agents/VerificationAgentsComponent';
 
 interface Props {
   onSettingsChanged?: (settings: InstanceSettings) => void;

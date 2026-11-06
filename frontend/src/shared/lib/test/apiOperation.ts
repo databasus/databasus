@@ -1,4 +1,4 @@
-import type { ApiPaths } from '../../api';
+import type { ApiPaths } from '@/shared/api';
 
 export type Method = 'get' | 'post' | 'put' | 'delete';
 

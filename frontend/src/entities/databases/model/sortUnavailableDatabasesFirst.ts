@@ -1,5 +1,5 @@
-import type { Database } from './Database';
-import { HealthStatus } from './HealthStatus';
+import type { Database } from '@/entities/databases/model/Database';
+import { HealthStatus } from '@/entities/databases/model/HealthStatus';
 
 // A database that cannot be reached needs attention first; the rest keep the order the server
 // listed them in.

@@ -2,8 +2,8 @@ import { LoadingOutlined, WarningOutlined } from '@ant-design/icons';
 import { Button } from 'antd';
 import { useTranslation } from 'react-i18next';
 
-import type { BackupCleanup } from '../../../../entities/backup-configs';
-import { translateApiError, useLocale } from '../../../../shared/i18n';
+import type { BackupCleanup } from '@/entities/backup-configs';
+import { translateApiError, useLocale } from '@/shared/i18n';
 
 interface Props {
   cleanup?: BackupCleanup;

@@ -1,17 +1,17 @@
 import { Tooltip, theme } from 'antd';
 import { useTranslation } from 'react-i18next';
 
-import type { TranslationKey } from '../../../../shared/i18n';
-import { formatMoment } from '../../lib/wal-stream-monitoring/monitoringTextValues';
+import { formatMoment } from '@/pages/databases/lib/wal-stream-monitoring/monitoringTextValues';
 import {
   getLostStretchTexts,
   getMomentParam,
   getRestoreTimeline,
   getSegmentRangeText,
-} from '../../lib/wal-stream-monitoring/restoreTimeline';
-import { RestoreTimelineSegmentKind } from '../../model/wal-stream-monitoring/RestoreTimelineSegmentKind';
-import type { WalStreamTimeRange } from '../../model/wal-stream-monitoring/WalStreamTimeRange';
-import { MonitoringTextComponent } from './MonitoringTextComponent';
+} from '@/pages/databases/lib/wal-stream-monitoring/restoreTimeline';
+import { RestoreTimelineSegmentKind } from '@/pages/databases/model/wal-stream-monitoring/RestoreTimelineSegmentKind';
+import type { WalStreamTimeRange } from '@/pages/databases/model/wal-stream-monitoring/WalStreamTimeRange';
+import { MonitoringTextComponent } from '@/pages/databases/ui/wal-stream-monitoring/MonitoringTextComponent';
+import type { TranslationKey } from '@/shared/i18n';
 
 interface Props {
   ranges: WalStreamTimeRange[];

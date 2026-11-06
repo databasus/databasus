@@ -1,4 +1,4 @@
-import type { ApiComponents } from '../../../../shared/api';
+import type { ApiComponents } from '@/shared/api';
 
 export type VerificationTrigger = ApiComponents['schemas']['VerificationTrigger'];
 export const VerificationTrigger = {

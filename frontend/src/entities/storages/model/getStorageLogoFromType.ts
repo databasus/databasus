@@ -1,4 +1,4 @@
-import { StorageType } from './StorageType';
+import { StorageType } from '@/entities/storages/model/StorageType';
 
 export const getStorageLogoFromType = (type: StorageType) => {
   switch (type) {

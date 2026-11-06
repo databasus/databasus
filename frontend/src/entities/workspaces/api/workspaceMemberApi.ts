@@ -1,9 +1,9 @@
-import { getApiClient, requireData, requireSuccess } from '../../../shared/api';
-import { collectCursorPages } from '../../../shared/lib/collectCursorPages';
-import type { AddedWorkspaceMember } from '../model/AddedWorkspaceMember';
-import type { AssignableWorkspaceRole } from '../model/AssignableWorkspaceRole';
-import type { WorkspaceMember } from '../model/WorkspaceMember';
-import type { WorkspaceMemberAddition } from '../model/WorkspaceMemberAddition';
+import type { AddedWorkspaceMember } from '@/entities/workspaces/model/AddedWorkspaceMember';
+import type { AssignableWorkspaceRole } from '@/entities/workspaces/model/AssignableWorkspaceRole';
+import type { WorkspaceMember } from '@/entities/workspaces/model/WorkspaceMember';
+import type { WorkspaceMemberAddition } from '@/entities/workspaces/model/WorkspaceMemberAddition';
+import { getApiClient, requireData, requireSuccess } from '@/shared/api';
+import { collectCursorPages } from '@/shared/lib/collectCursorPages';
 
 // The largest page the contract serves, so the members arrive in as few requests as possible.
 const MEMBER_PAGE_LIMIT = 100;

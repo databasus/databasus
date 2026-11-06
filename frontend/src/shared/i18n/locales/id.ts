@@ -1,4 +1,4 @@
-import type { en } from './en';
+import type { en } from '@/shared/i18n/locales/en';
 
 export const id: typeof en = {
   language: { nativeName: 'Bahasa Indonesia' },

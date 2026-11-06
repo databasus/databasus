@@ -8,13 +8,13 @@ import {
   type EmailNotifierSettings,
   getDefaultEmailNotifierSecurity,
   getSecurityAfterPortChange,
-} from '../../../../../entities/notifiers';
-import { toOptionalValue } from '../../../../../shared/lib';
+} from '@/entities/notifiers';
+import { toOptionalValue } from '@/shared/lib';
 import {
   AddressChangedSecretNoticeComponent,
   AdvancedFieldRowComponent,
   AdvancedSettingsToggleComponent,
-} from '../../../../../shared/ui';
+} from '@/shared/ui';
 
 interface Props {
   settings: EmailNotifierSettings;

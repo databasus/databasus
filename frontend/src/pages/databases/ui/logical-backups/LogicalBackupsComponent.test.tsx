@@ -5,26 +5,22 @@ import { HttpResponse, http } from 'msw';
 import { useRef } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { BackupConfig } from '../../../../entities/backup-configs';
-import {
-  type Database,
-  DatabaseType,
-  createDefaultDatabaseSettings,
-} from '../../../../entities/databases';
-import { restoreApi } from '../../../../entities/restores';
-import { API_BASE_PATH } from '../../../../shared/api';
-import { advanceClockUntil } from '../../../../shared/lib/test/advanceClockUntil';
-import { waitForCondition } from '../../../../shared/lib/test/conditionWait';
-import { buildProblem, mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
+import type { BackupConfig } from '@/entities/backup-configs';
+import { type Database, DatabaseType, createDefaultDatabaseSettings } from '@/entities/databases';
+import { restoreApi } from '@/entities/restores';
+import { logicalBackupApi } from '@/pages/databases/api/logicalBackupApi';
+import { verificationRunsApi } from '@/pages/databases/api/verificationRunsApi';
+import type { LogicalBackup } from '@/pages/databases/model/LogicalBackup';
+import type { LogicalBackupPage } from '@/pages/databases/model/LogicalBackupPage';
+import { LogicalBackupsComponent } from '@/pages/databases/ui/logical-backups/LogicalBackupsComponent';
+import { API_BASE_PATH } from '@/shared/api';
+import { advanceClockUntil } from '@/shared/lib/test/advanceClockUntil';
+import { waitForCondition } from '@/shared/lib/test/conditionWait';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 // @vitest-environment happy-dom
-import { createPendingApiResponse } from '../../../../shared/lib/test/pendingApiResponse';
-import { releaseAndSettle } from '../../../../shared/lib/test/releaseAndSettle';
-import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-import { logicalBackupApi } from '../../api/logicalBackupApi';
-import { verificationRunsApi } from '../../api/verificationRunsApi';
-import type { LogicalBackup } from '../../model/LogicalBackup';
-import type { LogicalBackupPage } from '../../model/LogicalBackupPage';
-import { LogicalBackupsComponent } from './LogicalBackupsComponent';
+import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
+import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 // main.tsx registers the plugin for the application; the list renders times through it.
 dayjs.extend(utc);

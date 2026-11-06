@@ -1,10 +1,10 @@
 import { http, HttpResponse } from 'msw';
 
-import { type ApiComponents } from '../../api';
-import { getApiMockPath } from './apiMockPath';
-import type { Method, PathWith, Responses } from './apiOperation';
-import { createPendingApiResponse } from './pendingApiResponse';
-export { setUpMockApi } from './mockApiLifecycle';
+import { type ApiComponents } from '@/shared/api';
+import { getApiMockPath } from '@/shared/lib/test/apiMockPath';
+import type { Method, PathWith, Responses } from '@/shared/lib/test/apiOperation';
+import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
+export { setUpMockApi } from '@/shared/lib/test/mockApiLifecycle';
 
 // Any status is allowed when the operation has a default response, which covers the undeclared ones.
 type Status<DeclaredResponses> = 'default' extends keyof DeclaredResponses

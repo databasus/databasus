@@ -76,6 +76,12 @@ API request and response types come from the generated contract. Keep generated 
 
 Only `main.tsx` and `vite-env.d.ts` sit at the source root beside the global style sheet; every other script module belongs to a layer.
 
+### Import paths
+
+Use `@/` for every literal module reference from a script in `src` to a target within `src`, including sibling imports, type imports, re-exports, dynamic imports and side-effect stylesheet imports. Keep direct imports within the same slice and use another slice's public API when crossing a slice boundary. Frontend lint enforces this convention.
+
+References from source tests to tooling outside `src` and imports originating outside `src` may stay relative. CSS resource URLs, `new URL(..., import.meta.url)`, package imports and source-code strings inside test fixtures retain their own path semantics. Do not rewrite them as part of an import migration.
+
 ## Verification
 
 Run `mise run frontend:lint` and `pnpm --dir frontend build` before handing over a frontend change, and check its tests as [`docs/testing.md`](../docs/testing.md#checking-work) says. That document also covers isolating tests and repeating one failing test.

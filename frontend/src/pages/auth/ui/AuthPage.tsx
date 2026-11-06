@@ -3,16 +3,15 @@ import { Spin } from 'antd';
 import { useEffect, useEffectEvent, useState } from 'react';
 
 import { type PendingSignIn, userApi } from '@/entities/users';
+import { AuthNavbarComponent } from '@/pages/auth/ui/AuthNavbarComponent';
+import { RequestResetPasswordComponent } from '@/pages/auth/ui/RequestResetPasswordComponent';
+import { ResetPasswordComponent } from '@/pages/auth/ui/ResetPasswordComponent';
+import { SignInCodeComponent } from '@/pages/auth/ui/SignInCodeComponent';
+import { SignInComponent } from '@/pages/auth/ui/SignInComponent';
+import { SignUpComponent } from '@/pages/auth/ui/SignUpComponent';
 import { useSessionGuard } from '@/shared/auth';
 import { useRequestRevision, useScreenHeight } from '@/shared/hooks';
 import { LoadFailure } from '@/shared/ui';
-
-import { AuthNavbarComponent } from './AuthNavbarComponent';
-import { RequestResetPasswordComponent } from './RequestResetPasswordComponent';
-import { ResetPasswordComponent } from './ResetPasswordComponent';
-import { SignInCodeComponent } from './SignInCodeComponent';
-import { SignInComponent } from './SignInComponent';
-import { SignUpComponent } from './SignUpComponent';
 
 export function AuthPage() {
   const [hasAnyUser, setHasAnyUser] = useState(true);

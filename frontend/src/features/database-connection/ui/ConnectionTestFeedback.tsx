@@ -3,10 +3,9 @@ import { Alert, App, Button, Tooltip } from 'antd';
 import { useTranslation } from 'react-i18next';
 
 import { type ConnectionErrorCode, physicalConnectionErrorContent } from '@/entities/databases';
+import type { DatabaseConnectionTestFailure } from '@/features/database-connection/model/useDatabaseConnectionTest';
 import { TransByKey, translateApiError, translateLocalizedText } from '@/shared/i18n';
 import { BrowserClipboard } from '@/shared/lib/BrowserClipboard';
-
-import type { DatabaseConnectionTestFailure } from '../model/useDatabaseConnectionTest';
 
 interface Props {
   failure: DatabaseConnectionTestFailure;

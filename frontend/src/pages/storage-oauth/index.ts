@@ -1,1 +1,1 @@
-export { StorageOAuthPage } from './ui/StorageOAuthPage';
+export { StorageOAuthPage } from '@/pages/storage-oauth/ui/StorageOAuthPage';

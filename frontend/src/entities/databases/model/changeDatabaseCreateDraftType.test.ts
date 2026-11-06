@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { changeDatabaseCreateDraftType } from './changeDatabaseCreateDraftType';
-import { createDefaultDatabaseSettings } from './createDefaultDatabaseSettings';
-import type { DatabaseCreateDraft } from './DatabaseConnectionDraft';
-import { DatabaseType } from './DatabaseType';
+import { changeDatabaseCreateDraftType } from '@/entities/databases/model/changeDatabaseCreateDraftType';
+import { createDefaultDatabaseSettings } from '@/entities/databases/model/createDefaultDatabaseSettings';
+import type { DatabaseCreateDraft } from '@/entities/databases/model/DatabaseConnectionDraft';
+import { DatabaseType } from '@/entities/databases/model/DatabaseType';
 
 describe('changeDatabaseCreateDraftType', () => {
   it('resets the settings and the SSL choice and keeps the name and notifiers', () => {

@@ -1,4 +1,4 @@
-import { getApiClient, requireData, type ApiComponents } from '../../../shared/api';
+import { getApiClient, requireData, type ApiComponents } from '@/shared/api';
 export const verificationConfigApi = {
   async getByDatabaseId(databaseId: string) {
     return requireData(

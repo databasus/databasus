@@ -1,5 +1,5 @@
-import { type StorageSettings, StorageType } from '../../../entities/storages';
-import { isOptionalValueChanged } from '../../../shared/lib';
+import { type StorageSettings, StorageType } from '@/entities/storages';
+import { isOptionalValueChanged } from '@/shared/lib';
 
 // Mirrors the resource address each storage provider compares on the backend, which stays the
 // authority: a stale list here only makes the user see the generic refusal.

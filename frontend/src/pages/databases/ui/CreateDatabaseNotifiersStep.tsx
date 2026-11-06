@@ -2,7 +2,7 @@ import { Button } from 'antd';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { DatabaseNotifiersFields } from './DatabaseNotifiersFields';
+import { DatabaseNotifiersFields } from '@/pages/databases/ui/DatabaseNotifiersFields';
 
 interface Props {
   workspaceId: string;

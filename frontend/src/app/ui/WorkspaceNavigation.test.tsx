@@ -3,6 +3,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
+import { renderApp } from '@/app/ui/renderApp';
 import { backupConfigApi } from '@/entities/backup-configs';
 import {
   createDefaultDatabaseSettings,
@@ -23,8 +24,6 @@ import { activateSession } from '@/shared/auth';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
 import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
-
-import { renderApp } from './renderApp';
 
 const server = setUpMockApi();
 const firstWorkspace: Workspace = {

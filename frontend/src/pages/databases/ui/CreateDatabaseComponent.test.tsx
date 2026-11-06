@@ -5,23 +5,23 @@ import utc from 'dayjs/plugin/utc';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
-import { backupConfigApi } from '../../../entities/backup-configs';
+import { backupConfigApi } from '@/entities/backup-configs';
 import {
   type Database,
   DatabaseType,
   createDefaultDatabaseSettings,
   databaseApi,
-} from '../../../entities/databases';
-import type { Storage } from '../../../entities/storages';
-import { API_BASE_PATH, type ApiComponents } from '../../../shared/api';
-import { useLocale } from '../../../shared/i18n';
-import { ru } from '../../../shared/i18n/locales/ru';
-import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
-import { releaseAndSettle } from '../../../shared/lib/test/releaseAndSettle';
-import { renderScreen } from '../../../shared/lib/test/renderScreen';
-import { stubClipboard } from '../../../shared/lib/test/stubClipboard';
-import { logicalBackupApi } from '../api/logicalBackupApi';
-import { CreateDatabaseComponent } from './CreateDatabaseComponent';
+} from '@/entities/databases';
+import type { Storage } from '@/entities/storages';
+import { logicalBackupApi } from '@/pages/databases/api/logicalBackupApi';
+import { CreateDatabaseComponent } from '@/pages/databases/ui/CreateDatabaseComponent';
+import { API_BASE_PATH, type ApiComponents } from '@/shared/api';
+import { useLocale } from '@/shared/i18n';
+import { ru } from '@/shared/i18n/locales/ru';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
+import { stubClipboard } from '@/shared/lib/test/stubClipboard';
 
 dayjs.extend(utc);
 

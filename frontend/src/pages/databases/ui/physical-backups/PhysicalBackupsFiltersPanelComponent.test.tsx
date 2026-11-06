@@ -2,8 +2,8 @@
 import { screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-import { PhysicalBackupsFiltersPanelComponent } from './PhysicalBackupsFiltersPanelComponent';
+import { PhysicalBackupsFiltersPanelComponent } from '@/pages/databases/ui/physical-backups/PhysicalBackupsFiltersPanelComponent';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 describe('PhysicalBackupsFiltersPanelComponent', () => {
   it('names the type, status and date filters by their labels', () => {

@@ -2,9 +2,9 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { DICTIONARIES } from '../i18n';
-import { renderScreen } from '../lib/test/renderScreen';
-import { LanguageThemeControlComponent } from './LanguageThemeControlComponent';
+import { DICTIONARIES } from '@/shared/i18n';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
+import { LanguageThemeControlComponent } from '@/shared/ui/LanguageThemeControlComponent';
 
 describe('LanguageThemeControlComponent', () => {
   it('opens the language menu when activated from the keyboard', async () => {

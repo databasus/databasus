@@ -3,21 +3,21 @@ import { App, Button, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
+import { type VerificationAgent, verificationAgentApi } from '@/entities/verification-agents';
+import type { AgentArchitecture } from '@/pages/instance-settings/lib/verificationAgentCommands';
+import { AgentInstallCommandsDialog } from '@/pages/instance-settings/ui/verification-agents/AgentInstallCommandsDialog';
+import { CreateAgentDialog } from '@/pages/instance-settings/ui/verification-agents/CreateAgentDialog';
 import {
-  type VerificationAgent,
-  verificationAgentApi,
-} from '../../../../entities/verification-agents';
-import { useSessionGuard } from '../../../../shared/auth';
-import { usePolledPagedList } from '../../../../shared/hooks';
-import { getWebsitePageUrl, translateApiError, useLocale } from '../../../../shared/i18n';
-import { BrowserClipboard } from '../../../../shared/lib/BrowserClipboard';
-import { LoadFailure } from '../../../../shared/ui';
-import type { AgentArchitecture } from '../../lib/verificationAgentCommands';
-import { AgentInstallCommandsDialog } from './AgentInstallCommandsDialog';
-import { CreateAgentDialog } from './CreateAgentDialog';
-import { type RevealedAgentToken, RevealedAgentTokenDialog } from './RevealedAgentTokenDialog';
-import { RotateAgentTokenDialog } from './RotateAgentTokenDialog';
-import { VerificationAgentsTable } from './VerificationAgentsTable';
+  type RevealedAgentToken,
+  RevealedAgentTokenDialog,
+} from '@/pages/instance-settings/ui/verification-agents/RevealedAgentTokenDialog';
+import { RotateAgentTokenDialog } from '@/pages/instance-settings/ui/verification-agents/RotateAgentTokenDialog';
+import { VerificationAgentsTable } from '@/pages/instance-settings/ui/verification-agents/VerificationAgentsTable';
+import { useSessionGuard } from '@/shared/auth';
+import { usePolledPagedList } from '@/shared/hooks';
+import { getWebsitePageUrl, translateApiError, useLocale } from '@/shared/i18n';
+import { BrowserClipboard } from '@/shared/lib/BrowserClipboard';
+import { LoadFailure } from '@/shared/ui';
 
 const LIST_REFRESH_MS = 15_000;
 // eslint-disable-next-line i18next/no-literal-string -- the list has one key, it never resets

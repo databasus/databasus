@@ -3,13 +3,12 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 
+import { ApplicationScreen } from '@/app/ui/ApplicationScreen';
+import { renderApp } from '@/app/ui/renderApp';
 import { API_BASE_PATH } from '@/shared/api';
 import { activateSession, invalidateSession } from '@/shared/auth';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
-
-import { ApplicationScreen } from './ApplicationScreen';
-import { renderApp } from './renderApp';
 
 vi.hoisted(() => vi.stubEnv('VITE_APP_VERSION', '1.0.0'));
 afterAll(() => vi.unstubAllEnvs());

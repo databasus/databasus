@@ -3,12 +3,11 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
+import { renderApp } from '@/app/ui/renderApp';
 import { createDefaultDatabaseSettings, DatabaseType } from '@/entities/databases';
 import { API_BASE_PATH } from '@/shared/api';
 import { activateSession, getSessionSnapshot, invalidateSession } from '@/shared/auth';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
-
-import { renderApp } from './renderApp';
 
 const server = setUpMockApi();
 const account = {

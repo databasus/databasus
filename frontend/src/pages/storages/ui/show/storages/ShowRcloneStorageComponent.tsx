@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
-import type { RcloneStorageSettings } from '../../../../../entities/storages';
+import type { RcloneStorageSettings } from '@/entities/storages';
 
 interface Props {
   settings: RcloneStorageSettings;

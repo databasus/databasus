@@ -7,18 +7,14 @@ import type {
   BackupConfig,
   BackupConfigInput,
   PhysicalBackupSettings,
-} from '../../../../entities/backup-configs';
-import {
-  type Database,
-  DatabaseType,
-  createDefaultDatabaseSettings,
-} from '../../../../entities/databases';
-import type { Schedule } from '../../../../entities/schedules';
-import { API_BASE_PATH } from '../../../../shared/api';
-import { DICTIONARIES, useLocale } from '../../../../shared/i18n';
-import { mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
-import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-import { EditPhysicalBackupConfigSection } from './EditPhysicalBackupConfigSection';
+} from '@/entities/backup-configs';
+import { type Database, DatabaseType, createDefaultDatabaseSettings } from '@/entities/databases';
+import type { Schedule } from '@/entities/schedules';
+import { EditPhysicalBackupConfigSection } from '@/pages/databases/ui/backup-config/EditPhysicalBackupConfigSection';
+import { API_BASE_PATH } from '@/shared/api';
+import { DICTIONARIES, useLocale } from '@/shared/i18n';
+import { mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const mockServer = setUpMockApi();
 const database: Database = {

@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { type WalStreamKeepingUp } from '../../model/wal-stream-monitoring/WalStreamKeepingUp';
-import { WalStreamKeepingUpState } from '../../model/wal-stream-monitoring/WalStreamKeepingUpState';
-import { getKeepingUpSentences } from './keepingUpSentences';
+import { getKeepingUpSentences } from '@/pages/databases/lib/wal-stream-monitoring/keepingUpSentences';
+import { type WalStreamKeepingUp } from '@/pages/databases/model/wal-stream-monitoring/WalStreamKeepingUp';
+import { WalStreamKeepingUpState } from '@/pages/databases/model/wal-stream-monitoring/WalStreamKeepingUpState';
 
 // The entity's public API imports its API client, and the client's config module reads window at
 // import time. The tests run in node, so they supply window.

@@ -3,16 +3,16 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { API_BASE_PATH } from '../../../../shared/api';
-import { activateSession, invalidateSession } from '../../../../shared/auth';
-import { DICTIONARIES, useLocale } from '../../../../shared/i18n';
-import { buildProblem, mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
-import { createPendingApiResponse } from '../../../../shared/lib/test/pendingApiResponse';
-import { releaseAndSettle } from '../../../../shared/lib/test/releaseAndSettle';
-import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-import { verificationConfigApi } from '../../api/verificationConfigApi';
-import type { VerificationConfig } from '../../model/verification/VerificationConfig';
-import { EditVerificationConfigComponent } from './EditVerificationConfigComponent';
+import { verificationConfigApi } from '@/pages/databases/api/verificationConfigApi';
+import type { VerificationConfig } from '@/pages/databases/model/verification/VerificationConfig';
+import { EditVerificationConfigComponent } from '@/pages/databases/ui/verification/EditVerificationConfigComponent';
+import { API_BASE_PATH } from '@/shared/api';
+import { activateSession, invalidateSession } from '@/shared/auth';
+import { DICTIONARIES, useLocale } from '@/shared/i18n';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
+import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 type VerificationConfigInput = Omit<VerificationConfig, 'databaseId'>;
 

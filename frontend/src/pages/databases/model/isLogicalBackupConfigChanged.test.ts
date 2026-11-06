@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildLogicalBackupConfig } from './buildLogicalBackupConfig.fixture';
-import { isLogicalBackupConfigChanged } from './isLogicalBackupConfigChanged';
-import { LogicalNotificationTrigger } from './LogicalNotificationTrigger';
-import { LogicalRetentionPolicy } from './LogicalRetentionPolicy';
+import { buildLogicalBackupConfig } from '@/pages/databases/model/buildLogicalBackupConfig.fixture';
+import { isLogicalBackupConfigChanged } from '@/pages/databases/model/isLogicalBackupConfigChanged';
+import { LogicalNotificationTrigger } from '@/pages/databases/model/LogicalNotificationTrigger';
+import { LogicalRetentionPolicy } from '@/pages/databases/model/LogicalRetentionPolicy';
 
 describe('isLogicalBackupConfigChanged', () => {
   it('compares notification triggers as a set', () => {

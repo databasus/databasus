@@ -1,13 +1,13 @@
 import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 
-import { type TranslationKey, useLocale } from '../../../../shared/i18n';
-import { formatBytes } from '../../../../shared/lib';
-import { getUserTimeFormat } from '../../../../shared/time';
-import { WalStreamSourceState } from '../../model/wal-stream-monitoring/WalStreamSourceState';
-import { WAL_STREAM_SOURCE_STATE_LABEL_KEYS } from '../../model/wal-stream-monitoring/WalStreamSourceStateLabelKeys';
-import { type WalStreamStatistics } from '../../model/wal-stream-monitoring/WalStreamStatistics';
-import { WAL_STREAM_STREAMER_STATE_LABEL_KEYS } from '../../model/wal-stream-monitoring/WalStreamStreamerStateLabelKeys';
+import { WalStreamSourceState } from '@/pages/databases/model/wal-stream-monitoring/WalStreamSourceState';
+import { WAL_STREAM_SOURCE_STATE_LABEL_KEYS } from '@/pages/databases/model/wal-stream-monitoring/WalStreamSourceStateLabelKeys';
+import { type WalStreamStatistics } from '@/pages/databases/model/wal-stream-monitoring/WalStreamStatistics';
+import { WAL_STREAM_STREAMER_STATE_LABEL_KEYS } from '@/pages/databases/model/wal-stream-monitoring/WalStreamStreamerStateLabelKeys';
+import { type TranslationKey, useLocale } from '@/shared/i18n';
+import { formatBytes } from '@/shared/lib';
+import { getUserTimeFormat } from '@/shared/time';
 
 interface Props {
   statistics: WalStreamStatistics;

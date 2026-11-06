@@ -1,4 +1,4 @@
-import type { TelegramNotifierSettings } from './TelegramNotifierSettings';
+import type { TelegramNotifierSettings } from '@/entities/notifiers/model/telegram/TelegramNotifierSettings';
 
 // eslint-disable-next-line i18next/no-literal-string -- URL protocols, not copy
 const allowedProxyProtocols = ['http:', 'https:', 'socks5:', 'socks5h:'];

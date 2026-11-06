@@ -4,11 +4,10 @@ import { StrictMode } from 'react';
 import { type MockInstance, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DatabaseType, createDefaultDatabaseSettings, databaseApi } from '@/entities/databases';
+import { useDatabaseConnectionTest } from '@/features/database-connection/model/useDatabaseConnectionTest';
 import { activateSession, invalidateSession } from '@/shared/auth';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
-
-import { useDatabaseConnectionTest } from './useDatabaseConnectionTest';
 
 const mockServer = setUpMockApi();
 

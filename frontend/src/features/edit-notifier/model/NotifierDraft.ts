@@ -1,4 +1,4 @@
-import type { NotifierSettings } from '../../../entities/notifiers';
+import type { NotifierSettings } from '@/entities/notifiers';
 
 export interface NotifierDraft {
   name: string;

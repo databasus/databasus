@@ -7,19 +7,19 @@ import {
   SCHEDULE_TYPE_LABEL_KEYS,
   ScheduleDetailsFields,
   ScheduleType,
-} from '../../../../entities/schedules';
-import { useSessionGuard } from '../../../../shared/auth';
-import { useLatestRef } from '../../../../shared/hooks';
-import { getWebsitePageUrl, translateApiError, useLocale } from '../../../../shared/i18n';
-import { LoadFailure } from '../../../../shared/ui';
-import { verificationConfigApi } from '../../api/verificationConfigApi';
-import { buildVerificationConfigForSave } from '../../model/verification/buildVerificationConfigForSave';
-import { isVerificationConfigChanged } from '../../model/verification/isVerificationConfigChanged';
-import { isVerificationConfigComplete } from '../../model/verification/isVerificationConfigComplete';
-import { type VerificationConfig } from '../../model/verification/VerificationConfig';
-import { VerificationNotificationType } from '../../model/verification/VerificationNotificationType';
-import { VERIFICATION_NOTIFICATION_TYPE_LABEL_KEYS } from '../../model/verification/VerificationNotificationTypeLabelKeys';
-import { VerificationScheduleType } from '../../model/verification/VerificationScheduleType';
+} from '@/entities/schedules';
+import { verificationConfigApi } from '@/pages/databases/api/verificationConfigApi';
+import { buildVerificationConfigForSave } from '@/pages/databases/model/verification/buildVerificationConfigForSave';
+import { isVerificationConfigChanged } from '@/pages/databases/model/verification/isVerificationConfigChanged';
+import { isVerificationConfigComplete } from '@/pages/databases/model/verification/isVerificationConfigComplete';
+import { type VerificationConfig } from '@/pages/databases/model/verification/VerificationConfig';
+import { VerificationNotificationType } from '@/pages/databases/model/verification/VerificationNotificationType';
+import { VERIFICATION_NOTIFICATION_TYPE_LABEL_KEYS } from '@/pages/databases/model/verification/VerificationNotificationTypeLabelKeys';
+import { VerificationScheduleType } from '@/pages/databases/model/verification/VerificationScheduleType';
+import { useSessionGuard } from '@/shared/auth';
+import { useLatestRef } from '@/shared/hooks';
+import { getWebsitePageUrl, translateApiError, useLocale } from '@/shared/i18n';
+import { LoadFailure } from '@/shared/ui';
 
 type VerificationScheduleChoice = typeof VerificationScheduleType.AFTER_BACKUP | ScheduleType;
 

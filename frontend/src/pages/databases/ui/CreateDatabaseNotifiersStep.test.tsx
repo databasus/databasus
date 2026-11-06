@@ -2,9 +2,9 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
-import { renderScreen } from '../../../shared/lib/test/renderScreen';
-import { CreateDatabaseNotifiersStep } from './CreateDatabaseNotifiersStep';
+import { CreateDatabaseNotifiersStep } from '@/pages/databases/ui/CreateDatabaseNotifiersStep';
+import { mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const mockServer = setUpMockApi();
 

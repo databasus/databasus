@@ -5,24 +5,24 @@ import { http, HttpResponse } from 'msw';
 import { createRef } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { backupConfigApi } from '../../../entities/backup-configs';
+import { backupConfigApi } from '@/entities/backup-configs';
 import {
   type Database,
   DatabaseType,
   PhysicalDatabaseBackupType,
   createDefaultDatabaseSettings,
-} from '../../../entities/databases';
-import { activateSession, invalidateSession } from '../../../shared/auth';
-import { DICTIONARIES, useLocale } from '../../../shared/i18n';
-import { waitForCondition } from '../../../shared/lib/test/conditionWait';
-import { inspectApiRequest } from '../../../shared/lib/test/inspectApiRequest';
-import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
-import { createPendingApiResponse } from '../../../shared/lib/test/pendingApiResponse';
-import { releaseAndSettle } from '../../../shared/lib/test/releaseAndSettle';
-import { renderScreen } from '../../../shared/lib/test/renderScreen';
-import { verificationRunsApi } from '../api/verificationRunsApi';
+} from '@/entities/databases';
+import { verificationRunsApi } from '@/pages/databases/api/verificationRunsApi';
 // @vitest-environment happy-dom
-import { DatabaseComponent } from './DatabaseComponent';
+import { DatabaseComponent } from '@/pages/databases/ui/DatabaseComponent';
+import { activateSession, invalidateSession } from '@/shared/auth';
+import { DICTIONARIES, useLocale } from '@/shared/i18n';
+import { waitForCondition } from '@/shared/lib/test/conditionWait';
+import { inspectApiRequest } from '@/shared/lib/test/inspectApiRequest';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
+import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 dayjs.extend(utc);
 

@@ -1,5 +1,5 @@
-import type { TranslationKey } from '../../../shared/i18n';
-import { RestoreStatus } from './RestoreStatus';
+import { RestoreStatus } from '@/entities/restores/model/RestoreStatus';
+import type { TranslationKey } from '@/shared/i18n';
 
 export const RESTORE_STATUS_LABEL_KEYS: Record<RestoreStatus, TranslationKey> = {
   [RestoreStatus.IN_PROGRESS]: 'status.restore.inProgress',

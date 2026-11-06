@@ -1,4 +1,4 @@
-import type { ApiComponents } from '../../../../shared/api';
+import type { ApiComponents } from '@/shared/api';
 
 export type FullBackupsRetentionPolicy = ApiComponents['schemas']['FullBackupsRetentionPolicy'];
 

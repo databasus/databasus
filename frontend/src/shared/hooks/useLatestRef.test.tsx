@@ -2,8 +2,8 @@
 import { type RefObject, useEffect, useLayoutEffect } from 'react';
 import { describe, expect, it } from 'vitest';
 
-import { renderScreen } from '../lib/test/renderScreen';
-import { useLatestRef } from './useLatestRef';
+import { useLatestRef } from '@/shared/hooks/useLatestRef';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 interface Props {
   value: string;

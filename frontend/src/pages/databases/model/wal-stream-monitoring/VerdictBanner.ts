@@ -1,8 +1,8 @@
-import type { TranslationKey } from '../../../../shared/i18n';
-import type { MonitoringText } from './MonitoringText';
-import type { MonitoringTone } from './MonitoringTone';
-import type { ReasonTexts } from './ReasonTexts';
-import type { VerdictIcon } from './VerdictIcon';
+import type { MonitoringText } from '@/pages/databases/model/wal-stream-monitoring/MonitoringText';
+import type { MonitoringTone } from '@/pages/databases/model/wal-stream-monitoring/MonitoringTone';
+import type { ReasonTexts } from '@/pages/databases/model/wal-stream-monitoring/ReasonTexts';
+import type { VerdictIcon } from '@/pages/databases/model/wal-stream-monitoring/VerdictIcon';
+import type { TranslationKey } from '@/shared/i18n';
 
 export interface VerdictBanner {
   tone: MonitoringTone;

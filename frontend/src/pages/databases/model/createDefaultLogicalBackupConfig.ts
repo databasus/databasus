@@ -2,11 +2,11 @@ import {
   BackupEncryption,
   BackupSettingsType,
   type LogicalBackupConfigInput,
-} from '../../../entities/backup-configs';
-import { ScheduleType } from '../../../entities/schedules';
-import { LogicalNotificationTrigger } from './LogicalNotificationTrigger';
-import { LogicalRetentionPolicy } from './LogicalRetentionPolicy';
-import { RetentionPeriod } from './RetentionPeriod';
+} from '@/entities/backup-configs';
+import { ScheduleType } from '@/entities/schedules';
+import { LogicalNotificationTrigger } from '@/pages/databases/model/LogicalNotificationTrigger';
+import { LogicalRetentionPolicy } from '@/pages/databases/model/LogicalRetentionPolicy';
+import { RetentionPeriod } from '@/pages/databases/model/RetentionPeriod';
 
 export const createDefaultLogicalBackupConfig = (): LogicalBackupConfigInput => ({
   isBackupsEnabled: true,

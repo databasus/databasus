@@ -1,8 +1,8 @@
-import { getApiClient, requireData, requireSuccess } from '../../../shared/api';
-import { collectCursorPages } from '../../../shared/lib/collectCursorPages';
-import type { BackupConfig } from '../model/BackupConfig';
-import type { BackupConfigInput } from '../model/BackupConfigInput';
-import type { DatabaseTransfer } from '../model/DatabaseTransfer';
+import type { BackupConfig } from '@/entities/backup-configs/model/BackupConfig';
+import type { BackupConfigInput } from '@/entities/backup-configs/model/BackupConfigInput';
+import type { DatabaseTransfer } from '@/entities/backup-configs/model/DatabaseTransfer';
+import { getApiClient, requireData, requireSuccess } from '@/shared/api';
+import { collectCursorPages } from '@/shared/lib/collectCursorPages';
 
 // The largest page the contract serves, so a workspace's configs arrive in as few requests as
 // possible.

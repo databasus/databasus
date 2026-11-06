@@ -4,9 +4,8 @@ import {
   hasStoredSshTunnelSecretsForAuthType,
   isSshTunnelReadyToTest,
 } from '@/entities/databases';
-
-import { isConnectionAddressChanged } from './isConnectionAddressChanged';
-import { isSshTunnelAddressChanged } from './isSshTunnelAddressChanged';
+import { isConnectionAddressChanged } from '@/features/database-connection/lib/isConnectionAddressChanged';
+import { isSshTunnelAddressChanged } from '@/features/database-connection/lib/isSshTunnelAddressChanged';
 
 const hasStoredSshSecrets = (draft: DatabaseConnectionDraft): boolean =>
   draft.scenario === 'edit' &&

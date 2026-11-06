@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { createEmptySshTunnelSettings } from './createEmptySshTunnelSettings';
-import { setSshTunnelAuthTypeAndClearUnusedSecrets } from './setSshTunnelAuthTypeAndClearUnusedSecrets';
-import { SshTunnelAuthType } from './SshTunnelAuthType';
-import type { SshTunnelSettings } from './SshTunnelSettings';
+import { createEmptySshTunnelSettings } from '@/entities/databases/model/sshtunnel/createEmptySshTunnelSettings';
+import { setSshTunnelAuthTypeAndClearUnusedSecrets } from '@/entities/databases/model/sshtunnel/setSshTunnelAuthTypeAndClearUnusedSecrets';
+import { SshTunnelAuthType } from '@/entities/databases/model/sshtunnel/SshTunnelAuthType';
+import type { SshTunnelSettings } from '@/entities/databases/model/sshtunnel/SshTunnelSettings';
 
 function tunnelWithBothSecrets(): SshTunnelSettings {
   return {

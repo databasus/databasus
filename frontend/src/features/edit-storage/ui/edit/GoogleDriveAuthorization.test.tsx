@@ -3,15 +3,15 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { HttpResponse, http } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { Storage } from '../../../../entities/storages';
-import { activateSession } from '../../../../shared/auth';
-import { DICTIONARIES, useLocale } from '../../../../shared/i18n';
-import { mockApi, setUpMockApi, buildProblem } from '../../../../shared/lib/test/mockApi';
-import { createPendingApiResponse } from '../../../../shared/lib/test/pendingApiResponse';
-import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-import { useTheme } from '../../../../shared/theme';
-import { EditStorageComponent } from './EditStorageComponent';
-import { installStorageAuthorizationChannels } from './test/StorageAuthorizationChannels';
+import type { Storage } from '@/entities/storages';
+import { EditStorageComponent } from '@/features/edit-storage/ui/edit/EditStorageComponent';
+import { installStorageAuthorizationChannels } from '@/features/edit-storage/ui/edit/test/StorageAuthorizationChannels';
+import { activateSession } from '@/shared/auth';
+import { DICTIONARIES, useLocale } from '@/shared/i18n';
+import { mockApi, setUpMockApi, buildProblem } from '@/shared/lib/test/mockApi';
+import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
+import { useTheme } from '@/shared/theme';
 
 const mockServer = setUpMockApi();
 const draft = {

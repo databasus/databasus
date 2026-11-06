@@ -2,24 +2,23 @@ import { App, Button, Spin } from 'antd';
 import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { DatabaseConnectionForm } from '@/features/database-connection';
-
-import type { Database, RestoreTargetDraft } from '../../../../entities/databases';
+import type { Database, RestoreTargetDraft } from '@/entities/databases';
 import {
   type PostgresqlRestoreOptions,
   type Restore,
   RestoreStatus,
   restoreApi,
-} from '../../../../entities/restores';
-import { useSessionGuard } from '../../../../shared/auth';
-import { usePolledPagedList } from '../../../../shared/hooks';
-import { translateApiError } from '../../../../shared/i18n';
-import { ConfirmationComponent, LoadFailure } from '../../../../shared/ui';
-import type { LogicalBackup } from '../../model/LogicalBackup';
-import { createRestoreTargetDraft } from './createRestoreTargetDraft';
-import { RestoreCard } from './RestoreCard';
-import { RestoreErrorDialog } from './RestoreErrorDialog';
-import { toRestoreTarget } from './toRestoreTarget';
+} from '@/entities/restores';
+import { DatabaseConnectionForm } from '@/features/database-connection';
+import type { LogicalBackup } from '@/pages/databases/model/LogicalBackup';
+import { createRestoreTargetDraft } from '@/pages/databases/ui/restores/createRestoreTargetDraft';
+import { RestoreCard } from '@/pages/databases/ui/restores/RestoreCard';
+import { RestoreErrorDialog } from '@/pages/databases/ui/restores/RestoreErrorDialog';
+import { toRestoreTarget } from '@/pages/databases/ui/restores/toRestoreTarget';
+import { useSessionGuard } from '@/shared/auth';
+import { usePolledPagedList } from '@/shared/hooks';
+import { translateApiError } from '@/shared/i18n';
+import { ConfirmationComponent, LoadFailure } from '@/shared/ui';
 
 interface Props {
   database: Database;

@@ -3,18 +3,17 @@ import { Alert, App, Button, Modal, Radio, Select, Spin } from 'antd';
 import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { type DatabaseTransfer, backupConfigApi } from '@/entities/backup-configs';
+import { type Database, databaseApi } from '@/entities/databases';
+import type { Notifier } from '@/entities/notifiers';
+import { notifierApi } from '@/entities/notifiers';
+import { type Storage, getStorageLogoFromType, storageApi } from '@/entities/storages';
+import { type Workspace, workspaceApi } from '@/entities/workspaces';
 import { EditNotifierComponent } from '@/features/edit-notifier';
 import { EditStorageComponent } from '@/features/edit-storage';
 import { useSessionGuard } from '@/shared/auth';
 import { useLatestRef, useRequestRevision } from '@/shared/hooks';
-
-import { type DatabaseTransfer, backupConfigApi } from '../../../entities/backup-configs';
-import { type Database, databaseApi } from '../../../entities/databases';
-import type { Notifier } from '../../../entities/notifiers';
-import { notifierApi } from '../../../entities/notifiers';
-import { type Storage, getStorageLogoFromType, storageApi } from '../../../entities/storages';
-import { type Workspace, workspaceApi } from '../../../entities/workspaces';
-import { translateApiError } from '../../../shared/i18n';
+import { translateApiError } from '@/shared/i18n';
 
 interface Props {
   database: Database;

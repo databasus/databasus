@@ -1,5 +1,5 @@
-import type { TranslationKey } from '../../../../shared/i18n';
-import { WalStreamStreamerState } from './WalStreamStreamerState';
+import { WalStreamStreamerState } from '@/pages/databases/model/wal-stream-monitoring/WalStreamStreamerState';
+import type { TranslationKey } from '@/shared/i18n';
 
 export const WAL_STREAM_STREAMER_STATE_LABEL_KEYS: Record<WalStreamStreamerState, TranslationKey> =
   {

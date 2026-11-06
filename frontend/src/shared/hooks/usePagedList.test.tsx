@@ -3,9 +3,9 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
-import { buildProblem, mockApi, setUpMockApi } from '../lib/test/mockApi';
-import { renderScreen } from '../lib/test/renderScreen';
-import { PagedListScreen } from './pagedListScreen.fixture';
+import { PagedListScreen } from '@/shared/hooks/pagedListScreen.fixture';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const server = setUpMockApi();
 const workspace = (name: string) => ({

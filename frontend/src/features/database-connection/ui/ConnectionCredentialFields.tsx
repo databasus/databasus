@@ -2,9 +2,8 @@ import { Input, InputNumber } from 'antd';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { ConnectionFieldRow } from '@/features/database-connection/ui/ConnectionFieldRow';
 import { AddressChangedSecretNoticeComponent } from '@/shared/ui';
-
-import { ConnectionFieldRow } from './ConnectionFieldRow';
 
 interface CredentialValues {
   host: string;

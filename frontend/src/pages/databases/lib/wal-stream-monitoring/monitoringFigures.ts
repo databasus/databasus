@@ -1,6 +1,6 @@
-import type { MonitoringFigures } from '../../model/wal-stream-monitoring/MonitoringFigures';
-import { WalStreamHealthLevel } from '../../model/wal-stream-monitoring/WalStreamHealthLevel';
-import { type WalStreamStatistics } from '../../model/wal-stream-monitoring/WalStreamStatistics';
+import type { MonitoringFigures } from '@/pages/databases/model/wal-stream-monitoring/MonitoringFigures';
+import { WalStreamHealthLevel } from '@/pages/databases/model/wal-stream-monitoring/WalStreamHealthLevel';
+import { type WalStreamStatistics } from '@/pages/databases/model/wal-stream-monitoring/WalStreamStatistics';
 
 // The amounts come from the keeping-up summary rather than the newest sample, so the figures agree
 // with the keeping-up sentence written under them.

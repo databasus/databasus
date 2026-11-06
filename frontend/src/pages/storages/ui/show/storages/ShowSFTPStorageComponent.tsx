@@ -1,9 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
-import {
-  SFTP_AUTH_METHOD_LABEL_KEYS,
-  type SftpStorageSettings,
-} from '../../../../../entities/storages';
+import { SFTP_AUTH_METHOD_LABEL_KEYS, type SftpStorageSettings } from '@/entities/storages';
 
 interface Props {
   settings: SftpStorageSettings;

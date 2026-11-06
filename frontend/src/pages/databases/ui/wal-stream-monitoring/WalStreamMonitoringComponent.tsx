@@ -10,35 +10,35 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { Database } from '../../../../entities/databases';
-import { translateApiError } from '../../../../shared/i18n';
-import { LoadFailure } from '../../../../shared/ui';
-import { physicalBackupsApi } from '../../api/physicalBackupsApi';
-import { physicalWalStreamStatisticsApi } from '../../api/physicalWalStreamStatisticsApi';
-import { getFullBackupAction } from '../../lib/wal-stream-monitoring/fullBackupAction';
-import { FullBackupRequestController } from '../../lib/wal-stream-monitoring/fullBackupRequestController';
-import { getKeepingUpSentences } from '../../lib/wal-stream-monitoring/keepingUpSentences';
-import { applyLiveValues } from '../../lib/wal-stream-monitoring/liveOverlay';
-import { getMonitoringFigures } from '../../lib/wal-stream-monitoring/monitoringFigures';
-import { getStageTones } from '../../lib/wal-stream-monitoring/pathStages';
-import { getTipTexts } from '../../lib/wal-stream-monitoring/reasonTexts';
-import { getVerdictBanner } from '../../lib/wal-stream-monitoring/verdictBanner';
-import { WalStreamLiveController } from '../../lib/wal-stream-monitoring/walStreamLiveController';
+import type { Database } from '@/entities/databases';
+import { physicalBackupsApi } from '@/pages/databases/api/physicalBackupsApi';
+import { physicalWalStreamStatisticsApi } from '@/pages/databases/api/physicalWalStreamStatisticsApi';
+import { getFullBackupAction } from '@/pages/databases/lib/wal-stream-monitoring/fullBackupAction';
+import { FullBackupRequestController } from '@/pages/databases/lib/wal-stream-monitoring/fullBackupRequestController';
+import { getKeepingUpSentences } from '@/pages/databases/lib/wal-stream-monitoring/keepingUpSentences';
+import { applyLiveValues } from '@/pages/databases/lib/wal-stream-monitoring/liveOverlay';
+import { getMonitoringFigures } from '@/pages/databases/lib/wal-stream-monitoring/monitoringFigures';
+import { getStageTones } from '@/pages/databases/lib/wal-stream-monitoring/pathStages';
+import { getTipTexts } from '@/pages/databases/lib/wal-stream-monitoring/reasonTexts';
+import { getVerdictBanner } from '@/pages/databases/lib/wal-stream-monitoring/verdictBanner';
+import { WalStreamLiveController } from '@/pages/databases/lib/wal-stream-monitoring/walStreamLiveController';
 import {
   type PageVisibility,
   type RefreshTimer,
   WalStreamRefreshController,
-} from '../../lib/wal-stream-monitoring/walStreamRefreshController';
-import { type WalStreamLive } from '../../model/wal-stream-monitoring/WalStreamLive';
-import type { WalStreamRefreshState } from '../../model/wal-stream-monitoring/WalStreamRefreshState';
-import { WalStreamStatisticsPeriod } from '../../model/wal-stream-monitoring/WalStreamStatisticsPeriod';
-import { MonitoringFiguresComponent } from './MonitoringFiguresComponent';
-import { RestoreTimelineComponent } from './RestoreTimelineComponent';
-import { TechnicalDetailsComponent } from './TechnicalDetailsComponent';
-import { useCurrentTime } from './useCurrentTime';
-import { usePrefersReducedMotion } from './usePrefersReducedMotion';
-import { VerdictBannerComponent } from './VerdictBannerComponent';
-import { WalStreamKeepingUpChartComponent } from './WalStreamChartsComponent';
+} from '@/pages/databases/lib/wal-stream-monitoring/walStreamRefreshController';
+import { type WalStreamLive } from '@/pages/databases/model/wal-stream-monitoring/WalStreamLive';
+import type { WalStreamRefreshState } from '@/pages/databases/model/wal-stream-monitoring/WalStreamRefreshState';
+import { WalStreamStatisticsPeriod } from '@/pages/databases/model/wal-stream-monitoring/WalStreamStatisticsPeriod';
+import { MonitoringFiguresComponent } from '@/pages/databases/ui/wal-stream-monitoring/MonitoringFiguresComponent';
+import { RestoreTimelineComponent } from '@/pages/databases/ui/wal-stream-monitoring/RestoreTimelineComponent';
+import { TechnicalDetailsComponent } from '@/pages/databases/ui/wal-stream-monitoring/TechnicalDetailsComponent';
+import { useCurrentTime } from '@/pages/databases/ui/wal-stream-monitoring/useCurrentTime';
+import { usePrefersReducedMotion } from '@/pages/databases/ui/wal-stream-monitoring/usePrefersReducedMotion';
+import { VerdictBannerComponent } from '@/pages/databases/ui/wal-stream-monitoring/VerdictBannerComponent';
+import { WalStreamKeepingUpChartComponent } from '@/pages/databases/ui/wal-stream-monitoring/WalStreamChartsComponent';
+import { translateApiError } from '@/shared/i18n';
+import { LoadFailure } from '@/shared/ui';
 
 interface Props {
   database: Database;

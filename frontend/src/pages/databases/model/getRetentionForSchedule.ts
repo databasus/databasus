@@ -1,7 +1,7 @@
-import type { LogicalBackupSettings } from '../../../entities/backup-configs';
-import { type Schedule } from '../../../entities/schedules';
-import { isGfsHoursShown } from './isGfsHoursShown';
-import { LogicalRetentionPolicy } from './LogicalRetentionPolicy';
+import type { LogicalBackupSettings } from '@/entities/backup-configs';
+import { type Schedule } from '@/entities/schedules';
+import { isGfsHoursShown } from '@/pages/databases/model/isGfsHoursShown';
+import { LogicalRetentionPolicy } from '@/pages/databases/model/LogicalRetentionPolicy';
 
 export const getRetentionForSchedule = (
   { schedule, retention }: LogicalBackupSettings,
