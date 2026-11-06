@@ -1,6 +1,6 @@
 ## Why
 
-Release CI builds an ARM image but runs its test suites on x64, so a release can pass without proving that logical backups, physical backups and recovery work on ARM. The latest investigated run also exposed a stale upgrade-test client and a MongoDB backup timeout through SSH; both need repairs before doubling the test coverage.
+Release CI builds an ARM image but runs its test suites on x64, so a release can pass without proving that logical backups, physical backups and recovery work on ARM. The latest investigated run also exposed a stale upgrade-test client requiring repair and a MongoDB backup timeout through SSH requiring investigation.
 
 ## What Changes
 
@@ -9,7 +9,7 @@ Release CI builds an ARM image but runs its test suites on x64, so a release can
 - Build and distribute a candidate application image for each architecture, and make each image-consuming suite use the matching candidate from the same commit. Separate architecture-specific artifacts and browser failure evidence.
 - Run the existing logical backup/restore matrix and physical full, incremental and WAL recovery scenarios on ARM with their data assertions intact. Exclude only MySQL 5.7 and MariaDB 5.5 server-container scenarios on arm64 because their official images have no ARM variant. Keep both on amd64 and keep container-free unsupported-version checks on ARM.
 - Make image preparation, database-client dependencies and the browser UI toolchain architecture-aware. Replace the amd64-only NFS fixture while retaining the NFS permission scenario.
-- Repair the upgrade harness against the actual newest release API. Reproduce and diagnose the MongoDB-over-SSH timeout, then fix its cause and any further reliability defects exposed by this work without hiding failures through retries or weaker assertions.
+- Repair the upgrade harness against the actual newest release API. Investigate the MongoDB-over-SSH timeout with source/bastion diagnostics and repeated concurrent tests. Record its cause as unestablished when those checks do not reproduce it, as accepted by the user. Fix demonstrated reliability defects without hiding failures through retries or weaker assertions.
 - Update testing documentation and automated checks of workflow coverage and publication dependencies.
 
 No product HTTP operation, persisted schema or configuration changes are planned. There is no product compatibility break.
