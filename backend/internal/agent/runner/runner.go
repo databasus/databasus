@@ -59,24 +59,27 @@ type Runner struct {
 	verifier                StatsCollector
 	heartbeat               Registrar
 	connAlive               func(ctx context.Context, conn dbconn.Conn) bool
+	diagnosticSecrets       []string
 	hasRun                  atomic.Bool
 	log                     *slog.Logger
 }
 
 type Deps struct {
-	APIClient      APIClient
-	Capacity       config.Capacity
-	Pool           *Pool
-	Spawner        Spawner
-	Restorer       Restorer
-	StatsCollector StatsCollector
-	Heartbeat      Registrar
-	Logger         *slog.Logger
-	Group          *background.Group
+	DiagnosticSecrets []string
+	APIClient         APIClient
+	Capacity          config.Capacity
+	Pool              *Pool
+	Spawner           Spawner
+	Restorer          Restorer
+	StatsCollector    StatsCollector
+	Heartbeat         Registrar
+	Logger            *slog.Logger
+	Group             *background.Group
 }
 
 func NewRunner(deps Deps) *Runner {
 	return &Runner{
+		diagnosticSecrets:       slices.Clone(deps.DiagnosticSecrets),
 		group:                   deps.Group,
 		diskWatchInterval:       3 * time.Second,
 		backupDownloadBackoffFn: backupDownloadBackoff,
@@ -177,6 +180,8 @@ func (r *Runner) executeJob(ctx context.Context, job *agentclient.VerificationAs
 		slog.Any("verification_id", job.VerificationID),
 	)
 
+	diagnosticSecrets := append([]string(nil), r.diagnosticSecrets...)
+
 	jobCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -188,7 +193,17 @@ func (r *Runner) executeJob(ctx context.Context, job *agentclient.VerificationAs
 
 	pgMajor, err := pgMajorFromDatabase(job.Database)
 	if err != nil {
-		r.reportFailure(ctx, job.VerificationID, nil, fmt.Sprintf("resolve pg major: %v", err), runLogger)
+		r.reportFailure(
+			ctx,
+			failureReport{
+				Cause:          err,
+				Secrets:        diagnosticSecrets,
+				VerificationID: job.VerificationID,
+				RestoreResult:  nil,
+				Message:        fmt.Sprintf("resolve pg major: %v", err),
+				Logger:         runLogger,
+			},
+		)
 
 		return
 	}
@@ -205,10 +220,26 @@ func (r *Runner) executeJob(ctx context.Context, job *agentclient.VerificationAs
 			return
 		}
 
-		r.reportFailure(ctx, job.VerificationID, nil, fmt.Sprintf("spawn container: %v", err), runLogger)
+		r.reportFailure(
+			ctx,
+			failureReport{
+				Cause:          err,
+				Secrets:        diagnosticSecrets,
+				VerificationID: job.VerificationID,
+				RestoreResult:  nil,
+				Message:        fmt.Sprintf("spawn container: %v", err),
+				Logger:         runLogger,
+			},
+		)
 
 		return
 	}
+
+	diagnosticSecrets = append(
+		diagnosticSecrets,
+		jobContainer.GetVerifierConn().Password,
+		jobContainer.GetInContainerConn().Password,
+	)
 
 	defer func() {
 		if termErr := jobContainer.Terminate(ctx); termErr != nil {
@@ -278,7 +309,17 @@ func (r *Runner) executeJob(ctx context.Context, job *agentclient.VerificationAs
 			return
 		}
 
-		r.reportFailure(ctx, job.VerificationID, nil, fmt.Sprintf("download backup: %v", err), runLogger)
+		r.reportFailure(
+			ctx,
+			failureReport{
+				Cause:          err,
+				Secrets:        diagnosticSecrets,
+				VerificationID: job.VerificationID,
+				RestoreResult:  nil,
+				Message:        fmt.Sprintf("download backup: %v", err),
+				Logger:         runLogger,
+			},
+		)
 
 		return
 	}
@@ -294,8 +335,17 @@ func (r *Runner) executeJob(ctx context.Context, job *agentclient.VerificationAs
 			return
 		}
 
-		r.reportFailure(ctx, job.VerificationID, nil,
-			fmt.Sprintf("ensure archive owner roles: %v", err), runLogger)
+		r.reportFailure(
+			ctx,
+			failureReport{
+				Cause:          err,
+				Secrets:        diagnosticSecrets,
+				VerificationID: job.VerificationID,
+				RestoreResult:  nil,
+				Message:        fmt.Sprintf("ensure archive owner roles: %v", err),
+				Logger:         runLogger,
+			},
+		)
 
 		return
 	}
@@ -322,8 +372,17 @@ func (r *Runner) executeJob(ctx context.Context, job *agentclient.VerificationAs
 				return
 			}
 
-			r.reportFailure(ctx, job.VerificationID, nil,
-				fmt.Sprintf("timescaledb_pre_restore: %v", err), runLogger)
+			r.reportFailure(
+				ctx,
+				failureReport{
+					Cause:          err,
+					Secrets:        diagnosticSecrets,
+					VerificationID: job.VerificationID,
+					RestoreResult:  nil,
+					Message:        fmt.Sprintf("timescaledb_pre_restore: %v", err),
+					Logger:         runLogger,
+				},
+			)
 
 			return
 		}
@@ -332,10 +391,11 @@ func (r *Runner) executeJob(ctx context.Context, job *agentclient.VerificationAs
 	// RunPgRestore returns Result by value and fills it when it fails with ErrRestoreFailed.
 	// nosemgrep: trailofbits.go.invalid-usage-of-modified-variable.invalid-usage-of-modified-variable
 	restoreResult, err := r.restorer.RunPgRestore(jobCtx, jobContainer, restore.PgRestoreSpec{
-		ArchivePath:   archivePath,
-		Conn:          jobContainer.GetInContainerConn(),
-		ParallelJobs:  parallelJobs,
-		IsTimescaledb: isTimescaleDB,
+		DiagnosticSecrets: diagnosticSecrets,
+		ArchivePath:       archivePath,
+		Conn:              jobContainer.GetInContainerConn(),
+		ParallelJobs:      parallelJobs,
+		IsTimescaledb:     isTimescaleDB,
 	})
 	if err != nil {
 		if reportIfDiskLimitHit() {
@@ -348,8 +408,18 @@ func (r *Runner) executeJob(ctx context.Context, job *agentclient.VerificationAs
 
 		if !errors.Is(err, restore.ErrRestoreFailed) {
 			// Exec-infrastructure failure (no usable exit code).
-			r.reportFailure(ctx, job.VerificationID, nil,
-				fmt.Sprintf("pg_restore exec: %v", err), runLogger)
+			r.reportFailure(
+				ctx,
+				failureReport{
+					Cause:          err,
+					Secrets:        diagnosticSecrets,
+					VerificationID: job.VerificationID,
+					RestoreResult:  nil,
+					Message:        fmt.Sprintf("pg_restore exec: %v", err),
+					Logger:         runLogger,
+					Diagnostic:     restoreResult.FailureDiagnostic,
+				},
+			)
 
 			return
 		}
@@ -358,8 +428,17 @@ func (r *Runner) executeJob(ctx context.Context, job *agentclient.VerificationAs
 			// Hitting the estimate-derived ceiling is agent infra, not proof the
 			// backup is corrupt — omit the exit code so the backend retries
 			// (AgentSetupFailed), never BackupRejected.
-			r.reportFailure(ctx, job.VerificationID, nil,
-				fmt.Sprintf("pg_restore hit job disk ceiling: %v", err), runLogger)
+			r.reportFailure(
+				ctx,
+				failureReport{
+					Secrets:        diagnosticSecrets,
+					VerificationID: job.VerificationID,
+					RestoreResult:  nil,
+					Message:        fmt.Sprintf("pg_restore hit job disk ceiling: %v", err),
+					Logger:         runLogger,
+					Diagnostic:     restoreResult.FailureDiagnostic,
+				},
+			)
 
 			return
 		}
@@ -372,8 +451,17 @@ func (r *Runner) executeJob(ctx context.Context, job *agentclient.VerificationAs
 				slog.Any("stderr_tail", restoreResult.StderrTail),
 			)
 
-			r.reportFailure(ctx, job.VerificationID, &restoreResult,
-				fmt.Sprintf("pg_restore failed: %v", err), runLogger)
+			r.reportFailure(
+				ctx,
+				failureReport{
+					Secrets:        diagnosticSecrets,
+					VerificationID: job.VerificationID,
+					RestoreResult:  &restoreResult,
+					Message:        fmt.Sprintf("pg_restore failed: %v", err),
+					Logger:         runLogger,
+					Diagnostic:     restoreResult.FailureDiagnostic,
+				},
+			)
 
 			return
 		}
@@ -404,8 +492,17 @@ func (r *Runner) executeJob(ctx context.Context, job *agentclient.VerificationAs
 				return
 			}
 
-			r.reportFailure(ctx, job.VerificationID, &restoreResult,
-				fmt.Sprintf("timescaledb_post_restore: %v", err), runLogger)
+			r.reportFailure(
+				ctx,
+				failureReport{
+					Cause:          err,
+					Secrets:        diagnosticSecrets,
+					VerificationID: job.VerificationID,
+					RestoreResult:  &restoreResult,
+					Message:        fmt.Sprintf("timescaledb_post_restore: %v", err),
+					Logger:         runLogger,
+				},
+			)
 
 			return
 		}
@@ -424,14 +521,32 @@ func (r *Runner) executeJob(ctx context.Context, job *agentclient.VerificationAs
 		}
 
 		if !r.connAlive(jobCtx, verifierConn) {
-			r.reportFailure(ctx, job.VerificationID, nil,
-				fmt.Sprintf("verify (conn dead): %v", err), runLogger)
+			r.reportFailure(
+				ctx,
+				failureReport{
+					Cause:          err,
+					Secrets:        diagnosticSecrets,
+					VerificationID: job.VerificationID,
+					RestoreResult:  nil,
+					Message:        fmt.Sprintf("verify (conn dead): %v", err),
+					Logger:         runLogger,
+				},
+			)
 
 			return
 		}
 
-		r.reportFailure(ctx, job.VerificationID, &restoreResult,
-			fmt.Sprintf("verify: %v", err), runLogger)
+		r.reportFailure(
+			ctx,
+			failureReport{
+				Cause:          err,
+				Secrets:        diagnosticSecrets,
+				VerificationID: job.VerificationID,
+				RestoreResult:  &restoreResult,
+				Message:        fmt.Sprintf("verify: %v", err),
+				Logger:         runLogger,
+			},
+		)
 
 		return
 	}
@@ -542,31 +657,6 @@ func (r *Runner) reportSuccess(
 	r.sendReport(ctx, verificationID, req, logger)
 }
 
-func (r *Runner) reportFailure(
-	ctx context.Context,
-	verificationID uuid.UUID,
-	restoreResult *restore.Result,
-	failMessage string,
-	logger *slog.Logger,
-) {
-	if r.shouldSkipFailedReport(ctx, verificationID, logger) {
-		return
-	}
-
-	message := failMessage
-	req := agentclient.VerificationReport{
-		Status:      agentclient.VerificationReportStatusFAILED,
-		FailMessage: &message,
-	}
-
-	if restoreResult != nil {
-		req.PgRestoreExitCode = &restoreResult.PgRestoreExitCode
-		req.RestoreDurationMs = &restoreResult.DurationMs
-	}
-
-	r.sendReport(ctx, verificationID, req, logger)
-}
-
 // reportDiskLimitExceeded posts the terminal disk-budget verdict. FailureKind
 // makes the backend classify it DISK_LIMIT_EXCEEDED (terminal) instead of the
 // retryable nil-exit-code path: the budget is server-computed, so retrying the
@@ -582,12 +672,23 @@ func (r *Runner) reportDiskLimitExceeded(
 	}
 
 	message := failMessage
-	kind := "DISK_LIMIT_EXCEEDED"
-	r.sendReport(ctx, verificationID, agentclient.VerificationReport{
+	diagnostic := pgrestore.GetFailureDiagnostic(
+		pgrestore.FailureDiagnosticSpec{Output: failMessage, Secrets: r.diagnosticSecrets, IsTruncated: false},
+	)
+	report := agentclient.VerificationReport{
 		Status:      agentclient.VerificationReportStatusFAILED,
 		FailMessage: &message,
-		FailureKind: &kind,
-	}, logger)
+	}
+	if diagnostic != nil {
+		report.FailureDiagnostic = &agentclient.VerificationFailureDiagnostic{
+			Output:      diagnostic.Output,
+			IsTruncated: diagnostic.IsTruncated,
+		}
+	}
+	kind := "DISK_LIMIT_EXCEEDED"
+	report.FailureKind = &kind
+
+	r.sendReport(ctx, verificationID, report, logger)
 }
 
 // shouldSkipFailedReport is the abort/report-race guard (the only agent-side
@@ -612,6 +713,8 @@ func (r *Runner) sendReport(
 	req agentclient.VerificationReport,
 	logger *slog.Logger,
 ) {
+	req = sanitizeFailureReport(req, r.diagnosticSecrets)
+
 	err := r.api.Report(ctx, verificationID, req)
 	if err == nil {
 		logger.InfoContext(ctx, "report accepted", slog.Any("status", req.Status))

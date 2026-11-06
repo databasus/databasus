@@ -90,15 +90,16 @@ func TestExecuteJobAbortMidRestore(t *testing.T) {
 
 			runnerUnderTest := NewRunner(
 				Deps{
-					APIClient:      client,
-					Capacity:       testCapacity(),
-					Pool:           NewPool(2),
-					Spawner:        &fakeSpawner{container: jobContainer},
-					Restorer:       restorer,
-					StatsCollector: &fakeStats{},
-					Heartbeat:      heartbeater,
-					Logger:         slog.New(slog.DiscardHandler),
-					Group:          newTestGroup(t),
+					DiagnosticSecrets: nil,
+					APIClient:         client,
+					Capacity:          testCapacity(),
+					Pool:              NewPool(2),
+					Spawner:           &fakeSpawner{container: jobContainer},
+					Restorer:          restorer,
+					StatsCollector:    &fakeStats{},
+					Heartbeat:         heartbeater,
+					Logger:            slog.New(slog.DiscardHandler),
+					Group:             newTestGroup(t),
 				},
 			)
 

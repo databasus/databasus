@@ -19,6 +19,7 @@ import (
 	"databasus-backend/internal/agent/dbconn"
 	"databasus-backend/internal/agent/restore"
 	"databasus-backend/internal/agent/verifier"
+	"databasus-backend/internal/engines/postgresql/logical/pgrestore"
 	"databasus-backend/internal/lib/agentclient"
 	"databasus-backend/internal/lib/background"
 )
@@ -50,15 +51,16 @@ func newTestRunner(t *testing.T,
 	t.Helper()
 	verificationRunner := NewRunner(
 		Deps{
-			APIClient:      apiClient,
-			Capacity:       testCapacity(),
-			Pool:           NewPool(2),
-			Spawner:        spawner,
-			Restorer:       restorer,
-			StatsCollector: stats,
-			Heartbeat:      reg,
-			Logger:         slog.New(slog.DiscardHandler),
-			Group:          newTestGroup(t),
+			DiagnosticSecrets: nil,
+			APIClient:         apiClient,
+			Capacity:          testCapacity(),
+			Pool:              NewPool(2),
+			Spawner:           spawner,
+			Restorer:          restorer,
+			StatsCollector:    stats,
+			Heartbeat:         reg,
+			Logger:            slog.New(slog.DiscardHandler),
+			Group:             newTestGroup(t),
 		},
 	)
 	verificationRunner.backupDownloadBackoffFn = func(int) time.Duration { return 0 }
@@ -97,8 +99,9 @@ func TestExecuteJob(t *testing.T) {
 	})
 	t.Run("reports failed without exit code when container creation fails", func(t *testing.T) {
 		apiClient := &fakeAPI{}
-		spawner := &fakeSpawner{err: errors.New("image pull failed")}
+		spawner := &fakeSpawner{err: errors.New("image pull failed with agent-secret")}
 		r := newTestRunner(t, apiClient, spawner, &fakeRestorer{}, &fakeStats{}, newFakeRegistrar())
+		r.diagnosticSecrets = []string{"agent-secret"}
 
 		r.executeJob(t.Context(), postgresJob())
 
@@ -106,6 +109,10 @@ func TestExecuteJob(t *testing.T) {
 		require.True(t, ok)
 		assert.Equal(t, agentclient.VerificationReportStatusFAILED, report.Status)
 		assert.Nil(t, report.PgRestoreExitCode)
+		require.NotNil(t, report.FailureDiagnostic)
+		assert.Contains(t, report.FailureDiagnostic.Output, "image pull failed")
+		assert.NotContains(t, report.FailureDiagnostic.Output, "agent-secret")
+		assert.NotContains(t, *report.FailMessage, "agent-secret")
 	})
 	t.Run("sends no report when the backup stream returns 410", func(t *testing.T) {
 		apiClient := &fakeAPI{downloadErr: &api.ResponseError{Op: "backup stream", StatusCode: 410}}
@@ -241,6 +248,7 @@ func TestExecuteJob(t *testing.T) {
 
 		report, ok := apiClient.lastReport()
 		require.True(t, ok)
+		assert.Nil(t, report.FailureDiagnostic)
 		assert.Equal(t, agentclient.VerificationReportStatusCOMPLETED, report.Status,
 			"a restore whose only failures are missing extensions is restorable")
 		require.NotNil(t, report.PgRestoreExitCode)
@@ -268,7 +276,15 @@ func TestExecuteJob(t *testing.T) {
 	})
 	t.Run("reports failed without exit code when the restore command cannot execute", func(t *testing.T) {
 		apiClient := &fakeAPI{downloadBody: []byte("ARCHIVE")}
-		restorer := &fakeRestorer{runErr: errors.New("exec create failed")}
+		restorer := &fakeRestorer{
+			runErr: errors.New("exec create failed"),
+			runResult: restore.Result{
+				FailureDiagnostic: &pgrestore.FailureDiagnostic{
+					Output:      "captured execution stderr",
+					IsTruncated: false,
+				},
+			},
+		}
 		r := newTestRunner(t, apiClient, okSpawner(), restorer, &fakeStats{}, newFakeRegistrar())
 
 		r.executeJob(t.Context(), postgresJob())
@@ -277,6 +293,9 @@ func TestExecuteJob(t *testing.T) {
 		require.True(t, ok)
 		assert.Equal(t, agentclient.VerificationReportStatusFAILED, report.Status)
 		assert.Nil(t, report.PgRestoreExitCode)
+		require.NotNil(t, report.FailureDiagnostic)
+		assert.Contains(t, report.FailureDiagnostic.Output, "exec create failed")
+		assert.Contains(t, report.FailureDiagnostic.Output, "captured execution stderr")
 	})
 	t.Run("reports failed without exit code when verification fails and its connection is dead", func(t *testing.T) {
 		apiClient := &fakeAPI{downloadBody: []byte("ARCHIVE")}
@@ -295,7 +314,11 @@ func TestExecuteJob(t *testing.T) {
 	t.Run("reports failed with exit code zero when verification fails and its connection is alive", func(t *testing.T) {
 		apiClient := &fakeAPI{downloadBody: []byte("ARCHIVE")}
 		restorer := &fakeRestorer{runResult: restore.Result{PgRestoreExitCode: 0}}
-		stats := &fakeStats{err: errors.New("tier 1 impossible result")}
+		stats := &fakeStats{err: errors.New("tier 1 impossible result " + testConn().Password)}
+		restorer.runResult.FailureDiagnostic = &pgrestore.FailureDiagnostic{
+			Output:      "successful restore warning",
+			IsTruncated: false,
+		}
 		r := newTestRunner(t, apiClient, okSpawner(), restorer, stats, newFakeRegistrar())
 		r.connAlive = func(context.Context, dbconn.Conn) bool { return true }
 
@@ -307,6 +330,11 @@ func TestExecuteJob(t *testing.T) {
 		require.NotNil(t, report.PgRestoreExitCode)
 		assert.Equal(t, 0, *report.PgRestoreExitCode,
 			"a live conn with a broken tier-1 result is BackupRejected with exit 0")
+		require.NotNil(t, report.FailureDiagnostic)
+		assert.Contains(t, report.FailureDiagnostic.Output, "tier 1 impossible result")
+		assert.NotContains(t, report.FailureDiagnostic.Output, "successful restore warning")
+		assert.NotContains(t, report.FailureDiagnostic.Output, testConn().Password)
+		assert.NotContains(t, *report.FailMessage, testConn().Password)
 	})
 	t.Run("reports completed with stats when every stage succeeds", func(t *testing.T) {
 		apiClient := &fakeAPI{downloadBody: []byte("ARCHIVE")}
@@ -549,4 +577,37 @@ func newTestGroup(t *testing.T) *background.Group {
 	group := background.New(background.Deps{Logger: slog.New(slog.DiscardHandler)})
 	t.Cleanup(func() { _ = group.Wait(context.WithoutCancel(t.Context())) })
 	return group
+}
+
+func TestExecuteJobMissingFailureDiagnostic(t *testing.T) {
+	t.Parallel()
+
+	for _, scenario := range []struct {
+		name       string
+		diagnostic *pgrestore.FailureDiagnostic
+	}{
+		{name: "omits the diagnostic when a rejected restore has no captured stderr", diagnostic: nil},
+		{name: "omits the diagnostic after sanitization removes all captured output", diagnostic: &pgrestore.FailureDiagnostic{Output: "\x00 \n", IsTruncated: false}},
+	} {
+		t.Run(scenario.name, func(t *testing.T) {
+			t.Parallel()
+			apiClient := &fakeAPI{downloadBody: []byte("ARCHIVE")}
+			restorer := &fakeRestorer{
+				runErr:    fmt.Errorf("restore: %w", restore.ErrRestoreFailed),
+				runResult: restore.Result{PgRestoreExitCode: 1, FailureDiagnostic: scenario.diagnostic},
+			}
+			verificationRunner := newTestRunner(t, apiClient, okSpawner(), restorer, &fakeStats{}, newFakeRegistrar())
+
+			verificationRunner.executeJob(t.Context(), postgresJob())
+
+			report, isReported := apiClient.lastReport()
+			require.True(t, isReported)
+			assert.Equal(t, agentclient.VerificationReportStatusFAILED, report.Status)
+			require.NotNil(t, report.PgRestoreExitCode)
+			assert.Equal(t, 1, *report.PgRestoreExitCode)
+			require.NotNil(t, report.FailMessage)
+			assert.Contains(t, *report.FailMessage, "pg_restore failed")
+			assert.Nil(t, report.FailureDiagnostic)
+		})
+	}
 }

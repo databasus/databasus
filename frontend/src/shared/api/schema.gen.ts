@@ -1781,7 +1781,14 @@ export interface components {
         };
         /** @description Verification Details */
         VerificationDetails: components["schemas"]["Verification"] & {
+            failureDiagnostic?: components["schemas"]["VerificationFailureDiagnostic"];
             tableStats: components["schemas"]["VerificationTableStat"][];
+        };
+        /** @description Sanitized output of the final failed attempt, available only in verification details. */
+        VerificationFailureDiagnostic: {
+            /** @description At most 65536 decoded UTF-8 bytes, including an omission marker when truncated. */
+            output: string;
+            isTruncated: boolean;
         };
         /** @description Verification Agent Page */
         VerificationAgentPage: {

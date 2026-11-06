@@ -30,6 +30,9 @@ type Verification struct {
 	SchemaCount               *int    `gorm:"column:schema_count"`
 	FailMessage               *string `gorm:"column:fail_message"`
 
+	FailureDiagnosticOutput      *string `gorm:"column:failure_diagnostic_output"`
+	IsFailureDiagnosticTruncated bool    `gorm:"column:is_failure_diagnostic_truncated"`
+
 	TableStats []TableStat `gorm:"-"`
 }
 
