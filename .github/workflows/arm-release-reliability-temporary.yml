@@ -298,6 +298,13 @@ jobs:
       - name: Check the suite's own code
         run: mise run e2e:unit
 
+      - name: Verify browser recovery and lifecycle scenarios
+        env:
+          DATABASUS_IMAGE: databasus-storage-test:${{ inputs.candidate_sha }}-${{ matrix.arch }}
+        run: |
+          mise run e2e:browser
+          mise run e2e:lifecycle
+
       - name: Verify interruption of the lifecycle command
         env:
           DATABASUS_IMAGE: databasus-storage-test:${{ inputs.candidate_sha }}-${{ matrix.arch }}
