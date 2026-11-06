@@ -54,15 +54,6 @@ type (
 )
 
 const (
-	TypeEmail      = notification.NotifierTypeEmail
-	TypeTelegram   = notification.NotifierTypeTelegram
-	TypeSlack      = notification.NotifierTypeSlack
-	TypeDiscord    = notification.NotifierTypeDiscord
-	TypeTeams      = notification.NotifierTypeTeams
-	TypeMattermost = notification.NotifierTypeMattermost
-	TypeWebhook    = notification.NotifierTypeWebhook
-
-	CategoryAll                 = notification.CategoryAll
 	CategoryBackupSuccess       = notification.CategoryBackupSuccess
 	CategoryBackupFailed        = notification.CategoryBackupFailed
 	CategoryHealthcheckSuccess  = notification.CategoryHealthcheckSuccess

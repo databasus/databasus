@@ -45,22 +45,8 @@ type (
 	// Method is how a database is backed up: physically for a physical PostgreSQL database, logically
 	// for every other one.
 	Method = config.Method
-	// BackupConfig holds what the configs of both methods share.
-	BackupConfig = config.BackupConfig
-
-	Encryption                 = config.Encryption
-	NotificationTrigger        = config.NotificationTrigger
-	GfsRetention               = config.GfsRetention
-	LogicalRetention           = config.LogicalRetention
-	LogicalRetentionPolicy     = config.LogicalRetentionPolicy
-	RetentionPeriod            = config.RetentionPeriod
-	PhysicalRetention          = config.PhysicalRetention
-	PhysicalRetentionPolicy    = config.PhysicalRetentionPolicy
-	FullBackupsRetention       = config.FullBackupsRetention
-	FullBackupsRetentionPolicy = config.FullBackupsRetentionPolicy
 
 	LogicalBackup                   = logical.LogicalBackup
-	LogicalBackupStatus             = logical.Status
 	LogicalBackupVerificationStatus = logical.VerificationStatus
 	// LogicalBackupCompleted is published after the publication of a logical backup commits.
 	LogicalBackupCompleted        = logical.BackupCompleted
@@ -70,12 +56,8 @@ type (
 )
 
 const (
-	LogicalBackupStatusInProgress = logical.StatusInProgress
-	LogicalBackupStatusCompleted  = logical.StatusCompleted
-	LogicalBackupStatusFailed     = logical.StatusFailed
-	LogicalBackupStatusCanceled   = logical.StatusCanceled
+	LogicalBackupStatusCompleted = logical.StatusCompleted
 
-	LogicalBackupVerificationStatusNotVerified        = logical.VerificationStatusNotVerified
 	LogicalBackupVerificationStatusVerifiedSuccessful = logical.VerificationStatusVerifiedSuccessful
 	LogicalBackupVerificationStatusVerificationFailed = logical.VerificationStatusVerificationFailed
 )
@@ -86,37 +68,6 @@ var ErrUserStreamHeld = download.ErrUserStreamHeld
 const (
 	MethodLogical  = config.MethodLogical
 	MethodPhysical = config.MethodPhysical
-
-	EncryptionNone      = config.EncryptionNone
-	EncryptionEncrypted = config.EncryptionEncrypted
-
-	NotificationTriggerBackupFailed  = config.NotificationTriggerBackupFailed
-	NotificationTriggerBackupSuccess = config.NotificationTriggerBackupSuccess
-	NotificationTriggerChainBroken   = config.NotificationTriggerChainBroken
-	NotificationTriggerWalGap        = config.NotificationTriggerWalGap
-
-	LogicalRetentionPolicyTimePeriod = config.LogicalRetentionPolicyTimePeriod
-	LogicalRetentionPolicyCount      = config.LogicalRetentionPolicyCount
-	LogicalRetentionPolicyGfs        = config.LogicalRetentionPolicyGfs
-
-	RetentionPeriodDay     = config.RetentionPeriodDay
-	RetentionPeriodWeek    = config.RetentionPeriodWeek
-	RetentionPeriodMonth   = config.RetentionPeriodMonth
-	RetentionPeriod3Months = config.RetentionPeriod3Months
-	RetentionPeriod6Months = config.RetentionPeriod6Months
-	RetentionPeriodYear    = config.RetentionPeriodYear
-	RetentionPeriod2Years  = config.RetentionPeriod2Years
-	RetentionPeriod3Years  = config.RetentionPeriod3Years
-	RetentionPeriod4Years  = config.RetentionPeriod4Years
-	RetentionPeriod5Years  = config.RetentionPeriod5Years
-	RetentionPeriodForever = config.RetentionPeriodForever
-
-	PhysicalRetentionPolicyChains               = config.PhysicalRetentionPolicyChains
-	PhysicalRetentionPolicyFullBackups          = config.PhysicalRetentionPolicyFullBackups
-	PhysicalRetentionPolicyChainsAndFullBackups = config.PhysicalRetentionPolicyChainsAndFullBackups
-
-	FullBackupsRetentionPolicyLastN = config.FullBackupsRetentionPolicyLastN
-	FullBackupsRetentionPolicyGfs   = config.FullBackupsRetentionPolicyGfs
 )
 
 type Module interface {

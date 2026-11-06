@@ -30,10 +30,6 @@ import (
 )
 
 type (
-	// Role is the global role of a user.
-	Role = identity.Role
-	// Status is the state of a user: invited and not signed up yet, active, or deactivated.
-	Status = identity.Status
 	// Actor is the user a request runs for: the user ID and the global role.
 	Actor = identity.Actor
 	// User is a user as other modules see it, without the password or the identity provider IDs.
@@ -51,9 +47,7 @@ const (
 	RoleAdmin  = identity.RoleAdmin
 	RoleMember = identity.RoleMember
 
-	StatusInvited  = identity.StatusInvited
-	StatusActive   = identity.StatusActive
-	StatusInactive = identity.StatusInactive
+	StatusInvited = identity.StatusInvited
 )
 
 func WithActor(ctx context.Context, actor Actor) context.Context {
