@@ -2,7 +2,7 @@
 
 Local execution uses native Linux amd64. Selection tests exercise ARM inputs without emulation; they do not establish native ARM execution.
 
-## Completed local checks
+## Local checks at the first implementation snapshot
 
 | Check                                                                                                | Result                                                                                                                         |
 | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
@@ -89,3 +89,11 @@ Browser follow-up [42184378826](https://github.com/databasus/databasus/actions/r
 The ARM A/B/A experiment completed with all three phases passing. MongoDB completed in 297.243s, 243.395s and 256.101s at parallelism 4, 2 and 4 respectively; PostgreSQL completed in 683.953s, 646.433s and 624.256s. The recorded cgroup peak memory was 5,515,735,040 bytes, with no OOM events or CPU throttling; socket-throttling events were recorded despite the successful scenarios. These results do not reproduce the historical timeout or establish concurrency as its cause. An equivalent amd64 diagnostic follows because the initially reported SSH failure occurred there.
 
 Snapshot `725672bc` is running in full native [CI 42185314987](https://github.com/databasus/databasus/actions/runs/42185314987), isolated-provider [repetitions 42185083171](https://github.com/databasus/databasus/actions/runs/42185083171) and browser recovery/lifecycle [42185091325](https://github.com/databasus/databasus/actions/runs/42185091325). Both architectures rejected the 32 KiB NAS chunk mutation before starting ten unchanged provider-package repetitions. Local checks passed 159 script tests, Python lint, shellcheck, actionlint and strict OpenSpec validation. A sandboxed script run could not prepare the uv cache; the complete run outside the sandbox passed all 159 tests in 21.147s.
+
+The amd64 browser follow-up passed 36 harness unit checks, four ordinary recovery scenarios, 22 lifecycle checks and three lifecycle-command interruption checks. Five probe-only cases were intentionally skipped in each ordinary/lifecycle selection. The ordinary suite retained its physical full, incremental and later-WAL data checks through both Host and Docker recovery commands. In the full native run, amd64 `other` also passed: the isolated provider package completed in 150.522s, the app harness in 87.589s and backup API tests in 259.625s. ARM results and provider repetitions remain pending at this observation.
+
+The equivalent x64 A/B/A experiment is [42186199056](https://github.com/databasus/databasus/actions/runs/42186199056), snapshot `134f32be`. The local Docker version request again expired after eight seconds without a server response. Hosted evidence is recorded separately; permission to replace the remaining explicitly local container checks is still pending, so those checklist items have not been marked complete on that basis.
+
+The browser follow-up finished successfully on both architectures. ARM passed 36 unit checks, four ordinary recovery scenarios (50.94s), 22 lifecycle checks (919.69s) and three interruption checks (174.14s). Amd64 passed the same selections in 33.03s, 461.28s and 76.82s respectively. The five probe-only skips in ordinary/lifecycle selections are intentional; the dedicated lifecycle suite executes its failure probes. Recovery used the matching application candidates and their cached PostgreSQL image archives without nested registry pulls.
+
+After dispatching all diagnostic runs, the temporary reliability workflow was removed from the final working tree. Active hosted runs retain their dispatched snapshots. Subsequent cleanup changes only this workflow and the change documentation; the production workflow and application/scenario code tested at `725672bc` remain unchanged.
