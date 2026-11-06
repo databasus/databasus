@@ -12,22 +12,14 @@ import (
 
 const databaseNotifiersKind = "database notifiers"
 
-// previousNotifierRequest carries the settings of one notifier type, in the field the previous
-// release names after that type.
 type previousNotifierRequest struct {
-	WorkspaceID        string                     `json:"workspaceId"`
-	Name               string                     `json:"name"`
-	NotifierType       string                     `json:"notifierType"`
-	EmailNotifier      *previousEmailRequest      `json:"emailNotifier,omitempty"`
-	TelegramNotifier   *previousTelegramRequest   `json:"telegramNotifier,omitempty"`
-	SlackNotifier      *previousSlackRequest      `json:"slackNotifier,omitempty"`
-	DiscordNotifier    *previousDiscordRequest    `json:"discordNotifier,omitempty"`
-	TeamsNotifier      *previousTeamsRequest      `json:"teamsNotifier,omitempty"`
-	MattermostNotifier *previousMattermostRequest `json:"mattermostNotifier,omitempty"`
-	WebhookNotifier    *previousWebhookRequest    `json:"webhookNotifier,omitempty"`
+	WorkspaceID string `json:"workspaceId"`
+	Name        string `json:"name"`
+	Settings    any    `json:"settings"`
 }
 
 type previousEmailRequest struct {
+	Type                 string `json:"type"`
 	TargetEmail          string `json:"targetEmail"`
 	SMTPHost             string `json:"smtpHost"`
 	SMTPPort             int    `json:"smtpPort"`
@@ -40,6 +32,7 @@ type previousEmailRequest struct {
 }
 
 type previousTelegramRequest struct {
+	Type           string `json:"type"`
 	BotToken       string `json:"botToken"`
 	TargetChatID   string `json:"targetChatId"`
 	ThreadID       int64  `json:"threadId"`
@@ -49,19 +42,23 @@ type previousTelegramRequest struct {
 }
 
 type previousSlackRequest struct {
+	Type         string `json:"type"`
 	BotToken     string `json:"botToken"`
 	TargetChatID string `json:"targetChatId"`
 }
 
 type previousDiscordRequest struct {
+	Type              string `json:"type"`
 	ChannelWebhookURL string `json:"channelWebhookUrl"`
 }
 
 type previousTeamsRequest struct {
+	Type             string `json:"type"`
 	PowerAutomateURL string `json:"powerAutomateUrl"`
 }
 
 type previousMattermostRequest struct {
+	Type                 string `json:"type"`
 	DeliveryMode         string `json:"deliveryMode"`
 	WebhookURL           string `json:"webhookUrl"`
 	ServerURL            string `json:"serverUrl"`
@@ -74,15 +71,16 @@ type previousMattermostRequest struct {
 }
 
 type previousWebhookRequest struct {
+	Type                    string                  `json:"type"`
 	WebhookURL              string                  `json:"webhookUrl"`
 	WebhookMethod           string                  `json:"webhookMethod"`
 	BodyTemplate            string                  `json:"bodyTemplate"`
 	Headers                 []previousWebhookHeader `json:"headers"`
-	AcceptNotificationTypes []string                `json:"acceptNotificationTypes"`
+	AcceptNotificationTypes []string                `json:"acceptedCategories"`
 }
 
 type previousWebhookHeader struct {
-	Key   string `json:"key"`
+	Key   string `json:"name"`
 	Value string `json:"value"`
 }
 
@@ -104,8 +102,8 @@ func newWrittenNotifiers(workspaceID string) []writtenNotifier {
 	return []writtenNotifier{
 		{
 			request: previousNotifierRequest{
-				WorkspaceID: workspaceID, Name: "upgrade email", NotifierType: "EMAIL",
-				EmailNotifier: &previousEmailRequest{
+				WorkspaceID: workspaceID, Name: "upgrade email", Settings: &previousEmailRequest{
+					Type:                 "EMAIL",
 					TargetEmail:          "upgrade-alerts@databasus.local",
 					SMTPHost:             "smtp.upgrade.invalid",
 					SMTPPort:             2525,
@@ -113,7 +111,7 @@ func newWrittenNotifiers(workspaceID string) []writtenNotifier {
 					SMTPPassword:         "upgrade-smtp-password",
 					From:                 "upgrade-sender@databasus.local",
 					IsInsecureSkipVerify: true,
-					Security:             "starttls",
+					Security:             "STARTTLS",
 					HeloName:             "upgrade.databasus.local",
 				},
 			},
@@ -131,8 +129,8 @@ func newWrittenNotifiers(workspaceID string) []writtenNotifier {
 		},
 		{
 			request: previousNotifierRequest{
-				WorkspaceID: workspaceID, Name: "upgrade telegram", NotifierType: "TELEGRAM",
-				TelegramNotifier: &previousTelegramRequest{
+				WorkspaceID: workspaceID, Name: "upgrade telegram", Settings: &previousTelegramRequest{
+					Type:           "TELEGRAM",
 					BotToken:       "123456:AAH-UPGRADE-TOKEN",
 					TargetChatID:   "-1001234567890",
 					ThreadID:       42,
@@ -151,15 +149,20 @@ func newWrittenNotifiers(workspaceID string) []writtenNotifier {
 		},
 		{
 			request: previousNotifierRequest{
-				WorkspaceID: workspaceID, Name: "upgrade slack", NotifierType: "SLACK",
-				SlackNotifier: &previousSlackRequest{BotToken: "xoxb-upgrade-token", TargetChatID: "C0UPGRADE"},
+				WorkspaceID: workspaceID,
+				Name:        "upgrade slack",
+				Settings: &previousSlackRequest{
+					Type:         "SLACK",
+					BotToken:     "xoxb-upgrade-token",
+					TargetChatID: "C0UPGRADE",
+				},
 			},
 			expectedValues: map[string]string{"type": "SLACK", "targetChatId": "C0UPGRADE"},
 		},
 		{
 			request: previousNotifierRequest{
-				WorkspaceID: workspaceID, Name: "upgrade discord", NotifierType: "DISCORD",
-				DiscordNotifier: &previousDiscordRequest{
+				WorkspaceID: workspaceID, Name: "upgrade discord", Settings: &previousDiscordRequest{
+					Type:              "DISCORD",
 					ChannelWebhookURL: "https://discord.upgrade.invalid/api/webhooks/1/token",
 				},
 			},
@@ -167,15 +170,19 @@ func newWrittenNotifiers(workspaceID string) []writtenNotifier {
 		},
 		{
 			request: previousNotifierRequest{
-				WorkspaceID: workspaceID, Name: "upgrade teams", NotifierType: "TEAMS",
-				TeamsNotifier: &previousTeamsRequest{PowerAutomateURL: "https://teams.upgrade.invalid/workflow"},
+				WorkspaceID: workspaceID,
+				Name:        "upgrade teams",
+				Settings: &previousTeamsRequest{
+					Type:             "TEAMS",
+					PowerAutomateURL: "https://teams.upgrade.invalid/workflow",
+				},
 			},
 			expectedValues: map[string]string{"type": "TEAMS"},
 		},
 		{
 			request: previousNotifierRequest{
-				WorkspaceID: workspaceID, Name: "upgrade mattermost", NotifierType: "MATTERMOST",
-				MattermostNotifier: &previousMattermostRequest{
+				WorkspaceID: workspaceID, Name: "upgrade mattermost", Settings: &previousMattermostRequest{
+					Type:                 "MATTERMOST",
 					DeliveryMode:         "WEBHOOK",
 					WebhookURL:           "https://mattermost.upgrade.invalid/hooks/upgrade",
 					TargetChannelName:    "upgrade-alerts",
@@ -195,8 +202,8 @@ func newWrittenNotifiers(workspaceID string) []writtenNotifier {
 		},
 		{
 			request: previousNotifierRequest{
-				WorkspaceID: workspaceID, Name: "upgrade mattermost bot", NotifierType: "MATTERMOST",
-				MattermostNotifier: &previousMattermostRequest{
+				WorkspaceID: workspaceID, Name: "upgrade mattermost bot", Settings: &previousMattermostRequest{
+					Type:            "MATTERMOST",
 					DeliveryMode:    "BOT",
 					ServerURL:       "https://mattermost-bot.upgrade.invalid",
 					BotToken:        "upgrade-mattermost-bot-token",
@@ -212,8 +219,8 @@ func newWrittenNotifiers(workspaceID string) []writtenNotifier {
 		},
 		{
 			request: previousNotifierRequest{
-				WorkspaceID: workspaceID, Name: "upgrade webhook", NotifierType: "WEBHOOK",
-				WebhookNotifier: &previousWebhookRequest{
+				WorkspaceID: workspaceID, Name: "upgrade webhook", Settings: &previousWebhookRequest{
+					Type:          "WEBHOOK",
 					WebhookURL:    "http://upgrade-webhook.invalid/hook",
 					WebhookMethod: "POST",
 					BodyTemplate:  `{"text":"{{heading}}: {{message}}"}`,

@@ -3,8 +3,6 @@ package containers
 import (
 	"net"
 	"net/netip"
-	"path/filepath"
-	"runtime"
 	"strconv"
 	"testing"
 	"time"
@@ -51,12 +49,7 @@ func StartSSHBastionContainerOnNetwork(t *testing.T, networkName string) Contain
 func GetSSHBastionTestdataDir(t *testing.T) string {
 	t.Helper()
 
-	_, thisFile, _, isResolved := runtime.Caller(0)
-	if !isResolved {
-		t.Fatal("failed to resolve the ssh bastion testdata directory")
-	}
-
-	return filepath.Join(filepath.Dir(thisFile), "testdata", "ssh_bastion")
+	return getFixtureDirectory(t, "ssh_bastion")
 }
 
 // Database is the in-network address, reachable only through Bastion. BastionContainer is what lets
@@ -146,17 +139,24 @@ func StartMongodbBehindSSHBastion(t *testing.T, image string) BastionedDatabase 
 	networkName := StartNetwork(t)
 
 	bastion := StartSSHBastionContainerOnNetwork(t, networkName)
+	database := startMongodbOnNetwork(t, OnNetworkSpec{
+		Image: image,
+		Placement: NetworkPlacement{
+			NetworkName: networkName,
+			Alias:       bastionedMongodbAlias,
+		},
+	})
+	t.Cleanup(func() {
+		if t.Failed() {
+			logContainerOutputTail(t, database.Container, image)
+			logContainerOutputTail(t, bastion.Container, "SSH bastion")
+		}
+	})
 
 	return BastionedDatabase{
 		Bastion:          bastion.Endpoint,
 		BastionContainer: bastion.Container,
-		Database: StartMongodbOnNetwork(t, OnNetworkSpec{
-			Image: image,
-			Placement: NetworkPlacement{
-				NetworkName: networkName,
-				Alias:       bastionedMongodbAlias,
-			},
-		}),
+		Database:         database.Endpoint,
 	}
 }
 

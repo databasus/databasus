@@ -7,12 +7,14 @@ import signal
 import subprocess
 import sys
 import time
+from dataclasses import replace
 from pathlib import Path
 
-from compose_project import ComposeProject, list_remaining_resources
+from compose_project import POSTGRES_IMAGE, ComposeProject, list_remaining_resources
 from container_logs import ContainerLogSource, get_container_log_output
 from leftover_sweep import sweep_dead_runs
 from output_masking import OutputMask
+from recovery_image import get_archived_image_id
 from supervisor_file import (
     SupervisorRecord,
     get_project_name,
@@ -130,6 +132,10 @@ class Supervisor:
                 self._report("E2E image build failed")
                 return EXIT_FAILED
 
+        if not self._prepare_recovery_image():
+            self._report("E2E recovery image preparation failed")
+            return EXIT_FAILED
+
         up_exit_code = self._run_masked(
             self.project.get_command("up", "--detach", "--wait", "--quiet-pull"),
             environment=self.project.get_environment(),
@@ -139,6 +145,42 @@ class Supervisor:
             return EXIT_FAILED
 
         return self._run_scenarios()
+
+    def _prepare_recovery_image(self) -> bool:
+        inspection = subprocess.run(
+            ["docker", "image", "inspect", "--format", "{{.Id}}", POSTGRES_IMAGE],
+            capture_output=True,
+            text=True,
+        )
+        if inspection.returncode != 0:
+            if self._run_masked(["docker", "pull", POSTGRES_IMAGE]) != 0:
+                return False
+        server_platform = subprocess.run(
+            ["docker", "version", "--format", "{{.Server.Os}}/{{.Server.Arch}}"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+        archive = self.project.get_recovery_archive()
+        if (
+            self._run_masked(
+                [
+                    "docker",
+                    "image",
+                    "save",
+                    "--platform",
+                    server_platform,
+                    "--output",
+                    str(archive),
+                    POSTGRES_IMAGE,
+                ]
+            )
+            != 0
+        ):
+            return False
+
+        self.project = replace(self.project, recovery_image=get_archived_image_id(archive))
+        return True
 
     def _run_scenarios(self) -> int:
         browser_port = self.project.get_browser_port()

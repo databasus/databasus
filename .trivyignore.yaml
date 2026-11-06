@@ -1,6 +1,14 @@
 misconfigurations:
   - id: DS-0002
     paths:
+      - backend/internal/lib/testcontainers/testdata/sftp/Dockerfile
+      - backend/internal/lib/testcontainers/testdata/ftp/Dockerfile
+    statement: >-
+      These isolated authentication fixtures start their SSH and FTP daemons as
+      root to authenticate and chroot sessions, then drop each session to the
+      fixture user. A Dockerfile USER directive would prevent those operations.
+  - id: DS-0002
+    paths:
       - Dockerfile
     statement: >-
       The final image runs every service as the databasus user. start.sh starts
@@ -8,3 +16,10 @@ misconfigurations:
       directory, then re-executes itself as databasus with gosu, and that
       non-root process initializes PostgreSQL and runs the application. A
       Dockerfile USER directive would break startup.
+  - id: DS-0002
+    paths:
+      - e2e/docker-storage/nfs/Dockerfile
+    statement: >-
+      This privileged kernel-NFS test fixture mounts nfsd and configures exports
+      as root for its entire lifetime. It runs only in the isolated filesystem
+      test network and is removed with that run's resources.

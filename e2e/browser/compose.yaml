@@ -58,12 +58,13 @@ services:
     entrypoint: ["sh", "/prepare-recovery.sh"]
     environment:
       DOCKER_HOST: unix:///run/recovery-engine/docker.sock
-      E2E_POSTGRES_IMAGE: postgres:18@sha256:3a4264520e121176619f54ff867d12774bc81e95e7b84db58d63bccdb6144b81
+      E2E_POSTGRES_IMAGE: ${E2E_POSTGRES_IMAGE:?}
     depends_on:
       recovery-engine:
         condition: service_healthy
     volumes:
       - ./prepare_recovery.sh:/prepare-recovery.sh:ro,z
+      - ${E2E_POSTGRES_ARCHIVE:?}:/postgres.tar:ro,z
       - recovery-socket:/run/recovery-engine
       - recovery-work:/restore-work
     healthcheck:

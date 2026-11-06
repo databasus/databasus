@@ -65,14 +65,23 @@ func StartMongodb(t *testing.T, image string) Endpoint {
 func StartMongodbOnNetwork(t *testing.T, spec OnNetworkSpec) Endpoint {
 	t.Helper()
 
+	return startMongodbOnNetwork(t, spec).Endpoint
+}
+
+func startMongodbOnNetwork(t *testing.T, spec OnNetworkSpec) ContainerHandle {
+	t.Helper()
+
 	req := mongodbRequest(spec.Image)
 	// wait.ForListeningPort resolves the published host port, and this container has none.
 	req.WaitingFor = wait.ForLog("Waiting for connections").
 		WithOccurrence(2).WithStartupTimeout(mongodbStartupTimeout)
 
-	startUnpublished(t, req, spec.Placement)
+	container := startUnpublished(t, req, spec.Placement)
 
-	return Endpoint{Host: spec.Placement.Alias, Port: getPortNumber(mongodbPort)}
+	return ContainerHandle{
+		Endpoint:  Endpoint{Host: spec.Placement.Alias, Port: getPortNumber(mongodbPort)},
+		Container: container,
+	}
 }
 
 // StartMongodbSSL boots a requireTLS mongod, copying the server key/cert from pemPath and crtPath

@@ -8,7 +8,7 @@ readonly harness_label="${harness_label_key}=${run_id}"
 readonly selected_case="${CASE:-all}"
 readonly databasus_image="${DATABASUS_IMAGE:?DATABASUS_IMAGE must be set}"
 readonly samba_fixture_image="dockurr/samba@sha256:dbd8ebd6392cc1e8e98312d96d163f0039b644b84aee741d89efdd0abd3d32bf"
-readonly nfs_fixture_image="itsthenetwork/nfs-server-alpine@sha256:7fa99ae65c23c5af87dd4300e543a86b119ed15ba61422444207efc7abd0ba20"
+readonly nfs_fixture_image="databasus-nfs-fixture:${run_id}"
 suite_directory="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly suite_directory
 
@@ -65,6 +65,8 @@ cleanup() {
             -R 0777 /case-root >/dev/null 2>&1 || true
         rm -rf -- "${case_root}" || true
     fi
+
+    docker image rm "${nfs_fixture_image}" >/dev/null 2>&1 || true
 }
 
 trap cleanup EXIT
@@ -561,8 +563,6 @@ run_network_prerequisites() {
         return 1
     }
 
-    docker image inspect "${samba_fixture_image}" >/dev/null 2>&1 || docker pull "${samba_fixture_image}" >/dev/null
-    docker image inspect "${nfs_fixture_image}" >/dev/null 2>&1 || docker pull "${nfs_fixture_image}" >/dev/null
 }
 
 run_cifs() {
@@ -575,6 +575,7 @@ run_cifs() {
     local server_address
 
     run_network_prerequisites
+    docker image inspect "${samba_fixture_image}" >/dev/null 2>&1 || docker pull "${samba_fixture_image}" >/dev/null
     docker network create --label "${harness_label}" "${network_name}" >/dev/null
     docker volume create --label "${harness_label}" "${server_volume_name}" >/dev/null
     docker volume create --label "${harness_label}" "${data_volume_name}" >/dev/null
@@ -629,6 +630,7 @@ run_nfs_root_squash() {
     local server_address
 
     run_network_prerequisites
+    docker build --tag "${nfs_fixture_image}" "${suite_directory}/nfs"
     docker network create --label "${harness_label}" "${network_name}" >/dev/null
     docker volume create --label "${harness_label}" "${server_volume_name}" >/dev/null
     docker volume create --label "${harness_label}" "${pgdata_volume_name}" >/dev/null
@@ -642,11 +644,8 @@ run_nfs_root_squash() {
         --label "${harness_label}" \
         --network "${network_name}" \
         --privileged \
-        --env SHARED_DIRECTORY=/nfsshare \
         --volume "${server_volume_name}:/nfsshare" \
-        --entrypoint /bin/bash \
-        "${nfs_fixture_image}" -c \
-        "mount -t nfsd nfsd /proc/fs/nfsd && printf 10 > /proc/fs/nfsd/nfsv4gracetime && sed -i 's/no_root_squash/root_squash/' /etc/exports && exec /usr/bin/nfsd.sh" >/dev/null
+        "${nfs_fixture_image}" >/dev/null
     wait_for_log "${server_container_name}" "Startup successful."
 
     server_address="$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "${server_container_name}")"

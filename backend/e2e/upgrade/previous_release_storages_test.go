@@ -10,52 +10,50 @@ import (
 
 // This file speaks the storage API of the previous release, like previous_release_client_test.go.
 
-// previousStorageRequest carries the settings of one storage type, in the field the previous release
-// names after that type.
 type previousStorageRequest struct {
-	WorkspaceID        string                      `json:"workspaceId"`
-	Type               string                      `json:"type"`
-	Name               string                      `json:"name"`
-	LocalStorage       *struct{}                   `json:"localStorage,omitempty"`
-	S3Storage          *previousS3Request          `json:"s3Storage,omitempty"`
-	GoogleDriveStorage *previousGoogleDriveRequest `json:"googleDriveStorage,omitempty"`
-	NASStorage         *previousNASRequest         `json:"nasStorage,omitempty"`
-	AzureBlobStorage   *previousAzureBlobRequest   `json:"azureBlobStorage,omitempty"`
-	FTPStorage         *previousFTPRequest         `json:"ftpStorage,omitempty"`
-	SFTPStorage        *previousSFTPRequest        `json:"sftpStorage,omitempty"`
-	RcloneStorage      *previousRcloneRequest      `json:"rcloneStorage,omitempty"`
+	WorkspaceID string `json:"workspaceId"`
+	Name        string `json:"name"`
+	Settings    any    `json:"settings"`
+}
+
+type previousLocalRequest struct {
+	Type string `json:"type"`
 }
 
 type previousS3Request struct {
+	Type                    string `json:"type"`
 	S3Bucket                string `json:"s3Bucket"`
 	S3Region                string `json:"s3Region"`
 	S3AccessKey             string `json:"s3AccessKey"`
 	S3SecretKey             string `json:"s3SecretKey"`
 	S3Endpoint              string `json:"s3Endpoint"`
 	S3Prefix                string `json:"s3Prefix"`
-	S3UseVirtualHostedStyle bool   `json:"s3UseVirtualHostedStyle"`
-	SkipTLSVerify           bool   `json:"skipTLSVerify"`
+	S3UseVirtualHostedStyle bool   `json:"isVirtualHostedStyle"`
+	SkipTLSVerify           bool   `json:"isSkipTlsVerify"`
 	S3StorageClass          string `json:"s3StorageClass"`
 }
 
 type previousGoogleDriveRequest struct {
+	Type         string `json:"type"`
 	ClientID     string `json:"clientId"`
 	ClientSecret string `json:"clientSecret"`
 	TokenJSON    string `json:"tokenJson"`
 }
 
 type previousNASRequest struct {
+	Type     string `json:"type"`
 	Host     string `json:"host"`
 	Port     int    `json:"port"`
 	Share    string `json:"share"`
 	Username string `json:"username"`
 	Password string `json:"password"`
-	UseSSL   bool   `json:"useSsl"`
+	UseSSL   bool   `json:"isSsl"`
 	Domain   string `json:"domain"`
 	Path     string `json:"path"`
 }
 
 type previousAzureBlobRequest struct {
+	Type          string `json:"type"`
 	AuthMethod    string `json:"authMethod"`
 	AccountName   string `json:"accountName"`
 	AccountKey    string `json:"accountKey"`
@@ -65,26 +63,30 @@ type previousAzureBlobRequest struct {
 }
 
 type previousFTPRequest struct {
+	Type          string `json:"type"`
 	Host          string `json:"host"`
 	Port          int    `json:"port"`
 	Username      string `json:"username"`
 	Password      string `json:"password"`
 	Path          string `json:"path"`
-	UseSSL        bool   `json:"useSsl"`
-	SkipTLSVerify bool   `json:"skipTlsVerify"`
+	UseSSL        bool   `json:"isSsl"`
+	SkipTLSVerify bool   `json:"isSkipTlsVerify"`
 }
 
 type previousSFTPRequest struct {
-	Host              string `json:"host"`
-	Port              int    `json:"port"`
-	Username          string `json:"username"`
-	Password          string `json:"password"`
-	PrivateKey        string `json:"privateKey"`
-	Path              string `json:"path"`
-	SkipHostKeyVerify bool   `json:"skipHostKeyVerify"`
+	AuthMethods       []string `json:"authMethods"`
+	Type              string   `json:"type"`
+	Host              string   `json:"host"`
+	Port              int      `json:"port"`
+	Username          string   `json:"username"`
+	Password          string   `json:"password"`
+	PrivateKey        string   `json:"privateKey"`
+	Path              string   `json:"path"`
+	SkipHostKeyVerify bool     `json:"isSkipHostKeyVerify"`
 }
 
 type previousRcloneRequest struct {
+	Type          string `json:"type"`
 	ConfigContent string `json:"configContent"`
 	RemotePath    string `json:"remotePath"`
 }
@@ -101,14 +103,14 @@ func newWrittenStorages(workspaceID string) []writtenStorage {
 	writtenStorages := []writtenStorage{
 		{
 			request: previousStorageRequest{
-				WorkspaceID: workspaceID, Type: "LOCAL", Name: storageName, LocalStorage: &struct{}{},
+				WorkspaceID: workspaceID, Name: storageName, Settings: &previousLocalRequest{Type: "LOCAL"},
 			},
 			expectedValues: map[string]string{"type": "LOCAL"},
 		},
 		{
 			request: previousStorageRequest{
-				WorkspaceID: workspaceID, Type: "S3", Name: "upgrade s3",
-				S3Storage: &previousS3Request{
+				WorkspaceID: workspaceID, Name: "upgrade s3", Settings: &previousS3Request{
+					Type:                    "S3",
 					S3Bucket:                "upgrade-bucket",
 					S3Region:                "eu-central-1",
 					S3AccessKey:             "upgrade-access-key",
@@ -133,8 +135,8 @@ func newWrittenStorages(workspaceID string) []writtenStorage {
 		},
 		{
 			request: previousStorageRequest{
-				WorkspaceID: workspaceID, Type: "GOOGLE_DRIVE", Name: "upgrade google drive",
-				GoogleDriveStorage: &previousGoogleDriveRequest{
+				WorkspaceID: workspaceID, Name: "upgrade google drive", Settings: &previousGoogleDriveRequest{
+					Type:         "GOOGLE_DRIVE",
 					ClientID:     "upgrade-client-id.apps.googleusercontent.com",
 					ClientSecret: "upgrade-client-secret",
 					TokenJSON: `{"access_token":"upgrade-access-token","token_type":"Bearer",` +
@@ -148,8 +150,8 @@ func newWrittenStorages(workspaceID string) []writtenStorage {
 		},
 		{
 			request: previousStorageRequest{
-				WorkspaceID: workspaceID, Type: "NAS", Name: "upgrade nas",
-				NASStorage: &previousNASRequest{
+				WorkspaceID: workspaceID, Name: "upgrade nas", Settings: &previousNASRequest{
+					Type:     "NAS",
 					Host:     "nas.upgrade.invalid",
 					Port:     4455,
 					Share:    "upgrade-share",
@@ -173,8 +175,8 @@ func newWrittenStorages(workspaceID string) []writtenStorage {
 		},
 		{
 			request: previousStorageRequest{
-				WorkspaceID: workspaceID, Type: "AZURE_BLOB", Name: "upgrade azure blob",
-				AzureBlobStorage: &previousAzureBlobRequest{
+				WorkspaceID: workspaceID, Name: "upgrade azure blob", Settings: &previousAzureBlobRequest{
+					Type:          "AZURE_BLOB",
 					AuthMethod:    "ACCOUNT_KEY",
 					AccountName:   "upgradeaccount",
 					AccountKey:    "upgrade-account-key",
@@ -194,8 +196,8 @@ func newWrittenStorages(workspaceID string) []writtenStorage {
 		},
 		{
 			request: previousStorageRequest{
-				WorkspaceID: workspaceID, Type: "FTP", Name: "upgrade ftp",
-				FTPStorage: &previousFTPRequest{
+				WorkspaceID: workspaceID, Name: "upgrade ftp", Settings: &previousFTPRequest{
+					Type:          "FTP",
 					Host:          "ftp.upgrade.invalid",
 					Port:          2121,
 					Username:      "upgrade-ftp-user",
@@ -217,8 +219,8 @@ func newWrittenStorages(workspaceID string) []writtenStorage {
 		},
 		{
 			request: previousStorageRequest{
-				WorkspaceID: workspaceID, Type: "SFTP", Name: "upgrade sftp",
-				SFTPStorage: &previousSFTPRequest{
+				WorkspaceID: workspaceID, Name: "upgrade sftp", Settings: &previousSFTPRequest{
+					Type: "SFTP", AuthMethods: []string{"PASSWORD", "PRIVATE_KEY"},
 					Host:              "sftp.upgrade.invalid",
 					Port:              2222,
 					Username:          "upgrade-sftp-user",
@@ -239,8 +241,8 @@ func newWrittenStorages(workspaceID string) []writtenStorage {
 		},
 		{
 			request: previousStorageRequest{
-				WorkspaceID: workspaceID, Type: "RCLONE", Name: "upgrade rclone",
-				RcloneStorage: &previousRcloneRequest{
+				WorkspaceID: workspaceID, Name: "upgrade rclone", Settings: &previousRcloneRequest{
+					Type: "RCLONE",
 					ConfigContent: "[upgrade]\ntype = s3\nprovider = Minio\naccess_key_id = upgrade\n" +
 						"secret_access_key = upgrade-secret\nendpoint = https://minio.upgrade.invalid\n",
 					RemotePath: "upgrade-bucket/rclone",
@@ -255,9 +257,13 @@ func newWrittenStorages(workspaceID string) []writtenStorage {
 
 	for _, storageClass := range []string{"COLD", "DEEP_ARCHIVE"} {
 		storage := writtenStorages[1]
-		s3Settings := *storage.request.S3Storage
+		sourceS3Settings, isS3 := storage.request.Settings.(*previousS3Request)
+		if !isS3 {
+			panic("the storage-class fixture must be S3")
+		}
+		s3Settings := *sourceS3Settings
 		s3Settings.S3StorageClass = storageClass
-		storage.request.S3Storage = &s3Settings
+		storage.request.Settings = &s3Settings
 		storage.request.Name = "upgrade s3 " + storageClass
 		storage.expectedValues = maps.Clone(storage.expectedValues)
 		storage.expectedValues["s3StorageClass"] = storageClass
@@ -283,19 +289,19 @@ func createStorages(ctx context.Context, api *apiClient, workspaceID string) ([]
 			return nil, "", fmt.Errorf("create the storage %q: %w", storage.request.Name, err)
 		}
 
-		if storage.request.S3Storage != nil {
+		if s3Settings, isS3 := storage.request.Settings.(*previousS3Request); isS3 {
 			var savedStorage struct {
-				S3Storage previousS3Request `json:"s3Storage"`
+				Settings previousS3Request `json:"settings"`
 			}
 			if err := api.get(ctx, "/storages/"+createdStorage.ID, &savedStorage); err != nil {
 				return nil, "", fmt.Errorf("read the previous storage %q: %w", storage.request.Name, err)
 			}
-			if savedStorage.S3Storage.S3StorageClass != storage.request.S3Storage.S3StorageClass {
+			if savedStorage.Settings.S3StorageClass != s3Settings.S3StorageClass {
 				return nil, "", fmt.Errorf("previous storage %q did not preserve its class", storage.request.Name)
 			}
 		}
 
-		if storage.request.LocalStorage != nil {
+		if _, isLocal := storage.request.Settings.(*previousLocalRequest); isLocal {
 			localStorageID = createdStorage.ID
 		}
 

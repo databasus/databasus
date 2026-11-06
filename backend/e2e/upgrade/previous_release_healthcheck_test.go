@@ -3,20 +3,20 @@ package upgrade
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"databasus-backend/e2e/upgrade/upgradecheck"
 )
 
 func writeHealthcheckData(ctx context.Context, api *apiClient, databaseID string) ([]upgradecheck.Item, error) {
 	config := map[string]any{
-		"databaseId":                        databaseID,
-		"isHealthcheckEnabled":              false,
-		"isSentNotificationWhenUnavailable": false,
-		"intervalMinutes":                   7,
-		"attemptsBeforeConcideredAsDown":    4,
-		"storeAttemptsDays":                 11,
+		"isHealthcheckEnabled":            false,
+		"isNotificationEnabled":           false,
+		"intervalMinutes":                 7,
+		"failedAttemptsBeforeUnavailable": 4,
+		"attemptRetentionDays":            11,
 	}
-	if err := api.post(ctx, "/healthcheck-config", config, nil); err != nil {
+	if err := api.send(ctx, http.MethodPut, "/healthcheck-configs/"+databaseID, config, nil); err != nil {
 		return nil, fmt.Errorf("save the healthcheck config: %w", err)
 	}
 	return []upgradecheck.Item{

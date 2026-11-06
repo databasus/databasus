@@ -9,7 +9,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-// Credentials and the writable directory baked into the test atmoz/sftp container.
+// Credentials and the writable directory of the SFTP fixture.
 const (
 	SftpUsername  = "testuser"
 	SftpPassword  = "testpassword"
@@ -52,16 +52,21 @@ func StartSftpWithCredentials(t *testing.T, credentials SftpCredentials) Contain
 	t.Helper()
 
 	req := testcontainers.ContainerRequest{
-		Image:        "atmoz/sftp:latest",
+		FromDockerfile: testcontainers.FromDockerfile{
+			Context:   getFixtureDirectory(t, "sftp"),
+			Repo:      "databasus-test-sftp",
+			Tag:       "latest",
+			KeepImage: true,
+		},
 		ExposedPorts: []string{sftpPort},
-		Cmd:          []string{SftpUsername + ":" + credentials.Password + ":1001::" + SftpUploadDir},
+		Env:          map[string]string{"SFTP_PASSWORD": credentials.Password},
 		WaitingFor:   sftpReady(),
 	}
 
 	if credentials.PublicKey != "" {
 		req.Files = []testcontainers.ContainerFile{{
 			Reader:            strings.NewReader(credentials.PublicKey),
-			ContainerFilePath: "/home/" + SftpUsername + "/.ssh/keys/backup.pub",
+			ContainerFilePath: "/home/" + SftpUsername + "/.ssh/authorized_keys",
 			FileMode:          0o644,
 		}}
 	}

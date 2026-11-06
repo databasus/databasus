@@ -14,7 +14,7 @@ from database_server import (
     SERVER_USER,
     execute_sql,
 )
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Page, Request, expect
 
 MARKER_TABLE = "e2e_physical_markers"
 PHYSICAL_ROWS = [
@@ -56,11 +56,13 @@ def write_marker(index: int) -> None:
 def _set_future_cadence(page: Page, schedule: BackupCadence) -> None:
     cadence = page.get_by_role("group", name=schedule.label, exact=True)
     schedule_type = cadence.get_by_role("combobox", name=schedule.label, exact=True)
-    schedule_type.focus()
     schedule_type.press("ArrowDown")
-    page.locator(".ant-select-dropdown").filter(visible=True).get_by_title(
-        "Cron", exact=True
-    ).filter(visible=True).last.click()
+    expect(schedule_type).to_have_attribute("aria-expanded", "true")
+    listbox_id = schedule_type.get_attribute("aria-controls")
+    assert listbox_id
+    dropdown = page.locator(".ant-select-dropdown").filter(has=page.locator(f'[id="{listbox_id}"]'))
+    dropdown.get_by_title("Cron", exact=True).click()
+    expect(schedule_type).to_have_attribute("aria-expanded", "false")
     expect(cadence.get_by_title("Cron", exact=True)).to_be_visible()
     cadence.get_by_role("textbox", name="Cron expression (UTC)", exact=True).fill(schedule.cron)
 
@@ -96,13 +98,27 @@ def add_physical_database(page: Page, storage_name: str) -> str:
     page.get_by_role("dialog").get_by_role("combobox", name="Storage", exact=True).click()
     page.get_by_title(storage_name, exact=True).click()
     page.get_by_role("button", name="Continue", exact=True).click()
-    with page.expect_response(
-        lambda response: (
-            response.url.endswith("/api/v1/databases") and response.request.method == "POST"
+
+    manual_backup_requests: list[str] = []
+
+    def record_manual_backup(request: Request) -> None:
+        if request.method == "POST" and request.url.endswith("/api/v1/physical-backups"):
+            manual_backup_requests.append(request.url)
+
+    page.on("request", record_manual_backup)
+    try:
+        with page.expect_response(
+            lambda response: (
+                response.url.endswith("/api/v1/databases") and response.request.method == "POST"
+            )
+        ) as created_database:
+            page.get_by_role("button", name="Complete", exact=True).click()
+        expect(page.get_by_role("dialog")).to_be_hidden()
+        assert not manual_backup_requests, (
+            "the physical wizard requested a manual backup in addition to its scheduled initial full"
         )
-    ) as created_database:
-        page.get_by_role("button", name="Complete", exact=True).click()
-    expect(page.get_by_role("dialog")).to_be_hidden()
+    finally:
+        page.remove_listener("request", record_manual_backup)
 
     database = get_api_object(created_database.value.json())
     database_id = database.get("id")
@@ -234,7 +250,9 @@ def build_physical_chain(page: Page, storage_name: str) -> tuple[str, list[Archi
     incremental_backup = wait_for_backup(
         page, BackupSelection(database_id=database_id, kind="INCREMENTAL")
     )
-    assert incremental_backup.get("rootFullBackupId") == full_backup["id"]
+    assert incremental_backup.get("rootFullBackupId") == full_backup["id"], (
+        f"incremental backup {incremental_backup} does not extend full backup {full_backup}"
+    )
     assert "parentIncrementalBackupId" not in incremental_backup, incremental_backup
     assert (
         len([backup for backup in list_backups(page, database_id) if backup["type"] == "FULL"]) == 1

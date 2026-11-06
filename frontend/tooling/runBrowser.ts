@@ -9,14 +9,20 @@ import { runChild } from './runChild.ts';
 export const runBrowser = async ({
   frontendRoot,
   args,
+  architecture = process.arch,
 }: {
   frontendRoot: string;
   args: string[];
+  architecture?: string;
 }): Promise<number> => {
   if (!args.includes('--project=ui')) throw new Error('Select exactly --project=ui.');
   const isUpdatingReferences = args.includes('--update-references');
   if (args.some((argument) => !['--project=ui', '--update-references'].includes(argument)))
     throw new Error('Unsupported browser argument; use the documented UI entry points.');
+
+  if (architecture !== 'x64' && architecture !== 'arm64')
+    throw new Error(`Unsupported browser architecture: ${architecture}`);
+  const platform = `linux/${architecture === 'x64' ? 'amd64' : 'arm64'}`;
 
   const environment = JSON.parse(
     await readFile(join(frontendRoot, 'browser/environment.json'), 'utf8'),
@@ -35,6 +41,7 @@ export const runBrowser = async ({
     'pnpm-lock.yaml',
   ];
   const identity = createHash('sha256');
+  identity.update(platform);
   for (const input of inputs) identity.update(await readFile(join(frontendRoot, input)));
   const image = `databasus-browser-ui:${identity.digest('hex').slice(0, 24)}`;
 
@@ -66,11 +73,13 @@ export const runBrowser = async ({
       [
         'build',
         '--platform',
-        environment.platform,
+        platform,
+        '--build-arg',
+        `NODE_ARCH=${architecture}`,
         '--build-arg',
         `NODE_VERSION=${environment.nodeVersion}`,
         '--build-arg',
-        `NODE_ARCHIVE_SHA256=${environment.nodeArchiveSha256}`,
+        `NODE_ARCHIVE_SHA256=${environment.nodeArchiveSha256[architecture]}`,
         '--build-arg',
         `PNPM_VERSION=${environment.pnpmVersion}`,
         '--tag',
@@ -107,7 +116,7 @@ export const runBrowser = async ({
           '--name',
           container,
           '--platform',
-          environment.platform,
+          platform,
           '--shm-size=1g',
           '--user',
           `${process.getuid?.() ?? 1000}:${process.getgid?.() ?? 1000}`,

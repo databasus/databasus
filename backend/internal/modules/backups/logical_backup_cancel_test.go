@@ -73,6 +73,7 @@ func TestCancelLogicalBackup(t *testing.T) {
 
 		require.Equal(t, http.StatusAccepted, response.StatusCode(), string(response.Body))
 		waitForRestorableBackupStatus(t, tm.owner, settingUpBackup.Id, apiclient.LogicalBackupStatusCANCELED)
+		tm.app.WaitForBackupRuns(t)
 		tm.app.WaitForNotificationDeliveries(t)
 		assert.Zero(t, failureWebhook.getRequestCount())
 
@@ -100,6 +101,7 @@ func TestCancelLogicalBackup(t *testing.T) {
 		)
 		require.NotNil(t, failedBackup.FailMessage)
 		assert.Equal(t, "backup interrupted by application shutdown", *failedBackup.FailMessage)
+		tm.app.WaitForBackupRuns(t)
 		tm.app.WaitForNotificationDeliveries(t)
 		assert.Equal(t, int64(1), failureWebhook.getRequestCount())
 	})
@@ -120,6 +122,7 @@ func TestCancelLogicalBackup(t *testing.T) {
 		)
 		require.NotNil(t, failedBackup.FailMessage)
 		assert.Contains(t, *failedBackup.FailMessage, "connection refused")
+		tm.app.WaitForBackupRuns(t)
 		tm.app.WaitForNotificationDeliveries(t)
 		assert.Equal(t, int64(1), failureWebhook.getRequestCount())
 	})

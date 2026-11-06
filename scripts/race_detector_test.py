@@ -9,7 +9,10 @@ class RaceDetectorInCiTest(unittest.TestCase):
     def test_ci_test_groups_run_with_the_race_detector(self) -> None:
         workflow = (ROOT / ".github/workflows/ci-release.yml").read_text()
 
-        self.assertIn("go test -race -p=8 -count=1 -failfast -timeout 40m", workflow)
+        self.assertIn(
+            'go test -race -p=8 -parallel="$TEST_PARALLELISM" -count=1 -failfast -timeout 40m',
+            workflow,
+        )
 
     def test_commands_shared_with_ci_add_the_race_detector_only_under_ci(self) -> None:
         shared_commands = {
