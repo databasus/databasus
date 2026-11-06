@@ -8,7 +8,7 @@ import { BrowserClipboard } from '@/shared/lib/BrowserClipboard';
 import { RequestRevision } from '@/shared/lib/RequestRevision';
 
 interface Props {
-  diagnostic: VerificationDetails['failureDiagnostic'];
+  diagnostic: NonNullable<VerificationDetails['failureDiagnostic']>;
 }
 
 export const VerificationFailureDetails = ({ diagnostic }: Props) => {
@@ -25,7 +25,7 @@ export const VerificationFailureDetails = ({ diagnostic }: Props) => {
   );
 
   const copyDiagnostic = async () => {
-    if (!diagnostic || isCopying) return;
+    if (isCopying) return;
 
     const revision = copyRevision.Invalidate();
     setIsCopying(true);
@@ -43,12 +43,12 @@ export const VerificationFailureDetails = ({ diagnostic }: Props) => {
 
   return (
     <Collapse
-      className="mb-4"
+      size="small"
       items={[
         {
           key: 'diagnostic',
           label: t('verification.runs.details.diagnostic.title'),
-          children: diagnostic ? (
+          children: (
             <div className="min-w-0 space-y-3">
               {diagnostic.isTruncated && (
                 <Alert
@@ -84,10 +84,6 @@ export const VerificationFailureDetails = ({ diagnostic }: Props) => {
                   }
                 />
               )}
-            </div>
-          ) : (
-            <div className="text-sm text-muted">
-              {t('verification.runs.details.diagnostic.unavailable')}
             </div>
           ),
         },

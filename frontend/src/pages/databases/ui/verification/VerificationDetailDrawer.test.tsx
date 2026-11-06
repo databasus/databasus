@@ -137,7 +137,7 @@ describe('Verification failure diagnostics', () => {
     expect(writeText).toHaveBeenCalledWith(verification.failureDiagnostic!.output);
   });
 
-  it('omits the copy action when no diagnostic was recorded', async () => {
+  it('omits error details when no diagnostic was recorded', async () => {
     mockServer.use(
       mockApi.get(
         '/verifications/{verificationId}',
@@ -145,11 +145,12 @@ describe('Verification failure diagnostics', () => {
         failureDetails({ failureDiagnostic: undefined }),
       ),
     );
-    const { user } = renderScreen(renderDrawer('first'));
+    renderScreen(renderDrawer('first'));
 
-    await user.click(await screen.findByRole('button', { name: new RegExp(diagnosticCopy.title) }));
+    await screen.findByText('Restore failed with code 1');
 
-    expect(screen.getByText(diagnosticCopy.unavailable)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: new RegExp(diagnosticCopy.title) })).toBeNull();
+    expect(screen.queryByText(diagnosticCopy.unavailable)).toBeNull();
     expect(screen.queryByRole('button', { name: DICTIONARIES.en.common.actions.copy })).toBeNull();
   });
 

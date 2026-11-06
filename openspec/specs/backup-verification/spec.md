@@ -604,7 +604,7 @@ Only a signed-in user authorized to view the verification's database SHALL be ab
 
 ### Requirement: The verification sidebar separates the summary from expandable error details
 
-For a failed verification, the sidebar SHALL keep its short failure summary visible and provide an initially collapsed "Error details" section immediately below it. Expanding the section SHALL display the saved diagnostic in readable monospace text with preserved line breaks and a copy action. Copying SHALL copy the displayed sanitized output, including an omission marker when present, and report clipboard success or failure accurately. The section SHALL explain when no diagnostic was recorded and SHALL distinguish truncated output from complete output. It SHALL NOT offer copying when there is no output.
+For a failed verification, the sidebar SHALL keep its short failure summary visible and, when diagnostic output was recorded, provide an initially collapsed "Error details" section immediately below it. Expanding the section SHALL display the saved diagnostic in readable monospace text with preserved line breaks and a copy action. Copying SHALL copy the displayed sanitized output, including an omission marker when present, and report clipboard success or failure accurately. The section SHALL distinguish truncated output from complete output. When no diagnostic was recorded, the sidebar SHALL omit the entire error-details section and its copy action.
 
 The section SHALL support keyboard expansion and collapse, narrow screens, both themes and live language switching. Labels and feedback SHALL follow the selected interface language; diagnostic output SHALL keep its literal content. Opening another verification SHALL reset the section to collapsed and SHALL NOT show output from the previously selected verification. Verifications that are not failed SHALL NOT show this failure-diagnostic section.
 
@@ -614,10 +614,15 @@ The section SHALL support keyboard expansion and collapse, narrow screens, both 
 - **THEN** the short failure summary is visible and the error-details section is collapsed
 - **AND** expanding the section reveals the diagnostic and allows copying it
 
-#### Scenario: Output was truncated or not recorded
+#### Scenario: Output was truncated
 
 - **WHEN** the user expands the details of a failed verification
-- **THEN** truncated output has a visible truncation notice, while absent output has an explanatory empty state and no copy action
+- **THEN** truncated output has a visible truncation notice
+
+#### Scenario: No diagnostic was recorded
+
+- **WHEN** a user opens a failed verification without recorded diagnostic output
+- **THEN** the short failure summary remains visible and no error-details section or copy action is shown
 
 #### Scenario: Language changes while details are open
 

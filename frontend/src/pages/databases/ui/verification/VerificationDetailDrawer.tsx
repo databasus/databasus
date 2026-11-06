@@ -59,7 +59,7 @@ const renderInfoRow = (label: string, value: React.ReactNode) => (
 );
 
 const renderSection = (title: string, children: React.ReactNode) => (
-  <div className="mb-4">
+  <div>
     <div className="mb-1 text-xs font-semibold tracking-wide text-muted uppercase">{title}</div>
     {children}
   </div>
@@ -148,10 +148,10 @@ export const VerificationDetailDrawer = ({ verificationId, isOpen, onClose, onCl
       ) : loadError !== undefined || !verification ? (
         <LoadFailure error={loadError} onRetry={() => void loadVerification()} />
       ) : (
-        <div>
+        <div className="flex flex-col gap-4">
           {verification.failMessage &&
             (verification.status === VerificationStatus.CANCELED ? (
-              <div className="mb-4 rounded-md border border-border bg-raised p-3 text-sm">
+              <div className="rounded-md border border-border bg-raised px-3 py-2 text-sm">
                 <div className="mb-1 font-semibold">
                   {t('verification.runs.details.cancellationReason')}
                 </div>
@@ -159,21 +159,26 @@ export const VerificationDetailDrawer = ({ verificationId, isOpen, onClose, onCl
               </div>
             ) : (
               <Alert
-                className="mb-4"
                 type="error"
-                message={t('verification.runs.details.failure')}
-                description={
-                  <div className="break-words whitespace-pre-wrap">{verification.failMessage}</div>
+                message={
+                  <div className="space-y-1">
+                    <div className="font-semibold">{t('verification.runs.details.failure')}</div>
+                    <div className="break-words whitespace-pre-wrap">
+                      {verification.failMessage}
+                    </div>
+                  </div>
                 }
               />
             ))}
 
-          {isOpen && verification.status === VerificationStatus.FAILED && (
-            <VerificationFailureDetails
-              key={verificationId}
-              diagnostic={verification.failureDiagnostic}
-            />
-          )}
+          {isOpen &&
+            verification.status === VerificationStatus.FAILED &&
+            verification.failureDiagnostic && (
+              <VerificationFailureDetails
+                key={verificationId}
+                diagnostic={verification.failureDiagnostic}
+              />
+            )}
 
           {renderSection(
             t('verification.runs.details.sections.status'),
@@ -245,25 +250,27 @@ export const VerificationDetailDrawer = ({ verificationId, isOpen, onClose, onCl
             </>,
           )}
 
-          <h3 className="mt-2 mb-2 text-base font-semibold">
-            {t('verification.runs.details.tableStats.title')}
-          </h3>
-          {sortedStats.length === 0 ? (
-            <div className="text-sm text-muted">
-              {t('verification.runs.details.tableStats.empty')}
-            </div>
-          ) : (
-            <Table
-              className="[&_.ant-table-column-title]:min-w-0 [&_td]:wrap-anywhere [&_th]:wrap-anywhere"
-              tableLayout="fixed"
-              bordered
-              size="small"
-              columns={tableStatColumns}
-              dataSource={sortedStats}
-              rowKey={(stat) => `${stat.schemaName}.${stat.name}`}
-              pagination={false}
-            />
-          )}
+          <div className="space-y-2">
+            <h3 className="text-base font-semibold">
+              {t('verification.runs.details.tableStats.title')}
+            </h3>
+            {sortedStats.length === 0 ? (
+              <div className="text-sm text-muted">
+                {t('verification.runs.details.tableStats.empty')}
+              </div>
+            ) : (
+              <Table
+                className="[&_.ant-table-column-title]:min-w-0 [&_td]:wrap-anywhere [&_th]:wrap-anywhere"
+                tableLayout="fixed"
+                bordered
+                size="small"
+                columns={tableStatColumns}
+                dataSource={sortedStats}
+                rowKey={(stat) => `${stat.schemaName}.${stat.name}`}
+                pagination={false}
+              />
+            )}
+          </div>
         </div>
       )}
     </Drawer>
