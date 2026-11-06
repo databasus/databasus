@@ -15,6 +15,8 @@ FROM ${BASE_IMAGE}
 
 # ARGs declared before FROM are not visible in the build stage, so redeclare it.
 ARG PG_MAJOR
+ARG TARGETARCH
+ARG VCHORD_VERSION=1.1.1
 
 # Extensions whose CREATE EXTENSION works once the files are present, plus the
 # Tier-2 monitoring extensions that additionally need shared_preload_libraries
@@ -81,6 +83,17 @@ RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
         ${EXTENSION_PACKAGES} ${version_specific_extension_packages}; \
+    case "${PG_MAJOR}" in \
+        14|15|16|17|18) \
+            apt-get install -y --no-install-recommends ca-certificates curl; \
+            curl --fail --location --silent --show-error \
+                --output /tmp/vchord.deb \
+                "https://github.com/tensorchord/VectorChord/releases/download/${VCHORD_VERSION}/postgresql-${PG_MAJOR}-vchord_${VCHORD_VERSION}-1_${TARGETARCH}.deb"; \
+            apt-get install -y --no-install-recommends /tmp/vchord.deb; \
+            rm /tmp/vchord.deb; \
+            version_specific_preload_libraries="${version_specific_preload_libraries},vchord" \
+            ;; \
+    esac; \
     rm -rf /var/lib/apt/lists/*; \
     printf "shared_preload_libraries = '%s'\n" \
         "${PRELOAD_LIBRARIES}${version_specific_preload_libraries}" \
