@@ -284,9 +284,11 @@ jobs:
           github-token: ${{ github.token }}
 
       - name: Load the storage candidate
+        env:
+          CANDIDATE_IMAGE: databasus-storage-test:${{ inputs.candidate_sha }}-${{ matrix.arch }}
         run: |
           zstd -dc /tmp/databasus-storage-test-${{ matrix.arch }}.tar.zst | docker load
-          scripts/check_native_architecture.sh ${{ matrix.arch }} databasus-storage-test:${{ inputs.candidate_sha }}-${{ matrix.arch }}
+          scripts/check_native_architecture.sh ${{ matrix.arch }} "$CANDIDATE_IMAGE"
 
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
