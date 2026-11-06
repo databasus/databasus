@@ -46,6 +46,11 @@ def get_matrix_entries(job: str) -> list[dict[str, str]]:
 def check_release_coverage(workflow: str) -> None:
     jobs = get_jobs(workflow)
     gates = get_transitive_needs(jobs, "determine-version")
+    if (
+        'go test -race -p=8 -parallel="$TEST_PARALLELISM"' not in jobs["test-backend"]
+        or "TEST_PARALLELISM: ${{ matrix.group == 'other' && 8 || 2 }}" not in jobs["test-backend"]
+    ):
+        raise AssertionError("test-backend: container concurrency is unbounded")
     for name in REQUIRED_TEST_JOBS | {"build-storage-image", "build-verification-image"}:
         job = jobs[name]
         entries = get_matrix_entries(job)
@@ -75,7 +80,7 @@ def check_release_coverage(workflow: str) -> None:
             if is_vm:
                 required_runner = "ubuntu-24.04" + ("-arm" if architecture == "arm64" else "")
             elif name == "test-backend":
-                size = "8vcpu-16ram" if entry["group"] == "other" else "4vcpu-8ram"
+                size = "8vcpu-16ram" if entry["group"] in {"other", "logical"} else "4vcpu-8ram"
                 required_runner = f"namespace-profile-{size}-ubuntu-22-" + (
                     "arm" if architecture == "arm64" else "x64"
                 )
@@ -121,6 +126,10 @@ class NativeReleaseTest(unittest.TestCase):
     def test_rejects_incomplete_matrices_and_bypassed_failures(self) -> None:
         workflow = (ROOT / ".github/workflows/ci-release.yml").read_text()
         mutations = [
+            (
+                workflow.replace('-parallel="$TEST_PARALLELISM" ', ""),
+                "container concurrency is unbounded",
+            ),
             (workflow.replace("- arch: arm64", "- arch: amd64", 1), "incomplete native matrix"),
             (
                 workflow.replace("- group: physical-3-of-3", "- group: physical-2-of-3", 1),
@@ -243,6 +252,27 @@ class ImagePreparationTest(unittest.TestCase):
 
 
 class NfsFixtureTest(unittest.TestCase):
+    def test_checks_host_prerequisites_without_pulling_a_run_local_image(self) -> None:
+        suite = (ROOT / "e2e/docker-storage/run.sh").read_text()
+        prerequisites = suite.split("run_network_prerequisites() {", 1)[1].split("\n}", 1)[0]
+        with tempfile.TemporaryDirectory() as directory:
+            binary = Path(directory)
+            for name in ("mount.cifs", "mount.nfs"):
+                executable = binary / name
+                executable.write_text("#!/bin/sh\nexit 0\n")
+                executable.chmod(0o755)
+            docker = binary / "docker"
+            docker.write_text("#!/bin/sh\necho 'unexpected fixture pull' >&2\nexit 1\n")
+            docker.chmod(0o755)
+            completed = subprocess.run(
+                ["bash", "-eu", "-c", prerequisites],
+                env={**os.environ, "PATH": f"{binary}:{os.environ['PATH']}"},
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+
     def test_preserves_native_exports_and_run_scoped_cleanup(self) -> None:
         fixture = ROOT / "e2e/docker-storage/nfs"
         dockerfile = (fixture / "Dockerfile").read_text()

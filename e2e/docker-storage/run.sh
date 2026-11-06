@@ -563,8 +563,6 @@ run_network_prerequisites() {
         return 1
     }
 
-    docker image inspect "${samba_fixture_image}" >/dev/null 2>&1 || docker pull "${samba_fixture_image}" >/dev/null
-    docker image inspect "${nfs_fixture_image}" >/dev/null 2>&1 || docker pull "${nfs_fixture_image}" >/dev/null
 }
 
 run_cifs() {
@@ -577,6 +575,7 @@ run_cifs() {
     local server_address
 
     run_network_prerequisites
+    docker image inspect "${samba_fixture_image}" >/dev/null 2>&1 || docker pull "${samba_fixture_image}" >/dev/null
     docker network create --label "${harness_label}" "${network_name}" >/dev/null
     docker volume create --label "${harness_label}" "${server_volume_name}" >/dev/null
     docker volume create --label "${harness_label}" "${data_volume_name}" >/dev/null

@@ -28,7 +28,9 @@ func TestGetUnavailableImageReason(t *testing.T) {
 		t.Run(scenario.name, func(t *testing.T) {
 			t.Parallel()
 
-			reason := getUnavailableImageReason(scenario.architecture, scenario.image)
+			reason := getUnavailableImageReason(
+				imageAvailabilitySpec{Architecture: scenario.architecture, Image: scenario.image},
+			)
 
 			assert.Equal(t, scenario.isUnavailable, reason != "")
 		})

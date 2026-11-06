@@ -10,12 +10,17 @@ import (
 //go:embed unavailable_images.json
 var unavailableImagesJSON []byte
 
-func getUnavailableImageReason(architecture, image string) string {
-	switch architecture {
+type imageAvailabilitySpec struct {
+	Architecture string
+	Image        string
+}
+
+func getUnavailableImageReason(spec imageAvailabilitySpec) string {
+	switch spec.Architecture {
 	case "aarch64":
-		architecture = "arm64"
+		spec.Architecture = "arm64"
 	case "x86_64", "x64":
-		architecture = "amd64"
+		spec.Architecture = "amd64"
 	}
 
 	var policy map[string]map[string]string
@@ -23,13 +28,15 @@ func getUnavailableImageReason(architecture, image string) string {
 		panic(err)
 	}
 
-	return policy[architecture][image]
+	return policy[spec.Architecture][spec.Image]
 }
 
 func skipUnavailableImage(t *testing.T, image string) {
 	t.Helper()
 
-	if reason := getUnavailableImageReason(runtime.GOARCH, image); reason != "" {
+	if reason := getUnavailableImageReason(
+		imageAvailabilitySpec{Architecture: runtime.GOARCH, Image: image},
+	); reason != "" {
 		t.Skipf("%s on %s: %s", image, runtime.GOARCH, reason)
 	}
 }

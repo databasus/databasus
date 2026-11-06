@@ -6,4 +6,5 @@ COPY exports /etc/exports
 COPY --chmod=0755 start.sh /usr/local/bin/start-nfs
 EXPOSE 2049
 # Kernel NFS configuration requires a privileged root process for the fixture's lifetime.
+# nosemgrep: dockerfile.security.missing-user-entrypoint.missing-user-entrypoint
 ENTRYPOINT ["/usr/local/bin/start-nfs"]

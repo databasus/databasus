@@ -227,6 +227,8 @@ func (team *backupTeam) runAutomaticBackup(t *testing.T) backupRow {
 		return fmt.Errorf("no new terminal backup")
 	})
 
+	team.App.WaitForBackupRuns(t)
+
 	return terminal
 }
 

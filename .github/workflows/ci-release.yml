@@ -161,6 +161,8 @@ jobs:
           trivy config --severity HIGH,CRITICAL --exit-code 1 Dockerfile
           trivy config --severity HIGH,CRITICAL --exit-code 1 backend/cmd/verification-agent/images/postgres/Dockerfile
           trivy config --severity HIGH,CRITICAL --exit-code 1 e2e/docker-storage/nfs/Dockerfile
+          trivy config --severity HIGH,CRITICAL --exit-code 1 backend/internal/lib/testcontainers/testdata/sftp/Dockerfile
+          trivy config --severity HIGH,CRITICAL --exit-code 1 backend/internal/lib/testcontainers/testdata/ftp/Dockerfile
 
   test-frontend:
     name: test-frontend (${{ matrix.arch }})
@@ -435,8 +437,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Only other runs many packages at once. The rest run one to four packages, so twice the
-        # vCPU would only hold a larger share of the concurrency limit.
+        # Logical tests run several database engines concurrently; other runs many packages.
         include:
           - group: other
             arch: amd64
@@ -452,10 +453,10 @@ jobs:
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
           - group: logical
             arch: amd64
-            runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
+            runner: namespace-profile-8vcpu-16ram-ubuntu-22-x64
           - group: logical
             arch: arm64
-            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
+            runner: namespace-profile-8vcpu-16ram-ubuntu-22-arm
           - group: physical-1-of-3
             arch: amd64
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
@@ -551,14 +552,27 @@ jobs:
           # Ryuk stays disabled to match scripts/test.sh, so CI and local runs share one code path.
           TESTCONTAINERS_RYUK_DISABLED: 'true'
           TEST_GROUP: ${{ matrix.group }}
+          # Container-heavy binaries share a runner; Go's per-binary default multiplies their load.
+          TEST_PARALLELISM: ${{ matrix.group == 'other' && 8 || 2 }}
         run: |
           cd backend
           # Separate assignments let a failing task stop the step instead of running no tests.
           packages=$(mise run backend:test-group-packages "$TEST_GROUP")
           run_pattern=$(mise run backend:test-group-tests "$TEST_GROUP")
+          report_runner_resources() {
+            for resource in /proc/loadavg /proc/pressure/{cpu,memory,io} /sys/fs/cgroup/{cpu.stat,memory.current,memory.peak,memory.events}; do
+              if [[ -r "$resource" ]]; then
+                printf '\n%s\n' "$resource"
+                cat "$resource"
+              fi
+            done
+            timeout 15 docker stats --no-stream --format '{{.Name}} CPU={{.CPUPerc}} memory={{.MemUsage}}' || true
+          }
+          report_runner_resources
+          trap report_runner_resources EXIT
           # Each leg runs one group on its own runner and allows extra time for CI contention.
           # shellcheck disable=SC2086 # one import path per word
-          go test -race -p=8 -count=1 -failfast -timeout 40m ${run_pattern:+-run "$run_pattern"} $packages
+          go test -race -p=8 -parallel="$TEST_PARALLELISM" -count=1 -failfast -timeout 40m ${run_pattern:+-run "$run_pattern"} $packages
 
   build-storage-image:
     name: build-storage-image (${{ matrix.arch }})

@@ -98,14 +98,18 @@ func getPortNumber(exposedPort string) int {
 	return port
 }
 
-func startUnpublished(t *testing.T, req testcontainers.ContainerRequest, placement NetworkPlacement) {
+func startUnpublished(
+	t *testing.T,
+	req testcontainers.ContainerRequest,
+	placement NetworkPlacement,
+) testcontainers.Container {
 	t.Helper()
 
 	req.ExposedPorts = nil
 	req.Networks = []string{placement.NetworkName}
 	req.NetworkAliases = map[string][]string{placement.NetworkName: {placement.Alias}}
 
-	bootContainer(t, req)
+	return bootContainer(t, req)
 }
 
 func start(t *testing.T, req testcontainers.ContainerRequest, mappedPort string) Endpoint {

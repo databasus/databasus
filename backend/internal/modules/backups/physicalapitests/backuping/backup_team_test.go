@@ -232,7 +232,7 @@ func (team *backupTeam) runBackup(t *testing.T, backupType string) backupRow {
 		return fmt.Errorf("no new terminal backup")
 	})
 
-	team.App.WaitForPhysicalBackups(t)
+	team.App.WaitForBackupRuns(t)
 
 	return terminal
 }

@@ -57,13 +57,15 @@ func StartFtpContainer(t *testing.T) ContainerHandle {
 	passivePorts := findFreePassivePortRange(t)
 
 	req := testcontainers.ContainerRequest{
-		Image:        "stilliard/pure-ftpd:latest",
+		FromDockerfile: testcontainers.FromDockerfile{
+			Context:   getFixtureDirectory(t, "ftp"),
+			Repo:      "databasus-test-ftp",
+			Tag:       "latest",
+			KeepImage: true,
+		},
 		ExposedPorts: ftpExposedPorts(passivePorts),
 		Env: map[string]string{
-			"PUBLICHOST":        "localhost",
-			"FTP_USER_NAME":     FtpUsername,
 			"FTP_USER_PASS":     FtpPassword,
-			"FTP_USER_HOME":     "/home/ftpusers/" + FtpUsername,
 			"FTP_PASSIVE_PORTS": strconv.Itoa(passivePorts.first) + ":" + strconv.Itoa(passivePorts.last),
 		},
 		HostConfigModifier: func(hc *container.HostConfig) {

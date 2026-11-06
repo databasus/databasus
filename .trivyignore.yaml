@@ -1,6 +1,14 @@
 misconfigurations:
   - id: DS-0002
     paths:
+      - backend/internal/lib/testcontainers/testdata/sftp/Dockerfile
+      - backend/internal/lib/testcontainers/testdata/ftp/Dockerfile
+    statement: >-
+      These isolated authentication fixtures start their SSH and FTP daemons as
+      root to authenticate and chroot sessions, then drop each session to the
+      fixture user. A Dockerfile USER directive would prevent those operations.
+  - id: DS-0002
+    paths:
       - Dockerfile
     statement: >-
       The final image runs every service as the databasus user. start.sh starts
