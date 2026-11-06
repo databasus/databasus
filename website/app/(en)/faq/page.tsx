@@ -71,7 +71,7 @@ export default function FAQPage() {
                 name: "How do physical and PITR (Point-in-Time Recovery) backups work?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus runs physical backups remotely from its own host, connecting to your PostgreSQL over the standard replication protocol, so nothing needs to be installed on the database server. Databases in closed networks can be reached through an SSH tunnel. Physical backups use PostgreSQL 17's native stack: full backups via pg_basebackup, block-level incrementals via pg_basebackup --incremental driven by server-side WAL summaries (summarize_wal = on), and continuous WAL streaming via pg_receivewal. Physical backups require PostgreSQL 17 or newer; on older versions you use logical pg_dump backups instead. To restore to a point in time, pg_combinebackup reconstructs a runnable data directory from the full backup and its incremental chain, and PostgreSQL then replays WAL up to the target time you choose, recovering to any second between backups. The Databasus UI gives step-by-step instructions for restoring to a host or a Docker database, either through a ready-made script that makes the restore a single command or by downloading the backups and rebuilding the chain of full, incremental and WAL parts yourself. Incremental and WAL are optional: you can take only a full backup, and WAL is not mandatory. We use PostgreSQL 17 native backups because they reuse PostgreSQL's own battle-tested backup machinery instead of reinventing it, work with remote databases including managed services like RDS and Cloud SQL, and give near-zero data loss.",
+                  text: "Databasus runs physical backups remotely from its own host, connecting to your PostgreSQL over the standard replication protocol, so nothing needs to be installed on the database server. Databases in closed networks can be reached through an SSH tunnel. Physical backups use PostgreSQL 17's native stack: full backups via pg_basebackup, block-level incrementals via pg_basebackup --incremental driven by server-side WAL summaries (summarize_wal = on), and continuous WAL streaming via pg_receivewal. Physical backups require PostgreSQL 17 or newer; on older versions you use logical pg_dump backups instead. To restore to a point in time, pg_combinebackup reconstructs a runnable data directory from the full backup and its incremental chain, and PostgreSQL then replays WAL up to the target time you choose, recovering to any second between backups. The Databasus UI gives step-by-step instructions for restoring to a host or a Docker database, either through a ready-made script that makes the restore a single command or by downloading the backups and rebuilding the chain of full, incremental and WAL parts yourself. Incremental and WAL are optional: you can take only a full backup, and WAL is not mandatory. We use PostgreSQL 17 native backups because they reuse PostgreSQL's own battle-tested backup machinery instead of reinventing it and give near-zero data loss.",
                 },
               },
               {
@@ -306,12 +306,6 @@ export default function FAQPage() {
                   They reuse PostgreSQL&apos;s own backup machinery instead of
                   reinventing it, so you get battle-tested internals with
                   thousands of tests and edge-cases behind them
-                </li>
-                <li>
-                  They work with remote databases, including managed services
-                  like Amazon RDS and Google Cloud SQL that expose the
-                  replication protocol but forbid installing software on the
-                  host
                 </li>
                 <li>
                   They give near-zero data loss, letting you restore to any

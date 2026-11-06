@@ -71,7 +71,7 @@ export default function FAQPage() {
                 name: "物理备份和 PITR（时间点恢复）备份是如何工作的？",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus 从自己的主机远程执行物理备份，通过标准复制协议连接你的 PostgreSQL，因此数据库服务器上无需安装任何软件。封闭网络中的数据库可以通过 SSH 隧道访问。物理备份使用 PostgreSQL 17 的原生工具链：通过 pg_basebackup 做全量备份，通过由服务端 WAL 摘要 (summarize_wal = on) 驱动的 pg_basebackup --incremental 做块级增量备份，并通过 pg_receivewal 做持续 WAL 流式传输。物理备份要求 PostgreSQL 17 或更新版本；更早的版本使用逻辑 pg_dump 备份。要恢复到某个时间点，pg_combinebackup 会从全量备份及其增量链重建可运行的数据目录，然后 PostgreSQL 重放 WAL 到你选择的目标时间，可以恢复到两次备份之间的任意一秒。Databasus 界面提供恢复到主机或 Docker 数据库的分步指引：既可以用现成脚本把恢复变成一条命令，也可以自己下载备份并重建全量、增量和 WAL 的链条。增量和 WAL 是可选的：可以只做全量备份，WAL 不是必需的。我们使用 PostgreSQL 17 原生备份，因为它复用 PostgreSQL 自身久经考验的备份机制而不是重新造轮子，支持包括 RDS 和 Cloud SQL 在内的托管服务等远程数据库，并提供接近零的数据丢失。",
+                  text: "Databasus 从自己的主机远程执行物理备份，通过标准复制协议连接你的 PostgreSQL，因此数据库服务器上无需安装任何软件。封闭网络中的数据库可以通过 SSH 隧道访问。物理备份使用 PostgreSQL 17 的原生工具链：通过 pg_basebackup 做全量备份，通过由服务端 WAL 摘要 (summarize_wal = on) 驱动的 pg_basebackup --incremental 做块级增量备份，并通过 pg_receivewal 做持续 WAL 流式传输。物理备份要求 PostgreSQL 17 或更新版本；更早的版本使用逻辑 pg_dump 备份。要恢复到某个时间点，pg_combinebackup 会从全量备份及其增量链重建可运行的数据目录，然后 PostgreSQL 重放 WAL 到你选择的目标时间，可以恢复到两次备份之间的任意一秒。Databasus 界面提供恢复到主机或 Docker 数据库的分步指引：既可以用现成脚本把恢复变成一条命令，也可以自己下载备份并重建全量、增量和 WAL 的链条。增量和 WAL 是可选的：可以只做全量备份，WAL 不是必需的。我们使用 PostgreSQL 17 原生备份，因为它复用 PostgreSQL 自身久经考验的备份机制而不是重新造轮子，并提供接近零的数据丢失。",
                 },
               },
               {
@@ -286,10 +286,6 @@ export default function FAQPage() {
                 <li>
                   它复用 PostgreSQL
                   自身的备份机制而不是重新发明，你得到的是背后有数千个测试和边界用例保障、久经考验的内部实现
-                </li>
-                <li>
-                  它适用于远程数据库，包括 Amazon RDS 和 Google Cloud SQL
-                  这类暴露复制协议但禁止在主机上安装软件的托管服务
                 </li>
                 <li>
                   它带来接近零的数据丢失，可以恢复到两次备份之间的任意一秒

@@ -71,7 +71,7 @@ export default function FAQPage() {
                 name: "¿Cómo funcionan las copias de seguridad físicas y PITR (Point-in-Time Recovery)?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus ejecuta las copias físicas de forma remota desde su propio host, conectándose a su PostgreSQL por el protocolo de replicación estándar, así que no hace falta instalar nada en el servidor de la base de datos. A las bases de datos en redes cerradas se llega mediante un túnel SSH. Las copias físicas usan la pila nativa de PostgreSQL 17: copias completas con pg_basebackup, incrementales a nivel de bloque con pg_basebackup --incremental basadas en los resúmenes de WAL del servidor (summarize_wal = on) y streaming continuo de WAL con pg_receivewal. Las copias físicas requieren PostgreSQL 17 o superior; en versiones anteriores se usan las copias lógicas con pg_dump. Para restaurar a un punto en el tiempo, pg_combinebackup reconstruye un directorio de datos ejecutable a partir de la copia completa y su cadena incremental, y PostgreSQL luego reproduce el WAL hasta el momento objetivo que elija, de modo que puede restaurar a cualquier segundo entre copias. La interfaz de Databasus da instrucciones paso a paso para restaurar a un host o a una base de datos en Docker, ya sea mediante un script listo que convierte la restauración en un solo comando o descargando las copias y reconstruyendo la cadena de partes completas, incrementales y WAL. Las incrementales y el WAL son opcionales: puede tomar solo una copia completa, y el WAL no es obligatorio. Usamos las copias nativas de PostgreSQL 17 porque reutilizan la maquinaria de respaldo probada de PostgreSQL en lugar de reinventarla, funcionan con bases de datos remotas incluidos servicios gestionados como RDS y Cloud SQL, y dan una pérdida de datos casi nula.",
+                  text: "Databasus ejecuta las copias físicas de forma remota desde su propio host, conectándose a su PostgreSQL por el protocolo de replicación estándar, así que no hace falta instalar nada en el servidor de la base de datos. A las bases de datos en redes cerradas se llega mediante un túnel SSH. Las copias físicas usan la pila nativa de PostgreSQL 17: copias completas con pg_basebackup, incrementales a nivel de bloque con pg_basebackup --incremental basadas en los resúmenes de WAL del servidor (summarize_wal = on) y streaming continuo de WAL con pg_receivewal. Las copias físicas requieren PostgreSQL 17 o superior; en versiones anteriores se usan las copias lógicas con pg_dump. Para restaurar a un punto en el tiempo, pg_combinebackup reconstruye un directorio de datos ejecutable a partir de la copia completa y su cadena incremental, y PostgreSQL luego reproduce el WAL hasta el momento objetivo que elija, de modo que puede restaurar a cualquier segundo entre copias. La interfaz de Databasus da instrucciones paso a paso para restaurar a un host o a una base de datos en Docker, ya sea mediante un script listo que convierte la restauración en un solo comando o descargando las copias y reconstruyendo la cadena de partes completas, incrementales y WAL. Las incrementales y el WAL son opcionales: puede tomar solo una copia completa, y el WAL no es obligatorio. Usamos las copias nativas de PostgreSQL 17 porque reutilizan la maquinaria de respaldo probada de PostgreSQL en lugar de reinventarla y dan una pérdida de datos casi nula.",
                 },
               },
               {
@@ -319,12 +319,6 @@ export default function FAQPage() {
                   Reutilizan la propia maquinaria de respaldo de PostgreSQL en
                   lugar de reinventarla, así que obtiene internos probados con
                   miles de tests y casos límite a sus espaldas
-                </li>
-                <li>
-                  Funcionan con bases de datos remotas, incluidos servicios
-                  gestionados como Amazon RDS y Google Cloud SQL, que exponen el
-                  protocolo de replicación pero prohíben instalar software en el
-                  host
                 </li>
                 <li>
                   Dan una pérdida de datos casi nula: puede restaurar a
