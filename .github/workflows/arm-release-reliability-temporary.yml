@@ -6,7 +6,7 @@ on:
       suite:
         type: choice
         default: repairs
-        options: [repairs, load, browser]
+        options: [repairs, load, browser, storage]
       candidate_run_id:
         type: string
       candidate_sha:
@@ -20,7 +20,7 @@ env:
 
 jobs:
   verify-reliability:
-    if: inputs.suite == 'repairs'
+    if: inputs.suite == 'repairs' || inputs.suite == 'storage'
     name: verify-reliability (${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
@@ -87,6 +87,7 @@ jobs:
         run: mise run backend:pull-testcontainers
 
       - name: Prove the WAL timing test rejects the production interval
+        if: inputs.suite == 'repairs'
         env:
           TESTCONTAINERS_RYUK_DISABLED: 'true'
         run: |
@@ -109,6 +110,7 @@ jobs:
           git restore -- internal/modules/backups/internal/physical/walstreaming/manager.go
 
       - name: Repeat the repaired WAL timing test ten times
+        if: inputs.suite == 'repairs'
         env:
           TESTCONTAINERS_RYUK_DISABLED: 'true'
         run: |
@@ -116,11 +118,43 @@ jobs:
           go test -race -parallel=2 -count=10 -timeout 20m -run '^TestWalStreamTimings$' ./internal/app/apptest
 
       - name: Repeat logical cancellation and notification delivery ten times
+        if: inputs.suite == 'repairs'
         env:
           TESTCONTAINERS_RYUK_DISABLED: 'true'
         run: |
           cd backend
           go test -race -parallel=2 -count=10 -timeout 20m -run '^TestCancelLogicalBackup$' ./internal/modules/backups
+
+      - name: Prove the NAS regression rejects a round trip per small block
+        if: inputs.suite == 'storage'
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: 'true'
+        run: |
+          cd backend
+          python3 - <<'PYTHON'
+          from pathlib import Path
+          source = Path('internal/modules/storages/internal/providers/nas/nas_share.go')
+          original = source.read_text()
+          needle = 'nasChunkSize = 16 * 1024 * 1024'
+          assert original.count(needle) == 1
+          source.write_text(original.replace(needle, 'nasChunkSize = 32 * 1024'))
+          PYTHON
+          if go test -race -p=1 -parallel=1 -count=1 -timeout 10m -run '^TestSaveFile$/^pays_no_handshake_per_file_and_no_round_trip_per_block_when_the_storage_answers_50ms_late$/^NAS$' ./internal/modules/storages/internal/providers > /tmp/nas-small-block.log 2>&1; then
+            cat /tmp/nas-small-block.log
+            echo 'The latency regression accepted a round trip per small block' >&2
+            exit 1
+          fi
+          cat /tmp/nas-small-block.log
+          grep -F 'is not less than' /tmp/nas-small-block.log
+          git restore -- internal/modules/storages/internal/providers/nas/nas_share.go
+
+      - name: Repeat the storage provider package in isolation ten times
+        if: inputs.suite == 'storage'
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: 'true'
+        run: |
+          cd backend
+          go test -race -p=1 -parallel=1 -count=10 -timeout 40m ./internal/modules/storages/internal/providers
 
   diagnose-logical-load:
     if: inputs.suite == 'load'

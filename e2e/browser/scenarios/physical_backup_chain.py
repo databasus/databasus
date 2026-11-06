@@ -58,7 +58,11 @@ def _set_future_cadence(page: Page, schedule: BackupCadence) -> None:
     schedule_type = cadence.get_by_role("combobox", name=schedule.label, exact=True)
     schedule_type.press("ArrowDown")
     expect(schedule_type).to_have_attribute("aria-expanded", "true")
-    page.locator(".ant-select-dropdown:visible").get_by_title("Cron", exact=True).click()
+    listbox_id = schedule_type.get_attribute("aria-controls")
+    assert listbox_id
+    dropdown = page.locator(".ant-select-dropdown").filter(has=page.locator(f'[id="{listbox_id}"]'))
+    dropdown.get_by_title("Cron", exact=True).click()
+    expect(schedule_type).to_have_attribute("aria-expanded", "false")
     expect(cadence.get_by_title("Cron", exact=True)).to_be_visible()
     cadence.get_by_role("textbox", name="Cron expression (UTC)", exact=True).fill(schedule.cron)
 

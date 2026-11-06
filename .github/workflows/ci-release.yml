@@ -570,6 +570,13 @@ jobs:
           }
           report_runner_resources
           trap report_runner_resources EXIT
+          if [[ "$TEST_GROUP" == other ]]; then
+            # The latency regression measures storage throughput, so it needs the runner to itself.
+            isolated_package=databasus-backend/internal/modules/storages/internal/providers
+            grep -Fxq "$isolated_package" <<< "$packages"
+            go test -race -p=1 -parallel=1 -count=1 -failfast -timeout 40m "$isolated_package"
+            packages=$(grep -Fxv "$isolated_package" <<< "$packages")
+          fi
           # Each leg runs one group on its own runner and allows extra time for CI contention.
           # shellcheck disable=SC2086 # one import path per word
           go test -race -p=8 -parallel="$TEST_PARALLELISM" -count=1 -failfast -timeout 40m ${run_pattern:+-run "$run_pattern"} $packages
