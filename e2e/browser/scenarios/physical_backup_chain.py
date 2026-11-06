@@ -236,7 +236,9 @@ def build_physical_chain(page: Page, storage_name: str) -> tuple[str, list[Archi
     incremental_backup = wait_for_backup(
         page, BackupSelection(database_id=database_id, kind="INCREMENTAL")
     )
-    assert incremental_backup.get("rootFullBackupId") == full_backup["id"]
+    assert incremental_backup.get("rootFullBackupId") == full_backup["id"], (
+        f"incremental backup {incremental_backup} does not extend full backup {full_backup}"
+    )
     assert "parentIncrementalBackupId" not in incremental_backup, incremental_backup
     assert (
         len([backup for backup in list_backups(page, database_id) if backup["type"] == "FULL"]) == 1
