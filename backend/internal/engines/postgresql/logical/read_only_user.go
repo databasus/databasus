@@ -23,9 +23,8 @@ var tableWritePrivileges = map[string]bool{
 	"TRIGGER":    true,
 }
 
-// ShouldSuggestReadOnlyUser lists what the connecting role may do beyond reading, and suggests a
-// read-only user when it may do anything more and no table in scope needs BYPASSRLS, which a
-// generated role cannot be given.
+// Generated roles neither own source tables nor receive BYPASSRLS, so RLS tables prevent
+// suggesting a read-only user even when the connecting role can bypass their policies.
 func (s *Source) ShouldSuggestReadOnlyUser(
 	ctx context.Context,
 	logger *slog.Logger,

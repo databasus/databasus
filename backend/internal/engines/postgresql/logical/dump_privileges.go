@@ -125,9 +125,9 @@ func newInsufficientDumpPrivilegesError(
 ) error {
 	// A pooled Supabase login carries a "postgres.<project>" username that no GRANT can name,
 	// so the role has to come from the server rather than from the stored credentials.
-	var roleName string
-	if err := conn.QueryRow(ctx, "SELECT current_user").Scan(&roleName); err != nil {
-		return fmt.Errorf("failed to read the current role: %w", err)
+	roleName, err := getCurrentRoleName(ctx, conn)
+	if err != nil {
+		return err
 	}
 
 	messageParts := []string{
@@ -186,8 +186,7 @@ func checkUserMappingsReadable(ctx context.Context, conn *pgx.Conn) error {
 	return nil
 }
 
-// refuseRowLevelSecurityTables refuses a read-only role that could not dump these tables, because
-// only a role the user creates can be granted BYPASSRLS.
+// Generated read-only roles must not receive BYPASSRLS or ownership of source tables.
 func refuseRowLevelSecurityTables(ctx context.Context, conn *pgx.Conn, includeSchemas []string) error {
 	rowLevelSecurityTables, err := getRowLevelSecurityTables(ctx, conn, includeSchemas)
 	if err != nil {
@@ -196,7 +195,7 @@ func refuseRowLevelSecurityTables(ctx context.Context, conn *pgx.Conn, includeSc
 
 	if len(rowLevelSecurityTables) > 0 {
 		return fmt.Errorf(
-			"%w on %s; grant BYPASSRLS to a role you create yourself, or back up with a role that owns these tables",
+			"%w on %s; use a role with BYPASSRLS, a superuser, or an effective table owner when RLS is not forced",
 			ErrRowLevelSecurity,
 			namelist.FormatTruncatedNames(rowLevelSecurityTables),
 		)
@@ -205,8 +204,7 @@ func refuseRowLevelSecurityTables(ctx context.Context, conn *pgx.Conn, includeSc
 	return nil
 }
 
-// pg_dump runs with row_security = off and aborts rather than emit a partial dump, so a role
-// without BYPASSRLS can never back these tables up.
+// Generated read-only roles neither own the source tables nor receive BYPASSRLS.
 func getRowLevelSecurityTables(
 	ctx context.Context,
 	conn *pgx.Conn,

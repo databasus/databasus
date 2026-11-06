@@ -36,6 +36,7 @@ func TestSource(t *testing.T) {
 			}{
 				{name: "TestConnection", run: runTestConnectionScenarios},
 				{name: "TestConnection dump privileges", run: runDumpPrivilegeScenarios},
+				{name: "TestConnection RLS privileges", run: runRLSPrivilegeScenarios},
 				{name: "DetectVersion", run: runDetectVersionScenarios},
 				{name: "GetDumpedSizeMb", run: runGetDumpedSizeMbScenarios},
 				{name: "GetTimescaleDBVersion", run: runGetTimescaleDBVersionScenarios},
