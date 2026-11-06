@@ -295,7 +295,7 @@ class NfsFixtureTest(unittest.TestCase):
         )
 
     def test_reports_readiness_only_after_export_and_propagates_startup_failure(self) -> None:
-        for failing_command in ("", "mount", "exportfs", "rpcinfo", "rpc.mountd"):
+        for failing_command in ("", "mount", "rpc.nfsd", "exportfs", "rpcinfo", "rpc.mountd"):
             with self.subTest(failure=failing_command), tempfile.TemporaryDirectory() as directory:
                 binary = Path(directory)
                 log = binary / "commands"
@@ -310,6 +310,9 @@ class NfsFixtureTest(unittest.TestCase):
                 ):
                     (binary / command).write_text(
                         '#!/bin/bash\ncommand="${0##*/}"\necho "$command $*" >> "$COMMAND_LOG"\n'
+                        'if [[ "$command" == rpc.nfsd && "$*" == *"--no-nfs-version 2"* ]]; then\n'
+                        '  echo "2: Unsupported version" >&2; exit 2\n'
+                        "fi\n"
                         'if [[ "$command" == "$FAILING_COMMAND" ]]; then exit 17; fi\n'
                         'if [[ "$command" == rpc.mountd ]]; then\n'
                         '  while ! grep -q "rpcinfo" "$COMMAND_LOG"; do :; done\n'
@@ -338,5 +341,5 @@ class NfsFixtureTest(unittest.TestCase):
                     self.assertLess(commands.index("exportfs -rav"), commands.index("rpcinfo"))
                     self.assertIn("rpc.nfsd 0", commands)
                     self.assertIn("exportfs -au", commands)
-                elif failing_command in {"mount", "exportfs", "rpcinfo"}:
+                elif failing_command in {"mount", "rpc.nfsd", "exportfs", "rpcinfo"}:
                     self.assertNotIn("Startup successful.", invocation.stdout)

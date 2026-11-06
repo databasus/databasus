@@ -3,7 +3,7 @@ set -euo pipefail
 
 mount -t nfsd nfsd /proc/fs/nfsd
 rpcbind -w
-rpc.nfsd --no-nfs-version 2 --no-nfs-version 3 --grace-time 10
+rpc.nfsd --no-nfs-version 3 --nfs-version 4 --grace-time 10
 exportfs -rav
 rpc.mountd --foreground --no-nfs-version 2 --no-nfs-version 3 &
 mountd_pid=$!

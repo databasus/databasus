@@ -69,6 +69,8 @@ func StartFtpContainer(t *testing.T) ContainerHandle {
 			"FTP_PASSIVE_PORTS": strconv.Itoa(passivePorts.first) + ":" + strconv.Itoa(passivePorts.last),
 		},
 		HostConfigModifier: func(hc *container.HostConfig) {
+			// Debian's daemon requests these startup capabilities, then drops session privileges.
+			hc.CapAdd = append(hc.CapAdd, "SYS_NICE", "DAC_READ_SEARCH")
 			hc.PortBindings = withPassivePortRange(hc.PortBindings, passivePorts)
 		},
 		WaitingFor: wait.ForAll(
