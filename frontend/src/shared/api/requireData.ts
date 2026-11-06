@@ -1,5 +1,5 @@
-import { API_ERROR_CODES, ApiError } from './ApiError';
-import type { components } from './schema.gen';
+import { API_ERROR_CODES, ApiError } from '@/shared/api/ApiError';
+import type { components } from '@/shared/api/schema.gen';
 
 type Problem = components['schemas']['Problem'];
 

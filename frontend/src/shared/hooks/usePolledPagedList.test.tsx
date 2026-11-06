@@ -4,11 +4,11 @@ import { http, HttpResponse } from 'msw';
 import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { advanceFakeClock } from '../lib/test/advanceFakeClock';
-import { waitForCondition } from '../lib/test/conditionWait';
-import { buildProblem, mockApi, setUpMockApi } from '../lib/test/mockApi';
-import { renderScreen } from '../lib/test/renderScreen';
-import { PolledPagedListScreen } from './pagedListScreen.fixture';
+import { PolledPagedListScreen } from '@/shared/hooks/pagedListScreen.fixture';
+import { advanceFakeClock } from '@/shared/lib/test/advanceFakeClock';
+import { waitForCondition } from '@/shared/lib/test/conditionWait';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const server = setUpMockApi();
 

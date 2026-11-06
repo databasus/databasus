@@ -398,7 +398,9 @@ The settings section of a logical backup configuration SHALL enable Save only wh
 
 ### Requirement: Completing the database creation wizard creates one database
 
-The wizard SHALL create the database at most once, however many times the user completes it. When a request after the creation fails, the wizard SHALL stay on its last step and keep the entered values. It SHALL show a translated message that the database was created, together with the reason for the failure, and the message SHALL stay on the notifier and backup configuration steps until the next completion attempt. Completing the wizard again SHALL perform only the work that has not finished: it SHALL send the notifier selection only if it differs from the created database, save the backup configuration only if the server has not acknowledged it, and then start the first backup when backups are enabled. While this work runs, the wizard SHALL say that it is finishing the setup and not that it is creating a database.
+The wizard SHALL create the database at most once, however many times the user completes it. When a request after the creation fails, the wizard SHALL stay on its last step and keep the entered values. It SHALL show a translated message that the database was created, together with the reason for the failure, and the message SHALL stay on the notifier and backup configuration steps until the next completion attempt. Completing the wizard again SHALL perform only the work that has not finished: it SHALL send the notifier selection only if it differs from the created database, save the backup configuration only if the server has not acknowledged it, and then request the first logical backup when logical backups are enabled. While this work runs, the wizard SHALL say that it is finishing the setup and not that it is creating a database.
+
+For a physical database with backups enabled, saving its configuration SHALL leave the first full backup to the physical scheduler. The wizard SHALL send no separate physical backup request after that save, including when the scheduler starts or completes the first full before the save acknowledgement reaches the browser. The wizard SHALL close after the configuration is acknowledged. Explicit manual physical backup requests outside creation SHALL retain their existing queueing behavior.
 
 Once the database exists, the wizard SHALL offer no way back to the connection step, because connection changes would no longer be applied. Once the server has acknowledged the backup configuration, the wizard SHALL offer no way back to that step, because another storage would start a storage switch. The notifier selection SHALL stay editable.
 
@@ -406,7 +408,7 @@ When the wizard closes, whether it finished or not, the database created by it S
 
 #### Scenario: Completing the wizard
 
-- **WHEN** the database, its backup configuration and the first backup start all succeed
+- **WHEN** a logical database, its backup configuration and the first backup start all succeed
 - **THEN** the wizard closes, the created database is selected, its list card shows its storage, and its screen does not say that scheduled backups are disabled
 
 #### Scenario: The create answer arrives after the wizard closed
@@ -428,11 +430,11 @@ When the wizard closes, whether it finished or not, the database created by it S
 #### Scenario: Saving the backup configuration fails
 
 - **WHEN** the database is created, the server refuses its backup configuration and the user completes the wizard again
-- **THEN** no second database is created, the configuration is sent again, and the wizard closes after it and the first backup start succeed
+- **THEN** no second database is created, the configuration is sent again, and the wizard closes after it is acknowledged and, for a logical database with backups enabled, the first backup start succeeds
 
 #### Scenario: Starting the first backup fails
 
-- **WHEN** the database and its backup configuration are saved, the first backup start fails and the user completes the wizard again
+- **WHEN** a logical database and its backup configuration are saved, the first backup start fails and the user completes the wizard again
 - **THEN** only the backup start is requested again, and the notifier step offers no way back to the backup configuration step
 
 #### Scenario: The user corrects a refused configuration
@@ -469,6 +471,12 @@ When the wizard closes, whether it finished or not, the database created by it S
 
 - **WHEN** the server refuses to create the database
 - **THEN** the wizard shows the reason, says nothing about a created database, and leaves every earlier step reachable
+
+#### Scenario: Physical configuration acknowledgement follows the first scheduled full
+
+- **WHEN** the scheduler starts or completes the first physical full backup before the wizard receives acknowledgement of the enabled configuration
+- **THEN** the wizard closes without queuing another physical backup
+- **AND** no additional full or incremental backup is requested by completing the wizard
 
 ### Requirement: A changed physical backup type starts its backup configuration over
 

@@ -1,6 +1,6 @@
 import { type ReactNode, useId } from 'react';
 
-import { EditIconButton } from './EditIconButton';
+import { EditIconButton } from '@/pages/databases/ui/EditIconButton';
 
 interface Props {
   title: string;

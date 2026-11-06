@@ -6,4 +6,4 @@ export {
   GOOGLE_CLIENT_ID,
   IS_EMAIL_CONFIGURED,
   getApplicationServer,
-} from './deploymentConfig';
+} from '@/shared/config/deploymentConfig';

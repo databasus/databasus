@@ -1,0 +1,6 @@
+{
+  "arm64": {
+    "mysql:5.7": "MySQL 5.7 has no official linux/arm64 image",
+    "mariadb:5.5": "MariaDB 5.5 has no official linux/arm64 image"
+  }
+}

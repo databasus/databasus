@@ -5,8 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Workspace } from '@/entities/workspaces';
 import { DICTIONARIES } from '@/shared/i18n/dictionaries';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
-
-import { WorkspaceSelectionComponent } from './WorkspaceSelectionComponent';
+import { WorkspaceSelectionComponent } from '@/widgets/app-shell/ui/WorkspaceSelectionComponent';
 
 const workspaces: Workspace[] = [
   {

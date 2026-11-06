@@ -1,8 +1,5 @@
-import type {
-  PhysicalBackupConfigInput,
-  PhysicalBackupSettings,
-} from '../../../../entities/backup-configs';
-import type { FullBackupsRetention } from './FullBackupsRetention';
+import type { PhysicalBackupConfigInput, PhysicalBackupSettings } from '@/entities/backup-configs';
+import type { FullBackupsRetention } from '@/pages/databases/model/physical-backups/FullBackupsRetention';
 
 type PhysicalBackupRetentionDraft = Omit<PhysicalBackupSettings['retention'], 'fullBackups'> & {
   fullBackups: FullBackupsRetention;

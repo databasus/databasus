@@ -1,14 +1,14 @@
 // APIs
-export { auditEventApi } from './api/auditEventApi';
+export { auditEventApi } from '@/entities/audit-logs/api/auditEventApi';
 
 // Types
-export type { AuditEvent } from './model/AuditEvent';
-export type { AuditEventPage } from './model/AuditEventPage';
-export { getAuditEventWorkspaceLabel } from './model/getAuditEventWorkspaceLabel';
+export type { AuditEvent } from '@/entities/audit-logs/model/AuditEvent';
+export type { AuditEventPage } from '@/entities/audit-logs/model/AuditEventPage';
+export { getAuditEventWorkspaceLabel } from '@/entities/audit-logs/model/getAuditEventWorkspaceLabel';
 
 // Hooks
-export { useAuditEventPages } from './model/useAuditEventPages';
+export { useAuditEventPages } from '@/entities/audit-logs/model/useAuditEventPages';
 
 // UI
-export { AuditEventAuthorComponent } from './ui/AuditEventAuthorComponent';
-export { AuditEventList } from './ui/AuditEventList';
+export { AuditEventAuthorComponent } from '@/entities/audit-logs/ui/AuditEventAuthorComponent';
+export { AuditEventList } from '@/entities/audit-logs/ui/AuditEventList';

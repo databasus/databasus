@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next';
 
-import { TransByKey, useLocale } from '../../../../shared/i18n';
-import { InlineCodeComponent } from '../../../../shared/ui';
-import { getMonitoringTextValues } from '../../lib/wal-stream-monitoring/monitoringTextValues';
-import type { MonitoringText } from '../../model/wal-stream-monitoring/MonitoringText';
+import { getMonitoringTextValues } from '@/pages/databases/lib/wal-stream-monitoring/monitoringTextValues';
+import type { MonitoringText } from '@/pages/databases/model/wal-stream-monitoring/MonitoringText';
+import { TransByKey, useLocale } from '@/shared/i18n';
+import { InlineCodeComponent } from '@/shared/ui';
 
 interface Props {
   text: MonitoringText;

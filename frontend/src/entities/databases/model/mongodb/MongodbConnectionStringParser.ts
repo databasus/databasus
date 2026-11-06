@@ -1,4 +1,4 @@
-import type { LocalizedText } from '../../../../shared/i18n';
+import type { LocalizedText } from '@/shared/i18n';
 
 export type ParseResult = {
   host: string;

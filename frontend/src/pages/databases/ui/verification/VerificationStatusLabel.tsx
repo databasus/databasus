@@ -8,8 +8,8 @@ import {
 import type { JSX, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { VerificationStatus } from '../../model/verification/VerificationStatus';
-import { VERIFICATION_STATUS_LABEL_KEYS } from '../../model/verification/VerificationStatusLabelKeys';
+import { VerificationStatus } from '@/pages/databases/model/verification/VerificationStatus';
+import { VERIFICATION_STATUS_LABEL_KEYS } from '@/pages/databases/model/verification/VerificationStatusLabelKeys';
 
 interface Props {
   status: VerificationStatus;

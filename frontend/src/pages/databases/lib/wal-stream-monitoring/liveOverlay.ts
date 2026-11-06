@@ -1,5 +1,5 @@
-import type { WalStreamLive } from '../../model/wal-stream-monitoring/WalStreamLive';
-import type { WalStreamStatistics } from '../../model/wal-stream-monitoring/WalStreamStatistics';
+import type { WalStreamLive } from '@/pages/databases/model/wal-stream-monitoring/WalStreamLive';
+import type { WalStreamStatistics } from '@/pages/databases/model/wal-stream-monitoring/WalStreamStatistics';
 
 const isNewer = (time: string | null, than: string): time is string =>
   time !== null && new Date(time).getTime() > new Date(than).getTime();

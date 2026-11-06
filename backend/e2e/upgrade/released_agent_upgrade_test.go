@@ -108,6 +108,7 @@ func checkReleasedAgentUpgrade(t *testing.T, spec releasedAgentUpgradeSpec) {
 				assignedVerification{verificationID: verificationID, agentID: agent.agentID},
 			)
 
+			agent.waitForRestoreCleanup(t)
 			require.NoError(t, agent.stop(t.Context()))
 			agent.waitForRestoreCleanup(t)
 		})

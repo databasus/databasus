@@ -1,5 +1,5 @@
-import type { TranslationKey } from '../../../shared/i18n';
-import { LogicalNotificationTrigger } from './LogicalNotificationTrigger';
+import { LogicalNotificationTrigger } from '@/pages/databases/model/LogicalNotificationTrigger';
+import type { TranslationKey } from '@/shared/i18n';
 
 export const LOGICAL_NOTIFICATION_TRIGGER_LABEL_KEYS: Record<
   LogicalNotificationTrigger,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { isScheduleChanged } from './isScheduleChanged';
-import type { Schedule } from './Schedule';
+import { isScheduleChanged } from '@/entities/schedules/model/isScheduleChanged';
+import type { Schedule } from '@/entities/schedules/model/Schedule';
 
 describe('isScheduleChanged', () => {
   it.each<{ scenario: string; acknowledged: Schedule; shown: Schedule; isChanged: boolean }>([

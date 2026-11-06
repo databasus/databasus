@@ -2,9 +2,9 @@
 import { screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { DatabaseType } from '../../../entities/databases';
-import { renderScreen } from '../../../shared/lib/test/renderScreen';
-import { EditDatabaseBaseInfoComponent } from './EditDatabaseBaseInfoComponent';
+import { DatabaseType } from '@/entities/databases';
+import { EditDatabaseBaseInfoComponent } from '@/pages/databases/ui/EditDatabaseBaseInfoComponent';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 describe('EditDatabaseBaseInfoComponent', () => {
   it('chooses an engine from the keyboard and announces its name once', async () => {

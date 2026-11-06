@@ -90,6 +90,7 @@ func (m *Module) RegisterAgentRoutes(routes gin.IRouter, hooks *apierror.Hooks) 
 		"",
 		m.agentHandler.GetAuthenticationMiddleware(hooks),
 		agentapi.GetHeartbeatValidationMiddleware(hooks),
+		agentapi.GetReportValidationMiddleware(hooks),
 	)
 	agentapi.RegisterHandlersWithOptions(
 		group,

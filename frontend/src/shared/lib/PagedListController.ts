@@ -1,4 +1,8 @@
-import { type PagedListPage, appendNextPage, mergeRefreshedFirstPage } from './pagedList';
+import {
+  type PagedListPage,
+  appendNextPage,
+  mergeRefreshedFirstPage,
+} from '@/shared/lib/pagedList';
 
 type PagedListFailedPage = 'first' | 'next';
 

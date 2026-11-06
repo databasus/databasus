@@ -1,8 +1,8 @@
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
-import { setUpMockApi } from '../../../shared/lib/test/mockApi';
-import { verificationAgentApi } from './verificationAgentApi';
+import { verificationAgentApi } from '@/entities/verification-agents/api/verificationAgentApi';
+import { setUpMockApi } from '@/shared/lib/test/mockApi';
 
 const mockServer = setUpMockApi();
 

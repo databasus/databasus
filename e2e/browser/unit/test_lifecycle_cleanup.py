@@ -7,9 +7,11 @@ from public_command import REPOSITORY_ROOT
 
 
 class TestLifecycleCleanup:
-    def test_stops_a_public_run_when_a_probe_fails_without_requesting_the_shared_image(self, tmp_path: Path):
+    def test_stops_a_public_run_when_a_probe_fails_without_requesting_the_shared_image(
+        self, tmp_path: Path
+    ) -> None:
         child_test = tmp_path / "test_failed_probe.py"
-        child_test.write_text('''
+        child_test.write_text("""
 import os
 import signal
 import sys
@@ -45,15 +47,22 @@ def test_deliberate_probe_failure():
 def test_next_probe_sees_no_process_from_the_failed_probe():
     with pytest.raises(ProcessLookupError, match="No such process"):
         os.kill(int(process_file.read_text()), 0)
-''')
+""")
 
         child_environment = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
         child_environment.pop("CI", None)
 
         child_run = subprocess.run(
             [
-                sys.executable, "-m", "pytest", "--tb=short", "-p", "no:cacheprovider",
-                "--basetemp", str(tmp_path / "child-pytest"), str(child_test),
+                sys.executable,
+                "-m",
+                "pytest",
+                "--tb=short",
+                "-p",
+                "no:cacheprovider",
+                "--basetemp",
+                str(tmp_path / "child-pytest"),
+                str(child_test),
             ],
             cwd=REPOSITORY_ROOT / "e2e/browser",
             env=child_environment,

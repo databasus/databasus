@@ -2,10 +2,13 @@ import { Button, Modal } from 'antd';
 import type { JSX } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import type { VerificationAgent } from '../../../../entities/verification-agents';
-import { InlineCodeComponent } from '../../../../shared/ui';
-import { type AgentArchitecture, TOKEN_PLACEHOLDER } from '../../lib/verificationAgentCommands';
-import { InstallCommands } from './InstallCommands';
+import type { VerificationAgent } from '@/entities/verification-agents';
+import {
+  type AgentArchitecture,
+  TOKEN_PLACEHOLDER,
+} from '@/pages/instance-settings/lib/verificationAgentCommands';
+import { InstallCommands } from '@/pages/instance-settings/ui/verification-agents/InstallCommands';
+import { InlineCodeComponent } from '@/shared/ui';
 
 interface Props {
   viewingAgent?: VerificationAgent;

@@ -9,9 +9,8 @@ import { AuthPage } from '@/pages/auth';
 import { AuthCallbackPage } from '@/pages/auth-callback';
 import { StorageOAuthPage } from '@/pages/storage-oauth';
 import { useSession } from '@/shared/auth';
-
-import { LocaleProvider, useLocale } from '../../shared/i18n';
-import { ThemeProvider, useTheme, getAntdTheme, ThemeCssVariables } from '../../shared/theme';
+import { LocaleProvider, useLocale } from '@/shared/i18n';
+import { ThemeProvider, useTheme, getAntdTheme, ThemeCssVariables } from '@/shared/theme';
 
 function AppContent() {
   const session = useSession();

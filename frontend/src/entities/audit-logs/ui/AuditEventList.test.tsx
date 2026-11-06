@@ -3,11 +3,10 @@ import { screen } from '@testing-library/react';
 import dayjs from 'dayjs';
 import { describe, expect, it, vi } from 'vitest';
 
+import type { AuditEvent } from '@/entities/audit-logs/model/AuditEvent';
+import { AuditEventList } from '@/entities/audit-logs/ui/AuditEventList';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
 import { getUserShortTimeFormat, getUserTimeFormat } from '@/shared/time';
-
-import type { AuditEvent } from '../model/AuditEvent';
-import { AuditEventList } from './AuditEventList';
 
 const event: AuditEvent = {
   id: 'event-id',

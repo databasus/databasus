@@ -1,4 +1,4 @@
-import { getApiClient, requireData } from '../../../shared/api';
+import { getApiClient, requireData } from '@/shared/api';
 
 export const diskApi = {
   async getDiskUsage() {

@@ -1,5 +1,5 @@
-import type { TranslationKey } from '../../../../shared/i18n';
-import { PhysicalRetentionPolicy } from './PhysicalRetentionPolicy';
+import { PhysicalRetentionPolicy } from '@/pages/databases/model/physical-backups/PhysicalRetentionPolicy';
+import type { TranslationKey } from '@/shared/i18n';
 
 export const PHYSICAL_RETENTION_POLICY_LABEL_KEYS: Record<PhysicalRetentionPolicy, TranslationKey> =
   {

@@ -9,12 +9,11 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { type Notifier, notifierApi } from '@/entities/notifiers';
 import { EditNotifierComponent } from '@/features/edit-notifier';
 import { useSessionGuard } from '@/shared/auth';
 import { useRequestRevision } from '@/shared/hooks';
-
-import { type Notifier, notifierApi } from '../../../entities/notifiers';
-import { LoadFailure } from '../../../shared/ui';
+import { LoadFailure } from '@/shared/ui';
 
 interface Props {
   workspaceId: string;

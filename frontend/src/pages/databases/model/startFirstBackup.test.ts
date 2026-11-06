@@ -6,11 +6,11 @@ import {
   BackupSettingsType,
   type LogicalBackupConfigInput,
   type PhysicalBackupConfigInput,
-} from '../../../entities/backup-configs';
-import { API_BASE_PATH } from '../../../shared/api';
-import { setUpMockApi } from '../../../shared/lib/test/mockApi';
-import { createDefaultLogicalBackupConfig } from './createDefaultLogicalBackupConfig';
-import { startFirstBackup } from './startFirstBackup';
+} from '@/entities/backup-configs';
+import { createDefaultLogicalBackupConfig } from '@/pages/databases/model/createDefaultLogicalBackupConfig';
+import { startFirstBackup } from '@/pages/databases/model/startFirstBackup';
+import { API_BASE_PATH } from '@/shared/api';
+import { setUpMockApi } from '@/shared/lib/test/mockApi';
 
 const mockServer = setUpMockApi();
 
@@ -35,15 +35,20 @@ const getStartedBackupPaths = () =>
   mockServer.getRequests().map((request) => new URL(request.url).pathname);
 
 describe('startFirstBackup', () => {
-  it.each([
-    { kind: 'logical', backupConfig: logicalConfig, startPath: '/logical-backups' },
-    { kind: 'physical', backupConfig: physicalConfig, startPath: '/physical-backups' },
-  ])('starts a $kind backup when backups are enabled', async ({ backupConfig, startPath }) => {
+  it('starts a logical backup when backups are enabled', async () => {
     declareBackupStarts();
 
-    await startFirstBackup('created-id', backupConfig);
+    await startFirstBackup('created-id', logicalConfig);
 
-    expect(getStartedBackupPaths()).toEqual([`${API_BASE_PATH}${startPath}`]);
+    expect(getStartedBackupPaths()).toEqual([`${API_BASE_PATH}/logical-backups`]);
+  });
+
+  it('leaves the initial physical backup to the scheduler when backups are enabled', async () => {
+    declareBackupStarts();
+
+    await startFirstBackup('created-id', physicalConfig);
+
+    expect(getStartedBackupPaths()).toEqual([]);
   });
 
   it.each([

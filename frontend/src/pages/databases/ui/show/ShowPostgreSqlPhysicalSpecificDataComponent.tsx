@@ -6,8 +6,8 @@ import {
   POSTGRESQL_SHORT_NAME,
   POSTGRES_SSL_MODE_LABEL_KEYS,
   PostgresSslMode,
-} from '../../../../entities/databases';
-import { ShowSshTunnelComponent } from './ShowSshTunnelComponent';
+} from '@/entities/databases';
+import { ShowSshTunnelComponent } from '@/pages/databases/ui/show/ShowSshTunnelComponent';
 
 interface Props {
   settings: PostgresqlPhysicalSettings;

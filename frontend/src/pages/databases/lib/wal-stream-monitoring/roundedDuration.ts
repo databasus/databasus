@@ -1,4 +1,4 @@
-import type { LocalizedText } from '../../../../shared/i18n';
+import type { LocalizedText } from '@/shared/i18n';
 
 const SECONDS_PER_MINUTE = 60;
 const SECONDS_PER_HOUR = 3600;

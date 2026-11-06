@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { TelegramNotifierSettings } from './TelegramNotifierSettings';
-import { validateTelegramNotifier } from './validateTelegramNotifier';
+import type { TelegramNotifierSettings } from '@/entities/notifiers/model/telegram/TelegramNotifierSettings';
+import { validateTelegramNotifier } from '@/entities/notifiers/model/telegram/validateTelegramNotifier';
 
 const buildTelegram = (change: Partial<TelegramNotifierSettings>): TelegramNotifierSettings => ({
   type: 'TELEGRAM',

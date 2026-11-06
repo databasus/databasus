@@ -8,13 +8,9 @@ import { Button, Tooltip } from 'antd';
 import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 
-import {
-  RESTORE_STATUS_LABEL_KEYS,
-  type Restore,
-  RestoreStatus,
-} from '../../../../entities/restores';
-import { useLocale } from '../../../../shared/i18n';
-import { getUserTimeFormat } from '../../../../shared/time';
+import { RESTORE_STATUS_LABEL_KEYS, type Restore, RestoreStatus } from '@/entities/restores';
+import { useLocale } from '@/shared/i18n';
+import { getUserTimeFormat } from '@/shared/time';
 
 interface Props {
   restore: Restore;

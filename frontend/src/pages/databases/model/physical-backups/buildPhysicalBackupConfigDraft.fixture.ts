@@ -1,7 +1,7 @@
-import { PhysicalDatabaseBackupType } from '../../../../entities/databases';
-import { createDefaultPhysicalBackupConfigDraft } from './createDefaultPhysicalBackupConfigDraft';
-import type { FullBackupsRetention } from './FullBackupsRetention';
-import type { PhysicalBackupConfigDraft } from './PhysicalBackupConfigDraft';
+import { PhysicalDatabaseBackupType } from '@/entities/databases';
+import { createDefaultPhysicalBackupConfigDraft } from '@/pages/databases/model/physical-backups/createDefaultPhysicalBackupConfigDraft';
+import type { FullBackupsRetention } from '@/pages/databases/model/physical-backups/FullBackupsRetention';
+import type { PhysicalBackupConfigDraft } from '@/pages/databases/model/physical-backups/PhysicalBackupConfigDraft';
 
 type PhysicalDraftSettings = PhysicalBackupConfigDraft['settings'];
 

@@ -3,13 +3,12 @@ import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 
+import { type AuditEvent } from '@/entities/audit-logs/model/AuditEvent';
+import { getAuditEventWorkspaceLabel } from '@/entities/audit-logs/model/getAuditEventWorkspaceLabel';
+import { AuditEventAuthorComponent } from '@/entities/audit-logs/ui/AuditEventAuthorComponent';
 import { type TranslationKey, useLocale } from '@/shared/i18n';
 import { getUserTimeFormat, getUserShortTimeFormat } from '@/shared/time';
 import { LoadFailure } from '@/shared/ui';
-
-import { type AuditEvent } from '../model/AuditEvent';
-import { getAuditEventWorkspaceLabel } from '../model/getAuditEventWorkspaceLabel';
-import { AuditEventAuthorComponent } from './AuditEventAuthorComponent';
 
 interface Props {
   events: AuditEvent[];

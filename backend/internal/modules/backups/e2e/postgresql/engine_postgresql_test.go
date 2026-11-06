@@ -122,6 +122,12 @@ func TestBackupAndRestorePostgresql(t *testing.T) {
 			t.Run("fails the backup when the user cannot read a sequence", func(t *testing.T) {
 				testPostgresqlBackupFailsWithoutSequenceAccess(t, endpoint, postgresqlVersion.tag)
 			})
+			t.Run(
+				"fails and cleans up only the failed attempt after rls restricts saved credentials",
+				func(t *testing.T) {
+					testPostgresqlBackupFailsAfterRLSDrift(t, endpoint)
+				},
+			)
 			t.Run("restores the rows when the dump skips user mappings", func(t *testing.T) {
 				testPostgresqlRestoreSkippingUserMappings(t, endpoint)
 			})

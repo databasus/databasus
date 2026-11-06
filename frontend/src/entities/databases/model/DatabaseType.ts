@@ -1,4 +1,4 @@
-import type { DatabaseSettings } from './DatabaseSettings';
+import type { DatabaseSettings } from '@/entities/databases/model/DatabaseSettings';
 
 export type DatabaseType = DatabaseSettings['type'];
 

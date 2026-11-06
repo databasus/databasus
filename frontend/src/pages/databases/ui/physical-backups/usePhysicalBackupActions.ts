@@ -2,9 +2,12 @@ import { App } from 'antd';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { useSessionGuard } from '../../../../shared/auth';
-import { translateApiError } from '../../../../shared/i18n';
-import { type TriggerPhysicalBackupType, physicalBackupsApi } from '../../api/physicalBackupsApi';
+import {
+  type TriggerPhysicalBackupType,
+  physicalBackupsApi,
+} from '@/pages/databases/api/physicalBackupsApi';
+import { useSessionGuard } from '@/shared/auth';
+import { translateApiError } from '@/shared/i18n';
 
 interface Params {
   databaseId: string;

@@ -1,6 +1,6 @@
-import { PhysicalDatabaseBackupType } from '../../../../entities/databases';
-import { hasIncrementalBackups } from './hasIncrementalBackups';
-import { PhysicalNotificationTrigger } from './PhysicalNotificationTrigger';
+import { PhysicalDatabaseBackupType } from '@/entities/databases';
+import { hasIncrementalBackups } from '@/pages/databases/model/physical-backups/hasIncrementalBackups';
+import { PhysicalNotificationTrigger } from '@/pages/databases/model/physical-backups/PhysicalNotificationTrigger';
 
 export const getShownPhysicalNotificationTriggers = (
   backupType: PhysicalDatabaseBackupType,

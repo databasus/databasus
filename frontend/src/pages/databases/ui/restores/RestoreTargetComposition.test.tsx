@@ -12,18 +12,18 @@ import {
   PostgresSslMode,
   SshTunnelAuthType,
   createDefaultDatabaseSettings,
-} from '../../../../entities/databases';
-import { type Restore, restoreApi } from '../../../../entities/restores';
-import { API_BASE_PATH, type ApiComponents } from '../../../../shared/api';
-import { activateSession, invalidateSession } from '../../../../shared/auth';
-import { buildProblem, mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
-import { createPendingApiResponse } from '../../../../shared/lib/test/pendingApiResponse';
-import { releaseAndSettle } from '../../../../shared/lib/test/releaseAndSettle';
-import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-import { stubClipboard } from '../../../../shared/lib/test/stubClipboard';
-import type { LogicalBackup } from '../../model/LogicalBackup';
-import { LogicalBackupsComponent } from '../logical-backups/LogicalBackupsComponent';
-import { RestoresComponent } from './RestoresComponent';
+} from '@/entities/databases';
+import { type Restore, restoreApi } from '@/entities/restores';
+import type { LogicalBackup } from '@/pages/databases/model/LogicalBackup';
+import { LogicalBackupsComponent } from '@/pages/databases/ui/logical-backups/LogicalBackupsComponent';
+import { RestoresComponent } from '@/pages/databases/ui/restores/RestoresComponent';
+import { API_BASE_PATH, type ApiComponents } from '@/shared/api';
+import { activateSession, invalidateSession } from '@/shared/auth';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
+import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
+import { stubClipboard } from '@/shared/lib/test/stubClipboard';
 
 // main.tsx registers the plugin for the application; the restore cards render times through it.
 dayjs.extend(utc);

@@ -53,6 +53,10 @@ func (s *Service) SubmitReport(ctx context.Context, agent *agents.Agent, id uuid
 			)
 		}
 	}
+	if err := report.validateAndSanitizeFailure(); err != nil {
+		return err
+	}
+
 	err := s.transactor.Transaction(
 		ctx,
 		func(ctx context.Context) error { return s.submitReport(ctx, agent, id, report) },
@@ -70,7 +74,7 @@ func (s *Service) submitReport(
 	verificationID uuid.UUID,
 	req *ReportRequest,
 ) error {
-	verification, isFound, err := s.verificationRepository.GetVerification(ctx, verificationID)
+	verification, isFound, err := s.verificationRepository.LockVerification(ctx, verificationID)
 	if err != nil {
 		return err
 	}
@@ -81,11 +85,26 @@ func (s *Service) submitReport(
 	}
 
 	if req.Status == VerificationStatusFailed {
-		return s.RequeueOrFail(ctx, verification, classifyAgentReport(req), req.FailMessage)
+		return s.requeueOrFail(
+			ctx,
+			VerificationFailure{
+				Verification: verification,
+				Reason:       classifyAgentReport(req),
+				Message:      req.FailMessage,
+				Diagnostic:   req.FailureDiagnostic,
+			},
+		)
 	}
 
 	if restoredDbTooSmall, sizeMessage := s.isRestoredTooSmall(ctx, verification, req); restoredDbTooSmall {
-		return s.RequeueOrFail(ctx, verification, FailureReasonRestoredTooSmall, &sizeMessage)
+		return s.requeueOrFail(
+			ctx,
+			VerificationFailure{
+				Verification: verification,
+				Reason:       FailureReasonRestoredTooSmall,
+				Message:      &sizeMessage,
+			},
+		)
 	}
 
 	if err := s.verificationRepository.WriteSuccessReport(

@@ -6,11 +6,11 @@ import {
   type BackupConfig,
   type BackupConfigInput,
   backupConfigApi,
-} from '../../../../entities/backup-configs';
-import type { Database } from '../../../../entities/databases';
-import { useSessionGuard } from '../../../../shared/auth';
-import { translateApiError } from '../../../../shared/i18n';
-import { ConfirmationComponent, LoadFailure } from '../../../../shared/ui';
+} from '@/entities/backup-configs';
+import type { Database } from '@/entities/databases';
+import { useSessionGuard } from '@/shared/auth';
+import { translateApiError } from '@/shared/i18n';
+import { ConfirmationComponent, LoadFailure } from '@/shared/ui';
 
 interface BackupConfigSectionDraft {
   isBackupsEnabled: boolean;

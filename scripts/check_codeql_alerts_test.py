@@ -1,10 +1,12 @@
 import json
 import os
-from pathlib import Path
 import subprocess
 import tempfile
 import textwrap
 import unittest
+from collections.abc import Mapping, Sequence
+from pathlib import Path
+from typing import TypedDict
 
 ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY = "databasus/databasus"
@@ -35,23 +37,48 @@ STUB_GH = """\
 """
 
 
-def get_release_analyses():
+class Analysis(TypedDict):
+    analysis_key: str
+    category: str
+    commit_sha: str
+
+
+class AlertRule(TypedDict):
+    id: str
+
+
+class Alert(TypedDict):
+    number: int
+    html_url: str
+    rule: AlertRule
+
+
+class Instance(TypedDict):
+    analysis_key: str
+    state: str
+
+
+def get_release_analyses() -> list[Analysis]:
     return [
         {"analysis_key": RELEASE_ANALYSIS_KEY, "category": category, "commit_sha": COMMIT}
         for category in CATEGORIES
     ]
 
 
-def get_alert(number):
-    return {"number": number, "html_url": f"https://example.test/alerts/{number}", "rule": {"id": "go/rule"}}
+def get_alert(number: int) -> Alert:
+    return {
+        "number": number,
+        "html_url": f"https://example.test/alerts/{number}",
+        "rule": {"id": "go/rule"},
+    }
 
 
-def get_instance(analysis_key, state="open"):
+def get_instance(analysis_key: str, state: str = "open") -> Instance:
     return {"analysis_key": analysis_key, "state": state}
 
 
 class CheckCodeqlAlertsTest(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         workspace = tempfile.TemporaryDirectory()
         self.addCleanup(workspace.cleanup)
         self.workspace = Path(workspace.name)
@@ -72,7 +99,13 @@ class CheckCodeqlAlertsTest(unittest.TestCase):
             "STUB_GH_RESPONSES": str(self.responses_path),
         }
 
-    def run_severity_gate(self, analyses=None, critical=(), high=(), instances=None):
+    def run_severity_gate(
+        self,
+        analyses: Sequence[Analysis] | None = None,
+        critical: Sequence[Alert] = (),
+        high: Sequence[Alert] = (),
+        instances: Mapping[int, object] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
         responses = {
             "code-scanning/analyses": get_release_analyses() if analyses is None else analyses,
             "severity=critical": list(critical),
@@ -83,7 +116,9 @@ class CheckCodeqlAlertsTest(unittest.TestCase):
 
         return self.run_severity_gate_with_responses(responses)
 
-    def run_severity_gate_with_responses(self, responses):
+    def run_severity_gate_with_responses(
+        self, responses: Mapping[str, object]
+    ) -> subprocess.CompletedProcess[str]:
         self.responses_path.write_text(json.dumps(responses))
 
         return subprocess.run(
@@ -93,7 +128,7 @@ class CheckCodeqlAlertsTest(unittest.TestCase):
             text=True,
         )
 
-    def test_fails_and_lists_critical_alert_open_in_the_release_analysis(self):
+    def test_fails_and_lists_critical_alert_open_in_the_release_analysis(self) -> None:
         severity_gate = self.run_severity_gate(
             critical=[get_alert(7)], instances={7: [get_instance(RELEASE_ANALYSIS_KEY)]}
         )
@@ -101,66 +136,82 @@ class CheckCodeqlAlertsTest(unittest.TestCase):
         self.assertEqual(severity_gate.returncode, 1, severity_gate.stderr)
         self.assertIn("https://example.test/alerts/7", severity_gate.stdout)
 
-    def test_passes_when_critical_alert_is_open_only_in_the_scheduled_analysis(self):
+    def test_passes_when_critical_alert_is_open_only_in_the_scheduled_analysis(self) -> None:
         severity_gate = self.run_severity_gate(
             critical=[get_alert(7)],
-            instances={7: [get_instance(RELEASE_ANALYSIS_KEY, "fixed"), get_instance(SCHEDULED_ANALYSIS_KEY)]},
+            instances={
+                7: [
+                    get_instance(RELEASE_ANALYSIS_KEY, "fixed"),
+                    get_instance(SCHEDULED_ANALYSIS_KEY),
+                ]
+            },
         )
 
         self.assertEqual(severity_gate.returncode, 0, severity_gate.stderr)
 
-    def test_fails_when_the_commit_misses_one_category_of_the_release_analysis(self):
+    def test_fails_when_the_commit_misses_one_category_of_the_release_analysis(self) -> None:
         severity_gate = self.run_severity_gate(analyses=get_release_analyses()[:2])
 
         self.assertEqual(severity_gate.returncode, 1)
         self.assertIn("/language:actions", severity_gate.stdout)
 
-    def test_fails_when_the_analyses_belong_to_another_key_or_commit(self):
-        other_key = [{**analysis, "analysis_key": SCHEDULED_ANALYSIS_KEY} for analysis in get_release_analyses()]
-        other_commit = [{**analysis, "commit_sha": "def456"} for analysis in get_release_analyses()]
+    def test_fails_when_the_analyses_belong_to_another_key_or_commit(self) -> None:
+        other_key: list[Analysis] = [
+            {**analysis, "analysis_key": SCHEDULED_ANALYSIS_KEY}
+            for analysis in get_release_analyses()
+        ]
+        other_commit: list[Analysis] = [
+            {**analysis, "commit_sha": "def456"} for analysis in get_release_analyses()
+        ]
 
         for analyses in (other_key, other_commit):
             with self.subTest(analyses=analyses):
                 self.assertEqual(self.run_severity_gate(analyses=analyses).returncode, 1)
 
-    def test_passes_with_a_warning_for_high_alert_open_in_the_release_analysis(self):
-        severity_gate = self.run_severity_gate(high=[get_alert(9)], instances={9: [get_instance(RELEASE_ANALYSIS_KEY)]})
+    def test_passes_with_a_warning_for_high_alert_open_in_the_release_analysis(self) -> None:
+        severity_gate = self.run_severity_gate(
+            high=[get_alert(9)], instances={9: [get_instance(RELEASE_ANALYSIS_KEY)]}
+        )
 
         self.assertEqual(severity_gate.returncode, 0, severity_gate.stderr)
         self.assertIn("::warning::", severity_gate.stdout)
         self.assertIn("https://example.test/alerts/9", severity_gate.stdout)
 
-    def test_prints_no_warning_for_high_alert_open_only_in_the_scheduled_analysis(self):
-        severity_gate = self.run_severity_gate(high=[get_alert(9)], instances={9: [get_instance(SCHEDULED_ANALYSIS_KEY)]})
+    def test_prints_no_warning_for_high_alert_open_only_in_the_scheduled_analysis(self) -> None:
+        severity_gate = self.run_severity_gate(
+            high=[get_alert(9)], instances={9: [get_instance(SCHEDULED_ANALYSIS_KEY)]}
+        )
 
         self.assertEqual(severity_gate.returncode, 0, severity_gate.stderr)
         self.assertNotIn("::warning::", severity_gate.stdout)
 
-    def test_passes_without_alerts(self):
+    def test_passes_without_alerts(self) -> None:
         severity_gate = self.run_severity_gate()
 
         self.assertEqual(severity_gate.returncode, 0, severity_gate.stderr)
 
-    def test_fails_when_analyses_cannot_be_read(self):
-        severity_gate = self.run_severity_gate_with_responses({"severity=critical": [], "severity=high": []})
+    def test_fails_when_analyses_cannot_be_read(self) -> None:
+        severity_gate = self.run_severity_gate_with_responses(
+            {"severity=critical": [], "severity=high": []}
+        )
 
         self.assertNotEqual(severity_gate.returncode, 0)
 
-    def test_fails_when_critical_alerts_cannot_be_read(self):
+    def test_fails_when_critical_alerts_cannot_be_read(self) -> None:
         severity_gate = self.run_severity_gate_with_responses(
             {"code-scanning/analyses": get_release_analyses(), "severity=high": []}
         )
 
         self.assertNotEqual(severity_gate.returncode, 0)
 
-    def test_fails_when_high_alerts_cannot_be_read(self):
+    def test_fails_when_high_alerts_cannot_be_read(self) -> None:
         severity_gate = self.run_severity_gate_with_responses(
             {"code-scanning/analyses": get_release_analyses(), "severity=critical": []}
         )
 
         self.assertNotEqual(severity_gate.returncode, 0)
 
-    def test_fails_on_a_critical_alert_from_a_later_page(self):
+    def test_fails_on_a_critical_alert_from_a_later_page(self) -> None:
         severity_gate = self.run_severity_gate_with_responses(
             {
                 "code-scanning/analyses": get_release_analyses(),
@@ -173,38 +224,51 @@ class CheckCodeqlAlertsTest(unittest.TestCase):
         self.assertEqual(severity_gate.returncode, 1, severity_gate.stderr)
         self.assertIn("https://example.test/alerts/7", severity_gate.stdout)
 
-    def test_fails_on_a_critical_alert_whose_release_instance_is_on_a_later_page(self):
+    def test_fails_on_a_critical_alert_whose_release_instance_is_on_a_later_page(self) -> None:
         severity_gate = self.run_severity_gate(
             critical=[get_alert(7)],
-            instances={7: {"pages": [[get_instance(SCHEDULED_ANALYSIS_KEY)], [get_instance(RELEASE_ANALYSIS_KEY)]]}},
+            instances={
+                7: {
+                    "pages": [
+                        [get_instance(SCHEDULED_ANALYSIS_KEY)],
+                        [get_instance(RELEASE_ANALYSIS_KEY)],
+                    ]
+                }
+            },
         )
 
         self.assertEqual(severity_gate.returncode, 1, severity_gate.stderr)
         self.assertIn("https://example.test/alerts/7", severity_gate.stdout)
 
-    def test_fails_when_the_instances_response_is_not_a_list(self):
-        severity_gate = self.run_severity_gate(critical=[get_alert(7)], instances={7: {"pages": [{"message": "odd"}]}})
+    def test_fails_when_the_instances_response_is_not_a_list(self) -> None:
+        severity_gate = self.run_severity_gate(
+            critical=[get_alert(7)], instances={7: {"pages": [{"message": "odd"}]}}
+        )
 
         self.assertNotEqual(severity_gate.returncode, 0)
 
-    def test_fails_when_instances_cannot_be_read(self):
+    def test_fails_when_instances_cannot_be_read(self) -> None:
         severity_gate = self.run_severity_gate(critical=[get_alert(7)])
 
         self.assertNotEqual(severity_gate.returncode, 0)
 
-    def test_asks_only_for_open_codeql_alerts_of_the_given_ref(self):
+    def test_asks_only_for_open_codeql_alerts_of_the_given_ref(self) -> None:
         self.run_severity_gate()
 
-        alert_requests = [call for call in self.calls_path.read_text().splitlines() if "/alerts?" in call]
+        alert_requests = [
+            call for call in self.calls_path.read_text().splitlines() if "/alerts?" in call
+        ]
         self.assertEqual(len(alert_requests), 2)
         for alert_request in alert_requests:
             with self.subTest(alert_request=alert_request):
-                self.assertTrue(alert_request.startswith(f"repos/{REPOSITORY}/code-scanning/alerts?"))
+                self.assertTrue(
+                    alert_request.startswith(f"repos/{REPOSITORY}/code-scanning/alerts?")
+                )
                 self.assertIn("state=open", alert_request)
                 self.assertIn("tool_name=CodeQL", alert_request)
                 self.assertIn(f"ref={REF}", alert_request)
 
-    def test_passes_after_the_only_critical_alert_is_dismissed(self):
+    def test_passes_after_the_only_critical_alert_is_dismissed(self) -> None:
         blocked_gate = self.run_severity_gate(
             critical=[get_alert(7)], instances={7: [get_instance(RELEASE_ANALYSIS_KEY)]}
         )

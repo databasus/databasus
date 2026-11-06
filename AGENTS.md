@@ -49,8 +49,8 @@ The repository's skills live in `.agents/skills/`, which Codex reads directly; C
 | `mise run run` | Start the app locally: dev database, test fixtures, WAL backup source with its load generator, backend and frontend; seeds a dev account with databases and restarts the backend when its code changes |
 | `mise run test` | Check the work: the backend packages without the end-to-end ones and the frontend tests |
 | `mise run test-full` | Run all tests for the usual Docker development environment; [testing.md](docs/testing.md#checking-work) lists the included suites and the Podman/filesystem exceptions |
-| `mise run lint` | Check every module without changing files; `mise run backend:lint` and `frontend:lint` check one |
-| `mise run format` | Format every module; `backend:format` and `frontend:format` format one |
+| `mise run lint` | Check every module without changing files; `backend:lint`, `frontend:lint` and `python:lint` check one area |
+| `mise run format` | Format every module; `backend:format`, `frontend:format` and `python:format` format one area |
 | `mise run doctor` | Check review tools and whether Codex project hooks are enabled and trusted |
 | `mise run review [<change>]` | Manually rerun parallel AI reviews of a finished OpenSpec change when hooks did not run or another review is needed |
 | `goose -dir backend/migrations create <name> sql` | Create a migration |
@@ -163,6 +163,8 @@ Names state intent, not mechanism. The rules below go beyond Go and TypeScript i
 Short names stay where the convention is well established: Go receivers (`s *NotifierService`), `ctx`, and the JS/TS error catch `catch (e)`.
 
 ## Functions, methods and types
+
+Python named functions and methods declare parameter and return types, including tests, fixtures and callbacks. Use concrete collection values and structured records; validate external dynamic values before exposing their typed shape. Do not bypass checking with unrestricted dynamic annotations or blanket suppressions. A necessary suppression names a specific rule and explains the external limitation. [Python quality checks](docs/testing.md#python-quality-checks) describes verification.
 
 - Getters take a `Get` prefix and name the entity, even though Go idiom omits it: `GetWorkspace`, not `Workspace`. Constructors stay `New...`, and a getter that returns a bool is a predicate.
 - A predicate reads as a question: `IsAborted(id)`, not `AbortedContains(id)`.

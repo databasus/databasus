@@ -1040,6 +1040,13 @@ export const en = {
       details: {
         title: 'Restore check details',
         cancellationReason: 'Cancellation reason',
+        diagnostic: {
+          title: 'Error details',
+          truncated: 'The middle of this output was omitted to fit the 64 KB limit.',
+          unavailable: 'No detailed diagnostic was recorded for this verification.',
+          copied: 'Diagnostic copied',
+          copyFailed: 'Could not copy the diagnostic. Select and copy the text manually.',
+        },
         failure: 'Failure',
         sections: {
           status: 'Status',

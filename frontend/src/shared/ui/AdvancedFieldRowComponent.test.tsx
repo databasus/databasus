@@ -2,8 +2,8 @@
 import { screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { renderScreen } from '../lib/test/renderScreen';
-import { AdvancedFieldRowComponent } from './AdvancedFieldRowComponent';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
+import { AdvancedFieldRowComponent } from '@/shared/ui/AdvancedFieldRowComponent';
 
 describe('AdvancedFieldRowComponent', () => {
   it('associates labels and help when a field declares its control ID', () => {

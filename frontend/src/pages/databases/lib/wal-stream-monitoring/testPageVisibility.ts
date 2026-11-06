@@ -1,4 +1,4 @@
-import type { PageVisibility } from './walStreamRefreshController';
+import type { PageVisibility } from '@/pages/databases/lib/wal-stream-monitoring/walStreamRefreshController';
 
 // Page visibility the tests switch by hand, telling subscribers as the browser would.
 export class FakePageVisibility implements PageVisibility {

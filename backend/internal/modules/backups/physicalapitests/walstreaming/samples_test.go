@@ -35,8 +35,6 @@ func TestPhysicalWalSamples(t *testing.T) {
 			team.enable(t)
 			team.waitForReceiver(t)
 			source := team.openSource(t)
-			rotateWal(t, source)
-			team.waitForWal(t, 1)
 
 			var first streamStatistics
 			testwait.Until(
@@ -60,18 +58,32 @@ func TestPhysicalWalSamples(t *testing.T) {
 			assert.NotNil(t, first.Current.SlotWalStatus)
 			assert.NotNil(t, first.Current.SlotLagBytes)
 			assert.Positive(t, first.Current.LocalQueuePauseBytes)
-			assert.Positive(t, first.Current.ArchivedSegments)
-			assert.Positive(t, first.Current.ArchivedWalBytes)
-			assert.Positive(t, first.Current.ArchivedStoredBytes)
-			assert.Positive(t, first.Current.HighestConcurrentUploads)
-			assert.NotNil(t, first.Current.SegmentWriteAvgMillis)
-			assert.NotNil(t, first.Current.SegmentWriteMaxMillis)
 			assert.Nil(t, first.Streamer.FailingSince)
+
+			generateWal(t, source, 4096)
+			rotateWal(t, source)
+			team.waitForWal(t, 1)
+			var archived streamStatistics
+			testwait.Until(t, "a sample reports the committed archive", func(context.Context) error {
+				archived = team.statistics(t)
+				if archived.Current == nil || !archived.Current.SampledAt.After(first.Current.SampledAt) ||
+					archived.Current.ArchivedSegments == 0 {
+					return fmt.Errorf("no archive sample")
+				}
+				return nil
+			})
+
+			assert.Positive(t, archived.Current.ArchivedSegments)
+			assert.Positive(t, archived.Current.ArchivedWalBytes)
+			assert.Positive(t, archived.Current.ArchivedStoredBytes)
+			assert.Positive(t, archived.Current.HighestConcurrentUploads)
+			assert.NotNil(t, archived.Current.SegmentWriteAvgMillis)
+			assert.NotNil(t, archived.Current.SegmentWriteMaxMillis)
 
 			generateWal(t, source, 4096)
 			testwait.Until(t, "the next sample reports new source writes", func(context.Context) error {
 				next := team.statistics(t)
-				if next.Current == nil || !next.Current.SampledAt.After(first.Current.SampledAt) ||
+				if next.Current == nil || !next.Current.SampledAt.After(archived.Current.SampledAt) ||
 					next.Current.SourceWrittenBytes == nil ||
 					*next.Current.SourceWrittenBytes <= 0 {
 					return fmt.Errorf("no later write sample")

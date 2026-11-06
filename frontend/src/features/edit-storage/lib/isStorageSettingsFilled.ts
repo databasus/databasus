@@ -1,5 +1,5 @@
-import { AzureBlobAuthMethod, type StorageSettings, StorageType } from '../../../entities/storages';
-import { isStorageAddressChanged } from './isStorageAddressChanged';
+import { AzureBlobAuthMethod, type StorageSettings, StorageType } from '@/entities/storages';
+import { isStorageAddressChanged } from '@/features/edit-storage/lib/isStorageAddressChanged';
 
 // SFTP can retain only credentials present in its acknowledged saved method set.
 export const isStorageSettingsFilled = (

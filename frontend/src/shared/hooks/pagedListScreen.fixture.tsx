@@ -1,10 +1,10 @@
 import { useEffect, useEffectEvent, useRef } from 'react';
 
-import { getApiClient, requireData } from '../api';
-import type { ApiComponents } from '../api';
-import type { PagedListParams } from './usePagedList';
-import { usePagedList } from './usePagedList';
-import { usePolledPagedList } from './usePolledPagedList';
+import { getApiClient, requireData } from '@/shared/api';
+import type { ApiComponents } from '@/shared/api';
+import type { PagedListParams } from '@/shared/hooks/usePagedList';
+import { usePagedList } from '@/shared/hooks/usePagedList';
+import { usePolledPagedList } from '@/shared/hooks/usePolledPagedList';
 
 type Workspace = ApiComponents['schemas']['Workspace'];
 interface Props {

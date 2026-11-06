@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { collectCursorPages } from './collectCursorPages';
+import { collectCursorPages } from '@/shared/lib/collectCursorPages';
 
 describe('collectCursorPages', () => {
   it('preserves order across pages including an empty last page', async () => {

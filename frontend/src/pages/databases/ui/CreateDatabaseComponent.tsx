@@ -2,9 +2,7 @@ import { Alert, App, Button } from 'antd';
 import { useEffect, useEffectEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { DatabaseConnectionForm } from '@/features/database-connection';
-
-import { type LogicalBackupConfigInput, backupConfigApi } from '../../../entities/backup-configs';
+import { type LogicalBackupConfigInput, backupConfigApi } from '@/entities/backup-configs';
 import {
   type Database,
   type DatabaseCreateDraft,
@@ -14,19 +12,20 @@ import {
   createDefaultDatabaseSettings,
   databaseApi,
   isPostgresType,
-} from '../../../entities/databases';
-import { useSessionGuard } from '../../../shared/auth';
-import { translateApiError } from '../../../shared/i18n';
-import { hasSameNotifierIds } from '../model/hasSameNotifierIds';
-import type { PhysicalBackupConfigDraft } from '../model/physical-backups/PhysicalBackupConfigDraft';
-import { toPhysicalBackupConfigInputFromDraft } from '../model/physical-backups/toPhysicalBackupConfigInputFromDraft';
-import { startFirstBackup } from '../model/startFirstBackup';
-import { CreateLogicalBackupConfigStep } from './backup-config/CreateLogicalBackupConfigStep';
-import { CreatePhysicalBackupConfigStep } from './backup-config/CreatePhysicalBackupConfigStep';
-import { ChoosePostgresBackupTypeComponent } from './ChoosePostgresBackupTypeComponent';
-import { CreateDatabaseNotifiersStep } from './CreateDatabaseNotifiersStep';
-import { CreateLimitedUserComponent } from './CreateLimitedUserComponent';
-import { EditDatabaseBaseInfoComponent } from './EditDatabaseBaseInfoComponent';
+} from '@/entities/databases';
+import { DatabaseConnectionForm } from '@/features/database-connection';
+import { hasSameNotifierIds } from '@/pages/databases/model/hasSameNotifierIds';
+import type { PhysicalBackupConfigDraft } from '@/pages/databases/model/physical-backups/PhysicalBackupConfigDraft';
+import { toPhysicalBackupConfigInputFromDraft } from '@/pages/databases/model/physical-backups/toPhysicalBackupConfigInputFromDraft';
+import { startFirstBackup } from '@/pages/databases/model/startFirstBackup';
+import { CreateLogicalBackupConfigStep } from '@/pages/databases/ui/backup-config/CreateLogicalBackupConfigStep';
+import { CreatePhysicalBackupConfigStep } from '@/pages/databases/ui/backup-config/CreatePhysicalBackupConfigStep';
+import { ChoosePostgresBackupTypeComponent } from '@/pages/databases/ui/ChoosePostgresBackupTypeComponent';
+import { CreateDatabaseNotifiersStep } from '@/pages/databases/ui/CreateDatabaseNotifiersStep';
+import { CreateLimitedUserComponent } from '@/pages/databases/ui/CreateLimitedUserComponent';
+import { EditDatabaseBaseInfoComponent } from '@/pages/databases/ui/EditDatabaseBaseInfoComponent';
+import { useSessionGuard } from '@/shared/auth';
+import { translateApiError } from '@/shared/i18n';
 
 interface Props {
   workspaceId: string;

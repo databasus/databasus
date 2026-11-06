@@ -1,5 +1,5 @@
-import type { TranslationKey } from '../../../shared/i18n';
-import { LogicalBackupVerificationStatus } from './LogicalBackupVerificationStatus';
+import { LogicalBackupVerificationStatus } from '@/pages/databases/model/LogicalBackupVerificationStatus';
+import type { TranslationKey } from '@/shared/i18n';
 
 // NOT_VERIFIED has no label: a backup that was never restore-verified shows no tag at all.
 // It is an explicit null rather than a missing entry, so adding a status still fails the build.

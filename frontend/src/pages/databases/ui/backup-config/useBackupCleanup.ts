@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
-import { type BackupCleanup, backupConfigApi } from '../../../../entities/backup-configs';
-import { useSession, useSessionGuard } from '../../../../shared/auth';
+import { type BackupCleanup, backupConfigApi } from '@/entities/backup-configs';
+import { useSession, useSessionGuard } from '@/shared/auth';
 
 interface CleanupSource {
   databaseId: string;

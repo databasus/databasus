@@ -1,15 +1,14 @@
 import os
-from pathlib import Path
 import subprocess
 import tempfile
 import unittest
-
+from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 
 
 class LibeditShimTestCase(unittest.TestCase):
-    def test_keeps_loader_path_when_native_libedit_soname_is_available(self):
+    def test_keeps_loader_path_when_native_libedit_soname_is_available(self) -> None:
         with tempfile.TemporaryDirectory(prefix="libedit-shim-") as directory:
             workspace = Path(directory)
             commands = workspace / "bin"
@@ -23,9 +22,13 @@ class LibeditShimTestCase(unittest.TestCase):
 
             checked = subprocess.run(
                 [
-                    "bash", "-euo", "pipefail", "-c",
+                    "bash",
+                    "-euo",
+                    "pipefail",
+                    "-c",
                     'source "$1"; apply_libedit_shim; printf "%s" "$LD_LIBRARY_PATH"',
-                    "bash", str(REPOSITORY_ROOT / "scripts" / "fedora.sh"),
+                    "bash",
+                    str(REPOSITORY_ROOT / "scripts" / "fedora.sh"),
                 ],
                 env={
                     **os.environ,

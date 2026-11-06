@@ -1,16 +1,23 @@
 import dayjs from 'dayjs';
 
-import type { MonitoringText } from '../../model/wal-stream-monitoring/MonitoringText';
-import type { MonitoringTextParam } from '../../model/wal-stream-monitoring/MonitoringTextParam';
-import { MonitoringTone } from '../../model/wal-stream-monitoring/MonitoringTone';
-import type { VerdictBanner } from '../../model/wal-stream-monitoring/VerdictBanner';
-import { VerdictIcon } from '../../model/wal-stream-monitoring/VerdictIcon';
-import { WalStreamHealthLevel } from '../../model/wal-stream-monitoring/WalStreamHealthLevel';
-import { WAL_STREAM_HEALTH_LEVEL_LABEL_KEYS } from '../../model/wal-stream-monitoring/WalStreamHealthLevelLabelKeys';
-import { WalStreamReasonCode } from '../../model/wal-stream-monitoring/WalStreamReasonCode';
-import { type WalStreamStatistics } from '../../model/wal-stream-monitoring/WalStreamStatistics';
-import { getReasonTexts, sortReasonsBrokenFirst } from './reasonTexts';
-import { getMeasurementAge, getRoundedDuration, getSecondsBetween } from './roundedDuration';
+import {
+  getReasonTexts,
+  sortReasonsBrokenFirst,
+} from '@/pages/databases/lib/wal-stream-monitoring/reasonTexts';
+import {
+  getMeasurementAge,
+  getRoundedDuration,
+  getSecondsBetween,
+} from '@/pages/databases/lib/wal-stream-monitoring/roundedDuration';
+import type { MonitoringText } from '@/pages/databases/model/wal-stream-monitoring/MonitoringText';
+import type { MonitoringTextParam } from '@/pages/databases/model/wal-stream-monitoring/MonitoringTextParam';
+import { MonitoringTone } from '@/pages/databases/model/wal-stream-monitoring/MonitoringTone';
+import type { VerdictBanner } from '@/pages/databases/model/wal-stream-monitoring/VerdictBanner';
+import { VerdictIcon } from '@/pages/databases/model/wal-stream-monitoring/VerdictIcon';
+import { WalStreamHealthLevel } from '@/pages/databases/model/wal-stream-monitoring/WalStreamHealthLevel';
+import { WAL_STREAM_HEALTH_LEVEL_LABEL_KEYS } from '@/pages/databases/model/wal-stream-monitoring/WalStreamHealthLevelLabelKeys';
+import { WalStreamReasonCode } from '@/pages/databases/model/wal-stream-monitoring/WalStreamReasonCode';
+import { type WalStreamStatistics } from '@/pages/databases/model/wal-stream-monitoring/WalStreamStatistics';
 
 // Four missed refreshes: past this the screen no longer knows the current state, and showing the
 // last verdict in its own color would claim otherwise.

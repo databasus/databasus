@@ -1,6 +1,6 @@
-import { getNextCronRun } from './getNextCronRun';
-import type { Schedule } from './Schedule';
-import { ScheduleType } from './ScheduleType';
+import { getNextCronRun } from '@/entities/schedules/model/getNextCronRun';
+import type { Schedule } from '@/entities/schedules/model/Schedule';
+import { ScheduleType } from '@/entities/schedules/model/ScheduleType';
 
 export const isScheduleComplete = (schedule: Schedule | null): boolean => {
   if (!schedule) return false;

@@ -5,21 +5,17 @@ import utc from 'dayjs/plugin/utc';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
-import {
-  type Database,
-  DatabaseType,
-  createDefaultDatabaseSettings,
-} from '../../../../entities/databases';
-import { type Restore, restoreApi } from '../../../../entities/restores';
-import { API_BASE_PATH } from '../../../../shared/api';
-import { advanceClockUntil } from '../../../../shared/lib/test/advanceClockUntil';
-import { advanceFakeClock } from '../../../../shared/lib/test/advanceFakeClock';
-import { waitForCondition } from '../../../../shared/lib/test/conditionWait';
-import { buildProblem, mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
-import { createPendingApiResponse } from '../../../../shared/lib/test/pendingApiResponse';
-import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-import type { LogicalBackup } from '../../model/LogicalBackup';
-import { RestoresComponent } from './RestoresComponent';
+import { type Database, DatabaseType, createDefaultDatabaseSettings } from '@/entities/databases';
+import { type Restore, restoreApi } from '@/entities/restores';
+import type { LogicalBackup } from '@/pages/databases/model/LogicalBackup';
+import { RestoresComponent } from '@/pages/databases/ui/restores/RestoresComponent';
+import { API_BASE_PATH } from '@/shared/api';
+import { advanceClockUntil } from '@/shared/lib/test/advanceClockUntil';
+import { advanceFakeClock } from '@/shared/lib/test/advanceFakeClock';
+import { waitForCondition } from '@/shared/lib/test/conditionWait';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 dayjs.extend(utc);
 

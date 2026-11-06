@@ -1,8 +1,8 @@
 import { matchRequestUrl } from 'msw';
 
-import type { ApiPaths } from '../../api';
-import { getApiMockPath } from './apiMockPath';
-import type { Method, PathWith } from './apiOperation';
+import type { ApiPaths } from '@/shared/api';
+import { getApiMockPath } from '@/shared/lib/test/apiMockPath';
+import type { Method, PathWith } from '@/shared/lib/test/apiOperation';
 
 type OperationParameters<
   Path extends keyof ApiPaths,

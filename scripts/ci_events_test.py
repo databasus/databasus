@@ -1,18 +1,20 @@
-from pathlib import Path
 import re
 import sys
 import unittest
+from pathlib import Path
+
+from pattern_match import get_required_match
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from release_gate_test import PUBLISHING_JOBS, RELEASE_GATE_JOBS, get_needs, get_transitive_needs  # noqa: E402
-from workflow_jobs import get_jobs  # noqa: E402
+from release_gate_test import PUBLISHING_JOBS, RELEASE_GATE_JOBS, get_needs, get_transitive_needs
+from workflow_jobs import get_jobs
 
 WORKFLOWS = Path(__file__).resolve().parents[1] / ".github/workflows"
 
 
 class CiEventsTest(unittest.TestCase):
-    def test_checks_run_on_main_pushes_and_manual_runs_only(self):
+    def test_checks_run_on_main_pushes_and_manual_runs_only(self) -> None:
         workflow = (WORKFLOWS / "ci-release.yml").read_text()
         triggers = workflow.split("on:\n", 1)[1].split("\npermissions:", 1)[0]
 
@@ -26,19 +28,27 @@ class CiEventsTest(unittest.TestCase):
             with self.subTest(job_name=job_name):
                 self.assertNotRegex(jobs[job_name], r"(?m)^    if:")
 
-    def test_manual_runs_cannot_select_versions_or_publish(self):
+    def test_manual_runs_cannot_select_versions_or_publish(self) -> None:
         jobs = get_jobs((WORKFLOWS / "ci-release.yml").read_text())
-        version_condition = re.search(r"(?m)^    if: (.*)$", jobs["determine-version"]).group(1)
+        version_condition = get_required_match(
+            r"(?m)^    if: (.*)$", jobs["determine-version"]
+        ).group(1)
 
-        self.assertEqual(version_condition, "${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[skip-release]') }}")
+        self.assertEqual(
+            version_condition,
+            "${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[skip-release]') }}",
+        )
         for job_name in PUBLISHING_JOBS:
             with self.subTest(job_name=job_name):
                 self.assertIn("determine-version", get_transitive_needs(jobs, job_name))
-                self.assertIn("if: ${{ needs.determine-version.outputs.should_release == 'true' }}", jobs[job_name])
+                self.assertIn(
+                    "if: ${{ needs.determine-version.outputs.should_release == 'true' }}",
+                    jobs[job_name],
+                )
 
         self.assertNotIn("databasus-dev", "".join(jobs.values()))
 
-    def test_develop_only_builds_and_publishes_both_architectures(self):
+    def test_develop_only_builds_and_publishes_both_architectures(self) -> None:
         workflow = (WORKFLOWS / "deploy-dev-image.yml").read_text()
         triggers = workflow.split("on:\n", 1)[1].split("\npermissions:", 1)[0]
 
@@ -47,10 +57,13 @@ class CiEventsTest(unittest.TestCase):
         self.assertNotIn("pull_request:", triggers)
 
         jobs = get_jobs(workflow)
-        self.assertEqual(set(jobs), {"push-dev-image", "merge-dev-image-manifest"})
-        self.assertEqual(get_needs(jobs["push-dev-image"]), set())
+        self.assertEqual(set(jobs), {"lint-python", "push-dev-image", "merge-dev-image-manifest"})
+        self.assertEqual(get_needs(jobs["push-dev-image"]), {"lint-python"})
         self.assertEqual(get_needs(jobs["merge-dev-image-manifest"]), {"push-dev-image"})
-        self.assertEqual(set(re.findall(r"platform: (\S+)", jobs["push-dev-image"])), {"linux/amd64", "linux/arm64"})
+        self.assertEqual(
+            set(re.findall(r"platform: (\S+)", jobs["push-dev-image"])),
+            {"linux/amd64", "linux/arm64"},
+        )
         self.assertIn("fail-fast: false", jobs["push-dev-image"])
         self.assertNotIn("check_image.sh", workflow)
         self.assertNotIn("mise run", workflow)
@@ -58,13 +71,15 @@ class CiEventsTest(unittest.TestCase):
         self.assertIn("databasus/databasus-dev:${{ github.sha }}", workflow)
         self.assertIn("cancel-in-progress: false", workflow)
 
-    def test_no_workflow_automatically_checks_pull_requests(self):
+    def test_no_workflow_automatically_checks_pull_requests(self) -> None:
         for workflow_path in WORKFLOWS.glob("*.yml"):
             with self.subTest(workflow=workflow_path.name):
-                triggers = workflow_path.read_text().split("on:\n", 1)[1].split("\npermissions:", 1)[0]
+                triggers = (
+                    workflow_path.read_text().split("on:\n", 1)[1].split("\npermissions:", 1)[0]
+                )
                 self.assertNotRegex(triggers, r"(?m)^  pull_request(?:_target)?:")
 
-    def test_manual_scans_use_the_same_gate_as_release_scans(self):
+    def test_manual_scans_use_the_same_gate_as_release_scans(self) -> None:
         workflow = (WORKFLOWS / "ci-release.yml").read_text()
         scan_job = get_jobs(workflow)["code-scanning"]
         scan_workflow = (WORKFLOWS / "codeql.yml").read_text()
@@ -73,7 +88,7 @@ class CiEventsTest(unittest.TestCase):
         self.assertNotIn("github.head_ref", scan_workflow)
         self.assertNotIn("refs/heads/main", scan_workflow)
 
-    def test_dependency_review_compares_the_release_baseline_with_the_checked_commit(self):
+    def test_dependency_review_compares_the_release_baseline_with_the_checked_commit(self) -> None:
         review_job = get_jobs((WORKFLOWS / "ci-release.yml").read_text())["dependency-review"]
         review_workflow = (WORKFLOWS / "dependency-review.yml").read_text()
 

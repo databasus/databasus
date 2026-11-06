@@ -2,9 +2,9 @@
 import { isInaccessible, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { DICTIONARIES, SUPPORTED_LOCALES, type Locale } from '../../../../../shared/i18n';
-import { renderScreen } from '../../../../../shared/lib/test/renderScreen';
-import { EditSFTPStorageComponent } from './EditSFTPStorageComponent';
+import { EditSFTPStorageComponent } from '@/features/edit-storage/ui/edit/storages/EditSFTPStorageComponent';
+import { DICTIONARIES, SUPPORTED_LOCALES, type Locale } from '@/shared/i18n';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const renderSftpEditor = ({
   locale = 'en',

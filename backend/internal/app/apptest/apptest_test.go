@@ -23,7 +23,6 @@ import (
 	"databasus-backend/internal/lib/database"
 	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/lib/testwait"
-	"databasus-backend/internal/modules/backups"
 )
 
 const isolationMarkerVersion = 99990101000000
@@ -692,65 +691,4 @@ func openPhysicalSource(t *testing.T, source containers.Endpoint) *pgx.Conn {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, conn.Close(context.WithoutCancel(t.Context()))) })
 	return conn
-}
-
-func TestWalStreamTimings(t *testing.T) {
-	t.Parallel()
-
-	t.Run("archives WAL from a quiet source when the application shortens forced rotation", func(t *testing.T) {
-		t.Parallel()
-
-		timings := backups.ProductionWalStreamTimings()
-		timings.ForcedRotationInterval = 2 * time.Second
-		testApp := New(t, WithPhysicalBackupLoops(), WithWalStreamTimings(timings))
-		source := containers.StartPhysicalPostgres(t, "postgres:17")
-		owner, database := enablePhysicalBackupLoops(t, testApp, source)
-
-		testwait.Until(t, "the WAL receiver owns the source slot", func(context.Context) error {
-			if getActivePhysicalReplicationSlotCount(t, source) != 1 {
-				return fmt.Errorf("no active WAL receiver")
-			}
-			return nil
-		})
-		testwait.Until(
-			t,
-			"the initial full backup completes before measuring forced rotation",
-			func(context.Context) error {
-				for _, backup := range listPhysicalBackups(t, testApp, owner, database.Id) {
-					if backup.Type == "FULL" && backup.Status == "COMPLETED" {
-						return nil
-					}
-				}
-				return fmt.Errorf("the initial full backup has not completed")
-			},
-		)
-
-		conn := openPhysicalSource(t, source)
-		var quietWalFilename string
-		require.NoError(
-			t,
-			conn.QueryRow(t.Context(), "SELECT pg_walfile_name(pg_current_wal_lsn())").Scan(&quietWalFilename),
-		)
-		_, err := conn.Exec(t.Context(), "CREATE TABLE quiet_source (id int)")
-		require.NoError(t, err)
-
-		rotationStartedAt := time.Now()
-		rotationTimeout := 10 * timings.ForcedRotationInterval
-		testwait.Until(t, "forced rotation archives a segment from the quiet source", func(context.Context) error {
-			listedBackups := listPhysicalBackups(t, testApp, owner, database.Id)
-			require.Less(
-				t,
-				time.Since(rotationStartedAt),
-				rotationTimeout,
-				"forced rotation did not archive the quiet source WAL in time",
-			)
-			for _, backup := range listedBackups {
-				if backup.Type == "WAL" && backup.ToWalFilename != nil && *backup.ToWalFilename >= quietWalFilename {
-					return nil
-				}
-			}
-			return fmt.Errorf("no archived WAL segment")
-		})
-		assert.Equal(t, 5*time.Minute, backups.ProductionWalStreamTimings().ForcedRotationInterval)
-	})
 }

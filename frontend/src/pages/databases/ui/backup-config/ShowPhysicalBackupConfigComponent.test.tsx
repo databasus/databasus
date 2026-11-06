@@ -2,18 +2,11 @@
 import { screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  type BackupConfig,
-  toPhysicalBackupConfigInput,
-} from '../../../../entities/backup-configs';
-import {
-  type Database,
-  DatabaseType,
-  createDefaultDatabaseSettings,
-} from '../../../../entities/databases';
-import { setUpMockApi } from '../../../../shared/lib/test/mockApi';
-import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-import { ShowPhysicalBackupConfigComponent } from './ShowPhysicalBackupConfigComponent';
+import { type BackupConfig, toPhysicalBackupConfigInput } from '@/entities/backup-configs';
+import { type Database, DatabaseType, createDefaultDatabaseSettings } from '@/entities/databases';
+import { ShowPhysicalBackupConfigComponent } from '@/pages/databases/ui/backup-config/ShowPhysicalBackupConfigComponent';
+import { setUpMockApi } from '@/shared/lib/test/mockApi';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const mockServer = setUpMockApi();
 const database: Database = {

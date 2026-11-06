@@ -4,30 +4,26 @@ import { HttpResponse, http } from 'msw';
 import { useState } from 'react';
 import { type MockInstance, describe, expect, it, vi } from 'vitest';
 
-import {
-  type Database,
-  DatabaseType,
-  createDefaultDatabaseSettings,
-} from '../../../../entities/databases';
-import { API_BASE_PATH } from '../../../../shared/api';
-import { DICTIONARIES, useLocale } from '../../../../shared/i18n';
-import { advanceClockUntil } from '../../../../shared/lib/test/advanceClockUntil';
-import { advanceFakeClock } from '../../../../shared/lib/test/advanceFakeClock';
-import { createTestWalStreamStatistics } from '../../../../shared/lib/test/buildWalStreamStatistics';
-import { waitForCondition } from '../../../../shared/lib/test/conditionWait';
-import { buildProblem, setUpMockApi } from '../../../../shared/lib/test/mockApi';
-import { createPendingApiResponse } from '../../../../shared/lib/test/pendingApiResponse';
-import { releaseAndSettle } from '../../../../shared/lib/test/releaseAndSettle';
-import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-import { physicalBackupsApi } from '../../api/physicalBackupsApi';
-import { physicalWalStreamStatisticsApi } from '../../api/physicalWalStreamStatisticsApi';
-import { WAL_STREAM_LIVE_INTERVAL_MS } from '../../lib/wal-stream-monitoring/walStreamLiveController';
-import { WAL_STREAM_REFRESH_INTERVAL_MS } from '../../lib/wal-stream-monitoring/walStreamRefreshController';
-import { WalStreamHealthLevel } from '../../model/wal-stream-monitoring/WalStreamHealthLevel';
-import type { WalStreamLiveResponse } from '../../model/wal-stream-monitoring/WalStreamLiveResponse';
-import { WalStreamReasonCode } from '../../model/wal-stream-monitoring/WalStreamReasonCode';
-import { WalStreamReasonLevel } from '../../model/wal-stream-monitoring/WalStreamReasonLevel';
-import { WalStreamMonitoringComponent } from './WalStreamMonitoringComponent';
+import { type Database, DatabaseType, createDefaultDatabaseSettings } from '@/entities/databases';
+import { physicalBackupsApi } from '@/pages/databases/api/physicalBackupsApi';
+import { physicalWalStreamStatisticsApi } from '@/pages/databases/api/physicalWalStreamStatisticsApi';
+import { WAL_STREAM_LIVE_INTERVAL_MS } from '@/pages/databases/lib/wal-stream-monitoring/walStreamLiveController';
+import { WAL_STREAM_REFRESH_INTERVAL_MS } from '@/pages/databases/lib/wal-stream-monitoring/walStreamRefreshController';
+import { WalStreamHealthLevel } from '@/pages/databases/model/wal-stream-monitoring/WalStreamHealthLevel';
+import type { WalStreamLiveResponse } from '@/pages/databases/model/wal-stream-monitoring/WalStreamLiveResponse';
+import { WalStreamReasonCode } from '@/pages/databases/model/wal-stream-monitoring/WalStreamReasonCode';
+import { WalStreamReasonLevel } from '@/pages/databases/model/wal-stream-monitoring/WalStreamReasonLevel';
+import { WalStreamMonitoringComponent } from '@/pages/databases/ui/wal-stream-monitoring/WalStreamMonitoringComponent';
+import { API_BASE_PATH } from '@/shared/api';
+import { DICTIONARIES, useLocale } from '@/shared/i18n';
+import { advanceClockUntil } from '@/shared/lib/test/advanceClockUntil';
+import { advanceFakeClock } from '@/shared/lib/test/advanceFakeClock';
+import { createTestWalStreamStatistics } from '@/shared/lib/test/buildWalStreamStatistics';
+import { waitForCondition } from '@/shared/lib/test/conditionWait';
+import { buildProblem, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
+import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const server = setUpMockApi();
 

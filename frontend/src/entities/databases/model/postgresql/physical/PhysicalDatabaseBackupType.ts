@@ -1,4 +1,4 @@
-import type { ApiComponents } from '../../../../../shared/api';
+import type { ApiComponents } from '@/shared/api';
 
 // Database-level backup strategy for a physical PostgreSQL source. Distinct from
 // the list-item PhysicalBackupType (FULL/INCREMENTAL/WAL) - this selects which

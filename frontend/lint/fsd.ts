@@ -3,15 +3,19 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { linter, processConfiguration } from 'steiger';
 
 import configuration from '../steiger.config.ts';
+import type { ArchitectureFinding } from './architectureFinding.ts';
 import { checkFilesOutsideLayers } from './checkFilesOutsideLayers.ts';
-import { type ArchitectureFinding, checkProjectDependencies } from './checkProjectDependencies.ts';
-import { getFrontendDependencies } from './frontendDependencies.ts';
+import { checkProjectDependencies } from './checkProjectDependencies.ts';
+import { type FrontendDependency, getFrontendDependencies } from './frontendDependencies.ts';
+import { getFrontendModuleReferences } from './frontendModuleReferences.ts';
+import { checkSourceAlias } from './sourceAlias.ts';
 
 export const checkFrontendArchitecture = async (root: string): Promise<ArchitectureFinding[]> => {
   processConfiguration(configuration, dirname(root));
   const diagnostics = await linter.run(root);
-  const dependencies = getFrontendDependencies(root);
-  const coveredForbiddenOccurrences = new Set<ReturnType<typeof getFrontendDependencies>[number]>();
+  const references = getFrontendModuleReferences(root);
+  const dependencies = getFrontendDependencies(root, references);
+  const coveredForbiddenOccurrences = new Set<FrontendDependency>();
 
   const primaryFindings = diagnostics
     .filter((diagnostic) => diagnostic.severity === 'error')
@@ -48,7 +52,12 @@ export const checkFrontendArchitecture = async (root: string): Promise<Architect
     });
 
   const missingFindings = checkProjectDependencies(root, dependencies, coveredForbiddenOccurrences);
-  return [...primaryFindings, ...missingFindings, ...checkFilesOutsideLayers(root)];
+  return [
+    ...primaryFindings,
+    ...missingFindings,
+    ...checkFilesOutsideLayers(root),
+    ...checkSourceAlias(root, references),
+  ];
 };
 
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
@@ -58,8 +67,9 @@ if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.m
   );
 
   if (findings.length) {
-    for (const { rule, source, target } of findings) {
-      console.error(`${rule}: ${source}${target ? ` -> ${target}` : ''}`);
+    for (const { rule, source, target, line, column } of findings) {
+      const location = line === undefined ? source : `${source}:${line}:${column}`;
+      console.error(`${rule}: ${location}${target ? ` -> ${target}` : ''}`);
     }
 
     process.exitCode = 1;

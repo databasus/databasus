@@ -2,7 +2,7 @@ import { StarOutlined } from '@ant-design/icons';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { useLocale } from '../i18n';
+import { useLocale } from '@/shared/i18n';
 
 export function StarButtonComponent() {
   const { t } = useTranslation();

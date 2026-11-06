@@ -1,4 +1,4 @@
-import { formatDuration } from '../../../../shared/lib';
+import { formatDuration } from '@/shared/lib';
 
 export const formatOptionalDuration = (durationMs: number | undefined): string =>
   durationMs === undefined ? '-' : formatDuration(durationMs);

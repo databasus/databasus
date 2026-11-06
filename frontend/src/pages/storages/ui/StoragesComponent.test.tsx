@@ -3,12 +3,12 @@ import { screen, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
-import type { SftpStorageSettings, Storage } from '../../../entities/storages';
-import { API_BASE_PATH, type ApiComponents } from '../../../shared/api';
-import { mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
-import { createPendingApiResponse } from '../../../shared/lib/test/pendingApiResponse';
-import { renderScreen } from '../../../shared/lib/test/renderScreen';
-import { StoragesComponent } from './StoragesComponent';
+import type { SftpStorageSettings, Storage } from '@/entities/storages';
+import { StoragesComponent } from '@/pages/storages/ui/StoragesComponent';
+import { API_BASE_PATH, type ApiComponents } from '@/shared/api';
+import { mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const mockServer = setUpMockApi();
 const storage: Storage = {

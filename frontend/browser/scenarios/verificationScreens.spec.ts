@@ -7,6 +7,7 @@ import { accountFixtures } from '../accountFixtures';
 import { workspace } from '../applicationFixtures';
 import { assertAccountReflow } from '../assertAccountReflow';
 import { test } from '../browserTest';
+import { enlargeText } from '../enlargeText';
 import { apiResponse } from '../HttpFixture';
 import { openAccount } from '../openAccount';
 import { openAccountTab } from '../openAccountTab';
@@ -14,6 +15,12 @@ import { openWorkspaceScreen } from '../openWorkspaceScreen';
 
 const dictionary = DICTIONARIES.en;
 const runsCopy = dictionary.verification.runs;
+const failureOutput =
+  'pg_restore: error: type geometry does not exist\n' +
+  'long_object_name_'.repeat(1800) +
+  '\n[... diagnostic output truncated ...]\n' +
+  'long_object_name_'.repeat(1800) +
+  '\npg_restore: warning: errors ignored on restore: 1';
 const REVEALED_TOKEN = 'a'.repeat(64);
 
 // More presses than the drawer has controls, so the focus goes around at least once.
@@ -144,6 +151,7 @@ test.use({
         status: 200,
         body: {
           ...failedVerification,
+          failureDiagnostic: { output: failureOutput, isTruncated: true },
           tableStats: [{ schemaName: 'public', name: 'orders', rowCount: 1200 }],
         },
       }),
@@ -191,6 +199,8 @@ const serveAgentInEveryStatus = (page: Page) =>
 const openVerificationList = async (page: Page, theme: string) => {
   await openAccount({ page, locale: 'en', theme });
   await openWorkspaceScreen({ page, locale: 'en', tab: 'databases' });
+  if (page.viewportSize()!.width < 768)
+    await page.getByRole('button', { name: 'Orders', exact: true }).click();
   await page
     .getByRole('main')
     .getByText(dictionary.databases.tabs.verifications, { exact: true })
@@ -217,6 +227,18 @@ for (const theme of ['light', 'dark']) {
     // The drawer keeps the focus on its root and sentinels, which wrap the dialog element.
     const drawerRoot = page.locator('.ant-drawer');
     await waitForFocusInside(drawerRoot);
+
+    const disclosure = drawer.getByRole('button', {
+      name: new RegExp(runsCopy.details.diagnostic.title),
+    });
+    await expect(disclosure).toHaveAttribute('aria-expanded', 'false');
+    await disclosure.focus();
+    await page.keyboard.press('Enter');
+    await expect(disclosure).toHaveAttribute('aria-expanded', 'true');
+    await expect(drawer.locator('pre')).toHaveText(failureOutput);
+    await expect(drawer.getByText(runsCopy.details.diagnostic.truncated)).toBeVisible();
+    await page.keyboard.press('Enter');
+    await expect(disclosure).toHaveAttribute('aria-expanded', 'false');
 
     const accessibility = await new AxeBuilder({ page })
       .disableRules(['color-contrast'])
@@ -310,3 +332,39 @@ test('shows the revealed token and its commands in a long locale at a narrow vie
 
   expect(accessibility.violations).toEqual([]);
 });
+
+for (const theme of ['light', 'dark']) {
+  test(`contains long failure output inside the drawer at 320px with 200% text in the ${theme} theme`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 320, height: 800 });
+    await openVerificationList(page, theme);
+    await page.getByRole('button', { name: runsCopy.actions.viewDetails }).click();
+    const drawer = page.getByRole('dialog');
+    await drawer
+      .getByRole('button', { name: new RegExp(runsCopy.details.diagnostic.title) })
+      .click();
+    await expect(drawer.locator('pre')).toHaveText(failureOutput);
+    await enlargeText(drawer);
+
+    await assertAccountReflow(drawer);
+    const diagnosticLayout = await drawer.locator('pre').evaluate((output) => ({
+      isLocallyScrollable: output.scrollWidth > output.clientWidth,
+      isInsideDrawer:
+        output.getBoundingClientRect().right <=
+        output.closest('[role="dialog"]')!.getBoundingClientRect().right,
+      overflowX: getComputedStyle(output).overflowX,
+    }));
+    expect(diagnosticLayout).toEqual({
+      isLocallyScrollable: true,
+      isInsideDrawer: true,
+      overflowX: 'auto',
+    });
+    await drawer
+      .getByRole('button', { name: dictionary.common.actions.copy })
+      .scrollIntoViewIfNeeded();
+    await expect(
+      drawer.getByRole('button', { name: dictionary.common.actions.copy }),
+    ).toBeVisible();
+  });
+}

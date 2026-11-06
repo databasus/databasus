@@ -1,5 +1,5 @@
-import type { TranslationKey } from '../../../../shared/i18n';
-import { WalStreamHealthLevel } from './WalStreamHealthLevel';
+import { WalStreamHealthLevel } from '@/pages/databases/model/wal-stream-monitoring/WalStreamHealthLevel';
+import type { TranslationKey } from '@/shared/i18n';
 
 export const WAL_STREAM_HEALTH_LEVEL_LABEL_KEYS: Record<WalStreamHealthLevel, TranslationKey> = {
   [WalStreamHealthLevel.NOT_STREAMING]: 'backups.physical.monitoring.levels.notStreaming',

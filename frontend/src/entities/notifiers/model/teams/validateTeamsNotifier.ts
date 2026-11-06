@@ -1,4 +1,4 @@
-import type { TeamsNotifierSettings } from './TeamsNotifierSettings';
+import type { TeamsNotifierSettings } from '@/entities/notifiers/model/teams/TeamsNotifierSettings';
 
 // A saved notifier keeps its stored URL when the form leaves it empty.
 export const validateTeamsNotifier = (

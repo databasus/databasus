@@ -1,8 +1,5 @@
-import type {
-  LogicalBackupConfigInput,
-  LogicalBackupSettings,
-} from '../../../entities/backup-configs';
-import { createDefaultLogicalBackupConfig } from './createDefaultLogicalBackupConfig';
+import type { LogicalBackupConfigInput, LogicalBackupSettings } from '@/entities/backup-configs';
+import { createDefaultLogicalBackupConfig } from '@/pages/databases/model/createDefaultLogicalBackupConfig';
 
 const defaultConfig = createDefaultLogicalBackupConfig();
 

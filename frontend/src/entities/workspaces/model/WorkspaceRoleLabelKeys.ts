@@ -1,5 +1,5 @@
-import type { TranslationKey } from '../../../shared/i18n';
-import { WorkspaceRole } from './WorkspaceRole';
+import { WorkspaceRole } from '@/entities/workspaces/model/WorkspaceRole';
+import type { TranslationKey } from '@/shared/i18n';
 
 export const WORKSPACE_ROLE_LABEL_KEYS: Record<WorkspaceRole, TranslationKey> = {
   [WorkspaceRole.OWNER]: 'workspaces.roles.owner',

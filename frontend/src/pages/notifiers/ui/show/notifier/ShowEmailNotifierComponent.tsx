@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
-import type { EmailNotifierSettings } from '../../../../../entities/notifiers';
+import type { EmailNotifierSettings } from '@/entities/notifiers';
 
 interface Props {
   settings: EmailNotifierSettings;

@@ -65,6 +65,10 @@ func (s *Source) TestConnection(
 		return "", err
 	}
 
+	if err := checkDumpRLSPrivileges(ctx, conn, check.Filter); err != nil {
+		return "", err
+	}
+
 	if !check.IsSkipUserMappings {
 		if err := checkUserMappingsReadable(ctx, conn); err != nil {
 			return "", err

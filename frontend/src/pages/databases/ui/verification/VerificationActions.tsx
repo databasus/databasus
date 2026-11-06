@@ -2,9 +2,9 @@ import { CloseCircleOutlined, EyeOutlined } from '@ant-design/icons';
 import type { JSX } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { Verification } from '../../model/verification/Verification';
-import { VerificationStatus } from '../../model/verification/VerificationStatus';
-import { RowActionButton } from '../RowActionButton';
+import type { Verification } from '@/pages/databases/model/verification/Verification';
+import { VerificationStatus } from '@/pages/databases/model/verification/VerificationStatus';
+import { RowActionButton } from '@/pages/databases/ui/RowActionButton';
 
 export interface VerificationRowActions {
   isCanManageDBs: boolean;

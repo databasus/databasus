@@ -6,25 +6,21 @@ import { HttpResponse, http } from 'msw';
 import { useRef, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-import {
-  type Database,
-  DatabaseType,
-  createDefaultDatabaseSettings,
-} from '../../../../entities/databases';
-import { verificationAgentApi } from '../../../../entities/verification-agents';
-import { API_BASE_PATH } from '../../../../shared/api';
-import { activateSession, invalidateSession } from '../../../../shared/auth';
-import { DICTIONARIES } from '../../../../shared/i18n';
-import { advanceClockUntil } from '../../../../shared/lib/test/advanceClockUntil';
-import { waitForCondition } from '../../../../shared/lib/test/conditionWait';
-import { buildProblem, mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
-import { createPendingApiResponse } from '../../../../shared/lib/test/pendingApiResponse';
-import { releaseAndSettle } from '../../../../shared/lib/test/releaseAndSettle';
-import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-import { verificationRunsApi } from '../../api/verificationRunsApi';
-import type { Verification } from '../../model/verification/Verification';
-import type { VerificationDetails } from '../../model/verification/VerificationDetails';
-import { VerificationsComponent } from './VerificationsComponent';
+import { type Database, DatabaseType, createDefaultDatabaseSettings } from '@/entities/databases';
+import { verificationAgentApi } from '@/entities/verification-agents';
+import { verificationRunsApi } from '@/pages/databases/api/verificationRunsApi';
+import type { Verification } from '@/pages/databases/model/verification/Verification';
+import type { VerificationDetails } from '@/pages/databases/model/verification/VerificationDetails';
+import { VerificationsComponent } from '@/pages/databases/ui/verification/VerificationsComponent';
+import { API_BASE_PATH } from '@/shared/api';
+import { activateSession, invalidateSession } from '@/shared/auth';
+import { DICTIONARIES } from '@/shared/i18n';
+import { advanceClockUntil } from '@/shared/lib/test/advanceClockUntil';
+import { waitForCondition } from '@/shared/lib/test/conditionWait';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
+import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 dayjs.extend(utc);
 const mockServer = setUpMockApi();

@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"slices"
 	"sync"
-	"time"
 
 	"github.com/google/uuid"
 
@@ -42,8 +41,6 @@ type Backuper struct {
 	taskCancellationRegistry *background.CancellationRegistry
 	masterKey                *crypto.MasterKey
 	logger                   *slog.Logger
-	fullExecutor             *FullExecutor
-	incrExecutor             *IncrementalExecutor
 	clock                    clock.Source
 	executionClock           clock.Source
 	transactor               *database.Transactor
@@ -72,11 +69,7 @@ func (b *Backuper) MakeBackup(ctx context.Context, backupID uuid.UUID, isCallNot
 
 	ctx = logging.With(ctx, slog.Any("database_id", backup.DatabaseID))
 	if err := background.RunRecovering(ctx, func(ctx context.Context) error {
-		if backup.Kind == catalog.BackupKindFull {
-			b.runFullBackup(ctx, b.logger, backup, isCallNotifier)
-		} else {
-			b.runIncrementalBackup(ctx, b.logger, backup, isCallNotifier)
-		}
+		b.runBackup(ctx, backupRunOptions{Backup: backup, IsCallNotifier: isCallNotifier})
 		return nil
 	}); err != nil {
 		b.finalizeAsError(ctx, backup, catalog.BackupErrorPgBasebackupFailed, err.Error())
@@ -130,253 +123,6 @@ func (b *Backuper) getDatabase(ctx context.Context, databaseID uuid.UUID) (datab
 		return databases.Database{}, errDatabaseNotFound
 	}
 	return listedDatabases[0], nil
-}
-
-func (b *Backuper) runFullBackup(
-	ctx context.Context,
-	logger *slog.Logger,
-	fullBackup *catalog.Backup,
-	isCallNotifier bool,
-) {
-	backupCtx, ok := b.openBackupContext(ctx, logger, fullBackup.DatabaseID)
-	if !ok {
-		b.finalizeAsError(ctx, fullBackup, catalog.BackupErrorPgBasebackupFailed,
-			"failed to open backup context")
-
-		return
-	}
-
-	defer backupCtx.Close()
-
-	executionCtx := ctx
-
-	rawSizeMb := b.getSourceClusterSizeMb(executionCtx, logger, backupCtx.Source)
-
-	fullBackupSpec := FullBackupSpec{
-		CommonBackupSpec: CommonBackupSpec{
-			Publication: config.PublicationFence{
-				Configs: b.configs,
-				Publication: config.StoragePublication{
-					DatabaseID: fullBackup.DatabaseID,
-					StorageID:  fullBackup.StorageID,
-					Generation: fullBackup.StorageGeneration,
-				},
-			},
-			ExecutionClock: b.executionClock,
-			Clock:          b.clock,
-			Transactor:     b.transactor,
-			ClientTools:    b.clientTools,
-			SourceDB:       backupCtx.Source,
-			DatabaseName:   backupCtx.Database.Name,
-			StorageID:      backupCtx.Storage.ID,
-			FileStore:      b.storages,
-			Encryption:     catalog.BackupEncryption(backupCtx.Config.Encryption),
-			MasterKey:      backupCtx.MasterKey,
-			BackupRepo:     b.backupRepo,
-			HistoryRepo:    b.historyRepo,
-			Logger:         logger,
-			ProgressListener: func(completedMb float64, elapsedMs int64) {
-				if err := b.backupRepo.UpdateProgress(ctx, fullBackup.ID, completedMb, elapsedMs); err != nil {
-					logger.ErrorContext(ctx, "failed to update full backup progress", slog.Any("error", err))
-				}
-			},
-		},
-		Backup: fullBackup,
-	}
-
-	sourceSize := "unknown"
-	if rawSizeMb != nil {
-		sourceSize = fmt.Sprintf("%.1f MB", *rawSizeMb)
-	}
-
-	logger.InfoContext(
-		ctx,
-		"physical full backup started",
-		slog.Any("database_name", backupCtx.Database.Name),
-		slog.Any("source_size", sourceSize),
-		slog.Any("storage_id", backupCtx.Storage.ID),
-		slog.Any("encryption", backupCtx.Config.Encryption),
-	)
-
-	backupResult, err := b.fullExecutor.Execute(executionCtx, fullBackupSpec)
-	if err != nil {
-		logger.ErrorContext(ctx, "full executor returned error", slog.Any("error", err))
-
-		b.finalizeAsError(ctx, fullBackup, catalog.BackupErrorPgBasebackupFailed, err.Error())
-
-		return
-	}
-
-	backupResult = classifyShutdown(ctx, backupResult)
-	ctx = context.WithoutCancel(ctx)
-
-	if backupResult.Status != catalog.BackupStatusCompleted {
-		logger.WarnContext(
-			ctx,
-			"full executor returned non-completed result",
-			slog.Any("status", backupResult.Status),
-			slog.Any("reason", reasonOrEmpty(backupResult.ErrorReason)),
-			slog.Any("message", backupResult.ErrorMessage),
-		)
-	}
-
-	if err := b.persistResult(ctx, fullBackup, backupResult, rawSizeMb); err != nil {
-		logger.ErrorContext(ctx, "failed to persist full result", slog.Any("error", err))
-
-		return
-	}
-
-	logger.InfoContext(
-		ctx,
-		"physical full backup finished",
-		slog.Any("status", backupResult.Status),
-		slog.Any("size_mb", backupResult.BackupSizeMb),
-		slog.Any("duration_ms", backupResult.BackupDurationMs),
-		slog.Any("timeline_id", backupResult.TimelineID),
-		slog.Any("start_lsn", backupResult.StartLSN),
-		slog.Any("stop_lsn", backupResult.StopLSN),
-	)
-
-	if isCallNotifier {
-		b.sendBackupNotification(ctx, backupCtx.Config, backupCtx.Database, fullBackup, backupResult)
-	}
-}
-
-func (b *Backuper) runIncrementalBackup(
-	ctx context.Context,
-	logger *slog.Logger,
-	incrBackup *catalog.Backup,
-	isCallNotifier bool,
-) {
-	backupCtx, ok := b.openBackupContext(ctx, logger, incrBackup.DatabaseID)
-	if !ok {
-		b.finalizeAsError(ctx, incrBackup, catalog.BackupErrorPgBasebackupFailed,
-			"failed to open backup context")
-
-		return
-	}
-
-	defer backupCtx.Close()
-
-	parentRef, err := b.resolveParentManifest(ctx, incrBackup)
-	if err != nil {
-		logger.ErrorContext(ctx, "failed to resolve parent manifest", slog.Any("error", err))
-
-		b.finalizeAsChainBroken(ctx, incrBackup,
-			catalog.BackupErrorParentManifestMissing, err.Error())
-
-		return
-	}
-
-	storageReader, err := b.storages.GetStorageReader(ctx, backupCtx.Storage.ID)
-	if err != nil {
-		logger.ErrorContext(ctx, "failed to open the storage of the parent manifest", slog.Any("error", err))
-
-		b.finalizeAsError(ctx, incrBackup, catalog.BackupErrorPgBasebackupFailed,
-			"failed to open the storage of the parent manifest")
-
-		return
-	}
-
-	executionCtx := ctx
-
-	var incrementalCadence time.Duration
-	if backupCtx.Config.IncrementalBackupSchedule != nil {
-		incrementalCadence = backupCtx.Config.IncrementalBackupSchedule.GetApproxPeriod()
-	}
-
-	incrBackupSpec := IncrementalBackupSpec{
-		CommonBackupSpec: CommonBackupSpec{
-			Publication: config.PublicationFence{
-				Configs: b.configs,
-				Publication: config.StoragePublication{
-					DatabaseID: incrBackup.DatabaseID,
-					StorageID:  incrBackup.StorageID,
-					Generation: incrBackup.StorageGeneration,
-				},
-			},
-			ExecutionClock: b.executionClock,
-			Clock:          b.clock,
-			Transactor:     b.transactor,
-			ClientTools:    b.clientTools,
-			SourceDB:       backupCtx.Source,
-			DatabaseName:   backupCtx.Database.Name,
-			StorageID:      backupCtx.Storage.ID,
-			FileStore:      b.storages,
-			Encryption:     catalog.BackupEncryption(backupCtx.Config.Encryption),
-			MasterKey:      backupCtx.MasterKey,
-			BackupRepo:     b.backupRepo,
-			HistoryRepo:    b.historyRepo,
-			Logger:         logger,
-			ProgressListener: func(completedMb float64, elapsedMs int64) {
-				if err := b.backupRepo.UpdateProgress(ctx, incrBackup.ID, completedMb, elapsedMs); err != nil {
-					logger.ErrorContext(ctx, "failed to update incremental backup progress", slog.Any("error", err))
-				}
-			},
-		},
-		Backup:             incrBackup,
-		ParentManifest:     parentRef,
-		StorageReader:      storageReader,
-		IncrementalCadence: incrementalCadence,
-	}
-
-	logger.InfoContext(
-		ctx,
-		"physical incremental backup started",
-		slog.Any("database_name", backupCtx.Database.Name),
-		slog.Any("parent_stop_lsn", parentRef.StopLSN),
-		slog.Any("parent_backup_id", parentRef.BackupID),
-		slog.Any("storage_id", backupCtx.Storage.ID),
-	)
-
-	backupResult, err := b.incrExecutor.Execute(executionCtx, incrBackupSpec)
-	if err != nil {
-		logger.ErrorContext(ctx, "incremental executor returned error", slog.Any("error", err))
-
-		b.finalizeAsError(ctx, incrBackup, catalog.BackupErrorPgBasebackupFailed, err.Error())
-
-		return
-	}
-
-	if !errors.Is(context.Cause(ctx), runcontext.ErrBackupShutdown) &&
-		backupResult.Status == catalog.BackupStatusError &&
-		b.isIncrRetryBudgetExhausted(ctx, logger, incrBackup) {
-		backupResult.Status = catalog.BackupStatusChainBroken
-	}
-
-	backupResult = classifyShutdown(ctx, backupResult)
-	ctx = context.WithoutCancel(ctx)
-
-	if backupResult.Status != catalog.BackupStatusCompleted {
-		logger.WarnContext(
-			ctx,
-			"incremental executor returned non-completed result",
-			slog.Any("status", backupResult.Status),
-			slog.Any("reason", reasonOrEmpty(backupResult.ErrorReason)),
-			slog.Any("message", backupResult.ErrorMessage),
-		)
-	}
-
-	if err := b.persistResult(ctx, incrBackup, backupResult, nil); err != nil {
-		logger.ErrorContext(ctx, "failed to persist incremental result", slog.Any("error", err))
-
-		return
-	}
-
-	logger.InfoContext(
-		ctx,
-		"physical incremental backup finished",
-		slog.Any("status", backupResult.Status),
-		slog.Any("size_mb", backupResult.BackupSizeMb),
-		slog.Any("duration_ms", backupResult.BackupDurationMs),
-		slog.Any("timeline_id", backupResult.TimelineID),
-		slog.Any("start_lsn", backupResult.StartLSN),
-		slog.Any("stop_lsn", backupResult.StopLSN),
-	)
-
-	if isCallNotifier {
-		b.sendBackupNotification(ctx, backupCtx.Config, backupCtx.Database, incrBackup, backupResult)
-	}
 }
 
 func (b *Backuper) openBackupContext(

@@ -4,7 +4,7 @@ import {
   MATTERMOST_DELIVERY_MODE_LABEL_KEYS,
   MattermostDeliveryMode,
   type MattermostNotifierSettings,
-} from '../../../../../entities/notifiers';
+} from '@/entities/notifiers';
 
 interface Props {
   settings: MattermostNotifierSettings;

@@ -7,11 +7,11 @@ import {
   type DatabaseEditDraft,
   DatabaseType,
   createDefaultDatabaseSettings,
-} from '../../../entities/databases';
-import { API_BASE_PATH, type ApiComponents } from '../../../shared/api';
-import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
-import { renderScreen } from '../../../shared/lib/test/renderScreen';
-import { CreateLimitedUserComponent } from './CreateLimitedUserComponent';
+} from '@/entities/databases';
+import { CreateLimitedUserComponent } from '@/pages/databases/ui/CreateLimitedUserComponent';
+import { API_BASE_PATH, type ApiComponents } from '@/shared/api';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const mockServer = setUpMockApi();
 const settings = createDefaultDatabaseSettings(DatabaseType.MYSQL);

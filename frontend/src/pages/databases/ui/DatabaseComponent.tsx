@@ -2,16 +2,16 @@ import { Spin, Tabs } from 'antd';
 import { type RefObject, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type Database, DatabaseType, databaseApi } from '../../../entities/databases';
-import { useSessionGuard } from '../../../shared/auth';
-import { LoadFailure } from '../../../shared/ui';
-import { isMonitoringTabShown } from '../lib/wal-stream-monitoring/monitoringTab';
-import { DatabaseConfigComponent } from './DatabaseConfigComponent';
-import { HealthcheckAttemptsComponent } from './healthcheck';
-import { LogicalBackupsComponent } from './logical-backups/LogicalBackupsComponent';
-import { PhysicalBackupsComponent } from './physical-backups/PhysicalBackupsComponent';
-import { VerificationsComponent } from './verification/VerificationsComponent';
-import { WalStreamMonitoringComponent } from './wal-stream-monitoring/WalStreamMonitoringComponent';
+import { type Database, DatabaseType, databaseApi } from '@/entities/databases';
+import { isMonitoringTabShown } from '@/pages/databases/lib/wal-stream-monitoring/monitoringTab';
+import { DatabaseConfigComponent } from '@/pages/databases/ui/DatabaseConfigComponent';
+import { HealthcheckAttemptsComponent } from '@/pages/databases/ui/healthcheck';
+import { LogicalBackupsComponent } from '@/pages/databases/ui/logical-backups/LogicalBackupsComponent';
+import { PhysicalBackupsComponent } from '@/pages/databases/ui/physical-backups/PhysicalBackupsComponent';
+import { VerificationsComponent } from '@/pages/databases/ui/verification/VerificationsComponent';
+import { WalStreamMonitoringComponent } from '@/pages/databases/ui/wal-stream-monitoring/WalStreamMonitoringComponent';
+import { useSessionGuard } from '@/shared/auth';
+import { LoadFailure } from '@/shared/ui';
 
 interface Props {
   scrollContainerRef: RefObject<HTMLDivElement | null>;

@@ -1,9 +1,9 @@
 import createClient, { type Middleware } from 'openapi-fetch';
 
-import { getSessionSnapshot, invalidateSession, type SessionSnapshot } from '../auth';
-import { getApplicationServer } from '../config';
-import { API_ERROR_CODES, ApiError } from './ApiError';
-import type { paths } from './schema.gen';
+import { API_ERROR_CODES, ApiError } from '@/shared/api/ApiError';
+import type { paths } from '@/shared/api/schema.gen';
+import { getSessionSnapshot, invalidateSession, type SessionSnapshot } from '@/shared/auth';
+import { getApplicationServer } from '@/shared/config';
 
 export const API_BASE_PATH = '/api/v1';
 

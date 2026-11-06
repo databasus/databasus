@@ -1,7 +1,10 @@
 import { useEffect, useEffectEvent, useState } from 'react';
 
-import { useRequestRevision } from '../../../../shared/hooks';
-import { type PhysicalRestoreTokenCreate, physicalBackupsApi } from '../../api/physicalBackupsApi';
+import {
+  type PhysicalRestoreTokenCreate,
+  physicalBackupsApi,
+} from '@/pages/databases/api/physicalBackupsApi';
+import { useRequestRevision } from '@/shared/hooks';
 
 interface TokenAnswer {
   subjectKey: string;

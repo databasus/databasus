@@ -1,4 +1,4 @@
-import type { Locale } from './dictionaries';
+import type { Locale } from '@/shared/i18n/dictionaries';
 
 const WEBSITE_URL = 'https://databasus.com';
 

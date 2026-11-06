@@ -1,5 +1,5 @@
-import { type NotifierSettings, NotifierType } from '../../../entities/notifiers';
-import { isOptionalValueChanged } from '../../../shared/lib';
+import { type NotifierSettings, NotifierType } from '@/entities/notifiers';
+import { isOptionalValueChanged } from '@/shared/lib';
 
 // Mirrors the resource address each notifier provider compares on the backend, which stays the
 // authority: a stale list here only makes the user see the generic refusal.

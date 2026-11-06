@@ -3,13 +3,12 @@ import { Input, Radio, Tooltip } from 'antd';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { AddressChangedSecretNoticeComponent, AdvancedSettingsToggleComponent } from '@/shared/ui';
-
 import {
   AZURE_BLOB_AUTH_METHOD_LABEL_KEYS,
   type AzureBlobStorageSettings,
-} from '../../../../../entities/storages';
-import { toOptionalValue } from '../../../../../shared/lib';
+} from '@/entities/storages';
+import { toOptionalValue } from '@/shared/lib';
+import { AddressChangedSecretNoticeComponent, AdvancedSettingsToggleComponent } from '@/shared/ui';
 
 interface Props {
   settings: AzureBlobStorageSettings;

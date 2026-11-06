@@ -1,4 +1,4 @@
-import type { StorageSettings } from './StorageSettings';
+import type { StorageSettings } from '@/entities/storages/model/StorageSettings';
 
 export type StorageType = StorageSettings['type'];
 

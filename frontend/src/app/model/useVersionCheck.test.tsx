@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
 
-let useVersionCheck: typeof import('./useVersionCheck').useVersionCheck;
+let useVersionCheck: typeof import('@/app/model/useVersionCheck').useVersionCheck;
 const server = setUpMockApi();
 let clockTime = 0;
 const advanceCheck = async (elapsed: number) => {
@@ -26,7 +26,7 @@ function VersionLifecycle() {
 beforeEach(async () => {
   vi.stubEnv('VITE_APP_VERSION', '1.0.0');
   vi.resetModules();
-  ({ useVersionCheck } = await import('./useVersionCheck'));
+  ({ useVersionCheck } = await import('@/app/model/useVersionCheck'));
   clockTime = new Date('2026-10-31T00:00:00Z').getTime();
   vi.spyOn(Date, 'now').mockImplementation(() => clockTime);
   vi.spyOn(globalThis, 'setInterval');
@@ -54,7 +54,7 @@ describe('useVersionCheck', () => {
   it('starts no requests or intervals when the build is a development version', async () => {
     vi.stubEnv('VITE_APP_VERSION', 'dev');
     vi.resetModules();
-    ({ useVersionCheck } = await import('./useVersionCheck'));
+    ({ useVersionCheck } = await import('@/app/model/useVersionCheck'));
 
     renderScreen(<VersionLifecycle />);
     expect(server.getRequests()).toHaveLength(0);

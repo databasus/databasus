@@ -4,12 +4,12 @@ import {
   type BackupConfig,
   type LogicalBackupConfigInput,
   toLogicalBackupConfigInput,
-} from '../../../../entities/backup-configs';
-import type { Database } from '../../../../entities/databases';
-import { isLogicalBackupConfigChanged } from '../../model/isLogicalBackupConfigChanged';
-import { isLogicalBackupConfigComplete } from '../../model/isLogicalBackupConfigComplete';
-import { EditBackupConfigSection } from './EditBackupConfigSection';
-import { LogicalBackupConfigFields } from './LogicalBackupConfigFields';
+} from '@/entities/backup-configs';
+import type { Database } from '@/entities/databases';
+import { isLogicalBackupConfigChanged } from '@/pages/databases/model/isLogicalBackupConfigChanged';
+import { isLogicalBackupConfigComplete } from '@/pages/databases/model/isLogicalBackupConfigComplete';
+import { EditBackupConfigSection } from '@/pages/databases/ui/backup-config/EditBackupConfigSection';
+import { LogicalBackupConfigFields } from '@/pages/databases/ui/backup-config/LogicalBackupConfigFields';
 
 interface Props {
   database: Database;

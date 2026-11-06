@@ -7,22 +7,22 @@ import {
   type Storage,
   StorageType,
   getStorageLogoFromType,
-} from '../../../../entities/storages';
-import { translateApiError } from '../../../../shared/i18n';
-import { WRAPPING_SELECT_CLASS_NAME } from '../../../../shared/ui';
-import { createDefaultStorageSettings } from '../../lib/createDefaultStorageSettings';
-import { isStorageAddressChanged } from '../../lib/isStorageAddressChanged';
-import { isStorageSettingsFilled } from '../../lib/isStorageSettingsFilled';
-import type { StorageDraft } from '../../lib/StorageDraft';
-import { useStorageDraft } from '../../model/useStorageDraft';
-import { EditAzureBlobStorageComponent } from './storages/EditAzureBlobStorageComponent';
-import { EditFTPStorageComponent } from './storages/EditFTPStorageComponent';
-import { EditGoogleDriveStorageComponent } from './storages/EditGoogleDriveStorageComponent';
-import { EditLocalStorageComponent } from './storages/EditLocalStorageComponent';
-import { EditNASStorageComponent } from './storages/EditNASStorageComponent';
-import { EditRcloneStorageComponent } from './storages/EditRcloneStorageComponent';
-import { EditS3StorageComponent } from './storages/EditS3StorageComponent';
-import { EditSFTPStorageComponent } from './storages/EditSFTPStorageComponent';
+} from '@/entities/storages';
+import { createDefaultStorageSettings } from '@/features/edit-storage/lib/createDefaultStorageSettings';
+import { isStorageAddressChanged } from '@/features/edit-storage/lib/isStorageAddressChanged';
+import { isStorageSettingsFilled } from '@/features/edit-storage/lib/isStorageSettingsFilled';
+import type { StorageDraft } from '@/features/edit-storage/lib/StorageDraft';
+import { useStorageDraft } from '@/features/edit-storage/model/useStorageDraft';
+import { EditAzureBlobStorageComponent } from '@/features/edit-storage/ui/edit/storages/EditAzureBlobStorageComponent';
+import { EditFTPStorageComponent } from '@/features/edit-storage/ui/edit/storages/EditFTPStorageComponent';
+import { EditGoogleDriveStorageComponent } from '@/features/edit-storage/ui/edit/storages/EditGoogleDriveStorageComponent';
+import { EditLocalStorageComponent } from '@/features/edit-storage/ui/edit/storages/EditLocalStorageComponent';
+import { EditNASStorageComponent } from '@/features/edit-storage/ui/edit/storages/EditNASStorageComponent';
+import { EditRcloneStorageComponent } from '@/features/edit-storage/ui/edit/storages/EditRcloneStorageComponent';
+import { EditS3StorageComponent } from '@/features/edit-storage/ui/edit/storages/EditS3StorageComponent';
+import { EditSFTPStorageComponent } from '@/features/edit-storage/ui/edit/storages/EditSFTPStorageComponent';
+import { translateApiError } from '@/shared/i18n';
+import { WRAPPING_SELECT_CLASS_NAME } from '@/shared/ui';
 
 interface Props {
   workspaceId: string;

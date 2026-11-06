@@ -3,10 +3,9 @@ import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { PostgresSslMode } from '@/entities/databases';
+import { ConnectionFieldRow } from '@/features/database-connection/ui/ConnectionFieldRow';
+import { ConnectionFieldTooltip } from '@/features/database-connection/ui/ConnectionFieldTooltip';
 import { AddressChangedSecretNoticeComponent } from '@/shared/ui';
-
-import { ConnectionFieldRow } from './ConnectionFieldRow';
-import { ConnectionFieldTooltip } from './ConnectionFieldTooltip';
 
 interface CertificateValues {
   sslMode?: PostgresSslMode;

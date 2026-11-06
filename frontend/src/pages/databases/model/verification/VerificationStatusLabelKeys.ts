@@ -1,5 +1,5 @@
-import type { TranslationKey } from '../../../../shared/i18n';
-import { VerificationStatus } from './VerificationStatus';
+import { VerificationStatus } from '@/pages/databases/model/verification/VerificationStatus';
+import type { TranslationKey } from '@/shared/i18n';
 
 export const VERIFICATION_STATUS_LABEL_KEYS: Record<VerificationStatus, TranslationKey> = {
   [VerificationStatus.PENDING]: 'status.verification.pending',

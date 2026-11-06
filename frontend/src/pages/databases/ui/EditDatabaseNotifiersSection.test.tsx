@@ -7,11 +7,11 @@ import {
   DatabaseType,
   createDefaultDatabaseSettings,
   databaseApi,
-} from '../../../entities/databases';
-import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
-import { releaseAndSettle } from '../../../shared/lib/test/releaseAndSettle';
-import { renderScreen } from '../../../shared/lib/test/renderScreen';
-import { EditDatabaseNotifiersSection } from './EditDatabaseNotifiersSection';
+} from '@/entities/databases';
+import { EditDatabaseNotifiersSection } from '@/pages/databases/ui/EditDatabaseNotifiersSection';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const mockServer = setUpMockApi();
 const database: Database = {

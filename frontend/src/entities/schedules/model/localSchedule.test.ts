@@ -6,8 +6,8 @@ import {
   withLocalDayOfMonth,
   withLocalTimeOfDay,
   withLocalWeekday,
-} from './localSchedule';
-import { ScheduleType } from './ScheduleType';
+} from '@/entities/schedules/model/localSchedule';
+import { ScheduleType } from '@/entities/schedules/model/ScheduleType';
 
 describe('local schedule at UTC+3 with the clock at 01:00 local', () => {
   beforeEach(() => {

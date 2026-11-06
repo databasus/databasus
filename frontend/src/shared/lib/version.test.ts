@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { compareVersions, parseGitHubTag } from './version';
+import { compareVersions, parseGitHubTag } from '@/shared/lib/version';
 
 describe('parseGitHubTag', () => {
   it('strips a leading v from a release tag', () => {

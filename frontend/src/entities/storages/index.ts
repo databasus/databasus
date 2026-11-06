@@ -1,8 +1,8 @@
-export { storageApi } from './api/storageApi';
-export type { Storage } from './model/Storage';
-export type { StorageSettings } from './model/StorageSettings';
-export type { StorageTestResult } from './model/StorageTestResult';
-export { StorageType } from './model/StorageType';
+export { storageApi } from '@/entities/storages/api/storageApi';
+export type { Storage } from '@/entities/storages/model/Storage';
+export type { StorageSettings } from '@/entities/storages/model/StorageSettings';
+export type { StorageTestResult } from '@/entities/storages/model/StorageTestResult';
+export { StorageType } from '@/entities/storages/model/StorageType';
 export type {
   AzureBlobStorageSettings,
   FtpStorageSettings,
@@ -11,12 +11,12 @@ export type {
   RcloneStorageSettings,
   S3StorageSettings,
   SftpStorageSettings,
-} from './model/ProviderStorageSettings';
-export { S3_STORAGE_CLASS_LABEL_KEYS } from './model/S3StorageClassLabelKeys';
-export { AzureBlobAuthMethod } from './model/AzureBlobAuthMethod';
-export { AZURE_BLOB_AUTH_METHOD_LABEL_KEYS } from './model/AzureBlobAuthMethodLabelKeys';
-export { getStorageLogoFromType } from './model/getStorageLogoFromType';
-export { STORAGE_TYPE_LABEL_KEYS } from './model/StorageTypeLabelKeys';
+} from '@/entities/storages/model/ProviderStorageSettings';
+export { S3_STORAGE_CLASS_LABEL_KEYS } from '@/entities/storages/model/S3StorageClassLabelKeys';
+export { AzureBlobAuthMethod } from '@/entities/storages/model/AzureBlobAuthMethod';
+export { AZURE_BLOB_AUTH_METHOD_LABEL_KEYS } from '@/entities/storages/model/AzureBlobAuthMethodLabelKeys';
+export { getStorageLogoFromType } from '@/entities/storages/model/getStorageLogoFromType';
+export { STORAGE_TYPE_LABEL_KEYS } from '@/entities/storages/model/StorageTypeLabelKeys';
 
-export { SftpAuthMethod } from './model/SftpAuthMethod';
-export { SFTP_AUTH_METHOD_LABEL_KEYS } from './model/SftpAuthMethodLabelKeys';
+export { SftpAuthMethod } from '@/entities/storages/model/SftpAuthMethod';
+export { SFTP_AUTH_METHOD_LABEL_KEYS } from '@/entities/storages/model/SftpAuthMethodLabelKeys';

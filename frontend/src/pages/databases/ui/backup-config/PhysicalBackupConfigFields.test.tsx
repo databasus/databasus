@@ -3,12 +3,12 @@ import { fireEvent, screen, within } from '@testing-library/react';
 import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
 
-import type { PhysicalDatabaseBackupType } from '../../../../entities/databases';
-import { mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
-import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-import { buildPhysicalBackupConfigDraft } from '../../model/physical-backups/buildPhysicalBackupConfigDraft.fixture';
-import type { PhysicalBackupConfigDraft } from '../../model/physical-backups/PhysicalBackupConfigDraft';
-import { PhysicalBackupConfigFields } from './PhysicalBackupConfigFields';
+import type { PhysicalDatabaseBackupType } from '@/entities/databases';
+import { buildPhysicalBackupConfigDraft } from '@/pages/databases/model/physical-backups/buildPhysicalBackupConfigDraft.fixture';
+import type { PhysicalBackupConfigDraft } from '@/pages/databases/model/physical-backups/PhysicalBackupConfigDraft';
+import { PhysicalBackupConfigFields } from '@/pages/databases/ui/backup-config/PhysicalBackupConfigFields';
+import { mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const mockServer = setUpMockApi();
 

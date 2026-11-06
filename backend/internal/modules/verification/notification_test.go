@@ -71,7 +71,7 @@ func TestVerificationNotifications(t *testing.T) {
 	}{
 		{name: "sends success after a completed report commits", report: agentclient.VerificationReport{Status: "COMPLETED"}, isSuccess: true, isEnabled: true, attempts: 1},
 		{name: "sends failure when the restored database is too small", report: agentclient.VerificationReport{Status: "COMPLETED", DBSizeBytesAfterRestore: new(int64(1))}, isSuccess: false, isEnabled: true, attempts: 1},
-		{name: "sends failure after the backup is rejected", report: agentclient.VerificationReport{Status: "FAILED", PgRestoreExitCode: new(1), FailMessage: new("archive corrupt")}, isSuccess: false, isEnabled: true, attempts: 1},
+		{name: "sends failure after the backup is rejected", report: agentclient.VerificationReport{Status: "FAILED", PgRestoreExitCode: new(1), FailMessage: new("archive corrupt"), FailureDiagnostic: &agentclient.VerificationFailureDiagnostic{Output: "private diagnostic body", IsTruncated: false}}, isSuccess: false, isEnabled: true, attempts: 1},
 		{name: "sends failure at the last agent attempt", report: agentclient.VerificationReport{Status: "FAILED", FailMessage: new("container unavailable")}, isSuccess: false, isEnabled: true, attempts: 3},
 		{name: "sends no failure before the last agent attempt", report: agentclient.VerificationReport{Status: "FAILED"}, isSuccess: false, isEnabled: true, attempts: 1},
 		{name: "sends no failure when notifications are disabled", report: agentclient.VerificationReport{Status: "FAILED", PgRestoreExitCode: new(1)}, isSuccess: false, isEnabled: false, attempts: 1},
@@ -116,6 +116,7 @@ func TestVerificationNotifications(t *testing.T) {
 				message := <-messages
 				assert.Contains(t, message, verification.Id.String())
 				assert.Contains(t, message, backup.Id.String())
+				assert.NotContains(t, message, "private diagnostic body")
 				if scenario.isSuccess {
 					assert.Contains(t, strings.ToLower(message), "passed")
 				} else {

@@ -6,13 +6,12 @@ import { Trans, useTranslation } from 'react-i18next';
 
 import { userApi } from '@/entities/users';
 import { OAuthSignInButtons } from '@/features/oauth-sign-in';
+import { useCloudflareTurnstile } from '@/pages/auth/model/useCloudflareTurnstile';
+import { CloudflareTurnstileWidget } from '@/pages/auth/ui/CloudflareTurnstileWidget';
 import { useAuthOperation } from '@/shared/auth';
 import { CLOUDFLARE_TURNSTILE_SITE_KEY, GITHUB_CLIENT_ID, GOOGLE_CLIENT_ID } from '@/shared/config';
 import { translateApiError } from '@/shared/i18n';
 import { FormValidator } from '@/shared/lib/FormValidator';
-
-import { useCloudflareTurnstile } from '../model/useCloudflareTurnstile';
-import { CloudflareTurnstileWidget } from './CloudflareTurnstileWidget';
 
 interface SignUpComponentProps {
   onSwitchToSignIn?: () => void;

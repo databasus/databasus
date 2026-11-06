@@ -2,10 +2,9 @@ import os
 import secrets
 
 import pytest
-
 from supervisor_file import (
     SupervisorRecord,
-    get_process_start_time,
+    get_required_process_start_time,
     get_run_directory,
     remove_run_directory,
     write_supervisor_record,
@@ -19,6 +18,8 @@ def pytest_configure(config: pytest.Config) -> None:
         return
 
     run_id = secrets.token_hex(6)
-    write_supervisor_record(SupervisorRecord(run_id, os.getpid(), get_process_start_time(os.getpid()), None))
+    write_supervisor_record(
+        SupervisorRecord(run_id, os.getpid(), get_required_process_start_time(os.getpid()), None)
+    )
     config.option.basetemp = str(get_run_directory(run_id) / "pytest")
     config.add_cleanup(lambda: remove_run_directory(run_id))

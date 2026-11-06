@@ -1,8 +1,12 @@
-export { isOptionalValueChanged } from './isOptionalValueChanged';
-export { formatBytes } from './formatBytes';
-export { formatDuration } from './formatDuration';
-export { FormValidator } from './FormValidator';
-export { type PagedListPage, appendNextPage, mergeRefreshedFirstPage } from './pagedList';
-export { NAME_LIST_TOKEN_SEPARATORS, normalizeNameList } from './normalizeNameList';
-export { compareVersions, parseGitHubTag } from './version';
-export { toOptionalValue } from './toOptionalValue';
+export { isOptionalValueChanged } from '@/shared/lib/isOptionalValueChanged';
+export { formatBytes } from '@/shared/lib/formatBytes';
+export { formatDuration } from '@/shared/lib/formatDuration';
+export { FormValidator } from '@/shared/lib/FormValidator';
+export {
+  type PagedListPage,
+  appendNextPage,
+  mergeRefreshedFirstPage,
+} from '@/shared/lib/pagedList';
+export { NAME_LIST_TOKEN_SEPARATORS, normalizeNameList } from '@/shared/lib/normalizeNameList';
+export { compareVersions, parseGitHubTag } from '@/shared/lib/version';
+export { toOptionalValue } from '@/shared/lib/toOptionalValue';

@@ -3,9 +3,9 @@ import { Input, InputNumber, Switch, Tooltip } from 'antd';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { NasStorageSettings } from '../../../../../entities/storages';
-import { toOptionalValue } from '../../../../../shared/lib';
-import { AddressChangedSecretNoticeComponent } from '../../../../../shared/ui';
+import type { NasStorageSettings } from '@/entities/storages';
+import { toOptionalValue } from '@/shared/lib';
+import { AddressChangedSecretNoticeComponent } from '@/shared/ui';
 
 interface Props {
   settings: NasStorageSettings;

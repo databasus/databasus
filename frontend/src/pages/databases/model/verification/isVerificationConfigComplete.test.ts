@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { Schedule } from '../../../../entities/schedules';
-import { isVerificationConfigComplete } from './isVerificationConfigComplete';
-import type { VerificationConfig } from './VerificationConfig';
+import type { Schedule } from '@/entities/schedules';
+import { isVerificationConfigComplete } from '@/pages/databases/model/verification/isVerificationConfigComplete';
+import type { VerificationConfig } from '@/pages/databases/model/verification/VerificationConfig';
 
 const buildConfig = (overrides: Partial<VerificationConfig>): VerificationConfig => ({
   databaseId: 'database-id',

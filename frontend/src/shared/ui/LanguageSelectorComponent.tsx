@@ -4,8 +4,8 @@ import type { MenuProps } from 'antd';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { DICTIONARIES, SUPPORTED_LOCALES, useLocale } from '../i18n';
-import { useDropdownFocus } from './useDropdownFocus';
+import { DICTIONARIES, SUPPORTED_LOCALES, useLocale } from '@/shared/i18n';
+import { useDropdownFocus } from '@/shared/ui/useDropdownFocus';
 
 interface Props {
   isSplitStart?: boolean;

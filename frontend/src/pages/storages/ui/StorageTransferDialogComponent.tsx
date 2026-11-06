@@ -2,14 +2,13 @@ import { Alert, Button, Modal, Select, Spin } from 'antd';
 import { useEffect, useEffectEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { backupConfigApi } from '@/entities/backup-configs';
+import { type Storage, storageApi } from '@/entities/storages';
+import { type Workspace, workspaceApi } from '@/entities/workspaces';
 import { useSessionGuard } from '@/shared/auth';
 import { useRequestRevision } from '@/shared/hooks';
-
-import { backupConfigApi } from '../../../entities/backup-configs';
-import { type Storage, storageApi } from '../../../entities/storages';
-import { type Workspace, workspaceApi } from '../../../entities/workspaces';
-import { translateApiError } from '../../../shared/i18n';
-import { LoadFailure } from '../../../shared/ui';
+import { translateApiError } from '@/shared/i18n';
+import { LoadFailure } from '@/shared/ui';
 
 interface Props {
   storage: Storage;

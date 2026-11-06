@@ -2,10 +2,9 @@
 import { screen } from '@testing-library/react';
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 
+import { OAuthSignInButtons } from '@/features/oauth-sign-in/ui/OAuthSignInButtons';
 import { beginAuthIntent, isCurrentAuthIntent } from '@/shared/auth';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
-
-import { OAuthSignInButtons } from './OAuthSignInButtons';
 
 vi.hoisted(() => {
   vi.stubEnv('VITE_GITHUB_CLIENT_ID', 'github-client');

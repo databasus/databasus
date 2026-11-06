@@ -1,6 +1,5 @@
 import type { Workspace } from '@/entities/workspaces';
-
-import { DatabasesComponent } from './DatabasesComponent';
+import { DatabasesComponent } from '@/pages/databases/ui/DatabasesComponent';
 
 interface Props {
   workspace: Workspace;

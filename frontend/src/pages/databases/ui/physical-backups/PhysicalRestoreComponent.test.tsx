@@ -6,23 +6,19 @@ import { HttpResponse, http } from 'msw';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-import {
-  type Database,
-  DatabaseType,
-  createDefaultDatabaseSettings,
-} from '../../../../entities/databases';
-import { API_BASE_PATH } from '../../../../shared/api';
-import { DICTIONARIES, useLocale } from '../../../../shared/i18n';
-import { buildProblem, mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
-import { createPendingApiResponse } from '../../../../shared/lib/test/pendingApiResponse';
-import { releaseAndSettle } from '../../../../shared/lib/test/releaseAndSettle';
-import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-import { stubClipboardWrite } from '../../../../shared/lib/test/stubClipboard';
-import { physicalBackupsApi } from '../../api/physicalBackupsApi';
-import { type PhysicalBackupListItem } from '../../model/physical-backups/PhysicalBackupListItem';
-import { PhysicalBackupStatus } from '../../model/physical-backups/PhysicalBackupStatus';
-import { PhysicalBackupType } from '../../model/physical-backups/PhysicalBackupType';
-import { PhysicalRestoreComponent } from './PhysicalRestoreComponent';
+import { type Database, DatabaseType, createDefaultDatabaseSettings } from '@/entities/databases';
+import { physicalBackupsApi } from '@/pages/databases/api/physicalBackupsApi';
+import { type PhysicalBackupListItem } from '@/pages/databases/model/physical-backups/PhysicalBackupListItem';
+import { PhysicalBackupStatus } from '@/pages/databases/model/physical-backups/PhysicalBackupStatus';
+import { PhysicalBackupType } from '@/pages/databases/model/physical-backups/PhysicalBackupType';
+import { PhysicalRestoreComponent } from '@/pages/databases/ui/physical-backups/PhysicalRestoreComponent';
+import { API_BASE_PATH } from '@/shared/api';
+import { DICTIONARIES, useLocale } from '@/shared/i18n';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
+import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
+import { stubClipboardWrite } from '@/shared/lib/test/stubClipboard';
 
 // main.tsx registers the plugin for the application; the screen sends and shows times through it.
 dayjs.extend(utc);

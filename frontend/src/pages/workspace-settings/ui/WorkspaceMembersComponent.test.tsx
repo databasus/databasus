@@ -3,12 +3,12 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { User } from '../../../entities/users';
-import type { Workspace, WorkspaceMember } from '../../../entities/workspaces';
-import { API_BASE_PATH, type ApiComponents } from '../../../shared/api';
-import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
-import { renderScreen } from '../../../shared/lib/test/renderScreen';
-import { WorkspaceMembersComponent } from './WorkspaceMembersComponent';
+import type { User } from '@/entities/users';
+import type { Workspace, WorkspaceMember } from '@/entities/workspaces';
+import { WorkspaceMembersComponent } from '@/pages/workspace-settings/ui/WorkspaceMembersComponent';
+import { API_BASE_PATH, type ApiComponents } from '@/shared/api';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const mockServer = setUpMockApi();
 

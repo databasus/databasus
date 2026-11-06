@@ -2,14 +2,10 @@ import { Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type Database } from '../../../../entities/databases';
-import {
-  type Notifier,
-  getNotifierLogoFromType,
-  notifierApi,
-} from '../../../../entities/notifiers';
-import { useSessionGuard } from '../../../../shared/auth';
-import { LoadFailure } from '../../../../shared/ui';
+import { type Database } from '@/entities/databases';
+import { type Notifier, getNotifierLogoFromType, notifierApi } from '@/entities/notifiers';
+import { useSessionGuard } from '@/shared/auth';
+import { LoadFailure } from '@/shared/ui';
 
 interface Props {
   database: Database;

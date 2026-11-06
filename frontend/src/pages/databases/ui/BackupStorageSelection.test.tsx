@@ -4,10 +4,9 @@ import { HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Storage } from '@/entities/storages';
+import { BackupStorageSelection } from '@/pages/databases/ui/BackupStorageSelection';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
-
-import { BackupStorageSelection } from './BackupStorageSelection';
 
 const server = setUpMockApi();
 const storage: Storage = {
@@ -68,7 +67,12 @@ describe('Composed backup storage creation', () => {
     expect(onSelect).not.toHaveBeenCalled();
     expect(dialog.getByDisplayValue('Newer')).toBeTruthy();
 
-    fireEvent.click(await dialog.findByRole('button', { name: /Save/ }));
+    const saveButton = await dialog.findByRole('button', { name: /Save/ });
+    await waitFor(() => {
+      expect(saveButton.hasAttribute('disabled')).toBe(false);
+      expect(saveButton.classList.contains('ant-btn-loading')).toBe(false);
+    });
+    await view.user.click(saveButton);
 
     await waitFor(() => expect(onSelect).toHaveBeenCalledWith(storage.id));
     expect(

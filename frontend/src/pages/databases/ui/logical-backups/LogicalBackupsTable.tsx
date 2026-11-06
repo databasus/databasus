@@ -4,13 +4,16 @@ import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 
-import { useLocale } from '../../../../shared/i18n';
-import { formatDuration } from '../../../../shared/lib';
-import { getUserTimeFormat } from '../../../../shared/time';
-import { formatBackupSize } from '../../lib/formatBackupSize';
-import type { LogicalBackup } from '../../model/LogicalBackup';
-import { LogicalBackupActions, type LogicalBackupRowActions } from './LogicalBackupActions';
-import { LogicalBackupStatusLabel } from './LogicalBackupStatusLabel';
+import { formatBackupSize } from '@/pages/databases/lib/formatBackupSize';
+import type { LogicalBackup } from '@/pages/databases/model/LogicalBackup';
+import {
+  LogicalBackupActions,
+  type LogicalBackupRowActions,
+} from '@/pages/databases/ui/logical-backups/LogicalBackupActions';
+import { LogicalBackupStatusLabel } from '@/pages/databases/ui/logical-backups/LogicalBackupStatusLabel';
+import { useLocale } from '@/shared/i18n';
+import { formatDuration } from '@/shared/lib';
+import { getUserTimeFormat } from '@/shared/time';
 
 interface Props {
   backups: LogicalBackup[];

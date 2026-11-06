@@ -1,16 +1,16 @@
 import type { JSX } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { physicalBackupsApi } from '../../api/physicalBackupsApi';
+import { physicalBackupsApi } from '@/pages/databases/api/physicalBackupsApi';
 import {
   type RestoreEnvironment,
   buildDockerScriptCommand,
   buildManualSteps,
   buildScriptCommand,
-} from '../../lib/physical-backups/restoreCommands';
-import { CopyableCommand } from './CopyableCommand';
-import type { PhysicalRestoreMethod } from './PhysicalRestoreMethod';
-import type { CommandToCopy } from './useCopiedCommand';
+} from '@/pages/databases/lib/physical-backups/restoreCommands';
+import { CopyableCommand } from '@/pages/databases/ui/physical-backups/CopyableCommand';
+import type { PhysicalRestoreMethod } from '@/pages/databases/ui/physical-backups/PhysicalRestoreMethod';
+import type { CommandToCopy } from '@/pages/databases/ui/physical-backups/useCopiedCommand';
 
 interface Props {
   environment: RestoreEnvironment;

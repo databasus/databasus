@@ -3,10 +3,9 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { type User } from '@/entities/users';
+import { UserAuditLogsSidebar } from '@/pages/users/ui/UserAuditLogsSidebar';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
-
-import { UserAuditLogsSidebar } from './UserAuditLogsSidebar';
 
 const server = setUpMockApi();
 const firstUser: User = {

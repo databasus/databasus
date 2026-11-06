@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getNextCronRun } from './getNextCronRun';
+import { getNextCronRun } from '@/entities/schedules/model/getNextCronRun';
 
 describe('getNextCronRun', () => {
   beforeEach(() => {

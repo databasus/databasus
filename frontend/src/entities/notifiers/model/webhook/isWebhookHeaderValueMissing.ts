@@ -1,4 +1,4 @@
-import type { WebhookHeader } from './WebhookHeader';
+import type { WebhookHeader } from '@/entities/notifiers/model/webhook/WebhookHeader';
 
 // Header names are matched without regard to letter case, as the backend matches them.
 export const isWebhookHeaderValueMissing = (

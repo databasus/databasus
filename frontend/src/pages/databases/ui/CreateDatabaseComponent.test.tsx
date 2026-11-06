@@ -5,23 +5,23 @@ import utc from 'dayjs/plugin/utc';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
-import { backupConfigApi } from '../../../entities/backup-configs';
+import { backupConfigApi } from '@/entities/backup-configs';
 import {
   type Database,
   DatabaseType,
   createDefaultDatabaseSettings,
   databaseApi,
-} from '../../../entities/databases';
-import type { Storage } from '../../../entities/storages';
-import { API_BASE_PATH, type ApiComponents } from '../../../shared/api';
-import { useLocale } from '../../../shared/i18n';
-import { ru } from '../../../shared/i18n/locales/ru';
-import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
-import { releaseAndSettle } from '../../../shared/lib/test/releaseAndSettle';
-import { renderScreen } from '../../../shared/lib/test/renderScreen';
-import { stubClipboard } from '../../../shared/lib/test/stubClipboard';
-import { logicalBackupApi } from '../api/logicalBackupApi';
-import { CreateDatabaseComponent } from './CreateDatabaseComponent';
+} from '@/entities/databases';
+import type { Storage } from '@/entities/storages';
+import { logicalBackupApi } from '@/pages/databases/api/logicalBackupApi';
+import { CreateDatabaseComponent } from '@/pages/databases/ui/CreateDatabaseComponent';
+import { API_BASE_PATH, type ApiComponents } from '@/shared/api';
+import { useLocale } from '@/shared/i18n';
+import { ru } from '@/shared/i18n/locales/ru';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
+import { stubClipboard } from '@/shared/lib/test/stubClipboard';
 
 dayjs.extend(utc);
 
@@ -993,6 +993,25 @@ describe('completing the wizard', () => {
 
   const findCreatedDatabaseMessage = () => screen.findByText(CREATED_DATABASE_MESSAGE);
 
+  it('closes after physical configuration acknowledgement without queuing a manual backup', async () => {
+    declareCompletionServer(DatabaseType.POSTGRES_PHYSICAL);
+    const backupConfigSave = mockApi.pending('put', '/backup-configs/{databaseId}');
+    mockServer.use(backupConfigSave.handler);
+    const { onClose } = renderCompletableWizard();
+    await reachPhysicalNotifierStep();
+
+    await clickComplete();
+    await waitFor(() =>
+      expect(countRequests({ method: 'PUT', path: '/backup-configs/created-id' })).toBe(1),
+    );
+    expect(onClose).not.toHaveBeenCalled();
+
+    backupConfigSave.respond(HttpResponse.json({}));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+    expect(countRequests({ method: 'POST', path: '/physical-backups' })).toBe(0);
+  });
+
   describe.each([
     {
       kind: 'logical',
@@ -1007,24 +1026,39 @@ describe('completing the wizard', () => {
       reachCompletionStep: reachPhysicalNotifierStep,
     },
   ])('of a $kind database', ({ type, backupStartPath, reachCompletionStep }) => {
+    const hasManualBackupStart = type !== DatabaseType.POSTGRES_PHYSICAL;
+
     it('sends each request once and closes after the last one when everything succeeds', async () => {
       const completionServer = declareCompletionServer(type);
-      const backupStart = mockApi.pending('post', backupStartPath as '/logical-backups');
-      mockServer.use(backupStart.handler);
+      const lastRequest = hasManualBackupStart
+        ? mockApi.pending('post', '/logical-backups')
+        : mockApi.pending('put', '/backup-configs/{databaseId}');
+      mockServer.use(lastRequest.handler);
       const { onCreated, onClose } = renderCompletableWizard();
       await reachCompletionStep();
 
       await clickComplete();
-      await waitFor(() => expect(countRequests({ method: 'POST', path: backupStartPath })).toBe(1));
+      await waitFor(() =>
+        expect(
+          countRequests({
+            method: hasManualBackupStart ? 'POST' : 'PUT',
+            path: hasManualBackupStart ? backupStartPath : '/backup-configs/created-id',
+          }),
+        ).toBe(1),
+      );
 
       expect(onClose).not.toHaveBeenCalled();
 
-      backupStart.respond(HttpResponse.json({ id: 'backup-id' }, { status: 202 }));
+      lastRequest.respond(
+        hasManualBackupStart
+          ? HttpResponse.json({ id: 'backup-id' }, { status: 202 })
+          : HttpResponse.json({}),
+      );
 
       await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
       expect(onCreated).toHaveBeenCalledTimes(1);
       expect(countRequests({ method: 'POST', path: '/databases' })).toBe(1);
-      expect(completionServer.sentBackupConfigs).toHaveLength(1);
+      expect(countRequests({ method: 'PUT', path: '/backup-configs/created-id' })).toBe(1);
       expect(completionServer.sentNotifierIds).toHaveLength(0);
     });
 
@@ -1042,25 +1076,29 @@ describe('completing the wizard', () => {
       await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
       expect(countRequests({ method: 'POST', path: '/databases' })).toBe(1);
       expect(completionServer.sentBackupConfigs).toHaveLength(2);
-      expect(countRequests({ method: 'POST', path: backupStartPath })).toBe(1);
+      expect(countRequests({ method: 'POST', path: backupStartPath })).toBe(
+        hasManualBackupStart ? 1 : 0,
+      );
     });
 
-    it('sends only the backup start again when Complete follows a failed backup start', async () => {
-      const completionServer = declareCompletionServer(type);
-      completionServer.isBackupStartRefused = true;
-      const { onClose } = renderCompletableWizard();
-      await reachCompletionStep();
+    if (hasManualBackupStart) {
+      it('sends only the backup start again when Complete follows a failed backup start', async () => {
+        const completionServer = declareCompletionServer(type);
+        completionServer.isBackupStartRefused = true;
+        const { onClose } = renderCompletableWizard();
+        await reachCompletionStep();
 
-      await clickComplete();
-      await findCreatedDatabaseMessage();
-      completionServer.isBackupStartRefused = false;
-      await clickComplete();
+        await clickComplete();
+        await findCreatedDatabaseMessage();
+        completionServer.isBackupStartRefused = false;
+        await clickComplete();
 
-      await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
-      expect(countRequests({ method: 'POST', path: '/databases' })).toBe(1);
-      expect(completionServer.sentBackupConfigs).toHaveLength(1);
-      expect(countRequests({ method: 'POST', path: backupStartPath })).toBe(2);
-    });
+        await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+        expect(countRequests({ method: 'POST', path: '/databases' })).toBe(1);
+        expect(completionServer.sentBackupConfigs).toHaveLength(1);
+        expect(countRequests({ method: 'POST', path: backupStartPath })).toBe(2);
+      });
+    }
 
     it('offers no way to the connection step and saves a changed configuration for the created database after a refused configuration', async () => {
       const completionServer = declareCompletionServer(type);
@@ -1085,36 +1123,38 @@ describe('completing the wizard', () => {
       expect(completionServer.sentBackupConfigs[1].storageId).toBe(nightlyStorage.id);
     });
 
-    it('offers no way to the configuration step after a failed backup start', async () => {
-      const completionServer = declareCompletionServer(type);
-      completionServer.isBackupStartRefused = true;
-      renderCompletableWizard();
-      await reachCompletionStep();
+    if (hasManualBackupStart) {
+      it('offers no way to the configuration step after a failed backup start', async () => {
+        const completionServer = declareCompletionServer(type);
+        completionServer.isBackupStartRefused = true;
+        renderCompletableWizard();
+        await reachCompletionStep();
 
-      await clickComplete();
-      await findCreatedDatabaseMessage();
+        await clickComplete();
+        await findCreatedDatabaseMessage();
 
-      expect(await screen.findByRole('button', { name: 'Complete' })).toBeTruthy();
-      expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
-    });
+        expect(await screen.findByRole('button', { name: 'Complete' })).toBeTruthy();
+        expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
+      });
+    }
 
     it('sends changed notifiers to the created database through an update with no second create', async () => {
       const completionServer = declareCompletionServer(type);
       declareNotifiers();
-      completionServer.isBackupStartRefused = true;
+      completionServer.isBackupConfigRefused = true;
       const { onClose } = renderCompletableWizard();
       await reachCompletionStep();
 
       await clickComplete();
       await findCreatedDatabaseMessage();
       await toggleNotifier('Alerts');
-      completionServer.isBackupStartRefused = false;
+      completionServer.isBackupConfigRefused = false;
       await clickComplete();
 
       await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
       expect(countRequests({ method: 'POST', path: '/databases' })).toBe(1);
       expect(completionServer.sentNotifierIds).toEqual([['alerts-id']]);
-      expect(completionServer.sentBackupConfigs).toHaveLength(1);
+      expect(completionServer.sentBackupConfigs).toHaveLength(2);
     });
   });
 

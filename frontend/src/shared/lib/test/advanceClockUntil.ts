@@ -1,5 +1,5 @@
-import { advanceFakeClock } from './advanceFakeClock';
-import { waitForCondition } from './conditionWait';
+import { advanceFakeClock } from '@/shared/lib/test/advanceFakeClock';
+import { waitForCondition } from '@/shared/lib/test/conditionWait';
 
 const POLL_INTERVAL_MS = 1_000;
 

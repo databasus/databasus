@@ -3,18 +3,14 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { HttpResponse, http } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  type Database,
-  DatabaseType,
-  createDefaultDatabaseSettings,
-} from '../../../entities/databases';
-import type { Notifier } from '../../../entities/notifiers';
-import { API_BASE_PATH } from '../../../shared/api';
-import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
-import { renderScreen } from '../../../shared/lib/test/renderScreen';
-import { CreateDatabaseNotifiersStep } from './CreateDatabaseNotifiersStep';
-import { DatabaseTransferDialogComponent } from './DatabaseTransferDialogComponent';
-import { EditDatabaseNotifiersSection } from './EditDatabaseNotifiersSection';
+import { type Database, DatabaseType, createDefaultDatabaseSettings } from '@/entities/databases';
+import type { Notifier } from '@/entities/notifiers';
+import { CreateDatabaseNotifiersStep } from '@/pages/databases/ui/CreateDatabaseNotifiersStep';
+import { DatabaseTransferDialogComponent } from '@/pages/databases/ui/DatabaseTransferDialogComponent';
+import { EditDatabaseNotifiersSection } from '@/pages/databases/ui/EditDatabaseNotifiersSection';
+import { API_BASE_PATH } from '@/shared/api';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const server = setUpMockApi();
 

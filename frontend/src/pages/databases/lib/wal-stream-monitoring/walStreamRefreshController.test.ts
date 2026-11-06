@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { WalStreamRefreshState } from '../../model/wal-stream-monitoring/WalStreamRefreshState';
-import { type WalStreamStatistics } from '../../model/wal-stream-monitoring/WalStreamStatistics';
-import { WalStreamStatisticsPeriod } from '../../model/wal-stream-monitoring/WalStreamStatisticsPeriod';
-import { FakePageVisibility } from './testPageVisibility';
+import { FakePageVisibility } from '@/pages/databases/lib/wal-stream-monitoring/testPageVisibility';
 import {
   WAL_STREAM_REFRESH_INTERVAL_MS,
   WalStreamRefreshController,
-} from './walStreamRefreshController';
+} from '@/pages/databases/lib/wal-stream-monitoring/walStreamRefreshController';
+import type { WalStreamRefreshState } from '@/pages/databases/model/wal-stream-monitoring/WalStreamRefreshState';
+import { type WalStreamStatistics } from '@/pages/databases/model/wal-stream-monitoring/WalStreamStatistics';
+import { WalStreamStatisticsPeriod } from '@/pages/databases/model/wal-stream-monitoring/WalStreamStatisticsPeriod';
 
 // The entity's public API imports its API client, and the client's config module reads window at
 // import time. The tests run in node, so they supply window.

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { isScheduleComplete } from './isScheduleComplete';
-import type { Schedule } from './Schedule';
-import { ScheduleType } from './ScheduleType';
+import { isScheduleComplete } from '@/entities/schedules/model/isScheduleComplete';
+import type { Schedule } from '@/entities/schedules/model/Schedule';
+import { ScheduleType } from '@/entities/schedules/model/ScheduleType';
 
 describe('isScheduleComplete', () => {
   it.each<[string, Schedule]>([

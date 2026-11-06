@@ -1,5 +1,5 @@
 /* eslint-disable i18next/no-literal-string -- a sample HTTP request carrying the English text the backend sends */
-import type { WebhookHeader } from '../../../entities/notifiers';
+import type { WebhookHeader } from '@/entities/notifiers';
 
 const EXAMPLE_HEADING = '✅ Backup completed for database "my-database" (workspace "Production")';
 

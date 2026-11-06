@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import type { PhysicalBackupConfigInput } from '../../../../entities/backup-configs';
-import { buildPhysicalBackupConfigDraft } from './buildPhysicalBackupConfigDraft.fixture';
-import { DEFAULT_FULL_BACKUPS_RETENTION } from './defaultFullBackupsRetention';
-import { toPhysicalBackupConfigDraft } from './toPhysicalBackupConfigDraft';
+import type { PhysicalBackupConfigInput } from '@/entities/backup-configs';
+import { buildPhysicalBackupConfigDraft } from '@/pages/databases/model/physical-backups/buildPhysicalBackupConfigDraft.fixture';
+import { DEFAULT_FULL_BACKUPS_RETENTION } from '@/pages/databases/model/physical-backups/defaultFullBackupsRetention';
+import { toPhysicalBackupConfigDraft } from '@/pages/databases/model/physical-backups/toPhysicalBackupConfigDraft';
 
 describe('toPhysicalBackupConfigDraft', () => {
   it('fills the full-backup retention with the defaults when the server returned none', () => {

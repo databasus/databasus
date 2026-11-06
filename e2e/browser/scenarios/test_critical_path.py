@@ -2,9 +2,13 @@ import os
 import uuid
 from dataclasses import dataclass
 
-from playwright.sync_api import Locator, Page, expect
-
-from application_screens import create_local_storage, create_workspace, open_application, sign_in
+from application_screens import (
+    Account,
+    create_local_storage,
+    create_workspace,
+    open_application,
+    sign_in,
+)
 from database_server import (
     BACKED_UP_DATABASE,
     RESTORE_TARGET_DATABASE,
@@ -14,9 +18,10 @@ from database_server import (
     prepare_databases,
     read_rows,
 )
-from row_comparison import RowComparison
 from physical_backup_chain import build_physical_chain
 from physical_restore import check_invalid_host_tools, restore_both_environments
+from playwright.sync_api import Locator, Page, expect
+from row_comparison import RowComparison
 
 LONG_OPERATION_MILLISECONDS = 120_000
 SOURCE_ROWS = ["first row before the backup", "second row before the backup"]
@@ -67,7 +72,9 @@ def _expect_connection_accepted(page: Page) -> None:
     expect(connection_outcome.first).to_be_visible()
 
     if page.get_by_text("Connection test passed").count() == 0:
-        raise AssertionError(f"the application refused the connection form: {connection_outcome.first.inner_text()}")
+        raise AssertionError(
+            f"the application refused the connection form: {connection_outcome.first.inner_text()}"
+        )
 
 
 def _expect_successful_outcome(scope: Page | Locator, operation: str) -> None:
@@ -93,9 +100,15 @@ def _restore_first_backup(page: Page, password: str) -> None:
 
 
 class TestCriticalPath:
-    def test_restores_the_rows_of_the_first_backup_into_an_empty_database(self, page: Page, instance_admin):
+    def test_restores_the_rows_of_the_first_backup_into_an_empty_database(
+        self, page: Page, instance_admin: Account
+    ) -> None:
         database_password = os.environ["E2E_DATABASE_PASSWORD"]
-        wizard_password = "wrong-database-password" if os.environ.get("E2E_PROBE") == "refused-form" else database_password
+        wizard_password = (
+            "wrong-database-password"
+            if os.environ.get("E2E_PROBE") == "refused-form"
+            else database_password
+        )
         storage_name = f"Critical path storage {uuid.uuid4()}"
 
         prepare_databases(SOURCE_ROWS)
@@ -103,16 +116,26 @@ class TestCriticalPath:
         sign_in(page, instance_admin)
         create_workspace(page, f"Critical path {uuid.uuid4()}")
         create_local_storage(page, storage_name)
-        _add_database_through_the_wizard(page, WizardDatabase("Critical path database", storage_name, wizard_password))
+        _add_database_through_the_wizard(
+            page, WizardDatabase("Critical path database", storage_name, wizard_password)
+        )
         _restore_first_backup(page, database_password)
 
-        backed_up_difference = RowComparison(SOURCE_ROWS, read_rows(BACKED_UP_DATABASE)).describe_difference()
-        restored_difference = RowComparison(SOURCE_ROWS, read_rows(RESTORE_TARGET_DATABASE)).describe_difference()
+        backed_up_difference = RowComparison(
+            SOURCE_ROWS, read_rows(BACKED_UP_DATABASE)
+        ).describe_difference()
+        restored_difference = RowComparison(
+            SOURCE_ROWS, read_rows(RESTORE_TARGET_DATABASE)
+        ).describe_difference()
 
-        assert backed_up_difference is None, f"the backed-up database differs: {backed_up_difference}"
+        assert backed_up_difference is None, (
+            f"the backed-up database differs: {backed_up_difference}"
+        )
         assert restored_difference is None, f"the restored database differs: {restored_difference}"
 
-        page.get_by_role("dialog", name="Restore from backup").get_by_role("button", name="Close", exact=True).last.click()
+        page.get_by_role("dialog", name="Restore from backup").get_by_role(
+            "button", name="Close", exact=True
+        ).last.click()
         _, archived_writes = build_physical_chain(page, storage_name)
 
         if os.environ.get("E2E_PROBE") == "invalid-host-tools":

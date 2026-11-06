@@ -3,11 +3,11 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
-import type { Notifier } from '../../../entities/notifiers';
-import { API_BASE_PATH } from '../../../shared/api';
-import { mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
-import { renderScreen } from '../../../shared/lib/test/renderScreen';
-import { NotifiersComponent } from './NotifiersComponent';
+import type { Notifier } from '@/entities/notifiers';
+import { NotifiersComponent } from '@/pages/notifiers/ui/NotifiersComponent';
+import { API_BASE_PATH } from '@/shared/api';
+import { mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const server = setUpMockApi();
 const notifier: Notifier = {

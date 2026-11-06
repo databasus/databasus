@@ -398,19 +398,22 @@ type VerificationConfigInput struct {
 
 // VerificationDetails Verification Details
 type VerificationDetails struct {
-	AgentId                   *openapi_types.UUID `json:"agentId,omitempty"`
-	AttemptCount              int                 `json:"attemptCount"`
-	BackupId                  openapi_types.UUID  `json:"backupId"`
-	CreatedAt                 time.Time           `json:"createdAt"`
-	DatabaseId                openapi_types.UUID  `json:"databaseId"`
-	FailMessage               *string             `json:"failMessage,omitempty"`
-	FinishedAt                *time.Time          `json:"finishedAt,omitempty"`
-	Id                        openapi_types.UUID  `json:"id"`
-	PgRestoreExitCode         *int                `json:"pgRestoreExitCode,omitempty"`
-	RestoreDurationMs         *int64              `json:"restoreDurationMs,omitempty"`
-	RestoredDatabaseSizeBytes *int64              `json:"restoredDatabaseSizeBytes,omitempty"`
-	SchemaCount               *int                `json:"schemaCount,omitempty"`
-	StartedAt                 *time.Time          `json:"startedAt,omitempty"`
+	AgentId      *openapi_types.UUID `json:"agentId,omitempty"`
+	AttemptCount int                 `json:"attemptCount"`
+	BackupId     openapi_types.UUID  `json:"backupId"`
+	CreatedAt    time.Time           `json:"createdAt"`
+	DatabaseId   openapi_types.UUID  `json:"databaseId"`
+	FailMessage  *string             `json:"failMessage,omitempty"`
+
+	// FailureDiagnostic Sanitized output of the final failed attempt, available only in verification details.
+	FailureDiagnostic         *VerificationFailureDiagnostic `json:"failureDiagnostic,omitempty"`
+	FinishedAt                *time.Time                     `json:"finishedAt,omitempty"`
+	Id                        openapi_types.UUID             `json:"id"`
+	PgRestoreExitCode         *int                           `json:"pgRestoreExitCode,omitempty"`
+	RestoreDurationMs         *int64                         `json:"restoreDurationMs,omitempty"`
+	RestoredDatabaseSizeBytes *int64                         `json:"restoredDatabaseSizeBytes,omitempty"`
+	SchemaCount               *int                           `json:"schemaCount,omitempty"`
+	StartedAt                 *time.Time                     `json:"startedAt,omitempty"`
 
 	// Status Verification Status
 	Status     VerificationStatus      `json:"status"`
@@ -420,6 +423,14 @@ type VerificationDetails struct {
 	// Trigger Verification Trigger
 	Trigger          VerificationTrigger `json:"trigger"`
 	VerifyDurationMs *int64              `json:"verifyDurationMs,omitempty"`
+}
+
+// VerificationFailureDiagnostic Sanitized output of the final failed attempt, available only in verification details.
+type VerificationFailureDiagnostic struct {
+	IsTruncated bool `json:"isTruncated"`
+
+	// Output At most 65536 decoded UTF-8 bytes, including an omission marker when truncated.
+	Output string `json:"output"`
 }
 
 // VerificationNotificationTrigger Verification Notification Trigger

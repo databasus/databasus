@@ -1,11 +1,11 @@
-import { BackupEncryption, BackupSettingsType } from '../../../../entities/backup-configs';
-import { PhysicalDatabaseBackupType } from '../../../../entities/databases';
-import { ScheduleType } from '../../../../entities/schedules';
-import { DEFAULT_FULL_BACKUPS_RETENTION } from './defaultFullBackupsRetention';
-import { hasIncrementalBackups } from './hasIncrementalBackups';
-import type { PhysicalBackupConfigDraft } from './PhysicalBackupConfigDraft';
-import { PhysicalNotificationTrigger } from './PhysicalNotificationTrigger';
-import { PhysicalRetentionPolicy } from './PhysicalRetentionPolicy';
+import { BackupEncryption, BackupSettingsType } from '@/entities/backup-configs';
+import { PhysicalDatabaseBackupType } from '@/entities/databases';
+import { ScheduleType } from '@/entities/schedules';
+import { DEFAULT_FULL_BACKUPS_RETENTION } from '@/pages/databases/model/physical-backups/defaultFullBackupsRetention';
+import { hasIncrementalBackups } from '@/pages/databases/model/physical-backups/hasIncrementalBackups';
+import type { PhysicalBackupConfigDraft } from '@/pages/databases/model/physical-backups/PhysicalBackupConfigDraft';
+import { PhysicalNotificationTrigger } from '@/pages/databases/model/physical-backups/PhysicalNotificationTrigger';
+import { PhysicalRetentionPolicy } from '@/pages/databases/model/physical-backups/PhysicalRetentionPolicy';
 
 const DEFAULT_WAL_LAG_THRESHOLD_BYTES = 256 * 1024 * 1024;
 

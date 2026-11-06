@@ -240,15 +240,16 @@ func TestRunConcurrentRestores(t *testing.T) {
 
 		runnerUnderTest := NewRunner(
 			Deps{
-				APIClient:      client,
-				Capacity:       testCapacity(),
-				Pool:           NewPool(2),
-				Spawner:        spawner,
-				Restorer:       &barrierRestorer{barrier: barrier},
-				StatsCollector: &fakeStats{stats: verifier.Stats{DBSizeBytes: 1, SchemaCount: 1, TableCount: 1}},
-				Heartbeat:      heartbeater,
-				Logger:         slog.New(slog.DiscardHandler),
-				Group:          newTestGroup(t),
+				DiagnosticSecrets: nil,
+				APIClient:         client,
+				Capacity:          testCapacity(),
+				Pool:              NewPool(2),
+				Spawner:           spawner,
+				Restorer:          &barrierRestorer{barrier: barrier},
+				StatsCollector:    &fakeStats{stats: verifier.Stats{DBSizeBytes: 1, SchemaCount: 1, TableCount: 1}},
+				Heartbeat:         heartbeater,
+				Logger:            slog.New(slog.DiscardHandler),
+				Group:             newTestGroup(t),
 			},
 		)
 		runnerUnderTest.connAlive = func(context.Context, dbconn.Conn) bool { return true }

@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createTestWalStreamStatistics } from '../../../../shared/lib/test/buildWalStreamStatistics';
-import { type WalStreamLive } from '../../model/wal-stream-monitoring/WalStreamLive';
-import { WalStreamSourceState } from '../../model/wal-stream-monitoring/WalStreamSourceState';
-import { applyLiveValues } from './liveOverlay';
+import { applyLiveValues } from '@/pages/databases/lib/wal-stream-monitoring/liveOverlay';
+import { type WalStreamLive } from '@/pages/databases/model/wal-stream-monitoring/WalStreamLive';
+import { WalStreamSourceState } from '@/pages/databases/model/wal-stream-monitoring/WalStreamSourceState';
+import { createTestWalStreamStatistics } from '@/shared/lib/test/buildWalStreamStatistics';
 
 // The entity's public API imports its API client, and the client's config module reads window at
 // import time. The tests run in node, so they supply window.

@@ -1,1 +1,1 @@
-export { EditNotifierComponent } from './ui/edit/EditNotifierComponent';
+export { EditNotifierComponent } from '@/features/edit-notifier/ui/edit/EditNotifierComponent';

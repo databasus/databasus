@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { MattermostDeliveryMode } from './MattermostDeliveryMode';
-import type { MattermostNotifierSettings } from './MattermostNotifierSettings';
-import { validateMattermostNotifier } from './validateMattermostNotifier';
+import { MattermostDeliveryMode } from '@/entities/notifiers/model/mattermost/MattermostDeliveryMode';
+import type { MattermostNotifierSettings } from '@/entities/notifiers/model/mattermost/MattermostNotifierSettings';
+import { validateMattermostNotifier } from '@/entities/notifiers/model/mattermost/validateMattermostNotifier';
 
 const emptyNotifier: MattermostNotifierSettings = {
   type: 'MATTERMOST',

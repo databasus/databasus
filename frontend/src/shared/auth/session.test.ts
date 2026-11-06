@@ -9,7 +9,7 @@ import {
   getSessionSnapshot,
   invalidateSession,
   subscribeSession,
-} from './session';
+} from '@/shared/auth/session';
 
 afterEach(() => {
   invalidateSession();

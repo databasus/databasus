@@ -71,7 +71,7 @@ export default function FAQPage() {
                 name: "Como funcionam os backups físicos e PITR (Point-in-Time Recovery)?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "O Databasus executa backups físicos remotamente a partir do seu próprio host, conectando-se ao seu PostgreSQL pelo protocolo padrão de replicação, então nada precisa ser instalado no servidor da base de dados. Bases em redes fechadas podem ser alcançadas por um túnel SSH. Os backups físicos usam a pilha nativa do PostgreSQL 17: backups completos via pg_basebackup, incrementais em nível de bloco via pg_basebackup --incremental com base nos resumos de WAL do servidor (summarize_wal = on) e streaming contínuo de WAL via pg_receivewal. Backups físicos exigem PostgreSQL 17 ou mais recente; em versões anteriores usam-se backups lógicos com pg_dump. Para restaurar para um ponto no tempo, o pg_combinebackup reconstrói um diretório de dados utilizável a partir do backup completo e da sua cadeia de incrementais, e o PostgreSQL então reproduz o WAL até o momento alvo escolhido, recuperando para qualquer segundo entre backups. A interface do Databasus dá instruções passo a passo para restaurar num host ou numa base em Docker, seja por um script pronto que torna a restauração um único comando, seja baixando os backups e reconstruindo a cadeia de partes completas, incrementais e WAL por conta própria. Incrementais e WAL são opcionais: você pode fazer apenas um backup completo, e o WAL não é obrigatório. Usamos os backups nativos do PostgreSQL 17 porque reutilizam o mecanismo de backup já comprovado do próprio PostgreSQL em vez de reinventá-lo, funcionam com bases remotas incluindo serviços gerenciados como RDS e Cloud SQL e dão perda de dados quase nula.",
+                  text: "O Databasus executa backups físicos remotamente a partir do seu próprio host, conectando-se ao seu PostgreSQL pelo protocolo padrão de replicação, então nada precisa ser instalado no servidor da base de dados. Bases em redes fechadas podem ser alcançadas por um túnel SSH. Os backups físicos usam a pilha nativa do PostgreSQL 17: backups completos via pg_basebackup, incrementais em nível de bloco via pg_basebackup --incremental com base nos resumos de WAL do servidor (summarize_wal = on) e streaming contínuo de WAL via pg_receivewal. Backups físicos exigem PostgreSQL 17 ou mais recente; em versões anteriores usam-se backups lógicos com pg_dump. Para restaurar para um ponto no tempo, o pg_combinebackup reconstrói um diretório de dados utilizável a partir do backup completo e da sua cadeia de incrementais, e o PostgreSQL então reproduz o WAL até o momento alvo escolhido, recuperando para qualquer segundo entre backups. A interface do Databasus dá instruções passo a passo para restaurar num host ou numa base em Docker, seja por um script pronto que torna a restauração um único comando, seja baixando os backups e reconstruindo a cadeia de partes completas, incrementais e WAL por conta própria. Incrementais e WAL são opcionais: você pode fazer apenas um backup completo, e o WAL não é obrigatório. Usamos os backups nativos do PostgreSQL 17 porque reutilizam o mecanismo de backup já comprovado do próprio PostgreSQL em vez de reinventá-lo e dão perda de dados quase nula.",
                 },
               },
               {
@@ -314,11 +314,6 @@ export default function FAQPage() {
                   Reutilizam o mecanismo de backup do próprio PostgreSQL em vez
                   de reinventá-lo, então você aproveita um mecanismo comprovado,
                   com milhares de testes e casos-limite por trás
-                </li>
-                <li>
-                  Funcionam com bases de dados remotas, incluindo serviços
-                  gerenciados como Amazon RDS e Google Cloud SQL, que expõem o
-                  protocolo de replicação mas proíbem instalar software no host
                 </li>
                 <li>
                   Dão perda de dados quase nula, permitindo restaurar para

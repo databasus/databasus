@@ -4,11 +4,10 @@ import { HttpResponse, http } from 'msw';
 import { useRef } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { WorkspaceAuditLogsComponent } from '@/pages/workspace-settings/ui/WorkspaceAuditLogsComponent';
 import { API_BASE_PATH } from '@/shared/api';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
-
-import { WorkspaceAuditLogsComponent } from './WorkspaceAuditLogsComponent';
 
 const server = setUpMockApi();
 

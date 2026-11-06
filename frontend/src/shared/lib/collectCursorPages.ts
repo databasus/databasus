@@ -1,4 +1,4 @@
-import type { PagedListPage } from './pagedList';
+import type { PagedListPage } from '@/shared/lib/pagedList';
 
 export const collectCursorPages = async <TItem, TCursor>(
   fetchPage: (cursor: TCursor | undefined) => Promise<PagedListPage<TItem, TCursor>>,

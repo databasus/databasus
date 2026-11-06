@@ -2,10 +2,10 @@ import { Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { healthcheckConfigApi } from '../../../../entities/healthcheck';
-import type { HealthcheckConfig } from '../../../../entities/healthcheck';
-import { useSessionGuard } from '../../../../shared/auth';
-import { LoadFailure } from '../../../../shared/ui';
+import { healthcheckConfigApi } from '@/entities/healthcheck';
+import type { HealthcheckConfig } from '@/entities/healthcheck';
+import { useSessionGuard } from '@/shared/auth';
+import { LoadFailure } from '@/shared/ui';
 
 interface Props {
   databaseId: string;

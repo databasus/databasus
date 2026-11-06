@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   AZURE_BLOB_AUTH_METHOD_LABEL_KEYS,
   type AzureBlobStorageSettings,
-} from '../../../../../entities/storages';
+} from '@/entities/storages';
 
 interface Props {
   settings: AzureBlobStorageSettings;

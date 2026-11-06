@@ -16,11 +16,11 @@ run = "scripts/test.sh --full"
 
 [tasks.lint]
 description = "Check every module without changing files"
-run = "mise run --continue-on-error backend:lint ::: frontend:lint ::: lint-shell ::: lint-workflows"
+run = "mise run --continue-on-error backend:lint ::: frontend:lint ::: python:lint ::: lint-shell ::: lint-workflows"
 
 [tasks.format]
 description = "Format every module"
-depends = ["backend:format", "frontend:format"]
+depends = ["backend:format", "frontend:format", "python:format"]
 
 [tasks.doctor]
 description = "Check review tools and whether Codex project hooks are enabled and trusted"
@@ -38,6 +38,18 @@ run = ["go -C backend generate ./...", "pnpm --dir frontend generate:api"]
 
 # CI/CD commands (also used by hooks)
 # Use the user commands above for everyday development.
+
+[tasks."python:lint"]
+description = "Check all repository Python formatting, lint rules, annotations and types"
+run = "python3 scripts/python_quality.py lint"
+env = { PYTHONDONTWRITEBYTECODE = "1", UV_PYTHON_PREFERENCE = "only-system" }
+hide = true
+
+[tasks."python:format"]
+description = "Apply safe lint fixes and formatting to all repository Python"
+run = "python3 scripts/python_quality.py format"
+env = { PYTHONDONTWRITEBYTECODE = "1", UV_PYTHON_PREFERENCE = "only-system" }
+hide = true
 
 [tasks."e2e:browser"]
 description = "Run the browser end-to-end suite on the application image: DATABASUS_IMAGE, or one built from the checkout"
@@ -110,6 +122,8 @@ golangci-lint = "2.11.3"
 "npm:chrome-devtools-mcp" = "1.11.0"
 python = "3.14.7"
 uv = "0.13.7"
+ruff = "0.17.3"
+ty = "0.0.97"
 "npm:@fission-ai/openspec" = "1.11.0"
 "go:golang.org/x/tools/gopls" = "v0.24.0"
 "npm:typescript-language-server" = "6.0.2"

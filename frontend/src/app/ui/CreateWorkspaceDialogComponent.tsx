@@ -4,10 +4,10 @@ import { Spin } from 'antd';
 import { useId, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { type User, UserRole, type InstanceSettings } from '../../entities/users';
-import { type Workspace, workspaceApi } from '../../entities/workspaces';
-import { useSessionGuard } from '../../shared/auth';
-import { translateApiError } from '../../shared/i18n';
+import { type User, UserRole, type InstanceSettings } from '@/entities/users';
+import { type Workspace, workspaceApi } from '@/entities/workspaces';
+import { useSessionGuard } from '@/shared/auth';
+import { translateApiError } from '@/shared/i18n';
 
 interface Props {
   user: User;

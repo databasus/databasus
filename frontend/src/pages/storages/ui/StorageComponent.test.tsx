@@ -3,13 +3,13 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { HttpResponse } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { type Storage, storageApi } from '../../../entities/storages';
-import { activateSession } from '../../../shared/auth';
-import { DICTIONARIES, type Locale, useLocale } from '../../../shared/i18n';
-import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
-import { releaseAndSettle } from '../../../shared/lib/test/releaseAndSettle';
-import { renderScreen } from '../../../shared/lib/test/renderScreen';
-import { StorageComponent } from './StorageComponent';
+import { type Storage, storageApi } from '@/entities/storages';
+import { StorageComponent } from '@/pages/storages/ui/StorageComponent';
+import { activateSession } from '@/shared/auth';
+import { DICTIONARIES, type Locale, useLocale } from '@/shared/i18n';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const mockServer = setUpMockApi();
 

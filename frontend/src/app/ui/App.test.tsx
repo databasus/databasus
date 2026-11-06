@@ -2,11 +2,10 @@ import { fireEvent, screen } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
-import { activateSession, getSessionSnapshot, invalidateSession } from '@/shared/auth';
+import { renderApp } from '@/app/ui/renderApp';
 // @vitest-environment happy-dom
-
-import { buildProblem, mockApi, setUpMockApi } from '../../shared/lib/test/mockApi';
-import { renderApp } from './renderApp';
+import { activateSession, getSessionSnapshot, invalidateSession } from '@/shared/auth';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 
 const mockServer = setUpMockApi();
 

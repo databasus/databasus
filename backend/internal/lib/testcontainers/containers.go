@@ -98,14 +98,18 @@ func getPortNumber(exposedPort string) int {
 	return port
 }
 
-func startUnpublished(t *testing.T, req testcontainers.ContainerRequest, placement NetworkPlacement) {
+func startUnpublished(
+	t *testing.T,
+	req testcontainers.ContainerRequest,
+	placement NetworkPlacement,
+) testcontainers.Container {
 	t.Helper()
 
 	req.ExposedPorts = nil
 	req.Networks = []string{placement.NetworkName}
 	req.NetworkAliases = map[string][]string{placement.NetworkName: {placement.Alias}}
 
-	bootContainer(t, req)
+	return bootContainer(t, req)
 }
 
 func start(t *testing.T, req testcontainers.ContainerRequest, mappedPort string) Endpoint {
@@ -127,6 +131,11 @@ func startContainer(t *testing.T, req testcontainers.ContainerRequest, mappedPor
 // Each failed attempt is logged, so an image that keeps needing a retry still shows up in the output.
 func bootContainer(t *testing.T, req testcontainers.ContainerRequest) testcontainers.Container {
 	t.Helper()
+	skipUnavailableImage(t, req.Image)
+	imageName := req.Image
+	if imageName == "" {
+		imageName = req.Repo + ":" + req.Tag
+	}
 
 	var lastErr error
 
@@ -144,7 +153,7 @@ func bootContainer(t *testing.T, req testcontainers.ContainerRequest) testcontai
 					context.WithoutCancel(t.Context()),
 					testcontainers.StopTimeout(0),
 				); err != nil {
-					t.Logf("failed to terminate %s container: %v", req.Image, err)
+					t.Logf("failed to terminate %s container: %v", imageName, err)
 				}
 			})
 
@@ -152,16 +161,16 @@ func bootContainer(t *testing.T, req testcontainers.ContainerRequest) testcontai
 		}
 
 		lastErr = err
-		t.Logf("attempt %d/%d to start %s container failed: %v", attempt, containerBootAttempts, req.Image, err)
-		logContainerOutputTail(t, container, req.Image)
+		t.Logf("attempt %d/%d to start %s container failed: %v", attempt, containerBootAttempts, imageName, err)
+		logContainerOutputTail(t, container, imageName)
 
 		// GenericContainer hands back the half-started container alongside the error.
 		if err := testcontainers.TerminateContainer(container); err != nil {
-			t.Logf("failed to terminate %s container after a failed start: %v", req.Image, err)
+			t.Logf("failed to terminate %s container after a failed start: %v", imageName, err)
 		}
 	}
 
-	t.Fatalf("failed to start %s container after %d attempts: %v", req.Image, containerBootAttempts, lastErr)
+	t.Fatalf("failed to start %s container after %d attempts: %v", imageName, containerBootAttempts, lastErr)
 
 	return nil
 }

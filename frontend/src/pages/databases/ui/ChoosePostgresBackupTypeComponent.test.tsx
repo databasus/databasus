@@ -2,10 +2,10 @@
 import { screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { DatabaseType } from '../../../entities/databases';
-import { DICTIONARIES } from '../../../shared/i18n/dictionaries';
-import { renderScreen } from '../../../shared/lib/test/renderScreen';
-import { ChoosePostgresBackupTypeComponent } from './ChoosePostgresBackupTypeComponent';
+import { DatabaseType } from '@/entities/databases';
+import { ChoosePostgresBackupTypeComponent } from '@/pages/databases/ui/ChoosePostgresBackupTypeComponent';
+import { DICTIONARIES } from '@/shared/i18n/dictionaries';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const { logical, physical } = DICTIONARIES.en.databases.create.backupType;
 

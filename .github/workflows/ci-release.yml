@@ -21,6 +21,9 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' }}
 
 jobs:
+  lint-python:
+    uses: ./.github/workflows/lint-python.yml
+
   lint-backend:
     runs-on: namespace-profile-8vcpu-16ram-ubuntu-22-x64
     timeout-minutes: 15
@@ -89,13 +92,40 @@ jobs:
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: 'go shellcheck jq node pnpm python'
+          install_args: 'shellcheck'
 
       - name: Run shellcheck
         run: mise run lint-shell
 
+  test-scripts:
+    name: test-scripts (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+          - arch: arm64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: 'go shellcheck jq node pnpm python uv ruff ty hk'
+
+      - name: Check native runner architecture
+        run: scripts/check_native_architecture.sh ${{ matrix.arch }}
+
       - name: Test the full test run script
-        run: python3 -m unittest discover -s scripts -p '*_test.py'
+        run: |
+          uv sync --locked --project e2e/browser
+          python3 -m unittest discover -s scripts -p '*_test.py'
+
 
   lint-workflows:
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
@@ -130,13 +160,28 @@ jobs:
         run: |
           trivy config --severity HIGH,CRITICAL --exit-code 1 Dockerfile
           trivy config --severity HIGH,CRITICAL --exit-code 1 backend/cmd/verification-agent/images/postgres/Dockerfile
+          trivy config --severity HIGH,CRITICAL --exit-code 1 e2e/docker-storage/nfs/Dockerfile
+          trivy config --severity HIGH,CRITICAL --exit-code 1 backend/internal/lib/testcontainers/testdata/sftp/Dockerfile
+          trivy config --severity HIGH,CRITICAL --exit-code 1 backend/internal/lib/testcontainers/testdata/ftp/Dockerfile
 
   test-frontend:
-    runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+    name: test-frontend (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+          - arch: arm64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Check native runner architecture
+        run: scripts/check_native_architecture.sh ${{ matrix.arch }}
 
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
@@ -159,11 +204,23 @@ jobs:
           pnpm test
 
   test-frontend-browser-ui:
-    runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+    name: test-frontend-browser-ui (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+          - arch: arm64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Check native runner architecture
+        run: scripts/check_native_architecture.sh ${{ matrix.arch }}
 
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
@@ -180,17 +237,29 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: frontend-browser-ui
+          name: frontend-browser-ui-${{ matrix.arch }}
           path: frontend/browser-results/
           retention-days: 7
 
   test-e2e-browser:
     needs: [build-storage-image]
-    runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+    name: test-e2e-browser (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+          - arch: arm64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Check native runner architecture
+        run: scripts/check_native_architecture.sh ${{ matrix.arch }}
 
       - name: Download the storage candidate
         id: download-the-storage-candidate-1
@@ -198,7 +267,7 @@ jobs:
         timeout-minutes: 3
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: databasus-storage-test
+          name: databasus-storage-test-${{ matrix.arch }}
           path: /tmp
 
       - name: Download the storage candidate (attempt 2)
@@ -208,7 +277,7 @@ jobs:
         timeout-minutes: 3
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: databasus-storage-test
+          name: databasus-storage-test-${{ matrix.arch }}
           path: /tmp
 
       - name: Download the storage candidate (attempt 3)
@@ -217,11 +286,13 @@ jobs:
         timeout-minutes: 3
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: databasus-storage-test
+          name: databasus-storage-test-${{ matrix.arch }}
           path: /tmp
 
       - name: Load the storage candidate
-        run: zstd -dc /tmp/databasus-storage-test.tar.zst | docker load
+        run: |
+          zstd -dc /tmp/databasus-storage-test-${{ matrix.arch }}.tar.zst | docker load
+          scripts/check_native_architecture.sh ${{ matrix.arch }} databasus-storage-test:${{ github.sha }}-${{ matrix.arch }}
 
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
@@ -233,20 +304,32 @@ jobs:
 
       - name: Run the browser end-to-end suite
         env:
-          DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}
+          DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}-${{ matrix.arch }}
         run: mise run e2e:browser
 
       - name: Check the suite's cleanup and failure handling
         env:
-          DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}
+          DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}-${{ matrix.arch }}
         run: mise run e2e:lifecycle
 
   test-verification-agent:
-    runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+    name: test-verification-agent (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+          - arch: arm64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Check native runner architecture
+        run: scripts/check_native_architecture.sh ${{ matrix.arch }}
 
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
@@ -269,11 +352,23 @@ jobs:
   e2e-verification-agent-podman:
     # Namespace runners are containers without systemd whose seccomp profile denies
     # pivot_root, so rootful Podman cannot start containers there.
-    runs-on: ubuntu-24.04
+    name: e2e-verification-agent-podman (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Check native runner architecture
+        run: scripts/check_native_architecture.sh ${{ matrix.arch }}
 
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
@@ -285,9 +380,10 @@ jobs:
           # The bundled assets/tools clients are Debian-built; Ubuntu ships no libncurses5/libtinfo5
           # package at all, and the ABI-identical .so.6 satisfies them via these symlinks.
           sudo apt-get update -qq
-          sudo apt-get install -y -qq libedit2 libncurses6 libtinfo6 libpq5 libmariadb3 libgnutls30 zstd netcat-openbsd
-          sudo ln -sf /usr/lib/x86_64-linux-gnu/libncurses.so.6 /usr/lib/x86_64-linux-gnu/libncurses.so.5
-          sudo ln -sf /usr/lib/x86_64-linux-gnu/libtinfo.so.6 /usr/lib/x86_64-linux-gnu/libtinfo.so.5
+          sudo apt-get install -y -qq dpkg-dev libedit2 libncurses6 libtinfo6 libpq5 libmariadb3 libgnutls30 zstd netcat-openbsd
+          library_directory="/usr/lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
+          sudo ln -sf "${library_directory}/libncurses.so.6" "${library_directory}/libncurses.so.5"
+          sudo ln -sf "${library_directory}/libtinfo.so.6" "${library_directory}/libtinfo.so.5"
 
       - name: Download Go modules
         run: |
@@ -315,7 +411,7 @@ jobs:
 
       - name: Start rootful Podman socket
         run: |
-          sudo apt-get install -y acl
+          sudo apt-get install -y acl podman
           sudo systemctl start podman.socket
           sudo setfacl -m u:"$USER":x /run/podman
           sudo setfacl -m u:"$USER":rw /run/podman/podman.sock
@@ -335,40 +431,79 @@ jobs:
     # 22.04 runs Linux 6.8. ubuntu-24.04 moved to Linux 7.0, where mongod 9.0 exits at startup:
     # its kernel check reads Ubuntu's 7.0.0 release string as an rseq-incompatible kernel
     # (SERVER-121912, SERVER-136848).
+    name: test-backend (${{ matrix.arch }}, ${{ matrix.group }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
-        # Only other runs many packages at once. The rest run one to four packages, so twice the
-        # vCPU would only hold a larger share of the concurrency limit.
+        # Logical tests run several database engines concurrently; other runs many packages.
         include:
           - group: other
+            arch: amd64
             runner: namespace-profile-8vcpu-16ram-ubuntu-22-x64
+          - group: other
+            arch: arm64
+            runner: namespace-profile-8vcpu-16ram-ubuntu-22-arm
           - group: agent-e2e
+            arch: amd64
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
+          - group: agent-e2e
+            arch: arm64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
           - group: logical
+            arch: amd64
+            runner: namespace-profile-8vcpu-16ram-ubuntu-22-x64
+          - group: logical
+            arch: arm64
+            runner: namespace-profile-8vcpu-16ram-ubuntu-22-arm
+          - group: physical-1-of-3
+            arch: amd64
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
           - group: physical-1-of-3
+            arch: arm64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
+          - group: physical-2-of-3
+            arch: amd64
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
           - group: physical-2-of-3
+            arch: arm64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
+          - group: physical-3-of-3
+            arch: amd64
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
           - group: physical-3-of-3
+            arch: arm64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
+          - group: physical-api-1-of-3
+            arch: amd64
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
           - group: physical-api-1-of-3
+            arch: arm64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
+          - group: physical-api-2-of-3
+            arch: amd64
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
           - group: physical-api-2-of-3
+            arch: arm64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
+          - group: physical-api-3-of-3
+            arch: amd64
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
           - group: physical-api-3-of-3
-            runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
+            arch: arm64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
+      - name: Check native runner architecture
+        run: scripts/check_native_architecture.sh ${{ matrix.arch }}
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: 'go golangci-lint'
+          install_args: 'go golangci-lint jq'
 
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
@@ -380,9 +515,10 @@ jobs:
           # The bundled assets/tools clients are Debian-built; Ubuntu ships no libncurses5/libtinfo5
           # package at all, and the ABI-identical .so.6 satisfies them via these symlinks.
           sudo apt-get update -qq
-          sudo apt-get install -y -qq libedit2 libncurses6 libtinfo6 libpq5 libmariadb3 libgnutls30 zstd netcat-openbsd
-          sudo ln -sf /usr/lib/x86_64-linux-gnu/libncurses.so.6 /usr/lib/x86_64-linux-gnu/libncurses.so.5
-          sudo ln -sf /usr/lib/x86_64-linux-gnu/libtinfo.so.6 /usr/lib/x86_64-linux-gnu/libtinfo.so.5
+          sudo apt-get install -y -qq dpkg-dev libedit2 libncurses6 libtinfo6 libpq5 libmariadb3 libgnutls30 zstd netcat-openbsd
+          library_directory="/usr/lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
+          sudo ln -sf "${library_directory}/libncurses.so.6" "${library_directory}/libncurses.so.5"
+          sudo ln -sf "${library_directory}/libtinfo.so.6" "${library_directory}/libtinfo.so.5"
 
       - name: Download Go modules
         run: |
@@ -416,35 +552,67 @@ jobs:
           # Ryuk stays disabled to match scripts/test.sh, so CI and local runs share one code path.
           TESTCONTAINERS_RYUK_DISABLED: 'true'
           TEST_GROUP: ${{ matrix.group }}
+          # Container-heavy binaries share a runner; Go's per-binary default multiplies their load.
+          TEST_PARALLELISM: '2'
         run: |
           cd backend
           # Separate assignments let a failing task stop the step instead of running no tests.
           packages=$(mise run backend:test-group-packages "$TEST_GROUP")
           run_pattern=$(mise run backend:test-group-tests "$TEST_GROUP")
+          report_runner_resources() {
+            for resource in /proc/loadavg /proc/pressure/{cpu,memory,io} /sys/fs/cgroup/{cpu.stat,memory.current,memory.peak,memory.events}; do
+              if [[ -r "$resource" ]]; then
+                printf '\n%s\n' "$resource"
+                cat "$resource"
+              fi
+            done
+            timeout 15 docker stats --no-stream --format '{{.Name}} CPU={{.CPUPerc}} memory={{.MemUsage}}' || true
+          }
+          report_runner_resources
+          trap report_runner_resources EXIT
+          if [[ "$TEST_GROUP" == other ]]; then
+            # The latency regression measures storage throughput, so it needs the runner to itself.
+            isolated_package=databasus-backend/internal/modules/storages/internal/providers
+            grep -Fxq "$isolated_package" <<< "$packages"
+            go test -race -p=1 -parallel=1 -count=1 -failfast -timeout 40m "$isolated_package"
+            packages=$(grep -Fxv "$isolated_package" <<< "$packages")
+          fi
           # Each leg runs one group on its own runner and allows extra time for CI contention.
           # shellcheck disable=SC2086 # one import path per word
-          go test -race -p=8 -count=1 -failfast -timeout 40m ${run_pattern:+-run "$run_pattern"} $packages
+          go test -race -p=8 -parallel="$TEST_PARALLELISM" -count=1 -failfast -timeout 40m ${run_pattern:+-run "$run_pattern"} $packages
 
   build-storage-image:
-    runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
+    name: build-storage-image (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+          - arch: arm64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - name: Build amd64 storage candidate and load locally
+      - name: Check native runner architecture
+        run: scripts/check_native_architecture.sh ${{ matrix.arch }}
+
+      - name: Build native storage candidate and load locally
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
           context: .
           push: false
           load: true
-          platforms: linux/amd64
+          platforms: linux/${{ matrix.arch }}
           build-args: |
             APP_VERSION=storage-${{ github.sha }}
-          tags: databasus-storage-test:${{ github.sha }}
+          tags: databasus-storage-test:${{ github.sha }}-${{ matrix.arch }}
 
       - name: Export the storage candidate
-        run: docker save databasus-storage-test:${{ github.sha }} | zstd -T0 -3 > /tmp/databasus-storage-test.tar.zst
+        run: docker save databasus-storage-test:${{ github.sha }}-${{ matrix.arch }} | zstd -T0 -3 > /tmp/databasus-storage-test-${{ matrix.arch }}.tar.zst
 
       - name: Upload the storage candidate
         id: upload-the-storage-candidate-1
@@ -452,8 +620,8 @@ jobs:
         timeout-minutes: 5
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: databasus-storage-test
-          path: /tmp/databasus-storage-test.tar.zst
+          name: databasus-storage-test-${{ matrix.arch }}
+          path: /tmp/databasus-storage-test-${{ matrix.arch }}.tar.zst
           compression-level: 0
           retention-days: 1
           if-no-files-found: error
@@ -466,8 +634,8 @@ jobs:
         timeout-minutes: 5
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: databasus-storage-test
-          path: /tmp/databasus-storage-test.tar.zst
+          name: databasus-storage-test-${{ matrix.arch }}
+          path: /tmp/databasus-storage-test-${{ matrix.arch }}.tar.zst
           compression-level: 0
           retention-days: 1
           if-no-files-found: error
@@ -479,8 +647,8 @@ jobs:
         timeout-minutes: 5
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: databasus-storage-test
-          path: /tmp/databasus-storage-test.tar.zst
+          name: databasus-storage-test-${{ matrix.arch }}
+          path: /tmp/databasus-storage-test-${{ matrix.arch }}.tar.zst
           compression-level: 0
           retention-days: 1
           if-no-files-found: error
@@ -488,6 +656,7 @@ jobs:
 
   test-filesystems:
     needs: [build-storage-image]
+    name: test-filesystems (${{ matrix.arch }}, ${{ matrix.group }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     strategy:
@@ -495,18 +664,37 @@ jobs:
       matrix:
         include:
           - group: permissions
+            arch: amd64
+            runner: namespace-profile-2vcpu-4ram-ubuntu-26-x64
+          - group: permissions
+            arch: arm64
+            runner: namespace-profile-2vcpu-4ram-ubuntu-26-arm
+          - group: upgrades
+            arch: amd64
             runner: namespace-profile-2vcpu-4ram-ubuntu-26-x64
           - group: upgrades
+            arch: arm64
+            runner: namespace-profile-2vcpu-4ram-ubuntu-26-arm
+          - group: lifecycle
+            arch: amd64
             runner: namespace-profile-2vcpu-4ram-ubuntu-26-x64
           - group: lifecycle
-            runner: namespace-profile-2vcpu-4ram-ubuntu-26-x64
+            arch: arm64
+            runner: namespace-profile-2vcpu-4ram-ubuntu-26-arm
           # The Docker engine on Namespace runners has no CIFS or NFS kernel support, so
           # the network filesystem cases can only mount their volumes on GitHub runners.
           - group: network
+            arch: amd64
             runner: ubuntu-24.04
+          - group: network
+            arch: arm64
+            runner: ubuntu-24.04-arm
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Check native runner architecture
+        run: scripts/check_native_architecture.sh ${{ matrix.arch }}
 
       - name: Install network filesystem clients
         if: matrix.group == 'network'
@@ -518,7 +706,7 @@ jobs:
         timeout-minutes: 3
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: databasus-storage-test
+          name: databasus-storage-test-${{ matrix.arch }}
           path: /tmp
 
       - name: Download the storage candidate (attempt 2)
@@ -528,7 +716,7 @@ jobs:
         timeout-minutes: 3
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: databasus-storage-test
+          name: databasus-storage-test-${{ matrix.arch }}
           path: /tmp
 
       - name: Download the storage candidate (attempt 3)
@@ -537,11 +725,13 @@ jobs:
         timeout-minutes: 3
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: databasus-storage-test
+          name: databasus-storage-test-${{ matrix.arch }}
           path: /tmp
 
       - name: Load the storage candidate
-        run: zstd -dc /tmp/databasus-storage-test.tar.zst | docker load
+        run: |
+          zstd -dc /tmp/databasus-storage-test-${{ matrix.arch }}.tar.zst | docker load
+          scripts/check_native_architecture.sh ${{ matrix.arch }} databasus-storage-test:${{ github.sha }}-${{ matrix.arch }}
 
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
@@ -550,20 +740,32 @@ jobs:
 
       - name: Run filesystem suite
         env:
-          DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}
+          DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}-${{ matrix.arch }}
           CASE_GROUP: ${{ matrix.group }}
         run: mise run test-filesystem
 
   test-upgrade:
     needs: [build-storage-image]
-    runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+    name: test-upgrade (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+          - arch: arm64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
     steps:
       # The previous release is the newest v* tag, which lives on main, so the checkout needs every tag.
       - name: Check out code with tags
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 0
+
+      - name: Check native runner architecture
+        run: scripts/check_native_architecture.sh ${{ matrix.arch }}
 
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
@@ -581,7 +783,7 @@ jobs:
         timeout-minutes: 3
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: databasus-storage-test
+          name: databasus-storage-test-${{ matrix.arch }}
           path: /tmp
 
       - name: Download the storage candidate (attempt 2)
@@ -591,7 +793,7 @@ jobs:
         timeout-minutes: 3
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: databasus-storage-test
+          name: databasus-storage-test-${{ matrix.arch }}
           path: /tmp
 
       - name: Download the storage candidate (attempt 3)
@@ -600,15 +802,17 @@ jobs:
         timeout-minutes: 3
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: databasus-storage-test
+          name: databasus-storage-test-${{ matrix.arch }}
           path: /tmp
 
       - name: Load the storage candidate
-        run: zstd -dc /tmp/databasus-storage-test.tar.zst | docker load
+        run: |
+          zstd -dc /tmp/databasus-storage-test-${{ matrix.arch }}.tar.zst | docker load
+          scripts/check_native_architecture.sh ${{ matrix.arch }} databasus-storage-test:${{ github.sha }}-${{ matrix.arch }}
 
       - name: Run the upgrade test
         env:
-          DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}
+          DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}-${{ matrix.arch }}
         run: mise run backend:test-upgrade
 
   build-image:
@@ -627,6 +831,9 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Check native runner architecture
+        run: scripts/check_native_architecture.sh ${{ matrix.arch }}
 
       - name: Build image and load locally
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
@@ -649,22 +856,34 @@ jobs:
         run: scripts/check_image.sh databasus:smoke-${{ github.sha }}
 
   build-verification-image:
-    runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
+    name: build-verification-image (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+          - arch: arm64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       # A representative major checks the Dockerfile before version selection;
       # publishing builds the full multi-arch matrix.
-      - name: Build verification image (amd64, no push)
+      - name: Check native runner architecture
+        run: scripts/check_native_architecture.sh ${{ matrix.arch }}
+
+      - name: Build native verification image (no push)
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
           context: backend/cmd/verification-agent/images/postgres
           push: false
-          platforms: linux/amd64
+          platforms: linux/${{ matrix.arch }}
           build-args: |
             PG_MAJOR=16
 
@@ -688,7 +907,9 @@ jobs:
       [
         lint-backend,
         lint-frontend,
+        lint-python,
         lint-shell,
+        test-scripts,
         dockerfile-scan,
         dependency-review,
         test-backend,

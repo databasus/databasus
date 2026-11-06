@@ -4,9 +4,9 @@ import dayjs from 'dayjs';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { useLocale } from '../../../shared/i18n';
-import { getUserTimeFormat } from '../../../shared/time';
-import { getNextCronRun } from '../model/getNextCronRun';
+import { getNextCronRun } from '@/entities/schedules/model/getNextCronRun';
+import { useLocale } from '@/shared/i18n';
+import { getUserTimeFormat } from '@/shared/time';
 
 interface Props {
   cronExpression: string;

@@ -1,6 +1,6 @@
-import type { ApiComponents } from '../../../../shared/api';
-import type { VerificationConfig } from './VerificationConfig';
-import { VerificationScheduleType } from './VerificationScheduleType';
+import type { VerificationConfig } from '@/pages/databases/model/verification/VerificationConfig';
+import { VerificationScheduleType } from '@/pages/databases/model/verification/VerificationScheduleType';
+import type { ApiComponents } from '@/shared/api';
 
 interface VerificationConfigForSaveSource {
   acknowledgedConfig: VerificationConfig;

@@ -28,50 +28,7 @@ The rules for every module are in the root `AGENTS.md`.
 
 ## React component structure
 
-Write React components with the following structure:
-
-```typescript
-interface Props {
-   someValue: SomeValue;
-}
-
-const someHelperFunction = () => {
-    ...
-}
-
-export const ReactComponent = ({ someValue }: Props): JSX.Element => {
-    // First put states
-    const [someState, setSomeState] = useState<...>(...)
-
-    // Then place functions
-    const loadSomeData = async () => {
-        ...
-    }
-
-    // Then hooks
-    useEffect(() => {
-       loadSomeData();
-    });
-
-    // Then calculated values
-    const calculatedValue = someValue.calculate();
-
-    return <div> ... </div>
-}
-```
-
-### Structure order
-
-1. **Props interface** — Define component props
-2. **Helper functions** (outside component) — Pure utility functions
-3. **Component declaration**
-   - **States** — `useState` declarations
-   - **Plain functions** — Event handlers, async operations, in-component formatters. Anything that does _not_ call a React hook.
-   - **Hooks** — `useRef`, `useLatestRef`, `useEffectEvent`, `useCallback`, `useMemo`, `useEffect`. A function wrapped in `useCallback` is a hook — it lives here, not in the functions section.
-   - **Calculated values** — Derived data computed inline (e.g. an AntD `columns` array).
-   - **Return** — JSX markup
-
-**All hooks (including every `useEffect`) come below every plain function definition.** If a `useEffect` reads a handler, the handler must be defined above it — don't reorder by putting handlers below the effects.
+Group related code and arrange declarations so their dependencies are easy to follow from top to bottom. There is no mandatory order for state, hooks, derived values, handlers or effects. Do not reorder code or raise review findings solely to enforce a section order.
 
 ---
 
@@ -118,6 +75,12 @@ The frontend architecture and the reasons behind its boundaries are in [docs/arc
 API request and response types come from the generated contract. Keep generated schema aliases tied to their domain owner; do not handwrite copies of the contract. Other independently meaningful domain or view-state types get their own named logical unit; tiny aliases tightly coupled to that unit may stay with it.
 
 Only `main.tsx` and `vite-env.d.ts` sit at the source root beside the global style sheet; every other script module belongs to a layer.
+
+### Import paths
+
+Use `@/` for every literal module reference from a script in `src` to a target within `src`, including sibling imports, type imports, re-exports, dynamic imports and side-effect stylesheet imports. Keep direct imports within the same slice and use another slice's public API when crossing a slice boundary. Frontend lint enforces this convention.
+
+References from source tests to tooling outside `src` and imports originating outside `src` may stay relative. CSS resource URLs, `new URL(..., import.meta.url)`, package imports and source-code strings inside test fixtures retain their own path semantics. Do not rewrite them as part of an import migration.
 
 ## Verification
 

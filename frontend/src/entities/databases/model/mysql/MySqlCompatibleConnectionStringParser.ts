@@ -1,5 +1,5 @@
-import type { LocalizedText } from '../../../../shared/i18n';
-import { DatabaseType } from '../DatabaseType';
+import { DatabaseType } from '@/entities/databases/model/DatabaseType';
+import type { LocalizedText } from '@/shared/i18n';
 
 export type ParseResult = {
   host: string;

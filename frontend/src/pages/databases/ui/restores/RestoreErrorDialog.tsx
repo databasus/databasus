@@ -2,8 +2,8 @@ import { CopyOutlined } from '@ant-design/icons';
 import { Alert, App, Button, Modal } from 'antd';
 import { Trans, useTranslation } from 'react-i18next';
 
-import type { Restore } from '../../../../entities/restores';
-import { BrowserClipboard } from '../../../../shared/lib/BrowserClipboard';
+import type { Restore } from '@/entities/restores';
+import { BrowserClipboard } from '@/shared/lib/BrowserClipboard';
 
 interface Props {
   restore: Restore;

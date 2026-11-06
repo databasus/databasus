@@ -1,11 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
-import {
-  DATABASE_TYPE_LABEL_KEYS,
-  type MariadbSettings,
-  DatabaseType,
-} from '../../../../entities/databases';
-import { ShowSshTunnelComponent } from './ShowSshTunnelComponent';
+import { DATABASE_TYPE_LABEL_KEYS, type MariadbSettings, DatabaseType } from '@/entities/databases';
+import { ShowSshTunnelComponent } from '@/pages/databases/ui/show/ShowSshTunnelComponent';
 
 interface Props {
   settings: MariadbSettings;

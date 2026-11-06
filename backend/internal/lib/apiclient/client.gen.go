@@ -4060,19 +4060,22 @@ type VerificationConfigInput struct {
 
 // VerificationDetails Verification Details
 type VerificationDetails struct {
-	AgentId                   *openapi_types.UUID `json:"agentId,omitempty"`
-	AttemptCount              int                 `json:"attemptCount"`
-	BackupId                  openapi_types.UUID  `json:"backupId"`
-	CreatedAt                 time.Time           `json:"createdAt"`
-	DatabaseId                openapi_types.UUID  `json:"databaseId"`
-	FailMessage               *string             `json:"failMessage,omitempty"`
-	FinishedAt                *time.Time          `json:"finishedAt,omitempty"`
-	Id                        openapi_types.UUID  `json:"id"`
-	PgRestoreExitCode         *int                `json:"pgRestoreExitCode,omitempty"`
-	RestoreDurationMs         *int64              `json:"restoreDurationMs,omitempty"`
-	RestoredDatabaseSizeBytes *int64              `json:"restoredDatabaseSizeBytes,omitempty"`
-	SchemaCount               *int                `json:"schemaCount,omitempty"`
-	StartedAt                 *time.Time          `json:"startedAt,omitempty"`
+	AgentId      *openapi_types.UUID `json:"agentId,omitempty"`
+	AttemptCount int                 `json:"attemptCount"`
+	BackupId     openapi_types.UUID  `json:"backupId"`
+	CreatedAt    time.Time           `json:"createdAt"`
+	DatabaseId   openapi_types.UUID  `json:"databaseId"`
+	FailMessage  *string             `json:"failMessage,omitempty"`
+
+	// FailureDiagnostic Sanitized output of the final failed attempt, available only in verification details.
+	FailureDiagnostic         *VerificationFailureDiagnostic `json:"failureDiagnostic,omitempty"`
+	FinishedAt                *time.Time                     `json:"finishedAt,omitempty"`
+	Id                        openapi_types.UUID             `json:"id"`
+	PgRestoreExitCode         *int                           `json:"pgRestoreExitCode,omitempty"`
+	RestoreDurationMs         *int64                         `json:"restoreDurationMs,omitempty"`
+	RestoredDatabaseSizeBytes *int64                         `json:"restoredDatabaseSizeBytes,omitempty"`
+	SchemaCount               *int                           `json:"schemaCount,omitempty"`
+	StartedAt                 *time.Time                     `json:"startedAt,omitempty"`
 
 	// Status Verification Status
 	Status     VerificationStatus      `json:"status"`
@@ -4082,6 +4085,14 @@ type VerificationDetails struct {
 	// Trigger Verification Trigger
 	Trigger          VerificationTrigger `json:"trigger"`
 	VerifyDurationMs *int64              `json:"verifyDurationMs,omitempty"`
+}
+
+// VerificationFailureDiagnostic Sanitized output of the final failed attempt, available only in verification details.
+type VerificationFailureDiagnostic struct {
+	IsTruncated bool `json:"isTruncated"`
+
+	// Output At most 65536 decoded UTF-8 bytes, including an omission marker when truncated.
+	Output string `json:"output"`
 }
 
 // VerificationNotificationTrigger Verification Notification Trigger
@@ -6484,7 +6495,7 @@ type ClientInterface interface {
 
 	// TestDatabaseSettingsWithBody Test the connection with settings that are not saved
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. With another resource address than the database's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateDatabase`. Nothing connects on a refusal, and nothing is saved.
+	// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. With another resource address than the database's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateDatabase`. Nothing connects on a refusal, and nothing is saved.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -6493,7 +6504,7 @@ type ClientInterface interface {
 
 	// TestDatabaseSettings Test the connection with settings that are not saved
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. With another resource address than the database's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateDatabase`. Nothing connects on a refusal, and nothing is saved.
+	// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. With another resource address than the database's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateDatabase`. Nothing connects on a refusal, and nothing is saved.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -6509,7 +6520,7 @@ type ClientInterface interface {
 
 	// CreateDatabaseWithBody Create a database in a workspace
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the database exists. The backend connects first and saves what the server reports, such as its version. Settings the type refuses get 400 `invalid_request` with the field in `errors`; a server that cannot be reached or refuses the connection gets 400 `database_connection_failed` with the server's reason in `detail`. Every notifier must belong to the workspace.
+	// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the database exists. The backend connects first and saves what the server reports, such as its version. Settings the type refuses get 400 `invalid_request` with the field in `errors`; a server that cannot be reached or refuses the connection gets 400 `database_connection_failed` with the server's reason in `detail`. Every notifier must belong to the workspace.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -6518,7 +6529,7 @@ type ClientInterface interface {
 
 	// CreateDatabase Create a database in a workspace
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the database exists. The backend connects first and saves what the server reports, such as its version. Settings the type refuses get 400 `invalid_request` with the field in `errors`; a server that cannot be reached or refuses the connection gets 400 `database_connection_failed` with the server's reason in `detail`. Every notifier must belong to the workspace.
+	// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the database exists. The backend connects first and saves what the server reports, such as its version. Settings the type refuses get 400 `invalid_request` with the field in `errors`; a server that cannot be reached or refuses the connection gets 400 `database_connection_failed` with the server's reason in `detail`. Every notifier must belong to the workspace.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -6541,7 +6552,7 @@ type ClientInterface interface {
 
 	// UpdateDatabaseWithBody Replace the name, the settings and the notifiers of a database
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the address it is used at stays the stored one. The password and the PostgreSQL client key follow the database's resource address: its host, its port, the address of its SSH tunnel and, for MongoDB, the SRV flag. The SSH secrets follow the tunnel's resource address: whether it is enabled, and its host and port while it is. At another address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
+	// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the address it is used at stays the stored one. The password and the PostgreSQL client key follow the database's resource address: its host, its port, the address of its SSH tunnel and, for MongoDB, the SRV flag. The SSH secrets follow the tunnel's resource address: whether it is enabled, and its host and port while it is. At another address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -6550,7 +6561,7 @@ type ClientInterface interface {
 
 	// UpdateDatabase Replace the name, the settings and the notifiers of a database
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the address it is used at stays the stored one. The password and the PostgreSQL client key follow the database's resource address: its host, its port, the address of its SSH tunnel and, for MongoDB, the SRV flag. The SSH secrets follow the tunnel's resource address: whether it is enabled, and its host and port while it is. At another address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
+	// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the address it is used at stays the stored one. The password and the PostgreSQL client key follow the database's resource address: its host, its port, the address of its SSH tunnel and, for MongoDB, the SRV flag. The SSH secrets follow the tunnel's resource address: whether it is enabled, and its host and port while it is. At another address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -6566,7 +6577,7 @@ type ClientInterface interface {
 
 	// TestDatabase Test the connection of a saved database
 	//
-	// Any member of the workspace may test, a viewer included. A connection the server refuses is still a 200 that reports the reason. The test changes nothing in the database, its last backup error included.
+	// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Any member of the workspace may test, a viewer included. A connection the server refuses is still a 200 that reports the reason. The test changes nothing in the database, its last backup error included.
 	//
 	// Corresponds with POST /databases/{databaseId}/test (the `TestDatabase` operationId).
 	TestDatabase(ctx context.Context, databaseId DatabaseId, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -7652,7 +7663,7 @@ func (c *Client) UpdateBackupConfig(ctx context.Context, databaseId BackupConfig
 
 // TestDatabaseSettingsWithBody Test the connection with settings that are not saved
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. With another resource address than the database's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateDatabase`. Nothing connects on a refusal, and nothing is saved.
+// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. With another resource address than the database's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateDatabase`. Nothing connects on a refusal, and nothing is saved.
 //
 // Takes any type of body and a specified content type.
 //
@@ -7671,7 +7682,7 @@ func (c *Client) TestDatabaseSettingsWithBody(ctx context.Context, contentType s
 
 // TestDatabaseSettings Test the connection with settings that are not saved
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. With another resource address than the database's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateDatabase`. Nothing connects on a refusal, and nothing is saved.
+// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. With another resource address than the database's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateDatabase`. Nothing connects on a refusal, and nothing is saved.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -7707,7 +7718,7 @@ func (c *Client) ListDatabases(ctx context.Context, params *ListDatabasesParams,
 
 // CreateDatabaseWithBody Create a database in a workspace
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the database exists. The backend connects first and saves what the server reports, such as its version. Settings the type refuses get 400 `invalid_request` with the field in `errors`; a server that cannot be reached or refuses the connection gets 400 `database_connection_failed` with the server's reason in `detail`. Every notifier must belong to the workspace.
+// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the database exists. The backend connects first and saves what the server reports, such as its version. Settings the type refuses get 400 `invalid_request` with the field in `errors`; a server that cannot be reached or refuses the connection gets 400 `database_connection_failed` with the server's reason in `detail`. Every notifier must belong to the workspace.
 //
 // Takes any type of body and a specified content type.
 //
@@ -7726,7 +7737,7 @@ func (c *Client) CreateDatabaseWithBody(ctx context.Context, contentType string,
 
 // CreateDatabase Create a database in a workspace
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the database exists. The backend connects first and saves what the server reports, such as its version. Settings the type refuses get 400 `invalid_request` with the field in `errors`; a server that cannot be reached or refuses the connection gets 400 `database_connection_failed` with the server's reason in `detail`. Every notifier must belong to the workspace.
+// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the database exists. The backend connects first and saves what the server reports, such as its version. Settings the type refuses get 400 `invalid_request` with the field in `errors`; a server that cannot be reached or refuses the connection gets 400 `database_connection_failed` with the server's reason in `detail`. Every notifier must belong to the workspace.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -7779,7 +7790,7 @@ func (c *Client) GetDatabase(ctx context.Context, databaseId DatabaseId, reqEdit
 
 // UpdateDatabaseWithBody Replace the name, the settings and the notifiers of a database
 //
-// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the address it is used at stays the stored one. The password and the PostgreSQL client key follow the database's resource address: its host, its port, the address of its SSH tunnel and, for MongoDB, the SRV flag. The SSH secrets follow the tunnel's resource address: whether it is enabled, and its host and port while it is. At another address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
+// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the address it is used at stays the stored one. The password and the PostgreSQL client key follow the database's resource address: its host, its port, the address of its SSH tunnel and, for MongoDB, the SRV flag. The SSH secrets follow the tunnel's resource address: whether it is enabled, and its host and port while it is. At another address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
 //
 // Takes any type of body and a specified content type.
 //
@@ -7798,7 +7809,7 @@ func (c *Client) UpdateDatabaseWithBody(ctx context.Context, databaseId Database
 
 // UpdateDatabase Replace the name, the settings and the notifiers of a database
 //
-// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the address it is used at stays the stored one. The password and the PostgreSQL client key follow the database's resource address: its host, its port, the address of its SSH tunnel and, for MongoDB, the SRV flag. The SSH secrets follow the tunnel's resource address: whether it is enabled, and its host and port while it is. At another address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
+// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the address it is used at stays the stored one. The password and the PostgreSQL client key follow the database's resource address: its host, its port, the address of its SSH tunnel and, for MongoDB, the SRV flag. The SSH secrets follow the tunnel's resource address: whether it is enabled, and its host and port while it is. At another address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -7834,7 +7845,7 @@ func (c *Client) CopyDatabase(ctx context.Context, databaseId DatabaseId, reqEdi
 
 // TestDatabase Test the connection of a saved database
 //
-// Any member of the workspace may test, a viewer included. A connection the server refuses is still a 200 that reports the reason. The test changes nothing in the database, its last backup error included.
+// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Any member of the workspace may test, a viewer included. A connection the server refuses is still a 200 that reports the reason. The test changes nothing in the database, its last backup error included.
 //
 // Corresponds with POST /databases/{databaseId}/test (the `TestDatabase` operationId).
 func (c *Client) TestDatabase(ctx context.Context, databaseId DatabaseId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -14565,7 +14576,7 @@ type ClientWithResponsesInterface interface {
 
 	// TestDatabaseSettingsWithBodyWithResponse Test the connection with settings that are not saved
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. With another resource address than the database's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateDatabase`. Nothing connects on a refusal, and nothing is saved.
+	// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. With another resource address than the database's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateDatabase`. Nothing connects on a refusal, and nothing is saved.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -14574,7 +14585,7 @@ type ClientWithResponsesInterface interface {
 
 	// TestDatabaseSettingsWithResponse Test the connection with settings that are not saved
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. With another resource address than the database's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateDatabase`. Nothing connects on a refusal, and nothing is saved.
+	// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. With another resource address than the database's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateDatabase`. Nothing connects on a refusal, and nothing is saved.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -14592,7 +14603,7 @@ type ClientWithResponsesInterface interface {
 
 	// CreateDatabaseWithBodyWithResponse Create a database in a workspace
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the database exists. The backend connects first and saves what the server reports, such as its version. Settings the type refuses get 400 `invalid_request` with the field in `errors`; a server that cannot be reached or refuses the connection gets 400 `database_connection_failed` with the server's reason in `detail`. Every notifier must belong to the workspace.
+	// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the database exists. The backend connects first and saves what the server reports, such as its version. Settings the type refuses get 400 `invalid_request` with the field in `errors`; a server that cannot be reached or refuses the connection gets 400 `database_connection_failed` with the server's reason in `detail`. Every notifier must belong to the workspace.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -14601,7 +14612,7 @@ type ClientWithResponsesInterface interface {
 
 	// CreateDatabaseWithResponse Create a database in a workspace
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the database exists. The backend connects first and saves what the server reports, such as its version. Settings the type refuses get 400 `invalid_request` with the field in `errors`; a server that cannot be reached or refuses the connection gets 400 `database_connection_failed` with the server's reason in `detail`. Every notifier must belong to the workspace.
+	// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the database exists. The backend connects first and saves what the server reports, such as its version. Settings the type refuses get 400 `invalid_request` with the field in `errors`; a server that cannot be reached or refuses the connection gets 400 `database_connection_failed` with the server's reason in `detail`. Every notifier must belong to the workspace.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -14628,7 +14639,7 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateDatabaseWithBodyWithResponse Replace the name, the settings and the notifiers of a database
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the address it is used at stays the stored one. The password and the PostgreSQL client key follow the database's resource address: its host, its port, the address of its SSH tunnel and, for MongoDB, the SRV flag. The SSH secrets follow the tunnel's resource address: whether it is enabled, and its host and port while it is. At another address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
+	// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the address it is used at stays the stored one. The password and the PostgreSQL client key follow the database's resource address: its host, its port, the address of its SSH tunnel and, for MongoDB, the SRV flag. The SSH secrets follow the tunnel's resource address: whether it is enabled, and its host and port while it is. At another address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -14637,7 +14648,7 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateDatabaseWithResponse Replace the name, the settings and the notifiers of a database
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the address it is used at stays the stored one. The password and the PostgreSQL client key follow the database's resource address: its host, its port, the address of its SSH tunnel and, for MongoDB, the SRV flag. The SSH secrets follow the tunnel's resource address: whether it is enabled, and its host and port while it is. At another address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
+	// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the address it is used at stays the stored one. The password and the PostgreSQL client key follow the database's resource address: its host, its port, the address of its SSH tunnel and, for MongoDB, the SRV flag. The SSH secrets follow the tunnel's resource address: whether it is enabled, and its host and port while it is. At another address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -14655,7 +14666,7 @@ type ClientWithResponsesInterface interface {
 
 	// TestDatabaseWithResponse Test the connection of a saved database
 	//
-	// Any member of the workspace may test, a viewer included. A connection the server refuses is still a 200 that reports the reason. The test changes nothing in the database, its last backup error included.
+	// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Any member of the workspace may test, a viewer included. A connection the server refuses is still a 200 that reports the reason. The test changes nothing in the database, its last backup error included.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -22856,7 +22867,7 @@ func (c *ClientWithResponses) UpdateBackupConfigWithResponse(ctx context.Context
 
 // TestDatabaseSettingsWithBodyWithResponse Test the connection with settings that are not saved
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. With another resource address than the database's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateDatabase`. Nothing connects on a refusal, and nothing is saved.
+// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. With another resource address than the database's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateDatabase`. Nothing connects on a refusal, and nothing is saved.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -22871,7 +22882,7 @@ func (c *ClientWithResponses) TestDatabaseSettingsWithBodyWithResponse(ctx conte
 
 // TestDatabaseSettingsWithResponse Test the connection with settings that are not saved
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. With another resource address than the database's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateDatabase`. Nothing connects on a refusal, and nothing is saved.
+// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. With another resource address than the database's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateDatabase`. Nothing connects on a refusal, and nothing is saved.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -22901,7 +22912,7 @@ func (c *ClientWithResponses) ListDatabasesWithResponse(ctx context.Context, par
 
 // CreateDatabaseWithBodyWithResponse Create a database in a workspace
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the database exists. The backend connects first and saves what the server reports, such as its version. Settings the type refuses get 400 `invalid_request` with the field in `errors`; a server that cannot be reached or refuses the connection gets 400 `database_connection_failed` with the server's reason in `detail`. Every notifier must belong to the workspace.
+// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the database exists. The backend connects first and saves what the server reports, such as its version. Settings the type refuses get 400 `invalid_request` with the field in `errors`; a server that cannot be reached or refuses the connection gets 400 `database_connection_failed` with the server's reason in `detail`. Every notifier must belong to the workspace.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -22916,7 +22927,7 @@ func (c *ClientWithResponses) CreateDatabaseWithBodyWithResponse(ctx context.Con
 
 // CreateDatabaseWithResponse Create a database in a workspace
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the database exists. The backend connects first and saves what the server reports, such as its version. Settings the type refuses get 400 `invalid_request` with the field in `errors`; a server that cannot be reached or refuses the connection gets 400 `database_connection_failed` with the server's reason in `detail`. Every notifier must belong to the workspace.
+// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the database exists. The backend connects first and saves what the server reports, such as its version. Settings the type refuses get 400 `invalid_request` with the field in `errors`; a server that cannot be reached or refuses the connection gets 400 `database_connection_failed` with the server's reason in `detail`. Every notifier must belong to the workspace.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -22961,7 +22972,7 @@ func (c *ClientWithResponses) GetDatabaseWithResponse(ctx context.Context, datab
 
 // UpdateDatabaseWithBodyWithResponse Replace the name, the settings and the notifiers of a database
 //
-// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the address it is used at stays the stored one. The password and the PostgreSQL client key follow the database's resource address: its host, its port, the address of its SSH tunnel and, for MongoDB, the SRV flag. The SSH secrets follow the tunnel's resource address: whether it is enabled, and its host and port while it is. At another address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
+// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the address it is used at stays the stored one. The password and the PostgreSQL client key follow the database's resource address: its host, its port, the address of its SSH tunnel and, for MongoDB, the SRV flag. The SSH secrets follow the tunnel's resource address: whether it is enabled, and its host and port while it is. At another address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -22976,7 +22987,7 @@ func (c *ClientWithResponses) UpdateDatabaseWithBodyWithResponse(ctx context.Con
 
 // UpdateDatabaseWithResponse Replace the name, the settings and the notifiers of a database
 //
-// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the address it is used at stays the stored one. The password and the PostgreSQL client key follow the database's resource address: its host, its port, the address of its SSH tunnel and, for MongoDB, the SRV flag. The SSH secrets follow the tunnel's resource address: whether it is enabled, and its host and port while it is. At another address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
+// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the address it is used at stays the stored one. The password and the PostgreSQL client key follow the database's resource address: its host, its port, the address of its SSH tunnel and, for MongoDB, the SRV flag. The SSH secrets follow the tunnel's resource address: whether it is enabled, and its host and port while it is. At another address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -23006,7 +23017,7 @@ func (c *ClientWithResponses) CopyDatabaseWithResponse(ctx context.Context, data
 
 // TestDatabaseWithResponse Test the connection of a saved database
 //
-// Any member of the workspace may test, a viewer included. A connection the server refuses is still a 200 that reports the reason. The test changes nothing in the database, its last backup error included.
+// For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Any member of the workspace may test, a viewer included. A connection the server refuses is still a 200 that reports the reason. The test changes nothing in the database, its last backup error included.
 //
 // Returns a wrapper object for the known response body format(s).
 //

@@ -3,15 +3,15 @@ import { Select, Tooltip } from 'antd';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { LogicalBackupSettings } from '../../../../entities/backup-configs';
-import { changeLogicalRetentionPolicy } from '../../model/changeLogicalRetentionPolicy';
-import { isGfsHoursShown } from '../../model/isGfsHoursShown';
-import { LogicalRetentionPolicy } from '../../model/LogicalRetentionPolicy';
-import { LOGICAL_RETENTION_POLICY_LABEL_KEYS } from '../../model/LogicalRetentionPolicyLabelKeys';
-import { RetentionPeriod } from '../../model/RetentionPeriod';
-import { RETENTION_PERIOD_LABEL_KEYS } from '../../model/RetentionPeriodLabelKeys';
-import { GfsRetentionHint } from './GfsRetentionHint';
-import { RetentionNumberInput } from './RetentionNumberInput';
+import type { LogicalBackupSettings } from '@/entities/backup-configs';
+import { changeLogicalRetentionPolicy } from '@/pages/databases/model/changeLogicalRetentionPolicy';
+import { isGfsHoursShown } from '@/pages/databases/model/isGfsHoursShown';
+import { LogicalRetentionPolicy } from '@/pages/databases/model/LogicalRetentionPolicy';
+import { LOGICAL_RETENTION_POLICY_LABEL_KEYS } from '@/pages/databases/model/LogicalRetentionPolicyLabelKeys';
+import { RetentionPeriod } from '@/pages/databases/model/RetentionPeriod';
+import { RETENTION_PERIOD_LABEL_KEYS } from '@/pages/databases/model/RetentionPeriodLabelKeys';
+import { GfsRetentionHint } from '@/pages/databases/ui/backup-config/GfsRetentionHint';
+import { RetentionNumberInput } from '@/pages/databases/ui/backup-config/RetentionNumberInput';
 
 type LogicalRetention = LogicalBackupSettings['retention'];
 

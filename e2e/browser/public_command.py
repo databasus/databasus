@@ -16,7 +16,7 @@ PR_SET_PDEATHSIG = 1
 _POLL_SECONDS = 0.2
 
 
-_live_runs: set["PublicRun"] = set()
+_live_runs: set[PublicRun] = set()
 
 
 def _terminate_with_parent() -> None:
@@ -63,6 +63,7 @@ class PublicRun:
         self._reader.start()
 
     def _read_output(self) -> None:
+        assert self._process.stdout is not None
         for line in self._process.stdout:
             self._output_lines.append(line)
 
@@ -73,14 +74,21 @@ class PublicRun:
         deadline = time.monotonic() + limit_seconds
 
         while text not in self.get_output():
-            assert self._process.poll() is None, f"the run ended before printing {text}:\n{self.get_output()}"
-            assert time.monotonic() < deadline, f"the run did not print {text}:\n{self.get_output()}"
+            assert self._process.poll() is None, (
+                f"the run ended before printing {text}:\n{self.get_output()}"
+            )
+            assert time.monotonic() < deadline, (
+                f"the run did not print {text}:\n{self.get_output()}"
+            )
             time.sleep(_POLL_SECONDS)
 
     def get_project_name(self) -> str:
         self.wait_for_output("project: ")
 
-        return re.search(r"project: (\S+?);", self.get_output()).group(1)
+        matched_output = re.search(r"project: (\S+?);", self.get_output())
+        assert matched_output is not None
+
+        return matched_output.group(1)
 
     def get_run_id(self) -> str:
         return self.get_project_name().removeprefix("databasus-e2e-")
@@ -88,7 +96,10 @@ class PublicRun:
     def get_supervisor_pid(self) -> int:
         self.wait_for_output("supervisor PID: ")
 
-        return int(re.search(r"supervisor PID: (\d+)", self.get_output()).group(1))
+        matched_output = re.search(r"supervisor PID: (\d+)", self.get_output())
+        assert matched_output is not None
+
+        return int(matched_output.group(1))
 
     def send_signal_to_the_whole_command(self, signal_number: signal.Signals) -> None:
         try:

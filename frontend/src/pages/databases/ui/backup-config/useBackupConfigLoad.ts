@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 
-import { type BackupConfig, backupConfigApi } from '../../../../entities/backup-configs';
-import { useSession, useSessionGuard } from '../../../../shared/auth';
-import { useRequestRevision } from '../../../../shared/hooks';
+import { type BackupConfig, backupConfigApi } from '@/entities/backup-configs';
+import { useSession, useSessionGuard } from '@/shared/auth';
+import { useRequestRevision } from '@/shared/hooks';
 
 interface ConfigScope {
   databaseId: string;

@@ -3,14 +3,14 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { Notifier, NotifierSettings } from '../../../../entities/notifiers';
-import { API_BASE_PATH, type ApiComponents } from '../../../../shared/api';
-import { DICTIONARIES, type Locale } from '../../../../shared/i18n';
-import { en } from '../../../../shared/i18n/locales/en';
-import { mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
-import { watchNoticeTimer } from '../../../../shared/lib/test/noticeTimer';
-import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-import { EditNotifierComponent } from './EditNotifierComponent';
+import type { Notifier, NotifierSettings } from '@/entities/notifiers';
+import { EditNotifierComponent } from '@/features/edit-notifier/ui/edit/EditNotifierComponent';
+import { API_BASE_PATH, type ApiComponents } from '@/shared/api';
+import { DICTIONARIES, type Locale } from '@/shared/i18n';
+import { en } from '@/shared/i18n/locales/en';
+import { mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { watchNoticeTimer } from '@/shared/lib/test/noticeTimer';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const mockServer = setUpMockApi();
 

@@ -155,18 +155,29 @@ type VerificationAssignment struct {
 	VerificationID     openapi_types.UUID `json:"verificationId"`
 }
 
+// VerificationFailureDiagnostic Sanitized failure output for FAILED reports only. Omit when unavailable. Limited to 65536 decoded UTF-8 bytes including omission markers.
+type VerificationFailureDiagnostic struct {
+	IsTruncated bool `json:"isTruncated"`
+
+	// Output Nonempty output. More than 65536 decoded UTF-8 bytes is invalid_request without mutation.
+	Output string `json:"output"`
+}
+
 // VerificationReport VerificationReport
 type VerificationReport struct {
-	DBSizeBytesAfterRestore *int64                   `json:"dbSizeBytesAfterRestore,omitempty"`
-	FailMessage             *string                  `json:"failMessage,omitempty"`
-	FailureKind             *string                  `json:"failureKind,omitempty"`
-	PgRestoreExitCode       *int                     `json:"pgRestoreExitCode,omitempty"`
-	RestoreDurationMs       *int64                   `json:"restoreDurationMs,omitempty"`
-	SchemaCount             *int                     `json:"schemaCount,omitempty"`
-	Status                  VerificationReportStatus `json:"status"`
-	TableCount              *int                     `json:"tableCount,omitempty"`
-	TableStats              []ReportTableStat        `json:"tableStats,omitempty"`
-	VerifyDurationMs        *int64                   `json:"verifyDurationMs,omitempty"`
+	DBSizeBytesAfterRestore *int64  `json:"dbSizeBytesAfterRestore,omitempty"`
+	FailMessage             *string `json:"failMessage,omitempty"`
+
+	// FailureDiagnostic Sanitized failure output for FAILED reports only. Omit when unavailable. Limited to 65536 decoded UTF-8 bytes including omission markers.
+	FailureDiagnostic *VerificationFailureDiagnostic `json:"failureDiagnostic,omitempty"`
+	FailureKind       *string                        `json:"failureKind,omitempty"`
+	PgRestoreExitCode *int                           `json:"pgRestoreExitCode,omitempty"`
+	RestoreDurationMs *int64                         `json:"restoreDurationMs,omitempty"`
+	SchemaCount       *int                           `json:"schemaCount,omitempty"`
+	Status            VerificationReportStatus       `json:"status"`
+	TableCount        *int                           `json:"tableCount,omitempty"`
+	TableStats        []ReportTableStat              `json:"tableStats,omitempty"`
+	VerifyDurationMs  *int64                         `json:"verifyDurationMs,omitempty"`
 }
 
 // VerificationReportStatus defines model for VerificationReport.Status.

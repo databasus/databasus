@@ -1,9 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
-import {
-  S3_STORAGE_CLASS_LABEL_KEYS,
-  type S3StorageSettings,
-} from '../../../../../entities/storages';
+import { S3_STORAGE_CLASS_LABEL_KEYS, type S3StorageSettings } from '@/entities/storages';
 
 interface Props {
   settings: S3StorageSettings;

@@ -5,11 +5,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { User } from '@/entities/users';
 import type { Workspace } from '@/entities/workspaces';
+import { WorkspaceSettingsComponent } from '@/pages/workspace-settings/ui/WorkspaceSettingsComponent';
 import { activateSession } from '@/shared/auth';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
-
-import { WorkspaceSettingsComponent } from './WorkspaceSettingsComponent';
 
 const server = setUpMockApi();
 const workspace: Workspace = {

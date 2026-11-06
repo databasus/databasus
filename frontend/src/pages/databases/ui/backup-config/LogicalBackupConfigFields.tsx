@@ -8,15 +8,15 @@ import {
   BackupEncryption,
   type LogicalBackupConfigInput,
   type LogicalBackupSettings,
-} from '../../../../entities/backup-configs';
-import { type Schedule, ScheduleEditor } from '../../../../entities/schedules';
-import { AdvancedSettingsToggleComponent } from '../../../../shared/ui';
-import { getRetentionForSchedule } from '../../model/getRetentionForSchedule';
-import { hasNonDefaultLogicalAdvancedValues } from '../../model/hasNonDefaultLogicalAdvancedValues';
-import { BackupStorageSelection } from '../BackupStorageSelection';
-import { LogicalAdvancedFields } from './LogicalAdvancedFields';
-import { LogicalNotificationTriggerFields } from './LogicalNotificationTriggerFields';
-import { LogicalRetentionFields } from './LogicalRetentionFields';
+} from '@/entities/backup-configs';
+import { type Schedule, ScheduleEditor } from '@/entities/schedules';
+import { getRetentionForSchedule } from '@/pages/databases/model/getRetentionForSchedule';
+import { hasNonDefaultLogicalAdvancedValues } from '@/pages/databases/model/hasNonDefaultLogicalAdvancedValues';
+import { LogicalAdvancedFields } from '@/pages/databases/ui/backup-config/LogicalAdvancedFields';
+import { LogicalNotificationTriggerFields } from '@/pages/databases/ui/backup-config/LogicalNotificationTriggerFields';
+import { LogicalRetentionFields } from '@/pages/databases/ui/backup-config/LogicalRetentionFields';
+import { BackupStorageSelection } from '@/pages/databases/ui/BackupStorageSelection';
+import { AdvancedSettingsToggleComponent } from '@/shared/ui';
 
 interface Props {
   config: LogicalBackupConfigInput;

@@ -1,0 +1,11 @@
+Port 22
+ListenAddress 0.0.0.0
+PasswordAuthentication yes
+PermitEmptyPasswords no
+PermitRootLogin no
+AuthorizedKeysFile .ssh/authorized_keys
+Subsystem sftp internal-sftp
+ChrootDirectory /home/%u
+ForceCommand internal-sftp
+AllowTcpForwarding no
+X11Forwarding no

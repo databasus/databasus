@@ -10,6 +10,7 @@ chgrp postgres /run/recovery-engine/docker.sock
 chmod g+rw /run/recovery-engine/docker.sock
 
 docker info >/dev/null
-docker pull "$E2E_POSTGRES_IMAGE"
+docker image load --input /postgres.tar
+docker image inspect "$E2E_POSTGRES_IMAGE" >/dev/null
 touch /tmp/recovery-ready
 exec sleep infinity

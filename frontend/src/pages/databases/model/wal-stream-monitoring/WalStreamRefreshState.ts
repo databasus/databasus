@@ -1,4 +1,4 @@
-import type { WalStreamStatistics } from './WalStreamStatistics';
+import type { WalStreamStatistics } from '@/pages/databases/model/wal-stream-monitoring/WalStreamStatistics';
 
 export interface WalStreamRefreshState {
   // The newest successful response; a failed refresh never replaces it.

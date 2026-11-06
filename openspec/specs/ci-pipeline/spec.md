@@ -22,79 +22,81 @@ When CI runs the backend lint and the backend tests for a commit, the backend te
 
 ### Requirement: The backend suite runs as whole and sharded groups that cover every test once
 
-CI SHALL run the backend test suite as separate checks on separate runners, and the checks SHALL run at the same time. The `physical` group SHALL run the end-to-end physical backup tests, and the `logical` group SHALL run the end-to-end logical backup tests. The `physical-api` group SHALL run the test packages under `backend/internal/modules/backups/physicalapitests/`, the API tests of physical backups, which are slow because many of them start source servers and wait on real time. A package added under that directory SHALL join the group without any change to the CI configuration. The `agent-e2e` group SHALL run the verification agent's end-to-end scenarios on Docker, the packages under `backend/internal/agent/e2e/`, and a package added under that directory SHALL join the group without any change to the CI configuration. The `other` group SHALL select from the whole backend module and SHALL run every remaining backend package except the upgrade test and its comparison helper package, so that a directory of the module stays outside the groups only when it is named as running in another check. Each backend package other than the upgrade test and its comparison helper SHALL belong to exactly one group. The upgrade test, with its comparison helper, SHALL run as its own check, `test-upgrade`, against the image CI builds for the commit, without waiting for the backend groups. A backend package added outside these named groups SHALL run in the `other` group without any change to the CI configuration.
+For each required processor architecture, CI SHALL run the backend suite as separate checks on separate runners without introducing dependencies between the groups. The `physical` group SHALL run physical backup end-to-end tests, and `logical` SHALL run logical backup end-to-end tests. The `physical-api` group SHALL select the physical-backup API test subtree, including newly added packages without a CI configuration change. The `agent-e2e` group SHALL select the verification agent's Docker end-to-end test subtree, including newly added packages without a CI configuration change. The `other` group SHALL select from the whole backend module and run all remaining packages except the upgrade suite and its comparison helper. Every package other than those two SHALL belong to exactly one group on each architecture, with only the explicitly unavailable version scenarios excluded on arm64. New packages outside the named groups SHALL join `other` automatically.
 
-A group MAY run as several shards. Each shard SHALL run the tests of its group's packages that fall into that shard, and every top-level test of those packages SHALL run in exactly one shard. A test added to a sharded group SHALL run in one of its shards without any change to the CI configuration. How tests are assigned to shards MAY use recorded test durations, and a missing or outdated duration SHALL only change which shard runs a test, never whether it runs. Each backend test check SHALL have every tool its tests run at the version the repository pins. `physical` and `physical-api` SHALL run as three shards each, and `logical`, `agent-e2e` and `other` SHALL each run whole.
+A group MAY run as several shards. Every top-level test of its packages SHALL be assigned to exactly one shard per architecture. New tests SHALL join a shard without a CI configuration change. Missing or stale recorded durations SHALL affect assignment only, never inclusion. Every check SHALL have the tools its tests invoke at repository-pinned versions. `physical` and `physical-api` SHALL each have three shards; `logical`, `agent-e2e` and `other` SHALL run whole on both architectures.
+
+The upgrade suite and its comparison helper SHALL run only in `test-upgrade`, separately for each architecture against that architecture's candidate. Each upgrade check SHALL start after its candidate is available without depending on backend-group results.
 
 #### Scenario: The groups cover the suite
 
-- **WHEN** the package lists of the groups are combined
-- **THEN** they contain every backend package except the upgrade test and its comparison helper exactly once
+- **WHEN** the group selections are combined separately for amd64 and arm64
+- **THEN** each contains every backend package except the upgrade suite and its comparison helper exactly once
 
 #### Scenario: The shards cover their group
 
-- **WHEN** the tests of all shards of one group are combined
-- **THEN** they contain every top-level test of that group's packages exactly once
+- **WHEN** the shard selections of a group are combined for either architecture
+- **THEN** they contain every top-level test of the group's packages exactly once
 
 #### Scenario: A new package is added
 
-- **WHEN** a developer adds a backend package outside the named groups, in a new top-level directory of the module or in an existing one
-- **THEN** CI runs its tests in the `other` group
+- **WHEN** a developer adds a backend package outside the named groups
+- **THEN** CI runs it in `other` on both architectures without changing the workflow
 
 #### Scenario: A new package of physical API tests is added
 
-- **WHEN** a developer adds a test package under `backend/internal/modules/backups/physicalapitests/`
-- **THEN** CI runs its tests in the `physical-api` group and in no other group
+- **WHEN** a developer adds a package to the physical-backup API test subtree
+- **THEN** CI selects it only in `physical-api` on each architecture
 
 #### Scenario: A new package of agent end-to-end scenarios is added
 
-- **WHEN** a developer adds a test package under `backend/internal/agent/e2e/`
-- **THEN** CI runs its tests in the `agent-e2e` group and in no other group
+- **WHEN** a developer adds a package to the verification agent's Docker end-to-end subtree
+- **THEN** CI selects it only in `agent-e2e` on each architecture
 
 #### Scenario: A browser ownership package is selected
 
 - **WHEN** CI selects backend packages for its groups
-- **THEN** no backend package runs browser scenarios, and the browser end-to-end suite runs only in its own check
+- **THEN** no backend package runs browser scenarios, which run only in their dedicated check
 
 #### Scenario: A new test is added to a sharded group
 
-- **WHEN** a developer adds a top-level test to a package of a sharded group and records no duration for it
-- **THEN** CI runs that test in exactly one shard of the group
+- **WHEN** a developer adds a top-level test without a recorded duration
+- **THEN** that test is assigned to exactly one shard per architecture
 
 #### Scenario: Checks are reported per group
 
-- **WHEN** CI runs the backend tests
-- **THEN** each whole group and each shard reports its own check, named `test-backend (other)`, `test-backend (logical)`, `test-backend (agent-e2e)`, `test-backend (physical-1-of-3)` through `test-backend (physical-3-of-3)` and `test-backend (physical-api-1-of-3)` through `test-backend (physical-api-3-of-3)`
+- **WHEN** CI reports backend checks
+- **THEN** each architecture has separate `other`, `logical`, `agent-e2e`, three `physical` shard and three `physical-api` shard results
 
 #### Scenario: The upgrade test runs on its own
 
-- **WHEN** CI runs the backend tests for a commit
-- **THEN** the upgrade test and its comparison helper report their results in the check named `test-upgrade` and run in no backend group
+- **WHEN** CI runs the backend checks
+- **THEN** the upgrade suite and its comparison helper run only in the dedicated `test-upgrade` checks for amd64 and arm64
 
 #### Scenario: The upgrade test uses the commit's image without waiting for the groups
 
-- **WHEN** CI runs for a commit
-- **THEN** `test-upgrade` starts once the candidate image of that commit is built, uses that image as the current image, and does not wait for any `test-backend` check to finish
+- **WHEN** the candidates are available while backend groups are still running
+- **THEN** the upgrade checks can start against the matching candidates without waiting for those groups
 
 #### Scenario: A migration test fails in CI
 
-- **WHEN** a pull request breaks a test of the database migrations
-- **THEN** the `test-backend (other)` check fails
+- **WHEN** a migration test fails on either architecture
+- **THEN** that architecture's `other` check fails
 
 #### Scenario: An architecture linter test fails
 
-- **WHEN** a pull request breaks a test of the architecture linter itself
-- **THEN** the `test-backend (other)` check fails
+- **WHEN** a test of the backend architecture linter fails on either architecture
+- **THEN** that architecture's `other` check fails
 
 #### Scenario: A package falls out of the groups
 
-- **WHEN** a developer changes the group selection so that a backend package other than the upgrade test and its comparison helper belongs to no group or to two groups
-- **THEN** the repository's script tests fail
+- **WHEN** a non-upgrade backend package belongs to no group or to two groups on either architecture
+- **THEN** repository script tests fail
 
 #### Scenario: A test runs a pinned tool
 
-- **WHEN** an architecture linter test runs the Go linter in the `test-backend (other)` check
-- **THEN** the linter is available at the version the repository pins
+- **WHEN** a test invokes the Go linter on either architecture
+- **THEN** the repository-pinned linter is available natively
 
 ### Requirement: A failed group neither cancels nor hides the others
 
@@ -112,22 +114,32 @@ When one backend test group fails, the other groups SHALL run to completion and 
 
 ### Requirement: Publishing and release require the lint and every test group
 
-CI SHALL publish an image or create a release only when the backend lint, every backend test check, each whole group and each shard, and the upgrade test have passed for that commit. Running the lint and the tests in parallel SHALL NOT let a commit with a failed lint, a failed group, a failed shard or a failed upgrade test reach publishing or release.
+CI SHALL select a release version, publish an image or create a release only after the existing lint, security and image checks and every required test suite have passed for the same commit. Every required architecture, whole group and shard SHALL be included. Failed, cancelled, skipped, missing or timed-out required checks SHALL prevent these operations; an explicitly unavailable version scenario does not excuse a missing suite. Parallel execution SHALL NOT permit a result from one architecture to stand in for the other.
 
 #### Scenario: Lint fails on main
 
-- **WHEN** the backend lint fails on a push to `main` while every backend test check and the upgrade test pass
-- **THEN** CI publishes no image and creates no release for that commit
+- **WHEN** backend lint fails on a push to `main` while every required test passes
+- **THEN** CI selects no release version, publishes no image and creates no release
 
 #### Scenario: One group fails on main
 
-- **WHEN** the lint, every other backend test check and the upgrade test pass on a push to `main` but one shard fails
-- **THEN** CI publishes no image and creates no release for that commit
+- **WHEN** all other prerequisites pass but one arm64 physical shard fails
+- **THEN** CI selects no release version, publishes no image and creates no release
 
 #### Scenario: The upgrade test fails on main
 
-- **WHEN** the lint and every backend test group pass on a push to `main` but the upgrade test fails
-- **THEN** CI publishes no image and creates no release for that commit
+- **WHEN** all other prerequisites pass but the upgrade check fails on either architecture
+- **THEN** CI selects no release version, publishes no image and creates no release
+
+#### Scenario: A required check is cancelled or skipped
+
+- **WHEN** any required architecture's test check is cancelled, skipped, missing or times out
+- **THEN** its absence of success prevents version selection and every publication operation
+
+#### Scenario: Only x64 passes
+
+- **WHEN** every amd64 check passes but the corresponding arm64 checks have not all passed
+- **THEN** the commit is not eligible for release
 
 ### Requirement: The lint jobs check Go dependencies
 
@@ -278,32 +290,32 @@ CI SHALL run the browser UI suite as its own check named `test-frontend-browser-
 
 ### Requirement: Browser end-to-end verification gates release
 
-CI SHALL run the browser end-to-end suite as its own check named `test-e2e-browser` on every run except a run on `develop` or a pull request from `develop`, using the documented local entry point, repository-pinned tools and committed dependency lockfiles. It SHALL run against the candidate image CI builds for the commit, and it SHALL NOT build another image. It SHALL start once that image is built and SHALL run independently of backend lint and backend test-group results. It SHALL also run `mise run e2e:unit`, and the suite's lifecycle probes against the same image, and a failure there SHALL fail the check. Release version selection and publication SHALL require its success alongside existing checks. Browser failure SHALL not cancel unrelated test groups, and a failing run's printed output SHALL be its diagnostic, with secrets masked.
+CI SHALL run the browser end-to-end suite in its own `test-e2e-browser` checks on both required architectures for automatic `main` runs and manual `develop` runs, with no develop exemption. It SHALL use the documented local entry point, repository-pinned tools and committed lockfiles against the matching candidate image of the commit, without rebuilding the application image. It SHALL start after candidates are available and independently of backend lint and group results. Each architecture SHALL also run the suite's unit checks and lifecycle probes against its matching image; a failure SHALL fail that architecture's check. Release version selection and publication SHALL require both checks in addition to existing prerequisites. A browser failure SHALL NOT cancel unrelated checks, and diagnostics SHALL mask secrets.
 
 #### Scenario: Browser end-to-end verification fails on the release branch
 
-- **WHEN** ordinary frontend tests and fixture-based browser checks pass but the browser end-to-end suite fails
-- **THEN** release version selection and publication do not proceed for that commit
+- **WHEN** ordinary frontend and browser UI tests pass but real-backend browser verification fails on either architecture
+- **THEN** version selection and publication do not proceed
 
 #### Scenario: Backend lint fails while browser verification runs
 
-- **WHEN** backend lint fails for a commit
-- **THEN** the browser end-to-end suite still runs to completion and reports its own status
+- **WHEN** backend lint fails
+- **THEN** both browser end-to-end checks continue and report their own results
 
 #### Scenario: CI prepares the real-API browser check
 
-- **WHEN** CI starts the `test-e2e-browser` check
-- **THEN** it runs the same documented entry point as local verification on the commit's candidate image, with pinned tools and isolated test state
+- **WHEN** CI starts either architecture's browser end-to-end check
+- **THEN** it uses the documented entry point, matching candidate, pinned tools and isolated state
 
 #### Scenario: The check loses its image
 
-- **WHEN** the suite runs in CI without an image named for it
-- **THEN** the check fails before any scenario and does not build an image of its own
+- **WHEN** a browser check has no matching candidate image
+- **THEN** it fails before any scenario and does not build an application image of its own
 
 #### Scenario: A lifecycle probe fails in CI
 
-- **WHEN** a lifecycle probe fails against the candidate image
-- **THEN** `test-e2e-browser` fails, and release version selection does not proceed
+- **WHEN** a lifecycle probe fails on either architecture
+- **THEN** that architecture's check fails and release version selection cannot proceed
 
 ### Requirement: Release requires the security scans
 
@@ -392,40 +404,6 @@ The secret scan that gates a release SHALL read only commits reachable from the 
 - **WHEN** the scheduled secret scan runs and a branch not merged into `main` holds a finding
 - **THEN** the scheduled scan fails and reports the finding
 
-### Requirement: The application image is checked on every published architecture
-
-Each run of the CI and Release workflow, except a run on `develop` or a pull request from `develop`, SHALL build the application image on amd64 once the lint jobs and the Dockerfile scan have passed. Each such run on the `main` branch SHALL also build it on arm64, and no other run SHALL. The same smoke checks and the same image vulnerability scan SHALL run on each built architecture before any image is published. A failure on one architecture SHALL stop the release even if the other passes. A critical vulnerability with an available fix SHALL fail the image check. A high vulnerability SHALL NOT fail it.
-
-#### Scenario: The arm64 image fails its smoke checks
-
-- **WHEN** the amd64 image passes its image check but the arm64 image fails its smoke checks
-- **THEN** on `main` CI selects no version and publishes no image
-
-#### Scenario: A pull request is checked on amd64 only
-
-- **WHEN** CI runs for a pull request from a branch other than `develop`
-- **THEN** the amd64 image check runs and no arm64 image is built
-
-#### Scenario: A manual run on main checks arm64
-
-- **WHEN** a maintainer starts the workflow by hand on `main`
-- **THEN** the arm64 image check runs before version selection
-
-#### Scenario: A bundled client tool is broken on arm64
-
-- **WHEN** the arm64 image starts but reports that a bundled client tool cannot run
-- **THEN** the arm64 image check fails
-
-#### Scenario: The arm64 image has a fixable critical vulnerability
-
-- **WHEN** the image vulnerability scan of the arm64 image finds a critical vulnerability with an available fix
-- **THEN** the arm64 image check fails and CI publishes no image
-
-#### Scenario: The image has only high vulnerabilities
-
-- **WHEN** the image vulnerability scan finds high vulnerabilities and no critical one with an available fix
-- **THEN** the image check passes
-
 ### Requirement: Version selection waits for the pre-release image checks
 
 CI SHALL select a version only after the application image checks and the verification image build have passed. A failure in either SHALL leave every image without a tag for that version. This requirement SHALL NOT cover a failure in the image rebuild after version selection, which can still leave some images tagged.
@@ -496,3 +474,174 @@ The repository's lint command SHALL lint the workflow files. A CI check SHALL do
 
 - **WHEN** every other check passes on a push to `main` but the workflow lint fails
 - **THEN** version selection does not run, and CI publishes no image and creates no release for that commit
+
+### Requirement: CI checks Python with the local quality command
+
+Release and dev-image workflows SHALL run a dedicated Python quality check using the same entry point, configuration and repository-pinned tools as local Python lint. The check SHALL cover all repository-owned Python, including scripts, agent hooks, tests and browser scenarios. It SHALL install its Python dependencies from the committed dependency lockfile without updating it, and SHALL require no application image, running application, Docker service or browser installation. A formatting violation, lint violation, missing annotation, type error or setup failure SHALL fail the check. The Python check SHALL run independently of application builds and test results; its failure SHALL NOT cancel unrelated running checks. Existing workflow events and branch selection SHALL remain unchanged.
+
+#### Scenario: A hook fails type checking in release CI
+
+- **WHEN** an agent hook has a type error in a release workflow run
+- **THEN** the Python quality check fails even when application lint and tests pass
+
+#### Scenario: The dev workflow checks a browser fixture
+
+- **WHEN** a browser test fixture is missing an annotation in a dev-image workflow run
+- **THEN** the Python quality check fails without building an image or starting the fixture
+
+#### Scenario: A quality tool pin changes
+
+- **WHEN** a repository pin changes for the Python linter or type checker
+- **THEN** both workflows use the updated version through the local quality command
+
+#### Scenario: Python lint fails while application tests run
+
+- **WHEN** the Python quality check fails while other test jobs are running
+- **THEN** those jobs continue and report their own results
+
+### Requirement: Python quality gates release and dev-image publication
+
+Release version selection and all subsequent publication SHALL require a successful Python quality check for the same commit, in addition to their existing requirements. Every dev-image publishing job SHALL require that commit's Python quality check to succeed before publishing any architecture image or manifest. A failed, cancelled, skipped or timed-out Python check SHALL prevent these dependent operations. These requirements SHALL be verified locally through automated workflow-dependency checks without needing a push or a hosted pipeline run.
+
+#### Scenario: Python quality fails on the release branch
+
+- **WHEN** all other release prerequisites pass but the Python quality check fails
+- **THEN** release version selection does not run and no release artifact is published
+
+#### Scenario: Python quality fails on the development branch
+
+- **WHEN** the Python quality check fails in the dev-image workflow
+- **THEN** no architecture image or combined manifest for that commit is published
+
+#### Scenario: Python quality is cancelled or skipped
+
+- **WHEN** the Python quality check is cancelled, skipped or times out
+- **THEN** neither release publication nor dev-image publication proceeds in that workflow run
+
+#### Scenario: Python quality succeeds
+
+- **WHEN** Python quality and every existing prerequisite succeed
+- **THEN** the workflow remains eligible to select a release version or publish the dev image according to its existing branch and release rules
+
+### Requirement: Release CI tests both supported architectures natively
+
+Every automatic release-workflow run on a push to `main` and every manual release-workflow run on `develop` SHALL execute the same required test suites on native amd64 and arm64 runners. These suites SHALL include every backend group and shard, verification agent unit tests and Docker and Podman end-to-end tests, frontend unit and screen tests, browser UI tests, real-backend browser end-to-end tests and their unit and lifecycle checks, repository script tests, all filesystem test groups and the upgrade suite. Architecture-independent lint and security scans need not be duplicated. The review-hook suite and standalone browser lifecycle-interruption suite remain outside this requirement.
+
+Each test check SHALL identify its architecture and, where applicable, its group and shard. A failure on one architecture SHALL NOT cancel the other architecture or unrelated test checks. A supported suite SHALL NOT be skipped, allowed to fail or run through processor emulation to obtain an architecture's successful result. Manual runs SHALL NOT select a release version or publish release artifacts.
+
+#### Scenario: An automatic main run starts
+
+- **WHEN** a push to `main` starts release CI
+- **THEN** every required test suite runs on native amd64 and arm64 runners
+- **AND** its reported result identifies the architecture
+
+#### Scenario: A maintainer verifies develop
+
+- **WHEN** a maintainer starts release CI manually on `develop`
+- **THEN** the same required test suites run on both architectures, including real-backend browser end-to-end tests
+- **AND** the run selects no release version and publishes no release artifacts
+
+#### Scenario: One architecture fails
+
+- **WHEN** an arm64 test check fails while amd64 checks and other arm64 checks are running
+- **THEN** those checks continue and report their own outcomes
+
+#### Scenario: An architecture's check is missing
+
+- **WHEN** the release workflow loses one required suite or shard for either architecture
+- **THEN** the repository's automated workflow checks fail without needing a hosted run
+
+### Requirement: Unavailable database images have explicit architecture exclusions
+
+On arm64, server-container scenarios for MySQL 5.7 and MariaDB 5.5 SHALL be explicitly excluded because their official images have no native variant. They SHALL continue running on amd64. The exclusion SHALL apply consistently to image preparation and scenario execution, SHALL identify the engine version and architecture in the test output, and SHALL NOT omit other scenarios in the same package. Checks that establish unsupported-version behavior without those server containers SHALL continue running on ARM.
+
+Image download, authentication, startup or manifest failures for any image outside those exclusions SHALL fail the check. The workflow SHALL NOT infer permission to skip a scenario from an image-preparation failure.
+
+#### Scenario: ARM selects the logical backup matrix
+
+- **WHEN** arm64 CI prepares and runs the database-version scenarios
+- **THEN** it neither pulls nor starts the MySQL 5.7 or MariaDB 5.5 server image
+- **AND** it reports those version-specific exclusions and runs the remaining supported versions
+
+#### Scenario: The x64 matrix includes old versions
+
+- **WHEN** amd64 CI prepares and runs the database-version scenarios
+- **THEN** the MySQL 5.7 and MariaDB 5.5 scenarios remain included
+
+#### Scenario: A supported image cannot be fetched
+
+- **WHEN** preparation cannot obtain an image outside the explicit architecture exclusions
+- **THEN** the check fails instead of skipping its scenarios
+
+#### Scenario: ARM rejects an unsupported client version
+
+- **WHEN** a container-free test checks rejection of a version with no client on ARM
+- **THEN** that test runs and verifies the rejection
+
+### Requirement: Image-consuming tests use the commit's matching native candidate
+
+Each architecture's browser end-to-end, filesystem and upgrade suites SHALL use a candidate application image built for that architecture from the checked-out commit. Image transfers and retained failure evidence SHALL be distinct by architecture, so parallel checks cannot overwrite or consume another architecture's artifacts. Before a suite runs, a missing image or an image for the wrong processor architecture SHALL fail the check. Auxiliary database, browser, container-engine and filesystem fixtures SHALL run natively on the suite's architecture. Native network-filesystem coverage SHALL retain both CIFS and NFS root-squash scenarios.
+
+#### Scenario: Both candidates are available
+
+- **WHEN** amd64 and arm64 image-consuming checks start in the same workflow run
+- **THEN** each consumes only the candidate built for its architecture and commit
+- **AND** each retains failure evidence separately from the other architecture
+
+#### Scenario: ARM receives an x64 candidate
+
+- **WHEN** an arm64 suite is given an amd64 application candidate
+- **THEN** the check fails before its scenarios instead of running the candidate under emulation
+
+#### Scenario: ARM runs network-filesystem tests
+
+- **WHEN** the arm64 network-filesystem check runs
+- **THEN** its native fixtures exercise both CIFS and NFS root-squash behavior without dropping either scenario
+
+### Requirement: Native backup checks prove recovery through restored data
+
+On each supported architecture, logical backup end-to-end tests SHALL restore the backed-up data for every included engine-version scenario and retain their encryption, exclusions, limited-user, TLS and SSH assertions where supported. Physical PostgreSQL tests SHALL exercise full backups, incremental backups and archived WAL recovery on that architecture. The real-backend browser suite SHALL execute the recovery commands shown to the user with both Host tools and Docker and verify the recorded full, incremental and later WAL-stage rows in the recovered clusters. An image build, backup status or completed download alone SHALL NOT substitute for those assertions.
+
+#### Scenario: ARM completes logical recovery
+
+- **WHEN** a logical backup and restore scenario runs on arm64
+- **THEN** it checks the restored data and the scenario's existing assertions against native database servers
+
+#### Scenario: ARM completes physical recovery through the UI
+
+- **WHEN** the browser end-to-end suite runs on arm64
+- **THEN** it executes both displayed recovery methods and verifies full, incremental and WAL-stage data in the recovered clusters
+
+### Requirement: Release application images are checked natively on both architectures
+
+Every CI and Release workflow run SHALL build and check the application image natively on amd64 and arm64, including manual runs on `develop`. Image checks SHALL not wait for unrelated lint results. Each built architecture SHALL receive the same smoke checks and image vulnerability scan before publication. A failure on either SHALL prevent release version selection and publication. A critical image vulnerability with an available fix SHALL fail the check; high vulnerabilities alone SHALL NOT fail it. Manual runs SHALL remain verification-only.
+
+#### Scenario: The ARM image fails its smoke checks
+
+- **WHEN** amd64 image checks pass but arm64 smoke checks fail
+- **THEN** CI selects no release version and publishes no image
+
+#### Scenario: A manual develop run checks both images
+
+- **WHEN** a maintainer starts the workflow manually on `develop`
+- **THEN** both native image checks run without selecting a release version or publishing images
+
+#### Scenario: A manual main run checks both images
+
+- **WHEN** a maintainer starts the workflow manually on `main`
+- **THEN** both native image checks run and the run remains verification-only
+
+#### Scenario: A bundled client is broken on ARM
+
+- **WHEN** the arm64 image starts but a bundled client cannot run
+- **THEN** the arm64 image check fails
+
+#### Scenario: ARM has a fixable critical image vulnerability
+
+- **WHEN** the arm64 image scan finds a critical vulnerability with an available fix
+- **THEN** the check fails and no release image is published
+
+#### Scenario: The image has only high vulnerabilities
+
+- **WHEN** an image scan finds high vulnerabilities without a fixable critical vulnerability
+- **THEN** those findings do not fail the image check

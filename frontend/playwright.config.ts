@@ -1,6 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
+  tsconfig: './tsconfig.node.json',
   testDir: './browser/scenarios',
   projects: [{ name: 'ui', testDir: './browser/scenarios', use: { browserName: 'chromium' } }],
   forbidOnly: true,

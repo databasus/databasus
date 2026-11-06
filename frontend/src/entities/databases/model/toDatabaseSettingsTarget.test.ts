@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { createDefaultDatabaseSettings } from './createDefaultDatabaseSettings';
-import type { DatabaseCreateDraft, DatabaseEditDraft } from './DatabaseConnectionDraft';
-import { DatabaseType } from './DatabaseType';
-import { toDatabaseSettingsTarget } from './toDatabaseSettingsTarget';
+import { createDefaultDatabaseSettings } from '@/entities/databases/model/createDefaultDatabaseSettings';
+import type {
+  DatabaseCreateDraft,
+  DatabaseEditDraft,
+} from '@/entities/databases/model/DatabaseConnectionDraft';
+import { DatabaseType } from '@/entities/databases/model/DatabaseType';
+import { toDatabaseSettingsTarget } from '@/entities/databases/model/toDatabaseSettingsTarget';
 
 const settings = createDefaultDatabaseSettings(DatabaseType.MYSQL);
 

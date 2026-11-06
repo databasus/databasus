@@ -2,11 +2,11 @@ import { CheckCircleOutlined } from '@ant-design/icons';
 import { theme } from 'antd';
 import { useTranslation } from 'react-i18next';
 
-import { useLocale } from '../../../../shared/i18n';
-import { formatBytes } from '../../../../shared/lib';
-import { interpolateNumber } from '../../lib/wal-stream-monitoring/easedTexts';
-import { getAmountProgress } from '../../lib/wal-stream-monitoring/pathStages';
-import { useEasedTransition } from './useEasedTransition';
+import { interpolateNumber } from '@/pages/databases/lib/wal-stream-monitoring/easedTexts';
+import { getAmountProgress } from '@/pages/databases/lib/wal-stream-monitoring/pathStages';
+import { useEasedTransition } from '@/pages/databases/ui/wal-stream-monitoring/useEasedTransition';
+import { useLocale } from '@/shared/i18n';
+import { formatBytes } from '@/shared/lib';
 
 interface Props {
   valueBytes: number | null;

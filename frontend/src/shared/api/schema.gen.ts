@@ -843,7 +843,7 @@ export interface paths {
         put?: never;
         /**
          * Create a database in a workspace
-         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the database exists. The backend connects first and saves what the server reports, such as its version. Settings the type refuses get 400 `invalid_request` with the field in `errors`; a server that cannot be reached or refuses the connection gets 400 `database_connection_failed` with the server's reason in `detail`. Every notifier must belong to the workspace.
+         * @description For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the database exists. The backend connects first and saves what the server reports, such as its version. Settings the type refuses get 400 `invalid_request` with the field in `errors`; a server that cannot be reached or refuses the connection gets 400 `database_connection_failed` with the server's reason in `detail`. Every notifier must belong to the workspace.
          */
         post: operations["createDatabase"];
         delete?: never;
@@ -869,7 +869,7 @@ export interface paths {
         get: operations["getDatabase"];
         /**
          * Replace the name, the settings and the notifiers of a database
-         * @description Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the address it is used at stays the stored one. The password and the PostgreSQL client key follow the database's resource address: its host, its port, the address of its SSH tunnel and, for MongoDB, the SRV flag. The SSH secrets follow the tunnel's resource address: whether it is enabled, and its host and port while it is. At another address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
+         * @description For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the address it is used at stays the stored one. The password and the PostgreSQL client key follow the database's resource address: its host, its port, the address of its SSH tunnel and, for MongoDB, the SRV flag. The SSH secrets follow the tunnel's resource address: whether it is enabled, and its host and port while it is. At another address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
          */
         put: operations["updateDatabase"];
         post?: never;
@@ -920,7 +920,7 @@ export interface paths {
         put?: never;
         /**
          * Test the connection of a saved database
-         * @description Any member of the workspace may test, a viewer included. A connection the server refuses is still a 200 that reports the reason. The test changes nothing in the database, its last backup error included.
+         * @description For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Any member of the workspace may test, a viewer included. A connection the server refuses is still a 200 that reports the reason. The test changes nothing in the database, its last backup error included.
          */
         post: operations["testDatabase"];
         delete?: never;
@@ -940,7 +940,7 @@ export interface paths {
         put?: never;
         /**
          * Test the connection with settings that are not saved
-         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. With another resource address than the database's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateDatabase`. Nothing connects on a refusal, and nothing is saved.
+         * @description For logical PostgreSQL, validation rejects roles subject to row-level security (RLS) on included table data, accounting for effective ownership and RLS bypass privileges. Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. With another resource address than the database's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateDatabase`. Nothing connects on a refusal, and nothing is saved.
          */
         post: operations["testDatabaseSettings"];
         delete?: never;
@@ -1781,7 +1781,14 @@ export interface components {
         };
         /** @description Verification Details */
         VerificationDetails: components["schemas"]["Verification"] & {
+            failureDiagnostic?: components["schemas"]["VerificationFailureDiagnostic"];
             tableStats: components["schemas"]["VerificationTableStat"][];
+        };
+        /** @description Sanitized output of the final failed attempt, available only in verification details. */
+        VerificationFailureDiagnostic: {
+            /** @description At most 65536 decoded UTF-8 bytes, including an omission marker when truncated. */
+            output: string;
+            isTruncated: boolean;
         };
         /** @description Verification Agent Page */
         VerificationAgentPage: {

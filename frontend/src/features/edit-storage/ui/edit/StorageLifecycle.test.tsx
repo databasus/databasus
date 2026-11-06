@@ -4,11 +4,10 @@ import { HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Storage } from '@/entities/storages';
+import { EditStorageComponent } from '@/features/edit-storage/ui/edit/EditStorageComponent';
 import { inspectApiRequest } from '@/shared/lib/test/inspectApiRequest';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
-
-import { EditStorageComponent } from './EditStorageComponent';
 
 const server = setUpMockApi();
 const local: Storage = {

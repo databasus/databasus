@@ -9,17 +9,16 @@ import { Alert, App, Button, Input, Spin } from 'antd';
 import { useEffect, useEffectEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { notifierApi } from '@/entities/notifiers';
+import type { Notifier } from '@/entities/notifiers';
 import { EditNotifierComponent } from '@/features/edit-notifier';
+import { NotifierTransferDialogComponent } from '@/pages/notifiers/ui/NotifierTransferDialogComponent';
+import { ShowNotifierComponent } from '@/pages/notifiers/ui/show/ShowNotifierComponent';
 import { ApiError } from '@/shared/api';
-
-import { notifierApi } from '../../../entities/notifiers';
-import type { Notifier } from '../../../entities/notifiers';
-import { useSessionGuard } from '../../../shared/auth';
-import { useLatestRef, useRequestRevision } from '../../../shared/hooks';
-import { translateApiError } from '../../../shared/i18n';
-import { ConfirmationComponent, LoadFailure } from '../../../shared/ui';
-import { NotifierTransferDialogComponent } from './NotifierTransferDialogComponent';
-import { ShowNotifierComponent } from './show/ShowNotifierComponent';
+import { useSessionGuard } from '@/shared/auth';
+import { useLatestRef, useRequestRevision } from '@/shared/hooks';
+import { translateApiError } from '@/shared/i18n';
+import { ConfirmationComponent, LoadFailure } from '@/shared/ui';
 
 interface Props {
   onUnavailable?: () => void;

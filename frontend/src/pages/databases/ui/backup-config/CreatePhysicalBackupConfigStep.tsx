@@ -2,11 +2,11 @@ import { Button } from 'antd';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { PhysicalDatabaseBackupType } from '../../../../entities/databases';
-import { createDefaultPhysicalBackupConfigDraft } from '../../model/physical-backups/createDefaultPhysicalBackupConfigDraft';
-import { isPhysicalBackupConfigComplete } from '../../model/physical-backups/isPhysicalBackupConfigComplete';
-import type { PhysicalBackupConfigDraft } from '../../model/physical-backups/PhysicalBackupConfigDraft';
-import { PhysicalBackupConfigFields } from './PhysicalBackupConfigFields';
+import type { PhysicalDatabaseBackupType } from '@/entities/databases';
+import { createDefaultPhysicalBackupConfigDraft } from '@/pages/databases/model/physical-backups/createDefaultPhysicalBackupConfigDraft';
+import { isPhysicalBackupConfigComplete } from '@/pages/databases/model/physical-backups/isPhysicalBackupConfigComplete';
+import type { PhysicalBackupConfigDraft } from '@/pages/databases/model/physical-backups/PhysicalBackupConfigDraft';
+import { PhysicalBackupConfigFields } from '@/pages/databases/ui/backup-config/PhysicalBackupConfigFields';
 
 interface Props {
   workspaceId: string;

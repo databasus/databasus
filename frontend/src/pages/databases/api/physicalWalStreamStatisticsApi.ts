@@ -1,5 +1,5 @@
-import { getApiClient, requireData } from '../../../shared/api';
-import type { WalStreamStatisticsPeriod } from '../model/wal-stream-monitoring/WalStreamStatisticsPeriod';
+import type { WalStreamStatisticsPeriod } from '@/pages/databases/model/wal-stream-monitoring/WalStreamStatisticsPeriod';
+import { getApiClient, requireData } from '@/shared/api';
 
 export const physicalWalStreamStatisticsApi = {
   async getWalStreamStatistics(databaseId: string, period: WalStreamStatisticsPeriod) {

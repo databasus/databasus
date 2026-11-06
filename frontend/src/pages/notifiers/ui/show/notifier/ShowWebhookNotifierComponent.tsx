@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
-import type { WebhookNotifierSettings } from '../../../../../entities/notifiers';
-import { NOTIFICATION_CATEGORY_LABEL_KEYS, WebhookMethod } from '../../../../../entities/notifiers';
+import type { WebhookNotifierSettings } from '@/entities/notifiers';
+import { NOTIFICATION_CATEGORY_LABEL_KEYS, WebhookMethod } from '@/entities/notifiers';
 
 interface Props {
   settings: WebhookNotifierSettings;

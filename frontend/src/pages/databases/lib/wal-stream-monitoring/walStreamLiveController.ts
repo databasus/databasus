@@ -1,6 +1,9 @@
-import type { WalStreamLive } from '../../model/wal-stream-monitoring/WalStreamLive';
-import type { WalStreamLiveResponse } from '../../model/wal-stream-monitoring/WalStreamLiveResponse';
-import type { PageVisibility, RefreshTimer } from './walStreamRefreshController';
+import type {
+  PageVisibility,
+  RefreshTimer,
+} from '@/pages/databases/lib/wal-stream-monitoring/walStreamRefreshController';
+import type { WalStreamLive } from '@/pages/databases/model/wal-stream-monitoring/WalStreamLive';
+import type { WalStreamLiveResponse } from '@/pages/databases/model/wal-stream-monitoring/WalStreamLiveResponse';
 
 // The running streamer answers from memory, so a reading every second is cheap and makes the
 // buffer and the last save move in about real time.

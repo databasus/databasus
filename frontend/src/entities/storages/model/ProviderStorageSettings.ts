@@ -1,4 +1,4 @@
-import type { ApiComponents } from '../../../shared/api';
+import type { ApiComponents } from '@/shared/api';
 
 export type S3StorageSettings = ApiComponents['schemas']['S3StorageSettings'];
 export type GoogleDriveStorageSettings = ApiComponents['schemas']['GoogleDriveStorageSettings'];

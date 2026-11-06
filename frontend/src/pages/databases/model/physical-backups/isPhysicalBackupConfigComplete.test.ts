@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildPhysicalBackupConfigDraft } from './buildPhysicalBackupConfigDraft.fixture';
-import { isPhysicalBackupConfigComplete } from './isPhysicalBackupConfigComplete';
-import type { PhysicalBackupConfigDraft } from './PhysicalBackupConfigDraft';
+import { buildPhysicalBackupConfigDraft } from '@/pages/databases/model/physical-backups/buildPhysicalBackupConfigDraft.fixture';
+import { isPhysicalBackupConfigComplete } from '@/pages/databases/model/physical-backups/isPhysicalBackupConfigComplete';
+import type { PhysicalBackupConfigDraft } from '@/pages/databases/model/physical-backups/PhysicalBackupConfigDraft';
 
 const NO_GFS_PERIODS = { gfsHours: 0, gfsDays: 0, gfsWeeks: 0, gfsMonths: 0, gfsYears: 0 };
 

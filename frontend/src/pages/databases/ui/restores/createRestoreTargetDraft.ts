@@ -2,7 +2,7 @@ import {
   DatabaseType,
   type RestoreTargetDraft,
   createDefaultDatabaseSettings,
-} from '../../../../entities/databases';
+} from '@/entities/databases';
 
 // The target is usually another server, so it starts as a new database of the backup's engine. A
 // physical backup is restored by other means and has no target.

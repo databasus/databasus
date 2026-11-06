@@ -1,6 +1,6 @@
-import { isScheduleChanged } from '../../../../entities/schedules';
-import type { VerificationConfig } from './VerificationConfig';
-import { VerificationScheduleType } from './VerificationScheduleType';
+import { isScheduleChanged } from '@/entities/schedules';
+import type { VerificationConfig } from '@/pages/databases/model/verification/VerificationConfig';
+import { VerificationScheduleType } from '@/pages/databases/model/verification/VerificationScheduleType';
 
 interface VerificationConfigComparison {
   acknowledged: VerificationConfig;

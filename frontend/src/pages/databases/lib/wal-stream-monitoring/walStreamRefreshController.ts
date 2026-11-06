@@ -1,6 +1,6 @@
-import type { WalStreamRefreshState } from '../../model/wal-stream-monitoring/WalStreamRefreshState';
-import type { WalStreamStatistics } from '../../model/wal-stream-monitoring/WalStreamStatistics';
-import type { WalStreamStatisticsPeriod } from '../../model/wal-stream-monitoring/WalStreamStatisticsPeriod';
+import type { WalStreamRefreshState } from '@/pages/databases/model/wal-stream-monitoring/WalStreamRefreshState';
+import type { WalStreamStatistics } from '@/pages/databases/model/wal-stream-monitoring/WalStreamStatistics';
+import type { WalStreamStatisticsPeriod } from '@/pages/databases/model/wal-stream-monitoring/WalStreamStatisticsPeriod';
 
 // Samples arrive every 30 seconds, so refreshing faster shows nothing new and refreshing slower
 // lets the screen fall behind the verdict.

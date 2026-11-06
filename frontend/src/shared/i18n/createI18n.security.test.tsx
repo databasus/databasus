@@ -3,9 +3,9 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { I18nextProvider, Trans } from 'react-i18next';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { ApiError } from '../api';
-import { createI18n } from './createI18n';
-import { translateApiError } from './translateApiError';
+import { ApiError } from '@/shared/api';
+import { createI18n } from '@/shared/i18n/createI18n';
+import { translateApiError } from '@/shared/i18n/translateApiError';
 
 // Names a user could give a workspace, a database or themselves. Each must reach the page as the
 // exact text entered, never as markup.

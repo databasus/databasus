@@ -1,8 +1,8 @@
-import { getApiClient, requireData, requireSuccess } from '../../../shared/api';
-import { collectCursorPages } from '../../../shared/lib/collectCursorPages';
-import type { Notifier } from '../model/Notifier';
-import type { NotifierSettings } from '../model/NotifierSettings';
-import type { NotifierTestResult } from '../model/NotifierTestResult';
+import type { Notifier } from '@/entities/notifiers/model/Notifier';
+import type { NotifierSettings } from '@/entities/notifiers/model/NotifierSettings';
+import type { NotifierTestResult } from '@/entities/notifiers/model/NotifierTestResult';
+import { getApiClient, requireData, requireSuccess } from '@/shared/api';
+import { collectCursorPages } from '@/shared/lib/collectCursorPages';
 
 // The largest page the contract serves, so a workspace's notifiers arrive in as few requests as
 // possible.

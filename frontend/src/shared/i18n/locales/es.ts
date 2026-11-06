@@ -1,4 +1,4 @@
-import type { en } from './en';
+import type { en } from '@/shared/i18n/locales/en';
 
 export const es: typeof en = {
   language: {
@@ -1069,6 +1069,14 @@ export const es: typeof en = {
       details: {
         title: 'Detalles de la verificación de restauración',
         cancellationReason: 'Motivo de la cancelación',
+        diagnostic: {
+          title: 'Detalles del error',
+          truncated:
+            'Se ha omitido parte del contenido intermedio para respetar el límite de 64 KB.',
+          unavailable: 'No se guardó ningún diagnóstico detallado para esta verificación.',
+          copied: 'Diagnóstico copiado',
+          copyFailed: 'No se pudo copiar el diagnóstico. Selecciona y copia el texto manualmente.',
+        },
         failure: 'Error',
         sections: {
           status: 'Estado',

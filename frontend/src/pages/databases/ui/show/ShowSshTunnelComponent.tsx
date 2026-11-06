@@ -1,9 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
-import {
-  SSH_TUNNEL_AUTH_TYPE_LABEL_KEYS,
-  type SshTunnelSettings,
-} from '../../../../entities/databases';
+import { SSH_TUNNEL_AUTH_TYPE_LABEL_KEYS, type SshTunnelSettings } from '@/entities/databases';
 
 interface Props {
   sshTunnel: SshTunnelSettings;

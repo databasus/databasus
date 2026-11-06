@@ -1,13 +1,13 @@
 import dayjs, { type Dayjs } from 'dayjs';
 
-import type { Schedule } from './Schedule';
+import type { Schedule } from '@/entities/schedules/model/Schedule';
 import {
   getLocalDayOfMonth,
   getLocalWeekday,
   getUtcDayOfMonth,
   getUtcWeekday,
-} from './scheduleDayConversion';
-import type { Weekday } from './Weekday';
+} from '@/entities/schedules/model/scheduleDayConversion';
+import type { Weekday } from '@/entities/schedules/model/Weekday';
 
 interface LocalScheduleParts {
   localTime?: Dayjs;

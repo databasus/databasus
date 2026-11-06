@@ -45,10 +45,23 @@ def read_supervisor_records() -> list[SupervisorRecord]:
 
     for supervisor_file in SUPERVISORS_DIRECTORY.glob(f"*/{SUPERVISOR_FILE_NAME}"):
         try:
-            records.append(SupervisorRecord(**json.loads(supervisor_file.read_text())))
+            value: object = json.loads(supervisor_file.read_text())
+            if not isinstance(value, dict):
+                raise ValueError("Supervisor record must be an object")
+            run_id, pid = value.get("run_id"), value.get("pid")
+            start_time, built_image = value.get("process_start_time"), value.get("built_image")
+            if (
+                not isinstance(run_id, str)
+                or not isinstance(pid, int)
+                or not isinstance(start_time, str)
+            ):
+                raise ValueError("Supervisor process identity is invalid")
+            if built_image is not None and not isinstance(built_image, str):
+                raise ValueError("Supervisor image must be a string or null")
+            records.append(SupervisorRecord(run_id, pid, start_time, built_image))
         except FileNotFoundError:
             continue
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             records.append(_get_record_of_unreadable_file(supervisor_file))
 
     return records
@@ -56,7 +69,9 @@ def read_supervisor_records() -> list[SupervisorRecord]:
 
 def _get_record_of_unreadable_file(supervisor_file: Path) -> SupervisorRecord:
     """A writer replaces the file atomically, so damage means no live run owns it and the sweep may remove it."""
-    return SupervisorRecord(supervisor_file.parent.name, UNREADABLE_PID, UNREADABLE_START_TIME, None)
+    return SupervisorRecord(
+        supervisor_file.parent.name, UNREADABLE_PID, UNREADABLE_START_TIME, None
+    )
 
 
 def remove_run_directory(run_id: str) -> None:
@@ -78,6 +93,13 @@ def get_process_start_time(pid: int) -> str | None:
         return None
 
     return fields_after_command[19]
+
+
+def get_required_process_start_time(pid: int) -> str:
+    start_time = get_process_start_time(pid)
+    if start_time is None:
+        raise ValueError(f"Process {pid} is not running")
+    return start_time
 
 
 def is_supervisor_alive(record: SupervisorRecord) -> bool:

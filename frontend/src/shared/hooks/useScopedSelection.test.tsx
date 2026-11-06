@@ -2,8 +2,8 @@
 import { screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { renderScreen } from '../lib/test/renderScreen';
-import { useScopedSelection } from './useScopedSelection';
+import { useScopedSelection } from '@/shared/hooks/useScopedSelection';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 afterEach(() => {
   vi.restoreAllMocks();

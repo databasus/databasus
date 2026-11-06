@@ -177,13 +177,14 @@ func (team *backupTeam) openSource(t *testing.T) *pgx.Conn {
 }
 
 type backupRow struct {
-	CreatedAt   time.Time `json:"createdAt"`
-	ID          uuid.UUID `json:"id"`
-	Type        string    `json:"type"`
-	Status      string    `json:"status"`
-	StartLSN    string    `json:"startLsn"`
-	StopLSN     string    `json:"stopLsn"`
-	FailMessage *string   `json:"failMessage"`
+	CreatedAt        time.Time  `json:"createdAt"`
+	ID               uuid.UUID  `json:"id"`
+	Type             string     `json:"type"`
+	Status           string     `json:"status"`
+	StartLSN         string     `json:"startLsn"`
+	StopLSN          string     `json:"stopLsn"`
+	RootFullBackupID *uuid.UUID `json:"rootFullBackupId"`
+	FailMessage      *string    `json:"failMessage"`
 }
 
 func (team *backupTeam) listBackups(t *testing.T) []backupRow {
@@ -232,7 +233,7 @@ func (team *backupTeam) runBackup(t *testing.T, backupType string) backupRow {
 		return fmt.Errorf("no new terminal backup")
 	})
 
-	team.App.WaitForPhysicalBackups(t)
+	team.App.WaitForBackupRuns(t)
 
 	return terminal
 }

@@ -1,6 +1,6 @@
-import { type ApiComponents, getApiClient, requireData } from '../../../shared/api';
-import type { InstanceSettings } from '../model/InstanceSettings';
-import type { InstanceSettingsUpdate } from '../model/InstanceSettingsUpdate';
+import type { InstanceSettings } from '@/entities/users/model/InstanceSettings';
+import type { InstanceSettingsUpdate } from '@/entities/users/model/InstanceSettingsUpdate';
+import { type ApiComponents, getApiClient, requireData } from '@/shared/api';
 
 type Schemas = ApiComponents['schemas'];
 

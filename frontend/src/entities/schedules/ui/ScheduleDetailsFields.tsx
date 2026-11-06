@@ -2,18 +2,18 @@ import { InputNumber, Select, TimePicker } from 'antd';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { getUserClockFormat } from '../../../shared/time';
 import {
   getLocalScheduleParts,
   withLocalDayOfMonth,
   withLocalTimeOfDay,
   withLocalWeekday,
-} from '../model/localSchedule';
-import type { Schedule } from '../model/Schedule';
-import { ScheduleType } from '../model/ScheduleType';
-import { WEEKDAYS } from '../model/Weekday';
-import { WEEKDAY_LABEL_KEYS } from '../model/WeekdayLabelKeys';
-import { CronExpressionField } from './CronExpressionField';
+} from '@/entities/schedules/model/localSchedule';
+import type { Schedule } from '@/entities/schedules/model/Schedule';
+import { ScheduleType } from '@/entities/schedules/model/ScheduleType';
+import { WEEKDAYS } from '@/entities/schedules/model/Weekday';
+import { WEEKDAY_LABEL_KEYS } from '@/entities/schedules/model/WeekdayLabelKeys';
+import { CronExpressionField } from '@/entities/schedules/ui/CronExpressionField';
+import { getUserClockFormat } from '@/shared/time';
 
 interface Props {
   schedule: Schedule;

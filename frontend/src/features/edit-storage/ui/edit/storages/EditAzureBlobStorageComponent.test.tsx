@@ -2,8 +2,8 @@
 import { screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { renderScreen } from '../../../../../shared/lib/test/renderScreen';
-import { EditAzureBlobStorageComponent } from './EditAzureBlobStorageComponent';
+import { EditAzureBlobStorageComponent } from '@/features/edit-storage/ui/edit/storages/EditAzureBlobStorageComponent';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 describe('EditAzureBlobStorageComponent', () => {
   it('names the authentication method choice by its label', () => {

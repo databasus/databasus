@@ -2,10 +2,10 @@ import { Select } from 'antd';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { Schedule } from '../model/Schedule';
-import { ScheduleType } from '../model/ScheduleType';
-import { SCHEDULE_TYPE_LABEL_KEYS } from '../model/ScheduleTypeLabelKeys';
-import { ScheduleDetailsFields } from './ScheduleDetailsFields';
+import type { Schedule } from '@/entities/schedules/model/Schedule';
+import { ScheduleType } from '@/entities/schedules/model/ScheduleType';
+import { SCHEDULE_TYPE_LABEL_KEYS } from '@/entities/schedules/model/ScheduleTypeLabelKeys';
+import { ScheduleDetailsFields } from '@/entities/schedules/ui/ScheduleDetailsFields';
 
 interface Props {
   label: string;

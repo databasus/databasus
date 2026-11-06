@@ -3,14 +3,14 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { BackupConfig } from '../../../entities/backup-configs';
-import type { Storage } from '../../../entities/storages';
-import type { Workspace } from '../../../entities/workspaces';
-import { API_BASE_PATH, type ApiComponents } from '../../../shared/api';
-import { inspectApiRequest } from '../../../shared/lib/test/inspectApiRequest';
-import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
-import { renderScreen } from '../../../shared/lib/test/renderScreen';
-import { StorageTransferDialogComponent } from './StorageTransferDialogComponent';
+import type { BackupConfig } from '@/entities/backup-configs';
+import type { Storage } from '@/entities/storages';
+import type { Workspace } from '@/entities/workspaces';
+import { StorageTransferDialogComponent } from '@/pages/storages/ui/StorageTransferDialogComponent';
+import { API_BASE_PATH, type ApiComponents } from '@/shared/api';
+import { inspectApiRequest } from '@/shared/lib/test/inspectApiRequest';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const mockServer = setUpMockApi();
 

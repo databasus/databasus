@@ -54,7 +54,6 @@ func New(deps Deps) *Service {
 		backupRepo: deps.Backups, historyRepo: deps.HistoryFiles,
 		configs: deps.Configs, storages: deps.Storages, notificationSender: deps.Notifiers,
 		taskCancellationRegistry: deps.Cancellations, masterKey: deps.MasterKey, logger: deps.Logger,
-		fullExecutor: NewFullExecutor(), incrExecutor: NewIncrementalExecutor(),
 		clock: deps.Clock, executionClock: deps.ExecutionClock, transactor: deps.Transactor,
 		clientTools: pgshared.ClientTools{Root: deps.ClientToolsDir}, runs: deps.Runs,
 	}

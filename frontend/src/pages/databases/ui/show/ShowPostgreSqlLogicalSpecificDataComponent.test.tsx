@@ -6,9 +6,9 @@ import {
   type PostgresqlLogicalSettings,
   PostgresSslMode,
   createDefaultDatabaseSettings,
-} from '../../../../entities/databases';
-import { LocaleProvider } from '../../../../shared/i18n';
-import { ShowPostgreSqlLogicalSpecificDataComponent } from './ShowPostgreSqlLogicalSpecificDataComponent';
+} from '@/entities/databases';
+import { ShowPostgreSqlLogicalSpecificDataComponent } from '@/pages/databases/ui/show/ShowPostgreSqlLogicalSpecificDataComponent';
+import { LocaleProvider } from '@/shared/i18n';
 
 // The entity's public API imports its API client, and the client's config
 // module reads window at import time. The tests run in node, so they supply

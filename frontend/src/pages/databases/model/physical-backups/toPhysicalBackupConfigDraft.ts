@@ -1,6 +1,6 @@
-import type { PhysicalBackupConfigInput } from '../../../../entities/backup-configs';
-import { DEFAULT_FULL_BACKUPS_RETENTION } from './defaultFullBackupsRetention';
-import type { PhysicalBackupConfigDraft } from './PhysicalBackupConfigDraft';
+import type { PhysicalBackupConfigInput } from '@/entities/backup-configs';
+import { DEFAULT_FULL_BACKUPS_RETENTION } from '@/pages/databases/model/physical-backups/defaultFullBackupsRetention';
+import type { PhysicalBackupConfigDraft } from '@/pages/databases/model/physical-backups/PhysicalBackupConfigDraft';
 
 export const toPhysicalBackupConfigDraft = (
   input: PhysicalBackupConfigInput,

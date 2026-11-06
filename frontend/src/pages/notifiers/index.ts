@@ -1,1 +1,1 @@
-export { NotifiersComponent } from './ui/NotifiersComponent';
+export { NotifiersComponent } from '@/pages/notifiers/ui/NotifiersComponent';

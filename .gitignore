@@ -21,3 +21,5 @@ plans/
 .pnpm-store
 __pycache__/
 e2e/browser/.venv/
+.ruff_cache/
+.ty_cache/

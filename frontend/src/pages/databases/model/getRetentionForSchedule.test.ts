@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildLogicalBackupConfig } from './buildLogicalBackupConfig.fixture';
-import { getRetentionForSchedule } from './getRetentionForSchedule';
-import { LogicalRetentionPolicy } from './LogicalRetentionPolicy';
+import { buildLogicalBackupConfig } from '@/pages/databases/model/buildLogicalBackupConfig.fixture';
+import { getRetentionForSchedule } from '@/pages/databases/model/getRetentionForSchedule';
+import { LogicalRetentionPolicy } from '@/pages/databases/model/LogicalRetentionPolicy';
 
 describe('getRetentionForSchedule', () => {
   const gfsSettings = buildLogicalBackupConfig(

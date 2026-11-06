@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   type FullBackupRequestDependencies,
   FullBackupRequestController,
-} from './fullBackupRequestController';
+} from '@/pages/databases/lib/wal-stream-monitoring/fullBackupRequestController';
 
 const createDeferredRequest = () => {
   let resolveRequest: () => void = () => {};

@@ -3,16 +3,16 @@ import { Select, Tooltip } from 'antd';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { PhysicalDatabaseBackupType } from '../../../../entities/databases';
-import type { TranslationKey } from '../../../../shared/i18n';
-import type { FullBackupsRetention } from '../../model/physical-backups/FullBackupsRetention';
-import { FullBackupsRetentionPolicy } from '../../model/physical-backups/FullBackupsRetentionPolicy';
-import { FULL_BACKUPS_RETENTION_POLICY_LABEL_KEYS } from '../../model/physical-backups/FullBackupsRetentionPolicyLabelKeys';
-import { hasIncrementalBackups } from '../../model/physical-backups/hasIncrementalBackups';
-import type { PhysicalBackupConfigDraft } from '../../model/physical-backups/PhysicalBackupConfigDraft';
-import { PhysicalRetentionPolicy } from '../../model/physical-backups/PhysicalRetentionPolicy';
-import { GfsRetentionHint } from './GfsRetentionHint';
-import { RetentionNumberInput } from './RetentionNumberInput';
+import type { PhysicalDatabaseBackupType } from '@/entities/databases';
+import type { FullBackupsRetention } from '@/pages/databases/model/physical-backups/FullBackupsRetention';
+import { FullBackupsRetentionPolicy } from '@/pages/databases/model/physical-backups/FullBackupsRetentionPolicy';
+import { FULL_BACKUPS_RETENTION_POLICY_LABEL_KEYS } from '@/pages/databases/model/physical-backups/FullBackupsRetentionPolicyLabelKeys';
+import { hasIncrementalBackups } from '@/pages/databases/model/physical-backups/hasIncrementalBackups';
+import type { PhysicalBackupConfigDraft } from '@/pages/databases/model/physical-backups/PhysicalBackupConfigDraft';
+import { PhysicalRetentionPolicy } from '@/pages/databases/model/physical-backups/PhysicalRetentionPolicy';
+import { GfsRetentionHint } from '@/pages/databases/ui/backup-config/GfsRetentionHint';
+import { RetentionNumberInput } from '@/pages/databases/ui/backup-config/RetentionNumberInput';
+import type { TranslationKey } from '@/shared/i18n';
 
 type PhysicalRetentionDraft = PhysicalBackupConfigDraft['settings']['retention'];
 

@@ -1,7 +1,7 @@
-import type { MonitoringText } from '../../model/wal-stream-monitoring/MonitoringText';
-import { type WalStreamKeepingUp } from '../../model/wal-stream-monitoring/WalStreamKeepingUp';
-import { WalStreamKeepingUpState } from '../../model/wal-stream-monitoring/WalStreamKeepingUpState';
-import { getRoundedDuration } from './roundedDuration';
+import { getRoundedDuration } from '@/pages/databases/lib/wal-stream-monitoring/roundedDuration';
+import type { MonitoringText } from '@/pages/databases/model/wal-stream-monitoring/MonitoringText';
+import { type WalStreamKeepingUp } from '@/pages/databases/model/wal-stream-monitoring/WalStreamKeepingUp';
+import { WalStreamKeepingUpState } from '@/pages/databases/model/wal-stream-monitoring/WalStreamKeepingUpState';
 
 const SECONDS_PER_HOUR = 3600;
 

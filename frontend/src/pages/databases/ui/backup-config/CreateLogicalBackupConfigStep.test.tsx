@@ -2,10 +2,10 @@
 import { fireEvent, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { LogicalBackupConfigInput } from '../../../../entities/backup-configs';
-import { mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
-import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-import { CreateLogicalBackupConfigStep } from './CreateLogicalBackupConfigStep';
+import type { LogicalBackupConfigInput } from '@/entities/backup-configs';
+import { CreateLogicalBackupConfigStep } from '@/pages/databases/ui/backup-config/CreateLogicalBackupConfigStep';
+import { mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const mockServer = setUpMockApi();
 

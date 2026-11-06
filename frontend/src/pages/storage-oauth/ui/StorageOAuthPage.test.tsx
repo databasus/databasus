@@ -2,9 +2,9 @@
 import { act, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { setUpMockApi } from '../../../shared/lib/test/mockApi';
-import { renderScreen } from '../../../shared/lib/test/renderScreen';
-import { StorageOAuthPage } from './StorageOAuthPage';
+import { StorageOAuthPage } from '@/pages/storage-oauth/ui/StorageOAuthPage';
+import { setUpMockApi } from '@/shared/lib/test/mockApi';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const mockServer = setUpMockApi();
 const state = 'a'.repeat(64);

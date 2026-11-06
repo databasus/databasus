@@ -67,6 +67,13 @@ func (r *Restorer) RunPgRestore(
 	execResult, err := exec.Exec(ctx, cmd, nil, env)
 
 	result := Result{
+		FailureDiagnostic: pgrestore.GetFailureDiagnostic(
+			pgrestore.FailureDiagnosticSpec{
+				Output:      execResult.Stderr,
+				Secrets:     append(append([]string(nil), spec.DiagnosticSecrets...), conn.Password),
+				IsTruncated: false,
+			},
+		),
 		PgRestoreExitCode: execResult.ExitCode,
 		DurationMs:        time.Since(started).Milliseconds(),
 		StderrTail:        tailString(execResult.Stderr, 8192),

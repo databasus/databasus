@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { MonitoringText } from '../../model/wal-stream-monitoring/MonitoringText';
-import { interpolateMonitoringTexts } from './easedTexts';
+import { interpolateMonitoringTexts } from '@/pages/databases/lib/wal-stream-monitoring/easedTexts';
+import type { MonitoringText } from '@/pages/databases/model/wal-stream-monitoring/MonitoringText';
 
 const writeSentence = (bytesPerSecond: number): MonitoringText => ({
   key: 'backups.physical.monitoring.keepingUp.keepingUp',

@@ -1,4 +1,4 @@
-import type { en } from './en';
+import type { en } from '@/shared/i18n/locales/en';
 
 export const zh: typeof en = {
   language: {
@@ -996,6 +996,13 @@ export const zh: typeof en = {
       details: {
         title: '恢复验证详情',
         cancellationReason: '取消原因',
+        diagnostic: {
+          title: '错误详情',
+          truncated: '为符合 64 KB 的大小限制，已省略部分中间内容。',
+          unavailable: '此次验证未保存详细诊断信息。',
+          copied: '已复制诊断信息',
+          copyFailed: '无法复制诊断信息。请手动选择并复制文本。',
+        },
         failure: '失败原因',
         sections: {
           status: '状态',

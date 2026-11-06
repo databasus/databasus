@@ -3,8 +3,7 @@ import {
   type PostgresqlLogicalSettings,
   type PostgresqlPhysicalSettings,
 } from '@/entities/databases';
-
-import { stripHostScheme } from './stripHostScheme';
+import { stripHostScheme } from '@/features/database-connection/lib/stripHostScheme';
 
 const IPV4_PATTERN = /^\d{1,3}(\.\d{1,3}){3}$/;
 

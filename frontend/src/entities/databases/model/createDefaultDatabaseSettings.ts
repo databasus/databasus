@@ -1,8 +1,8 @@
-import type { DatabaseSettings } from './DatabaseSettings';
-import type { DatabaseType } from './DatabaseType';
-import { PhysicalDatabaseBackupType } from './postgresql/physical/PhysicalDatabaseBackupType';
-import { PostgresSslMode } from './postgresql/PostgresSslMode';
-import { createEmptySshTunnelSettings } from './sshtunnel/createEmptySshTunnelSettings';
+import type { DatabaseSettings } from '@/entities/databases/model/DatabaseSettings';
+import type { DatabaseType } from '@/entities/databases/model/DatabaseType';
+import { PhysicalDatabaseBackupType } from '@/entities/databases/model/postgresql/physical/PhysicalDatabaseBackupType';
+import { PostgresSslMode } from '@/entities/databases/model/postgresql/PostgresSslMode';
+import { createEmptySshTunnelSettings } from '@/entities/databases/model/sshtunnel/createEmptySshTunnelSettings';
 
 const DEFAULT_POSTGRESQL_PORT = 5432;
 const DEFAULT_MYSQL_PORT = 3306;

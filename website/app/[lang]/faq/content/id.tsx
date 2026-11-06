@@ -70,7 +70,7 @@ export default function FAQPage() {
                 name: "Bagaimana backup fisik dan PITR (Point-in-Time Recovery) bekerja?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus menjalankan backup fisik dari host-nya sendiri secara remote, terhubung ke PostgreSQL melalui protokol replikasi standar, sehingga tidak perlu menginstal apa pun di server database. Database dalam jaringan tertutup bisa dijangkau melalui tunnel SSH. Backup fisik memakai stack native PostgreSQL 17: backup penuh melalui pg_basebackup, backup inkremental tingkat blok melalui pg_basebackup --incremental dengan ringkasan WAL di sisi server (summarize_wal = on), dan streaming WAL terus-menerus melalui pg_receivewal. Backup fisik memerlukan PostgreSQL 17 atau lebih baru; pada versi lebih lama, gunakan backup logis pg_dump. Untuk restore ke waktu tertentu, pg_combinebackup menyusun kembali direktori data yang bisa dijalankan dari backup penuh dan rangkaian backup inkrementalnya. PostgreSQL kemudian memutar ulang WAL hingga waktu target pilihan kamu, sehingga pemulihan bisa dilakukan ke detik mana pun di antara backup. Antarmuka Databasus memberi petunjuk langkah demi langkah untuk restore ke host atau database Docker, baik melalui script siap pakai yang membuat restore cukup dengan satu perintah, maupun dengan mengunduh backup dan menyusun sendiri rangkaian backup penuh, inkremental, dan WAL. Backup inkremental dan WAL bersifat opsional: kamu bisa hanya membuat backup penuh, dan WAL tidak wajib. Kami memakai backup native PostgreSQL 17 karena memanfaatkan mekanisme backup PostgreSQL yang sudah teruji, bukan membuat ulang, bekerja dengan database remote termasuk layanan terkelola seperti RDS dan Cloud SQL, serta menjaga kehilangan data tetap mendekati nol.",
+                  text: "Databasus menjalankan backup fisik dari host-nya sendiri secara remote, terhubung ke PostgreSQL melalui protokol replikasi standar, sehingga tidak perlu menginstal apa pun di server database. Database dalam jaringan tertutup bisa dijangkau melalui tunnel SSH. Backup fisik memakai stack native PostgreSQL 17: backup penuh melalui pg_basebackup, backup inkremental tingkat blok melalui pg_basebackup --incremental dengan ringkasan WAL di sisi server (summarize_wal = on), dan streaming WAL terus-menerus melalui pg_receivewal. Backup fisik memerlukan PostgreSQL 17 atau lebih baru; pada versi lebih lama, gunakan backup logis pg_dump. Untuk restore ke waktu tertentu, pg_combinebackup menyusun kembali direktori data yang bisa dijalankan dari backup penuh dan rangkaian backup inkrementalnya. PostgreSQL kemudian memutar ulang WAL hingga waktu target pilihan kamu, sehingga pemulihan bisa dilakukan ke detik mana pun di antara backup. Antarmuka Databasus memberi petunjuk langkah demi langkah untuk restore ke host atau database Docker, baik melalui script siap pakai yang membuat restore cukup dengan satu perintah, maupun dengan mengunduh backup dan menyusun sendiri rangkaian backup penuh, inkremental, dan WAL. Backup inkremental dan WAL bersifat opsional: kamu bisa hanya membuat backup penuh, dan WAL tidak wajib. Kami memakai backup native PostgreSQL 17 karena memanfaatkan mekanisme backup PostgreSQL yang sudah teruji, bukan membuat ulang, serta menjaga kehilangan data tetap mendekati nol.",
                 },
               },
               {
@@ -263,11 +263,6 @@ export default function FAQPage() {
                 <li>
                   Memanfaatkan mekanisme backup PostgreSQL sendiri alih-alih membuat ulang, sehingga
                   bagian internalnya sudah teruji dengan ribuan pengujian dan kasus khusus
-                </li>
-                <li>
-                  Bekerja dengan database remote, termasuk layanan terkelola seperti Amazon RDS dan
-                  Google Cloud SQL yang menyediakan protokol replikasi tetapi melarang instalasi
-                  perangkat lunak di host
                 </li>
                 <li>
                   Menjaga kehilangan data tetap mendekati nol, dengan restore ke detik mana pun di

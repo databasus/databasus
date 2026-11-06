@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { createDefaultPhysicalBackupConfigDraft } from './createDefaultPhysicalBackupConfigDraft';
-import { isPhysicalBackupConfigComplete } from './isPhysicalBackupConfigComplete';
+import { createDefaultPhysicalBackupConfigDraft } from '@/pages/databases/model/physical-backups/createDefaultPhysicalBackupConfigDraft';
+import { isPhysicalBackupConfigComplete } from '@/pages/databases/model/physical-backups/isPhysicalBackupConfigComplete';
 
 describe('createDefaultPhysicalBackupConfigDraft', () => {
   it.each([

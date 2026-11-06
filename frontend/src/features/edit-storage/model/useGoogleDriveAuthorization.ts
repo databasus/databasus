@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 
-import type { GoogleDriveStorageSettings } from '../../../entities/storages';
-import { getSessionSnapshot, isCurrentSession, subscribeSession } from '../../../shared/auth';
-import { useLatestRef } from '../../../shared/hooks';
-import type { TranslationKey } from '../../../shared/i18n';
-import type { StorageAuthorizationAttempt } from './StorageAuthorizationAttempt';
+import type { GoogleDriveStorageSettings } from '@/entities/storages';
+import type { StorageAuthorizationAttempt } from '@/features/edit-storage/model/StorageAuthorizationAttempt';
 import {
   getStorageAuthorizationChannelName,
   isStorageAuthorizationResponse,
-} from './storageAuthorizationRelay';
+} from '@/features/edit-storage/model/storageAuthorizationRelay';
+import { getSessionSnapshot, isCurrentSession, subscribeSession } from '@/shared/auth';
+import { useLatestRef } from '@/shared/hooks';
+import type { TranslationKey } from '@/shared/i18n';
 
 interface GoogleDriveAuthorizationOptions {
   workspaceId: string;

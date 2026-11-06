@@ -1,10 +1,10 @@
 import dayjs from 'dayjs';
 
-import type { MonitoringText } from '../../model/wal-stream-monitoring/MonitoringText';
-import type { MonitoringTextParam } from '../../model/wal-stream-monitoring/MonitoringTextParam';
-import type { RestoreTimelineSegment } from '../../model/wal-stream-monitoring/RestoreTimelineSegment';
-import { RestoreTimelineSegmentKind } from '../../model/wal-stream-monitoring/RestoreTimelineSegmentKind';
-import type { WalStreamTimeRange } from '../../model/wal-stream-monitoring/WalStreamTimeRange';
+import type { MonitoringText } from '@/pages/databases/model/wal-stream-monitoring/MonitoringText';
+import type { MonitoringTextParam } from '@/pages/databases/model/wal-stream-monitoring/MonitoringTextParam';
+import type { RestoreTimelineSegment } from '@/pages/databases/model/wal-stream-monitoring/RestoreTimelineSegment';
+import { RestoreTimelineSegmentKind } from '@/pages/databases/model/wal-stream-monitoring/RestoreTimelineSegmentKind';
+import type { WalStreamTimeRange } from '@/pages/databases/model/wal-stream-monitoring/WalStreamTimeRange';
 
 // A lost stretch of a few hours on a chain months long would be thinner than a pixel, so every
 // stretch except the not saved yet tail keeps this share of the bar.

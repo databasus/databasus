@@ -1,5 +1,5 @@
-import { SshTunnelAuthType } from './SshTunnelAuthType';
-import type { SshTunnelSettings } from './SshTunnelSettings';
+import { SshTunnelAuthType } from '@/entities/databases/model/sshtunnel/SshTunnelAuthType';
+import type { SshTunnelSettings } from '@/entities/databases/model/sshtunnel/SshTunnelSettings';
 
 export const DEFAULT_SSH_PORT = 22;
 

@@ -1,4 +1,4 @@
-import type { en } from './en';
+import type { en } from '@/shared/i18n/locales/en';
 
 export const ru: typeof en = {
   language: {
@@ -1045,6 +1045,13 @@ export const ru: typeof en = {
       details: {
         title: 'Подробности проверки восстановления',
         cancellationReason: 'Причина отмены',
+        diagnostic: {
+          title: 'Подробности ошибки',
+          truncated: 'Часть вывода в середине пропущена из-за ограничения в 64 КБ.',
+          unavailable: 'Для этой проверки подробная диагностика не сохранена.',
+          copied: 'Диагностика скопирована',
+          copyFailed: 'Не удалось скопировать диагностику. Выделите и скопируйте текст вручную.',
+        },
         failure: 'Ошибка',
         sections: {
           status: 'Статус',

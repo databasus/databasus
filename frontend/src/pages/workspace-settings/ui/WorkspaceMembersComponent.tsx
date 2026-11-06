@@ -24,11 +24,7 @@ import dayjs from 'dayjs';
 import { useEffect, useEffectEvent, useId, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { ApiError } from '@/shared/api';
-import { useSessionGuard } from '@/shared/auth';
-import { useRequestRevision } from '@/shared/hooks';
-
-import { type User, UserRole, userManagementApi } from '../../../entities/users';
+import { type User, UserRole, userManagementApi } from '@/entities/users';
 import {
   type AssignableWorkspaceRole,
   WORKSPACE_ROLE_LABEL_KEYS,
@@ -37,11 +33,14 @@ import {
   WorkspaceRole,
   workspaceApi,
   workspaceMemberApi,
-} from '../../../entities/workspaces';
-import { useIsMobile } from '../../../shared/hooks';
-import { translateApiError, useLocale } from '../../../shared/i18n';
-import { getUserShortTimeFormat } from '../../../shared/time';
-import { LoadFailure } from '../../../shared/ui';
+} from '@/entities/workspaces';
+import { ApiError } from '@/shared/api';
+import { useSessionGuard } from '@/shared/auth';
+import { useRequestRevision } from '@/shared/hooks';
+import { useIsMobile } from '@/shared/hooks';
+import { translateApiError, useLocale } from '@/shared/i18n';
+import { getUserShortTimeFormat } from '@/shared/time';
+import { LoadFailure } from '@/shared/ui';
 
 interface Props {
   selectedWorkspace: Workspace;
