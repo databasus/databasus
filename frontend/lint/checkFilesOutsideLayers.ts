@@ -1,7 +1,8 @@
 import { relative, sep } from 'node:path';
 
-import { type ArchitectureFinding, LAYERS } from './checkProjectDependencies.ts';
-import { getSourceFiles } from './frontendDependencies.ts';
+import type { ArchitectureFinding } from './architectureFinding.ts';
+import { LAYERS } from './checkProjectDependencies.ts';
+import { getSourceFiles } from './sourceFiles.ts';
 
 const ALLOWED_ROOT_MODULES = ['main.tsx', 'vite-env.d.ts'];
 

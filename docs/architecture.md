@@ -338,7 +338,7 @@ The [FSD skill](../.agents/skills/feature-sliced-design/SKILL.md) gives the plac
   - Shared libraries and test infrastructure may expose focused entry points without a single shared-layer barrel.
 - **Keep domain operations with their owner.** A domain API facade keeps its URLs, filters, request bodies and product policy in an entity, feature or page. Shared API holds transport, session-token plumbing, generated types and response normalization. Domain-independent cursor traversal may be shared.
 - **An alias of a generated schema names a domain concept.** Keep aliases with their owner, and keep tiny shape aliases with the unit they describe.
-- **File layout.** Every script module sits in a layer, apart from the [source-root exceptions](../frontend/AGENTS.md#architecture-and-skills). The `@/` alias resolves to `frontend/src` in TypeScript, Vite, Vitest and architecture checks. Aliased and relative imports follow the same boundaries.
+- **File layout.** Every script module sits in a layer, apart from the [source-root exceptions](../frontend/AGENTS.md#architecture-and-skills). The [import-path convention](../frontend/AGENTS.md#import-paths) uses the `@/` source-root alias so references have one spelling regardless of the importing file's location. TypeScript, Vite, Vitest, the browser-test loader and architecture checks resolve that alias consistently, including when tooling consumes source modules. The spelling does not change dependency boundaries; architecture checks also recognize relative references in their fixtures.
 
 ### State and effects
 
