@@ -3,15 +3,14 @@ import { Checkbox, Input, Select, Tooltip } from 'antd';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { AddressChangedSecretNoticeComponent, AdvancedSettingsToggleComponent } from '@/shared/ui';
-
 import {
   MATTERMOST_DELIVERY_MODE_LABEL_KEYS,
   MattermostDeliveryMode,
   type MattermostNotifierSettings,
-} from '../../../../../entities/notifiers';
-import { getWebsitePageUrl, useLocale } from '../../../../../shared/i18n';
-import { toOptionalValue } from '../../../../../shared/lib';
+} from '@/entities/notifiers';
+import { getWebsitePageUrl, useLocale } from '@/shared/i18n';
+import { toOptionalValue } from '@/shared/lib';
+import { AddressChangedSecretNoticeComponent, AdvancedSettingsToggleComponent } from '@/shared/ui';
 
 interface Props {
   settings: MattermostNotifierSettings;

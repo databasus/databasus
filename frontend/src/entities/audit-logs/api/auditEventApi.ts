@@ -1,5 +1,5 @@
-import { type ApiPaths, getApiClient, requireData } from '../../../shared/api';
-import type { AuditEventPage } from '../model/AuditEventPage';
+import type { AuditEventPage } from '@/entities/audit-logs/model/AuditEventPage';
+import { type ApiPaths, getApiClient, requireData } from '@/shared/api';
 
 type AuditEventListQuery = NonNullable<ApiPaths['/audit-events']['get']['parameters']['query']>;
 

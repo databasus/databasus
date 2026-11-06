@@ -3,16 +3,15 @@ import { Alert, App, Button, Input, Modal, Spin } from 'antd';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { type Storage, storageApi } from '@/entities/storages';
 import { EditStorageComponent } from '@/features/edit-storage';
+import { ShowStorageComponent } from '@/pages/storages/ui/show/ShowStorageComponent';
+import { StorageTransferDialogComponent } from '@/pages/storages/ui/StorageTransferDialogComponent';
+import { ApiError } from '@/shared/api';
 import { useSession, useSessionGuard } from '@/shared/auth';
 import { useLatestRef, useRequestRevision } from '@/shared/hooks';
-
-import { type Storage, storageApi } from '../../../entities/storages';
-import { ApiError } from '../../../shared/api';
-import { translateApiError } from '../../../shared/i18n';
-import { ConfirmationComponent, LoadFailure } from '../../../shared/ui';
-import { ShowStorageComponent } from './show/ShowStorageComponent';
-import { StorageTransferDialogComponent } from './StorageTransferDialogComponent';
+import { translateApiError } from '@/shared/i18n';
+import { ConfirmationComponent, LoadFailure } from '@/shared/ui';
 
 // eslint-disable-next-line i18next/no-literal-string -- API error code, not copy
 const STORAGE_IN_USE_CODE = 'in_use';

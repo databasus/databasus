@@ -1,8 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { type WalStreamSeries } from '../../model/wal-stream-monitoring/WalStreamSeries';
-import { type WalStreamSeriesPoint } from '../../model/wal-stream-monitoring/WalStreamSeriesPoint';
-import { WalStreamStatisticsPeriod } from '../../model/wal-stream-monitoring/WalStreamStatisticsPeriod';
 import {
   getBinaryAxisTicks,
   getChartTimeDomain,
@@ -11,7 +8,10 @@ import {
   getRowsMaximum,
   hasEnoughChartPoints,
   toChartRows,
-} from './chartRows';
+} from '@/pages/databases/lib/wal-stream-monitoring/chartRows';
+import { type WalStreamSeries } from '@/pages/databases/model/wal-stream-monitoring/WalStreamSeries';
+import { type WalStreamSeriesPoint } from '@/pages/databases/model/wal-stream-monitoring/WalStreamSeriesPoint';
+import { WalStreamStatisticsPeriod } from '@/pages/databases/model/wal-stream-monitoring/WalStreamStatisticsPeriod';
 
 // The entity's public API imports its API client, and the client's config module reads window at
 // import time. The tests run in node, so they supply window.

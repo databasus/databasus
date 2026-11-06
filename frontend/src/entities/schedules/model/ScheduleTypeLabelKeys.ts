@@ -1,5 +1,5 @@
-import type { TranslationKey } from '../../../shared/i18n';
-import { ScheduleType } from './ScheduleType';
+import { ScheduleType } from '@/entities/schedules/model/ScheduleType';
+import type { TranslationKey } from '@/shared/i18n';
 
 export const SCHEDULE_TYPE_LABEL_KEYS: Record<ScheduleType, TranslationKey> = {
   [ScheduleType.HOURLY]: 'schedules.types.hourly',

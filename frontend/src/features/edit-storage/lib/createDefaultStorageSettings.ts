@@ -1,4 +1,4 @@
-import { AzureBlobAuthMethod, type StorageSettings, StorageType } from '../../../entities/storages';
+import { AzureBlobAuthMethod, type StorageSettings, StorageType } from '@/entities/storages';
 
 const DEFAULT_NAS_PORT = 445;
 const DEFAULT_FTP_PORT = 21;

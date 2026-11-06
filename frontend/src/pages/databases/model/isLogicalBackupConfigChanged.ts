@@ -1,10 +1,7 @@
-import type {
-  LogicalBackupConfigInput,
-  LogicalBackupSettings,
-} from '../../../entities/backup-configs';
-import { isScheduleChanged } from '../../../entities/schedules';
-import { isGfsHoursShown } from './isGfsHoursShown';
-import { LogicalRetentionPolicy } from './LogicalRetentionPolicy';
+import type { LogicalBackupConfigInput, LogicalBackupSettings } from '@/entities/backup-configs';
+import { isScheduleChanged } from '@/entities/schedules';
+import { isGfsHoursShown } from '@/pages/databases/model/isGfsHoursShown';
+import { LogicalRetentionPolicy } from '@/pages/databases/model/LogicalRetentionPolicy';
 
 interface LogicalBackupConfigComparison {
   acknowledged: LogicalBackupConfigInput;

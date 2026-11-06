@@ -4,17 +4,17 @@ import dayjs from 'dayjs';
 import { useEffect, useEffectEvent, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type LocaleContextValue, useLocale } from '../../../../shared/i18n';
-import { RequestRevision } from '../../../../shared/lib/RequestRevision';
-import { getUserTimeFormat } from '../../../../shared/time';
-import { LoadFailure } from '../../../../shared/ui';
-import { verificationRunsApi } from '../../api/verificationRunsApi';
-import { type VerificationDetails } from '../../model/verification/VerificationDetails';
-import { VerificationStatus } from '../../model/verification/VerificationStatus';
-import { type VerificationTableStat } from '../../model/verification/VerificationTableStat';
-import { formatOptionalDuration } from './formatOptionalDuration';
-import { VerificationStatusLabel } from './VerificationStatusLabel';
-import { VerificationTriggerTag } from './VerificationTriggerTag';
+import { verificationRunsApi } from '@/pages/databases/api/verificationRunsApi';
+import { type VerificationDetails } from '@/pages/databases/model/verification/VerificationDetails';
+import { VerificationStatus } from '@/pages/databases/model/verification/VerificationStatus';
+import { type VerificationTableStat } from '@/pages/databases/model/verification/VerificationTableStat';
+import { formatOptionalDuration } from '@/pages/databases/ui/verification/formatOptionalDuration';
+import { VerificationStatusLabel } from '@/pages/databases/ui/verification/VerificationStatusLabel';
+import { VerificationTriggerTag } from '@/pages/databases/ui/verification/VerificationTriggerTag';
+import { type LocaleContextValue, useLocale } from '@/shared/i18n';
+import { RequestRevision } from '@/shared/lib/RequestRevision';
+import { getUserTimeFormat } from '@/shared/time';
+import { LoadFailure } from '@/shared/ui';
 
 interface Props {
   verificationId: string;

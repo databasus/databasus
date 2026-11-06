@@ -2,7 +2,7 @@ import type { Locale as AntdLocale } from 'antd/lib/locale';
 import type { ConfigType } from 'dayjs';
 import { createContext } from 'react';
 
-import type { Locale } from './dictionaries';
+import type { Locale } from '@/shared/i18n/dictionaries';
 
 export interface LocaleContextValue {
   locale: Locale;

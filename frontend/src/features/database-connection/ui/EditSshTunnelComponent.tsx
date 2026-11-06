@@ -10,11 +10,11 @@ import {
   createEmptySshTunnelSettings,
   hasStoredSshTunnelSecretsForAuthType,
   setSshTunnelAuthTypeAndClearUnusedSecrets,
-} from '../../../entities/databases';
-import { AddressChangedSecretNoticeComponent } from '../../../shared/ui';
-import { isSshTunnelAddressChanged } from '../lib/isSshTunnelAddressChanged';
-import { ConnectionFieldRow } from './ConnectionFieldRow';
-import { ConnectionFieldTooltip } from './ConnectionFieldTooltip';
+} from '@/entities/databases';
+import { isSshTunnelAddressChanged } from '@/features/database-connection/lib/isSshTunnelAddressChanged';
+import { ConnectionFieldRow } from '@/features/database-connection/ui/ConnectionFieldRow';
+import { ConnectionFieldTooltip } from '@/features/database-connection/ui/ConnectionFieldTooltip';
+import { AddressChangedSecretNoticeComponent } from '@/shared/ui';
 
 interface Props {
   sshTunnel: SshTunnelSettings;

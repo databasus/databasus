@@ -11,15 +11,15 @@ import {
   type LimitedUserCheck,
   databaseApi,
   toDatabaseSettingsTarget,
-} from '../../../entities/databases';
-import { useSessionGuard } from '../../../shared/auth';
+} from '@/entities/databases';
+import { useSessionGuard } from '@/shared/auth';
 import {
   TransByKey,
   type TranslationKey,
   getWebsitePageUrl,
   translateApiError,
   useLocale,
-} from '../../../shared/i18n';
+} from '@/shared/i18n';
 
 interface Props {
   draft: DatabaseCreateDraft | DatabaseEditDraft;

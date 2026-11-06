@@ -1,4 +1,4 @@
-import { getApiClient, requireData } from '../../../shared/api';
+import { getApiClient, requireData } from '@/shared/api';
 export const verificationRunsApi = {
   async listByDatabase(databaseId: string, limit?: number, after?: string) {
     return requireData(

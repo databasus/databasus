@@ -1,7 +1,6 @@
 import { type DatabaseConnectionDraft, DatabaseType } from '@/entities/databases';
+import { isSshTunnelAddressChanged } from '@/features/database-connection/lib/isSshTunnelAddressChanged';
 import { isOptionalValueChanged } from '@/shared/lib';
-
-import { isSshTunnelAddressChanged } from './isSshTunnelAddressChanged';
 
 // Mirrors the resource address each database provider compares on the backend, which stays the
 // authority: a stale list here only makes the user see the generic refusal.

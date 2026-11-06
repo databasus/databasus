@@ -1,11 +1,11 @@
 import dayjs from 'dayjs';
 import type { TFunction } from 'i18next';
 
-import { type LocaleContextValue, translateLocalizedText } from '../../../../shared/i18n';
-import { formatBytes } from '../../../../shared/lib';
-import { getUserClockFormat, getUserTimeFormat } from '../../../../shared/time';
-import type { MonitoringText } from '../../model/wal-stream-monitoring/MonitoringText';
-import type { MonitoringTextParam } from '../../model/wal-stream-monitoring/MonitoringTextParam';
+import type { MonitoringText } from '@/pages/databases/model/wal-stream-monitoring/MonitoringText';
+import type { MonitoringTextParam } from '@/pages/databases/model/wal-stream-monitoring/MonitoringTextParam';
+import { type LocaleContextValue, translateLocalizedText } from '@/shared/i18n';
+import { formatBytes } from '@/shared/lib';
+import { getUserClockFormat, getUserTimeFormat } from '@/shared/time';
 
 // Runs while a component renders, with that render's language, and turns the numbers and nested
 // keys of a sentence into the values its translation interpolates.

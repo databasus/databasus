@@ -3,15 +3,15 @@ import { act, fireEvent, screen } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { type MockInstance, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { API_BASE_PATH } from '../../../../shared/api';
-import { activateSession, invalidateSession } from '../../../../shared/auth';
-import { buildProblem, mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
-import { createPendingApiResponse } from '../../../../shared/lib/test/pendingApiResponse';
-import { releaseAndSettle } from '../../../../shared/lib/test/releaseAndSettle';
-import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-import { verificationConfigApi } from '../../api/verificationConfigApi';
-import type { VerificationConfig } from '../../model/verification/VerificationConfig';
-import { ShowVerificationConfigComponent } from './ShowVerificationConfigComponent';
+import { verificationConfigApi } from '@/pages/databases/api/verificationConfigApi';
+import type { VerificationConfig } from '@/pages/databases/model/verification/VerificationConfig';
+import { ShowVerificationConfigComponent } from '@/pages/databases/ui/verification/ShowVerificationConfigComponent';
+import { API_BASE_PATH } from '@/shared/api';
+import { activateSession, invalidateSession } from '@/shared/auth';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
+import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const mockServer = setUpMockApi();
 const config: VerificationConfig = {

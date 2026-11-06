@@ -1,7 +1,7 @@
-import type { LogicalBackupSettings } from '../../../entities/backup-configs';
-import { createDefaultLogicalBackupConfig } from './createDefaultLogicalBackupConfig';
-import { hasShownGfsPeriod } from './hasShownGfsPeriod';
-import { LogicalRetentionPolicy } from './LogicalRetentionPolicy';
+import type { LogicalBackupSettings } from '@/entities/backup-configs';
+import { createDefaultLogicalBackupConfig } from '@/pages/databases/model/createDefaultLogicalBackupConfig';
+import { hasShownGfsPeriod } from '@/pages/databases/model/hasShownGfsPeriod';
+import { LogicalRetentionPolicy } from '@/pages/databases/model/LogicalRetentionPolicy';
 
 type LogicalRetention = LogicalBackupSettings['retention'];
 

@@ -2,9 +2,9 @@
 import { useEffect } from 'react';
 import { describe, expect, it } from 'vitest';
 
-import { RequestRevision } from '../lib/RequestRevision';
-import { renderScreen } from '../lib/test/renderScreen';
-import { useRequestRevision } from './useRequestRevision';
+import { useRequestRevision } from '@/shared/hooks/useRequestRevision';
+import { RequestRevision } from '@/shared/lib/RequestRevision';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 describe('useRequestRevision', () => {
   it('returns one revision object for the whole lifetime of the component', () => {

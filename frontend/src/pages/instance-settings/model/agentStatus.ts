@@ -1,4 +1,4 @@
-import type { TranslationKey } from '../../../shared/i18n';
+import type { TranslationKey } from '@/shared/i18n';
 
 // Agents are expected to heartbeat every 30 seconds; the 15-second list poll on
 // the page gives a snappy transition between Online and Stale.

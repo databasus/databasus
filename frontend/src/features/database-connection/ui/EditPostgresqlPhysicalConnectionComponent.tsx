@@ -9,17 +9,19 @@ import {
   PostgresqlConnectionStringParser,
   type PostgresqlPhysicalSettings,
 } from '@/entities/databases';
+import type { ConnectionEditorProps } from '@/features/database-connection/lib/ConnectionEditorProps';
+import {
+  applyPostgresqlHost,
+  applyPostgresqlSslMode,
+} from '@/features/database-connection/lib/postgresqlHostSsl';
+import { ConnectionCredentialFields } from '@/features/database-connection/ui/ConnectionCredentialFields';
+import { ConnectionFieldTooltip } from '@/features/database-connection/ui/ConnectionFieldTooltip';
+import { ConnectionStringImport } from '@/features/database-connection/ui/ConnectionStringImport';
+import { EditSshTunnelComponent } from '@/features/database-connection/ui/EditSshTunnelComponent';
+import { PostgresqlCertificateFields } from '@/features/database-connection/ui/PostgresqlCertificateFields';
+import { PostgresqlSslModeField } from '@/features/database-connection/ui/PostgresqlSslModeField';
 import type { TranslationKey } from '@/shared/i18n';
 import { AdvancedSettingsToggleComponent } from '@/shared/ui';
-
-import type { ConnectionEditorProps } from '../lib/ConnectionEditorProps';
-import { applyPostgresqlHost, applyPostgresqlSslMode } from '../lib/postgresqlHostSsl';
-import { ConnectionCredentialFields } from './ConnectionCredentialFields';
-import { ConnectionFieldTooltip } from './ConnectionFieldTooltip';
-import { ConnectionStringImport } from './ConnectionStringImport';
-import { EditSshTunnelComponent } from './EditSshTunnelComponent';
-import { PostgresqlCertificateFields } from './PostgresqlCertificateFields';
-import { PostgresqlSslModeField } from './PostgresqlSslModeField';
 
 interface Props extends ConnectionEditorProps<PostgresqlPhysicalSettings> {
   hasUserChosenSslMode: boolean;

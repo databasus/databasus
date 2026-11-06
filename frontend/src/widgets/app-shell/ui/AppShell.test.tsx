@@ -6,8 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { DICTIONARIES } from '@/shared/i18n/dictionaries';
 import { setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
-
-import { AppShell } from './AppShell';
+import { AppShell } from '@/widgets/app-shell/ui/AppShell';
 
 const server = setUpMockApi();
 

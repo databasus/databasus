@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createTestWalStreamStatistics } from '../../../../shared/lib/test/buildWalStreamStatistics';
-import { MonitoringTone } from '../../model/wal-stream-monitoring/MonitoringTone';
-import { VerdictIcon } from '../../model/wal-stream-monitoring/VerdictIcon';
-import { type WalStreamHealth } from '../../model/wal-stream-monitoring/WalStreamHealth';
-import { WalStreamHealthLevel } from '../../model/wal-stream-monitoring/WalStreamHealthLevel';
-import { WalStreamReasonCode } from '../../model/wal-stream-monitoring/WalStreamReasonCode';
-import { WalStreamReasonLevel } from '../../model/wal-stream-monitoring/WalStreamReasonLevel';
-import { getVerdictBanner } from './verdictBanner';
+import { getVerdictBanner } from '@/pages/databases/lib/wal-stream-monitoring/verdictBanner';
+import { MonitoringTone } from '@/pages/databases/model/wal-stream-monitoring/MonitoringTone';
+import { VerdictIcon } from '@/pages/databases/model/wal-stream-monitoring/VerdictIcon';
+import { type WalStreamHealth } from '@/pages/databases/model/wal-stream-monitoring/WalStreamHealth';
+import { WalStreamHealthLevel } from '@/pages/databases/model/wal-stream-monitoring/WalStreamHealthLevel';
+import { WalStreamReasonCode } from '@/pages/databases/model/wal-stream-monitoring/WalStreamReasonCode';
+import { WalStreamReasonLevel } from '@/pages/databases/model/wal-stream-monitoring/WalStreamReasonLevel';
+import { createTestWalStreamStatistics } from '@/shared/lib/test/buildWalStreamStatistics';
 
 // The entity's public API imports its API client, and the client's config module reads window at
 // import time. The tests run in node, so they supply window. Whether a moment is from today depends

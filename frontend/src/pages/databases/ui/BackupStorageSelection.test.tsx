@@ -4,10 +4,9 @@ import { HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Storage } from '@/entities/storages';
+import { BackupStorageSelection } from '@/pages/databases/ui/BackupStorageSelection';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
-
-import { BackupStorageSelection } from './BackupStorageSelection';
 
 const server = setUpMockApi();
 const storage: Storage = {

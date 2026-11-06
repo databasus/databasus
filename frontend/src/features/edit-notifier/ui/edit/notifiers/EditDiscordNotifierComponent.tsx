@@ -1,8 +1,8 @@
 import { Input } from 'antd';
 import { useTranslation } from 'react-i18next';
 
-import type { DiscordNotifierSettings } from '../../../../../entities/notifiers';
-import { toOptionalValue } from '../../../../../shared/lib';
+import type { DiscordNotifierSettings } from '@/entities/notifiers';
+import { toOptionalValue } from '@/shared/lib';
 
 interface Props {
   settings: DiscordNotifierSettings;

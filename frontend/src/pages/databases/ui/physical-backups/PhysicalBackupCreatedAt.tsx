@@ -2,10 +2,10 @@ import dayjs from 'dayjs';
 import type { JSX } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { useLocale } from '../../../../shared/i18n';
-import { getUserTimeFormat } from '../../../../shared/time';
-import { type PhysicalBackupListItem } from '../../model/physical-backups/PhysicalBackupListItem';
-import { PhysicalBackupType } from '../../model/physical-backups/PhysicalBackupType';
+import { type PhysicalBackupListItem } from '@/pages/databases/model/physical-backups/PhysicalBackupListItem';
+import { PhysicalBackupType } from '@/pages/databases/model/physical-backups/PhysicalBackupType';
+import { useLocale } from '@/shared/i18n';
+import { getUserTimeFormat } from '@/shared/time';
 
 interface Props {
   backup: PhysicalBackupListItem;

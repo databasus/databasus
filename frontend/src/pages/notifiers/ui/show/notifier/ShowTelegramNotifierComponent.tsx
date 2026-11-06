@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
-import type { TelegramNotifierSettings } from '../../../../../entities/notifiers';
+import type { TelegramNotifierSettings } from '@/entities/notifiers';
 
 interface Props {
   settings: TelegramNotifierSettings;

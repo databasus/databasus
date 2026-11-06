@@ -3,13 +3,13 @@ import { Button, Tooltip } from 'antd';
 import type { JSX } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { InlineCodeComponent } from '../../../../shared/ui';
 import {
   type AgentArchitecture,
   buildInstallCommand,
   buildLaunchCommand,
-} from '../../lib/verificationAgentCommands';
-import { CopyableCodeBlock } from './CopyableCodeBlock';
+} from '@/pages/instance-settings/lib/verificationAgentCommands';
+import { CopyableCodeBlock } from '@/pages/instance-settings/ui/verification-agents/CopyableCodeBlock';
+import { InlineCodeComponent } from '@/shared/ui';
 
 const ARCHITECTURES: AgentArchitecture[] = ['amd64', 'arm64'];
 const AFTER_INSTALLATION_KEYS = [

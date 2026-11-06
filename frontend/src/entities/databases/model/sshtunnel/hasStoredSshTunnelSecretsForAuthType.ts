@@ -1,5 +1,5 @@
-import type { SshTunnelAuthType } from './SshTunnelAuthType';
-import type { SshTunnelSettings } from './SshTunnelSettings';
+import type { SshTunnelAuthType } from '@/entities/databases/model/sshtunnel/SshTunnelAuthType';
+import type { SshTunnelSettings } from '@/entities/databases/model/sshtunnel/SshTunnelSettings';
 
 /**
  * Answers from the saved database, never from the edited copy: a database that never had a tunnel

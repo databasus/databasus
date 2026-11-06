@@ -2,17 +2,16 @@ import { App, Button, Modal } from 'antd';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { DatabaseConnectionForm } from '@/features/database-connection';
-
 import {
   type Database,
   type DatabaseEditDraft,
   databaseApi,
   toDatabaseSettingsTarget,
-} from '../../../entities/databases';
-import { useSessionGuard } from '../../../shared/auth';
-import { translateApiError } from '../../../shared/i18n';
-import { CreateLimitedUserComponent } from './CreateLimitedUserComponent';
+} from '@/entities/databases';
+import { DatabaseConnectionForm } from '@/features/database-connection';
+import { CreateLimitedUserComponent } from '@/pages/databases/ui/CreateLimitedUserComponent';
+import { useSessionGuard } from '@/shared/auth';
+import { translateApiError } from '@/shared/i18n';
 
 interface Props {
   database: Database;

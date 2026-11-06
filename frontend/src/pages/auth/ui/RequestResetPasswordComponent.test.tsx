@@ -2,10 +2,9 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { RequestResetPasswordComponent } from '@/pages/auth/ui/RequestResetPasswordComponent';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
-
-import { RequestResetPasswordComponent } from './RequestResetPasswordComponent';
 
 const server = setUpMockApi();
 const observeResponse = () =>

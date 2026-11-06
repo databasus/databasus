@@ -3,16 +3,15 @@ import { fireEvent, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { DatabaseType, createDefaultDatabaseSettings } from '@/entities/databases';
-import { en } from '@/shared/i18n/locales/en';
-import { setUpMockApi } from '@/shared/lib/test/mockApi';
-
 import {
   buildCreateDraft,
   buildEditDraft,
   buildRestoreDraft,
   renderEditableForm,
   renderRestoreForm,
-} from './connectionForm.fixture';
+} from '@/features/database-connection/ui/connectionForm.fixture';
+import { en } from '@/shared/i18n/locales/en';
+import { setUpMockApi } from '@/shared/lib/test/mockApi';
 
 setUpMockApi();
 

@@ -1,8 +1,8 @@
-import type { PhysicalBackupConfigInput } from '../../../../entities/backup-configs';
-import type { FullBackupsRetention } from './FullBackupsRetention';
-import { FullBackupsRetentionPolicy } from './FullBackupsRetentionPolicy';
-import type { PhysicalBackupConfigDraft } from './PhysicalBackupConfigDraft';
-import { PhysicalRetentionPolicy } from './PhysicalRetentionPolicy';
+import type { PhysicalBackupConfigInput } from '@/entities/backup-configs';
+import type { FullBackupsRetention } from '@/pages/databases/model/physical-backups/FullBackupsRetention';
+import { FullBackupsRetentionPolicy } from '@/pages/databases/model/physical-backups/FullBackupsRetentionPolicy';
+import type { PhysicalBackupConfigDraft } from '@/pages/databases/model/physical-backups/PhysicalBackupConfigDraft';
+import { PhysicalRetentionPolicy } from '@/pages/databases/model/physical-backups/PhysicalRetentionPolicy';
 
 const toFullBackupsRetentionInput = (retention: FullBackupsRetention): FullBackupsRetention =>
   retention.policy === FullBackupsRetentionPolicy.LAST_N

@@ -1,4 +1,4 @@
-import { NotifierType } from './NotifierType';
+import { NotifierType } from '@/entities/notifiers/model/NotifierType';
 
 const NOTIFIER_LOGOS: Record<NotifierType, string> = {
   [NotifierType.EMAIL]: '/icons/notifiers/email.svg',

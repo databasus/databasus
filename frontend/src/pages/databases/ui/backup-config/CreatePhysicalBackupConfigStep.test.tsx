@@ -2,10 +2,10 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
-import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-import { buildPhysicalBackupConfigDraft } from '../../model/physical-backups/buildPhysicalBackupConfigDraft.fixture';
-import { CreatePhysicalBackupConfigStep } from './CreatePhysicalBackupConfigStep';
+import { buildPhysicalBackupConfigDraft } from '@/pages/databases/model/physical-backups/buildPhysicalBackupConfigDraft.fixture';
+import { CreatePhysicalBackupConfigStep } from '@/pages/databases/ui/backup-config/CreatePhysicalBackupConfigStep';
+import { mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const mockServer = setUpMockApi();
 const archiveStorage = {

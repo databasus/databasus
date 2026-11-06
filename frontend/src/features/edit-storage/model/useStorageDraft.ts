@@ -1,13 +1,15 @@
 import { useEffectEvent, useLayoutEffect, useRef, useState } from 'react';
 
 import { type Storage, type StorageSettings, storageApi } from '@/entities/storages';
+import { createDefaultStorageSettings } from '@/features/edit-storage/lib/createDefaultStorageSettings';
+import { isStorageSettingsFilled } from '@/features/edit-storage/lib/isStorageSettingsFilled';
+import {
+  type StorageDraft,
+  isStorageDraftUnchanged,
+} from '@/features/edit-storage/lib/StorageDraft';
+import { acknowledgeStorageSettings } from '@/features/edit-storage/model/acknowledgeStorageSettings';
 import { getSessionSnapshot, isCurrentSession, subscribeSession } from '@/shared/auth';
 import { RequestRevision } from '@/shared/lib/RequestRevision';
-
-import { createDefaultStorageSettings } from '../lib/createDefaultStorageSettings';
-import { isStorageSettingsFilled } from '../lib/isStorageSettingsFilled';
-import { type StorageDraft, isStorageDraftUnchanged } from '../lib/StorageDraft';
-import { acknowledgeStorageSettings } from './acknowledgeStorageSettings';
 
 interface Options {
   workspaceId: string;

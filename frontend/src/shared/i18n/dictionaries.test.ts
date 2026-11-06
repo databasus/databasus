@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { DICTIONARIES } from './dictionaries';
+import { DICTIONARIES } from '@/shared/i18n/dictionaries';
 
 type Dictionary = { [key: string]: string | Dictionary };
 

@@ -1,5 +1,5 @@
-import { DatabaseType, type RestoreTargetDraft } from '../../../../entities/databases';
-import type { PostgresqlRestoreOptions, RestoreTarget } from '../../../../entities/restores';
+import { DatabaseType, type RestoreTargetDraft } from '@/entities/databases';
+import type { PostgresqlRestoreOptions, RestoreTarget } from '@/entities/restores';
 
 // The target server of a restore is entered in the same form as the database's settings, so the
 // target takes the variant of the engine the backup came from.

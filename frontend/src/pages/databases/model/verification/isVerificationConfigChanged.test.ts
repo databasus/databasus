@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { isVerificationConfigChanged } from './isVerificationConfigChanged';
-import type { VerificationConfig } from './VerificationConfig';
+import { isVerificationConfigChanged } from '@/pages/databases/model/verification/isVerificationConfigChanged';
+import type { VerificationConfig } from '@/pages/databases/model/verification/VerificationConfig';
 
 const acknowledged: VerificationConfig = {
   databaseId: 'database-id',

@@ -1,9 +1,9 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { TelegramNotifierSettings } from '../../../../../entities/notifiers';
-import { LocaleProvider } from '../../../../../shared/i18n';
-import { EditTelegramNotifierComponent } from './EditTelegramNotifierComponent';
+import type { TelegramNotifierSettings } from '@/entities/notifiers';
+import { EditTelegramNotifierComponent } from '@/features/edit-notifier/ui/edit/notifiers/EditTelegramNotifierComponent';
+import { LocaleProvider } from '@/shared/i18n';
 
 // The entity's public API imports its API client, and the client's config
 // module reads window at import time. The tests run in node, so they supply

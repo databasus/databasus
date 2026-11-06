@@ -1,6 +1,6 @@
-import { getApiClient, requireData, requireSuccess } from '../../../shared/api';
-import { collectCursorPages } from '../../../shared/lib/collectCursorPages';
-import type { VerificationAgent } from '../model/VerificationAgent';
+import type { VerificationAgent } from '@/entities/verification-agents/model/VerificationAgent';
+import { getApiClient, requireData, requireSuccess } from '@/shared/api';
+import { collectCursorPages } from '@/shared/lib/collectCursorPages';
 
 export const verificationAgentApi = {
   async listAgents(): Promise<VerificationAgent[]> {

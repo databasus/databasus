@@ -1,5 +1,5 @@
-import type { TranslationKey } from '../../../shared/i18n';
-import { LogicalRetentionPolicy } from './LogicalRetentionPolicy';
+import { LogicalRetentionPolicy } from '@/pages/databases/model/LogicalRetentionPolicy';
+import type { TranslationKey } from '@/shared/i18n';
 
 export const LOGICAL_RETENTION_POLICY_LABEL_KEYS: Record<LogicalRetentionPolicy, TranslationKey> = {
   [LogicalRetentionPolicy.GFS]: 'backups.logical.retentionPolicyTypes.gfs',

@@ -1,6 +1,6 @@
-import { getApiClient, requireData, requireSuccess } from '../../../shared/api';
-import { collectCursorPages } from '../../../shared/lib/collectCursorPages';
-import type { Workspace } from '../model/Workspace';
+import type { Workspace } from '@/entities/workspaces/model/Workspace';
+import { getApiClient, requireData, requireSuccess } from '@/shared/api';
+import { collectCursorPages } from '@/shared/lib/collectCursorPages';
 
 // The largest page the contract serves, so a team's workspaces arrive in as few requests as possible.
 const WORKSPACE_PAGE_LIMIT = 100;

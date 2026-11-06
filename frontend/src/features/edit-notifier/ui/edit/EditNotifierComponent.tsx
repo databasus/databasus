@@ -7,20 +7,20 @@ import {
   type Notifier,
   NotifierType,
   getNotifierLogoFromType,
-} from '../../../../entities/notifiers';
-import { translateApiError } from '../../../../shared/i18n';
-import { WRAPPING_SELECT_CLASS_NAME } from '../../../../shared/ui';
-import { createDefaultNotifierSettings } from '../../lib/createDefaultNotifierSettings';
-import { isNotifierAddressChanged } from '../../lib/isNotifierAddressChanged';
-import { isNotifierSettingsFilled } from '../../lib/isNotifierSettingsFilled';
-import { useNotifierDraft } from '../../model/useNotifierDraft';
-import { EditDiscordNotifierComponent } from './notifiers/EditDiscordNotifierComponent';
-import { EditEmailNotifierComponent } from './notifiers/EditEmailNotifierComponent';
-import { EditMattermostNotifierComponent } from './notifiers/EditMattermostNotifierComponent';
-import { EditSlackNotifierComponent } from './notifiers/EditSlackNotifierComponent';
-import { EditTeamsNotifierComponent } from './notifiers/EditTeamsNotifierComponent';
-import { EditTelegramNotifierComponent } from './notifiers/EditTelegramNotifierComponent';
-import { EditWebhookNotifierComponent } from './notifiers/EditWebhookNotifierComponent';
+} from '@/entities/notifiers';
+import { createDefaultNotifierSettings } from '@/features/edit-notifier/lib/createDefaultNotifierSettings';
+import { isNotifierAddressChanged } from '@/features/edit-notifier/lib/isNotifierAddressChanged';
+import { isNotifierSettingsFilled } from '@/features/edit-notifier/lib/isNotifierSettingsFilled';
+import { useNotifierDraft } from '@/features/edit-notifier/model/useNotifierDraft';
+import { EditDiscordNotifierComponent } from '@/features/edit-notifier/ui/edit/notifiers/EditDiscordNotifierComponent';
+import { EditEmailNotifierComponent } from '@/features/edit-notifier/ui/edit/notifiers/EditEmailNotifierComponent';
+import { EditMattermostNotifierComponent } from '@/features/edit-notifier/ui/edit/notifiers/EditMattermostNotifierComponent';
+import { EditSlackNotifierComponent } from '@/features/edit-notifier/ui/edit/notifiers/EditSlackNotifierComponent';
+import { EditTeamsNotifierComponent } from '@/features/edit-notifier/ui/edit/notifiers/EditTeamsNotifierComponent';
+import { EditTelegramNotifierComponent } from '@/features/edit-notifier/ui/edit/notifiers/EditTelegramNotifierComponent';
+import { EditWebhookNotifierComponent } from '@/features/edit-notifier/ui/edit/notifiers/EditWebhookNotifierComponent';
+import { translateApiError } from '@/shared/i18n';
+import { WRAPPING_SELECT_CLASS_NAME } from '@/shared/ui';
 
 interface Props {
   workspaceId: string;

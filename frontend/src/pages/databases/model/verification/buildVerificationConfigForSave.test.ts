@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import type { Schedule } from '../../../../entities/schedules';
-import { buildVerificationConfigForSave } from './buildVerificationConfigForSave';
-import type { VerificationConfig } from './VerificationConfig';
+import type { Schedule } from '@/entities/schedules';
+import { buildVerificationConfigForSave } from '@/pages/databases/model/verification/buildVerificationConfigForSave';
+import type { VerificationConfig } from '@/pages/databases/model/verification/VerificationConfig';
 
 const acknowledgedConfig: VerificationConfig = {
   databaseId: 'database-id',

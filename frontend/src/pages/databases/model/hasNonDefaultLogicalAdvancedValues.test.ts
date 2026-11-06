@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildLogicalBackupConfig } from './buildLogicalBackupConfig.fixture';
-import { createDefaultLogicalBackupConfig } from './createDefaultLogicalBackupConfig';
-import { hasNonDefaultLogicalAdvancedValues } from './hasNonDefaultLogicalAdvancedValues';
+import { buildLogicalBackupConfig } from '@/pages/databases/model/buildLogicalBackupConfig.fixture';
+import { createDefaultLogicalBackupConfig } from '@/pages/databases/model/createDefaultLogicalBackupConfig';
+import { hasNonDefaultLogicalAdvancedValues } from '@/pages/databases/model/hasNonDefaultLogicalAdvancedValues';
 
 const defaultConfig = createDefaultLogicalBackupConfig();
 

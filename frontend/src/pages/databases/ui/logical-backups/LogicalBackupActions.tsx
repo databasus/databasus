@@ -7,11 +7,11 @@ import {
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 
-import { DatabaseType } from '../../../../entities/databases';
-import type { TranslationKey } from '../../../../shared/i18n';
-import type { LogicalBackup } from '../../model/LogicalBackup';
-import { LogicalBackupStatus } from '../../model/LogicalBackupStatus';
-import { RowActionButton } from '../RowActionButton';
+import { DatabaseType } from '@/entities/databases';
+import type { LogicalBackup } from '@/pages/databases/model/LogicalBackup';
+import { LogicalBackupStatus } from '@/pages/databases/model/LogicalBackupStatus';
+import { RowActionButton } from '@/pages/databases/ui/RowActionButton';
+import type { TranslationKey } from '@/shared/i18n';
 
 // Physical databases have their own backups list; the generic text keeps the map exhaustive.
 const DOWNLOAD_TOOLTIP_KEYS: Record<DatabaseType, TranslationKey> = {

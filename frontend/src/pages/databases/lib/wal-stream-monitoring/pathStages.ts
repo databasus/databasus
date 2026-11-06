@@ -1,10 +1,10 @@
-import type { AmountProgress } from '../../model/wal-stream-monitoring/AmountProgress';
-import { MonitoringTone } from '../../model/wal-stream-monitoring/MonitoringTone';
-import { PathStage } from '../../model/wal-stream-monitoring/PathStage';
-import { WalStreamHealthLevel } from '../../model/wal-stream-monitoring/WalStreamHealthLevel';
-import { type WalStreamReason } from '../../model/wal-stream-monitoring/WalStreamReason';
-import { WalStreamReasonCode } from '../../model/wal-stream-monitoring/WalStreamReasonCode';
-import { WalStreamReasonLevel } from '../../model/wal-stream-monitoring/WalStreamReasonLevel';
+import type { AmountProgress } from '@/pages/databases/model/wal-stream-monitoring/AmountProgress';
+import { MonitoringTone } from '@/pages/databases/model/wal-stream-monitoring/MonitoringTone';
+import { PathStage } from '@/pages/databases/model/wal-stream-monitoring/PathStage';
+import { WalStreamHealthLevel } from '@/pages/databases/model/wal-stream-monitoring/WalStreamHealthLevel';
+import { type WalStreamReason } from '@/pages/databases/model/wal-stream-monitoring/WalStreamReason';
+import { WalStreamReasonCode } from '@/pages/databases/model/wal-stream-monitoring/WalStreamReasonCode';
+import { WalStreamReasonLevel } from '@/pages/databases/model/wal-stream-monitoring/WalStreamReasonLevel';
 
 // A broken chain is a hole in the backup history, not a problem of any stage the changes pass
 // through, so it colors none.

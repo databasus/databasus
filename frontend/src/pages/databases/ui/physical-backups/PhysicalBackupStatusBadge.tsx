@@ -3,10 +3,10 @@ import { Button, Tooltip } from 'antd';
 import type { JSX, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type PhysicalBackupListItem } from '../../model/physical-backups/PhysicalBackupListItem';
-import { PhysicalBackupStatus } from '../../model/physical-backups/PhysicalBackupStatus';
-import { PHYSICAL_BACKUP_STATUS_BADGE_STYLES } from '../../model/physical-backups/physicalBackupStatusBadgeStyles';
-import { PHYSICAL_BACKUP_STATUS_LABEL_KEYS } from '../../model/physical-backups/PhysicalBackupStatusLabelKeys';
+import { type PhysicalBackupListItem } from '@/pages/databases/model/physical-backups/PhysicalBackupListItem';
+import { PhysicalBackupStatus } from '@/pages/databases/model/physical-backups/PhysicalBackupStatus';
+import { PHYSICAL_BACKUP_STATUS_BADGE_STYLES } from '@/pages/databases/model/physical-backups/physicalBackupStatusBadgeStyles';
+import { PHYSICAL_BACKUP_STATUS_LABEL_KEYS } from '@/pages/databases/model/physical-backups/PhysicalBackupStatusLabelKeys';
 
 interface Props {
   backup: PhysicalBackupListItem;

@@ -1,5 +1,5 @@
-import type { GoogleDriveStorageSettings } from '../../../entities/storages';
-import type { SessionSnapshot } from '../../../shared/auth';
+import type { GoogleDriveStorageSettings } from '@/entities/storages';
+import type { SessionSnapshot } from '@/shared/auth';
 
 export interface StorageAuthorizationAttempt {
   state: string;

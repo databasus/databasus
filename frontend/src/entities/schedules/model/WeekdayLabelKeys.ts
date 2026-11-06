@@ -1,5 +1,5 @@
-import type { TranslationKey } from '../../../shared/i18n';
-import type { Weekday } from './Weekday';
+import type { Weekday } from '@/entities/schedules/model/Weekday';
+import type { TranslationKey } from '@/shared/i18n';
 
 // Short weekday names. Not taken from Intl or dayjs: several languages return them in lower case or
 // with a trailing period, which would need a casing fix-up per language.

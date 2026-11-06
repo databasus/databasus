@@ -15,11 +15,7 @@ import {
   YAxis,
 } from 'recharts';
 
-import { type TranslationKey, useLocale } from '../../../../shared/i18n';
-import { formatBytes } from '../../../../shared/lib';
-import { useTheme } from '../../../../shared/theme';
-import { getUserClockFormat } from '../../../../shared/time';
-import { WAL_STREAM_CHART_COLORS } from '../../lib/wal-stream-monitoring/chartColors';
+import { WAL_STREAM_CHART_COLORS } from '@/pages/databases/lib/wal-stream-monitoring/chartColors';
 import {
   getBinaryAxisTicks,
   getChartTimeDomain,
@@ -28,12 +24,16 @@ import {
   getRowsMaximum,
   hasEnoughChartPoints,
   toChartRows,
-} from '../../lib/wal-stream-monitoring/chartRows';
-import { formatBytesPerSecond } from '../../lib/wal-stream-monitoring/monitoringTextValues';
-import type { WalStreamChartRow } from '../../model/wal-stream-monitoring/WalStreamChartRow';
-import { type WalStreamSeries } from '../../model/wal-stream-monitoring/WalStreamSeries';
-import { WalStreamStatisticsPeriod } from '../../model/wal-stream-monitoring/WalStreamStatisticsPeriod';
-import { WAL_STREAM_STATISTICS_PERIOD_LABEL_KEYS } from '../../model/wal-stream-monitoring/WalStreamStatisticsPeriodLabelKeys';
+} from '@/pages/databases/lib/wal-stream-monitoring/chartRows';
+import { formatBytesPerSecond } from '@/pages/databases/lib/wal-stream-monitoring/monitoringTextValues';
+import type { WalStreamChartRow } from '@/pages/databases/model/wal-stream-monitoring/WalStreamChartRow';
+import { type WalStreamSeries } from '@/pages/databases/model/wal-stream-monitoring/WalStreamSeries';
+import { WalStreamStatisticsPeriod } from '@/pages/databases/model/wal-stream-monitoring/WalStreamStatisticsPeriod';
+import { WAL_STREAM_STATISTICS_PERIOD_LABEL_KEYS } from '@/pages/databases/model/wal-stream-monitoring/WalStreamStatisticsPeriodLabelKeys';
+import { type TranslationKey, useLocale } from '@/shared/i18n';
+import { formatBytes } from '@/shared/lib';
+import { useTheme } from '@/shared/theme';
+import { getUserClockFormat } from '@/shared/time';
 
 interface KeepingUpChartProps {
   series: WalStreamSeries;

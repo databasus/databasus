@@ -2,9 +2,9 @@ import { Button, Modal } from 'antd';
 import type { JSX } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import type { AgentArchitecture } from '../../lib/verificationAgentCommands';
-import { CopyableCodeBlock } from './CopyableCodeBlock';
-import { InstallCommands } from './InstallCommands';
+import type { AgentArchitecture } from '@/pages/instance-settings/lib/verificationAgentCommands';
+import { CopyableCodeBlock } from '@/pages/instance-settings/ui/verification-agents/CopyableCodeBlock';
+import { InstallCommands } from '@/pages/instance-settings/ui/verification-agents/InstallCommands';
 
 export interface RevealedAgentToken {
   token: string;

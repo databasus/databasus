@@ -3,19 +3,15 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  type Database,
-  DatabaseType,
-  createDefaultDatabaseSettings,
-} from '../../../../entities/databases';
-import { NotifierType, notifierApi } from '../../../../entities/notifiers';
-import { API_BASE_PATH } from '../../../../shared/api';
-import { activateSession, invalidateSession } from '../../../../shared/auth';
-import { buildProblem, mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
-import { createPendingApiResponse } from '../../../../shared/lib/test/pendingApiResponse';
-import { releaseAndSettle } from '../../../../shared/lib/test/releaseAndSettle';
-import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-import { ShowDatabaseNotifiersComponent } from './ShowDatabaseNotifiersComponent';
+import { type Database, DatabaseType, createDefaultDatabaseSettings } from '@/entities/databases';
+import { NotifierType, notifierApi } from '@/entities/notifiers';
+import { ShowDatabaseNotifiersComponent } from '@/pages/databases/ui/show/ShowDatabaseNotifiersComponent';
+import { API_BASE_PATH } from '@/shared/api';
+import { activateSession, invalidateSession } from '@/shared/auth';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
+import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const mockServer = setUpMockApi();
 const REFUSAL_MESSAGE = 'You do not have permission to do this.';

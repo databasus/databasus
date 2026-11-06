@@ -13,19 +13,19 @@ import { Tooltip, theme } from 'antd';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type TranslationKey, useLocale } from '../../../../shared/i18n';
-import { formatBytes } from '../../../../shared/lib';
-import { useTheme } from '../../../../shared/theme';
-import { WAL_STREAM_CHART_COLORS } from '../../lib/wal-stream-monitoring/chartColors';
-import { formatBytesPerSecond } from '../../lib/wal-stream-monitoring/monitoringTextValues';
-import { getToneColors } from '../../lib/wal-stream-monitoring/toneColors';
-import { MonitoringTone } from '../../model/wal-stream-monitoring/MonitoringTone';
-import { PathStage } from '../../model/wal-stream-monitoring/PathStage';
-import { WalStreamReasonLevel } from '../../model/wal-stream-monitoring/WalStreamReasonLevel';
-import { WAL_STREAM_REASON_LEVEL_LABEL_KEYS } from '../../model/wal-stream-monitoring/WalStreamReasonLevelLabelKeys';
-import { WalStreamSourceState } from '../../model/wal-stream-monitoring/WalStreamSourceState';
-import { type WalStreamStatistics } from '../../model/wal-stream-monitoring/WalStreamStatistics';
-import { PathAmountComponent } from './PathAmountComponent';
+import { WAL_STREAM_CHART_COLORS } from '@/pages/databases/lib/wal-stream-monitoring/chartColors';
+import { formatBytesPerSecond } from '@/pages/databases/lib/wal-stream-monitoring/monitoringTextValues';
+import { getToneColors } from '@/pages/databases/lib/wal-stream-monitoring/toneColors';
+import { MonitoringTone } from '@/pages/databases/model/wal-stream-monitoring/MonitoringTone';
+import { PathStage } from '@/pages/databases/model/wal-stream-monitoring/PathStage';
+import { WalStreamReasonLevel } from '@/pages/databases/model/wal-stream-monitoring/WalStreamReasonLevel';
+import { WAL_STREAM_REASON_LEVEL_LABEL_KEYS } from '@/pages/databases/model/wal-stream-monitoring/WalStreamReasonLevelLabelKeys';
+import { WalStreamSourceState } from '@/pages/databases/model/wal-stream-monitoring/WalStreamSourceState';
+import { type WalStreamStatistics } from '@/pages/databases/model/wal-stream-monitoring/WalStreamStatistics';
+import { PathAmountComponent } from '@/pages/databases/ui/wal-stream-monitoring/PathAmountComponent';
+import { type TranslationKey, useLocale } from '@/shared/i18n';
+import { formatBytes } from '@/shared/lib';
+import { useTheme } from '@/shared/theme';
 
 interface Props {
   statistics: WalStreamStatistics;

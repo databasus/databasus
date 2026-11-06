@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-import { runIsolatedScenario } from './runIsolatedScenario';
+import { runIsolatedScenario } from '@/shared/lib/test/runIsolatedScenario';
 
 describe('screenTestLifecycle', () => {
   it('restores screen context even after a failing test', async () => {

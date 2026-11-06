@@ -1,9 +1,12 @@
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
-import { API_BASE_PATH } from '../../../shared/api';
-import { setUpMockApi } from '../../../shared/lib/test/mockApi';
-import { physicalBackupsApi, type PhysicalRestoreTokenCreate } from './physicalBackupsApi';
+import {
+  physicalBackupsApi,
+  type PhysicalRestoreTokenCreate,
+} from '@/pages/databases/api/physicalBackupsApi';
+import { API_BASE_PATH } from '@/shared/api';
+import { setUpMockApi } from '@/shared/lib/test/mockApi';
 
 const mockServer = setUpMockApi();
 

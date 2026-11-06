@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { BrowserClipboard } from '../../../../shared/lib/BrowserClipboard';
+import { BrowserClipboard } from '@/shared/lib/BrowserClipboard';
 
 const COPIED_MARK_MS = 2000;
 

@@ -3,18 +3,18 @@ import type { Dayjs } from 'dayjs';
 import { type JSX, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type Database, DatabaseType } from '../../../../entities/databases';
-import { ApiError } from '../../../../shared/api';
-import { type TranslationKey, translateApiError } from '../../../../shared/i18n';
-import { physicalBackupsApi } from '../../api/physicalBackupsApi';
+import { type Database, DatabaseType } from '@/entities/databases';
+import { physicalBackupsApi } from '@/pages/databases/api/physicalBackupsApi';
 import {
   type RestoreEnvironment,
   defaultDockerImage,
-} from '../../lib/physical-backups/restoreCommands';
-import { type PhysicalBackupListItem } from '../../model/physical-backups/PhysicalBackupListItem';
-import { PhysicalRestoreEnvironmentPanel } from './PhysicalRestoreEnvironmentPanel';
-import type { PhysicalRestoreMethod } from './PhysicalRestoreMethod';
-import { usePhysicalRestoreToken } from './usePhysicalRestoreToken';
+} from '@/pages/databases/lib/physical-backups/restoreCommands';
+import { type PhysicalBackupListItem } from '@/pages/databases/model/physical-backups/PhysicalBackupListItem';
+import { PhysicalRestoreEnvironmentPanel } from '@/pages/databases/ui/physical-backups/PhysicalRestoreEnvironmentPanel';
+import type { PhysicalRestoreMethod } from '@/pages/databases/ui/physical-backups/PhysicalRestoreMethod';
+import { usePhysicalRestoreToken } from '@/pages/databases/ui/physical-backups/usePhysicalRestoreToken';
+import { ApiError } from '@/shared/api';
+import { type TranslationKey, translateApiError } from '@/shared/i18n';
 
 interface Props {
   database: Database;

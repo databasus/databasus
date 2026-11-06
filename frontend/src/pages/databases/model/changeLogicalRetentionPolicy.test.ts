@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildLogicalBackupConfig, zeroRetention } from './buildLogicalBackupConfig.fixture';
-import { changeLogicalRetentionPolicy } from './changeLogicalRetentionPolicy';
-import { LogicalRetentionPolicy } from './LogicalRetentionPolicy';
+import {
+  buildLogicalBackupConfig,
+  zeroRetention,
+} from '@/pages/databases/model/buildLogicalBackupConfig.fixture';
+import { changeLogicalRetentionPolicy } from '@/pages/databases/model/changeLogicalRetentionPolicy';
+import { LogicalRetentionPolicy } from '@/pages/databases/model/LogicalRetentionPolicy';
 
 describe('changeLogicalRetentionPolicy', () => {
   it('keeps entered values when the chosen policy has them', () => {

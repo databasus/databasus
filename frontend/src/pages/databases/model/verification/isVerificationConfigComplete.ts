@@ -1,6 +1,6 @@
-import { isScheduleComplete } from '../../../../entities/schedules';
-import type { VerificationConfig } from './VerificationConfig';
-import { VerificationScheduleType } from './VerificationScheduleType';
+import { isScheduleComplete } from '@/entities/schedules';
+import type { VerificationConfig } from '@/pages/databases/model/verification/VerificationConfig';
+import { VerificationScheduleType } from '@/pages/databases/model/verification/VerificationScheduleType';
 
 // The server validates the schedule only while verification is on and runs on it.
 export const isVerificationConfigComplete = (config: VerificationConfig): boolean => {

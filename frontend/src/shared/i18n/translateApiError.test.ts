@@ -1,9 +1,9 @@
 import type { TFunction } from 'i18next';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { API_ERROR_CODES, ApiError } from '../api';
-import { createI18n } from './createI18n';
-import { translateApiError } from './translateApiError';
+import { API_ERROR_CODES, ApiError } from '@/shared/api';
+import { createI18n } from '@/shared/i18n/createI18n';
+import { translateApiError } from '@/shared/i18n/translateApiError';
 
 let t: TFunction;
 

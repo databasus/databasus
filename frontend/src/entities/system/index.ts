@@ -1,1 +1,1 @@
-export { systemApi } from './api/systemApi';
+export { systemApi } from '@/entities/system/api/systemApi';

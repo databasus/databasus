@@ -1,5 +1,5 @@
-import { getApiClient, requireData } from '../../../shared/api';
-import type { HealthcheckConfig } from '../model/HealthcheckConfig';
+import type { HealthcheckConfig } from '@/entities/healthcheck/model/HealthcheckConfig';
+import { getApiClient, requireData } from '@/shared/api';
 
 export const healthcheckConfigApi = {
   async saveHealthcheckConfig(config: HealthcheckConfig) {

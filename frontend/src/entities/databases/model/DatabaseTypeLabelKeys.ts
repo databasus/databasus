@@ -1,5 +1,5 @@
-import type { TranslationKey } from '../../../shared/i18n';
-import { DatabaseType } from './DatabaseType';
+import { DatabaseType } from '@/entities/databases/model/DatabaseType';
+import type { TranslationKey } from '@/shared/i18n';
 
 export const DATABASE_TYPE_LABEL_KEYS: Record<DatabaseType, TranslationKey> = {
   [DatabaseType.POSTGRES_LOGICAL]: 'databases.types.postgresql',

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildPhysicalBackupConfigDraft } from './buildPhysicalBackupConfigDraft.fixture';
-import { isPhysicalBackupConfigChanged } from './isPhysicalBackupConfigChanged';
+import { buildPhysicalBackupConfigDraft } from '@/pages/databases/model/physical-backups/buildPhysicalBackupConfigDraft.fixture';
+import { isPhysicalBackupConfigChanged } from '@/pages/databases/model/physical-backups/isPhysicalBackupConfigChanged';
 
 const backupType = 'FULL_INCREMENTAL';
 

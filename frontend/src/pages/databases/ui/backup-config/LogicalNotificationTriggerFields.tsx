@@ -1,9 +1,9 @@
 import { Checkbox } from 'antd';
 import { useTranslation } from 'react-i18next';
 
-import type { LogicalBackupSettings } from '../../../../entities/backup-configs';
-import { LogicalNotificationTrigger } from '../../model/LogicalNotificationTrigger';
-import { LOGICAL_NOTIFICATION_TRIGGER_LABEL_KEYS } from '../../model/LogicalNotificationTriggerLabelKeys';
+import type { LogicalBackupSettings } from '@/entities/backup-configs';
+import { LogicalNotificationTrigger } from '@/pages/databases/model/LogicalNotificationTrigger';
+import { LOGICAL_NOTIFICATION_TRIGGER_LABEL_KEYS } from '@/pages/databases/model/LogicalNotificationTriggerLabelKeys';
 
 type LogicalNotificationTriggers = LogicalBackupSettings['notificationTriggers'];
 

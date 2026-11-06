@@ -1,4 +1,4 @@
-import type { ResolvedTheme } from '../../../../shared/theme';
+import type { ResolvedTheme } from '@/shared/theme';
 
 interface WalStreamChartColors {
   sourceWrites: string;

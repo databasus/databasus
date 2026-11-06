@@ -3,13 +3,13 @@ import { Button, Input, Switch, Tooltip } from 'antd';
 import { useId, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import type { TelegramNotifierSettings } from '../../../../../entities/notifiers';
-import { toOptionalValue } from '../../../../../shared/lib';
+import type { TelegramNotifierSettings } from '@/entities/notifiers';
+import { toOptionalValue } from '@/shared/lib';
 import {
   AddressChangedSecretNoticeComponent,
   AdvancedFieldRowComponent,
   AdvancedSettingsToggleComponent,
-} from '../../../../../shared/ui';
+} from '@/shared/ui';
 
 interface Props {
   settings: TelegramNotifierSettings;

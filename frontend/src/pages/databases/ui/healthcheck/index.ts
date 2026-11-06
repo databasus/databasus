@@ -1,3 +1,3 @@
-export { HealthcheckAttemptsComponent } from './HealthcheckAttemptsComponent';
-export { EditHealthcheckConfigComponent } from './EditHealthcheckConfigComponent';
-export { ShowHealthcheckConfigComponent } from './ShowHealthcheckConfigComponent';
+export { HealthcheckAttemptsComponent } from '@/pages/databases/ui/healthcheck/HealthcheckAttemptsComponent';
+export { EditHealthcheckConfigComponent } from '@/pages/databases/ui/healthcheck/EditHealthcheckConfigComponent';
+export { ShowHealthcheckConfigComponent } from '@/pages/databases/ui/healthcheck/ShowHealthcheckConfigComponent';

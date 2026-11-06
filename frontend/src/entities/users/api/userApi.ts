@@ -1,7 +1,7 @@
-import { type ApiComponents, getApiClient, requireData, requireSuccess } from '../../../shared/api';
-import { getSessionSnapshot } from '../../../shared/auth';
-import type { SignInOutcome } from '../model/SignInOutcome';
-import type { User } from '../model/User';
+import type { SignInOutcome } from '@/entities/users/model/SignInOutcome';
+import type { User } from '@/entities/users/model/User';
+import { type ApiComponents, getApiClient, requireData, requireSuccess } from '@/shared/api';
+import { getSessionSnapshot } from '@/shared/auth';
 
 type Schemas = ApiComponents['schemas'];
 

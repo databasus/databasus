@@ -1,6 +1,6 @@
-import { createDefaultDatabaseSettings } from './createDefaultDatabaseSettings';
-import type { DatabaseCreateDraft } from './DatabaseConnectionDraft';
-import type { DatabaseType } from './DatabaseType';
+import { createDefaultDatabaseSettings } from '@/entities/databases/model/createDefaultDatabaseSettings';
+import type { DatabaseCreateDraft } from '@/entities/databases/model/DatabaseConnectionDraft';
+import type { DatabaseType } from '@/entities/databases/model/DatabaseType';
 
 // Settings entered for one type do not apply to another, and the new type derives its SSL mode
 // from the host again.

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { API_ERROR_CODES, ApiError } from '../../../shared/api';
-import { mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
-import { systemApi } from './systemApi';
+import { systemApi } from '@/entities/system/api/systemApi';
+import { API_ERROR_CODES, ApiError } from '@/shared/api';
+import { mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 
 const mockServer = setUpMockApi();
 

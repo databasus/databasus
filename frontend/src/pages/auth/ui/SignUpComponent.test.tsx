@@ -2,13 +2,12 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
+import { SignUpComponent } from '@/pages/auth/ui/SignUpComponent';
 import { getSessionSnapshot } from '@/shared/auth';
 import { DICTIONARIES } from '@/shared/i18n';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
 import { LanguageSelectorComponent } from '@/shared/ui/LanguageSelectorComponent';
-
-import { SignUpComponent } from './SignUpComponent';
 
 const server = setUpMockApi();
 const submitRegistration = () => {

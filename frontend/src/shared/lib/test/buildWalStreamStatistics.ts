@@ -1,5 +1,5 @@
 /* eslint-disable i18next/no-literal-string -- a test fixture of UTC times and WAL positions, not copy */
-import type { ApiComponents } from '../../api';
+import type { ApiComponents } from '@/shared/api';
 type WalStreamStatistics = ApiComponents['schemas']['WalStreamStatistics'];
 
 const MiB = 1024 * 1024;

@@ -1,6 +1,6 @@
-import type { LocalizedText, TranslationKey } from '../../../../../shared/i18n';
-import { quotePostgresqlIdentifier } from '../quotePostgresqlIdentifier';
-import { ConnectionErrorCode } from './ConnectionErrorCode';
+import { ConnectionErrorCode } from '@/entities/databases/model/postgresql/physical/ConnectionErrorCode';
+import { quotePostgresqlIdentifier } from '@/entities/databases/model/postgresql/quotePostgresqlIdentifier';
+import type { LocalizedText, TranslationKey } from '@/shared/i18n';
 
 // A note is one dictionary sentence rendered through Trans, with <bold> marking the emphasized
 // words. Commands are technical strings and stay literal in every language.

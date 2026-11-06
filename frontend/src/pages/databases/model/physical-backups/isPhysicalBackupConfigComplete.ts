@@ -1,10 +1,10 @@
-import type { PhysicalDatabaseBackupType } from '../../../../entities/databases';
-import { isScheduleComplete } from '../../../../entities/schedules';
-import type { FullBackupsRetention } from './FullBackupsRetention';
-import { FullBackupsRetentionPolicy } from './FullBackupsRetentionPolicy';
-import { hasIncrementalBackups } from './hasIncrementalBackups';
-import type { PhysicalBackupConfigDraft } from './PhysicalBackupConfigDraft';
-import { PhysicalRetentionPolicy } from './PhysicalRetentionPolicy';
+import type { PhysicalDatabaseBackupType } from '@/entities/databases';
+import { isScheduleComplete } from '@/entities/schedules';
+import type { FullBackupsRetention } from '@/pages/databases/model/physical-backups/FullBackupsRetention';
+import { FullBackupsRetentionPolicy } from '@/pages/databases/model/physical-backups/FullBackupsRetentionPolicy';
+import { hasIncrementalBackups } from '@/pages/databases/model/physical-backups/hasIncrementalBackups';
+import type { PhysicalBackupConfigDraft } from '@/pages/databases/model/physical-backups/PhysicalBackupConfigDraft';
+import { PhysicalRetentionPolicy } from '@/pages/databases/model/physical-backups/PhysicalRetentionPolicy';
 
 const isFullBackupsRetentionComplete = (retention: FullBackupsRetention): boolean => {
   if (retention.policy === FullBackupsRetentionPolicy.LAST_N) return retention.count > 0;

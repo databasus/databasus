@@ -2,6 +2,9 @@ import { Button, Spin, Tooltip } from 'antd';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { useApplicationStartup } from '@/app/model/useApplicationStartup';
+import { useIsNewGitHubVersionAvailable } from '@/app/model/useIsNewGitHubVersionAvailable';
+import { CreateWorkspaceDialogComponent } from '@/app/ui/CreateWorkspaceDialogComponent';
 import { DatabasesPage } from '@/pages/databases';
 import { InstanceSettingsPage } from '@/pages/instance-settings';
 import { NotifiersComponent } from '@/pages/notifiers';
@@ -21,10 +24,6 @@ import {
   type MainTab,
   type SidebarTab,
 } from '@/widgets/app-shell';
-
-import { useApplicationStartup } from '../model/useApplicationStartup';
-import { useIsNewGitHubVersionAvailable } from '../model/useIsNewGitHubVersionAvailable';
-import { CreateWorkspaceDialogComponent } from './CreateWorkspaceDialogComponent';
 
 export const ApplicationScreen = () => {
   const [selectedTab, setSelectedTab] = useState<MainTab>('databases');

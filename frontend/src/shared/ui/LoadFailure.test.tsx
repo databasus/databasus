@@ -2,10 +2,10 @@
 import { screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { ApiError } from '../api';
-import { DICTIONARIES } from '../i18n';
-import { renderScreen } from '../lib/test/renderScreen';
-import { LoadFailure } from './LoadFailure';
+import { ApiError } from '@/shared/api';
+import { DICTIONARIES } from '@/shared/i18n';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
+import { LoadFailure } from '@/shared/ui/LoadFailure';
 
 describe('LoadFailure', () => {
   it('shows the translated error and retries on click', async () => {

@@ -7,10 +7,10 @@ import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
-import { DICTIONARIES, useLocale } from '../../i18n';
-import { LOCALE_SETTINGS } from '../../i18n/localeSettings';
-import { useTheme } from '../../theme';
-import { renderScreen } from './renderScreen';
+import { DICTIONARIES, useLocale } from '@/shared/i18n';
+import { LOCALE_SETTINGS } from '@/shared/i18n/localeSettings';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
+import { useTheme } from '@/shared/theme';
 
 const ContextScreen = () => {
   const { t } = useTranslation();

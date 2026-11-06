@@ -3,22 +3,18 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  type Database,
-  DatabaseType,
-  createDefaultDatabaseSettings,
-} from '../../../../entities/databases';
-import { healthcheckAttemptApi, healthcheckConfigApi } from '../../../../entities/healthcheck';
-import { API_BASE_PATH, type ApiComponents } from '../../../../shared/api';
-import { activateSession, invalidateSession } from '../../../../shared/auth';
-import { useLocale } from '../../../../shared/i18n';
-import { DICTIONARIES } from '../../../../shared/i18n/dictionaries';
-import { advanceFakeClock } from '../../../../shared/lib/test/advanceFakeClock';
-import { buildProblem, mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
-import { createPendingApiResponse } from '../../../../shared/lib/test/pendingApiResponse';
-import { releaseAndSettle } from '../../../../shared/lib/test/releaseAndSettle';
-import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-import { HealthcheckAttemptsComponent } from './HealthcheckAttemptsComponent';
+import { type Database, DatabaseType, createDefaultDatabaseSettings } from '@/entities/databases';
+import { healthcheckAttemptApi, healthcheckConfigApi } from '@/entities/healthcheck';
+import { HealthcheckAttemptsComponent } from '@/pages/databases/ui/healthcheck/HealthcheckAttemptsComponent';
+import { API_BASE_PATH, type ApiComponents } from '@/shared/api';
+import { activateSession, invalidateSession } from '@/shared/auth';
+import { useLocale } from '@/shared/i18n';
+import { DICTIONARIES } from '@/shared/i18n/dictionaries';
+import { advanceFakeClock } from '@/shared/lib/test/advanceFakeClock';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
+import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const mockServer = setUpMockApi();
 const database: Database = {

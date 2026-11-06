@@ -1,4 +1,4 @@
-import type { ApiComponents } from '../../../../../shared/api';
+import type { ApiComponents } from '@/shared/api';
 
 // The class of a failed connection test; all user-facing copy lives in the frontend.
 export type ConnectionErrorCode = ApiComponents['schemas']['DatabaseConnectionFailure'];

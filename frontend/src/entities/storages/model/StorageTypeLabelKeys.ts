@@ -1,5 +1,5 @@
-import type { TranslationKey } from '../../../shared/i18n';
-import { StorageType } from './StorageType';
+import { StorageType } from '@/entities/storages/model/StorageType';
+import type { TranslationKey } from '@/shared/i18n';
 
 export const STORAGE_TYPE_LABEL_KEYS: Record<StorageType, TranslationKey> = {
   [StorageType.LOCAL]: 'storages.types.local',

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatNumber } from '../i18n/formatNumber';
-import { formatBytes } from './formatBytes';
+import { formatNumber } from '@/shared/i18n/formatNumber';
+import { formatBytes } from '@/shared/lib/formatBytes';
 
 const formatEnglishNumber = (value: number, options?: Intl.NumberFormatOptions) =>
   formatNumber(value, 'en', options);

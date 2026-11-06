@@ -1,7 +1,7 @@
-import { getApiClient, requireData } from '../../../shared/api';
-import { collectCursorPages } from '../../../shared/lib/collectCursorPages';
-import type { Restore } from '../model/Restore';
-import type { RestoreTarget } from '../model/RestoreTarget';
+import type { Restore } from '@/entities/restores/model/Restore';
+import type { RestoreTarget } from '@/entities/restores/model/RestoreTarget';
+import { getApiClient, requireData } from '@/shared/api';
+import { collectCursorPages } from '@/shared/lib/collectCursorPages';
 
 // The largest page the contract serves; a backup rarely has more restores than one page holds.
 const RESTORE_PAGE_LIMIT = 100;

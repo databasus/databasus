@@ -1,6 +1,6 @@
-import { type ApiComponents, type ApiPaths, getApiClient, requireData } from '../../../shared/api';
-import type { User } from '../model/User';
-import type { UserRole } from '../model/UserRole';
+import type { User } from '@/entities/users/model/User';
+import type { UserRole } from '@/entities/users/model/UserRole';
+import { type ApiComponents, type ApiPaths, getApiClient, requireData } from '@/shared/api';
 
 type UserListQuery = NonNullable<ApiPaths['/users']['get']['parameters']['query']>;
 

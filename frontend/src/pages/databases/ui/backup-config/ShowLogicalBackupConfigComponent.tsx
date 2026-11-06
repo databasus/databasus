@@ -8,22 +8,22 @@ import {
   type LogicalBackupSettings,
   type BackupCleanup,
   BACKUP_ENCRYPTION_LABEL_KEYS,
-} from '../../../../entities/backup-configs';
-import type { Database } from '../../../../entities/databases';
+} from '@/entities/backup-configs';
+import type { Database } from '@/entities/databases';
 import {
   SCHEDULE_TYPE_LABEL_KEYS,
   ScheduleType,
   WEEKDAY_LABEL_KEYS,
   getLocalScheduleParts,
-} from '../../../../entities/schedules';
-import { type Storage, getStorageLogoFromType, storageApi } from '../../../../entities/storages';
-import { type LocalizedText, translateLocalizedText } from '../../../../shared/i18n';
-import { getUserClockFormat } from '../../../../shared/time';
-import { LoadFailure } from '../../../../shared/ui';
-import { LOGICAL_NOTIFICATION_TRIGGER_LABEL_KEYS } from '../../model/LogicalNotificationTriggerLabelKeys';
-import { LogicalRetentionPolicy } from '../../model/LogicalRetentionPolicy';
-import { RETENTION_PERIOD_LABEL_KEYS } from '../../model/RetentionPeriodLabelKeys';
-import { StorageCleanupNotice } from './StorageCleanupNotice';
+} from '@/entities/schedules';
+import { type Storage, getStorageLogoFromType, storageApi } from '@/entities/storages';
+import { LOGICAL_NOTIFICATION_TRIGGER_LABEL_KEYS } from '@/pages/databases/model/LogicalNotificationTriggerLabelKeys';
+import { LogicalRetentionPolicy } from '@/pages/databases/model/LogicalRetentionPolicy';
+import { RETENTION_PERIOD_LABEL_KEYS } from '@/pages/databases/model/RetentionPeriodLabelKeys';
+import { StorageCleanupNotice } from '@/pages/databases/ui/backup-config/StorageCleanupNotice';
+import { type LocalizedText, translateLocalizedText } from '@/shared/i18n';
+import { getUserClockFormat } from '@/shared/time';
+import { LoadFailure } from '@/shared/ui';
 
 interface Props {
   database: Database;

@@ -4,8 +4,8 @@ import type { MenuProps } from 'antd';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { THEME_MODE_LABEL_KEYS, useTheme } from '../theme';
-import { useDropdownFocus } from './useDropdownFocus';
+import { THEME_MODE_LABEL_KEYS, useTheme } from '@/shared/theme';
+import { useDropdownFocus } from '@/shared/ui/useDropdownFocus';
 
 interface Props {
   isSplitEnd?: boolean;

@@ -2,13 +2,13 @@ import { App } from 'antd';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { useSessionGuard } from '../../../../shared/auth';
-import { translateApiError } from '../../../../shared/i18n';
-import { logicalBackupApi } from '../../api/logicalBackupApi';
-import { verificationRunsApi } from '../../api/verificationRunsApi';
-import { isLogicalBackupListedByFilter } from '../../model/isLogicalBackupListedByFilter';
-import type { LogicalBackup } from '../../model/LogicalBackup';
-import type { LogicalBackupListFilter } from '../../model/LogicalBackupListFilter';
+import { logicalBackupApi } from '@/pages/databases/api/logicalBackupApi';
+import { verificationRunsApi } from '@/pages/databases/api/verificationRunsApi';
+import { isLogicalBackupListedByFilter } from '@/pages/databases/model/isLogicalBackupListedByFilter';
+import type { LogicalBackup } from '@/pages/databases/model/LogicalBackup';
+import type { LogicalBackupListFilter } from '@/pages/databases/model/LogicalBackupListFilter';
+import { useSessionGuard } from '@/shared/auth';
+import { translateApiError } from '@/shared/i18n';
 
 interface Params {
   databaseId: string;

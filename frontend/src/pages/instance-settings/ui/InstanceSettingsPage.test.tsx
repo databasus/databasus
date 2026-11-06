@@ -4,6 +4,7 @@ import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
 import { type InstanceSettings } from '@/entities/users';
+import { InstanceSettingsPage } from '@/pages/instance-settings/ui/InstanceSettingsPage';
 import { API_BASE_PATH } from '@/shared/api';
 import { activateSession } from '@/shared/auth';
 import { DICTIONARIES } from '@/shared/i18n';
@@ -11,8 +12,6 @@ import { inspectApiRequest } from '@/shared/lib/test/inspectApiRequest';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
 import { LanguageThemeControlComponent } from '@/shared/ui';
-
-import { InstanceSettingsPage } from './InstanceSettingsPage';
 
 const server = setUpMockApi();
 const settings: InstanceSettings = {

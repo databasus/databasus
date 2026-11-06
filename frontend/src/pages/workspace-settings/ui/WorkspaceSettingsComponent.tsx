@@ -4,18 +4,17 @@ import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { databaseApi } from '@/entities/databases';
+import type { User } from '@/entities/users';
+import { UserRole } from '@/entities/users';
+import { type Workspace, WorkspaceRole, workspaceApi } from '@/entities/workspaces';
+import { WorkspaceAuditLogsComponent } from '@/pages/workspace-settings/ui/WorkspaceAuditLogsComponent';
+import { WorkspaceMembersComponent } from '@/pages/workspace-settings/ui/WorkspaceMembersComponent';
 import { ApiError } from '@/shared/api';
+import { useSessionGuard } from '@/shared/auth';
 import { useLatestRef, useRequestRevision } from '@/shared/hooks';
-
-import type { User } from '../../../entities/users';
-import { UserRole } from '../../../entities/users';
-import { type Workspace, WorkspaceRole, workspaceApi } from '../../../entities/workspaces';
-import { useSessionGuard } from '../../../shared/auth';
-import { useIsMobile } from '../../../shared/hooks';
-import { translateApiError } from '../../../shared/i18n';
-import { LoadFailure } from '../../../shared/ui';
-import { WorkspaceAuditLogsComponent } from './WorkspaceAuditLogsComponent';
-import { WorkspaceMembersComponent } from './WorkspaceMembersComponent';
+import { useIsMobile } from '@/shared/hooks';
+import { translateApiError } from '@/shared/i18n';
+import { LoadFailure } from '@/shared/ui';
 
 interface Props {
   selectedWorkspace: Workspace;

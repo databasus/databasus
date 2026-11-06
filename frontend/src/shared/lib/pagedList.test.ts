@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { type PagedListPage, appendNextPage, mergeRefreshedFirstPage } from './pagedList';
+import {
+  type PagedListPage,
+  appendNextPage,
+  mergeRefreshedFirstPage,
+} from '@/shared/lib/pagedList';
 
 interface Row {
   id: string;

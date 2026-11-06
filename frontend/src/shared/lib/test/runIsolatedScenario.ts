@@ -32,7 +32,7 @@ const server = setUpMockApi();\n${scenario}`,
     const config = join(directory, 'vitest.config.mjs');
     await writeFile(
       config,
-      `export default { root: ${JSON.stringify(frontendRoot)}, test: { include: [${JSON.stringify(fixture)}], exclude: [], environment: ${JSON.stringify(environment)}, maxWorkers: 1, fileParallelism: false } };`,
+      `export default { root: ${JSON.stringify(frontendRoot)}, resolve: { alias: { '@': ${JSON.stringify(join(frontendRoot, 'src'))} } }, test: { include: [${JSON.stringify(fixture)}], exclude: [], environment: ${JSON.stringify(environment)}, maxWorkers: 1, fileParallelism: false } };`,
     );
 
     // The child inherits the parent's color settings; assertions read the plain summary text.

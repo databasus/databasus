@@ -1,5 +1,5 @@
-import type { LogicalBackupSettings } from '../../../entities/backup-configs';
-import { isGfsHoursShown } from './isGfsHoursShown';
+import type { LogicalBackupSettings } from '@/entities/backup-configs';
+import { isGfsHoursShown } from '@/pages/databases/model/isGfsHoursShown';
 
 // A schedule of a day or longer keeps a hidden gfsHours the user never chose, so it does not count.
 export const hasShownGfsPeriod = ({ schedule, retention }: LogicalBackupSettings): boolean =>

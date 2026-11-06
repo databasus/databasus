@@ -4,12 +4,11 @@ import { type JSX, useEffect, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { userApi } from '@/entities/users';
+import { useCloudflareTurnstile } from '@/pages/auth/model/useCloudflareTurnstile';
+import { CloudflareTurnstileWidget } from '@/pages/auth/ui/CloudflareTurnstileWidget';
 import { useSessionGuard } from '@/shared/auth';
 import { translateApiError } from '@/shared/i18n';
 import { FormValidator } from '@/shared/lib/FormValidator';
-
-import { useCloudflareTurnstile } from '../model/useCloudflareTurnstile';
-import { CloudflareTurnstileWidget } from './CloudflareTurnstileWidget';
 
 interface RequestResetPasswordComponentProps {
   onSwitchToSignIn?: () => void;

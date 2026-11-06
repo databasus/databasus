@@ -1,4 +1,4 @@
-import { EmailNotifierSecurity } from './EmailNotifierSecurity';
+import { EmailNotifierSecurity } from '@/entities/notifiers/model/email/EmailNotifierSecurity';
 
 const IMPLICIT_TLS_PORT = 465;
 

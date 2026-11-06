@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { ConnectionErrorCode } from './ConnectionErrorCode';
-import { physicalConnectionErrorContent } from './physicalConnectionErrorContent';
+import { ConnectionErrorCode } from '@/entities/databases/model/postgresql/physical/ConnectionErrorCode';
+import { physicalConnectionErrorContent } from '@/entities/databases/model/postgresql/physical/physicalConnectionErrorContent';
 
 describe('physicalConnectionErrorContent', () => {
   it('quotes a generated replication role in the WAL switch grant command', () => {

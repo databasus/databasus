@@ -5,13 +5,12 @@ import { useTranslation } from 'react-i18next';
 import { type Storage, storageApi } from '@/entities/storages';
 import type { Workspace } from '@/entities/workspaces';
 import { EditStorageComponent } from '@/features/edit-storage';
+import { StorageCardComponent } from '@/pages/storages/ui/StorageCardComponent';
+import { StorageComponent } from '@/pages/storages/ui/StorageComponent';
 import { ApiError } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { useIsMobile, useRequestRevision, useScopedSelection } from '@/shared/hooks';
 import { ResourceListDetail, LoadFailure } from '@/shared/ui';
-
-import { StorageCardComponent } from './StorageCardComponent';
-import { StorageComponent } from './StorageComponent';
 
 interface Props {
   workspace: Workspace;

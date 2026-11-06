@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
-import type { BackupConfig } from '../../../../entities/backup-configs';
-import { LoadFailure } from '../../../../shared/ui';
+import type { BackupConfig } from '@/entities/backup-configs';
+import { LoadFailure } from '@/shared/ui';
 
 interface Props {
   backupConfig?: BackupConfig;

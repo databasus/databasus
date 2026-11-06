@@ -1,5 +1,5 @@
-import type { TranslationKey } from '../../../../shared/i18n';
-import { WalStreamReasonCode } from './WalStreamReasonCode';
+import { WalStreamReasonCode } from '@/pages/databases/model/wal-stream-monitoring/WalStreamReasonCode';
+import type { TranslationKey } from '@/shared/i18n';
 
 export const WAL_STREAM_REASON_CODE_LABEL_KEYS: Record<WalStreamReasonCode, TranslationKey> = {
   [WalStreamReasonCode.STREAMING_STOPPED]:

@@ -3,12 +3,11 @@ import { act, screen, waitFor } from '@testing-library/react';
 import { useNavigate } from 'react-router';
 import { describe, expect, it } from 'vitest';
 
+import { AuthCallbackPage } from '@/pages/auth-callback/ui/AuthCallbackPage';
 import { activateSession, getSessionSnapshot } from '@/shared/auth';
 import { DICTIONARIES } from '@/shared/i18n';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
-
-import { AuthCallbackPage } from './AuthCallbackPage';
 
 const server = setUpMockApi();
 const state = 'a'.repeat(64);

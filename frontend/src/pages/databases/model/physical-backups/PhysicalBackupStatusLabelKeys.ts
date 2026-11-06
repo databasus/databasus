@@ -1,5 +1,5 @@
-import type { TranslationKey } from '../../../../shared/i18n';
-import { PhysicalBackupStatus } from './PhysicalBackupStatus';
+import { PhysicalBackupStatus } from '@/pages/databases/model/physical-backups/PhysicalBackupStatus';
+import type { TranslationKey } from '@/shared/i18n';
 
 export const PHYSICAL_BACKUP_STATUS_LABEL_KEYS: Record<PhysicalBackupStatus, TranslationKey> = {
   [PhysicalBackupStatus.COMPLETED]: 'status.physicalBackup.completed',

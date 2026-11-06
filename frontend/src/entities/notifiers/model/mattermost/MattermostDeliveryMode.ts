@@ -1,4 +1,4 @@
-import type { MattermostNotifierSettings } from './MattermostNotifierSettings';
+import type { MattermostNotifierSettings } from '@/entities/notifiers/model/mattermost/MattermostNotifierSettings';
 
 export type MattermostDeliveryMode = MattermostNotifierSettings['deliveryMode'];
 

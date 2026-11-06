@@ -14,7 +14,7 @@ import 'dayjs/locale/pt-br';
 import 'dayjs/locale/ru';
 import 'dayjs/locale/zh-cn';
 
-import type { Locale } from './dictionaries';
+import type { Locale } from '@/shared/i18n/dictionaries';
 
 interface LocaleSettings {
   // BCP 47 tag for the document's lang attribute and for Intl number formatting

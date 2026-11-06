@@ -1,4 +1,4 @@
-import type { WebhookNotifierSettings } from './WebhookNotifierSettings';
+import type { WebhookNotifierSettings } from '@/entities/notifiers/model/webhook/WebhookNotifierSettings';
 
 export type WebhookMethod = WebhookNotifierSettings['webhookMethod'];
 

@@ -1,9 +1,9 @@
-import { type Database, DatabaseType } from '../../../../entities/databases';
-import { ShowMariaDbSpecificDataComponent } from './ShowMariaDbSpecificDataComponent';
-import { ShowMongoDbSpecificDataComponent } from './ShowMongoDbSpecificDataComponent';
-import { ShowMySqlSpecificDataComponent } from './ShowMySqlSpecificDataComponent';
-import { ShowPostgreSqlLogicalSpecificDataComponent } from './ShowPostgreSqlLogicalSpecificDataComponent';
-import { ShowPostgreSqlPhysicalSpecificDataComponent } from './ShowPostgreSqlPhysicalSpecificDataComponent';
+import { type Database, DatabaseType } from '@/entities/databases';
+import { ShowMariaDbSpecificDataComponent } from '@/pages/databases/ui/show/ShowMariaDbSpecificDataComponent';
+import { ShowMongoDbSpecificDataComponent } from '@/pages/databases/ui/show/ShowMongoDbSpecificDataComponent';
+import { ShowMySqlSpecificDataComponent } from '@/pages/databases/ui/show/ShowMySqlSpecificDataComponent';
+import { ShowPostgreSqlLogicalSpecificDataComponent } from '@/pages/databases/ui/show/ShowPostgreSqlLogicalSpecificDataComponent';
+import { ShowPostgreSqlPhysicalSpecificDataComponent } from '@/pages/databases/ui/show/ShowPostgreSqlPhysicalSpecificDataComponent';
 
 interface Props {
   database: Database;

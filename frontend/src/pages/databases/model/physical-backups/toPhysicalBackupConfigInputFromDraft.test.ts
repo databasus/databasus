@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildPhysicalBackupConfigDraft } from './buildPhysicalBackupConfigDraft.fixture';
-import { toPhysicalBackupConfigInputFromDraft } from './toPhysicalBackupConfigInputFromDraft';
+import { buildPhysicalBackupConfigDraft } from '@/pages/databases/model/physical-backups/buildPhysicalBackupConfigDraft.fixture';
+import { toPhysicalBackupConfigInputFromDraft } from '@/pages/databases/model/physical-backups/toPhysicalBackupConfigInputFromDraft';
 
 const ENTERED_FULL_BACKUPS = {
   count: 5,

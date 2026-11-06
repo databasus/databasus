@@ -5,13 +5,12 @@ import { useTranslation } from 'react-i18next';
 import { type Notifier, notifierApi } from '@/entities/notifiers';
 import type { Workspace } from '@/entities/workspaces';
 import { EditNotifierComponent } from '@/features/edit-notifier';
+import { NotifierCardComponent } from '@/pages/notifiers/ui/NotifierCardComponent';
+import { NotifierComponent } from '@/pages/notifiers/ui/NotifierComponent';
 import { ApiError } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { useIsMobile, useRequestRevision, useScopedSelection } from '@/shared/hooks';
 import { ResourceListDetail, LoadFailure } from '@/shared/ui';
-
-import { NotifierCardComponent } from './NotifierCardComponent';
-import { NotifierComponent } from './NotifierComponent';
 
 interface Props {
   workspace: Workspace;

@@ -1,9 +1,9 @@
 import dayjs from 'dayjs';
 
-import { formatDuration } from '../../../../shared/lib';
-import { type PhysicalBackupListItem } from '../../model/physical-backups/PhysicalBackupListItem';
-import { PhysicalBackupStatus } from '../../model/physical-backups/PhysicalBackupStatus';
-import { PhysicalBackupType } from '../../model/physical-backups/PhysicalBackupType';
+import { type PhysicalBackupListItem } from '@/pages/databases/model/physical-backups/PhysicalBackupListItem';
+import { PhysicalBackupStatus } from '@/pages/databases/model/physical-backups/PhysicalBackupStatus';
+import { PhysicalBackupType } from '@/pages/databases/model/physical-backups/PhysicalBackupType';
+import { formatDuration } from '@/shared/lib';
 
 export const getPhysicalBackupDuration = (backup: PhysicalBackupListItem): string => {
   // A WAL range's end is the receive time of its last segment, not the end

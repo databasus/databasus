@@ -1,5 +1,5 @@
-import type { TranslationKey } from '../../../shared/i18n';
-import { NotifierType } from './NotifierType';
+import { NotifierType } from '@/entities/notifiers/model/NotifierType';
+import type { TranslationKey } from '@/shared/i18n';
 
 export const NOTIFIER_TYPE_LABEL_KEYS: Record<NotifierType, TranslationKey> = {
   [NotifierType.EMAIL]: 'notifiers.types.email',

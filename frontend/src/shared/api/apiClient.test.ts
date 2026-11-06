@@ -1,12 +1,12 @@
 import { HttpResponse, http } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { activateSession, getSessionSnapshot, subscribeSession } from '../auth';
-import { waitForCondition } from '../lib/test/conditionWait';
-import { buildProblem, mockApi, setUpMockApi } from '../lib/test/mockApi';
-import { API_BASE_PATH, getApiClient } from './apiClient';
-import { API_ERROR_CODES } from './ApiError';
-import { requireData, requireSuccess } from './requireData';
+import { API_BASE_PATH, getApiClient } from '@/shared/api/apiClient';
+import { API_ERROR_CODES } from '@/shared/api/ApiError';
+import { requireData, requireSuccess } from '@/shared/api/requireData';
+import { activateSession, getSessionSnapshot, subscribeSession } from '@/shared/auth';
+import { waitForCondition } from '@/shared/lib/test/conditionWait';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 
 const mockServer = setUpMockApi();
 
@@ -167,7 +167,7 @@ describe('getApiClient', () => {
     vi.useFakeTimers();
     vi.resetModules();
     try {
-      await import('./index');
+      await import('@/shared/api/index');
       expect(vi.getTimerCount()).toBe(0);
       expect(mockServer.getRequests()).toHaveLength(0);
     } finally {

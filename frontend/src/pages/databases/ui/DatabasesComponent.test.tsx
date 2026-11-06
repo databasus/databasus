@@ -4,25 +4,25 @@ import utc from 'dayjs/plugin/utc';
 import { HttpResponse, type RequestHandler, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
-import { type BackupConfig } from '../../../entities/backup-configs';
+import { type BackupConfig } from '@/entities/backup-configs';
 import {
   type Database,
   DatabaseType,
   type HealthStatus,
   createDefaultDatabaseSettings,
   databaseApi,
-} from '../../../entities/databases';
-import type { Storage } from '../../../entities/storages';
-import type { Workspace } from '../../../entities/workspaces';
-import { API_BASE_PATH, type ApiComponents } from '../../../shared/api';
-import { activateSession, invalidateSession } from '../../../shared/auth';
-import { waitForCondition } from '../../../shared/lib/test/conditionWait';
-import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
-import { createPendingApiResponse } from '../../../shared/lib/test/pendingApiResponse';
-import { releaseAndSettle } from '../../../shared/lib/test/releaseAndSettle';
-import { renderScreen } from '../../../shared/lib/test/renderScreen';
+} from '@/entities/databases';
+import type { Storage } from '@/entities/storages';
+import type { Workspace } from '@/entities/workspaces';
 // @vitest-environment happy-dom
-import { DatabasesComponent } from './DatabasesComponent';
+import { DatabasesComponent } from '@/pages/databases/ui/DatabasesComponent';
+import { API_BASE_PATH, type ApiComponents } from '@/shared/api';
+import { activateSession, invalidateSession } from '@/shared/auth';
+import { waitForCondition } from '@/shared/lib/test/conditionWait';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
+import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 dayjs.extend(utc);
 

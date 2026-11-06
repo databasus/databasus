@@ -1,10 +1,7 @@
-import type {
-  LogicalBackupConfigInput,
-  LogicalBackupSettings,
-} from '../../../entities/backup-configs';
-import { isScheduleComplete } from '../../../entities/schedules';
-import { hasShownGfsPeriod } from './hasShownGfsPeriod';
-import { LogicalRetentionPolicy } from './LogicalRetentionPolicy';
+import type { LogicalBackupConfigInput, LogicalBackupSettings } from '@/entities/backup-configs';
+import { isScheduleComplete } from '@/entities/schedules';
+import { hasShownGfsPeriod } from '@/pages/databases/model/hasShownGfsPeriod';
+import { LogicalRetentionPolicy } from '@/pages/databases/model/LogicalRetentionPolicy';
 
 const isRetentionComplete = (settings: LogicalBackupSettings): boolean => {
   const { retention } = settings;

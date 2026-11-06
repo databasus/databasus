@@ -1,11 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { DICTIONARIES } from '../../../../shared/i18n';
-import { WalStreamNoticeCode } from '../../model/wal-stream-monitoring/WalStreamNoticeCode';
-import { type WalStreamReason } from '../../model/wal-stream-monitoring/WalStreamReason';
-import { WalStreamReasonCode } from '../../model/wal-stream-monitoring/WalStreamReasonCode';
-import { WalStreamReasonLevel } from '../../model/wal-stream-monitoring/WalStreamReasonLevel';
-import { getNoticeTexts, getReasonTexts, getTipTexts, sortReasonsBrokenFirst } from './reasonTexts';
+import {
+  getNoticeTexts,
+  getReasonTexts,
+  getTipTexts,
+  sortReasonsBrokenFirst,
+} from '@/pages/databases/lib/wal-stream-monitoring/reasonTexts';
+import { WalStreamNoticeCode } from '@/pages/databases/model/wal-stream-monitoring/WalStreamNoticeCode';
+import { type WalStreamReason } from '@/pages/databases/model/wal-stream-monitoring/WalStreamReason';
+import { WalStreamReasonCode } from '@/pages/databases/model/wal-stream-monitoring/WalStreamReasonCode';
+import { WalStreamReasonLevel } from '@/pages/databases/model/wal-stream-monitoring/WalStreamReasonLevel';
+import { DICTIONARIES } from '@/shared/i18n';
 
 // The entity's public API imports its API client, and the client's config module reads window at
 // import time. The tests run in node, so they supply window.

@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
-import { type Storage, StorageType, getStorageLogoFromType } from '../../../entities/storages';
-import type { TranslationKey } from '../../../shared/i18n';
+import { type Storage, StorageType, getStorageLogoFromType } from '@/entities/storages';
+import type { TranslationKey } from '@/shared/i18n';
 
 interface Props {
   storage: Storage;

@@ -3,8 +3,8 @@ import 'dayjs/locale/id';
 import 'dayjs/locale/ru';
 import { describe, expect, it } from 'vitest';
 
-import { formatNumber } from './formatNumber';
-import { formatRelativeTime } from './formatRelativeTime';
+import { formatNumber } from '@/shared/i18n/formatNumber';
+import { formatRelativeTime } from '@/shared/i18n/formatRelativeTime';
 
 // Intl uses U+202F (narrow no-break space) or U+00A0 as the group separator depending on the
 // language and ICU version; the tests compare with any whitespace normalized to a plain space.

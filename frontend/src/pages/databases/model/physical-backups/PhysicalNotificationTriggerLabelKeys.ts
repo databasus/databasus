@@ -1,5 +1,5 @@
-import type { TranslationKey } from '../../../../shared/i18n';
-import { PhysicalNotificationTrigger } from './PhysicalNotificationTrigger';
+import { PhysicalNotificationTrigger } from '@/pages/databases/model/physical-backups/PhysicalNotificationTrigger';
+import type { TranslationKey } from '@/shared/i18n';
 
 export const PHYSICAL_NOTIFICATION_TRIGGER_LABEL_KEYS: Record<
   PhysicalNotificationTrigger,

@@ -6,12 +6,11 @@ import {
   PostgresSslMode,
   createDefaultDatabaseSettings,
 } from '@/entities/databases';
-
 import {
   applyPostgresqlHost,
   applyPostgresqlSslMode,
   deriveSslModeFromHost,
-} from './postgresqlHostSsl';
+} from '@/features/database-connection/lib/postgresqlHostSsl';
 
 const settingsWithCertificates: PostgresqlLogicalSettings = {
   ...createDefaultDatabaseSettings(DatabaseType.POSTGRES_LOGICAL),

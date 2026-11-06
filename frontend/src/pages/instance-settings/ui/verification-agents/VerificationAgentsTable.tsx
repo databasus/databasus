@@ -4,14 +4,14 @@ import type { ColumnsType } from 'antd/es/table';
 import type { JSX } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { VerificationAgent } from '../../../../entities/verification-agents';
-import { type LocalizedText, translateLocalizedText, useLocale } from '../../../../shared/i18n';
-import { formatBytes } from '../../../../shared/lib/formatBytes';
+import type { VerificationAgent } from '@/entities/verification-agents';
 import {
   AGENT_STATUS_LABEL_KEYS,
   AGENT_STATUS_TEXT_CLASSES,
   getAgentStatus,
-} from '../../model/agentStatus';
+} from '@/pages/instance-settings/model/agentStatus';
+import { type LocalizedText, translateLocalizedText, useLocale } from '@/shared/i18n';
+import { formatBytes } from '@/shared/lib/formatBytes';
 
 interface Props {
   agents: VerificationAgent[];

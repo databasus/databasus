@@ -1,7 +1,7 @@
-import { FullBackupAction } from '../../model/wal-stream-monitoring/FullBackupAction';
-import { WalStreamHealthLevel } from '../../model/wal-stream-monitoring/WalStreamHealthLevel';
-import { type WalStreamReason } from '../../model/wal-stream-monitoring/WalStreamReason';
-import { WalStreamReasonCode } from '../../model/wal-stream-monitoring/WalStreamReasonCode';
+import { FullBackupAction } from '@/pages/databases/model/wal-stream-monitoring/FullBackupAction';
+import { WalStreamHealthLevel } from '@/pages/databases/model/wal-stream-monitoring/WalStreamHealthLevel';
+import { type WalStreamReason } from '@/pages/databases/model/wal-stream-monitoring/WalStreamReason';
+import { WalStreamReasonCode } from '@/pages/databases/model/wal-stream-monitoring/WalStreamReasonCode';
 
 interface FullBackupActionInput {
   level: WalStreamHealthLevel;

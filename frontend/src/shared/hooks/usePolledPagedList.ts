@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-import { type PagedListParams, usePagedList } from './usePagedList';
+import { type PagedListParams, usePagedList } from '@/shared/hooks/usePagedList';
 
 // eslint-disable-next-line i18next/no-literal-string -- DOM event name
 const VISIBILITY_CHANGE_EVENT = 'visibilitychange';

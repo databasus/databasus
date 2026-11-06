@@ -1,12 +1,12 @@
+import type { PhysicalBackupsFilters } from '@/pages/databases/model/physical-backups/PhysicalBackupsFilters';
 import {
   API_BASE_PATH,
   getApiClient,
   requireData,
   requireSuccess,
   type ApiComponents,
-} from '../../../shared/api';
-import { getApplicationServer } from '../../../shared/config';
-import type { PhysicalBackupsFilters } from '../model/physical-backups/PhysicalBackupsFilters';
+} from '@/shared/api';
+import { getApplicationServer } from '@/shared/config';
 
 export type TriggerPhysicalBackupType = ApiComponents['schemas']['PhysicalBackupStartKind'];
 export type PhysicalRestoreTokenCreate = ApiComponents['schemas']['PhysicalRestoreTokenCreate'];

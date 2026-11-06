@@ -3,9 +3,11 @@ import { Alert, Button } from 'antd';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import {
+  createOAuthSignInAttempt,
+  type OAuthProvider,
+} from '@/features/oauth-sign-in/model/OAuthSignInAttempt';
 import { GITHUB_CLIENT_ID, GOOGLE_CLIENT_ID } from '@/shared/config';
-
-import { createOAuthSignInAttempt, type OAuthProvider } from '../model/OAuthSignInAttempt';
 
 export function OAuthSignInButtons() {
   const [hasFailure, setHasFailure] = useState(false);

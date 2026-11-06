@@ -4,7 +4,7 @@ import {
   MongodbConnectionStringParser,
   type ParseError,
   type ParseResult,
-} from './MongodbConnectionStringParser';
+} from '@/entities/databases/model/mongodb/MongodbConnectionStringParser';
 
 describe('MongodbConnectionStringParser', () => {
   // Helper to assert successful parse

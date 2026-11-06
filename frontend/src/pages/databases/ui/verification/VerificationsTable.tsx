@@ -5,13 +5,16 @@ import dayjs from 'dayjs';
 import type { JSX } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { useLocale } from '../../../../shared/i18n';
-import { getUserTimeFormat } from '../../../../shared/time';
-import type { Verification } from '../../model/verification/Verification';
-import { formatOptionalDuration } from './formatOptionalDuration';
-import { VerificationActions, type VerificationRowActions } from './VerificationActions';
-import { VerificationStatusLabel } from './VerificationStatusLabel';
-import { VerificationTriggerTag } from './VerificationTriggerTag';
+import type { Verification } from '@/pages/databases/model/verification/Verification';
+import { formatOptionalDuration } from '@/pages/databases/ui/verification/formatOptionalDuration';
+import {
+  VerificationActions,
+  type VerificationRowActions,
+} from '@/pages/databases/ui/verification/VerificationActions';
+import { VerificationStatusLabel } from '@/pages/databases/ui/verification/VerificationStatusLabel';
+import { VerificationTriggerTag } from '@/pages/databases/ui/verification/VerificationTriggerTag';
+import { useLocale } from '@/shared/i18n';
+import { getUserTimeFormat } from '@/shared/time';
 
 interface Props {
   verifications: Verification[];

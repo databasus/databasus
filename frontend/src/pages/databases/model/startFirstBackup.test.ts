@@ -6,11 +6,11 @@ import {
   BackupSettingsType,
   type LogicalBackupConfigInput,
   type PhysicalBackupConfigInput,
-} from '../../../entities/backup-configs';
-import { API_BASE_PATH } from '../../../shared/api';
-import { setUpMockApi } from '../../../shared/lib/test/mockApi';
-import { createDefaultLogicalBackupConfig } from './createDefaultLogicalBackupConfig';
-import { startFirstBackup } from './startFirstBackup';
+} from '@/entities/backup-configs';
+import { createDefaultLogicalBackupConfig } from '@/pages/databases/model/createDefaultLogicalBackupConfig';
+import { startFirstBackup } from '@/pages/databases/model/startFirstBackup';
+import { API_BASE_PATH } from '@/shared/api';
+import { setUpMockApi } from '@/shared/lib/test/mockApi';
 
 const mockServer = setUpMockApi();
 

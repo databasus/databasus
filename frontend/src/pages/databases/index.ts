@@ -1,1 +1,1 @@
-export { DatabasesPage } from './ui/DatabasesPage';
+export { DatabasesPage } from '@/pages/databases/ui/DatabasesPage';

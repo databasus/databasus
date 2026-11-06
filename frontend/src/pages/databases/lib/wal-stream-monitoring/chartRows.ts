@@ -1,7 +1,7 @@
-import type { MissingDataRange } from '../../model/wal-stream-monitoring/MissingDataRange';
-import type { WalStreamChartRow } from '../../model/wal-stream-monitoring/WalStreamChartRow';
-import type { WalStreamSeries } from '../../model/wal-stream-monitoring/WalStreamSeries';
-import type { WalStreamSeriesPoint } from '../../model/wal-stream-monitoring/WalStreamSeriesPoint';
+import type { MissingDataRange } from '@/pages/databases/model/wal-stream-monitoring/MissingDataRange';
+import type { WalStreamChartRow } from '@/pages/databases/model/wal-stream-monitoring/WalStreamChartRow';
+import type { WalStreamSeries } from '@/pages/databases/model/wal-stream-monitoring/WalStreamSeries';
+import type { WalStreamSeriesPoint } from '@/pages/databases/model/wal-stream-monitoring/WalStreamSeriesPoint';
 
 export const toChartRows = (points: WalStreamSeriesPoint[]): WalStreamChartRow[] =>
   points.map((point) => ({

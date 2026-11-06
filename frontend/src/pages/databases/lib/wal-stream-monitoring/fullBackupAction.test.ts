@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { FullBackupAction } from '../../model/wal-stream-monitoring/FullBackupAction';
-import { WalStreamHealthLevel } from '../../model/wal-stream-monitoring/WalStreamHealthLevel';
-import { WalStreamReasonCode } from '../../model/wal-stream-monitoring/WalStreamReasonCode';
-import { WalStreamReasonLevel } from '../../model/wal-stream-monitoring/WalStreamReasonLevel';
-import { getFullBackupAction } from './fullBackupAction';
+import { getFullBackupAction } from '@/pages/databases/lib/wal-stream-monitoring/fullBackupAction';
+import { FullBackupAction } from '@/pages/databases/model/wal-stream-monitoring/FullBackupAction';
+import { WalStreamHealthLevel } from '@/pages/databases/model/wal-stream-monitoring/WalStreamHealthLevel';
+import { WalStreamReasonCode } from '@/pages/databases/model/wal-stream-monitoring/WalStreamReasonCode';
+import { WalStreamReasonLevel } from '@/pages/databases/model/wal-stream-monitoring/WalStreamReasonLevel';
 
 // The entity's public API imports its API client, and the client's config module reads window at
 // import time. The tests run in node, so they supply window.

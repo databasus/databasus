@@ -2,8 +2,7 @@ import { Select } from 'antd';
 import { useTranslation } from 'react-i18next';
 
 import { POSTGRES_SSL_MODE_LABEL_KEYS, PostgresSslMode } from '@/entities/databases';
-
-import { ConnectionFieldRow } from './ConnectionFieldRow';
+import { ConnectionFieldRow } from '@/features/database-connection/ui/ConnectionFieldRow';
 
 interface Props {
   controlId: string;

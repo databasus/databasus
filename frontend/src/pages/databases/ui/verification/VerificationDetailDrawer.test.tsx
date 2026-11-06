@@ -5,14 +5,14 @@ import utc from 'dayjs/plugin/utc';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
-import { API_BASE_PATH } from '../../../../shared/api';
-import { mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
-import { createPendingApiResponse } from '../../../../shared/lib/test/pendingApiResponse';
-import { releaseAndSettle } from '../../../../shared/lib/test/releaseAndSettle';
-import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-import { verificationRunsApi } from '../../api/verificationRunsApi';
-import type { VerificationDetails } from '../../model/verification/VerificationDetails';
-import { VerificationDetailDrawer } from './VerificationDetailDrawer';
+import { verificationRunsApi } from '@/pages/databases/api/verificationRunsApi';
+import type { VerificationDetails } from '@/pages/databases/model/verification/VerificationDetails';
+import { VerificationDetailDrawer } from '@/pages/databases/ui/verification/VerificationDetailDrawer';
+import { API_BASE_PATH } from '@/shared/api';
+import { mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
+import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 dayjs.extend(utc);
 

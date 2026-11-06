@@ -4,7 +4,7 @@ import { setupServer } from 'msw/node';
 import { setTimeout, clearTimeout } from 'node:timers';
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest';
 
-import { cancelPendingApiResponses } from './pendingApiResponse';
+import { cancelPendingApiResponses } from '@/shared/lib/test/pendingApiResponse';
 
 const validateHandler = (handler: unknown) => {
   if (

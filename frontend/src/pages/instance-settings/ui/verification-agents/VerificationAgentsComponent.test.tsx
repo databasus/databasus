@@ -3,23 +3,19 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
+import { type VerificationAgent, verificationAgentApi } from '@/entities/verification-agents';
+import { TOKEN_PLACEHOLDER } from '@/pages/instance-settings/lib/verificationAgentCommands';
+import { VerificationAgentsComponent } from '@/pages/instance-settings/ui/verification-agents/VerificationAgentsComponent';
+import { API_BASE_PATH } from '@/shared/api';
 import { activateSession, getSessionSnapshot } from '@/shared/auth';
-
-import {
-  type VerificationAgent,
-  verificationAgentApi,
-} from '../../../../entities/verification-agents';
-import { API_BASE_PATH } from '../../../../shared/api';
-import { DICTIONARIES } from '../../../../shared/i18n';
-import { advanceFakeClock } from '../../../../shared/lib/test/advanceFakeClock';
-import { inspectApiRequest } from '../../../../shared/lib/test/inspectApiRequest';
-import { buildProblem, mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
-import { createPendingApiResponse } from '../../../../shared/lib/test/pendingApiResponse';
-import { releaseAndSettle } from '../../../../shared/lib/test/releaseAndSettle';
-import { renderScreen } from '../../../../shared/lib/test/renderScreen';
-import { stubClipboardWrite } from '../../../../shared/lib/test/stubClipboard';
-import { TOKEN_PLACEHOLDER } from '../../lib/verificationAgentCommands';
-import { VerificationAgentsComponent } from './VerificationAgentsComponent';
+import { DICTIONARIES } from '@/shared/i18n';
+import { advanceFakeClock } from '@/shared/lib/test/advanceFakeClock';
+import { inspectApiRequest } from '@/shared/lib/test/inspectApiRequest';
+import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
+import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
+import { stubClipboardWrite } from '@/shared/lib/test/stubClipboard';
 
 const mockServer = setUpMockApi();
 

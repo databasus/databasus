@@ -1,15 +1,18 @@
-import type { TranslationKey } from '../../../../shared/i18n';
-import type { MonitoringText } from '../../model/wal-stream-monitoring/MonitoringText';
-import type { MonitoringTextParam } from '../../model/wal-stream-monitoring/MonitoringTextParam';
-import type { ReasonTexts } from '../../model/wal-stream-monitoring/ReasonTexts';
-import { type WalStreamNotice } from '../../model/wal-stream-monitoring/WalStreamNotice';
-import { WalStreamNoticeCode } from '../../model/wal-stream-monitoring/WalStreamNoticeCode';
-import { WAL_STREAM_NOTICE_CODE_LABEL_KEYS } from '../../model/wal-stream-monitoring/WalStreamNoticeCodeLabelKeys';
-import { type WalStreamReason } from '../../model/wal-stream-monitoring/WalStreamReason';
-import { WalStreamReasonCode } from '../../model/wal-stream-monitoring/WalStreamReasonCode';
-import { WAL_STREAM_REASON_CODE_LABEL_KEYS } from '../../model/wal-stream-monitoring/WalStreamReasonCodeLabelKeys';
-import { WalStreamReasonLevel } from '../../model/wal-stream-monitoring/WalStreamReasonLevel';
-import { getRoundedDuration, getSecondsBetween } from './roundedDuration';
+import {
+  getRoundedDuration,
+  getSecondsBetween,
+} from '@/pages/databases/lib/wal-stream-monitoring/roundedDuration';
+import type { MonitoringText } from '@/pages/databases/model/wal-stream-monitoring/MonitoringText';
+import type { MonitoringTextParam } from '@/pages/databases/model/wal-stream-monitoring/MonitoringTextParam';
+import type { ReasonTexts } from '@/pages/databases/model/wal-stream-monitoring/ReasonTexts';
+import { type WalStreamNotice } from '@/pages/databases/model/wal-stream-monitoring/WalStreamNotice';
+import { WalStreamNoticeCode } from '@/pages/databases/model/wal-stream-monitoring/WalStreamNoticeCode';
+import { WAL_STREAM_NOTICE_CODE_LABEL_KEYS } from '@/pages/databases/model/wal-stream-monitoring/WalStreamNoticeCodeLabelKeys';
+import { type WalStreamReason } from '@/pages/databases/model/wal-stream-monitoring/WalStreamReason';
+import { WalStreamReasonCode } from '@/pages/databases/model/wal-stream-monitoring/WalStreamReasonCode';
+import { WAL_STREAM_REASON_CODE_LABEL_KEYS } from '@/pages/databases/model/wal-stream-monitoring/WalStreamReasonCodeLabelKeys';
+import { WalStreamReasonLevel } from '@/pages/databases/model/wal-stream-monitoring/WalStreamReasonLevel';
+import type { TranslationKey } from '@/shared/i18n';
 
 interface ReasonSentenceKeys {
   whatHappened: TranslationKey;

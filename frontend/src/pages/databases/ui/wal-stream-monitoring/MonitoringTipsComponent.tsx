@@ -1,8 +1,8 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 
-import type { ReasonTexts } from '../../model/wal-stream-monitoring/ReasonTexts';
-import { MonitoringTextComponent } from './MonitoringTextComponent';
+import type { ReasonTexts } from '@/pages/databases/model/wal-stream-monitoring/ReasonTexts';
+import { MonitoringTextComponent } from '@/pages/databases/ui/wal-stream-monitoring/MonitoringTextComponent';
 
 interface Props {
   tips: ReasonTexts[];

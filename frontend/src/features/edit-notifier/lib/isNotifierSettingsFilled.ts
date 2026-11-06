@@ -8,8 +8,8 @@ import {
   validateTeamsNotifier,
   validateTelegramNotifier,
   validateWebhookNotifier,
-} from '../../../entities/notifiers';
-import { isNotifierAddressChanged } from './isNotifierAddressChanged';
+} from '@/entities/notifiers';
+import { isNotifierAddressChanged } from '@/features/edit-notifier/lib/isNotifierAddressChanged';
 
 // A saved notifier may leave its secrets empty, because the backend keeps the stored ones, except
 // those a changed resource address must get again.

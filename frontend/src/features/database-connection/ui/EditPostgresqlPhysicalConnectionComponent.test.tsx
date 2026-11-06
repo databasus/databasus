@@ -8,10 +8,12 @@ import {
   PostgresSslMode,
   createDefaultDatabaseSettings,
 } from '@/entities/databases';
+import {
+  buildCreateDraft,
+  renderEditableForm,
+} from '@/features/database-connection/ui/connectionForm.fixture';
 import { setUpMockApi } from '@/shared/lib/test/mockApi';
 import { stubClipboard } from '@/shared/lib/test/stubClipboard';
-
-import { buildCreateDraft, renderEditableForm } from './connectionForm.fixture';
 
 setUpMockApi();
 

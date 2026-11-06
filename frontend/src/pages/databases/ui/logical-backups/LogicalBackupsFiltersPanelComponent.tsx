@@ -4,9 +4,9 @@ import dayjs from 'dayjs';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { LogicalBackupListFilter } from '../../model/LogicalBackupListFilter';
-import { LogicalBackupStatus } from '../../model/LogicalBackupStatus';
-import { LOGICAL_BACKUP_STATUS_LABEL_KEYS } from '../../model/LogicalBackupStatusLabelKeys';
+import type { LogicalBackupListFilter } from '@/pages/databases/model/LogicalBackupListFilter';
+import { LogicalBackupStatus } from '@/pages/databases/model/LogicalBackupStatus';
+import { LOGICAL_BACKUP_STATUS_LABEL_KEYS } from '@/pages/databases/model/LogicalBackupStatusLabelKeys';
 
 interface Props {
   filter: LogicalBackupListFilter;

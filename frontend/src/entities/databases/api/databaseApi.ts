@@ -1,12 +1,12 @@
-import { getApiClient, requireData, requireSuccess } from '../../../shared/api';
-import { collectCursorPages } from '../../../shared/lib/collectCursorPages';
-import type { Database } from '../model/Database';
-import type { DatabaseCreate } from '../model/DatabaseCreate';
-import type { DatabaseSettingsTarget } from '../model/DatabaseSettingsTarget';
-import type { DatabaseTestResult } from '../model/DatabaseTestResult';
-import type { DatabaseUpdate } from '../model/DatabaseUpdate';
-import type { LimitedUser, LimitedUserCheck } from '../model/LimitedUser';
-import { toDatabaseSettingsRequest } from '../model/toDatabaseSettingsRequest';
+import type { Database } from '@/entities/databases/model/Database';
+import type { DatabaseCreate } from '@/entities/databases/model/DatabaseCreate';
+import type { DatabaseSettingsTarget } from '@/entities/databases/model/DatabaseSettingsTarget';
+import type { DatabaseTestResult } from '@/entities/databases/model/DatabaseTestResult';
+import type { DatabaseUpdate } from '@/entities/databases/model/DatabaseUpdate';
+import type { LimitedUser, LimitedUserCheck } from '@/entities/databases/model/LimitedUser';
+import { toDatabaseSettingsRequest } from '@/entities/databases/model/toDatabaseSettingsRequest';
+import { getApiClient, requireData, requireSuccess } from '@/shared/api';
+import { collectCursorPages } from '@/shared/lib/collectCursorPages';
 
 // The largest page the contract serves, so a workspace's databases arrive in as few requests as
 // possible.

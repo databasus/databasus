@@ -1,5 +1,5 @@
-import type { TranslationKey } from '../../../../shared/i18n';
-import { EmailNotifierSecurity } from './EmailNotifierSecurity';
+import { EmailNotifierSecurity } from '@/entities/notifiers/model/email/EmailNotifierSecurity';
+import type { TranslationKey } from '@/shared/i18n';
 
 export const EMAIL_NOTIFIER_SECURITY_LABEL_KEYS: Record<EmailNotifierSecurity, TranslationKey> = {
   [EmailNotifierSecurity.TLS]: 'notifiers.email.securityModes.tls',

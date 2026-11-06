@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 import { Trans } from 'react-i18next';
 
-import type { TranslationKey } from './TranslationKey';
+import type { TranslationKey } from '@/shared/i18n/TranslationKey';
 
 interface Props {
   i18nKey: TranslationKey;

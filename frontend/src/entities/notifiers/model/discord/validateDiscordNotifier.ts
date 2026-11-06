@@ -1,4 +1,4 @@
-import type { DiscordNotifierSettings } from './DiscordNotifierSettings';
+import type { DiscordNotifierSettings } from '@/entities/notifiers/model/discord/DiscordNotifierSettings';
 
 // A saved notifier keeps its stored webhook URL when the form leaves it empty.
 export const validateDiscordNotifier = (

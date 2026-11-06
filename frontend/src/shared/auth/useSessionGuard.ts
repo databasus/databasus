@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 
-import { getSessionSnapshot, isCurrentSession } from './session';
+import { getSessionSnapshot, isCurrentSession } from '@/shared/auth/session';
 
 export const useSessionGuard = () => {
   const session = useRef(getSessionSnapshot());

@@ -8,9 +8,8 @@ import type {
   RestoreTargetSettings,
 } from '@/entities/databases';
 import type { PostgresqlRestoreOptions } from '@/entities/restores';
+import { DatabaseConnectionForm } from '@/features/database-connection/ui/DatabaseConnectionForm';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
-
-import { DatabaseConnectionForm } from './DatabaseConnectionForm';
 
 export const NO_RESTORE_OPTIONS: PostgresqlRestoreOptions = {
   isExcludeExtensions: false,

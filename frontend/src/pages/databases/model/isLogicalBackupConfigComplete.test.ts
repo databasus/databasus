@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import type { LogicalBackupConfigInput } from '../../../entities/backup-configs';
-import { buildLogicalBackupConfig, zeroRetention } from './buildLogicalBackupConfig.fixture';
-import { isLogicalBackupConfigComplete } from './isLogicalBackupConfigComplete';
-import { LogicalRetentionPolicy } from './LogicalRetentionPolicy';
+import type { LogicalBackupConfigInput } from '@/entities/backup-configs';
+import {
+  buildLogicalBackupConfig,
+  zeroRetention,
+} from '@/pages/databases/model/buildLogicalBackupConfig.fixture';
+import { isLogicalBackupConfigComplete } from '@/pages/databases/model/isLogicalBackupConfigComplete';
+import { LogicalRetentionPolicy } from '@/pages/databases/model/LogicalRetentionPolicy';
 
 describe('isLogicalBackupConfigComplete', () => {
   const hourlyOnlyGfs = { ...zeroRetention, policy: LogicalRetentionPolicy.GFS, gfsHours: 5 };

@@ -5,14 +5,14 @@ import {
   type Storage,
   StorageType,
   getStorageLogoFromType,
-} from '../../../../entities/storages';
-import { ShowAzureBlobStorageComponent } from './storages/ShowAzureBlobStorageComponent';
-import { ShowFTPStorageComponent } from './storages/ShowFTPStorageComponent';
-import { ShowGoogleDriveStorageComponent } from './storages/ShowGoogleDriveStorageComponent';
-import { ShowNASStorageComponent } from './storages/ShowNASStorageComponent';
-import { ShowRcloneStorageComponent } from './storages/ShowRcloneStorageComponent';
-import { ShowS3StorageComponent } from './storages/ShowS3StorageComponent';
-import { ShowSFTPStorageComponent } from './storages/ShowSFTPStorageComponent';
+} from '@/entities/storages';
+import { ShowAzureBlobStorageComponent } from '@/pages/storages/ui/show/storages/ShowAzureBlobStorageComponent';
+import { ShowFTPStorageComponent } from '@/pages/storages/ui/show/storages/ShowFTPStorageComponent';
+import { ShowGoogleDriveStorageComponent } from '@/pages/storages/ui/show/storages/ShowGoogleDriveStorageComponent';
+import { ShowNASStorageComponent } from '@/pages/storages/ui/show/storages/ShowNASStorageComponent';
+import { ShowRcloneStorageComponent } from '@/pages/storages/ui/show/storages/ShowRcloneStorageComponent';
+import { ShowS3StorageComponent } from '@/pages/storages/ui/show/storages/ShowS3StorageComponent';
+import { ShowSFTPStorageComponent } from '@/pages/storages/ui/show/storages/ShowSFTPStorageComponent';
 
 interface Props {
   storage?: Storage;

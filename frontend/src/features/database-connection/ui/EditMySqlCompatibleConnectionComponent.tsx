@@ -9,18 +9,17 @@ import {
   MySqlCompatibleConnectionStringParser,
   type MysqlSettings,
 } from '@/entities/databases';
+import type { ConnectionEditorProps } from '@/features/database-connection/lib/ConnectionEditorProps';
+import { isLocalhostConnection } from '@/features/database-connection/lib/isLocalhostConnection';
+import { stripHostScheme } from '@/features/database-connection/lib/stripHostScheme';
+import { ConnectionCredentialFields } from '@/features/database-connection/ui/ConnectionCredentialFields';
+import { ConnectionFieldRow } from '@/features/database-connection/ui/ConnectionFieldRow';
+import { ConnectionFieldTooltip } from '@/features/database-connection/ui/ConnectionFieldTooltip';
+import { ConnectionHostHint } from '@/features/database-connection/ui/ConnectionHostHint';
+import { ConnectionStringImport } from '@/features/database-connection/ui/ConnectionStringImport';
+import { EditSshTunnelComponent } from '@/features/database-connection/ui/EditSshTunnelComponent';
 import { NAME_LIST_TOKEN_SEPARATORS, normalizeNameList } from '@/shared/lib';
 import { AdvancedSettingsToggleComponent } from '@/shared/ui';
-
-import type { ConnectionEditorProps } from '../lib/ConnectionEditorProps';
-import { isLocalhostConnection } from '../lib/isLocalhostConnection';
-import { stripHostScheme } from '../lib/stripHostScheme';
-import { ConnectionCredentialFields } from './ConnectionCredentialFields';
-import { ConnectionFieldRow } from './ConnectionFieldRow';
-import { ConnectionFieldTooltip } from './ConnectionFieldTooltip';
-import { ConnectionHostHint } from './ConnectionHostHint';
-import { ConnectionStringImport } from './ConnectionStringImport';
-import { EditSshTunnelComponent } from './EditSshTunnelComponent';
 
 type Settings = MysqlSettings | MariadbSettings;
 

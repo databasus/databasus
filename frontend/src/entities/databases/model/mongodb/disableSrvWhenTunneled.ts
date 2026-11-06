@@ -1,4 +1,4 @@
-import type { MongodbSettings } from '../ProviderDatabaseSettings';
+import type { MongodbSettings } from '@/entities/databases/model/ProviderDatabaseSettings';
 
 /**
  * SRV resolves its own host list from DNS and never carries a port, so it can never travel through

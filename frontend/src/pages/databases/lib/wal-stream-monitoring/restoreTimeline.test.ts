@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { RestoreTimelineSegmentKind } from '../../model/wal-stream-monitoring/RestoreTimelineSegmentKind';
 import {
   MIN_SEGMENT_WIDTH_PERCENT,
   getLostStretchTexts,
   getRestoreTimeline,
-} from './restoreTimeline';
+} from '@/pages/databases/lib/wal-stream-monitoring/restoreTimeline';
+import { RestoreTimelineSegmentKind } from '@/pages/databases/model/wal-stream-monitoring/RestoreTimelineSegmentKind';
 
 // The entity's public API imports its API client, and the client's config module reads window at
 // import time. The tests run in node, so they supply window.

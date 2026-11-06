@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
-import type { GoogleDriveStorageSettings } from '../../../../../entities/storages';
+import type { GoogleDriveStorageSettings } from '@/entities/storages';
 
 interface Props {
   settings: GoogleDriveStorageSettings;
