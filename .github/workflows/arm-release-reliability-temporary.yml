@@ -11,6 +11,10 @@ on:
         type: string
       candidate_sha:
         type: string
+      diagnostic_arch:
+        type: choice
+        default: amd64
+        options: [amd64, arm64]
 
 permissions:
   contents: read
@@ -158,21 +162,17 @@ jobs:
 
   diagnose-logical-load:
     if: inputs.suite == 'load'
-    name: diagnose-logical-load (${{ matrix.arch }})
-    runs-on: ${{ matrix.runner }}
+    name: diagnose-logical-load (${{ inputs.diagnostic_arch }})
+    runs-on: ${{ inputs.diagnostic_arch == 'amd64' && 'namespace-profile-4vcpu-8ram-ubuntu-22-x64' || 'namespace-profile-4vcpu-8ram-ubuntu-22-arm' }}
     timeout-minutes: 90
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - arch: arm64
-            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Check native runner architecture
-        run: scripts/check_native_architecture.sh ${{ matrix.arch }}
+        env:
+          NATIVE_ARCHITECTURE: ${{ inputs.diagnostic_arch }}
+        run: scripts/check_native_architecture.sh "$NATIVE_ARCHITECTURE"
 
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
@@ -259,7 +259,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: logical-load-arm64
+          name: logical-load-${{ inputs.diagnostic_arch }}
           path: /tmp/logical-load-*.log
           retention-days: 7
 
