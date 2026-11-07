@@ -179,7 +179,7 @@ export default function Index() {
                 name: "Comment Databasus assure-t-il la sécurité ?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus applique la sécurité à trois niveaux : (1) Chiffrement des données sensibles — tous les mots de passe, jetons et identifiants sont chiffrés avec AES-256-GCM et stockés séparément de la base de données ; (2) Chiffrement des sauvegardes — chaque fichier de sauvegarde est chiffré avec une clé unique dérivée d'une clé maître, de l'ID de la sauvegarde et d'un sel aléatoire, ce qui rend les sauvegardes inutilisables sans votre clé de chiffrement même si quelqu'un accède au stockage ; (3) Accès en lecture seule à la base — Databasus ne requiert que des permissions SELECT et effectue des vérifications complètes pour s'assurer qu'aucun privilège d'écriture n'existe, ce qui empêche toute corruption de données même si l'outil est compromis. La connexion elle-même peut exiger un second facteur : une fois activé, un mot de passe correct est suivi d'un code à six chiffres envoyé à l'adresse du compte, tandis que la connexion par Google ou GitHub continue de s'appuyer sur les vérifications de ces fournisseurs. Au-delà de l'exécution, la sécurité et la fiabilité sont intégrées à chaque commit et PR : analyse statique CodeQL, détection de secrets avec gitleaks, règles de sécurité avec semgrep, surveillance des CVE par Dependabot, scans Trivy des images et Dockerfiles, et audits périodiques Codex Security d'OpenAI. Les tests d'intégration s'exécutent contre de vrais conteneurs PostgreSQL, MySQL, MariaDB et MongoDB et vérifient des cycles complets sauvegarde puis restauration à chaque PR. Les GitHub Actions sont épinglées sur des SHA de commit et les workflows suivent le principe du moindre privilège. Toutes les opérations tournent dans des conteneurs que vous contrôlez sur des serveurs qui vous appartiennent, et comme le projet est open source, votre équipe de sécurité peut auditer chaque ligne de code avant le déploiement.",
+                  text: "Databasus applique la sécurité à trois niveaux : (1) Chiffrement des données sensibles — tous les mots de passe, jetons et identifiants sont chiffrés avec AES-256-GCM et stockés séparément de la base de données ; (2) Chiffrement des sauvegardes — chaque fichier de sauvegarde est chiffré avec une clé unique dérivée d'une clé maître, de l'ID de la sauvegarde et d'un sel aléatoire, ce qui rend les sauvegardes inutilisables sans votre clé de chiffrement même si quelqu'un accède au stockage ; (3) Accès en lecture seule à la base — Databasus ne requiert que des permissions SELECT et effectue des vérifications complètes pour s'assurer qu'aucun privilège d'écriture n'existe, ce qui empêche toute corruption de données même si l'outil est compromis. La connexion elle-même peut exiger un second facteur : une fois activé, un mot de passe correct est suivi d'un code à six chiffres envoyé à l'adresse du compte, tandis que la connexion par Google ou GitHub continue de s'appuyer sur les vérifications de ces fournisseurs. Au-delà de l'exécution, la sécurité et la fiabilité sont intégrées à chaque release : analyse statique CodeQL, détection de secrets avec gitleaks, règles de sécurité avec semgrep, surveillance des CVE par Dependabot, scans Trivy des images et Dockerfiles, et audits périodiques Codex Security d'OpenAI. Les tests d'intégration s'exécutent contre de vrais conteneurs PostgreSQL, MySQL, MariaDB et MongoDB et vérifient des cycles complets sauvegarde puis restauration avant chaque release. Les GitHub Actions sont épinglées sur des SHA de commit et les workflows suivent le principe du moindre privilège. Toutes les opérations tournent dans des conteneurs que vous contrôlez sur des serveurs qui vous appartiennent, et comme le projet est open source, votre équipe de sécurité peut auditer chaque ligne de code avant le déploiement.",
                 },
               },
               {
@@ -1264,17 +1264,17 @@ export default function Index() {
                   sur les vérifications de ces fournisseurs.
                   <br />
                   <br />
-                  Au-delà de l&apos;exécution, la sécurité et la fiabilité sont
-                  intégrées à chaque commit et PR : analyse statique CodeQL,
+                  Au-delà de l&apos;exécution, la sécurité et la fiabilité
+                  sont intégrées à chaque release : analyse statique CodeQL,
                   détection de secrets avec gitleaks, règles de sécurité avec
-                  semgrep, surveillance des CVE par Dependabot, scans Trivy des
-                  images et Dockerfiles, et audits
-                  périodiques Codex Security d&apos;OpenAI. Les tests
-                  d&apos;intégration s&apos;exécutent contre de vrais conteneurs
-                  PostgreSQL, MySQL, MariaDB et MongoDB et vérifient des cycles
-                  complets sauvegarde puis restauration à chaque PR. Les GitHub
-                  Actions sont épinglées sur des SHA de commit et les workflows
-                  suivent le principe du moindre privilège.
+                  semgrep, surveillance des CVE par Dependabot, scans Trivy
+                  des images et Dockerfiles, et audits périodiques Codex
+                  Security d&apos;OpenAI. Les tests d&apos;intégration
+                  s&apos;exécutent contre de vrais conteneurs PostgreSQL,
+                  MySQL, MariaDB et MongoDB et vérifient des cycles complets
+                  sauvegarde puis restauration avant chaque release. Les
+                  GitHub Actions sont épinglées sur des SHA de commit et les
+                  workflows suivent le principe du moindre privilège.
                   <br />
                   <br />
                   Consultez{" "}

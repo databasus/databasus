@@ -329,36 +329,37 @@ export default function SecurityPage() {
 
               <p>
                 Databasus works with sensitive data, so preventing
-                vulnerabilities, unauthorised access and data leaks is a primary
-                concern. We invest in this on both sides of the system: in the
-                code itself (permission checks, encryption, careful handling of
-                secrets) and in the infrastructure around it (dependency
-                analysis, CVE response, DevSecOps practices). The pipeline below
-                runs automatically on every commit and PR — no single layer is
-                enough on its own, but together they reduce the chance of
-                vulnerable code, unsafe dependencies, broken images, or
-                non-restorable backups reaching a release.
+                vulnerabilities, unauthorised access and data leaks is a
+                primary concern. We invest in this on both sides of the
+                system: in the code itself (permission checks, encryption,
+                careful handling of secrets) and in the infrastructure around
+                it (dependency analysis, CVE response, DevSecOps practices).
+                The pipeline below runs automatically before every release —
+                no single layer is enough on its own, but together they reduce
+                the chance of vulnerable code, unsafe dependencies, broken
+                images, or non-restorable backups reaching a release.
               </p>
 
               <h3 id="static-analysis">Static analysis</h3>
 
               <p>
                 Static analysis runs in several independent passes. CodeQL
-                scans the full codebase for security issues. On every PR,{" "}
+                scans the full codebase for security issues. Before every
+                release,{" "}
                 <strong>gitleaks</strong> scans for leaked secrets and{" "}
                 <strong>semgrep</strong> checks the code against security rules.
                 Dockerfiles and CI workflows get extra rules of their own
                 (pinned action references, least-privilege permissions,
                 suspicious base images), so insecure patterns are flagged
-                before they ever merge.
+                before a release.
               </p>
 
               <p>
-                On top of these per-PR checks,{" "}
+                On top of these release checks,{" "}
                 <strong>Codex Security</strong> from OpenAI runs regular,
                 deeper audits of the whole codebase. It is a separate program
                 that catches architectural and cross-cutting issues which
-                narrow PR-time scans miss.
+                narrower automated scans miss.
               </p>
 
               <h3 id="dependency-management">Dependency management</h3>
@@ -373,8 +374,8 @@ export default function SecurityPage() {
               </p>
 
               <p>
-                The <strong>Dependency Review Action</strong> fails the check of
-                any PR that introduces a new <strong>HIGH</strong> or <strong>CRITICAL</strong> CVE.
+                The <strong>Dependency Review Action</strong> blocks a release
+                that introduces a new <strong>HIGH</strong> or <strong>CRITICAL</strong> CVE.
               </p>
 
               <h3 id="container-and-ci-hardening">
@@ -411,17 +412,17 @@ export default function SecurityPage() {
 
               <p>
                 Restore is the path that matters most for a backup tool, so we
-                test it explicitly: every PR runs full backup-then-restore
-                cycles against those same real containers, verifying that
-                backups can actually be restored end-to-end — not just written
-                successfully.
+                test it explicitly: before every release, we run full
+                backup-then-restore cycles against those same real containers,
+                verifying that backups can actually be restored end-to-end —
+                not just written successfully.
               </p>
 
               <p>
                 The rest of the CI/CD pipeline runs lint, type-check, the full
-                test suite, image smoke tests and multi-architecture builds on
-                every PR. A release ships only after all of it and the security
-                scans pass, with no open critical CodeQL alert.
+                test suite, image smoke tests and multi-architecture builds
+                before every release. A release ships only after all of it and
+                the security scans pass, with no open critical CodeQL alert.
               </p>
 
               <h3 id="reporting-a-vulnerability">

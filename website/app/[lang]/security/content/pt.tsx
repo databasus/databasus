@@ -337,16 +337,16 @@ export default function SecurityPage() {
 
               <p>
                 O Databasus trabalha com dados sensíveis, por isso prevenir
-                vulnerabilidades, acessos não autorizados e vazamentos de dados
-                é uma preocupação central. Investimos nisso dos dois lados do
-                sistema: no próprio código (verificações de permissões,
-                criptografia, tratamento cuidadoso de segredos) e na
-                infraestrutura ao redor dele (análise de dependências, resposta
-                a CVEs, práticas de DevSecOps). O pipeline abaixo roda
-                automaticamente em cada commit e PR. Nenhuma camada chega
-                sozinha, mas juntas reduzem a probabilidade de código
-                vulnerável, dependências inseguras, imagens quebradas ou backups
-                não restauráveis chegarem a uma release.
+                vulnerabilidades, acessos não autorizados e vazamentos de
+                dados é uma preocupação central. Investimos nisso dos dois
+                lados do sistema: no próprio código (verificações de
+                permissões, criptografia, tratamento cuidadoso de segredos) e
+                na infraestrutura ao redor dele (análise de dependências,
+                resposta a CVEs, práticas de DevSecOps). O pipeline abaixo
+                roda automaticamente antes de cada release. Nenhuma camada
+                chega sozinha, mas juntas reduzem a probabilidade de código
+                vulnerável, dependências inseguras, imagens quebradas ou
+                backups não restauráveis chegarem a uma release.
               </p>
 
               <h3 id="static-analysis">Análise estática</h3>
@@ -354,21 +354,21 @@ export default function SecurityPage() {
               <p>
                 A análise estática roda em várias passagens independentes. O
                 CodeQL analisa todo o código em busca de problemas de segurança.
-                Em cada PR, o <strong>gitleaks</strong> procura segredos vazados e o{" "}
+                Antes de cada release, o <strong>gitleaks</strong> procura segredos vazados e o{" "}
                 <strong>semgrep</strong> verifica o código com regras de segurança.
                 Os
                 Dockerfiles e os workflows de CI têm regras adicionais próprias
                 (referências de actions fixadas, permissões de menor privilégio,
                 imagens base suspeitas), por isso padrões inseguros são
-                sinalizados antes de chegarem a ser integrados.
+                sinalizados antes da release.
               </p>
 
               <p>
-                Além dessas verificações por PR, o{" "}
+                Além dessas verificações antes da release, o{" "}
                 <strong>Codex Security</strong> da OpenAI executa auditorias
                 regulares e mais profundas de todo o código. É um programa
                 separado que encontra problemas arquiteturais e transversais que
-                as análises limitadas ao PR não veem.
+                as análises automáticas mais restritas não veem.
               </p>
 
               <h3 id="dependency-management">Gestão de dependências</h3>
@@ -383,8 +383,7 @@ export default function SecurityPage() {
               </p>
 
               <p>
-                A <strong>Dependency Review Action</strong> reprova a checagem
-                de qualquer PR que introduza um novo CVE <strong>HIGH</strong> ou{" "}
+                A <strong>Dependency Review Action</strong> bloqueia uma release que introduza um novo CVE <strong>HIGH</strong> ou{" "}
                 <strong>CRITICAL</strong>.
               </p>
 
@@ -423,18 +422,19 @@ export default function SecurityPage() {
 
               <p>
                 A restauração é o caminho que mais importa numa ferramenta de
-                backup, por isso a testamos explicitamente: cada PR executa
-                ciclos completos de backup e restauração contra esses mesmos
-                containers reais, confirmando que os backups podem realmente ser
-                restaurados de ponta a ponta, e não apenas escritos com sucesso.
+                backup, por isso a testamos explicitamente: antes de cada
+                release, executamos ciclos completos de backup e restauração
+                contra esses mesmos containers reais, confirmando que os
+                backups podem realmente ser restaurados de ponta a ponta, e
+                não apenas escritos com sucesso.
               </p>
 
               <p>
-                O resto do pipeline de CI/CD executa lint, verificação de tipos,
-                a suíte completa de testes, smoke tests das imagens e builds
-                multiarquitetura em cada PR. Uma release só sai depois que tudo
-                isso e as varreduras de segurança passam, sem nenhum alerta
-                crítico do CodeQL em aberto.
+                O resto do pipeline de CI/CD executa lint, verificação de
+                tipos, a suíte completa de testes, smoke tests das imagens e
+                builds multiarquitetura antes de cada release. Uma release só
+                sai depois que tudo isso e as varreduras de segurança passam,
+                sem nenhum alerta crítico do CodeQL em aberto.
               </p>
 
               <h3 id="reporting-a-vulnerability">

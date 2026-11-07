@@ -248,29 +248,29 @@ export default function SecurityPage() {
               </p>
               <h2 id="security-and-reliability-engineering">🛡️ Rekayasa keamanan dan keandalan</h2>
               <p>
-                Databasus menangani data sensitif, jadi pencegahan kerentanan, akses tanpa izin, dan
-                kebocoran data menjadi perhatian utama. Kami mengerjakannya di dua sisi: di kode
-                (pemeriksaan izin, enkripsi, penanganan secret yang hati-hati) dan di infrastruktur
-                pendukungnya (analisis dependency, respons CVE, praktik DevSecOps). Pipeline berikut
-                berjalan otomatis pada setiap commit dan PR. Tidak ada satu lapisan yang cukup
-                sendirian, tetapi secara bersama-sama semuanya mengurangi kemungkinan kode rentan,
-                dependency tidak aman, image rusak, atau backup yang tidak bisa di-restore masuk ke
-                rilis.
+                Databasus menangani data sensitif, jadi pencegahan kerentanan, akses tanpa izin,
+                dan kebocoran data menjadi perhatian utama. Kami mengerjakannya di dua sisi: di
+                kode (pemeriksaan izin, enkripsi, penanganan secret yang hati-hati) dan di
+                infrastruktur pendukungnya (analisis dependency, respons CVE, praktik
+                DevSecOps). Pipeline berikut berjalan otomatis sebelum setiap rilis. Tidak ada
+                satu lapisan yang cukup sendirian, tetapi secara bersama-sama semuanya
+                mengurangi kemungkinan kode rentan, dependency tidak aman, image rusak, atau
+                backup yang tidak bisa di-restore masuk ke rilis.
               </p>
               <h3 id="static-analysis">Analisis statis</h3>
               <p>
                 Analisis statis dijalankan dalam beberapa pemeriksaan terpisah. CodeQL memindai
-                seluruh codebase untuk menemukan masalah keamanan. Pada setiap PR,{" "}
+                seluruh codebase untuk menemukan masalah keamanan. Sebelum setiap rilis,{" "}
                 <strong>gitleaks</strong> memindai kebocoran secret dan <strong>semgrep</strong>{" "}
                 memeriksa kode terhadap aturan keamanan. Dockerfile dan workflow CI mendapat aturan
                 tambahan (referensi action yang dipin, izin minimum, base image mencurigakan),
-                sehingga pola tidak aman ditandai sebelum digabungkan.
+                sehingga pola tidak aman ditandai sebelum rilis.
               </p>
               <p>
-                Selain pemeriksaan per PR, <strong>Codex Security</strong> dari OpenAI menjalankan
+                Selain pemeriksaan sebelum rilis, <strong>Codex Security</strong> dari OpenAI menjalankan
                 audit yang lebih mendalam atas seluruh codebase secara berkala. Program terpisah ini
                 menemukan masalah arsitektur dan lintas bagian sistem yang tidak terjangkau
-                pemindaian PR yang lebih sempit.
+                pemindaian otomatis yang lebih sempit.
               </p>
               <h3 id="dependency-management">Pengelolaan dependency</h3>
               <p>
@@ -281,7 +281,7 @@ export default function SecurityPage() {
                 seperti serangan supply-chain.
               </p>
               <p>
-                Pemeriksaan <strong>Dependency Review Action</strong> gagal jika PR membawa CVE baru
+                Pemeriksaan <strong>Dependency Review Action</strong> gagal jika rilis membawa CVE baru
                 dengan tingkat <strong>HIGH</strong> atau <strong>CRITICAL</strong>.
               </p>
               <h3 id="container-and-ci-hardening">Penguatan keamanan container dan CI</h3>
@@ -309,16 +309,16 @@ export default function SecurityPage() {
                 container database nyata untuk setiap engine dan versi mayor yang didukung.
               </p>
               <p>
-                Restore adalah alur terpenting bagi alat backup, jadi kami mengujinya secara khusus.
-                Setiap PR menjalankan siklus backup penuh lalu restore terhadap container nyata yang
-                sama, untuk memastikan backup benar-benar bisa di-restore dari awal hingga akhir,
-                bukan sekadar berhasil ditulis.
+                Restore adalah alur terpenting bagi alat backup, jadi kami mengujinya secara
+                khusus. Sebelum setiap rilis, kami menjalankan siklus backup penuh lalu restore
+                terhadap container nyata yang sama, untuk memastikan backup benar-benar bisa
+                di-restore dari awal hingga akhir, bukan sekadar berhasil ditulis.
               </p>
               <p>
-                Bagian lain dari pipeline CI/CD menjalankan lint, type-check, seluruh test suite,
-                smoke test image, dan build multi-arsitektur pada setiap PR. Rilis hanya diterbitkan
-                jika semua pemeriksaan tersebut dan pemindaian keamanan lolos, tanpa alert CodeQL
-                kritis yang masih terbuka.
+                Bagian lain dari pipeline CI/CD menjalankan lint, type-check, seluruh test
+                suite, smoke test image, dan build multi-arsitektur sebelum setiap rilis. Rilis
+                hanya diterbitkan jika semua pemeriksaan tersebut dan pemindaian keamanan lolos,
+                tanpa alert CodeQL kritis yang masih terbuka.
               </p>
               <h3 id="reporting-a-vulnerability">Melaporkan kerentanan</h3>
               <p>
