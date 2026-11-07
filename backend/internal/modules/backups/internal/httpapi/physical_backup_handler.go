@@ -6,6 +6,7 @@ import (
 	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/backups/internal/physical"
 	"databasus-backend/internal/modules/backups/internal/physical/catalog"
+	"databasus-backend/internal/modules/users"
 )
 
 func (h *Handler) ListPhysicalBackups(
@@ -14,7 +15,7 @@ func (h *Handler) ListPhysicalBackups(
 ) (ListPhysicalBackupsResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +69,7 @@ func (h *Handler) StartPhysicalBackup(
 ) (StartPhysicalBackupResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +92,7 @@ func (h *Handler) CancelPhysicalBackup(
 ) (CancelPhysicalBackupResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +116,7 @@ func (h *Handler) DeletePhysicalBackup(
 ) (DeletePhysicalBackupResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}

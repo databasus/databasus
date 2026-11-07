@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"databasus-backend/internal/lib/httpserver"
+	"databasus-backend/internal/modules/users"
 )
 
 func (h *Handler) CheckLimitedUser(
@@ -12,7 +13,7 @@ func (h *Handler) CheckLimitedUser(
 ) (CheckLimitedUserResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +40,7 @@ func (h *Handler) CreateLimitedUser(
 ) (CreateLimitedUserResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}

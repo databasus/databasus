@@ -5,6 +5,7 @@ import (
 
 	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/notifiers/internal/notifier"
+	"databasus-backend/internal/modules/users"
 )
 
 func (h *Handler) ListNotifiers(
@@ -13,7 +14,7 @@ func (h *Handler) ListNotifiers(
 ) (ListNotifiersResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +47,7 @@ func (h *Handler) CreateNotifier(
 ) (CreateNotifierResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +80,7 @@ func (h *Handler) GetNotifier(
 ) (GetNotifierResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +104,7 @@ func (h *Handler) UpdateNotifier(
 ) (UpdateNotifierResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +137,7 @@ func (h *Handler) DeleteNotifier(
 ) (DeleteNotifierResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +156,7 @@ func (h *Handler) TransferNotifier(
 ) (TransferNotifierResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}

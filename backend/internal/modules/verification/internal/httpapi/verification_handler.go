@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"databasus-backend/internal/lib/httpserver"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/verification/internal/verifications"
 )
 
@@ -12,9 +13,9 @@ func (h *Handler) StartVerification(
 	request StartVerificationRequestObject,
 ) (StartVerificationResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errNoActor
 	}
 	verification, err := h.verifications.StartVerification(ctx, actor, request.Body.BackupId)
 	if err != nil {
@@ -28,9 +29,9 @@ func (h *Handler) CancelVerification(
 	request CancelVerificationRequestObject,
 ) (CancelVerificationResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errNoActor
 	}
 	verification, err := h.verifications.CancelVerification(ctx, actor, request.VerificationId)
 	if err != nil {
@@ -44,9 +45,9 @@ func (h *Handler) GetVerification(
 	request GetVerificationRequestObject,
 ) (GetVerificationResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errNoActor
 	}
 	verification, err := h.verifications.GetVerification(ctx, actor, request.VerificationId)
 	if err != nil {
@@ -60,9 +61,9 @@ func (h *Handler) ListVerifications(
 	request ListVerificationsRequestObject,
 ) (ListVerificationsResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errNoActor
 	}
 	page, err := h.verifications.ListVerifications(
 		ctx,

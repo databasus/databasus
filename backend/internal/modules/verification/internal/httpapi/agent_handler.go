@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"databasus-backend/internal/lib/httpserver"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/verification/internal/agents"
 )
 
@@ -24,9 +25,9 @@ func (h *Handler) CreateVerificationAgent(
 	request CreateVerificationAgentRequestObject,
 ) (CreateVerificationAgentResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errNoActor
 	}
 	created, err := h.agents.CreateAgent(ctx, actor, request.Body.Name)
 	if err != nil {
@@ -52,9 +53,9 @@ func (h *Handler) RotateVerificationAgentToken(
 	request RotateVerificationAgentTokenRequestObject,
 ) (RotateVerificationAgentTokenResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errNoActor
 	}
 	token, err := h.agents.RotateToken(ctx, actor, request.AgentId)
 	if err != nil {
@@ -68,9 +69,9 @@ func (h *Handler) DeleteVerificationAgent(
 	request DeleteVerificationAgentRequestObject,
 ) (DeleteVerificationAgentResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errNoActor
 	}
 	err = h.agents.DeleteAgent(ctx, actor, request.AgentId)
 	if err != nil {

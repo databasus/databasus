@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -76,6 +77,81 @@ func TestConn(t *testing.T) {
 		require.NoError(t, insertNote(t.Context(), db, "immediate"))
 
 		assert.Equal(t, []string{"immediate"}, listNotes(t, db))
+	})
+
+	t.Run("refuses a query when its child deadline has expired inside a transaction", func(t *testing.T) {
+		t.Parallel()
+		db := openDatabaseWithNotesTable(t)
+
+		err := database.NewTransactor(db).Transaction(t.Context(), func(ctx context.Context) error {
+			queryCtx, cancel := context.WithDeadline(ctx, time.Now().Add(-time.Second))
+			defer cancel()
+
+			queryErr := insertNote(queryCtx, db, "expired")
+
+			require.NoError(t, ctx.Err())
+
+			return queryErr
+		})
+
+		require.ErrorIs(t, err, context.DeadlineExceeded)
+		assert.Empty(t, listNotes(t, db))
+	})
+
+	t.Run("cancels a running query when its child timeout expires inside a transaction", func(t *testing.T) {
+		t.Parallel()
+		db := openTestDatabase(t)
+
+		err := database.NewTransactor(db).Transaction(t.Context(), func(ctx context.Context) error {
+			require.NoError(t, database.Conn(ctx, db).Exec("SET LOCAL statement_timeout = '2s'").Error)
+			queryCtx, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
+			defer cancel()
+
+			queryErr := database.Conn(queryCtx, db).Exec("SELECT pg_sleep(10)").Error
+
+			require.NoError(t, ctx.Err())
+
+			return queryErr
+		})
+
+		require.ErrorIs(t, err, context.DeadlineExceeded)
+	})
+
+	t.Run("refuses a query when its child context is cancelled inside a transaction", func(t *testing.T) {
+		t.Parallel()
+		db := openDatabaseWithNotesTable(t)
+
+		err := database.NewTransactor(db).Transaction(t.Context(), func(ctx context.Context) error {
+			queryCtx, cancel := context.WithCancel(ctx)
+			cancel()
+
+			queryErr := insertNote(queryCtx, db, "cancelled")
+
+			require.NoError(t, ctx.Err())
+
+			return queryErr
+		})
+
+		require.ErrorIs(t, err, context.Canceled)
+		assert.Empty(t, listNotes(t, db))
+	})
+
+	t.Run("rolls back child writes when the transaction owner returns an error", func(t *testing.T) {
+		t.Parallel()
+		db := openDatabaseWithNotesTable(t)
+
+		err := database.NewTransactor(db).Transaction(t.Context(), func(ctx context.Context) error {
+			queryCtx, cancel := context.WithCancel(ctx)
+			defer cancel()
+
+			require.NoError(t, insertNote(queryCtx, db, "child"))
+			assert.Equal(t, []string{"child"}, listNotesFromContext(ctx, t, db))
+
+			return errRollback
+		})
+
+		require.ErrorIs(t, err, errRollback)
+		assert.Empty(t, listNotes(t, db))
 	})
 }
 

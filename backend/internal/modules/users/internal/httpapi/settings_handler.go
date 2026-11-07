@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"databasus-backend/internal/lib/httpserver"
+	"databasus-backend/internal/modules/users/internal/identity"
 	"databasus-backend/internal/modules/users/internal/settings"
 )
 
@@ -27,7 +28,7 @@ func (h *Handler) UpdateInstanceSettings(
 ) (UpdateInstanceSettingsResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := identity.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +52,7 @@ func (h *Handler) SendTestEmail(
 ) (SendTestEmailResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := identity.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}

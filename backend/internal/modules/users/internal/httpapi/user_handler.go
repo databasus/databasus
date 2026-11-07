@@ -5,12 +5,13 @@ import (
 
 	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/users/internal/accounts"
+	"databasus-backend/internal/modules/users/internal/identity"
 )
 
 func (h *Handler) GetUser(ctx context.Context, request GetUserRequestObject) (GetUserResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := identity.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +27,7 @@ func (h *Handler) GetUser(ctx context.Context, request GetUserRequestObject) (Ge
 func (h *Handler) UpdateUser(ctx context.Context, request UpdateUserRequestObject) (UpdateUserResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := identity.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +49,7 @@ func (h *Handler) ChangeUserPassword(
 ) (ChangeUserPasswordResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := identity.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -11,7 +11,7 @@ import (
 func (h *Handler) ListUsers(ctx context.Context, request ListUsersRequestObject) (ListUsersResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := identity.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func (h *Handler) ActivateUser(
 ) (ActivateUserResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := identity.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func (h *Handler) DeactivateUser(
 ) (DeactivateUserResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := identity.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func (h *Handler) ChangeUserRole(
 ) (ChangeUserRoleResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := identity.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}

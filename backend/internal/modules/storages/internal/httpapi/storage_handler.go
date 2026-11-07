@@ -5,6 +5,7 @@ import (
 
 	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/storages/internal/storage"
+	"databasus-backend/internal/modules/users"
 )
 
 func (h *Handler) ListStorages(
@@ -13,7 +14,7 @@ func (h *Handler) ListStorages(
 ) (ListStoragesResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +47,7 @@ func (h *Handler) CreateStorage(
 ) (CreateStorageResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +80,7 @@ func (h *Handler) GetStorage(
 ) (GetStorageResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +104,7 @@ func (h *Handler) UpdateStorage(
 ) (UpdateStorageResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +137,7 @@ func (h *Handler) DeleteStorage(
 ) (DeleteStorageResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +163,7 @@ func (h *Handler) TransferStorage(
 ) (TransferStorageResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}

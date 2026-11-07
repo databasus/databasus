@@ -5,6 +5,7 @@ import (
 
 	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/backups/internal/physical"
+	"databasus-backend/internal/modules/users"
 )
 
 func (h *Handler) GetWalStream(
@@ -13,7 +14,7 @@ func (h *Handler) GetWalStream(
 ) (GetWalStreamResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +38,7 @@ func (h *Handler) GetWalStreamStatistics(
 ) (GetWalStreamStatisticsResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"databasus-backend/internal/lib/httpserver"
+	"databasus-backend/internal/modules/users"
 )
 
 func (h *Handler) GetHealthcheckConfig(
@@ -11,9 +12,9 @@ func (h *Handler) GetHealthcheckConfig(
 	request GetHealthcheckConfigRequestObject,
 ) (GetHealthcheckConfigResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errNoActor
 	}
 
 	config, err := h.configs.GetConfig(ctx, actor, request.DatabaseId)
@@ -29,9 +30,9 @@ func (h *Handler) UpdateHealthcheckConfig(
 	request UpdateHealthcheckConfigRequestObject,
 ) (UpdateHealthcheckConfigResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errNoActor
 	}
 
 	config, err := h.configs.SaveConfig(ctx, actor, toConfig(request.DatabaseId, *request.Body))

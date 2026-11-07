@@ -11,7 +11,6 @@ var (
 		[]apierror.FieldError{{Field: "type", Detail: "must be POINT_IN_TIME or BACKUP"}},
 	)
 	errUnknownPhysicalValue = errors.New("a stored physical backup value has no value in the contract")
-	errNoActor              = errors.New("the request reached a signed-in operation without an actor")
 	errUnknownConfigType    = errors.New("the backup config has no conversion to the contract")
 	errUnknownStoredValue   = errors.New("a stored value of the backup config has no value in the contract")
 	errUnknownSettingsValue = apierror.NewInvalidFieldsProblem([]apierror.FieldError{

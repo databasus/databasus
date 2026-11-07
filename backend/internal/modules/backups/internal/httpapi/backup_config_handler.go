@@ -5,6 +5,7 @@ import (
 
 	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/backups/internal/config"
+	"databasus-backend/internal/modules/users"
 )
 
 func (h *Handler) ListBackupConfigs(
@@ -13,7 +14,7 @@ func (h *Handler) ListBackupConfigs(
 ) (ListBackupConfigsResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +48,7 @@ func (h *Handler) GetBackupConfig(
 ) (GetBackupConfigResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +72,7 @@ func (h *Handler) UpdateBackupConfig(
 ) (UpdateBackupConfigResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}

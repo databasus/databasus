@@ -5,6 +5,7 @@ import (
 
 	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/storages/internal/storage"
+	"databasus-backend/internal/modules/users"
 )
 
 func (h *Handler) TestStorage(
@@ -13,7 +14,7 @@ func (h *Handler) TestStorage(
 ) (TestStorageResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +33,7 @@ func (h *Handler) TestStorageSettings(
 ) (TestStorageSettingsResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}

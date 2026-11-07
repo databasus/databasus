@@ -58,6 +58,10 @@ func GetActor(ctx context.Context) (Actor, bool) {
 	return identity.GetActor(ctx)
 }
 
+func RequireActor(ctx context.Context) (Actor, error) {
+	return identity.RequireActor(ctx)
+}
+
 type Module interface {
 	// The contract guard must run first to set each operation's access mark.
 	GetAccessMiddleware() gin.HandlerFunc

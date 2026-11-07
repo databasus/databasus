@@ -1,12 +1,9 @@
 package httpapi
 
 import (
-	"context"
-
 	"databasus-backend/internal/modules/databases/internal/connection"
 	"databasus-backend/internal/modules/databases/internal/limiteduser"
 	"databasus-backend/internal/modules/databases/internal/userdatabase"
-	"databasus-backend/internal/modules/users"
 )
 
 var _ StrictServerInterface = (*Handler)(nil)
@@ -25,13 +22,4 @@ type Handler struct {
 
 func NewHandler(deps Deps) *Handler {
 	return &Handler{databases: deps.Databases, connections: deps.Connections, limitedUsers: deps.LimitedUsers}
-}
-
-func getActor(ctx context.Context) (users.Actor, error) {
-	actor, isFound := users.GetActor(ctx)
-	if !isFound {
-		return users.Actor{}, errNoActor
-	}
-
-	return actor, nil
 }

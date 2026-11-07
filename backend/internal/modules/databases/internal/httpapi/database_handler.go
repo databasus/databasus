@@ -5,6 +5,7 @@ import (
 
 	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/databases/internal/userdatabase"
+	"databasus-backend/internal/modules/users"
 )
 
 func (h *Handler) ListDatabases(
@@ -13,7 +14,7 @@ func (h *Handler) ListDatabases(
 ) (ListDatabasesResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +48,7 @@ func (h *Handler) CreateDatabase(
 ) (CreateDatabaseResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +82,7 @@ func (h *Handler) GetDatabase(
 ) (GetDatabaseResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +106,7 @@ func (h *Handler) UpdateDatabase(
 ) (UpdateDatabaseResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +140,7 @@ func (h *Handler) DeleteDatabase(
 ) (DeleteDatabaseResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +159,7 @@ func (h *Handler) CopyDatabase(
 ) (CopyDatabaseResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}

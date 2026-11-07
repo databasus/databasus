@@ -9,6 +9,7 @@ import (
 
 	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/backups/internal/physical"
+	"databasus-backend/internal/modules/users"
 )
 
 func (h *Handler) CreatePhysicalRestoreToken(
@@ -17,7 +18,7 @@ func (h *Handler) CreatePhysicalRestoreToken(
 ) (CreatePhysicalRestoreTokenResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}

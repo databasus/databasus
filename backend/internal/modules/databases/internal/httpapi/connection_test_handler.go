@@ -6,6 +6,7 @@ import (
 	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/databases/internal/connection"
 	"databasus-backend/internal/modules/databases/internal/userdatabase"
+	"databasus-backend/internal/modules/users"
 )
 
 func (h *Handler) TestDatabase(
@@ -14,7 +15,7 @@ func (h *Handler) TestDatabase(
 ) (TestDatabaseResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +34,7 @@ func (h *Handler) TestDatabaseSettings(
 ) (TestDatabaseSettingsResponseObject, error) {
 	ctx = httpserver.GetRequestContext(ctx)
 
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
