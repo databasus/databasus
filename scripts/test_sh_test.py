@@ -12,6 +12,8 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import TextIO
 
+from workflow_jobs import get_jobs
+
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 BROWSER_SUITE_CALL = "mise run e2e:browser"
 FULL_ONLY_CALLS = (
@@ -739,6 +741,7 @@ class TestScriptTestCase(unittest.TestCase):
 
     def test_all_ci_preparations_use_only_the_internal_test_database_wait(self) -> None:
         workflow = (REPOSITORY_ROOT / ".github/workflows/ci-release.yml").read_text()
+        workflow = "\n".join(get_jobs(workflow).values())
         self.assertNotIn("cleanup_test_db", workflow)
         self.assertNotIn("Reset the shared", workflow)
         self.assertEqual(workflow.count("docker exec backend-db-test pg_isready"), 2)
@@ -746,6 +749,7 @@ class TestScriptTestCase(unittest.TestCase):
 
     def test_ci_starts_only_the_test_postgresql_server(self) -> None:
         workflow = (REPOSITORY_ROOT / ".github/workflows/ci-release.yml").read_text()
+        workflow = "\n".join(get_jobs(workflow).values())
         compose_starts = re.findall(
             r"docker compose (?:-f docker-compose\.yml )?up -d[^\n]*", workflow
         )

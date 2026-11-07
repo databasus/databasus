@@ -93,17 +93,20 @@ def check_release_coverage(workflow: str) -> None:
                 raise AssertionError(f"{name}: unsuitable native runner")
         for step in re.split(r"(?m)^      - name: ", job):
             if "continue-on-error:" in step and step.splitlines()[0] not in {
-                "Download the storage candidate",
-                "Download the storage candidate (attempt 2)",
-                "Upload the storage candidate",
-                "Upload the storage candidate (attempt 2)",
+                "Download artifact",
+                "Download artifact (attempt 2)",
+                "Upload artifact",
+                "Upload artifact (attempt 2)",
             }:
                 raise AssertionError(f"{name}: test failure is allowed")
         if re.search(r"(?m)^    if:", job):
             raise AssertionError(f"{name}: required suite can be skipped")
     for name in CANDIDATE_JOBS | {"build-storage-image"}:
         job = jobs[name]
-        if job.count("name: databasus-storage-test-${{ matrix.arch }}\n") != 3:
+        if (
+            "      ARTIFACT_NAME: databasus-storage-test-${{ matrix.arch }}\n" not in job
+            or job.count("          name: ${{ env.ARTIFACT_NAME }}\n") != 3
+        ):
             raise AssertionError(f"{name}: artifact architecture mismatch")
         if "databasus-storage-test:${{ github.sha }}-${{ matrix.arch }}" not in job:
             raise AssertionError(f"{name}: candidate architecture mismatch")
@@ -149,10 +152,20 @@ class NativeReleaseTest(unittest.TestCase):
             ),
             (
                 workflow.replace(
-                    "name: databasus-storage-test-${{ matrix.arch }}",
-                    "name: databasus-storage-test-amd64",
+                    "ARTIFACT_NAME: databasus-storage-test-${{ matrix.arch }}",
+                    "ARTIFACT_NAME: databasus-storage-test-amd64",
                     1,
                 ),
+                "artifact architecture mismatch",
+            ),
+            (
+                workflow.replace(
+                    "          name: ${{ env.ARTIFACT_NAME }}", "          name: wrong"
+                ),
+                "artifact architecture mismatch",
+            ),
+            (
+                workflow.replace("      - *download-artifact-2\n", "", 1),
                 "artifact architecture mismatch",
             ),
         ]
