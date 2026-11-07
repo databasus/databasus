@@ -246,6 +246,11 @@ jobs:
     name: test-e2e-browser (${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
+    env:
+      ARTIFACT_NAME: databasus-storage-test-${{ matrix.arch }}
+      ARTIFACT_PATTERN: ''
+      ARTIFACT_PATH: /tmp
+      ARTIFACT_MERGE_MULTIPLE: 'false'
     strategy:
       fail-fast: false
       matrix:
@@ -261,33 +266,42 @@ jobs:
       - name: Check native runner architecture
         run: scripts/check_native_architecture.sh ${{ matrix.arch }}
 
-      - name: Download the storage candidate
-        id: download-the-storage-candidate-1
+      - &download-artifact-1
+        name: Download artifact
+        id: download-artifact-1
         continue-on-error: true
         timeout-minutes: 3
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: databasus-storage-test-${{ matrix.arch }}
-          path: /tmp
+          name: ${{ env.ARTIFACT_NAME }}
+          pattern: ${{ env.ARTIFACT_PATTERN }}
+          path: ${{ env.ARTIFACT_PATH }}
+          merge-multiple: ${{ env.ARTIFACT_MERGE_MULTIPLE }}
 
-      - name: Download the storage candidate (attempt 2)
-        id: download-the-storage-candidate-2
-        if: steps.download-the-storage-candidate-1.outcome == 'failure'
+      - &download-artifact-2
+        name: Download artifact (attempt 2)
+        id: download-artifact-2
+        if: steps.download-artifact-1.outcome == 'failure'
         continue-on-error: true
         timeout-minutes: 3
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: databasus-storage-test-${{ matrix.arch }}
-          path: /tmp
+          name: ${{ env.ARTIFACT_NAME }}
+          pattern: ${{ env.ARTIFACT_PATTERN }}
+          path: ${{ env.ARTIFACT_PATH }}
+          merge-multiple: ${{ env.ARTIFACT_MERGE_MULTIPLE }}
 
-      - name: Download the storage candidate (attempt 3)
-        id: download-the-storage-candidate-3
-        if: steps.download-the-storage-candidate-2.outcome == 'failure'
+      - &download-artifact-3
+        name: Download artifact (attempt 3)
+        id: download-artifact-3
+        if: steps.download-artifact-2.outcome == 'failure'
         timeout-minutes: 3
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: databasus-storage-test-${{ matrix.arch }}
-          path: /tmp
+          name: ${{ env.ARTIFACT_NAME }}
+          pattern: ${{ env.ARTIFACT_PATTERN }}
+          path: ${{ env.ARTIFACT_PATH }}
+          merge-multiple: ${{ env.ARTIFACT_MERGE_MULTIPLE }}
 
       - name: Load the storage candidate
         run: |
@@ -375,7 +389,8 @@ jobs:
         with:
           install_args: 'go python'
 
-      - name: Install database client dependencies
+      - &install-database-clients
+        name: Install database client dependencies
         run: |
           # The bundled assets/tools clients are Debian-built; Ubuntu ships no libncurses5/libtinfo5
           # package at all, and the ABI-identical .so.6 satisfies them via these symlinks.
@@ -385,24 +400,29 @@ jobs:
           sudo ln -sf "${library_directory}/libncurses.so.6" "${library_directory}/libncurses.so.5"
           sudo ln -sf "${library_directory}/libtinfo.so.6" "${library_directory}/libtinfo.so.5"
 
-      - name: Download Go modules
+      - &download-backend-modules
+        name: Download Go modules
         run: |
           cd backend
           go mod download
 
-      - name: Create .env file for testing
+      - &create-backend-test-environment
+        name: Create .env file for testing
         run: cp .env.example .env
 
-      - name: Start test containers
+      - &start-backend-test-database
+        name: Start test containers
         run: |
           docker compose -f docker-compose.yml up -d backend-db-test
 
-      - name: Wait for containers to be ready
+      - &wait-for-backend-test-database
+        name: Wait for containers to be ready
         run: |
           # Wait for test database (postgres listens on 5432 inside the container)
           timeout 60 bash -c 'until docker exec backend-db-test pg_isready -U postgres; do sleep 2; done'
 
-      - name: Create data and temp directories
+      - &create-backend-test-directories
+        name: Create data and temp directories
         run: |
           # Create directories that are used for backups and restore
           # These paths match what's configured in config.go
@@ -510,39 +530,17 @@ jobs:
         with:
           cache: go
 
-      - name: Install database client dependencies
-        run: |
-          # The bundled assets/tools clients are Debian-built; Ubuntu ships no libncurses5/libtinfo5
-          # package at all, and the ABI-identical .so.6 satisfies them via these symlinks.
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq dpkg-dev libedit2 libncurses6 libtinfo6 libpq5 libmariadb3 libgnutls30 zstd netcat-openbsd
-          library_directory="/usr/lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
-          sudo ln -sf "${library_directory}/libncurses.so.6" "${library_directory}/libncurses.so.5"
-          sudo ln -sf "${library_directory}/libtinfo.so.6" "${library_directory}/libtinfo.so.5"
+      - *install-database-clients
 
-      - name: Download Go modules
-        run: |
-          cd backend
-          go mod download
+      - *download-backend-modules
 
-      - name: Create .env file for testing
-        run: cp .env.example .env
+      - *create-backend-test-environment
 
-      - name: Start test containers
-        run: |
-          docker compose -f docker-compose.yml up -d backend-db-test
+      - *start-backend-test-database
 
-      - name: Wait for containers to be ready
-        run: |
-          # Wait for test database (postgres listens on 5432 inside the container)
-          timeout 60 bash -c 'until docker exec backend-db-test pg_isready -U postgres; do sleep 2; done'
+      - *wait-for-backend-test-database
 
-      - name: Create data and temp directories
-        run: |
-          # Create directories that are used for backups and restore
-          # These paths match what's configured in config.go
-          mkdir -p databasus-data/backups
-          mkdir -p databasus-data/temp
+      - *create-backend-test-directories
 
       - name: Pull testcontainer images
         run: mise run backend:pull-testcontainers
@@ -585,6 +583,11 @@ jobs:
     name: build-storage-image (${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
+    env:
+      ARTIFACT_NAME: databasus-storage-test-${{ matrix.arch }}
+      ARTIFACT_PATH: /tmp/databasus-storage-test-${{ matrix.arch }}.tar.zst
+      ARTIFACT_TIMEOUT_MINUTES: '5'
+      ARTIFACT_COMPRESSION_LEVEL: '0'
     strategy:
       fail-fast: false
       matrix:
@@ -614,42 +617,45 @@ jobs:
       - name: Export the storage candidate
         run: docker save databasus-storage-test:${{ github.sha }}-${{ matrix.arch }} | zstd -T0 -3 > /tmp/databasus-storage-test-${{ matrix.arch }}.tar.zst
 
-      - name: Upload the storage candidate
-        id: upload-the-storage-candidate-1
+      - &upload-artifact-1
+        name: Upload artifact
+        id: upload-artifact-1
         continue-on-error: true
-        timeout-minutes: 5
+        timeout-minutes: ${{ fromJSON(env.ARTIFACT_TIMEOUT_MINUTES) }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: databasus-storage-test-${{ matrix.arch }}
-          path: /tmp/databasus-storage-test-${{ matrix.arch }}.tar.zst
-          compression-level: 0
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACT_PATH }}
+          compression-level: ${{ env.ARTIFACT_COMPRESSION_LEVEL }}
           retention-days: 1
           if-no-files-found: error
           overwrite: true
 
-      - name: Upload the storage candidate (attempt 2)
-        id: upload-the-storage-candidate-2
-        if: steps.upload-the-storage-candidate-1.outcome == 'failure'
+      - &upload-artifact-2
+        name: Upload artifact (attempt 2)
+        id: upload-artifact-2
+        if: steps.upload-artifact-1.outcome == 'failure'
         continue-on-error: true
-        timeout-minutes: 5
+        timeout-minutes: ${{ fromJSON(env.ARTIFACT_TIMEOUT_MINUTES) }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: databasus-storage-test-${{ matrix.arch }}
-          path: /tmp/databasus-storage-test-${{ matrix.arch }}.tar.zst
-          compression-level: 0
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACT_PATH }}
+          compression-level: ${{ env.ARTIFACT_COMPRESSION_LEVEL }}
           retention-days: 1
           if-no-files-found: error
           overwrite: true
 
-      - name: Upload the storage candidate (attempt 3)
-        id: upload-the-storage-candidate-3
-        if: steps.upload-the-storage-candidate-2.outcome == 'failure'
-        timeout-minutes: 5
+      - &upload-artifact-3
+        name: Upload artifact (attempt 3)
+        id: upload-artifact-3
+        if: steps.upload-artifact-2.outcome == 'failure'
+        timeout-minutes: ${{ fromJSON(env.ARTIFACT_TIMEOUT_MINUTES) }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: databasus-storage-test-${{ matrix.arch }}
-          path: /tmp/databasus-storage-test-${{ matrix.arch }}.tar.zst
-          compression-level: 0
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACT_PATH }}
+          compression-level: ${{ env.ARTIFACT_COMPRESSION_LEVEL }}
           retention-days: 1
           if-no-files-found: error
           overwrite: true
@@ -659,6 +665,11 @@ jobs:
     name: test-filesystems (${{ matrix.arch }}, ${{ matrix.group }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
+    env:
+      ARTIFACT_NAME: databasus-storage-test-${{ matrix.arch }}
+      ARTIFACT_PATTERN: ''
+      ARTIFACT_PATH: /tmp
+      ARTIFACT_MERGE_MULTIPLE: 'false'
     strategy:
       fail-fast: false
       matrix:
@@ -700,33 +711,11 @@ jobs:
         if: matrix.group == 'network'
         run: sudo apt-get update && sudo apt-get install -y cifs-utils nfs-common
 
-      - name: Download the storage candidate
-        id: download-the-storage-candidate-1
-        continue-on-error: true
-        timeout-minutes: 3
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: databasus-storage-test-${{ matrix.arch }}
-          path: /tmp
+      - *download-artifact-1
 
-      - name: Download the storage candidate (attempt 2)
-        id: download-the-storage-candidate-2
-        if: steps.download-the-storage-candidate-1.outcome == 'failure'
-        continue-on-error: true
-        timeout-minutes: 3
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: databasus-storage-test-${{ matrix.arch }}
-          path: /tmp
+      - *download-artifact-2
 
-      - name: Download the storage candidate (attempt 3)
-        id: download-the-storage-candidate-3
-        if: steps.download-the-storage-candidate-2.outcome == 'failure'
-        timeout-minutes: 3
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: databasus-storage-test-${{ matrix.arch }}
-          path: /tmp
+      - *download-artifact-3
 
       - name: Load the storage candidate
         run: |
@@ -749,6 +738,11 @@ jobs:
     name: test-upgrade (${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
+    env:
+      ARTIFACT_NAME: databasus-storage-test-${{ matrix.arch }}
+      ARTIFACT_PATTERN: ''
+      ARTIFACT_PATH: /tmp
+      ARTIFACT_MERGE_MULTIPLE: 'false'
     strategy:
       fail-fast: false
       matrix:
@@ -777,33 +771,11 @@ jobs:
         with:
           cache: go
 
-      - name: Download the storage candidate
-        id: download-the-storage-candidate-1
-        continue-on-error: true
-        timeout-minutes: 3
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: databasus-storage-test-${{ matrix.arch }}
-          path: /tmp
+      - *download-artifact-1
 
-      - name: Download the storage candidate (attempt 2)
-        id: download-the-storage-candidate-2
-        if: steps.download-the-storage-candidate-1.outcome == 'failure'
-        continue-on-error: true
-        timeout-minutes: 3
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: databasus-storage-test-${{ matrix.arch }}
-          path: /tmp
+      - *download-artifact-2
 
-      - name: Download the storage candidate (attempt 3)
-        id: download-the-storage-candidate-3
-        if: steps.download-the-storage-candidate-2.outcome == 'failure'
-        timeout-minutes: 3
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: databasus-storage-test-${{ matrix.arch }}
-          path: /tmp
+      - *download-artifact-3
 
       - name: Load the storage candidate
         run: |
@@ -1016,6 +988,11 @@ jobs:
   push-image:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
+    env:
+      ARTIFACT_NAME: digests-release-${{ matrix.arch }}
+      ARTIFACT_PATH: /tmp/digests/*
+      ARTIFACT_TIMEOUT_MINUTES: '3'
+      ARTIFACT_COMPRESSION_LEVEL: '6'
     needs: [determine-version, build-image]
     if: ${{ needs.determine-version.outputs.should_release == 'true' }}
     permissions:
@@ -1056,82 +1033,31 @@ jobs:
           digest="${{ steps.release-image-push.outputs.digest }}"
           touch "/tmp/digests/${digest#sha256:}"
 
-      - name: Upload image digest
-        id: upload-image-digest-1
-        continue-on-error: true
-        timeout-minutes: 3
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: digests-release-${{ matrix.arch }}
-          path: /tmp/digests/*
-          if-no-files-found: error
-          retention-days: 1
-          overwrite: true
+      - *upload-artifact-1
 
-      - name: Upload image digest (attempt 2)
-        id: upload-image-digest-2
-        if: steps.upload-image-digest-1.outcome == 'failure'
-        continue-on-error: true
-        timeout-minutes: 3
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: digests-release-${{ matrix.arch }}
-          path: /tmp/digests/*
-          if-no-files-found: error
-          retention-days: 1
-          overwrite: true
+      - *upload-artifact-2
 
-      - name: Upload image digest (attempt 3)
-        id: upload-image-digest-3
-        if: steps.upload-image-digest-2.outcome == 'failure'
-        timeout-minutes: 3
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: digests-release-${{ matrix.arch }}
-          path: /tmp/digests/*
-          if-no-files-found: error
-          retention-days: 1
-          overwrite: true
+      - *upload-artifact-3
 
   merge-image-manifest:
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
     timeout-minutes: 10
+    env:
+      ARTIFACT_NAME: ''
+      ARTIFACT_PATTERN: digests-release-*
+      ARTIFACT_PATH: /tmp/digests
+      ARTIFACT_MERGE_MULTIPLE: 'true'
     needs: [determine-version, push-image]
     if: ${{ needs.determine-version.outputs.should_release == 'true' }}
     permissions:
       contents: read
       packages: write
     steps:
-      - name: Download image digests
-        id: download-image-digests-1
-        continue-on-error: true
-        timeout-minutes: 3
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          pattern: digests-release-*
-          merge-multiple: true
-          path: /tmp/digests
+      - *download-artifact-1
 
-      - name: Download image digests (attempt 2)
-        id: download-image-digests-2
-        if: steps.download-image-digests-1.outcome == 'failure'
-        continue-on-error: true
-        timeout-minutes: 3
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          pattern: digests-release-*
-          merge-multiple: true
-          path: /tmp/digests
+      - *download-artifact-2
 
-      - name: Download image digests (attempt 3)
-        id: download-image-digests-3
-        if: steps.download-image-digests-2.outcome == 'failure'
-        timeout-minutes: 3
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          pattern: digests-release-*
-          merge-multiple: true
-          path: /tmp/digests
+      - *download-artifact-3
 
       - name: Log in to Docker Hub
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
@@ -1173,6 +1099,11 @@ jobs:
   push-verification-image:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
+    env:
+      ARTIFACT_NAME: digests-verification-${{ matrix.major }}-${{ matrix.arch }}
+      ARTIFACT_PATH: /tmp/digests/*
+      ARTIFACT_TIMEOUT_MINUTES: '3'
+      ARTIFACT_COMPRESSION_LEVEL: '6'
     needs: [determine-version, build-verification-image]
     if: ${{ needs.determine-version.outputs.should_release == 'true' }}
     permissions:
@@ -1226,46 +1157,20 @@ jobs:
           digest="${{ steps.verification-image-push.outputs.digest }}"
           touch "/tmp/digests/${digest#sha256:}"
 
-      - name: Upload image digest
-        id: upload-image-digest-1
-        continue-on-error: true
-        timeout-minutes: 3
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: digests-verification-${{ matrix.major }}-${{ matrix.arch }}
-          path: /tmp/digests/*
-          if-no-files-found: error
-          retention-days: 1
-          overwrite: true
+      - *upload-artifact-1
 
-      - name: Upload image digest (attempt 2)
-        id: upload-image-digest-2
-        if: steps.upload-image-digest-1.outcome == 'failure'
-        continue-on-error: true
-        timeout-minutes: 3
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: digests-verification-${{ matrix.major }}-${{ matrix.arch }}
-          path: /tmp/digests/*
-          if-no-files-found: error
-          retention-days: 1
-          overwrite: true
+      - *upload-artifact-2
 
-      - name: Upload image digest (attempt 3)
-        id: upload-image-digest-3
-        if: steps.upload-image-digest-2.outcome == 'failure'
-        timeout-minutes: 3
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: digests-verification-${{ matrix.major }}-${{ matrix.arch }}
-          path: /tmp/digests/*
-          if-no-files-found: error
-          retention-days: 1
-          overwrite: true
+      - *upload-artifact-3
 
   merge-verification-image-manifest:
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
     timeout-minutes: 10
+    env:
+      ARTIFACT_NAME: ''
+      ARTIFACT_PATTERN: digests-verification-${{ matrix.major }}-*
+      ARTIFACT_PATH: /tmp/digests
+      ARTIFACT_MERGE_MULTIPLE: 'true'
     needs: [determine-version, push-verification-image]
     if: ${{ needs.determine-version.outputs.should_release == 'true' }}
     permissions:
@@ -1275,36 +1180,11 @@ jobs:
       matrix:
         major: ['12', '13', '14', '15', '16', '17', '18']
     steps:
-      - name: Download image digests
-        id: download-image-digests-1
-        continue-on-error: true
-        timeout-minutes: 3
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          pattern: digests-verification-${{ matrix.major }}-*
-          merge-multiple: true
-          path: /tmp/digests
+      - *download-artifact-1
 
-      - name: Download image digests (attempt 2)
-        id: download-image-digests-2
-        if: steps.download-image-digests-1.outcome == 'failure'
-        continue-on-error: true
-        timeout-minutes: 3
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          pattern: digests-verification-${{ matrix.major }}-*
-          merge-multiple: true
-          path: /tmp/digests
+      - *download-artifact-2
 
-      - name: Download image digests (attempt 3)
-        id: download-image-digests-3
-        if: steps.download-image-digests-2.outcome == 'failure'
-        timeout-minutes: 3
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          pattern: digests-verification-${{ matrix.major }}-*
-          merge-multiple: true
-          path: /tmp/digests
+      - *download-artifact-3
 
       - name: Log in to Docker Hub
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
