@@ -28,8 +28,7 @@ const newPhysicalSettings = {
 const getHostInput = () => screen.getByLabelText('Host') as HTMLInputElement;
 
 const getSelectedSslMode = () =>
-  screen.getByText('SSL mode').parentElement!.querySelector('.ant-select-selection-item')!
-    .textContent;
+  screen.getByText('SSL mode').parentElement!.querySelector('button[role="combobox"]')!.textContent;
 
 describe('EditPostgresqlPhysicalConnectionComponent', () => {
   it('turns SSL off for a new database on localhost without a chosen mode', () => {

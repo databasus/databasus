@@ -27,7 +27,7 @@ describe('CreateDatabaseNotifiersStep', () => {
     const createButton = await screen.findByRole('button', { name: 'Create new notifier' });
 
     expect(document.activeElement).toBe(createButton);
-    expect(document.querySelector('.ant-empty-image')).toBeNull();
+    expect(screen.queryByText('No data')).toBeNull();
 
     await view.user.keyboard('{Enter}');
     const dialog = within(await screen.findByRole('dialog', { name: 'Add notifier' }));
@@ -49,7 +49,7 @@ describe('CreateDatabaseNotifiersStep', () => {
       />,
     );
 
-    expect(document.querySelector('.ant-spin')).toBeTruthy();
+    expect(document.querySelector('[role="status"]')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Back' })).toHaveProperty('disabled', false);
     expect(screen.getByRole('button', { name: 'Complete' })).toHaveProperty('disabled', false);
 

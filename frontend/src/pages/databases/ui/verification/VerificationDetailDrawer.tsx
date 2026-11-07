@@ -1,13 +1,12 @@
-import { Alert, Drawer, Skeleton, Table } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+import { Alert, Drawer, Skeleton } from '@mantine/core';
 import dayjs from 'dayjs';
+import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import { useEffect, useEffectEvent, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { verificationRunsApi } from '@/pages/databases/api/verificationRunsApi';
 import { type VerificationDetails } from '@/pages/databases/model/verification/VerificationDetails';
 import { VerificationStatus } from '@/pages/databases/model/verification/VerificationStatus';
-import { type VerificationTableStat } from '@/pages/databases/model/verification/VerificationTableStat';
 import { formatOptionalDuration } from '@/pages/databases/ui/verification/formatOptionalDuration';
 import { VerificationFailureDetails } from '@/pages/databases/ui/verification/VerificationFailureDetails';
 import { VerificationStatusLabel } from '@/pages/databases/ui/verification/VerificationStatusLabel';
@@ -15,7 +14,10 @@ import { VerificationTriggerTag } from '@/pages/databases/ui/verification/Verifi
 import { type LocaleContextValue, useLocale } from '@/shared/i18n';
 import { RequestRevision } from '@/shared/lib/RequestRevision';
 import { getUserTimeFormat } from '@/shared/time';
+import { closeOverlayOnEscape } from '@/shared/ui';
+import { OverlayFocusReturn } from '@/shared/ui';
 import { LoadFailure } from '@/shared/ui';
+import tableStyles from '@/shared/ui/nativeTable.module.css';
 
 interface Props {
   verificationId: string;
@@ -108,43 +110,36 @@ export const VerificationDetailDrawer = ({ verificationId, isOpen, onClose, onCl
     [verification],
   );
 
-  const tableStatColumns: ColumnsType<VerificationTableStat> = [
-    {
-      title: t('verification.runs.details.tableStats.schema'),
-      dataIndex: 'schemaName',
-      key: 'schemaName',
-      render: (schemaName: string) => <span className="font-mono text-xs">{schemaName}</span>,
-    },
-    {
-      title: t('verification.runs.details.tableStats.table'),
-      dataIndex: 'name',
-      key: 'name',
-      render: (name: string) => <span className="font-mono text-xs">{name}</span>,
-    },
-    {
-      title: t('verification.runs.details.tableStats.rows'),
-      dataIndex: 'rowCount',
-      key: 'rowCount',
-      align: 'right',
-      render: (rowCount: number) => <span className="tabular-nums">{formatNumber(rowCount)}</span>,
-      sorter: (a, b) => a.rowCount - b.rowCount,
-    },
-  ];
+  const [sortDirection, setSortDirection] = useState<'ascend' | 'descend' | null>(null);
+  const SortIcon =
+    sortDirection === 'ascend' ? ArrowUp : sortDirection === 'descend' ? ArrowDown : ArrowUpDown;
+  const visibleStats = sortDirection
+    ? [...sortedStats].sort(
+        (first, second) =>
+          (first.rowCount - second.rowCount) * (sortDirection === 'ascend' ? 1 : -1),
+      )
+    : sortedStats;
 
   return (
     <Drawer
+      closeOnEscape={false}
+      onKeyDown={(event) => closeOverlayOnEscape(event, { isOpen: isOpen, onClose: onClose })}
       title={t('verification.runs.details.title')}
-      placement="right"
-      width={520}
+      position="right"
+      size={520}
       onClose={onClose}
-      open={isOpen}
-      afterOpenChange={(isOpen) => {
-        if (!isOpen) onClosed();
-      }}
-      maskClosable={true}
+      opened={isOpen}
+      onExitTransitionEnd={onClosed}
+      closeOnClickOutside={true}
+      closeButtonProps={{ 'aria-label': t('common.actions.close') }}
     >
+      {isOpen && <OverlayFocusReturn />}
       {isLoading || requestedVerificationId !== verificationId ? (
-        <Skeleton active paragraph={{ rows: 10 }} />
+        <div aria-busy="true">
+          {Array.from({ length: 10 }, (_, index) => (
+            <Skeleton key={index} height={16} className="mb-4" />
+          ))}
+        </div>
       ) : loadError !== undefined || !verification ? (
         <LoadFailure error={loadError} onRetry={() => void loadVerification()} />
       ) : (
@@ -159,8 +154,8 @@ export const VerificationDetailDrawer = ({ verificationId, isOpen, onClose, onCl
               </div>
             ) : (
               <Alert
-                type="error"
-                message={
+                color="danger"
+                title={
                   <div className="space-y-1">
                     <div className="font-semibold">{t('verification.runs.details.failure')}</div>
                     <div className="break-words whitespace-pre-wrap">
@@ -259,16 +254,70 @@ export const VerificationDetailDrawer = ({ verificationId, isOpen, onClose, onCl
                 {t('verification.runs.details.tableStats.empty')}
               </div>
             ) : (
-              <Table
-                className="[&_.ant-table-column-title]:min-w-0 [&_td]:wrap-anywhere [&_th]:wrap-anywhere"
-                tableLayout="fixed"
-                bordered
-                size="small"
-                columns={tableStatColumns}
-                dataSource={sortedStats}
-                rowKey={(stat) => `${stat.schemaName}.${stat.name}`}
-                pagination={false}
-              />
+              <div
+                className="relative overflow-x-auto"
+                role="region"
+                aria-label={t('verification.runs.details.tableStats.title')}
+                tabIndex={0}
+              >
+                <table className={`${tableStyles.table} ${tableStyles.bordered}`}>
+                  <thead>
+                    <tr>
+                      <th scope="col">{t('verification.runs.details.tableStats.schema')}</th>
+                      <th scope="col">{t('verification.runs.details.tableStats.table')}</th>
+                      <th
+                        scope="col"
+                        style={{ textAlign: 'right' }}
+                        aria-sort={
+                          sortDirection === 'ascend'
+                            ? 'ascending'
+                            : sortDirection === 'descend'
+                              ? 'descending'
+                              : 'none'
+                        }
+                      >
+                        <button
+                          type="button"
+                          className="inline-flex max-w-full items-center gap-1 text-start"
+                          onClick={() =>
+                            setSortDirection((direction) =>
+                              direction === 'ascend'
+                                ? 'descend'
+                                : direction === 'descend'
+                                  ? null
+                                  : 'ascend',
+                            )
+                          }
+                        >
+                          {t('verification.runs.details.tableStats.rows')}
+                          <SortIcon
+                            aria-hidden
+                            size={12}
+                            className={
+                              sortDirection ? 'shrink-0 text-accent' : 'shrink-0 text-muted'
+                            }
+                          />
+                        </button>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleStats.map((stat) => (
+                      <tr key={((stat) => `${stat.schemaName}.${stat.name}`)(stat)}>
+                        <td>
+                          <span className="font-mono text-xs">{stat.schemaName}</span>
+                        </td>
+                        <td>
+                          <span className="font-mono text-xs">{stat.name}</span>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <span className="tabular-nums">{formatNumber(stat.rowCount)}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </div>

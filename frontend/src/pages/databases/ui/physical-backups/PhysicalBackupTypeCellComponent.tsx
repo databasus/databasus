@@ -1,6 +1,6 @@
-import { ArrowRightOutlined } from '@ant-design/icons';
-import { Tooltip } from 'antd';
+import { Tooltip } from '@mantine/core';
 import type { TFunction } from 'i18next';
+import { ArrowRight } from 'lucide-react';
 import type { JSX } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -48,7 +48,7 @@ export const WalRangeSegmentsComponent = ({ backup }: Props): JSX.Element => {
       {backup.fromWalFilename}
       {!isSingleSegment && (
         <>
-          <ArrowRightOutlined className="text-[10px]" />
+          <ArrowRight className="inline-block shrink-0 align-middle text-[10px]" size="1em" />
           {backup.toWalFilename}
         </>
       )}
@@ -66,7 +66,7 @@ export const PhysicalBackupTypeCellComponent = ({ backup }: Props): JSX.Element 
   }
 
   return (
-    <Tooltip title={<WalRangeSegmentsComponent backup={backup} />}>
+    <Tooltip label={<WalRangeSegmentsComponent backup={backup} />}>
       <span className="cursor-help">{typeBadge}</span>
     </Tooltip>
   );

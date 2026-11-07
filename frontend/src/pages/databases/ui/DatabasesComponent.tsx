@@ -1,4 +1,4 @@
-import { Button, Input, Modal, Spin } from 'antd';
+import { Button, Loader, TextInput } from '@mantine/core';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -13,6 +13,7 @@ import { DatabaseComponent } from '@/pages/databases/ui/DatabaseComponent';
 import { ApiError } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { useIsMobile, useLatestRef, useRequestRevision, useScopedSelection } from '@/shared/hooks';
+import { Dialog } from '@/shared/ui';
 import { ResourceListDetail, LoadFailure } from '@/shared/ui';
 
 interface Props {
@@ -29,8 +30,7 @@ interface DatabaseCollection {
 
 // A healthcheck can change a database's availability every minute, so the cards refresh twice as
 // often to show the change within a minute.
-const DATABASES_REFRESH_INTERVAL_MS = 30_000;
-
+const DATABASES_REFRESH_INTERVAL_MS = 30000;
 // eslint-disable-next-line i18next/no-literal-string -- DOM event name
 const VISIBILITY_CHANGE_EVENT = 'visibilitychange';
 
@@ -225,7 +225,7 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
   );
   const addDatabaseButton = (
     <Button
-      type="primary"
+      variant="filled"
       className="mb-2 w-full"
       onClick={() => {
         setHasConnectionError(false);
@@ -242,7 +242,7 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
           {isCanManageDBs && addDatabaseButton}
 
           <div className="mb-2">
-            <Input
+            <TextInput
               aria-label={t('databases.list.searchPlaceholder')}
               placeholder={t('databases.list.searchPlaceholder')}
               value={searchQuery}
@@ -280,7 +280,7 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
 
       {isLoading && !collection.isReady ? (
         <div className="my-3 mr-3 flex w-62.5 justify-center">
-          <Spin />
+          <Loader role="status" />
         </div>
       ) : collection.isReady ? (
         <ResourceListDetail
@@ -289,7 +289,10 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
           list={list}
           detailScrollRef={detailScrollRef}
           backAction={
-            <Button className="w-full" onClick={() => selection.select(undefined)}>
+            <Button
+              className="!h-auto min-h-8 w-full !whitespace-normal"
+              onClick={() => selection.select(undefined)}
+            >
               {t('databases.list.backToList')}
             </Button>
           }
@@ -310,14 +313,13 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
       ) : null}
 
       {isShowAddDatabase && (
-        <Modal
+        <Dialog
           title={t('databases.create.title')}
-          footer={<div />}
-          open
-          onCancel={closeWizardAndAcceptCreatedDatabase}
-          maskClosable={false}
-          closable={!hasConnectionError}
-          width={hasConnectionError || isWideStep ? 640 : 420}
+          opened
+          onClose={closeWizardAndAcceptCreatedDatabase}
+          closeOnClickOutside={false}
+          withCloseButton={!hasConnectionError}
+          size={hasConnectionError || isWideStep ? 640 : 420}
         >
           <div className="mt-5" />
 
@@ -328,7 +330,10 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
             onConnectionErrorChange={setHasConnectionError}
             onWideStepChange={setIsWideStep}
           />
-        </Modal>
+          <div className="mt-5 flex flex-wrap justify-end gap-2">
+            <div />
+          </div>
+        </Dialog>
       )}
     </div>
   );

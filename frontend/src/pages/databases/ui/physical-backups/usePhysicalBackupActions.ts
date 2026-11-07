@@ -1,4 +1,3 @@
-import { App } from 'antd';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -8,6 +7,7 @@ import {
 } from '@/pages/databases/api/physicalBackupsApi';
 import { useSessionGuard } from '@/shared/auth';
 import { translateApiError } from '@/shared/i18n';
+import { useFeedback } from '@/shared/lib/feedback';
 
 interface Params {
   databaseId: string;
@@ -17,7 +17,7 @@ interface Params {
 
 export const usePhysicalBackupActions = ({ databaseId, refreshBackups, reloadBackups }: Params) => {
   const { t } = useTranslation();
-  const { message } = App.useApp();
+  const notify = useFeedback();
   const isActive = useSessionGuard();
 
   const [isStartingBackup, setIsStartingBackup] = useState(false);
@@ -25,7 +25,7 @@ export const usePhysicalBackupActions = ({ databaseId, refreshBackups, reloadBac
   const [deletingBackupId, setDeletingBackupId] = useState<string | undefined>();
 
   const showFailure = (error: unknown) => {
-    if (isActive()) message.error(translateApiError(error, t));
+    if (isActive()) notify({ kind: 'error', title: translateApiError(error, t) });
   };
 
   // The server only records the request and answers with no body, so the new backup reaches the

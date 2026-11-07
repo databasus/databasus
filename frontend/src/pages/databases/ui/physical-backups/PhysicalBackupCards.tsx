@@ -1,4 +1,4 @@
-import { Spin } from 'antd';
+import { Loader } from '@mantine/core';
 import type { JSX } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -33,7 +33,7 @@ export const PhysicalBackupCards = ({
   if (isLoading) {
     return (
       <div className="flex justify-center py-8">
-        <Spin />
+        <Loader role="status" />
       </div>
     );
   }

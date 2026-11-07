@@ -1,19 +1,11 @@
-import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it, vi } from 'vitest';
+// @vitest-environment happy-dom
+import { screen } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
 
 import type { TelegramNotifierSettings } from '@/entities/notifiers';
 import { EditTelegramNotifierComponent } from '@/features/edit-notifier/ui/edit/notifiers/EditTelegramNotifierComponent';
-import { LocaleProvider } from '@/shared/i18n';
-
-// The entity's public API imports its API client, and the client's config
-// module reads window at import time. The tests run in node, so they supply
-// window. LocaleProvider then reads localStorage, which here reports no saved
-// language.
-vi.hoisted(() => {
-  vi.stubGlobal('window', {});
-  vi.stubGlobal('localStorage', { getItem: () => null });
-  vi.stubGlobal('navigator', { language: 'en-US', languages: ['en-US'] });
-});
+import { en } from '@/shared/i18n/locales/en';
+import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const createTelegramSettings = (
   change: Partial<TelegramNotifierSettings>,
@@ -25,44 +17,67 @@ const createTelegramSettings = (
 });
 
 const renderTelegramForm = (settings: TelegramNotifierSettings) =>
-  renderToStaticMarkup(
-    <LocaleProvider>
-      <EditTelegramNotifierComponent
-        settings={settings}
-        isSaved
-        isAddressChanged={false}
-        onChange={() => {}}
-      />
-    </LocaleProvider>,
+  renderScreen(
+    <EditTelegramNotifierComponent
+      settings={settings}
+      isSaved
+      isAddressChanged={false}
+      onChange={() => {}}
+    />,
   );
 
 describe('EditTelegramNotifierComponent', () => {
-  it('starts with the advanced settings collapsed for a new notifier', () => {
-    const markup = renderTelegramForm(createTelegramSettings({}));
-
-    expect(markup).toContain('Advanced settings');
-    expect(markup).toContain('Target chat ID');
-    expect(markup).not.toContain('Bot API URL');
-    expect(markup).not.toContain('Use proxy');
-  });
-
-  it('starts with the advanced settings expanded when a proxy is enabled', () => {
-    const markup = renderTelegramForm(createTelegramSettings({ isProxyEnabled: true }));
-
-    expect(markup).toContain('Bot API URL');
-    expect(markup).toContain('Use proxy');
-    expect(markup).toContain('Proxy URL');
-  });
-
-  it('starts with the advanced settings expanded when a Bot API URL is set', () => {
-    const markup = renderTelegramForm(
+  it('associates advanced URL fields with their help when proxy settings are shown', () => {
+    renderTelegramForm(
       createTelegramSettings({
+        isProxyEnabled: true,
         botApiUrl: 'https://gateway.example.com/telegram',
+        proxyUrl: 'socks5://proxy.example.com:1080',
       }),
     );
 
-    expect(markup).toContain('https://gateway.example.com/telegram');
-    expect(markup).toContain('Use proxy');
-    expect(markup).not.toContain('Proxy URL');
+    expect(
+      screen.getByRole('textbox', {
+        name: en.notifiers.telegram.botApiUrl,
+        description: en.notifiers.telegram.botApiUrlTooltip,
+      }),
+    ).toHaveProperty('value', 'https://gateway.example.com/telegram');
+    expect(
+      screen.getByRole('textbox', {
+        name: en.notifiers.telegram.proxyUrl,
+        description: en.notifiers.telegram.proxyUrlTooltip,
+      }),
+    ).toHaveProperty('value', 'socks5://proxy.example.com:1080');
+  });
+
+  it('starts with the advanced settings collapsed for a new notifier', () => {
+    renderTelegramForm(createTelegramSettings({}));
+
+    expect(
+      screen.getByRole('button', { name: 'Advanced settings' }).getAttribute('aria-expanded'),
+    ).toBe('false');
+    expect(screen.getByRole('textbox', { name: 'Target chat ID' })).toBeTruthy();
+    expect(screen.queryByRole('textbox', { name: 'Bot API URL' })).toBeNull();
+    expect(screen.queryByRole('switch', { name: 'Use proxy' })).toBeNull();
+  });
+
+  it('starts with the advanced settings expanded when a proxy is enabled', () => {
+    renderTelegramForm(createTelegramSettings({ isProxyEnabled: true }));
+
+    expect(screen.getByRole('textbox', { name: 'Bot API URL' })).toBeTruthy();
+    expect(screen.getByRole('switch', { name: 'Use proxy' })).toBeTruthy();
+    expect(screen.getByRole('textbox', { name: 'Proxy URL' })).toBeTruthy();
+  });
+
+  it('starts with the advanced settings expanded when a Bot API URL is set', () => {
+    renderTelegramForm(
+      createTelegramSettings({ botApiUrl: 'https://gateway.example.com/telegram' }),
+    );
+
+    expect((screen.getByRole('textbox', { name: 'Bot API URL' }) as HTMLInputElement).value).toBe(
+      'https://gateway.example.com/telegram',
+    );
+    expect(screen.getByRole('switch', { name: 'Use proxy' })).toBeTruthy();
+    expect(screen.queryByRole('textbox', { name: 'Proxy URL' })).toBeNull();
   });
 });

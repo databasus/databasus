@@ -1,4 +1,4 @@
-import { Spin, Tabs } from 'antd';
+import { Loader, Tabs } from '@mantine/core';
 import { type RefObject, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -84,80 +84,82 @@ export const DatabaseComponent = ({
   }
 
   if (!database) {
-    return <Spin />;
+    return <Loader role="status" />;
   }
 
   return (
     <div className="w-full">
       <Tabs
-        className="[&_.ant-tabs-tab-btn]:!font-normal [&_.ant-tabs-tab-btn]:!text-content [&_.ant-tabs-tab-btn]:![text-shadow:none]"
-        type="card"
-        tabBarGutter={8}
-        tabBarStyle={{ marginBottom: 0 }}
-        activeKey={shownTab}
-        onChange={(tab) => setCurrentTab(tab as DatabaseTab)}
-        items={[
-          { key: 'config', label: t('databases.tabs.config') },
-          { key: 'backups', label: t('databases.tabs.backups') },
-          ...(isLogicalDatabase
-            ? [{ key: 'verifications', label: t('databases.tabs.verifications') }]
-            : []),
-          ...(isMonitoringShown
-            ? [{ key: 'monitoring', label: t('databases.tabs.monitoring') }]
-            : []),
-        ]}
-      />
-
-      {/* The card directly under the tabs joins the active tab, so it has a square corner there. */}
-      <div className="[&>:first-child]:rounded-tl-none">
-        {shownTab === 'config' && (
-          <DatabaseConfigComponent
-            database={database}
-            onDatabaseChanged={acceptChangedDatabase}
-            onDatabaseDeleted={onDatabaseDeleted}
-            onDatabaseCopied={onDatabaseCopied}
-            onDatabaseTransferred={onDatabaseTransferred}
-            isCanManageDBs={isCanManageDBs}
-          />
-        )}
-
-        {shownTab === 'backups' && (
-          <>
-            <HealthcheckAttemptsComponent database={database} />
-
-            {isPhysicalDatabase ? (
-              <PhysicalBackupsComponent
+        value={shownTab}
+        onChange={(tab) => {
+          if (tab) setCurrentTab(tab as DatabaseTab);
+        }}
+        variant="outline"
+        keepMounted={false}
+      >
+        <Tabs.List className="gap-2">
+          <Tabs.Tab value="config">{t('databases.tabs.config')}</Tabs.Tab>
+          <Tabs.Tab value="backups">{t('databases.tabs.backups')}</Tabs.Tab>
+          {isLogicalDatabase && (
+            <Tabs.Tab value="verifications">{t('databases.tabs.verifications')}</Tabs.Tab>
+          )}
+          {isMonitoringShown && (
+            <Tabs.Tab value="monitoring">{t('databases.tabs.monitoring')}</Tabs.Tab>
+          )}
+        </Tabs.List>
+        <Tabs.Panel value={shownTab}>
+          {/* The card directly under the tabs joins the active tab, so it has a square corner there. */}
+          <div className="[&>:first-child]:rounded-tl-none">
+            {shownTab === 'config' && (
+              <DatabaseConfigComponent
                 database={database}
+                onDatabaseChanged={acceptChangedDatabase}
+                onDatabaseDeleted={onDatabaseDeleted}
+                onDatabaseCopied={onDatabaseCopied}
+                onDatabaseTransferred={onDatabaseTransferred}
                 isCanManageDBs={isCanManageDBs}
-                scrollContainerRef={scrollContainerRef}
-              />
-            ) : (
-              <LogicalBackupsComponent
-                database={database}
-                isCanManageDBs={isCanManageDBs}
-                scrollContainerRef={scrollContainerRef}
-                onNavigateToVerifications={() => setCurrentTab('verifications')}
               />
             )}
-          </>
-        )}
 
-        {shownTab === 'monitoring' && (
-          <WalStreamMonitoringComponent
-            database={database}
-            isCanManageDBs={isCanManageDBs}
-            onOpenConfig={() => setCurrentTab('config')}
-          />
-        )}
+            {shownTab === 'backups' && (
+              <>
+                <HealthcheckAttemptsComponent database={database} />
 
-        {shownTab === 'verifications' && (
-          <VerificationsComponent
-            database={database}
-            isCanManageDBs={isCanManageDBs}
-            scrollContainerRef={scrollContainerRef}
-          />
-        )}
-      </div>
+                {isPhysicalDatabase ? (
+                  <PhysicalBackupsComponent
+                    database={database}
+                    isCanManageDBs={isCanManageDBs}
+                    scrollContainerRef={scrollContainerRef}
+                  />
+                ) : (
+                  <LogicalBackupsComponent
+                    database={database}
+                    isCanManageDBs={isCanManageDBs}
+                    scrollContainerRef={scrollContainerRef}
+                    onNavigateToVerifications={() => setCurrentTab('verifications')}
+                  />
+                )}
+              </>
+            )}
+
+            {shownTab === 'monitoring' && (
+              <WalStreamMonitoringComponent
+                database={database}
+                isCanManageDBs={isCanManageDBs}
+                onOpenConfig={() => setCurrentTab('config')}
+              />
+            )}
+
+            {shownTab === 'verifications' && (
+              <VerificationsComponent
+                database={database}
+                isCanManageDBs={isCanManageDBs}
+                scrollContainerRef={scrollContainerRef}
+              />
+            )}
+          </div>
+        </Tabs.Panel>
+      </Tabs>
     </div>
   );
 };

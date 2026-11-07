@@ -228,7 +228,7 @@ describe('EditHealthcheckConfigComponent', () => {
 
         await releaseAndSettle(loadCall, () => heldLoad.respond(buildAnswer()));
 
-        expect(document.querySelector('.ant-spin')).toBeTruthy();
+        expect(document.querySelector('[role="status"]')).toBeTruthy();
         expect(screen.queryByRole('spinbutton')).toBeNull();
         expect(screen.queryByRole('alert')).toBeNull();
       },

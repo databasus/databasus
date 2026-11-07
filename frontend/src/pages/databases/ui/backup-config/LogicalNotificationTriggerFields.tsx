@@ -1,4 +1,4 @@
-import { Checkbox } from 'antd';
+import { Checkbox } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 
 import type { LogicalBackupSettings } from '@/entities/backup-configs';
@@ -37,9 +37,8 @@ export const LogicalNotificationTriggerFields = ({ triggers, onChange }: Props) 
             key={trigger}
             checked={triggers.includes(trigger)}
             onChange={(event) => toggleTrigger(trigger, event.target.checked)}
-          >
-            {t(LOGICAL_NOTIFICATION_TRIGGER_LABEL_KEYS[trigger])}
-          </Checkbox>
+            label={<>{t(LOGICAL_NOTIFICATION_TRIGGER_LABEL_KEYS[trigger])}</>}
+          />
         ))}
       </div>
     </div>

@@ -1,5 +1,4 @@
-import { LoadingOutlined } from '@ant-design/icons';
-import { Spin } from 'antd';
+import { Loader } from '@mantine/core';
 import { useEffect, useEffectEvent, useState } from 'react';
 
 import { type PendingSignIn, userApi } from '@/entities/users';
@@ -64,7 +63,7 @@ export function AuthPage() {
     >
       {isLoading ? (
         <div className="flex h-screen w-screen items-center justify-center">
-          <Spin indicator={<LoadingOutlined spin />} size="large" />
+          <Loader size="md" role="status" />
         </div>
       ) : failure !== undefined ? (
         <LoadFailure className="m-4" error={failure} onRetry={() => void loadOptions()} />

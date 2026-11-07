@@ -1,4 +1,4 @@
-import { Select, Spin, Tooltip } from 'antd';
+import { Loader, Tooltip } from '@mantine/core';
 import dayjs from 'dayjs';
 import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -12,6 +12,7 @@ import {
 import { useSessionGuard } from '@/shared/auth';
 import { useLocale } from '@/shared/i18n';
 import { getUserShortTimeFormat } from '@/shared/time/getUserTimeFormat';
+import { WrappingSelect } from '@/shared/ui';
 import { LoadFailure } from '@/shared/ui';
 
 interface Props {
@@ -107,7 +108,7 @@ export const HealthcheckAttemptsComponent = ({ database }: Props) => {
         if (period === 'today') {
           interval = setInterval(() => {
             void refreshHealthcheckAttempts();
-          }, 60_000);
+          }, 60000);
         }
       } catch (e) {
         if (isCurrentLoad(sequence)) setAttemptsLoadError(e);
@@ -149,7 +150,7 @@ export const HealthcheckAttemptsComponent = ({ database }: Props) => {
   if (isHealthcheckConfigLoading) {
     return (
       <div className="mb-5 flex items-center">
-        <Spin />
+        <Loader role="status" />
       </div>
     );
   }
@@ -170,13 +171,13 @@ export const HealthcheckAttemptsComponent = ({ database }: Props) => {
         <label className="text-sm font-medium sm:mr-2" htmlFor={periodFieldId}>
           {t('healthcheck.attempts.period')}
         </label>
-        <Select
+        <WrappingSelect
           id={periodFieldId}
-          size="small"
+          size="xs"
           value={period}
           onChange={(value) => setPeriod(value)}
           className="w-full sm:w-[120px]"
-          options={[
+          data={[
             { value: 'today', label: t('healthcheck.attempts.periods.today') },
             { value: '7d', label: t('healthcheck.attempts.periods.sevenDays') },
             { value: '30d', label: t('healthcheck.attempts.periods.thirtyDays') },
@@ -191,7 +192,7 @@ export const HealthcheckAttemptsComponent = ({ database }: Props) => {
         <LoadFailure error={attemptsLoadError} onRetry={retryLoad} />
       ) : isLoading ? (
         <div className="flex justify-center">
-          <Spin size="small" />
+          <Loader size="xs" role="status" />
         </div>
       ) : (
         <div className="flex flex-wrap gap-1">
@@ -199,7 +200,7 @@ export const HealthcheckAttemptsComponent = ({ database }: Props) => {
             healthcheckAttempts.map((healthcheckAttempt) => (
               <Tooltip
                 key={healthcheckAttempt.id}
-                title={`${dayjs(healthcheckAttempt.createdAt).format(getUserShortTimeFormat().format)} (${formatRelativeTime(healthcheckAttempt.createdAt)})`}
+                label={`${dayjs(healthcheckAttempt.createdAt).format(getUserShortTimeFormat().format)} (${formatRelativeTime(healthcheckAttempt.createdAt)})`}
               >
                 <div
                   data-status={healthcheckAttempt.status}

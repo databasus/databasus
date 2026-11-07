@@ -1,5 +1,5 @@
-import { InfoCircleOutlined } from '@ant-design/icons';
-import { Select, Tooltip } from 'antd';
+import { Tooltip } from '@mantine/core';
+import { Info } from 'lucide-react';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -13,6 +13,7 @@ import { PhysicalRetentionPolicy } from '@/pages/databases/model/physical-backup
 import { GfsRetentionHint } from '@/pages/databases/ui/backup-config/GfsRetentionHint';
 import { RetentionNumberInput } from '@/pages/databases/ui/backup-config/RetentionNumberInput';
 import type { TranslationKey } from '@/shared/i18n';
+import { WrappingSelect } from '@/shared/ui';
 
 type PhysicalRetentionDraft = PhysicalBackupConfigDraft['settings']['retention'];
 
@@ -45,7 +46,7 @@ const NumberField = ({ label, minimum, value, onChange }: NumberFieldProps) => {
 
   return (
     <div className="flex items-center gap-2">
-      <label htmlFor={inputId} className="w-[110px] shrink-0 text-sm leading-4 text-muted">
+      <label htmlFor={inputId} className="w-[110px] shrink-0 text-sm leading-normal text-muted">
         {label}
       </label>
       <RetentionNumberInput id={inputId} minimum={minimum} value={value} onChange={onChange} />
@@ -75,14 +76,13 @@ export const PhysicalRetentionFields = ({ retention, backupType, onChange }: Pro
       <div className="flex min-w-0 grow flex-col gap-2">
         {hasIncrementalBackups(backupType) ? (
           <div className="flex w-full items-center">
-            <Select
+            <WrappingSelect
               value={policy}
               onChange={(chosenPolicy) => onChange({ ...retention, policy: chosenPolicy })}
-              size="small"
+              size="xs"
               className="min-w-0 grow"
-              popupMatchSelectWidth={false}
               aria-label={t('backups.physical.config.retention')}
-              options={[
+              data={[
                 {
                   label: t('backups.physical.config.retentionOptions.chains'),
                   value: PhysicalRetentionPolicy.CHAINS,
@@ -96,7 +96,7 @@ export const PhysicalRetentionFields = ({ retention, backupType, onChange }: Pro
 
             <Tooltip
               className="cursor-pointer"
-              title={
+              label={
                 <div>
                   <div>{t('backups.physical.config.retentionHelp.chain')}</div>
                   <div className="mt-2 font-bold">
@@ -110,7 +110,7 @@ export const PhysicalRetentionFields = ({ retention, backupType, onChange }: Pro
                 </div>
               }
             >
-              <InfoCircleOutlined className="ml-2 text-muted" />
+              <Info className="ml-2 inline-block shrink-0 align-middle text-muted" size="1em" />
             </Tooltip>
           </div>
         ) : (
@@ -125,9 +125,9 @@ export const PhysicalRetentionFields = ({ retention, backupType, onChange }: Pro
               <label htmlFor={chainsCountId}>{t('backups.physical.config.chainsCount')}</label>
               <Tooltip
                 className="cursor-pointer"
-                title={t('backups.physical.config.chainsCountTooltip')}
+                label={t('backups.physical.config.chainsCountTooltip')}
               >
-                <InfoCircleOutlined className="ml-1 text-muted" />
+                <Info className="ml-1 inline-block shrink-0 align-middle text-muted" size="1em" />
               </Tooltip>
             </div>
             <RetentionNumberInput
@@ -142,17 +142,16 @@ export const PhysicalRetentionFields = ({ retention, backupType, onChange }: Pro
         {policy !== PhysicalRetentionPolicy.CHAINS && (
           <div className="mt-1 flex flex-col gap-2">
             <div className="flex items-center gap-2">
-              <span className="w-[110px] shrink-0 text-sm leading-4 text-muted">
+              <span className="w-[110px] shrink-0 text-sm leading-normal text-muted">
                 {t('backups.physical.config.fullBackups')}
               </span>
-              <Select
+              <WrappingSelect
                 value={fullBackups.policy}
                 onChange={(fullBackupsPolicy) => updateFullBackups({ policy: fullBackupsPolicy })}
-                size="small"
+                size="xs"
                 className="w-[80px] max-w-[80px]"
-                popupMatchSelectWidth={false}
                 aria-label={t('backups.physical.config.fullBackups')}
-                options={fullBackupsPolicyOptions}
+                data={fullBackupsPolicyOptions}
               />
             </div>
 

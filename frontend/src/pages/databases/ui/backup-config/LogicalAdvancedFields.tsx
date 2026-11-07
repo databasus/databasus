@@ -1,5 +1,5 @@
-import { InfoCircleOutlined } from '@ant-design/icons';
-import { InputNumber, Switch, Tooltip } from 'antd';
+import { NumberInput, Switch, Tooltip } from '@mantine/core';
+import { Info } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import type { LogicalBackupSettings } from '@/entities/backup-configs';
@@ -22,17 +22,17 @@ export const LogicalAdvancedFields = ({ settings, onChange }: Props) => {
         </div>
         <div className="flex items-center">
           <Switch
-            size="small"
+            size="xs"
             checked={settings.isRetryIfFailed}
             aria-label={t('backups.logical.config.retryIfFailed')}
-            onChange={(isRetryIfFailed) => onChange({ isRetryIfFailed })}
+            onChange={(event) => onChange({ isRetryIfFailed: event.currentTarget.checked })}
           />
 
           <Tooltip
             className="cursor-pointer"
-            title={t('backups.logical.config.retryIfFailedTooltip')}
+            label={t('backups.logical.config.retryIfFailedTooltip')}
           >
-            <InfoCircleOutlined className="ml-2 text-muted" />
+            <Info className="ml-2 inline-block shrink-0 align-middle text-muted" size="1em" />
           </Tooltip>
         </div>
       </div>
@@ -43,21 +43,31 @@ export const LogicalAdvancedFields = ({ settings, onChange }: Props) => {
             {t('backups.logical.config.maxFailedTries')}
           </div>
           <div className="flex items-center">
-            <InputNumber
+            <NumberInput
               min={1}
               max={10}
               value={settings.maxFailedTriesCount}
               aria-label={t('backups.logical.config.maxFailedTries')}
-              onChange={(value) => onChange({ maxFailedTriesCount: value || 1 })}
-              size="small"
+              onChange={(value) =>
+                onChange({ maxFailedTriesCount: typeof value === 'number' ? value : 1 })
+              }
+              size="xs"
               className="w-full max-w-[75px] grow"
+              role="spinbutton"
+              aria-valuenow={
+                typeof settings.maxFailedTriesCount === 'number'
+                  ? settings.maxFailedTriesCount
+                  : undefined
+              }
+              aria-valuemin={1}
+              aria-valuemax={10}
             />
 
             <Tooltip
               className="cursor-pointer"
-              title={t('backups.logical.config.maxFailedTriesTooltip')}
+              label={t('backups.logical.config.maxFailedTriesTooltip')}
             >
-              <InfoCircleOutlined className="ml-2 text-muted" />
+              <Info className="ml-2 inline-block shrink-0 align-middle text-muted" size="1em" />
             </Tooltip>
           </div>
         </div>

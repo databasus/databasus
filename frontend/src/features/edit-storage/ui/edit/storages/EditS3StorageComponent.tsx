@@ -1,5 +1,5 @@
-import { InfoCircleOutlined } from '@ant-design/icons';
-import { AutoComplete, Checkbox, Input, Tooltip } from 'antd';
+import { Autocomplete, Checkbox, PasswordInput, TextInput, Tooltip } from '@mantine/core';
+import { Info } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -62,13 +62,13 @@ export function EditS3StorageComponent({
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.s3Bucket')}</div>
-        <Input
+        <TextInput
           aria-label={t('storages.fields.s3Bucket')}
           value={settings.s3Bucket || ''}
           onChange={(e) => {
             onChange({ ...settings, s3Bucket: e.target.value.trim() });
           }}
-          size="small"
+          size="xs"
           className="w-full max-w-[250px]"
           // eslint-disable-next-line i18next/no-literal-string -- example bucket name
           placeholder="my-bucket-name"
@@ -77,13 +77,13 @@ export function EditS3StorageComponent({
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.region')}</div>
-        <Input
+        <TextInput
           aria-label={t('storages.fields.region')}
           value={settings.s3Region || ''}
           onChange={(e) => {
             onChange({ ...settings, s3Region: toOptionalValue(e.target.value.trim()) });
           }}
-          size="small"
+          size="xs"
           className="w-full max-w-[250px]"
           // eslint-disable-next-line i18next/no-literal-string -- example region code
           placeholder="us-east-1"
@@ -93,14 +93,13 @@ export function EditS3StorageComponent({
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.accessKey')}</div>
         <div className="w-full max-w-[250px]">
-          <Input.Password
+          <PasswordInput
             aria-label={t('storages.fields.accessKey')}
-            aria-describedby={isAccessKeyRequiredAgain ? accessKeyNoticeId : undefined}
             value={settings.s3AccessKey || ''}
             onChange={(e) => {
               onChange({ ...settings, s3AccessKey: toOptionalValue(e.target.value.trim()) });
             }}
-            size="small"
+            size="xs"
             className="w-full"
             // eslint-disable-next-line i18next/no-literal-string -- AWS example access key
             placeholder="AKIAIOSFODNN7EXAMPLE"
@@ -108,24 +107,28 @@ export function EditS3StorageComponent({
             data-1p-ignore
             data-lpignore="true"
             data-form-type="other"
+            visibilityToggleButtonProps={{
+              'aria-label': t('common.actions.togglePasswordVisibility'),
+            }}
+            description={
+              isAccessKeyRequiredAgain && (
+                <AddressChangedSecretNoticeComponent id={accessKeyNoticeId} />
+              )
+            }
           />
-          {isAccessKeyRequiredAgain && (
-            <AddressChangedSecretNoticeComponent id={accessKeyNoticeId} />
-          )}
         </div>
       </div>
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.secretKey')}</div>
         <div className="w-full max-w-[250px]">
-          <Input.Password
+          <PasswordInput
             aria-label={t('storages.fields.secretKey')}
-            aria-describedby={isSecretKeyRequiredAgain ? secretKeyNoticeId : undefined}
             value={settings.s3SecretKey || ''}
             onChange={(e) => {
               onChange({ ...settings, s3SecretKey: toOptionalValue(e.target.value.trim()) });
             }}
-            size="small"
+            size="xs"
             autoComplete="off"
             data-1p-ignore
             data-lpignore="true"
@@ -133,31 +136,36 @@ export function EditS3StorageComponent({
             className="w-full"
             // eslint-disable-next-line i18next/no-literal-string -- AWS example secret key
             placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+            visibilityToggleButtonProps={{
+              'aria-label': t('common.actions.togglePasswordVisibility'),
+            }}
+            description={
+              isSecretKeyRequiredAgain && (
+                <AddressChangedSecretNoticeComponent id={secretKeyNoticeId} />
+              )
+            }
           />
-          {isSecretKeyRequiredAgain && (
-            <AddressChangedSecretNoticeComponent id={secretKeyNoticeId} />
-          )}
         </div>
       </div>
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.endpoint')}</div>
         <div className="flex items-center">
-          <Input
+          <TextInput
             aria-label={t('storages.fields.endpoint')}
             value={settings.s3Endpoint || ''}
             onChange={(e) => {
               onChange({ ...settings, s3Endpoint: toOptionalValue(e.target.value.trim()) });
             }}
-            size="small"
+            size="xs"
             className="w-full max-w-[250px]"
             placeholder={t('storages.edit.optionalPlaceholder', {
               example: 'https://s3.example.com',
             })}
           />
 
-          <Tooltip className="cursor-pointer" title={t('storages.edit.s3.endpointTooltip')}>
-            <InfoCircleOutlined className="ml-2" />
+          <Tooltip className="cursor-pointer" label={t('storages.edit.s3.endpointTooltip')}>
+            <Info className="ml-2 inline-block shrink-0 align-middle" size="1em" />
           </Tooltip>
         </div>
       </div>
@@ -176,13 +184,13 @@ export function EditS3StorageComponent({
               {t('storages.fields.folderPrefix')}
             </div>
             <div className="flex items-center">
-              <Input
+              <TextInput
                 aria-label={t('storages.fields.folderPrefix')}
                 value={settings.s3Prefix || ''}
                 onChange={(e) => {
                   onChange({ ...settings, s3Prefix: toOptionalValue(e.target.value.trim()) });
                 }}
-                size="small"
+                size="xs"
                 className="w-full max-w-[250px]"
                 placeholder={t('storages.edit.optionalPlaceholder', { example: 'my-prefix/' })}
                 // we do not allow to change the prefix after creation,
@@ -190,8 +198,8 @@ export function EditS3StorageComponent({
                 disabled={isSaved}
               />
 
-              <Tooltip className="cursor-pointer" title={t('storages.edit.s3.prefixTooltip')}>
-                <InfoCircleOutlined className="ml-4" />
+              <Tooltip className="cursor-pointer" label={t('storages.edit.s3.prefixTooltip')}>
+                <Info className="ml-4 inline-block shrink-0 align-middle" size="1em" />
               </Tooltip>
             </div>
           </div>
@@ -206,12 +214,11 @@ export function EditS3StorageComponent({
                 onChange={(e) => {
                   onChange({ ...settings, isVirtualHostedStyle: e.target.checked });
                 }}
-              >
-                {t('storages.edit.s3.useVirtualHostedStyle')}
-              </Checkbox>
+                label={<>{t('storages.edit.s3.useVirtualHostedStyle')}</>}
+              />
 
-              <Tooltip className="cursor-pointer" title={t('storages.edit.s3.virtualHostTooltip')}>
-                <InfoCircleOutlined className="ml-2" />
+              <Tooltip className="cursor-pointer" label={t('storages.edit.s3.virtualHostTooltip')}>
+                <Info className="ml-2 inline-block shrink-0 align-middle" size="1em" />
               </Tooltip>
             </div>
           </div>
@@ -226,15 +233,14 @@ export function EditS3StorageComponent({
                 onChange={(e) => {
                   onChange({ ...settings, isSkipTlsVerify: e.target.checked });
                 }}
-              >
-                {t('storages.edit.s3.skipTls')}
-              </Checkbox>
+                label={<>{t('storages.edit.s3.skipTls')}</>}
+              />
 
               <Tooltip
                 className="cursor-pointer"
-                title={t('storages.edit.s3.skipTlsVerifyTooltip')}
+                label={t('storages.edit.s3.skipTlsVerifyTooltip')}
               >
-                <InfoCircleOutlined className="ml-2" />
+                <Info className="ml-2 inline-block shrink-0 align-middle" size="1em" />
               </Tooltip>
             </div>
           </div>
@@ -243,19 +249,21 @@ export function EditS3StorageComponent({
             <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">
               {t('storages.fields.storageClass')}
             </div>
-            <div className="flex items-center">
-              <AutoComplete
+            <div className="flex w-full max-w-[280px] min-w-0 items-center">
+              <Autocomplete
                 aria-label={t('storages.fields.storageClass')}
                 value={settings.s3StorageClass ?? ''}
                 placeholder={t('storages.s3StorageClasses.default')}
-                options={[
+                renderOption={({ option }) => {
+                  const key = S3_STORAGE_CLASS_LABEL_KEYS.get(option.value);
+                  return key ? t(key) : t('storages.s3StorageClasses.default');
+                }}
+                data={[
                   {
                     value: '',
-                    label: t('storages.s3StorageClasses.default'),
                   },
-                  ...Array.from(S3_STORAGE_CLASS_LABEL_KEYS, ([storageClass, labelKey]) => ({
+                  ...Array.from(S3_STORAGE_CLASS_LABEL_KEYS, ([storageClass]) => ({
                     value: storageClass,
-                    label: t(labelKey),
                   })),
                 ]}
                 onChange={(value: string) => {
@@ -264,12 +272,12 @@ export function EditS3StorageComponent({
                     s3StorageClass: value === '' ? undefined : value,
                   });
                 }}
-                size="small"
+                size="xs"
                 className="w-full max-w-62.5 min-w-0"
               />
 
-              <Tooltip className="cursor-pointer" title={t('storages.edit.s3.storageClassTooltip')}>
-                <InfoCircleOutlined className="ml-2" />
+              <Tooltip className="cursor-pointer" label={t('storages.edit.s3.storageClassTooltip')}>
+                <Info className="ml-2 inline-block shrink-0 align-middle" size="1em" />
               </Tooltip>
             </div>
           </div>

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -33,23 +33,14 @@ const renderEditor = (initialSchedule: Schedule | null) => {
 const chooseOption = async ({ label, optionTitle }: { label: string; optionTitle: string }) => {
   const control = screen.getByRole('combobox', { name: label });
 
-  fireEvent.mouseDown(control.closest('.ant-select')!.querySelector('.ant-select-selector')!);
-
-  const option = await waitFor(() => {
-    const visibleOption = document.querySelector(`.ant-select-item-option[title="${optionTitle}"]`);
-    expect(visibleOption).toBeTruthy();
-    return visibleOption!;
-  });
-
-  fireEvent.click(option);
+  fireEvent.click(control);
+  fireEvent.click(await screen.findByRole('option', { name: optionTitle }));
 };
 
 const chooseTime = (time: string) => {
   const timeInput = screen.getByLabelText('Time of day');
 
-  fireEvent.mouseDown(timeInput);
-  fireEvent.change(timeInput, { target: { value: time } });
-  fireEvent.keyDown(timeInput, { key: 'Enter' });
+  fireEvent.paste(timeInput, { clipboardData: { getData: () => time } });
 };
 
 const pinClock = ({ zone, moment }: { zone: string; moment: string }) => {
@@ -59,10 +50,7 @@ const pinClock = ({ zone, moment }: { zone: string; moment: string }) => {
 };
 
 const getSelectedOption = (label: string) =>
-  screen
-    .getByRole('combobox', { name: label })
-    .closest('.ant-select')!
-    .querySelector('.ant-select-selection-item')?.textContent;
+  screen.getByRole('combobox', { name: label }).textContent;
 
 describe('ScheduleEditor', () => {
   beforeEach(() => {
@@ -213,7 +201,15 @@ describe('ScheduleEditor', () => {
     chooseTime('1:00 PM');
 
     expect(returnedSchedules[returnedSchedules.length - 1].timeOfDay).toBe('13:00');
-    expect((screen.getByLabelText('Time of day') as HTMLInputElement).value).toBe('1:00 PM');
+    expect((screen.getByRole('spinbutton', { name: 'Hours' }) as HTMLInputElement).value).toBe(
+      '01',
+    );
+    expect((screen.getByRole('spinbutton', { name: 'Minutes' }) as HTMLInputElement).value).toBe(
+      '00',
+    );
+    expect((screen.getByRole('textbox', { name: 'AM or PM' }) as HTMLInputElement).value).toBe(
+      'PM',
+    );
   });
 
   it('takes a time in the 24-hour format of the user', () => {
@@ -223,6 +219,11 @@ describe('ScheduleEditor', () => {
     chooseTime('13:00');
 
     expect(returnedSchedules[returnedSchedules.length - 1].timeOfDay).toBe('13:00');
-    expect((screen.getByLabelText('Time of day') as HTMLInputElement).value).toBe('13:00');
+    expect((screen.getByRole('spinbutton', { name: 'Hours' }) as HTMLInputElement).value).toBe(
+      '13',
+    );
+    expect((screen.getByRole('spinbutton', { name: 'Minutes' }) as HTMLInputElement).value).toBe(
+      '00',
+    );
   });
 });

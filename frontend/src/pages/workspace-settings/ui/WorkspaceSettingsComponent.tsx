@@ -1,5 +1,5 @@
-import { LoadingOutlined } from '@ant-design/icons';
-import { Alert, App, Button, Input, Spin } from 'antd';
+import { Alert, Button, Loader, TextInput } from '@mantine/core';
+import { CircleAlert } from 'lucide-react';
 import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -14,6 +14,8 @@ import { useSessionGuard } from '@/shared/auth';
 import { useLatestRef, useRequestRevision } from '@/shared/hooks';
 import { useIsMobile } from '@/shared/hooks';
 import { translateApiError } from '@/shared/i18n';
+import { useFeedback } from '@/shared/lib/feedback';
+import { Dialog } from '@/shared/ui';
 import { LoadFailure } from '@/shared/ui';
 
 interface Props {
@@ -48,7 +50,7 @@ export function WorkspaceSettingsComponent({
     if (!isCurrent()) return;
 
     workspaceRevision.Invalidate();
-    deletionDialog.current?.destroy();
+    setDeletionTarget(undefined);
     setWorkspace(undefined);
     setFormWorkspace({});
     setLoadError(error);
@@ -118,7 +120,7 @@ export function WorkspaceSettingsComponent({
       setWorkspace(updatedWorkspace);
       setFormWorkspace((current) => (current.name === submittedName ? updatedWorkspace : current));
       callbacks.current.onRenamed?.(updatedWorkspace);
-      message.success(i18n.t('workspaces.settings.updated'));
+      notify({ kind: 'success', title: i18n.t('workspaces.settings.updated') });
     } catch (error) {
       if (isActiveWorkspace(revision)) handleMutationFailure(error);
     } finally {
@@ -128,68 +130,20 @@ export function WorkspaceSettingsComponent({
 
   const handleDeleteWorkspace = async () => {
     if (!workspace) {
-      message.error(t('workspaces.delete.notFound'));
+      notify({ kind: 'error', title: t('workspaces.delete.notFound') });
       return;
     }
 
     if (!canDelete) {
-      message.error(t('workspaces.delete.noPermission'));
+      notify({ kind: 'error', title: t('workspaces.delete.noPermission') });
       return;
     }
 
-    const revision = workspaceRevision.GetCurrent();
-    deletionDialog.current?.destroy();
-    deletionDialog.current = modal.confirm({
-      title: t('workspaces.delete.confirmation.title'),
-      content: (
-        <div>
-          <p>
-            <Trans
-              i18nKey="workspaces.delete.confirmation.question"
-              components={{ workspaceName: <strong>{workspace.name}</strong> }}
-            />
-          </p>
-          <p className="mt-2 text-danger">
-            <Trans
-              i18nKey="workspaces.delete.confirmation.warning"
-              components={{ bold: <strong /> }}
-            />
-          </p>
-        </div>
-      ),
-      okText: t('workspaces.delete.confirmation.submit'),
-      okType: 'danger',
-      cancelText: t('common.actions.cancel'),
-      onOk: async () => {
-        if (!isActiveWorkspace(revision)) return;
-
-        setIsDeleting(true);
-
-        try {
-          const databases = await databaseApi.listAllDatabases(workspace.id);
-          if (!isActiveWorkspace(revision)) return;
-
-          if (databases.length > 0) {
-            message.error(t('workspaces.delete.hasDatabases', { count: databases.length }));
-            return;
-          }
-
-          await workspaceApi.deleteWorkspace(workspace.id);
-          if (!isActiveWorkspace(revision)) return;
-
-          message.success(t('workspaces.delete.deleted'));
-          callbacks.current.onDeleted?.(workspace.id);
-        } catch (error: unknown) {
-          if (isActiveWorkspace(revision)) handleMutationFailure(error);
-        } finally {
-          if (isActiveWorkspace(revision)) setIsDeleting(false);
-        }
-      },
-    });
+    setDeletionTarget({ workspace, revision: workspaceRevision.GetCurrent() });
   };
 
   const { t, i18n } = useTranslation();
-  const { message, modal } = App.useApp();
+  const notify = useFeedback();
   const isMobile = useIsMobile();
   const isCurrent = useSessionGuard();
 
@@ -197,8 +151,10 @@ export function WorkspaceSettingsComponent({
   const callbacks = useLatestRef({ onRenamed, onDeleted, onUnavailable });
   const nameControlId = useId();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const deletionDialog = useRef<ReturnType<typeof modal.confirm> | undefined>(undefined);
-
+  const [deletionTarget, setDeletionTarget] = useState<{
+    workspace: Workspace;
+    revision: number;
+  }>();
   const isInstanceAdmin = user.role === UserRole.ADMIN;
   const canEdit =
     isInstanceAdmin ||
@@ -215,14 +171,52 @@ export function WorkspaceSettingsComponent({
 
     return () => {
       workspaceRevision.Invalidate();
-      deletionDialog.current?.destroy();
+      setDeletionTarget(undefined);
     };
   }, [workspaceRevision]);
+
+  const deleteWorkspace = async () => {
+    if (!deletionTarget) return;
+
+    const { workspace, revision } = deletionTarget;
+
+    try {
+      if (!isActiveWorkspace(revision)) return;
+
+      setIsDeleting(true);
+
+      try {
+        const databases = await databaseApi.listAllDatabases(workspace.id);
+        if (!isActiveWorkspace(revision)) return;
+
+        if (databases.length > 0) {
+          notify({
+            kind: 'error',
+            title: t('workspaces.delete.hasDatabases', { count: databases.length }),
+          });
+          return;
+        }
+
+        await workspaceApi.deleteWorkspace(workspace.id);
+        if (!isActiveWorkspace(revision)) return;
+
+        notify({ kind: 'success', title: t('workspaces.delete.deleted') });
+        callbacks.current.onDeleted?.(workspace.id);
+      } catch (error: unknown) {
+        if (isActiveWorkspace(revision)) handleMutationFailure(error);
+      } finally {
+        if (isActiveWorkspace(revision)) setIsDeleting(false);
+      }
+    } finally {
+      if (isActiveWorkspace(revision))
+        setDeletionTarget((current) => (current === deletionTarget ? undefined : current));
+    }
+  };
 
   const isBasicInfoChanged = !!workspace && formWorkspace.name !== workspace.name;
 
   return (
-    <div className="flex min-h-0 min-w-0 grow [&_.ant-btn]:!h-auto [&_.ant-btn]:min-h-8 [&_.ant-btn]:!whitespace-normal">
+    <div className="flex min-h-0 min-w-0 grow">
       <div className="flex min-h-0 w-full min-w-0 flex-col">
         <div
           ref={scrollContainerRef}
@@ -231,13 +225,23 @@ export function WorkspaceSettingsComponent({
           <h1 className="mb-6 text-2xl font-bold">{t('workspaces.settings.title')}</h1>
 
           {isLoading ? (
-            <Spin indicator={<LoadingOutlined spin />} size="large" />
+            <Loader size="md" role="status" />
           ) : loadError !== undefined ? (
             <LoadFailure error={loadError} onRetry={() => void loadWorkspace()} />
           ) : workspace ? (
             <>
               {mutationError !== undefined && (
-                <Alert type="error" showIcon message={translateApiError(mutationError, t)} />
+                <Alert
+                  color="danger"
+                  icon={
+                    <CircleAlert
+                      aria-hidden
+                      size={16}
+                      className="inline-block shrink-0 align-middle"
+                    />
+                  }
+                  title={translateApiError(mutationError, t)}
+                />
               )}
               {!canEdit && (
                 <div className="my-4 max-w-125 rounded-md bg-surface p-3">
@@ -251,10 +255,8 @@ export function WorkspaceSettingsComponent({
                     <label htmlFor={nameControlId} className="mb-1 block font-medium text-content">
                       {t('workspaces.fields.name')}
                     </label>
-                    <Input
+                    <TextInput
                       id={nameControlId}
-                      aria-invalid={isNameError}
-                      aria-describedby={isNameError ? `${nameControlId}-error` : undefined}
                       value={formWorkspace.name || ''}
                       onChange={(e) => {
                         setNameError(false);
@@ -263,22 +265,20 @@ export function WorkspaceSettingsComponent({
                       disabled={!canEdit}
                       placeholder={t('workspaces.fields.namePlaceholder')}
                       maxLength={100}
-                      status={isNameError ? 'error' : undefined}
+                      error={isNameError ? t('workspaces.settings.nameRequired') : undefined}
+                      errorProps={{ role: 'alert', className: 'text-sm' }}
+                      classNames={{ wrapper: 'mb-0' }}
                     />
-                    {isNameError && (
-                      <div id={`${nameControlId}-error`} role="alert" className="text-danger">
-                        {t('workspaces.settings.nameRequired')}
-                      </div>
-                    )}
                   </div>
 
                   {isBasicInfoChanged && canEdit && (
                     <div className="mt-4 flex flex-wrap gap-2">
                       <Button
-                        type="primary"
+                        variant="filled"
                         onClick={saveBasicInfo}
                         loading={isSaving}
                         disabled={isSaving}
+                        aria-busy={isSaving}
                       >
                         {isSaving
                           ? t('workspaces.settings.saving')
@@ -286,7 +286,7 @@ export function WorkspaceSettingsComponent({
                       </Button>
 
                       <Button
-                        type="default"
+                        variant="default"
                         onClick={() => {
                           if (workspace) {
                             const updatedForm = { ...formWorkspace, name: workspace.name };
@@ -331,12 +331,13 @@ export function WorkspaceSettingsComponent({
 
                         <div className={isMobile ? '' : 'ml-4'}>
                           <Button
-                            type="primary"
-                            danger
+                            variant="filled"
+                            color="danger"
                             onClick={handleDeleteWorkspace}
                             disabled={!canDelete || isDeleting || isSaving}
                             loading={isDeleting}
                             className={` ${isMobile ? 'w-full' : ''}`}
+                            aria-busy={isDeleting}
                           >
                             {isDeleting
                               ? t('workspaces.delete.deleting')
@@ -358,6 +359,49 @@ export function WorkspaceSettingsComponent({
           ) : null}
         </div>
       </div>
+
+      {deletionTarget && (
+        <Dialog
+          opened
+          title={
+            <span className="flex items-start gap-2">
+              <CircleAlert aria-hidden size="1.25em" className="shrink-0 text-warning" />
+              <span>{t('workspaces.delete.confirmation.title')}</span>
+            </span>
+          }
+          onClose={() => setDeletionTarget(undefined)}
+        >
+          <div>
+            <p>
+              <Trans
+                i18nKey="workspaces.delete.confirmation.question"
+                components={{ workspaceName: <strong>{deletionTarget.workspace.name}</strong> }}
+              />
+            </p>
+            <p className="mt-2 text-danger">
+              <Trans
+                i18nKey="workspaces.delete.confirmation.warning"
+                components={{ bold: <strong /> }}
+              />
+            </p>
+          </div>
+
+          <div className="mt-5 flex flex-wrap justify-end gap-2">
+            <Button onClick={() => setDeletionTarget(undefined)}>
+              {t('common.actions.cancel')}
+            </Button>
+            <Button
+              color="danger"
+              variant="outline"
+              loading={isDeleting}
+              onClick={() => void deleteWorkspace()}
+              aria-busy={isDeleting}
+            >
+              {t('workspaces.delete.confirmation.submit')}
+            </Button>
+          </div>
+        </Dialog>
+      )}
     </div>
   );
 }

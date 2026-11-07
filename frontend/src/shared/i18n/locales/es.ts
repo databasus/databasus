@@ -5,7 +5,20 @@ export const es: typeof en = {
     nativeName: 'Español',
   },
   common: {
+    calendar: {
+      monthLevelControl: 'Elegir mes',
+      yearLevelControl: 'Elegir año',
+      nextMonth: 'Mes siguiente',
+      previousMonth: 'Mes anterior',
+      nextYear: 'Año siguiente',
+      previousYear: 'Año anterior',
+      nextDecade: 'Década siguiente',
+      previousDecade: 'Década anterior',
+      seconds: 'Segundos',
+    },
     actions: {
+      clear: 'Limpiar',
+      togglePasswordVisibility: 'Mostrar u ocultar contraseña',
       back: 'Atrás',
       cancel: 'Cancelar',
       close: 'Cerrar',
@@ -209,6 +222,9 @@ export const es: typeof en = {
     },
   },
   schedules: {
+    hours: 'Horas',
+    minutes: 'Minutos',
+    timePeriod: 'AM o PM',
     types: {
       hourly: 'Cada hora',
       daily: 'Diario',

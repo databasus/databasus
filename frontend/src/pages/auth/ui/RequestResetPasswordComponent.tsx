@@ -1,4 +1,4 @@
-import { Form, Button, Input } from 'antd';
+import { Button, TextInput } from '@mantine/core';
 import { useId } from 'react';
 import { type JSX, useEffect, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
@@ -94,20 +94,12 @@ export function RequestResetPasswordComponent({
         {t('users.requestPasswordReset.description')}
       </div>
 
-      <Form.Item
-        htmlFor={controlId + 'field-1'}
-        label={t('users.fields.yourEmail')}
-        layout="vertical"
-        validateStatus={isEmailError ? 'error' : undefined}
-        help={
-          isEmailError ? (
-            <span id={controlId + 'field-1' + '-error'}>{t('users.validation.emailInvalid')}</span>
-          ) : undefined
-        }
-      >
-        <Input
+      <div className="mb-6 min-w-0">
+        <label htmlFor={controlId + 'field-1'} className="mb-2 block text-sm text-content">
+          {t('users.fields.yourEmail')}
+        </label>
+        <TextInput
           aria-invalid={isEmailError}
-          aria-describedby={controlId + 'field-1' + '-error'}
           id={controlId + 'field-1'}
           placeholder="your@email.com"
           value={email}
@@ -115,13 +107,17 @@ export function RequestResetPasswordComponent({
             setEmailError(false);
             setEmail(e.currentTarget.value.trim().toLowerCase());
           }}
-          status={isEmailError ? 'error' : undefined}
           type="email"
-          onPressEnter={() => {
-            onSendCode();
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              (() => {
+                onSendCode();
+              })();
+            }
           }}
+          error={isEmailError ? <span>{t('users.validation.emailInvalid')}</span> : undefined}
         />
-      </Form.Item>
+      </div>
 
       <div className="mt-3" />
 
@@ -135,7 +131,8 @@ export function RequestResetPasswordComponent({
         onClick={() => {
           onSendCode();
         }}
-        type="primary"
+        variant="filled"
+        aria-busy={isLoading}
       >
         {t('users.requestPasswordReset.submit')}
       </Button>

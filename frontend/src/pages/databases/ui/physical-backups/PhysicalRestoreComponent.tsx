@@ -1,5 +1,6 @@
-import { Alert, Button, DatePicker, Segmented, Spin, Tabs } from 'antd';
+import { Alert, Button, Loader, SegmentedControl, Tabs } from '@mantine/core';
 import type { Dayjs } from 'dayjs';
+import { CircleAlert } from 'lucide-react';
 import { type JSX, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -12,6 +13,7 @@ import {
 import { type PhysicalBackupListItem } from '@/pages/databases/model/physical-backups/PhysicalBackupListItem';
 import { PhysicalRestoreEnvironmentPanel } from '@/pages/databases/ui/physical-backups/PhysicalRestoreEnvironmentPanel';
 import type { PhysicalRestoreMethod } from '@/pages/databases/ui/physical-backups/PhysicalRestoreMethod';
+import { PhysicalRestoreTargetTimeField } from '@/pages/databases/ui/physical-backups/PhysicalRestoreTargetTimeField';
 import { usePhysicalRestoreToken } from '@/pages/databases/ui/physical-backups/usePhysicalRestoreToken';
 import { ApiError } from '@/shared/api';
 import { type TranslationKey, translateApiError } from '@/shared/i18n';
@@ -100,13 +102,10 @@ export const PhysicalRestoreComponent = ({ database, backup, onClose }: Props): 
             <label className="mb-1 min-w-[120px] sm:mb-0 sm:pr-2" htmlFor={targetTimeFieldId}>
               {t('backups.physical.restore.targetTime')}
             </label>
-            <DatePicker
+            <PhysicalRestoreTargetTimeField
               id={targetTimeFieldId}
-              showTime
               value={targetTime}
-              onChange={(value) => setTargetTime(value ?? undefined)}
-              className="w-full max-w-[260px] grow"
-              placeholder={t('backups.physical.restore.latestAvailable')}
+              onChange={setTargetTime}
             />
           </div>
         </>
@@ -115,49 +114,51 @@ export const PhysicalRestoreComponent = ({ database, backup, onClose }: Props): 
       {restoreError !== undefined && (
         <Alert
           className="mt-3 whitespace-pre-line"
-          type="error"
-          showIcon
-          message={translateApiError(restoreError, t)}
-          description={restoreErrorHintKey && t(restoreErrorHintKey)}
-        />
+          color="danger"
+          icon={
+            <CircleAlert aria-hidden size={16} className="inline-block shrink-0 align-middle" />
+          }
+          title={translateApiError(restoreError, t)}
+        >
+          {restoreErrorHintKey && t(restoreErrorHintKey)}
+        </Alert>
       )}
 
       {isGenerating && (
         <div className="mt-5 flex items-center gap-2 border-t border-border pt-4 text-sm text-muted">
-          <Spin size="small" />
+          <Loader size="xs" role="status" />
           {t('backups.physical.restore.preparing')}
         </div>
       )}
 
       {bundleUrl && (
         <div className="mt-5 border-t border-border pt-4">
-          <Segmented<PhysicalRestoreMethod>
+          <SegmentedControl<PhysicalRestoreMethod>
+            className="max-w-full flex-wrap"
             aria-label={t('backups.physical.restore.methods.label')}
             value={restoreMethod}
             onChange={setRestoreMethod}
-            options={[
+            data={[
               { label: t('backups.physical.restore.methods.script'), value: 'script' },
               { label: t('backups.physical.restore.methods.manual'), value: 'manual' },
             ]}
           />
           <Tabs
+            keepMounted={false}
             className="mt-2"
-            activeKey={environment}
-            onChange={(key) => setEnvironment(key as RestoreEnvironment)}
-            items={[
-              {
-                key: 'host',
-                label: t('backups.physical.restore.environments.host'),
-                children: renderEnvironmentPanel('host', bundleUrl),
-              },
-              {
-                key: 'docker',
-                // eslint-disable-next-line i18next/no-literal-string -- product name
-                label: 'Docker',
-                children: renderEnvironmentPanel('docker', bundleUrl),
-              },
-            ]}
-          />
+            value={environment}
+            onChange={(value) => {
+              if (value) setEnvironment(value as RestoreEnvironment);
+            }}
+          >
+            <Tabs.List className="flex-wrap">
+              <Tabs.Tab value="host">{t('backups.physical.restore.environments.host')}</Tabs.Tab>
+              {/* eslint-disable-next-line i18next/no-literal-string -- Product name. */}
+              <Tabs.Tab value="docker">Docker</Tabs.Tab>
+            </Tabs.List>
+            <Tabs.Panel value="host">{renderEnvironmentPanel('host', bundleUrl)}</Tabs.Panel>
+            <Tabs.Panel value="docker">{renderEnvironmentPanel('docker', bundleUrl)}</Tabs.Panel>
+          </Tabs>
           <p className="mt-1 text-xs text-muted">{t('backups.physical.restore.linkExpiry')}</p>
         </div>
       )}

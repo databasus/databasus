@@ -1,5 +1,5 @@
-import { InfoCircleOutlined } from '@ant-design/icons';
-import { Button, Input, Switch, Tooltip } from 'antd';
+import { Button, Switch, TextInput, Tooltip } from '@mantine/core';
+import { Info } from 'lucide-react';
 import { useId, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -45,11 +45,8 @@ export function EditTelegramNotifierComponent({
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('notifiers.fields.botToken')}</div>
         <div className="w-full max-w-[250px]">
-          <Input
+          <TextInput
             aria-label={t('notifiers.fields.botToken')}
-            aria-describedby={
-              isBotTokenRequiredAgain ? `${fieldPrefix}-botToken-notice` : undefined
-            }
             value={settings.botToken ?? ''}
             onChange={(e) =>
               onChange({
@@ -57,7 +54,7 @@ export function EditTelegramNotifierComponent({
                 botToken: toOptionalValue(e.target.value.trim()),
               })
             }
-            size="small"
+            size="xs"
             className="w-full"
             placeholder={
               isSaved && !isAddressChanged
@@ -65,10 +62,12 @@ export function EditTelegramNotifierComponent({
                 : // eslint-disable-next-line i18next/no-literal-string -- example token, not copy
                   '1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZ'
             }
+            description={
+              isBotTokenRequiredAgain && (
+                <AddressChangedSecretNoticeComponent id={`${fieldPrefix}-botToken-notice`} />
+              )
+            }
           />
-          {isBotTokenRequiredAgain && (
-            <AddressChangedSecretNoticeComponent id={`${fieldPrefix}-botToken-notice`} />
-          )}
         </div>
       </div>
 
@@ -88,17 +87,17 @@ export function EditTelegramNotifierComponent({
           {t('notifiers.fields.targetChatId')}
         </div>
         <div className="flex items-center">
-          <Input
+          <TextInput
             aria-label={t('notifiers.fields.targetChatId')}
             value={settings.targetChatId}
             onChange={(e) => onChange({ ...settings, targetChatId: e.target.value.trim() })}
-            size="small"
+            size="xs"
             className="w-full max-w-[250px]"
             placeholder="-1001234567890"
           />
 
-          <Tooltip className="cursor-pointer" title={t('notifiers.telegram.targetChatIdTooltip')}>
-            <InfoCircleOutlined className="ml-2 text-muted" />
+          <Tooltip className="cursor-pointer" label={t('notifiers.telegram.targetChatIdTooltip')}>
+            <Info className="ml-2 inline-block shrink-0 align-middle text-muted" size="1em" />
           </Tooltip>
         </div>
       </div>
@@ -106,7 +105,7 @@ export function EditTelegramNotifierComponent({
       <div className="max-w-[250px] sm:ml-[150px]">
         {!isShowHowToGetChatId ? (
           <Button
-            type="link"
+            variant="transparent"
             className="mt-1 !h-auto !px-0 text-left text-xs !whitespace-normal"
             onClick={() => setIsShowHowToGetChatId(true)}
           >
@@ -136,20 +135,20 @@ export function EditTelegramNotifierComponent({
           <Switch
             aria-label={t('notifiers.telegram.sendToGroupTopic')}
             checked={isSendToThreadEnabled}
-            onChange={(checked) =>
+            onChange={(event) =>
               onChange({
                 ...settings,
-                threadId: checked ? TOPIC_WITHOUT_ID : undefined,
+                threadId: event.currentTarget.checked ? TOPIC_WITHOUT_ID : undefined,
               })
             }
-            size="small"
+            size="xs"
           />
 
           <Tooltip
             className="cursor-pointer"
-            title={t('notifiers.telegram.sendToGroupTopicTooltip')}
+            label={t('notifiers.telegram.sendToGroupTopicTooltip')}
           >
-            <InfoCircleOutlined className="ml-2 text-muted" />
+            <Info className="ml-2 inline-block shrink-0 align-middle text-muted" size="1em" />
           </Tooltip>
         </div>
       </div>
@@ -161,7 +160,7 @@ export function EditTelegramNotifierComponent({
               {t('notifiers.telegram.threadId')}
             </div>
             <div className="flex items-center">
-              <Input
+              <TextInput
                 aria-label={t('notifiers.telegram.threadId')}
                 value={settings.threadId ? settings.threadId.toString() : ''}
                 onChange={(e) => {
@@ -172,15 +171,15 @@ export function EditTelegramNotifierComponent({
                     threadId: Number.isNaN(threadId) ? TOPIC_WITHOUT_ID : threadId,
                   });
                 }}
-                size="small"
+                size="xs"
                 className="w-full max-w-[250px]"
                 placeholder="3"
                 type="number"
                 min="1"
               />
 
-              <Tooltip className="cursor-pointer" title={t('notifiers.telegram.threadIdTooltip')}>
-                <InfoCircleOutlined className="ml-2 text-muted" />
+              <Tooltip className="cursor-pointer" label={t('notifiers.telegram.threadIdTooltip')}>
+                <Info className="ml-2 inline-block shrink-0 align-middle text-muted" size="1em" />
               </Tooltip>
             </div>
           </div>
@@ -222,9 +221,11 @@ export function EditTelegramNotifierComponent({
             label={t('notifiers.telegram.botApiUrl')}
             tooltip={t('notifiers.telegram.botApiUrlTooltip')}
           >
-            <Input
+            <TextInput
               id={`${fieldPrefix}-botApiUrl`}
-              aria-describedby={`${fieldPrefix}-botApiUrl-help`}
+              description={t('notifiers.telegram.botApiUrlTooltip')}
+              descriptionProps={{ className: 'sr-only' }}
+              classNames={{ wrapper: 'mb-0' }}
               value={settings.botApiUrl ?? ''}
               onChange={(e) =>
                 onChange({
@@ -232,7 +233,7 @@ export function EditTelegramNotifierComponent({
                   botApiUrl: toOptionalValue(e.target.value.trim()),
                 })
               }
-              size="small"
+              size="xs"
               className="w-full max-w-[250px]"
               // eslint-disable-next-line i18next/no-literal-string -- example URL, not copy
               placeholder="https://api.telegram.org"
@@ -248,14 +249,14 @@ export function EditTelegramNotifierComponent({
               id={`${fieldPrefix}-useProxy`}
               aria-describedby={`${fieldPrefix}-useProxy-help`}
               checked={settings.isProxyEnabled}
-              onChange={(checked) =>
+              onChange={(event) =>
                 onChange({
                   ...settings,
-                  isProxyEnabled: checked,
-                  proxyUrl: checked ? settings.proxyUrl : undefined,
+                  isProxyEnabled: event.currentTarget.checked,
+                  proxyUrl: event.currentTarget.checked ? settings.proxyUrl : undefined,
                 })
               }
-              size="small"
+              size="xs"
             />
           </AdvancedFieldRowComponent>
 
@@ -265,9 +266,11 @@ export function EditTelegramNotifierComponent({
               label={t('notifiers.telegram.proxyUrl')}
               tooltip={t('notifiers.telegram.proxyUrlTooltip')}
             >
-              <Input
+              <TextInput
                 id={`${fieldPrefix}-proxyUrl`}
-                aria-describedby={`${fieldPrefix}-proxyUrl-help`}
+                description={t('notifiers.telegram.proxyUrlTooltip')}
+                descriptionProps={{ className: 'sr-only' }}
+                classNames={{ wrapper: 'mb-0' }}
                 value={settings.proxyUrl ?? ''}
                 onChange={(e) =>
                   onChange({
@@ -275,7 +278,7 @@ export function EditTelegramNotifierComponent({
                     proxyUrl: toOptionalValue(e.target.value.trim()),
                   })
                 }
-                size="small"
+                size="xs"
                 className="w-full max-w-[250px]"
                 placeholder={
                   isSaved

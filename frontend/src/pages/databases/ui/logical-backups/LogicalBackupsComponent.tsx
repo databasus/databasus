@@ -1,6 +1,6 @@
-import { FilterFilled, FilterOutlined, InfoCircleOutlined } from '@ant-design/icons';
-import { App, Button, Modal, Spin } from 'antd';
-import { useRef, useState } from 'react';
+import { ActionIcon, Button, Loader } from '@mantine/core';
+import { Info, ListFilter } from 'lucide-react';
+import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import type { Database } from '@/entities/databases';
@@ -18,11 +18,12 @@ import { RestoresComponent } from '@/pages/databases/ui/restores/RestoresCompone
 import { usePersistentState, usePolledPagedList } from '@/shared/hooks';
 import { getWebsitePageUrl, translateApiError, useLocale } from '@/shared/i18n';
 import { formatCompactSizeMb } from '@/shared/lib';
+import { useFeedback } from '@/shared/lib/feedback';
+import { Dialog } from '@/shared/ui';
 import { ConfirmationComponent, LoadFailure } from '@/shared/ui';
 
 const BACKUPS_PAGE_SIZE = 50;
-const BACKUPS_REFRESH_MS = 1_000;
-
+const BACKUPS_REFRESH_MS = 1000;
 interface Props {
   database: Database;
   isCanManageDBs: boolean;
@@ -38,8 +39,7 @@ export const LogicalBackupsComponent = ({
 }: Props) => {
   const { t } = useTranslation();
   const { locale, formatNumber } = useLocale();
-  const { message, modal } = App.useApp();
-
+  const notify = useFeedback();
   const [showingBackupError, setShowingBackupError] = useState<LogicalBackup | undefined>();
   const [backupToDeleteId, setBackupToDeleteId] = useState<string | undefined>();
   const [restoringBackup, setRestoringBackup] = useState<LogicalBackup | undefined>();
@@ -82,7 +82,7 @@ export const LogicalBackupsComponent = ({
     scrollContainerRef,
     resetKey: JSON.stringify([database.id, filter]),
     onError: (error, failedPage) => {
-      if (failedPage === 'next') message.error(translateApiError(error, t));
+      if (failedPage === 'next') notify({ kind: 'error', title: translateApiError(error, t) });
     },
   });
 
@@ -96,49 +96,9 @@ export const LogicalBackupsComponent = ({
     reloadBackups,
     onNavigateToVerifications,
   });
-
-  const isVerifyRestoreConfirmOpenRef = useRef(false);
-
-  const confirmVerifyRestore = (backupId: string) => {
-    if (isVerifyRestoreConfirmOpenRef.current) return;
-
-    isVerifyRestoreConfirmOpenRef.current = true;
-
-    const markVerifyRestoreConfirmClosed = () => {
-      isVerifyRestoreConfirmOpenRef.current = false;
-    };
-
-    modal.confirm({
-      title: t('backups.logical.list.verifyRestore.title'),
-      icon: <InfoCircleOutlined className="!text-accent" />,
-      content: (
-        <span>
-          <Trans
-            i18nKey="backups.logical.list.verifyRestore.description"
-            components={{
-              docsLink: (
-                <a
-                  href={getWebsitePageUrl('restoreVerification', locale)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                />
-              ),
-            }}
-          />
-        </span>
-      ),
-      okText: t('backups.logical.list.verifyRestore.queue'),
-      okType: 'primary',
-      okButtonProps: { type: 'primary', danger: false },
-      cancelText: t('common.actions.cancel'),
-      onOk: async () => {
-        await backupActions.startVerification(backupId);
-        markVerifyRestoreConfirmClosed();
-      },
-      onCancel: markVerifyRestoreConfirmClosed,
-    });
-  };
-
+  const [verifyingBackupId, setVerifyingBackupId] = useState<string>();
+  const confirmVerifyRestore = (backupId: string) =>
+    setVerifyingBackupId((current) => current ?? backupId);
   const isAnyFilterApplied =
     (filter.statuses && filter.statuses.length > 0) || filter.createdBefore !== undefined;
 
@@ -159,7 +119,7 @@ export const LogicalBackupsComponent = ({
   if (isBackupConfigLoading) {
     return (
       <div className="mb-5 flex items-center">
-        <Spin />
+        <Loader role="status" />
       </div>
     );
   }
@@ -169,16 +129,19 @@ export const LogicalBackupsComponent = ({
       <div className="flex items-center gap-2">
         <h2 className="text-lg font-bold md:text-xl">{t('backups.list.title')}</h2>
         <div className="relative">
-          <Button
-            type="text"
-            size="small"
+          <ActionIcon
+            variant="subtle"
+            size="xs"
             aria-label={t('backups.filters.toggle')}
             aria-expanded={isFilterPanelVisible}
-            icon={
-              isFilterPanelVisible ? <FilterFilled className="text-accent" /> : <FilterOutlined />
-            }
             onClick={() => setIsFilterPanelVisible(!isFilterPanelVisible)}
-          />
+          >
+            {isFilterPanelVisible ? (
+              <ListFilter className="inline-block shrink-0 align-middle text-accent" size="1em" />
+            ) : (
+              <ListFilter size="1em" className="inline-block shrink-0 align-middle" />
+            )}
+          </ActionIcon>
           {!isFilterPanelVisible && isAnyFilterApplied && (
             <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-accent" />
           )}
@@ -202,10 +165,11 @@ export const LogicalBackupsComponent = ({
       <div className="flex items-center">
         <Button
           onClick={() => void backupActions.startBackup()}
-          className="mr-1"
-          type="primary"
+          className="mr-1 !h-auto min-h-8 max-w-full !whitespace-normal"
+          variant="filled"
           disabled={backupActions.isStartingBackup || firstLoadError !== undefined}
           loading={backupActions.isStartingBackup}
+          aria-busy={backupActions.isStartingBackup}
         >
           <span className="md:hidden">{t('backups.logical.list.backupNow')}</span>
           <span className="hidden md:inline">{t('backups.logical.list.makeBackupNow')}</span>
@@ -234,7 +198,7 @@ export const LogicalBackupsComponent = ({
 
               {isLoadingMore && (
                 <div className="mt-3 flex justify-center">
-                  <Spin />
+                  <Loader role="status" />
                 </div>
               )}
               {!hasMore && backups.length > 0 && (
@@ -257,7 +221,7 @@ export const LogicalBackupsComponent = ({
               />
               {isLoadingMore && (
                 <div className="mt-2 flex justify-center">
-                  <Spin />
+                  <Loader role="status" />
                 </div>
               )}
               {!hasMore && backups.length > 0 && (
@@ -284,28 +248,70 @@ export const LogicalBackupsComponent = ({
       )}
 
       {restoringBackup && (
-        <Modal
-          width={400}
-          open
-          onCancel={() => setRestoringBackup(undefined)}
+        <Dialog
+          size={400}
+          opened
+          onClose={() => setRestoringBackup(undefined)}
           title={t('backups.list.restoreTitle')}
-          footer={null}
-          maskClosable={false}
+          closeOnClickOutside={false}
         >
           <RestoresComponent database={database} backup={restoringBackup} />
-        </Modal>
+        </Dialog>
       )}
 
       {showingBackupError && (
-        <Modal
+        <Dialog
           title={t('backups.list.errorDetailsTitle')}
-          open
-          onCancel={() => setShowingBackupError(undefined)}
-          maskClosable={false}
-          footer={null}
+          opened
+          onClose={() => setShowingBackupError(undefined)}
+          closeOnClickOutside={false}
         >
           <div className="text-sm">{showingBackupError.failMessage}</div>
-        </Modal>
+        </Dialog>
+      )}
+
+      {verifyingBackupId && (
+        <Dialog
+          opened
+          title={t('backups.logical.list.verifyRestore.title')}
+          onClose={() => setVerifyingBackupId(undefined)}
+        >
+          <div className="flex items-start gap-3">
+            <Info aria-hidden size={20} className="shrink-0 text-accent" />
+            <div>
+              <span>
+                <Trans
+                  i18nKey="backups.logical.list.verifyRestore.description"
+                  components={{
+                    docsLink: (
+                      <a
+                        href={getWebsitePageUrl('restoreVerification', locale)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      />
+                    ),
+                  }}
+                />
+              </span>
+            </div>
+          </div>
+          <div className="mt-5 flex flex-wrap justify-end gap-2">
+            <Button onClick={() => setVerifyingBackupId(undefined)}>
+              {t('common.actions.cancel')}
+            </Button>
+            <Button
+              variant="filled"
+              loading={backupActions.verifyingBackupId === verifyingBackupId}
+              onClick={async () => {
+                await backupActions.startVerification(verifyingBackupId);
+                setVerifyingBackupId(undefined);
+              }}
+              aria-busy={backupActions.verifyingBackupId === verifyingBackupId}
+            >
+              {t('backups.logical.list.verifyRestore.queue')}
+            </Button>
+          </div>
+        </Dialog>
       )}
     </div>
   );

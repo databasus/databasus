@@ -1,4 +1,4 @@
-import { Button, Input } from 'antd';
+import { Button, TextInput } from '@mantine/core';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -52,7 +52,7 @@ export const EditDatabaseBaseInfoComponent = ({
         <label className="mr-3" htmlFor={nameFieldId}>
           {t('common.fields.name')}
         </label>
-        <Input
+        <TextInput
           id={nameFieldId}
           value={editingName}
           onChange={(e) => setEditingName(e.target.value)}
@@ -74,13 +74,11 @@ export const EditDatabaseBaseInfoComponent = ({
               key={engineType}
               aria-pressed={isSelected}
               onClick={() => selectEngine(engineType)}
-              className={`flex h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border text-center text-xs transition hover:border-accent ${
-                isSelected ? 'border-accent bg-selected' : 'border-border bg-surface'
-              }`}
+              className={`flex min-h-24 min-w-0 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border text-center text-xs transition hover:border-accent ${isSelected ? 'border-accent bg-selected' : 'border-border bg-surface'}`}
             >
               <img src={getDatabaseLogoFromType(engineType)} alt="" className="h-7 w-7" />
 
-              <span className="px-1 leading-tight">{engineLabel}</span>
+              <span className="px-1 leading-tight [overflow-wrap:anywhere]">{engineLabel}</span>
             </button>
           );
         })}
@@ -88,7 +86,7 @@ export const EditDatabaseBaseInfoComponent = ({
 
       <div className="mt-5 flex">
         <Button
-          type="primary"
+          variant="filled"
           className="ml-auto"
           onClick={() => onContinue(editingName.trim(), selectedType)}
           disabled={!isAllFieldsFilled}

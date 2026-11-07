@@ -1,5 +1,5 @@
-import { InfoCircleOutlined } from '@ant-design/icons';
-import { Tooltip } from 'antd';
+import { Tooltip } from '@mantine/core';
+import { Info } from 'lucide-react';
 import { type JSX, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -226,8 +226,8 @@ export const ShowPhysicalBackupConfigComponent = ({
                 ) : (
                   <span className="flex items-center gap-1">
                     {describeGfsRetention(fullBackupsRetention)}
-                    <Tooltip title={t('backups.physical.config.gfsTooltip')}>
-                      <InfoCircleOutlined className="text-muted" />
+                    <Tooltip label={t('backups.physical.config.gfsTooltip')}>
+                      <Info className="inline-block shrink-0 align-middle text-muted" size="1em" />
                     </Tooltip>
                   </span>
                 )}

@@ -1,12 +1,5 @@
-import {
-  CheckCircleFilled,
-  ClockCircleOutlined,
-  CloseCircleFilled,
-  ExclamationCircleFilled,
-  PauseCircleFilled,
-  QuestionCircleFilled,
-} from '@ant-design/icons';
-import { Button, theme } from 'antd';
+import { Button } from '@mantine/core';
+import { CircleAlert, CircleCheck, CircleHelp, CirclePause, CircleX, Clock3 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -23,7 +16,7 @@ import { VerdictIcon } from '@/pages/databases/model/wal-stream-monitoring/Verdi
 import { WalStreamReasonLevel } from '@/pages/databases/model/wal-stream-monitoring/WalStreamReasonLevel';
 import { MonitoringTextComponent } from '@/pages/databases/ui/wal-stream-monitoring/MonitoringTextComponent';
 import { translateLocalizedText } from '@/shared/i18n';
-
+import { THEME_COLOR_VARIABLES } from '@/shared/theme';
 interface Props {
   banner: VerdictBanner;
   fullBackupAction: FullBackupAction;
@@ -35,28 +28,36 @@ interface Props {
 }
 
 const VERDICT_ICONS: Record<VerdictIcon, ReactNode> = {
-  [VerdictIcon.CHECK]: <CheckCircleFilled />,
-  [VerdictIcon.EXCLAMATION]: <ExclamationCircleFilled />,
-  [VerdictIcon.CLOSE]: <CloseCircleFilled />,
-  [VerdictIcon.CLOCK]: <ClockCircleOutlined />,
-  [VerdictIcon.PAUSE]: <PauseCircleFilled />,
-  [VerdictIcon.QUESTION]: <QuestionCircleFilled />,
+  [VerdictIcon.CHECK]: <CircleCheck size="1em" className="inline-block shrink-0 align-middle" />,
+  [VerdictIcon.EXCLAMATION]: (
+    <CircleAlert size="1em" className="inline-block shrink-0 align-middle" />
+  ),
+  [VerdictIcon.CLOSE]: <CircleX size="1em" className="inline-block shrink-0 align-middle" />,
+  [VerdictIcon.CLOCK]: <Clock3 size="1em" className="inline-block shrink-0 align-middle" />,
+  [VerdictIcon.PAUSE]: <CirclePause size="1em" className="inline-block shrink-0 align-middle" />,
+  [VerdictIcon.QUESTION]: <CircleHelp size="1em" className="inline-block shrink-0 align-middle" />,
 };
 
 const OtherReasonComponent = ({ reason }: { reason: ReasonTexts }) => {
   const { t } = useTranslation();
-  const { token } = theme.useToken();
-
   const isBroken = reason.level === WalStreamReasonLevel.BROKEN;
 
   return (
     <li className="flex items-start gap-2 text-sm">
       <span
         className="mt-0.5 leading-none"
-        style={{ color: isBroken ? token.colorError : token.colorWarning }}
+        style={{
+          color: isBroken
+            ? THEME_COLOR_VARIABLES['error-fill']
+            : THEME_COLOR_VARIABLES['warning-fill'],
+        }}
         aria-hidden
       >
-        {isBroken ? <CloseCircleFilled /> : <ExclamationCircleFilled />}
+        {isBroken ? (
+          <CircleX size="1em" className="inline-block shrink-0 align-middle" />
+        ) : (
+          <CircleAlert size="1em" className="inline-block shrink-0 align-middle" />
+        )}
       </span>
 
       <div>
@@ -84,10 +85,7 @@ export const VerdictBannerComponent = ({
   onOpenConfig,
 }: Props) => {
   const { t } = useTranslation();
-  const { token } = theme.useToken();
-
-  const toneColors = getToneColors(token, banner.tone);
-
+  const toneColors = getToneColors(banner.tone);
   const measuredSeconds = sampledAt === null ? null : getSecondsBetween(sampledAt, now);
   const isLive = measuredSeconds !== null && measuredSeconds * 1000 < UNCONFIRMED_STATE_AFTER_MS;
   const isFullBackupActionShown = fullBackupAction !== FullBackupAction.HIDDEN;
@@ -116,7 +114,11 @@ export const VerdictBannerComponent = ({
               <span
                 aria-hidden
                 className={`inline-block h-2 w-2 rounded-full ${isLive && !isReducedMotion ? 'animate-pulse' : ''}`}
-                style={{ backgroundColor: isLive ? token.colorSuccess : token.colorTextQuaternary }}
+                style={{
+                  backgroundColor: isLive
+                    ? THEME_COLOR_VARIABLES['success-fill']
+                    : THEME_COLOR_VARIABLES['disabled'],
+                }}
               />
 
               {measuredSeconds === null
@@ -156,9 +158,10 @@ export const VerdictBannerComponent = ({
             {isFullBackupActionShown && (
               <Button
                 className="mt-3"
-                type="primary"
+                variant="filled"
                 loading={fullBackupAction === FullBackupAction.REQUESTING}
                 onClick={onStartFullBackup}
+                aria-busy={fullBackupAction === FullBackupAction.REQUESTING}
               >
                 {t('backups.physical.monitoring.banner.startFullBackup')}
               </Button>

@@ -1,0 +1,1656 @@
+{
+  "phase": "After cleanup and supplemental interaction/context verification; historical identities and sources are preserved.",
+  "interpretation": "Added declarations include migration-ID renames. Changed declarations include semantic selector replacements as well as expanded assertions; they are not all new product tests. Parameterized declarations expand into multiple runtime cases.",
+  "disposition": "Retain unique request, draft, permission, secret, race, cleanup, localization, keyboard, focus, portal, geometry and chart assertions in their existing owners. Consolidate only the duplicate mobile-sidebar setup described in design.md; remove migration-only captures after acceptance.",
+  "preCleanupChanges": [
+    {
+      "file": "frontend/browser/scenarios/appShell.spec.ts",
+      "added": [
+        "'SH05 keeps workspace creation and navigation reachable when the entire shell uses 200% text at 320px'",
+        "`SH03 shows the selected section on the sidebar in the ${theme} theme`",
+        "`SH04 shows the selected section in the narrow menu in the ${theme} theme`",
+        "'UI01 retains the profile draft and sidebar when language is selected with the keyboard at 320px'"
+      ],
+      "changed": [
+        "'preserves warning color and header reflow when the theme changes with enlarged text'",
+        "'keeps desktop header actions reachable when the entire shell uses 200% text just above the mobile breakpoint'"
+      ],
+      "removed": [
+        "'keeps workspace creation and navigation reachable when the entire shell uses 200% text at 320px'",
+        "`shows the selected section on the sidebar in the ${theme} theme`",
+        "`shows the selected section in the narrow menu in the ${theme} theme`",
+        "'retains the profile draft and sidebar when language is selected with the keyboard at 320px'"
+      ]
+    },
+    {
+      "file": "frontend/browser/scenarios/auth.spec.ts",
+      "added": [],
+      "changed": [
+        "'preserves auth input and reflows its translated refusal with 200% text at 320px'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/browserRegion.spec.ts",
+      "added": [],
+      "changed": ["'renders Chinese text with a CJK font and requests no external font'"],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/databaseCleanup.spec.ts",
+      "added": [
+        "`CF08 keeps cleanup beside cleared Storage with disabled backups in ${theme} theme`"
+      ],
+      "changed": [],
+      "removed": ["`keeps cleanup beside cleared Storage with disabled backups in ${theme} theme`"]
+    },
+    {
+      "file": "frontend/browser/scenarios/databaseConnection.spec.ts",
+      "added": [],
+      "changed": ["'creates a database, edits it and reads it again without any secret'"],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/databaseResources.spec.ts",
+      "added": [
+        "`DB01 scrolls the database details in one region and loads further backups when viewport width is ${width}`"
+      ],
+      "changed": [
+        "'shows the copy notice on the dark surface and removes it on its own'",
+        "'shows a focus indicator when tabbing to a tab and an edit icon'"
+      ],
+      "removed": [
+        "`scrolls the database details in one region and loads further backups when viewport width is ${width}`"
+      ]
+    },
+    {
+      "file": "frontend/browser/scenarios/databaseTransfer.spec.ts",
+      "added": [
+        "`TR01 TR02 TR03 keeps transfer choices and nested creation usable with ${locale} text enlarged at 320px`"
+      ],
+      "changed": [],
+      "removed": [
+        "`keeps transfer choices and nested creation usable with ${locale} text enlarged at 320px`"
+      ]
+    },
+    {
+      "file": "frontend/browser/scenarios/googleDriveStorage.spec.ts",
+      "added": [],
+      "changed": [
+        "'authorizes the nested editor without opener and preserves the surrounding draft until explicit save'",
+        "'keeps the prior storage selection and config draft after canceling an authorized nested editor'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/instanceSettings.spec.ts",
+      "added": [],
+      "changed": [
+        "`keeps instance settings draft and errors reachable at 320px with 200% text in ${context.locale} ${context.theme}`"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/logicalBackupConfig.spec.ts",
+      "added": [
+        "`CF02 edits retention and advanced settings in Russian and reads them again when viewport width is ${width}`"
+      ],
+      "changed": [],
+      "removed": [
+        "`edits retention and advanced settings in Russian and reads them again when viewport width is ${width}`"
+      ]
+    },
+    {
+      "file": "frontend/browser/scenarios/notifierResources.spec.ts",
+      "added": [
+        "`${surfaceIds[provider]} keeps ${provider} notifier controls accessible with ${theme} theme and enlarged narrow text`"
+      ],
+      "changed": [],
+      "removed": [
+        "`keeps ${provider} notifier controls accessible with ${theme} theme and enlarged narrow text`"
+      ]
+    },
+    {
+      "file": "frontend/browser/scenarios/physicalBackupConfig.spec.ts",
+      "added": [
+        "`CF04 edits a physical retention in Russian and reads it again when viewport width is ${width}`"
+      ],
+      "changed": [],
+      "removed": [
+        "`edits a physical retention in Russian and reads it again when viewport width is ${width}`"
+      ]
+    },
+    {
+      "file": "frontend/browser/scenarios/physicalBackups.spec.ts",
+      "added": [
+        "'PB05 returns focus to the status badge when the error details dialog closes'",
+        "`PB01 PB02 PB03 PB04 keeps physical backup filters and both deletion warnings in ${context.theme} ${context.locale} ${context.width}`",
+        "`PB06 PB07 opens script and manual restore commands for host and Docker in ${context.theme} ${context.locale} ${context.width}`"
+      ],
+      "changed": [
+        "`keeps the physical backup list accessible with every badge in the ${theme} theme`",
+        "'shows the physical backup list as cards that fit a narrow viewport'",
+        "'keeps focus inside the restore dialog and returns it to the row action on close'",
+        "'returns focus to the restore button when the point-in-time dialog closes'",
+        "'keeps the scroll position and the loaded rows after a manual backup'"
+      ],
+      "removed": ["'returns focus to the status badge when the error details dialog closes'"]
+    },
+    {
+      "file": "frontend/browser/scenarios/profile.spec.ts",
+      "added": [],
+      "changed": [
+        "`keeps profile correction and primary actions reachable at 320px with 200% text in ${context.locale} ${context.theme}`",
+        "'retains newer profile input and a single pending save when locale and theme change'",
+        "'keeps pending profile actions reachable when text is enlarged to 200% at 320px'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/resourceCollections.spec.ts",
+      "added": [
+        "`${domain === 'storages' ? 'ST01 ST02' : 'NT01 NT02'} keeps keyboard search and creation focus usable across narrow list and detail navigation`",
+        "`${domain === 'storages' ? 'ST11' : 'NT10'} contains enlarged transfer controls and restores focus after keyboard dismissal`"
+      ],
+      "changed": [],
+      "removed": [
+        "'keeps keyboard search and creation focus usable across narrow list and detail navigation'",
+        "'contains enlarged transfer controls and restores focus after keyboard dismissal'"
+      ]
+    },
+    {
+      "file": "frontend/browser/scenarios/sftpStorage.spec.ts",
+      "added": [],
+      "changed": [
+        "'reads saved methods, renames without secrets and switches explicitly through accessible narrow fields'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/smtp.spec.ts",
+      "added": [],
+      "changed": [
+        "'preserves values, expanded settings and successful testing across locale and theme switches'",
+        "'exposes SMTP fields, associated validation and shared keyboard focus without accessibility violations'",
+        "'contains confirmation focus and restores it to the invoking remove control'",
+        "`reference ${reference.name}`",
+        "'expires an existing success notice at its original deadline and uses the selected language for later notices'",
+        "`keeps validation, testing and saving reachable with enlarged ${locale} text at 320 pixels`",
+        "'keeps the sidebar open with restored control focus when a nested menu is dismissed by Escape'",
+        "'preserves the open sidebar and notifier draft when language is selected at 320 pixels'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/storageCleanup.spec.ts",
+      "added": [
+        "`ST13 focuses Wait and cancels cleanup abandonment with the keyboard in ${theme} theme`"
+      ],
+      "changed": [],
+      "removed": [
+        "`focuses Wait and cancels cleanup abandonment with the keyboard in ${theme} theme`"
+      ]
+    },
+    {
+      "file": "frontend/browser/scenarios/storageResources.spec.ts",
+      "added": [
+        "`${surfaceIds[provider]} keeps ${provider} storage controls accessible with ${theme} theme and enlarged narrow text`"
+      ],
+      "changed": [],
+      "removed": [
+        "`keeps ${provider} storage controls accessible with ${theme} theme and enlarged narrow text`"
+      ]
+    },
+    {
+      "file": "frontend/browser/scenarios/users.spec.ts",
+      "added": [
+        "'UI05 keeps translated retry reachable with 200% text when the user list fails at 320px'"
+      ],
+      "changed": [
+        "'keeps the user drawer contained and restores its invoker after keyboard dismissal at 320px'",
+        "'keeps user actions and a translated refusal reachable when text is enlarged to 200% at 320px'"
+      ],
+      "removed": [
+        "'keeps translated retry reachable with 200% text when the user list fails at 320px'"
+      ]
+    },
+    {
+      "file": "frontend/browser/scenarios/verificationConfig.spec.ts",
+      "added": [
+        "`VF01 edits a verification schedule in Russian and reads it again when viewport width is ${width}`"
+      ],
+      "changed": [],
+      "removed": [
+        "`edits a verification schedule in Russian and reads it again when viewport width is ${width}`"
+      ]
+    },
+    {
+      "file": "frontend/browser/scenarios/verificationScreens.spec.ts",
+      "added": [
+        "`VF02 VF03 keeps focus inside the verification details and returns it to the row action in the ${theme} theme`",
+        "`AG01 AG05 keeps the agent table accessible and returns focus to its action when the rotate dialog closes in the ${theme} theme`",
+        "'AG03 AG05 shows the revealed token and its commands in a long locale at a narrow viewport'",
+        "`AG01 AG02 AG04 AG06 opens agent creation, installation and anchored deletion in ${context.theme} ${context.locale} ${context.width}`"
+      ],
+      "changed": [
+        "`contains long failure output inside the drawer at 320px with 200% text in the ${theme} theme`"
+      ],
+      "removed": [
+        "`keeps focus inside the verification details and returns it to the row action in the ${theme} theme`",
+        "`keeps the agent table accessible and returns focus to its action when the rotate dialog closes in the ${theme} theme`",
+        "'shows the revealed token and its commands in a long locale at a narrow viewport'"
+      ]
+    },
+    {
+      "file": "frontend/browser/scenarios/wal.spec.ts",
+      "added": [
+        "`WM01 WM02 renders WAL plots with positive measured dimensions and deterministic series in the ${theme} theme`",
+        "'WM01 WM02 keeps technical values, tips and help readable with French 200-percent text at 320px'"
+      ],
+      "changed": [],
+      "removed": [
+        "`renders WAL plots with positive measured dimensions and deterministic series in the ${theme} theme`"
+      ]
+    },
+    {
+      "file": "frontend/browser/scenarios/workspaceSettings.spec.ts",
+      "added": [],
+      "changed": [
+        "'preserves the name draft when failed workspace settings recover at narrow width'",
+        "`keeps the ownership warning readable with ${theme} theme`"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/app/ui/ApplicationStartup.test.tsx",
+      "added": [],
+      "changed": [
+        "'keeps account navigation usable when production release information fails'",
+        "'explains the new version link on keyboard focus'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/app/ui/WorkspaceNavigation.test.tsx",
+      "added": [],
+      "changed": [
+        "'retains an acknowledged workspace $mutation after older reconciliation finishes with failure=$hasFailed'",
+        "'shows no data of the previous workspace after switching when $path on $tab answers HTTP $status late'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/app/ui/WorkspaceResources.test.tsx",
+      "added": [],
+      "changed": [
+        "'preserves selection and a name draft when local search and language change hide its card'",
+        "'preserves current items, selection and feedback when a superseded HTTP %i reload finishes in the same workspace'",
+        "'keeps loading visible when an obsolete HTTP %i read settles before the current read'",
+        "'preserves a name draft during its refresh interval and stops requests after unmount'",
+        "'reconciles selection and preference when $operation succeeds with last resource=$isLastResource'",
+        "'sends the chosen workspace as the transfer target when several workspaces are offered'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/entities/schedules/ui/ScheduleEditor.test.tsx",
+      "added": [],
+      "changed": [
+        "'takes a time in the 12-hour format of the user'",
+        "'takes a time in the 24-hour format of the user'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/features/database-connection/ui/DatabaseConnectionForm.test.tsx",
+      "added": [],
+      "changed": ["'accepts no input and no second submission while a submission is pending'"],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/features/database-connection/ui/EditMongodbConnectionComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'hides the port for an SRV connection'",
+        "'keeps the direct connection choice'",
+        "'turns SRV off and shows direct connection on when a tunnel is enabled'",
+        "'asks for the password again when the SRV flag of a saved database changes'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/features/edit-notifier/ui/edit/EditNotifierComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'keeps newer edits when a submitted save completes'",
+        "'sends the entered settings when a $provider notifier is created'",
+        "'asks for no bot token when the Mattermost server URL differs in the webhook mode'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/features/edit-notifier/ui/edit/NotifierLifecycle.test.tsx",
+      "added": [],
+      "changed": [
+        "'retains test validity and sends one request per activation when name, locale or theme changes'",
+        "'suppresses a delayed successful %s after editor unmount while providers remain'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/features/edit-notifier/ui/edit/notifiers/EditTelegramNotifierComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'starts with the advanced settings collapsed for a new notifier'",
+        "'starts with the advanced settings expanded when a proxy is enabled'",
+        "'starts with the advanced settings expanded when a Bot API URL is set'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/features/edit-storage/ui/edit/StorageLifecycle.test.tsx",
+      "added": [],
+      "changed": [
+        "'keeps the name and settings, shows the reason and unlocks the type selector when creation is refused'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/features/edit-storage/ui/edit/storages/EditSFTPStorageComponent.test.tsx",
+      "added": ["'marks only missing required credentials invalid when $state'"],
+      "changed": [],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/auth-callback/ui/AuthCallbackPage.test.tsx",
+      "added": [],
+      "changed": [
+        "'suppresses completion after callback $mode while providers remain with refusal=$isRefused'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/auth/ui/SignUpComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'preserves input and translates persistent errors when the language changes after refusal'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/BackupStorageSelection.test.tsx",
+      "added": [],
+      "changed": [
+        "'keeps newer input open after creation and selects the assigned ID after updating it'",
+        "'rejects a late nested create after %s'",
+        "'retains the created storage after the initial list completes with failure=%s'",
+        "'retains the acknowledged option and retries when the post-creation refresh fails'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/CreateDatabaseComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'keeps the selected notifier after going back from the notifier step'",
+        "'keeps the input without a spinner when the wizard rerenders'",
+        "'shows the reason on the notifier step and keeps the message after going to the configuration step and returning'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/CreateDatabaseNotifiersStep.test.tsx",
+      "added": [],
+      "changed": [
+        "'opens creation from the empty dropdown with the keyboard and restores focus after cancel'",
+        "'offers Back and Complete while the notifier list loads'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/DatabaseComponent.test.tsx",
+      "added": [],
+      "changed": ["'keeps the last backup error after a successful connection test'"],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/DatabaseConfigComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'keeps Save offered when an exclusion of $variant changes after a test'",
+        "'reports the saved connection when the limited user suggestion is closed'",
+        "'sends one update when Save is clicked twice while pending'",
+        "'shows the saved values with Save disabled and sends no update when Cancel follows an edit in the $kind section'",
+        "'disables Save again when the retention period is changed and changed back'",
+        "'warns before reassignment to %s when the section opens again'",
+        "'keeps earlier cleanup visible when a second reassignment adds no files'",
+        "'preserves the active draft when cleanup completes in the $kind view'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/DatabaseTransferDialogComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'automatically selects completed storage when creation finishes inside transfer'",
+        "'keeps the dialog and its choices open when the transfer is refused'",
+        "'discards a nested storage creation after the transfer target workspace changes'",
+        "'retains transfer context until a delayed response completes with failure=%s'",
+        "'retains persisted nested storage and refreshed choices after an older target read fails=%s'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/DatabasesComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'shows the saved values on the card and after Cancel when the suggestion is closed'",
+        "'keeps the entered $kind values when the page becomes visible and the list refreshes'",
+        "'selects the created database after the wizard finishes and shows what the server saved'",
+        "'leaves the selection alone and lists the database on a later refresh when its create answer comes after the wizard closed'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/EditDatabaseNotifiersSection.test.tsx",
+      "added": [],
+      "changed": [
+        "'offers Cancel while the notifier list loads'",
+        "'shows a refused save in the form with the selection and reports no save'",
+        "'shows a failed notifier load with a retry that lists the notifiers and keeps the selection'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/NotifierComposition.test.tsx",
+      "added": [],
+      "changed": [
+        "'ignores pending creation when $composition changes $contextChange with failure=$hasFailed'",
+        "'automatically selects the created notifier when the %s editor completes'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/backup-config/CreateLogicalBackupConfigStep.test.tsx",
+      "added": [],
+      "changed": [
+        "'starts from the given configuration instead of the defaults'",
+        "'offers no Back without a way to go back'",
+        "'hands over the draft on Back and on Continue'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/backup-config/EditLogicalBackupConfigSection.test.tsx",
+      "added": [],
+      "changed": [
+        "'submits day 31 when the user changes only the time'",
+        "'shows a saved weekday 0 as Sunday and allows saving'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/backup-config/EditPhysicalBackupConfigSection.test.tsx",
+      "added": [],
+      "changed": [
+        "'offers only the type for an empty incremental schedule and keeps Save disabled'",
+        "'keeps the draft when the language changes'",
+        "'retains the storage selection and configuration draft when nested storage creation is canceled'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/healthcheck/EditHealthcheckConfigComponent.test.tsx",
+      "added": [],
+      "changed": ["'keeps the spinner when a $outcome load answers after the session ended'"],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/healthcheck/HealthcheckAttemptsComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'discards every old page when the period changes during a multi-page load'",
+        "'shows nothing after a retry of the config load finds healthcheck disabled'",
+        "'shows the reason without the old attempts when the load after a period change fails, and a later tick does not replace it'",
+        "'keeps the spinner when a $outcome config load answers after the session ended'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/logical-backups/LogicalBackupsComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'keeps the same restores when its backup leaves the list and refreshes fail'",
+        "'requests a new single-use token for each download'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/physical-backups/PhysicalBackupsComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'requests %s with the public backup kind when chosen in the menu'",
+        "'disables the start and says what it needs when $condition'",
+        "'keeps the tail and shows no loading state after a manual backup, and shows the new backup through a later poll'",
+        "'requests no list and shows nothing when an accepted $action answers after the user left'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/restores/RestoreTargetComposition.test.tsx",
+      "added": [],
+      "changed": [
+        "'sends one restore start when the start is clicked twice while pending'",
+        "'derives the SSL mode of a target from its host until the user chooses one'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/restores/RestoresComponent.test.tsx",
+      "added": [],
+      "changed": ["'shows no alert and keeps the restores when polls fail'"],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/show/ShowDatabaseNotifiersComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'keeps the spinner when a $outcome load answers after the session ended'",
+        "'shows the reason with a retry instead of a spinner when the load fails, and the notifier after a successful retry'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/verification/EditVerificationConfigComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'keeps a weekday chosen before a time and converts it with the time'",
+        "'shows a saved weekday 0 as Sunday'",
+        "'disables Save after a schedule edit hidden by returning to after-backup'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/verification/VerificationsComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'starts the cancel from the keyboard and blocks the cancel of another row while it runs'",
+        "'shows nothing and requests no list when $answer arrives after the user left'",
+        "'shows nothing and requests no list when $answer arrives after the session changed'",
+        "'shows no alert, keeps the rows and requests again when polls fail'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/wal-stream-monitoring/WalStreamMonitoringSections.test.tsx",
+      "added": [],
+      "changed": [
+        "'shows an amount above its limit as over the limit, and puts each arrow behind its own breakpoint wrapper'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/instance-settings/ui/InstanceSettingsPage.test.tsx",
+      "added": [],
+      "changed": [
+        "'derives save eligibility from the acknowledged response when a newer draft differs=%s'",
+        "'sends $settingName turned on and the other settings unchanged when it is saved with mail configured'",
+        "'restores the acknowledged baseline when reset is selected'",
+        "'retains the draft and safe failure when saving is refused'",
+        "'permits only disabling two-factor authentication when mail is unavailable and requirement=%s'",
+        "'retains settings edits and translates the refusal when language changes during saving'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/instance-settings/ui/MailServer.test.tsx",
+      "added": [],
+      "changed": ["'publishes no mail feedback after unmount with refusal=%s'"],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/instance-settings/ui/verification-agents/VerificationAgentsComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'suppresses old agent completion after the screen unmounts for a new session with refusal=$isRefused'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/notifiers/ui/NotifierComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'clears a prior %s failure after a saved notifier test succeeds'",
+        "'rejects a saved notifier test after newer settings are saved with old outcome=%s'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/notifiers/ui/NotifierTransferDialogComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'keeps the dialog and the chosen workspace and shows the translated reason when the transfer is refused'",
+        "'resets the target and ignores an obsolete HTTP %i transfer after the resource changes'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/profile/ui/ProfilePage.test.tsx",
+      "added": [],
+      "changed": [
+        "'suppresses callbacks and notices after a pending $operation outlives its page with refusal=$isRefused'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/storages/ui/StorageComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'rejects a saved storage test after newer settings are saved with old outcome=%s'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/storages/ui/StorageTransferDialogComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'keeps the dialog and the chosen workspace and shows the translated reason when the transfer is refused'",
+        "'resets the target and ignores an obsolete HTTP %i transfer after the resource changes'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/users/ui/UsersPage.test.tsx",
+      "added": [],
+      "changed": [
+        "'retains acknowledged status when an older list page finishes after a mutation'",
+        "'preserves displayed values and permits retry when the %s action is refused'",
+        "'acknowledges role and activation from returned users when each action succeeds'",
+        "'ignores the obsolete $action completion when search returns to the same text with refusal=$isRefused'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/workspace-settings/ui/WorkspaceMembersComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'offers no owner role when a role is selected for a new member'",
+        "'shows the acknowledged member role when a role change is refused=%s'",
+        "'limits member controls when the current workspace role is %s'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/workspace-settings/ui/WorkspaceSettingsComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'suppresses obsolete $operation responses after $lifetime with failure=$hasFailed'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/shared/lib/test/renderScreen.test.tsx",
+      "added": ["'retains a notice language and deadline when the interface language changes'"],
+      "changed": [
+        "'provides the real locale, %s theme and router entry'",
+        "'retains an unsaved draft when the language changes through a real provider'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/shared/ui/ConfirmationComponent.test.tsx",
+      "added": [
+        "'returns focus after its owner immediately unmounts it with setup replay=%s'",
+        "'cancels without confirming when the action is destructive'"
+      ],
+      "changed": [],
+      "removed": ["'keeps cancellation ordinary when the confirmed action is destructive'"]
+    },
+    {
+      "file": "frontend/src/shared/ui/LanguageThemeControlComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'opens the language menu when activated from the keyboard'",
+        "'follows the OS preference after System is picked from the theme menu'",
+        "'opens the language menu on hover and restores focus when Escape dismisses it'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/widgets/app-shell/ui/WorkspaceSelectionComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'opens creation from the filtered dropdown with keyboard access when the locale is %s'",
+        "'switches to a matching workspace without offering creation when permission is absent'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/tooling/sourceAlias.test.ts",
+      "added": [],
+      "changed": [
+        "'accepts a reference with $form when it is outside the relative-import restriction'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/tooling/styleChecks.test.ts",
+      "added": ["'requires semantic colors in Mantine presentation props and public variables'"],
+      "changed": ["'permits direct colors when the source is an exact theme or chart owner'"],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/administrationSurfaces.spec.ts",
+      "added": [
+        "'WS01 WS02 WS03 WS04 WS05 WS06 WS07 WS08 retains workspace context through member and deletion dialogs'",
+        "'PR01 PR02 AD01 AD02 AD03 AD04 AD05 preserves account screens and literal diagnostic output'"
+      ],
+      "changed": [],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/authSurfaces.spec.ts",
+      "added": [
+        "'AU01 AU02 preserves labelled sign-in and registration fields through validation'",
+        "'AU03 keeps sign-in code correction and resend refusal on the same screen'",
+        "'AU04 AU05 retains the submitted email when reset advances to code and password validation'",
+        "'AU06 AU07 scrubs invalid callbacks and shows recoverable translated feedback'"
+      ],
+      "changed": [],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/configurationSurfaces.spec.ts",
+      "added": [
+        "'CF01 CF02 CF03 CF05 CF06 keeps all schedule modes, retention and nested storage in the existing editor'",
+        "'DB11 DB12 DB13 DB14 DB15 CF09 keeps settings actions, nested notifier and healthcheck editing reachable'",
+        "'CF07 preserves the changed storage when its warning is canceled and submits once after confirmation'"
+      ],
+      "changed": [],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/connectionSurfaces.spec.ts",
+      "added": [
+        "`DB02 ${engine.id} DB08 DB09 DB10 UI02 UI04 keeps ${engine.engine} connection and nested paste usable in ${context.theme} ${context.locale} ${context.width}`"
+      ],
+      "changed": [],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/healthcheckSurfaces.spec.ts",
+      "added": [
+        "`CF10 retains healthcheck recovery, empty history and timestamp tooltips in ${context.theme} ${context.locale} ${context.width}`"
+      ],
+      "changed": [],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/logicalBackupSurfaces.spec.ts",
+      "added": [
+        "'LB01 LB02 keeps backup status selection and calendar keyboard dismissal on the list'",
+        "'LB03 LB04 LB09 UI03 opens the current backup confirmations and literal failure details'",
+        "`LB05 LB06 LB07 LB08 keeps ${status} restore actions and nested feedback in the restore dialog`"
+      ],
+      "changed": [],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/providerDetails.spec.ts",
+      "added": [
+        "`${provider.id} reads and edits saved ${provider.variant ?? provider.settings.type} storage in ${context.theme} ${context.locale} ${context.width}`",
+        "`${provider.id} reads and edits saved ${provider.variant ?? provider.settings.type} notifier in ${context.theme} ${context.locale} ${context.width}`"
+      ],
+      "changed": [],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/startupSurfaces.spec.ts",
+      "added": [
+        "`SH01 AU02 offers startup retry and the first-owner claim in ${context.theme} ${context.locale} ${context.width}`",
+        "`SH02 SH05 keeps workspace creation available when there are no workspaces in ${context.theme} ${context.locale} ${context.width}`"
+      ],
+      "changed": [],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/shared/ui/Dialog.test.tsx",
+      "added": [
+        "'closes only the active nested dialog and preserves pending restrictions with setup replay=%s'",
+        "'dismisses a nested %s before closing the editor'",
+        "'returns focus after an autofocused dialog closes with setup replay=%s'"
+      ],
+      "changed": [],
+      "removed": []
+    }
+  ],
+  "finalChanges": [
+    {
+      "file": "frontend/browser/scenarios/appShell.spec.ts",
+      "added": [],
+      "changed": [
+        "'preserves warning color and header reflow when the theme changes with enlarged text'",
+        "'keeps desktop header actions reachable when the entire shell uses 200% text just above the mobile breakpoint'",
+        "'keeps workspace creation and navigation reachable when the entire shell uses 200% text at 320px'",
+        "`shows the selected section on the sidebar in the ${theme} theme`",
+        "'retains the profile draft and sidebar when language is selected with the keyboard at 320px'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/auth.spec.ts",
+      "added": [],
+      "changed": [
+        "'preserves auth input and reflows its translated refusal with 200% text at 320px'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/browserRegion.spec.ts",
+      "added": [],
+      "changed": ["'renders Chinese text with a CJK font and requests no external font'"],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/databaseCleanup.spec.ts",
+      "added": [],
+      "changed": ["`keeps cleanup beside cleared Storage with disabled backups in ${theme} theme`"],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/databaseConnection.spec.ts",
+      "added": [],
+      "changed": ["'creates a database, edits it and reads it again without any secret'"],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/databaseResources.spec.ts",
+      "added": [
+        "`scrolls the database details in one region and loads further backups when viewport width is ${width} in ${theme} ${locale}`"
+      ],
+      "changed": [
+        "'shows the copy notice on the dark surface and removes it on its own'",
+        "'shows a focus indicator when tabbing to a tab and an edit icon'"
+      ],
+      "removed": [
+        "`scrolls the database details in one region and loads further backups when viewport width is ${width}`"
+      ]
+    },
+    {
+      "file": "frontend/browser/scenarios/databaseTransfer.spec.ts",
+      "added": [],
+      "changed": [
+        "`keeps transfer choices and nested creation usable with ${locale} text enlarged at 320px`"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/googleDriveStorage.spec.ts",
+      "added": [],
+      "changed": [
+        "'authorizes the nested editor without opener and preserves the surrounding draft until explicit save'",
+        "'keeps the prior storage selection and config draft after canceling an authorized nested editor'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/instanceSettings.spec.ts",
+      "added": [
+        "`preserves literal mail delivery diagnostics in ${context.locale} ${context.theme} ${context.width}`"
+      ],
+      "changed": [
+        "`keeps instance settings draft and errors reachable at 320px with 200% text in ${context.locale} ${context.theme}`"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/logicalBackupConfig.spec.ts",
+      "added": [],
+      "changed": [
+        "`edits retention and advanced settings in Russian and reads them again when viewport width is ${width}`"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/notifierResources.spec.ts",
+      "added": [],
+      "changed": [
+        "`keeps ${provider} notifier controls accessible with ${theme} theme and enlarged narrow text`"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/physicalBackupConfig.spec.ts",
+      "added": [],
+      "changed": [
+        "`edits a physical retention in Russian and reads it again when viewport width is ${width}`"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/physicalBackups.spec.ts",
+      "added": [
+        "`returns focus to the status badge when the error details dialog closes in ${context.theme} ${context.locale} ${context.width}`",
+        "`keeps physical backup filters and both deletion warnings in ${context.theme} ${context.locale} ${context.width}`",
+        "`opens script and manual restore commands for host and Docker in ${context.theme} ${context.locale} ${context.width}`",
+        "'submits the chosen UTC target when date and time are selected only by keyboard'",
+        "'submits a chosen calendar date and time as UTC and restores focus to its field'"
+      ],
+      "changed": [
+        "`keeps the physical backup list accessible with every badge in the ${theme} theme`",
+        "'shows the physical backup list as cards that fit a narrow viewport'",
+        "'keeps focus inside the restore dialog and returns it to the row action on close'",
+        "'returns focus to the restore button when the point-in-time dialog closes'",
+        "'keeps the scroll position and the loaded rows after a manual backup'"
+      ],
+      "removed": ["'returns focus to the status badge when the error details dialog closes'"]
+    },
+    {
+      "file": "frontend/browser/scenarios/profile.spec.ts",
+      "added": [
+        "`retains the saved profile in ${context.locale} ${context.theme} ${context.width}`"
+      ],
+      "changed": [
+        "`keeps profile correction and primary actions reachable at 320px with 200% text in ${context.locale} ${context.theme}`",
+        "'retains newer profile input and a single pending save when locale and theme change'",
+        "'keeps pending profile actions reachable when text is enlarged to 200% at 320px'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/resourceCollections.spec.ts",
+      "added": [
+        "`keeps keyboard search and creation focus usable across narrow list and detail navigation`",
+        "`contains enlarged transfer controls and restores focus after keyboard dismissal`"
+      ],
+      "changed": [],
+      "removed": [
+        "'keeps keyboard search and creation focus usable across narrow list and detail navigation'",
+        "'contains enlarged transfer controls and restores focus after keyboard dismissal'"
+      ]
+    },
+    {
+      "file": "frontend/browser/scenarios/sftpStorage.spec.ts",
+      "added": [],
+      "changed": [
+        "'reads saved methods, renames without secrets and switches explicitly through accessible narrow fields'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/smtp.spec.ts",
+      "added": [],
+      "changed": [
+        "'preserves values, expanded settings and successful testing across locale and theme switches'",
+        "'exposes SMTP fields, associated validation and shared keyboard focus without accessibility violations'",
+        "'contains confirmation focus and restores it to the invoking remove control'",
+        "`reference ${reference.name}`",
+        "'expires an existing success notice at its original deadline and uses the selected language for later notices'",
+        "`keeps validation, testing and saving reachable with enlarged ${locale} text at 320 pixels`",
+        "'preserves the open sidebar and notifier draft when language is selected at 320 pixels'"
+      ],
+      "removed": [
+        "'keeps the sidebar open with restored control focus when a nested menu is dismissed by Escape'"
+      ]
+    },
+    {
+      "file": "frontend/browser/scenarios/storageCleanup.spec.ts",
+      "added": [],
+      "changed": [
+        "`focuses Wait and cancels cleanup abandonment with the keyboard in ${theme} theme`"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/storageResources.spec.ts",
+      "added": [],
+      "changed": [
+        "`keeps ${provider} storage controls accessible with ${theme} theme and enlarged narrow text`"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/users.spec.ts",
+      "added": [
+        "`restores focus after dismissing literal user audit details in ${context.locale} ${context.theme} ${context.width}`"
+      ],
+      "changed": [
+        "'keeps translated retry reachable with 200% text when the user list fails at 320px'",
+        "'keeps the user drawer contained and restores its invoker after keyboard dismissal at 320px'",
+        "'keeps user actions and a translated refusal reachable when text is enlarged to 200% at 320px'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/verificationConfig.spec.ts",
+      "added": [
+        "`edits a verification schedule in Russian and reads it again when viewport width is ${width} in ${theme} theme`"
+      ],
+      "changed": [],
+      "removed": [
+        "`edits a verification schedule in Russian and reads it again when viewport width is ${width}`"
+      ]
+    },
+    {
+      "file": "frontend/browser/scenarios/verificationScreens.spec.ts",
+      "added": [
+        "`shows the revealed token and its commands in French at ${width}px in ${theme} theme`",
+        "`contains long failure output inside the drawer at 320px with 200% text in the ${theme} theme and ${locale} locale`",
+        "`opens agent creation, installation and anchored deletion in ${context.theme} ${context.locale} ${context.width}`"
+      ],
+      "changed": [
+        "`keeps focus inside the verification details and returns it to the row action in the ${theme} theme`",
+        "`keeps the agent table accessible and returns focus to its action when the rotate dialog closes in the ${theme} theme`"
+      ],
+      "removed": [
+        "'shows the revealed token and its commands in a long locale at a narrow viewport'",
+        "`contains long failure output inside the drawer at 320px with 200% text in the ${theme} theme`"
+      ]
+    },
+    {
+      "file": "frontend/browser/scenarios/wal.spec.ts",
+      "added": [
+        "'keeps technical values, tips and help readable with French 200-percent text at 320px'"
+      ],
+      "changed": [
+        "`renders WAL plots with positive measured dimensions and deterministic series in the ${theme} theme`"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/workspaceSettings.spec.ts",
+      "added": ["'retains workspace context through member and deletion dialogs'"],
+      "changed": [
+        "'preserves the name draft when failed workspace settings recover at narrow width'",
+        "`keeps the ownership warning readable with ${theme} theme`"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/app/ui/ApplicationStartup.test.tsx",
+      "added": [],
+      "changed": [
+        "'keeps account navigation usable when production release information fails'",
+        "'explains the new version link on keyboard focus'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/app/ui/WorkspaceNavigation.test.tsx",
+      "added": [],
+      "changed": [
+        "'retains an acknowledged workspace $mutation after older reconciliation finishes with failure=$hasFailed'",
+        "'shows no data of the previous workspace after switching when $path on $tab answers HTTP $status late'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/app/ui/WorkspaceResources.test.tsx",
+      "added": [],
+      "changed": [
+        "'preserves selection and a name draft when local search and language change hide its card'",
+        "'preserves current items, selection and feedback when a superseded HTTP %i reload finishes in the same workspace'",
+        "'keeps loading visible when an obsolete HTTP %i read settles before the current read'",
+        "'preserves a name draft during its refresh interval and stops requests after unmount'",
+        "'reconciles selection and preference when $operation succeeds with last resource=$isLastResource'",
+        "'sends the chosen workspace as the transfer target when several workspaces are offered'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/entities/schedules/ui/ScheduleEditor.test.tsx",
+      "added": [],
+      "changed": [
+        "'takes a time in the 12-hour format of the user'",
+        "'takes a time in the 24-hour format of the user'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/features/database-connection/ui/DatabaseConnectionForm.test.tsx",
+      "added": [],
+      "changed": ["'accepts no input and no second submission while a submission is pending'"],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/features/database-connection/ui/EditMongodbConnectionComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'hides the port for an SRV connection'",
+        "'keeps the direct connection choice'",
+        "'turns SRV off and shows direct connection on when a tunnel is enabled'",
+        "'asks for the password again when the SRV flag of a saved database changes'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/features/edit-notifier/ui/edit/EditNotifierComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'keeps newer edits when a submitted save completes'",
+        "'sends the entered settings when a $provider notifier is created'",
+        "'asks for no bot token when the Mattermost server URL differs in the webhook mode'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/features/edit-notifier/ui/edit/NotifierLifecycle.test.tsx",
+      "added": [],
+      "changed": [
+        "'retains test validity and sends one request per activation when name, locale or theme changes'",
+        "'suppresses a delayed successful %s after editor unmount while providers remain'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/features/edit-notifier/ui/edit/notifiers/EditTelegramNotifierComponent.test.tsx",
+      "added": ["'associates advanced URL fields with their help when proxy settings are shown'"],
+      "changed": [
+        "'starts with the advanced settings collapsed for a new notifier'",
+        "'starts with the advanced settings expanded when a proxy is enabled'",
+        "'starts with the advanced settings expanded when a Bot API URL is set'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/features/edit-storage/ui/edit/StorageLifecycle.test.tsx",
+      "added": [],
+      "changed": [
+        "'keeps the name and settings, shows the reason and unlocks the type selector when creation is refused'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/features/edit-storage/ui/edit/storages/EditSFTPStorageComponent.test.tsx",
+      "added": ["'marks only missing required credentials invalid when $state'"],
+      "changed": [],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/auth-callback/ui/AuthCallbackPage.test.tsx",
+      "added": [],
+      "changed": [
+        "'suppresses completion after callback $mode while providers remain with refusal=$isRefused'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/auth/ui/SignUpComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'preserves input and translates persistent errors when the language changes after refusal'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/BackupStorageSelection.test.tsx",
+      "added": [],
+      "changed": [
+        "'keeps newer input open after creation and selects the assigned ID after updating it'",
+        "'rejects a late nested create after %s'",
+        "'retains the created storage after the initial list completes with failure=%s'",
+        "'retains the acknowledged option and retries when the post-creation refresh fails'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/CreateDatabaseComponent.test.tsx",
+      "added": ["'preserves the wizard draft when Escape dismisses notifier search'"],
+      "changed": [
+        "'keeps the selected notifier after going back from the notifier step'",
+        "'keeps the input without a spinner when the wizard rerenders'",
+        "'shows the reason on the notifier step and keeps the message after going to the configuration step and returning'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/CreateDatabaseNotifiersStep.test.tsx",
+      "added": [],
+      "changed": [
+        "'opens creation from the empty dropdown with the keyboard and restores focus after cancel'",
+        "'offers Back and Complete while the notifier list loads'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/DatabaseComponent.test.tsx",
+      "added": [],
+      "changed": ["'keeps the last backup error after a successful connection test'"],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/DatabaseConfigComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'keeps Save offered when an exclusion of $variant changes after a test'",
+        "'reports the saved connection when the limited user suggestion is closed'",
+        "'sends one update when Save is clicked twice while pending'",
+        "'shows the saved values with Save disabled and sends no update when Cancel follows an edit in the $kind section'",
+        "'disables Save again when the retention period is changed and changed back'",
+        "'warns before reassignment to %s when the section opens again'",
+        "'keeps earlier cleanup visible when a second reassignment adds no files'",
+        "'preserves the active draft when cleanup completes in the $kind view'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/DatabaseTransferDialogComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'automatically selects completed storage when creation finishes inside transfer'",
+        "'keeps the dialog and its choices open when the transfer is refused'",
+        "'discards a nested storage creation after the transfer target workspace changes'",
+        "'retains transfer context until a delayed response completes with failure=%s'",
+        "'retains persisted nested storage and refreshed choices after an older target read fails=%s'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/DatabasesComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'shows the saved values on the card and after Cancel when the suggestion is closed'",
+        "'keeps the entered $kind values when the page becomes visible and the list refreshes'",
+        "'selects the created database after the wizard finishes and shows what the server saved'",
+        "'leaves the selection alone and lists the database on a later refresh when its create answer comes after the wizard closed'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/EditDatabaseNotifiersSection.test.tsx",
+      "added": [],
+      "changed": [
+        "'offers Cancel while the notifier list loads'",
+        "'shows a refused save in the form with the selection and reports no save'",
+        "'shows a failed notifier load with a retry that lists the notifiers and keeps the selection'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/NotifierComposition.test.tsx",
+      "added": [
+        "'filters notifier choices without losing selected values and saves the combined selection'"
+      ],
+      "changed": [
+        "'ignores pending creation when $composition changes $contextChange with failure=$hasFailed'",
+        "'automatically selects the created notifier when the %s editor completes'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/backup-config/CreateLogicalBackupConfigStep.test.tsx",
+      "added": [],
+      "changed": [
+        "'starts from the given configuration instead of the defaults'",
+        "'offers no Back without a way to go back'",
+        "'hands over the draft on Back and on Continue'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/backup-config/EditLogicalBackupConfigSection.test.tsx",
+      "added": [],
+      "changed": [
+        "'submits day 31 when the user changes only the time'",
+        "'shows a saved weekday 0 as Sunday and allows saving'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/backup-config/EditPhysicalBackupConfigSection.test.tsx",
+      "added": [],
+      "changed": [
+        "'offers only the type for an empty incremental schedule and keeps Save disabled'",
+        "'keeps the draft when the language changes'",
+        "'retains the storage selection and configuration draft when nested storage creation is canceled'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/healthcheck/EditHealthcheckConfigComponent.test.tsx",
+      "added": [],
+      "changed": ["'keeps the spinner when a $outcome load answers after the session ended'"],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/healthcheck/HealthcheckAttemptsComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'discards every old page when the period changes during a multi-page load'",
+        "'shows nothing after a retry of the config load finds healthcheck disabled'",
+        "'shows the reason without the old attempts when the load after a period change fails, and a later tick does not replace it'",
+        "'keeps the spinner when a $outcome config load answers after the session ended'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/logical-backups/LogicalBackupsComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'keeps the same restores when its backup leaves the list and refreshes fail'",
+        "'requests a new single-use token for each download'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/physical-backups/PhysicalBackupsComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'requests %s with the public backup kind when chosen in the menu'",
+        "'disables the start and says what it needs when $condition'",
+        "'keeps the tail and shows no loading state after a manual backup, and shows the new backup through a later poll'",
+        "'requests no list and shows nothing when an accepted $action answers after the user left'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/restores/RestoreTargetComposition.test.tsx",
+      "added": [],
+      "changed": [
+        "'sends one restore start when the start is clicked twice while pending'",
+        "'derives the SSL mode of a target from its host until the user chooses one'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/restores/RestoresComponent.test.tsx",
+      "added": [],
+      "changed": ["'shows no alert and keeps the restores when polls fail'"],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/show/ShowDatabaseNotifiersComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'keeps the spinner when a $outcome load answers after the session ended'",
+        "'shows the reason with a retry instead of a spinner when the load fails, and the notifier after a successful retry'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/verification/EditVerificationConfigComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'keeps a weekday chosen before a time and converts it with the time'",
+        "'shows a saved weekday 0 as Sunday'",
+        "'disables Save after a schedule edit hidden by returning to after-backup'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/verification/VerificationsComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'starts the cancel from the keyboard and blocks the cancel of another row while it runs'",
+        "'shows nothing and requests no list when $answer arrives after the user left'",
+        "'shows nothing and requests no list when $answer arrives after the session changed'",
+        "'shows no alert, keeps the rows and requests again when polls fail'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/databases/ui/wal-stream-monitoring/WalStreamMonitoringSections.test.tsx",
+      "added": [],
+      "changed": [
+        "'shows an amount above its limit as over the limit, and puts each arrow behind its own breakpoint wrapper'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/instance-settings/ui/InstanceSettingsPage.test.tsx",
+      "added": [],
+      "changed": [
+        "'derives save eligibility from the acknowledged response when a newer draft differs=%s'",
+        "'sends $settingName turned on and the other settings unchanged when it is saved with mail configured'",
+        "'restores the acknowledged baseline when reset is selected'",
+        "'retains the draft and safe failure when saving is refused'",
+        "'permits only disabling two-factor authentication when mail is unavailable and requirement=%s'",
+        "'retains settings edits and translates the refusal when language changes during saving'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/instance-settings/ui/MailServer.test.tsx",
+      "added": [],
+      "changed": ["'publishes no mail feedback after unmount with refusal=%s'"],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/instance-settings/ui/verification-agents/VerificationAgentsComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'suppresses old agent completion after the screen unmounts for a new session with refusal=$isRefused'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/notifiers/ui/NotifierComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'clears a prior %s failure after a saved notifier test succeeds'",
+        "'rejects a saved notifier test after newer settings are saved with old outcome=%s'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/notifiers/ui/NotifierTransferDialogComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'keeps the dialog and the chosen workspace and shows the translated reason when the transfer is refused'",
+        "'resets the target and ignores an obsolete HTTP %i transfer after the resource changes'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/profile/ui/ProfilePage.test.tsx",
+      "added": [],
+      "changed": [
+        "'suppresses callbacks and notices after a pending $operation outlives its page with refusal=$isRefused'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/storages/ui/StorageComponent.test.tsx",
+      "added": ["'discards the name draft when the translated cancel action is used in %s'"],
+      "changed": [
+        "'rejects a saved storage test after newer settings are saved with old outcome=%s'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/storages/ui/StorageTransferDialogComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'keeps the dialog and the chosen workspace and shows the translated reason when the transfer is refused'",
+        "'resets the target and ignores an obsolete HTTP %i transfer after the resource changes'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/users/ui/UsersPage.test.tsx",
+      "added": [],
+      "changed": [
+        "'retains acknowledged status when an older list page finishes after a mutation'",
+        "'preserves displayed values and permits retry when the %s action is refused'",
+        "'acknowledges role and activation from returned users when each action succeeds'",
+        "'ignores the obsolete $action completion when search returns to the same text with refusal=$isRefused'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/workspace-settings/ui/WorkspaceMembersComponent.test.tsx",
+      "added": ["'submits member removal once when its response is pending at width %i'"],
+      "changed": [
+        "'offers no owner role when a role is selected for a new member'",
+        "'shows the acknowledged member role when a role change is refused=%s'",
+        "'limits member controls when the current workspace role is %s'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/pages/workspace-settings/ui/WorkspaceSettingsComponent.test.tsx",
+      "added": ["'describes the workspace name error until the draft is corrected'"],
+      "changed": [
+        "'suppresses obsolete $operation responses after $lifetime with failure=$hasFailed'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/shared/lib/test/renderScreen.test.tsx",
+      "added": ["'retains a notice language and deadline when the interface language changes'"],
+      "changed": [
+        "'provides the real locale, %s theme and router entry'",
+        "'retains an unsaved draft when the language changes through a real provider'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/shared/ui/ConfirmationComponent.test.tsx",
+      "added": [
+        "'returns focus after its owner immediately unmounts it with setup replay=%s'",
+        "'cancels without confirming when the action is destructive'"
+      ],
+      "changed": [],
+      "removed": ["'keeps cancellation ordinary when the confirmed action is destructive'"]
+    },
+    {
+      "file": "frontend/src/shared/ui/LanguageThemeControlComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'opens the language menu when activated from the keyboard'",
+        "'follows the OS preference after System is picked from the theme menu'",
+        "'opens the language menu on hover and restores focus when Escape dismisses it'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/widgets/app-shell/ui/WorkspaceSelectionComponent.test.tsx",
+      "added": [],
+      "changed": [
+        "'opens creation from the filtered dropdown with keyboard access when the locale is %s'",
+        "'switches to a matching workspace without offering creation when permission is absent'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/tooling/sourceAlias.test.ts",
+      "added": [],
+      "changed": [
+        "'accepts a reference with $form when it is outside the relative-import restriction'"
+      ],
+      "removed": []
+    },
+    {
+      "file": "frontend/tooling/styleChecks.test.ts",
+      "added": [
+        "'requires semantic colors when Mantine presentation props and public variables set colors'"
+      ],
+      "changed": ["'permits direct colors when the source is an exact theme or chart owner'"],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/authSurfaces.spec.ts",
+      "added": [
+        "'preserves labelled sign-in and registration fields through validation'",
+        "'keeps sign-in code correction and resend refusal on the same screen'",
+        "'retains the submitted email when reset advances to code and password validation'",
+        "'scrubs invalid callbacks and shows recoverable translated feedback'",
+        "'keeps the callback pending when a valid OAuth exchange has not answered'"
+      ],
+      "changed": [],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/configurationSurfaces.spec.ts",
+      "added": [
+        "'keeps all schedule modes, retention and nested storage in the existing editor'",
+        "'keeps settings actions, nested notifier and healthcheck editing reachable'",
+        "'preserves the changed storage when its warning is canceled and submits once after confirmation'"
+      ],
+      "changed": [],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/connectionSurfaces.spec.ts",
+      "added": [
+        "`keeps ${engine.connectionType} connection and nested paste usable in ${context.theme} ${context.locale} ${context.width}`"
+      ],
+      "changed": [],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/healthcheckSurfaces.spec.ts",
+      "added": [
+        "`retains healthcheck recovery, empty history and timestamp tooltips in ${context.theme} ${context.locale} ${context.width}`"
+      ],
+      "changed": [],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/logicalBackupSurfaces.spec.ts",
+      "added": [
+        "'keeps backup status selection and calendar keyboard dismissal on the list'",
+        "'opens the current backup confirmations and literal failure details'",
+        "`keeps ${status} restore actions and nested feedback in the restore dialog`"
+      ],
+      "changed": [],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/notifierProviderDetails.spec.ts",
+      "added": [
+        "`reads and edits saved ${provider.variant ?? provider.settings.type} notifier in ${context.theme} ${context.locale} ${context.width}`"
+      ],
+      "changed": [],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/resourcePicker.spec.ts",
+      "added": [
+        "`keeps options${resource === 'storages' ? '' : ', search'} and creation reachable with many ${resource} in ${context.theme} ${context.locale} at ${context.width}px${context.isEnlarged ? ' and 200% text' : ''}`"
+      ],
+      "changed": [],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/startupSurfaces.spec.ts",
+      "added": [
+        "`offers startup retry and the first-owner claim in ${context.theme} ${context.locale} ${context.width}`",
+        "`keeps workspace creation available when there are no workspaces in ${context.theme} ${context.locale} ${context.width}`"
+      ],
+      "changed": [],
+      "removed": []
+    },
+    {
+      "file": "frontend/browser/scenarios/storageProviderDetails.spec.ts",
+      "added": [
+        "`reads and edits saved ${provider.variant ?? provider.settings.type} storage in ${context.theme} ${context.locale} ${context.width}`"
+      ],
+      "changed": [],
+      "removed": []
+    },
+    {
+      "file": "frontend/src/shared/ui/Dialog.test.tsx",
+      "added": [
+        "'closes only the active nested dialog and preserves pending restrictions with setup replay=%s'",
+        "'dismisses a nested %s before closing the editor'",
+        "'returns focus after an autofocused dialog closes with setup replay=%s'"
+      ],
+      "changed": [],
+      "removed": []
+    }
+  ],
+  "consolidations": [
+    {
+      "owner": "frontend/browser/scenarios/smtp.spec.ts",
+      "removed": "keeps the sidebar open with restored control focus when a nested menu is dismissed by Escape",
+      "retained": "preserves the open sidebar and notifier draft when language is selected at 320 pixels",
+      "reason": "Both scenarios opened the same narrow sidebar. The retained scenario now includes both controls, both Escape/reopen cycles and the original draft/language checks."
+    }
+  ],
+  "removedInfrastructure": [
+    "frontend/browser/captureSurface.ts; 136 temporary capture calls and their unused context collection",
+    "Reference set reduced from 658 files to 17: six existing names retained, nine references renamed without changing bytes, two inspected final-state captures retained, and 643 redundant references removed. All pre-cleanup source and references remain archived.",
+    "Migration matrix labels and fixture-only surface identifiers; descriptive behavior coverage remains mapped in visual-evidence.json"
+  ]
+}

@@ -1,4 +1,5 @@
-import { Alert, App, Spin } from 'antd';
+import { Alert, Loader } from '@mantine/core';
+import { TriangleAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -13,6 +14,7 @@ import { VerificationsTable } from '@/pages/databases/ui/verification/Verificati
 import { useSessionGuard } from '@/shared/auth';
 import { usePolledPagedList } from '@/shared/hooks';
 import { getWebsitePageUrl, translateApiError, useLocale } from '@/shared/i18n';
+import { useFeedback } from '@/shared/lib/feedback';
 import { LoadFailure } from '@/shared/ui';
 
 interface Props {
@@ -20,15 +22,14 @@ interface Props {
   isCanManageDBs: boolean;
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
 }
-
-const AGENT_AVAILABILITY_REFRESH_MS = 5_000;
-const VERIFICATIONS_REFRESH_MS = 1_000;
+const AGENT_AVAILABILITY_REFRESH_MS = 5000;
+const VERIFICATIONS_REFRESH_MS = 1000;
 const VERIFICATIONS_PAGE_SIZE = 50;
 
 export const VerificationsComponent = ({ database, isCanManageDBs, scrollContainerRef }: Props) => {
   const { t } = useTranslation();
   const { locale } = useLocale();
-  const { message } = App.useApp();
+  const notify = useFeedback();
   const isActive = useSessionGuard();
 
   const [detailVerificationId, setDetailVerificationId] = useState<string | undefined>();
@@ -54,7 +55,7 @@ export const VerificationsComponent = ({ database, isCanManageDBs, scrollContain
       await verificationRunsApi.cancel(verificationId);
       if (isActive()) await refreshVerifications();
     } catch (error) {
-      if (isActive()) message.error(translateApiError(error, t));
+      if (isActive()) notify({ kind: 'error', title: translateApiError(error, t) });
     }
 
     setCancellingVerificationId(undefined);
@@ -80,7 +81,7 @@ export const VerificationsComponent = ({ database, isCanManageDBs, scrollContain
     scrollContainerRef,
     resetKey: database.id,
     onError: (error, failedPage) => {
-      if (failedPage === 'next') message.error(translateApiError(error, t));
+      if (failedPage === 'next') notify({ kind: 'error', title: translateApiError(error, t) });
     },
   });
 
@@ -125,9 +126,11 @@ export const VerificationsComponent = ({ database, isCanManageDBs, scrollContain
       {hasAgents === false && (
         <Alert
           className="!mt-3 max-w-[400px]"
-          type="warning"
-          showIcon
-          message={
+          color="warning"
+          icon={
+            <TriangleAlert aria-hidden size={16} className="inline-block shrink-0 align-middle" />
+          }
+          title={
             <Trans
               i18nKey="verification.runs.noAgentsWarning"
               components={{
@@ -163,7 +166,7 @@ export const VerificationsComponent = ({ database, isCanManageDBs, scrollContain
               )}
               {isLoadingMore && (
                 <div className="mt-2 flex justify-center">
-                  <Spin />
+                  <Loader role="status" />
                 </div>
               )}
               {!hasMore && verifications.length > 0 && (
@@ -184,7 +187,7 @@ export const VerificationsComponent = ({ database, isCanManageDBs, scrollContain
               )}
               {isLoadingMore && (
                 <div className="mt-3 flex justify-center">
-                  <Spin />
+                  <Loader role="status" />
                 </div>
               )}
               {!hasMore && verifications.length > 0 && (

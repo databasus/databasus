@@ -1,5 +1,4 @@
-import { GithubOutlined, GoogleOutlined } from '@ant-design/icons';
-import { Alert, Button } from 'antd';
+import { Alert, Button } from '@mantine/core';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -7,6 +6,7 @@ import {
   createOAuthSignInAttempt,
   type OAuthProvider,
 } from '@/features/oauth-sign-in/model/OAuthSignInAttempt';
+import { OAuthProviderIcon } from '@/features/oauth-sign-in/ui/OAuthProviderIcon';
 import { GITHUB_CLIENT_ID, GOOGLE_CLIENT_ID } from '@/shared/config';
 
 export function OAuthSignInButtons() {
@@ -34,8 +34,8 @@ export function OAuthSignInButtons() {
       {GITHUB_CLIENT_ID && (
         <Button
           className="!h-auto min-h-10 w-full max-w-full !whitespace-normal"
-          size="large"
-          icon={<GithubOutlined aria-hidden />}
+          size="md"
+          leftSection={<OAuthProviderIcon provider="github" />}
           onClick={() => start('github')}
         >
           {t('users.oauth.continueWithGithub')}
@@ -44,14 +44,14 @@ export function OAuthSignInButtons() {
       {GOOGLE_CLIENT_ID && (
         <Button
           className="!h-auto min-h-10 w-full max-w-full !whitespace-normal"
-          size="large"
-          icon={<GoogleOutlined aria-hidden />}
+          size="md"
+          leftSection={<OAuthProviderIcon provider="google" />}
           onClick={() => start('google')}
         >
           {t('users.oauth.continueWithGoogle')}
         </Button>
       )}
-      {hasFailure && <Alert type="error" message={t('users.oauth.invalidConfiguration')} />}
+      {hasFailure && <Alert color="danger" title={t('users.oauth.invalidConfiguration')} />}
     </div>
   );
 }

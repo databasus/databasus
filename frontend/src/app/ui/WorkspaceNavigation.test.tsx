@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -111,12 +112,12 @@ const getWorkspaceSelection = () =>
   within(
     screen
       .getByRole('combobox', { name: 'Selected workspace' })
-      .closest('.ant-select-selector') as HTMLElement,
+      .closest('[role="combobox"]') as HTMLElement,
   );
 const selectWorkspace = async (workspace: Workspace) => {
-  fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Selected workspace' }));
+  fireEvent.click(screen.getByRole('combobox', { name: 'Selected workspace' }));
   const option = await waitFor(() => {
-    const option = Array.from(document.querySelectorAll('.ant-select-item-option')).find(
+    const option = Array.from(screen.queryAllByRole('option')).find(
       (option) => option.textContent === workspace.name,
     );
 
@@ -789,7 +790,7 @@ describe('Application workspace navigation', () => {
       if (mutation === 'create') {
         server.use(mockApi.post('/workspaces', 201, thirdWorkspace));
 
-        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Selected workspace' }));
+        fireEvent.click(screen.getByRole('combobox', { name: 'Selected workspace' }));
         fireEvent.click(await screen.findByRole('button', { name: /Create new workspace/ }));
         const dialog = within(await screen.findByRole('dialog'));
 
@@ -992,6 +993,7 @@ describe('Application workspace switch', () => {
         listScreen?.buildResource(secondWorkspace, name),
       );
 
+      const user = userEvent.setup();
       openApplication([firstWorkspace, secondWorkspace]);
       server.use(
         http.get(`*${API_BASE_PATH}/workspace-members`, ({ request }) =>
@@ -1027,7 +1029,13 @@ describe('Application workspace switch', () => {
       await selectWorkspace(secondWorkspace);
 
       if (listScreen) {
-        fireEvent.click(await findResourceCard('Current two'));
+        await waitFor(() =>
+          expect(localStorage.getItem(`${listScreen.preferencePrefix}_${secondWorkspace.id}`)).toBe(
+            currentResources[0]!.id,
+          ),
+        );
+
+        await user.click(await findResourceCard('Current two'));
         await expectResourceSelected('Current two');
       } else {
         await screen.findByDisplayValue(secondWorkspace.name);
@@ -1064,7 +1072,7 @@ describe('Application workspace switch', () => {
       expect(screen.queryByDisplayValue(obsoleteName)).toBeNull();
       expect(screen.queryByText(obsoleteName)).toBeNull();
       expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
-      expect(document.querySelector('.ant-alert-error')).toBeNull();
+      expect(document.querySelector('[role="alert"]')).toBeNull();
       expect(getWorkspaceSelection().getByText(secondWorkspace.name)).toBeTruthy();
       expect(getWorkspaceReadCount()).toBe(workspaceReadCount);
     },

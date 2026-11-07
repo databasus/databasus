@@ -1,4 +1,4 @@
-import { InfoCircleOutlined } from '@ant-design/icons';
+import { Info } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import type { ReasonTexts } from '@/pages/databases/model/wal-stream-monitoring/ReasonTexts';
@@ -22,7 +22,7 @@ export const MonitoringTipsComponent = ({ tips }: Props) => {
       {tips.map((tip) => (
         <li key={tip.titleKey} className="flex gap-2">
           <span className="shrink-0 pt-0.5 text-muted" aria-hidden>
-            <InfoCircleOutlined />
+            <Info size={14} />
           </span>
           <div>
             <div className="font-semibold">{t(tip.titleKey)}</div>

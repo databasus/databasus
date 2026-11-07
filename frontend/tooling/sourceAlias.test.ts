@@ -97,7 +97,7 @@ describe('source alias', () => {
     { form: 'package subpath import', content: "import dayjsUtc from 'dayjs/plugin/utc';" },
     {
       form: 'scoped package import',
-      content: "import { LoadingOutlined } from '@ant-design/icons';",
+      content: "import { Button } from '@mantine/core';",
     },
     { form: 'external tool import', content: "import { tool } from '../../../lint/tool';" },
     { form: 'neighboring directory import', content: "import '../../../src-neighbor/module';" },

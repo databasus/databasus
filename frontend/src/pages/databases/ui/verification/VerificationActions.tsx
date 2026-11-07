@@ -1,4 +1,4 @@
-import { CloseCircleOutlined, EyeOutlined } from '@ant-design/icons';
+import { CircleX, Eye } from 'lucide-react';
 import type { JSX } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -34,7 +34,7 @@ export const VerificationActions = ({ verification, actions }: Props): JSX.Eleme
       {isUnfinished ? (
         <RowActionButton
           title={t('verification.runs.actions.cancel')}
-          icon={<CloseCircleOutlined />}
+          icon={<CircleX size={14} />}
           className="!text-danger"
           isPending={cancellingVerificationId === verification.id}
           isDisabled={Boolean(cancellingVerificationId)}
@@ -43,7 +43,7 @@ export const VerificationActions = ({ verification, actions }: Props): JSX.Eleme
       ) : (
         <RowActionButton
           title={t('verification.runs.actions.viewDetails')}
-          icon={<EyeOutlined />}
+          icon={<Eye size={14} />}
           className="!text-accent"
           onClick={() => actions.onViewDetails(verification.id)}
         />

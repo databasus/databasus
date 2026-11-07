@@ -1,7 +1,9 @@
-import { App, Button, Input, Modal } from 'antd';
+import { Button, TextInput } from '@mantine/core';
 import { type JSX, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { useFeedback } from '@/shared/lib/feedback';
+import { Dialog } from '@/shared/ui';
 interface Props {
   isOpen: boolean;
   isCreating: boolean;
@@ -16,15 +18,14 @@ export const CreateAgentDialog = ({
   onCreate,
 }: Props): JSX.Element => {
   const { t } = useTranslation();
-  const { message } = App.useApp();
-
+  const notify = useFeedback();
   const [name, setName] = useState('');
 
   const submitName = () => {
     const trimmedName = name.trim();
 
     if (!trimmedName) {
-      message.error(t('verification.agents.create.nameRequired'));
+      notify({ kind: 'error', title: t('verification.agents.create.nameRequired') });
       return;
     }
 
@@ -32,33 +33,42 @@ export const CreateAgentDialog = ({
   };
 
   return (
-    <Modal
+    <Dialog
       title={t('verification.agents.create.title')}
-      open={isOpen}
-      onCancel={onCancel}
-      afterOpenChange={(isNowOpen) => {
-        if (!isNowOpen) setName('');
-      }}
-      footer={[
-        <Button key="cancel" onClick={onCancel}>
-          {t('common.actions.cancel')}
-        </Button>,
-        <Button key="create" type="primary" loading={isCreating} onClick={submitName}>
-          {t('common.actions.create')}
-        </Button>,
-      ]}
-      destroyOnHidden
+      opened={isOpen}
+      onClose={onCancel}
+      onExitTransitionEnd={() => setName('')}
     >
       <p className="mb-2 text-sm text-muted">{t('verification.agents.create.tokenNotice')}</p>
-      <Input
+      <TextInput
         aria-label={t('common.fields.name')}
         placeholder={t('verification.agents.create.namePlaceholder')}
         value={name}
         onChange={(event) => setName(event.target.value)}
-        onPressEnter={submitName}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            submitName();
+          }
+        }}
         maxLength={200}
-        autoFocus
+        data-autofocus
       />
-    </Modal>
+      <div className="mt-5 flex flex-wrap justify-end gap-2">
+        {[
+          <Button key="cancel" onClick={onCancel}>
+            {t('common.actions.cancel')}
+          </Button>,
+          <Button
+            key="create"
+            variant="filled"
+            loading={isCreating}
+            onClick={submitName}
+            aria-busy={isCreating}
+          >
+            {t('common.actions.create')}
+          </Button>,
+        ]}
+      </div>
+    </Dialog>
   );
 };

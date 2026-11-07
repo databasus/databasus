@@ -22,6 +22,7 @@ import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
 import { stubClipboard } from '@/shared/lib/test/stubClipboard';
+import { Dialog } from '@/shared/ui/Dialog';
 
 dayjs.extend(utc);
 
@@ -66,11 +67,11 @@ const enterConnection = async () => {
 
 const chooseStorage = async (name: string) => {
   const storageLabel = await screen.findByText('Storage');
-  const select = storageLabel.parentElement!.querySelector('.ant-select-selector')!;
+  const select = storageLabel.parentElement!.querySelector('[role="combobox"]')!;
 
-  fireEvent.mouseDown(select);
+  fireEvent.click(select);
   const option = await waitFor(() => {
-    const storageOption = document.querySelector(`.ant-select-item-option[title="${name}"]`);
+    const storageOption = screen.queryByRole('option', { name: `${name}` });
     expect(storageOption).toBeTruthy();
     return storageOption!;
   });
@@ -80,9 +81,9 @@ const chooseStorage = async (name: string) => {
 
 const getChosenStorageText = async () => {
   const storageField = (await screen.findByText('Storage')).parentElement!;
-  await waitFor(() => expect(storageField.querySelector('.anticon-loading')).toBeNull());
+  await waitFor(() => expect(storageField.querySelector('[role="status"]')).toBeNull());
 
-  return storageField.querySelector('.ant-select-selector')!.textContent;
+  return storageField.querySelector('[role="combobox"]')!.textContent;
 };
 
 const declareWizardRequests = () =>
@@ -199,10 +200,10 @@ const recordSettingsTests = () => {
 const getRowOfLabel = (label: string) => screen.getByText(label).parentElement!;
 
 const chooseSslMode = async (modeLabel: RegExp) => {
-  fireEvent.mouseDown(getRowOfLabel('SSL mode').querySelector('.ant-select-selector')!);
+  fireEvent.click(getRowOfLabel('SSL mode').querySelector('[role="combobox"]')!);
   const option = await waitFor(() => {
-    const modeOption = Array.from(document.querySelectorAll('.ant-select-item-option')).find(
-      (element) => modeLabel.test(element.textContent ?? ''),
+    const modeOption = Array.from(screen.queryAllByRole('option')).find((element) =>
+      modeLabel.test(element.textContent ?? ''),
     );
     expect(modeOption).toBeTruthy();
     return modeOption!;
@@ -212,7 +213,7 @@ const chooseSslMode = async (modeLabel: RegExp) => {
 };
 
 const getSelectedSslMode = () =>
-  getRowOfLabel('SSL mode').querySelector('.ant-select-selection-item')!.textContent;
+  getRowOfLabel('SSL mode').querySelector('button[role="combobox"]')!.textContent;
 
 const openAdvancedWhenClosed = () => {
   if (!screen.queryByText('SSH tunnel')) fireEvent.click(screen.getByText('Advanced settings'));
@@ -233,9 +234,9 @@ const fillSshTunnelWithPassword = () => {
 };
 
 const chooseSshKeyAuth = async () => {
-  fireEvent.mouseDown(getRowOfLabel('SSH auth').querySelector('.ant-select-selector')!);
+  fireEvent.click(getRowOfLabel('SSH auth').querySelector('[role="combobox"]')!);
   const option = await waitFor(() => {
-    const authOption = document.querySelector('.ant-select-item-option[title="Private key"]');
+    const authOption = screen.queryByRole('option', { name: 'Private key' });
     expect(authOption).toBeTruthy();
     return authOption!;
   });
@@ -270,6 +271,36 @@ const expectDatabaseTestRequests = (count: number) =>
   );
 
 describe('CreateDatabaseComponent', () => {
+  it('preserves the wizard draft when Escape dismisses notifier search', async () => {
+    declareWizardRequests();
+    const onClose = vi.fn();
+    const { user } = renderScreen(
+      <Dialog title="Create database" opened onClose={onClose}>
+        <CreateDatabaseComponent
+          workspaceId="workspace-id"
+          onCreated={() => {}}
+          onClose={onClose}
+        />
+      </Dialog>,
+    );
+    await reachNotifierStep('Archive');
+    const picker = screen.getByRole('combobox', { name: 'Notifiers' });
+
+    await user.click(picker);
+    await user.type(screen.getByRole('textbox', { name: 'Notifiers' }), 'operations');
+    await user.keyboard('{Escape}');
+
+    expect(picker.getAttribute('aria-expanded')).toBe('false');
+    expect(onClose).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(picker);
+    expect(screen.getByRole('dialog', { name: 'Create database' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Complete' })).toBeTruthy();
+
+    await user.keyboard('{Escape}');
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('advances to the read-only user step with the submitted connection settings', async () => {
     const limitedUserChecks: ApiComponents['schemas']['DatabaseSettingsTarget'][] = [];
     mockServer.use(
@@ -378,10 +409,10 @@ describe('CreateDatabaseComponent', () => {
     await reachNotifierStep('Archive');
 
     const notifiers = await screen.findByRole('combobox', { name: 'Notifiers' });
-    fireEvent.mouseDown(notifiers);
+    fireEvent.click(notifiers);
     fireEvent.click(
       await waitFor(() => {
-        const notifierOption = document.querySelector('.ant-select-item-option[title="Alerts"]');
+        const notifierOption = screen.queryByRole('option', { name: 'Alerts' });
         expect(notifierOption).toBeTruthy();
         return notifierOption!;
       }),
@@ -391,7 +422,7 @@ describe('CreateDatabaseComponent', () => {
     await continueToNotifiers('Nightly');
 
     const reopenedNotifiers = await screen.findByRole('combobox', { name: 'Notifiers' });
-    expect(reopenedNotifiers.closest('.ant-select')!.textContent).toContain('Alerts');
+    expect(reopenedNotifiers.closest('div')!.textContent).toContain('Alerts');
   });
 
   it('sends one create request when Complete is clicked twice while pending', async () => {
@@ -818,7 +849,7 @@ describe('the backup configuration step of the wizard', () => {
 
       rerenderWizard();
 
-      expect(document.querySelector('.ant-spin')).toBeNull();
+      expect(document.querySelector('[role="status"]')).toBeNull();
       expect(getFirstCheckbox().checked).toBe(!isInitiallyChecked);
     });
 
@@ -981,10 +1012,10 @@ describe('completing the wizard', () => {
     );
 
   const toggleNotifier = async (name: string) => {
-    fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Notifiers' }));
+    fireEvent.click(await screen.findByRole('combobox', { name: 'Notifiers' }));
     fireEvent.click(
       await waitFor(() => {
-        const notifierOption = document.querySelector(`.ant-select-item-option[title="${name}"]`);
+        const notifierOption = screen.queryByRole('option', { name: `${name}` });
         expect(notifierOption).toBeTruthy();
         return notifierOption!;
       }),
@@ -1491,9 +1522,7 @@ describe('completing the wizard', () => {
       const message = await findCreatedDatabaseMessage();
       expect(message.textContent).toContain(REFUSAL_REASON);
       const notifiers = await screen.findByRole('combobox', { name: 'Notifiers' });
-      await waitFor(() =>
-        expect(notifiers.closest('.ant-select')!.textContent).toContain('Alerts'),
-      );
+      await waitFor(() => expect(notifiers.closest('div')!.textContent).toContain('Alerts'));
 
       await goBackToStep(1);
 

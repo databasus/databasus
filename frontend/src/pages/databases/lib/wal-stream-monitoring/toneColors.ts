@@ -1,6 +1,5 @@
-import type { GlobalToken } from 'antd';
-
 import { MonitoringTone } from '@/pages/databases/model/wal-stream-monitoring/MonitoringTone';
+import { THEME_COLOR_VARIABLES } from '@/shared/theme';
 
 interface ToneColors {
   background: string;
@@ -8,33 +7,31 @@ interface ToneColors {
   icon: string;
 }
 
-// AntD tokens follow the dark theme by themselves, so the banner and the stages need no colors of
-// their own.
-export const getToneColors = (token: GlobalToken, tone: MonitoringTone): ToneColors => {
+export const getToneColors = (tone: MonitoringTone): ToneColors => {
   switch (tone) {
     case MonitoringTone.SUCCESS:
       return {
-        background: token.colorSuccessBg,
-        border: token.colorSuccessBorder,
-        icon: token.colorSuccess,
+        background: THEME_COLOR_VARIABLES['success-soft'],
+        border: THEME_COLOR_VARIABLES['success-border'],
+        icon: THEME_COLOR_VARIABLES['success-fill'],
       };
     case MonitoringTone.WARNING:
       return {
-        background: token.colorWarningBg,
-        border: token.colorWarningBorder,
-        icon: token.colorWarning,
+        background: THEME_COLOR_VARIABLES['warning-soft'],
+        border: THEME_COLOR_VARIABLES['warning-border'],
+        icon: THEME_COLOR_VARIABLES['warning-fill'],
       };
     case MonitoringTone.ERROR:
       return {
-        background: token.colorErrorBg,
-        border: token.colorErrorBorder,
-        icon: token.colorError,
+        background: THEME_COLOR_VARIABLES['danger-soft'],
+        border: THEME_COLOR_VARIABLES['danger-border'],
+        icon: THEME_COLOR_VARIABLES['error-fill'],
       };
     default:
       return {
-        background: token.colorFillTertiary,
-        border: token.colorBorder,
-        icon: token.colorTextSecondary,
+        background: THEME_COLOR_VARIABLES['hover'],
+        border: THEME_COLOR_VARIABLES['border'],
+        icon: THEME_COLOR_VARIABLES['muted'],
       };
   }
 };

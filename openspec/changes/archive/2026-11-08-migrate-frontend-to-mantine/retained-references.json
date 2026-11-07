@@ -1,0 +1,245 @@
+{
+  "wal-overview-dark.png": {
+    "historicalReference": "frontend/browser/references/wal-156b80912af7-WM01-monitoring-overview.png",
+    "sha256": "2a957fb7ab39668df6a1aa457c7a767656bcb2c7e5477707dcf225067b120dc3",
+    "test": [
+      "wal.spec.ts",
+      "WM01 WM02 renders WAL plots with positive measured dimensions and deterministic series in the dark theme"
+    ],
+    "context": "frontend/browser-results/0779498a-be21-4067-8463-079a00ca5a9a/wal-WM01-WM02-renders-WAL--f5b42-ic-series-in-the-dark-theme-ui/WM01-monitoring-overview-context.json",
+    "retainedOwner": "frontend/browser/scenarios/wal.spec.ts",
+    "finalScenarios": [
+      [
+        "wal.spec.ts",
+        "renders WAL plots with positive measured dimensions and deterministic series in the dark theme"
+      ]
+    ],
+    "layoutRisk": "Chart palette, measured plots and overview spacing"
+  },
+  "wal-overview-light.png": {
+    "historicalReference": "frontend/browser/references/wal-298a004e967e-WM01-monitoring-overview.png",
+    "sha256": "0253d84457bfd75829b00c6f82dbd6240dc8206cc2edd9f52317a911f4a3dff3",
+    "test": [
+      "wal.spec.ts",
+      "WM01 WM02 renders WAL plots with positive measured dimensions and deterministic series in the light theme"
+    ],
+    "context": "frontend/browser-results/0779498a-be21-4067-8463-079a00ca5a9a/wal-WM01-WM02-renders-WAL--5b059-c-series-in-the-light-theme-ui/WM01-monitoring-overview-context.json",
+    "retainedOwner": "frontend/browser/scenarios/wal.spec.ts",
+    "finalScenarios": [
+      [
+        "wal.spec.ts",
+        "renders WAL plots with positive measured dimensions and deterministic series in the light theme"
+      ]
+    ],
+    "layoutRisk": "Chart palette, measured plots and overview spacing"
+  },
+  "verification-diagnostics-dark-narrow-200.png": {
+    "historicalReference": "frontend/browser/references/verificationScreens-510afa917b71-surface-1.png",
+    "sha256": "e5ab3983855d62bd4a76e79a544f6801545a0d131dd0c5cb4f435f3f69b1ed1c",
+    "test": [
+      "verificationScreens.spec.ts",
+      "contains long failure output inside the drawer at 320px with 200% text in the dark theme"
+    ],
+    "context": "frontend/browser-results/0779498a-be21-4067-8463-079a00ca5a9a/verificationScreens-contai-75f0e--200-text-in-the-dark-theme-ui/surface-1-context.json",
+    "retainedOwner": "frontend/browser/scenarios/verificationScreens.spec.ts",
+    "finalScenarios": [
+      [
+        "verificationScreens.spec.ts",
+        "contains long failure output inside the drawer at 320px with 200% text in the dark theme"
+      ]
+    ],
+    "layoutRisk": "Drawer scroll ownership and enlarged literal diagnostics"
+  },
+  "physical-restore-target-calendar.png": {
+    "historicalReference": "frontend/browser/references/physicalBackups-88806aed5fcf-PB07-target-calendar.png",
+    "sha256": "43fc0debd84d12ce2fae2eab83aad01f24949975801deaa7a24cc96f3f422e50",
+    "test": [
+      "physicalBackups.spec.ts",
+      "PB06 PB07 opens script and manual restore commands for host and Docker in light en 1280"
+    ],
+    "context": "frontend/browser-results/0779498a-be21-4067-8463-079a00ca5a9a/physicalBackups-PB06-PB07--9e8b5-and-Docker-in-light-en-1280-ui/PB07-target-calendar-context.json",
+    "retainedOwner": "frontend/browser/scenarios/physicalBackups.spec.ts",
+    "finalScenarios": [
+      [
+        "physicalBackups.spec.ts",
+        "opens script and manual restore commands for host and Docker in light en 1280"
+      ]
+    ],
+    "layoutRisk": "Regional calendar, time segments and nested popup geometry",
+    "historicalSha256": "becb720255be485634dea4024c0857335c59365e137394a35e99a53eaec99a83",
+    "update": {
+      "reason": "The target input loses its focus outline when focus correctly enters the calendar. Inspected production diff contains only that outline, with unchanged layout.",
+      "inspection": "frontend/browser-results/calendar-keyboard-focus/reference-review.json",
+      "command": "pnpm --dir frontend test:browser --project=ui --update-references",
+      "run": "058f48f8-4440-4211-9071-1635e4f54a94",
+      "ordinaryRun": "a8821765-b737-457f-ac0c-5b280a64e25c"
+    }
+  },
+  "database-transfer-fr-narrow-200.png": {
+    "historicalReference": "frontend/browser/references/databaseTransfer-9a3413e4660a-surface-1.png",
+    "sha256": "d4d3ef244e65bc4ac9b5fcfe5a4ba5462a3daf44b7ce6dcf4615922f577299c3",
+    "test": [
+      "databaseTransfer.spec.ts",
+      "TR01 TR02 TR03 keeps transfer choices and nested creation usable with fr text enlarged at 320px"
+    ],
+    "context": "frontend/browser-results/0779498a-be21-4067-8463-079a00ca5a9a/databaseTransfer-TR01-TR02-f41eb-h-fr-text-enlarged-at-320px-ui/surface-1-context.json",
+    "retainedOwner": "frontend/browser/scenarios/databaseTransfer.spec.ts",
+    "finalScenarios": [
+      [
+        "databaseTransfer.spec.ts",
+        "keeps transfer choices and nested creation usable with fr text enlarged at 320px"
+      ]
+    ],
+    "layoutRisk": "Nested transfer mapping with doubled French text"
+  },
+  "connection-ssh-fr-narrow-200.png": {
+    "historicalReference": "frontend/browser/references/connectionSurfaces-2284ce121983-DB03-advanced-200.png",
+    "sha256": "05edcc09b5737ca5791fe95960696ce7a60ff44f29e38da4a1f437a69dde2bf3",
+    "test": [
+      "connectionSurfaces.spec.ts",
+      "DB02 DB03 DB08 DB09 DB10 UI02 UI04 keeps postgresql connection and nested paste usable in light fr 320"
+    ],
+    "context": "frontend/browser-results/0779498a-be21-4067-8463-079a00ca5a9a/connectionSurfaces-DB02-DB-b17d8-aste-usable-in-light-fr-320-ui/DB03-advanced-200-context.json",
+    "retainedOwner": "frontend/browser/scenarios/connectionSurfaces.spec.ts",
+    "finalScenarios": [
+      [
+        "connectionSurfaces.spec.ts",
+        "keeps postgresql-logical connection and nested paste usable in light fr 320"
+      ]
+    ],
+    "layoutRisk": "Long SSH fields and footer with doubled French text"
+  },
+  "connection-paste-light-fr-320.png": {
+    "historicalReference": "frontend/browser/references/connectionSurfaces-2284ce121983-UI04-manual-paste.png",
+    "sha256": "5f643ec17a9bd55d251ea6092f787ea5592c29f77bcd49284b42fa2e94dd0647",
+    "test": [
+      "connectionSurfaces.spec.ts",
+      "DB02 DB03 DB08 DB09 DB10 UI02 UI04 keeps postgresql connection and nested paste usable in light fr 320"
+    ],
+    "context": "frontend/browser-results/0779498a-be21-4067-8463-079a00ca5a9a/connectionSurfaces-DB02-DB-b17d8-aste-usable-in-light-fr-320-ui/UI04-manual-paste-context.json",
+    "retainedOwner": "frontend/browser/scenarios/connectionSurfaces.spec.ts",
+    "finalScenarios": [
+      [
+        "connectionSurfaces.spec.ts",
+        "keeps postgresql-logical connection and nested paste usable in light fr 320"
+      ]
+    ],
+    "layoutRisk": "Nested manual-paste dialog, parent context and compact controls"
+  },
+  "connection-paste-dark-en-1280.png": {
+    "historicalReference": "frontend/browser/references/connectionSurfaces-16c50d10af2f-UI04-manual-paste.png",
+    "sha256": "1aceccf32d97610b8a8b4d58cd22ba4f0eeac05bd0b43da813d6e36315a74b64",
+    "test": [
+      "connectionSurfaces.spec.ts",
+      "DB02 DB03 DB08 DB09 DB10 UI02 UI04 keeps postgresql connection and nested paste usable in dark en 1280"
+    ],
+    "context": "frontend/browser-results/0779498a-be21-4067-8463-079a00ca5a9a/connectionSurfaces-DB02-DB-1748c-aste-usable-in-dark-en-1280-ui/UI04-manual-paste-context.json",
+    "retainedOwner": "frontend/browser/scenarios/connectionSurfaces.spec.ts",
+    "finalScenarios": [
+      [
+        "connectionSurfaces.spec.ts",
+        "keeps postgresql-logical connection and nested paste usable in dark en 1280"
+      ]
+    ],
+    "layoutRisk": "Nested manual-paste dialog, parent context and compact controls"
+  },
+  "connection-paste-light-en-1280.png": {
+    "historicalReference": "frontend/browser/references/connectionSurfaces-97c91b41bb22-UI04-manual-paste.png",
+    "sha256": "3b93204ff76fa99b04f132614ba48e4191bcaf1d02441724ee312a95264d6570",
+    "test": [
+      "connectionSurfaces.spec.ts",
+      "DB02 DB03 DB08 DB09 DB10 UI02 UI04 keeps postgresql connection and nested paste usable in light en 1280"
+    ],
+    "context": "frontend/browser-results/0779498a-be21-4067-8463-079a00ca5a9a/connectionSurfaces-DB02-DB-e680d-ste-usable-in-light-en-1280-ui/UI04-manual-paste-context.json",
+    "retainedOwner": "frontend/browser/scenarios/connectionSurfaces.spec.ts",
+    "finalScenarios": [
+      [
+        "connectionSurfaces.spec.ts",
+        "keeps postgresql-logical connection and nested paste usable in light en 1280"
+      ]
+    ],
+    "layoutRisk": "Nested manual-paste dialog, parent context and compact controls"
+  },
+  "application-shell-dark.png": {
+    "historicalReference": "frontend/browser-results/0779498a-be21-4067-8463-079a00ca5a9a/appShell-SH03-shows-the-se-07823-e-sidebar-in-the-dark-theme-ui/final-surface.png",
+    "sha256": "7549302818913df2dc0e41aceffe9851b0d015eefec2149f43741b6c5c4ea1b1",
+    "test": [
+      "appShell.spec.ts",
+      "SH03 shows the selected section on the sidebar in the dark theme"
+    ],
+    "context": "frontend/browser-results/0779498a-be21-4067-8463-079a00ca5a9a/appShell-SH03-shows-the-se-07823-e-sidebar-in-the-dark-theme-ui/final-surface-context.json",
+    "retainedOwner": "frontend/browser/scenarios/appShell.spec.ts",
+    "finalScenarios": [
+      ["appShell.spec.ts", "shows the selected section on the sidebar in the dark theme"]
+    ],
+    "layoutRisk": "Selected navigation contrast and shell/list geometry"
+  },
+  "application-shell-light.png": {
+    "historicalReference": "frontend/browser-results/0779498a-be21-4067-8463-079a00ca5a9a/appShell-SH03-shows-the-se-d4032--sidebar-in-the-light-theme-ui/final-surface.png",
+    "sha256": "9ac90ef75875e7c9b8a22ad7d6e7ad67f9fdd6f8590ea6f22dc76aba3d8b0bf8",
+    "test": [
+      "appShell.spec.ts",
+      "SH03 shows the selected section on the sidebar in the light theme"
+    ],
+    "context": "frontend/browser-results/0779498a-be21-4067-8463-079a00ca5a9a/appShell-SH03-shows-the-se-d4032--sidebar-in-the-light-theme-ui/final-surface-context.json",
+    "retainedOwner": "frontend/browser/scenarios/appShell.spec.ts",
+    "finalScenarios": [
+      ["appShell.spec.ts", "shows the selected section on the sidebar in the light theme"]
+    ],
+    "layoutRisk": "Selected navigation contrast and shell/list geometry"
+  },
+  "smtp-dark-ru-desktop-validation.png": {
+    "historicalReference": "frontend/browser/references/smtp-dark-ru-desktop-validation.png",
+    "sha256": "5e4a37e0177ac8559317e697cb7243426defc6b7724dcfc0a6394f4335cd1e53",
+    "retainedOwner": "frontend/browser/scenarios/smtp.spec.ts",
+    "finalScenarios": [["smtp.spec.ts", "reference smtp-dark-ru-desktop-validation"]],
+    "layoutRisk": "SMTP field density, long copy and validation across locale/theme/width"
+  },
+  "smtp-dark-zh-narrow.png": {
+    "historicalReference": "frontend/browser/references/smtp-dark-zh-narrow.png",
+    "sha256": "09e466117f146ccc4061adfb59138d4e559e59fcd882015ad554e011f81e58af",
+    "retainedOwner": "frontend/browser/scenarios/smtp.spec.ts",
+    "finalScenarios": [["smtp.spec.ts", "reference smtp-dark-zh-narrow"]],
+    "layoutRisk": "SMTP field density, long copy and validation across locale/theme/width"
+  },
+  "smtp-light-en-desktop.png": {
+    "historicalReference": "frontend/browser/references/smtp-light-en-desktop.png",
+    "sha256": "c37e29972b3ba59167b955432bca508cd055b8eb31134080cab0a08b60af14a1",
+    "retainedOwner": "frontend/browser/scenarios/smtp.spec.ts",
+    "finalScenarios": [["smtp.spec.ts", "reference smtp-light-en-desktop"]],
+    "layoutRisk": "SMTP field density, long copy and validation across locale/theme/width"
+  },
+  "smtp-light-fr-narrow.png": {
+    "historicalReference": "frontend/browser/references/smtp-light-fr-narrow.png",
+    "sha256": "22079050afd89950bc6e1aab5ab939919d27a3cddf345912e93996e4a2b60bf3",
+    "retainedOwner": "frontend/browser/scenarios/smtp.spec.ts",
+    "finalScenarios": [["smtp.spec.ts", "reference smtp-light-fr-narrow"]],
+    "layoutRisk": "SMTP field density, long copy and validation across locale/theme/width"
+  },
+  "cleanup-logical-dark.png": {
+    "historicalReference": "frontend/browser/references/cleanup-logical-dark.png",
+    "sha256": "aefb2212276ae9b74661bfa8f6eb979aed0f1a8f4dd01b335e3076f1bbeb3d91",
+    "retainedOwner": "frontend/browser/scenarios/databaseCleanup.spec.ts",
+    "finalScenarios": [
+      [
+        "databaseCleanup.spec.ts",
+        "logical cleanup",
+        "keeps cleanup beside cleared Storage with disabled backups in dark theme"
+      ]
+    ],
+    "layoutRisk": "Compact cleanup status, warning wrapping and theme contrast"
+  },
+  "cleanup-logical-light.png": {
+    "historicalReference": "frontend/browser/references/cleanup-logical-light.png",
+    "sha256": "7deadad22d61643782b54378b2a248bdd962cd958ea8c3769119ed13aa74672d",
+    "retainedOwner": "frontend/browser/scenarios/databaseCleanup.spec.ts",
+    "finalScenarios": [
+      [
+        "databaseCleanup.spec.ts",
+        "logical cleanup",
+        "keeps cleanup beside cleared Storage with disabled backups in light theme"
+      ]
+    ],
+    "layoutRisk": "Compact cleanup status, warning wrapping and theme contrast"
+  }
+}

@@ -1,4 +1,5 @@
-import { Alert, Button, Spin, Switch } from 'antd';
+import { Alert, Button, Loader, Switch } from '@mantine/core';
+import { CircleAlert } from 'lucide-react';
 import { type ReactNode, useEffect, useEffectEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -125,7 +126,7 @@ export const EditBackupConfigSection = <TDraft extends BackupConfigSectionDraft>
         <LoadFailure error={loadError} onRetry={() => setLoadAttempt((attempt) => attempt + 1)} />
 
         <div className="mt-5 flex">
-          <Button danger ghost onClick={onCancel}>
+          <Button variant="outline" color="danger" onClick={onCancel}>
             {t('common.actions.cancel')}
           </Button>
         </div>
@@ -136,7 +137,7 @@ export const EditBackupConfigSection = <TDraft extends BackupConfigSectionDraft>
   if (!draft || !acknowledgedDraft) {
     return (
       <div className="mb-5 flex items-center">
-        <Spin />
+        <Loader role="status" />
       </div>
     );
   }
@@ -152,28 +153,44 @@ export const EditBackupConfigSection = <TDraft extends BackupConfigSectionDraft>
         <Switch
           checked={draft.isBackupsEnabled}
           aria-label={t('backups.config.backupsEnabled')}
-          onChange={(isBackupsEnabled) => setDraft({ ...draft, isBackupsEnabled })}
-          size="small"
+          onChange={(event) =>
+            setDraft({ ...draft, isBackupsEnabled: event.currentTarget.checked })
+          }
+          size="xs"
         />
       </div>
 
       {renderFields(draft, setDraft)}
 
       {saveError !== undefined && (
-        <Alert className="mt-5" type="error" showIcon message={translateApiError(saveError, t)} />
+        <Alert
+          className="mt-5"
+          color="danger"
+          icon={
+            <CircleAlert aria-hidden size={16} className="inline-block shrink-0 align-middle" />
+          }
+          title={translateApiError(saveError, t)}
+        />
       )}
 
       <div className="mt-5 flex">
-        <Button danger ghost className="mr-1" disabled={isSaving} onClick={onCancel}>
+        <Button
+          variant="outline"
+          color="danger"
+          className="mr-1"
+          disabled={isSaving}
+          onClick={onCancel}
+        >
           {t('common.actions.cancel')}
         </Button>
 
         <Button
-          type="primary"
+          variant="filled"
           className="mr-5 ml-1"
           onClick={() => confirmAndSaveDraft(draft)}
           loading={isSaving}
           disabled={!canSave}
+          aria-busy={isSaving}
         >
           {t('common.actions.save')}
         </Button>

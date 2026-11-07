@@ -183,10 +183,10 @@ const recordUpdates = (savedAnswer: Database) => {
 const getRowOfLabel = (label: string) => screen.getByText(label).parentElement!;
 
 const chooseSslMode = async (modeLabel: RegExp) => {
-  fireEvent.mouseDown(getRowOfLabel('SSL mode').querySelector('.ant-select-selector')!);
+  fireEvent.click(getRowOfLabel('SSL mode').querySelector('[role="combobox"]')!);
   const option = await waitFor(() => {
-    const modeOption = Array.from(document.querySelectorAll('.ant-select-item-option')).find(
-      (element) => modeLabel.test(element.textContent ?? ''),
+    const modeOption = Array.from(screen.queryAllByRole('option')).find((element) =>
+      modeLabel.test(element.textContent ?? ''),
     );
     expect(modeOption).toBeTruthy();
     return modeOption!;
@@ -239,9 +239,9 @@ const testAndSaveConnection = async (sentUpdates: unknown[]) => {
 };
 
 const chooseSshAuth = async (optionTitle: string) => {
-  fireEvent.mouseDown(getRowOfLabel('SSH auth').querySelector('.ant-select-selector')!);
+  fireEvent.click(getRowOfLabel('SSH auth').querySelector('[role="combobox"]')!);
   const option = await waitFor(() => {
-    const authOption = document.querySelector(`.ant-select-item-option[title="${optionTitle}"]`);
+    const authOption = screen.queryByRole('option', { name: `${optionTitle}` });
     expect(authOption).toBeTruthy();
     return authOption!;
   });
@@ -644,6 +644,7 @@ describe('DatabaseConfigComponent', () => {
 
       fireEvent.click(screen.getByText('Advanced settings'));
       const exclusion = await screen.findByRole('combobox', { name: field });
+      exclusion.focus();
       fireEvent.change(exclusion, { target: { value: 'audit_log' } });
       fireEvent.keyDown(exclusion, { key: 'Enter', code: 'Enter', keyCode: 13 });
 
@@ -714,7 +715,7 @@ describe('DatabaseConfigComponent', () => {
       await clickSave();
       await screen.findByText('Create a read-only user for Databasus?');
 
-      fireEvent.click(document.querySelector('.ant-modal-close')!);
+      fireEvent.click(document.querySelector('button[aria-label="Close"]')!);
 
       await waitFor(() => expect(onDatabaseChanged).toHaveBeenCalledWith(answeredDatabase));
       expect(getInputByPlaceholder(/host$/).value).toBe('saved.example.com');
@@ -1020,7 +1021,7 @@ describe('DatabaseConfigComponent', () => {
       fireEvent.click(saveButton);
       fireEvent.click(saveButton);
       await waitFor(() => expect(countRequests('/databases/database-id', 'PUT')).toBe(1));
-      expect((getInputByPlaceholder(/host$/) as HTMLInputElement).disabled).toBe(true);
+      expect(getInputByPlaceholder(/host$/).closest('fieldset')).toHaveProperty('disabled', true);
       await releaseAndSettle(updateCall, update.release);
 
       expect(countRequests('/databases/database-id', 'PUT')).toBe(1);
@@ -1316,10 +1317,10 @@ describe('DatabaseConfigComponent backup configuration', () => {
   const chooseRetentionPolicy = async (optionTitle: RegExp) => {
     const policyLabel = screen.getByText('Retention policy');
 
-    fireEvent.mouseDown(policyLabel.parentElement!.querySelector('.ant-select-selector')!);
+    fireEvent.click(policyLabel.parentElement!.querySelector('[role="combobox"]')!);
     const option = await waitFor(() => {
-      const policyOption = Array.from(document.querySelectorAll('.ant-select-item-option')).find(
-        (element) => optionTitle.test(element.textContent ?? ''),
+      const policyOption = Array.from(screen.queryAllByRole('option')).find((element) =>
+        optionTitle.test(element.textContent ?? ''),
       );
       expect(policyOption).toBeTruthy();
       return policyOption!;
@@ -1329,7 +1330,7 @@ describe('DatabaseConfigComponent backup configuration', () => {
   };
 
   const getRetentionInput = (label: string) =>
-    screen.getByText(label).parentElement!.querySelector('input') as HTMLInputElement;
+    screen.getByRole('spinbutton', { name: label }) as HTMLInputElement;
 
   const setRetentionValue = (label: string, value: string) =>
     fireEvent.change(getRetentionInput(label), { target: { value } });
@@ -1547,11 +1548,9 @@ describe('DatabaseConfigComponent backup configuration', () => {
       const chooseEncryption = async (optionTitle: string) => {
         const control = await screen.findByRole('combobox', { name: 'Encryption' });
 
-        fireEvent.mouseDown(control.closest('.ant-select')!.querySelector('.ant-select-selector')!);
+        fireEvent.click(control!);
         const option = await waitFor(() => {
-          const encryptionOption = document.querySelector(
-            `.ant-select-item-option[title="${optionTitle}"]`,
-          );
+          const encryptionOption = screen.queryByRole('option', { name: `${optionTitle}` });
           expect(encryptionOption).toBeTruthy();
           return encryptionOption!;
         });
@@ -1585,8 +1584,8 @@ describe('DatabaseConfigComponent backup configuration', () => {
       expect(
         screen
           .getByRole('combobox', { name: 'Encryption' })
-          .closest('.ant-select')!
-          .querySelector('.ant-select-selection-item')?.textContent,
+          .closest('div')!
+          .querySelector('button[role="combobox"]')?.textContent,
       ).toBe('None');
       expect(countRequests(`/backup-configs/${database.id}`, 'PUT')).toBe(0);
     },
@@ -1638,13 +1637,11 @@ describe('DatabaseConfigComponent backup configuration', () => {
     const choosePeriod = async (periodTitle: string) => {
       const periodSelect = screen
         .getByText('Retention policy')
-        .parentElement!.querySelectorAll('.ant-select-selector')[1];
+        .parentElement!.querySelectorAll('[role="combobox"]')[1];
 
-      fireEvent.mouseDown(periodSelect);
+      fireEvent.click(periodSelect);
       const option = await waitFor(() => {
-        const periodOption = document.querySelector(
-          `.ant-select-item-option[title="${periodTitle}"]`,
-        );
+        const periodOption = screen.queryByRole('option', { name: `${periodTitle}` });
         expect(periodOption).toBeTruthy();
         return periodOption!;
       });
@@ -1737,9 +1734,11 @@ describe('DatabaseConfigComponent backup configuration', () => {
 
           await openBackupSection();
           const storageField = (await screen.findByText('Storage')).parentElement!;
-          await waitFor(() => expect(storageField.querySelector('.ant-select-clear')).toBeTruthy());
+          await waitFor(() =>
+            expect(within(storageField).queryByRole('button', { name: 'Clear' })).toBeTruthy(),
+          );
 
-          fireEvent.mouseDown(storageField.querySelector('.ant-select-clear')!);
+          fireEvent.click(within(storageField).queryByRole('button', { name: 'Clear' })!);
           fireEvent.click(await screen.findByRole('button', { name: /Save$/ }));
           await waitFor(() => expect(submitted).toHaveLength(1));
 
@@ -1750,11 +1749,9 @@ describe('DatabaseConfigComponent backup configuration', () => {
 
           await openBackupSection();
           const reopenedField = (await screen.findByText('Storage')).parentElement!;
-          fireEvent.mouseDown(reopenedField.querySelector('.ant-select-selector')!);
+          fireEvent.click(reopenedField.querySelector('[role="combobox"]')!);
           const option = await waitFor(() => {
-            const storageOption = document.querySelector(
-              `.ant-select-item-option[title="${targetName}"]`,
-            );
+            const storageOption = screen.queryByRole('option', { name: `${targetName}` });
             expect(storageOption).toBeTruthy();
             return storageOption!;
           });
@@ -1840,11 +1837,9 @@ describe('DatabaseConfigComponent backup configuration', () => {
     for (const archive of ['B', 'C']) {
       await openBackupSection();
       const storageField = screen.getByText('Storage').parentElement!;
-      fireEvent.mouseDown(storageField.querySelector('.ant-select-selector')!);
+      fireEvent.click(storageField.querySelector('[role="combobox"]')!);
       const option = await waitFor(() => {
-        const storageOption = document.querySelector(
-          `.ant-select-item-option[title="Archive ${archive}"]`,
-        );
+        const storageOption = screen.queryByRole('option', { name: `Archive ${archive}` });
         expect(storageOption).toBeTruthy();
         return storageOption!;
       });
@@ -2029,7 +2024,7 @@ describe('DatabaseConfigComponent backup configuration', () => {
         config.settings.type === 'LOGICAL' ? 'Most recent backups' : 'Most recent full backups';
       const retentionInput = screen.getByRole('spinbutton', { name: retentionLabel });
       fireEvent.change(retentionInput, { target: { value: '37' } });
-      fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Storage' }));
+      fireEvent.click(screen.getByRole('combobox', { name: 'Storage' }));
       fireEvent.click(await screen.findByText('Draft archive'));
       retentionInput.focus();
       view.container.style.height = '200px';
@@ -2054,8 +2049,8 @@ describe('DatabaseConfigComponent backup configuration', () => {
       expect(
         screen
           .getByRole('combobox', { name: 'Storage' })
-          .closest('.ant-select')
-          ?.querySelector('.ant-select-selection-item')?.textContent,
+          .closest('div')
+          ?.querySelector('button[role="combobox"]')?.textContent,
       ).toBe('Draft archive');
       expect(document.activeElement).toBe(retentionInput);
       expect(view.container.scrollTop).toBe(180);
@@ -2284,13 +2279,13 @@ describe('DatabaseConfigComponent backup configuration', () => {
       fieldLabel: string;
       optionText: string;
     }) => {
-      fireEvent.mouseDown(
-        screen.getByText(fieldLabel).parentElement!.querySelector('.ant-select-selector')!,
+      fireEvent.click(
+        screen.getByText(fieldLabel).parentElement!.querySelector('[role="combobox"]')!,
       );
       const option = await waitFor(() => {
-        const matchingOption = Array.from(
-          document.querySelectorAll('.ant-select-item-option'),
-        ).find((element) => element.textContent === optionText);
+        const matchingOption = Array.from(screen.queryAllByRole('option')).find(
+          (element) => element.textContent === optionText,
+        );
         expect(matchingOption).toBeTruthy();
         return matchingOption!;
       });

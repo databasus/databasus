@@ -137,11 +137,11 @@ const countRequests = (pathSuffix: string, method = 'GET') =>
 
 const chooseStorage = async (name: string) => {
   const storageLabel = await screen.findByText('Storage');
-  const select = storageLabel.parentElement!.querySelector('.ant-select-selector')!;
+  const select = storageLabel.parentElement!.querySelector('[role="combobox"]')!;
 
-  fireEvent.mouseDown(select);
+  fireEvent.click(select);
   const option = await waitFor(() => {
-    const storageOption = document.querySelector(`.ant-select-item-option[title="${name}"]`);
+    const storageOption = screen.queryByRole('option', { name: `${name}` });
     expect(storageOption).toBeTruthy();
     return storageOption!;
   });
@@ -150,9 +150,9 @@ const chooseStorage = async (name: string) => {
 };
 
 const chooseSelectOption = async (combobox: HTMLElement, optionLabel: string) => {
-  fireEvent.mouseDown(combobox);
+  fireEvent.click(combobox);
   const option = await waitFor(() => {
-    const matchingOption = Array.from(document.querySelectorAll('.ant-select-item-option')).find(
+    const matchingOption = Array.from(screen.queryAllByRole('option')).find(
       (candidate) => candidate.textContent === optionLabel,
     );
 
@@ -215,7 +215,13 @@ const transferSelectedDatabase = async (user: ReturnType<typeof renderScreen>['u
 const findDatabaseCard = (name: string) =>
   // Only fixed test fixture names reach this selector.
   // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
-  screen.findByRole('button', { name: new RegExp(`^${name}`) });
+  waitFor(() => {
+    const card = screen
+      .getAllByRole('button', { name: new RegExp(`^${name}`) })
+      .find((button) => button.hasAttribute('aria-pressed'));
+    expect(card).toBeTruthy();
+    return card!;
+  });
 
 const reachPhysicalWizardBackupStep = async (user: ReturnType<typeof renderScreen>['user']) => {
   await user.click(await screen.findByRole('button', { name: 'Add database' }));
@@ -665,7 +671,7 @@ describe('DatabasesComponent', () => {
       const { user } = await saveWithLimitedUserCheck(advisingCheck());
       await screen.findByText('Create a read-only user for Databasus?');
 
-      fireEvent.click(document.querySelector('.ant-modal-close')!);
+      fireEvent.click(document.querySelector('button[aria-label="Close"]')!);
 
       expect(await findDatabaseCard('Renamed Shop')).toBeTruthy();
       await user.click(await screen.findByRole('button', { name: 'Cancel' }));
@@ -895,7 +901,7 @@ describe('DatabasesComponent during the backup step of the wizard', () => {
       });
       await findDatabaseCard('Refreshed');
 
-      expect(document.querySelector('.ant-modal .ant-spin')).toBeNull();
+      expect(document.querySelector('[role="dialog"] [role="status"]')).toBeNull();
       expect((screen.getAllByRole('checkbox')[0] as HTMLInputElement).checked).toBe(
         !isInitiallyChecked,
       );
@@ -1424,7 +1430,7 @@ describe('DatabasesComponent with the creation wizard', () => {
     return screen.findByRole('button', { name: 'Complete' });
   };
 
-  const closeWizard = () => fireEvent.click(document.querySelector('.ant-modal-close')!);
+  const closeWizard = () => fireEvent.click(document.querySelector('button[aria-label="Close"]')!);
 
   const refreshInBackground = () =>
     act(() => {
@@ -1461,9 +1467,9 @@ describe('DatabasesComponent with the creation wizard', () => {
 
     await expectCardPressed('Created', true);
     expect(await within(await findDatabaseCard('Created')).findByText('Archive')).toBeTruthy();
-    expect(await screen.findByText('No backups yet')).toBeTruthy();
+    expect(await within(screen.getByRole('table')).findByText('No backups yet')).toBeTruthy();
     expect(screen.queryByText(SCHEDULED_BACKUPS_DISABLED)).toBeNull();
-    expect(document.querySelector('.ant-modal')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('lists and selects the created database when the user closes the wizard after a failure', async () => {
@@ -1520,7 +1526,11 @@ describe('DatabasesComponent with the creation wizard', () => {
     await openAndCancelWizard(user);
 
     await expectCardPressed('Shop', true);
-    expect(screen.queryByRole('button', { name: /^Created/ })).toBeNull();
+    expect(
+      screen
+        .queryAllByRole('button', { name: /^Created/ })
+        .filter((button) => button.hasAttribute('aria-pressed')),
+    ).toHaveLength(0);
 
     refreshInBackground();
 

@@ -1,4 +1,4 @@
-import { Input, InputNumber, Select, Switch } from 'antd';
+import { NumberInput, Switch, TagsInput, TextInput } from '@mantine/core';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -94,22 +94,33 @@ export const EditMongodbConnectionComponent = ({
         <Switch
           id={`${controlId}-https`}
           checked={settings.isHttps}
-          onChange={(isHttps) => onConnectionChange({ ...settings, isHttps })}
-          size="small"
+          onChange={(event) =>
+            ((isHttps) => onConnectionChange({ ...settings, isHttps }))(event.currentTarget.checked)
+          }
+          size="xs"
         />
       </ConnectionFieldRow>
 
       <div className="mb-5">
         <ConnectionFieldRow label={t('databases.fields.cpuCount')} controlId={`${controlId}-cpu`}>
           <div className="flex items-center">
-            <InputNumber
+            <NumberInput
               id={`${controlId}-cpu`}
               min={1}
               max={16}
               value={settings.cpuCount}
-              onChange={(cpuCount) => onConnectionChange({ ...settings, cpuCount: cpuCount || 1 })}
-              size="small"
+              onChange={(cpuCount) =>
+                onConnectionChange({
+                  ...settings,
+                  cpuCount: typeof cpuCount === 'number' ? cpuCount || 1 : 1,
+                })
+              }
+              size="xs"
               className="max-w-[200px]"
+              role="spinbutton"
+              aria-valuenow={typeof settings.cpuCount === 'number' ? settings.cpuCount : undefined}
+              aria-valuemin={1}
+              aria-valuemax={16}
             />
 
             <ConnectionFieldTooltip title={t('databases.edit.cpuCountTooltip')} />
@@ -142,8 +153,12 @@ export const EditMongodbConnectionComponent = ({
                 id={`${controlId}-srv`}
                 checked={settings.isSrv || false}
                 disabled={isTunnelEnabled || undefined}
-                onChange={(isSrv) => onConnectionChange({ ...settings, isSrv })}
-                size="small"
+                onChange={(event) =>
+                  ((isSrv) => onConnectionChange({ ...settings, isSrv }))(
+                    event.currentTarget.checked,
+                  )
+                }
+                size="xs"
               />
 
               <ConnectionFieldTooltip
@@ -162,15 +177,17 @@ export const EditMongodbConnectionComponent = ({
           >
             <div className="flex items-center">
               {/* Shown as on but never written: the backend forces it per connection, so the
-                  stored value still applies once the tunnel is switched off. */}
+            stored value still applies once the tunnel is switched off. */}
               <Switch
                 id={`${controlId}-direct`}
                 checked={isTunnelEnabled || settings.isDirectConnection || false}
                 disabled={isTunnelEnabled || undefined}
-                onChange={(isDirectConnection) =>
-                  onConnectionChange({ ...settings, isDirectConnection })
+                onChange={(event) =>
+                  ((isDirectConnection) => onConnectionChange({ ...settings, isDirectConnection }))(
+                    event.currentTarget.checked,
+                  )
                 }
-                size="small"
+                size="xs"
               />
 
               <ConnectionFieldTooltip
@@ -187,13 +204,13 @@ export const EditMongodbConnectionComponent = ({
             label={t('databases.fields.authDatabase')}
             controlId={`${controlId}-auth-database`}
           >
-            <Input
+            <TextInput
               id={`${controlId}-auth-database`}
               value={settings.authDatabase}
               onChange={(e) =>
                 onConnectionChange({ ...settings, authDatabase: e.target.value.trim() })
               }
-              size="small"
+              size="xs"
               className="w-full max-w-[200px]"
               // eslint-disable-next-line i18next/no-literal-string -- MongoDB's default authentication database
               placeholder="admin"
@@ -206,9 +223,8 @@ export const EditMongodbConnectionComponent = ({
               controlId={`${controlId}-exclude-collections`}
             >
               <div className="flex w-full items-center">
-                <Select
+                <TagsInput
                   id={`${controlId}-exclude-collections`}
-                  mode="tags"
                   value={settings.excludeCollections || []}
                   onChange={(values) =>
                     onNonConnectionChange({
@@ -216,10 +232,10 @@ export const EditMongodbConnectionComponent = ({
                       excludeCollections: normalizeNameList(values),
                     })
                   }
-                  size="small"
+                  size="xs"
                   className="w-full max-w-[200px]"
                   placeholder={t('databases.edit.mongodb.excludeCollectionsPlaceholder')}
-                  tokenSeparators={NAME_LIST_TOKEN_SEPARATORS}
+                  splitChars={NAME_LIST_TOKEN_SEPARATORS}
                 />
 
                 <ConnectionFieldTooltip

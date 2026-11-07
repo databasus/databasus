@@ -1,4 +1,5 @@
-import { Alert, App, Button } from 'antd';
+import { Alert, Button } from '@mantine/core';
+import { CircleAlert } from 'lucide-react';
 import { useEffect, useEffectEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -26,6 +27,7 @@ import { CreateLimitedUserComponent } from '@/pages/databases/ui/CreateLimitedUs
 import { EditDatabaseBaseInfoComponent } from '@/pages/databases/ui/EditDatabaseBaseInfoComponent';
 import { useSessionGuard } from '@/shared/auth';
 import { translateApiError } from '@/shared/i18n';
+import { useFeedback } from '@/shared/lib/feedback';
 
 interface Props {
   workspaceId: string;
@@ -57,7 +59,7 @@ export const CreateDatabaseComponent = ({
   onWideStepChange,
 }: Props) => {
   const { t } = useTranslation();
-  const { message } = App.useApp();
+  const notify = useFeedback();
   const [isCompleting, setIsCompleting] = useState(false);
   const [createdDatabase, setCreatedDatabase] = useState<Database>();
   const [isBackupConfigAcknowledged, setIsBackupConfigAcknowledged] = useState(false);
@@ -156,7 +158,7 @@ export const CreateDatabaseComponent = ({
       if (!isCurrent()) return;
 
       if (database) setCompletionError(error);
-      else message.error(translateApiError(error, t));
+      else notify({ kind: 'error', title: translateApiError(error, t) });
     }
 
     setIsCompleting(false);
@@ -180,9 +182,9 @@ export const CreateDatabaseComponent = ({
   const completionAlert = completionError !== undefined && (
     <Alert
       className="mb-5"
-      type="error"
-      showIcon
-      message={t('databases.create.createdButNotFinished', {
+      color="danger"
+      icon={<CircleAlert aria-hidden size={16} className="inline-block shrink-0 align-middle" />}
+      title={t('databases.create.createdButNotFinished', {
         reason: translateApiError(completionError, t),
       })}
     />
@@ -226,9 +228,8 @@ export const CreateDatabaseComponent = ({
         submitLabel={t('common.actions.continue')}
         secondaryActions={
           <Button
-            className="mr-auto"
-            type="primary"
-            ghost
+            className="mr-auto !h-auto min-h-8 max-w-full !whitespace-normal"
+            variant="outline"
             onClick={() => setStep(isPostgres ? 'postgres-backup-type' : 'base-info')}
           >
             {t('common.actions.back')}

@@ -21,9 +21,9 @@ const declareStorages = () =>
 const chooseArchiveStorage = async () => {
   const storageLabel = await screen.findByText('Storage');
 
-  fireEvent.mouseDown(storageLabel.parentElement!.querySelector('.ant-select-selector')!);
+  fireEvent.click(storageLabel.parentElement!.querySelector('[role="combobox"]')!);
   const option = await waitFor(() => {
-    const storageOption = document.querySelector('.ant-select-item-option[title="Archive"]');
+    const storageOption = screen.queryByRole('option', { name: 'Archive' });
     expect(storageOption).toBeTruthy();
     return storageOption!;
   });

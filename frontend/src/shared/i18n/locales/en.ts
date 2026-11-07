@@ -5,7 +5,20 @@ export const en = {
     nativeName: 'English',
   },
   common: {
+    calendar: {
+      monthLevelControl: 'Choose month',
+      yearLevelControl: 'Choose year',
+      nextMonth: 'Next month',
+      previousMonth: 'Previous month',
+      nextYear: 'Next year',
+      previousYear: 'Previous year',
+      nextDecade: 'Next decade',
+      previousDecade: 'Previous decade',
+      seconds: 'Seconds',
+    },
     actions: {
+      clear: 'Clear',
+      togglePasswordVisibility: 'Toggle password visibility',
       back: 'Back',
       cancel: 'Cancel',
       close: 'Close',
@@ -201,6 +214,9 @@ export const en = {
     },
   },
   schedules: {
+    hours: 'Hours',
+    minutes: 'Minutes',
+    timePeriod: 'AM or PM',
     types: {
       hourly: 'Hourly',
       daily: 'Daily',

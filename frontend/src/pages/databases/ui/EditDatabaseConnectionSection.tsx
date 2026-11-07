@@ -1,4 +1,4 @@
-import { App, Button, Modal } from 'antd';
+import { Button } from '@mantine/core';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -12,6 +12,8 @@ import { DatabaseConnectionForm } from '@/features/database-connection';
 import { CreateLimitedUserComponent } from '@/pages/databases/ui/CreateLimitedUserComponent';
 import { useSessionGuard } from '@/shared/auth';
 import { translateApiError } from '@/shared/i18n';
+import { useFeedback } from '@/shared/lib/feedback';
+import { Dialog } from '@/shared/ui';
 
 interface Props {
   database: Database;
@@ -32,7 +34,7 @@ const createEditDraft = (database: Database): DatabaseEditDraft => ({
 
 export const EditDatabaseConnectionSection = ({ database, onDatabaseSaved, onClose }: Props) => {
   const { t } = useTranslation();
-  const { message } = App.useApp();
+  const notify = useFeedback();
   const isActive = useSessionGuard();
   const [draft, setDraft] = useState(() => createEditDraft(database));
   const [isShowLimitedUserDialog, setIsShowLimitedUserDialog] = useState(false);
@@ -53,7 +55,7 @@ export const EditDatabaseConnectionSection = ({ database, onDatabaseSaved, onClo
     } catch (e) {
       if (!isActive()) return;
 
-      message.error(translateApiError(e, t));
+      notify({ kind: 'error', title: translateApiError(e, t) });
       onClose();
     }
   };
@@ -75,13 +77,12 @@ export const EditDatabaseConnectionSection = ({ database, onDatabaseSaved, onClo
 
   if (isShowLimitedUserDialog) {
     return (
-      <Modal
+      <Dialog
         title={t('databases.readOnlyUser.dialogTitle')}
-        footer={<div />}
-        open
-        onCancel={() => setIsShowLimitedUserDialog(false)}
-        maskClosable={false}
-        width={640}
+        opened
+        onClose={() => setIsShowLimitedUserDialog(false)}
+        closeOnClickOutside={false}
+        size={640}
       >
         <CreateLimitedUserComponent
           draft={draft}
@@ -100,7 +101,10 @@ export const EditDatabaseConnectionSection = ({ database, onDatabaseSaved, onClo
           onSkipped={onClose}
           onLimitedUserNotSuggested={onClose}
         />
-      </Modal>
+        <div className="mt-5 flex flex-wrap justify-end gap-2">
+          <div />
+        </div>
+      </Dialog>
     );
   }
 

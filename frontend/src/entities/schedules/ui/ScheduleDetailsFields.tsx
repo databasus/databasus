@@ -1,4 +1,6 @@
-import { InputNumber, Select, TimePicker } from 'antd';
+import { NumberInput } from '@mantine/core';
+import { TimePicker } from '@mantine/dates';
+import dayjs from 'dayjs';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -14,6 +16,7 @@ import { WEEKDAYS } from '@/entities/schedules/model/Weekday';
 import { WEEKDAY_LABEL_KEYS } from '@/entities/schedules/model/WeekdayLabelKeys';
 import { CronExpressionField } from '@/entities/schedules/ui/CronExpressionField';
 import { getUserClockFormat } from '@/shared/time';
+import { WrappingSelect } from '@/shared/ui';
 
 interface Props {
   schedule: Schedule;
@@ -41,13 +44,13 @@ export const ScheduleDetailsFields = ({ schedule, onChange }: Props) => {
           <label htmlFor={weekdayControlId} className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
             {t('schedules.weekday')}
           </label>
-          <Select
+          <WrappingSelect
             id={weekdayControlId}
             value={weekday}
             onChange={(localWeekday) => onChange(withLocalWeekday(schedule, localWeekday))}
-            size="small"
+            size="xs"
             className="w-full max-w-[200px] grow"
-            options={weekdayOptions}
+            data={weekdayOptions}
           />
         </div>
       )}
@@ -57,18 +60,22 @@ export const ScheduleDetailsFields = ({ schedule, onChange }: Props) => {
           <label htmlFor={dayOfMonthControlId} className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
             {t('schedules.dayOfMonth')}
           </label>
-          <InputNumber
+          <NumberInput
             id={dayOfMonthControlId}
             min={1}
             max={31}
             value={dayOfMonth}
             onChange={(localDayOfMonth) => {
-              if (!localDayOfMonth) return;
+              if (typeof localDayOfMonth !== 'number' || !localDayOfMonth) return;
 
               onChange(withLocalDayOfMonth(schedule, localDayOfMonth));
             }}
-            size="small"
+            size="xs"
             className="w-full max-w-[200px] grow"
+            role="spinbutton"
+            aria-valuenow={typeof dayOfMonth === 'number' ? dayOfMonth : undefined}
+            aria-valuemin={1}
+            aria-valuemax={31}
           />
         </div>
       )}
@@ -86,17 +93,40 @@ export const ScheduleDetailsFields = ({ schedule, onChange }: Props) => {
             {t('schedules.timeOfDay')}
           </label>
           <TimePicker
-            id={timeOfDayControlId}
-            value={localTime}
-            format={clockFormat.format}
-            use12Hours={clockFormat.use12Hours}
-            allowClear={false}
-            size="small"
-            className="w-full max-w-[200px] grow"
+            value={localTime?.format('HH:mm:ss') ?? ''}
+            format={clockFormat.use12Hours ? '12h' : '24h'}
+            withDropdown
+            hoursInputProps={{ id: timeOfDayControlId }}
+            hoursInputLabel={t('schedules.hours')}
+            minutesInputLabel={t('schedules.minutes')}
+            amPmInputLabel={t('schedules.timePeriod')}
+            amPmLabels={{ am: dayjs().hour(9).format('A'), pm: dayjs().hour(15).format('A') }}
+            pasteSplit={({ time, format, amPmLabels }) => {
+              const parsedTime = dayjs(time, [clockFormat.format, 'HH:mm', 'HH:mm:ss'], true);
+
+              if (!parsedTime.isValid())
+                return { hours: null, minutes: null, seconds: null, amPm: null };
+
+              return {
+                hours: format === '12h' ? parsedTime.hour() % 12 || 12 : parsedTime.hour(),
+                minutes: parsedTime.minute(),
+                seconds: parsedTime.second(),
+                amPm:
+                  format === '12h'
+                    ? parsedTime.hour() >= 12
+                      ? amPmLabels.pm
+                      : amPmLabels.am
+                    : null,
+              };
+            }}
+            size="xs"
+            className="w-full max-w-[240px] grow"
             onChange={(pickedTime) => {
               if (!pickedTime) return;
 
-              onChange(withLocalTimeOfDay(schedule, pickedTime));
+              const localTime = dayjs(pickedTime, ['HH:mm:ss', 'HH:mm'], true);
+
+              if (localTime.isValid()) onChange(withLocalTimeOfDay(schedule, localTime));
             }}
           />
         </div>

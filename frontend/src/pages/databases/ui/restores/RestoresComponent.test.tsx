@@ -142,7 +142,7 @@ describe('RestoresComponent failures', () => {
 
     expect(showAlert).not.toHaveBeenCalled();
     expect(screen.queryByText(INTERNAL_ERROR)).toBeNull();
-    expect(document.querySelector('.ant-alert')).toBeNull();
+    expect(document.querySelector('[role="alert"]')).toBeNull();
     expect(screen.getByText('In progress')).toBeTruthy();
   });
 

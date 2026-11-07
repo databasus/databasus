@@ -1,4 +1,4 @@
-import { Input, InputNumber } from 'antd';
+import { NumberInput, PasswordInput, TextInput } from '@mantine/core';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -44,11 +44,11 @@ export const ConnectionCredentialFields = ({
   return (
     <>
       <ConnectionFieldRow label={t('common.fields.host')} controlId={`${controlId}-host`}>
-        <Input
+        <TextInput
           id={`${controlId}-host`}
           value={values.host}
           onChange={(e) => onHostChange(e.target.value)}
-          size="small"
+          size="xs"
           className="w-full max-w-[200px]"
           placeholder={t('databases.edit.placeholders.host', { engine: engineName })}
         />
@@ -58,30 +58,31 @@ export const ConnectionCredentialFields = ({
 
       {isPortShown && (
         <ConnectionFieldRow label={t('common.fields.port')} controlId={`${controlId}-port`}>
-          <InputNumber
+          <NumberInput
             id={`${controlId}-port`}
-            type="number"
             value={values.port}
             onChange={(port) => {
-              if (port === null) return;
+              if (typeof port !== 'number') return;
 
               onValuesChange({ port });
             }}
-            size="small"
+            size="xs"
             className="w-full max-w-[200px]"
             placeholder={
               portPlaceholder ?? t('databases.edit.placeholders.port', { engine: engineName })
             }
+            role="spinbutton"
+            aria-valuenow={typeof values.port === 'number' ? values.port : undefined}
           />
         </ConnectionFieldRow>
       )}
 
       <ConnectionFieldRow label={t('common.fields.username')} controlId={`${controlId}-username`}>
-        <Input
+        <TextInput
           id={`${controlId}-username`}
           value={values.username}
           onChange={(e) => onValuesChange({ username: e.target.value.trim() })}
-          size="small"
+          size="xs"
           className="w-full max-w-[200px]"
           placeholder={t('databases.edit.placeholders.username', { engine: engineName })}
         />
@@ -89,22 +90,23 @@ export const ConnectionCredentialFields = ({
 
       <ConnectionFieldRow label={t('common.fields.password')} controlId={`${controlId}-password`}>
         <div className="w-full max-w-[200px]">
-          <Input.Password
+          <PasswordInput
             id={`${controlId}-password`}
-            aria-describedby={isPasswordRequiredAgain ? `${controlId}-password-notice` : undefined}
-            value={values.password}
+            value={values.password ?? ''}
             onChange={(e) => onValuesChange({ password: e.target.value })}
-            size="small"
+            size="xs"
             className="w-full"
             placeholder={t('databases.edit.placeholders.password', { engine: engineName })}
             autoComplete="off"
             data-1p-ignore
             data-lpignore="true"
             data-form-type="other"
+            description={
+              isPasswordRequiredAgain && (
+                <AddressChangedSecretNoticeComponent id={`${controlId}-password-notice`} />
+              )
+            }
           />
-          {isPasswordRequiredAgain && (
-            <AddressChangedSecretNoticeComponent id={`${controlId}-password-notice`} />
-          )}
         </div>
       </ConnectionFieldRow>
 
@@ -113,11 +115,11 @@ export const ConnectionCredentialFields = ({
           label={t('databases.fields.databaseName')}
           controlId={`${controlId}-database`}
         >
-          <Input
+          <TextInput
             id={`${controlId}-database`}
             value={values.database}
             onChange={(e) => onValuesChange({ database: e.target.value.trim() })}
-            size="small"
+            size="xs"
             className="w-full max-w-[200px]"
             placeholder={t('databases.edit.placeholders.databaseName', { engine: engineName })}
           />

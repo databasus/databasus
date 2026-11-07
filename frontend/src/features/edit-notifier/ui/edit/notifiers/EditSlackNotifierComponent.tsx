@@ -1,4 +1,4 @@
-import { Input } from 'antd';
+import { TextInput } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 
 import type { SlackNotifierSettings } from '@/entities/notifiers';
@@ -30,7 +30,7 @@ export function EditSlackNotifierComponent({ settings, isSaved, onChange }: Prop
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('notifiers.fields.botToken')}</div>
-        <Input
+        <TextInput
           aria-label={t('notifiers.fields.botToken')}
           value={settings.botToken ?? ''}
           onChange={(e) =>
@@ -39,7 +39,7 @@ export function EditSlackNotifierComponent({ settings, isSaved, onChange }: Prop
               botToken: toOptionalValue(e.target.value.trim()),
             })
           }
-          size="small"
+          size="xs"
           className="w-full max-w-[250px]"
           placeholder={
             isSaved
@@ -54,11 +54,11 @@ export function EditSlackNotifierComponent({ settings, isSaved, onChange }: Prop
         <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
           {t('notifiers.fields.targetChatId')}
         </div>
-        <Input
+        <TextInput
           aria-label={t('notifiers.fields.targetChatId')}
           value={settings.targetChatId}
           onChange={(e) => onChange({ ...settings, targetChatId: e.target.value.trim() })}
-          size="small"
+          size="xs"
           className="w-full max-w-[250px]"
           // eslint-disable-next-line i18next/no-literal-string -- example channel ID
           placeholder="C1234567890"

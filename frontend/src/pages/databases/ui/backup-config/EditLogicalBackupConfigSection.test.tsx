@@ -50,11 +50,11 @@ const config: BackupConfig = {
 
 const chooseStorage = async (name = 'Archive') => {
   const storageLabel = await screen.findByText('Storage');
-  const select = storageLabel.parentElement!.querySelector('.ant-select-selector')!;
+  const select = storageLabel.parentElement!.querySelector('[role="combobox"]')!;
 
-  fireEvent.mouseDown(select);
+  fireEvent.click(select);
   const option = await waitFor(() => {
-    const storageOption = document.querySelector(`.ant-select-item-option[title="${name}"]`);
+    const storageOption = screen.queryByRole('option', { name: `${name}` });
     expect(storageOption).toBeTruthy();
     return storageOption!;
   });
@@ -75,10 +75,10 @@ const chooseOption = async ({
 }) => {
   const control = await screen.findByRole('combobox', { name: fieldName });
 
-  fireEvent.mouseDown(control.closest('.ant-select')!.querySelector('.ant-select-selector')!);
+  fireEvent.click(control!);
 
   const option = await waitFor(() => {
-    const visibleOption = document.querySelector(`.ant-select-item-option[title="${optionTitle}"]`);
+    const visibleOption = screen.queryByRole('option', { name: `${optionTitle}` });
     expect(visibleOption).toBeTruthy();
     return visibleOption!;
   });
@@ -343,8 +343,8 @@ describe('EditLogicalBackupConfigSection', () => {
     const chooseTime = async (time: string) => {
       const timeInput = await getFieldInput('Time of day');
 
-      fireEvent.mouseDown(timeInput);
-      fireEvent.change(timeInput, { target: { value: time } });
+      fireEvent.click(timeInput);
+      fireEvent.paste(timeInput, { clipboardData: { getData: () => time } });
       fireEvent.keyDown(timeInput, { key: 'Enter' });
     };
 
@@ -395,8 +395,8 @@ describe('EditLogicalBackupConfigSection', () => {
       const submitted = renderMonthlyConfig(31);
       const timeInput = await getFieldInput('Time of day');
 
-      fireEvent.mouseDown(timeInput);
-      fireEvent.change(timeInput, { target: { value: '1:00 PM' } });
+      fireEvent.click(timeInput);
+      fireEvent.paste(timeInput, { clipboardData: { getData: () => '1:00 PM' } });
       fireEvent.keyDown(timeInput, { key: 'Enter' });
       const submittedSchedule = await saveAndGetSubmittedSchedule(submitted);
 
@@ -475,8 +475,7 @@ describe('EditLogicalBackupConfigSection', () => {
       const weekdayControl = await screen.findByRole('combobox', { name: 'Weekday' });
 
       expect(
-        weekdayControl.closest('.ant-select')!.querySelector('.ant-select-selection-item')
-          ?.textContent,
+        weekdayControl.closest('div')!.querySelector('button[role="combobox"]')?.textContent,
       ).toBe('Sun');
 
       fireEvent.click(screen.getAllByRole('checkbox')[0]);

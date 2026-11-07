@@ -1,5 +1,5 @@
-import { DatePicker, Select } from 'antd';
-import type { Dayjs } from 'dayjs';
+import { MultiSelect } from '@mantine/core';
+import { DateInput } from '@mantine/dates';
 import dayjs from 'dayjs';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -29,10 +29,10 @@ export const PhysicalBackupsFiltersPanelComponent = ({ filters, onFiltersChange 
     onFiltersChange({ ...filters, statuses: statuses.length > 0 ? statuses : undefined });
   };
 
-  const handleBeforeDateChange = (date: Dayjs | null) => {
+  const handleBeforeDateChange = (date: string | null) => {
     onFiltersChange({
       ...filters,
-      createdBefore: date ? date.toISOString() : undefined,
+      createdBefore: date ? dayjs(date).toISOString() : undefined,
     });
   };
 
@@ -52,17 +52,16 @@ export const PhysicalBackupsFiltersPanelComponent = ({ filters, onFiltersChange 
         <label className="min-w-[90px] pr-2 text-sm text-muted" htmlFor={typeFieldId}>
           {t('common.fields.type')}
         </label>
-        <Select
+        <MultiSelect
           id={typeFieldId}
-          mode="multiple"
           value={filters.types ?? []}
           onChange={handleTypeChange}
-          options={typeOptions}
+          data={typeOptions}
           placeholder={t('backups.filters.allTypes')}
-          size="small"
+          size="xs"
           variant="filled"
-          className="w-[200px] [&_.ant-select-selector]:!rounded-md"
-          allowClear
+          className="w-[200px]"
+          clearable
         />
       </div>
 
@@ -70,17 +69,16 @@ export const PhysicalBackupsFiltersPanelComponent = ({ filters, onFiltersChange 
         <label className="min-w-[90px] pr-2 text-sm text-muted" htmlFor={statusFieldId}>
           {t('common.fields.status')}
         </label>
-        <Select
+        <MultiSelect
           id={statusFieldId}
-          mode="multiple"
           value={filters.statuses ?? []}
           onChange={handleStatusChange}
-          options={statusOptions}
+          data={statusOptions}
           placeholder={t('backups.filters.allStatuses')}
-          size="small"
+          size="xs"
           variant="filled"
-          className="w-[200px] [&_.ant-select-selector]:!rounded-md"
-          allowClear
+          className="w-[200px]"
+          clearable
         />
       </div>
 
@@ -88,14 +86,20 @@ export const PhysicalBackupsFiltersPanelComponent = ({ filters, onFiltersChange 
         <label className="min-w-[90px] pr-2 text-sm text-muted" htmlFor={beforeFieldId}>
           {t('backups.filters.before')}
         </label>
-        <DatePicker
+        <DateInput
+          popoverProps={{
+            withRoles: true,
+            returnFocus: true,
+            attributes: { dropdown: { 'aria-label': t('backups.filters.before') } },
+          }}
           id={beforeFieldId}
-          value={filters.createdBefore ? dayjs(filters.createdBefore) : null}
+          value={filters.createdBefore ? dayjs(filters.createdBefore).format('YYYY-MM-DD') : null}
           onChange={handleBeforeDateChange}
-          size="small"
+          size="xs"
           variant="filled"
           className="w-[200px] !rounded-md"
-          allowClear
+          clearable
+          clearButtonProps={{ 'aria-label': t('common.actions.clear') }}
         />
       </div>
     </div>

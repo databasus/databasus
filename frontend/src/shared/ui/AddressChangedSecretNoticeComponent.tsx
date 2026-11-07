@@ -8,8 +8,8 @@ export const AddressChangedSecretNoticeComponent = ({ id }: Props) => {
   const { t } = useTranslation();
 
   return (
-    <div id={id} className="mt-1 text-xs text-danger">
+    <span id={id} className="mt-1 block text-xs text-danger">
       {t('common.messages.addressChangedEnterSecretAgain')}
-    </div>
+    </span>
   );
 };

@@ -246,19 +246,18 @@ describe('UsersPage asynchronous ownership', () => {
     await waitFor(() => expect(mockServer.getRequests()).toHaveLength(3));
     await user.click(toggle);
     expect(mockServer.getRequests().filter((request) => request.method === 'POST')).toHaveLength(1);
-    expect(toggle.getAttribute('aria-checked')).toBe('true');
+    expect((toggle as HTMLInputElement).checked).toBe(true);
 
     mutation.release();
     await screen.findByText('User deactivated successfully');
-    expect(toggle.getAttribute('aria-checked')).toBe('false');
+    expect((toggle as HTMLInputElement).checked).toBe(false);
 
     page.release();
     await screen.findByText(/second@example.com/);
     expect(
-      screen
-        .getByRole('switch', { name: 'Is active? (member@example.com)' })
-        .getAttribute('aria-checked'),
-    ).toBe('false');
+      (screen.getByRole('switch', { name: 'Is active? (member@example.com)' }) as HTMLInputElement)
+        .checked,
+    ).toBe(false);
     expect(screen.getAllByRole('switch')).toHaveLength(2);
   });
 
@@ -281,9 +280,9 @@ describe('UsersPage asynchronous ownership', () => {
       }
       await screen.findByText('You do not have permission to do this.');
 
-      expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('true');
+      expect((screen.getByRole('switch') as HTMLInputElement).checked).toBe(true);
       expect(screen.getByRole('combobox').hasAttribute('disabled')).toBe(false);
-      expect(document.querySelector('.ant-select-selection-item')?.textContent).toBe('Member');
+      expect(screen.getByRole('combobox', { name: /^System role/ }).textContent).toBe('Member');
       expect(screen.getByRole('switch').hasAttribute('disabled')).toBe(false);
     },
   );
@@ -325,13 +324,13 @@ it('acknowledges role and activation from returned users when each action succee
   const { user } = renderScreen(<UsersPage />);
   await user.click(await screen.findByRole('switch'));
   await screen.findByText('User activated successfully');
-  expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('true');
+  expect((screen.getByRole('switch') as HTMLInputElement).checked).toBe(true);
 
   await user.click(screen.getByRole('combobox'));
   await user.click(await screen.findByText('Admin'));
   await screen.findByText('User role changed successfully');
 
-  expect(document.querySelector('.ant-select-selection-item')?.textContent).toBe('Admin');
+  expect(screen.getByRole('combobox', { name: /^System role/ }).textContent).toBe('Admin');
   expect(
     await mockServer
       .getRequests()
@@ -411,9 +410,10 @@ it.each([
     await waitFor(() => expect(screen.getByRole('switch').hasAttribute('disabled')).toBe(false));
     expect(screen.getByText(/Current A/)).toBeTruthy();
     expect(screen.queryByText(/Obsolete A/)).toBeNull();
-    expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('true');
-    expect(document.querySelector('.ant-select-selection-item')?.textContent).toBe('Member');
+    expect((screen.getByRole('switch') as HTMLInputElement).checked).toBe(true);
+    expect(screen.getByRole('combobox', { name: /^System role/ }).textContent).toBe('Member');
     expect(screen.queryByText(DICTIONARIES.en.errors.permissionDenied)).toBeNull();
-    expect(document.querySelector('.ant-message-notice')).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByRole('status')).toBeNull();
   },
 );

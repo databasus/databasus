@@ -1,4 +1,4 @@
-import { Spin } from 'antd';
+import { Loader } from '@mantine/core';
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -59,7 +59,7 @@ export const ShowVerificationConfigComponent = ({ databaseId }: Props) => {
   }
 
   if (!config) {
-    return <Spin size="small" />;
+    return <Loader size="xs" role="status" />;
   }
 
   const { schedule } = config;

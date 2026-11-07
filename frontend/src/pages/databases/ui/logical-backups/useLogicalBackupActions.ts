@@ -1,4 +1,3 @@
-import { App } from 'antd';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -9,6 +8,7 @@ import type { LogicalBackup } from '@/pages/databases/model/LogicalBackup';
 import type { LogicalBackupListFilter } from '@/pages/databases/model/LogicalBackupListFilter';
 import { useSessionGuard } from '@/shared/auth';
 import { translateApiError } from '@/shared/i18n';
+import { useFeedback } from '@/shared/lib/feedback';
 
 interface Params {
   databaseId: string;
@@ -39,7 +39,7 @@ export const useLogicalBackupActions = ({
   onNavigateToVerifications,
 }: Params) => {
   const { t } = useTranslation();
-  const { message } = App.useApp();
+  const notify = useFeedback();
   const isActive = useSessionGuard();
 
   const [isStartingBackup, setIsStartingBackup] = useState(false);
@@ -49,7 +49,7 @@ export const useLogicalBackupActions = ({
   const [verifyingBackupId, setVerifyingBackupId] = useState<string | undefined>();
 
   const showFailure = (error: unknown) => {
-    if (isActive()) message.error(translateApiError(error, t));
+    if (isActive()) notify({ kind: 'error', title: translateApiError(error, t) });
   };
 
   const startBackup = async () => {
@@ -121,7 +121,7 @@ export const useLogicalBackupActions = ({
     try {
       await verificationRunsApi.startVerification(backupId);
       if (isActive()) {
-        message.success(t('backups.logical.list.verifyRestore.queued'));
+        notify({ kind: 'success', title: t('backups.logical.list.verifyRestore.queued') });
         onNavigateToVerifications?.();
       }
     } catch (error) {

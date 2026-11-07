@@ -44,7 +44,10 @@ describe('WorkspaceSelectionComponent', () => {
       expect(screen.queryByRole('button', { name: dictionary.createNew })).toBeNull();
 
       await user.click(selector);
-      await user.type(selector, 'No matching team');
+      await user.type(
+        screen.getByRole('textbox', { name: dictionary.selected }),
+        'No matching team',
+      );
       await user.tab();
 
       const create = await screen.findByRole('button', { name: dictionary.createNew });
@@ -73,7 +76,7 @@ describe('WorkspaceSelectionComponent', () => {
     const selector = screen.getByRole('combobox', { name: 'Selected workspace' });
 
     await user.click(selector);
-    await user.type(selector, 'Second');
+    await user.type(screen.getByRole('textbox', { name: 'Selected workspace' }), 'Second');
     expect(
       screen.queryByRole('button', { name: DICTIONARIES.en.app.workspaceSelection.createNew }),
     ).toBeNull();

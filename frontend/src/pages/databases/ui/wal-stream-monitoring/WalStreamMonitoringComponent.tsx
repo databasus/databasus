@@ -1,4 +1,5 @@
-import { Alert, App, Skeleton } from 'antd';
+import { Alert, Skeleton } from '@mantine/core';
+import { TriangleAlert } from 'lucide-react';
 import {
   memo,
   type ReactNode,
@@ -38,6 +39,7 @@ import { usePrefersReducedMotion } from '@/pages/databases/ui/wal-stream-monitor
 import { VerdictBannerComponent } from '@/pages/databases/ui/wal-stream-monitoring/VerdictBannerComponent';
 import { WalStreamKeepingUpChartComponent } from '@/pages/databases/ui/wal-stream-monitoring/WalStreamChartsComponent';
 import { translateApiError } from '@/shared/i18n';
+import { useFeedback } from '@/shared/lib/feedback';
 import { LoadFailure } from '@/shared/ui';
 
 interface Props {
@@ -79,20 +81,32 @@ const MonitoringContainerComponent = ({ children }: { children: ReactNode }) => 
 const MonitoringSkeletonComponent = () => (
   <div className="space-y-4">
     <div className="h-24 rounded-lg border border-border p-4">
-      <Skeleton active title paragraph={{ rows: 1 }} />
+      <div aria-busy="true">
+        {Array.from({ length: 1 }, (_, index) => (
+          <Skeleton key={index} height={16} className="mb-4" />
+        ))}
+      </div>
     </div>
     <div className="h-36 rounded-lg border border-border p-4">
-      <Skeleton active paragraph={{ rows: 3 }} />
+      <div aria-busy="true">
+        {Array.from({ length: 3 }, (_, index) => (
+          <Skeleton key={index} height={16} className="mb-4" />
+        ))}
+      </div>
     </div>
     <div className="h-[760px] rounded-lg border border-border p-4">
-      <Skeleton active paragraph={{ rows: 12 }} />
+      <div aria-busy="true">
+        {Array.from({ length: 12 }, (_, index) => (
+          <Skeleton key={index} height={16} className="mb-4" />
+        ))}
+      </div>
     </div>
   </div>
 );
 
 export const WalStreamMonitoringComponent = ({ database, isCanManageDBs, onOpenConfig }: Props) => {
   const { t, i18n } = useTranslation();
-  const { message } = App.useApp();
+  const notify = useFeedback();
 
   const [period, setPeriod] = useState<WalStreamStatisticsPeriod>(WalStreamStatisticsPeriod.HOUR);
   const [refreshState, setRefreshState] = useState<WalStreamRefreshState | null>(null);
@@ -160,10 +174,13 @@ export const WalStreamMonitoringComponent = ({ database, isCanManageDBs, onOpenC
   }, [database.id]);
 
   const reportFullBackupRequested = useEffectEvent(() => {
-    message.success(i18n.t('backups.physical.monitoring.banner.fullBackupRequested'));
+    notify({
+      kind: 'success',
+      title: i18n.t('backups.physical.monitoring.banner.fullBackupRequested'),
+    });
   });
   const reportFullBackupError = useEffectEvent((error: unknown) => {
-    message.error(translateApiError(error, i18n.t));
+    notify({ kind: 'error', title: translateApiError(error, i18n.t) });
   });
 
   useEffect(() => {
@@ -250,9 +267,11 @@ export const WalStreamMonitoringComponent = ({ database, isCanManageDBs, onOpenC
       {refreshState.isLastRefreshFailed && (
         <Alert
           className="mt-3"
-          type="warning"
-          showIcon
-          message={t('backups.physical.monitoring.banner.refreshFailed')}
+          color="warning"
+          icon={
+            <TriangleAlert aria-hidden size={16} className="inline-block shrink-0 align-middle" />
+          }
+          title={t('backups.physical.monitoring.banner.refreshFailed')}
         />
       )}
 

@@ -1,9 +1,11 @@
-import { CopyOutlined } from '@ant-design/icons';
-import { Alert, App, Button, Modal } from 'antd';
+import { Alert, Button } from '@mantine/core';
+import { Copy } from 'lucide-react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import type { Restore } from '@/entities/restores';
 import { BrowserClipboard } from '@/shared/lib/BrowserClipboard';
+import { useFeedback } from '@/shared/lib/feedback';
+import { Dialog } from '@/shared/ui';
 
 interface Props {
   restore: Restore;
@@ -12,31 +14,20 @@ interface Props {
 
 export const RestoreErrorDialog = ({ restore, onClose }: Props) => {
   const { t } = useTranslation();
-  const { message } = App.useApp();
+  const notify = useFeedback();
 
   return (
-    <Modal
+    <Dialog
       title={t('restores.errorDetails.title')}
-      open
-      onCancel={onClose}
-      maskClosable={false}
-      footer={
-        <Button
-          icon={<CopyOutlined />}
-          onClick={() => {
-            BrowserClipboard.copyToClipboard(restore.failMessage || '');
-            message.success(t('restores.errorDetails.copied'));
-          }}
-        >
-          {t('common.actions.copy')}
-        </Button>
-      }
+      opened
+      onClose={onClose}
+      closeOnClickOutside={false}
     >
       {restore.failMessage?.includes('must be owner of extension') && (
         <Alert
           className="mb-4"
-          type="warning"
-          message={
+          color="warning"
+          title={
             <Trans
               i18nKey="restores.errorDetails.excludeExtensionsTip"
               components={{ bold: <strong /> }}
@@ -47,6 +38,17 @@ export const RestoreErrorDialog = ({ restore, onClose }: Props) => {
       <div className="overflow-y-auto text-sm whitespace-pre-wrap" style={{ height: '400px' }}>
         {restore.failMessage}
       </div>
-    </Modal>
+      <div className="mt-5 flex flex-wrap justify-end gap-2">
+        <Button
+          leftSection={<Copy size="1em" className="inline-block shrink-0 align-middle" />}
+          onClick={() => {
+            BrowserClipboard.copyToClipboard(restore.failMessage || '');
+            notify({ kind: 'success', title: t('restores.errorDetails.copied') });
+          }}
+        >
+          {t('common.actions.copy')}
+        </Button>
+      </div>
+    </Dialog>
   );
 };

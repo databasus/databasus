@@ -1,5 +1,5 @@
-import { DownOutlined, FilterFilled, FilterOutlined } from '@ant-design/icons';
-import { App, Button, Dropdown, type MenuProps, Modal, Spin } from 'antd';
+import { ActionIcon, Button, Loader, Menu } from '@mantine/core';
+import { ChevronDown, ListFilter } from 'lucide-react';
 import { type JSX, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -19,11 +19,12 @@ import { usePhysicalBackupActions } from '@/pages/databases/ui/physical-backups/
 import { usePersistentState, usePolledPagedList } from '@/shared/hooks';
 import { translateApiError, useLocale } from '@/shared/i18n';
 import { formatCompactSizeMb } from '@/shared/lib';
+import { useFeedback } from '@/shared/lib/feedback';
+import { Dialog } from '@/shared/ui';
 import { ConfirmationComponent, LoadFailure } from '@/shared/ui';
 
 const BACKUPS_PAGE_SIZE = 50;
-const BACKUPS_REFRESH_MS = 1_000;
-
+const BACKUPS_REFRESH_MS = 1000;
 interface Props {
   database: Database;
   isCanManageDBs: boolean;
@@ -37,8 +38,7 @@ export const PhysicalBackupsComponent = ({
 }: Props): JSX.Element => {
   const { t } = useTranslation();
   const { formatNumber } = useLocale();
-  const { message } = App.useApp();
-
+  const notify = useFeedback();
   const [backupToDelete, setBackupToDelete] = useState<PhysicalBackupListItem | undefined>();
   const [restoringBackup, setRestoringBackup] = useState<PhysicalBackupListItem | undefined>();
   const [isPitrModalOpen, setIsPitrModalOpen] = useState(false);
@@ -84,7 +84,7 @@ export const PhysicalBackupsComponent = ({
     scrollContainerRef,
     resetKey: JSON.stringify([database.id, filters]),
     onError: (error, failedPage) => {
-      if (failedPage === 'next') message.error(translateApiError(error, t));
+      if (failedPage === 'next') notify({ kind: 'error', title: translateApiError(error, t) });
     },
   });
 
@@ -105,21 +105,6 @@ export const PhysicalBackupsComponent = ({
     (filters.types !== undefined && filters.types.length > 0) ||
     (filters.statuses !== undefined && filters.statuses.length > 0) ||
     filters.createdBefore !== undefined;
-
-  const backupNowMenu: MenuProps = {
-    items: [
-      { key: 'FULL', label: t('backups.physical.list.fullBackup') },
-      {
-        key: 'INCREMENTAL',
-        label: t('backups.physical.list.incrementalBackup'),
-        disabled: !isIncrementalAllowed,
-      },
-    ],
-    onClick: ({ key }) => {
-      if (key === 'FULL' || key === 'INCREMENTAL') void backupActions.startBackup(key);
-    },
-  };
-
   const rowActions: PhysicalBackupRowActions = {
     isCanManageDBs,
     cancellingBackupId: backupActions.cancellingBackupId,
@@ -135,7 +120,7 @@ export const PhysicalBackupsComponent = ({
   if (isBackupConfigLoading) {
     return (
       <div className="mb-5 flex items-center">
-        <Spin />
+        <Loader role="status" />
       </div>
     );
   }
@@ -145,16 +130,19 @@ export const PhysicalBackupsComponent = ({
       <div className="flex items-center gap-2">
         <h2 className="text-lg font-bold md:text-xl">{t('backups.list.title')}</h2>
         <div className="relative">
-          <Button
-            type="text"
-            size="small"
+          <ActionIcon
+            variant="subtle"
+            size="xs"
             aria-label={t('backups.filters.toggle')}
             aria-expanded={isFilterPanelVisible}
-            icon={
-              isFilterPanelVisible ? <FilterFilled className="text-accent" /> : <FilterOutlined />
-            }
             onClick={() => setIsFilterPanelVisible(!isFilterPanelVisible)}
-          />
+          >
+            {isFilterPanelVisible ? (
+              <ListFilter className="inline-block shrink-0 align-middle text-accent" size="1em" />
+            ) : (
+              <ListFilter size="1em" className="inline-block shrink-0 align-middle" />
+            )}
+          </ActionIcon>
           {!isFilterPanelVisible && isAnyFilterApplied && (
             <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-accent" />
           )}
@@ -173,23 +161,50 @@ export const PhysicalBackupsComponent = ({
         onRetry={reloadBackupConfig}
       />
 
-      <div className="mt-4 flex items-center">
+      <div className="mt-4 flex flex-wrap items-center gap-y-2">
         {isCanManageDBs && (
-          <Dropdown.Button
-            className="mr-2 !w-auto"
-            type="primary"
-            loading={backupActions.isStartingBackup}
-            disabled={
-              backupActions.isStartingBackup ||
-              firstLoadError !== undefined ||
-              isStartRefusedByConfig
-            }
-            icon={<DownOutlined />}
-            menu={backupNowMenu}
-            onClick={() => void backupActions.startBackup('AUTO')}
-          >
-            {t('backups.physical.list.backUpNow')}
-          </Dropdown.Button>
+          <Button.Group className="mr-2">
+            <Button
+              variant="filled"
+              loading={backupActions.isStartingBackup}
+              disabled={
+                backupActions.isStartingBackup ||
+                firstLoadError !== undefined ||
+                isStartRefusedByConfig
+              }
+              onClick={() => void backupActions.startBackup('AUTO')}
+              aria-busy={backupActions.isStartingBackup}
+            >
+              {t('backups.physical.list.backUpNow')}
+            </Button>
+            <Menu position="bottom-end">
+              <Menu.Target>
+                <Button
+                  variant="filled"
+                  aria-label={t('common.fields.type')}
+                  disabled={
+                    backupActions.isStartingBackup ||
+                    firstLoadError !== undefined ||
+                    isStartRefusedByConfig
+                  }
+                  px={8}
+                >
+                  <ChevronDown aria-hidden size={14} />
+                </Button>
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Item onClick={() => void backupActions.startBackup('FULL')}>
+                  {t('backups.physical.list.fullBackup')}
+                </Menu.Item>
+                <Menu.Item
+                  disabled={!isIncrementalAllowed}
+                  onClick={() => void backupActions.startBackup('INCREMENTAL')}
+                >
+                  {t('backups.physical.list.incrementalBackup')}
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+          </Button.Group>
         )}
 
         <Button onClick={() => setIsPitrModalOpen(true)}>
@@ -223,7 +238,7 @@ export const PhysicalBackupsComponent = ({
 
               {isLoadingMore && (
                 <div className="mt-3 flex justify-center">
-                  <Spin />
+                  <Loader role="status" />
                 </div>
               )}
               {!hasMore && backups.length > 0 && (
@@ -246,7 +261,7 @@ export const PhysicalBackupsComponent = ({
               />
               {isLoadingMore && (
                 <div className="mt-2 flex justify-center">
-                  <Spin />
+                  <Loader role="status" />
                 </div>
               )}
               {!hasMore && backups.length > 0 && (
@@ -277,15 +292,13 @@ export const PhysicalBackupsComponent = ({
       )}
 
       {/* These three dialogs stay mounted while closed, so their close animation can hand the focus
-          back to the control that opened them. */}
-      <Modal
-        width={640}
-        open={restoringBackup !== undefined}
-        onCancel={() => setRestoringBackup(undefined)}
+                            back to the control that opened them. */}
+      <Dialog
+        size={640}
+        opened={restoringBackup !== undefined}
+        onClose={() => setRestoringBackup(undefined)}
         title={t('backups.list.restoreTitle')}
-        footer={null}
-        maskClosable={false}
-        destroyOnHidden
+        closeOnClickOutside={false}
       >
         {restoringBackup && (
           <PhysicalRestoreComponent
@@ -294,34 +307,30 @@ export const PhysicalBackupsComponent = ({
             onClose={() => setRestoringBackup(undefined)}
           />
         )}
-      </Modal>
+      </Dialog>
 
-      <Modal
-        width={640}
-        open={isPitrModalOpen}
-        onCancel={() => setIsPitrModalOpen(false)}
+      <Dialog
+        size={640}
+        opened={isPitrModalOpen}
+        onClose={() => setIsPitrModalOpen(false)}
         title={t('backups.physical.list.pointInTimeRestoreTitle')}
-        footer={null}
-        maskClosable={false}
-        destroyOnHidden
+        closeOnClickOutside={false}
       >
         {isPitrModalOpen && (
           <PhysicalRestoreComponent database={database} onClose={() => setIsPitrModalOpen(false)} />
         )}
-      </Modal>
+      </Dialog>
 
-      <Modal
+      <Dialog
         title={t('backups.list.errorDetailsTitle')}
-        open={showingBackupError !== undefined}
-        onCancel={() => setShowingBackupError(undefined)}
-        maskClosable={false}
-        footer={null}
-        destroyOnHidden
+        opened={showingBackupError !== undefined}
+        onClose={() => setShowingBackupError(undefined)}
+        closeOnClickOutside={false}
       >
         <div className="text-sm break-words whitespace-pre-wrap">
           {showingBackupError?.failMessage}
         </div>
-      </Modal>
+      </Dialog>
     </div>
   );
 };

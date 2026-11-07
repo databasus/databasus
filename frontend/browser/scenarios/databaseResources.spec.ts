@@ -3,11 +3,13 @@ import { type Locator, type Page, expect } from '@playwright/test';
 import type { components } from '../../src/shared/api/schema.gen';
 import { DICTIONARIES } from '../../src/shared/i18n/dictionaries';
 import { applicationFixtures, workspace } from '../applicationFixtures';
+import { assertEnlargedTextReflow } from '../assertEnlargedTextReflow';
 import { test } from '../browserTest';
 import { apiResponse } from '../HttpFixture';
 import { openAccount } from '../openAccount';
 import { openWorkspaceScreen } from '../openWorkspaceScreen';
 import { assertSingleScrollOwner } from '../resourceScrollScenarios';
+import { visualContexts } from '../visualContexts';
 
 const FIRST_PAGE_SIZE = 40;
 const SECOND_PAGE_SIZE = 20;
@@ -141,8 +143,8 @@ test.use({
   ],
 });
 
-for (const width of [320, 1280]) {
-  test(`scrolls the database details in one region and loads further backups when viewport width is ${width}`, async ({
+for (const { width, theme, locale } of visualContexts) {
+  test(`scrolls the database details in one region and loads further backups when viewport width is ${width} in ${theme} ${locale}`, async ({
     page,
   }) => {
     const backupPageCursors: (string | null)[] = [];
@@ -168,8 +170,8 @@ for (const width of [320, 1280]) {
     });
 
     await page.setViewportSize({ width, height: width === 320 ? 560 : 360 });
-    await openAccount({ page });
-    await openWorkspaceScreen({ page, locale: 'en', tab: 'databases' });
+    await openAccount({ page, theme, locale });
+    await openWorkspaceScreen({ page, locale, tab: 'databases' });
 
     if (width === 320) await page.getByRole('button', { name: /^Orders/ }).click();
 
@@ -200,6 +202,7 @@ for (const width of [320, 1280]) {
       .poll(() => detailContainer.evaluate((element) => element.scrollTop))
       .toBeGreaterThan(0);
     await assertSingleScrollOwner(detailContainer);
+    await assertEnlargedTextReflow(page);
   });
 }
 
@@ -232,7 +235,7 @@ test('shows the copy notice on the dark surface and removes it on its own', asyn
   await page.getByRole('button', { name: 'Copy', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Copy', exact: true }).click();
 
-  const notice = page.locator('.ant-notification-notice');
+  const notice = page.getByRole('status').filter({ hasText: 'Database copied successfully!' });
   await expect(notice.getByText('Database copied successfully!')).toBeVisible();
 
   const noticeBackground = await notice.evaluate(
@@ -241,7 +244,7 @@ test('shows the copy notice on the dark surface and removes it on its own', asyn
   const [red, green, blue] = (noticeBackground.match(/\d+/g) ?? []).map(Number);
   expect(Math.max(red, green, blue)).toBeLessThan(128);
 
-  // The notice stays for AntD's 4.5 seconds plus its leave animation, longer than the default wait.
+  // Complex feedback retains its 4.5-second lifetime and exit animation.
   await expect(notice).toHaveCount(0, { timeout: 15_000 });
 });
 
@@ -303,7 +306,7 @@ test('shows a focus indicator when tabbing to a tab and an edit icon', async ({ 
       return configTab.evaluate((element) => element === document.activeElement);
     })
     .toBe(true);
-  await expect(configTab.locator('xpath=..')).toHaveCSS('outline-style', 'solid');
+  await expect(configTab).toHaveCSS('outline-style', 'solid');
 
   const editIcon = page.getByRole('button', { name: 'Edit Orders' });
   await expect

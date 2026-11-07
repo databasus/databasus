@@ -1,11 +1,5 @@
-import {
-  ArrowRightOutlined,
-  CloseOutlined,
-  DeleteOutlined,
-  EditOutlined,
-  InfoCircleOutlined,
-} from '@ant-design/icons';
-import { Alert, App, Button, Input, Spin } from 'antd';
+import { ActionIcon, Alert, Button, Loader, TextInput } from '@mantine/core';
+import { ArrowRight, CircleAlert, Info, Pencil, Trash2, X } from 'lucide-react';
 import { useEffect, useEffectEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -18,6 +12,7 @@ import { ApiError } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { useLatestRef, useRequestRevision } from '@/shared/hooks';
 import { translateApiError } from '@/shared/i18n';
+import { useFeedback } from '@/shared/lib/feedback';
 import { ConfirmationComponent, LoadFailure } from '@/shared/ui';
 
 interface Props {
@@ -82,9 +77,12 @@ export const NotifierComponent = ({
       };
 
       if (testResult.isDelivered) {
-        notification.success({
-          message: i18n.t('notifiers.testNotification.sent.title'),
+        notify({
+          kind: 'success',
+          title: i18n.t('notifiers.testNotification.sent.title'),
           description: i18n.t('notifiers.testNotification.sent.description'),
+          lifetimeMs: 4500,
+          position: 'top-right',
         });
       } else {
         setDeliveryError(testResult.error ?? '');
@@ -203,7 +201,7 @@ export const NotifierComponent = ({
   };
 
   const { t, i18n } = useTranslation();
-  const { notification } = App.useApp();
+  const notify = useFeedback();
   const isCurrent = useSessionGuard();
   const notifierRevision = useRequestRevision();
   const savedTestRevision = useRequestRevision();
@@ -233,41 +231,48 @@ export const NotifierComponent = ({
       <div className="min-h-0 min-w-0 grow rounded bg-surface p-4 text-content shadow sm:p-5">
         {error !== undefined &&
           (notifier ? (
-            <Alert type="error" showIcon message={translateApiError(error, t)} />
+            <Alert
+              color="danger"
+              icon={
+                <CircleAlert aria-hidden size={16} className="inline-block shrink-0 align-middle" />
+              }
+              title={translateApiError(error, t)}
+            />
           ) : (
             <LoadFailure error={error} onRetry={loadSettings} />
           ))}
         {deliveryError !== undefined && (
           <Alert
-            type="error"
-            message={t('notifiers.testNotification.notDelivered', { error: deliveryError })}
+            color="danger"
+            title={t('notifiers.testNotification.notDelivered', { error: deliveryError })}
           />
         )}
         {!notifier && error === undefined ? (
           <div className="mt-10 flex justify-center">
-            <Spin />
+            <Loader role="status" />
           </div>
         ) : notifier ? (
           <div>
             {!isEditName ? (
               <div className="mb-5 flex min-w-0 items-center text-2xl font-bold break-words">
-                {notifier.name}
+                <span className="min-w-0 wrap-anywhere">{notifier.name}</span>
                 {isCanManageNotifiers && (
-                  <Button
-                    type="text"
-                    size="small"
+                  <ActionIcon
+                    variant="subtle"
+                    size="xs"
                     className="ml-2 shrink-0"
                     aria-label={t('common.actions.edit')}
-                    icon={<EditOutlined aria-hidden />}
                     onClick={() => startEdit('name')}
                     disabled={isEditSettings || isSaving}
-                  />
+                  >
+                    <Pencil aria-hidden size="1em" className="inline-block shrink-0 align-middle" />
+                  </ActionIcon>
                 )}
               </div>
             ) : (
               <div>
                 <div className="flex items-center">
-                  <Input
+                  <TextInput
                     aria-label={t('common.fields.name')}
                     className="max-w-62.5"
                     value={editName}
@@ -275,19 +280,23 @@ export const NotifierComponent = ({
                       setEditName(e.target.value);
                     }}
                     placeholder={t('notifiers.config.namePlaceholder')}
-                    size="large"
+                    size="md"
                   />
 
                   <div className="ml-1 flex items-center">
                     <Button
-                      type="text"
+                      variant="subtle"
                       aria-label={t('common.actions.cancel')}
                       className="flex h-6 w-6 items-center justify-center p-0"
                       onClick={() => {
                         setIsEditName(false);
                       }}
                     >
-                      <CloseOutlined aria-hidden className="text-muted" />
+                      <X
+                        aria-hidden
+                        className="inline-block shrink-0 align-middle text-muted"
+                        size="1em"
+                      />
                     </Button>
                   </div>
                 </div>
@@ -295,11 +304,12 @@ export const NotifierComponent = ({
                 {isNameUnsaved && (
                   <Button
                     className="mt-1"
-                    type="primary"
+                    variant="filled"
                     onClick={() => saveName()}
                     aria-label={t('common.actions.save')}
                     loading={isSaving}
                     disabled={!editName}
+                    aria-busy={isSaving}
                   >
                     {t('common.actions.save')}
                   </Button>
@@ -310,7 +320,7 @@ export const NotifierComponent = ({
             {notifier.lastSendError && (
               <div className="max-w-100 rounded border border-danger px-3 py-3">
                 <div className="mt-1 flex items-center text-sm font-bold text-danger">
-                  <InfoCircleOutlined className="mr-2" />
+                  <Info className="mr-2 inline-block shrink-0 align-middle" size="1em" />
                   {t('notifiers.config.sendError.title')}
                 </div>
 
@@ -334,15 +344,16 @@ export const NotifierComponent = ({
               <div>{t('notifiers.config.settingsTitle')}</div>
 
               {!isEditSettings && isCanManageNotifiers ? (
-                <Button
-                  type="text"
-                  size="small"
+                <ActionIcon
+                  variant="subtle"
+                  size="xs"
                   className="ml-2"
                   aria-label={t('common.actions.edit')}
-                  icon={<EditOutlined aria-hidden />}
                   onClick={() => startEdit('settings')}
                   disabled={isEditName || isSaving}
-                />
+                >
+                  <Pencil aria-hidden size="1em" className="inline-block shrink-0 align-middle" />
+                </ActionIcon>
               ) : (
                 <div />
               )}
@@ -376,37 +387,48 @@ export const NotifierComponent = ({
             {!isEditSettings && (
               <div className="mt-5">
                 <Button
-                  type="primary"
+                  variant="filled"
                   className="mr-1"
                   aria-label={t('notifiers.testNotification.send')}
                   onClick={sendTestNotification}
                   loading={isSendingTestNotification}
                   disabled={isSendingTestNotification}
+                  aria-busy={isSendingTestNotification}
                 >
                   {t('notifiers.testNotification.send')}
                 </Button>
 
                 {isCanManageNotifiers && (
                   <>
-                    <Button
-                      type="primary"
-                      ghost
+                    <ActionIcon
+                      variant="outline"
+                      color="accent"
                       aria-label={t('notifiers.transfer.submit')}
-                      icon={<ArrowRightOutlined aria-hidden />}
                       onClick={() => setIsShowTransferDialog(true)}
                       className="mr-1"
-                    />
+                    >
+                      <ArrowRight
+                        aria-hidden
+                        size="1em"
+                        className="inline-block shrink-0 align-middle"
+                      />
+                    </ActionIcon>
 
-                    <Button
-                      type="primary"
-                      ghost
-                      danger
+                    <ActionIcon
+                      variant="outline"
+                      color="danger"
                       aria-label={t('common.actions.remove')}
-                      icon={<DeleteOutlined aria-hidden />}
                       onClick={() => setIsShowRemoveConfirm(true)}
                       loading={isRemoving}
                       disabled={isRemoving}
-                    />
+                      aria-busy={isRemoving}
+                    >
+                      <Trash2
+                        aria-hidden
+                        size="1em"
+                        className="inline-block shrink-0 align-middle"
+                      />
+                    </ActionIcon>
                   </>
                 )}
               </div>

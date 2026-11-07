@@ -1,4 +1,4 @@
-import { Spin } from 'antd';
+import { Loader } from '@mantine/core';
 import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 
@@ -27,7 +27,7 @@ export const LogicalBackupCards = ({ backups, isLoading, actions, onShowError }:
   if (isLoading) {
     return (
       <div className="flex justify-center py-8">
-        <Spin />
+        <Loader role="status" />
       </div>
     );
   }
@@ -40,7 +40,7 @@ export const LogicalBackupCards = ({ backups, isLoading, actions, onShowError }:
           className="mb-2 rounded-lg border border-border bg-surface p-4 shadow-sm"
         >
           <div className="space-y-3">
-            <div className="flex items-start justify-between">
+            <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <div className="text-xs text-muted">{t('backups.list.columns.createdAt')}</div>
                 <div className="text-sm font-medium">

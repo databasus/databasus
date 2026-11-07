@@ -1,4 +1,4 @@
-import { Spin } from 'antd';
+import { Loader } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -46,8 +46,7 @@ export const ShowDatabaseNotifiersComponent = ({ database }: Props) => {
       <LoadFailure error={loadError} onRetry={() => setLoadAttempt((attempt) => attempt + 1)} />
     );
   }
-
-  if (!workspaceNotifiers) return <Spin size="small" />;
+  if (!workspaceNotifiers) return <Loader size="xs" role="status" />;
 
   const databaseNotifiers = workspaceNotifiers.filter((notifier) =>
     database.notifierIds.includes(notifier.id),

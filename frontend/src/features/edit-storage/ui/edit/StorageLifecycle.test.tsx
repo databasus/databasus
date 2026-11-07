@@ -45,7 +45,7 @@ const beginS3Creation = async (onChanged: (storage: Storage) => void = () => {})
 
   changeStorageName(s3Draft.name);
   await view.user.click(screen.getByRole('combobox', { name: 'Type' }));
-  fireEvent.click(await screen.findByTitle('S3'));
+  fireEvent.click(await screen.findByRole('option', { name: 'S3' }));
   fireEvent.change(screen.getByRole('textbox', { name: 'S3 Bucket' }), {
     target: { value: s3Draft.settings.s3Bucket },
   });
@@ -397,7 +397,7 @@ describe('EditStorageComponent', () => {
 
     await view.user.click(typeSelector);
 
-    expect(await screen.findByTitle('NAS')).toBeTruthy();
+    expect(await screen.findByRole('option', { name: 'NAS' })).toBeTruthy();
 
     server.use(mockApi.post('/storages', 201, createdStorage));
 

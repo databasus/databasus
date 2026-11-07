@@ -110,7 +110,7 @@ Screen tests render real components and mock only the network, typed by the cont
 
 These tests exercise the production build in a real browser, for what happy-dom cannot establish: geometry, focus, fonts and images. Screen tests stay the faster layer for overlapping responses and editing-session policy. The [browser UI command](#commands) needs Docker and no backend services, because HTTP responses are finite synthetic fixtures.
 
-- **Environment.** Each run uses a digest-pinned browser image, an unprivileged user and its own temporary checkout and container. Cleanup removes only that run's resources.
+- **Environment.** Each run uses a digest-pinned browser image, an unprivileged user and its own temporary checkout and container. The production preview listens on `127.0.0.1:4173` inside that container's private network namespace, without publishing a host port. Its stable origin keeps displayed healthcheck URLs and installation commands reproducible in screenshots. Cleanup removes only that run's resources.
 - **Architecture.** The runner selects native amd64 or arm64 from the host, using the matching pinned Node archive and an architecture-specific image cache. Other architectures fail before scenarios. Both architectures use the committed references and the same zero-pixel comparison threshold; updates always require the explicit command.
 - **HTTP.** Fixtures follow generated operations and fail teardown on undeclared requests or page errors, even when application code catches the HTTP failure. Only same-origin GET navigation and static resources pass through.
 - **Scenarios** live in `frontend/browser/scenarios` and need no external provider account. Non-English assertions read the interface dictionaries.

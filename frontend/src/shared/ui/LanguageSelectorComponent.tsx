@@ -1,86 +1,91 @@
-import { GlobalOutlined } from '@ant-design/icons';
-import { Dropdown } from 'antd';
-import type { MenuProps } from 'antd';
+import { Menu } from '@mantine/core';
+import { Globe } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { DICTIONARIES, SUPPORTED_LOCALES, useLocale } from '@/shared/i18n';
-import { useDropdownFocus } from '@/shared/ui/useDropdownFocus';
 
 interface Props {
   isSplitStart?: boolean;
 }
 
-// Opens on hover like the website's selector; click is kept for touch screens, which have no
-// hover. Each language is listed by the name its own dictionary gives it.
 export function LanguageSelectorComponent({ isSplitStart = false }: Props) {
   const [isOpen, setIsOpen] = useState(false);
-
-  const changeOpen = (isNextOpen: boolean) => {
-    setIsOpen(isNextOpen);
-    if (!isNextOpen) controlRef.current?.focus();
-  };
-  const { t } = useTranslation();
   const controlRef = useRef<HTMLButtonElement>(null);
-  const focusMenu = useDropdownFocus(isOpen);
+  const { t } = useTranslation();
 
   const { locale, setLocale } = useLocale();
 
-  const items: MenuProps['items'] = SUPPORTED_LOCALES.map((supportedLocale) => ({
-    key: supportedLocale,
-    label: <span lang={supportedLocale}>{DICTIONARIES[supportedLocale].language.nativeName}</span>,
-    onClick: () => {
-      setLocale(supportedLocale);
-      changeOpen(false);
-    },
-  }));
-
   return (
-    <Dropdown
-      open={isOpen}
-      onOpenChange={changeOpen}
-      popupRender={(menu) => <div ref={focusMenu}>{menu}</div>}
-      menu={{
-        selectable: true,
-        items,
-        selectedKeys: [locale],
-        onKeyDown: (event) => {
-          if (event.key === 'Enter') event.preventDefault();
-          if (event.key === 'Escape') {
-            event.preventDefault();
-            event.stopPropagation();
-            changeOpen(false);
-          }
-        },
+    <Menu
+      opened={isOpen}
+      onChange={(isNextOpen) => {
+        setIsOpen(isNextOpen);
+        if (!isNextOpen) controlRef.current?.focus();
       }}
-      trigger={['hover', 'click']}
-      placement="bottomRight"
+      returnFocus={false}
+      closeOnEscape={false}
+      trigger="click-hover"
+      position="bottom-end"
+      withInitialFocusPlaceholder={false}
     >
-      <button
-        ref={controlRef}
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={isOpen}
-        onKeyDown={(event) => {
-          if (['ArrowDown', 'Enter', ' '].includes(event.key)) {
-            event.preventDefault();
-            changeOpen(true);
-          } else if (event.key === 'Escape' && isOpen) {
-            event.preventDefault();
-            event.stopPropagation();
-            changeOpen(false);
-          }
+      <Menu.Target>
+        <button
+          ref={controlRef}
+          type="button"
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowDown') {
+              event.preventDefault();
+              setIsOpen(true);
+            } else if (event.key === 'Escape' && isOpen) {
+              event.preventDefault();
+              event.stopPropagation();
+              setIsOpen(false);
+              controlRef.current?.focus();
+            }
+          }}
+          className={`flex cursor-pointer items-center gap-1.5 border border-border bg-surface px-2.5 py-1 text-sm text-content transition-colors hover:bg-hover ${
+            isSplitStart ? 'rounded-l-md' : 'rounded-md'
+          }`}
+          aria-label={t('app.languageControl.title', {
+            language: DICTIONARIES[locale].language.nativeName,
+          })}
+        >
+          <Globe aria-hidden size="1em" className="inline-block shrink-0 align-middle" />
+          <span>{locale.toUpperCase()}</span>
+        </button>
+      </Menu.Target>
+      <Menu.Dropdown
+        onKeyDownCapture={(event) => {
+          if (event.key !== 'Escape') return;
+
+          event.preventDefault();
+          event.stopPropagation();
+          setIsOpen(false);
+          controlRef.current?.focus();
         }}
-        className={`flex cursor-pointer items-center gap-1.5 border border-border bg-surface px-2.5 py-1 text-sm text-content transition-colors hover:bg-hover ${
-          isSplitStart ? 'rounded-l-md' : 'rounded-md'
-        }`}
-        aria-label={t('app.languageControl.title', {
-          language: DICTIONARIES[locale].language.nativeName,
-        })}
       >
-        <GlobalOutlined aria-hidden />
-        <span>{locale.toUpperCase()}</span>
-      </button>
-    </Dropdown>
+        <Menu.RadioGroup
+          value={locale}
+          onChange={(value) => {
+            const selectedLocale = SUPPORTED_LOCALES.find((supported) => supported === value);
+            if (selectedLocale) setLocale(selectedLocale);
+          }}
+        >
+          {SUPPORTED_LOCALES.map((supportedLocale) => (
+            <Menu.RadioItem
+              key={supportedLocale}
+              value={supportedLocale}
+              closeMenuOnClick
+              data-autofocus={supportedLocale === locale || undefined}
+            >
+              <span lang={supportedLocale}>
+                {DICTIONARIES[supportedLocale].language.nativeName}
+              </span>
+            </Menu.RadioItem>
+          ))}
+        </Menu.RadioGroup>
+      </Menu.Dropdown>
+    </Menu>
   );
 }

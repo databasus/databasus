@@ -1,5 +1,5 @@
-import { DownOutlined, UpOutlined } from '@ant-design/icons';
-import { Button } from 'antd';
+import { Button } from '@mantine/core';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Props {
   label: string;
@@ -16,8 +16,8 @@ export const AdvancedSettingsToggleComponent = ({
 }: Props) => (
   <div className="mt-4 mb-1 flex items-center">
     <Button
-      type="link"
-      size="small"
+      variant="transparent"
+      size="xs"
       className="!h-auto !px-0 text-left !whitespace-normal"
       aria-expanded={isShowAdvanced}
       aria-controls={regionId}
@@ -26,9 +26,9 @@ export const AdvancedSettingsToggleComponent = ({
       <span className="mr-2">{label}</span>
 
       {isShowAdvanced ? (
-        <UpOutlined aria-hidden style={{ fontSize: '12px' }} />
+        <ChevronUp aria-hidden size={12} className="inline-block shrink-0 align-middle" />
       ) : (
-        <DownOutlined aria-hidden style={{ fontSize: '12px' }} />
+        <ChevronDown aria-hidden size={12} className="inline-block shrink-0 align-middle" />
       )}
     </Button>
   </div>

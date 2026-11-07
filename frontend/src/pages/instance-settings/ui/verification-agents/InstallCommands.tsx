@@ -1,5 +1,5 @@
-import { CopyOutlined } from '@ant-design/icons';
-import { Button, Tooltip } from 'antd';
+import { ActionIcon, Button, Tooltip } from '@mantine/core';
+import { Copy } from 'lucide-react';
 import type { JSX } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -41,14 +41,15 @@ export const InstallCommands = ({
       <div className="mt-3 flex flex-wrap items-center gap-1 text-sm text-muted">
         <span>{t('verification.agents.agentId')}</span>
         <code className="rounded bg-code px-2 py-0.5 text-xs break-all">{agentId}</code>
-        <Tooltip title={t('common.actions.copy')}>
-          <Button
-            type="text"
-            size="small"
+        <Tooltip label={t('common.actions.copy')}>
+          <ActionIcon
+            variant="subtle"
+            size="xs"
             aria-label={t('common.actions.copy')}
-            icon={<CopyOutlined />}
             onClick={() => onCopy(agentId)}
-          />
+          >
+            <Copy size="1em" className="inline-block shrink-0 align-middle" />
+          </ActionIcon>
         </Tooltip>
       </div>
 
@@ -60,8 +61,7 @@ export const InstallCommands = ({
           {ARCHITECTURES.map((arch) => (
             <Button
               key={arch}
-              type="primary"
-              ghost={selectedArch !== arch}
+              variant={selectedArch === arch ? 'filled' : 'outline'}
               aria-pressed={selectedArch === arch}
               onClick={() => onSelectArch(arch)}
             >

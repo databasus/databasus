@@ -1,4 +1,4 @@
-import { App, Button, Spin } from 'antd';
+import { Button, Loader } from '@mantine/core';
 import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -18,15 +18,14 @@ import { toRestoreTarget } from '@/pages/databases/ui/restores/toRestoreTarget';
 import { useSessionGuard } from '@/shared/auth';
 import { usePolledPagedList } from '@/shared/hooks';
 import { translateApiError } from '@/shared/i18n';
+import { useFeedback } from '@/shared/lib/feedback';
 import { ConfirmationComponent, LoadFailure } from '@/shared/ui';
 
 interface Props {
   database: Database;
   backup: LogicalBackup;
 }
-
-const RESTORES_REFRESH_MS = 1_000;
-
+const RESTORES_REFRESH_MS = 1000;
 const NO_RESTORE_OPTIONS: PostgresqlRestoreOptions = {
   isExcludeExtensions: false,
   isRestoreOwnership: false,
@@ -35,7 +34,7 @@ const NO_RESTORE_OPTIONS: PostgresqlRestoreOptions = {
 
 export const RestoresComponent = ({ database, backup }: Props) => {
   const { t } = useTranslation();
-  const { message } = App.useApp();
+  const notify = useFeedback();
   const isActive = useSessionGuard();
 
   const [targetDraft, setTargetDraft] = useState(() =>
@@ -85,7 +84,7 @@ export const RestoresComponent = ({ database, backup }: Props) => {
       showRestore(cancelledRestore);
       await refreshRestores();
     } catch (error) {
-      if (isActive()) message.error(translateApiError(error, t));
+      if (isActive()) notify({ kind: 'error', title: translateApiError(error, t) });
     }
 
     setCancellingRestoreId(undefined);
@@ -121,7 +120,7 @@ export const RestoresComponent = ({ database, backup }: Props) => {
     if (isLoading) {
       return (
         <div className="flex w-full justify-center">
-          <Spin />
+          <Loader role="status" />
         </div>
       );
     }
@@ -134,11 +133,12 @@ export const RestoresComponent = ({ database, backup }: Props) => {
       <>
         {targetDraft && (
           <Button
-            className="w-full"
-            type="primary"
+            className="!h-auto min-h-8 w-full !whitespace-normal"
+            variant="filled"
             disabled={isRestoreInProgress}
             loading={isRestoreInProgress}
             onClick={() => setIsShowRestore(true)}
+            aria-busy={isRestoreInProgress}
           >
             {t('restores.targetDatabase.select')}
           </Button>

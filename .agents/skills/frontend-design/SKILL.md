@@ -5,7 +5,9 @@ description: Apply Databasus design conventions when changing frontend UI layout
 
 # Frontend design
 
-Read [frontend-design.md](../../../docs/frontend-design.md) before changing presentation. Inspect the existing shared control and its callers before introducing a wrapper; AntD already supplies the primitives. Theme values stay in code, and the document explains their roles.
+Read [frontend-design.md](../../../docs/frontend-design.md) before changing presentation and follow the [UI composition and import rules](../../../frontend/AGENTS.md#ui-kit-and-icons). Inspect the existing shared control and its callers before introducing a focused component in `shared/ui`. Theme values stay in code, and the design document explains their roles.
+
+Read the applicable official Mantine skill using the [frontend skill-loading rules](../../../frontend/AGENTS.md#mantine-skills). Project conventions take precedence over upstream examples. Use the [documentation lookup guidance](../../../docs/frontend-design.md#official-mantine-documentation) for version-matched API details.
 
 Use semantic presentation and preserve labels, keyboard focus, pending/error states and narrow layouts. Update every caller when a shared control contract changes.
 

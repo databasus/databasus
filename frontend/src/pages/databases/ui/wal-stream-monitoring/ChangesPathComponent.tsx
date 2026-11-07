@@ -1,15 +1,15 @@
+import { Tooltip } from '@mantine/core';
 import {
-  ArrowDownOutlined,
-  ArrowRightOutlined,
-  CloseCircleFilled,
-  CloudOutlined,
-  CloudServerOutlined,
-  DatabaseOutlined,
-  ExclamationCircleFilled,
-  InfoCircleOutlined,
-  PauseCircleOutlined,
-} from '@ant-design/icons';
-import { Tooltip, theme } from 'antd';
+  ArrowDown,
+  ArrowRight,
+  CircleAlert,
+  CirclePause,
+  CircleX,
+  Cloud,
+  Database,
+  Info,
+  Server,
+} from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -25,6 +25,7 @@ import { type WalStreamStatistics } from '@/pages/databases/model/wal-stream-mon
 import { PathAmountComponent } from '@/pages/databases/ui/wal-stream-monitoring/PathAmountComponent';
 import { type TranslationKey, useLocale } from '@/shared/i18n';
 import { formatBytes } from '@/shared/lib';
+import { THEME_COLOR_VARIABLES } from '@/shared/theme';
 import { useTheme } from '@/shared/theme';
 
 interface Props {
@@ -77,10 +78,9 @@ const STRIP_CELL_CLASS = '@2xl:row-span-2 @2xl:grid @2xl:grid-rows-subgrid';
 
 const StageHeaderComponent = ({ icon, titleKey, tone, hasOutgoingLine }: StageHeaderProps) => {
   const { t } = useTranslation();
-  const { token } = theme.useToken();
 
   const problemLevel = PROBLEM_TONE_LEVELS[tone];
-  const toneColors = getToneColors(token, tone);
+  const toneColors = getToneColors(tone);
 
   return (
     <div className="flex items-center gap-x-2 @2xl:h-9">
@@ -94,7 +94,10 @@ const StageHeaderComponent = ({ icon, titleKey, tone, hasOutgoingLine }: StageHe
                 backgroundColor: toneColors.background,
                 color: toneColors.icon,
               }
-            : { borderColor: token.colorBorderSecondary, color: token.colorTextSecondary }
+            : {
+                borderColor: THEME_COLOR_VARIABLES['table-border'],
+                color: THEME_COLOR_VARIABLES['muted'],
+              }
         }
       >
         {icon}
@@ -108,9 +111,9 @@ const StageHeaderComponent = ({ icon, titleKey, tone, hasOutgoingLine }: StageHe
           style={{ color: toneColors.icon }}
         >
           {problemLevel === WalStreamReasonLevel.BROKEN ? (
-            <CloseCircleFilled aria-hidden />
+            <CircleX aria-hidden size="1em" className="inline-block shrink-0 align-middle" />
           ) : (
-            <ExclamationCircleFilled aria-hidden />
+            <CircleAlert aria-hidden size="1em" className="inline-block shrink-0 align-middle" />
           )}
           {t(WAL_STREAM_REASON_LEVEL_LABEL_KEYS[problemLevel])}
         </span>
@@ -127,11 +130,12 @@ const InfoTooltipComponent = ({ tooltipKey }: { tooltipKey: TranslationKey }) =>
   const { t } = useTranslation();
 
   return (
-    <Tooltip title={t(tooltipKey)}>
-      <InfoCircleOutlined
+    <Tooltip label={t(tooltipKey)}>
+      <Info
         tabIndex={0}
         aria-label={t(tooltipKey)}
-        className="cursor-help text-muted"
+        className="inline-block shrink-0 cursor-help align-middle text-muted"
+        size="1em"
       />
     </Tooltip>
   );
@@ -165,11 +169,9 @@ const LinkHeaderComponent = ({ tooltipKey, bytesPerSecond }: LinkHeaderProps) =>
 
   return (
     <div className="flex items-center justify-center pt-2 text-muted @2xl:h-9 @2xl:pt-0 @2xl:pr-2">
-      {/* The container breakpoint classes sit on wrappers: AntD's own icon display rule would
-      override them on the icon element and show both arrows. */}
       <span className="hidden h-px flex-1 bg-border @2xl:block" aria-hidden />
 
-      <Tooltip title={t(tooltipKey)}>
+      <Tooltip label={t(tooltipKey)}>
         <span
           tabIndex={0}
           className="mx-1 cursor-help rounded-full border border-border px-2 py-0.5 text-sm font-semibold whitespace-nowrap text-content tabular-nums"
@@ -182,7 +184,7 @@ const LinkHeaderComponent = ({ tooltipKey, bytesPerSecond }: LinkHeaderProps) =>
 
       <span className="hidden h-px flex-1 bg-border @2xl:block" aria-hidden />
       <span className="hidden @2xl:block" aria-hidden>
-        <ArrowRightOutlined />
+        <ArrowRight size="1em" className="inline-block shrink-0 align-middle" />
       </span>
     </div>
   );
@@ -202,7 +204,7 @@ const LinkLabelComponent = ({ labelKey, lineColor }: LinkLabelProps) => {
         {t(labelKey)}
       </span>
       <span className="block text-muted @2xl:hidden" aria-hidden>
-        <ArrowDownOutlined />
+        <ArrowDown size="1em" className="inline-block shrink-0 align-middle" />
       </span>
     </div>
   );
@@ -225,7 +227,7 @@ export const ChangesPathComponent = ({ statistics, stageTones, isReducedMotion }
         <ol className="grid grid-cols-1 @2xl:grid-cols-[minmax(0,1fr)_minmax(104px,140px)_minmax(0,1fr)_minmax(104px,140px)_minmax(0,1fr)] @2xl:grid-rows-[auto_auto]">
           <li className={STRIP_CELL_CLASS}>
             <StageHeaderComponent
-              icon={<DatabaseOutlined />}
+              icon={<Database size="1em" className="inline-block shrink-0 align-middle" />}
               titleKey="backups.physical.monitoring.path.database"
               hasOutgoingLine
               tone={stageTones[PathStage.SOURCE]}
@@ -273,7 +275,7 @@ export const ChangesPathComponent = ({ statistics, stageTones, isReducedMotion }
 
           <li className={STRIP_CELL_CLASS}>
             <StageHeaderComponent
-              icon={<CloudServerOutlined />}
+              icon={<Server size="1em" className="inline-block shrink-0 align-middle" />}
               titleKey="backups.physical.monitoring.path.databasus"
               hasOutgoingLine
               tone={stageTones[PathStage.DATABASUS]}
@@ -298,7 +300,11 @@ export const ChangesPathComponent = ({ statistics, stageTones, isReducedMotion }
 
               {current && !current.isReceiverRunning && (
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-warning">
-                  <PauseCircleOutlined aria-hidden />
+                  <CirclePause
+                    aria-hidden
+                    size="1em"
+                    className="inline-block shrink-0 align-middle"
+                  />
                   {t('backups.physical.monitoring.path.receivingPaused')}
                 </div>
               )}
@@ -318,7 +324,7 @@ export const ChangesPathComponent = ({ statistics, stageTones, isReducedMotion }
 
           <li className={STRIP_CELL_CLASS}>
             <StageHeaderComponent
-              icon={<CloudOutlined />}
+              icon={<Cloud size="1em" className="inline-block shrink-0 align-middle" />}
               titleKey="backups.physical.monitoring.path.storage"
               tone={stageTones[PathStage.STORAGE]}
             />

@@ -1,4 +1,4 @@
-import { Checkbox, InputNumber, Select } from 'antd';
+import { Checkbox, NumberInput, TagsInput } from '@mantine/core';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -131,17 +131,16 @@ export const EditPostgresqlLogicalConnectionComponent = ({
   const renderNameListField = ({ field, label, placeholder, tooltip }: NameListFieldSpec) => (
     <ConnectionFieldRow label={label} controlId={`${controlId}-${field}`}>
       <div className="flex w-full items-center">
-        <Select
+        <TagsInput
           id={`${controlId}-${field}`}
-          mode="tags"
           value={settings[field] || []}
           onChange={(values) =>
             onNonConnectionChange({ ...settings, [field]: normalizeNameList(values) })
           }
-          size="small"
+          size="xs"
           className="w-full max-w-[200px]"
           placeholder={placeholder}
-          tokenSeparators={NAME_LIST_TOKEN_SEPARATORS}
+          splitChars={NAME_LIST_TOKEN_SEPARATORS}
         />
 
         {tooltip && <ConnectionFieldTooltip title={tooltip} />}
@@ -206,14 +205,23 @@ export const EditPostgresqlLogicalConnectionComponent = ({
       {isRestore && (
         <ConnectionFieldRow label={t('databases.fields.cpuCount')} controlId={`${controlId}-cpu`}>
           <div className="flex items-center">
-            <InputNumber
+            <NumberInput
               id={`${controlId}-cpu`}
               min={1}
               max={128}
               value={settings.cpuCount}
-              onChange={(cpuCount) => onConnectionChange({ ...settings, cpuCount: cpuCount || 1 })}
-              size="small"
+              onChange={(cpuCount) =>
+                onConnectionChange({
+                  ...settings,
+                  cpuCount: typeof cpuCount === 'number' ? cpuCount || 1 : 1,
+                })
+              }
+              size="xs"
               className="max-w-[75px]"
+              role="spinbutton"
+              aria-valuenow={typeof settings.cpuCount === 'number' ? settings.cpuCount : undefined}
+              aria-valuemin={1}
+              aria-valuemax={128}
             />
 
             <ConnectionFieldTooltip title={t('databases.edit.cpuCountTooltip')} />

@@ -15,7 +15,8 @@ if (
 
 const built = await runChild('pnpm', ['build']);
 if (built) process.exit(built);
-const server = await preview({ preview: { host: '127.0.0.1', port: 0, strictPort: true } });
+// Each run owns its container network namespace; a stable origin keeps visible URLs reproducible.
+const server = await preview({ preview: { host: '127.0.0.1', port: 4173, strictPort: true } });
 try {
   if (!server.httpServer.listening) await once(server.httpServer, 'listening');
   const address = server.httpServer.address();

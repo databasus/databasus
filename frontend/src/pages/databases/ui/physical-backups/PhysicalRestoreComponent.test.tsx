@@ -92,13 +92,13 @@ const queryAnyCommand = () => document.querySelector('pre');
 const chooseTargetTime = async (localTime: string) => {
   const picker = screen.getByPlaceholderText(restoreCopy.latestAvailable);
 
-  fireEvent.mouseDown(picker);
+  fireEvent.click(picker);
   fireEvent.change(picker, { target: { value: localTime } });
-  fireEvent.click(await screen.findByRole('button', { name: 'OK' }));
+  fireEvent.keyDown(picker, { key: 'Enter' });
 };
 
 const clearTargetTime = () => {
-  fireEvent.click(document.querySelector('.ant-picker-clear') as Element);
+  fireEvent.click(document.querySelector('button[aria-label="Clear"]') as Element);
 };
 
 const spyOnTokenRequests = () => vi.spyOn(physicalBackupsApi, 'createPhysicalRestoreToken');

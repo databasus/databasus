@@ -196,7 +196,8 @@ const openRestoreDialog = async () => {
   await screen.findByRole('button', { name: 'Select database to restore to' });
 };
 
-const closeRestoreDialog = () => fireEvent.click(document.querySelector('.ant-modal-close')!);
+const closeRestoreDialog = () =>
+  fireEvent.click(document.querySelector('button[aria-label="Close"]')!);
 
 const openTargetForm = async () =>
   fireEvent.click(await screen.findByRole('button', { name: 'Select database to restore to' }));
@@ -219,13 +220,11 @@ const startEnteredRestore = () =>
   fireEvent.click(screen.getByRole('button', { name: /Restore to this DB$/ }));
 
 const chooseRequireSslMode = async () => {
-  fireEvent.mouseDown(
-    screen.getByText('SSL mode').parentElement!.querySelector('.ant-select-selector')!,
-  );
+  fireEvent.click(screen.getByText('SSL mode').parentElement!.querySelector('[role="combobox"]')!);
   fireEvent.click(
     await waitFor(() => {
-      const requireOption = Array.from(document.querySelectorAll('.ant-select-item-option')).find(
-        (element) => /^Require/.test(element.textContent ?? ''),
+      const requireOption = Array.from(screen.queryAllByRole('option')).find((element) =>
+        /^Require/.test(element.textContent ?? ''),
       );
       expect(requireOption).toBeTruthy();
       return requireOption!;
@@ -402,7 +401,7 @@ describe('Restore target composition', () => {
     const startButton = screen.getByRole('button', { name: 'Restore to this DB' });
     fireEvent.click(startButton);
     fireEvent.click(startButton);
-    await waitFor(() => expect(startButton.className).toContain('ant-btn-loading'));
+    await waitFor(() => expect(startButton.getAttribute('aria-busy')).toBe('true'));
     listedRestores.push(startedRestore);
     restoreStart.release();
 
@@ -592,7 +591,7 @@ describe('Restore target composition', () => {
     renderRestoreFlow(tunneledPostgresqlDatabase, postgresqlBackup);
     await openTargetForm();
     const getSelectedSslMode = () =>
-      screen.getByText('SSL mode').parentElement!.querySelector('.ant-select-selection-item')!
+      screen.getByText('SSL mode').parentElement!.querySelector('button[role="combobox"]')!
         .textContent;
 
     fireEvent.change(screen.getByPlaceholderText(/host$/), {

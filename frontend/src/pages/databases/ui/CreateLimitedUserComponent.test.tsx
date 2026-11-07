@@ -179,7 +179,7 @@ describe('CreateLimitedUserComponent', () => {
   });
 
   const expectNoNoticeAfterCreation = async () => {
-    await waitFor(() => expect(document.querySelector('.ant-btn-loading')).toBeNull());
+    await waitFor(() => expect(document.querySelector('button[aria-busy="true"]')).toBeNull());
     await act(async () => {
       await new Promise((resolve) => requestAnimationFrame(resolve));
     });

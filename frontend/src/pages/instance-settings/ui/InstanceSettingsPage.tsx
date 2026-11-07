@@ -1,5 +1,5 @@
-import { CopyOutlined, LoadingOutlined } from '@ant-design/icons';
-import { Alert, App, Button, Spin, Switch } from 'antd';
+import { ActionIcon, Alert, Button, Loader, Switch } from '@mantine/core';
+import { CircleAlert, Copy } from 'lucide-react';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -12,6 +12,7 @@ import { getApplicationServer } from '@/shared/config';
 import { useRequestRevision } from '@/shared/hooks';
 import { getWebsitePageUrl, translateApiError, useLocale } from '@/shared/i18n';
 import { BrowserClipboard } from '@/shared/lib/BrowserClipboard';
+import { useFeedback } from '@/shared/lib/feedback';
 import { LoadFailure } from '@/shared/ui';
 
 interface Props {
@@ -81,7 +82,7 @@ export function InstanceSettingsPage({ onSettingsChanged }: Props) {
       });
 
       onSettingsChanged?.(updatedSettings);
-      message.success(i18n.t('settings.updated'));
+      notify({ kind: 'success', title: i18n.t('settings.updated') });
     } catch (error: unknown) {
       if (isCurrent()) setFailure(error);
     } finally {
@@ -96,7 +97,7 @@ export function InstanceSettingsPage({ onSettingsChanged }: Props) {
   };
   const { t, i18n } = useTranslation();
   const { locale } = useLocale();
-  const { message } = App.useApp();
+  const notify = useFeedback();
   const isCurrent = useSessionGuard();
   const loadRevision = useRequestRevision();
 
@@ -131,9 +132,15 @@ export function InstanceSettingsPage({ onSettingsChanged }: Props) {
             (settings ? (
               <Alert
                 className="mt-3"
-                type="error"
-                showIcon
-                message={translateApiError(failure, t)}
+                color="danger"
+                icon={
+                  <CircleAlert
+                    aria-hidden
+                    size={16}
+                    className="inline-block shrink-0 align-middle"
+                  />
+                }
+                title={translateApiError(failure, t)}
               />
             ) : (
               <LoadFailure className="mt-3" error={failure} onRetry={() => void loadSettings()} />
@@ -141,7 +148,7 @@ export function InstanceSettingsPage({ onSettingsChanged }: Props) {
           <div className="mt-6">
             {isLoading ? (
               <div>
-                <Spin indicator={<LoadingOutlined spin />} />
+                <Loader role="status" />
               </div>
             ) : settings ? (
               <div className="max-w-lg text-sm">
@@ -160,8 +167,11 @@ export function InstanceSettingsPage({ onSettingsChanged }: Props) {
                       <Switch
                         aria-label={t('settings.externalRegistrations.title')}
                         checked={formSettings.isAllowExternalRegistrations}
-                        onChange={(checked) =>
-                          handleSettingChange('isAllowExternalRegistrations', checked)
+                        onChange={(event) =>
+                          handleSettingChange(
+                            'isAllowExternalRegistrations',
+                            event.currentTarget.checked,
+                          )
                         }
                       />
                     </div>
@@ -182,8 +192,11 @@ export function InstanceSettingsPage({ onSettingsChanged }: Props) {
                         <Switch
                           aria-label={t('settings.memberInvitations.title')}
                           checked={formSettings.isAllowMemberInvitations}
-                          onChange={(checked) =>
-                            handleSettingChange('isAllowMemberInvitations', checked)
+                          onChange={(event) =>
+                            handleSettingChange(
+                              'isAllowMemberInvitations',
+                              event.currentTarget.checked,
+                            )
                           }
                         />
                       </div>
@@ -203,8 +216,11 @@ export function InstanceSettingsPage({ onSettingsChanged }: Props) {
                       <Switch
                         aria-label={t('settings.memberWorkspaceCreation.title')}
                         checked={formSettings.isMemberAllowedToCreateWorkspaces}
-                        onChange={(checked) =>
-                          handleSettingChange('isMemberAllowedToCreateWorkspaces', checked)
+                        onChange={(event) =>
+                          handleSettingChange(
+                            'isMemberAllowedToCreateWorkspaces',
+                            event.currentTarget.checked,
+                          )
                         }
                       />
                     </div>
@@ -247,8 +263,11 @@ export function InstanceSettingsPage({ onSettingsChanged }: Props) {
                         disabled={
                           !settings?.isEmailConfigured && !settings?.isTwoFactorAuthRequired
                         }
-                        onChange={(checked) =>
-                          handleSettingChange('isTwoFactorAuthRequired', checked)
+                        onChange={(event) =>
+                          handleSettingChange(
+                            'isTwoFactorAuthRequired',
+                            event.currentTarget.checked,
+                          )
                         }
                       />
                     </div>
@@ -258,18 +277,19 @@ export function InstanceSettingsPage({ onSettingsChanged }: Props) {
                   <div className="mt-8 flex flex-wrap gap-2">
                     <Button
                       className="!h-auto min-h-8 max-w-full !whitespace-normal"
-                      type="primary"
+                      variant="filled"
                       aria-label={t('settings.saveChanges')}
                       onClick={handleSave}
                       loading={isSaving}
                       disabled={isSaving}
+                      aria-busy={isSaving}
                     >
                       {isSaving ? t('settings.saving') : t('settings.saveChanges')}
                     </Button>
 
                     <Button
                       className="!h-auto min-h-8 max-w-full !whitespace-normal"
-                      type="default"
+                      variant="default"
                       onClick={handleReset}
                       disabled={isSaving}
                     >
@@ -310,19 +330,20 @@ export function InstanceSettingsPage({ onSettingsChanged }: Props) {
                 >
                   {getApplicationServer()}/api/v1/system/health
                 </a>
-                <Button
-                  type="text"
-                  size="small"
+                <ActionIcon
+                  variant="subtle"
+                  size="xs"
                   className="ml-2"
                   aria-label={t('common.actions.copy')}
-                  icon={<CopyOutlined aria-hidden />}
                   onClick={() => {
                     BrowserClipboard.copyToClipboard(
                       `${getApplicationServer()}/api/v1/system/health`,
                     );
-                    message.success(i18n.t('settings.healthcheck.copied'));
+                    notify({ kind: 'success', title: i18n.t('settings.healthcheck.copied') });
                   }}
-                />
+                >
+                  <Copy aria-hidden size="1em" className="inline-block shrink-0 align-middle" />
+                </ActionIcon>
               </div>
               <div className="mt-1 text-xs text-muted">{t('settings.healthcheck.description')}</div>
             </div>

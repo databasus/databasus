@@ -1,20 +1,15 @@
-import { App, ConfigProvider } from 'antd';
 import type { ReactNode } from 'react';
 
-import { useLocale } from '@/shared/i18n';
-import { useTheme, getAntdTheme, ThemeCssVariables } from '@/shared/theme';
+import { ControlLocalization } from '@/shared/i18n';
+import { FeedbackProvider } from '@/shared/lib/feedback';
+import { ThemeConfiguration } from '@/shared/theme';
 
 export const ScreenConfiguration = ({ children }: { children: ReactNode }) => {
-  const { antdLocale } = useLocale();
-  const { resolvedTheme } = useTheme();
   return (
-    <ConfigProvider
-      button={{ autoInsertSpace: false }}
-      locale={antdLocale}
-      theme={getAntdTheme(resolvedTheme)}
-    >
-      <ThemeCssVariables />
-      <App>{children}</App>
-    </ConfigProvider>
+    <ThemeConfiguration isTestEnvironment>
+      <FeedbackProvider>
+        <ControlLocalization>{children}</ControlLocalization>
+      </FeedbackProvider>
+    </ThemeConfiguration>
   );
 };

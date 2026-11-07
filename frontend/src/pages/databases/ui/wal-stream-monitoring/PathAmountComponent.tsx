@@ -1,5 +1,4 @@
-import { CheckCircleOutlined } from '@ant-design/icons';
-import { theme } from 'antd';
+import { CircleCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { interpolateNumber } from '@/pages/databases/lib/wal-stream-monitoring/easedTexts';
@@ -7,7 +6,7 @@ import { getAmountProgress } from '@/pages/databases/lib/wal-stream-monitoring/p
 import { useEasedTransition } from '@/pages/databases/ui/wal-stream-monitoring/useEasedTransition';
 import { useLocale } from '@/shared/i18n';
 import { formatBytes } from '@/shared/lib';
-
+import { THEME_COLOR_VARIABLES } from '@/shared/theme';
 interface Props {
   valueBytes: number | null;
   limitBytes?: number;
@@ -22,8 +21,6 @@ const easeAmount = (fromBytes: number, toBytes: number, progress: number) =>
 export const PathAmountComponent = ({ valueBytes, limitBytes, isReducedMotion }: Props) => {
   const { t } = useTranslation();
   const { formatNumber } = useLocale();
-  const { token } = theme.useToken();
-
   const easedBytes = useEasedTransition(valueBytes ?? 0, easeAmount, isReducedMotion);
 
   if (valueBytes === null) {
@@ -37,7 +34,11 @@ export const PathAmountComponent = ({ valueBytes, limitBytes, isReducedMotion }:
   if (valueBytes === 0) {
     return (
       <div className="flex items-center gap-1.5 text-sm text-muted">
-        <CheckCircleOutlined aria-hidden style={{ color: token.colorSuccess }} />
+        <CircleCheck
+          aria-hidden
+          style={{ color: THEME_COLOR_VARIABLES['success-fill'] }}
+          size={14}
+        />
         {t('backups.physical.monitoring.path.nothingWaiting')}
       </div>
     );
@@ -58,7 +59,9 @@ export const PathAmountComponent = ({ valueBytes, limitBytes, isReducedMotion }:
               className="h-full rounded-full"
               style={{
                 width: `${progress.percent}%`,
-                backgroundColor: progress.isOverLimit ? token.colorError : token.colorPrimary,
+                backgroundColor: progress.isOverLimit
+                  ? THEME_COLOR_VARIABLES['error-fill']
+                  : THEME_COLOR_VARIABLES['primary'],
                 transition: isReducedMotion ? undefined : 'width 300ms',
               }}
             />

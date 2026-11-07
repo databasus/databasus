@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -151,7 +151,7 @@ describe('PhysicalBackupsComponent', () => {
     );
     await screen.findByRole('button', { name: physicalListCopy.backUpNow });
 
-    await user.hover(document.querySelector('.ant-dropdown-trigger')!);
+    await user.click(screen.getByRole('button', { name: 'Type' }));
     await user.click(await screen.findByRole('menuitem', { name: label }));
 
     await waitFor(() => expect(requestedBackups).toHaveLength(1));
@@ -354,7 +354,7 @@ describe('PhysicalBackupsComponent', () => {
       renderDatabasePage();
       await screen.findAllByText('111 MB');
 
-      const startMenuTrigger = screen.getByRole<HTMLButtonElement>('button', { name: 'down' });
+      const startMenuTrigger = screen.getByRole<HTMLButtonElement>('button', { name: 'Type' });
 
       fireEvent.click(queryStartButton() as HTMLButtonElement);
       fireEvent.click(startMenuTrigger);
@@ -452,19 +452,17 @@ describe('PhysicalBackupsComponent', () => {
     await advanceFakeClock(2_000);
 
     expect(screen.getAllByText('222 MB').length).toBeGreaterThan(0);
-    expect(document.querySelector('.ant-spin-spinning')).toBeNull();
+    expect(document.querySelector('[role="status"]')).toBeNull();
     expect(requestedCursors.filter((cursor) => cursor !== null)).toEqual(['first-page-cursor']);
 
     isNewBackupListed = true;
 
     await advanceClockUntil(() => expect(screen.getAllByText('333 MB').length).toBeGreaterThan(0));
 
-    const shownRows = Array.from(document.querySelectorAll('tr[data-row-key]'));
-    expect(shownRows.map((row) => row.getAttribute('data-row-key'))).toEqual([
-      'new-backup',
-      'completed-backup',
-      'oldest-backup',
-    ]);
+    const shownRows = screen.getAllByRole('row').slice(1);
+    expect(shownRows.map((row) => within(row).getByText(/^(333|111|222) MB$/).textContent)).toEqual(
+      ['333 MB', '111 MB', '222 MB'],
+    );
     expect(startRequests).toBe(1);
   });
 
@@ -666,7 +664,7 @@ describe('PhysicalBackupsComponent', () => {
         );
 
         expect(listCall.mock.calls).toHaveLength(listCallsWhenLeaving);
-        expect(document.querySelector('.ant-message-notice')).toBeNull();
+        expect(document.querySelector('[role="alert"], [role="status"]')).toBeNull();
         expect(screen.getByRole('button', { name: 'Toggle tab' })).toBeTruthy();
       },
     );

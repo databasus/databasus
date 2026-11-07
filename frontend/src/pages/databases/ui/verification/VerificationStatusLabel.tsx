@@ -1,10 +1,4 @@
-import {
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  CloseCircleOutlined,
-  ExclamationCircleOutlined,
-  SyncOutlined,
-} from '@ant-design/icons';
+import { CircleAlert, CircleCheck, CircleX, Clock3, RefreshCw } from 'lucide-react';
 import type { JSX, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -14,13 +8,21 @@ import { VERIFICATION_STATUS_LABEL_KEYS } from '@/pages/databases/model/verifica
 interface Props {
   status: VerificationStatus;
 }
-
-const STATUS_PRESENTATION: Record<VerificationStatus, { icon: ReactNode; className: string }> = {
-  [VerificationStatus.COMPLETED]: { icon: <CheckCircleOutlined />, className: 'text-success' },
-  [VerificationStatus.FAILED]: { icon: <ExclamationCircleOutlined />, className: 'text-danger' },
-  [VerificationStatus.RUNNING]: { icon: <SyncOutlined spin />, className: 'font-bold text-accent' },
-  [VerificationStatus.PENDING]: { icon: <ClockCircleOutlined />, className: 'text-muted' },
-  [VerificationStatus.CANCELED]: { icon: <CloseCircleOutlined />, className: 'text-muted' },
+const STATUS_PRESENTATION: Record<
+  VerificationStatus,
+  {
+    icon: ReactNode;
+    className: string;
+  }
+> = {
+  [VerificationStatus.COMPLETED]: { icon: <CircleCheck size={14} />, className: 'text-success' },
+  [VerificationStatus.FAILED]: { icon: <CircleAlert size={14} />, className: 'text-danger' },
+  [VerificationStatus.RUNNING]: {
+    icon: <RefreshCw className="animate-spin" size={14} />,
+    className: 'font-bold text-accent',
+  },
+  [VerificationStatus.PENDING]: { icon: <Clock3 size={14} />, className: 'text-muted' },
+  [VerificationStatus.CANCELED]: { icon: <CircleX size={14} />, className: 'text-muted' },
 };
 
 export const VerificationStatusLabel = ({ status }: Props): JSX.Element => {

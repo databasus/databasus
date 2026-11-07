@@ -1,4 +1,5 @@
-import { Alert, Button } from 'antd';
+import { Alert, Button } from '@mantine/core';
+import { CircleAlert } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -52,21 +53,34 @@ export const EditDatabaseNotifiersSection = ({ database, onCancel, onSaved }: Pr
       />
 
       {saveError !== undefined && (
-        <Alert type="error" showIcon message={translateApiError(saveError, t)} />
+        <Alert
+          color="danger"
+          icon={
+            <CircleAlert aria-hidden size={16} className="inline-block shrink-0 align-middle" />
+          }
+          title={translateApiError(saveError, t)}
+        />
       )}
 
       <div className="mt-5 flex">
-        <Button className="mr-1" danger ghost disabled={isSaving} onClick={onCancel}>
+        <Button
+          variant="outline"
+          className="mr-1"
+          color="danger"
+          disabled={isSaving}
+          onClick={onCancel}
+        >
           {t('common.actions.cancel')}
         </Button>
 
         {!hasSameNotifierIds({ acknowledgedIds: database.notifierIds, shownIds: notifierIds }) && (
           <Button
-            type="primary"
+            variant="filled"
             onClick={() => void saveNotifiers()}
             loading={isSaving}
             disabled={isSaving}
             className="mr-5"
+            aria-busy={isSaving}
           >
             {t('common.actions.save')}
           </Button>

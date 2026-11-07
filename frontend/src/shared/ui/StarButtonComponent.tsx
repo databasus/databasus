@@ -1,4 +1,4 @@
-import { StarOutlined } from '@ant-design/icons';
+import { Star } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -14,7 +14,9 @@ export function StarButtonComponent() {
     try {
       const response = await fetch('https://api.github.com/repos/databasus/databasus');
       if (response.ok) {
-        const data = (await response.json()) as { stargazers_count: number };
+        const data = (await response.json()) as {
+          stargazers_count: number;
+        };
         setStarCount(data.stargazers_count);
       }
     } catch (error) {
@@ -37,7 +39,7 @@ export function StarButtonComponent() {
       aria-label={t('app.starButton.ariaLabel')}
     >
       <div className="flex items-center gap-2 border-r border-border px-2.5 py-1 !text-content">
-        <StarOutlined aria-hidden />
+        <Star aria-hidden size={14} />
         <span>{t('app.starButton.label')}</span>
       </div>
 

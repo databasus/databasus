@@ -1,5 +1,5 @@
-import { InfoCircleOutlined } from '@ant-design/icons';
-import { Select, Tooltip } from 'antd';
+import { Tooltip } from '@mantine/core';
+import { Info } from 'lucide-react';
 import { type ReactNode, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -16,6 +16,7 @@ import { LogicalAdvancedFields } from '@/pages/databases/ui/backup-config/Logica
 import { LogicalNotificationTriggerFields } from '@/pages/databases/ui/backup-config/LogicalNotificationTriggerFields';
 import { LogicalRetentionFields } from '@/pages/databases/ui/backup-config/LogicalRetentionFields';
 import { BackupStorageSelection } from '@/pages/databases/ui/BackupStorageSelection';
+import { WrappingSelect } from '@/shared/ui';
 import { AdvancedSettingsToggleComponent } from '@/shared/ui';
 
 interface Props {
@@ -83,17 +84,17 @@ export const LogicalBackupConfigFields = ({
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('backups.config.encryption')}</div>
         <div className="flex w-full items-center">
-          <Select
+          <WrappingSelect
             value={config.encryption}
             onChange={(encryption) => onChange({ ...config, encryption })}
-            size="small"
+            size="xs"
             className="min-w-0 grow"
-            options={encryptionOptions}
+            data={encryptionOptions}
             aria-label={t('backups.config.encryption')}
           />
 
-          <Tooltip className="cursor-pointer" title={t('backups.logical.config.encryptionTooltip')}>
-            <InfoCircleOutlined className="ml-2 text-muted" />
+          <Tooltip className="cursor-pointer" label={t('backups.logical.config.encryptionTooltip')}>
+            <Info className="ml-2 inline-block shrink-0 align-middle text-muted" size="1em" />
           </Tooltip>
         </div>
       </div>

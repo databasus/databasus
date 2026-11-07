@@ -1,14 +1,14 @@
-import { InfoCircleOutlined } from '@ant-design/icons';
-import { Tooltip } from 'antd';
+import { Tooltip } from '@mantine/core';
+import { Info } from 'lucide-react';
 
 interface Props {
   title: string;
 }
 
 export const ConnectionFieldTooltip = ({ title }: Props) => (
-  <Tooltip className="cursor-pointer" title={title}>
+  <Tooltip className="cursor-pointer" label={title}>
     <span className="ml-2 text-muted" tabIndex={0}>
-      <InfoCircleOutlined aria-label={title} />
+      <Info aria-label={title} size={14} />
     </span>
   </Tooltip>
 );

@@ -1,4 +1,4 @@
-import { Button } from 'antd';
+import { Button } from '@mantine/core';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -42,13 +42,13 @@ export const CreatePhysicalBackupConfigStep = ({
 
       <div className="mt-5 flex">
         {onBack && (
-          <Button className="mr-1" type="primary" ghost onClick={() => onBack(draft)}>
+          <Button className="mr-1" variant="outline" onClick={() => onBack(draft)}>
             {t('common.actions.back')}
           </Button>
         )}
 
         <Button
-          type="primary"
+          variant="filled"
           className="mr-5 ml-auto"
           disabled={!canContinue}
           onClick={() => onContinue(draft)}

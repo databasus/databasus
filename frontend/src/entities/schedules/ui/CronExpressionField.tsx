@@ -1,6 +1,6 @@
-import { InfoCircleOutlined } from '@ant-design/icons';
-import { Input, Tooltip } from 'antd';
+import { TextInput, Tooltip } from '@mantine/core';
 import dayjs from 'dayjs';
+import { Info } from 'lucide-react';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -27,17 +27,17 @@ export const CronExpressionField = ({ cronExpression, onChange }: Props) => {
           {t('schedules.cronExpression')}
         </label>
         <div className="flex items-center">
-          <Input
+          <TextInput
             id={controlId}
             value={cronExpression}
             onChange={(e) => onChange(e.target.value)}
             placeholder="0 2 * * *"
-            size="small"
+            size="xs"
             className="w-full max-w-[200px] grow"
           />
           <Tooltip
             className="cursor-pointer"
-            title={
+            label={
               <div>
                 <div className="font-bold">{t('schedules.cronHelp.format')}</div>
                 <div className="mt-1">{t('schedules.cronHelp.examples')}</div>
@@ -48,7 +48,7 @@ export const CronExpressionField = ({ cronExpression, onChange }: Props) => {
               </div>
             }
           >
-            <InfoCircleOutlined className="ml-2 text-muted" />
+            <Info className="ml-2 inline-block shrink-0 align-middle text-muted" size="1em" />
           </Tooltip>
         </div>
       </div>

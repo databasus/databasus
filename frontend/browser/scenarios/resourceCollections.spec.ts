@@ -3,6 +3,7 @@ import { expect } from '@playwright/test';
 import { DICTIONARIES } from '../../src/shared/i18n/dictionaries';
 import { applicationFixtures, smtpNotifier, workspace } from '../applicationFixtures';
 import { assertAccountReflow } from '../assertAccountReflow';
+import { assertEnlargedTextReflow } from '../assertEnlargedTextReflow';
 import { test } from '../browserTest';
 import { enlargeText } from '../enlargeText';
 import { apiResponse } from '../HttpFixture';
@@ -18,7 +19,7 @@ for (const domain of ['storages', 'notifiers'] as const) {
       },
     });
 
-    test('keeps keyboard search and creation focus usable across narrow list and detail navigation', async ({
+    test(`keeps keyboard search and creation focus usable across narrow list and detail navigation`, async ({
       page,
       httpFixtures,
       boundary,
@@ -97,6 +98,8 @@ for (const domain of ['storages', 'notifiers'] as const) {
       await creation
         .getByRole('textbox', { name: dictionary.common.fields.name, exact: true })
         .focus();
+      await assertEnlargedTextReflow(page);
+
       await page.keyboard.press('Escape');
       await expect(creation).toBeHidden();
       await expect(add).toBeFocused();
@@ -105,6 +108,8 @@ for (const domain of ['storages', 'notifiers'] as const) {
       const back = page.getByRole('button', { name: labels.list.backToList, exact: true });
       await back.click();
       await enlargeText(page.locator('main'));
+      await assertEnlargedTextReflow(page);
+
       await assertAccountReflow(page.locator('main'));
       await expect(search).toBeInViewport();
       await search.fill('Archive 0');
@@ -112,11 +117,13 @@ for (const domain of ['storages', 'notifiers'] as const) {
       await expect(back).toBeVisible();
       await back.click();
       await expect(search).toHaveValue('Archive 0');
+      await assertEnlargedTextReflow(page);
+
       await assertAccountReflow(page.locator('main'));
       await expect(search).toBeInViewport();
     });
 
-    test('contains enlarged transfer controls and restores focus after keyboard dismissal', async ({
+    test(`contains enlarged transfer controls and restores focus after keyboard dismissal`, async ({
       page,
       httpFixtures,
     }) => {
@@ -163,10 +170,14 @@ for (const domain of ['storages', 'notifiers'] as const) {
       });
       await expect(target).toBeVisible();
       await enlargeText(dialog);
+      await assertEnlargedTextReflow(page);
+
       await assertAccountReflow(dialog);
       await target.focus();
       await target.press('ArrowDown');
-      await page.getByText('Regional archive destination', { exact: true }).click();
+      await page.getByRole('option', { name: 'Regional archive destination', exact: true }).click();
+      await assertEnlargedTextReflow(page);
+
       await page.keyboard.press('Escape');
       await expect(dialog).toBeHidden();
       await expect(invoker).toBeFocused();

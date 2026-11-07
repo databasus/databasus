@@ -1,0 +1,23 @@
+{
+  "repository": "https://github.com/mantinedev/skills",
+  "revision": "607846dbc328b6ddc85106d8aad3c080f9f57a1d",
+  "license": "MIT",
+  "files": {
+    "SKILL.md": {
+      "source": "skills/mantine-custom-components/SKILL.md",
+      "sha256": "75c7a91951d8d952583ad921e30baf3ecbd80f2d42f794381334145d497235c8"
+    },
+    "references/api.md": {
+      "source": "skills/mantine-custom-components/references/api.md",
+      "sha256": "6270249650f13ec19ac9cc18504c76875264c256802a095e5bbf83685d890a99"
+    },
+    "references/patterns.md": {
+      "source": "skills/mantine-custom-components/references/patterns.md",
+      "sha256": "0c0606ff2862be6f0916d99e995dee8ea413dc22e47c47157863b1db5bc0c0b6"
+    },
+    "LICENSE": {
+      "source": "LICENSE",
+      "sha256": "72016407706ce29292b9884b08a3b04a1192fd884bd11fd3e44aeecc056d6fa2"
+    }
+  }
+}

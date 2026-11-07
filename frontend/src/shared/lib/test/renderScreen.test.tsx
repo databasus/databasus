@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
-import { screen } from '@testing-library/react';
-import { App, DatePicker, theme } from 'antd';
+import { useMantineTheme } from '@mantine/core';
+import { DatePickerInput } from '@mantine/dates';
+import { fireEvent, screen, within } from '@testing-library/react';
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -8,7 +9,9 @@ import { useLocation } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
 import { DICTIONARIES, useLocale } from '@/shared/i18n';
-import { LOCALE_SETTINGS } from '@/shared/i18n/localeSettings';
+import { useFeedback } from '@/shared/lib/feedback';
+import { advanceFakeClock } from '@/shared/lib/test/advanceFakeClock';
+import { waitForCondition } from '@/shared/lib/test/conditionWait';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
 import { useTheme } from '@/shared/theme';
 
@@ -17,19 +20,21 @@ const ContextScreen = () => {
   const { locale, setLocale } = useLocale();
   const { resolvedTheme } = useTheme();
   const location = useLocation();
-  const { token } = theme.useToken();
-  const { message } = App.useApp();
+  const controlsTheme = useMantineTheme();
+  const notify = useFeedback();
   const [draft, setDraft] = useState('');
   return (
     <>
-      <output>{`${locale}:${resolvedTheme}:${location.pathname}${location.search}`}</output>
+      <div>{`${locale}:${resolvedTheme}:${location.pathname}${location.search}`}</div>
       <label>
         {t('common.actions.save')}
         <input value={draft} onChange={(event) => setDraft(event.target.value)} />
       </label>
-      <output>{`${token.colorPrimary}:${token.colorBgContainer}`}</output>
-      <DatePicker />
-      <button onClick={() => void message.info(t('common.actions.save'))}>Notify</button>
+      <div>{controlsTheme.fontFamily}</div>
+      <DatePickerInput aria-label="Calendar" defaultDate="2026-10-18" />
+      <button onClick={() => notify({ kind: 'info', title: t('common.actions.save') })}>
+        Notify
+      </button>
       <button onClick={() => setLocale('es')}>Switch language</button>
     </>
   );
@@ -45,22 +50,26 @@ const originalState = {
 describe('renderScreen', () => {
   it.each(['light', 'dark'] as const)(
     'provides the real locale, %s theme and router entry',
-    (theme) => {
-      renderScreen(<ContextScreen />, { locale: 'fr', theme, route: '/settings?tab=profile' });
+    async (theme) => {
+      const { user } = renderScreen(<ContextScreen />, {
+        locale: 'fr',
+        theme,
+        route: '/settings?tab=profile',
+      });
 
       expect(screen.getByText(`fr:${theme}:/settings?tab=profile`)).toBeTruthy();
       expect(document.documentElement.classList.contains('dark')).toBe(theme === 'dark');
       expect(document.documentElement.lang).toBe('fr');
-      expect(
-        screen.getByPlaceholderText(LOCALE_SETTINGS.fr.antdLocale.DatePicker!.lang.placeholder),
-      ).toBeTruthy();
-      expect(
-        screen.getByText(theme === 'dark' ? '#1552d9:#141414' : '#155dfc:#ffffff'),
-      ).toBeTruthy();
+      expect(screen.getByText(/Jost, system-ui/)).toBeTruthy();
+      expect(document.documentElement.style.getPropertyValue('--app-surface')).toBe(
+        theme === 'dark' ? '#141414' : '#ffffff',
+      );
       expect(
         screen.getByRole('textbox', { name: DICTIONARIES.fr.common.actions.save }).closest('label')
           ?.textContent,
       ).toBe(DICTIONARIES.fr.common.actions.save);
+      await user.click(screen.getByRole('button', { name: 'Calendar' }));
+      expect(await screen.findByRole('button', { name: 'octobre 2026' })).toBeTruthy();
     },
   );
 
@@ -86,10 +95,32 @@ describe('renderScreen', () => {
 
     await user.click(screen.getByRole('button', { name: 'Notify' }));
     expect(
-      screen.getByText(DICTIONARIES.es.common.actions.save, {
-        selector: '.ant-message-notice-content span',
-      }),
+      within(screen.getByRole('status')).getByText(DICTIONARIES.es.common.actions.save),
     ).toBeTruthy();
+  });
+
+  it('retains a notice language and deadline when the interface language changes', async () => {
+    vi.useFakeTimers();
+    renderScreen(<ContextScreen />, { locale: 'en' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Notify' }));
+
+    const notice = within(screen.getByRole('status'));
+    expect(notice.getByText(DICTIONARIES.en.common.actions.save)).toBeTruthy();
+
+    await advanceFakeClock(1000);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Switch language' }));
+
+    expect(notice.getByText(DICTIONARIES.en.common.actions.save)).toBeTruthy();
+
+    await advanceFakeClock(1999);
+
+    expect(screen.getByRole('status')).toBeTruthy();
+
+    await advanceFakeClock(1);
+
+    await waitForCondition(() => expect(screen.queryByRole('status')).toBeNull());
   });
 
   it('removes media subscriptions and component timers when unmounted', () => {

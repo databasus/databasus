@@ -115,10 +115,10 @@ const renderDialog = () =>
   );
 
 const chooseSelectOption = async (combobox: HTMLElement, optionLabel: string) => {
-  fireEvent.mouseDown(combobox);
+  if (combobox.getAttribute('aria-expanded') !== 'true') fireEvent.click(combobox);
 
   const option = await waitFor(() => {
-    const matchingOption = Array.from(document.querySelectorAll('.ant-select-item-option')).find(
+    const matchingOption = Array.from(screen.queryAllByRole('option')).find(
       (candidate) => candidate.textContent === optionLabel,
     );
 
@@ -192,7 +192,7 @@ describe('DatabaseTransferDialogComponent', () => {
     fireEvent.click(screen.getByRole('radio', { name: 'Transfer notifiers with database' }));
     await screen.findByText('Source alerts');
 
-    fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Storage' }));
+    fireEvent.click(await screen.findByRole('combobox', { name: 'Storage' }));
     fireEvent.click(screen.getByRole('button', { name: 'Create new storage' }));
     const editor = within(await screen.findByRole('region', { name: 'Storage settings' }));
 
@@ -212,21 +212,20 @@ describe('DatabaseTransferDialogComponent', () => {
           ),
       ).toBe(true),
     );
-    expect(
-      screen.getByRole('combobox', { name: 'Storage' }).closest('.ant-select')!.textContent,
-    ).toContain(targetStorage.name);
+    expect(screen.getByRole('combobox', { name: 'Storage' }).closest('div')!.textContent).toContain(
+      targetStorage.name,
+    );
 
     creation.release();
 
     await waitFor(() =>
       expect(screen.queryByRole('region', { name: 'Storage settings' })).toBeNull(),
     );
+    expect(screen.getByRole('combobox', { name: 'Storage' }).closest('div')!.textContent).toContain(
+      createdStorage.name,
+    );
     expect(
-      screen.getByRole('combobox', { name: 'Storage' }).closest('.ant-select')!.textContent,
-    ).toContain(createdStorage.name);
-    expect(
-      screen.getByRole('combobox', { name: 'Target workspace' }).closest('.ant-select')!
-        .textContent,
+      screen.getByRole('combobox', { name: 'Target workspace' }).closest('div')!.textContent,
     ).toContain(targetWorkspace.name);
     expect(screen.getByRole('radio', { name: 'Transfer notifiers with database' })).toHaveProperty(
       'checked',
@@ -335,10 +334,10 @@ describe('DatabaseTransferDialogComponent', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Transfer' }));
 
     expect(await screen.findByText('You do not have permission to do this.')).toBeTruthy();
-    expect(screen.getAllByRole('combobox')[0].closest('.ant-select')!.textContent).toContain(
+    expect(screen.getAllByRole('combobox')[0].closest('div')!.textContent).toContain(
       targetWorkspace.name,
     );
-    expect(screen.getAllByRole('combobox')[1].closest('.ant-select')!.textContent).toContain(
+    expect(screen.getAllByRole('combobox')[1].closest('div')!.textContent).toContain(
       targetStorage.name,
     );
     expect(onTransferred).not.toHaveBeenCalled();
@@ -401,7 +400,7 @@ describe('DatabaseTransferDialogComponent', () => {
     await chooseTargetWorkspace();
     const workspaceInput = screen.getAllByRole('combobox')[0];
 
-    fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Storage' }));
+    fireEvent.click(await screen.findByRole('combobox', { name: 'Storage' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Create new storage' }));
     const editor = within(await screen.findByRole('region', { name: 'Storage settings' }));
 
@@ -496,13 +495,9 @@ describe('DatabaseTransferDialogComponent', () => {
 
       await interaction.click(workspaceControl);
 
-      expect(workspaceControl.closest('.ant-select')?.classList.contains('ant-select-open')).toBe(
-        false,
-      );
+      expect(workspaceControl.getAttribute('aria-expanded')).toBe('false');
       expect(
-        within(workspaceControl.closest('.ant-select') as HTMLElement).getByText(
-          targetWorkspace.name,
-        ),
+        within(workspaceControl.closest('div') as HTMLElement).getByText(targetWorkspace.name),
       ).toBeTruthy();
 
       await interaction.click(transferButton);
@@ -552,7 +547,7 @@ describe('DatabaseTransferDialogComponent', () => {
         creation.handler,
         mockApi.post('/storage-tests', 200, { isConnected: true }),
       );
-      const view = renderDialog();
+      renderDialog();
 
       await chooseTargetWorkspace();
 
@@ -564,7 +559,7 @@ describe('DatabaseTransferDialogComponent', () => {
         ).toBe(true),
       );
 
-      fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Storage' }));
+      fireEvent.click(await screen.findByRole('combobox', { name: 'Storage' }));
       fireEvent.click(screen.getByRole('button', { name: 'Create new storage' }));
       const editorRegion = await screen.findByRole('region', { name: 'Storage settings' });
       const editor = within(editorRegion);
@@ -632,7 +627,9 @@ describe('DatabaseTransferDialogComponent', () => {
       );
 
       expect(screen.getByRole('button', { name: 'Transfer' })).toHaveProperty('disabled', false);
-      expect(view.container.querySelector('.ant-alert-error')).toBeNull();
+      expect(screen.getAllByRole('alert').map((alert) => alert.textContent)).toEqual([
+        DICTIONARIES.en.backups.storageSwitch.warning,
+      ]);
       expect(
         screen.queryByText('An internal server error occurred. Please try again later.'),
       ).toBeNull();

@@ -352,7 +352,6 @@ describe('DatabaseComponent', () => {
     );
     await waitFor(() =>
       expect(
-        // happy-dom never finishes AntD's loading icon exit, so the name keeps a "loading" prefix.
         screen.getByRole('button', { name: /Test connection$/ }).hasAttribute('disabled'),
       ).toBe(false),
     );

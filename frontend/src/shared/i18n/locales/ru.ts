@@ -5,7 +5,20 @@ export const ru: typeof en = {
     nativeName: 'Русский',
   },
   common: {
+    calendar: {
+      monthLevelControl: 'Выбрать месяц',
+      yearLevelControl: 'Выбрать год',
+      nextMonth: 'Следующий месяц',
+      previousMonth: 'Предыдущий месяц',
+      nextYear: 'Следующий год',
+      previousYear: 'Предыдущий год',
+      nextDecade: 'Следующее десятилетие',
+      previousDecade: 'Предыдущее десятилетие',
+      seconds: 'Секунды',
+    },
     actions: {
+      clear: 'Очистить',
+      togglePasswordVisibility: 'Показать или скрыть пароль',
       back: 'Назад',
       cancel: 'Отмена',
       close: 'Закрыть',
@@ -203,6 +216,9 @@ export const ru: typeof en = {
     },
   },
   schedules: {
+    hours: 'Часы',
+    minutes: 'Минуты',
+    timePeriod: 'До или после полудня',
     types: {
       hourly: 'Ежечасно',
       daily: 'Ежедневно',

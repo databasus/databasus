@@ -10,6 +10,7 @@ import {
   WalRangeSegmentsComponent,
 } from '@/pages/databases/ui/physical-backups/PhysicalBackupTypeCellComponent';
 import { LocaleProvider } from '@/shared/i18n';
+import { ThemeContext, ThemeConfiguration } from '@/shared/theme';
 
 // The entity's public API imports its API client, and the client's config
 // module reads window at import time. The tests run in node, so they supply
@@ -42,7 +43,13 @@ const createWalRange = (change: Partial<PhysicalBackupListItem>): PhysicalBackup
 });
 
 const renderWithLocale = (element: JSX.Element) =>
-  renderToStaticMarkup(<LocaleProvider>{element}</LocaleProvider>);
+  renderToStaticMarkup(
+    <ThemeContext.Provider value={{ theme: 'light', resolvedTheme: 'light', setTheme: () => {} }}>
+      <ThemeConfiguration isTestEnvironment>
+        <LocaleProvider>{element}</LocaleProvider>
+      </ThemeConfiguration>
+    </ThemeContext.Provider>,
+  );
 
 describe('PhysicalBackupTypeCellComponent', () => {
   it('shows only the type badge for a WAL range', () => {

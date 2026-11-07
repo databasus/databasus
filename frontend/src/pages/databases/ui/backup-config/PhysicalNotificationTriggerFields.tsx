@@ -1,4 +1,4 @@
-import { Checkbox } from 'antd';
+import { Checkbox } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 
 import type { PhysicalDatabaseBackupType } from '@/entities/databases';
@@ -35,9 +35,8 @@ export const PhysicalNotificationTriggerFields = ({ triggers, backupType, onChan
             key={trigger}
             checked={triggers.includes(trigger)}
             onChange={(event) => toggleTrigger(trigger, event.target.checked)}
-          >
-            {t(PHYSICAL_NOTIFICATION_TRIGGER_LABEL_KEYS[trigger])}
-          </Checkbox>
+            label={<>{t(PHYSICAL_NOTIFICATION_TRIGGER_LABEL_KEYS[trigger])}</>}
+          />
         ))}
       </div>
     </div>

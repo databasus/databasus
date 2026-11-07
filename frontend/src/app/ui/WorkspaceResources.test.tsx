@@ -79,10 +79,8 @@ for (const domain of ['storages', 'notifiers'] as const) {
     );
     const targetSelector = await screen.findByRole('combobox', { name: 'Target workspace' });
 
-    fireEvent.mouseDown(targetSelector);
-    const targetOption = await screen.findByText(targetWorkspaceName, {
-      selector: '.ant-select-item-option-content',
-    });
+    fireEvent.click(targetSelector);
+    const targetOption = await screen.findByRole('option', { name: targetWorkspaceName });
 
     fireEvent.click(targetOption);
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Transfer' }));
@@ -146,7 +144,7 @@ for (const domain of ['storages', 'notifiers'] as const) {
 
       await view.user.click(screen.getByRole('button', { name: 'Language: English' }));
       await view.user.click(
-        await screen.findByRole('menuitem', { name: DICTIONARIES.ru.language.nativeName }),
+        await screen.findByRole('menuitemradio', { name: DICTIONARIES.ru.language.nativeName }),
       );
 
       expect(
@@ -224,7 +222,9 @@ for (const domain of ['storages', 'notifiers'] as const) {
             return listRequests === 2 ? obsoleteRead.response : currentRead.response;
           }),
           http.put(`*${API_BASE_PATH}/${domain}/:resourceId`, async ({ request }) => {
-            const rename = (await request.json()) as { name: string };
+            const rename = (await request.json()) as {
+              name: string;
+            };
             return HttpResponse.json({ ...selectedResource, name: rename.name });
           }),
           ...mockSelectableResources(resources),
@@ -311,7 +311,7 @@ for (const domain of ['storages', 'notifiers'] as const) {
         view.rerender(<ResourceScreen workspace={nextWorkspace} onUnavailable={onUnavailable} />);
         await waitFor(() => expect(listRequests).toBe(2));
 
-        expect(view.container.querySelector('.ant-spin-spinning')).not.toBeNull();
+        expect(view.container.querySelector('[role="status"]')).not.toBeNull();
 
         await finishApiResponse(server, `/api/v1/${domain}`, () =>
           obsoleteRead.respond(
@@ -321,7 +321,7 @@ for (const domain of ['storages', 'notifiers'] as const) {
           ),
         );
 
-        expect(view.container.querySelector('.ant-spin-spinning')).not.toBeNull();
+        expect(view.container.querySelector('[role="status"]')).not.toBeNull();
         expect(screen.queryByRole('button', { name: addActionName })).toBeNull();
         expect(screen.queryByRole('button', { name: 'Archive obsolete' })).toBeNull();
         expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
@@ -330,7 +330,7 @@ for (const domain of ['storages', 'notifiers'] as const) {
         currentRead.respond(HttpResponse.json({ items: [nextResource] }));
 
         await screen.findByRole('button', { name: nextResource.name });
-        await waitFor(() => expect(view.container.querySelector('.ant-spin-spinning')).toBeNull());
+        await waitFor(() => expect(view.container.querySelector('[role="status"]')).toBeNull());
 
         expect(screen.getByRole('button', { name: addActionName })).toBeTruthy();
         expect(onUnavailable).not.toHaveBeenCalled();
@@ -463,7 +463,7 @@ for (const domain of ['storages', 'notifiers'] as const) {
       fireEvent.click(screen.getAllByRole('button', { name: 'Edit' })[0]);
       const nameInput = screen.getByPlaceholderText('Enter name...');
       fireEvent.change(nameInput, { target: { value: 'Retained polling draft' } });
-      await advanceFakeClock(5 * 60_000);
+      await advanceFakeClock(5 * 60000);
       if (domain === 'notifiers') {
         await waitForCondition(() =>
           expect(screen.getByRole('button', { name: 'Archive refreshed' })).toBeTruthy(),
@@ -474,7 +474,7 @@ for (const domain of ['storages', 'notifiers'] as const) {
       expect(screen.getByDisplayValue('Retained polling draft')).toBe(nameInput);
 
       view.unmount();
-      await advanceFakeClock(10 * 60_000);
+      await advanceFakeClock(10 * 60000);
 
       expect(listRequests).toBe(domain === 'notifiers' ? 2 : 1);
     });
@@ -557,13 +557,16 @@ for (const domain of ['storages', 'notifiers'] as const) {
         }
 
         expect(screen.queryByRole('button', { name: removedResource.name })).toBeNull();
-        expect(view.container.querySelector('.ant-alert-error')).toBeNull();
+        expect(view.container.querySelector('[role="alert"]')).toBeNull();
       },
     );
 
     it('sends the chosen workspace as the transfer target when several workspaces are offered', async () => {
       const transferredResource = buildResource('first');
-      const sentTransfers: { resourceId: unknown; body: unknown }[] = [];
+      const sentTransfers: {
+        resourceId: unknown;
+        body: unknown;
+      }[] = [];
       server.use(
         ...mockSelectableResources([transferredResource]),
         mockApi.get('/workspaces', 200, {

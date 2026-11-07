@@ -1,5 +1,5 @@
-import { InfoCircleOutlined } from '@ant-design/icons';
-import { Alert, Button, Input, Spin, Switch, Tooltip } from 'antd';
+import { Alert, Button, Loader, Switch, TextInput, Tooltip } from '@mantine/core';
+import { CircleAlert, Info } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -92,7 +92,7 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
   }
 
   if (!healthcheckConfig) {
-    return <Spin size="small" />;
+    return <Loader size="xs" role="status" />;
   }
 
   return (
@@ -104,18 +104,18 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
         <Switch
           id={enableFieldId}
           checked={healthcheckConfig.isHealthcheckEnabled}
-          onChange={(checked) => {
+          onChange={(event) => {
             setHealthcheckConfig({
               ...healthcheckConfig,
-              isHealthcheckEnabled: checked,
+              isHealthcheckEnabled: event.currentTarget.checked,
             });
             setIsUnsaved(true);
           }}
-          size="small"
+          size="xs"
         />
 
-        <Tooltip className="cursor-pointer" title={t('healthcheck.config.tooltips.enable')}>
-          <InfoCircleOutlined className="ml-2 text-muted" />
+        <Tooltip className="cursor-pointer" label={t('healthcheck.config.tooltips.enable')}>
+          <Info className="ml-2 inline-block shrink-0 align-middle text-muted" size="1em" />
         </Tooltip>
       </div>
 
@@ -129,21 +129,21 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
             <Switch
               id={notifyFieldId}
               checked={healthcheckConfig.isNotificationEnabled}
-              onChange={(checked) => {
+              onChange={(event) => {
                 setHealthcheckConfig({
                   ...healthcheckConfig,
-                  isNotificationEnabled: checked,
+                  isNotificationEnabled: event.currentTarget.checked,
                 });
                 setIsUnsaved(true);
               }}
-              size="small"
+              size="xs"
             />
 
             <Tooltip
               className="cursor-pointer"
-              title={t('healthcheck.config.tooltips.notifyWhenUnavailable')}
+              label={t('healthcheck.config.tooltips.notifyWhenUnavailable')}
             >
-              <InfoCircleOutlined className="ml-2 text-muted" />
+              <Info className="ml-2 inline-block shrink-0 align-middle text-muted" size="1em" />
             </Tooltip>
           </div>
 
@@ -152,7 +152,7 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
               {t('healthcheck.config.checkIntervalMinutes')}
             </label>
 
-            <Input
+            <TextInput
               id={intervalFieldId}
               type="number"
               value={healthcheckConfig.intervalMinutes}
@@ -166,7 +166,7 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
                   setIsUnsaved(true);
                 }
               }}
-              size="small"
+              size="xs"
               className="w-full max-w-[250px]"
               placeholder="5"
               min={1}
@@ -174,9 +174,9 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
 
             <Tooltip
               className="cursor-pointer"
-              title={t('healthcheck.config.tooltips.checkIntervalMinutes')}
+              label={t('healthcheck.config.tooltips.checkIntervalMinutes')}
             >
-              <InfoCircleOutlined className="ml-2 text-muted" />
+              <Info className="ml-2 inline-block shrink-0 align-middle text-muted" size="1em" />
             </Tooltip>
           </div>
 
@@ -185,7 +185,7 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
               {t('healthcheck.config.attemptsBeforeDown')}
             </label>
 
-            <Input
+            <TextInput
               id={attemptsFieldId}
               type="number"
               value={healthcheckConfig.failedAttemptsBeforeUnavailable}
@@ -199,7 +199,7 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
                   setIsUnsaved(true);
                 }
               }}
-              size="small"
+              size="xs"
               className="w-full max-w-[250px]"
               placeholder="3"
               min={1}
@@ -207,9 +207,9 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
 
             <Tooltip
               className="cursor-pointer"
-              title={t('healthcheck.config.tooltips.attemptsBeforeDown')}
+              label={t('healthcheck.config.tooltips.attemptsBeforeDown')}
             >
-              <InfoCircleOutlined className="ml-2 text-muted" />
+              <Info className="ml-2 inline-block shrink-0 align-middle text-muted" size="1em" />
             </Tooltip>
           </div>
 
@@ -218,7 +218,7 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
               {t('healthcheck.config.attemptRetentionDays')}
             </label>
 
-            <Input
+            <TextInput
               id={retentionFieldId}
               type="number"
               value={healthcheckConfig.attemptRetentionDays}
@@ -232,7 +232,7 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
                   setIsUnsaved(true);
                 }
               }}
-              size="small"
+              size="xs"
               className="w-full max-w-[250px]"
               placeholder="30"
               min={1}
@@ -240,16 +240,22 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
 
             <Tooltip
               className="cursor-pointer"
-              title={t('healthcheck.config.tooltips.attemptRetentionDays')}
+              label={t('healthcheck.config.tooltips.attemptRetentionDays')}
             >
-              <InfoCircleOutlined className="ml-2 text-muted" />
+              <Info className="ml-2 inline-block shrink-0 align-middle text-muted" size="1em" />
             </Tooltip>
           </div>
         </>
       )}
 
       {saveError !== undefined && (
-        <Alert type="error" showIcon message={translateApiError(saveError, t)} />
+        <Alert
+          color="danger"
+          icon={
+            <CircleAlert aria-hidden size={16} className="inline-block shrink-0 align-middle" />
+          }
+          title={translateApiError(saveError, t)}
+        />
       )}
 
       <div className="mt-6 flex justify-end space-x-2">
@@ -258,7 +264,7 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
         </Button>
 
         {isUnsaved && (
-          <Button type="primary" onClick={handleSave} loading={isSaving}>
+          <Button variant="filled" onClick={handleSave} loading={isSaving} aria-busy={isSaving}>
             {t('common.actions.save')}
           </Button>
         )}

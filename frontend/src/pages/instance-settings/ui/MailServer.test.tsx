@@ -92,7 +92,7 @@ it.each([false, true])(
       await processed;
     });
 
-    expect(document.querySelector('.ant-message-notice')).toBeNull();
+    expect(document.querySelector('[role="alert"], [role="status"]')).toBeNull();
     expect(screen.queryByText('You do not have permission to do this.')).toBeNull();
   },
 );

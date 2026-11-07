@@ -39,9 +39,9 @@ const renderSection = async (onSaved: (database: Database) => void = () => {}) =
 };
 
 const toggleAlertsNotifier = async (combobox: HTMLElement) => {
-  fireEvent.mouseDown(combobox);
+  fireEvent.click(combobox);
   const option = await waitFor(() => {
-    const alertsOption = document.querySelector('.ant-select-item-option[title="Alerts"]');
+    const alertsOption = screen.queryByRole('option', { name: 'Alerts' });
     expect(alertsOption).toBeTruthy();
     return alertsOption!;
   });
@@ -94,7 +94,7 @@ describe('EditDatabaseNotifiersSection', () => {
       <EditDatabaseNotifiersSection database={database} onCancel={() => {}} onSaved={() => {}} />,
     );
 
-    expect(document.querySelector('.ant-spin')).toBeTruthy();
+    expect(document.querySelector('[role="status"]')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Cancel' })).toHaveProperty('disabled', false);
 
     view.unmount();
@@ -113,7 +113,7 @@ describe('EditDatabaseNotifiersSection', () => {
 
     expect(await screen.findByText('You do not have permission to do this.')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
-    expect(combobox.closest('.ant-select')!.textContent).toContain('Alerts');
+    expect(combobox.closest('div')!.textContent).toContain('Alerts');
     expect(screen.getByRole('button', { name: 'Cancel' })).toHaveProperty('disabled', false);
     expect(onSaved).not.toHaveBeenCalled();
   });
@@ -137,7 +137,7 @@ describe('EditDatabaseNotifiersSection', () => {
 
     const combobox = await screen.findByRole('combobox', { name: 'Notifiers' });
 
-    await waitFor(() => expect(combobox.closest('.ant-select')!.textContent).toContain('Alerts'));
+    await waitFor(() => expect(combobox.closest('div')!.textContent).toContain('Alerts'));
     expect(screen.queryByRole('alert')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();

@@ -1,5 +1,5 @@
-import { InfoCircleOutlined } from '@ant-design/icons';
-import { Select, Tooltip } from 'antd';
+import { Tooltip } from '@mantine/core';
+import { Info } from 'lucide-react';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -12,6 +12,7 @@ import { RetentionPeriod } from '@/pages/databases/model/RetentionPeriod';
 import { RETENTION_PERIOD_LABEL_KEYS } from '@/pages/databases/model/RetentionPeriodLabelKeys';
 import { GfsRetentionHint } from '@/pages/databases/ui/backup-config/GfsRetentionHint';
 import { RetentionNumberInput } from '@/pages/databases/ui/backup-config/RetentionNumberInput';
+import { WrappingSelect } from '@/shared/ui';
 
 type LogicalRetention = LogicalBackupSettings['retention'];
 
@@ -69,40 +70,42 @@ export const LogicalRetentionFields = ({ settings, onChange }: Props) => {
       <div className="mt-1 mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
         {t('backups.logical.config.retentionPolicy')}
       </div>
-      <div className="flex min-w-0 grow flex-col gap-1">
-        <Select
+      <div className="flex w-full min-w-0 grow flex-col gap-1 sm:w-auto">
+        <WrappingSelect
           value={retention.policy}
-          options={retentionPolicyOptions}
-          size="small"
+          data={retentionPolicyOptions}
+          size="xs"
           className="w-[200px]"
-          popupMatchSelectWidth={false}
           aria-label={t('backups.logical.config.retentionPolicy')}
           onChange={(policy) => onChange(changeLogicalRetentionPolicy(settings, policy))}
         />
 
         {retention.policy === LogicalRetentionPolicy.TIME_PERIOD && (
           <div className="flex w-full items-center">
-            <Select
+            <WrappingSelect
               value={retention.period}
               aria-label={t('healthcheck.attempts.period')}
               onChange={(period) => updateRetention({ period })}
-              size="small"
+              size="xs"
               className="min-w-0 grow"
-              options={periodOptions}
+              data={periodOptions}
             />
 
             <Tooltip
               className="cursor-pointer"
-              title={t('backups.logical.config.retention.timePeriodTooltip')}
+              label={t('backups.logical.config.retention.timePeriodTooltip')}
             >
-              <InfoCircleOutlined className="ml-2 text-muted" />
+              <Info className="ml-2 inline-block shrink-0 align-middle text-muted" size="1em" />
             </Tooltip>
           </div>
         )}
 
         {retention.policy === LogicalRetentionPolicy.COUNT && (
-          <div className="flex items-center">
-            <label htmlFor={countInputId} className="mr-2 shrink-0 text-sm text-muted">
+          <div className="flex min-w-0 flex-wrap items-center gap-y-1">
+            <label
+              htmlFor={countInputId}
+              className="mr-2 min-w-0 basis-full text-sm wrap-anywhere text-muted sm:basis-auto"
+            >
               {t('backups.logical.config.retention.count')}
             </label>
             <RetentionNumberInput
@@ -114,9 +117,9 @@ export const LogicalRetentionFields = ({ settings, onChange }: Props) => {
 
             <Tooltip
               className="cursor-pointer"
-              title={t('backups.logical.config.retention.countTooltip')}
+              label={t('backups.logical.config.retention.countTooltip')}
             >
-              <InfoCircleOutlined className="ml-2 text-muted" />
+              <Info className="ml-2 inline-block shrink-0 align-middle text-muted" size="1em" />
             </Tooltip>
           </div>
         )}

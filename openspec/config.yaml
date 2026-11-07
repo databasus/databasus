@@ -6,7 +6,7 @@ context: |
 
   Stack: Go + Gin + GORM + PostgreSQL (backend/, including the verification
   agent),
-  React 19 + TypeScript + Vite + Ant Design 5 + Tailwind (frontend/),
+  React 19 + TypeScript + Vite + Mantine 9 + Tailwind (frontend/),
   Next.js 16 static export (website/).
 
   The architecture is in docs/architecture.md, the test setup in

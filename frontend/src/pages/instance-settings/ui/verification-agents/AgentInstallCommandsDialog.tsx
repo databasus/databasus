@@ -1,4 +1,4 @@
-import { Button, Modal } from 'antd';
+import { Button } from '@mantine/core';
 import type { JSX } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -8,6 +8,7 @@ import {
   TOKEN_PLACEHOLDER,
 } from '@/pages/instance-settings/lib/verificationAgentCommands';
 import { InstallCommands } from '@/pages/instance-settings/ui/verification-agents/InstallCommands';
+import { Dialog } from '@/shared/ui';
 import { InlineCodeComponent } from '@/shared/ui';
 
 interface Props {
@@ -28,17 +29,11 @@ export const AgentInstallCommandsDialog = ({
   const { t } = useTranslation();
 
   return (
-    <Modal
+    <Dialog
       title={t('verification.agents.install.title')}
-      open={viewingAgent !== undefined}
-      onCancel={onClose}
-      width={640}
-      footer={
-        <Button type="primary" onClick={onClose}>
-          {t('common.actions.close')}
-        </Button>
-      }
-      destroyOnHidden
+      opened={viewingAgent !== undefined}
+      onClose={onClose}
+      size={640}
     >
       {viewingAgent && (
         <>
@@ -61,6 +56,11 @@ export const AgentInstallCommandsDialog = ({
           />
         </>
       )}
-    </Modal>
+      <div className="mt-5 flex flex-wrap justify-end gap-2">
+        <Button variant="filled" onClick={onClose}>
+          {t('common.actions.close')}
+        </Button>
+      </div>
+    </Dialog>
   );
 };

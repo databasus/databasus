@@ -397,7 +397,7 @@ it('keeps account navigation usable when production release information fails', 
   await failedRelease;
   await view.user.click(await screen.findByRole('button', { name: 'Profile' }));
   expect(await screen.findByDisplayValue('owner@example.com')).toBeTruthy();
-  expect(document.querySelector('.ant-spin-spinning')).toBeNull();
+  expect(document.querySelector('[role="status"]')).toBeNull();
 });
 
 describe('New-version link', () => {
@@ -444,7 +444,7 @@ describe('New-version link', () => {
     renderScreen(<ApplicationScreen />);
     const link = await screen.findByRole('link', { name: NEW_VERSION_EXPLANATION });
 
-    fireEvent.focus(link);
+    act(() => link.focus());
 
     expect((await screen.findByRole('tooltip')).textContent).toBe(NEW_VERSION_EXPLANATION);
   });

@@ -1,4 +1,4 @@
-import { Tooltip, theme } from 'antd';
+import { Tooltip } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 
 import { formatMoment } from '@/pages/databases/lib/wal-stream-monitoring/monitoringTextValues';
@@ -12,6 +12,7 @@ import { RestoreTimelineSegmentKind } from '@/pages/databases/model/wal-stream-m
 import type { WalStreamTimeRange } from '@/pages/databases/model/wal-stream-monitoring/WalStreamTimeRange';
 import { MonitoringTextComponent } from '@/pages/databases/ui/wal-stream-monitoring/MonitoringTextComponent';
 import type { TranslationKey } from '@/shared/i18n';
+import { THEME_COLOR_VARIABLES } from '@/shared/theme';
 
 interface Props {
   ranges: WalStreamTimeRange[];
@@ -31,22 +32,20 @@ const SEGMENT_KINDS = [
   RestoreTimelineSegmentKind.NOT_SAVED_YET,
 ];
 
-const useSegmentBackgrounds = (): Record<RestoreTimelineSegmentKind, string> => {
-  const { token } = theme.useToken();
-
+const getSegmentBackgrounds = (): Record<RestoreTimelineSegmentKind, string> => {
   return {
-    [RestoreTimelineSegmentKind.RESTORABLE]: token.colorSuccess,
+    [RestoreTimelineSegmentKind.RESTORABLE]: THEME_COLOR_VARIABLES['success-fill'],
     // Hatched as well as muted red, so the lost stretch stands apart without color and an old gap
     // does not shout next to a green banner.
     // eslint-disable-next-line i18next/no-literal-string -- CSS value, not copy
-    [RestoreTimelineSegmentKind.LOST]: `repeating-linear-gradient(135deg, ${token.colorErrorBorder} 0 3px, ${token.colorErrorBg} 3px 6px)`,
-    [RestoreTimelineSegmentKind.NOT_SAVED_YET]: token.colorTextQuaternary,
+    [RestoreTimelineSegmentKind.LOST]: `repeating-linear-gradient(135deg, ${THEME_COLOR_VARIABLES['danger-border']} 0 3px, ${THEME_COLOR_VARIABLES['danger-soft']} 3px 6px)`,
+    [RestoreTimelineSegmentKind.NOT_SAVED_YET]: THEME_COLOR_VARIABLES['disabled'],
   };
 };
 
 export const RestoreTimelineComponent = ({ ranges, now }: Props) => {
   const { t } = useTranslation();
-  const segmentBackgrounds = useSegmentBackgrounds();
+  const segmentBackgrounds = getSegmentBackgrounds();
 
   const segments = getRestoreTimeline(ranges, now);
 
@@ -84,7 +83,7 @@ export const RestoreTimelineComponent = ({ ranges, now }: Props) => {
         {segments.map((segment) => (
           <Tooltip
             key={`${segment.kind}-${segment.fromMs}`}
-            title={
+            label={
               <div>
                 <div className="font-semibold">{t(SEGMENT_LABEL_KEYS[segment.kind])}</div>
                 <MonitoringTextComponent text={getSegmentRangeText(segment, now)} />

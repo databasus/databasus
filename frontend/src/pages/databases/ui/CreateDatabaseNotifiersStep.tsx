@@ -1,4 +1,4 @@
-import { Button } from 'antd';
+import { Button } from '@mantine/core';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -30,12 +30,12 @@ export const CreateDatabaseNotifiersStep = ({
 
       <div className="mt-5 flex">
         {onBack && (
-          <Button className="mr-auto" type="primary" ghost onClick={() => onBack(notifierIds)}>
+          <Button className="mr-auto" variant="outline" onClick={() => onBack(notifierIds)}>
             {t('common.actions.back')}
           </Button>
         )}
 
-        <Button type="primary" className="mr-5" onClick={() => onContinue(notifierIds)}>
+        <Button variant="filled" className="mr-5" onClick={() => onContinue(notifierIds)}>
           {t('databases.create.complete')}
         </Button>
       </div>

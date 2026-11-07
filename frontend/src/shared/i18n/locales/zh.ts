@@ -5,7 +5,20 @@ export const zh: typeof en = {
     nativeName: '中文',
   },
   common: {
+    calendar: {
+      monthLevelControl: '选择月份',
+      yearLevelControl: '选择年份',
+      nextMonth: '下个月',
+      previousMonth: '上个月',
+      nextYear: '下一年',
+      previousYear: '上一年',
+      nextDecade: '下一个十年',
+      previousDecade: '上一个十年',
+      seconds: '秒',
+    },
     actions: {
+      clear: '清除',
+      togglePasswordVisibility: '显示或隐藏密码',
       back: '返回',
       cancel: '取消',
       close: '关闭',
@@ -190,6 +203,9 @@ export const zh: typeof en = {
     },
   },
   schedules: {
+    hours: '小时',
+    minutes: '分钟',
+    timePeriod: '上午或下午',
     types: {
       hourly: '每小时',
       daily: '每天',

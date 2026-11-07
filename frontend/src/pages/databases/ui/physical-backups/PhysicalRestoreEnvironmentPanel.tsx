@@ -1,4 +1,5 @@
-import { Alert, Input } from 'antd';
+import { Alert, TextInput } from '@mantine/core';
+import { Info } from 'lucide-react';
 import { type JSX, useId } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -77,7 +78,7 @@ export const PhysicalRestoreEnvironmentPanel = ({
           <label className="mb-1 shrink-0 sm:mb-0 sm:w-[190px] sm:pr-2" htmlFor={directoryFieldId}>
             {t('backups.physical.restore.fields.restoreDirectory')}
           </label>
-          <Input
+          <TextInput
             id={directoryFieldId}
             value={outputDir}
             onChange={(e) => onOutputDirChange(e.target.value)}
@@ -89,7 +90,7 @@ export const PhysicalRestoreEnvironmentPanel = ({
             <label className="mb-1 shrink-0 sm:mb-0 sm:w-[190px] sm:pr-2" htmlFor={pgBinFieldId}>
               {t('backups.physical.restore.fields.pgBinPath')}
             </label>
-            <Input
+            <TextInput
               id={pgBinFieldId}
               value={pgBin}
               onChange={(e) => onPgBinChange(e.target.value)}
@@ -104,7 +105,7 @@ export const PhysicalRestoreEnvironmentPanel = ({
             <label className="mb-1 shrink-0 sm:mb-0 sm:w-[190px] sm:pr-2" htmlFor={imageFieldId}>
               {t('backups.physical.restore.fields.pgImage')}
             </label>
-            <Input
+            <TextInput
               id={imageFieldId}
               value={dockerImage}
               onChange={(e) => onDockerImageChange(e.target.value)}
@@ -114,38 +115,37 @@ export const PhysicalRestoreEnvironmentPanel = ({
         )}
       </div>
       <Alert
-        type="info"
-        showIcon
-        message={t('backups.physical.restore.beforeYouRun.title')}
-        description={
-          environment === 'host' ? (
-            <ul className="ml-4 list-disc">
-              <li>
-                {t('backups.physical.restore.beforeYouRun.host.clientTools', {
-                  version: pgVersion,
-                })}
-              </li>
-              <li>
-                {hasWal
-                  ? t('backups.physical.restore.beforeYouRun.host.zstdWithWal')
-                  : t('backups.physical.restore.beforeYouRun.host.zstd')}
-              </li>
-              <li>{t('backups.physical.restore.beforeYouRun.host.emptyDirectory')}</li>
-            </ul>
-          ) : (
-            <ul className="ml-4 list-disc">
-              <li>
-                {t('backups.physical.restore.beforeYouRun.docker.image', { version: pgVersion })}
-              </li>
-              <li>
-                {hasWal
-                  ? t('backups.physical.restore.beforeYouRun.docker.hostToolsWithWal')
-                  : t('backups.physical.restore.beforeYouRun.docker.hostTools')}
-              </li>
-            </ul>
-          )
-        }
-      />
+        color="accent"
+        icon={<Info aria-hidden size={16} className="inline-block shrink-0 align-middle" />}
+        title={t('backups.physical.restore.beforeYouRun.title')}
+      >
+        {environment === 'host' ? (
+          <ul className="ml-4 list-disc">
+            <li>
+              {t('backups.physical.restore.beforeYouRun.host.clientTools', {
+                version: pgVersion,
+              })}
+            </li>
+            <li>
+              {hasWal
+                ? t('backups.physical.restore.beforeYouRun.host.zstdWithWal')
+                : t('backups.physical.restore.beforeYouRun.host.zstd')}
+            </li>
+            <li>{t('backups.physical.restore.beforeYouRun.host.emptyDirectory')}</li>
+          </ul>
+        ) : (
+          <ul className="ml-4 list-disc">
+            <li>
+              {t('backups.physical.restore.beforeYouRun.docker.image', { version: pgVersion })}
+            </li>
+            <li>
+              {hasWal
+                ? t('backups.physical.restore.beforeYouRun.docker.hostToolsWithWal')
+                : t('backups.physical.restore.beforeYouRun.docker.hostTools')}
+            </li>
+          </ul>
+        )}
+      </Alert>
       <PhysicalRestoreCommands
         environment={environment}
         restoreMethod={restoreMethod}
@@ -161,101 +161,98 @@ export const PhysicalRestoreEnvironmentPanel = ({
       />
       <div className="mt-3" />
       <Alert
-        type="info"
-        showIcon
-        message={t('backups.physical.restore.afterItFinishes.title')}
-        description={
-          environment === 'host' ? (
-            <ul className="ml-4 list-disc">
+        color="accent"
+        icon={<Info aria-hidden size={16} className="inline-block shrink-0 align-middle" />}
+        title={t('backups.physical.restore.afterItFinishes.title')}
+      >
+        {environment === 'host' ? (
+          <ul className="ml-4 list-disc">
+            <li>
+              <Trans
+                i18nKey="backups.physical.restore.afterItFinishes.host.clusterLocation"
+                components={{ dataDir: <InlineCodeComponent>{dataDir}</InlineCodeComponent> }}
+              />
+            </li>
+            <li>
+              <Trans
+                i18nKey="backups.physical.restore.afterItFinishes.host.changeOwner"
+                components={{
+                  command: <InlineCodeComponent>{buildChownCommand(dataDir)}</InlineCodeComponent>,
+                }}
+              />
+            </li>
+            <li>
+              <Trans
+                i18nKey="backups.physical.restore.afterItFinishes.host.start"
+                components={{
+                  command: (
+                    <InlineCodeComponent>
+                      {buildPgCtlStartCommand({ dataDir, pgBin })}
+                    </InlineCodeComponent>
+                  ),
+                }}
+              />
+            </li>
+            {hasWal && <li>{t('backups.physical.restore.afterItFinishes.host.walReplay')}</li>}
+            {missingConfigFilesNote(pgVersion)}
+          </ul>
+        ) : (
+          <ul className="ml-4 list-disc">
+            <li>
+              <Trans
+                i18nKey="backups.physical.restore.afterItFinishes.docker.clusterLocation"
+                components={{ dataDir: <InlineCodeComponent>{dataDir}</InlineCodeComponent> }}
+              />
+            </li>
+            {Number(pgVersion) >= 18 ? (
               <li>
                 <Trans
-                  i18nKey="backups.physical.restore.afterItFinishes.host.clusterLocation"
-                  components={{ dataDir: <InlineCodeComponent>{dataDir}</InlineCodeComponent> }}
-                />
-              </li>
-              <li>
-                <Trans
-                  i18nKey="backups.physical.restore.afterItFinishes.host.changeOwner"
+                  i18nKey="backups.physical.restore.afterItFinishes.docker.volumeMount"
+                  values={{ version: pgVersion }}
                   components={{
-                    command: (
-                      <InlineCodeComponent>{buildChownCommand(dataDir)}</InlineCodeComponent>
+                    code: <InlineCodeComponent />,
+                    dataDir: (
+                      <InlineCodeComponent>{containerDataDir(pgVersion)}</InlineCodeComponent>
+                    ),
+                    volumeDir: (
+                      <InlineCodeComponent>{containerVolumeDir(pgVersion)}</InlineCodeComponent>
                     ),
                   }}
                 />
+                <br />
+                <InlineCodeComponent>
+                  {buildDockerRunCommand({
+                    hostDir: outputDir,
+                    containerDir: containerVolumeDir(pgVersion),
+                    image: dockerImage,
+                  })}
+                </InlineCodeComponent>
               </li>
+            ) : (
               <li>
                 <Trans
-                  i18nKey="backups.physical.restore.afterItFinishes.host.start"
+                  i18nKey="backups.physical.restore.afterItFinishes.docker.dataDirectoryMount"
                   components={{
-                    command: (
-                      <InlineCodeComponent>
-                        {buildPgCtlStartCommand({ dataDir, pgBin })}
-                      </InlineCodeComponent>
+                    dataDir: (
+                      <InlineCodeComponent>{containerDataDir(pgVersion)}</InlineCodeComponent>
                     ),
                   }}
                 />
+                <br />
+                <InlineCodeComponent>
+                  {buildDockerRunCommand({
+                    hostDir: dataDir,
+                    containerDir: containerDataDir(pgVersion),
+                    image: dockerImage,
+                  })}
+                </InlineCodeComponent>
               </li>
-              {hasWal && <li>{t('backups.physical.restore.afterItFinishes.host.walReplay')}</li>}
-              {missingConfigFilesNote(pgVersion)}
-            </ul>
-          ) : (
-            <ul className="ml-4 list-disc">
-              <li>
-                <Trans
-                  i18nKey="backups.physical.restore.afterItFinishes.docker.clusterLocation"
-                  components={{ dataDir: <InlineCodeComponent>{dataDir}</InlineCodeComponent> }}
-                />
-              </li>
-              {Number(pgVersion) >= 18 ? (
-                <li>
-                  <Trans
-                    i18nKey="backups.physical.restore.afterItFinishes.docker.volumeMount"
-                    values={{ version: pgVersion }}
-                    components={{
-                      code: <InlineCodeComponent />,
-                      dataDir: (
-                        <InlineCodeComponent>{containerDataDir(pgVersion)}</InlineCodeComponent>
-                      ),
-                      volumeDir: (
-                        <InlineCodeComponent>{containerVolumeDir(pgVersion)}</InlineCodeComponent>
-                      ),
-                    }}
-                  />
-                  <br />
-                  <InlineCodeComponent>
-                    {buildDockerRunCommand({
-                      hostDir: outputDir,
-                      containerDir: containerVolumeDir(pgVersion),
-                      image: dockerImage,
-                    })}
-                  </InlineCodeComponent>
-                </li>
-              ) : (
-                <li>
-                  <Trans
-                    i18nKey="backups.physical.restore.afterItFinishes.docker.dataDirectoryMount"
-                    components={{
-                      dataDir: (
-                        <InlineCodeComponent>{containerDataDir(pgVersion)}</InlineCodeComponent>
-                      ),
-                    }}
-                  />
-                  <br />
-                  <InlineCodeComponent>
-                    {buildDockerRunCommand({
-                      hostDir: dataDir,
-                      containerDir: containerDataDir(pgVersion),
-                      image: dockerImage,
-                    })}
-                  </InlineCodeComponent>
-                </li>
-              )}
-              <li>{t('backups.physical.restore.afterItFinishes.docker.ownership')}</li>
-              {missingConfigFilesNote(pgVersion)}
-            </ul>
-          )
-        }
-      />
+            )}
+            <li>{t('backups.physical.restore.afterItFinishes.docker.ownership')}</li>
+            {missingConfigFilesNote(pgVersion)}
+          </ul>
+        )}
+      </Alert>
     </div>
   );
 };

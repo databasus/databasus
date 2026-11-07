@@ -1,7 +1,6 @@
-import { ExclamationCircleOutlined } from '@ant-design/icons';
-import { Table, Tooltip } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+import { Loader, Tooltip } from '@mantine/core';
 import dayjs from 'dayjs';
+import { CircleAlert } from 'lucide-react';
 import type { JSX } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -15,6 +14,7 @@ import { VerificationStatusLabel } from '@/pages/databases/ui/verification/Verif
 import { VerificationTriggerTag } from '@/pages/databases/ui/verification/VerificationTriggerTag';
 import { useLocale } from '@/shared/i18n';
 import { getUserTimeFormat } from '@/shared/time';
+import tableStyles from '@/shared/ui/nativeTable.module.css';
 
 interface Props {
   verifications: Verification[];
@@ -26,82 +26,90 @@ export const VerificationsTable = ({ verifications, isLoading, actions }: Props)
   const { t } = useTranslation();
   const { formatRelativeTime } = useLocale();
 
-  const columns: ColumnsType<Verification> = [
-    {
-      title: t('verification.runs.fields.createdAt'),
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      width: 220,
-      render: (createdAt: string) => (
-        <div>
-          {dayjs.utc(createdAt).local().format(getUserTimeFormat().format)} <br />
-          <span className="text-muted">({formatRelativeTime(dayjs.utc(createdAt))})</span>
-        </div>
-      ),
-    },
-    {
-      title: t('common.fields.status'),
-      dataIndex: 'status',
-      key: 'status',
-      width: 160,
-      render: (_, verification) => <VerificationStatusLabel status={verification.status} />,
-    },
-    {
-      title: t('verification.runs.fields.trigger'),
-      dataIndex: 'trigger',
-      key: 'trigger',
-      width: 110,
-      render: (_, verification) => <VerificationTriggerTag trigger={verification.trigger} />,
-    },
-    {
-      title: (
-        <div className="flex items-center">
-          {t('verification.runs.fields.duration')}
-          <Tooltip className="ml-1" title={t('verification.runs.durationTooltip')}>
-            <ExclamationCircleOutlined />
-          </Tooltip>
-        </div>
-      ),
-      key: 'duration',
-      width: 130,
-      render: (_, verification) => {
-        const { restoreDurationMs, verifyDurationMs } = verification;
-
-        if (restoreDurationMs === undefined && verifyDurationMs === undefined) return '-';
-
-        const totalMs = (restoreDurationMs ?? 0) + (verifyDurationMs ?? 0);
-
-        return (
-          <div className="text-sm">
-            <div>{formatOptionalDuration(totalMs)}</div>
-            <div className="text-xs text-muted">
-              {t('verification.runs.restoreDuration', {
-                duration: formatOptionalDuration(restoreDurationMs),
-              })}
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      title: t('verification.runs.fields.actions'),
-      key: 'actions',
-      width: 120,
-      render: (_, verification) => (
-        <VerificationActions verification={verification} actions={actions} />
-      ),
-    },
-  ];
-
   return (
-    <Table
-      bordered
-      columns={columns}
-      dataSource={verifications}
-      rowKey="id"
-      loading={isLoading}
-      size="small"
-      pagination={false}
-    />
+    <div className="relative overflow-x-auto" aria-busy={isLoading}>
+      <table className={`${tableStyles.table} ${tableStyles.bordered}`}>
+        <thead>
+          <tr>
+            <th scope="col" style={{ width: 220 }}>
+              {t('verification.runs.fields.createdAt')}
+            </th>
+            <th scope="col" style={{ width: 160 }}>
+              {t('common.fields.status')}
+            </th>
+            <th scope="col" style={{ width: 110 }}>
+              {t('verification.runs.fields.trigger')}
+            </th>
+            <th scope="col" style={{ width: 130 }}>
+              <div className="flex items-center">
+                {t('verification.runs.fields.duration')}
+                <Tooltip className="ml-1" label={t('verification.runs.durationTooltip')}>
+                  <CircleAlert size="1em" className="inline-block shrink-0 align-middle" />
+                </Tooltip>
+              </div>
+            </th>
+            <th scope="col" style={{ width: 120 }}>
+              {t('verification.runs.fields.actions')}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {verifications.map((verification) => (
+            <tr key={verification.id}>
+              <td>
+                <div>
+                  {dayjs.utc(verification.createdAt).local().format(getUserTimeFormat().format)}{' '}
+                  <br />
+                  <span className="text-muted">
+                    ({formatRelativeTime(dayjs.utc(verification.createdAt))})
+                  </span>
+                </div>
+              </td>
+              <td>
+                <VerificationStatusLabel status={verification.status} />
+              </td>
+              <td>
+                <VerificationTriggerTag trigger={verification.trigger} />
+              </td>
+              <td>
+                {(() => {
+                  const { restoreDurationMs, verifyDurationMs } = verification;
+
+                  if (restoreDurationMs === undefined && verifyDurationMs === undefined) return '-';
+
+                  const totalMs = (restoreDurationMs ?? 0) + (verifyDurationMs ?? 0);
+
+                  return (
+                    <div className="text-sm">
+                      <div>{formatOptionalDuration(totalMs)}</div>
+                      <div className="text-xs text-muted">
+                        {t('verification.runs.restoreDuration', {
+                          duration: formatOptionalDuration(restoreDurationMs),
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </td>
+              <td>
+                <VerificationActions verification={verification} actions={actions} />
+              </td>
+            </tr>
+          ))}
+          {verifications.length === 0 && !isLoading && (
+            <tr>
+              <td colSpan={5}>
+                <div className="py-8 text-center text-muted">{t('verification.runs.empty')}</div>
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-surface/50">
+          <Loader size="sm" role="status" />
+        </div>
+      )}
+    </div>
   );
 };

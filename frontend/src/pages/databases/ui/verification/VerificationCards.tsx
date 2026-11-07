@@ -1,4 +1,4 @@
-import { Spin } from 'antd';
+import { Loader } from '@mantine/core';
 import dayjs from 'dayjs';
 import type { JSX } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -27,7 +27,7 @@ export const VerificationCards = ({ verifications, isLoading, actions }: Props):
   if (isLoading) {
     return (
       <div className="flex justify-center py-8">
-        <Spin />
+        <Loader role="status" />
       </div>
     );
   }
@@ -63,9 +63,7 @@ export const VerificationCards = ({ verifications, isLoading, actions }: Props):
 
           {verification.failMessage && (
             <div
-              className={`mt-2 text-xs ${
-                verification.status === VerificationStatus.CANCELED ? 'text-muted' : 'text-danger'
-              }`}
+              className={`mt-2 text-xs ${verification.status === VerificationStatus.CANCELED ? 'text-muted' : 'text-danger'}`}
             >
               {verification.failMessage}
             </div>

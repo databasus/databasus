@@ -1,11 +1,5 @@
-import {
-  ArrowRightOutlined,
-  CloseOutlined,
-  CopyOutlined,
-  DeleteOutlined,
-  InfoCircleOutlined,
-} from '@ant-design/icons';
-import { Alert, App, Button, Input, Spin } from 'antd';
+import { ActionIcon, Alert, Button, Loader, TextInput } from '@mantine/core';
+import { ArrowRight, CircleAlert, Copy, Info, Trash2, X } from 'lucide-react';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -37,6 +31,7 @@ import { EditVerificationConfigComponent } from '@/pages/databases/ui/verificati
 import { ShowVerificationConfigComponent } from '@/pages/databases/ui/verification/ShowVerificationConfigComponent';
 import { useSessionGuard } from '@/shared/auth';
 import { translateApiError } from '@/shared/i18n';
+import { useFeedback } from '@/shared/lib/feedback';
 import { ConfirmationComponent, LoadFailure } from '@/shared/ui';
 
 interface Props {
@@ -66,7 +61,7 @@ export const DatabaseConfigComponent = ({
   isCanManageDBs,
 }: Props) => {
   const { t } = useTranslation();
-  const { notification } = App.useApp();
+  const notify = useFeedback();
   const isActive = useSessionGuard();
   const databaseNameId = useId();
 
@@ -102,9 +97,12 @@ export const DatabaseConfigComponent = ({
       .copyDatabase(database.id)
       .then((copiedDatabase) => {
         if (isActive()) {
-          notification.success({
-            message: t('databases.config.copied.title'),
+          notify({
+            kind: 'success',
+            title: t('databases.config.copied.title'),
             description: t('databases.config.copied.description', { name: copiedDatabase.name }),
+            lifetimeMs: 4500,
+            position: 'top-right',
           });
         }
 
@@ -131,9 +129,12 @@ export const DatabaseConfigComponent = ({
           return;
         }
 
-        notification.success({
-          message: t('databases.config.connectionTestSucceeded.title'),
+        notify({
+          kind: 'success',
+          title: t('databases.config.connectionTestSucceeded.title'),
           description: t('databases.config.connectionTestSucceeded.description'),
+          lifetimeMs: 4500,
+          position: 'top-right',
         });
       })
       .catch((e: unknown) => {
@@ -228,10 +229,11 @@ export const DatabaseConfigComponent = ({
   const actionFailureAlert = actionFailureMessage !== undefined && (
     <Alert
       className="mt-4"
-      type="error"
-      showIcon
-      message={actionFailureMessage}
-      closable={{ closeIcon: <CloseOutlined />, 'aria-label': t('common.actions.close') }}
+      color="danger"
+      icon={<CircleAlert aria-hidden size={16} className="inline-block shrink-0 align-middle" />}
+      title={actionFailureMessage}
+      withCloseButton
+      closeButtonLabel={t('common.actions.close')}
       onClose={clearActionFailure}
     />
   );
@@ -262,24 +264,24 @@ export const DatabaseConfigComponent = ({
       ) : (
         <div>
           <div className="flex items-center">
-            <Input
+            <TextInput
               className="max-w-full sm:max-w-[250px]"
               aria-label={t('common.fields.name')}
               value={nameDraft}
               onChange={(e) => setNameDraft(e.target.value)}
               placeholder={t('databases.config.namePlaceholder')}
-              size="large"
+              size="md"
             />
 
             <div className="ml-1 flex flex-shrink-0 items-center">
               <Button
-                type="text"
+                variant="subtle"
                 className="flex h-6 w-6 items-center justify-center p-0"
                 aria-label={t('common.actions.close')}
                 onClick={closeSection}
                 disabled={isSavingName}
               >
-                <CloseOutlined className="text-muted" />
+                <X className="inline-block shrink-0 align-middle text-muted" size="1em" />
               </Button>
             </div>
           </div>
@@ -287,10 +289,11 @@ export const DatabaseConfigComponent = ({
           {isNameUnsaved && (
             <Button
               className="mt-1"
-              type="primary"
+              variant="filled"
               onClick={saveName}
               loading={isSavingName}
               disabled={!nameDraft}
+              aria-busy={isSavingName}
             >
               {t('common.actions.save')}
             </Button>
@@ -307,7 +310,7 @@ export const DatabaseConfigComponent = ({
       {database.lastBackupErrorMessage && (
         <div className="mb-4 max-w-full rounded border border-danger px-3 py-3 sm:max-w-[400px]">
           <div className="mt-1 flex items-center text-sm font-bold text-danger">
-            <InfoCircleOutlined className="mr-2" />
+            <Info className="mr-2 inline-block shrink-0 align-middle" size="1em" />
             {t('databases.config.lastBackupError.title')}
           </div>
 
@@ -393,7 +396,7 @@ export const DatabaseConfigComponent = ({
               onRetryCleanup={retryCleanup}
             />
           ) : (
-            backupConfigError === undefined && <Spin />
+            backupConfigError === undefined && <Loader role="status" />
           )}
         </DatabaseSettingsSection>
       </div>
@@ -448,47 +451,52 @@ export const DatabaseConfigComponent = ({
       {editingSection !== 'connection' && (
         <div className="mt-10 flex flex-col gap-2 sm:flex-row sm:gap-0">
           <Button
-            type="primary"
+            variant="filled"
             className="w-full sm:mr-1 sm:w-auto"
             onClick={testConnection}
             loading={isTestingConnection}
             disabled={isTestingConnection}
+            aria-busy={isTestingConnection}
           >
             {t('databases.actions.testConnection')}
           </Button>
 
           {isCanManageDBs && (
             <>
-              <Button
-                type="primary"
-                ghost
-                icon={<ArrowRightOutlined />}
+              <ActionIcon
+                variant="outline"
+                color="accent"
                 aria-label={t('common.actions.transfer')}
                 onClick={() => setIsShowTransferDialog(true)}
                 className="sm:mr-1"
-              />
+              >
+                <ArrowRight size="1em" className="inline-block shrink-0 align-middle" />
+              </ActionIcon>
 
-              <Button
-                type="primary"
-                ghost
-                icon={<CopyOutlined />}
+              <ActionIcon
+                variant="outline"
+                color="accent"
                 aria-label={t('common.actions.copy')}
                 onClick={() => setIsShowCopyConfirm(true)}
                 loading={isCopying}
                 disabled={isCopying}
                 className="sm:mr-1"
-              />
+                aria-busy={isCopying}
+              >
+                <Copy size="1em" className="inline-block shrink-0 align-middle" />
+              </ActionIcon>
 
-              <Button
-                type="primary"
-                ghost
-                danger
-                icon={<DeleteOutlined />}
+              <ActionIcon
+                variant="outline"
+                color="danger"
                 aria-label={t('common.actions.delete')}
                 onClick={() => setIsShowRemoveConfirm(true)}
                 loading={isRemoving}
                 disabled={isRemoving}
-              />
+                aria-busy={isRemoving}
+              >
+                <Trash2 size="1em" className="inline-block shrink-0 align-middle" />
+              </ActionIcon>
             </>
           )}
         </div>

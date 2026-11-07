@@ -1,5 +1,5 @@
-import { CopyOutlined } from '@ant-design/icons';
-import { Button, Tooltip } from 'antd';
+import { ActionIcon, Tooltip } from '@mantine/core';
+import { Copy } from 'lucide-react';
 import type { JSX } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -16,15 +16,16 @@ export const CopyableCodeBlock = ({ code, onCopy }: Props): JSX.Element => {
       <pre className="rounded-md bg-code p-4 pr-10 font-mono text-sm break-all whitespace-pre-wrap">
         {code}
       </pre>
-      <Tooltip title={t('common.actions.copy')}>
-        <Button
-          type="text"
-          size="small"
+      <Tooltip label={t('common.actions.copy')}>
+        <ActionIcon
+          variant="subtle"
+          size="xs"
           className="!absolute top-2 right-2"
           aria-label={t('common.actions.copy')}
-          icon={<CopyOutlined />}
           onClick={() => onCopy(code)}
-        />
+        >
+          <Copy size="1em" className="inline-block shrink-0 align-middle" />
+        </ActionIcon>
       </Tooltip>
     </div>
   );

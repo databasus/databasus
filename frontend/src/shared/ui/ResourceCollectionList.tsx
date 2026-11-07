@@ -1,4 +1,4 @@
-import { Input } from 'antd';
+import { TextInput } from '@mantine/core';
 import { Fragment, type ReactNode } from 'react';
 
 interface Props<Item> {
@@ -35,7 +35,7 @@ export const ResourceCollectionList = <Item,>({
     <>
       {hasLargeCollection && addAction}
       {(hasLargeCollection || searchQuery !== '') && (
-        <Input
+        <TextInput
           aria-label={searchLabel}
           placeholder={searchLabel}
           value={searchQuery}

@@ -1,4 +1,4 @@
-import { Spin } from 'antd';
+import { Loader } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -48,7 +48,7 @@ export const ShowHealthcheckConfigComponent = ({ databaseId }: Props) => {
   }
 
   if (!healthcheckConfig) {
-    return <Spin size="small" />;
+    return <Loader size="xs" role="status" />;
   }
 
   return (

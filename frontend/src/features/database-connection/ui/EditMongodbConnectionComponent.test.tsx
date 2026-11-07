@@ -29,11 +29,7 @@ describe('EditMongodbConnectionComponent', () => {
     renderEditableForm(buildCreateDraft({ ...mongodbSettings, isSrv: true, port: undefined }));
 
     expect(screen.queryByLabelText('Port')).toBeNull();
-    expect(
-      (screen.getByLabelText('Use SRV connection') as HTMLButtonElement).getAttribute(
-        'aria-checked',
-      ),
-    ).toBe('true');
+    expect(screen.getByLabelText('Use SRV connection')).toHaveProperty('checked', true);
   });
 
   it('keeps the direct connection choice', () => {
@@ -43,7 +39,7 @@ describe('EditMongodbConnectionComponent', () => {
 
     fireEvent.click(directConnection);
 
-    expect(directConnection.getAttribute('aria-checked')).toBe('true');
+    expect(directConnection).toHaveProperty('checked', true);
   });
 
   it('turns SRV off and shows direct connection on when a tunnel is enabled', () => {
@@ -51,11 +47,11 @@ describe('EditMongodbConnectionComponent', () => {
 
     fireEvent.click(screen.getByLabelText('SSH tunnel'));
 
-    const srvSwitch = screen.getByLabelText('Use SRV connection') as HTMLButtonElement;
-    const directConnection = screen.getByLabelText('Direct connection') as HTMLButtonElement;
-    expect(srvSwitch.getAttribute('aria-checked')).toBe('false');
+    const srvSwitch = screen.getByLabelText('Use SRV connection') as HTMLInputElement;
+    const directConnection = screen.getByLabelText('Direct connection') as HTMLInputElement;
+    expect(srvSwitch).toHaveProperty('checked', false);
     expect(srvSwitch.disabled).toBe(true);
-    expect(directConnection.getAttribute('aria-checked')).toBe('true');
+    expect(directConnection).toHaveProperty('checked', true);
     expect(directConnection.disabled).toBe(true);
     expect(screen.getByLabelText('Port')).toBeTruthy();
   });
@@ -68,7 +64,7 @@ describe('EditMongodbConnectionComponent', () => {
 
     expect(screen.getByText(en.common.messages.addressChangedEnterSecretAgain)).toBeTruthy();
     expect(
-      (screen.getByRole('button', { name: /Test connection$/ }) as HTMLButtonElement).disabled,
+      (screen.getByRole('button', { name: /Test connection$/ }) as HTMLInputElement).disabled,
     ).toBe(true);
   });
 

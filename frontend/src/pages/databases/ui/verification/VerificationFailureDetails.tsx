@@ -1,5 +1,5 @@
-import { CopyOutlined } from '@ant-design/icons';
-import { Alert, Button, Collapse } from 'antd';
+import { Accordion, Alert, Button } from '@mantine/core';
+import { Copy, Info, TriangleAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -42,52 +42,57 @@ export const VerificationFailureDetails = ({ diagnostic }: Props) => {
   };
 
   return (
-    <Collapse
-      size="small"
-      items={[
-        {
-          key: 'diagnostic',
-          label: t('verification.runs.details.diagnostic.title'),
-          children: (
-            <div className="min-w-0 space-y-3">
-              {diagnostic.isTruncated && (
-                <Alert
-                  type="warning"
-                  showIcon
-                  message={t('verification.runs.details.diagnostic.truncated')}
-                />
-              )}
-              <pre
-                tabIndex={0}
-                aria-label={t('verification.runs.details.diagnostic.title')}
-                className="min-w-0 overflow-x-auto font-mono text-xs whitespace-pre"
-              >
-                {diagnostic.output}
-              </pre>
-              <Button
-                className="!h-auto min-h-8 max-w-full !whitespace-normal"
-                icon={<CopyOutlined aria-hidden />}
-                loading={isCopying}
-                onClick={() => void copyDiagnostic()}
-              >
-                {t('common.actions.copy')}
-              </Button>
-              {copyOutcome !== 'idle' && (
-                <Alert
-                  role="status"
-                  type={copyOutcome === 'success' ? 'success' : 'error'}
-                  showIcon
-                  message={
-                    copyOutcome === 'success'
-                      ? t('verification.runs.details.diagnostic.copied')
-                      : t('verification.runs.details.diagnostic.copyFailed')
-                  }
-                />
-              )}
-            </div>
-          ),
-        },
-      ]}
-    />
+    <Accordion variant="contained">
+      <Accordion.Item value="diagnostic">
+        <Accordion.Control>{t('verification.runs.details.diagnostic.title')}</Accordion.Control>
+        <Accordion.Panel>
+          <div className="min-w-0 space-y-3">
+            {diagnostic.isTruncated && (
+              <Alert
+                color="warning"
+                icon={
+                  <TriangleAlert
+                    aria-hidden
+                    size={16}
+                    className="inline-block shrink-0 align-middle"
+                  />
+                }
+                title={t('verification.runs.details.diagnostic.truncated')}
+              />
+            )}
+            <pre
+              tabIndex={0}
+              aria-label={t('verification.runs.details.diagnostic.title')}
+              className="min-w-0 overflow-x-auto font-mono text-xs whitespace-pre"
+            >
+              {diagnostic.output}
+            </pre>
+            <Button
+              className="!h-auto min-h-8 max-w-full !whitespace-normal"
+              leftSection={
+                <Copy aria-hidden size="1em" className="inline-block shrink-0 align-middle" />
+              }
+              loading={isCopying}
+              onClick={() => void copyDiagnostic()}
+              aria-busy={isCopying}
+            >
+              {t('common.actions.copy')}
+            </Button>
+            {copyOutcome !== 'idle' && (
+              <Alert
+                role="status"
+                color={copyOutcome === 'success' ? 'success' : 'danger'}
+                icon={<Info aria-hidden size={16} className="inline-block shrink-0 align-middle" />}
+                title={
+                  copyOutcome === 'success'
+                    ? t('verification.runs.details.diagnostic.copied')
+                    : t('verification.runs.details.diagnostic.copyFailed')
+                }
+              />
+            )}
+          </div>
+        </Accordion.Panel>
+      </Accordion.Item>
+    </Accordion>
   );
 };

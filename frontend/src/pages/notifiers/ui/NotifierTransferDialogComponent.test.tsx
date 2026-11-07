@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -123,12 +123,8 @@ describe('NotifierTransferDialogComponent', () => {
       />,
     );
 
-    fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Target workspace' }));
-    fireEvent.click(
-      await screen.findByText(targetWorkspace.name, {
-        selector: '.ant-select-item-option-content',
-      }),
-    );
+    fireEvent.click(await screen.findByRole('combobox', { name: 'Target workspace' }));
+    fireEvent.click(await screen.findByRole('option', { name: targetWorkspace.name }));
     await view.user.click(screen.getByRole('button', { name: /Transfer/ }));
 
     expect(
@@ -140,7 +136,9 @@ describe('NotifierTransferDialogComponent', () => {
     expect(screen.queryByText('in_use')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
     expect(
-      screen.getByText(targetWorkspace.name, { selector: '.ant-select-selection-item' }),
+      within(screen.getByRole('combobox', { name: 'Target workspace' })).getByText(
+        targetWorkspace.name,
+      ),
     ).toBeTruthy();
     expect(onTransferred).not.toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();
@@ -194,17 +192,11 @@ const availableTargets = () =>
     mockApi.get('/workspaces', 200, { items: [sourceWorkspace, targetWorkspace] }),
   );
 const chooseTarget = async () => {
-  fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Target workspace' }));
+  fireEvent.click(await screen.findByRole('combobox', { name: 'Target workspace' }));
 
-  expect(
-    screen.queryByText(sourceWorkspace.name, { selector: '.ant-select-item-option-content' }),
-  ).toBeNull();
+  expect(screen.queryByRole('option', { name: sourceWorkspace.name })).toBeNull();
 
-  fireEvent.click(
-    await screen.findByText(targetWorkspace.name, {
-      selector: '.ant-select-item-option-content',
-    }),
-  );
+  fireEvent.click(await screen.findByRole('option', { name: targetWorkspace.name }));
 };
 
 describe('Notifier transfer lifecycle', () => {
@@ -295,7 +287,9 @@ describe('Notifier transfer lifecycle', () => {
       await screen.findByRole('combobox', { name: 'Target workspace' });
 
       expect(
-        screen.queryByText(targetWorkspace.name, { selector: '.ant-select-selection-item' }),
+        within(screen.getByRole('combobox', { name: 'Target workspace' })).queryByText(
+          targetWorkspace.name,
+        ),
       ).toBeNull();
       expect((screen.getByRole('button', { name: 'Transfer' }) as HTMLButtonElement).disabled).toBe(
         true,

@@ -1,4 +1,4 @@
-import { Button, Modal, Select, Spin, type GetRef } from 'antd';
+import { Loader } from '@mantine/core';
 import {
   type Dispatch,
   type SetStateAction,
@@ -13,6 +13,8 @@ import { type Notifier, notifierApi } from '@/entities/notifiers';
 import { EditNotifierComponent } from '@/features/edit-notifier';
 import { useSessionGuard } from '@/shared/auth';
 import { useRequestRevision } from '@/shared/hooks';
+import { ResourcePicker } from '@/shared/ui';
+import { Dialog } from '@/shared/ui';
 import { LoadFailure } from '@/shared/ui';
 
 interface Props {
@@ -80,8 +82,7 @@ export const DatabaseNotifiersFields = ({
   const isCurrent = useSessionGuard();
   const listRevision = useRequestRevision();
   const acknowledgedNotifiers = useRef<Notifier[]>([]);
-  const notifierSelectRef = useRef<GetRef<typeof Select>>(null);
-  const createButtonRef = useRef<HTMLButtonElement>(null);
+  const notifierSelectRef = useRef<HTMLButtonElement | HTMLInputElement>(null);
 
   const startNotifiersLoad = useEffectEvent(() => {
     void loadNotifiers();
@@ -113,7 +114,7 @@ export const DatabaseNotifiersFields = ({
   if (isNotifiersLoading)
     return (
       <div className="mb-5 flex items-center">
-        <Spin />
+        <Loader role="status" />
       </div>
     );
 
@@ -130,62 +131,38 @@ export const DatabaseNotifiersFields = ({
       <div className="mb-5 flex w-full flex-wrap items-center gap-2">
         <div className="min-w-37.5 pr-2">{t('databases.notifiers.title')}</div>
 
-        <Select
-          ref={notifierSelectRef}
-          aria-label={t('databases.notifiers.title')}
-          mode="multiple"
-          value={notifierIds}
-          onChange={onNotifierIdsChange}
-          size="small"
-          className="max-w-50 min-w-0 flex-1"
-          open={isDropdownOpen}
+        <ResourcePicker
+          targetRef={notifierSelectRef}
+          label={t('databases.notifiers.title')}
+          isMultiple
+          isSearchable
+          selectedValues={notifierIds}
+          onSelect={(id) =>
+            onNotifierIdsChange((current) =>
+              current.includes(id) ? current.filter((value) => value !== id) : [...current, id],
+            )
+          }
+          onRemove={(id) =>
+            onNotifierIdsChange((current) => current.filter((value) => value !== id))
+          }
+          data={notifiers.map((notifier) => ({ value: notifier.id, label: notifier.name }))}
+          className="max-w-50 flex-1 basis-40"
+          isOpen={isDropdownOpen}
           onOpenChange={setIsDropdownOpen}
-          onInputKeyDown={(event) => {
-            if (event.key === 'Tab' && !event.shiftKey && isDropdownOpen) {
-              event.preventDefault();
-              event.stopPropagation();
-              createButtonRef.current?.focus();
-            }
-          }}
-          popupRender={(menu) => (
-            <>
-              {notifiers.length > 0 && menu}
-              <div className="mt-1 border-t border-border pt-1">
-                <Button
-                  ref={createButtonRef}
-                  type="text"
-                  block
-                  className="!h-auto min-h-8 !justify-start !whitespace-normal !text-accent"
-                  onClick={createNotifier}
-                  onKeyDown={(event) => {
-                    event.stopPropagation();
-
-                    if (event.key === 'Escape' || (event.key === 'Tab' && event.shiftKey)) {
-                      event.preventDefault();
-                      if (event.key === 'Escape') setIsDropdownOpen(false);
-                      notifierSelectRef.current?.focus();
-                    }
-                  }}
-                >
-                  {t('databases.notifiers.createNew')}
-                </Button>
-              </div>
-            </>
-          )}
-          options={[...notifiers.map((n) => ({ label: n.name, value: n.id }))]}
+          createLabel={t('databases.notifiers.createNew')}
+          onCreate={createNotifier}
           placeholder={t('databases.notifiers.selectPlaceholder')}
         />
       </div>
 
       {isShowCreateNotifier && (
-        <Modal
+        <Dialog
           title={t('databases.notifiers.addTitle')}
-          footer={<div />}
-          open={isShowCreateNotifier}
-          onCancel={() => {
+          opened={isShowCreateNotifier}
+          onClose={() => {
             setShowCreateNotifier(false);
           }}
-          maskClosable={false}
+          closeOnClickOutside={false}
         >
           <div className="my-3 max-w-68.75 text-muted">{t('databases.notifiers.description')}</div>
 
@@ -200,7 +177,10 @@ export const DatabaseNotifiersFields = ({
               setShowCreateNotifier(false);
             }}
           />
-        </Modal>
+          <div className="mt-5 flex flex-wrap justify-end gap-2">
+            <div />
+          </div>
+        </Dialog>
       )}
     </>
   );

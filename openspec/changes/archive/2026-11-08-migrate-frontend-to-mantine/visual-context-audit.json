@@ -1,0 +1,7538 @@
+{
+  "status": "Inspected",
+  "rules": "Each reference points to a viewed comparison. Actual 200-percent font enlargement is required; viewport width alone is insufficient. Responsive-only shell presentations explicitly reference their applicable counterpart. Invalid framing and locale mismatches are retained as excluded diagnostics.",
+  "rows": {
+    "UI01": {
+      "desktopLight": {
+        "inspection": "review-context-menus",
+        "entry": 4,
+        "capture": "UI01-language-100",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "review-context-menus",
+        "entry": 0,
+        "capture": "UI01-language-100",
+        "context": {
+          "theme": "dark",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 36,
+        "capture": "surface-1",
+        "context": {
+          "theme": "light",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-context-menus",
+        "entry": 1,
+        "capture": "UI01-language-200",
+        "context": {
+          "theme": "dark",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "UI02": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 134,
+        "capture": "DB03-advanced",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 124,
+        "capture": "DB03-advanced",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 18,
+        "capture": "DB03-advanced-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 18,
+        "capture": "DB03-advanced-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "UI03": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 21,
+        "capture": "WS08-delete-workspace",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 10,
+        "capture": "WS08-delete-workspace",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 106,
+        "capture": "final-surface-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 102,
+        "capture": "final-surface-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "UI04": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 141,
+        "capture": "UI04-manual-paste",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 131,
+        "capture": "UI04-manual-paste",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 152,
+        "capture": "UI04-manual-paste",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "enlargedText": {
+        "inspection": "d3f286d1-1b0a-4ed2-8596-c51dfeaef810-focused",
+        "entry": 3,
+        "capture": "final-surface",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "UI05": {
+      "desktopLight": {
+        "inspection": "review-contexts-final",
+        "entry": 148,
+        "capture": "final-surface-supplement-1280-light-100",
+        "context": {
+          "theme": "light",
+          "locale": "ru",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "review-contexts-final",
+        "entry": 147,
+        "capture": "final-surface-supplement-1280-dark-100",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 589,
+        "capture": "surface-1",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 900
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 589,
+        "capture": "surface-1",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 900
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "AU01": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 50,
+        "capture": "AU01-sign-in",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 43,
+        "capture": "AU01-sign-in",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 57,
+        "capture": "AU01-sign-in",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "enlargedText": {
+        "inspection": "eebb46b4-372c-4b97-91e5-9e74d6ea1779",
+        "entry": 31,
+        "capture": "final-surface",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "AU02": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 51,
+        "capture": "AU02-registration",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 44,
+        "capture": "AU02-registration",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 16,
+        "capture": "AU02-registration-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 16,
+        "capture": "AU02-registration-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "AU03": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 52,
+        "capture": "AU03-code-refusal",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 45,
+        "capture": "AU03-code-refusal",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 60,
+        "capture": "AU03-code-refusal",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "enlargedText": {
+        "inspection": "eebb46b4-372c-4b97-91e5-9e74d6ea1779",
+        "entry": 32,
+        "capture": "final-surface",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "AU04": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 53,
+        "capture": "AU04-reset-request",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 46,
+        "capture": "AU04-reset-request",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 61,
+        "capture": "AU04-reset-request",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "enlargedText": {
+        "inspection": "eebb46b4-372c-4b97-91e5-9e74d6ea1779",
+        "entry": 33,
+        "capture": "final-surface",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "AU05": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 54,
+        "capture": "AU05-reset-completion",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 47,
+        "capture": "AU05-reset-completion",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 62,
+        "capture": "AU05-reset-completion",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "enlargedText": {
+        "inspection": "eebb46b4-372c-4b97-91e5-9e74d6ea1779",
+        "entry": 33,
+        "capture": "final-surface",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "AU06": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 55,
+        "capture": "AU06-refused-callback",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 48,
+        "capture": "AU06-refused-callback",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 27,
+        "capture": "AU06-refused-callback-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 25,
+        "capture": "AU06-refused-callback-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "AU07": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 56,
+        "capture": "AU07-missing-attempt",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 49,
+        "capture": "AU07-missing-attempt",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 28,
+        "capture": "AU07-missing-attempt-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 26,
+        "capture": "AU07-missing-attempt-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "SH01": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 545,
+        "capture": "SH01-startup-refusal",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 543,
+        "capture": "SH01-startup-refusal",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 140,
+        "capture": "SH01-startup-refusal-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 140,
+        "capture": "SH01-startup-refusal-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "SH02": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 550,
+        "capture": "SH02-empty-workspaces",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 548,
+        "capture": "SH02-empty-workspaces",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 141,
+        "capture": "SH02-empty-workspaces-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 141,
+        "capture": "SH02-empty-workspaces-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "SH03": {
+      "desktopLight": {
+        "inspection": "eebb46b4-372c-4b97-91e5-9e74d6ea1779",
+        "entry": 7,
+        "capture": "final-surface",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 769,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "eebb46b4-372c-4b97-91e5-9e74d6ea1779",
+        "entry": 6,
+        "capture": "final-surface",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 769,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 13,
+        "capture": "SH04-narrow-navigation-200",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 900
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            },
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        },
+        "responsiveCounterpart": "SH04",
+        "reason": "Desktop header actions and the mobile navigation drawer are mutually exclusive responsive presentations of the same shell controls."
+      },
+      "enlargedText": {
+        "inspection": "eebb46b4-372c-4b97-91e5-9e74d6ea1779",
+        "entry": 20,
+        "capture": "final-surface",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 769,
+            "height": 900
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "SH04": {
+      "desktopLight": {
+        "inspection": "eebb46b4-372c-4b97-91e5-9e74d6ea1779",
+        "entry": 7,
+        "capture": "final-surface",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 769,
+            "height": 900
+          },
+          "enlarged": []
+        },
+        "responsiveCounterpart": "SH03",
+        "reason": "Desktop header actions and the mobile navigation drawer are mutually exclusive responsive presentations of the same shell controls."
+      },
+      "desktopDark": {
+        "inspection": "eebb46b4-372c-4b97-91e5-9e74d6ea1779",
+        "entry": 6,
+        "capture": "final-surface",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 769,
+            "height": 900
+          },
+          "enlarged": []
+        },
+        "responsiveCounterpart": "SH03",
+        "reason": "Desktop header actions and the mobile navigation drawer are mutually exclusive responsive presentations of the same shell controls."
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 13,
+        "capture": "SH04-narrow-navigation-200",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 900
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            },
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 13,
+        "capture": "SH04-narrow-navigation-200",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 900
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            },
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "SH05": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 551,
+        "capture": "SH05-first-workspace",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 549,
+        "capture": "SH05-first-workspace",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 553,
+        "capture": "SH05-first-workspace",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 142,
+        "capture": "final-surface-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "ST01": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 533,
+        "capture": "surface-1",
+        "context": {
+          "theme": "light",
+          "locale": "ru",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "review-contexts-final",
+        "entry": 133,
+        "capture": "final-surface-supplement-1280-dark-100",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 534,
+        "capture": "surface-2",
+        "context": {
+          "theme": "light",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 534,
+        "capture": "surface-2",
+        "context": {
+          "theme": "light",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "ST02": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 533,
+        "capture": "surface-1",
+        "context": {
+          "theme": "light",
+          "locale": "ru",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "review-contexts-final",
+        "entry": 133,
+        "capture": "final-surface-supplement-1280-dark-100",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 534,
+        "capture": "surface-2",
+        "context": {
+          "theme": "light",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 534,
+        "capture": "surface-2",
+        "context": {
+          "theme": "light",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "ST03": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 467,
+        "capture": "ST03-details",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 465,
+        "capture": "ST03-details",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 60,
+        "capture": "ST03-settings-editor-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 60,
+        "capture": "ST03-settings-editor-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "ST04": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 474,
+        "capture": "ST04-details",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 472,
+        "capture": "ST04-details",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 61,
+        "capture": "ST04-settings-editor-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 61,
+        "capture": "ST04-settings-editor-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "ST05": {
+      "desktopLight": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 65,
+        "capture": "ST05-details",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 62,
+        "capture": "ST05-details",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 68,
+        "capture": "ST05-details",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 71,
+        "capture": "ST05-settings-editor-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "ST06": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 495,
+        "capture": "ST06-details",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 493,
+        "capture": "ST06-details",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 72,
+        "capture": "ST06-settings-editor-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 72,
+        "capture": "ST06-settings-editor-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "ST07": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 502,
+        "capture": "ST07-details",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 500,
+        "capture": "ST07-details",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 73,
+        "capture": "ST07-settings-editor-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 73,
+        "capture": "ST07-settings-editor-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "ST08": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 509,
+        "capture": "ST08-details",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 507,
+        "capture": "ST08-details",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 74,
+        "capture": "ST08-settings-editor-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 74,
+        "capture": "ST08-settings-editor-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "ST09": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 516,
+        "capture": "ST09-details",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 514,
+        "capture": "ST09-details",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 75,
+        "capture": "ST09-settings-editor-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 75,
+        "capture": "ST09-settings-editor-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "ST10": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 523,
+        "capture": "ST10-details",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 521,
+        "capture": "ST10-details",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 76,
+        "capture": "ST10-settings-editor-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 76,
+        "capture": "ST10-settings-editor-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "ST11": {
+      "desktopLight": {
+        "inspection": "review-contexts-final",
+        "entry": 135,
+        "capture": "final-surface-supplement-1280-light-100",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "review-contexts-final",
+        "entry": 136,
+        "capture": "surface-1-supplement-1280-dark-100",
+        "context": {
+          "theme": "dark",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 536,
+        "capture": "surface-1",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 536,
+        "capture": "surface-1",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "ST12": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 588,
+        "capture": "ST12-confirmation",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "review-contexts-final",
+        "entry": 56,
+        "capture": "ST12-extra-confirmation-supplement-1280-dark-100",
+        "context": {
+          "theme": "dark",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 57,
+        "capture": "ST12-extra-confirmation-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 57,
+        "capture": "ST12-extra-confirmation-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "ST13": {
+      "desktopLight": {
+        "inspection": "review-contexts-final",
+        "entry": 61,
+        "capture": "ST13-extra-warning-supplement-1280-light-100",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "review-contexts-final",
+        "entry": 60,
+        "capture": "ST13-extra-warning-supplement-1280-dark-100",
+        "context": {
+          "theme": "dark",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 62,
+        "capture": "ST13-extra-warning-supplement-320-light-100",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "enlargedText": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 554,
+        "capture": "surface-1",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 320,
+            "height": 900
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "NT01": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 528,
+        "capture": "surface-1",
+        "context": {
+          "theme": "light",
+          "locale": "ru",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "review-contexts-final",
+        "entry": 126,
+        "capture": "final-surface-supplement-1280-dark-100",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 529,
+        "capture": "surface-2",
+        "context": {
+          "theme": "light",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 529,
+        "capture": "surface-2",
+        "context": {
+          "theme": "light",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "NT02": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 528,
+        "capture": "surface-1",
+        "context": {
+          "theme": "light",
+          "locale": "ru",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "review-contexts-final",
+        "entry": 126,
+        "capture": "final-surface-supplement-1280-dark-100",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 529,
+        "capture": "surface-2",
+        "context": {
+          "theme": "light",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 529,
+        "capture": "surface-2",
+        "context": {
+          "theme": "light",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "NT03": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 337,
+        "capture": "NT03-light-desktop",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 335,
+        "capture": "NT03-dark-desktop",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 35,
+        "capture": "NT03-dark-narrow-200",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 35,
+        "capture": "NT03-dark-narrow-200",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "NT04": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 341,
+        "capture": "NT04-light-desktop",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 339,
+        "capture": "NT04-dark-desktop",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 37,
+        "capture": "NT04-dark-narrow-200",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 37,
+        "capture": "NT04-dark-narrow-200",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "NT05": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 345,
+        "capture": "NT05-light-desktop",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 343,
+        "capture": "NT05-dark-desktop",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 39,
+        "capture": "NT05-dark-narrow-200",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 39,
+        "capture": "NT05-dark-narrow-200",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "NT06": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 349,
+        "capture": "NT06-light-desktop",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 347,
+        "capture": "NT06-dark-desktop",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 41,
+        "capture": "NT06-dark-narrow-200",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 41,
+        "capture": "NT06-dark-narrow-200",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "NT07": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 353,
+        "capture": "NT07-light-desktop",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 351,
+        "capture": "NT07-dark-desktop",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 43,
+        "capture": "NT07-dark-narrow-200",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 43,
+        "capture": "NT07-dark-narrow-200",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "NT08": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 357,
+        "capture": "NT08-light-desktop",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 355,
+        "capture": "NT08-dark-desktop",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 45,
+        "capture": "NT08-dark-narrow-200",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 45,
+        "capture": "NT08-dark-narrow-200",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "NT09": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 361,
+        "capture": "NT09-light-desktop",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 359,
+        "capture": "NT09-dark-desktop",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 47,
+        "capture": "NT09-dark-narrow-200",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 47,
+        "capture": "NT09-dark-narrow-200",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "NT10": {
+      "desktopLight": {
+        "inspection": "review-contexts-final",
+        "entry": 128,
+        "capture": "final-surface-supplement-1280-light-100",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "review-contexts-final",
+        "entry": 129,
+        "capture": "surface-1-supplement-1280-dark-100",
+        "context": {
+          "theme": "dark",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 531,
+        "capture": "surface-1",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 531,
+        "capture": "surface-1",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "NT11": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 363,
+        "capture": "NT11-confirmation",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "review-contexts-final",
+        "entry": 52,
+        "capture": "NT11-extra-confirmation-supplement-1280-dark-100",
+        "context": {
+          "theme": "dark",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 53,
+        "capture": "NT11-extra-confirmation-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 53,
+        "capture": "NT11-extra-confirmation-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "DB01": {
+      "desktopLight": {
+        "inspection": "eebb46b4-372c-4b97-91e5-9e74d6ea1779",
+        "entry": 94,
+        "capture": "final-surface",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 360
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "review-contexts-final",
+        "entry": 44,
+        "capture": "final-surface-supplement-1280-dark-100",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 46,
+        "capture": "extra-enlarged-state-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 46,
+        "capture": "extra-enlarged-state-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "DB02": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 132,
+        "capture": "DB02-backup-method",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 122,
+        "capture": "DB02-backup-method",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 142,
+        "capture": "DB02-backup-method",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "enlargedText": {
+        "inspection": "d3f286d1-1b0a-4ed2-8596-c51dfeaef810-focused",
+        "entry": 3,
+        "capture": "final-surface",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "DB03": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 134,
+        "capture": "DB03-advanced",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 124,
+        "capture": "DB03-advanced",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 18,
+        "capture": "DB03-advanced-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 18,
+        "capture": "DB03-advanced-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "DB04": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 163,
+        "capture": "DB04-advanced",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 154,
+        "capture": "DB04-advanced",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 20,
+        "capture": "DB04-advanced-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 20,
+        "capture": "DB04-advanced-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "DB05": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 192,
+        "capture": "DB05-advanced",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 183,
+        "capture": "DB05-advanced",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 22,
+        "capture": "DB05-advanced-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 22,
+        "capture": "DB05-advanced-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "DB06": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 220,
+        "capture": "DB06-advanced",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 211,
+        "capture": "DB06-advanced",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 24,
+        "capture": "DB06-advanced-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 24,
+        "capture": "DB06-advanced-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "DB07": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 247,
+        "capture": "DB07-advanced",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 238,
+        "capture": "DB07-advanced",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 26,
+        "capture": "DB07-advanced-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 26,
+        "capture": "DB07-advanced-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "DB08": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 136,
+        "capture": "DB08-authentication-options",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 126,
+        "capture": "DB08-authentication-options",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 147,
+        "capture": "DB08-authentication-options",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "enlargedText": {
+        "inspection": "d3f286d1-1b0a-4ed2-8596-c51dfeaef810-focused",
+        "entry": 3,
+        "capture": "final-surface",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "DB09": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 139,
+        "capture": "DB09-limited-user",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 129,
+        "capture": "DB09-limited-user",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 19,
+        "capture": "DB09-limited-user",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 19,
+        "capture": "DB09-limited-user",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "DB10": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 140,
+        "capture": "DB10-skip-confirmation",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 130,
+        "capture": "DB10-skip-confirmation",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 151,
+        "capture": "DB10-skip-confirmation",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 151,
+        "capture": "DB10-skip-confirmation",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "DB11": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 98,
+        "capture": "DB11-database-settings",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 79,
+        "capture": "DB11-database-settings",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 38,
+        "capture": "DB11-database-settings-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 38,
+        "capture": "DB11-database-settings-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "DB12": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 99,
+        "capture": "DB12-notifier-options",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 80,
+        "capture": "DB12-notifier-options",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-context-notifier",
+        "entry": 1,
+        "capture": "DB12-notifier-options-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-context-notifier",
+        "entry": 0,
+        "capture": "DB12-notifier-options-supplement-1280-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "DB13": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 100,
+        "capture": "DB13-nested-notifier",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 81,
+        "capture": "DB13-nested-notifier",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 40,
+        "capture": "DB13-nested-notifier-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 32,
+        "capture": "DB13-nested-notifier-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "DB14": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 101,
+        "capture": "DB14-copy-confirmation",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 82,
+        "capture": "DB14-copy-confirmation",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 41,
+        "capture": "DB14-copy-confirmation-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 33,
+        "capture": "DB14-copy-confirmation-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "DB15": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 102,
+        "capture": "DB15-delete-confirmation",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 83,
+        "capture": "DB15-delete-confirmation",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 42,
+        "capture": "DB15-delete-confirmation-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 34,
+        "capture": "DB15-delete-confirmation-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "CF01": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 84,
+        "capture": "CF01-cron-schedule",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 65,
+        "capture": "CF01-cron-schedule",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 103,
+        "capture": "CF01-cron-schedule",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "enlargedText": {
+        "inspection": "eebb46b4-372c-4b97-91e5-9e74d6ea1779",
+        "entry": 62,
+        "capture": "final-surface",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "CF02": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 290,
+        "capture": "CF02-editor",
+        "context": {
+          "theme": "light",
+          "locale": "ru",
+          "viewport": {
+            "width": 1280,
+            "height": 420
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "eebb46b4-372c-4b97-91e5-9e74d6ea1779",
+        "entry": 56,
+        "capture": "final-surface",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 17,
+        "capture": "CF02-backup-editor-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 17,
+        "capture": "CF02-backup-editor-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "CF03": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 90,
+        "capture": "CF03-count-retention",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 71,
+        "capture": "CF03-count-retention",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 110,
+        "capture": "CF03-count-retention",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "enlargedText": {
+        "inspection": "eebb46b4-372c-4b97-91e5-9e74d6ea1779",
+        "entry": 62,
+        "capture": "final-surface",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "CF04": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 364,
+        "capture": "CF04-editor",
+        "context": {
+          "theme": "light",
+          "locale": "ru",
+          "viewport": {
+            "width": 1280,
+            "height": 720
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "review-context-configsections",
+        "entry": 6,
+        "capture": "CF04-editor-supplement-1280-dark-100",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-context-configsections",
+        "entry": 9,
+        "capture": "CF04-editor-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-context-configsections",
+        "entry": 7,
+        "capture": "CF04-editor-supplement-1280-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "ru",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "CF05": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 93,
+        "capture": "CF05-read-only-config",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 74,
+        "capture": "CF05-read-only-config",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 113,
+        "capture": "CF05-read-only-config",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "enlargedText": {
+        "inspection": "eebb46b4-372c-4b97-91e5-9e74d6ea1779",
+        "entry": 62,
+        "capture": "final-surface",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "CF06": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 94,
+        "capture": "CF06-nested-storage",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 75,
+        "capture": "CF06-nested-storage",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 114,
+        "capture": "CF06-nested-storage",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "enlargedText": {
+        "inspection": "eebb46b4-372c-4b97-91e5-9e74d6ea1779",
+        "entry": 62,
+        "capture": "final-surface",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "CF07": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 95,
+        "capture": "CF07-acknowledged-storage",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 76,
+        "capture": "CF07-acknowledged-storage",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-context-configsections",
+        "entry": 3,
+        "capture": "CF07-acknowledged-storage-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-context-configsections",
+        "entry": 0,
+        "capture": "CF07-acknowledged-storage-supplement-1280-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "CF08": {
+      "desktopLight": {
+        "inspection": "review-contexts-final",
+        "entry": 70,
+        "capture": "final-surface-supplement-1280-light-100",
+        "context": {
+          "theme": "light",
+          "locale": "ru",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "review-contexts-final",
+        "entry": 69,
+        "capture": "final-surface-supplement-1280-dark-100",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "eebb46b4-372c-4b97-91e5-9e74d6ea1779",
+        "entry": 79,
+        "capture": "final-surface",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 900
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 265,
+        "capture": "surface-1",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 320,
+            "height": 900
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "CF09": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 97,
+        "capture": "CF09-healthcheck-editor",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 78,
+        "capture": "CF09-healthcheck-editor",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-context-configsections",
+        "entry": 4,
+        "capture": "CF09-healthcheck-editor-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-context-configsections",
+        "entry": 1,
+        "capture": "CF09-healthcheck-editor-supplement-1280-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "CF10": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 282,
+        "capture": "CF10-empty-history",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 279,
+        "capture": "CF10-empty-history",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 96,
+        "capture": "CF10-empty-history-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 96,
+        "capture": "CF10-empty-history-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "TR01": {
+      "desktopLight": {
+        "inspection": "review-contexts-final",
+        "entry": 88,
+        "capture": "final-surface-supplement-1280-light-100",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "review-contexts-final",
+        "entry": 87,
+        "capture": "final-surface-supplement-1280-dark-100",
+        "context": {
+          "theme": "dark",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 269,
+        "capture": "surface-1",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 269,
+        "capture": "surface-1",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "TR02": {
+      "desktopLight": {
+        "inspection": "review-contexts-final",
+        "entry": 92,
+        "capture": "surface-3-supplement-1280-light-100",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "review-contexts-final",
+        "entry": 91,
+        "capture": "surface-3-supplement-1280-dark-100",
+        "context": {
+          "theme": "dark",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 269,
+        "capture": "surface-1",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 269,
+        "capture": "surface-1",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "TR03": {
+      "desktopLight": {
+        "inspection": "review-contexts-final",
+        "entry": 95,
+        "capture": "surface-7-supplement-1280-light-100",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "review-contexts-final",
+        "entry": 94,
+        "capture": "surface-7-supplement-1280-dark-100",
+        "context": {
+          "theme": "dark",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 269,
+        "capture": "surface-1",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 269,
+        "capture": "surface-1",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "LB01": {
+      "desktopLight": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 29,
+        "capture": "LB01-backups",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 28,
+        "capture": "LB01-backups",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 30,
+        "capture": "LB01-backups",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "enlargedText": {
+        "inspection": "eebb46b4-372c-4b97-91e5-9e74d6ea1779",
+        "entry": 129,
+        "capture": "final-surface",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "LB02": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 306,
+        "capture": "LB02-calendar",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 293,
+        "capture": "LB02-calendar",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 31,
+        "capture": "LB02-filters-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 31,
+        "capture": "LB02-filters-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "LB03": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 308,
+        "capture": "LB03-delete-backup",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 295,
+        "capture": "LB03-delete-backup",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 103,
+        "capture": "LB03-delete-backup-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 99,
+        "capture": "LB03-delete-backup-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "LB04": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 309,
+        "capture": "LB04-backup-failure",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 296,
+        "capture": "LB04-backup-failure",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 104,
+        "capture": "LB04-backup-failure-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 100,
+        "capture": "LB04-backup-failure-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "LB05": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 311,
+        "capture": "LB05-restore-target",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 298,
+        "capture": "LB05-restore-target",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 325,
+        "capture": "LB05-restore-target",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "enlargedText": {
+        "inspection": "eebb46b4-372c-4b97-91e5-9e74d6ea1779",
+        "entry": 131,
+        "capture": "final-surface",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "LB06": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 312,
+        "capture": "LB06-CANCELED-restore",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 299,
+        "capture": "LB06-CANCELED-restore",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 32,
+        "capture": "LB06-CANCELED-restore-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 32,
+        "capture": "LB06-CANCELED-restore-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "LB07": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 317,
+        "capture": "LB07-cancel-restore",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 304,
+        "capture": "LB07-cancel-restore",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 334,
+        "capture": "LB07-cancel-restore",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "enlargedText": {
+        "inspection": "eebb46b4-372c-4b97-91e5-9e74d6ea1779",
+        "entry": 131,
+        "capture": "final-surface",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "LB08": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 315,
+        "capture": "LB08-restore-failure",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 302,
+        "capture": "LB08-restore-failure",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 331,
+        "capture": "LB08-restore-failure",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "enlargedText": {
+        "inspection": "eebb46b4-372c-4b97-91e5-9e74d6ea1779",
+        "entry": 131,
+        "capture": "final-surface",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "LB09": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 310,
+        "capture": "LB09-manual-verification",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 297,
+        "capture": "LB09-manual-verification",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 105,
+        "capture": "LB09-manual-verification-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 101,
+        "capture": "LB09-manual-verification-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "PB01": {
+      "desktopLight": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 50,
+        "capture": "PB01-physical-backups",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 49,
+        "capture": "PB01-physical-backups",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 51,
+        "capture": "PB01-physical-backups",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 115,
+        "capture": "final-surface-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "PB02": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 372,
+        "capture": "PB02-calendar",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 367,
+        "capture": "PB02-calendar",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-context-calendar",
+        "entry": 1,
+        "capture": "PB02-calendar-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-context-calendar",
+        "entry": 0,
+        "capture": "PB02-calendar-supplement-1280-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "PB03": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 374,
+        "capture": "PB03-delete-full",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 369,
+        "capture": "PB03-delete-full",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 113,
+        "capture": "PB03-delete-full-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 113,
+        "capture": "PB03-delete-full-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "PB04": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 375,
+        "capture": "PB04-delete-incremental",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 370,
+        "capture": "PB04-delete-incremental",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 114,
+        "capture": "PB04-delete-incremental-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 114,
+        "capture": "PB04-delete-incremental-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "PB05": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 381,
+        "capture": "surface-1",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "review-contexts-final",
+        "entry": 48,
+        "capture": "extra-enlarged-state-supplement-1280-dark-100",
+        "context": {
+          "theme": "dark",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 49,
+        "capture": "extra-enlarged-state-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 49,
+        "capture": "extra-enlarged-state-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "PB06": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 388,
+        "capture": "PB06-manual-Docker",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 382,
+        "capture": "PB06-manual-Docker",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 120,
+        "capture": "PB06-manual-Docker-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 118,
+        "capture": "PB06-manual-Host PostgreSQL-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "PB07": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 392,
+        "capture": "PB07-latest-restore",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 386,
+        "capture": "PB07-latest-restore",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-context-calendar",
+        "entry": 3,
+        "capture": "PB07-target-calendar-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-context-calendar",
+        "entry": 2,
+        "capture": "PB07-target-calendar-supplement-1280-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "WM01": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 619,
+        "capture": "WM01-monitoring-overview",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 618,
+        "capture": "WM01-monitoring-overview",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "d3f286d1-1b0a-4ed2-8596-c51dfeaef810-focused",
+        "entry": 8,
+        "capture": "WM01-narrow-overview",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "enlargedText": {
+        "inspection": "d3f286d1-1b0a-4ed2-8596-c51dfeaef810-focused",
+        "entry": 9,
+        "capture": "WM01-narrow-overview-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "WM02": {
+      "desktopLight": {
+        "inspection": "eebb46b4-372c-4b97-91e5-9e74d6ea1779",
+        "entry": 276,
+        "capture": "WM02-timeline-tooltip",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "eebb46b4-372c-4b97-91e5-9e74d6ea1779",
+        "entry": 274,
+        "capture": "WM02-timeline-tooltip",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 97,
+        "capture": "WM02-narrow-technical-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 97,
+        "capture": "WM02-narrow-technical-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "VF01": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 593,
+        "capture": "VF01-editor",
+        "context": {
+          "theme": "light",
+          "locale": "ru",
+          "viewport": {
+            "width": 1280,
+            "height": 720
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "review-context-configsections",
+        "entry": 14,
+        "capture": "VF01-editor-supplement-1280-dark-100",
+        "context": {
+          "theme": "dark",
+          "locale": "ru",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-context-configsections",
+        "entry": 16,
+        "capture": "VF01-editor-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "ru",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-context-configsections",
+        "entry": 15,
+        "capture": "VF01-editor-supplement-1280-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "ru",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "VF02": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 615,
+        "capture": "surface-1",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 614,
+        "capture": "surface-1",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 67,
+        "capture": "extra-enlarged-state-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 67,
+        "capture": "extra-enlarged-state-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "VF03": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 615,
+        "capture": "surface-1",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 614,
+        "capture": "surface-1",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 66,
+        "capture": "extra-enlarged-state-state-2-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 65,
+        "capture": "extra-enlarged-state-state-1-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "WS01": {
+      "desktopLight": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 6,
+        "capture": "WS01-WS02-settings-members",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 2,
+        "capture": "WS01-WS02-settings-members",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 16,
+        "capture": "WS01-WS02-settings-members-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 4,
+        "capture": "WS01-WS02-settings-members-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "WS02": {
+      "desktopLight": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 6,
+        "capture": "WS01-WS02-settings-members",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 2,
+        "capture": "WS01-WS02-settings-members",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-context-sections",
+        "entry": 6,
+        "capture": "WS02-actual-section-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-context-sections",
+        "entry": 2,
+        "capture": "WS02-actual-section-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "WS03": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 16,
+        "capture": "WS03-add-member-validation",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 5,
+        "capture": "WS03-add-member-validation",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 17,
+        "capture": "WS03-add-member-validation-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 5,
+        "capture": "WS03-add-member-validation-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "WS04": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 17,
+        "capture": "WS04-invitation-result",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 6,
+        "capture": "WS04-invitation-result",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 18,
+        "capture": "WS04-invitation-result-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 6,
+        "capture": "WS04-invitation-result-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "WS05": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 18,
+        "capture": "WS05-transfer-ownership",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 7,
+        "capture": "WS05-transfer-ownership",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 19,
+        "capture": "WS05-transfer-ownership-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 7,
+        "capture": "WS05-transfer-ownership-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "WS06": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 19,
+        "capture": "WS06-remove-member",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 8,
+        "capture": "WS06-remove-member",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 20,
+        "capture": "WS06-remove-member-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 20,
+        "capture": "WS06-remove-member-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "WS07": {
+      "desktopLight": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 7,
+        "capture": "WS07-workspace-audit",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 3,
+        "capture": "WS07-workspace-audit",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-context-sections",
+        "entry": 7,
+        "capture": "WS07-workspace-audit-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-context-sections",
+        "entry": 3,
+        "capture": "WS07-workspace-audit-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "WS08": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 21,
+        "capture": "WS08-delete-workspace",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 10,
+        "capture": "WS08-delete-workspace",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 12,
+        "capture": "WS08-delete-workspace-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 12,
+        "capture": "WS08-delete-workspace-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "PR01": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 14,
+        "capture": "PR01-PR02-profile",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 3,
+        "capture": "PR01-PR02-profile",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 14,
+        "capture": "PR01-PR02-profile-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 3,
+        "capture": "PR01-PR02-profile-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "PR02": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 14,
+        "capture": "PR01-PR02-profile",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 3,
+        "capture": "PR01-PR02-profile",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-context-profile",
+        "entry": 1,
+        "capture": "PR02-actual-section-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-context-profile",
+        "entry": 0,
+        "capture": "PR02-actual-section-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "AD01": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 11,
+        "capture": "AD01-AD02-AD03-settings-mail-audit",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 0,
+        "capture": "AD01-AD02-AD03-settings-mail-audit",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 11,
+        "capture": "AD01-AD02-AD03-settings-mail-audit-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 0,
+        "capture": "AD01-AD02-AD03-settings-mail-audit-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "AD02": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 11,
+        "capture": "AD01-AD02-AD03-settings-mail-audit",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 0,
+        "capture": "AD01-AD02-AD03-settings-mail-audit",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-context-sections",
+        "entry": 4,
+        "capture": "AD02-actual-section-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-context-sections",
+        "entry": 0,
+        "capture": "AD02-actual-section-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "AD03": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 11,
+        "capture": "AD01-AD02-AD03-settings-mail-audit",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 0,
+        "capture": "AD01-AD02-AD03-settings-mail-audit",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-context-sections",
+        "entry": 5,
+        "capture": "AD03-actual-section-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-context-sections",
+        "entry": 1,
+        "capture": "AD03-actual-section-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "AD04": {
+      "desktopLight": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 4,
+        "capture": "AD04-users",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 0,
+        "capture": "AD04-users",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 12,
+        "capture": "AD04-users-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 1,
+        "capture": "AD04-users-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "AD05": {
+      "desktopLight": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 5,
+        "capture": "AD05-user-audit",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 1,
+        "capture": "AD05-user-audit",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 13,
+        "capture": "AD05-user-audit-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 2,
+        "capture": "AD05-user-audit-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "AG01": {
+      "desktopLight": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 94,
+        "capture": "AG01-agent-list",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 93,
+        "capture": "AG01-agent-list",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-context-configsections",
+        "entry": 19,
+        "capture": "AG01-agent-list-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-context-configsections",
+        "entry": 17,
+        "capture": "AG01-agent-list-supplement-1280-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "AG02": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 601,
+        "capture": "AG02-create-agent",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 596,
+        "capture": "AG02-create-agent",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 157,
+        "capture": "AG02-create-agent-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 157,
+        "capture": "AG02-create-agent-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "AG03": {
+      "desktopLight": {
+        "inspection": "review-contexts-final",
+        "entry": 160,
+        "capture": "final-surface-supplement-1280-light-100",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "review-contexts-final",
+        "entry": 159,
+        "capture": "final-surface-supplement-1280-dark-100",
+        "context": {
+          "theme": "dark",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 163,
+        "capture": "surface-1-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 163,
+        "capture": "surface-1-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "AG04": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 602,
+        "capture": "AG04-install-amd64",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 597,
+        "capture": "AG04-install-amd64",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 96,
+        "capture": "AG04-install-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "0407f470-96e2-4d71-bf78-4d9454a11569-recheck",
+        "entry": 96,
+        "capture": "AG04-install-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": "dialog",
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "AG05": {
+      "desktopLight": {
+        "inspection": "review-contexts-final",
+        "entry": 160,
+        "capture": "final-surface-supplement-1280-light-100",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "review-contexts-final",
+        "entry": 159,
+        "capture": "final-surface-supplement-1280-dark-100",
+        "context": {
+          "theme": "dark",
+          "locale": "fr",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-contexts-final",
+        "entry": 163,
+        "capture": "surface-1-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-contexts-final",
+        "entry": 163,
+        "capture": "surface-1-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    },
+    "AG06": {
+      "desktopLight": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 604,
+        "capture": "AG06-delete-agent",
+        "context": {
+          "theme": "light",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "desktopDark": {
+        "inspection": "65cb234b-d364-4bc1-b45d-f2fe72c7bf95",
+        "entry": 599,
+        "capture": "AG06-delete-agent",
+        "context": {
+          "theme": "dark",
+          "locale": "en",
+          "viewport": {
+            "width": 1280,
+            "height": 1000
+          },
+          "enlarged": []
+        }
+      },
+      "narrowTranslated": {
+        "inspection": "review-context-configsections",
+        "entry": 20,
+        "capture": "AG06-delete-agent-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      },
+      "enlargedText": {
+        "inspection": "review-context-configsections",
+        "entry": 20,
+        "capture": "AG06-delete-agent-supplement-320-light-200",
+        "context": {
+          "theme": "light",
+          "locale": "fr",
+          "viewport": {
+            "width": 320,
+            "height": 1000
+          },
+          "enlarged": [
+            {
+              "role": null,
+              "scale": "2"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "stateEvidence": {
+    "AU06": {
+      "pending": {
+        "desktopLight": {
+          "inspection": "oauth-callback-pending",
+          "entry": 2,
+          "capture": "oauth-pending-light-en-1280-100",
+          "context": {
+            "theme": "light",
+            "locale": "en",
+            "viewport": {
+              "width": 1280,
+              "height": 1000
+            },
+            "enlarged": false
+          }
+        },
+        "desktopDark": {
+          "inspection": "oauth-callback-pending",
+          "entry": 1,
+          "capture": "oauth-pending-dark-en-1280-100",
+          "context": {
+            "theme": "dark",
+            "locale": "en",
+            "viewport": {
+              "width": 1280,
+              "height": 1000
+            },
+            "enlarged": false
+          }
+        },
+        "narrowTranslated": {
+          "inspection": "oauth-callback-pending",
+          "entry": 3,
+          "capture": "oauth-pending-light-fr-320-100",
+          "context": {
+            "theme": "light",
+            "locale": "fr",
+            "viewport": {
+              "width": 320,
+              "height": 1000
+            },
+            "enlarged": false
+          }
+        },
+        "enlargedText": {
+          "inspection": "oauth-callback-pending",
+          "entry": 0,
+          "capture": "oauth-pending-light-fr-320-200",
+          "context": {
+            "theme": "light",
+            "locale": "fr",
+            "viewport": {
+              "width": 320,
+              "height": 1000
+            },
+            "enlarged": true
+          }
+        }
+      },
+      "refusal": "The original row-level context references remain in rows.AU06."
+    }
+  },
+  "supplementalInteractions": {
+    "PB07": {
+      "inspection": "calendar-keyboard-focus",
+      "entries": [0, 1, 2, 3, 4, 5],
+      "behavior": "Keyboard-only date/time submission, non-UTC conversion, nested focus containment, Escape dismissal and focus return.",
+      "baseline": "Prior Mantine source; the original Ant Design four-regime proofs in rows.PB07 remain unchanged."
+    }
+  }
+}

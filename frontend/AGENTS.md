@@ -1,6 +1,6 @@
 # Frontend guidelines (React + TypeScript)
 
-This document contains coding standards for the Databasus frontend (React 19 + TypeScript + Vite + Ant Design + TailwindCSS).
+This document contains coding standards for the Databasus frontend (React 19 + TypeScript + Vite + Mantine + TailwindCSS).
 The rules for every module are in the root `AGENTS.md`.
 
 ---
@@ -21,10 +21,20 @@ The rules for every module are in the root `AGENTS.md`.
 
 ## UI kit and icons
 
-- **AntD 5 only** for components. Don't pull in Mantine, MUI, Chakra, shadcn, or Radix directly. Use AntD primitives (`Button`, `Input`, `Modal`, `Form`, `Table`, `Menu`, `Tabs`, etc.) plus Tailwind utility classes for layout and spacing.
-- **`@ant-design/icons` only** for icons. Don't add `lucide-react`, `@heroicons/react`, `react-icons`, or FontAwesome.
+- Use **Mantine** for interactive controls and overlays, and semantic HTML with Tailwind for layout and spacing. Import Mantine components directly unless shared application behavior needs a focused component in `shared/ui`; do not create a wrapper for every library component.
+- Use **`lucide-react`** for standard icons. Keep provider and engine illustrations as assets.
 
 ---
+
+### Mantine skills
+
+Read the applicable repository-local official skill before specialized work:
+
+- [mantine-form](../.agents/skills/mantine-form/SKILL.md): `@mantine/form` values, validation, lists, controlled/uncontrolled mode or form context. Existing state does not need to move to `@mantine/form` merely to use Mantine controls.
+- [mantine-combobox](../.agents/skills/mantine-combobox/SKILL.md): searchable, multiple or custom selection, option rendering, filtering, or `Combobox`/`ComboboxPopover` interaction.
+- [mantine-custom-components](../.agents/skills/mantine-custom-components/SKILL.md): Mantine-integrated shared components, Styles API, factories, theme extensions or CSS-variable contracts.
+
+Project conventions govern theme ownership, localization, accessibility and state lifetimes when an upstream example differs. Documentation lookup is described in [frontend design](../docs/frontend-design.md#official-mantine-documentation).
 
 ## React component structure
 

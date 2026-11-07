@@ -3,6 +3,7 @@ import { expect } from '@playwright/test';
 import { DICTIONARIES } from '../../src/shared/i18n/dictionaries';
 import { accountFixtures } from '../accountFixtures';
 import { assertAccountReflow } from '../assertAccountReflow';
+import { assertEnlargedTextReflow } from '../assertEnlargedTextReflow';
 import { test } from '../browserTest';
 import { enlargeText } from '../enlargeText';
 import { openAccount } from '../openAccount';
@@ -50,6 +51,7 @@ test('preserves auth input and reflows its translated refusal with 200% text at 
     await action.scrollIntoViewIfNeeded();
     await expect(action).toBeInViewport();
   }
+  await assertEnlargedTextReflow(page);
 
   await assertAccountReflow(page.locator('body'));
 });

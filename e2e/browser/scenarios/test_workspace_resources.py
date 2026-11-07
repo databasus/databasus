@@ -89,7 +89,7 @@ class TestWorkspaceResources:
         workspace_selector = page.get_by_role("combobox", name="Selected workspace")
         workspace_selector.focus()
         workspace_selector.press("ArrowDown")
-        page.get_by_title(workspace_name, exact=True).click()
+        page.get_by_role("option", name=workspace_name, exact=True).click()
 
         expect(page.get_by_role("button", name=storage_name, exact=True)).to_have_attribute(
             "aria-pressed", "true"

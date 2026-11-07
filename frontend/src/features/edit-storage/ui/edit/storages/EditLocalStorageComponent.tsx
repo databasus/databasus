@@ -1,4 +1,4 @@
-import { ExclamationCircleOutlined } from '@ant-design/icons';
+import { CircleAlert } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 export function EditLocalStorageComponent() {
@@ -7,7 +7,7 @@ export function EditLocalStorageComponent() {
   return (
     <>
       <div className="max-w-[360px] text-warning">
-        <ExclamationCircleOutlined /> {t('storages.edit.local.diskSpaceWarning')}
+        <CircleAlert size={14} /> {t('storages.edit.local.diskSpaceWarning')}
       </div>
 
       <div className="mb-5" />

@@ -1,4 +1,4 @@
-import { Button, Spin, Tooltip } from 'antd';
+import { Button, Loader, Tooltip } from '@mantine/core';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -165,7 +165,7 @@ export const ApplicationScreen = () => {
         }
         auxiliary={
           isUsedMoreThan85Percent && (
-            <Tooltip title={t('app.diskUsage.hint')}>
+            <Tooltip label={t('app.diskUsage.hint')}>
               <span className={`text-xs ${isUsedMoreThan95Percent ? 'text-danger' : 'text-muted'}`}>
                 {t('app.diskUsage.summary', getDiskUsageValues(diskUsage, formatNumber))}
               </span>
@@ -189,7 +189,7 @@ export const ApplicationScreen = () => {
       >
         {isLoading ? (
           <div className="flex flex-1 items-center justify-center">
-            <Spin />
+            <Loader role="status" />
           </div>
         ) : startup.error !== undefined ? (
           <LoadFailure error={startup.error} onRetry={() => void startup.retry()} />
@@ -238,7 +238,7 @@ export const ApplicationScreen = () => {
                 ) : (
                   <div className="flex flex-1 items-center justify-center">
                     {canCreateWorkspace && (
-                      <Button type="primary" onClick={handleCreateWorkspace}>
+                      <Button variant="filled" onClick={handleCreateWorkspace}>
                         {t('app.workspaceSelection.create')}
                       </Button>
                     )}
@@ -252,7 +252,10 @@ export const ApplicationScreen = () => {
           <br />
           {CONTAINER_ARCH}
           {isNewGitHubVersionAvailable && (
-            <Tooltip title={t('app.navigation.newVersionAvailable')} trigger={['hover', 'focus']}>
+            <Tooltip
+              label={t('app.navigation.newVersionAvailable')}
+              events={{ hover: true, focus: true, touch: false }}
+            >
               <a
                 className="pointer-events-auto ml-1 inline-flex"
                 aria-label={t('app.navigation.newVersionAvailable')}

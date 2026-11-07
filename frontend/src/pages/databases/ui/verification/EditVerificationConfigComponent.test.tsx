@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -68,12 +68,10 @@ const renderConfig = (schedule: VerificationConfig['schedule']) =>
 const chooseOption = async ({ label, optionTitle }: { label: string; optionTitle: string }) => {
   const fieldLabel = await screen.findByText(label);
 
-  fireEvent.mouseDown(fieldLabel.parentElement!.querySelector('.ant-select-selector')!);
+  fireEvent.click(fieldLabel.parentElement!.querySelector('[role="combobox"]')!);
 
   const option = await waitFor(() => {
-    const visibleOptions = document.querySelectorAll(
-      `.ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option[title="${optionTitle}"]`,
-    );
+    const visibleOptions = screen.queryAllByRole('option', { name: optionTitle });
     expect(visibleOptions.length).toBeGreaterThan(0);
     return visibleOptions[0];
   });
@@ -141,8 +139,8 @@ describe('EditVerificationConfigComponent', () => {
     const timeLabel = await screen.findByText('Time of day');
     const timeInput = timeLabel.parentElement!.querySelector('input')!;
 
-    fireEvent.mouseDown(timeInput);
-    fireEvent.change(timeInput, { target: { value: '12:00' } });
+    fireEvent.click(timeInput);
+    fireEvent.paste(timeInput, { clipboardData: { getData: () => '12:00' } });
     fireEvent.keyDown(timeInput, { key: 'Enter' });
 
     const submittedSchedule = await saveAndGetSubmittedSchedule(submitted);
@@ -153,7 +151,9 @@ describe('EditVerificationConfigComponent', () => {
   it('shows a saved weekday 0 as Sunday', async () => {
     renderConfig({ type: 'WEEKLY', timeOfDay: '12:00', weekday: 0 });
 
-    expect(await screen.findByText('Sun')).toBeTruthy();
+    expect(
+      await within(await screen.findByRole('combobox', { name: 'Weekday' })).findByText('Sun'),
+    ).toBeTruthy();
   });
 
   it('names the fields Weekday and Time of day without the word Verification', async () => {
@@ -315,8 +315,8 @@ describe('EditVerificationConfigComponent', () => {
 
     const timeInput = await screen.findByLabelText('Time of day');
 
-    fireEvent.mouseDown(timeInput);
-    fireEvent.change(timeInput, { target: { value: '18:00' } });
+    fireEvent.click(timeInput);
+    fireEvent.paste(timeInput, { clipboardData: { getData: () => '18:00' } });
     fireEvent.keyDown(timeInput, { key: 'Enter' });
 
     expect(isDisabled(getSaveButton())).toBe(false);

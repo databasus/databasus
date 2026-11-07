@@ -1,4 +1,4 @@
-import { App, Button, Modal, Spin } from 'antd';
+import { Button, Loader } from '@mantine/core';
 import { useEffect, useEffectEvent, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -20,7 +20,8 @@ import {
   translateApiError,
   useLocale,
 } from '@/shared/i18n';
-
+import { useFeedback } from '@/shared/lib/feedback';
+import { Dialog } from '@/shared/ui';
 interface Props {
   draft: DatabaseCreateDraft | DatabaseEditDraft;
   onLimitedUserCreated: (limitedUser: LimitedUser) => void;
@@ -75,7 +76,7 @@ export const CreateLimitedUserComponent = ({
 }: Props) => {
   const { t } = useTranslation();
   const { locale } = useLocale();
-  const { message } = App.useApp();
+  const notify = useFeedback();
   const isActive = useSessionGuard();
 
   const [isCheckingReadOnlyUserSuggestion, setIsCheckingReadOnlyUserSuggestion] = useState(false);
@@ -96,7 +97,7 @@ export const CreateLimitedUserComponent = ({
     try {
       return await databaseApi.checkLimitedUser(settingsTarget);
     } catch (e) {
-      if (isActive()) message.error(translateApiError(e, t));
+      if (isActive()) notify({ kind: 'error', title: translateApiError(e, t) });
       return null;
     }
   };
@@ -123,15 +124,16 @@ export const CreateLimitedUserComponent = ({
       if (!isActive()) return;
 
       if (isPhysicalPostgres && !limitedUser.isForcedWalRotationAvailable) {
-        message.warning(
-          t('databases.readOnlyUser.forcedWalRotationUnavailable'),
-          FORCED_WAL_ROTATION_WARNING_SECONDS,
-        );
+        notify({
+          kind: 'warning',
+          title: t('databases.readOnlyUser.forcedWalRotationUnavailable'),
+          lifetimeMs: FORCED_WAL_ROTATION_WARNING_SECONDS * 1000,
+        });
       }
 
       onLimitedUserCreated(limitedUser);
     } catch (e) {
-      if (isActive()) message.error(translateApiError(e, t));
+      if (isActive()) notify({ kind: 'error', title: translateApiError(e, t) });
     }
 
     setIsCreatingReadOnlyUser(false);
@@ -170,7 +172,7 @@ export const CreateLimitedUserComponent = ({
   if (isCheckingReadOnlyUserSuggestion) {
     return (
       <div className="flex items-center">
-        <Spin />
+        <Loader role="status" />
         <span className="ml-3">{t(userKindKeys.checking)}</span>
       </div>
     );
@@ -246,31 +248,32 @@ export const CreateLimitedUserComponent = ({
         </p>
       </div>
 
-      <div className="mt-5 flex">
-        <Button className="mr-auto" type="primary" ghost onClick={() => onGoBack()}>
+      <div className="mt-5 flex flex-wrap gap-2">
+        <Button className="mr-auto shrink-0" variant="outline" onClick={() => onGoBack()}>
           {t('common.actions.back')}
         </Button>
 
-        <Button className="mr-2 ml-auto" danger ghost onClick={handleSkip}>
+        <Button variant="outline" className="ml-auto shrink-0" color="danger" onClick={handleSkip}>
           {t('databases.readOnlyUser.skip')}
         </Button>
 
         <Button
-          type="primary"
+          variant="filled"
+          className="shrink-0"
           onClick={provisionRestrictedUser}
           loading={isCreatingReadOnlyUser}
           disabled={isCreatingReadOnlyUser}
+          aria-busy={isCreatingReadOnlyUser}
         >
           {t(userKindKeys.create)}
         </Button>
       </div>
 
-      <Modal
+      <Dialog
         title={t(userKindKeys.skipTitle)}
-        open={isShowSkipConfirmation}
-        onCancel={() => setShowSkipConfirmation(false)}
-        footer={null}
-        width={450}
+        opened={isShowSkipConfirmation}
+        onClose={() => setShowSkipConfirmation(false)}
+        size={450}
       >
         <div className="mb-5">
           <p className="mb-2">{t(userKindKeys.skipQuestion)}</p>
@@ -280,16 +283,21 @@ export const CreateLimitedUserComponent = ({
           <p>{t('databases.readOnlyUser.skipAdvice')}</p>
         </div>
 
-        <div className="flex justify-end">
-          <Button className="mr-2" danger ghost onClick={handleSkipConfirmed}>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button
+            variant="outline"
+            className="shrink-0"
+            color="danger"
+            onClick={handleSkipConfirmed}
+          >
             {t('databases.readOnlyUser.acceptRisks')}
           </Button>
 
-          <Button type="primary" onClick={() => setShowSkipConfirmation(false)}>
+          <Button variant="filled" onClick={() => setShowSkipConfirmation(false)}>
             {t('databases.readOnlyUser.continueSecurely')}
           </Button>
         </div>
-      </Modal>
+      </Dialog>
     </div>
   );
 };

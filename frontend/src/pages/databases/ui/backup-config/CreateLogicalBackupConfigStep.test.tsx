@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { LogicalBackupConfigInput } from '@/entities/backup-configs';
@@ -59,7 +59,9 @@ describe('CreateLogicalBackupConfigStep', () => {
     );
 
     expect(await screen.findByDisplayValue('42')).toBeTruthy();
-    expect(await screen.findByText('Entered archive')).toBeTruthy();
+    expect(
+      await within(screen.getByRole('combobox', { name: 'Storage' })).findByText('Entered archive'),
+    ).toBeTruthy();
   });
 
   it('keeps Continue disabled without a storage', async () => {
@@ -113,7 +115,7 @@ describe('CreateLogicalBackupConfigStep', () => {
         onContinue={() => {}}
       />,
     );
-    await screen.findByText('Entered archive');
+    await within(screen.getByRole('combobox', { name: 'Storage' })).findByText('Entered archive');
 
     expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
   });
@@ -130,7 +132,7 @@ describe('CreateLogicalBackupConfigStep', () => {
         onContinue={onContinue}
       />,
     );
-    await screen.findByText('Entered archive');
+    await within(screen.getByRole('combobox', { name: 'Storage' })).findByText('Entered archive');
     fireEvent.click(screen.getAllByRole('checkbox')[0]);
 
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));

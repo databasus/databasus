@@ -5,7 +5,20 @@ export const pt: typeof en = {
     nativeName: 'Português',
   },
   common: {
+    calendar: {
+      monthLevelControl: 'Escolher mês',
+      yearLevelControl: 'Escolher ano',
+      nextMonth: 'Próximo mês',
+      previousMonth: 'Mês anterior',
+      nextYear: 'Próximo ano',
+      previousYear: 'Ano anterior',
+      nextDecade: 'Próxima década',
+      previousDecade: 'Década anterior',
+      seconds: 'Segundos',
+    },
     actions: {
+      clear: 'Limpar',
+      togglePasswordVisibility: 'Mostrar ou ocultar senha',
       back: 'Voltar',
       cancel: 'Cancelar',
       close: 'Fechar',
@@ -207,6 +220,9 @@ export const pt: typeof en = {
     },
   },
   schedules: {
+    hours: 'Horas',
+    minutes: 'Minutos',
+    timePeriod: 'AM ou PM',
     types: {
       hourly: 'A cada hora',
       daily: 'Diário',

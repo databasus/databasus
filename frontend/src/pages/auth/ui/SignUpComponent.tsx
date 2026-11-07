@@ -1,5 +1,4 @@
-import { EyeInvisibleOutlined, EyeTwoTone } from '@ant-design/icons';
-import { Form, Button, Input } from 'antd';
+import { Button, PasswordInput, TextInput } from '@mantine/core';
 import { useId } from 'react';
 import { type JSX, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
@@ -140,20 +139,12 @@ export function SignUpComponent({
         </div>
       )}
 
-      <Form.Item
-        htmlFor={controlId + 'field-1'}
-        label={t('users.fields.yourName')}
-        layout="vertical"
-        validateStatus={isNameError ? 'error' : undefined}
-        help={
-          isNameError ? (
-            <span id={controlId + 'field-1' + '-error'}>{t('users.validation.nameRequired')}</span>
-          ) : undefined
-        }
-      >
-        <Input
+      <div className="mb-6 min-w-0">
+        <label htmlFor={controlId + 'field-1'} className="mb-2 block text-sm text-content">
+          {t('users.fields.yourName')}
+        </label>
+        <TextInput
           aria-invalid={isNameError}
-          aria-describedby={controlId + 'field-1' + '-error'}
           id={controlId + 'field-1'}
           placeholder={t('users.signUp.namePlaceholder')}
           value={name}
@@ -161,24 +152,16 @@ export function SignUpComponent({
             setNameError(false);
             setName(e.currentTarget.value);
           }}
-          status={isNameError ? 'error' : undefined}
+          error={isNameError ? <span>{t('users.validation.nameRequired')}</span> : undefined}
         />
-      </Form.Item>
+      </div>
 
-      <Form.Item
-        htmlFor={controlId + 'field-2'}
-        label={t('users.fields.yourEmail')}
-        layout="vertical"
-        validateStatus={isEmailError ? 'error' : undefined}
-        help={
-          isEmailError ? (
-            <span id={controlId + 'field-2' + '-error'}>{t('users.validation.emailInvalid')}</span>
-          ) : undefined
-        }
-      >
-        <Input
+      <div className="mb-6 min-w-0">
+        <label htmlFor={controlId + 'field-2'} className="mb-2 block text-sm text-content">
+          {t('users.fields.yourEmail')}
+        </label>
+        <TextInput
           aria-invalid={isEmailError}
-          aria-describedby={controlId + 'field-2' + '-error'}
           id={controlId + 'field-2'}
           placeholder="your@email.com"
           value={email}
@@ -186,27 +169,17 @@ export function SignUpComponent({
             setEmailError(false);
             setEmail(e.currentTarget.value.trim().toLowerCase());
           }}
-          status={isEmailError ? 'error' : undefined}
           type="email"
+          error={isEmailError ? <span>{t('users.validation.emailInvalid')}</span> : undefined}
         />
-      </Form.Item>
+      </div>
 
-      <Form.Item
-        htmlFor={controlId + 'field-3'}
-        label={t('common.fields.password')}
-        layout="vertical"
-        validateStatus={isPasswordError ? 'error' : undefined}
-        help={
-          isPasswordError ? (
-            <span id={controlId + 'field-3' + '-error'}>
-              {t('users.validation.passwordTooShort', { minLength: 8 })}
-            </span>
-          ) : undefined
-        }
-      >
-        <Input.Password
+      <div className="mb-6 min-w-0">
+        <label htmlFor={controlId + 'field-3'} className="mb-2 block text-sm text-content">
+          {t('common.fields.password')}
+        </label>
+        <PasswordInput
           aria-invalid={isPasswordError}
-          aria-describedby={controlId + 'field-3' + '-error'}
           id={controlId + 'field-3'}
           placeholder="********"
           value={password}
@@ -214,43 +187,44 @@ export function SignUpComponent({
             setPasswordError(false);
             setPassword(e.currentTarget.value);
           }}
-          status={isPasswordError ? 'error' : undefined}
-          iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
-          visibilityToggle={{ visible: isPasswordVisible, onVisibleChange: setPasswordVisible }}
+          visible={isPasswordVisible}
+          onVisibilityChange={setPasswordVisible}
+          visibilityToggleButtonProps={{
+            'aria-label': t('common.actions.togglePasswordVisibility'),
+          }}
+          error={
+            isPasswordError ? (
+              <span>{t('users.validation.passwordTooShort', { minLength: 8 })}</span>
+            ) : undefined
+          }
         />
-      </Form.Item>
+      </div>
 
-      <Form.Item
-        htmlFor={controlId + 'field-4'}
-        label={t('users.fields.confirmPassword')}
-        layout="vertical"
-        validateStatus={isConfirmPasswordError ? 'error' : undefined}
-        help={
-          isConfirmPasswordError ? (
-            <span id={controlId + 'field-4' + '-error'}>
-              {t('users.validation.passwordsDoNotMatch')}
-            </span>
-          ) : undefined
-        }
-      >
-        <Input.Password
+      <div className="mb-6 min-w-0">
+        <label htmlFor={controlId + 'field-4'} className="mb-2 block text-sm text-content">
+          {t('users.fields.confirmPassword')}
+        </label>
+        <PasswordInput
           aria-invalid={isConfirmPasswordError}
-          aria-describedby={controlId + 'field-4' + '-error'}
           id={controlId + 'field-4'}
           placeholder="********"
           value={confirmPassword}
-          status={isConfirmPasswordError ? 'error' : undefined}
           onChange={(e) => {
             setConfirmPasswordError(false);
             setConfirmPassword(e.currentTarget.value);
           }}
-          iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
-          visibilityToggle={{
-            visible: isConfirmPasswordVisible,
-            onVisibleChange: setConfirmPasswordVisible,
+          visible={isConfirmPasswordVisible}
+          onVisibilityChange={setConfirmPasswordVisible}
+          visibilityToggleButtonProps={{
+            'aria-label': t('common.actions.togglePasswordVisibility'),
           }}
+          error={
+            isConfirmPasswordError ? (
+              <span>{t('users.validation.passwordsDoNotMatch')}</span>
+            ) : undefined
+          }
         />
-      </Form.Item>
+      </div>
 
       <div className="mt-3" />
 
@@ -264,7 +238,8 @@ export function SignUpComponent({
         onClick={() => {
           onSignUp();
         }}
-        type="primary"
+        variant="filled"
+        aria-busy={isLoading}
       >
         {t('users.signUp.submit')}
       </Button>

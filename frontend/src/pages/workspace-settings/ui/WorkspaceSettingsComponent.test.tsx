@@ -32,6 +32,31 @@ const mockChildren = () =>
   );
 
 describe('WorkspaceSettingsComponent', () => {
+  it('describes the workspace name error until the draft is corrected', async () => {
+    server.use(mockApi.get('/workspaces/{workspaceId}', 200, workspace));
+    mockChildren();
+    const { user: interaction } = renderScreen(
+      <WorkspaceSettingsComponent selectedWorkspace={workspace} user={user} />,
+    );
+    const name = await screen.findByRole('textbox', { name: 'Workspace name' });
+
+    await interaction.clear(name);
+    await interaction.click(screen.getByRole('button', { name: /Save changes/i }));
+
+    const error = screen.getByRole('alert');
+    expect(
+      screen.getByRole('textbox', { name: 'Workspace name', description: error.textContent! }),
+    ).toBe(name);
+    expect(name.getAttribute('aria-invalid')).toBe('true');
+    expect(server.getRequests().some((request) => request.method === 'PUT')).toBe(false);
+
+    await interaction.type(name, 'Corrected workspace');
+
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(name.getAttribute('aria-invalid')).not.toBe('true');
+    expect(name.getAttribute('aria-describedby')).toBeNull();
+  });
+
   it('offers retry after the initial workspace request fails', async () => {
     server.use(mockApi.get('/workspaces/{workspaceId}', 500, buildProblem('internal', 500)));
     mockChildren();
@@ -298,7 +323,7 @@ describe('WorkspaceSettingsComponent', () => {
       expect(
         screen.queryByText('The requested item was not found. It may have been deleted.'),
       ).toBeNull();
-      expect(view.container.querySelector('.ant-alert-error')).toBeNull();
+      expect(view.container.querySelector('[role="alert"]')).toBeNull();
 
       view.unmount();
     },

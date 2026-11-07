@@ -1,4 +1,3 @@
-import { Button, Modal, Select, type GetRef } from 'antd';
 import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -6,6 +5,8 @@ import { type Storage, getStorageLogoFromType, storageApi } from '@/entities/sto
 import { EditStorageComponent } from '@/features/edit-storage';
 import { useSessionGuard } from '@/shared/auth';
 import { useLatestRef, useRequestRevision } from '@/shared/hooks';
+import { ResourcePicker } from '@/shared/ui';
+import { Dialog } from '@/shared/ui';
 import { LoadFailure } from '@/shared/ui';
 
 interface Props {
@@ -70,8 +71,7 @@ export function BackupStorageSelection({
   const isCurrent = useSessionGuard();
   const requests = useRequestRevision();
   const acknowledgedStorages = useRef<Storage[]>([]);
-  const storageSelectRef = useRef<GetRef<typeof Select>>(null);
-  const createButtonRef = useRef<HTMLButtonElement>(null);
+  const storageSelectRef = useRef<HTMLButtonElement | HTMLInputElement>(null);
   const currentWorkspace = useLatestRef(workspaceId);
 
   const startStoragesLoad = useEffectEvent(() => {
@@ -109,52 +109,21 @@ export function BackupStorageSelection({
       {error !== undefined && (
         <LoadFailure className="w-full" error={error} onRetry={() => void load()} />
       )}
-      <Select
-        ref={storageSelectRef}
+      <ResourcePicker
+        targetRef={storageSelectRef}
         id={controlId}
-        aria-label={t('backups.config.storage')}
-        allowClear={canClear}
-        loading={isLoading}
-        value={selectedStorageId}
-        onChange={(storageId) => onSelect(storageId)}
-        size="small"
-        className="max-w-[200px] min-w-0 flex-1"
-        open={isDropdownOpen}
+        label={t('backups.config.storage')}
+        data={storages.map((storage) => ({ value: storage.id, label: storage.name }))}
+        selectedValues={selectedStorageId ? [selectedStorageId] : []}
+        onSelect={onSelect}
+        onClear={canClear ? () => onSelect(undefined) : undefined}
+        isLoading={isLoading}
+        className="max-w-[200px] flex-1"
+        isOpen={isDropdownOpen}
         onOpenChange={setIsDropdownOpen}
-        onInputKeyDown={(event) => {
-          if (event.key === 'Tab' && !event.shiftKey && isDropdownOpen) {
-            event.preventDefault();
-            event.stopPropagation();
-            createButtonRef.current?.focus();
-          }
-        }}
-        popupRender={(menu) => (
-          <>
-            {storages.length > 0 && menu}
-            <div className="mt-1 border-t border-border pt-1">
-              <Button
-                ref={createButtonRef}
-                type="text"
-                block
-                className="!h-auto min-h-8 !justify-start !whitespace-normal !text-accent"
-                onClick={createStorage}
-                onKeyDown={(event) => {
-                  event.stopPropagation();
-
-                  if (event.key === 'Escape' || (event.key === 'Tab' && event.shiftKey)) {
-                    event.preventDefault();
-                    if (event.key === 'Escape') setIsDropdownOpen(false);
-                    storageSelectRef.current?.focus();
-                  }
-                }}
-              >
-                {t('backups.config.createNewStorage')}
-              </Button>
-            </div>
-          </>
-        )}
-        options={storages.map((storage) => ({ label: storage.name, value: storage.id }))}
         placeholder={t('backups.config.selectStorage')}
+        createLabel={t('backups.config.createNewStorage')}
+        onCreate={createStorage}
       />
       {selectedStorage && (
         <img
@@ -164,12 +133,11 @@ export function BackupStorageSelection({
         />
       )}
       {isCreating && (
-        <Modal
+        <Dialog
           title={t('backups.config.addStorageTitle')}
-          open
-          footer={null}
-          maskClosable={false}
-          onCancel={() => setIsCreating(false)}
+          opened
+          closeOnClickOutside={false}
+          onClose={() => setIsCreating(false)}
         >
           <p className="my-3 text-muted">{t('backups.config.storageDescription')}</p>
           <EditStorageComponent
@@ -186,7 +154,7 @@ export function BackupStorageSelection({
               setIsCreating(false);
             }}
           />
-        </Modal>
+        </Dialog>
       )}
     </div>
   );

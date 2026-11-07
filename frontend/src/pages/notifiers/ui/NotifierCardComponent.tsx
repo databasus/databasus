@@ -1,4 +1,4 @@
-import { InfoCircleOutlined } from '@ant-design/icons';
+import { Info } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { type Notifier, NotifierType, getNotifierLogoFromType } from '@/entities/notifiers';
@@ -51,7 +51,7 @@ export const NotifierCardComponent = ({
 
       {notifier.lastSendError && (
         <div className="mt-1 flex items-center text-sm text-danger underline">
-          <InfoCircleOutlined className="mr-1" />
+          <Info className="mr-1" size={14} />
           {t('notifiers.card.hasSendError')}
         </div>
       )}

@@ -70,7 +70,7 @@ describe('Composed backup storage creation', () => {
     const saveButton = await dialog.findByRole('button', { name: /Save/ });
     await waitFor(() => {
       expect(saveButton.hasAttribute('disabled')).toBe(false);
-      expect(saveButton.classList.contains('ant-btn-loading')).toBe(false);
+      expect(saveButton.getAttribute('aria-busy') === 'true').toBe(false);
     });
     await view.user.click(saveButton);
 
@@ -110,7 +110,7 @@ describe('Composed backup storage creation', () => {
         { isStrictMode: true },
       );
 
-      fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Storage' }));
+      fireEvent.click(await screen.findByRole('combobox', { name: 'Storage' }));
       fireEvent.click(await screen.findByRole('button', { name: 'Create new storage' }));
       const dialog = within(await screen.findByRole('dialog'));
 
@@ -173,7 +173,7 @@ describe('Composed backup storage creation', () => {
 
       server.use(mockApi.get('/storages', 200, { items: [existingStorage] }));
 
-      fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Storage' }));
+      fireEvent.click(await screen.findByRole('combobox', { name: 'Storage' }));
       fireEvent.click(await screen.findByRole('button', { name: 'Create new storage' }));
       const dialog = within(await screen.findByRole('dialog'));
 
@@ -186,7 +186,7 @@ describe('Composed backup storage creation', () => {
       await waitFor(() => expect(onSelect).toHaveBeenCalledWith(storage.id));
 
       view.rerender(<BackupStorageSelection {...props} selectedStorageId={storage.id} />);
-      await screen.findByText(storage.name, { selector: '.ant-select-selection-item' });
+      await within(screen.getByRole('combobox', { name: 'Storage' })).findByText(storage.name);
       const processed = new Promise<void>((resolve) => {
         server.events.on('response:mocked', function onResponse() {
           server.events.removeListener('response:mocked', onResponse);
@@ -204,26 +204,20 @@ describe('Composed backup storage creation', () => {
       });
 
       expect(
-        screen.getByText(storage.name, { selector: '.ant-select-selection-item' }),
+        within(screen.getByRole('combobox', { name: 'Storage' })).getByText(storage.name),
       ).toBeTruthy();
       expect(screen.getByRole('combobox', { name: 'Storage' })).toBeTruthy();
-      expect(view.container.querySelector('.ant-alert-error')).toBeNull();
+      expect(view.container.querySelector('[role="alert"]')).toBeNull();
       expect(onSelect).toHaveBeenCalledTimes(1);
 
       await view.user.click(screen.getByRole('combobox', { name: 'Storage' }));
-      await view.user.click(
-        await screen.findByText(existingStorage.name, {
-          selector: '.ant-select-item-option-content',
-        }),
-      );
+      await view.user.click(await screen.findByRole('option', { name: existingStorage.name }));
 
       expect(onSelect).toHaveBeenLastCalledWith(existingStorage.id);
 
       view.rerender(<BackupStorageSelection {...props} selectedStorageId={existingStorage.id} />);
       await view.user.click(screen.getByRole('combobox', { name: 'Storage' }));
-      await view.user.click(
-        await screen.findByText(storage.name, { selector: '.ant-select-item-option-content' }),
-      );
+      await view.user.click(await screen.findByRole('option', { name: storage.name }));
 
       expect(onSelect).toHaveBeenLastCalledWith(storage.id);
     },
@@ -239,7 +233,7 @@ describe('Composed backup storage creation', () => {
     const props = { workspaceId: storage.workspaceId, canClear: true, onSelect };
     const view = renderScreen(<BackupStorageSelection {...props} />);
 
-    fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Storage' }));
+    fireEvent.click(await screen.findByRole('combobox', { name: 'Storage' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Create new storage' }));
     const editor = within(await screen.findByRole('dialog'));
 
@@ -256,7 +250,9 @@ describe('Composed backup storage creation', () => {
     view.rerender(<BackupStorageSelection {...props} selectedStorageId={storage.id} />);
     await screen.findByText('An internal server error occurred. Please try again later.');
 
-    expect(screen.getByText(storage.name, { selector: '.ant-select-selection-item' })).toBeTruthy();
+    expect(
+      within(screen.getByRole('combobox', { name: 'Storage' })).getByText(storage.name),
+    ).toBeTruthy();
 
     const existingStorage = { ...storage, id: 'existing-storage', name: 'Existing archive' };
     server.use(mockApi.get('/storages', 200, { items: [existingStorage] }));
@@ -270,11 +266,9 @@ describe('Composed backup storage creation', () => {
     );
 
     await view.user.click(screen.getByRole('combobox', { name: 'Storage' }));
-    await screen.findByText(existingStorage.name, { selector: '.ant-select-item-option-content' });
+    await screen.findByRole('option', { name: existingStorage.name });
 
-    expect(
-      screen.getByText(storage.name, { selector: '.ant-select-item-option-content' }),
-    ).toBeTruthy();
+    expect(screen.getByRole('option', { name: storage.name })).toBeTruthy();
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,5 +1,5 @@
-import { DatePicker, Select } from 'antd';
-import type { Dayjs } from 'dayjs';
+import { MultiSelect } from '@mantine/core';
+import { DateInput } from '@mantine/dates';
 import dayjs from 'dayjs';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -29,10 +29,10 @@ export const LogicalBackupsFiltersPanelComponent = ({ filter, onFilterChange }: 
     onFilterChange({ ...filter, statuses: statuses.length > 0 ? statuses : undefined });
   };
 
-  const handleCreatedBeforeChange = (date: Dayjs | null) => {
+  const handleCreatedBeforeChange = (date: string | null) => {
     onFilterChange({
       ...filter,
-      createdBefore: date ? date.toISOString() : undefined,
+      createdBefore: date ? dayjs(date).toISOString() : undefined,
     });
   };
 
@@ -43,36 +43,41 @@ export const LogicalBackupsFiltersPanelComponent = ({ filter, onFilterChange }: 
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2">
+      <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center">
         <label className="min-w-[90px] pr-2 text-sm text-muted" htmlFor={statusFieldId}>
           {t('common.fields.status')}
         </label>
-        <Select
+        <MultiSelect
           id={statusFieldId}
-          mode="multiple"
           value={filter.statuses ?? []}
           onChange={handleStatusChange}
-          options={statusOptions}
+          data={statusOptions}
           placeholder={t('backups.filters.allStatuses')}
-          size="small"
+          size="xs"
           variant="filled"
-          className="w-[200px] [&_.ant-select-selector]:!rounded-md"
-          allowClear
+          className="w-full max-w-[200px]"
+          clearable
         />
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center">
         <label className="min-w-[90px] pr-2 text-sm text-muted" htmlFor={beforeFieldId}>
           {t('backups.filters.before')}
         </label>
-        <DatePicker
+        <DateInput
+          popoverProps={{
+            withRoles: true,
+            returnFocus: true,
+            attributes: { dropdown: { 'aria-label': t('backups.filters.before') } },
+          }}
           id={beforeFieldId}
-          value={filter.createdBefore ? dayjs(filter.createdBefore) : null}
+          value={filter.createdBefore ? dayjs(filter.createdBefore).format('YYYY-MM-DD') : null}
           onChange={handleCreatedBeforeChange}
-          size="small"
+          size="xs"
           variant="filled"
-          className="w-[200px] !rounded-md"
-          allowClear
+          className="w-full max-w-[200px] !rounded-md"
+          clearable
+          clearButtonProps={{ 'aria-label': t('common.actions.clear') }}
         />
       </div>
     </div>

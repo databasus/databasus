@@ -1,4 +1,4 @@
-import { Button } from 'antd';
+import { Button } from '@mantine/core';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -56,9 +56,7 @@ export const ChoosePostgresBackupTypeComponent = ({
               key={option.type}
               aria-pressed={isSelected}
               onClick={() => setSelectedType(option.type)}
-              className={`flex cursor-pointer flex-col gap-2 rounded-xl border p-3 text-left transition hover:border-accent ${
-                isSelected ? 'border-accent bg-selected' : 'border-border bg-surface'
-              }`}
+              className={`flex cursor-pointer flex-col gap-2 rounded-xl border p-3 text-left transition hover:border-accent ${isSelected ? 'border-accent bg-selected' : 'border-border bg-surface'}`}
             >
               <div className="flex items-center gap-2">
                 <span className="font-semibold">{t(option.titleKey)}</span>
@@ -71,11 +69,11 @@ export const ChoosePostgresBackupTypeComponent = ({
       </div>
 
       <div className="mt-5 flex">
-        <Button className="mr-auto" type="primary" ghost onClick={onBack}>
+        <Button className="mr-auto" variant="outline" onClick={onBack}>
           {t('common.actions.back')}
         </Button>
 
-        <Button type="primary" onClick={() => onSelected(selectedType)}>
+        <Button variant="filled" onClick={() => onSelected(selectedType)}>
           {continueButtonText}
         </Button>
       </div>

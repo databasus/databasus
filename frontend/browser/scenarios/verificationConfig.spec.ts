@@ -3,6 +3,7 @@ import { expect, type Page } from '@playwright/test';
 import type { components } from '../../src/shared/api/schema.gen';
 import { DICTIONARIES } from '../../src/shared/i18n/dictionaries';
 import { applicationFixtures, workspace } from '../applicationFixtures';
+import { assertEnlargedTextReflow } from '../assertEnlargedTextReflow';
 import { test } from '../browserTest';
 import { apiResponse } from '../HttpFixture';
 import { openAccount } from '../openAccount';
@@ -137,18 +138,24 @@ const openVerificationSection = async (page: Page) => {
   await sectionTitle.locator('xpath=..').locator('img[src="/icons/pen-gray.svg"]').click();
 };
 
-for (const width of [320, 1280]) {
-  test(`edits a verification schedule in Russian and reads it again when viewport width is ${width}`, async ({
+for (const { width, theme } of [
+  { width: 320, theme: 'light' },
+  { width: 1280, theme: 'light' },
+  { width: 1280, theme: 'dark' },
+] as const) {
+  test(`edits a verification schedule in Russian and reads it again when viewport width is ${width} in ${theme} theme`, async ({
     page,
   }) => {
     await serveDatabaseConfigScreenRoutes(page);
     await page.setViewportSize({ width, height: 720 });
-    await openAccount({ page, locale: 'ru' });
+    await openAccount({ page, locale: 'ru', theme });
     await openWorkspaceScreen({ page, locale: 'ru', tab: 'databases' });
 
     if (width === 320) await page.getByRole('button', { name: /^Orders/ }).click();
 
+    await assertEnlargedTextReflow(page);
     await openVerificationSection(page);
+    await assertEnlargedTextReflow(page);
 
     const saveButton = page.getByRole('button', { name: dictionary.common.actions.save });
     const cronInput = page.getByLabel(dictionary.schedules.cronExpression, { exact: true });
@@ -161,6 +168,8 @@ for (const width of [320, 1280]) {
 
     await cronInput.fill(SAVED_CRON_EXPRESSION);
     await expect(saveButton).toBeEnabled();
+    await assertEnlargedTextReflow(page);
+
     await saveButton.click();
     await expect(saveButton).toBeHidden();
 

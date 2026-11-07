@@ -68,9 +68,7 @@ def create_workspace(page: Page, name: str) -> None:
 
 
 def expect_selected_workspace(page: Page, name: str) -> None:
-    selected_workspace = page.locator(".ant-select").filter(
-        has=page.get_by_role("combobox", name="Selected workspace")
-    )
+    selected_workspace = page.get_by_role("combobox", name="Selected workspace")
     expect(selected_workspace).to_contain_text(name)
 
 

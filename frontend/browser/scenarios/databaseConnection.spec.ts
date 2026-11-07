@@ -290,8 +290,25 @@ test('creates a database, edits it and reads it again without any secret', async
   await page.getByRole('button', { name: 'Continue' }).click();
 
   await page.getByRole('dialog').getByRole('combobox', { name: 'Storage' }).click();
-  await page.getByTitle('Archive').click();
+  await page.getByRole('option', { name: 'Archive', exact: true }).click();
   await page.getByRole('button', { name: 'Continue' }).click();
+
+  const wizard = page.getByRole('dialog');
+  const notifierPicker = wizard.getByRole('combobox', { name: 'Notifiers' });
+
+  await notifierPicker.click();
+  await page.getByRole('textbox', { name: 'Notifiers', exact: true }).fill('operations');
+  await page.keyboard.press('Escape');
+
+  await expect(notifierPicker).toHaveAttribute('aria-expanded', 'false');
+  await expect(notifierPicker).toBeFocused();
+  await expect(wizard).toBeVisible();
+
+  await wizard.getByRole('button', { name: 'Back', exact: true }).click();
+
+  await expect(wizard.getByRole('combobox', { name: 'Storage' })).toContainText('Archive');
+
+  await wizard.getByRole('button', { name: 'Continue', exact: true }).click();
   await page.getByRole('button', { name: 'Complete' }).click();
 
   await expect(page.getByRole('dialog')).toBeHidden();

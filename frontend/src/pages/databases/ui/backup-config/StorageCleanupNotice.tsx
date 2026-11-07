@@ -1,5 +1,5 @@
-import { LoadingOutlined, WarningOutlined } from '@ant-design/icons';
-import { Button } from 'antd';
+import { Button } from '@mantine/core';
+import { LoaderCircle, TriangleAlert } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import type { BackupCleanup } from '@/entities/backup-configs';
@@ -20,14 +20,18 @@ export const StorageCleanupNotice = ({ cleanup, error, onRetry }: Props) => {
   return (
     <div role="status" className="mb-3 max-w-full min-w-0 text-sm break-words">
       <div className="flex items-start gap-2 text-muted">
-        <LoadingOutlined aria-hidden className="mt-1 shrink-0" />
+        <LoaderCircle aria-hidden className="mt-1 inline-block shrink-0 align-middle" size="1em" />
         <span>
           {t('backups.cleanup.pending', { count: formatNumber(cleanup.pendingFileCount) })}
         </span>
       </div>
       {cleanup.failedFileCount > 0 && (
         <div className="mt-1 flex items-start gap-2 text-warning">
-          <WarningOutlined aria-hidden className="mt-1 shrink-0" />
+          <TriangleAlert
+            aria-hidden
+            className="mt-1 inline-block shrink-0 align-middle"
+            size="1em"
+          />
           <span>
             {t('backups.cleanup.retrying', { count: formatNumber(cleanup.failedFileCount) })}
           </span>
@@ -36,7 +40,11 @@ export const StorageCleanupNotice = ({ cleanup, error, onRetry }: Props) => {
       {error !== undefined && (
         <div className="mt-1 text-danger">
           <span>{translateApiError(error, t)}</span>
-          <Button type="link" onClick={onRetry} className="!h-auto max-w-full !whitespace-normal">
+          <Button
+            variant="transparent"
+            onClick={onRetry}
+            className="!h-auto max-w-full !whitespace-normal"
+          >
             {t('backups.cleanup.retryStatus')}
           </Button>
         </div>

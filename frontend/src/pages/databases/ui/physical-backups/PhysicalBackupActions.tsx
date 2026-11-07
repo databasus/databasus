@@ -1,4 +1,4 @@
-import { CloseCircleOutlined, CloudUploadOutlined, DeleteOutlined } from '@ant-design/icons';
+import { CircleX, CloudUpload, Trash2 } from 'lucide-react';
 import type { JSX } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -35,7 +35,7 @@ export const PhysicalBackupActions = ({ backup, actions }: Props): JSX.Element =
       {backup.status === PhysicalBackupStatus.IN_PROGRESS && isCanManageDBs && (
         <RowActionButton
           title={t('backups.list.actions.cancelBackup')}
-          icon={<CloseCircleOutlined />}
+          icon={<CircleX size={14} />}
           className="!text-danger"
           isPending={cancellingBackupId === backup.id}
           isDisabled={Boolean(cancellingBackupId)}
@@ -47,7 +47,7 @@ export const PhysicalBackupActions = ({ backup, actions }: Props): JSX.Element =
         <>
           <RowActionButton
             title={t('backups.physical.list.restoreFromThisBackup')}
-            icon={<CloudUploadOutlined />}
+            icon={<CloudUpload size={14} />}
             className="!text-accent"
             onClick={() => actions.onRestore(backup)}
           />
@@ -55,7 +55,7 @@ export const PhysicalBackupActions = ({ backup, actions }: Props): JSX.Element =
           {isCanManageDBs && (
             <RowActionButton
               title={t('backups.list.actions.deleteBackup')}
-              icon={<DeleteOutlined />}
+              icon={<Trash2 size={14} />}
               className="!text-danger"
               isPending={deletingBackupId === backup.id}
               isDisabled={Boolean(deletingBackupId)}

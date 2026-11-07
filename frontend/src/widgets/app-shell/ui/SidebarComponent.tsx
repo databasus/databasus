@@ -1,5 +1,5 @@
-import { CloseOutlined } from '@ant-design/icons';
-import { Button, Drawer, Tooltip } from 'antd';
+import { ActionIcon, Button, Drawer, Tooltip } from '@mantine/core';
+import { X } from 'lucide-react';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -7,6 +7,8 @@ import { type DiskUsage } from '@/entities/disk';
 import { type User, UserRole } from '@/entities/users';
 import { useIsMobile } from '@/shared/hooks';
 import { getWebsitePageUrl, useLocale } from '@/shared/i18n';
+import { closeOverlayOnEscape } from '@/shared/ui';
+import { OverlayFocusReturn } from '@/shared/ui';
 import { LanguageThemeControlComponent } from '@/shared/ui';
 import { StarButtonComponent } from '@/shared/ui/StarButtonComponent';
 import { getDiskUsageValues } from '@/widgets/app-shell/ui/getDiskUsageValues';
@@ -92,22 +94,21 @@ export const SidebarComponent = ({
 
               return (
                 <div key={tab.text} className="flex justify-center">
-                  <Button
-                    type={isSelected ? 'primary' : 'text'}
+                  <ActionIcon
+                    variant={isSelected ? 'filled' : 'subtle'}
                     aria-label={tab.text}
                     aria-current={isSelected ? 'page' : undefined}
                     className="!h-[50px] !w-[50px] select-none"
                     onClick={() => handleTabClick(tab)}
                     style={{ marginTop: tab.marginTop }}
-                    icon={
-                      <img
-                        src={isSelected ? tab.selectedIcon : tab.icon}
-                        width={20}
-                        alt=""
-                        loading="lazy"
-                      />
-                    }
-                  />
+                  >
+                    <img
+                      src={isSelected ? tab.selectedIcon : tab.icon}
+                      width={20}
+                      alt=""
+                      loading="lazy"
+                    />
+                  </ActionIcon>
                 </div>
               );
             })}
@@ -119,19 +120,27 @@ export const SidebarComponent = ({
 
   return (
     <Drawer
+      closeOnEscape={false}
+      onKeyDown={(event) => closeOverlayOnEscape(event, { isOpen: isOpen, onClose: onClose })}
       title={t('app.navigation.menu')}
-      open={isOpen}
+      opened={isOpen}
       onClose={onClose}
-      placement="right"
-      width={280}
+      position="right"
+      size={280}
       styles={{
+        content: { display: 'flex', flexDirection: 'column' },
+        header: { flexShrink: 0 },
         body: {
           padding: 0,
+          flex: 1,
+          minHeight: 0,
         },
       }}
-      closable={false}
-      mask={false}
+      withCloseButton={false}
+      withOverlay={false}
+      closeButtonProps={{ 'aria-label': t('common.actions.close') }}
     >
+      {isOpen && <OverlayFocusReturn />}
       <div className="flex h-full flex-col">
         <div className="flex items-center justify-between border-b border-border px-3 py-3">
           <LanguageThemeControlComponent />
@@ -141,10 +150,10 @@ export const SidebarComponent = ({
             onClick={onClose}
             className="flex h-8 w-8 items-center justify-center rounded hover:bg-surface"
           >
-            <CloseOutlined />
+            <X size="1em" className="inline-block shrink-0 align-middle" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-3 py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
           {filteredTabs.map((tab, index) => {
             const showDivider =
               index < filteredTabs.length - 1 && filteredTabs[index + 1]?.marginTop !== '0px';
@@ -153,19 +162,23 @@ export const SidebarComponent = ({
             return (
               <div key={tab.text}>
                 <Button
-                  block
-                  type={isSelected ? 'primary' : 'text'}
+                  fullWidth
+                  variant={isSelected ? 'filled' : 'subtle'}
+                  color={isSelected ? 'accent' : 'var(--app-content)'}
+                  styles={{ inner: { justifyContent: 'flex-start' } }}
+                  leftSection={
+                    <img
+                      src={isSelected ? tab.selectedIcon : tab.icon}
+                      width={24}
+                      alt=""
+                      loading="lazy"
+                    />
+                  }
                   aria-label={tab.text}
                   aria-current={isSelected ? 'page' : undefined}
                   className="!h-auto !justify-start !gap-3 !px-3 !py-3 text-left !whitespace-normal select-none"
                   onClick={() => handleTabClick(tab)}
                 >
-                  <img
-                    src={isSelected ? tab.selectedIcon : tab.icon}
-                    width={24}
-                    alt=""
-                    loading="lazy"
-                  />
                   <span className="text-sm font-medium">{tab.text}</span>
                 </Button>
                 {showDivider && <div className="my-2 border-t border-border" />}
@@ -173,10 +186,10 @@ export const SidebarComponent = ({
             );
           })}
         </div>
-        <div className="border-t border-border bg-surface px-3 py-4">
+        <div className="shrink-0 border-t border-border bg-surface px-3 py-4">
           {diskUsage && (
             <div className="mb-4">
-              <Tooltip title={t('app.diskUsage.hint')}>
+              <Tooltip label={t('app.diskUsage.hint')}>
                 <div
                   className={`cursor-pointer text-xs ${isUsedMoreThan95Percent ? 'text-danger' : 'text-muted'}`}
                 >

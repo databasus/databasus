@@ -1,5 +1,5 @@
-import { LoadingOutlined, PlusOutlined } from '@ant-design/icons';
-import { App, Button, Spin } from 'antd';
+import { Button, Loader } from '@mantine/core';
+import { Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -17,9 +17,9 @@ import { useSessionGuard } from '@/shared/auth';
 import { usePolledPagedList } from '@/shared/hooks';
 import { getWebsitePageUrl, translateApiError, useLocale } from '@/shared/i18n';
 import { BrowserClipboard } from '@/shared/lib/BrowserClipboard';
+import { useFeedback } from '@/shared/lib/feedback';
 import { LoadFailure } from '@/shared/ui';
-
-const LIST_REFRESH_MS = 15_000;
+const LIST_REFRESH_MS = 15000;
 // eslint-disable-next-line i18next/no-literal-string -- the list has one key, it never resets
 const AGENTS_LIST_KEY = 'verification-agents';
 
@@ -30,7 +30,7 @@ const getAgentKey = (agent: VerificationAgent) => agent.id;
 export const VerificationAgentsComponent = () => {
   const { t } = useTranslation();
   const { locale } = useLocale();
-  const { message } = App.useApp();
+  const notify = useFeedback();
   const isCurrent = useSessionGuard();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -48,15 +48,15 @@ export const VerificationAgentsComponent = () => {
   const [currentTimeMs, setCurrentTimeMs] = useState(() => Date.now());
 
   const showFailure = (error: unknown) => {
-    if (isCurrent()) message.error(translateApiError(error, t));
+    if (isCurrent()) notify({ kind: 'error', title: translateApiError(error, t) });
   };
 
   const copyToClipboard = async (text: string) => {
     try {
       await BrowserClipboard.copyToClipboard(text);
-      if (isCurrent()) message.success(t('common.messages.copiedToClipboard'));
+      if (isCurrent()) notify({ kind: 'success', title: t('common.messages.copiedToClipboard') });
     } catch {
-      if (isCurrent()) message.error(t('verification.agents.copyFailed'));
+      if (isCurrent()) notify({ kind: 'error', title: t('verification.agents.copyFailed') });
     }
   };
 
@@ -104,7 +104,7 @@ export const VerificationAgentsComponent = () => {
       await verificationAgentApi.deleteAgent(agent.id);
 
       if (isCurrent()) {
-        message.success(t('verification.agents.deleted', { name: agent.name }));
+        notify({ kind: 'success', title: t('verification.agents.deleted', { name: agent.name }) });
         await reload();
       }
     } catch (error) {
@@ -144,9 +144,9 @@ export const VerificationAgentsComponent = () => {
         <h2 className="text-xl font-bold">{t('verification.agents.title')}</h2>
 
         <Button
-          type="primary"
-          size="small"
-          icon={<PlusOutlined />}
+          variant="filled"
+          size="xs"
+          leftSection={<Plus size="1em" className="inline-block shrink-0 align-middle" />}
           className="!h-auto min-h-8 max-w-full !whitespace-normal"
           disabled={isCreateDisabled}
           onClick={() => setIsCreateDialogOpen(true)}
@@ -174,7 +174,7 @@ export const VerificationAgentsComponent = () => {
         <LoadFailure error={firstLoadError} onRetry={() => void reload()} />
       ) : isLoading ? (
         <div className="py-4">
-          <Spin indicator={<LoadingOutlined spin />} />
+          <Loader role="status" />
         </div>
       ) : agents.length === 0 ? (
         <p className="text-sm text-muted">{t('verification.agents.empty')}</p>

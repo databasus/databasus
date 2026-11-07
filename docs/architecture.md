@@ -359,11 +359,11 @@ The [FSD skill](../.agents/skills/feature-sliced-design/SKILL.md) gives the plac
 ### Session and startup
 
 - **Shared session state owns account transitions** (spec `frontend-session`). It publishes a coherent token/user snapshot with a generation; only the active authentication interaction accepts a sign-in response. Requests belong to that snapshot, and a 401 invalidates only that session.
-- **Account transitions reset account-owned state.** Logout and session replacement reset screens and workspace selection, dismiss programmatic confirmations and reject obsolete destructive callbacks. Language, theme and version-reload cooldown survive. Providers remain mounted, so password-change feedback survives the transition to sign-in.
+- **Account transitions reset account-owned state.** Logout and session replacement reset screens and workspace selection, close account-owned confirmations and reject obsolete destructive callbacks. Language, theme and version-reload cooldown survive. Providers remain mounted, so password-change feedback survives the transition to sign-in.
 - **Startup and shell have separate owners.** App accepts essential user, settings and workspace data together, derives capabilities and owns workspace selection and version polling. The shell widget receives slots and owns viewport and drawer presentation.
 - **A sign-in attempt stays in its tab** and is consumed before code exchange. New authentication intent, unmount or session replacement prevents an older completion from activating a session.
 - **Storage authorization stays with its editor.** The editing feature owns the attempt in memory, and a callback page returns control to it. Entered secrets and tokens stay in browser memory, which cannot protect them from same-origin code or extensions. [Google Drive storage authorization](google-drive-storage-authorization.md) describes the flow.
-- **Theme infrastructure stays in shared.** It owns library configuration and derives application CSS roles from it. [Frontend design](frontend-design.md) explains presentation and its checks.
+- **Theme infrastructure stays in shared.** Application tokens own semantic CSS roles and feed both the library configuration and Tailwind utilities. [Frontend design](frontend-design.md) explains presentation and its checks.
 
 ### Editors and resource pages
 

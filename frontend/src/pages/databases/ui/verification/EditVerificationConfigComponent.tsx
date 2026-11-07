@@ -1,5 +1,5 @@
-import { InfoCircleOutlined } from '@ant-design/icons';
-import { Alert, Button, Checkbox, Select, Spin, Switch, Tooltip } from 'antd';
+import { Alert, Button, Checkbox, Loader, Switch, Tooltip } from '@mantine/core';
+import { CircleAlert, Info } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -19,6 +19,7 @@ import { VerificationScheduleType } from '@/pages/databases/model/verification/V
 import { useSessionGuard } from '@/shared/auth';
 import { useLatestRef } from '@/shared/hooks';
 import { getWebsitePageUrl, translateApiError, useLocale } from '@/shared/i18n';
+import { WrappingSelect } from '@/shared/ui';
 import { LoadFailure } from '@/shared/ui';
 
 type VerificationScheduleChoice = typeof VerificationScheduleType.AFTER_BACKUP | ScheduleType;
@@ -138,7 +139,7 @@ export const EditVerificationConfigComponent = ({ databaseId, onClose }: Props) 
   }
 
   if (!draft || !acknowledgedConfig) {
-    return <Spin size="small" />;
+    return <Loader size="xs" role="status" />;
   }
 
   const isAfterBackup = draft.scheduleType === VerificationScheduleType.AFTER_BACKUP;
@@ -156,14 +157,14 @@ export const EditVerificationConfigComponent = ({ databaseId, onClose }: Props) 
         <Switch
           checked={draft.isAutomaticVerificationEnabled}
           aria-label={t('verification.config.scheduledVerification')}
-          onChange={(isAutomaticVerificationEnabled) =>
-            updateDraft({ isAutomaticVerificationEnabled })
+          onChange={(event) =>
+            updateDraft({ isAutomaticVerificationEnabled: event.currentTarget.checked })
           }
-          size="small"
+          size="xs"
         />
         <Tooltip
           className="cursor-pointer"
-          title={
+          label={
             <Trans
               i18nKey="verification.config.scheduledVerificationTooltip"
               components={{
@@ -179,7 +180,7 @@ export const EditVerificationConfigComponent = ({ databaseId, onClose }: Props) 
             />
           }
         >
-          <InfoCircleOutlined className="ml-2 text-muted" />
+          <Info className="ml-2 inline-block shrink-0 align-middle text-muted" size="1em" />
         </Tooltip>
       </div>
 
@@ -189,13 +190,13 @@ export const EditVerificationConfigComponent = ({ databaseId, onClose }: Props) 
             <label htmlFor={scheduleChoiceControlId} className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
               {t('verification.config.interval')}
             </label>
-            <Select<VerificationScheduleChoice>
+            <WrappingSelect<VerificationScheduleChoice>
               id={scheduleChoiceControlId}
               value={isAfterBackup ? VerificationScheduleType.AFTER_BACKUP : draft.schedule.type}
               onChange={selectSchedule}
-              size="small"
+              size="xs"
               className="w-full max-w-[200px] grow"
-              options={[
+              data={[
                 {
                   label: t('verification.config.afterBackup'),
                   value: VerificationScheduleType.AFTER_BACKUP,
@@ -234,9 +235,8 @@ export const EditVerificationConfigComponent = ({ databaseId, onClose }: Props) 
                   key={notificationType}
                   checked={draft.notificationTriggers.includes(notificationType)}
                   onChange={(e) => toggleNotification(notificationType, e.target.checked)}
-                >
-                  {t(VERIFICATION_NOTIFICATION_TYPE_LABEL_KEYS[notificationType])}
-                </Checkbox>
+                  label={<>{t(VERIFICATION_NOTIFICATION_TYPE_LABEL_KEYS[notificationType])}</>}
+                />
               ))}
             </div>
           </div>
@@ -244,7 +244,14 @@ export const EditVerificationConfigComponent = ({ databaseId, onClose }: Props) 
       )}
 
       {saveError !== undefined && (
-        <Alert className="mt-5" type="error" showIcon message={translateApiError(saveError, t)} />
+        <Alert
+          className="mt-5"
+          color="danger"
+          icon={
+            <CircleAlert aria-hidden size={16} className="inline-block shrink-0 align-middle" />
+          }
+          title={translateApiError(saveError, t)}
+        />
       )}
 
       <div className="mt-6 flex justify-end space-x-2">
@@ -252,7 +259,13 @@ export const EditVerificationConfigComponent = ({ databaseId, onClose }: Props) 
           {t('common.actions.cancel')}
         </Button>
 
-        <Button type="primary" onClick={saveDraft} loading={isSaving} disabled={!canSave}>
+        <Button
+          variant="filled"
+          onClick={saveDraft}
+          loading={isSaving}
+          disabled={!canSave}
+          aria-busy={isSaving}
+        >
           {t('common.actions.save')}
         </Button>
       </div>

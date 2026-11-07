@@ -275,7 +275,7 @@ describe('VerificationsComponent', () => {
       await view.user.keyboard('{Enter}');
       await waitFor(() => expect(cancelCall).toHaveBeenCalledOnce());
 
-      const otherRow = document.querySelector('tr[data-row-key="other-running"]') as HTMLElement;
+      const otherRow = within(screen.getByRole('table')).getAllByRole('row')[2];
       fireEvent.click(within(otherRow).getByRole('button', { name: cancelName }));
 
       expect(cancelCall).toHaveBeenCalledOnce();
@@ -299,7 +299,7 @@ describe('VerificationsComponent', () => {
         await releaseAndSettle(cancelCall, () => heldCancel.respond(buildAnswer()));
 
         expect(listCall).toHaveBeenCalledOnce();
-        expect(document.querySelector('.ant-message-notice')).toBeNull();
+        expect(document.querySelector('[role="alert"], [role="status"]')).toBeNull();
         expect(showAlert).not.toHaveBeenCalled();
         expect(screen.getByRole('button', { name: 'Toggle tab' })).toBeTruthy();
       },
@@ -324,7 +324,7 @@ describe('VerificationsComponent', () => {
         await releaseAndSettle(cancelCall, () => heldCancel.respond(buildAnswer()));
 
         expect(listCall).toHaveBeenCalledOnce();
-        expect(document.querySelector('.ant-message-notice')).toBeNull();
+        expect(document.querySelector('[role="alert"], [role="status"]')).toBeNull();
         expect(showAlert).not.toHaveBeenCalled();
       },
     );
@@ -580,7 +580,7 @@ describe('VerificationsComponent', () => {
       await advanceClockUntil(() => expect(listRequests).toBeGreaterThanOrEqual(3));
 
       expect(showAlert).not.toHaveBeenCalled();
-      expect(document.querySelector('.ant-message-notice')).toBeNull();
+      expect(document.querySelector('[role="alert"], [role="status"]')).toBeNull();
       expect(screen.getAllByText('Manual')).toHaveLength(2);
     });
 

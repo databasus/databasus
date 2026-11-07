@@ -2,16 +2,19 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Locator, type Page } from '@playwright/test';
 
 import type { components } from '../../src/shared/api/schema.gen';
-import { DICTIONARIES } from '../../src/shared/i18n/dictionaries';
+import { DICTIONARIES, type Locale } from '../../src/shared/i18n/dictionaries';
 import { accountFixtures } from '../accountFixtures';
 import { workspace } from '../applicationFixtures';
 import { assertAccountReflow } from '../assertAccountReflow';
+import { assertEnlargedTextReflow } from '../assertEnlargedTextReflow';
+import { assertScreenshot } from '../assertScreenshot';
 import { test } from '../browserTest';
 import { enlargeText } from '../enlargeText';
 import { apiResponse } from '../HttpFixture';
 import { openAccount } from '../openAccount';
 import { openAccountTab } from '../openAccountTab';
 import { openWorkspaceScreen } from '../openWorkspaceScreen';
+import { visualContexts } from '../visualContexts';
 
 const dictionary = DICTIONARIES.en;
 const runsCopy = dictionary.verification.runs;
@@ -184,10 +187,10 @@ const isFocusInside = (container: Locator) =>
 const waitForFocusInside = (container: Locator) =>
   expect.poll(() => isFocusInside(container)).toBe(true);
 
-// Agents' ages count from each answer, because a status depends on the time since the agent was seen.
 const serveAgentInEveryStatus = (page: Page) =>
   page.route(/\/api\/v1\/verification-agents(\?.*)?$/, (route) => {
-    const seenAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString();
+    const seenAgo = (minutes: number) =>
+      new Date(Date.parse('2026-10-18T12:00:00Z') - minutes * 60_000).toISOString();
 
     return route.fulfill({
       json: {
@@ -201,14 +204,14 @@ const serveAgentInEveryStatus = (page: Page) =>
     });
   });
 
-const openVerificationList = async (page: Page, theme: string) => {
-  await openAccount({ page, locale: 'en', theme });
-  await openWorkspaceScreen({ page, locale: 'en', tab: 'databases' });
+const openVerificationList = async (page: Page, theme: string, locale: Locale = 'en') => {
+  await openAccount({ page, locale, theme });
+  await openWorkspaceScreen({ page, locale, tab: 'databases' });
   if (page.viewportSize()!.width < 768)
     await page.getByRole('button', { name: 'Orders', exact: true }).click();
   await page
     .getByRole('main')
-    .getByText(dictionary.databases.tabs.verifications, { exact: true })
+    .getByText(DICTIONARIES[locale].databases.tabs.verifications, { exact: true })
     .click();
 };
 
@@ -220,7 +223,7 @@ for (const theme of ['light', 'dark']) {
     await openVerificationList(page, theme);
 
     const detailsAction = page
-      .locator('.ant-table-wrapper')
+      .getByRole('table')
       .getByRole('button', { name: runsCopy.actions.viewDetails });
     await detailsAction.focus();
     await page.keyboard.press('Enter');
@@ -229,8 +232,8 @@ for (const theme of ['light', 'dark']) {
     await expect(drawer.getByText(failedVerification.failMessage!)).toBeVisible();
     await expect(drawer.getByText('1h 2m 0s')).toBeVisible();
 
-    // The drawer keeps the focus on its root and sentinels, which wrap the dialog element.
-    const drawerRoot = page.locator('.ant-drawer');
+    // Focus remains within the open drawer while its details are inspected.
+    const drawerRoot = page.getByRole('dialog');
     await waitForFocusInside(drawerRoot);
 
     const disclosure = drawer.getByRole('button', {
@@ -247,7 +250,7 @@ for (const theme of ['light', 'dark']) {
 
     const accessibility = await new AxeBuilder({ page })
       .disableRules(['color-contrast'])
-      .include('.ant-drawer-content')
+      .include('[role="dialog"]')
       .withTags(['wcag2a', 'wcag2aa'])
       .analyze();
 
@@ -258,6 +261,7 @@ for (const theme of ['light', 'dark']) {
 
       expect(await isFocusInside(drawerRoot)).toBe(true);
     }
+    await assertEnlargedTextReflow(page);
 
     await page.keyboard.press('Escape');
 
@@ -275,7 +279,7 @@ for (const theme of ['light', 'dark']) {
     await openAccount({ page, locale: 'en', theme });
     await openAccountTab({ page, locale: 'en', tab: 'databasusSettings' });
 
-    const table = page.locator('.ant-table-wrapper');
+    const table = page.getByRole('table');
     for (const status of Object.values(dictionary.status.agent)) {
       await expect(table.getByText(status, { exact: true })).toBeVisible();
     }
@@ -286,7 +290,7 @@ for (const theme of ['light', 'dark']) {
 
     const accessibility = await new AxeBuilder({ page })
       .disableRules(['color-contrast'])
-      .include('.ant-table-wrapper')
+      .include('table')
       .withTags(['wcag2a', 'wcag2aa'])
       .analyze();
 
@@ -298,6 +302,7 @@ for (const theme of ['light', 'dark']) {
     const dialog = page.getByRole('dialog');
     await expect(dialog.getByText(agent.name)).toBeVisible();
     await waitForFocusInside(dialog);
+    await assertEnlargedTextReflow(page);
 
     await page.keyboard.press('Escape');
 
@@ -306,44 +311,58 @@ for (const theme of ['light', 'dark']) {
   });
 }
 
-test('shows the revealed token and its commands in a long locale at a narrow viewport', async ({
-  page,
-}) => {
-  const frenchCopy = DICTIONARIES.fr.verification.agents;
+for (const { width, theme } of [
+  { width: 320, theme: 'light' },
+  { width: 1280, theme: 'light' },
+  { width: 1280, theme: 'dark' },
+] as const) {
+  test(`shows the revealed token and its commands in French at ${width}px in ${theme} theme`, async ({
+    page,
+  }) => {
+    const frenchCopy = DICTIONARIES.fr.verification.agents;
 
-  await page.setViewportSize({ width: 320, height: 800 });
-  await openAccount({ page, locale: 'fr', theme: 'light' });
-  await openAccountTab({ page, locale: 'fr', tab: 'databasusSettings' });
+    await page.setViewportSize({ width, height: 800 });
+    await openAccount({ page, locale: 'fr', theme });
+    await openAccountTab({ page, locale: 'fr', tab: 'databasusSettings' });
 
-  await page.getByRole('button', { name: frenchCopy.actions.rotateToken }).click();
-  await page
-    .getByRole('dialog')
-    .getByRole('button', { name: frenchCopy.actions.rotateToken })
-    .click();
+    await page.getByRole('button', { name: frenchCopy.actions.rotateToken }).click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: frenchCopy.actions.rotateToken })
+      .click();
 
-  const dialog = page.getByRole('dialog', { name: frenchCopy.token.title });
-  await expect(dialog.locator('pre').first()).toHaveText(REVEALED_TOKEN);
-  await expect(dialog.getByText(`--token=${REVEALED_TOKEN}`)).toBeVisible();
+    const dialog = page.getByRole('dialog', { name: frenchCopy.token.title });
+    await expect(dialog.locator('pre').first()).toHaveText(REVEALED_TOKEN);
+    await expect(dialog.getByText(`--token=${REVEALED_TOKEN}`)).toBeVisible();
+    await assertEnlargedTextReflow(page);
 
-  await assertAccountReflow(dialog);
-  await waitForFocusInside(dialog);
-  await expect(dialog).toHaveCSS('opacity', '1');
+    await assertAccountReflow(dialog);
+    await waitForFocusInside(dialog);
+    await expect(dialog).toHaveCSS('opacity', '1');
 
-  const accessibility = await new AxeBuilder({ page })
-    .disableRules(['color-contrast'])
-    .include('.ant-modal-content')
-    .withTags(['wcag2a', 'wcag2aa'])
-    .analyze();
+    const accessibility = await new AxeBuilder({ page })
+      .disableRules(['color-contrast'])
+      .include('[role="dialog"]')
+      .withTags(['wcag2a', 'wcag2aa'])
+      .analyze();
 
-  expect(accessibility.violations).toEqual([]);
-});
+    expect(accessibility.violations).toEqual([]);
+  });
+}
 
-for (const theme of ['light', 'dark']) {
-  test(`contains long failure output inside the drawer at 320px with 200% text in the ${theme} theme`, async ({
+for (const { theme, locale } of [
+  { theme: 'light', locale: 'en' },
+  { theme: 'dark', locale: 'en' },
+  { theme: 'light', locale: 'fr' },
+] as const) {
+  test(`contains long failure output inside the drawer at 320px with 200% text in the ${theme} theme and ${locale} locale`, async ({
     page,
   }) => {
     await page.setViewportSize({ width: 320, height: 800 });
-    await openVerificationList(page, theme);
+    const dictionary = DICTIONARIES[locale];
+    const runsCopy = dictionary.verification.runs;
+    await openVerificationList(page, theme, locale);
+    await assertEnlargedTextReflow(page);
     await page.getByRole('button', { name: runsCopy.actions.viewDetails }).click();
     const drawer = page.getByRole('dialog');
     await drawer
@@ -351,7 +370,10 @@ for (const theme of ['light', 'dark']) {
       .click();
     await expect(drawer.locator('pre')).toHaveText(failureOutput);
     await enlargeText(drawer);
+    await assertEnlargedTextReflow(page);
 
+    if (theme === 'dark')
+      await assertScreenshot(page, 'verification-diagnostics-dark-narrow-200.png');
     await assertAccountReflow(drawer);
     const diagnosticLayout = await drawer.locator('pre').evaluate((output) => ({
       isLocallyScrollable: output.scrollWidth > output.clientWidth,
@@ -371,5 +393,99 @@ for (const theme of ['light', 'dark']) {
     await expect(
       drawer.getByRole('button', { name: dictionary.common.actions.copy }),
     ).toBeVisible();
+  });
+}
+
+for (const context of visualContexts) {
+  test(`opens agent creation, installation and anchored deletion in ${context.theme} ${context.locale} ${context.width}`, async ({
+    page,
+  }) => {
+    const dictionary = DICTIONARIES[context.locale];
+    const copy = dictionary.verification.agents;
+    await page.setViewportSize({ width: context.width, height: 1000 });
+    await openAccount({ page, ...context });
+    await openAccountTab({ page, locale: context.locale, tab: 'databasusSettings' });
+    const create = page.getByRole('button', { name: dictionary.common.actions.create });
+    await expect(create).toBeVisible();
+    await assertEnlargedTextReflow(page);
+
+    if (context.width === 320) {
+      const tableRegion = page.getByRole('region', { name: copy.title, exact: true });
+      await tableRegion.focus();
+      await Promise.all([
+        tableRegion.evaluate(
+          (region) =>
+            new Promise<void>((resolve) =>
+              region.addEventListener('scrollend', () => resolve(), { once: true }),
+            ),
+        ),
+        tableRegion.press('ArrowRight'),
+      ]);
+      await expect
+        .poll(() => tableRegion.evaluate((region) => region.scrollLeft))
+        .toBeGreaterThan(0);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+        320,
+      );
+      await tableRegion.evaluate((region) => {
+        region.scrollTo({ left: 0, behavior: 'instant' });
+      });
+      await expect.poll(() => tableRegion.evaluate((region) => region.scrollLeft)).toBe(0);
+    }
+    await create.click();
+    const creation = page.getByRole('dialog', { name: copy.create.title, exact: true });
+    const name = creation.getByRole('textbox', {
+      name: dictionary.common.fields.name,
+      exact: true,
+    });
+    await name.fill('Remote verification host');
+    await assertEnlargedTextReflow(page);
+
+    await page.keyboard.press('Escape');
+    await expect(creation).toBeHidden();
+    await create.click();
+    await expect(name).toHaveValue('');
+    await name.focus();
+    await page.keyboard.press('Escape');
+    await expect(creation).toBeHidden();
+    await page.getByRole('button', { name: copy.actions.viewInstallCommands, exact: true }).click();
+    const installation = page.getByRole('dialog', { name: copy.install.title, exact: true });
+    await expect(installation.locator('pre').first()).toContainText('verification-agent');
+    await assertEnlargedTextReflow(page);
+
+    await installation.getByText('arm64', { exact: true }).click();
+    await expect(installation.locator('pre').first()).toContainText('arm64');
+    await assertEnlargedTextReflow(page);
+
+    if (context.width === 320) {
+      await enlargeText(installation);
+
+      await assertAccountReflow(installation);
+    }
+    await page.keyboard.press('Escape');
+    await expect(installation).toBeHidden();
+    await page.getByRole('button', { name: dictionary.common.actions.delete, exact: true }).click();
+    await expect(page.getByText(copy.deleteConfirmation, { exact: true })).toBeVisible();
+    await assertEnlargedTextReflow(page);
+
+    const cancel = page.getByRole('button', {
+      name: dictionary.common.actions.cancel,
+      exact: true,
+    });
+    expect
+      .soft(
+        await cancel.evaluate((button) => {
+          const bounds = button.getBoundingClientRect();
+          const target = document.elementFromPoint(
+            bounds.left + bounds.width / 2,
+            bounds.top + bounds.height / 2,
+          );
+          return target === button || button.contains(target);
+        }),
+      )
+      .toBe(true);
+    await cancel.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByText(copy.deleteConfirmation, { exact: true })).toBeHidden();
   });
 }

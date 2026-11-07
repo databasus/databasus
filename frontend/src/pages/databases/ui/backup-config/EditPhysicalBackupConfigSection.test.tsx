@@ -126,11 +126,11 @@ const findCadenceGroup = (name: string) => screen.findByRole('group', { name });
 
 const chooseStorage = async (name = 'Archive') => {
   const storageLabel = await screen.findByText('Storage');
-  const select = storageLabel.parentElement!.querySelector('.ant-select-selector')!;
+  const select = storageLabel.parentElement!.querySelector('[role="combobox"]')!;
 
-  fireEvent.mouseDown(select);
+  fireEvent.click(select);
   const option = await waitFor(() => {
-    const storageOption = document.querySelector(`.ant-select-item-option[title="${name}"]`);
+    const storageOption = screen.queryByRole('option', { name: `${name}` });
     expect(storageOption).toBeTruthy();
     return storageOption!;
   });
@@ -141,10 +141,10 @@ const chooseStorage = async (name = 'Archive') => {
 const chooseEncryption = async (optionTitle: string) => {
   const control = await screen.findByRole('combobox', { name: 'Encryption' });
 
-  fireEvent.mouseDown(control.closest('.ant-select')!.querySelector('.ant-select-selector')!);
+  fireEvent.click(control!);
 
   const option = await waitFor(() => {
-    const visibleOption = document.querySelector(`.ant-select-item-option[title="${optionTitle}"]`);
+    const visibleOption = screen.queryByRole('option', { name: `${optionTitle}` });
     expect(visibleOption).toBeTruthy();
     return visibleOption!;
   });
@@ -186,15 +186,12 @@ describe('EditPhysicalBackupConfigSection', () => {
 
       expect(screen.getByRole('button', { name: /Save$/ })).toHaveProperty('disabled', true);
 
-      fireEvent.mouseDown(
-        within(incrementalGroup)
-          .getByRole('combobox', { name: 'Incremental backup cadence' })
-          .closest('.ant-select')!
-          .querySelector('.ant-select-selector')!,
+      fireEvent.click(
+        within(incrementalGroup).getByRole('combobox', { name: 'Incremental backup cadence' })!,
       );
 
       const hourlyOption = await waitFor(() => {
-        const visibleOption = document.querySelector('.ant-select-item-option[title="Hourly"]');
+        const visibleOption = screen.queryByRole('option', { name: 'Hourly' });
         expect(visibleOption).toBeTruthy();
         return visibleOption!;
       });
@@ -261,7 +258,7 @@ describe('EditPhysicalBackupConfigSection', () => {
         name: new RegExp(`${DICTIONARIES.fr.common.actions.save}$`),
       }) as HTMLButtonElement;
 
-      expect(translatedEncryption.closest('.ant-select')?.textContent).toContain(
+      expect(translatedEncryption.closest('div')?.textContent).toContain(
         DICTIONARIES.fr.backups.encryptionOptions.encrypted,
       );
       expect(saveButton.disabled).toBe(false);
@@ -339,7 +336,9 @@ describe('EditPhysicalBackupConfigSection', () => {
     const view = renderScreen(
       <EditPhysicalBackupConfigSection database={database} onCancel={() => {}} onSaved={onSaved} />,
     );
-    await screen.findByText('Previous archive', { selector: '.ant-select-selection-item' });
+    await within(await screen.findByRole('combobox', { name: 'Storage' })).findByText(
+      'Previous archive',
+    );
 
     await view.user.click(screen.getByRole('switch'));
     await view.user.click(await screen.findByRole('combobox', { name: 'Storage' }));
@@ -352,9 +351,9 @@ describe('EditPhysicalBackupConfigSection', () => {
     await waitFor(() =>
       expect(document.activeElement).toBe(screen.getByRole('combobox', { name: 'Storage' })),
     );
-    expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('false');
+    expect(screen.getByRole('switch')).toHaveProperty('checked', false);
     expect(
-      screen.getByText('Previous archive', { selector: '.ant-select-selection-item' }),
+      within(screen.getByRole('combobox', { name: 'Storage' })).getByText('Previous archive'),
     ).toBeTruthy();
     expect(onSaved).not.toHaveBeenCalled();
     expect(mockServer.getRequests().every((request) => request.method === 'GET')).toBe(true);

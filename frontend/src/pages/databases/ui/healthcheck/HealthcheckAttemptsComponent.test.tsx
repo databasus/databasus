@@ -48,7 +48,7 @@ const refusal = () => HttpResponse.json(buildProblem('permission_denied', 403), 
 const singlePage = (...items: ApiComponents['schemas']['HealthcheckAttempt'][]) =>
   HttpResponse.json({ items });
 const selectSevenDays = async () => {
-  fireEvent.mouseDown(screen.getByRole('combobox'));
+  fireEvent.click(screen.getByRole('combobox'));
   fireEvent.click(await screen.findByText('7 days'));
 };
 
@@ -108,7 +108,7 @@ describe('HealthcheckAttemptsComponent', () => {
     await waitFor(() => expect(hasRequestedOldPage).toBe(true));
 
     hasChangedPeriod = true;
-    fireEvent.mouseDown(screen.getByRole('combobox'));
+    fireEvent.click(screen.getByRole('combobox'));
     fireEvent.click(await screen.findByText('7 days'));
     await waitFor(() =>
       expect(container.querySelectorAll('[data-status="AVAILABLE"]')).toHaveLength(1),
@@ -176,7 +176,7 @@ describe('HealthcheckAttemptsComponent', () => {
     fireEvent.click(retryButton);
 
     await waitFor(() => expect(configCall).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(container.textContent).toBe(''));
+    await waitFor(() => expect(container.innerText).toBe(''));
   });
 
   it('shows a retry when the first load of attempts fails, and the attempts after a successful retry', async () => {
@@ -268,7 +268,7 @@ describe('HealthcheckAttemptsComponent', () => {
     expect(await screen.findByText(REFUSAL_MESSAGE)).toBeTruthy();
     expect(container.querySelectorAll('[data-status]')).toHaveLength(0);
 
-    fireEvent.mouseDown(screen.getByRole('combobox'));
+    fireEvent.click(screen.getByRole('combobox'));
     fireEvent.click(await screen.findByText('Today'));
     expect(await screen.findByText(REFUSAL_MESSAGE)).toBeTruthy();
 
@@ -368,7 +368,7 @@ describe('HealthcheckAttemptsComponent', () => {
 
       await releaseAndSettle(configCall, () => heldConfig.respond(buildAnswer()));
 
-      expect(document.querySelector('.ant-spin')).toBeTruthy();
+      expect(document.querySelector('[role="status"]')).toBeTruthy();
       expect(screen.queryByRole('alert')).toBeNull();
     },
   );

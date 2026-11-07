@@ -7,6 +7,10 @@ export const test = base.extend<{
   httpFixtures: HttpFixture[];
   boundary: Awaited<ReturnType<typeof installHttpFixtures>>;
 }>({
+  page: async ({ page }, providePage) => {
+    await page.clock.setFixedTime(new Date('2026-10-18T12:00:00Z'));
+    await providePage(page);
+  },
   httpFixtures: [applicationFixtures(), { option: true }],
   boundary: [
     async ({ page, httpFixtures }, use) => {

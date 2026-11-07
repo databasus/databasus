@@ -1,11 +1,6 @@
-import {
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  ExclamationCircleOutlined,
-  SyncOutlined,
-} from '@ant-design/icons';
-import { Button, Tooltip } from 'antd';
+import { ActionIcon, Button, Tooltip } from '@mantine/core';
 import dayjs from 'dayjs';
+import { CircleAlert, CircleCheck, CircleX, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { RESTORE_STATUS_LABEL_KEYS, type Restore, RestoreStatus } from '@/entities/restores';
@@ -57,13 +52,15 @@ export const RestoreCard = ({
           <div className="w-[75px] min-w-[75px] pr-2">{t('common.fields.status')}</div>
 
           {restore.status === RestoreStatus.FAILED && (
-            <Tooltip title={t('restores.card.errorDetailsTooltip')}>
+            <Tooltip label={t('restores.card.errorDetailsTooltip')}>
               <Button
-                type="link"
-                size="small"
-                danger
+                variant="transparent"
+                size="xs"
+                color="danger"
                 className="!h-auto !px-0 underline"
-                icon={<ExclamationCircleOutlined />}
+                leftSection={
+                  <CircleAlert size="1em" className="inline-block shrink-0 align-middle" />
+                }
                 onClick={onShowError}
               >
                 {t(RESTORE_STATUS_LABEL_KEYS[restore.status])}
@@ -73,7 +70,11 @@ export const RestoreCard = ({
 
           {restore.status === RestoreStatus.COMPLETED && (
             <div className="flex items-center text-success">
-              <CheckCircleOutlined className="mr-2" style={{ fontSize: 16 }} />
+              <CircleCheck
+                className="mr-2 inline-block shrink-0 align-middle"
+                style={{ fontSize: 16 }}
+                size="1em"
+              />
 
               <div>{t(RESTORE_STATUS_LABEL_KEYS[restore.status])}</div>
             </div>
@@ -81,7 +82,11 @@ export const RestoreCard = ({
 
           {restore.status === RestoreStatus.CANCELED && (
             <div className="flex items-center text-muted">
-              <CloseCircleOutlined className="mr-2" style={{ fontSize: 16 }} />
+              <CircleX
+                className="mr-2 inline-block shrink-0 align-middle"
+                style={{ fontSize: 16 }}
+                size="1em"
+              />
 
               <div>{t(RESTORE_STATUS_LABEL_KEYS[restore.status])}</div>
             </div>
@@ -89,7 +94,7 @@ export const RestoreCard = ({
 
           {restore.status === RestoreStatus.IN_PROGRESS && (
             <div className="flex items-center font-bold text-accent">
-              <SyncOutlined spin />
+              <RefreshCw className="inline-block shrink-0 animate-spin align-middle" size="1em" />
               <span className="ml-2">{t(RESTORE_STATUS_LABEL_KEYS[restore.status])}</span>
             </div>
           )}
@@ -97,17 +102,23 @@ export const RestoreCard = ({
 
         {restore.status === RestoreStatus.IN_PROGRESS && (
           <div className="ml-2">
-            <Tooltip title={t('restores.card.cancelTooltip')}>
-              <Button
-                type="text"
-                size="small"
+            <Tooltip label={t('restores.card.cancelTooltip')}>
+              <ActionIcon
+                variant="subtle"
+                size="xs"
                 className="!text-danger"
                 aria-label={t('restores.card.cancelTooltip')}
-                icon={<CloseCircleOutlined style={{ fontSize: 16 }} />}
                 loading={isCancelling}
                 disabled={isCancelDisabled}
                 onClick={onCancel}
-              />
+                aria-busy={isCancelling}
+              >
+                <CircleX
+                  style={{ fontSize: 16 }}
+                  size="1em"
+                  className="inline-block shrink-0 align-middle"
+                />
+              </ActionIcon>
             </Tooltip>
           </div>
         )}

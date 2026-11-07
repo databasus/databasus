@@ -1,5 +1,5 @@
-import { CheckOutlined, CopyOutlined } from '@ant-design/icons';
-import { Button } from 'antd';
+import { Button } from '@mantine/core';
+import { Check, Copy } from 'lucide-react';
 import type { JSX } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -25,12 +25,18 @@ export const CopyableCommand = ({
 
   return (
     <div className="mt-3">
-      <div className="mb-1 flex items-center justify-between">
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
         <div className="text-xs font-medium text-muted">{title}</div>
         <Button
-          size="small"
-          type="text"
-          icon={isCopied ? <CheckOutlined /> : <CopyOutlined />}
+          size="xs"
+          variant="subtle"
+          leftSection={
+            isCopied ? (
+              <Check size="1em" className="inline-block shrink-0 align-middle" />
+            ) : (
+              <Copy size="1em" className="inline-block shrink-0 align-middle" />
+            )
+          }
           onClick={() => onCopy({ commandId: id, code })}
         >
           {isCopied ? t('backups.physical.restore.copied') : t('common.actions.copy')}

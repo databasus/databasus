@@ -62,7 +62,7 @@ describe('ShowDatabaseNotifiersComponent', () => {
 
       await releaseAndSettle(loadCall, () => heldLoad.respond(buildAnswer()));
 
-      expect(document.querySelector('.ant-spin')).toBeTruthy();
+      expect(document.querySelector('[role="status"]')).toBeTruthy();
       expect(screen.queryByRole('alert')).toBeNull();
       expect(screen.queryByText(/Alerts/)).toBeNull();
     },
@@ -115,7 +115,7 @@ describe('ShowDatabaseNotifiersComponent', () => {
     const retryButton = await screen.findByRole('button', { name: 'Retry' });
 
     expect(screen.getByText(REFUSAL_MESSAGE)).toBeTruthy();
-    expect(document.querySelector('.ant-spin')).toBeNull();
+    expect(document.querySelector('[role="status"]')).toBeNull();
     expect(showAlert).not.toHaveBeenCalled();
 
     mockServer.use(mockApi.get('/notifiers', 200, { items: [alertsNotifier] }));

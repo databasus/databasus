@@ -1,5 +1,5 @@
-import { SyncOutlined } from '@ant-design/icons';
-import { Button, Tooltip } from 'antd';
+import { Button, Tooltip } from '@mantine/core';
+import { RefreshCw } from 'lucide-react';
 import type { JSX, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -30,7 +30,7 @@ export const PhysicalBackupStatusBadge = ({ backup, onShowError }: Props): JSX.E
     const gapStyle = PHYSICAL_BACKUP_STATUS_BADGE_STYLES[PhysicalBackupStatus.CHAIN_BROKEN];
 
     return (
-      <Tooltip title={t('backups.physical.list.walRange.gapBeforeTooltip')}>
+      <Tooltip label={t('backups.physical.list.walRange.gapBeforeTooltip')}>
         <span className="cursor-help">
           <StatusPill className={gapStyle.pillClasses}>
             <span className={`h-1.5 w-1.5 rounded-full ${gapStyle.dotClasses}`} />
@@ -46,7 +46,11 @@ export const PhysicalBackupStatusBadge = ({ backup, onShowError }: Props): JSX.E
   const badge = (
     <StatusPill className={badgeStyle.pillClasses}>
       {backup.status === PhysicalBackupStatus.IN_PROGRESS ? (
-        <SyncOutlined spin style={{ fontSize: 10 }} />
+        <RefreshCw
+          style={{ fontSize: 10 }}
+          className="inline-block shrink-0 animate-spin align-middle"
+          size="1em"
+        />
       ) : (
         <span className={`h-1.5 w-1.5 rounded-full ${badgeStyle.dotClasses}`} />
       )}
@@ -57,10 +61,10 @@ export const PhysicalBackupStatusBadge = ({ backup, onShowError }: Props): JSX.E
   if (!backup.failMessage) return badge;
 
   return (
-    <Tooltip title={t('backups.list.clickToSeeErrorDetails')}>
+    <Tooltip label={t('backups.list.clickToSeeErrorDetails')}>
       <Button
-        type="text"
-        size="small"
+        variant="subtle"
+        size="xs"
         className="!h-auto !p-0 !leading-none"
         onClick={() => onShowError(backup)}
       >

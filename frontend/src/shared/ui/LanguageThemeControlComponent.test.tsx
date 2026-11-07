@@ -14,22 +14,28 @@ describe('LanguageThemeControlComponent', () => {
 
     await user.keyboard('{ArrowDown}');
     expect(language.getAttribute('aria-expanded')).toBe('true');
-    const menu = await screen.findByRole('menu');
-    await waitFor(() => expect(menu.contains(document.activeElement)).toBe(true));
+    await screen.findByRole('menu');
+    await waitFor(() =>
+      expect(screen.getByRole('menu').contains(document.activeElement)).toBe(true),
+    );
 
     // A pointer on the menu would start the hover delay of the dropdown, and its timer would reopen
     // the menu right after the Escape below.
-    fireEvent.click(screen.getByRole('menuitem', { name: DICTIONARIES.es.language.nativeName }));
+    fireEvent.click(
+      screen.getByRole('menuitemradio', { name: DICTIONARIES.es.language.nativeName }),
+    );
     expect(document.documentElement.lang).toBe('es');
     expect(screen.getAllByRole('button')).toHaveLength(2);
     expect(document.activeElement).toBe(language);
 
     await user.keyboard('{ArrowDown}');
-    const selectedLanguage = await screen.findByRole('menuitem', {
+    const selectedLanguage = await screen.findByRole('menuitemradio', {
       name: DICTIONARIES.es.language.nativeName,
     });
-    expect(selectedLanguage.classList.contains('ant-dropdown-menu-item-selected')).toBe(true);
-    await waitFor(() => expect(menu.contains(document.activeElement)).toBe(true));
+    expect(selectedLanguage.getAttribute('aria-checked')).toBe('true');
+    await waitFor(() =>
+      expect(screen.getByRole('menu').contains(document.activeElement)).toBe(true),
+    );
 
     await user.keyboard('{Escape}');
     await waitFor(() => {
@@ -50,7 +56,7 @@ describe('LanguageThemeControlComponent', () => {
     expect(isPageDark()).toBe(false);
 
     await user.click(screen.getByRole('button', { name: 'Theme: Light' }));
-    await user.click(await screen.findByRole('menuitem', { name: 'System' }));
+    await user.click(await screen.findByRole('menuitemradio', { name: 'System' }));
 
     expect(isPageDark()).toBe(true);
     expect(screen.getByRole('button', { name: 'Theme: System' })).toBeTruthy();
@@ -65,8 +71,8 @@ describe('LanguageThemeControlComponent', () => {
     const { user } = renderScreen(<LanguageThemeControlComponent />, { locale: 'en' });
     const language = screen.getByRole('button', { name: /Language/ });
     await user.hover(language);
-    const menu = await screen.findByRole('menu');
-    fireEvent.keyDown(menu, { key: 'Escape' });
+    await screen.findByRole('menu');
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
     await waitFor(() => {
       expect(language.getAttribute('aria-expanded')).toBe('false');
       expect(document.activeElement).toBe(language);

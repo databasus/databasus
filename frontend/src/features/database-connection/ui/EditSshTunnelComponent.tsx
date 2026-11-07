@@ -1,4 +1,4 @@
-import { Button, Checkbox, Input, InputNumber, Select } from 'antd';
+import { Button, Checkbox, NumberInput, PasswordInput, TextInput, Textarea } from '@mantine/core';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -14,6 +14,7 @@ import {
 import { isSshTunnelAddressChanged } from '@/features/database-connection/lib/isSshTunnelAddressChanged';
 import { ConnectionFieldRow } from '@/features/database-connection/ui/ConnectionFieldRow';
 import { ConnectionFieldTooltip } from '@/features/database-connection/ui/ConnectionFieldTooltip';
+import { WrappingSelect } from '@/shared/ui';
 import { AddressChangedSecretNoticeComponent } from '@/shared/ui';
 
 interface Props {
@@ -47,7 +48,7 @@ export const EditSshTunnelComponent = ({ sshTunnel, savedSshTunnel, onChange }: 
     <ConnectionFieldRow label={t('databases.sshTunnel.credentials')}>
       <div className="mb-2 flex items-center">
         <span className="mr-3">*************</span>
-        <Button size="small" onClick={startReplacingSecrets}>
+        <Button size="xs" onClick={startReplacingSecrets}>
           {t('databases.actions.replace')}
         </Button>
       </div>
@@ -60,26 +61,24 @@ export const EditSshTunnelComponent = ({ sshTunnel, savedSshTunnel, onChange }: 
       controlId={`${controlId}-password`}
     >
       <div className="mb-2 w-full max-w-[200px]">
-        <Input.Password
+        <PasswordInput
           id={`${controlId}-password`}
-          aria-describedby={
-            isMovedFromSavedAddress && !currentTunnel.password
-              ? `${controlId}-password-notice`
-              : undefined
-          }
           value={currentTunnel.password}
           onChange={(e) => updateField('password', e.target.value)}
-          size="small"
+          size="xs"
           className="w-full"
           placeholder={t('databases.sshTunnel.passwordPlaceholder')}
           autoComplete="off"
           data-1p-ignore
           data-lpignore="true"
           data-form-type="other"
+          description={
+            isMovedFromSavedAddress &&
+            !currentTunnel.password && (
+              <AddressChangedSecretNoticeComponent id={`${controlId}-password-notice`} />
+            )
+          }
         />
-        {isMovedFromSavedAddress && !currentTunnel.password && (
-          <AddressChangedSecretNoticeComponent id={`${controlId}-password-notice`} />
-        )}
       </div>
     </ConnectionFieldRow>
   );
@@ -92,24 +91,24 @@ export const EditSshTunnelComponent = ({ sshTunnel, savedSshTunnel, onChange }: 
         isTopAligned
       >
         <div className="w-full max-w-[200px]">
-          <Input.TextArea
+          <Textarea
+            autosize
+            minRows={2}
+            maxRows={5}
             id={`${controlId}-private-key`}
-            aria-describedby={
-              isMovedFromSavedAddress && !currentTunnel.privateKey
-                ? `${controlId}-private-key-notice`
-                : undefined
-            }
             value={currentTunnel.privateKey}
             onChange={(e) => updateField('privateKey', e.target.value)}
-            size="small"
+            size="xs"
             className="w-full"
             // eslint-disable-next-line i18next/no-literal-string -- key format example, not copy
             placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
-            autoSize={{ minRows: 2, maxRows: 5 }}
+            description={
+              isMovedFromSavedAddress &&
+              !currentTunnel.privateKey && (
+                <AddressChangedSecretNoticeComponent id={`${controlId}-private-key-notice`} />
+              )
+            }
           />
-          {isMovedFromSavedAddress && !currentTunnel.privateKey && (
-            <AddressChangedSecretNoticeComponent id={`${controlId}-private-key-notice`} />
-          )}
         </div>
       </ConnectionFieldRow>
 
@@ -117,11 +116,11 @@ export const EditSshTunnelComponent = ({ sshTunnel, savedSshTunnel, onChange }: 
         label={t('databases.sshTunnel.keyPassphrase')}
         controlId={`${controlId}-passphrase`}
       >
-        <Input.Password
+        <PasswordInput
           id={`${controlId}-passphrase`}
           value={currentTunnel.privateKeyPassphrase}
           onChange={(e) => updateField('privateKeyPassphrase', e.target.value)}
-          size="small"
+          size="xs"
           className="mb-2 w-full max-w-[200px]"
           placeholder={t('databases.sshTunnel.keyPassphrasePlaceholder')}
           autoComplete="off"
@@ -172,11 +171,11 @@ export const EditSshTunnelComponent = ({ sshTunnel, savedSshTunnel, onChange }: 
         <>
           <ConnectionFieldRow label={t('databases.sshTunnel.host')} controlId={`${controlId}-host`}>
             <div className="flex w-full items-center">
-              <Input
+              <TextInput
                 id={`${controlId}-host`}
                 value={currentTunnel.host}
                 onChange={(e) => updateField('host', e.target.value)}
-                size="small"
+                size="xs"
                 className="w-full max-w-[200px]"
                 // eslint-disable-next-line i18next/no-literal-string -- example hostname
                 placeholder="bastion.example.com"
@@ -187,14 +186,22 @@ export const EditSshTunnelComponent = ({ sshTunnel, savedSshTunnel, onChange }: 
           </ConnectionFieldRow>
 
           <ConnectionFieldRow label={t('databases.sshTunnel.port')} controlId={`${controlId}-port`}>
-            <InputNumber
+            <NumberInput
               id={`${controlId}-port`}
               value={currentTunnel.port}
-              onChange={(value) => updateField('port', value ?? DEFAULT_SSH_PORT)}
-              size="small"
+              onChange={(value) =>
+                updateField('port', typeof value === 'number' ? value : DEFAULT_SSH_PORT)
+              }
+              size="xs"
               className="w-full max-w-[200px]"
               min={1}
               max={65535}
+              role="spinbutton"
+              aria-valuenow={
+                typeof currentTunnel.port === 'number' ? currentTunnel.port : undefined
+              }
+              aria-valuemin={1}
+              aria-valuemax={65535}
             />
           </ConnectionFieldRow>
 
@@ -202,11 +209,11 @@ export const EditSshTunnelComponent = ({ sshTunnel, savedSshTunnel, onChange }: 
             label={t('databases.sshTunnel.username')}
             controlId={`${controlId}-username`}
           >
-            <Input
+            <TextInput
               id={`${controlId}-username`}
               value={currentTunnel.username}
               onChange={(e) => updateField('username', e.target.value)}
-              size="small"
+              size="xs"
               className="w-full max-w-[200px]"
               placeholder={t('databases.sshTunnel.usernamePlaceholder')}
             />
@@ -216,15 +223,15 @@ export const EditSshTunnelComponent = ({ sshTunnel, savedSshTunnel, onChange }: 
             label={t('databases.sshTunnel.authType')}
             controlId={`${controlId}-auth-type`}
           >
-            <Select
+            <WrappingSelect
               id={`${controlId}-auth-type`}
               value={currentTunnel.authType}
               onChange={changeAuthType}
-              options={Object.values(SshTunnelAuthType).map((authType) => ({
+              data={Object.values(SshTunnelAuthType).map((authType) => ({
                 label: t(SSH_TUNNEL_AUTH_TYPE_LABEL_KEYS[authType]),
                 value: authType,
               }))}
-              size="small"
+              size="xs"
               className="w-full max-w-[200px]"
             />
           </ConnectionFieldRow>

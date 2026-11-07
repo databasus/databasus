@@ -25,7 +25,10 @@ export function ResourceListDetail({
       {hasSelection && (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {isMobile && <div className="mb-2 shrink-0">{backAction}</div>}
-          <div ref={detailScrollRef} className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+          <div
+            ref={detailScrollRef}
+            className="min-h-0 min-w-0 flex-1 overflow-y-auto wrap-anywhere"
+          >
             {detail}
           </div>
         </div>

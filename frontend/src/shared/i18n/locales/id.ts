@@ -3,7 +3,20 @@ import type { en } from '@/shared/i18n/locales/en';
 export const id: typeof en = {
   language: { nativeName: 'Bahasa Indonesia' },
   common: {
+    calendar: {
+      monthLevelControl: 'Pilih bulan',
+      yearLevelControl: 'Pilih tahun',
+      nextMonth: 'Bulan berikutnya',
+      previousMonth: 'Bulan sebelumnya',
+      nextYear: 'Tahun berikutnya',
+      previousYear: 'Tahun sebelumnya',
+      nextDecade: 'Dekade berikutnya',
+      previousDecade: 'Dekade sebelumnya',
+      seconds: 'Detik',
+    },
     actions: {
+      clear: 'Hapus',
+      togglePasswordVisibility: 'Tampilkan atau sembunyikan kata sandi',
       back: 'Kembali',
       cancel: 'Batal',
       close: 'Tutup',
@@ -180,6 +193,9 @@ export const id: typeof en = {
     },
   },
   schedules: {
+    hours: 'Jam',
+    minutes: 'Menit',
+    timePeriod: 'AM atau PM',
     types: {
       hourly: 'Setiap jam',
       daily: 'Setiap hari',

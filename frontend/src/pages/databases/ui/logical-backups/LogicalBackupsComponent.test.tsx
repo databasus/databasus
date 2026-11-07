@@ -417,9 +417,7 @@ describe('LogicalBackupsComponent failures', () => {
         await Promise.allSettled(restoreListCall.mock.results.map((call) => call.value));
       });
 
-      expect(
-        screen.getByText('Restore from backup', { selector: '.ant-modal-title' }),
-      ).toBeTruthy();
+      expect(screen.getByText('Restore from backup', { selector: 'h2' })).toBeTruthy();
       expect(screen.getByText('In progress')).toBeTruthy();
     });
 
@@ -711,8 +709,7 @@ describe('LogicalBackupsComponent failures', () => {
 
       fireEvent.click(getDownloadButton());
       await waitFor(() => expect(followedLinks).toEqual(['token-1']));
-      // AntD ignores a click until it has ended the loading state of its button.
-      await waitFor(() => expect(getDownloadButton().className).not.toContain('ant-btn-loading'));
+      await waitFor(() => expect(getDownloadButton().getAttribute('aria-busy')).toBe('false'));
       fireEvent.click(getDownloadButton());
 
       await waitFor(() => expect(followedLinks).toEqual(['token-1', 'token-2']));

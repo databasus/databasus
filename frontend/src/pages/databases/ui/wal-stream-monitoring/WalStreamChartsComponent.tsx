@@ -1,4 +1,4 @@
-import { Segmented, theme } from 'antd';
+import { SegmentedControl } from '@mantine/core';
 import dayjs from 'dayjs';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -32,6 +32,7 @@ import { WalStreamStatisticsPeriod } from '@/pages/databases/model/wal-stream-mo
 import { WAL_STREAM_STATISTICS_PERIOD_LABEL_KEYS } from '@/pages/databases/model/wal-stream-monitoring/WalStreamStatisticsPeriodLabelKeys';
 import { type TranslationKey, useLocale } from '@/shared/i18n';
 import { formatBytes } from '@/shared/lib';
+import { THEME_COLOR_VARIABLES } from '@/shared/theme';
 import { useTheme } from '@/shared/theme';
 import { getUserClockFormat } from '@/shared/time';
 
@@ -178,7 +179,6 @@ const ChartFrameComponent = ({
 }: ChartFrameProps) => {
   const { t } = useTranslation();
   const { formatNumber } = useLocale();
-  const { token } = theme.useToken();
   const { resolvedTheme } = useTheme();
 
   const chartColors = WAL_STREAM_CHART_COLORS[resolvedTheme];
@@ -228,7 +228,7 @@ const ChartFrameComponent = ({
             syncId={CHARTS_SYNC_ID}
             margin={{ top: 8, right: 16, left: 8, bottom: 0 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke={token.colorBorderSecondary} />
+            <CartesianGrid strokeDasharray="3 3" stroke={THEME_COLOR_VARIABLES['table-border']} />
             <XAxis
               dataKey="timestampMs"
               type="number"
@@ -236,22 +236,22 @@ const ChartFrameComponent = ({
               domain={getChartTimeDomain(series)}
               allowDataOverflow
               tickFormatter={(timestampMs: number) => dayjs(timestampMs).format(timeTickFormat)}
-              tick={{ fontSize: 11, fill: token.colorTextSecondary }}
-              stroke={token.colorBorder}
+              tick={{ fontSize: 11, fill: THEME_COLOR_VARIABLES['muted'] }}
+              stroke={THEME_COLOR_VARIABLES['border']}
             />
             <YAxis
               width={80}
               domain={[0, amountTicks[amountTicks.length - 1]]}
               ticks={amountTicks}
               tickFormatter={formatAmount}
-              tick={{ fontSize: 11, fill: token.colorTextSecondary }}
-              stroke={token.colorBorder}
+              tick={{ fontSize: 11, fill: THEME_COLOR_VARIABLES['muted'] }}
+              stroke={THEME_COLOR_VARIABLES['border']}
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: token.colorBgElevated,
-                borderColor: token.colorBorder,
-                color: token.colorText,
+                backgroundColor: THEME_COLOR_VARIABLES['raised'],
+                borderColor: THEME_COLOR_VARIABLES['border'],
+                color: THEME_COLOR_VARIABLES['content'],
               }}
               labelFormatter={(timestampMs) => dayjs(Number(timestampMs)).format(timeTickFormat)}
               formatter={(value) => (typeof value === 'number' ? formatAmount(value) : value)}
@@ -262,7 +262,7 @@ const ChartFrameComponent = ({
                 key={range.fromMs}
                 x1={range.fromMs}
                 x2={range.toMs}
-                fill={token.colorFillSecondary}
+                fill={THEME_COLOR_VARIABLES['secondary-fill']}
                 fillOpacity={1}
                 ifOverflow="hidden"
               />
@@ -294,7 +294,7 @@ const ChartFrameComponent = ({
                 label={{
                   value: t('backups.physical.monitoring.charts.pauseLimit'),
                   position: 'insideTopRight',
-                  fill: token.colorTextSecondary,
+                  fill: THEME_COLOR_VARIABLES['muted'],
                   fontSize: 11,
                 }}
               />
@@ -388,11 +388,13 @@ export const WalStreamKeepingUpChartComponent = ({
   const chartColors = WAL_STREAM_CHART_COLORS[resolvedTheme];
 
   const periodSwitch = (
-    <Segmented
+    <SegmentedControl
+      className="max-w-full flex-wrap"
+      styles={{ control: { flexGrow: 1, flexShrink: 0, flexBasis: 'auto' } }}
       aria-label={t('healthcheck.attempts.period')}
       value={period}
       onChange={(value) => onPeriodChange(value as WalStreamStatisticsPeriod)}
-      options={PERIODS.map((periodOption) => ({
+      data={PERIODS.map((periodOption) => ({
         value: periodOption,
         label: t(WAL_STREAM_STATISTICS_PERIOD_LABEL_KEYS[periodOption]),
       }))}

@@ -1,10 +1,4 @@
-import {
-  CloseCircleOutlined,
-  CloudUploadOutlined,
-  DeleteOutlined,
-  DownloadOutlined,
-  SafetyOutlined,
-} from '@ant-design/icons';
+import { CircleX, CloudUpload, Download, ShieldCheck, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { DatabaseType } from '@/entities/databases';
@@ -48,10 +42,10 @@ export const LogicalBackupActions = ({ backup, actions }: Props) => {
 
   if (backup.status === LogicalBackupStatus.IN_PROGRESS && actions.isCanManageDBs) {
     return (
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <RowActionButton
           title={t('backups.list.actions.cancelBackup')}
-          icon={<CloseCircleOutlined />}
+          icon={<CircleX size={14} />}
           className="!text-danger"
           isPending={cancellingBackupId === backup.id}
           isDisabled={Boolean(cancellingBackupId)}
@@ -61,14 +55,15 @@ export const LogicalBackupActions = ({ backup, actions }: Props) => {
     );
   }
 
-  if (backup.status !== LogicalBackupStatus.COMPLETED) return <div className="flex gap-2" />;
+  if (backup.status !== LogicalBackupStatus.COMPLETED)
+    return <div className="flex flex-wrap gap-2" />;
 
   if (deletingBackupId === backup.id) {
     return (
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <RowActionButton
           title={t('backups.list.actions.deleteBackup')}
-          icon={<DeleteOutlined />}
+          icon={<Trash2 size={14} />}
           className="!text-danger"
           isPending
           onClick={() => {}}
@@ -78,11 +73,11 @@ export const LogicalBackupActions = ({ backup, actions }: Props) => {
   }
 
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-2">
       {actions.isCanManageDBs && (
         <RowActionButton
           title={t('backups.list.actions.deleteBackup')}
-          icon={<DeleteOutlined />}
+          icon={<Trash2 size={14} />}
           className="!text-danger"
           isDisabled={Boolean(deletingBackupId)}
           onClick={() => actions.onDelete(backup.id)}
@@ -92,7 +87,7 @@ export const LogicalBackupActions = ({ backup, actions }: Props) => {
       {actions.isCanManageDBs && actions.databaseType === DatabaseType.POSTGRES_LOGICAL && (
         <RowActionButton
           title={t('backups.logical.list.actions.verifyRestore')}
-          icon={<SafetyOutlined />}
+          icon={<ShieldCheck size={14} />}
           className="!text-accent"
           isPending={verifyingBackupId === backup.id}
           isDisabled={Boolean(verifyingBackupId)}
@@ -102,14 +97,14 @@ export const LogicalBackupActions = ({ backup, actions }: Props) => {
 
       <RowActionButton
         title={t('backups.logical.list.actions.restore')}
-        icon={<CloudUploadOutlined />}
+        icon={<CloudUpload size={14} />}
         className="!text-accent"
         onClick={() => actions.onRestore(backup)}
       />
 
       <RowActionButton
         title={t(DOWNLOAD_TOOLTIP_KEYS[actions.databaseType])}
-        icon={<DownloadOutlined />}
+        icon={<Download size={14} />}
         className="!text-accent"
         isPending={downloadingBackupId === backup.id}
         isDisabled={Boolean(downloadingBackupId)}

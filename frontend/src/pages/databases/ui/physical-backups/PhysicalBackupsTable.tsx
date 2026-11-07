@@ -1,5 +1,4 @@
-import { Table } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+import { Loader } from '@mantine/core';
 import type { JSX } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -15,6 +14,7 @@ import { PhysicalBackupStatusBadge } from '@/pages/databases/ui/physical-backups
 import { PhysicalBackupTypeCellComponent } from '@/pages/databases/ui/physical-backups/PhysicalBackupTypeCellComponent';
 import { useLocale } from '@/shared/i18n';
 import { formatCompactSizeMb } from '@/shared/lib';
+import tableStyles from '@/shared/ui/nativeTable.module.css';
 
 interface Props {
   totalUsageMb: number | undefined;
@@ -34,65 +34,63 @@ export const PhysicalBackupsTable = ({
   const { t } = useTranslation();
   const { formatNumber } = useLocale();
 
-  const columns: ColumnsType<PhysicalBackupListItem> = [
-    {
-      title: t('common.fields.type'),
-      dataIndex: 'type',
-      key: 'type',
-      render: (_, backup) => <PhysicalBackupTypeCellComponent backup={backup} />,
-    },
-    {
-      title: t('common.fields.status'),
-      dataIndex: 'status',
-      key: 'status',
-      render: (_, backup) => (
-        <PhysicalBackupStatusBadge backup={backup} onShowError={onShowError} />
-      ),
-    },
-    {
-      title: (
-        <span className="inline-flex items-center gap-1 whitespace-nowrap">
-          {t('backups.list.columns.size')}
-          {totalUsageMb !== undefined && (
-            <span className="text-xs font-normal text-muted">
-              {formatCompactSizeMb(totalUsageMb, formatNumber)}
-            </span>
-          )}
-        </span>
-      ),
-      dataIndex: 'sizeMb',
-      key: 'sizeMb',
-      width: 150,
-      render: (sizeMb: number) => formatBackupSize(sizeMb, formatNumber),
-    },
-    {
-      title: t('backups.list.columns.duration'),
-      key: 'duration',
-      width: 150,
-      render: (_, backup) => getPhysicalBackupDuration(backup),
-    },
-    {
-      title: t('backups.list.columns.created'),
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      render: (_, backup) => <PhysicalBackupCreatedAt backup={backup} />,
-    },
-    {
-      title: t('backups.list.columns.actions'),
-      key: 'actions',
-      render: (_, backup) => <PhysicalBackupActions backup={backup} actions={actions} />,
-    },
-  ];
-
   return (
-    <Table
-      bordered
-      columns={columns}
-      dataSource={backups}
-      rowKey="id"
-      loading={isLoading}
-      size="small"
-      pagination={false}
-    />
+    <div className="relative overflow-x-auto" aria-busy={isLoading}>
+      <table className={`${tableStyles.table} ${tableStyles.bordered}`}>
+        <thead>
+          <tr>
+            <th scope="col">{t('common.fields.type')}</th>
+            <th scope="col">{t('common.fields.status')}</th>
+            <th scope="col" style={{ width: 150 }}>
+              <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                {t('backups.list.columns.size')}
+                {totalUsageMb !== undefined && (
+                  <span className="text-xs font-normal text-muted">
+                    {formatCompactSizeMb(totalUsageMb, formatNumber)}
+                  </span>
+                )}
+              </span>
+            </th>
+            <th scope="col" style={{ width: 150 }}>
+              {t('backups.list.columns.duration')}
+            </th>
+            <th scope="col">{t('backups.list.columns.created')}</th>
+            <th scope="col">{t('backups.list.columns.actions')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {backups.map((backup) => (
+            <tr key={backup.id}>
+              <td>
+                <PhysicalBackupTypeCellComponent backup={backup} />
+              </td>
+              <td>
+                <PhysicalBackupStatusBadge backup={backup} onShowError={onShowError} />
+              </td>
+              <td>{formatBackupSize(backup.sizeMb, formatNumber)}</td>
+              <td>{getPhysicalBackupDuration(backup)}</td>
+              <td>
+                <PhysicalBackupCreatedAt backup={backup} />
+              </td>
+              <td>
+                <PhysicalBackupActions backup={backup} actions={actions} />
+              </td>
+            </tr>
+          ))}
+          {backups.length === 0 && !isLoading && (
+            <tr>
+              <td colSpan={6}>
+                <div className="py-8 text-center text-muted">{t('backups.list.empty')}</div>
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-surface/50">
+          <Loader size="sm" role="status" />
+        </div>
+      )}
+    </div>
   );
 };

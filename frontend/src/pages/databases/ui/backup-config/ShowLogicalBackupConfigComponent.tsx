@@ -1,5 +1,5 @@
-import { InfoCircleOutlined } from '@ant-design/icons';
-import { Tooltip } from 'antd';
+import { Tooltip } from '@mantine/core';
+import { Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -209,8 +209,8 @@ export const ShowLogicalBackupConfigComponent = ({
               {retentionPolicy === LogicalRetentionPolicy.GFS && (
                 <span className="flex items-center gap-1">
                   {describeGfsRetention(retention)}
-                  <Tooltip title={t('backups.logical.config.retention.gfsTooltip')}>
-                    <InfoCircleOutlined className="text-muted" />
+                  <Tooltip label={t('backups.logical.config.retention.gfsTooltip')}>
+                    <Info className="inline-block shrink-0 align-middle text-muted" size="1em" />
                   </Tooltip>
                 </span>
               )}
@@ -223,9 +223,9 @@ export const ShowLogicalBackupConfigComponent = ({
 
             <Tooltip
               className="cursor-pointer"
-              title={t('backups.logical.config.encryptionTooltip')}
+              label={t('backups.logical.config.encryptionTooltip')}
             >
-              <InfoCircleOutlined className="ml-2 text-muted" />
+              <Info className="ml-2 inline-block shrink-0 align-middle text-muted" size="1em" />
             </Tooltip>
           </div>
 

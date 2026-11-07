@@ -1,17 +1,25 @@
-import { Alert, Button, Modal, Select, Spin } from 'antd';
+import { Alert, Button, Loader } from '@mantine/core';
+import { CircleAlert } from 'lucide-react';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useSessionGuard } from '@/shared/auth';
 import { useLatestRef, useRequestRevision } from '@/shared/hooks';
 import { translateApiError } from '@/shared/i18n';
+import { Dialog } from '@/shared/ui/Dialog';
 import { LoadFailure } from '@/shared/ui/LoadFailure';
-import { WRAPPING_SELECT_CLASS_NAME } from '@/shared/ui/wrappingSelectClassName';
-
+import { WrappingSelect } from '@/shared/ui/WrappingSelect';
 export type TransferAvailability =
-  | { isBlocked: true }
-  | { isBlocked: false; targets: { label: string; value: string }[] };
-
+  | {
+      isBlocked: true;
+    }
+  | {
+      isBlocked: false;
+      targets: {
+        label: string;
+        value: string;
+      }[];
+    };
 interface Props {
   contextKey: string;
   loadAvailability: (isActive: () => boolean) => Promise<TransferAvailability | undefined>;
@@ -123,21 +131,27 @@ export const ResourceTransferDialog = (props: Props) => {
   };
 
   return (
-    <Modal title={labels.title} footer={null} open onCancel={close} maskClosable={false}>
+    <Dialog title={labels.title} opened onClose={close} closeOnClickOutside={false}>
       {loadError !== undefined && <LoadFailure error={loadError} onRetry={() => void loadData()} />}
       {transferError !== undefined && (
-        <Alert type="error" showIcon message={translateApiError(transferError, t)} />
+        <Alert
+          color="danger"
+          icon={
+            <CircleAlert aria-hidden size={16} className="inline-block shrink-0 align-middle" />
+          }
+          title={translateApiError(transferError, t)}
+        />
       )}
       {isLoading ? (
         <div className="flex justify-center py-5">
-          <Spin />
+          <Loader role="status" />
         </div>
       ) : availability?.isBlocked ? (
         <div className="py-3">
           <div className="text-muted">{labels.blocked}</div>
           <div className="mt-5">
             <Button
-              type="primary"
+              variant="filled"
               className="!h-auto min-h-8 max-w-full !whitespace-normal"
               onClick={close}
             >
@@ -150,35 +164,36 @@ export const ResourceTransferDialog = (props: Props) => {
           <div className="mb-3 text-muted">{labels.description}</div>
           <div className="mb-5 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
             <div className="min-w-30 pr-2">{labels.target}</div>
-            <Select
+            <WrappingSelect
               aria-label={labels.target}
               value={selectedTargetId}
               onChange={setSelectedTargetId}
-              className={`${WRAPPING_SELECT_CLASS_NAME} min-w-0 grow [&_.ant-select-selection-placeholder]:!relative [&_.ant-select-selection-placeholder]:!inset-x-0 [&_.ant-select-selection-placeholder]:!top-auto [&_.ant-select-selection-placeholder]:!transform-none [&_.ant-select-selection-placeholder]:!leading-normal [&_.ant-select-selection-placeholder]:!whitespace-normal`}
+              className="min-w-0 grow"
               placeholder={labels.placeholder}
-              options={availability.targets}
+              data={availability.targets}
             />
           </div>
           <div className="flex flex-wrap gap-2">
             <Button
-              type="default"
+              variant="default"
               className="!h-auto min-h-8 max-w-full !whitespace-normal"
               onClick={close}
             >
               {t('common.actions.cancel')}
             </Button>
             <Button
-              type="primary"
+              variant="filled"
               className="!h-auto min-h-8 max-w-full !whitespace-normal"
               onClick={() => void transferResource()}
               loading={isTransferring}
               disabled={!selectedTargetId || isTransferring}
+              aria-busy={isTransferring}
             >
               {labels.submit}
             </Button>
           </div>
         </div>
       ) : null}
-    </Modal>
+    </Dialog>
   );
 };

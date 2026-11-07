@@ -1,4 +1,4 @@
-import { App, Button, Input } from 'antd';
+import { Button, TextInput } from '@mantine/core';
 import { useId } from 'react';
 import { type JSX, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -10,7 +10,7 @@ import { ApiError } from '@/shared/api';
 import { useAuthOperation } from '@/shared/auth';
 import { CLOUDFLARE_TURNSTILE_SITE_KEY } from '@/shared/config';
 import { translateApiError } from '@/shared/i18n';
-
+import { useFeedback } from '@/shared/lib/feedback';
 interface SignInCodeComponentProps {
   pendingSignIn: PendingSignIn;
   onPendingSignInReplaced: (pendingSignIn: PendingSignIn) => void;
@@ -36,7 +36,7 @@ export function SignInCodeComponent({
 
   const reportFailure = (error: unknown) => {
     if (error instanceof ApiError && error.code === PENDING_SIGN_IN_NOT_USABLE_CODE) {
-      message.error(translateApiError(error, i18n.t));
+      notify({ kind: 'error', title: translateApiError(error, i18n.t) });
       onPendingSignInLost();
 
       return;
@@ -87,7 +87,7 @@ export function SignInCodeComponent({
       if (!authOperation.isCurrent(operation)) return;
       setCode('');
       onPendingSignInReplaced(resentSignIn);
-      message.success(i18n.t('users.signInCode.codeResent'));
+      notify({ kind: 'success', title: i18n.t('users.signInCode.codeResent') });
     } catch (e) {
       if (!authOperation.isCurrent(operation)) return;
       reportFailure(e);
@@ -101,8 +101,7 @@ export function SignInCodeComponent({
   };
   const controlId = useId();
   const { t, i18n } = useTranslation();
-  const { message } = App.useApp();
-
+  const notify = useFeedback();
   const authOperation = useAuthOperation();
 
   const { token, containerRef, resetCloudflareTurnstile } = useCloudflareTurnstile();
@@ -118,7 +117,7 @@ export function SignInCodeComponent({
       <label className="my-1 text-xs font-semibold" htmlFor={controlId + 'field-1'}>
         {t('users.signInCode.code')}
       </label>
-      <Input
+      <TextInput
         id={controlId + 'field-1'}
         placeholder="123456"
         value={code}
@@ -127,7 +126,7 @@ export function SignInCodeComponent({
           setFailure(undefined);
           setCode(e.currentTarget.value.replace(/\D/g, '').slice(0, 6));
         }}
-        status={isCodeError ? 'error' : undefined}
+        error={(isCodeError ? 'error' : undefined) === 'error'}
         maxLength={6}
       />
 
@@ -142,7 +141,8 @@ export function SignInCodeComponent({
         onClick={() => {
           onVerify();
         }}
-        type="primary"
+        variant="filled"
+        aria-busy={isLoading}
       >
         {t('users.signInCode.submit')}
       </Button>

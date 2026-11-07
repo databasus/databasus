@@ -1,4 +1,4 @@
-import { InfoCircleOutlined } from '@ant-design/icons';
+import { Info } from 'lucide-react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { type Database, HEALTH_STATUS_LABEL_KEYS, HealthStatus } from '@/entities/databases';
@@ -76,7 +76,7 @@ export const DatabaseCardComponent = ({
 
       {database.lastBackupErrorMessage && (
         <div className="mt-1 flex items-center text-sm text-danger underline">
-          <InfoCircleOutlined className="mr-1" />
+          <Info className="mr-1" size={14} />
           {t('databases.card.hasBackupError')}
         </div>
       )}

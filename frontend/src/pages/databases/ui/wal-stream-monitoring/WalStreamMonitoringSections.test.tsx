@@ -23,7 +23,7 @@ import { VerdictBannerComponent } from '@/pages/databases/ui/wal-stream-monitori
 import { ChartAvailabilityComponent } from '@/pages/databases/ui/wal-stream-monitoring/WalStreamChartsComponent';
 import { LocaleProvider } from '@/shared/i18n';
 import { createTestWalStreamStatistics } from '@/shared/lib/test/buildWalStreamStatistics';
-import { ThemeContext } from '@/shared/theme';
+import { ThemeContext, ThemeConfiguration } from '@/shared/theme';
 
 // The entity's public API imports its API client, and the client's config module reads window at
 // import time. The tests run in node, so they supply window. LocaleProvider then reads
@@ -80,9 +80,11 @@ const buildSeriesStartingInsidePeriod = (): WalStreamStatistics['series'] => ({
 const renderWithLocale = (element: JSX.Element) =>
   renderToStaticMarkup(
     <ThemeContext.Provider value={{ theme: 'light', resolvedTheme: 'light', setTheme: () => {} }}>
-      <LocaleProvider>{element}</LocaleProvider>
+      <ThemeConfiguration isTestEnvironment>
+        <LocaleProvider>{element}</LocaleProvider>
+      </ThemeConfiguration>
     </ThemeContext.Provider>,
-  );
+  ).replace(/<style\b[^>]*>[\s\S]*?<\/style>/g, '');
 
 const renderBanner = (statistics: WalStreamStatistics, isCanManageDBs: boolean) => {
   const banner = getVerdictBanner({ statistics, lastSuccessfulRefreshAt: now, now });
@@ -381,10 +383,10 @@ describe('the Monitoring tab sections', () => {
     expect(markup).toContain('Receiving pauses at 512 MB');
     expect(markup.match(/Needs attention/g)).toHaveLength(1);
     expect(markup).toMatch(
-      /<span class="hidden @2xl:block" aria-hidden="true"><span[^>]*class="anticon anticon-arrow-right"/,
+      /<span class="hidden @2xl:block" aria-hidden="true"><svg[^>]*aria-hidden="true"/,
     );
     expect(markup).toMatch(
-      /<span class="block text-muted @2xl:hidden" aria-hidden="true"><span[^>]*class="anticon anticon-arrow-down"/,
+      /<span class="block text-muted @2xl:hidden" aria-hidden="true"><svg[^>]*aria-hidden="true"/,
     );
   });
 });

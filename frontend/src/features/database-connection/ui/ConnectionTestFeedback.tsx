@@ -1,11 +1,12 @@
-import { CopyOutlined } from '@ant-design/icons';
-import { Alert, App, Button, Tooltip } from 'antd';
+import { Alert, Button, Tooltip } from '@mantine/core';
+import { CircleAlert, Copy } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { type ConnectionErrorCode, physicalConnectionErrorContent } from '@/entities/databases';
 import type { DatabaseConnectionTestFailure } from '@/features/database-connection/model/useDatabaseConnectionTest';
 import { TransByKey, translateApiError, translateLocalizedText } from '@/shared/i18n';
 import { BrowserClipboard } from '@/shared/lib/BrowserClipboard';
+import { useFeedback } from '@/shared/lib/feedback';
 
 interface Props {
   failure: DatabaseConnectionTestFailure;
@@ -15,14 +16,13 @@ interface Props {
 
 export const ConnectionTestFeedback = ({ failure, isPhysical, username }: Props) => {
   const { t } = useTranslation();
-  const { message } = App.useApp();
-
+  const notify = useFeedback();
   const copyCommand = async (command: string) => {
     try {
       await BrowserClipboard.copyToClipboard(command);
-      message.success(t('common.messages.copiedToClipboard'));
+      notify({ kind: 'success', title: t('common.messages.copiedToClipboard') });
     } catch {
-      message.error(t('databases.edit.copyFailed'));
+      notify({ kind: 'error', title: t('databases.edit.copyFailed') });
     }
   };
 
@@ -31,13 +31,13 @@ export const ConnectionTestFeedback = ({ failure, isPhysical, username }: Props)
       <pre className="rounded-md bg-code p-3 pr-10 font-mono text-xs break-all whitespace-pre-wrap text-content">
         {command}
       </pre>
-      <Tooltip title={t('common.actions.copy')}>
+      <Tooltip label={t('common.actions.copy')}>
         <Button
-          type="text"
-          size="small"
+          variant="subtle"
+          size="xs"
           className="!absolute top-2 right-2"
           aria-label={t('common.actions.copy')}
-          icon={<CopyOutlined aria-hidden />}
+          leftSection={<Copy aria-hidden size={14} />}
           onClick={() => copyCommand(command)}
         />
       </Tooltip>
@@ -52,28 +52,27 @@ export const ConnectionTestFeedback = ({ failure, isPhysical, username }: Props)
 
     return (
       <Alert
-        type="error"
+        color="danger"
         className="mt-3"
-        message={<span className="text-sm font-bold">{t(content.titleKey)}</span>}
-        description={
-          <div>
-            <div>{t(content.summaryKey)}</div>
-            {steps.map((step, index) =>
-              step.type === 'command' ? (
-                <div key={index}>{renderCopyableCommand(step.command)}</div>
-              ) : (
-                <p key={index} className="mt-2 text-sm">
-                  <TransByKey i18nKey={step.key} components={{ bold: <strong /> }} />
-                </p>
-              ),
-            )}
-            {managedNote && (
-              <div className="mt-2 text-sm">{translateLocalizedText(managedNote, t)}</div>
-            )}
-            {serverError && <div className="mt-2 font-mono text-xs break-all">{serverError}</div>}
-          </div>
-        }
-      />
+        title={<span className="text-sm font-bold">{t(content.titleKey)}</span>}
+      >
+        <div>
+          <div>{t(content.summaryKey)}</div>
+          {steps.map((step, index) =>
+            step.type === 'command' ? (
+              <div key={index}>{renderCopyableCommand(step.command)}</div>
+            ) : (
+              <p key={index} className="mt-2 text-sm">
+                <TransByKey i18nKey={step.key} components={{ bold: <strong /> }} />
+              </p>
+            ),
+          )}
+          {managedNote && (
+            <div className="mt-2 text-sm">{translateLocalizedText(managedNote, t)}</div>
+          )}
+          {serverError && <div className="mt-2 font-mono text-xs break-all">{serverError}</div>}
+        </div>
+      </Alert>
     );
   };
 
@@ -88,7 +87,12 @@ export const ConnectionTestFeedback = ({ failure, isPhysical, username }: Props)
 
   return (
     <>
-      <Alert type="error" showIcon className="mt-3" message={failureText} />
+      <Alert
+        color="danger"
+        icon={<CircleAlert aria-hidden size={16} />}
+        className="mt-3"
+        title={failureText}
+      />
 
       {!isPhysical && (
         <div className="mt-3 text-sm text-muted">{t('databases.edit.ipWhitelistHint')}</div>

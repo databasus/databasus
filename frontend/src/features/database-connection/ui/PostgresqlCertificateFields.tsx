@@ -1,4 +1,4 @@
-import { Button, Input } from 'antd';
+import { Button, Textarea } from '@mantine/core';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -53,19 +53,19 @@ export const PostgresqlCertificateFields = ({
       isTopAligned
     >
       <div className="w-full max-w-[300px]">
-        <Input.TextArea
+        <Textarea
           id={`${controlId}-client-key`}
-          aria-describedby={isClientKeyRequiredAgain ? `${controlId}-client-key-notice` : undefined}
           value={values.sslClientKey || ''}
           onChange={(e) => onChange({ sslClientKey: e.target.value })}
-          size="small"
+          size="xs"
           className="w-full"
           placeholder={PRIVATE_KEY_PLACEHOLDER}
-          autoSize={{ minRows: 2, maxRows: 5 }}
+          description={
+            isClientKeyRequiredAgain && (
+              <AddressChangedSecretNoticeComponent id={`${controlId}-client-key-notice`} />
+            )
+          }
         />
-        {isClientKeyRequiredAgain && (
-          <AddressChangedSecretNoticeComponent id={`${controlId}-client-key-notice`} />
-        )}
       </div>
     </ConnectionFieldRow>
   );
@@ -77,7 +77,7 @@ export const PostgresqlCertificateFields = ({
           <div className="flex items-center">
             <span className="mr-3">*************</span>
             <Button
-              size="small"
+              size="xs"
               onClick={() => onChange({ sslClientCert: '', sslClientKey: '', sslRootCert: '' })}
             >
               {t('databases.actions.replace')}
@@ -97,14 +97,13 @@ export const PostgresqlCertificateFields = ({
         controlId={`${controlId}-client-cert`}
         isTopAligned
       >
-        <Input.TextArea
+        <Textarea
           id={`${controlId}-client-cert`}
           value={values.sslClientCert || ''}
           onChange={(e) => onChange({ sslClientCert: e.target.value })}
-          size="small"
+          size="xs"
           className="w-full max-w-[300px]"
           placeholder={CERTIFICATE_PLACEHOLDER}
-          autoSize={{ minRows: 2, maxRows: 5 }}
         />
       </ConnectionFieldRow>
 
@@ -116,14 +115,13 @@ export const PostgresqlCertificateFields = ({
         isTopAligned
       >
         <div className="flex w-full items-start">
-          <Input.TextArea
+          <Textarea
             id={`${controlId}-root-cert`}
             value={values.sslRootCert || ''}
             onChange={(e) => onChange({ sslRootCert: e.target.value })}
-            size="small"
+            size="xs"
             className="w-full max-w-[300px]"
             placeholder={CERTIFICATE_PLACEHOLDER}
-            autoSize={{ minRows: 2, maxRows: 5 }}
           />
 
           <ConnectionFieldTooltip title={t('databases.edit.serverCaCertificateTooltip')} />

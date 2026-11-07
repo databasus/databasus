@@ -1,5 +1,5 @@
-import { ArrowRightOutlined, CloseOutlined, DeleteOutlined } from '@ant-design/icons';
-import { Alert, App, Button, Input, Modal, Spin } from 'antd';
+import { ActionIcon, Alert, Button, Loader, TextInput } from '@mantine/core';
+import { ArrowRight, CircleAlert, Trash2, X } from 'lucide-react';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -12,6 +12,8 @@ import { ApiError } from '@/shared/api';
 import { useSession, useSessionGuard } from '@/shared/auth';
 import { useLatestRef, useRequestRevision } from '@/shared/hooks';
 import { translateApiError } from '@/shared/i18n';
+import { useFeedback } from '@/shared/lib/feedback';
+import { Dialog } from '@/shared/ui';
 import { ConfirmationComponent, LoadFailure } from '@/shared/ui';
 
 // eslint-disable-next-line i18next/no-literal-string -- API error code, not copy
@@ -74,9 +76,12 @@ export const StorageComponent = ({
       if (!isActive()) return;
 
       if (testResult.isConnected) {
-        notification.success({
-          message: t('storages.connectionTestSucceeded.title'),
+        notify({
+          kind: 'success',
+          title: t('storages.connectionTestSucceeded.title'),
           description: t('storages.connectionTestSucceeded.description'),
+          lifetimeMs: 4500,
+          position: 'top-right',
         });
       } else {
         setConnectionError(testResult.error ?? '');
@@ -214,8 +219,7 @@ export const StorageComponent = ({
         }
       });
   };
-
-  const { notification } = App.useApp();
+  const notify = useFeedback();
   const waitButtonRef = useRef<HTMLButtonElement>(null);
   const isCurrent = useSessionGuard();
   const session = useSession();
@@ -247,31 +251,37 @@ export const StorageComponent = ({
       <div className="min-w-0 grow rounded bg-surface p-5 shadow">
         {error !== undefined &&
           (storage ? (
-            <Alert type="error" showIcon message={translateApiError(error, t)} />
+            <Alert
+              color="danger"
+              icon={
+                <CircleAlert aria-hidden size={16} className="inline-block shrink-0 align-middle" />
+              }
+              title={translateApiError(error, t)}
+            />
           ) : (
             <LoadFailure error={error} onRetry={loadSettings} />
           ))}
         {connectionError !== undefined && (
           <Alert
-            type="error"
-            message={t('storages.connectionTestFailed', { error: connectionError })}
+            color="danger"
+            title={t('storages.connectionTestFailed', { error: connectionError })}
           />
         )}
         {isDeleteBlocked && (
-          <Alert type="error" message={t('storages.config.removeBlockedByBackups')} />
+          <Alert color="danger" title={t('storages.config.removeBlockedByBackups')} />
         )}
         {!storage && error === undefined ? (
           <div className="mt-10 flex justify-center">
-            <Spin />
+            <Loader role="status" />
           </div>
         ) : storage ? (
           <div>
             {!isEditName ? (
               <div className="flex items-center text-2xl font-bold">
-                {storage.name}
+                <span className="min-w-0 wrap-anywhere">{storage.name}</span>
                 {isCanManageStorages && (
                   <Button
-                    type="text"
+                    variant="subtle"
                     aria-label={t('common.actions.edit')}
                     className="ml-2"
                     onClick={() => startEdit('name')}
@@ -284,7 +294,7 @@ export const StorageComponent = ({
             ) : (
               <div>
                 <div className="flex items-center">
-                  <Input
+                  <TextInput
                     aria-label={t('common.fields.name')}
                     className="max-w-62.5"
                     value={editStorage?.name}
@@ -293,19 +303,20 @@ export const StorageComponent = ({
                       setEditStorage({ ...editStorage, name: e.target.value });
                     }}
                     placeholder={t('storages.config.namePlaceholder')}
-                    size="large"
+                    size="md"
                   />
 
                   <div className="ml-1 flex items-center">
                     <Button
-                      type="text"
+                      variant="subtle"
+                      aria-label={t('common.actions.cancel')}
                       className="flex h-6 w-6 items-center justify-center p-0"
                       onClick={() => {
                         setIsEditName(false);
                         setEditStorage(undefined);
                       }}
                     >
-                      <CloseOutlined className="text-muted" />
+                      <X className="inline-block shrink-0 align-middle text-muted" size="1em" />
                     </Button>
                   </div>
                 </div>
@@ -313,11 +324,12 @@ export const StorageComponent = ({
                 {isNameUnsaved && (
                   <Button
                     className="mt-1"
-                    type="primary"
+                    variant="filled"
                     onClick={() => saveName()}
                     aria-label={t('common.actions.save')}
                     loading={isSaving}
                     disabled={!editStorage?.name}
+                    aria-busy={isSaving}
                   >
                     {t('common.actions.save')}
                   </Button>
@@ -334,7 +346,7 @@ export const StorageComponent = ({
 
               {!isEditSettings && isCanManageStorages ? (
                 <Button
-                  type="text"
+                  variant="subtle"
                   aria-label={t('common.actions.edit')}
                   className="ml-2"
                   onClick={() => startEdit('settings')}
@@ -370,36 +382,47 @@ export const StorageComponent = ({
             {!isEditSettings && (
               <div className="mt-5">
                 <Button
-                  type="primary"
+                  variant="filled"
                   className="mr-1"
                   onClick={testConnection}
                   loading={isTestingConnection}
                   disabled={isTestingConnection}
+                  aria-busy={isTestingConnection}
                 >
                   {t('storages.actions.testConnection')}
                 </Button>
 
                 {isCanManageStorages && (
                   <>
-                    <Button
-                      type="primary"
-                      ghost
+                    <ActionIcon
+                      variant="outline"
+                      color="accent"
                       aria-label={t('storages.transfer.title')}
-                      icon={<ArrowRightOutlined aria-hidden />}
                       onClick={() => setIsShowTransferDialog(true)}
                       className="mr-1"
-                    />
+                    >
+                      <ArrowRight
+                        aria-hidden
+                        size="1em"
+                        className="inline-block shrink-0 align-middle"
+                      />
+                    </ActionIcon>
 
-                    <Button
-                      type="primary"
-                      ghost
-                      danger
+                    <ActionIcon
+                      variant="outline"
+                      color="danger"
                       aria-label={t('common.actions.remove')}
-                      icon={<DeleteOutlined aria-hidden />}
                       onClick={() => setIsShowRemoveConfirm(true)}
                       loading={isRemoving}
                       disabled={isRemoving}
-                    />
+                      aria-busy={isRemoving}
+                    >
+                      <Trash2
+                        aria-hidden
+                        size="1em"
+                        className="inline-block shrink-0 align-middle"
+                      />
+                    </ActionIcon>
                   </>
                 )}
               </div>
@@ -419,23 +442,42 @@ export const StorageComponent = ({
       </div>
 
       {isShowCleanupWarning && (
-        <Modal
+        <Dialog
           title={t('storages.cleanup.title')}
-          afterOpenChange={(isOpen) => {
-            if (isOpen) waitButtonRef.current?.focus();
-          }}
-          open
-          onCancel={() => {
+          onEnterTransitionEnd={() => waitButtonRef.current?.focus()}
+          opened
+          onClose={() => {
             if (!isRemoving) setIsShowCleanupWarning(false);
           }}
-          closable={!isRemoving}
-          keyboard={!isRemoving}
-          maskClosable={false}
-          footer={
+          withCloseButton={!isRemoving}
+          closeOnEscape={!isRemoving}
+          closeOnClickOutside={false}
+        >
+          <p>{t('storages.cleanup.warning')}</p>
+          {error !== undefined && (
+            <Alert
+              color="danger"
+              icon={
+                <CircleAlert aria-hidden size={16} className="inline-block shrink-0 align-middle" />
+              }
+              title={translateApiError(error, t)}
+            />
+          )}
+          {isDeleteBlocked && (
+            <Alert
+              color="danger"
+              icon={
+                <CircleAlert aria-hidden size={16} className="inline-block shrink-0 align-middle" />
+              }
+              title={t('storages.config.removeBlockedByBackups')}
+            />
+          )}
+          <div className="mt-5 flex flex-wrap justify-end gap-2">
             <div className="flex flex-wrap justify-end gap-2">
               <Button
                 key="wait"
                 ref={waitButtonRef}
+                data-autofocus
                 className="!h-auto min-h-8 max-w-full !whitespace-normal"
                 disabled={isRemoving}
                 onClick={() => setIsShowCleanupWarning(false)}
@@ -445,25 +487,18 @@ export const StorageComponent = ({
               <Button
                 key="delete"
                 className="!h-auto min-h-8 max-w-full !whitespace-normal"
-                danger
-                type="primary"
+                color="danger"
+                variant="filled"
                 loading={isRemoving}
                 disabled={isRemoving}
                 onClick={() => void remove(true)}
+                aria-busy={isRemoving}
               >
                 {t('storages.cleanup.deleteAnyway')}
               </Button>
             </div>
-          }
-        >
-          <p>{t('storages.cleanup.warning')}</p>
-          {error !== undefined && (
-            <Alert type="error" showIcon message={translateApiError(error, t)} />
-          )}
-          {isDeleteBlocked && (
-            <Alert type="error" showIcon message={t('storages.config.removeBlockedByBackups')} />
-          )}
-        </Modal>
+          </div>
+        </Dialog>
       )}
 
       {isShowTransferDialog && storage && (

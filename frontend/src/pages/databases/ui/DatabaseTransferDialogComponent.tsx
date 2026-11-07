@@ -1,5 +1,5 @@
-import { CheckCircleOutlined, ExclamationCircleOutlined, SwapOutlined } from '@ant-design/icons';
-import { Alert, App, Button, Modal, Radio, Select, Spin } from 'antd';
+import { Alert, Button, Loader, MultiSelect, Radio } from '@mantine/core';
+import { ArrowRightLeft, CircleAlert, CircleCheck, TriangleAlert } from 'lucide-react';
 import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -14,7 +14,9 @@ import { EditStorageComponent } from '@/features/edit-storage';
 import { useSessionGuard } from '@/shared/auth';
 import { useLatestRef, useRequestRevision } from '@/shared/hooks';
 import { translateApiError } from '@/shared/i18n';
-
+import { useFeedback } from '@/shared/lib/feedback';
+import { WrappingSelect } from '@/shared/ui';
+import { Dialog } from '@/shared/ui';
 interface Props {
   database: Database;
   currentStorageId?: string;
@@ -72,8 +74,7 @@ export const DatabaseTransferDialogComponent = ({
   const [isShowCreateNotifier, setIsShowCreateNotifier] = useState(false);
 
   const [isTransferring, setIsTransferring] = useState(false);
-
-  const { notification } = App.useApp();
+  const notify = useFeedback();
   const isCurrent = useSessionGuard();
   const contextRevision = useRequestRevision();
   const targetRevision = useRequestRevision();
@@ -257,12 +258,14 @@ export const DatabaseTransferDialogComponent = ({
     try {
       await backupConfigApi.transferDatabase(database.id, transfer);
       if (!isActive()) return;
-
-      notification.success({
-        message: t('databases.transfer.transferred.title'),
+      notify({
+        kind: 'success',
+        title: t('databases.transfer.transferred.title'),
         description: t('databases.transfer.transferred.description', {
           name: database.name,
         }),
+        lifetimeMs: 4500,
+        position: 'top-right',
       });
 
       onTransferred();
@@ -326,60 +329,58 @@ export const DatabaseTransferDialogComponent = ({
   const selectedStorage = targetStorages.find((storage) => storage.id === selectedStorageId);
 
   return (
-    <Modal
+    <Dialog
       title={
         <div className="flex items-center gap-2">
-          <SwapOutlined />
+          <ArrowRightLeft size="1em" className="inline-block shrink-0 align-middle" />
           {t('databases.transfer.title')}
         </div>
       }
-      footer={null}
-      open={true}
-      onCancel={onClose}
-      maskClosable={false}
-      closable={!isTransferring}
-      keyboard={!isTransferring}
-      width={550}
-      className="[&_.ant-btn]:!h-auto [&_.ant-btn]:min-h-6 [&_.ant-btn]:max-w-full [&_.ant-btn]:leading-normal [&_.ant-btn]:!whitespace-normal [&_.ant-select-single]:!h-auto [&_.ant-select-single_.ant-select-selection-item]:!leading-normal [&_.ant-select-single_.ant-select-selection-item]:!whitespace-normal [&_.ant-select-single_.ant-select-selector]:!h-auto"
+      opened={true}
+      onClose={onClose}
+      closeOnClickOutside={false}
+      withCloseButton={!isTransferring}
+      closeOnEscape={!isTransferring}
+      size={550}
     >
       {error !== undefined && (
         <Alert
-          type="error"
-          showIcon
-          message={translateApiError(error, t)}
-          action={
-            <Button
-              disabled={isTransferring}
-              onClick={() => {
-                setError(undefined);
-                void loadWorkspaces();
-                void loadStorageSharing();
-                void loadNotifierUsageCounts();
-
-                if (selectedWorkspaceId) void loadTargetWorkspaceData(selectedWorkspaceId);
-              }}
-            >
-              {t('common.actions.retry')}
-            </Button>
+          color="danger"
+          icon={
+            <CircleAlert aria-hidden size={16} className="inline-block shrink-0 align-middle" />
           }
-        />
+          title={translateApiError(error, t)}
+        >
+          <Button
+            disabled={isTransferring}
+            onClick={() => {
+              setError(undefined);
+              void loadWorkspaces();
+              void loadStorageSharing();
+              void loadNotifierUsageCounts();
+              if (selectedWorkspaceId) void loadTargetWorkspaceData(selectedWorkspaceId);
+            }}
+          >
+            {t('common.actions.retry')}
+          </Button>
+        </Alert>
       )}
       {isLoading ? (
         <div className="flex justify-center py-5">
-          <Spin />
+          <Loader role="status" />
         </div>
       ) : (
         <div className="py-3">
           <div className="mb-5">
             <div className="mb-2 font-medium">{t('databases.transfer.targetWorkspace')}</div>
-            <Select
+            <WrappingSelect
               aria-label={t('databases.transfer.targetWorkspace')}
               disabled={isTransferring}
               value={selectedWorkspaceId}
               onChange={setSelectedWorkspaceId}
               className="w-full"
               placeholder={t('databases.transfer.selectWorkspace')}
-              options={workspaces.map((workspace) => ({
+              data={workspaces.map((workspace) => ({
                 label: workspace.name,
                 value: workspace.id,
               }))}
@@ -396,23 +397,29 @@ export const DatabaseTransferDialogComponent = ({
                   <Radio.Group
                     disabled={isTransferring}
                     value={storageOption}
-                    onChange={(e) => setStorageOption(e.target.value)}
+                    onChange={(value) => setStorageOption(value)}
                     className="flex flex-col gap-3"
                   >
                     {hasCurrentStorage && (
                       <div>
-                        <Radio value="transfer">
-                          <span className="flex items-center gap-2">
-                            {t('databases.transfer.storage.transferExisting')}
-                            {isLoadingStorageSharing && <Spin size="small" />}
-                          </span>
-                        </Radio>
+                        <Radio
+                          value="transfer"
+                          label={
+                            <>
+                              <span className="flex items-center gap-2">
+                                {t('databases.transfer.storage.transferExisting')}
+                                {isLoadingStorageSharing && <Loader size="xs" role="status" />}
+                              </span>
+                            </>
+                          }
+                        />
                       </div>
                     )}
                     <div>
-                      <Radio value="select">
-                        {t('databases.transfer.storage.selectFromTarget')}
-                      </Radio>
+                      <Radio
+                        value="select"
+                        label={<>{t('databases.transfer.storage.selectFromTarget')}</>}
+                      />
                     </div>
                   </Radio.Group>
                 </div>
@@ -420,15 +427,15 @@ export const DatabaseTransferDialogComponent = ({
                 {storageOption === 'transfer' && hasCurrentStorage && (
                   <div className="mt-2 ml-6">
                     {isLoadingStorageSharing ? (
-                      <Spin size="small" />
+                      <Loader size="xs" role="status" />
                     ) : !canTransferWithStorage ? (
                       <div className="flex items-center gap-2 rounded border border-border bg-surface p-2 text-sm text-danger">
-                        <ExclamationCircleOutlined />
+                        <CircleAlert size="1em" className="inline-block shrink-0 align-middle" />
                         <span>{t('databases.transfer.storage.blocked')}</span>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 text-sm text-success">
-                        <CheckCircleOutlined />
+                        <CircleCheck size="1em" className="inline-block shrink-0 align-middle" />
                         {t('databases.transfer.storage.canTransfer')}
                       </div>
                     )}
@@ -438,7 +445,7 @@ export const DatabaseTransferDialogComponent = ({
                 {storageOption === 'select' && (
                   <div className="mt-2 ml-6">
                     <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center">
-                      <Select
+                      <WrappingSelect
                         aria-label={t('databases.transfer.storage.title')}
                         disabled={isTransferring}
                         value={selectedStorageId}
@@ -447,7 +454,7 @@ export const DatabaseTransferDialogComponent = ({
                         }}
                         className="w-full max-w-75 min-w-0 sm:flex-1"
                         placeholder={t('databases.transfer.storage.selectPlaceholder')}
-                        options={[
+                        data={[
                           ...targetStorages.map((storage) => ({
                             label: storage.name,
                             value: storage.id,
@@ -483,18 +490,20 @@ export const DatabaseTransferDialogComponent = ({
                     <Radio.Group
                       disabled={isTransferring}
                       value={notifierOption}
-                      onChange={(e) => setNotifierOption(e.target.value)}
+                      onChange={(value) => setNotifierOption(value)}
                       className="flex flex-col gap-3"
                     >
                       <div>
-                        <Radio value="transfer">
-                          {t('databases.transfer.notifiers.transferWithDatabase')}
-                        </Radio>
+                        <Radio
+                          value="transfer"
+                          label={<>{t('databases.transfer.notifiers.transferWithDatabase')}</>}
+                        />
                       </div>
                       <div>
-                        <Radio value="select">
-                          {t('databases.transfer.notifiers.selectFromTarget')}
-                        </Radio>
+                        <Radio
+                          value="select"
+                          label={<>{t('databases.transfer.notifiers.selectFromTarget')}</>}
+                        />
                       </div>
                     </Radio.Group>
                   </div>
@@ -502,13 +511,16 @@ export const DatabaseTransferDialogComponent = ({
                   {notifierOption === 'transfer' && (
                     <div className="mt-2 ml-6">
                       {isLoadingNotifierCounts ? (
-                        <Spin size="small" />
+                        <Loader size="xs" role="status" />
                       ) : (
                         <div className="space-y-1">
                           {notifiersCanTransfer.length > 0 && (
                             <div className="text-sm text-success">
                               <div className="mb-1 flex items-center gap-1">
-                                <CheckCircleOutlined />
+                                <CircleCheck
+                                  size="1em"
+                                  className="inline-block shrink-0 align-middle"
+                                />
                                 <span>{t('databases.transfer.notifiers.willTransfer')}</span>
                               </div>
                               <ul className="ml-5 list-disc">
@@ -522,7 +534,10 @@ export const DatabaseTransferDialogComponent = ({
                           {notifiersBlockingTransfer.length > 0 && (
                             <div className="mt-2 rounded border border-border bg-surface p-2 text-sm text-danger">
                               <div className="mb-1 flex items-center gap-1">
-                                <ExclamationCircleOutlined />
+                                <CircleAlert
+                                  size="1em"
+                                  className="inline-block shrink-0 align-middle"
+                                />
                                 <span>{t('databases.transfer.notifiers.willNotTransfer')}</span>
                               </div>
                               <ul className="ml-5 list-disc">
@@ -551,17 +566,16 @@ export const DatabaseTransferDialogComponent = ({
 
                   {notifierOption === 'select' && (
                     <div className="mt-2 ml-6 flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center">
-                      <Select
-                        mode="multiple"
+                      <MultiSelect
                         aria-label={t('databases.transfer.notifiers.title')}
                         disabled={isTransferring}
                         value={selectedNotifierIds}
                         onChange={(notifierIds) => {
                           setSelectedNotifierIds(notifierIds);
                         }}
-                        className="w-full max-w-75 min-w-0 sm:flex-1 [&_.ant-select-selection-placeholder]:!relative [&_.ant-select-selection-placeholder]:!inset-x-0 [&_.ant-select-selection-placeholder]:!top-auto [&_.ant-select-selection-placeholder]:min-w-0 [&_.ant-select-selection-placeholder]:basis-full [&_.ant-select-selection-placeholder]:!transform-none [&_.ant-select-selection-placeholder]:!leading-normal [&_.ant-select-selection-placeholder]:!whitespace-normal [&_.ant-select-selection-wrap]:flex-wrap"
+                        className="w-full max-w-75 min-w-0 sm:flex-1"
                         placeholder={t('databases.transfer.notifiers.selectPlaceholder')}
-                        options={[
+                        data={[
                           ...targetNotifiers.map((notifier) => ({
                             label: notifier.name,
                             value: notifier.id,
@@ -582,19 +596,30 @@ export const DatabaseTransferDialogComponent = ({
           )}
 
           {storageOption === 'select' && selectedStorageId && (
-            <Alert type="warning" showIcon message={t('backups.storageSwitch.warning')} />
+            <Alert
+              color="warning"
+              icon={
+                <TriangleAlert
+                  aria-hidden
+                  size={16}
+                  className="inline-block shrink-0 align-middle"
+                />
+              }
+              title={t('backups.storageSwitch.warning')}
+            />
           )}
           <div className="mt-5 flex flex-wrap gap-2">
-            <Button type="default" onClick={onClose} disabled={isTransferring}>
+            <Button variant="default" onClick={onClose} disabled={isTransferring}>
               {t('common.actions.cancel')}
             </Button>
 
             <Button
-              type="primary"
+              variant="filled"
               onClick={handleTransfer}
               aria-label={t('databases.transfer.submit')}
               loading={isTransferring}
               disabled={!isFormValid || isTransferring}
+              aria-busy={isTransferring}
             >
               {t('databases.transfer.submit')}
             </Button>
@@ -603,14 +628,13 @@ export const DatabaseTransferDialogComponent = ({
       )}
 
       {isShowCreateStorage && selectedWorkspaceId && (
-        <Modal
+        <Dialog
           title={t('databases.transfer.storage.addTitle')}
-          footer={null}
-          open={isShowCreateStorage}
-          onCancel={() => {
+          opened={isShowCreateStorage}
+          onClose={() => {
             setIsShowCreateStorage(false);
           }}
-          maskClosable={false}
+          closeOnClickOutside={false}
         >
           <div className="my-3 max-w-68.75 text-muted">
             {t('databases.transfer.storage.description')}
@@ -628,18 +652,17 @@ export const DatabaseTransferDialogComponent = ({
               setIsShowCreateStorage(false);
             }}
           />
-        </Modal>
+        </Dialog>
       )}
 
       {isShowCreateNotifier && selectedWorkspaceId && (
-        <Modal
+        <Dialog
           title={t('databases.notifiers.addTitle')}
-          footer={null}
-          open={isShowCreateNotifier}
-          onCancel={() => {
+          opened={isShowCreateNotifier}
+          onClose={() => {
             setIsShowCreateNotifier(false);
           }}
-          maskClosable={false}
+          closeOnClickOutside={false}
         >
           <div className="my-3 max-w-68.75 text-muted">{t('databases.notifiers.description')}</div>
 
@@ -655,8 +678,8 @@ export const DatabaseTransferDialogComponent = ({
               setIsShowCreateNotifier(false);
             }}
           />
-        </Modal>
+        </Dialog>
       )}
-    </Modal>
+    </Dialog>
   );
 };

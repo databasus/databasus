@@ -1,4 +1,4 @@
-import { App, Button } from 'antd';
+import { Button } from '@mantine/core';
 import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -6,7 +6,7 @@ import { settingsApi } from '@/entities/users';
 import { type ApiComponents } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { getWebsitePageUrl, translateApiError, useLocale } from '@/shared/i18n';
-
+import { useFeedback } from '@/shared/lib/feedback';
 interface Props {
   isEmailConfigured: boolean;
 }
@@ -29,9 +29,10 @@ export function MailServer({ isEmailConfigured }: Props) {
 
       if (!isCurrent()) return;
       if (testEmail.isDelivered) {
-        message.success(
-          i18n.t('settings.mailServer.testEmailSent', { email: testEmail.recipientEmail }),
-        );
+        notify({
+          kind: 'success',
+          title: i18n.t('settings.mailServer.testEmailSent', { email: testEmail.recipientEmail }),
+        });
       } else {
         setUndeliveredTestEmail(testEmail);
       }
@@ -44,8 +45,7 @@ export function MailServer({ isEmailConfigured }: Props) {
   const isCurrent = useSessionGuard();
   const { t, i18n } = useTranslation();
   const { locale } = useLocale();
-  const { message } = App.useApp();
-
+  const notify = useFeedback();
   return (
     <section className="my-8 max-w-2xl text-sm">
       <h2 className="mb-3 text-xl font-bold">{t('settings.mailServer.title')}</h2>
@@ -88,12 +88,12 @@ export function MailServer({ isEmailConfigured }: Props) {
 
       <Button
         className="mt-3 !h-auto min-h-8 max-w-full !whitespace-normal"
-        type="primary"
-        ghost
-        size="small"
+        variant="outline"
+        size="xs"
         onClick={sendTestEmail}
         loading={isSendingTestEmail}
         disabled={!isEmailConfigured || isSendingTestEmail}
+        aria-busy={isSendingTestEmail}
       >
         {t('settings.mailServer.sendTestEmail')}
       </Button>

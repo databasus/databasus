@@ -15,4 +15,11 @@ export {
   ResourceTransferDialog,
   type TransferAvailability,
 } from '@/shared/ui/ResourceTransferDialog';
-export { WRAPPING_SELECT_CLASS_NAME } from '@/shared/ui/wrappingSelectClassName';
+export { WrappingSelect } from '@/shared/ui/WrappingSelect';
+export { Dialog } from '@/shared/ui/Dialog';
+export { closeOverlayOnEscape } from '@/shared/ui/closeOverlayOnEscape';
+export { OverlayFocusReturn } from '@/shared/ui/OverlayFocusReturn';
+
+export { AnchoredConfirmation } from '@/shared/ui/AnchoredConfirmation';
+
+export { ResourcePicker } from '@/shared/ui/ResourcePicker';

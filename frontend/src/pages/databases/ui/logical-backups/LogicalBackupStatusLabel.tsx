@@ -1,11 +1,5 @@
-import {
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  ExclamationCircleOutlined,
-  LockOutlined,
-  SyncOutlined,
-} from '@ant-design/icons';
-import { Button, Tooltip } from 'antd';
+import { Button, Tooltip } from '@mantine/core';
+import { CircleAlert, CircleCheck, CircleX, Lock, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { BackupEncryption } from '@/entities/backup-configs';
@@ -29,13 +23,13 @@ export const LogicalBackupStatusLabel = ({ backup, onShowError }: Props) => {
 
     if (status === LogicalBackupStatus.FAILED) {
       return (
-        <Tooltip title={t('backups.list.clickToSeeErrorDetails')}>
+        <Tooltip label={t('backups.list.clickToSeeErrorDetails')}>
           <Button
-            type="link"
-            size="small"
-            danger
+            variant="transparent"
+            size="xs"
+            color="danger"
             className="!h-auto !px-0 underline"
-            icon={<ExclamationCircleOutlined />}
+            leftSection={<CircleAlert size="1em" className="inline-block shrink-0 align-middle" />}
             onClick={() => onShowError(backup)}
           >
             {t(LOGICAL_BACKUP_STATUS_LABEL_KEYS[status])}
@@ -47,11 +41,19 @@ export const LogicalBackupStatusLabel = ({ backup, onShowError }: Props) => {
     if (status === LogicalBackupStatus.COMPLETED) {
       return (
         <div className="flex items-center text-success">
-          <CheckCircleOutlined className="mr-2" style={{ fontSize: 16 }} />
+          <CircleCheck
+            className="mr-2 inline-block shrink-0 align-middle"
+            style={{ fontSize: 16 }}
+            size="1em"
+          />
           <div>{t(LOGICAL_BACKUP_STATUS_LABEL_KEYS[status])}</div>
           {backup.encryption === BackupEncryption.ENCRYPTED && (
-            <Tooltip title={t('backups.logical.list.encrypted')}>
-              <LockOutlined className="ml-1" style={{ fontSize: 14 }} />
+            <Tooltip label={t('backups.logical.list.encrypted')}>
+              <Lock
+                className="ml-1 inline-block shrink-0 align-middle"
+                style={{ fontSize: 14 }}
+                size="1em"
+              />
             </Tooltip>
           )}
         </div>
@@ -61,7 +63,7 @@ export const LogicalBackupStatusLabel = ({ backup, onShowError }: Props) => {
     if (status === LogicalBackupStatus.IN_PROGRESS) {
       return (
         <div className="flex items-center font-bold text-accent">
-          <SyncOutlined spin />
+          <RefreshCw className="inline-block shrink-0 animate-spin align-middle" size="1em" />
           <span className="ml-2">{t(LOGICAL_BACKUP_STATUS_LABEL_KEYS[status])}</span>
         </div>
       );
@@ -70,7 +72,11 @@ export const LogicalBackupStatusLabel = ({ backup, onShowError }: Props) => {
     if (status === LogicalBackupStatus.CANCELED) {
       return (
         <div className="flex items-center text-muted">
-          <CloseCircleOutlined className="mr-2" style={{ fontSize: 16 }} />
+          <CircleX
+            className="mr-2 inline-block shrink-0 align-middle"
+            style={{ fontSize: 16 }}
+            size="1em"
+          />
           <div>{t(LOGICAL_BACKUP_STATUS_LABEL_KEYS[status])}</div>
         </div>
       );
