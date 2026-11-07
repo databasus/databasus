@@ -2045,6 +2045,8 @@ export const pt: typeof en = {
       privateKey: 'Chave privada',
     },
     list: {
+      searchPlaceholder: 'Buscar armazenamento',
+      noSearchResults: 'Nenhum armazenamento encontrado para "{{query}}"',
       addStorage: 'Adicionar armazenamento',
       description:
         'Armazenamento é o lugar onde os backups ficam guardados (disco local, S3, etc.)',

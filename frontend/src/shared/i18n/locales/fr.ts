@@ -2070,6 +2070,8 @@ export const fr: typeof en = {
       privateKey: 'Clé privée',
     },
     list: {
+      searchPlaceholder: 'Rechercher un stockage',
+      noSearchResults: 'Aucun stockage ne correspond à « {{query}} »',
       addStorage: 'Ajouter un stockage',
       description:
         "Un stockage est l'endroit où les sauvegardes sont conservées (disque local, S3, etc.)",

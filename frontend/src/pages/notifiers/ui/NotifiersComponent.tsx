@@ -1,4 +1,4 @@
-import { Button, Input, Modal, Spin } from 'antd';
+import { Button, Modal, Spin } from 'antd';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -9,8 +9,8 @@ import { NotifierCardComponent } from '@/pages/notifiers/ui/NotifierCardComponen
 import { NotifierComponent } from '@/pages/notifiers/ui/NotifierComponent';
 import { ApiError } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
-import { useIsMobile, useRequestRevision, useScopedSelection } from '@/shared/hooks';
-import { ResourceListDetail, LoadFailure } from '@/shared/ui';
+import { useIsMobile, useResourceCollection, useScopedSelection } from '@/shared/hooks';
+import { ResourceCollectionList, ResourceListDetail, LoadFailure } from '@/shared/ui';
 
 interface Props {
   workspace: Workspace;
@@ -19,50 +19,25 @@ interface Props {
 }
 
 export const NotifiersComponent = ({ workspace, isCanManageNotifiers, onUnavailable }: Props) => {
-  const [collection, setCollection] = useState<{
-    items: Notifier[];
-    isReady: boolean;
-  }>({ items: [], isReady: false });
-  const [loadError, setLoadError] = useState<unknown>();
-  const [isLoading, setIsLoading] = useState(true);
   const [isShowAddNotifier, setIsShowAddNotifier] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-
-  const loadNotifiers = (isSilent = false) => {
-    if (!isCurrent()) return;
-
-    const revision = loadRevision.Invalidate();
-
-    if (!isSilent) setIsLoading(true);
-    setLoadError(undefined);
-    notifierApi
-      .listAllNotifiers(workspace.id)
-      .then((items) => {
-        if (!isCurrent() || !loadRevision.IsCurrent(revision)) return;
-        setCollection({ items, isReady: true });
-      })
-      .catch((error) => {
-        if (isCurrent() && loadRevision.IsCurrent(revision)) {
-          setLoadError(error);
-
-          if (error instanceof ApiError && [403, 404].includes(error.status ?? 0)) {
-            setCollection({ items: [], isReady: false });
-            onUnavailable?.(workspace.id);
-          }
-        }
-      })
-      .finally(() => {
-        if (isCurrent() && loadRevision.IsCurrent(revision)) setIsLoading(false);
-      });
-  };
+  const collection = useResourceCollection({
+    scopeKey: workspace.id,
+    read: () => notifierApi.listAllNotifiers(workspace.id),
+    onError: (error) => {
+      if (error instanceof ApiError && [403, 404].includes(error.status ?? 0)) {
+        collection.clear();
+        onUnavailable?.(workspace.id);
+      }
+    },
+  });
+  const loadNotifiers = collection.reload;
+  const { loadError, isLoading } = collection;
 
   const acceptNotifier = (resource: Notifier) => {
     if (!isCurrent() || resource.workspaceId !== workspace.id) return;
 
-    setCollection((current) => ({
-      isReady: true,
-      items: [...current.items.filter((item) => item.id !== resource.id), resource],
-    }));
+    collection.accept(resource);
     loadNotifiers(true);
   };
 
@@ -70,17 +45,13 @@ export const NotifiersComponent = ({ workspace, isCanManageNotifiers, onUnavaila
     if (!selectedNotifierId) return;
 
     selection.remove(selectedNotifierId);
-    setCollection((current) => ({
-      ...current,
-      items: current.items.filter((item) => item.id !== selectedNotifierId),
-    }));
+    collection.remove(selectedNotifierId);
     loadNotifiers(true);
   };
 
   const { t } = useTranslation();
   const isMobile = useIsMobile();
   const isCurrent = useSessionGuard();
-  const loadRevision = useRequestRevision();
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const notifiers = collection.items;
   const selection = useScopedSelection({
@@ -103,7 +74,7 @@ export const NotifiersComponent = ({ workspace, isCanManageNotifiers, onUnavaila
     return () => {
       clearInterval(interval);
     };
-  }, []);
+  }, [workspace.id]);
 
   // Read when the form closes, because the button can appear after the form opened.
   const returnFocusToButton = useEffectEvent(() => {
@@ -118,46 +89,35 @@ export const NotifiersComponent = ({ workspace, isCanManageNotifiers, onUnavaila
     };
   }, [isShowAddNotifier]);
 
-  const filteredNotifiers = notifiers.filter((resource) =>
-    resource.name.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
   const addButton = (
     <Button
       ref={addButtonRef}
       type="primary"
-      className="mb-2 w-full"
+      className="mb-2 !h-auto min-h-8 w-full !whitespace-normal"
       onClick={() => setIsShowAddNotifier(true)}
     >
       {t('notifiers.list.addNotifier')}
     </Button>
   );
   const list = (
-    <>
-      {notifiers.length >= 5 && isCanManageNotifiers && addButton}
-      {notifiers.length >= 5 && (
-        <Input
-          aria-label={t('notifiers.list.searchPlaceholder')}
-          placeholder={t('notifiers.list.searchPlaceholder')}
-          value={searchQuery}
-          onChange={(event) => setSearchQuery(event.target.value)}
-        />
-      )}
-      {filteredNotifiers.map((resource) => (
+    <ResourceCollectionList
+      items={notifiers}
+      getKey={(resource) => resource.id}
+      getName={(resource) => resource.name}
+      renderCard={(resource) => (
         <NotifierCardComponent
-          key={resource.id}
           notifier={resource}
           selectedNotifierId={selectedNotifierId}
           setSelectedNotifierId={selection.select}
         />
-      ))}
-      {searchQuery && filteredNotifiers.length === 0 && notifiers.length > 0 && (
-        <p className="text-sm text-muted">
-          {t('notifiers.list.noSearchResults', { query: searchQuery })}
-        </p>
       )}
-      {notifiers.length < 5 && isCanManageNotifiers && addButton}
-      <div className="mx-3 text-center text-xs text-muted">{t('notifiers.list.description')}</div>
-    </>
+      addAction={isCanManageNotifiers && addButton}
+      description={t('notifiers.list.description')}
+      searchLabel={t('notifiers.list.searchPlaceholder')}
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
+      noSearchResults={(query) => t('notifiers.list.noSearchResults', { query })}
+    />
   );
 
   return (

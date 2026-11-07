@@ -2005,6 +2005,8 @@ export const en = {
       privateKey: 'Private key',
     },
     list: {
+      searchPlaceholder: 'Search storages...',
+      noSearchResults: 'No storages found matching "{{query}}"',
       addStorage: 'Add storage',
       description: 'Storage - is a place where backups will be stored (local disk, S3, etc.)',
       backToList: '← Back to storages',

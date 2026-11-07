@@ -2017,6 +2017,8 @@ export const ru: typeof en = {
       privateKey: 'Закрытый ключ',
     },
     list: {
+      searchPlaceholder: 'Поиск хранилищ',
+      noSearchResults: 'Не найдено хранилищ по запросу «{{query}}»',
       addStorage: 'Добавить хранилище',
       description: 'Хранилище — это место, где хранятся бекапы (локальный диск, S3 и т. д.)',
       backToList: '← Назад к хранилищам',

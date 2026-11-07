@@ -44,6 +44,33 @@ const openStorageSettings = async (user: ReturnType<typeof renderScreen>['user']
 };
 
 describe('StoragesComponent', () => {
+  it('searches storages like notifiers when a name substring uses different casing', async () => {
+    const storages = [
+      storage,
+      ...Array.from({ length: 4 }, (_, index) => ({
+        ...storage,
+        id: `archive-${index}`,
+        name: `Other archive ${index}`,
+      })),
+    ];
+    mockServer.use(
+      mockApi.get('/storages', 200, { items: storages }),
+      mockApi.get('/storages/{storageId}', 200, storage),
+    );
+    const { user } = renderStoragesScreen();
+    await screen.findByRole('button', { name: storage.name });
+
+    await user.type(screen.getByRole('textbox', { name: 'Search storages...' }), 'SfTp');
+
+    expect(screen.getByRole('button', { name: storage.name })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Other archive 0' })).toBeNull();
+    expect(
+      mockServer
+        .getRequests()
+        .filter((request) => new URL(request.url).pathname.endsWith('/storages')),
+    ).toHaveLength(1);
+  });
+
   it('retains newer credentials when saving settings refreshes the storage list', async () => {
     const pendingSave = createPendingApiResponse();
     const pendingList = createPendingApiResponse();
