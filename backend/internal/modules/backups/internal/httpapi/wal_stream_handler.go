@@ -3,7 +3,6 @@ package httpapi
 import (
 	"context"
 
-	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/backups/internal/physical"
 	"databasus-backend/internal/modules/users"
 )
@@ -12,8 +11,6 @@ func (h *Handler) GetWalStream(
 	ctx context.Context,
 	request GetWalStreamRequestObject,
 ) (GetWalStreamResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
@@ -36,8 +33,6 @@ func (h *Handler) GetWalStreamStatistics(
 	ctx context.Context,
 	request GetWalStreamStatisticsRequestObject,
 ) (GetWalStreamStatisticsResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err

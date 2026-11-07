@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strings"
 
-	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/backups/internal/physical"
 	"databasus-backend/internal/modules/users"
 )
@@ -16,8 +15,6 @@ func (h *Handler) CreatePhysicalRestoreToken(
 	ctx context.Context,
 	request CreatePhysicalRestoreTokenRequestObject,
 ) (CreatePhysicalRestoreTokenResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
@@ -56,8 +53,6 @@ func (h *Handler) DownloadPhysicalRestoreSet(
 	ctx context.Context,
 	request DownloadPhysicalRestoreSetRequestObject,
 ) (DownloadPhysicalRestoreSetResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	stream, err := h.physicalBackups.OpenRestoreStream(ctx, request.Params.Token)
 	if err != nil {
 		return nil, err

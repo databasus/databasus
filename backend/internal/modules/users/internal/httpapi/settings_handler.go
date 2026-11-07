@@ -3,7 +3,6 @@ package httpapi
 import (
 	"context"
 
-	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/users/internal/identity"
 	"databasus-backend/internal/modules/users/internal/settings"
 )
@@ -12,8 +11,6 @@ func (h *Handler) GetInstanceSettings(
 	ctx context.Context,
 	_ GetInstanceSettingsRequestObject,
 ) (GetInstanceSettingsResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	instanceSettings, err := h.settings.GetInstanceSettings(ctx)
 	if err != nil {
 		return nil, err
@@ -26,8 +23,6 @@ func (h *Handler) UpdateInstanceSettings(
 	ctx context.Context,
 	request UpdateInstanceSettingsRequestObject,
 ) (UpdateInstanceSettingsResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	actor, err := identity.RequireActor(ctx)
 	if err != nil {
 		return nil, err
@@ -50,8 +45,6 @@ func (h *Handler) SendTestEmail(
 	ctx context.Context,
 	_ SendTestEmailRequestObject,
 ) (SendTestEmailResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	actor, err := identity.RequireActor(ctx)
 	if err != nil {
 		return nil, err

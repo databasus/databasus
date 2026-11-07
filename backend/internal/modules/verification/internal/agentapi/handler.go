@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"databasus-backend/internal/engines/postgresql/logical/pgrestore"
-	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/verification/internal/agents"
 	"databasus-backend/internal/modules/verification/internal/verifications"
 )
@@ -31,7 +30,7 @@ func (h *Handler) RecordHeartbeat(
 	request RecordHeartbeatRequestObject,
 ) (RecordHeartbeatResponseObject, error) {
 	heartbeat, err := h.verifications.RecordHeartbeat(
-		httpserver.GetRequestContext(ctx),
+		ctx,
 		getAgent(ctx),
 		verifications.Heartbeat{
 			Capacity: agents.AgentCapacity{
@@ -57,7 +56,7 @@ func (h *Handler) ClaimVerification(
 	request ClaimVerificationRequestObject,
 ) (ClaimVerificationResponseObject, error) {
 	assignment, err := h.verifications.ClaimVerification(
-		httpserver.GetRequestContext(ctx),
+		ctx,
 		getAgent(ctx),
 		verifications.AgentCapacity{
 			MaxCPU: request.Body.Capacity.MaxCPU, MaxRAMMb: request.Body.Capacity.MaxRAMMb,
@@ -88,7 +87,7 @@ func (h *Handler) StreamVerificationBackup(
 	request StreamVerificationBackupRequestObject,
 ) (StreamVerificationBackupResponseObject, error) {
 	stream, err := h.verifications.GetBackupFile(
-		httpserver.GetRequestContext(ctx),
+		ctx,
 		getAgent(ctx),
 		request.VerificationId,
 	)
@@ -108,7 +107,7 @@ func (h *Handler) ReportVerification(
 	request ReportVerificationRequestObject,
 ) (ReportVerificationResponseObject, error) {
 	err := h.verifications.SubmitReport(
-		httpserver.GetRequestContext(ctx),
+		ctx,
 		getAgent(ctx),
 		request.VerificationId,
 		toReport(*request.Body),

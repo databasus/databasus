@@ -3,7 +3,6 @@ package httpapi
 import (
 	"context"
 
-	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/backups/internal/logical"
 	"databasus-backend/internal/modules/users"
 )
@@ -12,8 +11,6 @@ func (h *Handler) ListLogicalBackups(
 	ctx context.Context,
 	request ListLogicalBackupsRequestObject,
 ) (ListLogicalBackupsResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
@@ -50,8 +47,6 @@ func (h *Handler) StartLogicalBackup(
 	ctx context.Context,
 	request StartLogicalBackupRequestObject,
 ) (StartLogicalBackupResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
@@ -69,8 +64,6 @@ func (h *Handler) GetLogicalBackup(
 	ctx context.Context,
 	request GetLogicalBackupRequestObject,
 ) (GetLogicalBackupResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
@@ -88,8 +81,6 @@ func (h *Handler) DeleteLogicalBackup(
 	ctx context.Context,
 	request DeleteLogicalBackupRequestObject,
 ) (DeleteLogicalBackupResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
@@ -107,8 +98,6 @@ func (h *Handler) CancelLogicalBackup(
 	ctx context.Context,
 	request CancelLogicalBackupRequestObject,
 ) (CancelLogicalBackupResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err

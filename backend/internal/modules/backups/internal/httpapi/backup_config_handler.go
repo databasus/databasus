@@ -3,7 +3,6 @@ package httpapi
 import (
 	"context"
 
-	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/backups/internal/config"
 	"databasus-backend/internal/modules/users"
 )
@@ -12,8 +11,6 @@ func (h *Handler) ListBackupConfigs(
 	ctx context.Context,
 	request ListBackupConfigsRequestObject,
 ) (ListBackupConfigsResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
@@ -46,8 +43,6 @@ func (h *Handler) GetBackupConfig(
 	ctx context.Context,
 	request GetBackupConfigRequestObject,
 ) (GetBackupConfigResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
@@ -70,8 +65,6 @@ func (h *Handler) UpdateBackupConfig(
 	ctx context.Context,
 	request UpdateBackupConfigRequestObject,
 ) (UpdateBackupConfigResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err

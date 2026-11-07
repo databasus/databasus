@@ -3,7 +3,6 @@ package httpapi
 import (
 	"context"
 
-	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/storages/internal/storage"
 	"databasus-backend/internal/modules/users"
 )
@@ -12,8 +11,6 @@ func (h *Handler) ListStorages(
 	ctx context.Context,
 	request ListStoragesRequestObject,
 ) (ListStoragesResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
@@ -45,8 +42,6 @@ func (h *Handler) CreateStorage(
 	ctx context.Context,
 	request CreateStorageRequestObject,
 ) (CreateStorageResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
@@ -78,8 +73,6 @@ func (h *Handler) GetStorage(
 	ctx context.Context,
 	request GetStorageRequestObject,
 ) (GetStorageResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
@@ -102,8 +95,6 @@ func (h *Handler) UpdateStorage(
 	ctx context.Context,
 	request UpdateStorageRequestObject,
 ) (UpdateStorageResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
@@ -135,8 +126,6 @@ func (h *Handler) DeleteStorage(
 	ctx context.Context,
 	request DeleteStorageRequestObject,
 ) (DeleteStorageResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
@@ -161,8 +150,6 @@ func (h *Handler) TransferStorage(
 	ctx context.Context,
 	request TransferStorageRequestObject,
 ) (TransferStorageResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err

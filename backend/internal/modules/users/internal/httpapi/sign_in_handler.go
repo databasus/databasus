@@ -3,13 +3,10 @@ package httpapi
 import (
 	"context"
 
-	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/users/internal/signin"
 )
 
 func (h *Handler) SignIn(ctx context.Context, request SignInRequestObject) (SignInResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	outcome, err := h.signIn.SignIn(ctx, signin.SignInRequest{
 		Email:           request.Body.Email,
 		Password:        getSecret(request.Body.Password),
@@ -31,8 +28,6 @@ func (h *Handler) GetSignInOptions(
 	ctx context.Context,
 	_ GetSignInOptionsRequestObject,
 ) (GetSignInOptionsResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	options, err := h.signIn.GetSignInOptions(ctx)
 	if err != nil {
 		return nil, err
@@ -68,8 +63,6 @@ func (h *Handler) VerifySignInCode(
 	ctx context.Context,
 	request VerifySignInCodeRequestObject,
 ) (VerifySignInCodeResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	session, err := h.signIn.VerifySignInCode(
 		ctx, request.PendingSignInId, getSecret(request.Body.Code), request.Body.CloudflareTurnstileToken,
 	)
@@ -84,8 +77,6 @@ func (h *Handler) ResendSignInCode(
 	ctx context.Context,
 	request ResendSignInCodeRequestObject,
 ) (ResendSignInCodeResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	pendingSignIn, err := h.signIn.ResendSignInCode(ctx, request.PendingSignInId, request.Body.CloudflareTurnstileToken)
 	if err != nil {
 		return nil, err
@@ -101,8 +92,6 @@ func (h *Handler) SignInWithGitHub(
 	ctx context.Context,
 	request SignInWithGitHubRequestObject,
 ) (SignInWithGitHubResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	session, err := h.signIn.SignInWithGitHub(ctx, toOAuthSignInRequest(*request.Body))
 	if err != nil {
 		return nil, err
@@ -115,8 +104,6 @@ func (h *Handler) SignInWithGoogle(
 	ctx context.Context,
 	request SignInWithGoogleRequestObject,
 ) (SignInWithGoogleResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	session, err := h.signIn.SignInWithGoogle(ctx, toOAuthSignInRequest(*request.Body))
 	if err != nil {
 		return nil, err

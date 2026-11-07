@@ -637,7 +637,7 @@ func (sh *strictHandler) RecordHeartbeat(ctx *gin.Context, agentId AgentId) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.RecordHeartbeat(ctx, request.(RecordHeartbeatRequestObject))
+		return sh.ssi.RecordHeartbeat(ctx.Request.Context(), request.(RecordHeartbeatRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "RecordHeartbeat")
@@ -670,7 +670,7 @@ func (sh *strictHandler) ClaimVerification(ctx *gin.Context, agentId AgentId) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.ClaimVerification(ctx, request.(ClaimVerificationRequestObject))
+		return sh.ssi.ClaimVerification(ctx.Request.Context(), request.(ClaimVerificationRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "ClaimVerification")
@@ -697,7 +697,7 @@ func (sh *strictHandler) StreamVerificationBackup(ctx *gin.Context, agentId Agen
 	request.VerificationId = verificationId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.StreamVerificationBackup(ctx, request.(StreamVerificationBackupRequestObject))
+		return sh.ssi.StreamVerificationBackup(ctx.Request.Context(), request.(StreamVerificationBackupRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "StreamVerificationBackup")
@@ -731,7 +731,7 @@ func (sh *strictHandler) ReportVerification(ctx *gin.Context, agentId AgentId, v
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.ReportVerification(ctx, request.(ReportVerificationRequestObject))
+		return sh.ssi.ReportVerification(ctx.Request.Context(), request.(ReportVerificationRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "ReportVerification")

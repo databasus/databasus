@@ -103,9 +103,6 @@ func (a *App) NewHandler() (http.Handler, error) {
 	return router, nil
 }
 
-// newRouter builds the engine with the middleware every route shares. The strict handlers receive
-// the *gin.Context as their context.Context, so ContextWithFallback lets them read the values the
-// middleware put into the request context, such as the actor and the client IP.
 func (a *App) newRouter() *gin.Engine {
 	router := gin.New()
 	router.ContextWithFallback = true

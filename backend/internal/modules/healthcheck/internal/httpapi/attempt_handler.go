@@ -3,7 +3,6 @@ package httpapi
 import (
 	"context"
 
-	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/healthcheck/internal/attempts"
 	"databasus-backend/internal/modules/users"
 )
@@ -12,7 +11,6 @@ func (h *Handler) ListHealthcheckAttempts(
 	ctx context.Context,
 	request ListHealthcheckAttemptsRequestObject,
 ) (ListHealthcheckAttemptsResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
 	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, errNoActor

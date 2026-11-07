@@ -5788,7 +5788,7 @@ func (sh *strictHandler) ListBackupConfigs(ctx *gin.Context, params ListBackupCo
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.ListBackupConfigs(ctx, request.(ListBackupConfigsRequestObject))
+		return sh.ssi.ListBackupConfigs(ctx.Request.Context(), request.(ListBackupConfigsRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "ListBackupConfigs")
@@ -5814,7 +5814,7 @@ func (sh *strictHandler) GetBackupConfig(ctx *gin.Context, databaseId BackupConf
 	request.DatabaseId = databaseId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetBackupConfig(ctx, request.(GetBackupConfigRequestObject))
+		return sh.ssi.GetBackupConfig(ctx.Request.Context(), request.(GetBackupConfigRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetBackupConfig")
@@ -5847,7 +5847,7 @@ func (sh *strictHandler) UpdateBackupConfig(ctx *gin.Context, databaseId BackupC
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.UpdateBackupConfig(ctx, request.(UpdateBackupConfigRequestObject))
+		return sh.ssi.UpdateBackupConfig(ctx.Request.Context(), request.(UpdateBackupConfigRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "UpdateBackupConfig")
@@ -5880,7 +5880,7 @@ func (sh *strictHandler) TransferDatabase(ctx *gin.Context, databaseId DatabaseI
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.TransferDatabase(ctx, request.(TransferDatabaseRequestObject))
+		return sh.ssi.TransferDatabase(ctx.Request.Context(), request.(TransferDatabaseRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "TransferDatabase")
@@ -5911,7 +5911,7 @@ func (sh *strictHandler) CreateDownloadToken(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.CreateDownloadToken(ctx, request.(CreateDownloadTokenRequestObject))
+		return sh.ssi.CreateDownloadToken(ctx.Request.Context(), request.(CreateDownloadTokenRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "CreateDownloadToken")
@@ -5937,7 +5937,7 @@ func (sh *strictHandler) ListLogicalBackups(ctx *gin.Context, params ListLogical
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.ListLogicalBackups(ctx, request.(ListLogicalBackupsRequestObject))
+		return sh.ssi.ListLogicalBackups(ctx.Request.Context(), request.(ListLogicalBackupsRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "ListLogicalBackups")
@@ -5968,7 +5968,7 @@ func (sh *strictHandler) StartLogicalBackup(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.StartLogicalBackup(ctx, request.(StartLogicalBackupRequestObject))
+		return sh.ssi.StartLogicalBackup(ctx.Request.Context(), request.(StartLogicalBackupRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "StartLogicalBackup")
@@ -5994,7 +5994,7 @@ func (sh *strictHandler) DeleteLogicalBackup(ctx *gin.Context, backupId BackupId
 	request.BackupId = backupId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DeleteLogicalBackup(ctx, request.(DeleteLogicalBackupRequestObject))
+		return sh.ssi.DeleteLogicalBackup(ctx.Request.Context(), request.(DeleteLogicalBackupRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "DeleteLogicalBackup")
@@ -6020,7 +6020,7 @@ func (sh *strictHandler) GetLogicalBackup(ctx *gin.Context, backupId BackupId) {
 	request.BackupId = backupId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetLogicalBackup(ctx, request.(GetLogicalBackupRequestObject))
+		return sh.ssi.GetLogicalBackup(ctx.Request.Context(), request.(GetLogicalBackupRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetLogicalBackup")
@@ -6046,7 +6046,7 @@ func (sh *strictHandler) CancelLogicalBackup(ctx *gin.Context, backupId BackupId
 	request.BackupId = backupId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.CancelLogicalBackup(ctx, request.(CancelLogicalBackupRequestObject))
+		return sh.ssi.CancelLogicalBackup(ctx.Request.Context(), request.(CancelLogicalBackupRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "CancelLogicalBackup")
@@ -6073,7 +6073,7 @@ func (sh *strictHandler) DownloadLogicalBackup(ctx *gin.Context, backupId Backup
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DownloadLogicalBackup(ctx, request.(DownloadLogicalBackupRequestObject))
+		return sh.ssi.DownloadLogicalBackup(ctx.Request.Context(), request.(DownloadLogicalBackupRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "DownloadLogicalBackup")
@@ -6099,7 +6099,7 @@ func (sh *strictHandler) ListPhysicalBackups(ctx *gin.Context, params ListPhysic
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.ListPhysicalBackups(ctx, request.(ListPhysicalBackupsRequestObject))
+		return sh.ssi.ListPhysicalBackups(ctx.Request.Context(), request.(ListPhysicalBackupsRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "ListPhysicalBackups")
@@ -6130,7 +6130,7 @@ func (sh *strictHandler) StartPhysicalBackup(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.StartPhysicalBackup(ctx, request.(StartPhysicalBackupRequestObject))
+		return sh.ssi.StartPhysicalBackup(ctx.Request.Context(), request.(StartPhysicalBackupRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "StartPhysicalBackup")
@@ -6156,7 +6156,7 @@ func (sh *strictHandler) DeletePhysicalBackup(ctx *gin.Context, backupId Physica
 	request.BackupId = backupId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DeletePhysicalBackup(ctx, request.(DeletePhysicalBackupRequestObject))
+		return sh.ssi.DeletePhysicalBackup(ctx.Request.Context(), request.(DeletePhysicalBackupRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "DeletePhysicalBackup")
@@ -6182,7 +6182,7 @@ func (sh *strictHandler) CancelPhysicalBackup(ctx *gin.Context, backupId Physica
 	request.BackupId = backupId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.CancelPhysicalBackup(ctx, request.(CancelPhysicalBackupRequestObject))
+		return sh.ssi.CancelPhysicalBackup(ctx.Request.Context(), request.(CancelPhysicalBackupRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "CancelPhysicalBackup")
@@ -6206,7 +6206,7 @@ func (sh *strictHandler) GetRecoveryScript(ctx *gin.Context) {
 	var request GetRecoveryScriptRequestObject
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetRecoveryScript(ctx, request.(GetRecoveryScriptRequestObject))
+		return sh.ssi.GetRecoveryScript(ctx.Request.Context(), request.(GetRecoveryScriptRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetRecoveryScript")
@@ -6232,7 +6232,7 @@ func (sh *strictHandler) DownloadPhysicalRestoreSet(ctx *gin.Context, params Dow
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DownloadPhysicalRestoreSet(ctx, request.(DownloadPhysicalRestoreSetRequestObject))
+		return sh.ssi.DownloadPhysicalRestoreSet(ctx.Request.Context(), request.(DownloadPhysicalRestoreSetRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "DownloadPhysicalRestoreSet")
@@ -6263,7 +6263,7 @@ func (sh *strictHandler) CreatePhysicalRestoreToken(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.CreatePhysicalRestoreToken(ctx, request.(CreatePhysicalRestoreTokenRequestObject))
+		return sh.ssi.CreatePhysicalRestoreToken(ctx.Request.Context(), request.(CreatePhysicalRestoreTokenRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "CreatePhysicalRestoreToken")
@@ -6289,7 +6289,7 @@ func (sh *strictHandler) ListRestores(ctx *gin.Context, params ListRestoresParam
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.ListRestores(ctx, request.(ListRestoresRequestObject))
+		return sh.ssi.ListRestores(ctx.Request.Context(), request.(ListRestoresRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "ListRestores")
@@ -6320,7 +6320,7 @@ func (sh *strictHandler) StartRestore(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.StartRestore(ctx, request.(StartRestoreRequestObject))
+		return sh.ssi.StartRestore(ctx.Request.Context(), request.(StartRestoreRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "StartRestore")
@@ -6346,7 +6346,7 @@ func (sh *strictHandler) GetRestore(ctx *gin.Context, restoreId RestoreId) {
 	request.RestoreId = restoreId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetRestore(ctx, request.(GetRestoreRequestObject))
+		return sh.ssi.GetRestore(ctx.Request.Context(), request.(GetRestoreRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetRestore")
@@ -6372,7 +6372,7 @@ func (sh *strictHandler) CancelRestore(ctx *gin.Context, restoreId RestoreId) {
 	request.RestoreId = restoreId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.CancelRestore(ctx, request.(CancelRestoreRequestObject))
+		return sh.ssi.CancelRestore(ctx.Request.Context(), request.(CancelRestoreRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "CancelRestore")
@@ -6398,7 +6398,7 @@ func (sh *strictHandler) GetWalStream(ctx *gin.Context, databaseId DatabaseId) {
 	request.DatabaseId = databaseId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetWalStream(ctx, request.(GetWalStreamRequestObject))
+		return sh.ssi.GetWalStream(ctx.Request.Context(), request.(GetWalStreamRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetWalStream")
@@ -6425,7 +6425,7 @@ func (sh *strictHandler) GetWalStreamStatistics(ctx *gin.Context, databaseId Dat
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetWalStreamStatistics(ctx, request.(GetWalStreamStatisticsRequestObject))
+		return sh.ssi.GetWalStreamStatistics(ctx.Request.Context(), request.(GetWalStreamStatisticsRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetWalStreamStatistics")

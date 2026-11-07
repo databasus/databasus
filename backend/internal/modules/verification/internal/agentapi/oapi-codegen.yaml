@@ -4,5 +4,8 @@ generate:
   models: true
   gin-server: true
   strict-server: true
+output-options:
+  user-templates:
+    strict/strict-gin.tmpl: ../../../../../api/templates/strict-gin.tmpl
 compatibility:
   always-prefix-enum-values: true

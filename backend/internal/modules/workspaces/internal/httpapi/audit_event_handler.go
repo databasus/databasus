@@ -3,7 +3,6 @@ package httpapi
 import (
 	"context"
 
-	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces/internal/auditlog"
 )
@@ -12,8 +11,6 @@ func (h *Handler) ListAuditEvents(
 	ctx context.Context,
 	request ListAuditEventsRequestObject,
 ) (ListAuditEventsResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err

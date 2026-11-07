@@ -2022,7 +2022,7 @@ func (sh *strictHandler) GetVerificationAgentCount(ctx *gin.Context) {
 	var request GetVerificationAgentCountRequestObject
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetVerificationAgentCount(ctx, request.(GetVerificationAgentCountRequestObject))
+		return sh.ssi.GetVerificationAgentCount(ctx.Request.Context(), request.(GetVerificationAgentCountRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetVerificationAgentCount")
@@ -2048,7 +2048,7 @@ func (sh *strictHandler) ListVerificationAgents(ctx *gin.Context, params ListVer
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.ListVerificationAgents(ctx, request.(ListVerificationAgentsRequestObject))
+		return sh.ssi.ListVerificationAgents(ctx.Request.Context(), request.(ListVerificationAgentsRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "ListVerificationAgents")
@@ -2079,7 +2079,7 @@ func (sh *strictHandler) CreateVerificationAgent(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.CreateVerificationAgent(ctx, request.(CreateVerificationAgentRequestObject))
+		return sh.ssi.CreateVerificationAgent(ctx.Request.Context(), request.(CreateVerificationAgentRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "CreateVerificationAgent")
@@ -2105,7 +2105,7 @@ func (sh *strictHandler) DeleteVerificationAgent(ctx *gin.Context, agentId opena
 	request.AgentId = agentId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DeleteVerificationAgent(ctx, request.(DeleteVerificationAgentRequestObject))
+		return sh.ssi.DeleteVerificationAgent(ctx.Request.Context(), request.(DeleteVerificationAgentRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "DeleteVerificationAgent")
@@ -2131,7 +2131,7 @@ func (sh *strictHandler) RotateVerificationAgentToken(ctx *gin.Context, agentId 
 	request.AgentId = agentId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.RotateVerificationAgentToken(ctx, request.(RotateVerificationAgentTokenRequestObject))
+		return sh.ssi.RotateVerificationAgentToken(ctx.Request.Context(), request.(RotateVerificationAgentTokenRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "RotateVerificationAgentToken")
@@ -2157,7 +2157,7 @@ func (sh *strictHandler) GetVerificationConfig(ctx *gin.Context, databaseId open
 	request.DatabaseId = databaseId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetVerificationConfig(ctx, request.(GetVerificationConfigRequestObject))
+		return sh.ssi.GetVerificationConfig(ctx.Request.Context(), request.(GetVerificationConfigRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetVerificationConfig")
@@ -2190,7 +2190,7 @@ func (sh *strictHandler) UpdateVerificationConfig(ctx *gin.Context, databaseId o
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.UpdateVerificationConfig(ctx, request.(UpdateVerificationConfigRequestObject))
+		return sh.ssi.UpdateVerificationConfig(ctx.Request.Context(), request.(UpdateVerificationConfigRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "UpdateVerificationConfig")
@@ -2216,7 +2216,7 @@ func (sh *strictHandler) ListVerifications(ctx *gin.Context, params ListVerifica
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.ListVerifications(ctx, request.(ListVerificationsRequestObject))
+		return sh.ssi.ListVerifications(ctx.Request.Context(), request.(ListVerificationsRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "ListVerifications")
@@ -2247,7 +2247,7 @@ func (sh *strictHandler) StartVerification(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.StartVerification(ctx, request.(StartVerificationRequestObject))
+		return sh.ssi.StartVerification(ctx.Request.Context(), request.(StartVerificationRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "StartVerification")
@@ -2273,7 +2273,7 @@ func (sh *strictHandler) GetVerification(ctx *gin.Context, verificationId openap
 	request.VerificationId = verificationId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetVerification(ctx, request.(GetVerificationRequestObject))
+		return sh.ssi.GetVerification(ctx.Request.Context(), request.(GetVerificationRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetVerification")
@@ -2299,7 +2299,7 @@ func (sh *strictHandler) CancelVerification(ctx *gin.Context, verificationId ope
 	request.VerificationId = verificationId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.CancelVerification(ctx, request.(CancelVerificationRequestObject))
+		return sh.ssi.CancelVerification(ctx.Request.Context(), request.(CancelVerificationRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "CancelVerification")

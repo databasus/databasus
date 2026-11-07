@@ -8,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"databasus-backend/internal/lib/apierror"
-	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/lib/logging"
 	"databasus-backend/internal/modules/verification/internal/agents"
 )
@@ -39,6 +38,6 @@ func (h *Handler) GetAuthenticationMiddleware(hooks *apierror.Hooks) gin.Handler
 }
 
 func getAgent(ctx context.Context) *agents.Agent {
-	agent, _ := httpserver.GetRequestContext(ctx).Value(agentKey{}).(*agents.Agent)
+	agent, _ := ctx.Value(agentKey{}).(*agents.Agent)
 	return agent
 }

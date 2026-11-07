@@ -3,7 +3,6 @@ package httpapi
 import (
 	"context"
 
-	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/verification/internal/verifications"
 )
@@ -12,7 +11,6 @@ func (h *Handler) StartVerification(
 	ctx context.Context,
 	request StartVerificationRequestObject,
 ) (StartVerificationResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
 	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, errNoActor
@@ -28,7 +26,6 @@ func (h *Handler) CancelVerification(
 	ctx context.Context,
 	request CancelVerificationRequestObject,
 ) (CancelVerificationResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
 	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, errNoActor
@@ -44,7 +41,6 @@ func (h *Handler) GetVerification(
 	ctx context.Context,
 	request GetVerificationRequestObject,
 ) (GetVerificationResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
 	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, errNoActor
@@ -60,7 +56,6 @@ func (h *Handler) ListVerifications(
 	ctx context.Context,
 	request ListVerificationsRequestObject,
 ) (ListVerificationsResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
 	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, errNoActor

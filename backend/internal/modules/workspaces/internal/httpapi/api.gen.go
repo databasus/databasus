@@ -2031,7 +2031,7 @@ func (sh *strictHandler) ListAuditEvents(ctx *gin.Context, params ListAuditEvent
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.ListAuditEvents(ctx, request.(ListAuditEventsRequestObject))
+		return sh.ssi.ListAuditEvents(ctx.Request.Context(), request.(ListAuditEventsRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "ListAuditEvents")
@@ -2057,7 +2057,7 @@ func (sh *strictHandler) ListWorkspaceMembers(ctx *gin.Context, params ListWorks
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.ListWorkspaceMembers(ctx, request.(ListWorkspaceMembersRequestObject))
+		return sh.ssi.ListWorkspaceMembers(ctx.Request.Context(), request.(ListWorkspaceMembersRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "ListWorkspaceMembers")
@@ -2088,7 +2088,7 @@ func (sh *strictHandler) AddWorkspaceMember(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.AddWorkspaceMember(ctx, request.(AddWorkspaceMemberRequestObject))
+		return sh.ssi.AddWorkspaceMember(ctx.Request.Context(), request.(AddWorkspaceMemberRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "AddWorkspaceMember")
@@ -2114,7 +2114,7 @@ func (sh *strictHandler) RemoveWorkspaceMember(ctx *gin.Context, memberId Member
 	request.MemberId = memberId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.RemoveWorkspaceMember(ctx, request.(RemoveWorkspaceMemberRequestObject))
+		return sh.ssi.RemoveWorkspaceMember(ctx.Request.Context(), request.(RemoveWorkspaceMemberRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "RemoveWorkspaceMember")
@@ -2147,7 +2147,7 @@ func (sh *strictHandler) ChangeWorkspaceMemberRole(ctx *gin.Context, memberId Me
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.ChangeWorkspaceMemberRole(ctx, request.(ChangeWorkspaceMemberRoleRequestObject))
+		return sh.ssi.ChangeWorkspaceMemberRole(ctx.Request.Context(), request.(ChangeWorkspaceMemberRoleRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "ChangeWorkspaceMemberRole")
@@ -2173,7 +2173,7 @@ func (sh *strictHandler) ListWorkspaces(ctx *gin.Context, params ListWorkspacesP
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.ListWorkspaces(ctx, request.(ListWorkspacesRequestObject))
+		return sh.ssi.ListWorkspaces(ctx.Request.Context(), request.(ListWorkspacesRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "ListWorkspaces")
@@ -2204,7 +2204,7 @@ func (sh *strictHandler) CreateWorkspace(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.CreateWorkspace(ctx, request.(CreateWorkspaceRequestObject))
+		return sh.ssi.CreateWorkspace(ctx.Request.Context(), request.(CreateWorkspaceRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "CreateWorkspace")
@@ -2230,7 +2230,7 @@ func (sh *strictHandler) DeleteWorkspace(ctx *gin.Context, workspaceId Workspace
 	request.WorkspaceId = workspaceId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DeleteWorkspace(ctx, request.(DeleteWorkspaceRequestObject))
+		return sh.ssi.DeleteWorkspace(ctx.Request.Context(), request.(DeleteWorkspaceRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "DeleteWorkspace")
@@ -2256,7 +2256,7 @@ func (sh *strictHandler) GetWorkspace(ctx *gin.Context, workspaceId WorkspaceId)
 	request.WorkspaceId = workspaceId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetWorkspace(ctx, request.(GetWorkspaceRequestObject))
+		return sh.ssi.GetWorkspace(ctx.Request.Context(), request.(GetWorkspaceRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetWorkspace")
@@ -2289,7 +2289,7 @@ func (sh *strictHandler) UpdateWorkspace(ctx *gin.Context, workspaceId Workspace
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.UpdateWorkspace(ctx, request.(UpdateWorkspaceRequestObject))
+		return sh.ssi.UpdateWorkspace(ctx.Request.Context(), request.(UpdateWorkspaceRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "UpdateWorkspace")
@@ -2322,7 +2322,7 @@ func (sh *strictHandler) TransferWorkspaceOwnership(ctx *gin.Context, workspaceI
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.TransferWorkspaceOwnership(ctx, request.(TransferWorkspaceOwnershipRequestObject))
+		return sh.ssi.TransferWorkspaceOwnership(ctx.Request.Context(), request.(TransferWorkspaceOwnershipRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "TransferWorkspaceOwnership")

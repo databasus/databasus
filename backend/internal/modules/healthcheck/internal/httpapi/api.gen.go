@@ -832,7 +832,7 @@ func (sh *strictHandler) ListHealthcheckAttempts(ctx *gin.Context, params ListHe
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.ListHealthcheckAttempts(ctx, request.(ListHealthcheckAttemptsRequestObject))
+		return sh.ssi.ListHealthcheckAttempts(ctx.Request.Context(), request.(ListHealthcheckAttemptsRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "ListHealthcheckAttempts")
@@ -858,7 +858,7 @@ func (sh *strictHandler) GetHealthcheckConfig(ctx *gin.Context, databaseId opena
 	request.DatabaseId = databaseId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetHealthcheckConfig(ctx, request.(GetHealthcheckConfigRequestObject))
+		return sh.ssi.GetHealthcheckConfig(ctx.Request.Context(), request.(GetHealthcheckConfigRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetHealthcheckConfig")
@@ -891,7 +891,7 @@ func (sh *strictHandler) UpdateHealthcheckConfig(ctx *gin.Context, databaseId op
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.UpdateHealthcheckConfig(ctx, request.(UpdateHealthcheckConfigRequestObject))
+		return sh.ssi.UpdateHealthcheckConfig(ctx.Request.Context(), request.(UpdateHealthcheckConfigRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "UpdateHealthcheckConfig")

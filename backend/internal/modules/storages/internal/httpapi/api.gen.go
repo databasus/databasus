@@ -2132,7 +2132,7 @@ func (sh *strictHandler) TestStorageSettings(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.TestStorageSettings(ctx, request.(TestStorageSettingsRequestObject))
+		return sh.ssi.TestStorageSettings(ctx.Request.Context(), request.(TestStorageSettingsRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "TestStorageSettings")
@@ -2158,7 +2158,7 @@ func (sh *strictHandler) ListStorages(ctx *gin.Context, params ListStoragesParam
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.ListStorages(ctx, request.(ListStoragesRequestObject))
+		return sh.ssi.ListStorages(ctx.Request.Context(), request.(ListStoragesRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "ListStorages")
@@ -2189,7 +2189,7 @@ func (sh *strictHandler) CreateStorage(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.CreateStorage(ctx, request.(CreateStorageRequestObject))
+		return sh.ssi.CreateStorage(ctx.Request.Context(), request.(CreateStorageRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "CreateStorage")
@@ -2216,7 +2216,7 @@ func (sh *strictHandler) DeleteStorage(ctx *gin.Context, storageId StorageId, pa
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DeleteStorage(ctx, request.(DeleteStorageRequestObject))
+		return sh.ssi.DeleteStorage(ctx.Request.Context(), request.(DeleteStorageRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "DeleteStorage")
@@ -2242,7 +2242,7 @@ func (sh *strictHandler) GetStorage(ctx *gin.Context, storageId StorageId) {
 	request.StorageId = storageId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetStorage(ctx, request.(GetStorageRequestObject))
+		return sh.ssi.GetStorage(ctx.Request.Context(), request.(GetStorageRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetStorage")
@@ -2275,7 +2275,7 @@ func (sh *strictHandler) UpdateStorage(ctx *gin.Context, storageId StorageId) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.UpdateStorage(ctx, request.(UpdateStorageRequestObject))
+		return sh.ssi.UpdateStorage(ctx.Request.Context(), request.(UpdateStorageRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "UpdateStorage")
@@ -2301,7 +2301,7 @@ func (sh *strictHandler) TestStorage(ctx *gin.Context, storageId StorageId) {
 	request.StorageId = storageId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.TestStorage(ctx, request.(TestStorageRequestObject))
+		return sh.ssi.TestStorage(ctx.Request.Context(), request.(TestStorageRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "TestStorage")
@@ -2334,7 +2334,7 @@ func (sh *strictHandler) TransferStorage(ctx *gin.Context, storageId StorageId) 
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.TransferStorage(ctx, request.(TransferStorageRequestObject))
+		return sh.ssi.TransferStorage(ctx.Request.Context(), request.(TransferStorageRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "TransferStorage")

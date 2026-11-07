@@ -4,7 +4,6 @@ import (
 	"context"
 	"mime"
 
-	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/users"
 )
 
@@ -12,8 +11,6 @@ func (h *Handler) CreateDownloadToken(
 	ctx context.Context,
 	request CreateDownloadTokenRequestObject,
 ) (CreateDownloadTokenResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
@@ -37,8 +34,6 @@ func (h *Handler) DownloadLogicalBackup(
 	ctx context.Context,
 	request DownloadLogicalBackupRequestObject,
 ) (DownloadLogicalBackupResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	openedDownload, err := h.downloads.OpenDownload(ctx, request.BackupId, request.Params.Token)
 	if err != nil {
 		return nil, err

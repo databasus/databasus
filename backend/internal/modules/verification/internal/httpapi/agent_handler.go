@@ -3,7 +3,6 @@ package httpapi
 import (
 	"context"
 
-	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/verification/internal/agents"
 )
@@ -12,7 +11,6 @@ func (h *Handler) GetVerificationAgentCount(
 	ctx context.Context,
 	_ GetVerificationAgentCountRequestObject,
 ) (GetVerificationAgentCountResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
 	count, err := h.agents.CountAgents(ctx)
 	if err != nil {
 		return nil, err
@@ -24,7 +22,6 @@ func (h *Handler) CreateVerificationAgent(
 	ctx context.Context,
 	request CreateVerificationAgentRequestObject,
 ) (CreateVerificationAgentResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
 	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, errNoActor
@@ -40,7 +37,6 @@ func (h *Handler) ListVerificationAgents(
 	ctx context.Context,
 	request ListVerificationAgentsRequestObject,
 ) (ListVerificationAgentsResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
 	page, err := h.agents.ListPage(ctx, agents.ListQuery{Limit: request.Params.Limit, After: request.Params.After})
 	if err != nil {
 		return nil, err
@@ -52,7 +48,6 @@ func (h *Handler) RotateVerificationAgentToken(
 	ctx context.Context,
 	request RotateVerificationAgentTokenRequestObject,
 ) (RotateVerificationAgentTokenResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
 	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, errNoActor
@@ -68,7 +63,6 @@ func (h *Handler) DeleteVerificationAgent(
 	ctx context.Context,
 	request DeleteVerificationAgentRequestObject,
 ) (DeleteVerificationAgentResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
 	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, errNoActor
