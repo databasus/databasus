@@ -42,7 +42,7 @@ func (s *Service) GetBackups(
 		return nil, err
 	}
 
-	totalUsageMb, err := s.chains.GetTotalUsageMBByDatabase(ctx, databaseID)
+	totalUsageMb, err := s.usage.GetDatabaseUsage(ctx, databaseID)
 	if err != nil {
 		return nil, err
 	}

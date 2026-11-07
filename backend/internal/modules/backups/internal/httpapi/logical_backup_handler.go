@@ -40,7 +40,11 @@ func (h *Handler) ListLogicalBackups(
 		items = append(items, toLogicalBackupBody(listedBackup))
 	}
 
-	return ListLogicalBackups200JSONResponse{Items: items, NextCursor: page.NextCursor}, nil
+	return ListLogicalBackups200JSONResponse{
+		Items:        items,
+		NextCursor:   page.NextCursor,
+		TotalUsageMb: page.TotalUsageMb,
+	}, nil
 }
 
 func (h *Handler) StartLogicalBackup(

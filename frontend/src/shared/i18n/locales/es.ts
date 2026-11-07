@@ -1423,6 +1423,7 @@ export const es: typeof en = {
       encrypted: 'Cifrar los archivos de las copias de seguridad',
     },
     list: {
+      totalUsage: 'Uso total: {{size}}',
       title: 'Copias de seguridad',
       scheduledBackupsDisabled:
         'Las copias de seguridad programadas están desactivadas (puede volver a activarlas en la configuración de copias de seguridad)',
@@ -1582,7 +1583,6 @@ export const es: typeof en = {
         walGap: 'Hueco en el WAL',
       },
       list: {
-        totalUsage: 'Uso total: {{size}}',
         backUpNow: 'Hacer copia ahora',
         startRequirement:
           'Para iniciar una copia de seguridad, active las copias de seguridad y elija un almacenamiento en la configuración de copias de seguridad.',
@@ -2020,6 +2020,7 @@ export const es: typeof en = {
     },
   },
   storages: {
+    usageUnavailable: 'No se pudo actualizar el espacio ocupado por las copias de seguridad.',
     cleanup: {
       title: 'La limpieza sigue en curso',
       warning:

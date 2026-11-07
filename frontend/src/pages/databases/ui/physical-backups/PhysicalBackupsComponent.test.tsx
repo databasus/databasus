@@ -12,9 +12,9 @@ import { DatabaseType, createDefaultDatabaseSettings } from '@/entities/database
 import { physicalBackupsApi } from '@/pages/databases/api/physicalBackupsApi';
 import { type PhysicalBackupListItem } from '@/pages/databases/model/physical-backups/PhysicalBackupListItem';
 import { PhysicalBackupsComponent } from '@/pages/databases/ui/physical-backups/PhysicalBackupsComponent';
-import { API_BASE_PATH } from '@/shared/api';
+import { API_BASE_PATH, type ApiComponents } from '@/shared/api';
 import { activateSession, invalidateSession } from '@/shared/auth';
-import { DICTIONARIES } from '@/shared/i18n';
+import { DICTIONARIES, useLocale } from '@/shared/i18n';
 import { advanceClockUntil } from '@/shared/lib/test/advanceClockUntil';
 import { advanceFakeClock } from '@/shared/lib/test/advanceFakeClock';
 import { waitForCondition } from '@/shared/lib/test/conditionWait';
@@ -62,7 +62,7 @@ const config: BackupConfig = {
   },
 };
 const usageText = (size: number) =>
-  DICTIONARIES.en.backups.physical.list.totalUsage.replace('{{size}}', `${size} MB`);
+  DICTIONARIES.en.backups.list.totalUsage.replace('{{size}}', `${size} MB`);
 
 const INTERNAL_ERROR = DICTIONARIES.en.errors.internal;
 const REFUSAL = DICTIONARIES.en.errors.permissionDenied;
@@ -83,6 +83,11 @@ const buildBackup = (change: Partial<PhysicalBackupListItem> = {}): PhysicalBack
 });
 
 const failedListResponse = () => HttpResponse.json(buildProblem('internal', 500), { status: 500 });
+
+const UsageLocaleControl = () => {
+  const { setLocale } = useLocale();
+  return <button onClick={() => setLocale('ru')}>Switch language</button>;
+};
 
 // The database page scrolls the list inside its own container and can leave for another tab, so a
 // message shown after leaving would still be seen.
@@ -811,5 +816,164 @@ describe('PhysicalBackupsComponent', () => {
       expect(refreshesAfterCancel).toBeGreaterThanOrEqual(2);
       expect(showAlert).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('PhysicalBackupsComponent usage', () => {
+  it('updates the Size label and decimal separator when the interface language changes', async () => {
+    let requestCount = 0;
+    server.use(
+      mockApi.get('/backup-configs/{databaseId}', 200, config),
+      http.get('*/api/v1/physical-backups', () => {
+        requestCount++;
+        return HttpResponse.json<ApiComponents['schemas']['PhysicalBackupPage']>({
+          items: [],
+          totalUsageMb: 10752,
+        });
+      }),
+    );
+    vi.useFakeTimers();
+    renderScreen(
+      <>
+        <UsageLocaleControl />
+        <PhysicalBackupsComponent database={database} isCanManageDBs={false} />
+      </>,
+    );
+    await waitForCondition(() =>
+      expect(screen.getByRole('columnheader', { name: /^Size.*10.5 GB/ })).toBeTruthy(),
+    );
+    const requestsBeforeLanguageChange = requestCount;
+
+    fireEvent.click(screen.getByRole('button', { name: 'Switch language' }));
+
+    await waitForCondition(() =>
+      expect(
+        screen.getByRole('columnheader', {
+          name: `${DICTIONARIES.ru.backups.list.columns.size} 10,5 GB`,
+        }),
+      ).toBeTruthy(),
+    );
+    expect(requestCount).toBe(requestsBeforeLanguageChange);
+    expect(screen.queryByRole('columnheader', { name: /^Size/ })).toBeNull();
+  });
+
+  it('updates the inline total when only aggregate metadata changes', async () => {
+    let totalUsageMb = 104;
+    const backupRows = [buildBackup()];
+    server.use(
+      mockApi.get('/backup-configs/{databaseId}', 200, config),
+      http.get('*/api/v1/physical-backups', () =>
+        HttpResponse.json({ items: backupRows, totalUsageMb }),
+      ),
+    );
+    vi.useFakeTimers();
+    renderScreen(<PhysicalBackupsComponent database={database} isCanManageDBs={false} />);
+    await waitForCondition(() =>
+      expect(screen.getByRole('columnheader', { name: /^Size.*104 MB/ })).toBeTruthy(),
+    );
+
+    totalUsageMb = 10752;
+    await advanceClockUntil(() =>
+      expect(screen.getByRole('columnheader', { name: /^Size.*10.5 GB/ })).toBeTruthy(),
+    );
+
+    totalUsageMb = 0;
+    await advanceClockUntil(() =>
+      expect(screen.getByRole('columnheader', { name: /^Size.*0 MB/ })).toBeTruthy(),
+    );
+  });
+
+  it('hides the previous total and waits for explicit retry when reloading after deletion fails', async () => {
+    let hasBackupBeenDeleted = false;
+    let hasReadRecovered = false;
+    let requestCount = 0;
+    server.use(
+      mockApi.get('/backup-configs/{databaseId}', 200, config),
+      http.get('*/api/v1/physical-backups', () => {
+        requestCount++;
+
+        if (hasReadRecovered)
+          return HttpResponse.json<ApiComponents['schemas']['PhysicalBackupPage']>({
+            items: [],
+            totalUsageMb: 0,
+          });
+
+        if (hasBackupBeenDeleted)
+          return HttpResponse.json(buildProblem('internal', 500), { status: 500 });
+
+        return HttpResponse.json<ApiComponents['schemas']['PhysicalBackupPage']>({
+          items: [buildBackup({ sizeMb: 104 })],
+          totalUsageMb: 104,
+        });
+      }),
+      http.delete('*/api/v1/physical-backups/:backupId', () => {
+        hasBackupBeenDeleted = true;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    vi.useFakeTimers();
+    renderScreen(<PhysicalBackupsComponent database={database} isCanManageDBs />);
+    await waitForCondition(() =>
+      expect(screen.getByRole('columnheader', { name: /^Size.*104 MB/ })).toBeTruthy(),
+    );
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Delete backup' })[0]);
+    await waitForCondition(() =>
+      expect(screen.getByRole('button', { name: 'Delete' })).toBeTruthy(),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    await waitForCondition(() =>
+      expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy(),
+    );
+    expect(screen.queryByRole('columnheader', { name: /^Size.*MB/ })).toBeNull();
+    expect(screen.queryByText('Total usage: 104 MB')).toBeNull();
+    const requestsBeforeRetry = requestCount;
+
+    const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    fireEvent(document, new Event('visibilitychange'));
+    await advanceFakeClock(3000);
+    expect(requestCount).toBe(requestsBeforeRetry);
+
+    visibility.mockReturnValue('visible');
+    fireEvent(document, new Event('visibilitychange'));
+    await advanceFakeClock(3000);
+    expect(requestCount).toBe(requestsBeforeRetry);
+    expect(screen.queryByRole('columnheader', { name: /^Size.*MB/ })).toBeNull();
+    expect(screen.queryByText('Total usage: 104 MB')).toBeNull();
+
+    hasReadRecovered = true;
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await waitForCondition(() =>
+      expect(screen.getByRole('columnheader', { name: /^Size.*0 MB/ })).toBeTruthy(),
+    );
+    await advanceClockUntil(() => expect(requestCount).toBeGreaterThan(requestsBeforeRetry + 1));
+    expect(screen.queryByRole('columnheader', { name: /^Size.*104 MB/ })).toBeNull();
+  });
+
+  it('requires explicit retry after a failed first page despite polling and visibility changes', async () => {
+    let requestCount = 0;
+    server.use(
+      mockApi.get('/backup-configs/{databaseId}', 200, config),
+      http.get('*/api/v1/physical-backups', () => {
+        requestCount++;
+        return HttpResponse.json(buildProblem('permission_denied', 403), { status: 403 });
+      }),
+    );
+    vi.useFakeTimers();
+    renderScreen(<PhysicalBackupsComponent database={database} isCanManageDBs={false} />);
+    await waitForCondition(() =>
+      expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy(),
+    );
+
+    fireEvent(document, new Event('visibilitychange'));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+
+    expect(requestCount).toBe(1);
+    expect(screen.queryByRole('columnheader', { name: /^Size.*MB/ })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await waitForCondition(() => expect(requestCount).toBe(2));
   });
 });

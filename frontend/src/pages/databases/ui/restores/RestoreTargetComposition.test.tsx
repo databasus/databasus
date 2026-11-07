@@ -158,7 +158,10 @@ const renderBackupListWithRestore = () => {
     }),
     http.get(`*${API_BASE_PATH}/logical-backups`, () =>
       backupListRequests++ === 0
-        ? HttpResponse.json({ items: [completedBackup] })
+        ? HttpResponse.json<ApiComponents['schemas']['LogicalBackupPage']>({
+            items: [completedBackup],
+            totalUsageMb: completedBackup.sizeMb,
+          })
         : createPendingApiResponse().response,
     ),
     mockApi.get('/restores', 200, { items: [] }),

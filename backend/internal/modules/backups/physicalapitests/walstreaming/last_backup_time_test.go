@@ -27,7 +27,7 @@ func TestPhysicalBackupTimeAfterWal(t *testing.T) {
 		source := team.openSource(t)
 		rotateWal(t, source)
 		team.waitForWal(t, 1)
-		team.App.WaitForPhysicalBackups(t)
+		initialFullCount := waitForCompletedFullBackups(t, team, 1)
 
 		backupLock := team.App.BeginSQLTransaction(t)
 		backupLock.ExecuteSQL(
@@ -107,7 +107,7 @@ func TestPhysicalBackupTimeAfterWal(t *testing.T) {
 			t.Fatal("scheduler did not finish after the backup lock was released")
 		}
 
-		team.App.WaitForPhysicalBackups(t)
+		waitForCompletedFullBackups(t, team, initialFullCount+1)
 		database, err = team.Owner.Client.GetDatabaseWithResponse(t.Context(), team.Database.Id)
 		require.NoError(t, err)
 		require.NotNil(t, database.JSON200)
@@ -119,4 +119,35 @@ func TestPhysicalBackupTimeAfterWal(t *testing.T) {
 			}
 		}
 	})
+}
+
+func waitForCompletedFullBackups(t *testing.T, team *walTeam, minimum int) int {
+	t.Helper()
+	fullCount := 0
+
+	testwait.Until(t, "the requested full backups finish", func(context.Context) error {
+		fullCount = 0
+
+		for _, backup := range team.listBackups(t) {
+			if backup.Type != "FULL" {
+				continue
+			}
+
+			fullCount++
+
+			if backup.Status == "IN_PROGRESS" {
+				return fmt.Errorf("full backup %s is still running", backup.ID)
+			}
+
+			require.Equal(t, "COMPLETED", backup.Status)
+		}
+
+		if fullCount < minimum {
+			return fmt.Errorf("%d of %d full backups have been published", fullCount, minimum)
+		}
+
+		return nil
+	})
+
+	return fullCount
 }

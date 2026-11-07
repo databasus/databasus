@@ -8,11 +8,13 @@ import (
 	"databasus-backend/internal/modules/backups/internal/physical"
 	"databasus-backend/internal/modules/backups/internal/restore"
 	"databasus-backend/internal/modules/backups/internal/transfer"
+	"databasus-backend/internal/modules/backups/internal/usage"
 )
 
 var _ StrictServerInterface = (*Handler)(nil)
 
 type Deps struct {
+	Usage           *usage.Service
 	ConfigSaves     *configsave.Service
 	PhysicalBackups *physical.Service
 	Configs         *config.Service
@@ -23,6 +25,7 @@ type Deps struct {
 }
 
 type Handler struct {
+	usage           *usage.Service
 	configSaves     *configsave.Service
 	physicalBackups *physical.Service
 	configs         *config.Service
@@ -34,6 +37,7 @@ type Handler struct {
 
 func NewHandler(deps Deps) *Handler {
 	return &Handler{
+		usage:           deps.Usage,
 		configSaves:     deps.ConfigSaves,
 		physicalBackups: deps.PhysicalBackups,
 		configs:         deps.Configs,

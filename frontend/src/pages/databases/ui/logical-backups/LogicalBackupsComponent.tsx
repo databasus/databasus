@@ -17,6 +17,7 @@ import { useLogicalBackupActions } from '@/pages/databases/ui/logical-backups/us
 import { RestoresComponent } from '@/pages/databases/ui/restores/RestoresComponent';
 import { usePersistentState, usePolledPagedList } from '@/shared/hooks';
 import { getWebsitePageUrl, translateApiError, useLocale } from '@/shared/i18n';
+import { formatCompactSizeMb } from '@/shared/lib';
 import { ConfirmationComponent, LoadFailure } from '@/shared/ui';
 
 const BACKUPS_PAGE_SIZE = 50;
@@ -36,7 +37,7 @@ export const LogicalBackupsComponent = ({
   onNavigateToVerifications,
 }: Props) => {
   const { t } = useTranslation();
-  const { locale } = useLocale();
+  const { locale, formatNumber } = useLocale();
   const { message, modal } = App.useApp();
 
   const [showingBackupError, setShowingBackupError] = useState<LogicalBackup | undefined>();
@@ -50,16 +51,24 @@ export const LogicalBackupsComponent = ({
     {},
   );
 
-  const fetchBackupsPage = (after: string | undefined) =>
-    logicalBackupApi.listLogicalBackups({
+  const fetchBackupsPage = async (after: string | undefined) => {
+    const response = await logicalBackupApi.listLogicalBackups({
       databaseId: database.id,
       filter,
       limit: BACKUPS_PAGE_SIZE,
       after,
     });
 
+    return {
+      items: response.items,
+      nextCursor: response.nextCursor,
+      metadata: response.totalUsageMb,
+    };
+  };
+
   const {
     items: backups,
+    metadata: totalUsageMb,
     isLoading: isBackupsLoading,
     isLoadingMore,
     hasMore,
@@ -209,6 +218,13 @@ export const LogicalBackupsComponent = ({
         ) : (
           <>
             <div className="md:hidden">
+              {totalUsageMb !== undefined && (
+                <div className="mb-3 text-sm text-muted">
+                  {t('backups.list.totalUsage', {
+                    size: formatCompactSizeMb(totalUsageMb, formatNumber),
+                  })}
+                </div>
+              )}
               <LogicalBackupCards
                 backups={backups}
                 isLoading={isBackupsLoading}
@@ -233,6 +249,7 @@ export const LogicalBackupsComponent = ({
 
             <div className="hidden md:block">
               <LogicalBackupsTable
+                totalUsageMb={totalUsageMb}
                 backups={backups}
                 isLoading={isBackupsLoading}
                 actions={rowActions}

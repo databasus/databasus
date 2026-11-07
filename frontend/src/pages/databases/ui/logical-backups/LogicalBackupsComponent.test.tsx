@@ -15,6 +15,7 @@ import type { LogicalBackupPage } from '@/pages/databases/model/LogicalBackupPag
 import { LogicalBackupsComponent } from '@/pages/databases/ui/logical-backups/LogicalBackupsComponent';
 import { API_BASE_PATH } from '@/shared/api';
 import { advanceClockUntil } from '@/shared/lib/test/advanceClockUntil';
+import { advanceFakeClock } from '@/shared/lib/test/advanceFakeClock';
 import { waitForCondition } from '@/shared/lib/test/conditionWait';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 // @vitest-environment happy-dom
@@ -122,10 +123,11 @@ describe('LogicalBackupsComponent', () => {
         const cursor = new URL(request.url).searchParams.get('after');
         requestedCursors.push(cursor);
 
-        return HttpResponse.json(
+        return HttpResponse.json<LogicalBackupPage>(
           cursor
-            ? { items: [buildBackup('oldest-backup', 'FAILED')] }
+            ? { totalUsageMb: 12, items: [buildBackup('oldest-backup', 'FAILED')] }
             : {
+                totalUsageMb: 12,
                 items: [buildBackup('newest-backup', 'COMPLETED')],
                 nextCursor: 'first-page-cursor',
               },
@@ -134,11 +136,13 @@ describe('LogicalBackupsComponent', () => {
     );
     const scrollContainer = renderBackupList();
     await screen.findAllByText('Successful');
+    expect(screen.getByRole('columnheader', { name: /^Size 12 MB/ })).toBeTruthy();
 
     fireEvent.scroll(scrollContainer);
 
     expect(await screen.findAllByText('Failed')).toHaveLength(2);
     expect(await screen.findAllByText('All backups loaded (2 total)')).toHaveLength(2);
+    expect(screen.getByRole('columnheader', { name: /^Size 12 MB/ })).toBeTruthy();
     // The list also polls its first page, so polls may fall between these two requests.
     expect(requestedCursors[0]).toBeNull();
     expect(requestedCursors.filter((cursor) => cursor !== null)).toEqual(['first-page-cursor']);
@@ -146,21 +150,22 @@ describe('LogicalBackupsComponent', () => {
 
   it('refreshes the first page and keeps the scrolled tail when the poll answers', async () => {
     const requestedCursors: (string | null)[] = [];
+    let hasBackupCompleted = false;
     mockServer.use(
       mockApi.get('/backup-configs/{databaseId}', 200, backupConfigOfDatabase),
       http.get(`*${API_BASE_PATH}/logical-backups`, ({ request }) => {
         const cursor = new URL(request.url).searchParams.get('after');
         requestedCursors.push(cursor);
 
-        if (cursor) return HttpResponse.json({ items: [buildBackup('oldest-backup', 'FAILED')] });
+        if (cursor)
+          return HttpResponse.json<LogicalBackupPage>({
+            totalUsageMb: 0,
+            items: [buildBackup('oldest-backup', 'FAILED')],
+          });
 
-        return HttpResponse.json({
-          items: [
-            buildBackup(
-              'newest-backup',
-              requestedCursors.includes('first-page-cursor') ? 'COMPLETED' : 'IN_PROGRESS',
-            ),
-          ],
+        return HttpResponse.json<LogicalBackupPage>({
+          totalUsageMb: hasBackupCompleted ? 12 : 0,
+          items: [buildBackup('newest-backup', hasBackupCompleted ? 'COMPLETED' : 'IN_PROGRESS')],
           nextCursor: 'first-page-cursor',
         });
       }),
@@ -168,11 +173,16 @@ describe('LogicalBackupsComponent', () => {
     vi.useFakeTimers();
     const scrollContainer = renderBackupList();
     await waitForCondition(() => screen.getAllByText('In progress'));
+    expect(screen.getByRole('columnheader', { name: /^Size 0 MB/ })).toBeTruthy();
+
     fireEvent.scroll(scrollContainer);
     await waitForCondition(() => screen.getAllByText('Failed'));
+    expect(screen.getByRole('columnheader', { name: /^Size 0 MB/ })).toBeTruthy();
 
+    hasBackupCompleted = true;
     await advanceClockUntil(() => expect(screen.getAllByText('Successful')).toHaveLength(2));
 
+    expect(screen.getByRole('columnheader', { name: /^Size 12 MB/ })).toBeTruthy();
     expect(screen.queryAllByText('In progress')).toHaveLength(0);
     expect(screen.getAllByText('Failed')).toHaveLength(2);
     expect(requestedCursors.filter((cursor) => cursor !== null)).toEqual(['first-page-cursor']);
@@ -183,7 +193,7 @@ describe('LogicalBackupsComponent', () => {
     const startedDatabaseIds: unknown[] = [];
     mockServer.use(
       mockApi.get('/backup-configs/{databaseId}', 200, backupConfigOfDatabase),
-      mockBackupPages([{ items: [] }], []),
+      mockBackupPages([{ totalUsageMb: 0, items: [] }], []),
       http.post(`*${API_BASE_PATH}/logical-backups`, async ({ request }) => {
         startedDatabaseIds.push(((await request.json()) as { databaseId: string }).databaseId);
 
@@ -209,7 +219,10 @@ describe('LogicalBackupsComponent', () => {
 
     mockServer.use(
       mockApi.get('/backup-configs/{databaseId}', 200, backupConfigOfDatabase),
-      mockBackupPages([{ items: [buildBackup('completed-backup', 'COMPLETED')] }], []),
+      mockBackupPages(
+        [{ totalUsageMb: 0, items: [buildBackup('completed-backup', 'COMPLETED')] }],
+        [],
+      ),
       mockApi.post('/download-tokens', 201, {
         token: 'single-use-token',
         fileName: 'shop-2026-10-27.dump',
@@ -235,7 +248,10 @@ describe('LogicalBackupsComponent', () => {
     async (code, text) => {
       mockServer.use(
         mockApi.get('/backup-configs/{databaseId}', 200, backupConfigOfDatabase),
-        mockBackupPages([{ items: [buildBackup('completed-backup', 'COMPLETED')] }], []),
+        mockBackupPages(
+          [{ totalUsageMb: 0, items: [buildBackup('completed-backup', 'COMPLETED')] }],
+          [],
+        ),
         mockApi.post('/verifications', 409, buildProblem(code, 409)),
       );
 
@@ -273,7 +289,10 @@ describe('LogicalBackupsComponent failures', () => {
       mockApi.get('/backup-configs/{databaseId}', 200, backupConfigOfDatabase),
       http.get(`*${API_BASE_PATH}/logical-backups`, () =>
         ++listRequests === 1
-          ? HttpResponse.json({ items: [buildBackup('completed-backup', 'COMPLETED')] })
+          ? HttpResponse.json<LogicalBackupPage>({
+              totalUsageMb: 0,
+              items: [buildBackup('completed-backup', 'COMPLETED')],
+            })
           : failedResponse(),
       ),
     );
@@ -299,7 +318,10 @@ describe('LogicalBackupsComponent failures', () => {
       http.get(`*${API_BASE_PATH}/logical-backups`, () =>
         isListFailing
           ? failedResponse()
-          : HttpResponse.json({ items: [buildBackup('completed-backup', 'COMPLETED')] }),
+          : HttpResponse.json<LogicalBackupPage>({
+              totalUsageMb: 0,
+              items: [buildBackup('completed-backup', 'COMPLETED')],
+            }),
       ),
     );
     renderBackupList();
@@ -329,7 +351,7 @@ describe('LogicalBackupsComponent failures', () => {
           ? failedResponse()
           : HttpResponse.json({ ...backupConfigOfDatabase, isBackupsEnabled: false }),
       ),
-      mockBackupPages([{ items: [] }], []),
+      mockBackupPages([{ totalUsageMb: 0, items: [] }], []),
     );
     renderBackupList();
 
@@ -359,7 +381,8 @@ describe('LogicalBackupsComponent failures', () => {
       mockServer.use(
         mockApi.get('/backup-configs/{databaseId}', 200, backupConfigOfDatabase),
         http.get(`*${API_BASE_PATH}/logical-backups`, () =>
-          HttpResponse.json({
+          HttpResponse.json<LogicalBackupPage>({
+            totalUsageMb: 0,
             items: isBackupListed ? [buildBackup('completed-backup', 'COMPLETED')] : [],
           }),
         ),
@@ -436,7 +459,10 @@ describe('LogicalBackupsComponent failures', () => {
     const onNavigateToVerifications = vi.fn();
     mockServer.use(
       mockApi.get('/backup-configs/{databaseId}', 200, backupConfigOfDatabase),
-      mockBackupPages([{ items: [buildBackup('completed-backup', 'COMPLETED')] }], []),
+      mockBackupPages(
+        [{ totalUsageMb: 0, items: [buildBackup('completed-backup', 'COMPLETED')] }],
+        [],
+      ),
       start.handler,
     );
     const view = renderScreen(
@@ -465,7 +491,7 @@ describe('LogicalBackupsComponent failures', () => {
       vi.stubGlobal('alert', showAlert);
       mockServer.use(
         mockApi.get('/backup-configs/{databaseId}', 200, backupConfigOfDatabase),
-        mockBackupPages([{ items: [buildBackup('listed-backup', status)] }], []),
+        mockBackupPages([{ totalUsageMb: 0, items: [buildBackup('listed-backup', status)] }], []),
       );
       renderBackupList();
       await screen.findAllByText(status === 'COMPLETED' ? 'Successful' : 'In progress');
@@ -496,13 +522,16 @@ describe('LogicalBackupsComponent failures', () => {
           listRequests += 1;
 
           if (listRequests === 1) {
-            return HttpResponse.json({ items: [buildBackup('listed-backup', 'COMPLETED')] });
+            return HttpResponse.json<LogicalBackupPage>({
+              totalUsageMb: 0,
+              items: [buildBackup('listed-backup', 'COMPLETED')],
+            });
           }
 
           // A held poll keeps later polls off, so only the reload can change the list.
           return listRequests === 2
             ? createPendingApiResponse().response
-            : HttpResponse.json({ items: [] });
+            : HttpResponse.json<LogicalBackupPage>({ totalUsageMb: 0, items: [] });
         }),
         http.delete(
           `*${API_BASE_PATH}/logical-backups/:backupId`,
@@ -533,7 +562,10 @@ describe('LogicalBackupsComponent failures', () => {
         mockApi.get('/backup-configs/{databaseId}', 200, backupConfigOfDatabase),
         http.get(`*${API_BASE_PATH}/logical-backups`, () =>
           ++listRequests === 1
-            ? HttpResponse.json({ items: [buildBackup('listed-backup', 'IN_PROGRESS')] })
+            ? HttpResponse.json<LogicalBackupPage>({
+                totalUsageMb: 0,
+                items: [buildBackup('listed-backup', 'IN_PROGRESS')],
+              })
             : failedResponse(),
         ),
         http.post(`*${API_BASE_PATH}/logical-backups/:backupId/cancel`, () =>
@@ -699,7 +731,8 @@ describe('LogicalBackupsComponent failures', () => {
         requestedCursors.push(cursor);
 
         if (!cursor) {
-          return HttpResponse.json({
+          return HttpResponse.json<LogicalBackupPage>({
+            totalUsageMb: 0,
             items: [buildBackup('newest-backup', 'COMPLETED')],
             nextCursor: 'first-page-cursor',
           });
@@ -707,7 +740,10 @@ describe('LogicalBackupsComponent failures', () => {
 
         return isNextPageFailing
           ? failedResponse()
-          : HttpResponse.json({ items: [buildBackup('oldest-backup', 'FAILED')] });
+          : HttpResponse.json<LogicalBackupPage>({
+              totalUsageMb: 0,
+              items: [buildBackup('oldest-backup', 'FAILED')],
+            });
       }),
     );
     const scrollContainer = renderBackupList();
@@ -752,7 +788,7 @@ describe('LogicalBackupsComponent row actions', () => {
   const declareListedBackups = (listedBackups: LogicalBackup[]) =>
     mockServer.use(
       mockApi.get('/backup-configs/{databaseId}', 200, backupConfigOfDatabase),
-      mockApi.get('/logical-backups', 200, { items: listedBackups }),
+      mockApi.get('/logical-backups', 200, { totalUsageMb: 0, items: listedBackups }),
     );
 
   const getStartButton = () =>
@@ -955,4 +991,133 @@ describe('LogicalBackupsComponent row actions', () => {
       expect(listedBadges).toEqual(shownBadges);
     },
   );
+});
+
+describe('LogicalBackupsComponent usage', () => {
+  it.each([
+    DatabaseType.POSTGRES_LOGICAL,
+    DatabaseType.MYSQL,
+    DatabaseType.MARIADB,
+    DatabaseType.MONGODB,
+  ])('updates the inline total when only metadata changes with %s', async (databaseType) => {
+    let totalUsageMb = 104;
+    const backupRows = [buildBackup('backup-id', 'COMPLETED')];
+    mockServer.use(
+      mockApi.get('/backup-configs/{databaseId}', 200, backupConfigOfDatabase),
+      http.get('*/api/v1/logical-backups', () =>
+        HttpResponse.json<LogicalBackupPage>({ items: backupRows, totalUsageMb }),
+      ),
+    );
+    vi.useFakeTimers();
+    renderScreen(
+      <LogicalBackupsComponent
+        database={{ ...backedUpDatabase, settings: createDefaultDatabaseSettings(databaseType) }}
+        isCanManageDBs={false}
+      />,
+    );
+    await waitForCondition(() =>
+      expect(screen.getByRole('columnheader', { name: /^Size.*104 MB/ })).toBeTruthy(),
+    );
+
+    totalUsageMb = 10752;
+    await advanceClockUntil(() =>
+      expect(screen.getByRole('columnheader', { name: /^Size.*10.5 GB/ })).toBeTruthy(),
+    );
+
+    totalUsageMb = 0;
+    await advanceClockUntil(() =>
+      expect(screen.getByRole('columnheader', { name: /^Size.*0 MB/ })).toBeTruthy(),
+    );
+  });
+
+  it('hides the previous total and waits for explicit retry when reloading after deletion fails', async () => {
+    let hasBackupBeenDeleted = false;
+    let hasReadRecovered = false;
+    let requestCount = 0;
+    mockServer.use(
+      mockApi.get('/backup-configs/{databaseId}', 200, backupConfigOfDatabase),
+      http.get('*/api/v1/logical-backups', () => {
+        requestCount++;
+
+        if (hasReadRecovered)
+          return HttpResponse.json<LogicalBackupPage>({ items: [], totalUsageMb: 0 });
+
+        if (hasBackupBeenDeleted)
+          return HttpResponse.json(buildProblem('internal', 500), { status: 500 });
+
+        return HttpResponse.json<LogicalBackupPage>({
+          items: [{ ...buildBackup('deleted-backup', 'COMPLETED'), sizeMb: 104 }],
+          totalUsageMb: 104,
+        });
+      }),
+      http.delete('*/api/v1/logical-backups/:backupId', () => {
+        hasBackupBeenDeleted = true;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    vi.useFakeTimers();
+    renderScreen(<LogicalBackupsComponent database={backedUpDatabase} isCanManageDBs />);
+    await waitForCondition(() =>
+      expect(screen.getByRole('columnheader', { name: /^Size.*104 MB/ })).toBeTruthy(),
+    );
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Delete backup' })[0]);
+    await waitForCondition(() =>
+      expect(screen.getByRole('button', { name: 'Delete' })).toBeTruthy(),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    await waitForCondition(() =>
+      expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy(),
+    );
+    expect(screen.queryByRole('columnheader', { name: /^Size.*MB/ })).toBeNull();
+    expect(screen.queryByText('Total usage: 104 MB')).toBeNull();
+    const requestsBeforeRetry = requestCount;
+
+    const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    fireEvent(document, new Event('visibilitychange'));
+    await advanceFakeClock(3000);
+    expect(requestCount).toBe(requestsBeforeRetry);
+
+    visibility.mockReturnValue('visible');
+    fireEvent(document, new Event('visibilitychange'));
+    await advanceFakeClock(3000);
+    expect(requestCount).toBe(requestsBeforeRetry);
+    expect(screen.queryByRole('columnheader', { name: /^Size.*MB/ })).toBeNull();
+    expect(screen.queryByText('Total usage: 104 MB')).toBeNull();
+
+    hasReadRecovered = true;
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await waitForCondition(() =>
+      expect(screen.getByRole('columnheader', { name: /^Size.*0 MB/ })).toBeTruthy(),
+    );
+    await advanceClockUntil(() => expect(requestCount).toBeGreaterThan(requestsBeforeRetry + 1));
+    expect(screen.queryByRole('columnheader', { name: /^Size.*104 MB/ })).toBeNull();
+  });
+
+  it('requires explicit retry after a failed first page despite polling and visibility changes', async () => {
+    let requestCount = 0;
+    mockServer.use(
+      mockApi.get('/backup-configs/{databaseId}', 200, backupConfigOfDatabase),
+      http.get('*/api/v1/logical-backups', () => {
+        requestCount++;
+        return HttpResponse.json(buildProblem('permission_denied', 403), { status: 403 });
+      }),
+    );
+    vi.useFakeTimers();
+    renderScreen(<LogicalBackupsComponent database={backedUpDatabase} isCanManageDBs={false} />);
+    await waitForCondition(() =>
+      expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy(),
+    );
+
+    fireEvent(document, new Event('visibilitychange'));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+
+    expect(requestCount).toBe(1);
+    expect(screen.queryByRole('columnheader', { name: /^Size.*MB/ })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await waitForCondition(() => expect(requestCount).toBe(2));
+  });
 });

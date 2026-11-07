@@ -1395,6 +1395,7 @@ export const ru: typeof en = {
       encrypted: 'Шифровать файлы бекапов',
     },
     list: {
+      totalUsage: 'Занято всего: {{size}}',
       title: 'Бекапы',
       scheduledBackupsDisabled:
         'Бекапы по расписанию выключены (их можно снова включить в настройках бекапов)',
@@ -1553,7 +1554,6 @@ export const ru: typeof en = {
         walGap: 'Разрыв в WAL',
       },
       list: {
-        totalUsage: 'Занято всего: {{size}}',
         backUpNow: 'Сделать бекап',
         startRequirement:
           'Чтобы запустить бекап, включите бекапы и выберите хранилище в настройках бекапов.',
@@ -1981,6 +1981,7 @@ export const ru: typeof en = {
     },
   },
   storages: {
+    usageUnavailable: 'Не удалось обновить объём бекапов.',
     cleanup: {
       title: 'Очистка ещё идёт',
       warning:

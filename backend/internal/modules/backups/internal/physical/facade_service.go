@@ -21,6 +21,7 @@ import (
 	"databasus-backend/internal/modules/backups/internal/physical/retention"
 	"databasus-backend/internal/modules/backups/internal/physical/streamhealth"
 	"databasus-backend/internal/modules/backups/internal/physical/walstreaming"
+	"databasus-backend/internal/modules/backups/internal/usage"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
@@ -28,6 +29,7 @@ import (
 )
 
 type Deps struct {
+	Usage            *usage.Service
 	ExecutionClock   clock.Source
 	Repository       *catalog.Repository
 	Backups          *catalog.BackupRepository
@@ -133,6 +135,7 @@ func New(deps Deps) *Service {
 		},
 	)
 	return &Service{
+		usage:                deps.Usage,
 		databases:            deps.Databases,
 		storages:             deps.Storages,
 		workspaces:           deps.Workspaces,

@@ -713,7 +713,7 @@ describe('DatabasesComponent', () => {
         storedBackupConfig = { ...backupConfig, storageId: archiveStorage.id };
         return HttpResponse.json(storedBackupConfig);
       }),
-      mockApi.get('/logical-backups', 200, { items: [] }),
+      mockApi.get('/logical-backups', 200, { totalUsageMb: 0, items: [] }),
       mockApi.get('/storages/{storageId}', 200, archiveStorage),
       mockApi.pending('get', '/healthcheck-configs/{databaseId}').handler,
       mockApi.pending('get', '/healthcheck-attempts').handler,
@@ -1387,7 +1387,7 @@ describe('DatabasesComponent with the creation wizard', () => {
       http.get(`*${API_BASE_PATH}/backup-configs/:databaseId`, ({ params }) =>
         HttpResponse.json(getStoredBackupConfig(params.databaseId as string)),
       ),
-      mockApi.get('/logical-backups', 200, { items: [] }),
+      mockApi.get('/logical-backups', 200, { totalUsageMb: 0, items: [] }),
       mockApi.get('/storages/{storageId}', 200, archiveStorage),
       mockApi.pending('get', '/healthcheck-configs/{databaseId}').handler,
       mockApi.pending('get', '/healthcheck-attempts').handler,

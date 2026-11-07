@@ -118,7 +118,7 @@ for (const method of ['logical', 'physical'] as const) {
             method: 'get',
             path: '/logical-backups',
             status: 200,
-            body: { items: [] },
+            body: { totalUsageMb: 0, items: [] },
           }),
           apiResponse({
             method: 'get',

@@ -1431,6 +1431,7 @@ export const fr: typeof en = {
       encrypted: 'Chiffrer les fichiers de sauvegarde',
     },
     list: {
+      totalUsage: 'Espace utilisé : {{size}}',
       title: 'Sauvegardes',
       scheduledBackupsDisabled:
         'Les sauvegardes planifiées sont désactivées (vous pouvez les réactiver dans la configuration des sauvegardes)',
@@ -1590,7 +1591,6 @@ export const fr: typeof en = {
         walGap: 'Trou dans les WAL',
       },
       list: {
-        totalUsage: 'Espace utilisé : {{size}}',
         backUpNow: 'Sauvegarder maintenant',
         startRequirement:
           'Pour lancer une sauvegarde, activez les sauvegardes et choisissez un stockage dans la configuration des sauvegardes.',
@@ -2034,6 +2034,7 @@ export const fr: typeof en = {
     },
   },
   storages: {
+    usageUnavailable: 'Impossible d’actualiser l’espace occupé par les sauvegardes.',
     cleanup: {
       title: 'Le nettoyage est toujours en cours',
       warning:

@@ -184,13 +184,6 @@ func (s *Service) DeleteIncrementalCascade(
 	return summary, nil
 }
 
-// GetTotalUsageMBByDatabase sums every COMPLETED FULL + COMPLETED INCR backup
-// size and every WAL segment's compressed size for one database. Failed /
-// canceled rows (NULL backup_size_mb) are excluded by the status filter.
-func (s *Service) GetTotalUsageMBByDatabase(ctx context.Context, databaseID uuid.UUID) (float64, error) {
-	return s.repository.GetTotalUsageMBByDatabase(ctx, databaseID)
-}
-
 func (s *Service) ListBackups(ctx context.Context, query catalog.BackupListQuery) ([]catalog.BackupListRow, error) {
 	return s.repository.ListBackups(ctx, query)
 }

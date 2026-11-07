@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 
 import { type Database, DatabaseType, PhysicalDatabaseBackupType } from '@/entities/databases';
 import { physicalBackupsApi } from '@/pages/databases/api/physicalBackupsApi';
-import { formatBackupSize } from '@/pages/databases/lib/formatBackupSize';
 import { type PhysicalBackupListItem } from '@/pages/databases/model/physical-backups/PhysicalBackupListItem';
 import { type PhysicalBackupsFilters } from '@/pages/databases/model/physical-backups/PhysicalBackupsFilters';
 import { PhysicalBackupType } from '@/pages/databases/model/physical-backups/PhysicalBackupType';
@@ -19,6 +18,7 @@ import { PhysicalRestoreComponent } from '@/pages/databases/ui/physical-backups/
 import { usePhysicalBackupActions } from '@/pages/databases/ui/physical-backups/usePhysicalBackupActions';
 import { usePersistentState, usePolledPagedList } from '@/shared/hooks';
 import { translateApiError, useLocale } from '@/shared/i18n';
+import { formatCompactSizeMb } from '@/shared/lib';
 import { ConfirmationComponent, LoadFailure } from '@/shared/ui';
 
 const BACKUPS_PAGE_SIZE = 50;
@@ -173,14 +173,6 @@ export const PhysicalBackupsComponent = ({
         onRetry={reloadBackupConfig}
       />
 
-      {totalUsageMb !== undefined && firstLoadError === undefined && (
-        <div className="mt-3 text-sm text-muted">
-          {t('backups.physical.list.totalUsage', {
-            size: formatBackupSize(totalUsageMb, formatNumber),
-          })}
-        </div>
-      )}
-
       <div className="mt-4 flex items-center">
         {isCanManageDBs && (
           <Dropdown.Button
@@ -215,6 +207,13 @@ export const PhysicalBackupsComponent = ({
         ) : (
           <>
             <div className="md:hidden">
+              {totalUsageMb !== undefined && (
+                <div className="mb-3 text-sm text-muted">
+                  {t('backups.list.totalUsage', {
+                    size: formatCompactSizeMb(totalUsageMb, formatNumber),
+                  })}
+                </div>
+              )}
               <PhysicalBackupCards
                 backups={backups}
                 isLoading={isBackupsLoading}
@@ -239,6 +238,7 @@ export const PhysicalBackupsComponent = ({
 
             <div className="hidden md:block">
               <PhysicalBackupsTable
+                totalUsageMb={totalUsageMb}
                 backups={backups}
                 isLoading={isBackupsLoading}
                 actions={rowActions}

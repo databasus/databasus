@@ -2596,6 +2596,9 @@ type LogicalBackupPage struct {
 
 	// NextCursor The `after` of the next page, absent on the last page
 	NextCursor *string `json:"nextCursor,omitempty"`
+
+	// TotalUsageMb Recorded stored size of all retained completed backups of the database in megabytes, independently of filters and pages
+	TotalUsageMb float64 `json:"totalUsageMb"`
 }
 
 // LogicalBackupSettings The settings of a logical backup, a dump of a PostgreSQL, MySQL, MariaDB or MongoDB database
@@ -3788,6 +3791,12 @@ type Storage struct {
 
 	// WorkspaceId The workspace the storage belongs to
 	WorkspaceId openapi_types.UUID `json:"workspaceId"`
+}
+
+// StorageBackupUsage Backup and committed WAL stored sizes recorded in the catalog for one storage
+type StorageBackupUsage struct {
+	// TotalUsageMb Total recorded stored size in megabytes, zero when no eligible records remain
+	TotalUsageMb float64 `json:"totalUsageMb"`
 }
 
 // StorageCreate A new storage
@@ -6743,7 +6752,7 @@ type ClientInterface interface {
 
 	// ListLogicalBackups List the logical backups of a database
 	//
-	// Ordered newest first by creation time, then by ID. `status` and `createdBefore` filter the list. A user who is not a member of the database's workspace gets 404 `not_found`. A cursor this list did not issue gets 400 `invalid_request`.
+	// Ordered newest first by creation time, then by ID. `status` and `createdBefore` filter the list. A user who is not a member of the database's workspace gets 404 `not_found`. A cursor this list did not issue gets 400 `invalid_request`. `totalUsageMb` sums the recorded stored sizes of every retained completed backup of the database independently of filters and pages, without contacting its source or storage provider.
 	//
 	// Corresponds with GET /logical-backups (the `ListLogicalBackups` operationId).
 	ListLogicalBackups(ctx context.Context, params *ListLogicalBackupsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -7175,6 +7184,13 @@ type ClientInterface interface {
 	//
 	// Corresponds with PUT /storages/{storageId} (the `UpdateStorage` operationId).
 	UpdateStorage(ctx context.Context, storageId StorageId, body UpdateStorageJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetStorageBackupUsage Get the recorded backup usage of a storage
+	//
+	// Needs WORKSPACE_VIEWER. Sums retained completed logical and physical backup stored sizes and committed archived WAL sizes recorded for this storage, counting each WAL segment once. This is catalog usage, not actual provider consumption; unfinished uploads, metadata sidecars and pending file deletions are excluded. No provider or source database is contacted. An outsider or missing storage gets 404 not_found; insufficient viewing permission gets 403 permission_denied. Existing administrator workspace privileges apply.
+	//
+	// Corresponds with GET /storages/{storageId}/backup-usage (the `GetStorageBackupUsage` operationId).
+	GetStorageBackupUsage(ctx context.Context, storageId StorageId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// TestStorage Test the connection of a saved storage
 	//
@@ -8211,7 +8227,7 @@ func (c *Client) CreateLimitedUser(ctx context.Context, body CreateLimitedUserJS
 
 // ListLogicalBackups List the logical backups of a database
 //
-// Ordered newest first by creation time, then by ID. `status` and `createdBefore` filter the list. A user who is not a member of the database's workspace gets 404 `not_found`. A cursor this list did not issue gets 400 `invalid_request`.
+// Ordered newest first by creation time, then by ID. `status` and `createdBefore` filter the list. A user who is not a member of the database's workspace gets 404 `not_found`. A cursor this list did not issue gets 400 `invalid_request`. `totalUsageMb` sums the recorded stored sizes of every retained completed backup of the database independently of filters and pages, without contacting its source or storage provider.
 //
 // Corresponds with GET /logical-backups (the `ListLogicalBackups` operationId).
 func (c *Client) ListLogicalBackups(ctx context.Context, params *ListLogicalBackupsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -9164,6 +9180,23 @@ func (c *Client) UpdateStorageWithBody(ctx context.Context, storageId StorageId,
 // Corresponds with PUT /storages/{storageId} (the `UpdateStorage` operationId).
 func (c *Client) UpdateStorage(ctx context.Context, storageId StorageId, body UpdateStorageJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateStorageRequest(c.Server, storageId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetStorageBackupUsage Get the recorded backup usage of a storage
+//
+// Needs WORKSPACE_VIEWER. Sums retained completed logical and physical backup stored sizes and committed archived WAL sizes recorded for this storage, counting each WAL segment once. This is catalog usage, not actual provider consumption; unfinished uploads, metadata sidecars and pending file deletions are excluded. No provider or source database is contacted. An outsider or missing storage gets 404 not_found; insufficient viewing permission gets 403 permission_denied. Existing administrator workspace privileges apply.
+//
+// Corresponds with GET /storages/{storageId}/backup-usage (the `GetStorageBackupUsage` operationId).
+func (c *Client) GetStorageBackupUsage(ctx context.Context, storageId StorageId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetStorageBackupUsageRequest(c.Server, storageId)
 	if err != nil {
 		return nil, err
 	}
@@ -12867,6 +12900,40 @@ func NewUpdateStorageRequestWithBody(server string, storageId StorageId, content
 	return req, nil
 }
 
+// NewGetStorageBackupUsageRequest constructs an http.Request for the GetStorageBackupUsage method
+func NewGetStorageBackupUsageRequest(server string, storageId StorageId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "storageId", storageId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/storages/%s/backup-usage", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewTestStorageRequest constructs an http.Request for the TestStorage method
 func NewTestStorageRequest(server string, storageId StorageId) (*http.Request, error) {
 	var err error
@@ -14840,7 +14907,7 @@ type ClientWithResponsesInterface interface {
 
 	// ListLogicalBackupsWithResponse List the logical backups of a database
 	//
-	// Ordered newest first by creation time, then by ID. `status` and `createdBefore` filter the list. A user who is not a member of the database's workspace gets 404 `not_found`. A cursor this list did not issue gets 400 `invalid_request`.
+	// Ordered newest first by creation time, then by ID. `status` and `createdBefore` filter the list. A user who is not a member of the database's workspace gets 404 `not_found`. A cursor this list did not issue gets 400 `invalid_request`. `totalUsageMb` sums the recorded stored sizes of every retained completed backup of the database independently of filters and pages, without contacting its source or storage provider.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -15314,6 +15381,15 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with PUT /storages/{storageId} (the `UpdateStorage` operationId).
 	UpdateStorageWithResponse(ctx context.Context, storageId StorageId, body UpdateStorageJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateStorageResponse, error)
+
+	// GetStorageBackupUsageWithResponse Get the recorded backup usage of a storage
+	//
+	// Needs WORKSPACE_VIEWER. Sums retained completed logical and physical backup stored sizes and committed archived WAL sizes recorded for this storage, counting each WAL segment once. This is catalog usage, not actual provider consumption; unfinished uploads, metadata sidecars and pending file deletions are excluded. No provider or source database is contacted. An outsider or missing storage gets 404 not_found; insufficient viewing permission gets 403 permission_denied. Existing administrator workspace privileges apply.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /storages/{storageId}/backup-usage (the `GetStorageBackupUsage` operationId).
+	GetStorageBackupUsageWithResponse(ctx context.Context, storageId StorageId, reqEditors ...RequestEditorFn) (*GetStorageBackupUsageResponse, error)
 
 	// TestStorageWithResponse Test the connection of a saved storage
 	//
@@ -20097,6 +20173,89 @@ func (r UpdateStorageResponse) ContentType() string {
 	return ""
 }
 
+type GetStorageBackupUsageResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *StorageBackupUsage
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON500 the response for an HTTP 500 `application/problem+json` response
+	ApplicationproblemJSON500 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetStorageBackupUsageResponse) GetJSON200() *StorageBackupUsage {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r GetStorageBackupUsageResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetStorageBackupUsageResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r GetStorageBackupUsageResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r GetStorageBackupUsageResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON500 returns the response for an HTTP 500 `application/problem+json` response
+func (r GetStorageBackupUsageResponse) GetApplicationproblemJSON500() *Problem {
+	return r.ApplicationproblemJSON500
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetStorageBackupUsageResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetStorageBackupUsageResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetStorageBackupUsageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetStorageBackupUsageResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetStorageBackupUsageResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type TestStorageResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -23311,7 +23470,7 @@ func (c *ClientWithResponses) CreateLimitedUserWithResponse(ctx context.Context,
 
 // ListLogicalBackupsWithResponse List the logical backups of a database
 //
-// Ordered newest first by creation time, then by ID. `status` and `createdBefore` filter the list. A user who is not a member of the database's workspace gets 404 `not_found`. A cursor this list did not issue gets 400 `invalid_request`.
+// Ordered newest first by creation time, then by ID. `status` and `createdBefore` filter the list. A user who is not a member of the database's workspace gets 404 `not_found`. A cursor this list did not issue gets 400 `invalid_request`. `totalUsageMb` sums the recorded stored sizes of every retained completed backup of the database independently of filters and pages, without contacting its source or storage provider.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -24102,6 +24261,21 @@ func (c *ClientWithResponses) UpdateStorageWithResponse(ctx context.Context, sto
 		return nil, err
 	}
 	return ParseUpdateStorageResponse(rsp)
+}
+
+// GetStorageBackupUsageWithResponse Get the recorded backup usage of a storage
+//
+// Needs WORKSPACE_VIEWER. Sums retained completed logical and physical backup stored sizes and committed archived WAL sizes recorded for this storage, counting each WAL segment once. This is catalog usage, not actual provider consumption; unfinished uploads, metadata sidecars and pending file deletions are excluded. No provider or source database is contacted. An outsider or missing storage gets 404 not_found; insufficient viewing permission gets 403 permission_denied. Existing administrator workspace privileges apply.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /storages/{storageId}/backup-usage (the `GetStorageBackupUsage` operationId).
+func (c *ClientWithResponses) GetStorageBackupUsageWithResponse(ctx context.Context, storageId StorageId, reqEditors ...RequestEditorFn) (*GetStorageBackupUsageResponse, error) {
+	rsp, err := c.GetStorageBackupUsage(ctx, storageId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetStorageBackupUsageResponse(rsp)
 }
 
 // TestStorageWithResponse Test the connection of a saved storage
@@ -28326,6 +28500,74 @@ func ParseUpdateStorageResponse(rsp *http.Response) (*UpdateStorageResponse, err
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetStorageBackupUsageResponse parses an HTTP response from a GetStorageBackupUsageWithResponse call
+func ParseGetStorageBackupUsageResponse(rsp *http.Response) (*GetStorageBackupUsageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetStorageBackupUsageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest StorageBackupUsage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Problem

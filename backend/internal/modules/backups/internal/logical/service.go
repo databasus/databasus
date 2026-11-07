@@ -19,6 +19,7 @@ import (
 	"databasus-backend/internal/modules/backups/internal/config"
 	"databasus-backend/internal/modules/backups/internal/pipeline"
 	"databasus-backend/internal/modules/backups/internal/runcontext"
+	"databasus-backend/internal/modules/backups/internal/usage"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
@@ -32,6 +33,7 @@ const (
 )
 
 type Deps struct {
+	Usage         *usage.Service
 	Repositories  Repositories
 	Transactor    *database.Transactor
 	Logger        *slog.Logger
@@ -50,6 +52,7 @@ type Deps struct {
 
 // Service starts, runs, lists, cancels and deletes the logical backups of databases.
 type Service struct {
+	usage         *usage.Service
 	repository    *backupRepository
 	transactor    *database.Transactor
 	logger        *slog.Logger
@@ -88,6 +91,7 @@ type BackupCompletedHandler func(ctx context.Context, event BackupCompleted) err
 
 func NewService(deps Deps) *Service {
 	return &Service{
+		usage:                   deps.Usage,
 		repository:              deps.Repositories.backups,
 		transactor:              deps.Transactor,
 		logger:                  deps.Logger,
@@ -226,7 +230,8 @@ type ListQuery struct {
 
 // Page holds backups newest first.
 type Page struct {
-	Backups []LogicalBackup
+	TotalUsageMb float64
+	Backups      []LogicalBackup
 	// NextCursor is nil on the last page.
 	NextCursor *string
 }
@@ -276,7 +281,12 @@ func (s *Service) ListBackups(ctx context.Context, actor users.Actor, query List
 		return Page{}, err
 	}
 
-	page := Page{Backups: listedBackups[:min(len(listedBackups), limit)], NextCursor: nil}
+	totalUsageMb, err := s.usage.GetDatabaseUsage(ctx, query.DatabaseID)
+	if err != nil {
+		return Page{}, err
+	}
+
+	page := Page{Backups: listedBackups[:min(len(listedBackups), limit)], NextCursor: nil, TotalUsageMb: totalUsageMb}
 
 	if len(listedBackups) > limit {
 		lastBackup := page.Backups[len(page.Backups)-1]
