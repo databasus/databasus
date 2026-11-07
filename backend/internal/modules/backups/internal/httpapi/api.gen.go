@@ -1048,6 +1048,9 @@ type LogicalBackupPage struct {
 
 	// NextCursor The `after` of the next page, absent on the last page
 	NextCursor *string `json:"nextCursor,omitempty"`
+
+	// TotalUsageMb Recorded stored size of all retained completed backups of the database in megabytes, independently of filters and pages
+	TotalUsageMb float64 `json:"totalUsageMb"`
 }
 
 // LogicalBackupSettings The settings of a logical backup, a dump of a PostgreSQL, MySQL, MariaDB or MongoDB database
@@ -1565,6 +1568,12 @@ type SshTunnelSettings struct {
 
 	// Username The user name on the bastion
 	Username *string `json:"username,omitempty"`
+}
+
+// StorageBackupUsage Backup and committed WAL stored sizes recorded in the catalog for one storage
+type StorageBackupUsage struct {
+	// TotalUsageMb Total recorded stored size in megabytes, zero when no eligible records remain
+	TotalUsageMb float64 `json:"totalUsageMb"`
 }
 
 // StorageMovedWithDatabase The database's storage moves to the target workspace too; no other database may back up into it
@@ -2627,6 +2636,9 @@ type ServerInterface interface {
 	// CancelRestore Cancel a running restore
 	// (POST /restores/{restoreId}/cancel)
 	CancelRestore(c *gin.Context, restoreId RestoreId)
+	// GetStorageBackupUsage Get the recorded backup usage of a storage
+	// (GET /storages/{storageId}/backup-usage)
+	GetStorageBackupUsage(c *gin.Context, storageId StorageId)
 	// GetWalStream Read the current values of a WAL stream
 	// (GET /wal-streams/{databaseId})
 	GetWalStream(c *gin.Context, databaseId DatabaseId)
@@ -3255,6 +3267,31 @@ func (siw *ServerInterfaceWrapper) CancelRestore(c *gin.Context) {
 	siw.Handler.CancelRestore(c, restoreId)
 }
 
+// GetStorageBackupUsage operation middleware
+func (siw *ServerInterfaceWrapper) GetStorageBackupUsage(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "storageId" -------------
+	var storageId StorageId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "storageId", c.Param("storageId"), &storageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter storageId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetStorageBackupUsage(c, storageId)
+}
+
 // GetWalStream operation middleware
 func (siw *ServerInterfaceWrapper) GetWalStream(c *gin.Context) {
 
@@ -3343,6 +3380,7 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 		ErrorHandler:       errorHandler,
 	}
 
+	router.GET(options.BaseURL+"/storages/:storageId/backup-usage", wrapper.GetStorageBackupUsage)
 	router.POST(options.BaseURL+"/databases/:databaseId/transfer", wrapper.TransferDatabase)
 	router.GET(options.BaseURL+"/backup-configs", wrapper.ListBackupConfigs)
 	router.GET(options.BaseURL+"/backup-configs/:databaseId", wrapper.GetBackupConfig)
@@ -5481,6 +5519,117 @@ func (response CancelRestoredefaultApplicationProblemPlusJSONResponse) VisitCanc
 	return err
 }
 
+type GetStorageBackupUsageRequestObject struct {
+	StorageId StorageId `json:"storageId"`
+}
+
+type GetStorageBackupUsageResponseObject interface {
+	VisitGetStorageBackupUsageResponse(w http.ResponseWriter) error
+}
+
+type GetStorageBackupUsage200JSONResponse StorageBackupUsage
+
+func (response GetStorageBackupUsage200JSONResponse) VisitGetStorageBackupUsageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetStorageBackupUsage400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetStorageBackupUsage400ApplicationProblemPlusJSONResponse) VisitGetStorageBackupUsageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetStorageBackupUsage401ApplicationProblemPlusJSONResponse Problem
+
+func (response GetStorageBackupUsage401ApplicationProblemPlusJSONResponse) VisitGetStorageBackupUsageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetStorageBackupUsage403ApplicationProblemPlusJSONResponse Problem
+
+func (response GetStorageBackupUsage403ApplicationProblemPlusJSONResponse) VisitGetStorageBackupUsageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetStorageBackupUsage404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetStorageBackupUsage404ApplicationProblemPlusJSONResponse) VisitGetStorageBackupUsageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetStorageBackupUsage500ApplicationProblemPlusJSONResponse Problem
+
+func (response GetStorageBackupUsage500ApplicationProblemPlusJSONResponse) VisitGetStorageBackupUsageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetStorageBackupUsagedefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetStorageBackupUsagedefaultApplicationProblemPlusJSONResponse) VisitGetStorageBackupUsageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetWalStreamRequestObject struct {
 	DatabaseId DatabaseId `json:"databaseId"`
 }
@@ -5716,6 +5865,9 @@ type StrictServerInterface interface {
 	// CancelRestore Cancel a running restore
 	// (POST /restores/{restoreId}/cancel)
 	CancelRestore(ctx context.Context, request CancelRestoreRequestObject) (CancelRestoreResponseObject, error)
+	// GetStorageBackupUsage Get the recorded backup usage of a storage
+	// (GET /storages/{storageId}/backup-usage)
+	GetStorageBackupUsage(ctx context.Context, request GetStorageBackupUsageRequestObject) (GetStorageBackupUsageResponseObject, error)
 	// GetWalStream Read the current values of a WAL stream
 	// (GET /wal-streams/{databaseId})
 	GetWalStream(ctx context.Context, request GetWalStreamRequestObject) (GetWalStreamResponseObject, error)
@@ -6384,6 +6536,32 @@ func (sh *strictHandler) CancelRestore(ctx *gin.Context, restoreId RestoreId) {
 		sh.options.HandlerErrorFunc(ctx, err)
 	} else if validResponse, ok := response.(CancelRestoreResponseObject); ok {
 		if err := validResponse.VisitCancelRestoreResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetStorageBackupUsage operation middleware
+func (sh *strictHandler) GetStorageBackupUsage(ctx *gin.Context, storageId StorageId) {
+	var request GetStorageBackupUsageRequestObject
+
+	request.StorageId = storageId
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetStorageBackupUsage(ctx.Request.Context(), request.(GetStorageBackupUsageRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetStorageBackupUsage")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(GetStorageBackupUsageResponseObject); ok {
+		if err := validResponse.VisitGetStorageBackupUsageResponse(ctx.Writer); err != nil {
 			sh.options.ResponseErrorHandlerFunc(ctx, err)
 		}
 	} else if response != nil {

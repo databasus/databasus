@@ -98,7 +98,7 @@ const renderConfig = (
       ...config,
       settings: { ...logicalSettings, schedule, retention, notificationTriggers },
     }),
-    mockApi.get('/logical-backups', 200, { items: [] }),
+    mockApi.get('/logical-backups', 200, { totalUsageMb: 0, items: [] }),
     mockApi.get('/storages', 200, { items: [] }),
     http.put(`*${API_BASE_PATH}/backup-configs/:databaseId`, async ({ request }) => {
       const saved = (await request.json()) as LogicalBackupConfigInput;
@@ -139,6 +139,7 @@ describe('EditLogicalBackupConfigSection', () => {
         ],
       }),
       mockApi.get('/logical-backups', 200, {
+        totalUsageMb: 0,
         items: [
           {
             id: 'old-backup',
@@ -192,7 +193,7 @@ describe('EditLogicalBackupConfigSection', () => {
     const onSaved = vi.fn();
     mockServer.use(
       mockApi.get('/backup-configs/{databaseId}', 200, config),
-      mockApi.get('/logical-backups', 200, { items: [] }),
+      mockApi.get('/logical-backups', 200, { totalUsageMb: 0, items: [] }),
       mockApi.get('/storages', 200, { items: [] }),
       mockApi.put('/backup-configs/{databaseId}', 403, buildProblem('permission_denied', 403)),
     );
@@ -213,7 +214,7 @@ describe('EditLogicalBackupConfigSection', () => {
   it('accepts a new retention count typed after the field is cleared, and shows the minimum after leaving it empty', async () => {
     mockServer.use(
       mockApi.get('/backup-configs/{databaseId}', 200, config),
-      mockApi.get('/logical-backups', 200, { items: [] }),
+      mockApi.get('/logical-backups', 200, { totalUsageMb: 0, items: [] }),
       mockApi.get('/storages', 200, { items: [] }),
     );
     const { user } = renderScreen(

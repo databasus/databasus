@@ -682,6 +682,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/storages/{storageId}/backup-usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the storage */
+                storageId: components["parameters"]["StorageId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Get the recorded backup usage of a storage
+         * @description Needs WORKSPACE_VIEWER. Sums retained completed logical and physical backup stored sizes and committed archived WAL sizes recorded for this storage, counting each WAL segment once. This is catalog usage, not actual provider consumption; unfinished uploads, metadata sidecars and pending file deletions are excluded. No provider or source database is contacted. An outsider or missing storage gets 404 not_found; insufficient viewing permission gets 403 permission_denied. Existing administrator workspace privileges apply.
+         */
+        get: operations["getStorageBackupUsage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/storages/{storageId}/test": {
         parameters: {
             query?: never;
@@ -1244,7 +1267,7 @@ export interface paths {
         };
         /**
          * List the logical backups of a database
-         * @description Ordered newest first by creation time, then by ID. `status` and `createdBefore` filter the list. A user who is not a member of the database's workspace gets 404 `not_found`. A cursor this list did not issue gets 400 `invalid_request`.
+         * @description Ordered newest first by creation time, then by ID. `status` and `createdBefore` filter the list. A user who is not a member of the database's workspace gets 404 `not_found`. A cursor this list did not issue gets 400 `invalid_request`. `totalUsageMb` sums the recorded stored sizes of every retained completed backup of the database independently of filters and pages, without contacting its source or storage provider.
          */
         get: operations["listLogicalBackups"];
         put?: never;
@@ -2407,6 +2430,14 @@ export interface components {
             /** @description The name of the storage */
             name: string;
             settings: components["schemas"]["StorageSettings"];
+        };
+        /** @description Backup and committed WAL stored sizes recorded in the catalog for one storage */
+        StorageBackupUsage: {
+            /**
+             * Format: double
+             * @description Total recorded stored size in megabytes, zero when no eligible records remain
+             */
+            totalUsageMb: number;
         };
         /** @description One page of storages, ordered by name */
         StoragePage: {
@@ -3903,6 +3934,11 @@ export interface components {
         };
         /** @description One page of logical backups, newest first */
         LogicalBackupPage: {
+            /**
+             * Format: double
+             * @description Recorded stored size of all retained completed backups of the database in megabytes, independently of filters and pages
+             */
+            totalUsageMb: number;
             /** @description The backups on the page */
             items: components["schemas"]["LogicalBackup"][];
             /** @description The `after` of the next page, absent on the last page */
@@ -5390,6 +5426,35 @@ export interface operations {
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getStorageBackupUsage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the storage */
+                storageId: components["parameters"]["StorageId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The catalog-recorded backup usage */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StorageBackupUsage"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };

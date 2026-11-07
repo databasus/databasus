@@ -558,7 +558,7 @@ describe('DatabaseComponent backup configuration answers', () => {
           settings,
         }),
       ),
-      mockApi.get('/logical-backups', 200, { items: [] }),
+      mockApi.get('/logical-backups', 200, { totalUsageMb: 0, items: [] }),
       mockApi.get('/physical-backups', 200, { items: [], totalUsageMb: 0 }),
       mockApi.pending('get', '/healthcheck-attempts').handler,
       mockApi.pending('get', '/healthcheck-configs/{databaseId}').handler,
@@ -718,7 +718,10 @@ describe('DatabaseComponent backup configuration answers', () => {
     const shownDatabase = buildScreenDatabase('shown-database', DatabaseType.POSTGRES_LOGICAL);
     declareSavedScreen([shownDatabase], logicalSettings);
     server.use(
-      mockApi.get('/logical-backups', 200, { items: [buildCompletedBackup(shownDatabase.id)] }),
+      mockApi.get('/logical-backups', 200, {
+        totalUsageMb: 0,
+        items: [buildCompletedBackup(shownDatabase.id)],
+      }),
       mockApi.post('/verifications', 202, buildStartedVerification(shownDatabase.id)),
       mockApi.get('/verifications', 200, { items: [] }),
       mockApi.get('/verification-agent-counts', 200, { agentCount: 1 }),
@@ -765,6 +768,7 @@ describe('DatabaseComponent backup configuration answers', () => {
     server.use(
       http.get('*/api/v1/logical-backups', ({ request }) =>
         HttpResponse.json({
+          totalUsageMb: 0,
           items:
             new URL(request.url).searchParams.get('databaseId') === firstDatabase.id
               ? [buildCompletedBackup(firstDatabase.id)]

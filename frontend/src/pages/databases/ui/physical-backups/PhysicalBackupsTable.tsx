@@ -14,8 +14,10 @@ import { PhysicalBackupCreatedAt } from '@/pages/databases/ui/physical-backups/P
 import { PhysicalBackupStatusBadge } from '@/pages/databases/ui/physical-backups/PhysicalBackupStatusBadge';
 import { PhysicalBackupTypeCellComponent } from '@/pages/databases/ui/physical-backups/PhysicalBackupTypeCellComponent';
 import { useLocale } from '@/shared/i18n';
+import { formatCompactSizeMb } from '@/shared/lib';
 
 interface Props {
+  totalUsageMb: number | undefined;
   backups: PhysicalBackupListItem[];
   isLoading: boolean;
   actions: PhysicalBackupRowActions;
@@ -23,6 +25,7 @@ interface Props {
 }
 
 export const PhysicalBackupsTable = ({
+  totalUsageMb,
   backups,
   isLoading,
   actions,
@@ -47,10 +50,19 @@ export const PhysicalBackupsTable = ({
       ),
     },
     {
-      title: t('backups.list.columns.size'),
+      title: (
+        <span className="inline-flex items-center gap-1 whitespace-nowrap">
+          {t('backups.list.columns.size')}
+          {totalUsageMb !== undefined && (
+            <span className="text-xs font-normal text-muted">
+              {formatCompactSizeMb(totalUsageMb, formatNumber)}
+            </span>
+          )}
+        </span>
+      ),
       dataIndex: 'sizeMb',
       key: 'sizeMb',
-      width: 110,
+      width: 150,
       render: (sizeMb: number) => formatBackupSize(sizeMb, formatNumber),
     },
     {

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Workspace } from '@/entities/workspaces';
 import { NotifiersComponent } from '@/pages/notifiers';
@@ -17,6 +17,10 @@ import { renderScreen } from '@/shared/lib/test/renderScreen';
 import { LanguageSelectorComponent } from '@/shared/ui';
 
 const server = setUpMockApi();
+beforeEach(() => {
+  server.use(mockApi.get('/storages/{storageId}/backup-usage', 200, { totalUsageMb: 0 }));
+});
+
 const workspace: Workspace = {
   id: 'workspace-a',
   name: 'Team A',

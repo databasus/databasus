@@ -1248,6 +1248,7 @@ describe('DatabaseConfigComponent backup configuration', () => {
       database: logicalDatabase,
       config: buildLogicalConfig(),
       backupHistory: mockApi.get('/logical-backups', 200, {
+        totalUsageMb: 0,
         items: [
           {
             id: 'old-backup',
@@ -1288,7 +1289,7 @@ describe('DatabaseConfigComponent backup configuration', () => {
   ];
 
   const declareBackupConfigRequests = () => [
-    mockApi.get('/logical-backups', 200, { items: [] }),
+    mockApi.get('/logical-backups', 200, { totalUsageMb: 0, items: [] }),
     mockApi.get('/physical-backups', 200, { items: [], totalUsageMb: 0 }),
     mockApi.get('/storages', 200, { items: [] }),
   ];
@@ -1790,7 +1791,7 @@ describe('DatabaseConfigComponent backup configuration', () => {
           isSwitchAccepted = true;
           return HttpResponse.json(acknowledged);
         }),
-        mockApi.get('/logical-backups', 200, { items: [] }),
+        mockApi.get('/logical-backups', 200, { totalUsageMb: 0, items: [] }),
         mockApi.get('/physical-backups', 200, { items: [], totalUsageMb: 0 }),
         mockApi.get('/storages', 200, { items: [] }),
       ]);
@@ -1832,7 +1833,7 @@ describe('DatabaseConfigComponent backup configuration', () => {
       http.get(`*${API_BASE_PATH}/storages/:storageId`, ({ params }) =>
         HttpResponse.json(storages.find((storage) => storage.id === params.storageId)),
       ),
-      mockApi.get('/logical-backups', 200, { items: [] }),
+      mockApi.get('/logical-backups', 200, { totalUsageMb: 0, items: [] }),
     ]);
     await screen.findByText('Archive A');
 
@@ -2012,7 +2013,7 @@ describe('DatabaseConfigComponent backup configuration', () => {
           cleanup: { pendingFileCount: 2, failedFileCount: 0 },
         }),
         mockApi.get('/storages', 200, { items: [archive] }),
-        mockApi.get('/logical-backups', 200, { items: [] }),
+        mockApi.get('/logical-backups', 200, { totalUsageMb: 0, items: [] }),
         mockApi.get('/physical-backups', 200, { items: [], totalUsageMb: 0 }),
       ]);
       await screen.findByText('Deleting old files. Files remaining: 2.');

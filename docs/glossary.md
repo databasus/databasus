@@ -43,6 +43,7 @@ This is the project's common language. Each concept has one term in the document
 | Audit event | audit event | A record of who did what to which object, written in the transaction of the action, or right after an action outside the database. |
 | Audit author | audit author | The user an audit event names as the one who acted, kept in the event as a snapshot of user ID, email and name. |
 | Backup config | backup config, `config.BackupConfig` | The settings that say how a database is backed up: whether backups run, the storage, the encryption, the notification triggers and the schedule and retention of its backup method. A database has one backup config, of the method its type implies. |
+| Backup usage | `totalUsageMb`, `getStorageBackupUsage` | The catalog-recorded stored size of retained completed backups and committed archived WAL for a database or storage, rather than actual provider consumption. |
 | Backup method | backup method, `backups.Method`, `LOGICAL`, `PHYSICAL` | How a database is backed up: a physical PostgreSQL database physically, every other database logically. |
 | Notification trigger | notification trigger, `config.NotificationTrigger`; `NotificationTrigger` and `VerificationNotificationTrigger` in the API | A backup or verification outcome for which its config sends a notification through the database's notifiers. |
 | Row-level security (RLS) | row-level security, RLS | PostgreSQL policies that restrict which table rows a role can access. |

@@ -34,6 +34,7 @@ import (
 	"databasus-backend/internal/modules/backups/internal/pipeline"
 	"databasus-backend/internal/modules/backups/internal/restore"
 	"databasus-backend/internal/modules/backups/internal/transfer"
+	"databasus-backend/internal/modules/backups/internal/usage"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
@@ -162,7 +163,15 @@ func New(deps Deps) Module {
 	restoreRepositories := restore.NewRepositories(deps.DB)
 	recorder := auditing.NewRecorder(deps.AuditLog, deps.Users)
 
+	usageService := usage.NewService(usage.Deps{
+		Repositories: usage.NewRepositories(deps.DB),
+		Transactor:   deps.Transactor,
+		Storages:     deps.Storages,
+		Workspaces:   deps.Workspaces,
+	})
+
 	logicalService := logical.NewService(logical.Deps{
+		Usage:         usageService,
 		Repositories:  logical.NewRepositories(deps.DB),
 		Transactor:    deps.Transactor,
 		Logger:        deps.Logger,
@@ -208,6 +217,7 @@ func New(deps Deps) Module {
 	})
 
 	physicalService := physical.New(physical.Deps{
+		Usage:          usageService,
 		ExecutionClock: deps.PhysicalExecutionClock,
 		Repository:     catalog.NewRepository(deps.DB),
 		Backups:        catalog.NewBackupRepository(deps.DB),
@@ -258,6 +268,7 @@ func New(deps Deps) Module {
 		UserStreams:    userStreams,
 		Runs:           runs,
 		Handler: backupshttpapi.NewHandler(backupshttpapi.Deps{
+			Usage:           usageService,
 			ConfigSaves:     configSaveService,
 			PhysicalBackups: physicalService,
 			Configs:         configService,

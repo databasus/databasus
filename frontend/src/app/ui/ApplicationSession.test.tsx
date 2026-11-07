@@ -345,7 +345,7 @@ describe('Application logout', () => {
       http.get(`*${API_BASE_PATH}/databases/:databaseId`, ({ params }) =>
         HttpResponse.json(params.databaseId === firstDatabase.id ? firstDatabase : secondDatabase),
       ),
-      mockApi.get('/logical-backups', 200, { items: [] }),
+      mockApi.get('/logical-backups', 200, { totalUsageMb: 0, items: [] }),
       http.get(`*${API_BASE_PATH}/backup-configs/:databaseId`, () =>
         HttpResponse.json(buildProblem('not_found', 404), { status: 404 }),
       ),

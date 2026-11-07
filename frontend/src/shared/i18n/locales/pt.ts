@@ -1412,6 +1412,7 @@ export const pt: typeof en = {
       encrypted: 'Criptografar os arquivos de backup',
     },
     list: {
+      totalUsage: 'Uso total: {{size}}',
       title: 'Backups',
       scheduledBackupsDisabled:
         'Os backups agendados estão desativados (você pode reativá-los na configuração de backup)',
@@ -1571,7 +1572,6 @@ export const pt: typeof en = {
         walGap: 'Lacuna no WAL',
       },
       list: {
-        totalUsage: 'Uso total: {{size}}',
         backUpNow: 'Fazer backup agora',
         startRequirement:
           'Para iniciar um backup, ative os backups e escolha um armazenamento na configuração de backup.',
@@ -2009,6 +2009,7 @@ export const pt: typeof en = {
     },
   },
   storages: {
+    usageUnavailable: 'Não foi possível atualizar o espaço ocupado pelos backups.',
     cleanup: {
       title: 'A limpeza ainda está em andamento',
       warning:

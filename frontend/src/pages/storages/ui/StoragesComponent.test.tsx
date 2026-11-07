@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { screen, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { SftpStorageSettings, Storage } from '@/entities/storages';
 import { StoragesComponent } from '@/pages/storages/ui/StoragesComponent';
@@ -11,6 +11,10 @@ import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const mockServer = setUpMockApi();
+
+beforeEach(() => {
+  mockServer.use(mockApi.get('/storages/{storageId}/backup-usage', 200, { totalUsageMb: 0 }));
+});
 const storage: Storage = {
   id: 'sftp-id',
   workspaceId: 'workspace-id',
