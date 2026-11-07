@@ -1912,6 +1912,8 @@ export const zh: typeof en = {
       privateKey: '私钥',
     },
     list: {
+      searchPlaceholder: '搜索存储',
+      noSearchResults: '没有找到与“{{query}}”匹配的存储',
       addStorage: '添加存储',
       description: '存储是存放备份的位置（本地磁盘、S3 等）',
       backToList: '← 返回存储列表',

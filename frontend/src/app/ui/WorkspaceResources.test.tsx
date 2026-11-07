@@ -7,9 +7,14 @@ import type { Workspace } from '@/entities/workspaces';
 import { NotifiersComponent } from '@/pages/notifiers';
 import { StoragesComponent } from '@/pages/storages';
 import { API_BASE_PATH } from '@/shared/api';
+import { DICTIONARIES } from '@/shared/i18n';
+import { advanceFakeClock } from '@/shared/lib/test/advanceFakeClock';
+import { waitForCondition } from '@/shared/lib/test/conditionWait';
+import { finishApiResponse } from '@/shared/lib/test/finishApiResponse';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
+import { LanguageSelectorComponent } from '@/shared/ui';
 
 const server = setUpMockApi();
 const workspace: Workspace = {
@@ -23,16 +28,22 @@ for (const domain of ['storages', 'notifiers'] as const) {
   const ResourceScreen = ({
     workspace,
     onUnavailable,
+    isCanManage = true,
   }: {
     workspace: Workspace;
     onUnavailable?: (id: string) => void;
+    isCanManage?: boolean;
   }) =>
     domain === 'storages' ? (
-      <StoragesComponent workspace={workspace} isCanManageStorages onUnavailable={onUnavailable} />
+      <StoragesComponent
+        workspace={workspace}
+        isCanManageStorages={isCanManage}
+        onUnavailable={onUnavailable}
+      />
     ) : (
       <NotifiersComponent
         workspace={workspace}
-        isCanManageNotifiers
+        isCanManageNotifiers={isCanManage}
         onUnavailable={onUnavailable}
       />
     );
@@ -74,6 +85,396 @@ for (const domain of ['storages', 'notifiers'] as const) {
   };
 
   describe(`${domain} workspace ownership`, () => {
+    it.each([4, 5])(
+      'keeps add placement and permissions when the full collection has %i items',
+      async (count) => {
+        const resources = Array.from({ length: count }, (_, index) => buildResource(String(index)));
+        server.use(...mockSelectableResources(resources));
+        const view = renderScreen(<ResourceScreen workspace={workspace} />);
+        const firstCard = await screen.findByRole('button', { name: resources[0].name });
+        const addButton = screen.getByRole('button', { name: addActionName });
+        const position = addButton.compareDocumentPosition(firstCard);
+
+        expect(Boolean(position & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(count >= 5);
+        expect(
+          screen.queryByRole('textbox', {
+            name: DICTIONARIES.en[domain].list.searchPlaceholder,
+          }) !== null,
+        ).toBe(count >= 5);
+
+        view.rerender(<ResourceScreen workspace={workspace} isCanManage={false} />);
+
+        expect(screen.queryByRole('button', { name: addActionName })).toBeNull();
+        expect(screen.getByRole('button', { name: resources[0].name })).toBeTruthy();
+      },
+    );
+
+    it('preserves selection and a name draft when local search and language change hide its card', async () => {
+      const resources = ['first', 'second', 'third', 'fourth', 'fifth'].map(buildResource);
+      server.use(...mockSelectableResources(resources));
+      const view = renderScreen(
+        <>
+          <LanguageSelectorComponent />
+          <ResourceScreen workspace={workspace} />
+        </>,
+      );
+      await view.user.click((await screen.findAllByRole('button', { name: 'Edit' }))[0]);
+      const nameInput = screen.getByPlaceholderText('Enter name...');
+      await view.user.clear(nameInput);
+      await view.user.type(nameInput, 'Retained draft');
+      const search = screen.getByRole('textbox', {
+        name: DICTIONARIES.en[domain].list.searchPlaceholder,
+      });
+      const requestsBeforeSearch = server.getRequests().length;
+
+      await view.user.type(search, 'sEcOnD');
+
+      expect(screen.getByRole('button', { name: resources[1].name })).toBeTruthy();
+      expect(screen.queryByRole('button', { name: resources[0].name })).toBeNull();
+      expect(screen.getByDisplayValue('Retained draft')).toBe(nameInput);
+
+      const query = '<missing>{{literal}}';
+      fireEvent.change(search, { target: { value: query } });
+
+      expect(
+        screen.getByText(DICTIONARIES.en[domain].list.noSearchResults.replace('{{query}}', query)),
+      ).toBeTruthy();
+
+      await view.user.click(screen.getByRole('button', { name: 'Language: English' }));
+      await view.user.click(
+        await screen.findByRole('menuitem', { name: DICTIONARIES.ru.language.nativeName }),
+      );
+
+      expect(
+        screen.getByRole('textbox', { name: DICTIONARIES.ru[domain].list.searchPlaceholder }),
+      ).toBe(search);
+      expect(
+        screen.getByText(DICTIONARIES.ru[domain].list.noSearchResults.replace('{{query}}', query)),
+      ).toBeTruthy();
+      expect(screen.getByDisplayValue('Retained draft')).toBe(nameInput);
+      expect((search as HTMLInputElement).value).toBe(query);
+
+      await view.user.clear(search);
+
+      expect(
+        screen.getByRole('button', { name: resources[0].name }).getAttribute('aria-pressed'),
+      ).toBe('true');
+      expect(screen.getByRole('button', { name: resources[4].name })).toBeTruthy();
+      expect(server.getRequests()).toHaveLength(requestsBeforeSearch);
+    });
+
+    it('keeps an active search clearable when deleting a resource drops the collection below five', async () => {
+      const resources = ['first', 'second', 'third', 'fourth', 'fifth'].map(buildResource);
+      let listedResources = resources;
+      server.use(
+        http.get(`*${API_BASE_PATH}/${domain}`, () =>
+          HttpResponse.json({ items: listedResources }),
+        ),
+        ...mockSelectableResources(resources),
+        http.delete(`*${API_BASE_PATH}/${domain}/:resourceId`, () => {
+          listedResources = resources.slice(1);
+          return new HttpResponse(null, { status: 204 });
+        }),
+      );
+      const view = renderScreen(<ResourceScreen workspace={workspace} />);
+      await screen.findByRole('button', { name: resources[0].name });
+      const search = screen.getByRole('textbox', {
+        name: DICTIONARIES.en[domain].list.searchPlaceholder,
+      });
+      await view.user.type(search, 'first');
+      await view.user.click(await screen.findByRole('button', { name: 'Remove' }));
+      await view.user.click(
+        within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove' }),
+      );
+      await screen.findByText(
+        DICTIONARIES.en[domain].list.noSearchResults.replace('{{query}}', 'first'),
+      );
+
+      expect(screen.getByDisplayValue('first')).toBe(search);
+
+      await view.user.clear(search);
+
+      expect(screen.getByRole('button', { name: resources[1].name })).toBeTruthy();
+      expect(screen.getByRole('button', { name: resources[4].name })).toBeTruthy();
+      expect(
+        screen.queryByRole('textbox', { name: DICTIONARIES.en[domain].list.searchPlaceholder }),
+      ).toBeNull();
+    });
+
+    it.each([200, 403])(
+      'preserves current items, selection and feedback when a superseded HTTP %i reload finishes in the same workspace',
+      async (status) => {
+        const resources = ['first', 'second'].map(buildResource);
+        const selectedResource = resources[1];
+        const currentResource = { ...selectedResource, name: 'Current archive' };
+        const refreshedResource = buildResource('refreshed');
+        const obsoleteRead = createPendingApiResponse();
+        const currentRead = createPendingApiResponse();
+        const onUnavailable = vi.fn();
+        let listRequests = 0;
+        server.use(
+          http.get(`*${API_BASE_PATH}/${domain}`, () => {
+            listRequests++;
+            if (listRequests === 1) return HttpResponse.json({ items: resources });
+
+            return listRequests === 2 ? obsoleteRead.response : currentRead.response;
+          }),
+          http.put(`*${API_BASE_PATH}/${domain}/:resourceId`, async ({ request }) => {
+            const rename = (await request.json()) as { name: string };
+            return HttpResponse.json({ ...selectedResource, name: rename.name });
+          }),
+          ...mockSelectableResources(resources),
+        );
+        const selectionKey = `${domain === 'storages' ? 'selectedStorageId' : 'selectedNotifierId'}_${workspace.id}`;
+        const view = renderScreen(
+          <ResourceScreen workspace={workspace} onUnavailable={onUnavailable} />,
+        );
+
+        await view.user.click(await screen.findByRole('button', { name: selectedResource.name }));
+        await view.user.click((await screen.findAllByRole('button', { name: 'Edit' }))[0]);
+        await view.user.clear(screen.getByPlaceholderText('Enter name...'));
+        await view.user.type(screen.getByPlaceholderText('Enter name...'), 'Intermediate archive');
+        await view.user.click(screen.getByRole('button', { name: 'Save' }));
+
+        await waitFor(() => expect(listRequests).toBe(2));
+        expect(screen.getByRole('button', { name: 'Intermediate archive' })).toBeTruthy();
+
+        await view.user.click(screen.getAllByRole('button', { name: 'Edit' })[0]);
+        await view.user.clear(screen.getByPlaceholderText('Enter name...'));
+        await view.user.type(screen.getByPlaceholderText('Enter name...'), currentResource.name);
+        await view.user.click(screen.getByRole('button', { name: 'Save' }));
+
+        await waitFor(() => expect(listRequests).toBe(3));
+
+        await finishApiResponse(server, `/api/v1/${domain}`, () =>
+          currentRead.respond(
+            HttpResponse.json({ items: [resources[0], currentResource, refreshedResource] }),
+          ),
+        );
+
+        expect(screen.getByRole('button', { name: refreshedResource.name })).toBeTruthy();
+        expect(
+          screen.getByRole('button', { name: currentResource.name }).getAttribute('aria-pressed'),
+        ).toBe('true');
+        expect(localStorage.getItem(selectionKey)).toBe(selectedResource.id);
+        expect(screen.queryByRole('alert')).toBeNull();
+
+        await finishApiResponse(server, `/api/v1/${domain}`, () =>
+          obsoleteRead.respond(
+            status === 200
+              ? HttpResponse.json({ items: resources })
+              : HttpResponse.json(buildProblem('permission_denied', 403), { status: 403 }),
+          ),
+        );
+
+        expect(screen.getByRole('button', { name: resources[0].name })).toBeTruthy();
+        expect(screen.getByRole('button', { name: refreshedResource.name })).toBeTruthy();
+        expect(
+          screen.getByRole('button', { name: currentResource.name }).getAttribute('aria-pressed'),
+        ).toBe('true');
+        expect(screen.queryByRole('button', { name: selectedResource.name })).toBeNull();
+        expect(localStorage.getItem(selectionKey)).toBe(selectedResource.id);
+        expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+        expect(screen.queryByRole('alert')).toBeNull();
+        expect(onUnavailable).not.toHaveBeenCalled();
+        expect(listRequests).toBe(3);
+      },
+    );
+
+    it.each([200, 403])(
+      'keeps loading visible when an obsolete HTTP %i read settles before the current read',
+      async (status) => {
+        const obsoleteRead = createPendingApiResponse();
+        const currentRead = createPendingApiResponse();
+        const nextWorkspace = { ...workspace, id: 'workspace-b' };
+        const nextResource = { ...buildResource('current'), workspaceId: nextWorkspace.id };
+        let listRequests = 0;
+        server.use(
+          http.get(`*${API_BASE_PATH}/${domain}`, () =>
+            ++listRequests === 1 ? obsoleteRead.response : currentRead.response,
+          ),
+          http.get(`*${API_BASE_PATH}/${domain}/:resourceId`, () =>
+            HttpResponse.json(nextResource),
+          ),
+        );
+        const onUnavailable = vi.fn();
+        const view = renderScreen(
+          <ResourceScreen workspace={workspace} onUnavailable={onUnavailable} />,
+        );
+
+        await waitFor(() => expect(listRequests).toBe(1));
+
+        view.rerender(<ResourceScreen workspace={nextWorkspace} onUnavailable={onUnavailable} />);
+        await waitFor(() => expect(listRequests).toBe(2));
+
+        expect(view.container.querySelector('.ant-spin-spinning')).not.toBeNull();
+
+        await finishApiResponse(server, `/api/v1/${domain}`, () =>
+          obsoleteRead.respond(
+            status === 200
+              ? HttpResponse.json({ items: [buildResource('obsolete')] })
+              : HttpResponse.json(buildProblem('permission_denied', 403), { status: 403 }),
+          ),
+        );
+
+        expect(view.container.querySelector('.ant-spin-spinning')).not.toBeNull();
+        expect(screen.queryByRole('button', { name: addActionName })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Archive obsolete' })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+        expect(onUnavailable).not.toHaveBeenCalled();
+
+        currentRead.respond(HttpResponse.json({ items: [nextResource] }));
+
+        await screen.findByRole('button', { name: nextResource.name });
+        await waitFor(() => expect(view.container.querySelector('.ant-spin-spinning')).toBeNull());
+
+        expect(screen.getByRole('button', { name: addActionName })).toBeTruthy();
+        expect(onUnavailable).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([200, 403])(
+      'ignores obsolete HTTP %i list responses after changing workspace',
+      async (status) => {
+        const obsoleteRead = createPendingApiResponse();
+        const nextWorkspace = { ...workspace, id: 'workspace-b' };
+        const nextResource = { ...buildResource('current'), workspaceId: nextWorkspace.id };
+        let listRequests = 0;
+        server.use(
+          http.get(`*${API_BASE_PATH}/${domain}`, () =>
+            ++listRequests === 1
+              ? obsoleteRead.response
+              : HttpResponse.json({ items: [nextResource] }),
+          ),
+          http.get(`*${API_BASE_PATH}/${domain}/:resourceId`, () =>
+            HttpResponse.json(nextResource),
+          ),
+        );
+        const oldUnavailable = vi.fn();
+        const currentUnavailable = vi.fn();
+        const view = renderScreen(
+          <ResourceScreen workspace={workspace} onUnavailable={oldUnavailable} />,
+        );
+        await waitFor(() => expect(listRequests).toBe(1));
+        view.rerender(
+          <ResourceScreen workspace={nextWorkspace} onUnavailable={currentUnavailable} />,
+        );
+        await screen.findByRole('button', { name: nextResource.name });
+        await finishApiResponse(server, `/api/v1/${domain}`, () => {
+          obsoleteRead.respond(
+            status === 200
+              ? HttpResponse.json({ items: [buildResource('obsolete')] })
+              : HttpResponse.json(buildProblem('permission_denied', 403), { status: 403 }),
+          );
+        });
+
+        expect(screen.getByRole('button', { name: nextResource.name })).toBeTruthy();
+        expect(screen.queryByRole('button', { name: 'Archive obsolete' })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+        expect(oldUnavailable).not.toHaveBeenCalled();
+        expect(currentUnavailable).not.toHaveBeenCalled();
+      },
+    );
+
+    it('keeps the newer read when an earlier successful Strict Mode setup finishes last', async () => {
+      const obsoleteRead = createPendingApiResponse();
+      const currentResource = buildResource('current');
+      let listRequests = 0;
+      server.use(
+        http.get(`*${API_BASE_PATH}/${domain}`, () =>
+          ++listRequests === 1
+            ? obsoleteRead.response
+            : HttpResponse.json({ items: [currentResource] }),
+        ),
+        http.get(`*${API_BASE_PATH}/${domain}/:resourceId`, () =>
+          HttpResponse.json(currentResource),
+        ),
+      );
+      renderScreen(<ResourceScreen workspace={workspace} />, { isStrictMode: true });
+      await screen.findByRole('button', { name: currentResource.name });
+      await finishApiResponse(server, `/api/v1/${domain}`, () =>
+        obsoleteRead.respond(HttpResponse.json({ items: [buildResource('obsolete')] })),
+      );
+
+      expect(listRequests).toBe(2);
+      expect(screen.getByRole('button', { name: currentResource.name })).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Archive obsolete' })).toBeNull();
+    });
+
+    it.each([200, 403])('ignores pending HTTP %i list results after unmount', async (status) => {
+      const read = createPendingApiResponse();
+      const onUnavailable = vi.fn();
+      server.use(http.get(`*${API_BASE_PATH}/${domain}`, () => read.response));
+      const view = renderScreen(
+        <ResourceScreen workspace={workspace} onUnavailable={onUnavailable} />,
+      );
+      await waitFor(() => expect(server.getRequests()).toHaveLength(1));
+      view.unmount();
+      await finishApiResponse(server, `/api/v1/${domain}`, () =>
+        read.respond(
+          status === 200
+            ? HttpResponse.json({ items: [buildResource('obsolete')] })
+            : HttpResponse.json(buildProblem('permission_denied', 403), { status: 403 }),
+        ),
+      );
+
+      expect(onUnavailable).not.toHaveBeenCalled();
+      expect(view.container.textContent).toBe('');
+    });
+
+    it('calls the current unavailable handler when a pending list fails after its options change', async () => {
+      const read = createPendingApiResponse();
+      const oldUnavailable = vi.fn();
+      const currentUnavailable = vi.fn();
+      server.use(http.get(`*${API_BASE_PATH}/${domain}`, () => read.response));
+      const view = renderScreen(
+        <ResourceScreen workspace={workspace} onUnavailable={oldUnavailable} />,
+      );
+      await waitFor(() => expect(server.getRequests()).toHaveLength(1));
+      view.rerender(<ResourceScreen workspace={workspace} onUnavailable={currentUnavailable} />);
+      read.respond(HttpResponse.json(buildProblem('permission_denied', 403), { status: 403 }));
+      await waitFor(() => expect(currentUnavailable).toHaveBeenCalledWith(workspace.id));
+
+      expect(oldUnavailable).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
+    });
+
+    it('preserves a name draft during its refresh interval and stops requests after unmount', async () => {
+      const resource = buildResource('first');
+      let listRequests = 0;
+      server.use(
+        http.get(`*${API_BASE_PATH}/${domain}`, () => {
+          listRequests++;
+          return HttpResponse.json({
+            items: [resource, ...(listRequests > 1 ? [buildResource('refreshed')] : [])],
+          });
+        }),
+        ...mockSelectableResources([resource]),
+      );
+      vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
+      const view = renderScreen(<ResourceScreen workspace={workspace} />);
+      await waitForCondition(() =>
+        expect(screen.getAllByRole('button', { name: 'Edit' }).length).toBeGreaterThan(0),
+      );
+      fireEvent.click(screen.getAllByRole('button', { name: 'Edit' })[0]);
+      const nameInput = screen.getByPlaceholderText('Enter name...');
+      fireEvent.change(nameInput, { target: { value: 'Retained polling draft' } });
+      await advanceFakeClock(5 * 60_000);
+      if (domain === 'notifiers') {
+        await waitForCondition(() =>
+          expect(screen.getByRole('button', { name: 'Archive refreshed' })).toBeTruthy(),
+        );
+      }
+
+      expect(listRequests).toBe(domain === 'notifiers' ? 2 : 1);
+      expect(screen.getByDisplayValue('Retained polling draft')).toBe(nameInput);
+
+      view.unmount();
+      await advanceFakeClock(10 * 60_000);
+
+      expect(listRequests).toBe(domain === 'notifiers' ? 2 : 1);
+    });
+
     it.each(
       (['delete', 'transfer'] as const).flatMap((operation) =>
         [false, true].map((isLastResource) => ({ operation, isLastResource })),

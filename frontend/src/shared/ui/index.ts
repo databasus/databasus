@@ -10,4 +10,9 @@ export { LoadFailure } from '@/shared/ui/LoadFailure';
 export { StarButtonComponent } from '@/shared/ui/StarButtonComponent';
 export { ThemeToggleComponent } from '@/shared/ui/ThemeToggleComponent';
 export { ResourceListDetail } from '@/shared/ui/ResourceListDetail';
+export { ResourceCollectionList } from '@/shared/ui/ResourceCollectionList';
+export {
+  ResourceTransferDialog,
+  type TransferAvailability,
+} from '@/shared/ui/ResourceTransferDialog';
 export { WRAPPING_SELECT_CLASS_NAME } from '@/shared/ui/wrappingSelectClassName';

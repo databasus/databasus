@@ -1902,6 +1902,8 @@ export const id: typeof en = {
       privateKey: 'Private key',
     },
     list: {
+      searchPlaceholder: 'Cari penyimpanan',
+      noSearchResults: 'Tidak ada penyimpanan yang cocok dengan "{{query}}"',
       addStorage: 'Tambah penyimpanan',
       description: 'Penyimpanan adalah tempat menyimpan backup (disk lokal, S3, dll.)',
       backToList: '← Kembali ke penyimpanan',

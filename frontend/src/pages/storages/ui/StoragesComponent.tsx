@@ -9,8 +9,8 @@ import { StorageCardComponent } from '@/pages/storages/ui/StorageCardComponent';
 import { StorageComponent } from '@/pages/storages/ui/StorageComponent';
 import { ApiError } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
-import { useIsMobile, useRequestRevision, useScopedSelection } from '@/shared/hooks';
-import { ResourceListDetail, LoadFailure } from '@/shared/ui';
+import { useIsMobile, useResourceCollection, useScopedSelection } from '@/shared/hooks';
+import { ResourceCollectionList, ResourceListDetail, LoadFailure } from '@/shared/ui';
 
 interface Props {
   workspace: Workspace;
@@ -19,49 +19,25 @@ interface Props {
 }
 
 export const StoragesComponent = ({ workspace, isCanManageStorages, onUnavailable }: Props) => {
-  const [collection, setCollection] = useState<{
-    items: Storage[];
-    isReady: boolean;
-  }>({ items: [], isReady: false });
-  const [loadError, setLoadError] = useState<unknown>();
-  const [isLoading, setIsLoading] = useState(true);
   const [isShowAddStorage, setIsShowAddStorage] = useState(false);
-
-  const loadStorages = (isSilent = false) => {
-    if (!isCurrent()) return;
-
-    const revision = loadRevision.Invalidate();
-
-    if (!isSilent) setIsLoading(true);
-    setLoadError(undefined);
-    storageApi
-      .listAllStorages(workspace.id)
-      .then((items) => {
-        if (!isCurrent() || !loadRevision.IsCurrent(revision)) return;
-        setCollection({ items, isReady: true });
-      })
-      .catch((error) => {
-        if (isCurrent() && loadRevision.IsCurrent(revision)) {
-          setLoadError(error);
-
-          if (error instanceof ApiError && [403, 404].includes(error.status ?? 0)) {
-            setCollection({ items: [], isReady: false });
-            onUnavailable?.(workspace.id);
-          }
-        }
-      })
-      .finally(() => {
-        if (isCurrent() && loadRevision.IsCurrent(revision)) setIsLoading(false);
-      });
-  };
+  const [searchQuery, setSearchQuery] = useState('');
+  const collection = useResourceCollection({
+    scopeKey: workspace.id,
+    read: () => storageApi.listAllStorages(workspace.id),
+    onError: (error) => {
+      if (error instanceof ApiError && [403, 404].includes(error.status ?? 0)) {
+        collection.clear();
+        onUnavailable?.(workspace.id);
+      }
+    },
+  });
+  const loadStorages = collection.reload;
+  const { loadError, isLoading } = collection;
 
   const acceptStorage = (resource: Storage) => {
     if (!isCurrent() || resource.workspaceId !== workspace.id) return;
 
-    setCollection((current) => ({
-      isReady: true,
-      items: [...current.items.filter((item) => item.id !== resource.id), resource],
-    }));
+    collection.accept(resource);
     loadStorages(true);
   };
 
@@ -69,17 +45,13 @@ export const StoragesComponent = ({ workspace, isCanManageStorages, onUnavailabl
     if (!selectedStorageId) return;
 
     selection.remove(selectedStorageId);
-    setCollection((current) => ({
-      ...current,
-      items: current.items.filter((item) => item.id !== selectedStorageId),
-    }));
+    collection.remove(selectedStorageId);
     loadStorages(true);
   };
 
   const { t } = useTranslation();
   const isMobile = useIsMobile();
   const isCurrent = useSessionGuard();
-  const loadRevision = useRequestRevision();
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const storages = collection.items;
   const selection = useScopedSelection({
@@ -97,7 +69,7 @@ export const StoragesComponent = ({ workspace, isCanManageStorages, onUnavailabl
 
   useEffect(() => {
     startStoragesLoad();
-  }, []);
+  }, [workspace.id]);
 
   // Read when the form closes, because the button can appear after the form opened.
   const returnFocusToButton = useEffectEvent(() => {
@@ -116,26 +88,31 @@ export const StoragesComponent = ({ workspace, isCanManageStorages, onUnavailabl
     <Button
       ref={addButtonRef}
       type="primary"
-      className="mb-2 w-full"
+      className="mb-2 !h-auto min-h-8 w-full !whitespace-normal"
       onClick={() => setIsShowAddStorage(true)}
     >
       {t('storages.list.addStorage')}
     </Button>
   );
   const list = (
-    <>
-      {storages.length >= 5 && isCanManageStorages && addButton}
-      {storages.map((resource) => (
+    <ResourceCollectionList
+      items={storages}
+      getKey={(resource) => resource.id}
+      getName={(resource) => resource.name}
+      renderCard={(resource) => (
         <StorageCardComponent
-          key={resource.id}
           storage={resource}
           selectedStorageId={selectedStorageId}
           setSelectedStorageId={selection.select}
         />
-      ))}
-      {storages.length < 5 && isCanManageStorages && addButton}
-      <div className="mx-3 text-center text-xs text-muted">{t('storages.list.description')}</div>
-    </>
+      )}
+      addAction={isCanManageStorages && addButton}
+      description={t('storages.list.description')}
+      searchLabel={t('storages.list.searchPlaceholder')}
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
+      noSearchResults={(query) => t('storages.list.noSearchResults', { query })}
+    />
   );
 
   return (

@@ -2056,6 +2056,8 @@ export const es: typeof en = {
       privateKey: 'Clave privada',
     },
     list: {
+      searchPlaceholder: 'Buscar almacenamiento',
+      noSearchResults: 'No se encontraron almacenamientos que coincidan con "{{query}}"',
       addStorage: 'Añadir almacenamiento',
       description:
         'Un almacenamiento es el lugar donde se guardan las copias de seguridad (disco local, S3, etc.)',
