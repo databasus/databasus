@@ -72,6 +72,12 @@ internal/modules/<name>/
 - the events the module publishes;
 - `Deps` and `New`.
 
+Exported aliases and constants belong in `module.go` only when code outside the owning module uses them, or when an externally used contract declaration requires them through its signature, type definition or initializer. Consumers include other modules, application composition, commands, test support and tests outside the module. The module's implementation and its own tests do not establish that need, even when a test uses a separate test package.
+
+`archlint` enforces this with the `module-contract-usage` rule. It resolves references and follows declaration dependencies transitively from external consumers. Unused local declaration chains and cycles do not preserve their members, and function bodies inside the module are not contract dependencies. The check reports each unused alias or constant separately, including names in grouped declarations, without changing source files.
+
+The usage check covers the host platform's default build, without additional build tags, including test consumers and packages outside the production entry-point graph. An excluded contract file is outside that run's guarantee. Package-loading and type-resolution errors fail analysis rather than produce unused-declaration findings from incomplete information.
+
 | Module         | Owns                                                                                                                                                                             |
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `users`        | accounts, sign-in (password, GitHub and Google OAuth, email codes), password reset, instance settings, global roles, the request's `Actor`, the instance admin area              |

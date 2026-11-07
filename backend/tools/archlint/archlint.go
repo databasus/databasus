@@ -63,7 +63,18 @@ func check(root string, spec checkSpec) ([]violation, error) {
 		return nil, err
 	}
 
-	violations = slices.Concat(violations, cascadeViolations, transactionViolations, dependencyViolations)
+	contractViolations, err := checkModuleContractUsage(sourceModule)
+	if err != nil {
+		return nil, err
+	}
+
+	violations = slices.Concat(
+		violations,
+		cascadeViolations,
+		transactionViolations,
+		dependencyViolations,
+		contractViolations,
+	)
 	slices.SortFunc(violations, func(first, second violation) int {
 		return strings.Compare(first.String(), second.String())
 	})
