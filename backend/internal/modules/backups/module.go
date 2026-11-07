@@ -34,6 +34,7 @@ import (
 	"databasus-backend/internal/modules/backups/internal/pipeline"
 	"databasus-backend/internal/modules/backups/internal/restore"
 	"databasus-backend/internal/modules/backups/internal/transfer"
+	"databasus-backend/internal/modules/backups/internal/usage"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
@@ -45,22 +46,8 @@ type (
 	// Method is how a database is backed up: physically for a physical PostgreSQL database, logically
 	// for every other one.
 	Method = config.Method
-	// BackupConfig holds what the configs of both methods share.
-	BackupConfig = config.BackupConfig
-
-	Encryption                 = config.Encryption
-	NotificationTrigger        = config.NotificationTrigger
-	GfsRetention               = config.GfsRetention
-	LogicalRetention           = config.LogicalRetention
-	LogicalRetentionPolicy     = config.LogicalRetentionPolicy
-	RetentionPeriod            = config.RetentionPeriod
-	PhysicalRetention          = config.PhysicalRetention
-	PhysicalRetentionPolicy    = config.PhysicalRetentionPolicy
-	FullBackupsRetention       = config.FullBackupsRetention
-	FullBackupsRetentionPolicy = config.FullBackupsRetentionPolicy
 
 	LogicalBackup                   = logical.LogicalBackup
-	LogicalBackupStatus             = logical.Status
 	LogicalBackupVerificationStatus = logical.VerificationStatus
 	// LogicalBackupCompleted is published after the publication of a logical backup commits.
 	LogicalBackupCompleted        = logical.BackupCompleted
@@ -70,12 +57,8 @@ type (
 )
 
 const (
-	LogicalBackupStatusInProgress = logical.StatusInProgress
-	LogicalBackupStatusCompleted  = logical.StatusCompleted
-	LogicalBackupStatusFailed     = logical.StatusFailed
-	LogicalBackupStatusCanceled   = logical.StatusCanceled
+	LogicalBackupStatusCompleted = logical.StatusCompleted
 
-	LogicalBackupVerificationStatusNotVerified        = logical.VerificationStatusNotVerified
 	LogicalBackupVerificationStatusVerifiedSuccessful = logical.VerificationStatusVerifiedSuccessful
 	LogicalBackupVerificationStatusVerificationFailed = logical.VerificationStatusVerificationFailed
 )
@@ -86,37 +69,6 @@ var ErrUserStreamHeld = download.ErrUserStreamHeld
 const (
 	MethodLogical  = config.MethodLogical
 	MethodPhysical = config.MethodPhysical
-
-	EncryptionNone      = config.EncryptionNone
-	EncryptionEncrypted = config.EncryptionEncrypted
-
-	NotificationTriggerBackupFailed  = config.NotificationTriggerBackupFailed
-	NotificationTriggerBackupSuccess = config.NotificationTriggerBackupSuccess
-	NotificationTriggerChainBroken   = config.NotificationTriggerChainBroken
-	NotificationTriggerWalGap        = config.NotificationTriggerWalGap
-
-	LogicalRetentionPolicyTimePeriod = config.LogicalRetentionPolicyTimePeriod
-	LogicalRetentionPolicyCount      = config.LogicalRetentionPolicyCount
-	LogicalRetentionPolicyGfs        = config.LogicalRetentionPolicyGfs
-
-	RetentionPeriodDay     = config.RetentionPeriodDay
-	RetentionPeriodWeek    = config.RetentionPeriodWeek
-	RetentionPeriodMonth   = config.RetentionPeriodMonth
-	RetentionPeriod3Months = config.RetentionPeriod3Months
-	RetentionPeriod6Months = config.RetentionPeriod6Months
-	RetentionPeriodYear    = config.RetentionPeriodYear
-	RetentionPeriod2Years  = config.RetentionPeriod2Years
-	RetentionPeriod3Years  = config.RetentionPeriod3Years
-	RetentionPeriod4Years  = config.RetentionPeriod4Years
-	RetentionPeriod5Years  = config.RetentionPeriod5Years
-	RetentionPeriodForever = config.RetentionPeriodForever
-
-	PhysicalRetentionPolicyChains               = config.PhysicalRetentionPolicyChains
-	PhysicalRetentionPolicyFullBackups          = config.PhysicalRetentionPolicyFullBackups
-	PhysicalRetentionPolicyChainsAndFullBackups = config.PhysicalRetentionPolicyChainsAndFullBackups
-
-	FullBackupsRetentionPolicyLastN = config.FullBackupsRetentionPolicyLastN
-	FullBackupsRetentionPolicyGfs   = config.FullBackupsRetentionPolicyGfs
 )
 
 type Module interface {
@@ -211,7 +163,15 @@ func New(deps Deps) Module {
 	restoreRepositories := restore.NewRepositories(deps.DB)
 	recorder := auditing.NewRecorder(deps.AuditLog, deps.Users)
 
+	usageService := usage.NewService(usage.Deps{
+		Repositories: usage.NewRepositories(deps.DB),
+		Transactor:   deps.Transactor,
+		Storages:     deps.Storages,
+		Workspaces:   deps.Workspaces,
+	})
+
 	logicalService := logical.NewService(logical.Deps{
+		Usage:         usageService,
 		Repositories:  logical.NewRepositories(deps.DB),
 		Transactor:    deps.Transactor,
 		Logger:        deps.Logger,
@@ -257,6 +217,7 @@ func New(deps Deps) Module {
 	})
 
 	physicalService := physical.New(physical.Deps{
+		Usage:          usageService,
 		ExecutionClock: deps.PhysicalExecutionClock,
 		Repository:     catalog.NewRepository(deps.DB),
 		Backups:        catalog.NewBackupRepository(deps.DB),
@@ -307,6 +268,7 @@ func New(deps Deps) Module {
 		UserStreams:    userStreams,
 		Runs:           runs,
 		Handler: backupshttpapi.NewHandler(backupshttpapi.Deps{
+			Usage:           usageService,
 			ConfigSaves:     configSaveService,
 			PhysicalBackups: physicalService,
 			Configs:         configService,

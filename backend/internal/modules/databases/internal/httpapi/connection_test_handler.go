@@ -3,18 +3,16 @@ package httpapi
 import (
 	"context"
 
-	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/databases/internal/connection"
 	"databasus-backend/internal/modules/databases/internal/userdatabase"
+	"databasus-backend/internal/modules/users"
 )
 
 func (h *Handler) TestDatabase(
 	ctx context.Context,
 	request TestDatabaseRequestObject,
 ) (TestDatabaseResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -31,9 +29,7 @@ func (h *Handler) TestDatabaseSettings(
 	ctx context.Context,
 	request TestDatabaseSettingsRequestObject,
 ) (TestDatabaseSettingsResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
-import { HttpResponse } from 'msw';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { HttpResponse, http } from 'msw';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type Storage, storageApi } from '@/entities/storages';
 import { StorageComponent } from '@/pages/storages/ui/StorageComponent';
@@ -12,6 +12,10 @@ import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const mockServer = setUpMockApi();
+
+beforeEach(() => {
+  mockServer.use(mockApi.get('/storages/{storageId}/backup-usage', 200, { totalUsageMb: 0 }));
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -717,5 +721,122 @@ describe('StorageComponent', () => {
     await screen.findByText(localStorageOfWorkspace.name);
 
     expect(screen.queryByRole('button', { name: 'Remove' })).toBeNull();
+  });
+});
+
+describe('StorageComponent usage', () => {
+  it.each([
+    { type: 'LOCAL' },
+    { type: 'S3', s3Bucket: 'archive', isVirtualHostedStyle: false, isSkipTlsVerify: false },
+    { type: 'GOOGLE_DRIVE', clientId: 'saved-client' },
+    {
+      type: 'NAS',
+      host: 'nas.example.com',
+      port: 445,
+      share: 'archive',
+      username: 'backup',
+      isSsl: false,
+    },
+    {
+      type: 'AZURE_BLOB',
+      authMethod: 'ACCOUNT_KEY',
+      accountName: 'archive',
+      containerName: 'backups',
+    },
+    {
+      type: 'FTP',
+      host: 'ftp.example.com',
+      port: 21,
+      username: 'backup',
+      isSsl: false,
+      isSkipTlsVerify: false,
+    },
+    {
+      type: 'SFTP',
+      host: 'sftp.example.com',
+      port: 22,
+      username: 'backup',
+      authMethods: ['PASSWORD'],
+      isSkipHostKeyVerify: false,
+    },
+    { type: 'RCLONE', remotePath: 'backups' },
+  ] satisfies Storage['settings'][])(
+    'shows catalog usage when a viewer opens $type storage',
+    async (settings) => {
+      mockServer.use(
+        mockApi.get('/storages/{storageId}', 200, { ...localStorageOfWorkspace, settings }),
+        mockApi.get('/storages/{storageId}/backup-usage', 200, { totalUsageMb: 104 }),
+      );
+      renderScreen(
+        <StorageComponent
+          storageId={localStorageOfWorkspace.id}
+          onStorageChanged={() => {}}
+          onStorageDeleted={() => {}}
+          onStorageTransferred={() => {}}
+          isCanManageStorages={false}
+        />,
+      );
+
+      expect(await screen.findByText('Total usage: 104 MB')).toBeTruthy();
+      expect(screen.getByText('Storage settings')).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();
+    },
+  );
+
+  it('preserves the settings draft and successful connection test when usage refreshes', async () => {
+    let totalUsageMb = 104;
+    const storage: Storage = {
+      ...localStorageOfWorkspace,
+      settings: {
+        type: 'S3',
+        s3Bucket: 'bucket-a',
+        isVirtualHostedStyle: false,
+        isSkipTlsVerify: false,
+      },
+    };
+    mockServer.use(
+      mockApi.get('/storages/{storageId}', 200, storage),
+      mockApi.post('/storage-tests', 200, { isConnected: true }),
+      http.get('*/api/v1/storages/:storageId/backup-usage', () =>
+        HttpResponse.json({ totalUsageMb }),
+      ),
+    );
+    const view = renderStorage();
+    await screen.findByText('Total usage: 104 MB');
+    await view.user.click(screen.getAllByRole('button', { name: 'Edit' })[1]);
+    fireEvent.change(screen.getByDisplayValue('bucket-a'), { target: { value: 'unsaved-bucket' } });
+    await view.user.click(screen.getByRole('button', { name: 'Test connection' }));
+    await screen.findByText('Connection test successful!');
+
+    totalUsageMb = 200;
+    fireEvent(document, new Event('visibilitychange'));
+    await screen.findByText('Total usage: 200 MB');
+
+    expect(screen.getByDisplayValue('unsaved-bucket')).toBeTruthy();
+    expect(screen.getByText('Connection test successful!')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveProperty('disabled', false);
+    expect(mockServer.getRequests().filter((request) => request.method === 'POST')).toHaveLength(1);
+  });
+
+  it('preserves the name draft when a usage refresh is accepted', async () => {
+    let totalUsageMb = 104;
+    mockServer.use(
+      mockApi.get('/storages/{storageId}', 200, localStorageOfWorkspace),
+      http.get('*/api/v1/storages/:storageId/backup-usage', () =>
+        HttpResponse.json({ totalUsageMb }),
+      ),
+    );
+    const view = renderStorage();
+    await screen.findByText('Total usage: 104 MB');
+    await view.user.click(screen.getAllByRole('button', { name: 'Edit' })[0]);
+    const nameInput = screen.getByRole('textbox', { name: 'Name' });
+    fireEvent.change(nameInput, { target: { value: 'Unsaved archive name' } });
+
+    totalUsageMb = 200;
+    fireEvent(document, new Event('visibilitychange'));
+    await screen.findByText('Total usage: 200 MB');
+
+    expect(nameInput).toHaveProperty('value', 'Unsaved archive name');
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveProperty('disabled', false);
   });
 });

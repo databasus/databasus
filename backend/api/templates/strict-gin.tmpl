@@ -1,0 +1,165 @@
+type StrictHandlerFunc func(ctx *gin.Context, request any) (any, error)
+type StrictMiddlewareFunc func(f StrictHandlerFunc, operationID string) StrictHandlerFunc
+
+type StrictGinServerOptions struct {
+    // RequestErrorHandlerFunc is called when a request cannot be parsed or
+    // decoded. It is invoked for JSON bind failures, form parse/bind errors,
+    // multipart reader errors, media type parse errors, missing multipart
+    // boundaries, and request body read errors. The default returns 400.
+    RequestErrorHandlerFunc  func(ctx *gin.Context, err error)
+    // HandlerErrorFunc is called when the application handler (or any
+    // middleware wrapping it) returns a non-nil error. The default returns 500.
+    HandlerErrorFunc         func(ctx *gin.Context, err error)
+    // ResponseErrorHandlerFunc is called when the response object fails to
+    // serialize (Visit*Response returns an error) or when the handler returns
+    // an unexpected response type. The default returns 500.
+    ResponseErrorHandlerFunc func(ctx *gin.Context, err error)
+}
+
+func NewStrictHandler(ssi StrictServerInterface, middlewares []StrictMiddlewareFunc) ServerInterface {
+    return &strictHandler{ssi: ssi, middlewares: middlewares, options: StrictGinServerOptions {
+        RequestErrorHandlerFunc: func(ctx *gin.Context, err error) {
+            ctx.JSON(http.StatusBadRequest, gin.H{"msg": err.Error()})
+        },
+        HandlerErrorFunc: func(ctx *gin.Context, err error) {
+            ctx.JSON(http.StatusInternalServerError, gin.H{"msg": err.Error()})
+        },
+        ResponseErrorHandlerFunc: func(ctx *gin.Context, err error) {
+            ctx.JSON(http.StatusInternalServerError, gin.H{"msg": err.Error()})
+        },
+    }}
+}
+
+func NewStrictHandlerWithOptions(ssi StrictServerInterface, middlewares []StrictMiddlewareFunc, options StrictGinServerOptions) ServerInterface {
+    if options.RequestErrorHandlerFunc == nil {
+        options.RequestErrorHandlerFunc = func(ctx *gin.Context, err error) {
+            ctx.JSON(http.StatusBadRequest, gin.H{"msg": err.Error()})
+        }
+    }
+    if options.HandlerErrorFunc == nil {
+        options.HandlerErrorFunc = func(ctx *gin.Context, err error) {
+            ctx.JSON(http.StatusInternalServerError, gin.H{"msg": err.Error()})
+        }
+    }
+    if options.ResponseErrorHandlerFunc == nil {
+        options.ResponseErrorHandlerFunc = func(ctx *gin.Context, err error) {
+            ctx.JSON(http.StatusInternalServerError, gin.H{"msg": err.Error()})
+        }
+    }
+    return &strictHandler{ssi: ssi, middlewares: middlewares, options: options}
+}
+
+type strictHandler struct {
+    ssi StrictServerInterface
+    middlewares []StrictMiddlewareFunc
+    options StrictGinServerOptions
+}
+
+{{range .}}
+    {{$opid := .OperationId}}
+    {{if not .IsAlias}}
+    // {{$opid}} operation middleware
+    func (sh *strictHandler) {{.OperationId}}(ctx *gin.Context{{genParamArgs .PathParams}}{{if .RequiresParamObject}}, params {{.OperationId}}Params{{end}}) {
+        var request {{$opid | ucFirst}}RequestObject
+
+        {{range .PathParams -}}
+            request.{{.GoName}} = {{.GoVariableName}}
+        {{end -}}
+
+        {{if .RequiresParamObject -}}
+            request.Params = params
+        {{end -}}
+
+        {{ if .HasMaskedRequestContentTypes -}}
+            request.ContentType = ctx.ContentType()
+        {{end -}}
+
+        {{$multipleBodies := gt (len .Bodies) 1 -}}
+        {{range .Bodies -}}
+            {{if $multipleBodies}}if strings.HasPrefix(ctx.GetHeader("Content-Type"), {{.ContentType | toGoString}}) { {{end}}
+                {{if .IsJSON }}
+                    var body {{$opid}}{{.NameTag}}RequestBody
+                    if err := ctx.ShouldBindJSON(&body); err != nil {
+                        {{if not .Required -}}
+                        if !errors.Is(err, io.EOF) {
+                            sh.options.RequestErrorHandlerFunc(ctx, err)
+                            return
+                        }
+                        {{else -}}
+                        sh.options.RequestErrorHandlerFunc(ctx, err)
+                        return
+                        {{end -}}
+                    } {{if not .Required -}} else { {{end}}
+                    request.{{if $multipleBodies}}{{.NameTag}}{{end}}Body = &body
+                    {{if not .Required -}} } {{end}}
+                {{else if eq .NameTag "Formdata" -}}
+                    if err := ctx.Request.ParseForm(); err != nil {
+                        sh.options.RequestErrorHandlerFunc(ctx, err)
+                        return
+                    }
+                    var body {{$opid}}{{.NameTag}}RequestBody
+                    if err := runtime.BindForm(&body, ctx.Request.Form, nil, nil); err != nil {
+                        sh.options.RequestErrorHandlerFunc(ctx, err)
+                        return
+                    }
+                    request.{{if $multipleBodies}}{{.NameTag}}{{end}}Body = &body
+                {{else if eq .NameTag "Multipart" -}}
+                    {{if eq .ContentType "multipart/form-data" -}}
+                    if reader, err := ctx.Request.MultipartReader(); err != nil {
+                        sh.options.RequestErrorHandlerFunc(ctx, err)
+                        return
+                    } else {
+                        request.{{if $multipleBodies}}{{.NameTag}}{{end}}Body = reader
+                    }
+                    {{else -}}
+                    if _, params, err := mime.ParseMediaType(ctx.Request.Header.Get("Content-Type")); err != nil {
+                        sh.options.RequestErrorHandlerFunc(ctx, err)
+                        return
+                    } else if boundary := params["boundary"]; boundary == "" {
+                        sh.options.RequestErrorHandlerFunc(ctx, http.ErrMissingBoundary)
+                        return
+                    } else {
+                        request.{{if $multipleBodies}}{{.NameTag}}{{end}}Body = multipart.NewReader(ctx.Request.Body, boundary)
+                    }
+                    {{end -}}
+                {{else if eq .NameTag "Text" -}}
+                    data, err := io.ReadAll(ctx.Request.Body)
+                    if err != nil {
+                        sh.options.RequestErrorHandlerFunc(ctx, err)
+                        return
+                    }
+                    {{if not .Required -}}
+                    if len(data) > 0 {
+                    {{end -}}
+                    body := {{$opid}}{{.NameTag}}RequestBody(data)
+                    request.{{if $multipleBodies}}{{.NameTag}}{{end}}Body = &body
+                    {{if not .Required -}}
+                    }
+                    {{end -}}
+                {{else -}}
+                    request.{{if $multipleBodies}}{{.NameTag}}{{end}}Body = ctx.Request.Body
+                {{end}}{{/* if eq .NameTag "JSON" */ -}}
+            {{if $multipleBodies}}}{{end}}
+        {{end}}{{/* range .Bodies */}}
+
+        handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+            return sh.ssi.{{.OperationId}}(ctx.Request.Context(), request.({{$opid | ucFirst}}RequestObject))
+        }
+        for _, middleware := range sh.middlewares {
+            handler = middleware(handler, "{{.OperationId}}")
+        }
+
+        response, err := handler(ctx, request)
+
+        if err != nil {
+            sh.options.HandlerErrorFunc(ctx, err)
+        } else if validResponse, ok := response.({{$opid | ucFirst}}ResponseObject); ok {
+            if err := validResponse.Visit{{$opid}}Response(ctx.Writer); err != nil {
+                sh.options.ResponseErrorHandlerFunc(ctx, err)
+            }
+        } else if response != nil {
+            sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+        }
+    }
+    {{end}}
+{{end}}

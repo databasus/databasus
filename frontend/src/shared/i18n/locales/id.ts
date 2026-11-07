@@ -1301,6 +1301,7 @@ export const id: typeof en = {
     encryption: { none: 'Tidak ada', encrypted: 'Aktif' },
     encryptionOptions: { none: 'Tidak ada', encrypted: 'Enkripsi file backup' },
     list: {
+      totalUsage: 'Total penggunaan: {{size}}',
       title: 'Backup',
       scheduledBackupsDisabled:
         'Backup terjadwal nonaktif (bisa diaktifkan kembali di konfigurasi backup)',
@@ -1447,7 +1448,6 @@ export const id: typeof en = {
         walGap: 'Celah WAL',
       },
       list: {
-        totalUsage: 'Total penggunaan: {{size}}',
         backUpNow: 'Backup sekarang',
         startRequirement:
           'Untuk memulai backup, aktifkan backup dan pilih penyimpanan di konfigurasi backup.',
@@ -1869,6 +1869,7 @@ export const id: typeof en = {
     },
   },
   storages: {
+    usageUnavailable: 'Penggunaan ruang cadangan tidak dapat diperbarui.',
     cleanup: {
       title: 'Pembersihan masih berlangsung',
       warning:
@@ -1902,6 +1903,8 @@ export const id: typeof en = {
       privateKey: 'Private key',
     },
     list: {
+      searchPlaceholder: 'Cari penyimpanan',
+      noSearchResults: 'Tidak ada penyimpanan yang cocok dengan "{{query}}"',
       addStorage: 'Tambah penyimpanan',
       description: 'Penyimpanan adalah tempat menyimpan backup (disk lokal, S3, dll.)',
       backToList: '← Kembali ke penyimpanan',

@@ -70,6 +70,12 @@ export const applicationFixtures = (): HttpFixture[] => [
   apiResponse({ method: 'get', path: '/databases', status: 200, body: { items: [] } }),
   apiResponse({ method: 'get', path: '/backup-configs', status: 200, body: { items: [] } }),
   apiResponse({ method: 'get', path: '/storages', status: 200, body: { items: [] } }),
+  apiResponse({
+    method: 'get',
+    path: '/storages/{storageId}/backup-usage',
+    status: 200,
+    body: { totalUsageMb: 0 },
+  }),
   apiResponse({ method: 'get', path: '/notifiers', status: 200, body: { items: [smtpNotifier] } }),
   apiResponse({ method: 'get', path: '/notifiers/{notifierId}', status: 200, body: smtpNotifier }),
   apiResponse({

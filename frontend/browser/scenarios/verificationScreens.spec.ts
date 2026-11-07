@@ -84,7 +84,12 @@ test.use({
       apiResponse({ method: 'get', path: '/databases/{databaseId}', status: 200, body: database }),
       apiResponse({ method: 'get', path: '/storages', status: 200, body: { items: [] } }),
       apiResponse({ method: 'get', path: '/backup-configs', status: 200, body: { items: [] } }),
-      apiResponse({ method: 'get', path: '/logical-backups', status: 200, body: { items: [] } }),
+      apiResponse({
+        method: 'get',
+        path: '/logical-backups',
+        status: 200,
+        body: { totalUsageMb: 0, items: [] },
+      }),
       apiResponse({
         method: 'get',
         path: '/backup-configs/{databaseId}',

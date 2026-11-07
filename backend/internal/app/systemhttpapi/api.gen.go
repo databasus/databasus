@@ -893,7 +893,7 @@ func (sh *strictHandler) GetDiskUsage(ctx *gin.Context) {
 	var request GetDiskUsageRequestObject
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetDiskUsage(ctx, request.(GetDiskUsageRequestObject))
+		return sh.ssi.GetDiskUsage(ctx.Request.Context(), request.(GetDiskUsageRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetDiskUsage")
@@ -917,7 +917,7 @@ func (sh *strictHandler) GetInstanceHealth(ctx *gin.Context) {
 	var request GetInstanceHealthRequestObject
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetInstanceHealth(ctx, request.(GetInstanceHealthRequestObject))
+		return sh.ssi.GetInstanceHealth(ctx.Request.Context(), request.(GetInstanceHealthRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetInstanceHealth")
@@ -943,7 +943,7 @@ func (sh *strictHandler) DownloadVerificationAgent(ctx *gin.Context, params Down
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DownloadVerificationAgent(ctx, request.(DownloadVerificationAgentRequestObject))
+		return sh.ssi.DownloadVerificationAgent(ctx.Request.Context(), request.(DownloadVerificationAgentRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "DownloadVerificationAgent")
@@ -967,7 +967,7 @@ func (sh *strictHandler) GetVersion(ctx *gin.Context) {
 	var request GetVersionRequestObject
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetVersion(ctx, request.(GetVersionRequestObject))
+		return sh.ssi.GetVersion(ctx.Request.Context(), request.(GetVersionRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetVersion")

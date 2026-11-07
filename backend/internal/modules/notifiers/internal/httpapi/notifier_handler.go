@@ -3,17 +3,15 @@ package httpapi
 import (
 	"context"
 
-	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/notifiers/internal/notifier"
+	"databasus-backend/internal/modules/users"
 )
 
 func (h *Handler) ListNotifiers(
 	ctx context.Context,
 	request ListNotifiersRequestObject,
 ) (ListNotifiersResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -44,9 +42,7 @@ func (h *Handler) CreateNotifier(
 	ctx context.Context,
 	request CreateNotifierRequestObject,
 ) (CreateNotifierResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -77,9 +73,7 @@ func (h *Handler) GetNotifier(
 	ctx context.Context,
 	request GetNotifierRequestObject,
 ) (GetNotifierResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -101,9 +95,7 @@ func (h *Handler) UpdateNotifier(
 	ctx context.Context,
 	request UpdateNotifierRequestObject,
 ) (UpdateNotifierResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -134,9 +126,7 @@ func (h *Handler) DeleteNotifier(
 	ctx context.Context,
 	request DeleteNotifierRequestObject,
 ) (DeleteNotifierResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -153,9 +143,7 @@ func (h *Handler) TransferNotifier(
 	ctx context.Context,
 	request TransferNotifierRequestObject,
 ) (TransferNotifierResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}

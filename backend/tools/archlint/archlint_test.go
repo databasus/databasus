@@ -64,6 +64,15 @@ func withFakeThirdPartyModule(modulePath string, files map[string]string) map[st
 func checkFixture(t *testing.T, files map[string]string) []violation {
 	t.Helper()
 
+	violations, err := check(writeFixture(t, files), getFixtureSpec())
+	require.NoError(t, err)
+
+	return violations
+}
+
+func writeFixture(t *testing.T, files map[string]string) string {
+	t.Helper()
+
 	root := t.TempDir()
 
 	if _, hasGoMod := files["go.mod"]; !hasGoMod {
@@ -76,10 +85,7 @@ func checkFixture(t *testing.T, files map[string]string) []violation {
 		require.NoError(t, os.WriteFile(fullPath, []byte(content), 0o600))
 	}
 
-	violations, err := check(root, getFixtureSpec())
-	require.NoError(t, err)
-
-	return violations
+	return root
 }
 
 type violationSpec struct {

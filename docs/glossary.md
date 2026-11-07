@@ -21,9 +21,9 @@ This is the project's common language. Each concept has one term in the document
 | Workspace | workspace | A group of users and the databases, storages and notifiers they share. |
 | Member | member | A user in a workspace, with a workspace role. |
 | Member ID | member ID, `memberId` | The ID of one member of one workspace. The API uses it to change or remove that member and to name the new owner in an ownership transfer; it is not the user ID. |
-| Workspace role | workspace role, `workspaces.Role`, `WORKSPACE_OWNER`, `WORKSPACE_ADMIN`, `WORKSPACE_MEMBER`, `WORKSPACE_VIEWER` | What a member may do in a workspace. `WORKSPACE_MEMBER` is the role that may edit the workspace content; the word "member" alone means any user in a workspace, whatever the role. |
-| Workspace admin | workspace admin, `WORKSPACE_ADMIN`, `workspaces.RoleAdmin` | A member who may also rename the workspace and manage the members who are not admins or the owner. The word `admin` alone in code and text means the instance admin; `workspaces.RoleAdmin` and `ActionManageAdmins` name workspace admins. |
-| Owner | owner, `WORKSPACE_OWNER`, `workspaces.RoleOwner` | The member who may also manage workspace admins, transfer ownership and delete the workspace. |
+| Workspace role | workspace role, `access.Role`, `WORKSPACE_OWNER`, `WORKSPACE_ADMIN`, `WORKSPACE_MEMBER`, `WORKSPACE_VIEWER` | What a member may do in a workspace. `WORKSPACE_MEMBER` is the role that may edit the workspace content; the word "member" alone means any user in a workspace, whatever the role. |
+| Workspace admin | workspace admin, `WORKSPACE_ADMIN`, `access.RoleAdmin` | A member who may also rename the workspace and manage the members who are not admins or the owner. The word `admin` alone in code and text means the instance admin; `access.RoleAdmin` and `ActionManageAdmins` name workspace admins. |
+| Owner | owner, `WORKSPACE_OWNER`, `access.RoleOwner` | The member who may also manage workspace admins, transfer ownership and delete the workspace. |
 | Ownership transfer | ownership transfer, `transferWorkspaceOwnership` | Handing a workspace to another of its members: that member becomes the owner and the previous owner becomes a workspace admin, at once. The owner role changes hands only this way. |
 | Workspace content | workspace content | The databases, storages and notifiers of a workspace and everything attached to them: backup configs, backups, restores, healthchecks and verification configs. |
 | Workspace action | workspace action, `workspaces.Action` | One thing a member can be allowed to do in a workspace, such as viewing it or editing its content. Each workspace role allows a fixed set of actions. |
@@ -42,9 +42,10 @@ This is the project's common language. Each concept has one term in the document
 | Actor | actor | The user on whose behalf a request runs: user ID and global role. |
 | Audit event | audit event | A record of who did what to which object, written in the transaction of the action, or right after an action outside the database. |
 | Audit author | audit author | The user an audit event names as the one who acted, kept in the event as a snapshot of user ID, email and name. |
-| Backup config | backup config, `backups.BackupConfig` | The settings that say how a database is backed up: whether backups run, the storage, the encryption, the notification triggers and the schedule and retention of its backup method. A database has one backup config, of the method its type implies. |
+| Backup config | backup config, `config.BackupConfig` | The settings that say how a database is backed up: whether backups run, the storage, the encryption, the notification triggers and the schedule and retention of its backup method. A database has one backup config, of the method its type implies. |
+| Backup usage | `totalUsageMb`, `getStorageBackupUsage` | The catalog-recorded stored size of retained completed backups and committed archived WAL for a database or storage, rather than actual provider consumption. |
 | Backup method | backup method, `backups.Method`, `LOGICAL`, `PHYSICAL` | How a database is backed up: a physical PostgreSQL database physically, every other database logically. |
-| Notification trigger | notification trigger, `backups.NotificationTrigger`; `NotificationTrigger` and `VerificationNotificationTrigger` in the API | A backup or verification outcome for which its config sends a notification through the database's notifiers. |
+| Notification trigger | notification trigger, `config.NotificationTrigger`; `NotificationTrigger` and `VerificationNotificationTrigger` in the API | A backup or verification outcome for which its config sends a notification through the database's notifiers. |
 | Row-level security (RLS) | row-level security, RLS | PostgreSQL policies that restrict which table rows a role can access. |
 | Logical backup | logical backup | A dump produced by the engine's dump tool (`pg_dump`, `mysqldump`, `mariadb-dump`, `mongodump`). |
 | Physical backup | physical backup | A copy of a PostgreSQL cluster's files taken over the replication protocol. Either full or incremental. |

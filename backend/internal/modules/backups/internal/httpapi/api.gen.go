@@ -1048,6 +1048,9 @@ type LogicalBackupPage struct {
 
 	// NextCursor The `after` of the next page, absent on the last page
 	NextCursor *string `json:"nextCursor,omitempty"`
+
+	// TotalUsageMb Recorded stored size of all retained completed backups of the database in megabytes, independently of filters and pages
+	TotalUsageMb float64 `json:"totalUsageMb"`
 }
 
 // LogicalBackupSettings The settings of a logical backup, a dump of a PostgreSQL, MySQL, MariaDB or MongoDB database
@@ -1565,6 +1568,12 @@ type SshTunnelSettings struct {
 
 	// Username The user name on the bastion
 	Username *string `json:"username,omitempty"`
+}
+
+// StorageBackupUsage Backup and committed WAL stored sizes recorded in the catalog for one storage
+type StorageBackupUsage struct {
+	// TotalUsageMb Total recorded stored size in megabytes, zero when no eligible records remain
+	TotalUsageMb float64 `json:"totalUsageMb"`
 }
 
 // StorageMovedWithDatabase The database's storage moves to the target workspace too; no other database may back up into it
@@ -2627,6 +2636,9 @@ type ServerInterface interface {
 	// CancelRestore Cancel a running restore
 	// (POST /restores/{restoreId}/cancel)
 	CancelRestore(c *gin.Context, restoreId RestoreId)
+	// GetStorageBackupUsage Get the recorded backup usage of a storage
+	// (GET /storages/{storageId}/backup-usage)
+	GetStorageBackupUsage(c *gin.Context, storageId StorageId)
 	// GetWalStream Read the current values of a WAL stream
 	// (GET /wal-streams/{databaseId})
 	GetWalStream(c *gin.Context, databaseId DatabaseId)
@@ -3255,6 +3267,31 @@ func (siw *ServerInterfaceWrapper) CancelRestore(c *gin.Context) {
 	siw.Handler.CancelRestore(c, restoreId)
 }
 
+// GetStorageBackupUsage operation middleware
+func (siw *ServerInterfaceWrapper) GetStorageBackupUsage(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "storageId" -------------
+	var storageId StorageId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "storageId", c.Param("storageId"), &storageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter storageId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetStorageBackupUsage(c, storageId)
+}
+
 // GetWalStream operation middleware
 func (siw *ServerInterfaceWrapper) GetWalStream(c *gin.Context) {
 
@@ -3343,6 +3380,7 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 		ErrorHandler:       errorHandler,
 	}
 
+	router.GET(options.BaseURL+"/storages/:storageId/backup-usage", wrapper.GetStorageBackupUsage)
 	router.POST(options.BaseURL+"/databases/:databaseId/transfer", wrapper.TransferDatabase)
 	router.GET(options.BaseURL+"/backup-configs", wrapper.ListBackupConfigs)
 	router.GET(options.BaseURL+"/backup-configs/:databaseId", wrapper.GetBackupConfig)
@@ -5481,6 +5519,117 @@ func (response CancelRestoredefaultApplicationProblemPlusJSONResponse) VisitCanc
 	return err
 }
 
+type GetStorageBackupUsageRequestObject struct {
+	StorageId StorageId `json:"storageId"`
+}
+
+type GetStorageBackupUsageResponseObject interface {
+	VisitGetStorageBackupUsageResponse(w http.ResponseWriter) error
+}
+
+type GetStorageBackupUsage200JSONResponse StorageBackupUsage
+
+func (response GetStorageBackupUsage200JSONResponse) VisitGetStorageBackupUsageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetStorageBackupUsage400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetStorageBackupUsage400ApplicationProblemPlusJSONResponse) VisitGetStorageBackupUsageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetStorageBackupUsage401ApplicationProblemPlusJSONResponse Problem
+
+func (response GetStorageBackupUsage401ApplicationProblemPlusJSONResponse) VisitGetStorageBackupUsageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetStorageBackupUsage403ApplicationProblemPlusJSONResponse Problem
+
+func (response GetStorageBackupUsage403ApplicationProblemPlusJSONResponse) VisitGetStorageBackupUsageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetStorageBackupUsage404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetStorageBackupUsage404ApplicationProblemPlusJSONResponse) VisitGetStorageBackupUsageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetStorageBackupUsage500ApplicationProblemPlusJSONResponse Problem
+
+func (response GetStorageBackupUsage500ApplicationProblemPlusJSONResponse) VisitGetStorageBackupUsageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetStorageBackupUsagedefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetStorageBackupUsagedefaultApplicationProblemPlusJSONResponse) VisitGetStorageBackupUsageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetWalStreamRequestObject struct {
 	DatabaseId DatabaseId `json:"databaseId"`
 }
@@ -5716,6 +5865,9 @@ type StrictServerInterface interface {
 	// CancelRestore Cancel a running restore
 	// (POST /restores/{restoreId}/cancel)
 	CancelRestore(ctx context.Context, request CancelRestoreRequestObject) (CancelRestoreResponseObject, error)
+	// GetStorageBackupUsage Get the recorded backup usage of a storage
+	// (GET /storages/{storageId}/backup-usage)
+	GetStorageBackupUsage(ctx context.Context, request GetStorageBackupUsageRequestObject) (GetStorageBackupUsageResponseObject, error)
 	// GetWalStream Read the current values of a WAL stream
 	// (GET /wal-streams/{databaseId})
 	GetWalStream(ctx context.Context, request GetWalStreamRequestObject) (GetWalStreamResponseObject, error)
@@ -5788,7 +5940,7 @@ func (sh *strictHandler) ListBackupConfigs(ctx *gin.Context, params ListBackupCo
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.ListBackupConfigs(ctx, request.(ListBackupConfigsRequestObject))
+		return sh.ssi.ListBackupConfigs(ctx.Request.Context(), request.(ListBackupConfigsRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "ListBackupConfigs")
@@ -5814,7 +5966,7 @@ func (sh *strictHandler) GetBackupConfig(ctx *gin.Context, databaseId BackupConf
 	request.DatabaseId = databaseId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetBackupConfig(ctx, request.(GetBackupConfigRequestObject))
+		return sh.ssi.GetBackupConfig(ctx.Request.Context(), request.(GetBackupConfigRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetBackupConfig")
@@ -5847,7 +5999,7 @@ func (sh *strictHandler) UpdateBackupConfig(ctx *gin.Context, databaseId BackupC
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.UpdateBackupConfig(ctx, request.(UpdateBackupConfigRequestObject))
+		return sh.ssi.UpdateBackupConfig(ctx.Request.Context(), request.(UpdateBackupConfigRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "UpdateBackupConfig")
@@ -5880,7 +6032,7 @@ func (sh *strictHandler) TransferDatabase(ctx *gin.Context, databaseId DatabaseI
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.TransferDatabase(ctx, request.(TransferDatabaseRequestObject))
+		return sh.ssi.TransferDatabase(ctx.Request.Context(), request.(TransferDatabaseRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "TransferDatabase")
@@ -5911,7 +6063,7 @@ func (sh *strictHandler) CreateDownloadToken(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.CreateDownloadToken(ctx, request.(CreateDownloadTokenRequestObject))
+		return sh.ssi.CreateDownloadToken(ctx.Request.Context(), request.(CreateDownloadTokenRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "CreateDownloadToken")
@@ -5937,7 +6089,7 @@ func (sh *strictHandler) ListLogicalBackups(ctx *gin.Context, params ListLogical
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.ListLogicalBackups(ctx, request.(ListLogicalBackupsRequestObject))
+		return sh.ssi.ListLogicalBackups(ctx.Request.Context(), request.(ListLogicalBackupsRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "ListLogicalBackups")
@@ -5968,7 +6120,7 @@ func (sh *strictHandler) StartLogicalBackup(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.StartLogicalBackup(ctx, request.(StartLogicalBackupRequestObject))
+		return sh.ssi.StartLogicalBackup(ctx.Request.Context(), request.(StartLogicalBackupRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "StartLogicalBackup")
@@ -5994,7 +6146,7 @@ func (sh *strictHandler) DeleteLogicalBackup(ctx *gin.Context, backupId BackupId
 	request.BackupId = backupId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DeleteLogicalBackup(ctx, request.(DeleteLogicalBackupRequestObject))
+		return sh.ssi.DeleteLogicalBackup(ctx.Request.Context(), request.(DeleteLogicalBackupRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "DeleteLogicalBackup")
@@ -6020,7 +6172,7 @@ func (sh *strictHandler) GetLogicalBackup(ctx *gin.Context, backupId BackupId) {
 	request.BackupId = backupId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetLogicalBackup(ctx, request.(GetLogicalBackupRequestObject))
+		return sh.ssi.GetLogicalBackup(ctx.Request.Context(), request.(GetLogicalBackupRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetLogicalBackup")
@@ -6046,7 +6198,7 @@ func (sh *strictHandler) CancelLogicalBackup(ctx *gin.Context, backupId BackupId
 	request.BackupId = backupId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.CancelLogicalBackup(ctx, request.(CancelLogicalBackupRequestObject))
+		return sh.ssi.CancelLogicalBackup(ctx.Request.Context(), request.(CancelLogicalBackupRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "CancelLogicalBackup")
@@ -6073,7 +6225,7 @@ func (sh *strictHandler) DownloadLogicalBackup(ctx *gin.Context, backupId Backup
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DownloadLogicalBackup(ctx, request.(DownloadLogicalBackupRequestObject))
+		return sh.ssi.DownloadLogicalBackup(ctx.Request.Context(), request.(DownloadLogicalBackupRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "DownloadLogicalBackup")
@@ -6099,7 +6251,7 @@ func (sh *strictHandler) ListPhysicalBackups(ctx *gin.Context, params ListPhysic
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.ListPhysicalBackups(ctx, request.(ListPhysicalBackupsRequestObject))
+		return sh.ssi.ListPhysicalBackups(ctx.Request.Context(), request.(ListPhysicalBackupsRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "ListPhysicalBackups")
@@ -6130,7 +6282,7 @@ func (sh *strictHandler) StartPhysicalBackup(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.StartPhysicalBackup(ctx, request.(StartPhysicalBackupRequestObject))
+		return sh.ssi.StartPhysicalBackup(ctx.Request.Context(), request.(StartPhysicalBackupRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "StartPhysicalBackup")
@@ -6156,7 +6308,7 @@ func (sh *strictHandler) DeletePhysicalBackup(ctx *gin.Context, backupId Physica
 	request.BackupId = backupId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DeletePhysicalBackup(ctx, request.(DeletePhysicalBackupRequestObject))
+		return sh.ssi.DeletePhysicalBackup(ctx.Request.Context(), request.(DeletePhysicalBackupRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "DeletePhysicalBackup")
@@ -6182,7 +6334,7 @@ func (sh *strictHandler) CancelPhysicalBackup(ctx *gin.Context, backupId Physica
 	request.BackupId = backupId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.CancelPhysicalBackup(ctx, request.(CancelPhysicalBackupRequestObject))
+		return sh.ssi.CancelPhysicalBackup(ctx.Request.Context(), request.(CancelPhysicalBackupRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "CancelPhysicalBackup")
@@ -6206,7 +6358,7 @@ func (sh *strictHandler) GetRecoveryScript(ctx *gin.Context) {
 	var request GetRecoveryScriptRequestObject
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetRecoveryScript(ctx, request.(GetRecoveryScriptRequestObject))
+		return sh.ssi.GetRecoveryScript(ctx.Request.Context(), request.(GetRecoveryScriptRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetRecoveryScript")
@@ -6232,7 +6384,7 @@ func (sh *strictHandler) DownloadPhysicalRestoreSet(ctx *gin.Context, params Dow
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DownloadPhysicalRestoreSet(ctx, request.(DownloadPhysicalRestoreSetRequestObject))
+		return sh.ssi.DownloadPhysicalRestoreSet(ctx.Request.Context(), request.(DownloadPhysicalRestoreSetRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "DownloadPhysicalRestoreSet")
@@ -6263,7 +6415,7 @@ func (sh *strictHandler) CreatePhysicalRestoreToken(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.CreatePhysicalRestoreToken(ctx, request.(CreatePhysicalRestoreTokenRequestObject))
+		return sh.ssi.CreatePhysicalRestoreToken(ctx.Request.Context(), request.(CreatePhysicalRestoreTokenRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "CreatePhysicalRestoreToken")
@@ -6289,7 +6441,7 @@ func (sh *strictHandler) ListRestores(ctx *gin.Context, params ListRestoresParam
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.ListRestores(ctx, request.(ListRestoresRequestObject))
+		return sh.ssi.ListRestores(ctx.Request.Context(), request.(ListRestoresRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "ListRestores")
@@ -6320,7 +6472,7 @@ func (sh *strictHandler) StartRestore(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.StartRestore(ctx, request.(StartRestoreRequestObject))
+		return sh.ssi.StartRestore(ctx.Request.Context(), request.(StartRestoreRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "StartRestore")
@@ -6346,7 +6498,7 @@ func (sh *strictHandler) GetRestore(ctx *gin.Context, restoreId RestoreId) {
 	request.RestoreId = restoreId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetRestore(ctx, request.(GetRestoreRequestObject))
+		return sh.ssi.GetRestore(ctx.Request.Context(), request.(GetRestoreRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetRestore")
@@ -6372,7 +6524,7 @@ func (sh *strictHandler) CancelRestore(ctx *gin.Context, restoreId RestoreId) {
 	request.RestoreId = restoreId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.CancelRestore(ctx, request.(CancelRestoreRequestObject))
+		return sh.ssi.CancelRestore(ctx.Request.Context(), request.(CancelRestoreRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "CancelRestore")
@@ -6391,6 +6543,32 @@ func (sh *strictHandler) CancelRestore(ctx *gin.Context, restoreId RestoreId) {
 	}
 }
 
+// GetStorageBackupUsage operation middleware
+func (sh *strictHandler) GetStorageBackupUsage(ctx *gin.Context, storageId StorageId) {
+	var request GetStorageBackupUsageRequestObject
+
+	request.StorageId = storageId
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetStorageBackupUsage(ctx.Request.Context(), request.(GetStorageBackupUsageRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetStorageBackupUsage")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(GetStorageBackupUsageResponseObject); ok {
+		if err := validResponse.VisitGetStorageBackupUsageResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetWalStream operation middleware
 func (sh *strictHandler) GetWalStream(ctx *gin.Context, databaseId DatabaseId) {
 	var request GetWalStreamRequestObject
@@ -6398,7 +6576,7 @@ func (sh *strictHandler) GetWalStream(ctx *gin.Context, databaseId DatabaseId) {
 	request.DatabaseId = databaseId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetWalStream(ctx, request.(GetWalStreamRequestObject))
+		return sh.ssi.GetWalStream(ctx.Request.Context(), request.(GetWalStreamRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetWalStream")
@@ -6425,7 +6603,7 @@ func (sh *strictHandler) GetWalStreamStatistics(ctx *gin.Context, databaseId Dat
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetWalStreamStatistics(ctx, request.(GetWalStreamStatisticsRequestObject))
+		return sh.ssi.GetWalStreamStatistics(ctx.Request.Context(), request.(GetWalStreamStatisticsRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetWalStreamStatistics")

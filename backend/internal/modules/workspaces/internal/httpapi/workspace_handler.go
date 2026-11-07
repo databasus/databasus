@@ -3,7 +3,7 @@ package httpapi
 import (
 	"context"
 
-	"databasus-backend/internal/lib/httpserver"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces/internal/workspace"
 )
 
@@ -11,9 +11,7 @@ func (h *Handler) ListWorkspaces(
 	ctx context.Context,
 	request ListWorkspacesRequestObject,
 ) (ListWorkspacesResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -38,9 +36,7 @@ func (h *Handler) CreateWorkspace(
 	ctx context.Context,
 	request CreateWorkspaceRequestObject,
 ) (CreateWorkspaceResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -57,9 +53,7 @@ func (h *Handler) GetWorkspace(
 	ctx context.Context,
 	request GetWorkspaceRequestObject,
 ) (GetWorkspaceResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -76,9 +70,7 @@ func (h *Handler) UpdateWorkspace(
 	ctx context.Context,
 	request UpdateWorkspaceRequestObject,
 ) (UpdateWorkspaceResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -95,9 +87,7 @@ func (h *Handler) DeleteWorkspace(
 	ctx context.Context,
 	request DeleteWorkspaceRequestObject,
 ) (DeleteWorkspaceResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}

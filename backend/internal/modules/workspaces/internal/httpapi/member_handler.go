@@ -3,7 +3,7 @@ package httpapi
 import (
 	"context"
 
-	"databasus-backend/internal/lib/httpserver"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces/internal/access"
 	"databasus-backend/internal/modules/workspaces/internal/members"
 )
@@ -12,9 +12,7 @@ func (h *Handler) ListWorkspaceMembers(
 	ctx context.Context,
 	request ListWorkspaceMembersRequestObject,
 ) (ListWorkspaceMembersResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -40,9 +38,7 @@ func (h *Handler) AddWorkspaceMember(
 	ctx context.Context,
 	request AddWorkspaceMemberRequestObject,
 ) (AddWorkspaceMemberResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -75,9 +71,7 @@ func (h *Handler) ChangeWorkspaceMemberRole(
 	ctx context.Context,
 	request ChangeWorkspaceMemberRoleRequestObject,
 ) (ChangeWorkspaceMemberRoleResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -94,9 +88,7 @@ func (h *Handler) RemoveWorkspaceMember(
 	ctx context.Context,
 	request RemoveWorkspaceMemberRequestObject,
 ) (RemoveWorkspaceMemberResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -113,9 +105,7 @@ func (h *Handler) TransferWorkspaceOwnership(
 	ctx context.Context,
 	request TransferWorkspaceOwnershipRequestObject,
 ) (TransferWorkspaceOwnershipResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}

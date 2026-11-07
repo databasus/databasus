@@ -112,7 +112,12 @@ test.use({
         status: 200,
         body: { items: [] },
       }),
-      apiResponse({ method: 'get', path: '/logical-backups', status: 200, body: { items: [] } }),
+      apiResponse({
+        method: 'get',
+        path: '/logical-backups',
+        status: 200,
+        body: { totalUsageMb: 0, items: [] },
+      }),
       apiResponse({
         method: 'get',
         path: '/verification-configs/{databaseId}',
@@ -148,11 +153,13 @@ for (const width of [320, 1280]) {
       const page =
         cursor === SECOND_PAGE_CURSOR
           ? {
+              totalUsageMb: 0,
               items: Array.from({ length: SECOND_PAGE_SIZE }, (_, index) =>
                 buildBackup(FIRST_PAGE_SIZE + index),
               ),
             }
           : {
+              totalUsageMb: 0,
               items: Array.from({ length: FIRST_PAGE_SIZE }, (_, index) => buildBackup(index)),
               nextCursor: SECOND_PAGE_CURSOR,
             };

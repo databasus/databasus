@@ -1,8 +1,6 @@
 package httpapi
 
 import (
-	"context"
-
 	"databasus-backend/internal/modules/backups/internal/config"
 	"databasus-backend/internal/modules/backups/internal/configsave"
 	"databasus-backend/internal/modules/backups/internal/download"
@@ -10,12 +8,13 @@ import (
 	"databasus-backend/internal/modules/backups/internal/physical"
 	"databasus-backend/internal/modules/backups/internal/restore"
 	"databasus-backend/internal/modules/backups/internal/transfer"
-	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/backups/internal/usage"
 )
 
 var _ StrictServerInterface = (*Handler)(nil)
 
 type Deps struct {
+	Usage           *usage.Service
 	ConfigSaves     *configsave.Service
 	PhysicalBackups *physical.Service
 	Configs         *config.Service
@@ -26,6 +25,7 @@ type Deps struct {
 }
 
 type Handler struct {
+	usage           *usage.Service
 	configSaves     *configsave.Service
 	physicalBackups *physical.Service
 	configs         *config.Service
@@ -37,6 +37,7 @@ type Handler struct {
 
 func NewHandler(deps Deps) *Handler {
 	return &Handler{
+		usage:           deps.Usage,
 		configSaves:     deps.ConfigSaves,
 		physicalBackups: deps.PhysicalBackups,
 		configs:         deps.Configs,
@@ -45,13 +46,4 @@ func NewHandler(deps Deps) *Handler {
 		downloads:       deps.Downloads,
 		restores:        deps.Restores,
 	}
-}
-
-func getActor(ctx context.Context) (users.Actor, error) {
-	actor, isFound := users.GetActor(ctx)
-	if !isFound {
-		return users.Actor{}, errNoActor
-	}
-
-	return actor, nil
 }

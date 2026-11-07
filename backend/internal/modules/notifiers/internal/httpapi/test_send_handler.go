@@ -3,17 +3,15 @@ package httpapi
 import (
 	"context"
 
-	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/notifiers/internal/notifier"
+	"databasus-backend/internal/modules/users"
 )
 
 func (h *Handler) TestNotifier(
 	ctx context.Context,
 	request TestNotifierRequestObject,
 ) (TestNotifierResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -30,9 +28,7 @@ func (h *Handler) TestNotifierSettings(
 	ctx context.Context,
 	request TestNotifierSettingsRequestObject,
 ) (TestNotifierSettingsResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}

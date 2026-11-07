@@ -1337,6 +1337,7 @@ export const zh: typeof en = {
       encrypted: '加密备份文件',
     },
     list: {
+      totalUsage: '总占用：{{size}}',
       title: '备份',
       scheduledBackupsDisabled: '定时备份已禁用（可以在备份配置中重新启用）',
       empty: '还没有备份',
@@ -1485,7 +1486,6 @@ export const zh: typeof en = {
         walGap: 'WAL 缺口',
       },
       list: {
-        totalUsage: '总占用：{{size}}',
         backUpNow: '立即备份',
         startRequirement: '要启动备份，请在备份配置中启用备份并选择存储。',
         fullBackup: '全量备份',
@@ -1876,6 +1876,7 @@ export const zh: typeof en = {
     },
   },
   storages: {
+    usageUnavailable: '无法更新备份占用空间。',
     cleanup: {
       title: '清理仍在进行中',
       warning:
@@ -1912,6 +1913,8 @@ export const zh: typeof en = {
       privateKey: '私钥',
     },
     list: {
+      searchPlaceholder: '搜索存储',
+      noSearchResults: '没有找到与“{{query}}”匹配的存储',
       addStorage: '添加存储',
       description: '存储是存放备份的位置（本地磁盘、S3 等）',
       backToList: '← 返回存储列表',

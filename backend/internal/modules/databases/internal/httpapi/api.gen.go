@@ -2537,7 +2537,7 @@ func (sh *strictHandler) TestDatabaseSettings(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.TestDatabaseSettings(ctx, request.(TestDatabaseSettingsRequestObject))
+		return sh.ssi.TestDatabaseSettings(ctx.Request.Context(), request.(TestDatabaseSettingsRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "TestDatabaseSettings")
@@ -2563,7 +2563,7 @@ func (sh *strictHandler) ListDatabases(ctx *gin.Context, params ListDatabasesPar
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.ListDatabases(ctx, request.(ListDatabasesRequestObject))
+		return sh.ssi.ListDatabases(ctx.Request.Context(), request.(ListDatabasesRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "ListDatabases")
@@ -2594,7 +2594,7 @@ func (sh *strictHandler) CreateDatabase(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.CreateDatabase(ctx, request.(CreateDatabaseRequestObject))
+		return sh.ssi.CreateDatabase(ctx.Request.Context(), request.(CreateDatabaseRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "CreateDatabase")
@@ -2620,7 +2620,7 @@ func (sh *strictHandler) DeleteDatabase(ctx *gin.Context, databaseId DatabaseId)
 	request.DatabaseId = databaseId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DeleteDatabase(ctx, request.(DeleteDatabaseRequestObject))
+		return sh.ssi.DeleteDatabase(ctx.Request.Context(), request.(DeleteDatabaseRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "DeleteDatabase")
@@ -2646,7 +2646,7 @@ func (sh *strictHandler) GetDatabase(ctx *gin.Context, databaseId DatabaseId) {
 	request.DatabaseId = databaseId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetDatabase(ctx, request.(GetDatabaseRequestObject))
+		return sh.ssi.GetDatabase(ctx.Request.Context(), request.(GetDatabaseRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetDatabase")
@@ -2679,7 +2679,7 @@ func (sh *strictHandler) UpdateDatabase(ctx *gin.Context, databaseId DatabaseId)
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.UpdateDatabase(ctx, request.(UpdateDatabaseRequestObject))
+		return sh.ssi.UpdateDatabase(ctx.Request.Context(), request.(UpdateDatabaseRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "UpdateDatabase")
@@ -2705,7 +2705,7 @@ func (sh *strictHandler) CopyDatabase(ctx *gin.Context, databaseId DatabaseId) {
 	request.DatabaseId = databaseId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.CopyDatabase(ctx, request.(CopyDatabaseRequestObject))
+		return sh.ssi.CopyDatabase(ctx.Request.Context(), request.(CopyDatabaseRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "CopyDatabase")
@@ -2731,7 +2731,7 @@ func (sh *strictHandler) TestDatabase(ctx *gin.Context, databaseId DatabaseId) {
 	request.DatabaseId = databaseId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.TestDatabase(ctx, request.(TestDatabaseRequestObject))
+		return sh.ssi.TestDatabase(ctx.Request.Context(), request.(TestDatabaseRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "TestDatabase")
@@ -2762,7 +2762,7 @@ func (sh *strictHandler) CheckLimitedUser(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.CheckLimitedUser(ctx, request.(CheckLimitedUserRequestObject))
+		return sh.ssi.CheckLimitedUser(ctx.Request.Context(), request.(CheckLimitedUserRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "CheckLimitedUser")
@@ -2793,7 +2793,7 @@ func (sh *strictHandler) CreateLimitedUser(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.CreateLimitedUser(ctx, request.(CreateLimitedUserRequestObject))
+		return sh.ssi.CreateLimitedUser(ctx.Request.Context(), request.(CreateLimitedUserRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "CreateLimitedUser")

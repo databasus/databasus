@@ -2084,7 +2084,7 @@ func (sh *strictHandler) TestNotifierSettings(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.TestNotifierSettings(ctx, request.(TestNotifierSettingsRequestObject))
+		return sh.ssi.TestNotifierSettings(ctx.Request.Context(), request.(TestNotifierSettingsRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "TestNotifierSettings")
@@ -2110,7 +2110,7 @@ func (sh *strictHandler) ListNotifiers(ctx *gin.Context, params ListNotifiersPar
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.ListNotifiers(ctx, request.(ListNotifiersRequestObject))
+		return sh.ssi.ListNotifiers(ctx.Request.Context(), request.(ListNotifiersRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "ListNotifiers")
@@ -2141,7 +2141,7 @@ func (sh *strictHandler) CreateNotifier(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.CreateNotifier(ctx, request.(CreateNotifierRequestObject))
+		return sh.ssi.CreateNotifier(ctx.Request.Context(), request.(CreateNotifierRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "CreateNotifier")
@@ -2167,7 +2167,7 @@ func (sh *strictHandler) DeleteNotifier(ctx *gin.Context, notifierId NotifierId)
 	request.NotifierId = notifierId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DeleteNotifier(ctx, request.(DeleteNotifierRequestObject))
+		return sh.ssi.DeleteNotifier(ctx.Request.Context(), request.(DeleteNotifierRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "DeleteNotifier")
@@ -2193,7 +2193,7 @@ func (sh *strictHandler) GetNotifier(ctx *gin.Context, notifierId NotifierId) {
 	request.NotifierId = notifierId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetNotifier(ctx, request.(GetNotifierRequestObject))
+		return sh.ssi.GetNotifier(ctx.Request.Context(), request.(GetNotifierRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetNotifier")
@@ -2226,7 +2226,7 @@ func (sh *strictHandler) UpdateNotifier(ctx *gin.Context, notifierId NotifierId)
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.UpdateNotifier(ctx, request.(UpdateNotifierRequestObject))
+		return sh.ssi.UpdateNotifier(ctx.Request.Context(), request.(UpdateNotifierRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "UpdateNotifier")
@@ -2252,7 +2252,7 @@ func (sh *strictHandler) TestNotifier(ctx *gin.Context, notifierId NotifierId) {
 	request.NotifierId = notifierId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.TestNotifier(ctx, request.(TestNotifierRequestObject))
+		return sh.ssi.TestNotifier(ctx.Request.Context(), request.(TestNotifierRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "TestNotifier")
@@ -2285,7 +2285,7 @@ func (sh *strictHandler) TransferNotifier(ctx *gin.Context, notifierId NotifierI
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.TransferNotifier(ctx, request.(TransferNotifierRequestObject))
+		return sh.ssi.TransferNotifier(ctx.Request.Context(), request.(TransferNotifierRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "TransferNotifier")

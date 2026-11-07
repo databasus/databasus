@@ -14,22 +14,6 @@ import (
 type Repository struct{ db *gorm.DB }
 
 func NewRepository(db *gorm.DB) *Repository { return &Repository{db: db} }
-func (r *Repository) GetTotalUsageMBByDatabase(ctx context.Context, databaseID uuid.UUID) (float64, error) {
-	var totalMB float64
-
-	err := database.Conn(ctx, r.db).Raw(`
-		SELECT
-		    COALESCE((SELECT SUM(backup_size_mb) FROM backups_physical
-		              WHERE database_id = ? AND status = ?), 0)
-		  + COALESCE((SELECT SUM(compressed_size_mb) FROM backups_physical_wal_segments
-		              WHERE database_id = ?), 0)
-	`,
-		databaseID, BackupStatusCompleted,
-		databaseID,
-	).Scan(&totalMB).Error
-
-	return totalMB, err
-}
 
 // Receive times can differ from LSN order under concurrent uploads. Display
 // boundaries use time order, but each WAL range must remain contiguous in LSN

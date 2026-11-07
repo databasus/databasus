@@ -3,17 +3,15 @@ package httpapi
 import (
 	"context"
 
-	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/backups/internal/transfer"
+	"databasus-backend/internal/modules/users"
 )
 
 func (h *Handler) TransferDatabase(
 	ctx context.Context,
 	request TransferDatabaseRequestObject,
 ) (TransferDatabaseResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}

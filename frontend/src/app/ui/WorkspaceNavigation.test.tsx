@@ -93,6 +93,7 @@ const openApplication = (
     mockApi.pending('get', '/logical-backups').handler,
     mockApi.pending('get', '/healthcheck-configs/{databaseId}').handler,
     mockApi.get('/storages', 200, { items: [] }),
+    mockApi.get('/storages/{storageId}/backup-usage', 200, { totalUsageMb: 0 }),
     mockApi.get('/backup-configs', 200, { items: [] }),
     mockApi.get('/workspace-members', 200, { items: [] }),
     mockApi.get('/audit-events', 200, { items: [] }),

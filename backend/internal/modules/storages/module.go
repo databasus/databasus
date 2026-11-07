@@ -67,17 +67,6 @@ type (
 	CleanupSummary      = files.CleanupSummary
 )
 
-const (
-	TypeLocal       = providers.TypeLocal
-	TypeS3          = providers.TypeS3
-	TypeGoogleDrive = providers.TypeGoogleDrive
-	TypeNAS         = providers.TypeNAS
-	TypeAzureBlob   = providers.TypeAzureBlob
-	TypeFTP         = providers.TypeFTP
-	TypeSFTP        = providers.TypeSFTP
-	TypeRclone      = providers.TypeRclone
-)
-
 // ProductionFileTimings is the policy of a running instance; tests pass shorter timings.
 func ProductionFileTimings() FileTimings {
 	return FileTimings{

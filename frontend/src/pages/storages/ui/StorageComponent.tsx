@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { type Storage, storageApi } from '@/entities/storages';
 import { EditStorageComponent } from '@/features/edit-storage';
 import { ShowStorageComponent } from '@/pages/storages/ui/show/ShowStorageComponent';
+import { StorageBackupUsage } from '@/pages/storages/ui/StorageBackupUsage';
 import { StorageTransferDialogComponent } from '@/pages/storages/ui/StorageTransferDialogComponent';
 import { ApiError } from '@/shared/api';
 import { useSession, useSessionGuard } from '@/shared/auth';
@@ -266,7 +267,7 @@ export const StorageComponent = ({
         ) : storage ? (
           <div>
             {!isEditName ? (
-              <div className="mb-5 flex items-center text-2xl font-bold">
+              <div className="flex items-center text-2xl font-bold">
                 {storage.name}
                 {isCanManageStorages && (
                   <Button
@@ -322,6 +323,10 @@ export const StorageComponent = ({
                   </Button>
                 )}
               </div>
+            )}
+
+            {storage.id === storageId && (
+              <StorageBackupUsage storageId={storage.id} workspaceId={storage.workspaceId} />
             )}
 
             <div className="mt-5 flex items-center font-bold">

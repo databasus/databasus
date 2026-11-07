@@ -26,9 +26,6 @@ import (
 )
 
 type (
-	// Role is the role of a member in a workspace. RoleAdmin is a workspace admin; an instance admin
-	// is a user with the global role users.RoleAdmin.
-	Role = access.Role
 	// Action is what an actor is about to do in a workspace. ActionEditContent covers the databases,
 	// storages and notifiers of the workspace and everything attached to them.
 	Action = access.Action
@@ -42,18 +39,8 @@ type (
 )
 
 const (
-	RoleOwner  = access.RoleOwner
-	RoleAdmin  = access.RoleAdmin
-	RoleMember = access.RoleMember
-	RoleViewer = access.RoleViewer
-
-	ActionView              = access.ActionView
-	ActionEditContent       = access.ActionEditContent
-	ActionUpdateWorkspace   = access.ActionUpdateWorkspace
-	ActionManageMembers     = access.ActionManageMembers
-	ActionManageAdmins      = access.ActionManageAdmins
-	ActionTransferOwnership = access.ActionTransferOwnership
-	ActionDeleteWorkspace   = access.ActionDeleteWorkspace
+	ActionView        = access.ActionView
+	ActionEditContent = access.ActionEditContent
 )
 
 type Module interface {

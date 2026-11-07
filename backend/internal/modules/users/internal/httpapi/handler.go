@@ -1,8 +1,6 @@
 package httpapi
 
 import (
-	"context"
-
 	"databasus-backend/internal/modules/users/internal/accounts"
 	"databasus-backend/internal/modules/users/internal/identity"
 	"databasus-backend/internal/modules/users/internal/passwordreset"
@@ -33,15 +31,6 @@ func NewHandler(deps Deps) *Handler {
 		settings:      deps.Settings,
 		passwordReset: deps.PasswordReset,
 	}
-}
-
-func getActor(ctx context.Context) (identity.Actor, error) {
-	actor, isFound := identity.GetActor(ctx)
-	if !isFound {
-		return identity.Actor{}, errNoActor
-	}
-
-	return actor, nil
 }
 
 func toUserBody(user identity.User) User {

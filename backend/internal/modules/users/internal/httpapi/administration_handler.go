@@ -3,15 +3,12 @@ package httpapi
 import (
 	"context"
 
-	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/users/internal/accounts"
 	"databasus-backend/internal/modules/users/internal/identity"
 )
 
 func (h *Handler) ListUsers(ctx context.Context, request ListUsersRequestObject) (ListUsersResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := identity.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -42,9 +39,7 @@ func (h *Handler) ActivateUser(
 	ctx context.Context,
 	request ActivateUserRequestObject,
 ) (ActivateUserResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := identity.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -61,9 +56,7 @@ func (h *Handler) DeactivateUser(
 	ctx context.Context,
 	request DeactivateUserRequestObject,
 ) (DeactivateUserResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := identity.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -80,9 +73,7 @@ func (h *Handler) ChangeUserRole(
 	ctx context.Context,
 	request ChangeUserRoleRequestObject,
 ) (ChangeUserRoleResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := identity.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}

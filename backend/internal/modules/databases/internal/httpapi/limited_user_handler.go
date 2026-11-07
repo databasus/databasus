@@ -3,16 +3,14 @@ package httpapi
 import (
 	"context"
 
-	"databasus-backend/internal/lib/httpserver"
+	"databasus-backend/internal/modules/users"
 )
 
 func (h *Handler) CheckLimitedUser(
 	ctx context.Context,
 	request CheckLimitedUserRequestObject,
 ) (CheckLimitedUserResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -37,9 +35,7 @@ func (h *Handler) CreateLimitedUser(
 	ctx context.Context,
 	request CreateLimitedUserRequestObject,
 ) (CreateLimitedUserResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}

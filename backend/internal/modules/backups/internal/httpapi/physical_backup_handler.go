@@ -3,18 +3,16 @@ package httpapi
 import (
 	"context"
 
-	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/backups/internal/physical"
 	"databasus-backend/internal/modules/backups/internal/physical/catalog"
+	"databasus-backend/internal/modules/users"
 )
 
 func (h *Handler) ListPhysicalBackups(
 	ctx context.Context,
 	request ListPhysicalBackupsRequestObject,
 ) (ListPhysicalBackupsResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -66,9 +64,7 @@ func (h *Handler) StartPhysicalBackup(
 	ctx context.Context,
 	request StartPhysicalBackupRequestObject,
 ) (StartPhysicalBackupResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -89,9 +85,7 @@ func (h *Handler) CancelPhysicalBackup(
 	ctx context.Context,
 	request CancelPhysicalBackupRequestObject,
 ) (CancelPhysicalBackupResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -113,9 +107,7 @@ func (h *Handler) DeletePhysicalBackup(
 	ctx context.Context,
 	request DeletePhysicalBackupRequestObject,
 ) (DeletePhysicalBackupResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}

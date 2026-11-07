@@ -2132,7 +2132,7 @@ func (sh *strictHandler) TestStorageSettings(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.TestStorageSettings(ctx, request.(TestStorageSettingsRequestObject))
+		return sh.ssi.TestStorageSettings(ctx.Request.Context(), request.(TestStorageSettingsRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "TestStorageSettings")
@@ -2158,7 +2158,7 @@ func (sh *strictHandler) ListStorages(ctx *gin.Context, params ListStoragesParam
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.ListStorages(ctx, request.(ListStoragesRequestObject))
+		return sh.ssi.ListStorages(ctx.Request.Context(), request.(ListStoragesRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "ListStorages")
@@ -2189,7 +2189,7 @@ func (sh *strictHandler) CreateStorage(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.CreateStorage(ctx, request.(CreateStorageRequestObject))
+		return sh.ssi.CreateStorage(ctx.Request.Context(), request.(CreateStorageRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "CreateStorage")
@@ -2216,7 +2216,7 @@ func (sh *strictHandler) DeleteStorage(ctx *gin.Context, storageId StorageId, pa
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DeleteStorage(ctx, request.(DeleteStorageRequestObject))
+		return sh.ssi.DeleteStorage(ctx.Request.Context(), request.(DeleteStorageRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "DeleteStorage")
@@ -2242,7 +2242,7 @@ func (sh *strictHandler) GetStorage(ctx *gin.Context, storageId StorageId) {
 	request.StorageId = storageId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetStorage(ctx, request.(GetStorageRequestObject))
+		return sh.ssi.GetStorage(ctx.Request.Context(), request.(GetStorageRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetStorage")
@@ -2275,7 +2275,7 @@ func (sh *strictHandler) UpdateStorage(ctx *gin.Context, storageId StorageId) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.UpdateStorage(ctx, request.(UpdateStorageRequestObject))
+		return sh.ssi.UpdateStorage(ctx.Request.Context(), request.(UpdateStorageRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "UpdateStorage")
@@ -2301,7 +2301,7 @@ func (sh *strictHandler) TestStorage(ctx *gin.Context, storageId StorageId) {
 	request.StorageId = storageId
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.TestStorage(ctx, request.(TestStorageRequestObject))
+		return sh.ssi.TestStorage(ctx.Request.Context(), request.(TestStorageRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "TestStorage")
@@ -2334,7 +2334,7 @@ func (sh *strictHandler) TransferStorage(ctx *gin.Context, storageId StorageId) 
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.TransferStorage(ctx, request.(TransferStorageRequestObject))
+		return sh.ssi.TransferStorage(ctx.Request.Context(), request.(TransferStorageRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "TransferStorage")
@@ -2445,18 +2445,18 @@ var swaggerSpec = []string{
 	"tJ/hHf6eHjeebTMfGo/5VVfdzKnm3yOxnr6L7LVq742kfbq5isnFyRQ/Tj/dXO2JMX6VgKLP21tT3r0y",
 	"gGtowNoSLkgm+AokQsNDGC/puMihPfZc8NDXbw0GDnF+bxGErgE1XJNuGDcUZ7WPwNhrow2S+DuBLjLW",
 	"GGeJGg+7OHX0fCHM9kjYf4Wwr+Z+bcZov67v4yqBBlRdoBaosYZ/STxzr4uz1P41HbyN/JePE9b112Dv",
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

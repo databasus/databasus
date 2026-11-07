@@ -12,17 +12,25 @@ import {
 } from '@/pages/databases/ui/logical-backups/LogicalBackupActions';
 import { LogicalBackupStatusLabel } from '@/pages/databases/ui/logical-backups/LogicalBackupStatusLabel';
 import { useLocale } from '@/shared/i18n';
+import { formatCompactSizeMb } from '@/shared/lib';
 import { formatDuration } from '@/shared/lib';
 import { getUserTimeFormat } from '@/shared/time';
 
 interface Props {
+  totalUsageMb: number | undefined;
   backups: LogicalBackup[];
   isLoading: boolean;
   actions: LogicalBackupRowActions;
   onShowError: (backup: LogicalBackup) => void;
 }
 
-export const LogicalBackupsTable = ({ backups, isLoading, actions, onShowError }: Props) => {
+export const LogicalBackupsTable = ({
+  totalUsageMb,
+  backups,
+  isLoading,
+  actions,
+  onShowError,
+}: Props) => {
   const { t } = useTranslation();
   const { formatNumber, formatRelativeTime } = useLocale();
 
@@ -50,12 +58,17 @@ export const LogicalBackupsTable = ({ backups, isLoading, actions, onShowError }
     },
     {
       title: (
-        <div className="flex items-center">
+        <span className="inline-flex items-center gap-1 whitespace-nowrap">
           {t('backups.list.columns.size')}
+          {totalUsageMb !== undefined && (
+            <span className="text-xs font-normal text-muted">
+              {formatCompactSizeMb(totalUsageMb, formatNumber)}
+            </span>
+          )}
           <Tooltip className="ml-1" title={t('backups.logical.list.sizeTooltip')}>
             <InfoCircleOutlined />
           </Tooltip>
-        </div>
+        </span>
       ),
       dataIndex: 'sizeMb',
       key: 'sizeMb',

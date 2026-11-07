@@ -3,17 +3,16 @@ package httpapi
 import (
 	"context"
 
-	"databasus-backend/internal/lib/httpserver"
+	"databasus-backend/internal/modules/users"
 )
 
 func (h *Handler) GetVerificationConfig(
 	ctx context.Context,
 	request GetVerificationConfigRequestObject,
 ) (GetVerificationConfigResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errNoActor
 	}
 	config, err := h.configs.GetConfig(ctx, actor, request.DatabaseId)
 	if err != nil {
@@ -26,10 +25,9 @@ func (h *Handler) UpdateVerificationConfig(
 	ctx context.Context,
 	request UpdateVerificationConfigRequestObject,
 ) (UpdateVerificationConfigResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errNoActor
 	}
 	config, err := h.configs.SaveConfig(ctx, actor, toConfig(request.DatabaseId, *request.Body))
 	if err != nil {

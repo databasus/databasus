@@ -1,12 +1,8 @@
 package httpapi
 
 import (
-	"errors"
-
 	"databasus-backend/internal/lib/apierror"
 )
-
-var errNoActor = errors.New("the request reached a signed-in operation without an actor")
 
 var (
 	errUnauthenticated = &apierror.Problem{

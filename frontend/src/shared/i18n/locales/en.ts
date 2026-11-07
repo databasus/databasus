@@ -1388,6 +1388,7 @@ export const en = {
       encrypted: 'Encrypt backup files',
     },
     list: {
+      totalUsage: 'Total usage: {{size}}',
       title: 'Backups',
       scheduledBackupsDisabled:
         'Scheduled backups are disabled (you can enable it back in the backup configuration)',
@@ -1547,7 +1548,6 @@ export const en = {
         walGap: 'WAL gap',
       },
       list: {
-        totalUsage: 'Total usage: {{size}}',
         backUpNow: 'Back up now',
         startRequirement:
           'To start a backup, turn on backups and choose a storage in the backup configuration.',
@@ -1969,6 +1969,7 @@ export const en = {
     },
   },
   storages: {
+    usageUnavailable: 'Could not refresh backup usage.',
     cleanup: {
       title: 'Cleanup is still running',
       warning:
@@ -2005,6 +2006,8 @@ export const en = {
       privateKey: 'Private key',
     },
     list: {
+      searchPlaceholder: 'Search storages...',
+      noSearchResults: 'No storages found matching "{{query}}"',
       addStorage: 'Add storage',
       description: 'Storage - is a place where backups will be stored (local disk, S3, etc.)',
       backToList: '← Back to storages',

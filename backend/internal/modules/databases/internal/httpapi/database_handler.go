@@ -3,17 +3,15 @@ package httpapi
 import (
 	"context"
 
-	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/databases/internal/userdatabase"
+	"databasus-backend/internal/modules/users"
 )
 
 func (h *Handler) ListDatabases(
 	ctx context.Context,
 	request ListDatabasesRequestObject,
 ) (ListDatabasesResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -45,9 +43,7 @@ func (h *Handler) CreateDatabase(
 	ctx context.Context,
 	request CreateDatabaseRequestObject,
 ) (CreateDatabaseResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -79,9 +75,7 @@ func (h *Handler) GetDatabase(
 	ctx context.Context,
 	request GetDatabaseRequestObject,
 ) (GetDatabaseResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -103,9 +97,7 @@ func (h *Handler) UpdateDatabase(
 	ctx context.Context,
 	request UpdateDatabaseRequestObject,
 ) (UpdateDatabaseResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -137,9 +129,7 @@ func (h *Handler) DeleteDatabase(
 	ctx context.Context,
 	request DeleteDatabaseRequestObject,
 ) (DeleteDatabaseResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -156,9 +146,7 @@ func (h *Handler) CopyDatabase(
 	ctx context.Context,
 	request CopyDatabaseRequestObject,
 ) (CopyDatabaseResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}

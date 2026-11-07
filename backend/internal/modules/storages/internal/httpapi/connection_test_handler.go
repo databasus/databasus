@@ -3,17 +3,15 @@ package httpapi
 import (
 	"context"
 
-	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/storages/internal/storage"
+	"databasus-backend/internal/modules/users"
 )
 
 func (h *Handler) TestStorage(
 	ctx context.Context,
 	request TestStorageRequestObject,
 ) (TestStorageResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -30,9 +28,7 @@ func (h *Handler) TestStorageSettings(
 	ctx context.Context,
 	request TestStorageSettingsRequestObject,
 ) (TestStorageSettingsResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}

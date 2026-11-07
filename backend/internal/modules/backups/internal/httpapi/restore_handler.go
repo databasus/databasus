@@ -3,17 +3,15 @@ package httpapi
 import (
 	"context"
 
-	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/backups/internal/restore"
+	"databasus-backend/internal/modules/users"
 )
 
 func (h *Handler) ListRestores(
 	ctx context.Context,
 	request ListRestoresRequestObject,
 ) (ListRestoresResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -39,9 +37,7 @@ func (h *Handler) StartRestore(
 	ctx context.Context,
 	request StartRestoreRequestObject,
 ) (StartRestoreResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -63,9 +59,7 @@ func (h *Handler) GetRestore(
 	ctx context.Context,
 	request GetRestoreRequestObject,
 ) (GetRestoreResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -82,9 +76,7 @@ func (h *Handler) CancelRestore(
 	ctx context.Context,
 	request CancelRestoreRequestObject,
 ) (CancelRestoreResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
-	actor, err := getActor(ctx)
+	actor, err := users.RequireActor(ctx)
 	if err != nil {
 		return nil, err
 	}

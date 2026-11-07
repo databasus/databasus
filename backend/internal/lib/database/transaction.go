@@ -73,12 +73,10 @@ func AfterCommit(ctx context.Context, hook func(ctx context.Context)) error {
 	return nil
 }
 
-// Conn returns the transaction the context carries, or db bound to the context outside a
-// transaction.
 func Conn(ctx context.Context, db *gorm.DB) *gorm.DB {
 	transaction, isInTransaction := ctx.Value(transactionKey{}).(*gorm.DB)
 	if isInTransaction {
-		return transaction
+		return transaction.WithContext(ctx)
 	}
 
 	return db.WithContext(ctx)

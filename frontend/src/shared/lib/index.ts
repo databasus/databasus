@@ -10,3 +10,4 @@ export {
 export { NAME_LIST_TOKEN_SEPARATORS, normalizeNameList } from '@/shared/lib/normalizeNameList';
 export { compareVersions, parseGitHubTag } from '@/shared/lib/version';
 export { toOptionalValue } from '@/shared/lib/toOptionalValue';
+export { formatCompactSizeMb } from '@/shared/lib/formatCompactSizeMb';

@@ -27,3 +27,12 @@ func GetActor(ctx context.Context) (Actor, bool) {
 
 	return actor, isFound
 }
+
+func RequireActor(ctx context.Context) (Actor, error) {
+	actor, hasActor := GetActor(ctx)
+	if !hasActor {
+		return Actor{}, errNoActor
+	}
+
+	return actor, nil
+}

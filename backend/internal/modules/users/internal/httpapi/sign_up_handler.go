@@ -3,13 +3,10 @@ package httpapi
 import (
 	"context"
 
-	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/users/internal/signin"
 )
 
 func (h *Handler) SignUp(ctx context.Context, request SignUpRequestObject) (SignUpResponseObject, error) {
-	ctx = httpserver.GetRequestContext(ctx)
-
 	session, err := h.signIn.SignUp(ctx, signin.SignUpRequest{
 		Email:           string(request.Body.Email),
 		Password:        getSecret(request.Body.Password),

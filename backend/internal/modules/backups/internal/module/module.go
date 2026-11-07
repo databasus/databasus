@@ -4,7 +4,6 @@ package module
 import (
 	"context"
 	"io"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -122,26 +121,6 @@ func (m *Module) RegisterRoutes(routes gin.IRouter, hooks *apierror.Hooks) {
 		}),
 		backupshttpapi.GinServerOptions{BaseURL: "", Middlewares: nil, ErrorHandler: hooks.HandleParameterError},
 	)
-}
-
-func (m *Module) RequestFullBackup(ctx context.Context, databaseID uuid.UUID) error {
-	return m.configs.RequestFullBackup(ctx, databaseID)
-}
-
-func (m *Module) ClearFullBackupRequest(ctx context.Context, databaseID uuid.UUID, requestedAt *time.Time) error {
-	return m.configs.ClearFullBackupRequest(ctx, databaseID, requestedAt)
-}
-
-func (m *Module) RequestIncrementalBackup(ctx context.Context, databaseID uuid.UUID) error {
-	return m.configs.RequestIncrementalBackup(ctx, databaseID)
-}
-
-func (m *Module) ClearIncrementalBackupRequest(
-	ctx context.Context,
-	databaseID uuid.UUID,
-	requestedAt *time.Time,
-) error {
-	return m.configs.ClearIncrementalBackupRequest(ctx, databaseID, requestedAt)
 }
 
 func (m *Module) OnStorageTransferring(ctx context.Context, event storages.StorageTransferring) error {
