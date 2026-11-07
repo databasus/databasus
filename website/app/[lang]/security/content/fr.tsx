@@ -357,18 +357,19 @@ export default function SecurityPage() {
               </h2>
 
               <p>
-                Databasus manipule des données sensibles, donc la prévention des
-                vulnérabilités, des accès non autorisés et des fuites de données
-                est une préoccupation de premier plan. Nous y investissons des
-                deux côtés du système : dans le code lui-même (contrôles de
-                permissions, chiffrement, gestion soigneuse des secrets) et dans
-                l&apos;infrastructure qui l&apos;entoure (analyse des
-                dépendances, réponse aux CVE, pratiques DevSecOps). Le pipeline
-                ci-dessous s&apos;exécute automatiquement sur chaque commit et
-                PR. Aucune couche ne suffit à elle seule, mais ensemble elles
-                réduisent le risque qu&apos;un code vulnérable, des dépendances
-                dangereuses, des images cassées ou des backups non restaurables
-                atteignent une release.
+                Databasus manipule des données sensibles, donc la prévention
+                des vulnérabilités, des accès non autorisés et des fuites de
+                données est une préoccupation de premier plan. Nous y
+                investissons des deux côtés du système : dans le code lui-même
+                (contrôles de permissions, chiffrement, gestion soigneuse des
+                secrets) et dans l&apos;infrastructure qui l&apos;entoure
+                (analyse des dépendances, réponse aux CVE, pratiques
+                DevSecOps). Le pipeline ci-dessous s&apos;exécute
+                automatiquement avant chaque release. Aucune couche ne suffit
+                à elle seule, mais ensemble elles réduisent le risque
+                qu&apos;un code vulnérable, des dépendances dangereuses, des
+                images cassées ou des backups non restaurables atteignent une
+                release.
               </p>
 
               <h3 id="static-analysis">Analyse statique</h3>
@@ -376,22 +377,21 @@ export default function SecurityPage() {
               <p>
                 L&apos;analyse statique s&apos;exécute en plusieurs passes
                 indépendantes. CodeQL analyse l&apos;ensemble du code à la
-                recherche de problèmes de sécurité. Sur chaque PR,{" "}
+                recherche de problèmes de sécurité. Avant chaque release,{" "}
                 <strong>gitleaks</strong> recherche les secrets divulgués et{" "}
                 <strong>semgrep</strong> vérifie le code selon des règles de
                 sécurité. Les Dockerfiles et les workflows CI
                 ont leurs propres règles supplémentaires (références
                 d&apos;actions épinglées, permissions de moindre privilège,
                 images de base suspectes), si bien que les schémas non sûrs sont
-                signalés avant même d&apos;être fusionnés.
+                signalés avant une release.
               </p>
 
               <p>
-                En plus de ces contrôles par PR, <strong>Codex Security</strong>{" "}
+                En plus de ces contrôles avant release, <strong>Codex Security</strong>{" "}
                 d&apos;OpenAI effectue des audits réguliers et plus approfondis
                 de tout le code. C&apos;est un programme distinct qui détecte
-                les problèmes architecturaux et transverses que les analyses
-                limitées au moment de la PR laissent passer.
+                les problèmes architecturaux et transverses que les analyses automatiques plus ciblées laissent passer.
               </p>
 
               <h3 id="dependency-management">Gestion des dépendances</h3>
@@ -407,8 +407,7 @@ export default function SecurityPage() {
               </p>
 
               <p>
-                La <strong>Dependency Review Action</strong> fait échouer le
-                contrôle de toute PR qui introduit une nouvelle CVE{" "}
+                La <strong>Dependency Review Action</strong> bloque une release qui introduit une nouvelle CVE{" "}
                 <strong>HIGH</strong> ou <strong>CRITICAL</strong>.
               </p>
 
@@ -449,19 +448,21 @@ export default function SecurityPage() {
 
               <p>
                 La restauration est le chemin qui compte le plus pour un outil
-                de sauvegarde, donc nous la testons explicitement : chaque PR
-                exécute des cycles complets de sauvegarde puis restauration
-                contre ces mêmes conteneurs réels, en vérifiant que les backups
-                peuvent réellement être restaurés de bout en bout, et pas
-                seulement écrits avec succès.
+                de sauvegarde, donc nous la testons explicitement : avant
+                chaque release, nous exécutons des cycles complets de
+                sauvegarde puis restauration contre ces mêmes conteneurs
+                réels, en vérifiant que les backups peuvent réellement être
+                restaurés de bout en bout, et pas seulement écrits avec
+                succès.
               </p>
 
               <p>
                 Le reste du pipeline CI/CD exécute le lint, la vérification de
-                types, la suite de tests complète, des smoke tests d&apos;image
-                et des builds multi-architecture sur chaque PR. Une release ne
-                sort qu&apos;une fois tout cela et les analyses de sécurité
-                passés, sans alerte critique CodeQL ouverte.
+                types, la suite de tests complète, des smoke tests
+                d&apos;image et des builds multi-architecture avant chaque
+                release. Une release ne sort qu&apos;une fois tout cela et les
+                analyses de sécurité passés, sans alerte critique CodeQL
+                ouverte.
               </p>
 
               <h3 id="reporting-a-vulnerability">Signaler une vulnérabilité</h3>

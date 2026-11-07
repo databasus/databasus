@@ -179,7 +179,7 @@ export default function Index() {
                 name: "Databasus 如何保证安全性？",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus 从三个层面保障安全：（1）敏感数据加密——所有密码、令牌和凭据均使用 AES-256-GCM 加密，并与数据库分开存储；（2）备份加密——每个备份文件都使用由主密钥、备份 ID 和随机盐派生出的唯一密钥加密，即使有人获得了存储的访问权限，没有你的加密密钥备份也毫无用处；（3）只读数据库访问——Databasus 只需要 SELECT 权限，并会做全面检查确保不存在任何写权限，即使工具本身被攻破也不会破坏数据。登录本身也可以要求第二重验证：启用后，密码正确之后账号邮箱会收到六位验证码，而通过 Google 或 GitHub 登录仍然依赖这些服务商自己的验证。在运行时之外，安全性和可靠性也被落实到每一次提交和 PR：CodeQL 静态分析、gitleaks 密钥扫描、semgrep 安全规则检查、Dependabot CVE 监控、Trivy 镜像与 Dockerfile 扫描，以及 OpenAI 定期进行的 Codex Security 审计。集成测试针对真实的 PostgreSQL、MySQL、MariaDB 和 MongoDB 容器运行，并在每个 PR 上验证完整的备份加恢复流程。GitHub Actions 固定到提交 SHA，工作流遵循最小权限原则。所有操作都在你控制的容器和你拥有的服务器上运行，而且因为它是开源的，你的安全团队可以在部署前审计每一行代码。",
+                  text: "Databasus 从三个层面保障安全：（1）敏感数据加密——所有密码、令牌和凭据均使用 AES-256-GCM 加密，并与数据库分开存储；（2）备份加密——每个备份文件都使用由主密钥、备份 ID 和随机盐派生出的唯一密钥加密，即使有人获得了存储的访问权限，没有你的加密密钥备份也毫无用处；（3）只读数据库访问——Databasus 只需要 SELECT 权限，并会做全面检查确保不存在任何写权限，即使工具本身被攻破也不会破坏数据。登录本身也可以要求第二重验证：启用后，密码正确之后账号邮箱会收到六位验证码，而通过 Google 或 GitHub 登录仍然依赖这些服务商自己的验证。在运行时之外，安全性和可靠性也被落实到每一次发布：CodeQL 静态分析、gitleaks 密钥扫描、semgrep 安全规则检查、Dependabot CVE 监控、Trivy 镜像与 Dockerfile 扫描，以及 OpenAI 定期进行的 Codex Security 审计。集成测试针对真实的 PostgreSQL、MySQL、MariaDB 和 MongoDB 容器运行，并在每次发布前验证完整的备份加恢复流程。GitHub Actions 固定到提交 SHA，工作流遵循最小权限原则。所有操作都在你控制的容器和你拥有的服务器上运行，而且因为它是开源的，你的安全团队可以在部署前审计每一行代码。",
                 },
               },
               {
@@ -1192,12 +1192,10 @@ export default function Index() {
                   Google 或 GitHub 登录仍然依赖这些服务商自己的验证。
                   <br />
                   <br />
-                  在运行时之外，安全性和可靠性也被落实到每一次提交和 PR：CodeQL
-                  静态分析、gitleaks 密钥扫描、semgrep 安全规则检查、Dependabot
-                  CVE 监控、Trivy 镜像与 Dockerfile 扫描，以及 OpenAI 定期进行的
-                  Codex Security 审计。集成测试针对真实的
-                  PostgreSQL、MySQL、MariaDB 和 MongoDB 容器运行，并在每个 PR
-                  上验证完整的备份加恢复流程。GitHub Actions 固定到提交
+                  在运行时之外，安全性和可靠性也被落实到每一次发布：CodeQL 静态分析、gitleaks 密钥扫描、semgrep
+                  安全规则检查、Dependabot CVE 监控、Trivy 镜像与 Dockerfile 扫描，以及 OpenAI
+                  定期进行的 Codex Security 审计。集成测试针对真实的 PostgreSQL、MySQL、MariaDB 和
+                  MongoDB 容器运行，并在每次发布前验证完整的备份加恢复流程。GitHub Actions 固定到提交
                   SHA，工作流遵循最小权限原则。
                   <br />
                   <br />

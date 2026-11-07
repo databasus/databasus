@@ -342,17 +342,17 @@ export default function SecurityPage() {
 
               <p>
                 Databasus trabaja con datos sensibles, así que prevenir
-                vulnerabilidades, accesos no autorizados y fugas de datos es una
-                preocupación primordial. Invertimos en ello en ambos lados del
-                sistema: en el propio código (comprobaciones de permisos,
+                vulnerabilidades, accesos no autorizados y fugas de datos es
+                una preocupación primordial. Invertimos en ello en ambos lados
+                del sistema: en el propio código (comprobaciones de permisos,
                 cifrado, manejo cuidadoso de los secretos) y en la
                 infraestructura que lo rodea (análisis de dependencias,
                 respuesta a CVE, prácticas DevSecOps). La canalización que se
-                describe a continuación se ejecuta automáticamente en cada
-                commit y PR: ninguna capa basta por sí sola, pero juntas reducen
-                la probabilidad de que código vulnerable, dependencias
-                inseguras, imágenes rotas o copias no restaurables lleguen a una
-                versión publicada.
+                describe a continuación se ejecuta automáticamente antes de
+                cada versión: ninguna capa basta por sí sola, pero juntas
+                reducen la probabilidad de que código vulnerable, dependencias
+                inseguras, imágenes rotas o copias no restaurables lleguen a
+                una versión publicada.
               </p>
 
               <h3 id="static-analysis">Análisis estático</h3>
@@ -360,21 +360,21 @@ export default function SecurityPage() {
               <p>
                 El análisis estático se ejecuta en varias pasadas
                 independientes. CodeQL escanea todo el código en busca de
-                problemas de seguridad. En cada PR, <strong>gitleaks</strong> busca
+                problemas de seguridad. Antes de cada versión, <strong>gitleaks</strong> busca
                 secretos filtrados y <strong>semgrep</strong> revisa el código con
                 reglas de seguridad. Los
                 Dockerfiles y los flujos de CI tienen reglas adicionales propias
                 (referencias de acciones fijadas, permisos de mínimo privilegio,
                 imágenes base sospechosas), de modo que los patrones inseguros
-                se señalan antes de fusionarse.
+                se señalan antes de publicar una versión.
               </p>
 
               <p>
-                Además de estas comprobaciones por PR,{" "}
+                Además de estas comprobaciones previas a la publicación,{" "}
                 <strong>Codex Security</strong> de OpenAI realiza auditorías
                 periódicas y más profundas de todo el código. Es un programa
                 aparte que detecta problemas arquitectónicos y transversales que
-                los escaneos limitados al momento del PR pasan por alto.
+                los escaneos automáticos más limitados pasan por alto.
               </p>
 
               <h3 id="dependency-management">Gestión de dependencias</h3>
@@ -389,8 +389,7 @@ export default function SecurityPage() {
               </p>
 
               <p>
-                La <strong>Dependency Review Action</strong> hace fallar la
-                comprobación de cualquier PR que introduzca un CVE nuevo de
+                La <strong>Dependency Review Action</strong> bloquea una versión que introduzca un CVE nuevo de
                 nivel{" "}
                 <strong>HIGH</strong> o <strong>CRITICAL</strong>.
               </p>
@@ -430,19 +429,21 @@ export default function SecurityPage() {
               </p>
 
               <p>
-                La restauración es la ruta que más importa en una herramienta de
-                respaldo, así que la probamos explícitamente: cada PR ejecuta
-                ciclos completos de copia y restauración contra esos mismos
-                contenedores reales, verificando que las copias realmente pueden
-                restaurarse de extremo a extremo, no solo escribirse con éxito.
+                La restauración es la ruta que más importa en una herramienta
+                de respaldo, así que la probamos explícitamente: antes de cada
+                versión, ejecutamos ciclos completos de copia y restauración
+                contra esos mismos contenedores reales, verificando que las
+                copias realmente pueden restaurarse de extremo a extremo, no
+                solo escribirse con éxito.
               </p>
 
               <p>
-                El resto de la canalización de CI/CD ejecuta lint, comprobación
-                de tipos, la suite de pruebas completa, pruebas de humo de las
-                imágenes y builds multiarquitectura en cada PR. Una versión se
-                publica solo cuando todo esto y los escaneos de seguridad pasan
-                y no queda ninguna alerta crítica de CodeQL abierta.
+                El resto de la canalización de CI/CD ejecuta lint,
+                comprobación de tipos, la suite de pruebas completa, pruebas
+                de humo de las imágenes y builds multiarquitectura antes de
+                cada versión. Una versión se publica solo cuando todo esto y
+                los escaneos de seguridad pasan y no queda ninguna alerta
+                crítica de CodeQL abierta.
               </p>
 
               <h3 id="reporting-a-vulnerability">

@@ -55,13 +55,13 @@ Retention runs automatically after each backup.
 
 All data stays in containers and accounts you control. Three runtime layers protect it: AES-256-GCM encryption of sensitive data, backup encryption with a unique key per backup and read-only database access.
 
-Every commit and pull request also passes engineering checks:
+Before every release, we run engineering checks:
 
 - CodeQL static analysis, gitleaks secret scanning and semgrep security rules;
 - Dependabot CVE monitoring with a version cooldown, and the Dependency Review Action failing on HIGH and CRITICAL CVEs;
 - Trivy scans of the image on both architectures and of Dockerfiles;
 - GitHub Actions pinned to commit SHAs, least-privilege workflow permissions and periodic Codex Security audits from OpenAI;
-- integration tests against real database containers for every engine, and full backup-then-restore cycles on every pull request.
+- integration tests against real database containers for every engine, and full backup-then-restore cycles before every release.
 
 See [Security & reliability engineering](https://databasus.com/security#security-and-reliability-engineering).
 

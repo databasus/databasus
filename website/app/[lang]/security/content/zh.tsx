@@ -274,30 +274,27 @@ export default function SecurityPage() {
 
               <p>
                 Databasus 处理敏感数据，所以防范漏洞、越权访问和数据泄露是
-                首要关注点。我们在系统的两侧都投入这方面的工作：代码本身
-                （权限检查、加密、谨慎处理机密）和围绕代码的基础设施
-                （依赖分析、CVE 响应、DevSecOps 实践）。下面这条流水线在
-                每次提交和 PR 上自动运行。任何单独一层都不够，但它们叠加
-                起来，能降低有漏洞的代码、不安全的依赖、损坏的镜像或无法
-                恢复的备份混进发布版本的概率。
+                首要关注点。我们在系统的两侧都投入这方面的工作：代码本身 （权限检查、加密、谨慎处理机密）和围绕代码的基础设施
+                （依赖分析、CVE 响应、DevSecOps 实践）。下面这条流水线在 每次发布前自动运行。任何单独一层都不够，但它们叠加
+                起来，能降低有漏洞的代码、不安全的依赖、损坏的镜像或无法 恢复的备份混进发布版本的概率。
               </p>
 
               <h3 id="static-analysis">静态分析</h3>
 
               <p>
                 静态分析分几个独立环节运行。CodeQL 扫描整个代码库的安全
-                问题。每个 PR 都会运行{" "}
+                问题。每次发布前都会运行{" "}
                 <strong>gitleaks</strong> 扫描泄露的机密，并用{" "}
                 <strong>semgrep</strong> 按安全规则检查代码。Dockerfile 和 CI
                 工作流还有额外的专属规则（固定 action 引用、最小权限、
-                可疑基础镜像），不安全的写法在合并之前就会被标记出来。
+                可疑基础镜像），不安全的写法在发布之前就会被标记出来。
               </p>
 
               <p>
-                在这些逐 PR 的检查之上，OpenAI 的{" "}
+                在这些发布前检查之上，OpenAI 的{" "}
                 <strong>Codex Security</strong>{" "}
                 会定期对整个代码库做更深入的审计。它是一个独立的程序，
-                能发现架构性和跨模块的问题，而这些是聚焦单个 PR 的扫描
+                能发现架构性和跨模块的问题，而这些是范围更窄的自动扫描
                 会漏掉的。
               </p>
 
@@ -311,7 +308,7 @@ export default function SecurityPage() {
               </p>
 
               <p>
-                <strong>Dependency Review Action</strong> 会让任何引入新的 <strong>HIGH</strong> 或 <strong>CRITICAL</strong> CVE 的 PR 检查失败。
+                <strong>Dependency Review Action</strong> 会让任何引入新的 <strong>HIGH</strong> 或 <strong>CRITICAL</strong> CVE 的发布检查失败。
               </p>
 
               <h3 id="container-and-ci-hardening">容器与 CI 加固</h3>
@@ -339,15 +336,14 @@ export default function SecurityPage() {
               </p>
 
               <p>
-                对备份工具来说，恢复是最要紧的路径，所以我们对它做显式
-                测试：每个 PR 都会在同样的真实容器上跑完整的
-                备份加恢复流程，验证备份端到端真的能恢复出来，而不只是
-                写入成功。
+                对备份工具来说，恢复是最要紧的路径，所以我们对它做显式 测试：每次发布前都会在同样的真实容器上跑完整的
+                备份加恢复流程，验证备份端到端真的能恢复出来，而不只是 写入成功。
               </p>
 
               <p>
-                CI/CD 流水线的其余部分在每个 PR 上运行 lint、类型检查、
-                完整测试套件、镜像冒烟测试和多架构构建。只有这些检查和安全扫描全部通过，且没有未处理的 CodeQL 严重告警，版本才会发布。
+                CI/CD 流水线的其余部分在每次发布前运行 lint、类型检查、
+                完整测试套件、镜像冒烟测试和多架构构建。只有这些检查和安全扫描全部通过，且没有未处理的 CodeQL
+                严重告警，版本才会发布。
               </p>
 
               <h3 id="reporting-a-vulnerability">报告漏洞</h3>

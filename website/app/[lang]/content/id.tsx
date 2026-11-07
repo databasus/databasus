@@ -170,7 +170,7 @@ export default function Index() {
                 name: "Bagaimana Databasus menjaga keamanan?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus menerapkan keamanan pada tiga tingkat: (1) Enkripsi data sensitif: semua password, token, dan kredensial dienkripsi dengan AES-256-GCM dan disimpan terpisah dari database; (2) Enkripsi backup: setiap file backup dienkripsi dengan key unik yang diturunkan dari master key, ID backup, dan salt acak, sehingga backup tidak berguna tanpa key enkripsi kamu meskipun seseorang mendapat akses penyimpanan; (3) Akses database read-only: Databasus hanya memerlukan izin SELECT dan melakukan pemeriksaan menyeluruh untuk memastikan tidak ada hak tulis, sehingga mencegah kerusakan data meskipun alat ini disusupi. Login juga bisa mewajibkan faktor kedua: jika diaktifkan, password yang benar diikuti kode enam digit yang dikirim ke email akun, sedangkan login melalui Google atau GitHub tetap mengandalkan pemeriksaan penyedia tersebut. Di luar runtime, keamanan dan keandalan diperiksa pada setiap commit dan PR melalui analisis statis CodeQL, pemindaian secret gitleaks, aturan keamanan semgrep, pemantauan CVE Dependabot, pemindaian image dan Dockerfile Trivy, serta audit berkala Codex Security dari OpenAI. Integration test berjalan pada container PostgreSQL, MySQL, MariaDB, dan MongoDB sungguhan serta memverifikasi siklus backup lalu restore lengkap pada setiap PR. GitHub Actions dipatok ke SHA commit dan workflow mengikuti prinsip hak akses minimum. Semua operasi berjalan di container yang kamu kendalikan pada server milik kamu. Karena open source, tim keamanan bisa mengaudit setiap baris kode sebelum deployment.",
+                  text: "Databasus menerapkan keamanan pada tiga tingkat: (1) Enkripsi data sensitif: semua password, token, dan kredensial dienkripsi dengan AES-256-GCM dan disimpan terpisah dari database; (2) Enkripsi backup: setiap file backup dienkripsi dengan key unik yang diturunkan dari master key, ID backup, dan salt acak, sehingga backup tidak berguna tanpa key enkripsi kamu meskipun seseorang mendapat akses penyimpanan; (3) Akses database read-only: Databasus hanya memerlukan izin SELECT dan melakukan pemeriksaan menyeluruh untuk memastikan tidak ada hak tulis, sehingga mencegah kerusakan data meskipun alat ini disusupi. Login juga bisa mewajibkan faktor kedua: jika diaktifkan, password yang benar diikuti kode enam digit yang dikirim ke email akun, sedangkan login melalui Google atau GitHub tetap mengandalkan pemeriksaan penyedia tersebut. Di luar runtime, keamanan dan keandalan diperiksa sebelum setiap rilis melalui analisis statis CodeQL, pemindaian secret gitleaks, aturan keamanan semgrep, pemantauan CVE Dependabot, pemindaian image dan Dockerfile Trivy, serta audit berkala Codex Security dari OpenAI. Integration test berjalan pada container PostgreSQL, MySQL, MariaDB, dan MongoDB sungguhan serta memverifikasi siklus backup lalu restore lengkap sebelum setiap rilis. GitHub Actions dipatok ke SHA commit dan workflow mengikuti prinsip hak akses minimum. Semua operasi berjalan di container yang kamu kendalikan pada server milik kamu. Karena open source, tim keamanan bisa mengaudit setiap baris kode sebelum deployment.",
                 },
               },
               {
@@ -1012,13 +1012,13 @@ export default function Index() {
                   atau GitHub tetap mengandalkan pemeriksaan penyedia tersebut.
                   <br />
                   <br />
-                  Di luar runtime, keamanan dan keandalan diperiksa pada setiap commit dan PR
-                  melalui analisis statis CodeQL, pemindaian secret gitleaks, aturan keamanan
-                  semgrep, pemantauan CVE Dependabot, pemindaian image dan Dockerfile Trivy, serta
-                  audit berkala Codex Security dari OpenAI. Integration test berjalan pada container
+                  Di luar runtime, keamanan dan keandalan diperiksa sebelum setiap rilis melalui
+                  analisis statis CodeQL, pemindaian secret gitleaks, aturan keamanan semgrep,
+                  pemantauan CVE Dependabot, pemindaian image dan Dockerfile Trivy, serta audit
+                  berkala Codex Security dari OpenAI. Integration test berjalan pada container
                   PostgreSQL, MySQL, MariaDB, dan MongoDB sungguhan serta memverifikasi siklus
-                  backup lalu restore lengkap pada setiap PR. GitHub Actions dipatok ke SHA commit
-                  dan workflow mengikuti prinsip hak akses minimum.
+                  backup lalu restore lengkap sebelum setiap rilis. GitHub Actions dipatok ke
+                  SHA commit dan workflow mengikuti prinsip hak akses minimum.
                   <br />
                   <br />
                   Lihat{" "}
