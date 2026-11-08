@@ -5,7 +5,20 @@ export const pt: typeof en = {
     nativeName: 'Português',
   },
   common: {
+    calendar: {
+      monthLevelControl: 'Escolher mês',
+      yearLevelControl: 'Escolher ano',
+      nextMonth: 'Próximo mês',
+      previousMonth: 'Mês anterior',
+      nextYear: 'Próximo ano',
+      previousYear: 'Ano anterior',
+      nextDecade: 'Próxima década',
+      previousDecade: 'Década anterior',
+      seconds: 'Segundos',
+    },
     actions: {
+      clear: 'Limpar',
+      togglePasswordVisibility: 'Mostrar ou ocultar senha',
       back: 'Voltar',
       cancel: 'Cancelar',
       close: 'Fechar',
@@ -154,7 +167,14 @@ export const pt: typeof en = {
     permissionDenied: 'Você não tem permissão para fazer isso.',
     humanVerificationFailed:
       'A verificação humana falhou. Conclua a verificação e tente novamente.',
-    invalidCredentials: 'E-mail ou senha incorretos.',
+    emailNotFound: 'Nenhuma conta foi encontrada com este e-mail. Confira o endereço.',
+    passwordIncorrect: 'A senha está incorreta.',
+    registrationIncomplete:
+      'O cadastro não foi concluído. Cadastre-se com este e-mail para aceitar o convite.',
+    passwordNotSet: 'Esta conta não tem senha.',
+    passwordNotSetGoogle: 'Esta conta não tem senha. Entre com o Google.',
+    passwordNotSetGithub: 'Esta conta não tem senha. Entre com o GitHub.',
+    passwordNotSetGoogleGithub: 'Esta conta não tem senha. Entre com o Google ou o GitHub.',
     userDeactivated: 'Esta conta está desativada. Peça a um administrador para ativá-la.',
     registrationClosed:
       'O cadastro está fechado nesta instância. Peça um convite a um administrador.',
@@ -207,6 +227,9 @@ export const pt: typeof en = {
     },
   },
   schedules: {
+    hours: 'Horas',
+    minutes: 'Minutos',
+    timePeriod: 'AM ou PM',
     types: {
       hourly: 'A cada hora',
       daily: 'Diário',
@@ -933,6 +956,9 @@ export const pt: typeof en = {
       submit: 'Entrar',
       noAccount: 'Não tem uma conta? <signUpLink>Crie uma</signUpLink>',
       forgotPassword: 'Esqueceu a senha?',
+      setPassword: 'Definir uma senha',
+      passwordRecoveryHint: 'Use a recuperação de senha para definir uma.',
+      contactAdministratorHint: 'Entre em contato com o administrador para recuperar o acesso.',
     },
     signInCode: {
       title: 'Digite o código',
@@ -1474,7 +1500,7 @@ export const pt: typeof en = {
         forever: 'Para sempre',
       },
       retentionPolicyTypes: {
-        gfs: 'GFS (manter os últimos N backups por hora, diários, semanais, mensais e anuais)',
+        gfs: 'GFS (retenção por períodos do calendário)',
         timePeriod: 'Período (últimos N dias)',
         count: 'Quantidade (últimos N backups)',
       },
@@ -1528,10 +1554,15 @@ export const pt: typeof en = {
           countValue: 'Backups mais recentes: {{count}}',
           showGfsHint: 'O que é GFS (Grandfather-Father-Son)?',
           hideGfsHint: 'Ocultar',
-          gfsHint:
-            'Rotação GFS (Grandfather-Father-Son): mantém os últimos N backups por hora, diários, semanais, mensais e anuais. Assim é possível guardar backups por longos períodos sem ocupar espaço demais no armazenamento.',
+          gfsHint: {
+            summary: 'O GFS mantém backups recentes e guarda alguns mais antigos por mais tempo.',
+            selection:
+              '<strong>Escolha quantos backups manter</strong> por hora, dia, semana, mês e ano. Só contam os backups bem-sucedidos.',
+            fileCount:
+              '<strong>Um backup pode contar para várias configurações</strong>, por isso o total de arquivos pode variar.',
+          },
           gfsTooltip:
-            'Rotação Grandfather-Father-Son: mantém os últimos N backups por hora, diários, semanais, mensais e anuais.',
+            'GFS: horas e dias recentes do calendário, semanas, meses e anos concluídos e um candidato protegido do período atual.',
           gfsFields: {
             hourly: 'Backups por hora',
             daily: 'Backups diários',
@@ -1630,8 +1661,18 @@ export const pt: typeof en = {
         chainsKept: 'Cadeias mantidas',
         fullBackupsKept: 'Backups completos mantidos',
         fullBackupsCountValue: 'Mais recentes: {{count}}',
+        gfsHint: {
+          summary:
+            'O GFS mantém backups completos recentes e guarda alguns mais antigos por mais tempo.',
+          selection:
+            '<strong>Escolha quantos backups manter</strong> por hora, dia, semana, mês e ano. Só contam os backups bem-sucedidos.',
+          fileCount:
+            '<strong>Um backup pode contar para várias configurações</strong>, por isso o total de arquivos pode variar.',
+          scope:
+            '<strong>O GFS se aplica apenas a backups completos.</strong> Os incrementais e o WAL são gerenciados separadamente.',
+        },
         gfsTooltip:
-          'Rotação Grandfather-Father-Son: mantém os últimos N backups completos por hora, diários, semanais, mensais e anuais.',
+          'GFS: backups completos bem-sucedidos de horas e dias recentes do calendário e períodos semanais, mensais e anuais concluídos, mais o candidato atual.',
       },
       restore: {
         errorHints: {

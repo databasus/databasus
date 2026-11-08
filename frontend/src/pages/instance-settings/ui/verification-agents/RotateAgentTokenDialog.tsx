@@ -1,9 +1,9 @@
-import { Button, Modal } from 'antd';
+import { Button } from '@mantine/core';
 import type { JSX } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import type { VerificationAgent } from '@/entities/verification-agents';
-
+import { Dialog } from '@/shared/ui';
 interface Props {
   rotatingAgent?: VerificationAgent;
   isRotating: boolean;
@@ -20,18 +20,10 @@ export const RotateAgentTokenDialog = ({
   const { t } = useTranslation();
 
   return (
-    <Modal
+    <Dialog
       title={t('verification.agents.rotate.title')}
-      open={rotatingAgent !== undefined}
-      onCancel={onCancel}
-      footer={[
-        <Button key="cancel" onClick={onCancel}>
-          {t('common.actions.cancel')}
-        </Button>,
-        <Button key="rotate" type="primary" danger loading={isRotating} onClick={onConfirm}>
-          {t('verification.agents.actions.rotateToken')}
-        </Button>,
-      ]}
+      opened={rotatingAgent !== undefined}
+      onClose={onCancel}
     >
       <p className="text-sm">
         <Trans
@@ -39,6 +31,23 @@ export const RotateAgentTokenDialog = ({
           components={{ agentName: <strong>{rotatingAgent?.name}</strong> }}
         />
       </p>
-    </Modal>
+      <div className="mt-5 flex flex-wrap justify-end gap-2">
+        {[
+          <Button key="cancel" onClick={onCancel}>
+            {t('common.actions.cancel')}
+          </Button>,
+          <Button
+            key="rotate"
+            variant="filled"
+            color="danger"
+            loading={isRotating}
+            onClick={onConfirm}
+            aria-busy={isRotating}
+          >
+            {t('verification.agents.actions.rotateToken')}
+          </Button>,
+        ]}
+      </div>
+    </Dialog>
   );
 };

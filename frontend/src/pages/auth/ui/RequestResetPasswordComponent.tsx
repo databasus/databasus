@@ -1,4 +1,4 @@
-import { Form, Button, Input } from 'antd';
+import { Button, TextInput } from '@mantine/core';
 import { useId } from 'react';
 import { type JSX, useEffect, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
@@ -6,6 +6,7 @@ import { Trans, useTranslation } from 'react-i18next';
 import { userApi } from '@/entities/users';
 import { useCloudflareTurnstile } from '@/pages/auth/model/useCloudflareTurnstile';
 import { CloudflareTurnstileWidget } from '@/pages/auth/ui/CloudflareTurnstileWidget';
+import { useSessionMutation } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { translateApiError } from '@/shared/i18n';
 import { FormValidator } from '@/shared/lib/FormValidator';
@@ -19,6 +20,11 @@ export function RequestResetPasswordComponent({
   onSwitchToSignIn,
   onSwitchToResetPassword,
 }: RequestResetPasswordComponentProps): JSX.Element {
+  const sendResetPasswordCodeMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof userApi.sendResetPasswordCode>) =>
+      userApi.sendResetPasswordCode(...parameters),
+  });
+
   const [email, setEmail] = useState('');
   const [isLoading, setLoading] = useState(false);
   const [isEmailError, setEmailError] = useState(false);
@@ -48,10 +54,12 @@ export function RequestResetPasswordComponent({
       setLoading(true);
 
       try {
-        await userApi.sendResetPasswordCode({
-          email,
-          cloudflareTurnstileToken: token,
-        });
+        await sendResetPasswordCodeMutation.mutateAsync([
+          {
+            email,
+            cloudflareTurnstileToken: token,
+          },
+        ]);
         if (!isCurrent()) return;
         setIsCodeSent(true);
 
@@ -86,7 +94,7 @@ export function RequestResetPasswordComponent({
 
   return (
     <div className="w-full max-w-[300px]">
-      <div className="mb-5 text-center text-2xl font-bold">
+      <div className="mb-4 text-center text-xl font-semibold">
         {t('users.requestPasswordReset.title')}
       </div>
 
@@ -94,20 +102,12 @@ export function RequestResetPasswordComponent({
         {t('users.requestPasswordReset.description')}
       </div>
 
-      <Form.Item
-        htmlFor={controlId + 'field-1'}
-        label={t('users.fields.yourEmail')}
-        layout="vertical"
-        validateStatus={isEmailError ? 'error' : undefined}
-        help={
-          isEmailError ? (
-            <span id={controlId + 'field-1' + '-error'}>{t('users.validation.emailInvalid')}</span>
-          ) : undefined
-        }
-      >
-        <Input
+      <div className="mb-3 min-w-0">
+        <label htmlFor={controlId + 'field-1'} className="mb-1 block text-sm text-content">
+          {t('users.fields.yourEmail')}
+        </label>
+        <TextInput
           aria-invalid={isEmailError}
-          aria-describedby={controlId + 'field-1' + '-error'}
           id={controlId + 'field-1'}
           placeholder="your@email.com"
           value={email}
@@ -115,15 +115,17 @@ export function RequestResetPasswordComponent({
             setEmailError(false);
             setEmail(e.currentTarget.value.trim().toLowerCase());
           }}
-          status={isEmailError ? 'error' : undefined}
           type="email"
-          onPressEnter={() => {
-            onSendCode();
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              (() => {
+                onSendCode();
+              })();
+            }
           }}
+          error={isEmailError ? <span>{t('users.validation.emailInvalid')}</span> : undefined}
         />
-      </Form.Item>
-
-      <div className="mt-3" />
+      </div>
 
       <CloudflareTurnstileWidget containerRef={containerRef} />
 
@@ -135,7 +137,8 @@ export function RequestResetPasswordComponent({
         onClick={() => {
           onSendCode();
         }}
-        type="primary"
+        variant="filled"
+        aria-busy={isLoading}
       >
         {t('users.requestPasswordReset.submit')}
       </Button>

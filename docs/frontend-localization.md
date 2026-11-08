@@ -2,7 +2,7 @@
 
 The interface ships in English, Russian, Spanish, Portuguese (Brazilian), Chinese (Simplified), French and Indonesian, through `i18next` and `react-i18next`. A language switch changes words and number grouping immediately, without remounting providers, screens or drafts. Clock and date conventions follow the browser region instead.
 
-Everything lives in `shared/i18n`. `LocaleProvider.tsx` owns the i18next instance, the selected locale, the AntD locale and the dayjs language, and the document language and title follow the same selection.
+Everything lives in `shared/i18n`. `LocaleProvider.tsx` owns the i18next instance, the selected locale and the dayjs language, and the document language and title follow the same selection. `ControlLocalization.tsx` applies translated Mantine control labels and calendar language without remounting controls; regional date order and the clock format still follow the browser.
 
 ## User-facing copy
 

@@ -1,5 +1,6 @@
-import { Alert, Button, Input, Select, notification } from 'antd';
-import { useEffect, useId } from 'react';
+import { Alert, Button, TextInput } from '@mantine/core';
+import { CircleAlert } from 'lucide-react';
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -22,8 +23,8 @@ import { EditRcloneStorageComponent } from '@/features/edit-storage/ui/edit/stor
 import { EditS3StorageComponent } from '@/features/edit-storage/ui/edit/storages/EditS3StorageComponent';
 import { EditSFTPStorageComponent } from '@/features/edit-storage/ui/edit/storages/EditSFTPStorageComponent';
 import { translateApiError } from '@/shared/i18n';
-import { WRAPPING_SELECT_CLASS_NAME } from '@/shared/ui';
-
+import { useFeedback } from '@/shared/lib/feedback';
+import { WrappingSelect } from '@/shared/ui';
 interface Props {
   workspaceId: string;
 
@@ -51,8 +52,10 @@ export function EditStorageComponent({
 }: Props) {
   const { t } = useTranslation();
   const controlId = useId();
-  const noticeId = useId();
-  const [notices, noticeHolder] = notification.useNotification();
+  const notify = useFeedback({
+    scope: 'screen',
+    contextKey: `${workspaceId}:${editingStorage?.id ?? 'new'}`,
+  });
   const form = useStorageDraft({
     workspaceId,
     editingStorage,
@@ -60,20 +63,14 @@ export function EditStorageComponent({
     onChanged,
     onPersisted,
     onTestSucceeded: () =>
-      notices.success({
-        key: noticeId,
-        message: t('storages.connectionTestSucceeded.title'),
+      notify({
+        kind: 'success',
+        title: t('storages.connectionTestSucceeded.title'),
         description: t('storages.connectionTestSucceeded.description'),
-        duration: 4,
-        placement: 'bottomRight',
+        lifetimeMs: 4 * 1000,
+        position: 'bottom-right',
       }),
   });
-
-  useEffect(
-    () => () => notices.destroy(noticeId),
-    [notices, noticeId, workspaceId, editingStorage?.id],
-  );
-
   const {
     name,
     settings,
@@ -106,25 +103,29 @@ export function EditStorageComponent({
   }));
 
   return (
-    <section
-      aria-label={t('storages.config.settingsTitle')}
-      className="min-w-0 [&_.ant-btn]:!h-auto [&_.ant-btn]:min-h-8 [&_.ant-btn]:leading-normal [&_.ant-btn]:!whitespace-normal"
-    >
-      {noticeHolder}
-      {errorText && <Alert type="error" showIcon message={errorText} />}
+    <section aria-label={t('storages.config.settingsTitle')} className="min-w-0">
+      {errorText && (
+        <Alert
+          color="danger"
+          icon={
+            <CircleAlert aria-hidden size={16} className="inline-block shrink-0 align-middle" />
+          }
+          title={errorText}
+        />
+      )}
       {isShowName && (
         <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
           <label htmlFor={`${controlId}-name`} className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">
             {t('common.fields.name')}
           </label>
 
-          <Input
+          <TextInput
             id={`${controlId}-name`}
             value={name}
             onChange={(e) => {
               form.changeName(e.target.value);
             }}
-            size="small"
+            size="xs"
             className="w-full max-w-[250px]"
             placeholder={t('storages.edit.namePlaceholder')}
           />
@@ -143,14 +144,14 @@ export function EditStorageComponent({
           {isSaved ? (
             t(STORAGE_TYPE_LABEL_KEYS[settings.type])
           ) : (
-            <Select
+            <WrappingSelect
               id={`${controlId}-type`}
               value={settings.type}
               disabled={isSaving}
-              options={storageTypeOptions}
+              data={storageTypeOptions}
               onChange={(type: StorageType) => changeSettings(createDefaultStorageSettings(type))}
-              size="small"
-              className={`w-full max-w-[250px] min-w-0 ${WRAPPING_SELECT_CLASS_NAME}`}
+              size="xs"
+              className="w-full max-w-[250px] min-w-0"
             />
           )}
 
@@ -236,9 +237,10 @@ export function EditStorageComponent({
           <Button
             disabled={isTestingConnection || !isAllDataFilled}
             loading={isTestingConnection}
-            type="primary"
+            variant="filled"
             aria-label={t('storages.actions.testConnection')}
             onClick={testConnection}
+            aria-busy={isTestingConnection}
           >
             {t('storages.actions.testConnection')}
           </Button>
@@ -248,16 +250,17 @@ export function EditStorageComponent({
           <Button
             disabled={isSaving || !isAllDataFilled}
             loading={isSaving}
-            type="primary"
+            variant="filled"
             aria-label={t('common.actions.save')}
             onClick={save}
+            aria-busy={isSaving}
           >
             {t('common.actions.save')}
           </Button>
         )}
 
         {isShowClose && (
-          <Button disabled={isSaving} type="primary" danger ghost onClick={onClose}>
+          <Button disabled={isSaving} variant="outline" color="danger" onClick={onClose}>
             {t('common.actions.cancel')}
           </Button>
         )}

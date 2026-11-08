@@ -1,73 +1,51 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useQueryClient, type QueryKey } from '@tanstack/react-query';
+import { useCallback, useEffect, useEffectEvent, useState } from 'react';
 
-import { useSessionGuard } from '@/shared/auth';
-import { useLatestRef } from '@/shared/hooks/useLatestRef';
-import { useRequestRevision } from '@/shared/hooks/useRequestRevision';
+import { useSessionQuery } from '@/shared/api';
 
 interface Options<Item> {
-  scopeKey: string;
-  read: () => Promise<Item[]>;
+  queryKey: QueryKey;
+  read: (signal: AbortSignal) => Promise<Item[]>;
   onError: (error: unknown) => void;
 }
 
 export const useResourceCollection = <Item extends { id: string }>(options: Options<Item>) => {
-  const [collection, setCollection] = useState<{ items: Item[]; isReady: boolean }>({
-    items: [],
-    isReady: false,
-  });
-  const [loadError, setLoadError] = useState<unknown>();
-  const [isLoading, setIsLoading] = useState(true);
-  const isCurrent = useSessionGuard();
-  const revision = useRequestRevision();
-  const latestOptions = useLatestRef(options);
+  const client = useQueryClient();
+  const query = useSessionQuery({ queryKey: options.queryKey, queryFn: options.read });
+  const [isCleared, setIsCleared] = useState(false);
+  const reportFailure = useEffectEvent(options.onError);
 
   useEffect(() => {
-    setCollection({ items: [], isReady: false });
-    setLoadError(undefined);
-    setIsLoading(true);
+    if (query.error !== null) reportFailure(query.error);
+  }, [query.error, query.errorUpdatedAt]);
 
-    return () => {
-      revision.Invalidate();
-    };
-  }, [options.scopeKey, revision]);
+  useEffect(() => {
+    if (query.data !== undefined) setIsCleared(false);
+  }, [query.data, query.dataUpdatedAt]);
 
+  const { refetch } = query;
   const reload = useCallback(
     async (isSilent = false) => {
-      if (!isCurrent()) return;
-
-      const requestRevision = revision.Invalidate();
-      const isActive = () => isCurrent() && revision.IsCurrent(requestRevision);
-
-      if (!isSilent) setIsLoading(true);
-
-      setLoadError(undefined);
-
-      try {
-        const items = await latestOptions.current.read();
-        if (isActive()) setCollection({ items, isReady: true });
-      } catch (error) {
-        if (!isActive()) return;
-
-        setLoadError(error);
-        latestOptions.current.onError(error);
-      } finally {
-        if (isActive()) setIsLoading(false);
-      }
+      await refetch({ cancelRefetch: !isSilent });
     },
-    [isCurrent, latestOptions, revision],
+    [refetch],
   );
+  const reconcile = (update: (items: Item[]) => Item[]) => {
+    void client.cancelQueries({ queryKey: query.queryKey, exact: true });
+    client.setQueryData<Item[]>(query.queryKey, (items = []) => update(items));
+  };
 
-  const clear = () => setCollection({ items: [], isReady: false });
-  const accept = (item: Item) =>
-    setCollection((current) => ({
-      isReady: true,
-      items: [...current.items.filter((resource) => resource.id !== item.id), item],
-    }));
-  const remove = (itemId: string) =>
-    setCollection((current) => ({
-      ...current,
-      items: current.items.filter((item) => item.id !== itemId),
-    }));
-
-  return { ...collection, loadError, isLoading, reload, clear, accept, remove };
+  return {
+    items: isCleared ? [] : (query.data ?? []),
+    isReady: !isCleared && query.data !== undefined,
+    loadError: query.error ?? undefined,
+    isLoading: query.isPending,
+    isSessionActive: query.isSessionActive,
+    reload,
+    clear: () => setIsCleared(true),
+    update: reconcile,
+    accept: (item: Item) =>
+      reconcile((items) => [...items.filter((resource) => resource.id !== item.id), item]),
+    remove: (itemId: string) => reconcile((items) => items.filter((item) => item.id !== itemId)),
+  };
 };

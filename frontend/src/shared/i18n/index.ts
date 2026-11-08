@@ -7,3 +7,5 @@ export { type LocalizedText, translateLocalizedText } from '@/shared/i18n/Locali
 export { WEBSITE_PAGES, getWebsitePageUrl } from '@/shared/i18n/websitePages';
 export { translateApiError } from '@/shared/i18n/translateApiError';
 export { TransByKey } from '@/shared/i18n/TransByKey';
+
+export { ControlLocalization } from '@/shared/i18n/ControlLocalization';

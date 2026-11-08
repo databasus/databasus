@@ -1,26 +1,7 @@
-import {
-  DeleteOutlined,
-  LoadingOutlined,
-  PlusOutlined,
-  SwapOutlined,
-  UserAddOutlined,
-  UserOutlined,
-} from '@ant-design/icons';
-import {
-  App,
-  AutoComplete,
-  Button,
-  Input,
-  Modal,
-  Popconfirm,
-  Select,
-  Spin,
-  Table,
-  Tag,
-  Tooltip,
-} from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+import { ActionIcon, Autocomplete, Badge, Button, Loader, TextInput, Tooltip } from '@mantine/core';
+import { useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
+import { ArrowRightLeft, Plus, Trash2, UserPlus, UserRound } from 'lucide-react';
 import { useEffect, useEffectEvent, useId, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -34,14 +15,19 @@ import {
   workspaceApi,
   workspaceMemberApi,
 } from '@/entities/workspaces';
-import { ApiError } from '@/shared/api';
+import { useSessionMutation } from '@/shared/api';
+import { ApiError, useSessionQuery } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
-import { useRequestRevision } from '@/shared/hooks';
+import { useResourceCollection } from '@/shared/hooks';
 import { useIsMobile } from '@/shared/hooks';
 import { translateApiError, useLocale } from '@/shared/i18n';
+import { useFeedback } from '@/shared/lib/feedback';
 import { getUserShortTimeFormat } from '@/shared/time';
+import { AnchoredConfirmation } from '@/shared/ui';
+import { WrappingSelect } from '@/shared/ui';
+import { Dialog } from '@/shared/ui';
 import { LoadFailure } from '@/shared/ui';
-
+import tableStyles from '@/shared/ui/nativeTable.module.css';
 interface Props {
   selectedWorkspace: Workspace;
   user: User;
@@ -56,16 +42,45 @@ interface AddMemberForm {
 const EMPTY_ADD_MEMBER_FORM: AddMemberForm = { email: '', role: WorkspaceRole.MEMBER };
 
 export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailable }: Props) {
+  const addMemberMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof workspaceMemberApi.addMember>) =>
+      workspaceMemberApi.addMember(...parameters),
+  });
+  const changeMemberRoleMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof workspaceMemberApi.changeMemberRole>) =>
+      workspaceMemberApi.changeMemberRole(...parameters),
+  });
+  const removeMemberMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof workspaceMemberApi.removeMember>) =>
+      workspaceMemberApi.removeMember(...parameters),
+  });
+  const transferOwnershipMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof workspaceApi.transferOwnership>) =>
+      workspaceApi.transferOwnership(...parameters),
+  });
+
   const { t } = useTranslation();
   const { formatRelativeTime } = useLocale();
-  const { message } = App.useApp();
+  const notify = useFeedback();
   const isMobile = useIsMobile();
 
-  const [loadError, setLoadError] = useState<unknown>();
-  const [members, setMembers] = useState<WorkspaceMember[]>([]);
-  const [isLoadingMembers, setIsLoadingMembers] = useState(true);
-  const [hasLoadedMembers, setHasLoadedMembers] = useState(false);
-
+  const client = useQueryClient();
+  const collection = useResourceCollection<WorkspaceMember>({
+    queryKey: ['workspace-members', selectedWorkspace.id],
+    read: (signal) => workspaceMemberApi.listAllMembers(selectedWorkspace.id, { signal }),
+    onError: (error) => {
+      if (error instanceof ApiError && [403, 404].includes(error.status ?? 0)) {
+        collection.clear();
+        onUnavailable?.(error);
+      }
+    },
+  });
+  const members = collection.items;
+  const setMembers = collection.update;
+  const loadError = collection.loadError;
+  const isLoadingMembers = collection.isLoading;
+  const hasLoadedMembers = collection.isReady;
+  const loadMembers = collection.reload;
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [addMemberForm, setAddMemberForm] = useState<AddMemberForm>(EMPTY_ADD_MEMBER_FORM);
   const [isAddingMember, setIsAddingMember] = useState(false);
@@ -79,13 +94,12 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
 
   const [isTransferOwnershipModalOpen, setIsTransferOwnershipModalOpen] = useState(false);
   const [transferForm, setTransferForm] = useState({ selectedMemberId: '' });
-  const [isTransferringOwnership, setIsTransferringOwnership] = useState(false);
+  const isTransferringOwnership = transferOwnershipMutation.isPending;
   const [transferMemberError, setTransferMemberError] = useState(false);
 
   const [removingMembers, setRemovingMembers] = useState<Set<string>>(new Set());
 
-  const [userSearchResults, setUserSearchResults] = useState<User[]>([]);
-  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
+  const [searchedTerm, setSearchedTerm] = useState<string>();
   const [searchInputValue, setSearchInputValue] = useState('');
 
   const isInstanceAdmin = user.role === UserRole.ADMIN;
@@ -114,81 +128,51 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
     member.userId !== user.id &&
     (member.role !== WorkspaceRole.ADMIN || canManageAdmins);
 
-  const loadMembers = async () => {
-    const readRevision = memberReadRevision.Invalidate();
-    const isActive = () => isCurrent() && memberReadRevision.IsCurrent(readRevision);
-    setIsLoadingMembers(true);
-    setLoadError(undefined);
+  const search = useSessionQuery({
+    queryKey: ['workspace-member-search', selectedWorkspace.id, searchedTerm],
+    enabled: isAddMemberModalOpen && user.role === UserRole.ADMIN && searchedTerm !== undefined,
+    queryFn: async (signal) => {
+      const response = await userManagementApi.getUsers(
+        { limit: 10, query: searchedTerm || undefined },
+        { signal },
+      );
 
-    try {
-      const loadedMembers = await workspaceMemberApi.listAllMembers(selectedWorkspace.id);
-      if (!isActive()) return;
-
-      setMembers(loadedMembers);
-      setHasLoadedMembers(true);
-    } catch (error: unknown) {
-      if (!isActive()) return;
-
-      setLoadError(error);
-
-      if (error instanceof ApiError && [403, 404].includes(error.status ?? 0)) {
-        setMembers([]);
-        setHasLoadedMembers(false);
-        onUnavailable?.(error);
-      }
-    } finally {
-      if (isActive()) {
-        setIsLoadingMembers(false);
-      }
-    }
+      return response.items.filter((user) => user.status === 'ACTIVE');
+    },
+  });
+  const userSearchResults = search.data ?? [];
+  const isSearchingUsers = search.isFetching;
+  const searchUsers = (term: string) => {
+    if (term === searchedTerm) void search.refetch();
+    else setSearchedTerm(term);
   };
-
-  const searchUsers = async (query: string) => {
-    const requestRevision = searchRevision.Invalidate();
-    const isActive = () => isCurrent() && searchRevision.IsCurrent(requestRevision);
-
-    if (user.role !== UserRole.ADMIN) return;
-
-    setIsSearchingUsers(true);
-
-    try {
-      const response = await userManagementApi.getUsers({
-        limit: 10,
-        query: query || undefined,
-      });
-      if (!isActive()) return;
-
-      const activeUsers = response.items.filter((foundUser) => foundUser.status === 'ACTIVE');
-      setUserSearchResults(activeUsers);
-    } catch (error: unknown) {
-      if (!isActive()) return;
-
-      message.error(translateApiError(error, t));
-      setUserSearchResults([]);
-    } finally {
-      if (isActive()) {
-        setIsSearchingUsers(false);
-      }
-    }
-  };
+  const reportSearchFailure = useEffectEvent((error: unknown) =>
+    notify({ kind: 'error', title: translateApiError(error, t) }),
+  );
+  useEffect(() => {
+    if (search.error) reportSearchFailure(search.error);
+  }, [search.error]);
 
   const handleAddMember = async () => {
     if (!addMemberForm.email.trim()) {
       setAddMemberEmailError(true);
-      message.error(t('workspaces.members.add.emailRequired'));
+      notify({ kind: 'error', title: t('workspaces.members.add.emailRequired') });
       return;
     }
     setAddMemberEmailError(false);
     setIsAddingMember(true);
 
     try {
-      const addedMember = await workspaceMemberApi.addMember({
-        workspaceId: selectedWorkspace.id,
-        email: addMemberForm.email.trim(),
-        role: addMemberForm.role,
-      });
+      const addedMember = await addMemberMutation.mutateAsync([
+        {
+          workspaceId: selectedWorkspace.id,
+          email: addMemberForm.email.trim(),
+          role: addMemberForm.role,
+        },
+      ]);
       if (!isCurrent()) return;
 
+      collection.accept(addedMember);
       setAddMemberForm(EMPTY_ADD_MEMBER_FORM);
       setIsAddMemberModalOpen(false);
 
@@ -196,14 +180,14 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
         setInvitedEmail(addedMember.email);
         setIsInviteDialogOpen(true);
       } else {
-        message.success(t('workspaces.members.add.added'));
+        notify({ kind: 'success', title: t('workspaces.members.add.added') });
       }
 
       loadMembers();
     } catch (error: unknown) {
       if (!isCurrent()) return;
 
-      message.error(translateApiError(error, t));
+      notify({ kind: 'error', title: translateApiError(error, t) });
     } finally {
       if (isCurrent()) {
         setIsAddingMember(false);
@@ -216,16 +200,15 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
     setIsChangingRole(true);
 
     try {
-      const changedMember = await workspaceMemberApi.changeMemberRole(memberId, newRole);
+      const changedMember = await changeMemberRoleMutation.mutateAsync([memberId, newRole]);
       if (!isCurrent()) return;
 
       setMembers((prev) => prev.map((member) => (member.id === memberId ? changedMember : member)));
-
-      message.success(t('workspaces.members.roleChanged'));
+      notify({ kind: 'success', title: t('workspaces.members.roleChanged') });
     } catch (error: unknown) {
       if (!isCurrent()) return;
 
-      message.error(translateApiError(error, t));
+      notify({ kind: 'error', title: translateApiError(error, t) });
     } finally {
       if (isCurrent()) {
         setChangingRoleFor(null);
@@ -238,15 +221,18 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
     setRemovingMembers((prev) => new Set(prev).add(memberId));
 
     try {
-      await workspaceMemberApi.removeMember(memberId);
+      await removeMemberMutation.mutateAsync([memberId]);
       if (!isCurrent()) return;
 
       setMembers((prev) => prev.filter((member) => member.id !== memberId));
-      message.success(t('workspaces.members.remove.removed', { email: memberEmail }));
+      notify({
+        kind: 'success',
+        title: t('workspaces.members.remove.removed', { email: memberEmail }),
+      });
     } catch (error: unknown) {
       if (!isCurrent()) return;
 
-      message.error(translateApiError(error, t));
+      notify({ kind: 'error', title: translateApiError(error, t) });
     } finally {
       if (isCurrent()) {
         setRemovingMembers((prev) => {
@@ -261,35 +247,34 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
   const handleTransferOwnership = async () => {
     if (!transferForm.selectedMemberId) {
       setTransferMemberError(true);
-      message.error(t('workspaces.transferOwnership.memberRequired'));
+      notify({ kind: 'error', title: t('workspaces.transferOwnership.memberRequired') });
       return;
     }
 
     const selectedMember = members.find((member) => member.id === transferForm.selectedMemberId);
 
     if (!selectedMember) {
-      message.error(t('workspaces.transferOwnership.memberNotFound'));
+      notify({ kind: 'error', title: t('workspaces.transferOwnership.memberNotFound') });
       return;
     }
 
     setTransferMemberError(false);
-    setIsTransferringOwnership(true);
 
     try {
-      await workspaceApi.transferOwnership(selectedWorkspace.id, selectedMember.id);
+      await transferOwnershipMutation.mutateAsync([selectedWorkspace.id, selectedMember.id]);
       if (!isCurrent()) return;
 
       setTransferForm({ selectedMemberId: '' });
       setIsTransferOwnershipModalOpen(false);
-      message.success(t('workspaces.transferOwnership.transferred'));
+      notify({ kind: 'success', title: t('workspaces.transferOwnership.transferred') });
       loadMembers();
     } catch (error: unknown) {
       if (!isCurrent()) return;
 
-      message.error(translateApiError(error, t));
+      notify({ kind: 'error', title: translateApiError(error, t) });
     } finally {
       if (isCurrent()) {
-        setIsTransferringOwnership(false);
+        transferOwnershipMutation.reset();
       }
     }
   };
@@ -298,10 +283,14 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
     roles.map((role) => ({ label: t(WORKSPACE_ROLE_LABEL_KEYS[role]), value: role }));
 
   const renderMemberName = (member: WorkspaceMember) => (
-    <div>
+    <div className="min-w-0 [overflow-wrap:anywhere]">
       <div className="font-medium">
         {member.name}
-        {member.isInvited && <Tag className="ml-2">{t('workspaces.members.invitedMark')}</Tag>}
+        {member.isInvited && (
+          <Badge variant="default" radius="sm" size="sm" className="ml-2">
+            {t('workspaces.members.invitedMark')}
+          </Badge>
+        )}
       </div>
       <div className="text-xs text-muted">{member.email}</div>
     </div>
@@ -317,30 +306,31 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
         key={member.id}
         className="mb-3 rounded-lg border border-border bg-surface p-3 shadow-sm"
       >
-        <div className="flex items-start justify-between">
-          <div className="flex items-center">
-            <UserOutlined className="mr-2 text-muted" />
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex min-w-0 items-center">
+            <UserRound className="mr-2 inline-block shrink-0 align-middle text-muted" size="1em" />
             {renderMemberName(member)}
           </div>
           {isManageable && (
-            <Popconfirm
+            <AnchoredConfirmation
               title={t('workspaces.members.remove.title')}
               description={t('workspaces.members.remove.question', { email: member.email })}
               onConfirm={() => handleRemoveMember(member.id, member.email)}
-              okText={t('common.actions.remove')}
-              cancelText={t('common.actions.cancel')}
-              okButtonProps={{ danger: true }}
+              confirmLabel={t('common.actions.remove')}
+              isConfirming={removingMembers.has(member.id)}
             >
-              <Button
-                type="text"
-                size="small"
+              <ActionIcon
+                variant="subtle"
+                size="xs"
                 aria-label={t('workspaces.members.remove.tooltip')}
-                icon={<DeleteOutlined />}
-                danger
+                color="danger"
                 loading={removingMembers.has(member.id)}
                 disabled={removingMembers.has(member.id)}
-              />
-            </Popconfirm>
+                aria-busy={removingMembers.has(member.id)}
+              >
+                <Trash2 size="1em" className="inline-block shrink-0 align-middle" />
+              </ActionIcon>
+            </AnchoredConfirmation>
           )}
         </div>
 
@@ -348,18 +338,25 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
           <div>
             <div className="text-xs text-muted">{t('workspaces.members.fields.role')}</div>
             {isManageable ? (
-              <Select<AssignableWorkspaceRole>
+              <WrappingSelect<AssignableWorkspaceRole>
                 aria-label={t('workspaces.members.fields.role')}
                 value={member.role as AssignableWorkspaceRole}
                 onChange={(newRole) => handleChangeRole(member.id, newRole)}
-                loading={changingRoleFor === member.id && isChangingRole}
+                isLoading={changingRoleFor === member.id && isChangingRole}
                 disabled={changingRoleFor === member.id && isChangingRole}
-                size="small"
+                size="xs"
                 style={{ width: 150 }}
-                options={memberRoleOptions}
+                data={memberRoleOptions}
               />
             ) : (
-              <Tag>{t(WORKSPACE_ROLE_LABEL_KEYS[member.role])}</Tag>
+              <Badge
+                variant="default"
+                radius="sm"
+                size="sm"
+                styles={{ label: { textTransform: 'none', fontWeight: 400 } }}
+              >
+                {t(WORKSPACE_ROLE_LABEL_KEYS[member.role])}
+              </Badge>
             )}
           </div>
           <div className="text-right">
@@ -374,17 +371,9 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
 
   const memberEmailControlId = useId();
   const isCurrent = useSessionGuard();
-  const searchRevision = useRequestRevision();
-  const memberReadRevision = useRequestRevision();
-
-  const startMembersLoad = useEffectEvent(() => {
-    void loadMembers();
+  const cancelUserSearch = useEffectEvent(() => {
+    void client.cancelQueries({ queryKey: search.queryKey, exact: true });
   });
-
-  useEffect(() => {
-    startMembersLoad();
-  }, []);
-
   const canSearchUsers = useEffectEvent(() => user.role === UserRole.ADMIN);
   const startUserSearch = useEffectEvent((query: string) => {
     searchUsers(query);
@@ -399,104 +388,15 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
 
     return () => {
       clearTimeout(timer);
-      searchRevision.Invalidate();
+      cancelUserSearch();
     };
-  }, [searchInputValue, isAddMemberModalOpen, searchRevision]);
+  }, [searchInputValue, isAddMemberModalOpen, client]);
 
   const assignableRoles: AssignableWorkspaceRole[] = canManageAdmins
     ? [WorkspaceRole.VIEWER, WorkspaceRole.MEMBER, WorkspaceRole.ADMIN]
     : [WorkspaceRole.VIEWER, WorkspaceRole.MEMBER];
 
   const memberRoleOptions = toRoleOptions(assignableRoles);
-
-  const columns: ColumnsType<WorkspaceMember> = [
-    {
-      title: t('workspaces.members.fields.member'),
-      key: 'member',
-      width: 300,
-      render: (_, record: WorkspaceMember) => (
-        <div className="flex items-center">
-          <UserOutlined className="mr-2 text-muted" />
-          {renderMemberName(record)}
-        </div>
-      ),
-    },
-    {
-      title: t('workspaces.members.fields.role'),
-      dataIndex: 'role',
-      key: 'role',
-      width: 150,
-      render: (role: WorkspaceRole, record: WorkspaceMember) => {
-        if (isMemberManageable(record)) {
-          return (
-            <Select<AssignableWorkspaceRole>
-              aria-label={t('workspaces.members.fields.role')}
-              value={role as AssignableWorkspaceRole}
-              onChange={(newRole) => handleChangeRole(record.id, newRole)}
-              loading={changingRoleFor === record.id && isChangingRole}
-              disabled={changingRoleFor === record.id && isChangingRole}
-              size="small"
-              style={{ width: 150 }}
-              options={memberRoleOptions}
-            />
-          );
-        }
-
-        return <Tag>{t(WORKSPACE_ROLE_LABEL_KEYS[role])}</Tag>;
-      },
-    },
-    {
-      title: t('workspaces.members.fields.joined'),
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      width: 200,
-      render: (createdAt: string) => {
-        const date = dayjs(createdAt);
-        const timeFormat = getUserShortTimeFormat();
-
-        return (
-          <div className="text-sm text-muted">
-            <div>{date.format(timeFormat.format)}</div>
-            <div className="text-xs text-muted">{formatRelativeTime(date)}</div>
-          </div>
-        );
-      },
-    },
-    {
-      title: t('workspaces.members.fields.actions'),
-      key: 'actions',
-      width: 120,
-      render: (_, record: WorkspaceMember) => {
-        if (!isMemberManageable(record)) return null;
-
-        return (
-          <div className="flex items-center space-x-2">
-            <Tooltip title={t('workspaces.members.remove.tooltip')}>
-              <Popconfirm
-                title={t('workspaces.members.remove.title')}
-                description={t('workspaces.members.remove.question', { email: record.email })}
-                onConfirm={() => handleRemoveMember(record.id, record.email)}
-                okText={t('common.actions.remove')}
-                cancelText={t('common.actions.cancel')}
-                okButtonProps={{ danger: true }}
-              >
-                <Button
-                  type="text"
-                  size="small"
-                  aria-label={t('workspaces.members.remove.tooltip')}
-                  icon={<DeleteOutlined />}
-                  danger
-                  loading={removingMembers.has(record.id)}
-                  disabled={removingMembers.has(record.id)}
-                />
-              </Popconfirm>
-            </Tooltip>
-          </div>
-        );
-      },
-    },
-  ];
-
   return (
     <div className="max-w-212.5">
       {loadError !== undefined && (
@@ -508,7 +408,9 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
         <div className="flex flex-col gap-2 md:flex-row md:space-x-2">
           {canTransferOwnership && (
             <Button
-              icon={<SwapOutlined />}
+              leftSection={
+                <ArrowRightLeft size="1em" className="inline-block shrink-0 align-middle" />
+              }
               onClick={() => setIsTransferOwnershipModalOpen(true)}
               disabled={isLoadingMembers || eligibleMembers.length === 0}
               className="w-full md:w-auto"
@@ -518,11 +420,11 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
           )}
           {canManageMembers && (
             <Button
-              type="primary"
-              icon={<PlusOutlined />}
+              variant="filled"
+              leftSection={<Plus size="1em" className="inline-block shrink-0 align-middle" />}
               onClick={() => setIsAddMemberModalOpen(true)}
               disabled={isLoadingMembers}
-              className="w-full border-border bg-accent hover:border-border hover:bg-accent md:w-auto"
+              className="w-full md:w-auto"
             >
               {t('workspaces.members.add.button')}
             </Button>
@@ -532,7 +434,7 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
 
       {isLoadingMembers ? (
         <div className="flex h-64 items-center justify-center">
-          <Spin indicator={<LoadingOutlined spin />} size="large" />
+          <Loader size="md" role="status" />
         </div>
       ) : hasLoadedMembers ? (
         <div>
@@ -554,44 +456,142 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
               <div>{members.map(renderMemberCard)}</div>
             )
           ) : (
-            <Table
-              columns={columns}
-              dataSource={members}
-              pagination={false}
-              rowKey="id"
-              size="small"
-              locale={{
-                emptyText: (
-                  <div className="py-8 text-center text-muted">
-                    <div className="mb-2">{t('workspaces.members.empty')}</div>
-                    {canManageMembers && (
-                      <div className="text-sm">{t('workspaces.members.emptyHint')}</div>
-                    )}
-                  </div>
-                ),
-              }}
-            />
+            <div className="relative overflow-x-auto">
+              <table className={tableStyles.table}>
+                <thead>
+                  <tr>
+                    <th scope="col" style={{ width: 300 }}>
+                      {t('workspaces.members.fields.member')}
+                    </th>
+                    <th scope="col" style={{ width: 150 }}>
+                      {t('workspaces.members.fields.role')}
+                    </th>
+                    <th scope="col" style={{ width: 200 }}>
+                      {t('workspaces.members.fields.joined')}
+                    </th>
+                    <th scope="col" style={{ width: 120 }}>
+                      {t('workspaces.members.fields.actions')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {members.map((member) => (
+                    <tr key={member.id}>
+                      <td>
+                        <div className="flex items-center">
+                          <UserRound
+                            className="mr-2 inline-block shrink-0 align-middle text-muted"
+                            size="1em"
+                          />
+                          {renderMemberName(member)}
+                        </div>
+                      </td>
+                      <td>
+                        {(() => {
+                          if (isMemberManageable(member)) {
+                            return (
+                              <WrappingSelect<AssignableWorkspaceRole>
+                                aria-label={t('workspaces.members.fields.role')}
+                                value={member.role as AssignableWorkspaceRole}
+                                onChange={(newRole) => handleChangeRole(member.id, newRole)}
+                                isLoading={changingRoleFor === member.id && isChangingRole}
+                                disabled={changingRoleFor === member.id && isChangingRole}
+                                size="xs"
+                                style={{ width: 150 }}
+                                data={memberRoleOptions}
+                              />
+                            );
+                          }
+                          return (
+                            <Badge
+                              variant="default"
+                              radius="sm"
+                              size="sm"
+                              styles={{ label: { textTransform: 'none', fontWeight: 400 } }}
+                            >
+                              {t(WORKSPACE_ROLE_LABEL_KEYS[member.role])}
+                            </Badge>
+                          );
+                        })()}
+                      </td>
+                      <td>
+                        {(() => {
+                          const date = dayjs(member.createdAt);
+                          const timeFormat = getUserShortTimeFormat();
+                          return (
+                            <div className="text-sm text-muted">
+                              <div>{date.format(timeFormat.format)}</div>
+                              <div className="text-xs text-muted">{formatRelativeTime(date)}</div>
+                            </div>
+                          );
+                        })()}
+                      </td>
+                      <td>
+                        {(() => {
+                          if (!isMemberManageable(member)) return null;
+                          return (
+                            <div className="flex items-center space-x-2">
+                              <AnchoredConfirmation
+                                title={t('workspaces.members.remove.title')}
+                                description={t('workspaces.members.remove.question', {
+                                  email: member.email,
+                                })}
+                                onConfirm={() => handleRemoveMember(member.id, member.email)}
+                                confirmLabel={t('common.actions.remove')}
+                                isConfirming={removingMembers.has(member.id)}
+                              >
+                                <Tooltip label={t('workspaces.members.remove.tooltip')}>
+                                  <ActionIcon
+                                    variant="subtle"
+                                    size="xs"
+                                    aria-label={t('workspaces.members.remove.tooltip')}
+                                    color="danger"
+                                    loading={removingMembers.has(member.id)}
+                                    disabled={removingMembers.has(member.id)}
+                                    aria-busy={removingMembers.has(member.id)}
+                                  >
+                                    <Trash2
+                                      size="1em"
+                                      className="inline-block shrink-0 align-middle"
+                                    />
+                                  </ActionIcon>
+                                </Tooltip>
+                              </AnchoredConfirmation>
+                            </div>
+                          );
+                        })()}
+                      </td>
+                    </tr>
+                  ))}
+                  {members.length === 0 && (
+                    <tr>
+                      <td colSpan={4}>
+                        <div className="py-8 text-center text-muted">
+                          <div className="mb-2">{t('workspaces.members.empty')}</div>
+                          {canManageMembers && (
+                            <div className="text-sm">{t('workspaces.members.emptyHint')}</div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       ) : null}
 
-      <Modal
-        width={420}
+      <Dialog
+        size={420}
         title={t('workspaces.members.add.title')}
-        open={isAddMemberModalOpen}
-        onOk={handleAddMember}
-        onCancel={() => {
+        opened={isAddMemberModalOpen}
+        onClose={() => {
           setIsAddMemberModalOpen(false);
           setAddMemberForm(EMPTY_ADD_MEMBER_FORM);
           setAddMemberEmailError(false);
           setSearchInputValue('');
-          setUserSearchResults([]);
-        }}
-        confirmLoading={isAddingMember}
-        okText={t('workspaces.members.add.submit')}
-        cancelText={t('common.actions.cancel')}
-        okButtonProps={{
-          className: 'border-border bg-accent hover:border-border hover:bg-accent',
+          setSearchedTerm(undefined);
         }}
       >
         <div className="py-2">
@@ -600,7 +600,7 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
               {t('workspaces.members.fields.email')}
             </label>
             {user.role === UserRole.ADMIN ? (
-              <AutoComplete
+              <Autocomplete
                 id={memberEmailControlId}
                 value={addMemberForm.email}
                 onChange={(value) => {
@@ -611,7 +611,7 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
                   });
                   setSearchInputValue(value);
                 }}
-                onSelect={(value) => {
+                onOptionSubmit={(value) => {
                   setAddMemberForm({
                     ...addMemberForm,
                     email: value.toLowerCase().trim(),
@@ -621,22 +621,22 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
                   searchUsers('');
                 }}
                 placeholder={t('workspaces.members.fields.emailPlaceholder')}
-                status={addMemberEmailError ? 'error' : undefined}
-                options={userSearchResults.map((user) => ({
+                error={(addMemberEmailError ? 'error' : undefined) === 'error'}
+                data={userSearchResults.map((user) => ({
                   value: user.email,
                   label: `${user.name} (${user.email})`,
                 }))}
-                notFoundContent={
-                  isSearchingUsers ? (
-                    <div className="flex justify-center py-2">
-                      <Spin indicator={<LoadingOutlined spin />} size="small" />
-                    </div>
-                  ) : null
-                }
+                loading={isSearchingUsers}
+                aria-busy={isSearchingUsers}
+                filter={({ options }) => options}
+                renderOption={({ option }) => {
+                  const user = userSearchResults.find((user) => user.email === option.value);
+                  return user ? `${user.name} (${user.email})` : option.value;
+                }}
                 style={{ width: '100%' }}
               />
             ) : (
-              <Input
+              <TextInput
                 id={memberEmailControlId}
                 value={addMemberForm.email}
                 onChange={(e) => {
@@ -647,7 +647,7 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
                   });
                 }}
                 placeholder={t('workspaces.members.fields.emailPlaceholder')}
-                status={addMemberEmailError ? 'error' : undefined}
+                error={(addMemberEmailError ? 'error' : undefined) === 'error'}
               />
             )}
             <div className="mt-1 text-xs text-muted">{t('workspaces.members.add.hint')}</div>
@@ -655,32 +655,52 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
 
           <div className="mb-0">
             <div className="mb-1 text-content">{t('workspaces.members.fields.role')}</div>
-            <Select<AssignableWorkspaceRole>
+            <WrappingSelect<AssignableWorkspaceRole>
               aria-label={t('workspaces.members.fields.role')}
               value={addMemberForm.role}
               onChange={(role) => setAddMemberForm({ ...addMemberForm, role })}
               style={{ width: '100%' }}
-              options={memberRoleOptions}
+              data={memberRoleOptions}
             />
           </div>
         </div>
-      </Modal>
+        <div className="mt-5 flex flex-wrap justify-end gap-2">
+          <div>
+            <Button
+              onClick={() => {
+                setIsAddMemberModalOpen(false);
+                setAddMemberForm(EMPTY_ADD_MEMBER_FORM);
+                setAddMemberEmailError(false);
+                setSearchInputValue('');
+                setSearchedTerm(undefined);
+              }}
+            >
+              {t('common.actions.cancel')}
+            </Button>
+            <Button
+              variant={'filled'}
+              onClick={handleAddMember}
+              loading={isAddingMember}
+              aria-busy={isAddingMember}
+            >
+              {t('workspaces.members.add.submit')}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
 
       {/* Invite Dialog */}
-      <Modal
+      <Dialog
         title={t('workspaces.members.invited.title')}
-        open={isInviteDialogOpen}
-        onOk={() => setIsInviteDialogOpen(false)}
-        onCancel={() => setIsInviteDialogOpen(false)}
-        okText={t('common.actions.ok')}
-        cancelButtonProps={{ style: { display: 'none' } }}
-        okButtonProps={{
-          className: 'border-border bg-accent hover:border-border hover:bg-accent',
-        }}
+        opened={isInviteDialogOpen}
+        onClose={() => setIsInviteDialogOpen(false)}
       >
         <div className="py-4">
           <div className="flex items-center">
-            <UserAddOutlined className="mr-3 text-2xl text-accent" />
+            <UserPlus
+              className="mr-3 inline-block shrink-0 align-middle text-2xl text-accent"
+              size="1em"
+            />
             <div>
               <div className="font-medium text-muted">
                 {t('workspaces.members.invited.sentTo', { email: invitedEmail })}
@@ -691,24 +711,25 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
             </div>
           </div>
         </div>
-      </Modal>
+        <div className="mt-5 flex flex-wrap justify-end gap-2">
+          <div>
+            <Button onClick={() => setIsInviteDialogOpen(false)} style={{ display: 'none' }}>
+              {t('common.actions.cancel')}
+            </Button>
+            <Button variant={'filled'} onClick={() => setIsInviteDialogOpen(false)}>
+              {t('common.actions.ok')}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
 
-      <Modal
+      <Dialog
         title={t('workspaces.transferOwnership.title')}
-        open={isTransferOwnershipModalOpen}
-        onOk={handleTransferOwnership}
-        onCancel={() => {
+        opened={isTransferOwnershipModalOpen}
+        onClose={() => {
           setIsTransferOwnershipModalOpen(false);
           setTransferForm({ selectedMemberId: '' });
           setTransferMemberError(false);
-        }}
-        confirmLoading={isTransferringOwnership}
-        okText={t('workspaces.transferOwnership.submit')}
-        cancelText={t('common.actions.cancel')}
-        okButtonProps={{
-          danger: true,
-          className: '!border-danger !bg-danger !text-surface',
-          disabled: eligibleMembers.length === 0,
         }}
       >
         <div className="py-4">
@@ -732,7 +753,7 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
               <div className="mb-2 font-medium text-muted">
                 {t('workspaces.transferOwnership.newOwner')}
               </div>
-              <Select
+              <WrappingSelect
                 aria-label={t('workspaces.transferOwnership.newOwner')}
                 value={transferForm.selectedMemberId || undefined}
                 onChange={(memberId) => {
@@ -741,16 +762,20 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
                 }}
                 placeholder={t('workspaces.transferOwnership.newOwnerPlaceholder')}
                 style={{ width: '100%' }}
-                status={transferMemberError ? 'error' : undefined}
-                options={eligibleMembers.map((member) => ({
-                  label: (
-                    <div className="flex items-center">
-                      <UserOutlined className="mr-2 text-muted" />
-                      <div>
-                        {member.name} ({member.email})
-                      </div>
-                    </div>
-                  ),
+                hasError={(transferMemberError ? 'error' : undefined) === 'error'}
+                renderOption={(memberId) => {
+                  const member = eligibleMembers.find((member) => member.id === memberId);
+                  return (
+                    <span className="inline-flex min-w-0 items-center gap-2">
+                      <UserRound aria-hidden size="1em" />
+                      <span>
+                        {member?.name} ({member?.email})
+                      </span>
+                    </span>
+                  );
+                }}
+                data={eligibleMembers.map((member) => ({
+                  label: `${member.name} (${member.email})`,
                   value: member.id,
                 }))}
               />
@@ -760,7 +785,31 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
             </div>
           )}
         </div>
-      </Modal>
+        <div className="mt-5 flex flex-wrap justify-end gap-2">
+          <div>
+            <Button
+              onClick={() => {
+                setIsTransferOwnershipModalOpen(false);
+                setTransferForm({ selectedMemberId: '' });
+                setTransferMemberError(false);
+              }}
+            >
+              {t('common.actions.cancel')}
+            </Button>
+            <Button
+              variant={'filled'}
+              onClick={handleTransferOwnership}
+              loading={isTransferringOwnership}
+              color={'danger'}
+              className={'!border-danger !bg-danger !text-surface'}
+              disabled={eligibleMembers.length === 0}
+              aria-busy={isTransferringOwnership}
+            >
+              {t('workspaces.transferOwnership.submit')}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
     </div>
   );
 }

@@ -1,6 +1,5 @@
-import { DeleteOutlined, EyeOutlined, ReloadOutlined } from '@ant-design/icons';
-import { Button, Popconfirm, Table, Tooltip } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+import { ActionIcon, Tooltip } from '@mantine/core';
+import { Eye, RotateCw, Trash2 } from 'lucide-react';
 import type { JSX } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -12,6 +11,8 @@ import {
 } from '@/pages/instance-settings/model/agentStatus';
 import { type LocalizedText, translateLocalizedText, useLocale } from '@/shared/i18n';
 import { formatBytes } from '@/shared/lib/formatBytes';
+import { AnchoredConfirmation } from '@/shared/ui';
+import tableStyles from '@/shared/ui/nativeTable.module.css';
 
 interface Props {
   agents: VerificationAgent[];
@@ -61,115 +62,118 @@ export const VerificationAgentsTable = ({
   const { t } = useTranslation();
   const { formatRelativeTime, formatNumber } = useLocale();
 
-  const columns: ColumnsType<VerificationAgent> = [
-    {
-      title: t('common.fields.name'),
-      dataIndex: 'name',
-      key: 'name',
-      render: (name: string) => <span className="font-medium">{name}</span>,
-    },
-    {
-      title: t('common.fields.status'),
-      key: 'status',
-      width: 180,
-      render: (_, agent) => {
-        const status = getAgentStatus(agent.lastSeenAt, currentTimeMs);
-
-        return (
-          <div className="flex items-center gap-2">
-            <span className={`font-medium ${AGENT_STATUS_TEXT_CLASSES[status]}`}>
-              {t(AGENT_STATUS_LABEL_KEYS[status])}
-            </span>
-            {agent.lastSeenAt && (
-              <span className="text-xs text-muted">{formatRelativeTime(agent.lastSeenAt)}</span>
-            )}
-          </div>
-        );
-      },
-    },
-    {
-      title: t('verification.agents.columns.capacity'),
-      key: 'capacity',
-      render: (_, agent) => {
-        const capacityParts = getCapacityParts(agent, formatNumber);
-
-        return capacityParts.length > 0 ? (
-          <span className="text-xs">
-            {capacityParts.map((part) => translateLocalizedText(part, t)).join(' · ')}
-          </span>
-        ) : (
-          <span className="text-xs text-muted">
-            {t('verification.agents.capacity.notReported')}
-          </span>
-        );
-      },
-    },
-    {
-      title: t('verification.agents.columns.created'),
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      width: 110,
-      render: (createdAt: string) => (
-        <span className="text-xs text-muted">{formatRelativeTime(createdAt)}</span>
-      ),
-    },
-    {
-      title: '',
-      key: 'actions',
-      width: 100,
-      align: 'right',
-      render: (_, agent) => (
-        <div className="flex items-center justify-end gap-1">
-          <Tooltip title={t('verification.agents.actions.viewInstallCommands')}>
-            <Button
-              type="text"
-              size="small"
-              aria-label={t('verification.agents.actions.viewInstallCommands')}
-              icon={<EyeOutlined />}
-              onClick={() => onViewInstallCommands(agent)}
-            />
-          </Tooltip>
-
-          <Tooltip title={t('verification.agents.actions.rotateToken')}>
-            <Button
-              type="text"
-              size="small"
-              aria-label={t('verification.agents.actions.rotateToken')}
-              icon={<ReloadOutlined />}
-              onClick={() => onRotateToken(agent)}
-            />
-          </Tooltip>
-
-          <Popconfirm
-            title={t('verification.agents.deleteConfirmation')}
-            okText={t('common.actions.delete')}
-            okButtonProps={{ danger: true, loading: deletingAgentId === agent.id }}
-            cancelText={t('common.actions.cancel')}
-            onConfirm={() => onDelete(agent)}
-          >
-            <Tooltip title={t('common.actions.delete')}>
-              <Button
-                type="text"
-                size="small"
-                danger
-                aria-label={t('common.actions.delete')}
-                icon={<DeleteOutlined />}
-              />
-            </Tooltip>
-          </Popconfirm>
-        </div>
-      ),
-    },
-  ];
-
   return (
-    <Table
-      columns={columns}
-      dataSource={agents}
-      pagination={false}
-      rowKey="id"
-      size="small"
-      className="[&_.ant-table-tbody_.ant-table-cell]:align-top"
-    />
+    <div
+      className="relative overflow-x-auto"
+      role="region"
+      aria-label={t('verification.agents.title')}
+      tabIndex={0}
+    >
+      <table className={`${tableStyles.table} min-w-[640px]`}>
+        <thead>
+          <tr>
+            <th scope="col">{t('common.fields.name')}</th>
+            <th scope="col" style={{ width: 180 }}>
+              {t('common.fields.status')}
+            </th>
+            <th scope="col">{t('verification.agents.columns.capacity')}</th>
+            <th scope="col" style={{ width: 110 }}>
+              {t('verification.agents.columns.created')}
+            </th>
+            <th scope="col" style={{ width: 100, textAlign: 'right' }}>
+              {''}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {agents.map((agent) => (
+            <tr key={agent.id}>
+              <td>
+                <span className="font-medium">{agent.name}</span>
+              </td>
+              <td>
+                {(() => {
+                  const status = getAgentStatus(agent.lastSeenAt, currentTimeMs);
+
+                  return (
+                    <div className="flex items-center gap-2">
+                      <span className={`font-medium ${AGENT_STATUS_TEXT_CLASSES[status]}`}>
+                        {t(AGENT_STATUS_LABEL_KEYS[status])}
+                      </span>
+                      {agent.lastSeenAt && (
+                        <span className="text-xs text-muted">
+                          {formatRelativeTime(agent.lastSeenAt)}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
+              </td>
+              <td>
+                {(() => {
+                  const capacityParts = getCapacityParts(agent, formatNumber);
+
+                  return capacityParts.length > 0 ? (
+                    <span className="text-xs">
+                      {capacityParts.map((part) => translateLocalizedText(part, t)).join(' · ')}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted">
+                      {t('verification.agents.capacity.notReported')}
+                    </span>
+                  );
+                })()}
+              </td>
+              <td>
+                <span className="text-xs text-muted">{formatRelativeTime(agent.createdAt)}</span>
+              </td>
+              <td style={{ textAlign: 'right' }}>
+                <div className="flex items-center justify-end gap-1">
+                  <Tooltip label={t('verification.agents.actions.viewInstallCommands')}>
+                    <ActionIcon
+                      variant="subtle"
+                      size="xs"
+                      aria-label={t('verification.agents.actions.viewInstallCommands')}
+                      onClick={() => onViewInstallCommands(agent)}
+                    >
+                      <Eye size="1em" className="inline-block shrink-0 align-middle" />
+                    </ActionIcon>
+                  </Tooltip>
+
+                  <Tooltip label={t('verification.agents.actions.rotateToken')}>
+                    <ActionIcon
+                      variant="subtle"
+                      size="xs"
+                      aria-label={t('verification.agents.actions.rotateToken')}
+                      onClick={() => onRotateToken(agent)}
+                    >
+                      <RotateCw size="1em" className="inline-block shrink-0 align-middle" />
+                    </ActionIcon>
+                  </Tooltip>
+
+                  <AnchoredConfirmation
+                    title={t('verification.agents.deleteConfirmation')}
+                    confirmLabel={t('common.actions.delete')}
+                    isConfirming={deletingAgentId === agent.id}
+                    onConfirm={() => onDelete(agent)}
+                  >
+                    <Tooltip label={t('common.actions.delete')}>
+                      <ActionIcon
+                        variant="subtle"
+                        size="xs"
+                        color="danger"
+                        aria-label={t('common.actions.delete')}
+                      >
+                        <Trash2 size="1em" className="inline-block shrink-0 align-middle" />
+                      </ActionIcon>
+                    </Tooltip>
+                  </AnchoredConfirmation>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 };

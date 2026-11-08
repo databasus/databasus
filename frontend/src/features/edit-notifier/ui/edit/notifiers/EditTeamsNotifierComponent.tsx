@@ -1,5 +1,5 @@
-import { InfoCircleOutlined } from '@ant-design/icons';
-import { Input, Tooltip } from 'antd';
+import { TextInput, Tooltip } from '@mantine/core';
+import { Info } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import type { TeamsNotifierSettings } from '@/entities/notifiers';
@@ -30,11 +30,11 @@ export function EditTeamsNotifierComponent({ settings, isSaved, onChange }: Prop
       </div>
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
+        <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[150px] sm:shrink-0 sm:pr-2">
           {t('notifiers.teams.powerAutomateUrl')}
         </div>
-        <div className="flex items-center">
-          <Input
+        <div className="flex w-full min-w-0 items-center">
+          <TextInput
             aria-label={t('notifiers.teams.powerAutomateUrl')}
             value={settings.powerAutomateUrl ?? ''}
             onChange={(e) =>
@@ -43,7 +43,7 @@ export function EditTeamsNotifierComponent({ settings, isSaved, onChange }: Prop
                 powerAutomateUrl: toOptionalValue(e.target.value.trim()),
               })
             }
-            size="small"
+            size="xs"
             className="w-full max-w-[250px]"
             placeholder={
               isSaved
@@ -52,8 +52,8 @@ export function EditTeamsNotifierComponent({ settings, isSaved, onChange }: Prop
             }
           />
 
-          <Tooltip className="cursor-pointer" title={t('notifiers.teams.powerAutomateUrlTooltip')}>
-            <InfoCircleOutlined className="ml-2" />
+          <Tooltip className="cursor-pointer" label={t('notifiers.teams.powerAutomateUrlTooltip')}>
+            <Info className="ml-2 inline-block shrink-0 align-middle" size="1em" />
           </Tooltip>
         </div>
       </div>

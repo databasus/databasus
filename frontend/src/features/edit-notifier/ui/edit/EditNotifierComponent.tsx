@@ -1,5 +1,6 @@
-import { Alert, Button, Input, Select, notification } from 'antd';
-import { useEffect, useId } from 'react';
+import { Alert, Button, TextInput } from '@mantine/core';
+import { CircleAlert } from 'lucide-react';
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -20,8 +21,8 @@ import { EditTeamsNotifierComponent } from '@/features/edit-notifier/ui/edit/not
 import { EditTelegramNotifierComponent } from '@/features/edit-notifier/ui/edit/notifiers/EditTelegramNotifierComponent';
 import { EditWebhookNotifierComponent } from '@/features/edit-notifier/ui/edit/notifiers/EditWebhookNotifierComponent';
 import { translateApiError } from '@/shared/i18n';
-import { WRAPPING_SELECT_CLASS_NAME } from '@/shared/ui';
-
+import { useFeedback } from '@/shared/lib/feedback';
+import { WrappingSelect } from '@/shared/ui';
 interface Props {
   workspaceId: string;
 
@@ -56,28 +57,24 @@ export function EditNotifierComponent({
 }: Props) {
   const { t } = useTranslation();
   const fieldId = useId();
-  const noticeId = useId();
-  const [notices, noticeHolder] = notification.useNotification();
+  const notify = useFeedback({
+    scope: 'screen',
+    contextKey: `${workspaceId}:${editingNotifier?.id ?? 'new'}`,
+  });
   const form = useNotifierDraft({
     workspaceId,
     editingNotifier,
     onChanged,
     onPersisted,
     onTestSucceeded: () =>
-      notices.success({
-        key: noticeId,
-        message: t('notifiers.testNotification.sent.title'),
+      notify({
+        kind: 'success',
+        title: t('notifiers.testNotification.sent.title'),
         description: t('notifiers.testNotification.sent.description'),
-        duration: 4,
-        placement: 'bottomRight',
+        lifetimeMs: 4 * 1000,
+        position: 'bottom-right',
       }),
   });
-
-  useEffect(
-    () => () => notices.destroy(noticeId),
-    [notices, noticeId, workspaceId, editingNotifier?.id],
-  );
-
   const { name, settings, savedSettings, isUnsaved, isSaving, changeSettings, save } = form;
   const isSendingTestNotification = form.isTesting;
   const isTestNotificationSuccess = form.isTested;
@@ -99,17 +96,16 @@ export function EditNotifierComponent({
       aria-label={t('notifiers.config.settingsTitle')}
       className="min-h-0 min-w-0 text-content"
     >
-      {noticeHolder}
       {isShowName && (
         <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
           <label htmlFor={fieldId} className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
             {t('common.fields.name')}
           </label>
-          <Input
+          <TextInput
             id={fieldId}
             value={name}
             onChange={(event) => form.changeName(event.target.value)}
-            size="small"
+            size="xs"
             className="w-full max-w-[250px]"
             placeholder={t('notifiers.create.namePlaceholder')}
           />
@@ -127,18 +123,17 @@ export function EditNotifierComponent({
           {isSaved ? (
             <span>{t(NOTIFIER_TYPE_LABEL_KEYS[settings.type])}</span>
           ) : (
-            <Select
-              virtual={false}
+            <WrappingSelect
               id={`${fieldId}-type`}
               value={settings.type}
               disabled={isSaving}
-              options={SELECTABLE_NOTIFIER_TYPES.map((type) => ({
+              data={SELECTABLE_NOTIFIER_TYPES.map((type) => ({
                 label: t(NOTIFIER_TYPE_LABEL_KEYS[type]),
                 value: type,
               }))}
               onChange={(type: NotifierType) => changeSettings(createDefaultNotifierSettings(type))}
-              size="small"
-              className={`w-full max-w-[250px] min-w-0 ${WRAPPING_SELECT_CLASS_NAME}`}
+              size="xs"
+              className="w-full max-w-[250px] min-w-0"
             />
           )}
           <img
@@ -217,18 +212,19 @@ export function EditNotifierComponent({
       {errorText && (
         <Alert
           role="alert"
-          type="error"
-          showIcon
-          message={
+          color="danger"
+          icon={
+            <CircleAlert aria-hidden size={16} className="inline-block shrink-0 align-middle" />
+          }
+          title={
             <div className="max-h-40 overflow-auto font-mono whitespace-pre-wrap">{errorText}</div>
           }
-          description={
-            form.error?.kind === 'delivery' && form.error.isSlack
-              ? t('notifiers.slack.testFailedHint')
-              : undefined
-          }
           className="mt-3 break-words"
-        />
+        >
+          {form.error?.kind === 'delivery' && form.error.isSlack
+            ? t('notifiers.slack.testFailedHint')
+            : undefined}
+        </Alert>
       )}
 
       <div className="mt-3 flex flex-wrap gap-2">
@@ -237,8 +233,9 @@ export function EditNotifierComponent({
             className="!h-auto min-h-8 max-w-full text-left !whitespace-normal"
             disabled={isSendingTestNotification || isSaving || !isAllDataFilled}
             loading={isSendingTestNotification}
-            type="primary"
+            variant="filled"
             onClick={sendTestNotification}
+            aria-busy={isSendingTestNotification}
           >
             {t('notifiers.testNotification.send')}
           </Button>
@@ -251,8 +248,9 @@ export function EditNotifierComponent({
             className="!h-auto min-h-8 max-w-full text-left !whitespace-normal"
             disabled={isSaving || !isAllDataFilled}
             loading={isSaving}
-            type="primary"
+            variant="filled"
             onClick={save}
+            aria-busy={isSaving}
           >
             {t('common.actions.save')}
           </Button>

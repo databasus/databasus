@@ -53,14 +53,14 @@ for (const authMethods of [
       boundary,
     }) => {
       await openAccount({ page });
-      await page.getByRole('button', { name: 'Storages', exact: true }).click();
+      await page.getByRole('link', { name: 'Storages', exact: true }).click();
       await expect(page.getByText('sftp.example.com')).toBeVisible();
       await expect(page.getByText('Private key', { exact: true })).toBeVisible();
       if (authMethods.includes('PASSWORD'))
         await expect(page.getByText('Password', { exact: true })).toBeVisible();
       else await expect(page.getByText('Password', { exact: true })).toHaveCount(0);
 
-      await page.getByText('SFTP archive', { exact: true }).last().locator('img').click();
+      await page.getByRole('button', { name: 'Edit', exact: true }).first().click();
       await page.getByPlaceholder('Enter name...').fill('Renamed SFTP archive');
       await page.getByRole('button', { name: 'Save', exact: true }).click();
       await expect
@@ -69,21 +69,17 @@ for (const authMethods of [
       const rename = boundary.requests.find((request) => request.method === 'PUT');
       expect(rename?.body).toEqual({ name: 'Renamed SFTP archive', settings: storage.settings });
 
-      await page
-        .getByText('Storage settings', { exact: true })
-        .locator('..')
-        .locator('img')
-        .click();
+      await page.getByRole('button', { name: 'Edit', exact: true }).last().click();
       await expect(page.getByLabel('Private key', { exact: true })).toHaveValue('');
       await expect(page.getByText('A private key is saved. Leave blank to keep it.')).toBeVisible();
       if (authMethods.includes('PASSWORD'))
         await expect(page.getByLabel('Password', { exact: true })).toHaveValue('');
 
       await page.setViewportSize({ width: 320, height: 1000 });
-      const form = page.locator('.ant-form');
+      const form = page.getByRole('region', { name: 'Storage settings', exact: true });
       const accessibility = await new AxeBuilder({ page })
         .disableRules(['color-contrast'])
-        .include('.ant-form')
+        .include('section[aria-label="Storage settings"]')
         .withTags(['wcag2a', 'wcag2aa'])
         .analyze();
       expect(accessibility.violations).toEqual([]);

@@ -17,7 +17,27 @@ export const runBrowser = async ({
 }): Promise<number> => {
   if (!args.includes('--project=ui')) throw new Error('Select exactly --project=ui.');
   const isUpdatingReferences = args.includes('--update-references');
-  if (args.some((argument) => !['--project=ui', '--update-references'].includes(argument)))
+  const shardArguments = args.filter((argument) => argument.startsWith('--shard='));
+  const shard = shardArguments[0]?.slice('--shard='.length);
+  const shardParts = shard?.match(/^([1-9][0-9]*)\/([1-9][0-9]*)$/);
+  if (
+    shardArguments.length > 1 ||
+    (shard !== undefined &&
+      (!shardParts ||
+        !Number.isSafeInteger(Number(shardParts[1])) ||
+        !Number.isSafeInteger(Number(shardParts[2])) ||
+        Number(shardParts[1]) > Number(shardParts[2])))
+  )
+    throw new Error('Invalid browser shard; use one --shard=index/count with 1 <= index <= count.');
+  if (shard && isUpdatingReferences)
+    throw new Error('Browser reference updates require the complete UI suite.');
+  if (
+    args.some(
+      (argument) =>
+        !['--project=ui', '--update-references'].includes(argument) &&
+        !argument.startsWith('--shard='),
+    )
+  )
     throw new Error('Unsupported browser argument; use the documented UI entry points.');
 
   if (architecture !== 'x64' && architecture !== 'arm64')
@@ -130,10 +150,12 @@ export const runBrowser = async ({
           'CI=1',
           '--env',
           `UPDATE_REFERENCES=${isUpdatingReferences ? '1' : '0'}`,
+          '--env',
+          `BROWSER_SHARD=${shard ?? ''}`,
           image,
           'sh',
           '-c',
-          'cp -a /opt/dependencies/node_modules ./node_modules && node tooling/browserInside.ts',
+          'cp -a /opt/dependencies/node_modules ./node_modules && node tooling/verifyBrowserShardExecution.ts && node tooling/browserInside.ts',
         ],
         { signal: controller.signal },
       );

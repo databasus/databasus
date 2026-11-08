@@ -1,4 +1,4 @@
-import { Radio, Space } from 'antd';
+import { Radio } from '@mantine/core';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -61,16 +61,24 @@ export const EditPostgresqlPhysicalConnectionComponent = ({
         <Radio.Group
           aria-labelledby={backupTypeLabelId}
           value={settings.backupType ?? PhysicalDatabaseBackupType.FULL}
-          onChange={(e) => onConnectionChange({ ...settings, backupType: e.target.value })}
+          onChange={(value) => onConnectionChange({ ...settings, backupType: value })}
         >
-          <Space direction="vertical" size={0}>
+          <div className="flex flex-col">
             {Object.values(PhysicalDatabaseBackupType).map((backupType) => (
-              <Radio key={backupType} value={backupType} className="my-1! leading-[17px]!">
-                {t(PHYSICAL_DATABASE_BACKUP_TYPE_LABEL_KEYS[backupType])}
-                <ConnectionFieldTooltip title={t(BACKUP_TYPE_TOOLTIP_KEYS[backupType])} />
-              </Radio>
+              <Radio
+                key={backupType}
+                value={backupType}
+                size="xs"
+                className="my-1"
+                label={
+                  <>
+                    {t(PHYSICAL_DATABASE_BACKUP_TYPE_LABEL_KEYS[backupType])}
+                    <ConnectionFieldTooltip title={t(BACKUP_TYPE_TOOLTIP_KEYS[backupType])} />
+                  </>
+                }
+              />
             ))}
-          </Space>
+          </div>
         </Radio.Group>
       </div>
 

@@ -1,5 +1,5 @@
-import { DeleteOutlined, InfoCircleOutlined, PlusOutlined } from '@ant-design/icons';
-import { Button, Form, Input, Select, Tooltip } from 'antd';
+import { ActionIcon, Button, MultiSelect, TextInput, Textarea, Tooltip } from '@mantine/core';
+import { Info, Plus, Trash2 } from 'lucide-react';
 import { useId, useMemo } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -19,6 +19,7 @@ import {
 } from '@/features/edit-notifier/lib/webhookExampleRequest';
 import type { TranslationKey } from '@/shared/i18n';
 import { toOptionalValue } from '@/shared/lib';
+import { WrappingSelect } from '@/shared/ui';
 import { AddressChangedSecretNoticeComponent, InlineCodeComponent } from '@/shared/ui';
 
 interface Props {
@@ -115,11 +116,11 @@ export function EditWebhookNotifierComponent({
     <>
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('notifiers.fields.webhookUrl')}</div>
-        <Input
+        <TextInput
           aria-label={t('notifiers.fields.webhookUrl')}
           value={settings.webhookUrl}
           onChange={(e) => updateWebhookSettings({ webhookUrl: e.target.value.trim() })}
-          size="small"
+          size="xs"
           className="w-full max-w-[250px]"
           placeholder="https://example.com/webhook"
         />
@@ -128,13 +129,13 @@ export function EditWebhookNotifierComponent({
       <div className="mt-1 mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('notifiers.webhook.method')}</div>
         <div className="flex items-center">
-          <Select
+          <WrappingSelect
             aria-label={t('notifiers.webhook.method')}
             value={settings.webhookMethod}
             onChange={(webhookMethod) => updateWebhookSettings({ webhookMethod })}
-            size="small"
-            className="w-[100px] max-w-[250px]"
-            options={[
+            size="xs"
+            className="w-[7.2em] max-w-[250px]"
+            data={[
               { value: WebhookMethod.POST, label: WebhookMethod.POST },
               { value: WebhookMethod.GET, label: WebhookMethod.GET },
             ]}
@@ -144,14 +145,13 @@ export function EditWebhookNotifierComponent({
 
       <div className="mt-1 mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('notifiers.webhook.sendOn')}</div>
-        <Select
+        <MultiSelect
           aria-label={t('notifiers.webhook.sendOn')}
-          mode="multiple"
           value={acceptedCategories}
-          onChange={(categories: NotificationCategory[]) => changeAcceptedCategories(categories)}
-          size="small"
+          onChange={(categories) => changeAcceptedCategories(categories)}
+          size="xs"
           className="w-full max-w-[250px]"
-          options={Object.values(NotificationCategory).map((category: NotificationCategory) => ({
+          data={Object.values(NotificationCategory).map((category: NotificationCategory) => ({
             label: t(NOTIFICATION_CATEGORY_LABEL_KEYS[category]),
             value: category,
           }))}
@@ -163,8 +163,8 @@ export function EditWebhookNotifierComponent({
         <div className="mb-1 flex items-center">
           <span className="min-w-[150px] pr-2">
             {t('notifiers.webhook.customHeaders')}{' '}
-            <Tooltip title={t('notifiers.webhook.customHeadersTooltip')}>
-              <InfoCircleOutlined className="ml-1" />
+            <Tooltip label={t('notifiers.webhook.customHeadersTooltip')}>
+              <Info className="ml-1 inline-block shrink-0 align-middle" size="1em" />
             </Tooltip>
           </span>
         </div>
@@ -184,65 +184,62 @@ export function EditWebhookNotifierComponent({
 
             return (
               <div key={index} className="mb-1 flex min-w-0 flex-wrap items-start gap-2">
-                <Form.Item
-                  className="!mb-0 min-w-0 flex-1"
-                  validateStatus={isNameValid ? undefined : 'error'}
-                  help={
-                    isNameValid ? undefined : (
-                      <span className="text-danger" id={`${headerFieldId}-${index}-name-error`}>
-                        {t('notifiers.webhook.headerNameInvalid')}
-                      </span>
-                    )
-                  }
-                >
-                  <Input
+                <div className="min-w-0 flex-1">
+                  <TextInput
+                    id={`${headerFieldId}-${index}-name`}
                     aria-label={t('notifiers.webhook.headerNamePlaceholder')}
                     aria-invalid={!isNameValid}
-                    aria-describedby={
-                      isNameValid ? undefined : `${headerFieldId}-${index}-name-error`
-                    }
                     value={header.name}
                     onChange={(e) => updateHeader(index, { name: e.target.value })}
                     onBlur={() => trimHeaderName(index)}
-                    size="small"
+                    size="xs"
                     className="w-full min-w-0"
                     placeholder={t('notifiers.webhook.headerNamePlaceholder')}
+                    error={
+                      isNameValid ? undefined : (
+                        <span className="text-danger">
+                          {t('notifiers.webhook.headerNameInvalid')}
+                        </span>
+                      )
+                    }
                   />
-                </Form.Item>
+                </div>
                 <div className="min-w-0 flex-1">
-                  <Input
+                  <TextInput
                     aria-label={t('notifiers.webhook.headerValuePlaceholder')}
-                    aria-describedby={isValueRequiredAgain ? valueNoticeId : undefined}
                     value={header.value ?? ''}
                     onChange={(e) =>
                       updateHeader(index, {
                         value: toOptionalValue(e.target.value),
                       })
                     }
-                    size="small"
+                    size="xs"
                     className="w-full"
                     placeholder={t('notifiers.webhook.headerValuePlaceholder')}
+                    description={
+                      isValueRequiredAgain && (
+                        <AddressChangedSecretNoticeComponent id={valueNoticeId} />
+                      )
+                    }
                   />
-                  {isValueRequiredAgain && (
-                    <AddressChangedSecretNoticeComponent id={valueNoticeId} />
-                  )}
                 </div>
-                <Button
-                  type="text"
-                  danger
-                  size="small"
+                <ActionIcon
+                  variant="subtle"
+                  color="danger"
+                  size="xs"
                   aria-label={t('common.actions.remove')}
-                  icon={<DeleteOutlined aria-hidden />}
                   onClick={() => removeHeader(index)}
-                />
+                >
+                  <Trash2 aria-hidden size="1em" className="inline-block shrink-0 align-middle" />
+                </ActionIcon>
               </div>
             );
           })}
 
           <Button
-            type="dashed"
-            size="small"
-            icon={<PlusOutlined />}
+            variant="outline"
+            size="xs"
+            leftSection={<Plus size="1em" className="inline-block shrink-0 align-middle" />}
             onClick={addHeader}
             className="mt-1 !h-auto min-h-6 max-w-full !whitespace-normal"
           >
@@ -257,8 +254,8 @@ export function EditWebhookNotifierComponent({
             <span className="min-w-[150px] pr-2">{t('notifiers.webhook.bodyTemplate.title')}</span>
           </div>
 
-          <div className="mb-2 w-full min-w-0 text-xs break-words text-muted">
-            <span className="mr-4">
+          <div className="mb-2 flex w-full min-w-0 flex-wrap gap-x-4 gap-y-1 text-xs wrap-anywhere text-muted">
+            <span className="max-w-full min-w-0">
               <Trans
                 i18nKey="notifiers.webhook.bodyTemplate.headingVariable"
                 components={{
@@ -266,7 +263,7 @@ export function EditWebhookNotifierComponent({
                 }}
               />
             </span>
-            <span>
+            <span className="max-w-full min-w-0">
               <Trans
                 i18nKey="notifiers.webhook.bodyTemplate.messageVariable"
                 components={{
@@ -276,7 +273,7 @@ export function EditWebhookNotifierComponent({
             </span>
           </div>
 
-          <Input.TextArea
+          <Textarea
             aria-label={t('notifiers.webhook.bodyTemplate.title')}
             value={bodyTemplate}
             onChange={(e) =>
@@ -287,7 +284,7 @@ export function EditWebhookNotifierComponent({
             className="w-full max-w-[500px] font-mono text-xs"
             rows={6}
             placeholder={DEFAULT_BODY_TEMPLATE}
-            status={jsonErrorKey ? 'error' : undefined}
+            error={(jsonErrorKey ? 'error' : undefined) === 'error'}
           />
           {jsonErrorKey && <div className="mt-1 text-xs text-danger">{t(jsonErrorKey)}</div>}
         </div>

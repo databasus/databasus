@@ -61,7 +61,7 @@ describe('InstanceSettingsPage', () => {
       await screen.findByText(DICTIONARIES.en.settings.updated);
 
       expect(callback).toHaveBeenCalledWith({ ...settings, isAllowExternalRegistrations: true });
-      expect(externalToggle().getAttribute('aria-checked')).toBe(String(!shouldDiffer));
+      expect(String((externalToggle() as HTMLInputElement).checked)).toBe(String(!shouldDiffer));
       expect(!!screen.queryByRole('button', { name: DICTIONARIES.en.settings.saveChanges })).toBe(
         shouldDiffer,
       );
@@ -115,9 +115,9 @@ describe('InstanceSettingsPage', () => {
           ...turnedOn,
         },
       ]);
-      expect(screen.getByRole('switch', { name: switchName }).getAttribute('aria-checked')).toBe(
-        'true',
-      );
+      expect(
+        String((screen.getByRole('switch', { name: switchName }) as HTMLInputElement).checked),
+      ).toBe('true');
       expect(
         screen.queryByRole('button', { name: DICTIONARIES.en.settings.saveChanges }),
       ).toBeNull();
@@ -128,7 +128,7 @@ describe('InstanceSettingsPage', () => {
     await openSettings();
     fireEvent.click(externalToggle());
     fireEvent.click(screen.getByRole('button', { name: DICTIONARIES.en.settings.reset }));
-    expect(externalToggle().getAttribute('aria-checked')).toBe('false');
+    expect(String((externalToggle() as HTMLInputElement).checked)).toBe('false');
     expect(screen.queryByRole('button', { name: DICTIONARIES.en.settings.saveChanges })).toBeNull();
   });
 
@@ -140,7 +140,7 @@ describe('InstanceSettingsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: DICTIONARIES.en.settings.saveChanges }));
     await screen.findByText('You do not have permission to do this.');
 
-    expect(externalToggle().getAttribute('aria-checked')).toBe('true');
+    expect(String((externalToggle() as HTMLInputElement).checked)).toBe('true');
   });
 
   it('offers no retry when saving fails with the data loaded', async () => {
@@ -211,10 +211,10 @@ it.each([false, true])(
       name: DICTIONARIES.en.settings.twoFactorAuth.title,
     });
     expect(toggle.hasAttribute('disabled')).toBe(!isTwoFactorAuthRequired);
-    expect(toggle.getAttribute('aria-checked')).toBe(String(isTwoFactorAuthRequired));
+    expect(String((toggle as HTMLInputElement).checked)).toBe(String(isTwoFactorAuthRequired));
     if (isTwoFactorAuthRequired) {
       fireEvent.click(toggle);
-      expect(toggle.getAttribute('aria-checked')).toBe('false');
+      expect(String((toggle as HTMLInputElement).checked)).toBe('false');
       expect(
         screen.getByRole('button', { name: DICTIONARIES.en.settings.saveChanges }),
       ).toBeTruthy();
@@ -276,13 +276,13 @@ it('retains settings edits and translates the refusal when language changes duri
 
   await user.click(screen.getByRole('button', { name: /Language:/ }));
   await user.click(
-    await screen.findByRole('menuitem', { name: DICTIONARIES.ru.language.nativeName }),
+    await screen.findByRole('menuitemradio', { name: DICTIONARIES.ru.language.nativeName }),
   );
 
   const toggle = screen.getByRole('switch', {
     name: DICTIONARIES.ru.settings.externalRegistrations.title,
   });
-  expect(toggle.getAttribute('aria-checked')).toBe('true');
+  expect(String((toggle as HTMLInputElement).checked)).toBe('true');
   expect(
     screen
       .getByRole('button', { name: DICTIONARIES.ru.settings.saveChanges })
@@ -293,7 +293,7 @@ it('retains settings edits and translates the refusal when language changes duri
   save.release();
   await screen.findByText(DICTIONARIES.ru.errors.permissionDenied);
 
-  expect(toggle.getAttribute('aria-checked')).toBe('true');
+  expect(String((toggle as HTMLInputElement).checked)).toBe('true');
   expect(
     screen
       .getByRole('button', { name: DICTIONARIES.ru.settings.saveChanges })

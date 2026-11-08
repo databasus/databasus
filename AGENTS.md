@@ -18,7 +18,7 @@ Product behavior is specified in `openspec/specs`.
 Per-folder rules live next to the code they govern:
 
 - [`backend/AGENTS.md`](backend/AGENTS.md) — backend and verification agent code rules, Go + Gin + GORM + PostgreSQL
-- [`frontend/AGENTS.md`](frontend/AGENTS.md) — frontend code rules, React + TypeScript + Vite + Ant Design + Tailwind
+- [`frontend/AGENTS.md`](frontend/AGENTS.md) — frontend code rules, React + TypeScript + Vite + Mantine + Tailwind
 - [`website/AGENTS.md`](website/AGENTS.md) — marketing site rules and its translations, Next.js
 - [`assets/readme/AGENTS.md`](assets/readme/AGENTS.md) — translated copies of the root `README.md`
 

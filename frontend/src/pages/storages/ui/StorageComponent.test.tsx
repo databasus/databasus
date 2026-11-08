@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type Storage, storageApi } from '@/entities/storages';
 import { StorageComponent } from '@/pages/storages/ui/StorageComponent';
 import { activateSession } from '@/shared/auth';
-import { DICTIONARIES, type Locale, useLocale } from '@/shared/i18n';
+import { DICTIONARIES, SUPPORTED_LOCALES, type Locale, useLocale } from '@/shared/i18n';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
@@ -28,7 +28,7 @@ const localStorageOfWorkspace: Storage = {
   settings: { type: 'LOCAL' },
 };
 
-const renderStorage = (onStorageDeleted: () => void = () => {}) =>
+const renderStorage = (onStorageDeleted: () => void = () => {}, locale: Locale = 'en') =>
   renderScreen(
     <StorageComponent
       storageId={localStorageOfWorkspace.id}
@@ -37,9 +37,41 @@ const renderStorage = (onStorageDeleted: () => void = () => {}) =>
       onStorageTransferred={() => {}}
       isCanManageStorages
     />,
+    { locale },
   );
 
 describe('StorageComponent', () => {
+  it.each(SUPPORTED_LOCALES)(
+    'discards the name draft when the translated cancel action is used in %s',
+    async (locale) => {
+      mockServer.use(mockApi.get('/storages/{storageId}', 200, localStorageOfWorkspace));
+      const dictionary = DICTIONARIES[locale];
+      const view = renderStorage(undefined, locale);
+      await screen.findByText(localStorageOfWorkspace.name);
+
+      await view.user.click(
+        screen.getAllByRole('button', { name: dictionary.common.actions.edit })[0],
+      );
+
+      const nameInput = screen.getByRole('textbox', {
+        name: dictionary.common.fields.name,
+      });
+
+      await view.user.clear(nameInput);
+      await view.user.type(nameInput, 'Unsaved archive name');
+
+      const cancel = screen.getByRole('button', {
+        name: dictionary.common.actions.cancel,
+      });
+
+      await view.user.click(cancel);
+
+      expect(screen.queryByRole('textbox', { name: dictionary.common.fields.name })).toBeNull();
+      expect(screen.getByText(localStorageOfWorkspace.name)).toBeTruthy();
+      expect(mockServer.getRequests().some((request) => request.method === 'PUT')).toBe(false);
+    },
+  );
+
   it('retains the acknowledged name when settings editing follows a pending rename', async () => {
     const storage: Storage = {
       ...localStorageOfWorkspace,
@@ -430,7 +462,7 @@ describe('StorageComponent', () => {
       );
 
       expect(onStorageChanged).toHaveBeenCalledTimes(1);
-      expect(view.container.querySelector('.ant-alert-error')).toBeNull();
+      expect(view.container.querySelector('[role="alert"]')).toBeNull();
       expect(screen.queryAllByText('Connection test successful!')).toHaveLength(notices);
       expect(screen.getByDisplayValue('bucket-b')).toBeTruthy();
     },

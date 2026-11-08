@@ -1,4 +1,9 @@
+@layer theme, base, mantine, components, utilities;
+
 @import 'tailwindcss';
+@import '@mantine/core/styles.layer.css';
+@import '@mantine/dates/styles.layer.css';
+@import '@mantine/notifications/styles.layer.css';
 
 /* Enable Tailwind dark mode with class strategy */
 @custom-variant dark (&:where(.dark, .dark *));
@@ -64,13 +69,17 @@ body {
 }
 
 body {
+  font-size: 14px;
+  line-height: 1.5714285714;
   color: var(--app-content);
   background: var(--app-page);
 }
 
-:focus-visible {
-  outline: 2px solid var(--app-focus);
-  outline-offset: 2px;
+@layer components {
+  :focus-visible {
+    outline: 1px solid var(--app-focus);
+    outline-offset: 1px;
+  }
 }
 
 code,

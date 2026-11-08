@@ -18,8 +18,8 @@ export interface StyleFinding {
 }
 
 const COLOR_OWNERS = new Set([
-  'shared/theme/getAntdTheme.ts',
-  'pages/databases/lib/wal-stream-monitoring/chartColors.ts',
+  'shared/theme/themeTokens.ts',
+  'pages/databases/wal-monitoring/lib/chartColors.ts',
 ]);
 const colorProperty =
   /^(?:color|background(?:Color|Image)?|border(?:(?:Top|Right|Bottom|Left|Block|BlockStart|BlockEnd|Inline|InlineStart|InlineEnd)?(?:Color)?)?|fill|stroke|boxShadow|outline(?:Color)?|textShadow|stopColor|caretColor|accentColor)$/;
@@ -404,7 +404,10 @@ export const checkStyleSource = ({
       const attribute = node.name.getText(file);
 
       if (
-        (attribute === 'style' || attribute === 'styles' || /Style$/.test(attribute)) &&
+        (attribute === 'style' ||
+          attribute === 'styles' ||
+          attribute === 'vars' ||
+          /Style$/.test(attribute)) &&
         node.initializer &&
         ts.isJsxExpression(node.initializer) &&
         node.initializer.expression
@@ -414,7 +417,7 @@ export const checkStyleSource = ({
 
         for (const property of properties) {
           const name = getStylePropertyName(property);
-          if (colorProperty.test(name))
+          if (colorProperty.test(name) || name.startsWith('--'))
             checkColor(
               `${ts.isObjectLiteralExpression(node.initializer.expression) ? '' : 'style.'}${name}`,
               getStyleValue(property),
@@ -457,8 +460,9 @@ export const checkStyleSource = ({
           add('invisible-focus', `${getStylePropertyName(property)}:${removals.join(' ')}`);
       }
 
-      if (colorProperty.test(attribute)) checkColor(attribute, node.initializer);
-      if (attribute === 'className') {
+      if (colorProperty.test(attribute) || attribute === 'c' || attribute === 'bg')
+        checkColor(attribute, node.initializer);
+      if (attribute === 'className' || attribute === 'classNames') {
         const classes = getStrings(node.initializer, checker)
           .flatMap((value) => value.split(/\s+/))
           .filter(Boolean);

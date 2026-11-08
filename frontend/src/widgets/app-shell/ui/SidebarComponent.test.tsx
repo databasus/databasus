@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { screen } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
-import { useState } from 'react';
+import { useLocation } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { setUpMockApi } from '@/shared/lib/test/mockApi';
@@ -14,27 +14,20 @@ import {
 
 const server = setUpMockApi();
 
-const buildTab = ({
-  name,
-  text,
-  onSelect,
-}: {
-  name: MainTab;
-  text: string;
-  onSelect: (name: MainTab) => void;
-}): SidebarTab => ({
+const buildTab = ({ name, text }: { name: MainTab; text: string }): SidebarTab => ({
   text,
   name,
   icon: `/icons/menu/${name}-gray.svg`,
   selectedIcon: `/icons/menu/${name}-white.svg`,
-  onClick: () => onSelect(name),
+  href: `/${name}`,
   isAdminOnly: false,
   marginTop: '0px',
   isVisible: true,
 });
 
 const SelectableSidebar = () => {
-  const [selectedTab, setSelectedTab] = useState<MainTab>('databases');
+  const location = useLocation();
+  const selectedTab = location.pathname === '/storages' ? 'storages' : 'databases';
 
   return (
     <SidebarComponent
@@ -42,8 +35,8 @@ const SelectableSidebar = () => {
       onClose={() => {}}
       selectedTab={selectedTab}
       tabs={[
-        buildTab({ name: 'databases', text: 'Databases', onSelect: setSelectedTab }),
-        buildTab({ name: 'storages', text: 'Storages', onSelect: setSelectedTab }),
+        buildTab({ name: 'databases', text: 'Databases' }),
+        buildTab({ name: 'storages', text: 'Storages' }),
       ]}
     />
   );
@@ -72,11 +65,11 @@ describe('SidebarComponent', () => {
     it('marks the selected tab with aria-current', () => {
       renderScreen(<SelectableSidebar />);
 
-      const selectedTab = screen.getByRole('button', { name: 'Databases' });
+      const selectedTab = screen.getByRole('link', { name: 'Databases' });
 
       expect(selectedTab.getAttribute('aria-current')).toBe('page');
       expect(
-        screen.getByRole('button', { name: 'Storages' }).getAttribute('aria-current'),
+        screen.getByRole('link', { name: 'Storages' }).getAttribute('aria-current'),
       ).toBeNull();
       expect(document.querySelectorAll('[aria-current="page"]')).toHaveLength(1);
       expect(getTabIcon(selectedTab).getAttribute('src')).toBe('/icons/menu/databases-white.svg');
@@ -86,10 +79,10 @@ describe('SidebarComponent', () => {
     it('moves aria-current to the activated tab', async () => {
       const { user } = renderScreen(<SelectableSidebar />);
 
-      await user.click(screen.getByRole('button', { name: 'Storages' }));
+      await user.click(screen.getByRole('link', { name: 'Storages' }));
 
-      const activatedTab = screen.getByRole('button', { name: 'Storages' });
-      const previousTab = screen.getByRole('button', { name: 'Databases' });
+      const activatedTab = screen.getByRole('link', { name: 'Storages' });
+      const previousTab = screen.getByRole('link', { name: 'Databases' });
 
       expect(activatedTab.getAttribute('aria-current')).toBe('page');
       expect(previousTab.getAttribute('aria-current')).toBeNull();

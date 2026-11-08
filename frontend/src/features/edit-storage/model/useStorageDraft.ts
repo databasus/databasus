@@ -8,6 +8,7 @@ import {
   isStorageDraftUnchanged,
 } from '@/features/edit-storage/lib/StorageDraft';
 import { acknowledgeStorageSettings } from '@/features/edit-storage/model/acknowledgeStorageSettings';
+import { useSessionMutation } from '@/shared/api';
 import { getSessionSnapshot, isCurrentSession, subscribeSession } from '@/shared/auth';
 import { RequestRevision } from '@/shared/lib/RequestRevision';
 
@@ -36,12 +37,26 @@ const createDraft = ({
       };
 
 export function useStorageDraft(options: Options) {
+  const testStorageSettingsMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof storageApi.testStorageSettings>) =>
+      storageApi.testStorageSettings(...parameters),
+  });
+  const { reset: resetRequest } = testStorageSettingsMutation;
+  const updateStorageMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof storageApi.updateStorage>) =>
+      storageApi.updateStorage(...parameters),
+  });
+  const createStorageMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof storageApi.createStorage>) =>
+      storageApi.createStorage(...parameters),
+  });
+
   const [draft, setDraft] = useState(() => createDraft(options));
   const [baseline, setBaseline] = useState(draft);
   const [storageId, setStorageId] = useState(draft.storageId);
   const [savedSettings, setSavedSettings] = useState(options.editingStorage?.settings);
   const [isSaving, setIsSaving] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
+  const isTesting = testStorageSettingsMutation.isPending;
   const [testedRevision, setTestedRevision] = useState<number>();
   const [error, setError] = useState<StorageError>();
 
@@ -52,7 +67,7 @@ export function useStorageDraft(options: Options) {
   const invalidateTest = () => {
     revisions.current.test.Invalidate();
     activeTest.current = undefined;
-    setIsTesting(false);
+    resetRequest();
     setTestedRevision(undefined);
     setError(undefined);
   };
@@ -88,15 +103,15 @@ export function useStorageDraft(options: Options) {
       revisions.current.test.IsCurrent(testRevision);
 
     activeTest.current = request;
-    setIsTesting(true);
+
     setError(undefined);
 
     try {
-      const response = await storageApi.testStorageSettings(
+      const response = await testStorageSettingsMutation.mutateAsync([
         options.workspaceId,
         structuredClone(currentDraft.current.settings),
         persistedId.current,
-      );
+      ]);
       if (!isActive()) return;
 
       if (response.isConnected) {
@@ -108,7 +123,7 @@ export function useStorageDraft(options: Options) {
     } finally {
       if (activeTest.current === request) {
         activeTest.current = undefined;
-        setIsTesting(false);
+        resetRequest();
       }
     }
   };
@@ -134,8 +149,16 @@ export function useStorageDraft(options: Options) {
 
     try {
       const saved = persistedId.current
-        ? await storageApi.updateStorage(persistedId.current, submitted.name, submitted.settings)
-        : await storageApi.createStorage(options.workspaceId, submitted.name, submitted.settings);
+        ? await updateStorageMutation.mutateAsync([
+            persistedId.current,
+            submitted.name,
+            submitted.settings,
+          ])
+        : await createStorageMutation.mutateAsync([
+            options.workspaceId,
+            submitted.name,
+            submitted.settings,
+          ]);
       if (!isCurrentSession(session) || !revisions.current.context.IsCurrent(contextRevision))
         return;
 
@@ -201,6 +224,7 @@ export function useStorageDraft(options: Options) {
     callbacks.current = options;
   });
 
+  const invalidateDraftTest = useEffectEvent(invalidateTest);
   const createInitialDraft = useEffectEvent(() => createDraft(options));
 
   useLayoutEffect(() => {
@@ -225,7 +249,7 @@ export function useStorageDraft(options: Options) {
 
     revisions.current.context.Invalidate();
     revisions.current.settings.Invalidate();
-    invalidateTest();
+    invalidateDraftTest();
     activeSave.current = undefined;
 
     const initial = createInitialDraft();
@@ -246,7 +270,7 @@ export function useStorageDraft(options: Options) {
       activeTest.current = undefined;
       activeSave.current = undefined;
       setIsSaving(false);
-      setIsTesting(false);
+      resetRequest();
       setTestedRevision(undefined);
     };
     const unsubscribe = subscribeSession(cancel);
@@ -258,7 +282,7 @@ export function useStorageDraft(options: Options) {
       activeTest.current = undefined;
       activeSave.current = undefined;
     };
-  }, []);
+  }, [resetRequest]);
 
   return {
     name: draft.name,

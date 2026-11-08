@@ -1,12 +1,13 @@
-import { EyeInvisibleOutlined, EyeTwoTone } from '@ant-design/icons';
-import { Form, App, Button, Input } from 'antd';
+import { Button, PasswordInput, TextInput } from '@mantine/core';
 import { useId } from 'react';
 import { type JSX, useEffect, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { userApi } from '@/entities/users';
+import { useSessionMutation } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { translateApiError } from '@/shared/i18n';
+import { useFeedback } from '@/shared/lib/feedback';
 import { FormValidator } from '@/shared/lib/FormValidator';
 
 interface ResetPasswordComponentProps {
@@ -20,6 +21,11 @@ export function ResetPasswordComponent({
   onSwitchToRequestCode,
   initialEmail = '',
 }: ResetPasswordComponentProps): JSX.Element {
+  const resetPasswordMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof userApi.resetPassword>) =>
+      userApi.resetPassword(...parameters),
+  });
+
   const [email, setEmail] = useState(initialEmail);
   const [code, setCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -94,16 +100,17 @@ export function ResetPasswordComponent({
       setLoading(true);
 
       try {
-        await userApi.resetPassword({
-          email,
-          code,
-          newPassword,
-        });
+        await resetPasswordMutation.mutateAsync([
+          {
+            email,
+            code,
+            newPassword,
+          },
+        ]);
 
         if (!isCurrent()) return;
         setIsResetComplete(true);
-        message.success(i18n.t('users.resetPassword.succeeded'));
-
+        notify({ kind: 'success', title: i18n.t('users.resetPassword.succeeded') });
         navigationTimer.current = setTimeout(() => {
           if (!isCurrent()) return;
           if (onSwitchToSignIn) {
@@ -122,8 +129,7 @@ export function ResetPasswordComponent({
   const isCurrent = useSessionGuard();
   const navigationTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const { t, i18n } = useTranslation();
-  const { message } = App.useApp();
-
+  const notify = useFeedback();
   useEffect(
     () => () => {
       if (navigationTimer.current) clearTimeout(navigationTimer.current);
@@ -133,26 +139,18 @@ export function ResetPasswordComponent({
 
   return (
     <div className="w-full max-w-[300px]">
-      <div className="mb-5 text-center text-2xl font-bold">{t('users.resetPassword.title')}</div>
+      <div className="mb-4 text-center text-xl font-semibold">{t('users.resetPassword.title')}</div>
 
       <div className="mb-4 text-center text-sm text-muted">
         {t('users.resetPassword.description')}
       </div>
 
-      <Form.Item
-        htmlFor={controlId + 'field-1'}
-        label={t('users.fields.yourEmail')}
-        layout="vertical"
-        validateStatus={isEmailError ? 'error' : undefined}
-        help={
-          isEmailError ? (
-            <span id={controlId + 'field-1' + '-error'}>{t('users.validation.emailInvalid')}</span>
-          ) : undefined
-        }
-      >
-        <Input
+      <div className="mb-3 min-w-0">
+        <label htmlFor={controlId + 'field-1'} className="mb-1 block text-sm text-content">
+          {t('users.fields.yourEmail')}
+        </label>
+        <TextInput
           aria-invalid={isEmailError}
-          aria-describedby={controlId + 'field-1' + '-error'}
           id={controlId + 'field-1'}
           placeholder="your@email.com"
           value={email}
@@ -160,27 +158,17 @@ export function ResetPasswordComponent({
             setEmailError(false);
             setEmail(e.currentTarget.value.trim().toLowerCase());
           }}
-          status={isEmailError ? 'error' : undefined}
           type="email"
+          error={isEmailError ? <span>{t('users.validation.emailInvalid')}</span> : undefined}
         />
-      </Form.Item>
+      </div>
 
-      <Form.Item
-        htmlFor={controlId + 'field-2'}
-        label={t('users.resetPassword.code')}
-        layout="vertical"
-        validateStatus={isCodeError ? 'error' : undefined}
-        help={
-          isCodeError ? (
-            <span id={controlId + 'field-2' + '-error'}>
-              {t('users.resetPassword.invalidCode')}
-            </span>
-          ) : undefined
-        }
-      >
-        <Input
+      <div className="mb-3 min-w-0">
+        <label htmlFor={controlId + 'field-2'} className="mb-1 block text-sm text-content">
+          {t('users.resetPassword.code')}
+        </label>
+        <TextInput
           aria-invalid={isCodeError}
-          aria-describedby={controlId + 'field-2' + '-error'}
           id={controlId + 'field-2'}
           placeholder="123456"
           value={code}
@@ -189,27 +177,17 @@ export function ResetPasswordComponent({
             const value = e.currentTarget.value.replace(/\D/g, '').slice(0, 6);
             setCode(value);
           }}
-          status={isCodeError ? 'error' : undefined}
           maxLength={6}
+          error={isCodeError ? <span>{t('users.resetPassword.invalidCode')}</span> : undefined}
         />
-      </Form.Item>
+      </div>
 
-      <Form.Item
-        htmlFor={controlId + 'field-3'}
-        label={t('users.fields.newPassword')}
-        layout="vertical"
-        validateStatus={isPasswordError ? 'error' : undefined}
-        help={
-          isPasswordError ? (
-            <span id={controlId + 'field-3' + '-error'}>
-              {t('users.validation.passwordTooShort', { minLength: 8 })}
-            </span>
-          ) : undefined
-        }
-      >
-        <Input.Password
+      <div className="mb-3 min-w-0">
+        <label htmlFor={controlId + 'field-3'} className="mb-1 block text-sm text-content">
+          {t('users.fields.newPassword')}
+        </label>
+        <PasswordInput
           aria-invalid={isPasswordError}
-          aria-describedby={controlId + 'field-3' + '-error'}
           id={controlId + 'field-3'}
           placeholder="********"
           value={newPassword}
@@ -217,45 +195,44 @@ export function ResetPasswordComponent({
             setPasswordError(false);
             setNewPassword(e.currentTarget.value);
           }}
-          status={isPasswordError ? 'error' : undefined}
-          iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
-          visibilityToggle={{ visible: isPasswordVisible, onVisibleChange: setPasswordVisible }}
+          visible={isPasswordVisible}
+          onVisibilityChange={setPasswordVisible}
+          visibilityToggleButtonProps={{
+            'aria-label': t('common.actions.togglePasswordVisibility'),
+          }}
+          error={
+            isPasswordError ? (
+              <span>{t('users.validation.passwordTooShort', { minLength: 8 })}</span>
+            ) : undefined
+          }
         />
-      </Form.Item>
+      </div>
 
-      <Form.Item
-        htmlFor={controlId + 'field-4'}
-        label={t('users.resetPassword.confirmPassword')}
-        layout="vertical"
-        validateStatus={isConfirmPasswordError ? 'error' : undefined}
-        help={
-          isConfirmPasswordError ? (
-            <span id={controlId + 'field-4' + '-error'}>
-              {t('users.validation.passwordsDoNotMatch')}
-            </span>
-          ) : undefined
-        }
-      >
-        <Input.Password
+      <div className="mb-3 min-w-0">
+        <label htmlFor={controlId + 'field-4'} className="mb-1 block text-sm text-content">
+          {t('users.resetPassword.confirmPassword')}
+        </label>
+        <PasswordInput
           aria-invalid={isConfirmPasswordError}
-          aria-describedby={controlId + 'field-4' + '-error'}
           id={controlId + 'field-4'}
           placeholder="********"
           value={confirmPassword}
-          status={isConfirmPasswordError ? 'error' : undefined}
           onChange={(e) => {
             setConfirmPasswordError(false);
             setConfirmPassword(e.currentTarget.value);
           }}
-          iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
-          visibilityToggle={{
-            visible: isConfirmPasswordVisible,
-            onVisibleChange: setConfirmPasswordVisible,
+          visible={isConfirmPasswordVisible}
+          onVisibilityChange={setConfirmPasswordVisible}
+          visibilityToggleButtonProps={{
+            'aria-label': t('common.actions.togglePasswordVisibility'),
           }}
+          error={
+            isConfirmPasswordError ? (
+              <span>{t('users.validation.passwordsDoNotMatch')}</span>
+            ) : undefined
+          }
         />
-      </Form.Item>
-
-      <div className="mt-3" />
+      </div>
 
       <Button
         aria-label={t('users.resetPassword.submit')}
@@ -265,7 +242,8 @@ export function ResetPasswordComponent({
         onClick={() => {
           onResetPassword();
         }}
-        type="primary"
+        variant="filled"
+        aria-busy={isLoading}
       >
         {t('users.resetPassword.submit')}
       </Button>

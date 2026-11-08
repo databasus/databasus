@@ -1,4 +1,5 @@
-import { Alert, Button, Spin } from 'antd';
+import { Alert, Button, Loader } from '@mantine/core';
+import { CircleAlert } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -32,7 +33,8 @@ export function AuthCallbackPage() {
     void callback
       .Start()
       .then((session) => {
-        if (isAttached && callback.Accept(session)) navigate('/', { replace: true });
+        if (isAttached && callback.Accept(session))
+          navigate(callback.GetReturnPath(), { replace: true });
       })
       .catch((failure) => {
         if (isAttached && callback.IsCurrent()) setFailure(failure);
@@ -47,22 +49,23 @@ export function AuthCallbackPage() {
       {failure !== undefined ? (
         <div className="max-w-md">
           <Alert
-            type="error"
-            showIcon
-            message={t('app.oauthCallback.failedTitle')}
-            description={
-              failure instanceof ApiError
-                ? translateApiError(failure, t)
-                : t('app.oauthCallback.notCompleted')
+            color="danger"
+            icon={
+              <CircleAlert aria-hidden size={16} className="inline-block shrink-0 align-middle" />
             }
-          />
+            title={t('app.oauthCallback.failedTitle')}
+          >
+            {failure instanceof ApiError
+              ? translateApiError(failure, t)
+              : t('app.oauthCallback.notCompleted')}
+          </Alert>
           <Button className="mt-4" onClick={() => navigate('/', { replace: true })}>
             {t('app.oauthCallback.returnToSignIn')}
           </Button>
         </div>
       ) : (
         <>
-          <Spin />
+          <Loader role="status" size="1em" className="text-xl" />
           <div className="mt-4">{t('app.oauthCallback.completing')}</div>
         </>
       )}

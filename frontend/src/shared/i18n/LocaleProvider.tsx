@@ -62,12 +62,12 @@ export function LocaleProvider({ children }: LocaleProviderProps) {
   );
 
   const value = useMemo(() => {
-    const { languageTag, dayjsLocale, antdLocale } = LOCALE_SETTINGS[locale];
+    const { languageTag, dayjsLocale } = LOCALE_SETTINGS[locale];
 
     return {
       locale,
       setLocale,
-      antdLocale,
+      dateLocale: dayjsLocale,
       formatNumber: (number: number, options?: Intl.NumberFormatOptions) =>
         formatNumber(number, languageTag, options),
       formatRelativeTime: (date: dayjs.ConfigType) => formatRelativeTime(date, dayjsLocale),

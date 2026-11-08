@@ -1,0 +1,57 @@
+@layer components {
+  .table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    color: var(--app-content);
+    font-size: 14px;
+    line-height: 1.5714285714;
+
+    & th,
+    & td {
+      padding: 8px;
+      text-align: start;
+      overflow-wrap: normal;
+      border-bottom: 1px solid var(--app-table-border);
+    }
+
+    & th {
+      background-color: var(--app-table-header);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    & td {
+      background-color: var(--app-surface);
+      vertical-align: middle;
+    }
+
+    & tbody tr:hover td {
+      background-color: var(--app-table-header);
+    }
+
+    & thead th:first-child {
+      border-start-start-radius: 8px;
+    }
+
+    & thead th:last-child {
+      border-start-end-radius: 8px;
+    }
+
+    & button:focus-visible {
+      outline: 1px solid var(--app-focus);
+      outline-offset: 1px;
+    }
+  }
+
+  .bordered {
+    border-top: 1px solid var(--app-table-border);
+    border-inline-start: 1px solid var(--app-table-border);
+    border-radius: 8px 8px 0 0;
+
+    & th,
+    & td {
+      border-inline-end: 1px solid var(--app-table-border);
+    }
+  }
+}

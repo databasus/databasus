@@ -1,5 +1,6 @@
-import { Alert, Button, ConfigProvider, notification } from 'antd';
-import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
+import { Alert, Button } from '@mantine/core';
+import { CircleAlert } from 'lucide-react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -22,7 +23,7 @@ import { EditPostgresqlLogicalConnectionComponent } from '@/features/database-co
 import { EditPostgresqlPhysicalConnectionComponent } from '@/features/database-connection/ui/EditPostgresqlPhysicalConnectionComponent';
 import { useSessionGuard } from '@/shared/auth';
 import { translateApiError } from '@/shared/i18n';
-
+import { useFeedback } from '@/shared/lib/feedback';
 interface CommonProps<Draft extends DatabaseConnectionDraft> {
   draft: Draft;
   onDraftChange: (draft: Draft) => void;
@@ -52,8 +53,7 @@ export const DatabaseConnectionForm = (props: Props) => {
   const { draft, submitLabel, secondaryActions, onConnectionErrorChange } = props;
 
   const { t } = useTranslation();
-  const noticeId = useId();
-  const [notices, noticeHolder] = notification.useNotification();
+  const notify = useFeedback({ scope: 'screen' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitFailure, setSubmitFailure] = useState<unknown>();
 
@@ -65,12 +65,12 @@ export const DatabaseConnectionForm = (props: Props) => {
   const connectionTest = useDatabaseConnectionTest<DatabaseConnectionDraft>({
     onChange: reportDraft,
     onTestSucceeded: () =>
-      notices.success({
-        key: noticeId,
-        message: t('databases.edit.connectionTestPassed.title'),
+      notify({
+        kind: 'success',
+        title: t('databases.edit.connectionTestPassed.title'),
         description: t('databases.edit.connectionTestPassed.description'),
-        duration: 4,
-        placement: 'bottomRight',
+        lifetimeMs: 4 * 1000,
+        position: 'bottom-right',
       }),
   });
 
@@ -160,14 +160,10 @@ export const DatabaseConnectionForm = (props: Props) => {
     return () => onConnectionErrorChange?.(false);
   }, [hasClassifiedFailure, onConnectionErrorChange]);
 
-  useEffect(() => () => notices.destroy(noticeId), [notices, noticeId]);
-
   const isFilled = isConnectionDraftFilled(draft);
 
   return (
-    <ConfigProvider componentDisabled={isSubmitting}>
-      {noticeHolder}
-
+    <fieldset disabled={isSubmitting} aria-busy={isSubmitting} className="min-w-0 border-0 p-0">
       {renderEditor()}
 
       {connectionTest.failure && (
@@ -180,10 +176,10 @@ export const DatabaseConnectionForm = (props: Props) => {
 
       {submitFailure !== undefined && (
         <Alert
-          type="error"
-          showIcon
+          color="danger"
+          icon={<CircleAlert aria-hidden size={16} />}
           className="mt-3"
-          message={translateApiError(submitFailure, t)}
+          title={translateApiError(submitFailure, t)}
         />
       )}
 
@@ -192,21 +188,30 @@ export const DatabaseConnectionForm = (props: Props) => {
 
         {draft.scenario !== 'restore' && !connectionTest.isTested && (
           <Button
-            type="primary"
+            className="!h-auto min-h-8 max-w-full !whitespace-normal"
+            variant="filled"
             onClick={() => connectionTest.testConnection(toDatabaseSettingsTarget(draft))}
             loading={connectionTest.isTesting}
             disabled={!isFilled}
+            aria-busy={connectionTest.isTesting}
           >
             {t('databases.actions.testConnection')}
           </Button>
         )}
 
         {(draft.scenario === 'restore' || connectionTest.isTested) && (
-          <Button type="primary" onClick={submit} loading={isSubmitting} disabled={!isFilled}>
+          <Button
+            className="!h-auto min-h-8 max-w-full !whitespace-normal"
+            variant="filled"
+            onClick={submit}
+            loading={isSubmitting}
+            disabled={!isFilled}
+            aria-busy={isSubmitting}
+          >
             {submitLabel}
           </Button>
         )}
       </div>
-    </ConfigProvider>
+    </fieldset>
   );
 };

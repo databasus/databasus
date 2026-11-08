@@ -1,10 +1,11 @@
-import { Button, Modal } from 'antd';
+import { Button } from '@mantine/core';
 import type { JSX } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import type { AgentArchitecture } from '@/pages/instance-settings/lib/verificationAgentCommands';
 import { CopyableCodeBlock } from '@/pages/instance-settings/ui/verification-agents/CopyableCodeBlock';
 import { InstallCommands } from '@/pages/instance-settings/ui/verification-agents/InstallCommands';
+import { Dialog } from '@/shared/ui';
 
 export interface RevealedAgentToken {
   token: string;
@@ -30,21 +31,12 @@ export const RevealedAgentTokenDialog = ({
   const { t } = useTranslation();
 
   return (
-    <Modal
+    <Dialog
       title={t('verification.agents.token.title')}
-      open={revealedToken !== undefined}
-      onCancel={onClose}
-      width={640}
-      footer={
-        <Button type="primary" onClick={onClose}>
-          {t('verification.agents.token.confirmSaved')}
-        </Button>
-      }
-      maskClosable={false}
-      // Without it a closing dialog keeps its last content until the animation ends, and the token
-      // has to leave the page as soon as the dialog closes.
-      forceRender
-      destroyOnHidden
+      opened={revealedToken !== undefined}
+      onClose={onClose}
+      size={640}
+      closeOnClickOutside={false}
     >
       {revealedToken && (
         <>
@@ -67,6 +59,11 @@ export const RevealedAgentTokenDialog = ({
           <p className="mt-3 text-sm text-warning">{t('verification.agents.token.shownOnce')}</p>
         </>
       )}
-    </Modal>
+      <div className="mt-5 flex flex-wrap justify-end gap-2">
+        <Button variant="filled" onClick={onClose}>
+          {t('verification.agents.token.confirmSaved')}
+        </Button>
+      </div>
+    </Dialog>
   );
 };

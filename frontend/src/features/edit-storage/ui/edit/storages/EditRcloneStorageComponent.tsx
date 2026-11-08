@@ -1,5 +1,5 @@
-import { InfoCircleOutlined } from '@ant-design/icons';
-import { Input, Tooltip } from 'antd';
+import { TextInput, Textarea, Tooltip } from '@mantine/core';
+import { Info } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import type { RcloneStorageSettings } from '@/entities/storages';
@@ -20,7 +20,7 @@ export function EditRcloneStorageComponent({ settings, isSaved, onChange }: Prop
         <div className="mb-1 min-w-[110px] pt-1 sm:mb-0 sm:pr-2">{t('storages.fields.config')}</div>
         <div className="flex w-full flex-col">
           <div className="flex items-start">
-            <Input.TextArea
+            <Textarea
               aria-label={t('storages.fields.config')}
               value={settings.configContent || ''}
               onChange={(e) => {
@@ -38,8 +38,8 @@ region = us-east-1`}
               style={{ resize: 'vertical' }}
             />
 
-            <Tooltip className="cursor-pointer" title={t('storages.edit.rclone.configTooltip')}>
-              <InfoCircleOutlined className="mt-2 ml-2" />
+            <Tooltip className="cursor-pointer" label={t('storages.edit.rclone.configTooltip')}>
+              <Info className="mt-2 ml-2 inline-block shrink-0 align-middle" size="1em" />
             </Tooltip>
           </div>
         </div>
@@ -66,26 +66,26 @@ region = us-east-1`}
       </div>
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.remotePath')}</div>
-        <div className="flex items-center">
-          <Input
+        <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[110px] sm:shrink-0 sm:pr-2">
+          {t('storages.fields.remotePath')}
+        </div>
+        <div className="flex w-full min-w-0 items-center">
+          <TextInput
             aria-label={t('storages.fields.remotePath')}
             value={settings.remotePath || ''}
             onChange={(e) => {
               onChange({ ...settings, remotePath: toOptionalValue(e.target.value.trim()) });
             }}
-            size="small"
+            size="xs"
             className="w-full max-w-[250px]"
             placeholder={t('storages.edit.optionalPlaceholder', { example: '/backups' })}
           />
 
-          <Tooltip className="cursor-pointer" title={t('storages.edit.rclone.remotePathTooltip')}>
-            <InfoCircleOutlined className="ml-2" />
+          <Tooltip className="cursor-pointer" label={t('storages.edit.rclone.remotePathTooltip')}>
+            <Info className="ml-2 inline-block shrink-0 align-middle" size="1em" />
           </Tooltip>
         </div>
       </div>
-
-      <div className="mb-5" />
     </>
   );
 }

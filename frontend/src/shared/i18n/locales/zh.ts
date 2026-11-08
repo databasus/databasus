@@ -5,7 +5,20 @@ export const zh: typeof en = {
     nativeName: '中文',
   },
   common: {
+    calendar: {
+      monthLevelControl: '选择月份',
+      yearLevelControl: '选择年份',
+      nextMonth: '下个月',
+      previousMonth: '上个月',
+      nextYear: '下一年',
+      previousYear: '上一年',
+      nextDecade: '下一个十年',
+      previousDecade: '上一个十年',
+      seconds: '秒',
+    },
     actions: {
+      clear: '清除',
+      togglePasswordVisibility: '显示或隐藏密码',
       back: '返回',
       cancel: '取消',
       close: '关闭',
@@ -139,7 +152,13 @@ export const zh: typeof en = {
     unauthenticated: '会话已结束，请重新登录。',
     permissionDenied: '您没有执行此操作的权限。',
     humanVerificationFailed: '人机验证未通过，请完成验证后重试。',
-    invalidCredentials: '邮箱或密码不正确。',
+    emailNotFound: '未找到使用此邮箱的账户。请检查邮箱地址。',
+    passwordIncorrect: '密码不正确。',
+    registrationIncomplete: '注册尚未完成。请使用此邮箱注册以接受邀请。',
+    passwordNotSet: '此账户尚未设置密码。',
+    passwordNotSetGoogle: '此账户尚未设置密码。请通过 Google 登录。',
+    passwordNotSetGithub: '此账户尚未设置密码。请通过 GitHub 登录。',
+    passwordNotSetGoogleGithub: '此账户尚未设置密码。请通过 Google 或 GitHub 登录。',
     userDeactivated: '此账户已停用，请联系管理员启用。',
     registrationClosed: '该实例已关闭注册，请联系管理员邀请您。',
     emailTaken: '该邮箱地址已被使用。',
@@ -190,6 +209,9 @@ export const zh: typeof en = {
     },
   },
   schedules: {
+    hours: '小时',
+    minutes: '分钟',
+    timePeriod: '上午或下午',
     types: {
       hourly: '每小时',
       daily: '每天',
@@ -870,6 +892,9 @@ export const zh: typeof en = {
       submit: '登录',
       noAccount: '还没有账号？<signUpLink>注册</signUpLink>',
       forgotPassword: '忘记密码？',
+      setPassword: '设置密码',
+      passwordRecoveryHint: '请通过密码找回功能设置密码。',
+      contactAdministratorHint: '请联系管理员恢复访问权限。',
     },
     signInCode: {
       title: '输入验证码',
@@ -1397,7 +1422,7 @@ export const zh: typeof en = {
         forever: '永久',
       },
       retentionPolicyTypes: {
-        gfs: 'GFS（保留最近 N 个每小时、每天、每周、每月和每年的备份）',
+        gfs: 'GFS（按日历周期保留）',
         timePeriod: '按时间段（最近 N 天）',
         count: '按数量（最近 N 个备份）',
       },
@@ -1444,9 +1469,14 @@ export const zh: typeof en = {
           countValue: '保留最近 {{count}} 个备份',
           showGfsHint: '什么是 GFS（祖父-父-子）？',
           hideGfsHint: '隐藏',
-          gfsHint:
-            'GFS（祖父-父-子）轮换：保留最近 N 个每小时、每天、每周、每月和每年的备份。这样可以在合理的存储空间内长期保留备份。',
-          gfsTooltip: 'GFS（祖父-父-子）轮换：保留最近 N 个每小时、每天、每周、每月和每年的备份。',
+          gfsHint: {
+            summary: 'GFS 保留最近的备份，并将部分旧备份保存更长时间。',
+            selection:
+              '<strong>选择要保留多少份备份</strong>，分别按小时、天、周、月和年设置。只计算成功的备份。',
+            fileCount:
+              '<strong>同一份备份可以同时满足多项设置</strong>，因此文件总数可能与设置值之和不同。',
+          },
+          gfsTooltip: 'GFS：保留最近的日历小时和天、已结束的周、月和年，并保护当前周期的候选备份。',
           gfsFields: {
             hourly: '每小时备份',
             daily: '每天备份',
@@ -1539,8 +1569,16 @@ export const zh: typeof en = {
         chainsKept: '保留的备份链',
         fullBackupsKept: '保留的全量备份',
         fullBackupsCountValue: '最近 {{count}} 个',
+        gfsHint: {
+          summary: 'GFS 保留最近的完整备份，并将部分旧备份保存更长时间。',
+          selection:
+            '<strong>选择要保留多少份备份</strong>，分别按小时、天、周、月和年设置。只计算成功的备份。',
+          fileCount:
+            '<strong>同一份备份可以同时满足多项设置</strong>，因此文件总数可能与设置值之和不同。',
+          scope: '<strong>GFS 只适用于完整备份。</strong>增量备份和 WAL 的保留方式需单独设置。',
+        },
         gfsTooltip:
-          'GFS（祖父-父-子）轮换：保留最近 N 个每小时、每天、每周、每月和每年的全量备份。',
+          'GFS：保留最近日历小时和天以及已结束周、月和年的成功完整备份，并保护当前周期的候选备份。',
       },
       restore: {
         errorHints: {

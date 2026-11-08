@@ -101,14 +101,40 @@ describe('Style ownership checks', () => {
   });
   it('permits direct colors when the source is an exact theme or chart owner', () => {
     const content = `<span style={{ color: '#123456' }} />`;
-    expect(check({ content: content, source: 'shared/theme/getAntdTheme.ts' })).toEqual([]);
+    expect(check({ content, source: 'shared/theme/themeTokens.ts' })).toEqual([]);
     expect(
       check({
         content: content,
-        source: 'pages/databases/lib/wal-stream-monitoring/chartColors.ts',
+        source: 'pages/databases/wal-monitoring/lib/chartColors.ts',
       }),
     ).toEqual([]);
     expect(check({ content: content, source: 'shared/theme/Control.tsx' })).toHaveLength(1);
+  });
+  it('requires semantic colors when Mantine presentation props and public variables set colors', () => {
+    expect(check({ content: '<Button c="red" bg="#fff" color="navy" />' })).toHaveLength(3);
+    expect(
+      check({
+        content: '<Button c="var(--app-content)" bg="var(--app-surface)" color="danger" />',
+      }),
+    ).toEqual([]);
+    expect(
+      check({
+        content: '<Button vars={() => ({ root: { "--button-bg": "#fff" } })} />',
+      }),
+    ).toHaveLength(1);
+    expect(check({ content: '<Button classNames={{ root: "text-red-500" }} />' })).toHaveLength(1);
+    expect(
+      check({
+        content: '.input { --input-bd: #fff; }',
+        source: 'shared/ui/Control.module.css',
+      }),
+    ).toHaveLength(1);
+    expect(
+      check({
+        content: '.input { --input-bd: var(--app-border); }',
+        source: 'shared/ui/Control.module.css',
+      }),
+    ).toEqual([]);
   });
   it('rejects focus removal when the same control has no visible replacement', () => {
     expect(check({ content: "<button style={{ outline: 'none' }} />" })).toHaveLength(1);

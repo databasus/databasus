@@ -1,4 +1,4 @@
-import { Button, Modal, Spin } from 'antd';
+import { Button, Loader } from '@mantine/core';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -10,6 +10,7 @@ import { NotifierComponent } from '@/pages/notifiers/ui/NotifierComponent';
 import { ApiError } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { useIsMobile, useResourceCollection, useScopedSelection } from '@/shared/hooks';
+import { Dialog } from '@/shared/ui';
 import { ResourceCollectionList, ResourceListDetail, LoadFailure } from '@/shared/ui';
 
 interface Props {
@@ -22,8 +23,8 @@ export const NotifiersComponent = ({ workspace, isCanManageNotifiers, onUnavaila
   const [isShowAddNotifier, setIsShowAddNotifier] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const collection = useResourceCollection({
-    scopeKey: workspace.id,
-    read: () => notifierApi.listAllNotifiers(workspace.id),
+    queryKey: ['notifiers', workspace.id],
+    read: (signal) => notifierApi.listAllNotifiers(workspace.id, { signal }),
     onError: (error) => {
       if (error instanceof ApiError && [403, 404].includes(error.status ?? 0)) {
         collection.clear();
@@ -68,13 +69,14 @@ export const NotifiersComponent = ({ workspace, isCanManageNotifiers, onUnavaila
   });
 
   useEffect(() => {
-    startNotifiersLoad();
-    const interval = setInterval(() => startNotifiersLoad(true), 5 * 60_000);
+    if (!collection.isSessionActive) return;
+
+    const interval = setInterval(() => startNotifiersLoad(true), 5 * 60000);
 
     return () => {
       clearInterval(interval);
     };
-  }, [workspace.id]);
+  }, [workspace.id, collection.isSessionActive]);
 
   // Read when the form closes, because the button can appear after the form opened.
   const returnFocusToButton = useEffectEvent(() => {
@@ -92,7 +94,7 @@ export const NotifiersComponent = ({ workspace, isCanManageNotifiers, onUnavaila
   const addButton = (
     <Button
       ref={addButtonRef}
-      type="primary"
+      variant="filled"
       className="mb-2 !h-auto min-h-8 w-full !whitespace-normal"
       onClick={() => setIsShowAddNotifier(true)}
     >
@@ -124,14 +126,17 @@ export const NotifiersComponent = ({ workspace, isCanManageNotifiers, onUnavaila
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       {loadError !== undefined && <LoadFailure error={loadError} onRetry={() => loadNotifiers()} />}
       {isLoading && !collection.isReady ? (
-        <Spin />
+        <Loader role="status" />
       ) : collection.isReady ? (
         <ResourceListDetail
           isMobile={isMobile}
           hasSelection={!!selectedNotifierId}
           list={list}
           backAction={
-            <Button className="w-full" onClick={() => selection.select(undefined)}>
+            <Button
+              className="!h-auto min-h-8 w-full !whitespace-normal"
+              onClick={() => selection.select(undefined)}
+            >
               {t('notifiers.list.backToList')}
             </Button>
           }
@@ -151,12 +156,11 @@ export const NotifiersComponent = ({ workspace, isCanManageNotifiers, onUnavaila
         />
       ) : null}
       {isShowAddNotifier && (
-        <Modal
+        <Dialog
           title={t('notifiers.list.addNotifier')}
-          footer={null}
-          open
-          onCancel={() => setIsShowAddNotifier(false)}
-          maskClosable={false}
+          opened
+          onClose={() => setIsShowAddNotifier(false)}
+          closeOnClickOutside={false}
         >
           <p className="my-3 text-muted">{t('notifiers.list.description')}</p>
           <EditNotifierComponent
@@ -171,7 +175,7 @@ export const NotifiersComponent = ({ workspace, isCanManageNotifiers, onUnavaila
               setIsShowAddNotifier(false);
             }}
           />
-        </Modal>
+        </Dialog>
       )}
     </div>
   );

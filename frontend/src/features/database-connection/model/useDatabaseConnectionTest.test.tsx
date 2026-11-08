@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { StrictMode } from 'react';
+import { StrictMode, type ReactNode } from 'react';
 import { type MockInstance, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DatabaseType, createDefaultDatabaseSettings, databaseApi } from '@/entities/databases';
@@ -8,6 +8,7 @@ import { useDatabaseConnectionTest } from '@/features/database-connection/model/
 import { activateSession, invalidateSession } from '@/shared/auth';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
+import { ScreenTestProviders } from '@/shared/lib/test/ScreenTestProviders';
 
 const mockServer = setUpMockApi();
 
@@ -34,7 +35,9 @@ const countTestRequests = () =>
 const renderTestHook = () => {
   const onChange = vi.fn();
   const onTestSucceeded = vi.fn();
-  const hook = renderHook(() => useDatabaseConnectionTest<string>({ onChange, onTestSucceeded }));
+  const hook = renderHook(() => useDatabaseConnectionTest<string>({ onChange, onTestSucceeded }), {
+    wrapper: ScreenTestProviders,
+  });
 
   return { ...hook, onChange, onTestSucceeded };
 };
@@ -208,7 +211,13 @@ describe('useDatabaseConnectionTest', () => {
     const onTestSucceeded = vi.fn();
     const { result } = renderHook(
       () => useDatabaseConnectionTest<string>({ onChange: () => {}, onTestSucceeded }),
-      { wrapper: StrictMode },
+      {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <StrictMode>
+            <ScreenTestProviders>{children}</ScreenTestProviders>
+          </StrictMode>
+        ),
+      },
     );
 
     act(() => {
@@ -246,7 +255,7 @@ describe('useDatabaseConnectionTest', () => {
     const { result, rerender } = renderHook(
       ({ onTestSucceeded }) =>
         useDatabaseConnectionTest<string>({ onChange: () => {}, onTestSucceeded }),
-      { initialProps: { onTestSucceeded: firstCallback } },
+      { initialProps: { onTestSucceeded: firstCallback }, wrapper: ScreenTestProviders },
     );
 
     act(() => {

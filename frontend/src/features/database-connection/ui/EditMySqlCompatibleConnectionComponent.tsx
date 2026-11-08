@@ -1,4 +1,4 @@
-import { Checkbox, Select, Switch } from 'antd';
+import { Checkbox, Switch, TagsInput } from '@mantine/core';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -85,8 +85,12 @@ export const EditMySqlCompatibleConnectionComponent = ({
           <Switch
             id={`${controlId}-https`}
             checked={settings.isHttps}
-            onChange={(isHttps) => onConnectionChange({ ...settings, isHttps })}
-            size="small"
+            onChange={(event) =>
+              ((isHttps) => onConnectionChange({ ...settings, isHttps }))(
+                event.currentTarget.checked,
+              )
+            }
+            size="xs"
           />
         </ConnectionFieldRow>
       </div>
@@ -111,17 +115,16 @@ export const EditMySqlCompatibleConnectionComponent = ({
               controlId={`${controlId}-exclude-tables`}
             >
               <div className="flex w-full items-center">
-                <Select
+                <TagsInput
                   id={`${controlId}-exclude-tables`}
-                  mode="tags"
                   value={settings.excludeTables || []}
                   onChange={(values) =>
                     onNonConnectionChange({ ...settings, excludeTables: normalizeNameList(values) })
                   }
-                  size="small"
+                  size="xs"
                   className="w-full max-w-[200px]"
                   placeholder={t('databases.edit.excludeTablesPlaceholder')}
-                  tokenSeparators={NAME_LIST_TOKEN_SEPARATORS}
+                  splitChars={NAME_LIST_TOKEN_SEPARATORS}
                 />
 
                 <ConnectionFieldTooltip title={t('databases.edit.excludeTablesTooltip')} />
@@ -141,9 +144,8 @@ export const EditMySqlCompatibleConnectionComponent = ({
                   onChange={(e) =>
                     onNonConnectionChange({ ...settings, isExcludeEvents: e.target.checked })
                   }
-                >
-                  {t('databases.edit.mariadb.skipEvents')}
-                </Checkbox>
+                  label={<>{t('databases.edit.mariadb.skipEvents')}</>}
+                />
 
                 <ConnectionFieldTooltip title={t('databases.edit.mariadb.skipEventsTooltip')} />
               </div>
@@ -162,9 +164,8 @@ export const EditMySqlCompatibleConnectionComponent = ({
                   onChange={(e) =>
                     onNonConnectionChange({ ...settings, isSkipGaleraDisable: e.target.checked })
                   }
-                >
-                  {t('databases.edit.mariadb.skipGaleraDisable')}
-                </Checkbox>
+                  label={<>{t('databases.edit.mariadb.skipGaleraDisable')}</>}
+                />
 
                 <ConnectionFieldTooltip
                   title={t('databases.edit.mariadb.skipGaleraDisableTooltip')}

@@ -4,7 +4,7 @@ import utc from 'dayjs/plugin/utc';
 import { HttpResponse, type RequestHandler, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
-import { type BackupConfig } from '@/entities/backup-configs';
+import { type BackupConfig, backupConfigApi } from '@/entities/backup-configs';
 import {
   type Database,
   DatabaseType,
@@ -12,13 +12,15 @@ import {
   createDefaultDatabaseSettings,
   databaseApi,
 } from '@/entities/databases';
-import type { Storage } from '@/entities/storages';
+import { type Storage, storageApi } from '@/entities/storages';
 import type { Workspace } from '@/entities/workspaces';
 // @vitest-environment happy-dom
-import { DatabasesComponent } from '@/pages/databases/ui/DatabasesComponent';
+import { DatabasesTestScreen as DatabasesComponent } from '@/pages/databases/ui/test/DatabasesTestScreen';
 import { API_BASE_PATH, type ApiComponents } from '@/shared/api';
 import { activateSession, invalidateSession } from '@/shared/auth';
 import { waitForCondition } from '@/shared/lib/test/conditionWait';
+import { finishApiResponse } from '@/shared/lib/test/finishApiResponse';
+import { finishCancelledApiResponse } from '@/shared/lib/test/finishCancelledApiResponse';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
 import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
@@ -40,7 +42,7 @@ const buildDatabase = (
   healthStatus: HealthStatus = 'AVAILABLE',
   type: DatabaseType = DatabaseType.POSTGRES_LOGICAL,
 ): Database => ({
-  id: `${name}-id`,
+  id: `${name.replace(/ /g, '-')}-id`,
   workspaceId: workspace.id,
   name,
   settings: {
@@ -54,7 +56,7 @@ const buildDatabase = (
 });
 
 const buildStorage = (name: string): Storage => ({
-  id: `${name}-id`,
+  id: `${name.replace(/ /g, '-')}-id`,
   workspaceId: workspace.id,
   name,
   settings: { type: 'LOCAL' },
@@ -137,11 +139,11 @@ const countRequests = (pathSuffix: string, method = 'GET') =>
 
 const chooseStorage = async (name: string) => {
   const storageLabel = await screen.findByText('Storage');
-  const select = storageLabel.parentElement!.querySelector('.ant-select-selector')!;
+  const select = storageLabel.parentElement!.querySelector('[role="combobox"]')!;
 
-  fireEvent.mouseDown(select);
+  fireEvent.click(select);
   const option = await waitFor(() => {
-    const storageOption = document.querySelector(`.ant-select-item-option[title="${name}"]`);
+    const storageOption = screen.queryByRole('option', { name: `${name}` });
     expect(storageOption).toBeTruthy();
     return storageOption!;
   });
@@ -150,9 +152,9 @@ const chooseStorage = async (name: string) => {
 };
 
 const chooseSelectOption = async (combobox: HTMLElement, optionLabel: string) => {
-  fireEvent.mouseDown(combobox);
+  fireEvent.click(combobox);
   const option = await waitFor(() => {
-    const matchingOption = Array.from(document.querySelectorAll('.ant-select-item-option')).find(
+    const matchingOption = Array.from(screen.queryAllByRole('option')).find(
       (candidate) => candidate.textContent === optionLabel,
     );
 
@@ -213,9 +215,13 @@ const transferSelectedDatabase = async (user: ReturnType<typeof renderScreen>['u
 };
 
 const findDatabaseCard = (name: string) =>
-  // Only fixed test fixture names reach this selector.
-  // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
-  screen.findByRole('button', { name: new RegExp(`^${name}`) });
+  waitFor(() => {
+    const card = screen
+      .getAllByRole('link', { name: (accessibleName) => accessibleName.startsWith(name) })
+      .find((button) => button.hasAttribute('aria-current'));
+    expect(card).toBeTruthy();
+    return card!;
+  });
 
 const reachPhysicalWizardBackupStep = async (user: ReturnType<typeof renderScreen>['user']) => {
   await user.click(await screen.findByRole('button', { name: 'Add database' }));
@@ -332,8 +338,8 @@ describe('DatabasesComponent', () => {
 
     renderDatabasesScreen();
 
-    expect((await findDatabaseCard('Bravo')).getAttribute('aria-pressed')).toBe('true');
-    expect((await findDatabaseCard('Alpha')).getAttribute('aria-pressed')).toBe('false');
+    expect((await findDatabaseCard('Bravo')).getAttribute('aria-current')).toBe('true');
+    expect((await findDatabaseCard('Alpha')).getAttribute('aria-current')).toBe('false');
   });
 
   it('shows the list without a selected database on mobile', async () => {
@@ -343,8 +349,8 @@ describe('DatabasesComponent', () => {
 
     renderDatabasesScreen();
 
-    expect((await findDatabaseCard('Alpha')).getAttribute('aria-pressed')).toBe('false');
-    expect((await findDatabaseCard('Bravo')).getAttribute('aria-pressed')).toBe('false');
+    expect((await findDatabaseCard('Alpha')).getAttribute('aria-current')).toBe('false');
+    expect((await findDatabaseCard('Bravo')).getAttribute('aria-current')).toBe('false');
     expect(
       mockServer
         .getRequests()
@@ -383,9 +389,9 @@ describe('DatabasesComponent', () => {
     );
 
     await waitForCondition(async () =>
-      expect((await findDatabaseCard('Alpha')).getAttribute('aria-pressed')).toBe('true'),
+      expect((await findDatabaseCard('Alpha')).getAttribute('aria-current')).toBe('true'),
     );
-    expect(screen.queryByRole('button', { name: /^Bravo/ })).toBeNull();
+    expect(screen.queryByRole('link', { name: /^Bravo/ })).toBeNull();
   });
 
   it('keeps the database selected and listed and shows the reason when the delete is refused', async () => {
@@ -407,7 +413,7 @@ describe('DatabasesComponent', () => {
     );
 
     expect(await screen.findByText('You do not have permission to do this.')).toBeTruthy();
-    expect((await findDatabaseCard('Bravo')).getAttribute('aria-pressed')).toBe('true');
+    expect((await findDatabaseCard('Bravo')).getAttribute('aria-current')).toBe('true');
     expect(await findDatabaseCard('Alpha')).toBeTruthy();
     expect(localStorage.getItem(SELECTED_DATABASE_PREFERENCE_KEY)).toBe(bravoDatabase.id);
     expect(screen.getByRole('button', { name: 'Delete' })).toBeTruthy();
@@ -472,7 +478,7 @@ describe('DatabasesComponent', () => {
       await refreshFailed;
     });
 
-    expect((await findDatabaseCard('Alpha')).getAttribute('aria-pressed')).toBe('true');
+    expect((await findDatabaseCard('Alpha')).getAttribute('aria-current')).toBe('true');
     expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
   });
 
@@ -493,7 +499,7 @@ describe('DatabasesComponent', () => {
     await waitFor(() => expect(databaseReads).toHaveBeenCalledTimes(2));
     await releaseAndSettle(databaseReads, () => failedRead.respond(HttpResponse.error()));
 
-    expect((await findDatabaseCard('Alpha')).getAttribute('aria-pressed')).toBe('true');
+    expect((await findDatabaseCard('Alpha')).getAttribute('aria-current')).toBe('true');
     expect(localStorage.getItem(SELECTED_DATABASE_PREFERENCE_KEY)).toBe(alphaDatabase.id);
     expect(screen.queryByRole('alert')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
@@ -502,8 +508,8 @@ describe('DatabasesComponent', () => {
 
     fireEvent(document, new Event('visibilitychange'));
 
-    expect((await findDatabaseCard('Bravo')).getAttribute('aria-pressed')).toBe('true');
-    expect(screen.queryByRole('button', { name: /^Alpha/ })).toBeNull();
+    expect((await findDatabaseCard('Bravo')).getAttribute('aria-current')).toBe('true');
+    expect(screen.queryByRole('link', { name: /^Alpha/ })).toBeNull();
     await waitFor(() =>
       expect(localStorage.getItem(SELECTED_DATABASE_PREFERENCE_KEY)).toBe(bravoDatabase.id),
     );
@@ -541,17 +547,11 @@ describe('DatabasesComponent', () => {
 
     await user.click(await findDatabaseCard('Bravo'));
     await user.click(await screen.findByText('Config'));
-    const alphaProcessed = new Promise<void>((resolve) =>
-      mockServer.events.on('response:mocked', ({ request }) => {
-        if (request.url.endsWith(`/databases/${alphaDatabase.id}`)) resolve();
-      }),
+    await finishCancelledApiResponse(mockServer, `/api/v1/databases/${alphaDatabase.id}`, () =>
+      pendingAlpha.respond(HttpResponse.json(alphaDatabase)),
     );
-    await act(async () => {
-      pendingAlpha.respond(HttpResponse.json(alphaDatabase));
-      await alphaProcessed;
-    });
 
-    expect((await findDatabaseCard('Bravo')).getAttribute('aria-pressed')).toBe('true');
+    expect((await findDatabaseCard('Bravo')).getAttribute('aria-current')).toBe('true');
     expect(screen.getAllByText('Bravo')).toHaveLength(2);
     expect(screen.getAllByText('Alpha')).toHaveLength(1);
   });
@@ -577,7 +577,7 @@ describe('DatabasesComponent', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(await screen.findByText('Storefront', { selector: 'div.text-xl > span' })).toBeTruthy();
-    expect((await findDatabaseCard('Storefront')).getAttribute('aria-pressed')).toBe('true');
+    expect((await findDatabaseCard('Storefront')).getAttribute('aria-current')).toBe('true');
     expect(screen.queryByPlaceholderText('Enter name...')).toBeNull();
   });
 
@@ -665,7 +665,7 @@ describe('DatabasesComponent', () => {
       const { user } = await saveWithLimitedUserCheck(advisingCheck());
       await screen.findByText('Create a read-only user for Databasus?');
 
-      fireEvent.click(document.querySelector('.ant-modal-close')!);
+      fireEvent.click(document.querySelector('button[aria-label="Close"]')!);
 
       expect(await findDatabaseCard('Renamed Shop')).toBeTruthy();
       await user.click(await screen.findByRole('button', { name: 'Cancel' }));
@@ -787,9 +787,9 @@ describe('DatabasesComponent', () => {
     );
 
     await waitForCondition(async () =>
-      expect((await findDatabaseCard('Copy of Shop')).getAttribute('aria-pressed')).toBe('true'),
+      expect((await findDatabaseCard('Copy of Shop')).getAttribute('aria-current')).toBe('true'),
     );
-    expect((await findDatabaseCard('Shop')).getAttribute('aria-pressed')).toBe('false');
+    expect((await findDatabaseCard('Shop')).getAttribute('aria-current')).toBe('false');
     expect(reload).not.toHaveBeenCalled();
   });
 
@@ -814,8 +814,8 @@ describe('DatabasesComponent', () => {
       expect(countRequests(`/databases/${shopDatabase.id}/copy`, 'POST')).toBe(1),
     );
     expect(await screen.findByText('You do not have permission to do this.')).toBeTruthy();
-    expect((await findDatabaseCard('Shop')).getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getAllByRole('button', { name: /^Shop/ })).toHaveLength(1);
+    expect((await findDatabaseCard('Shop')).getAttribute('aria-current')).toBe('true');
+    expect(screen.getAllByRole('link', { name: /^Shop/ })).toHaveLength(1);
     expect(countRequests('/databases')).toBe(1);
   });
 
@@ -831,9 +831,9 @@ describe('DatabasesComponent', () => {
     await transferSelectedDatabase(user);
 
     await waitForCondition(async () =>
-      expect((await findDatabaseCard('Alpha')).getAttribute('aria-pressed')).toBe('true'),
+      expect((await findDatabaseCard('Alpha')).getAttribute('aria-current')).toBe('true'),
     );
-    expect(screen.queryByRole('button', { name: /^Bravo/ })).toBeNull();
+    expect(screen.queryByRole('link', { name: /^Bravo/ })).toBeNull();
     expect(reload).not.toHaveBeenCalled();
   });
 
@@ -845,7 +845,7 @@ describe('DatabasesComponent', () => {
 
     await transferSelectedDatabase(user);
 
-    await waitFor(() => expect(screen.queryByRole('button', { name: /^Alpha/ })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('link', { name: /^Alpha/ })).toBeNull());
     expect(screen.queryByText('Config')).toBeNull();
     expect(screen.queryAllByRole('button', { pressed: true })).toHaveLength(0);
     expect(localStorage.getItem(SELECTED_DATABASE_PREFERENCE_KEY)).toBeNull();
@@ -864,8 +864,8 @@ describe('DatabasesComponent', () => {
     await transferSelectedDatabase(user);
 
     expect(await screen.findByText('You do not have permission to do this.')).toBeTruthy();
-    expect((await findDatabaseCard('Bravo')).getAttribute('aria-pressed')).toBe('true');
-    expect((await findDatabaseCard('Alpha')).getAttribute('aria-pressed')).toBe('false');
+    expect((await findDatabaseCard('Bravo')).getAttribute('aria-current')).toBe('true');
+    expect((await findDatabaseCard('Alpha')).getAttribute('aria-current')).toBe('false');
     expect(countRequests('/databases')).toBe(1);
   });
 });
@@ -895,12 +895,131 @@ describe('DatabasesComponent during the backup step of the wizard', () => {
       });
       await findDatabaseCard('Refreshed');
 
-      expect(document.querySelector('.ant-modal .ant-spin')).toBeNull();
+      expect(document.querySelector('[role="dialog"] [role="status"]')).toBeNull();
       expect((screen.getAllByRole('checkbox')[0] as HTMLInputElement).checked).toBe(
         !isInitiallyChecked,
       );
     },
   );
+});
+
+describe('DatabasesComponent aggregate cancellation', () => {
+  it.each([403, 404])(
+    'keeps a recovered collection when a superseded sibling returns HTTP %i',
+    async (status) => {
+      const obsoleteStorageRead = mockApi.pending('get', '/storages');
+      mockServer.use(
+        mockApi.get('/databases', 500, buildProblem('internal', 500)),
+        mockApi.get('/backup-configs', 200, { items: [] }),
+        obsoleteStorageRead.handler,
+      );
+      const onUnavailable = vi.fn();
+      renderScreen(
+        <DatabasesComponent workspace={workspace} isCanManageDBs onUnavailable={onUnavailable} />,
+      );
+      await waitFor(() => expect(countRequests('/storages')).toBe(1));
+      const retry = await screen.findByRole('button', { name: 'Retry' });
+      const recoveredDatabase = buildDatabase('Recovered database');
+      declarePendingDetailRequests();
+      declareListResponses([recoveredDatabase]);
+
+      fireEvent.click(retry);
+      await findDatabaseCard(recoveredDatabase.name);
+
+      const obsoleteRequest = mockServer
+        .getRequests()
+        .find((request) => new URL(request.url).pathname === '/api/v1/storages')!;
+      expect(obsoleteRequest.signal.aborted).toBe(true);
+
+      await finishCancelledApiResponse(mockServer, '/api/v1/storages', () =>
+        obsoleteStorageRead.respond(
+          HttpResponse.json(buildProblem('permission_denied', status), { status }),
+        ),
+      );
+
+      expect(onUnavailable).not.toHaveBeenCalled();
+      expect(await findDatabaseCard(recoveredDatabase.name)).toBeTruthy();
+    },
+  );
+
+  it('reconciles once when concurrent siblings refuse access after a temporary failure', async () => {
+    const configRead = vi.spyOn(backupConfigApi, 'listAllWorkspaceBackupConfigs');
+    const storageRead = vi.spyOn(storageApi, 'listAllStorages');
+    const refusedConfigs = mockApi.pending('get', '/backup-configs');
+    const refusedStorages = mockApi.pending('get', '/storages');
+    mockServer.use(
+      mockApi.get('/databases', 500, buildProblem('internal', 500)),
+      refusedConfigs.handler,
+      refusedStorages.handler,
+    );
+    const onUnavailable = vi.fn();
+    renderScreen(
+      <DatabasesComponent workspace={workspace} isCanManageDBs onUnavailable={onUnavailable} />,
+    );
+    await screen.findByRole('button', { name: 'Retry' });
+    await waitFor(() => expect(countRequests('/storages')).toBe(1));
+
+    await act(async () => {
+      refusedConfigs.respond(
+        HttpResponse.json(buildProblem('permission_denied', 403), { status: 403 }),
+      );
+      refusedStorages.respond(HttpResponse.json(buildProblem('not_found', 404), { status: 404 }));
+      await Promise.allSettled([
+        configRead.mock.results[0].value,
+        storageRead.mock.results[0].value,
+      ]);
+    });
+
+    expect(onUnavailable).toHaveBeenCalledExactlyOnceWith(workspace.id);
+  });
+
+  it('reconciles access loss when a sibling of the current failed aggregate refuses access', async () => {
+    const currentStorageRead = mockApi.pending('get', '/storages');
+    mockServer.use(
+      mockApi.get('/databases', 500, buildProblem('internal', 500)),
+      mockApi.get('/backup-configs', 200, { items: [] }),
+      currentStorageRead.handler,
+    );
+    const onUnavailable = vi.fn();
+    renderScreen(
+      <DatabasesComponent workspace={workspace} isCanManageDBs onUnavailable={onUnavailable} />,
+    );
+    await screen.findByRole('button', { name: 'Retry' });
+    await waitFor(() => expect(countRequests('/storages')).toBe(1));
+    expect(
+      mockServer
+        .getRequests()
+        .find((request) => new URL(request.url).pathname === '/api/v1/storages')!.signal.aborted,
+    ).toBe(false);
+
+    await finishApiResponse(mockServer, '/api/v1/storages', () =>
+      currentStorageRead.respond(
+        HttpResponse.json(buildProblem('permission_denied', 403), { status: 403 }),
+      ),
+    );
+
+    expect(onUnavailable).toHaveBeenCalledExactlyOnceWith(workspace.id);
+  });
+
+  it('cancels remaining collection reads after a failed aggregate unmounts', async () => {
+    const obsoleteStorageRead = mockApi.pending('get', '/storages');
+    mockServer.use(
+      mockApi.get('/databases', 500, buildProblem('internal', 500)),
+      mockApi.get('/backup-configs', 200, { items: [] }),
+      obsoleteStorageRead.handler,
+    );
+    const view = renderDatabasesScreen();
+    await screen.findByRole('button', { name: 'Retry' });
+    await waitFor(() => expect(countRequests('/storages')).toBe(1));
+
+    view.unmount();
+
+    await finishCancelledApiResponse(mockServer, '/api/v1/storages', () =>
+      obsoleteStorageRead.respond(HttpResponse.json({ items: [], nextCursor: 'obsolete-cursor' })),
+    );
+
+    expect(countRequests('/storages')).toBe(1);
+  });
 });
 
 describe('DatabasesComponent with a late rename', () => {
@@ -942,7 +1061,7 @@ describe('DatabasesComponent with a late rename', () => {
     });
 
     expect(await findDatabaseCard('Storefront')).toBeTruthy();
-    expect((await findDatabaseCard('Bravo')).getAttribute('aria-pressed')).toBe('true');
+    expect((await findDatabaseCard('Bravo')).getAttribute('aria-current')).toBe('true');
     expect(screen.getByText('Bravo', { selector: 'div.text-xl > span' })).toBeTruthy();
     expect(screen.queryByText('Storefront', { selector: 'div.text-xl > span' })).toBeNull();
   });
@@ -1053,7 +1172,7 @@ describe('DatabasesComponent with late database actions', () => {
 
   const expectCardPressed = (name: string, isPressed: boolean) =>
     waitFor(async () =>
-      expect((await findDatabaseCard(name)).getAttribute('aria-pressed')).toBe(String(isPressed)),
+      expect((await findDatabaseCard(name)).getAttribute('aria-current')).toBe(String(isPressed)),
     );
 
   const expectNoActionFeedback = () => {
@@ -1106,7 +1225,7 @@ describe('DatabasesComponent with late database actions', () => {
         actionServer.pendingAction.respond(new HttpResponse(null, { status: 204 }));
       });
 
-      await waitFor(() => expect(screen.queryByRole('button', { name: /^Shop/ })).toBeNull());
+      await waitFor(() => expect(screen.queryByRole('link', { name: /^Shop/ })).toBeNull());
       await expectCardPressed('Bravo', true);
       expect(screen.getByText('Bravo', { selector: 'div.text-xl > span' })).toBeTruthy();
       expectNoActionFeedback();
@@ -1182,7 +1301,7 @@ describe('DatabasesComponent with late database actions', () => {
         actionServer.pendingAction.respond(new HttpResponse(null, { status: 204 }));
       });
 
-      await waitFor(() => expect(screen.queryByRole('button', { name: /^Shop/ })).toBeNull());
+      await waitFor(() => expect(screen.queryByRole('link', { name: /^Shop/ })).toBeNull());
       await expectCardPressed('Bravo', true);
       expectNoActionFeedback();
     });
@@ -1278,9 +1397,10 @@ describe('DatabasesComponent with late database actions', () => {
 
       expectNoActionFeedback();
       expect(listLoads.mock.calls.length).toBe(listLoadsBeforeEnd);
-      expect(screen.queryByRole('button', { name: /^Copy of Shop/ })).toBeNull();
-      expect(screen.queryByRole('button', { name: /^Storefront/ })).toBeNull();
-      expect(screen.getByRole('button', { name: /^Shop/ })).toBeTruthy();
+      expect(screen.queryByRole('link', { name: /^Copy of Shop/ })).toBeNull();
+      expect(screen.queryByRole('link', { name: /^Storefront/ })).toBeNull();
+      expect(screen.queryByRole('link', { name: /^Shop/ })).toBeNull();
+      expect(screen.getByRole('status')).toBeTruthy();
       expect(screen.queryByText('Storefront', { selector: 'div.text-xl > span' })).toBeNull();
     },
   );
@@ -1424,7 +1544,7 @@ describe('DatabasesComponent with the creation wizard', () => {
     return screen.findByRole('button', { name: 'Complete' });
   };
 
-  const closeWizard = () => fireEvent.click(document.querySelector('.ant-modal-close')!);
+  const closeWizard = () => fireEvent.click(document.querySelector('button[aria-label="Close"]')!);
 
   const refreshInBackground = () =>
     act(() => {
@@ -1433,7 +1553,7 @@ describe('DatabasesComponent with the creation wizard', () => {
 
   const expectCardPressed = async (name: string, isPressed: boolean) =>
     waitFor(async () =>
-      expect((await findDatabaseCard(name)).getAttribute('aria-pressed')).toBe(String(isPressed)),
+      expect((await findDatabaseCard(name)).getAttribute('aria-current')).toBe(String(isPressed)),
     );
 
   it('does not select the created database while the wizard is open', async () => {
@@ -1461,9 +1581,9 @@ describe('DatabasesComponent with the creation wizard', () => {
 
     await expectCardPressed('Created', true);
     expect(await within(await findDatabaseCard('Created')).findByText('Archive')).toBeTruthy();
-    expect(await screen.findByText('No backups yet')).toBeTruthy();
+    expect(await within(screen.getByRole('table')).findByText('No backups yet')).toBeTruthy();
     expect(screen.queryByText(SCHEDULED_BACKUPS_DISABLED)).toBeNull();
-    expect(document.querySelector('.ant-modal')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('lists and selects the created database when the user closes the wizard after a failure', async () => {
@@ -1520,11 +1640,50 @@ describe('DatabasesComponent with the creation wizard', () => {
     await openAndCancelWizard(user);
 
     await expectCardPressed('Shop', true);
-    expect(screen.queryByRole('button', { name: /^Created/ })).toBeNull();
+    expect(
+      screen
+        .queryAllByRole('link', { name: /^Created/ })
+        .filter((link) => link.hasAttribute('aria-current')),
+    ).toHaveLength(0);
 
     refreshInBackground();
 
     await expectCardPressed('Created', false);
     await expectCardPressed('Shop', true);
   });
+});
+
+it('restores the new workspace preference when the database page changes scope without remounting', async () => {
+  const nextWorkspace = { ...workspace, id: 'next-workspace', name: 'Next team' };
+  const shopDatabase = buildDatabase('Shop');
+  const firstDatabase = { ...buildDatabase('First'), workspaceId: nextWorkspace.id };
+  const rememberedDatabase = { ...buildDatabase('Remembered'), workspaceId: nextWorkspace.id };
+
+  localStorage.setItem(`selectedDatabaseId_${nextWorkspace.id}`, rememberedDatabase.id);
+  mockServer.use(
+    http.get(`*${API_BASE_PATH}/databases`, ({ request }) =>
+      HttpResponse.json({
+        items:
+          new URL(request.url).searchParams.get('workspaceId') === nextWorkspace.id
+            ? [firstDatabase, rememberedDatabase]
+            : [shopDatabase],
+      }),
+    ),
+    mockApi.get('/backup-configs', 200, { items: [] }),
+    mockApi.get('/storages', 200, { items: [] }),
+  );
+  declarePendingDetailRequests();
+
+  const view = renderDatabasesScreen();
+
+  await waitFor(async () =>
+    expect((await findDatabaseCard('Shop')).getAttribute('aria-current')).toBe('true'),
+  );
+
+  view.rerender(<DatabasesComponent workspace={nextWorkspace} isCanManageDBs />);
+
+  await waitFor(async () =>
+    expect((await findDatabaseCard('Remembered')).getAttribute('aria-current')).toBe('true'),
+  );
+  expect((await findDatabaseCard('First')).getAttribute('aria-current')).toBe('false');
 });

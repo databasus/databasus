@@ -4,6 +4,8 @@ import type { components } from '../../src/shared/api/schema.gen';
 import { DICTIONARIES } from '../../src/shared/i18n/dictionaries';
 import { applicationFixtures, smtpNotifier, workspace } from '../applicationFixtures';
 import { assertAccountReflow } from '../assertAccountReflow';
+import { assertEnlargedTextReflow } from '../assertEnlargedTextReflow';
+import { assertScreenshot } from '../assertScreenshot';
 import { test } from '../browserTest';
 import { enlargeText } from '../enlargeText';
 import { apiResponse } from '../HttpFixture';
@@ -140,8 +142,7 @@ for (const locale of ['fr', 'ru'] as const) {
     await openAccount({ page, locale, theme: locale === 'fr' ? 'light' : 'dark' });
     await page.getByText(dictionary.databases.tabs.config, { exact: true }).click();
     await page
-      .getByRole('button')
-      .filter({ has: page.getByRole('img', { name: 'arrow-right', exact: true }) })
+      .getByRole('button', { name: dictionary.common.actions.transfer, exact: true })
       .click();
     const dialog = page.getByRole('dialog', {
       name: dictionary.databases.transfer.title,
@@ -150,17 +151,19 @@ for (const locale of ['fr', 'ru'] as const) {
     await dialog
       .getByRole('combobox', { name: dictionary.databases.transfer.targetWorkspace, exact: true })
       .click();
-    await page.getByTitle(targetWorkspace.name, { exact: true }).click();
+    await page.getByRole('option', { name: targetWorkspace.name, exact: true }).click();
     await dialog
       .getByRole('combobox', { name: dictionary.databases.transfer.storage.title, exact: true })
       .click();
-    await page.getByTitle(targetStorage.name, { exact: true }).click();
+    await page.getByRole('option', { name: targetStorage.name, exact: true }).click();
 
-    await expect(page.locator('.ant-select-dropdown:visible')).toHaveCount(0);
+    await expect(page.getByRole('listbox')).toHaveCount(0);
 
     await page.setViewportSize({ width: 320, height: 1000 });
     await enlargeText(dialog);
+    await assertEnlargedTextReflow(page);
 
+    if (locale === 'fr') await assertScreenshot(page, 'database-transfer-fr-narrow-200.png');
     await assertAccountReflow(dialog);
     await expect(
       dialog.getByRole('button', { name: dictionary.databases.transfer.submit, exact: true }),
@@ -189,14 +192,19 @@ for (const locale of ['fr', 'ru'] as const) {
         );
       });
       await enlargeText(editor);
+      await assertEnlargedTextReflow(page);
 
       await assertAccountReflow(editor);
 
-      await editor.getByRole('button', { name: 'Close', exact: true }).click();
+      await editor
+        .getByRole('button', { name: dictionary.common.actions.close, exact: true })
+        .click();
 
       await expect(editor).not.toBeVisible();
       await expect(dialog.getByText(targetWorkspace.name, { exact: true })).toBeVisible();
       await expect(dialog.getByText(targetStorage.name, { exact: true })).toBeVisible();
+      await assertEnlargedTextReflow(page);
+
       await assertAccountReflow(dialog);
     }
 

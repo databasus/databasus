@@ -7,6 +7,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
+	"databasus-backend/internal/lib/apierror"
 	"databasus-backend/internal/lib/ratelimit"
 	"databasus-backend/internal/modules/users/internal/accounts"
 	"databasus-backend/internal/modules/users/internal/identity"
@@ -30,10 +31,6 @@ type SignInRequest struct {
 	TurnstileAnswer *string
 }
 
-// SignIn refuses alike until the password is verified: an unknown address, a user who has not
-// finished sign-up, a user without a password and a wrong password all get invalid_credentials
-// after the same bcrypt comparison. Only then may the answer name a deactivated user. The log keeps
-// each reason, because failed sign-ins are the signal that someone guesses credentials.
 func (s *Service) SignIn(ctx context.Context, request SignInRequest) (SignInOutcome, error) {
 	err := s.turnstile.Verify(ctx, request.TurnstileAnswer)
 	if err != nil {
@@ -89,36 +86,50 @@ func (s *Service) verifyPassword(ctx context.Context, request SignInRequest) (ac
 		return accounts.UserRecord{}, err
 	}
 
-	refusal := ""
-
-	switch {
-	case !isFound:
-		refusal = "no user with this email"
-	case user.Status == identity.StatusInvited:
-		refusal = "the user has not finished sign-up"
-	case !user.HasPassword():
-		refusal = "the user has no password"
-	}
-
-	if refusal != "" {
+	if refusal := s.getPasswordSignInRefusal(user, isFound); refusal != nil {
 		_ = bcrypt.CompareHashAndPassword([]byte(unmatchableHash), []byte(request.Password))
 
 		s.logger.WarnContext(
 			ctx,
 			"sign-in refused",
-			slog.String("reason", refusal),
+			slog.String("reason", string(refusal.Code)),
 			slog.String("email", request.Email),
 		)
 
-		return accounts.UserRecord{}, ErrInvalidCredentials
+		return accounts.UserRecord{}, refusal
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(*user.HashedPassword), []byte(request.Password))
 	if err != nil {
 		s.logger.WarnContext(ctx, "sign-in refused: incorrect password", slog.String("user_id", user.ID.String()))
 
-		return accounts.UserRecord{}, ErrInvalidCredentials
+		return accounts.UserRecord{}, ErrPasswordIncorrect
 	}
 
 	return user, nil
+}
+
+func (s *Service) getPasswordSignInRefusal(user accounts.UserRecord, isFound bool) *apierror.Problem {
+	switch {
+	case !isFound:
+		return ErrEmailNotFound
+	case user.Status == identity.StatusInvited:
+		return ErrRegistrationIncomplete
+	case user.HasPassword():
+		return nil
+	}
+
+	isGoogleAvailable := user.GoogleOAuthID != nil && s.google.IsConfigured()
+	isGitHubAvailable := user.GitHubOAuthID != nil && s.gitHub.IsConfigured()
+
+	switch {
+	case isGoogleAvailable && isGitHubAvailable:
+		return ErrPasswordNotSetGoogleGitHub
+	case isGoogleAvailable:
+		return ErrPasswordNotSetGoogle
+	case isGitHubAvailable:
+		return ErrPasswordNotSetGitHub
+	default:
+		return ErrPasswordNotSet
+	}
 }

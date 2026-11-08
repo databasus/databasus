@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"databasus-backend/internal/lib/config"
+	"databasus-backend/internal/lib/logging"
 )
 
 const (
@@ -22,7 +23,7 @@ const (
 )
 
 func main() {
-	log := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	log := logging.NewStdout().GetLogger()
 
 	params, err := loadSeedParams()
 	if err != nil {
@@ -68,6 +69,8 @@ func loadSeedParams() (seedParams, error) {
 
 	return seedParams{
 		BaseURL:             devBackendURL,
+		EnvMode:             config.EnvMode(variables["ENV_MODE"]),
+		DatabaseDsn:         variables["DATABASE_DSN"],
 		Email:               "test@email.com",
 		Password:            "Q1234567",
 		WorkspaceName:       "Dev",

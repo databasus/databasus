@@ -104,6 +104,7 @@ class FrontendCiTest(unittest.TestCase):
                 "test-frontend",
                 "test-frontend-browser-ui",
                 "test-e2e-browser",
+                "test-e2e-browser-lifecycle",
                 "test-verification-agent",
                 "e2e-verification-agent-podman",
                 "test-filesystems",
@@ -123,7 +124,10 @@ class FrontendCiTest(unittest.TestCase):
 
     def test_browser_job_uses_the_local_command_and_keeps_failure_artifacts(self) -> None:
         job = get_jobs(self.workflow)["test-frontend-browser-ui"]
-        self.assertIn("pnpm --dir frontend test:browser --project=ui", job)
+        self.assertIn(
+            "pnpm --dir frontend test:browser --project=ui --shard=${{ matrix.shard }}/3", job
+        )
+        self.assertIn("name: frontend-browser-ui-${{ matrix.arch }}-${{ matrix.shard }}-of-3", job)
         self.assertIn("if: failure()", job)
         self.assertIn("path: frontend/browser-results/", job)
 
@@ -154,15 +158,28 @@ class FrontendCiTest(unittest.TestCase):
             job.count(
                 "DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}-${{ matrix.arch }}"
             ),
-            2,
+            1,
         )
         self.assertLess(
             job.index("run: mise run e2e:unit\n"), job.index("run: mise run e2e:browser\n")
         )
-        self.assertLess(
-            job.index("run: mise run e2e:browser\n"), job.index("run: mise run e2e:lifecycle\n")
+        self.assertNotIn("run: mise run e2e:lifecycle", job)
+        lifecycle = get_jobs(self.workflow)["test-e2e-browser-lifecycle"]
+        self.assertIn("needs: [build-storage-image]", lifecycle)
+        self.assertNotRegex(lifecycle, r"(?m)^    if:")
+        self.assertIn("install_args: 'python uv'", lifecycle)
+        self.assertIn("run: mise run e2e:lifecycle ${{ matrix.group }}", lifecycle)
+        self.assertNotIn("run: mise run e2e:browser", lifecycle)
+        self.assertNotIn("run: mise run e2e:unit", lifecycle)
+        self.assertEqual(
+            lifecycle.count(
+                "DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}-${{ matrix.arch }}"
+            ),
+            1,
         )
-        self.assertIn("run: mise run e2e:lifecycle\n", job)
+        self.assertEqual(
+            get_step_names_allowed_to_fail(lifecycle), DOWNLOAD_ATTEMPTS_ALLOWED_TO_FAIL
+        )
         self.assertNotIn("upload-artifact", job)
         self.assertNotIn("backend-db-test", job)
         self.assertNotIn("--project=e2e", job)
@@ -175,6 +192,7 @@ class FrontendCiTest(unittest.TestCase):
 
         release = get_jobs(self.workflow)["determine-version"]
         self.assertIn("test-e2e-browser,", release)
+        self.assertIn("test-e2e-browser-lifecycle,", release)
         self.assertNotIn("always()", release)
         self.assertNotIn("failure()", release)
         self.assertNotIn("continue-on-error", release)

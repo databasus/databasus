@@ -1,4 +1,5 @@
 import json
+import re
 from dataclasses import dataclass
 
 from api_response import get_api_object
@@ -61,21 +62,33 @@ def create_workspace(page: Page, name: str) -> None:
 
     dialog = page.get_by_role("dialog", name="Create workspace", exact=True)
     dialog.get_by_role("textbox", name="Workspace name", exact=True).fill(name)
-    dialog.get_by_role("button", name="Create workspace", exact=True).click()
+    with page.expect_response(
+        lambda response: (
+            response.request.method == "POST" and response.url.endswith("/api/v1/workspaces")
+        )
+    ) as workspace_creation:
+        dialog.get_by_role("button", name="Create workspace", exact=True).click()
+
+    created_workspace = get_api_object(workspace_creation.value.json())
+    workspace_id = created_workspace.get("id")
+    assert isinstance(workspace_id, str)
 
     expect(dialog).not_to_be_visible()
     expect_selected_workspace(page, name)
+    expect(page).to_have_url(re.compile(f"/workspaces/{re.escape(workspace_id)}/databases$"))
+    page.wait_for_function(
+        "(workspaceId) => localStorage.getItem('selected_workspace_id') === workspaceId",
+        arg=workspace_id,
+    )
 
 
 def expect_selected_workspace(page: Page, name: str) -> None:
-    selected_workspace = page.locator(".ant-select").filter(
-        has=page.get_by_role("combobox", name="Selected workspace")
-    )
+    selected_workspace = page.get_by_role("combobox", name="Selected workspace")
     expect(selected_workspace).to_contain_text(name)
 
 
 def create_local_storage(page: Page, name: str) -> None:
-    page.get_by_role("button", name="Storages", exact=True).click()
+    page.get_by_role("link", name="Storages", exact=True).click()
     page.get_by_role("button", name="Add storage", exact=True).click()
 
     dialog = page.get_by_role("dialog", name="Add storage", exact=True)

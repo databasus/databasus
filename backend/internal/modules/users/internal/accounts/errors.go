@@ -66,6 +66,10 @@ var (
 
 var ErrUnknownOAuthProvider = errors.New("the identity provider is unknown")
 
+var ErrDevSeedAccountMismatch = errors.New(
+	"the authenticated dev account does not match an active account in the internal database",
+)
+
 var (
 	ErrConsoleEmailInvalid     = errors.New("the email is not a valid email address")
 	ErrConsoleRoleInvalid      = errors.New("the role must be admin or member")

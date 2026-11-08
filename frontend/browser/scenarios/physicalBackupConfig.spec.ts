@@ -3,6 +3,7 @@ import { expect, type Page } from '@playwright/test';
 import type { components } from '../../src/shared/api/schema.gen';
 import { DICTIONARIES } from '../../src/shared/i18n/dictionaries';
 import { applicationFixtures, workspace } from '../applicationFixtures';
+import { assertEnlargedTextReflow } from '../assertEnlargedTextReflow';
 import { test } from '../browserTest';
 import { apiResponse } from '../HttpFixture';
 import { openAccount } from '../openAccount';
@@ -132,10 +133,7 @@ const openBackupConfigSection = async (page: Page) => {
 };
 
 const chooseOption = async (page: Page, { controlName, optionName }: OptionChoice) => {
-  await page
-    .getByRole('combobox', { name: controlName, exact: true })
-    .locator('xpath=ancestor::*[contains(concat(" ", @class, " "), " ant-select ")][1]')
-    .click();
+  await page.getByRole('combobox', { name: controlName, exact: true }).click();
   await page.getByRole('option', { name: optionName, exact: true }).click();
 };
 
@@ -148,7 +146,7 @@ for (const width of [320, 1280]) {
     await openAccount({ page, locale: 'ru' });
     await openWorkspaceScreen({ page, locale: 'ru', tab: 'databases' });
 
-    if (width === 320) await page.getByRole('button', { name: /^Orders/ }).click();
+    if (width === 320) await page.getByRole('link', { name: /^Orders/ }).click();
 
     await openBackupConfigSection(page);
 
@@ -187,6 +185,8 @@ for (const width of [320, 1280]) {
     await expect(countInput).toHaveValue('6');
 
     await expect(saveButton).toBeEnabled();
+    await assertEnlargedTextReflow(page);
+
     await saveButton.click();
     await expect(saveButton).toBeHidden();
 

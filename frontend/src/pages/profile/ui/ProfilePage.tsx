@@ -1,13 +1,15 @@
-import { EyeInvisibleOutlined, EyeTwoTone, LoadingOutlined } from '@ant-design/icons';
-import { Form, Alert, App, Button, Input, Spin } from 'antd';
-import { useEffectEvent, useId } from 'react';
+import { Alert, Button, Loader, PasswordInput, TextInput } from '@mantine/core';
+import { CircleAlert } from 'lucide-react';
+import { useId } from 'react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { USER_ROLE_LABEL_KEYS, type User, userApi } from '@/entities/users';
+import { useSessionMutation } from '@/shared/api';
+import { useSessionQuery } from '@/shared/api';
 import { invalidateSession, useSessionGuard } from '@/shared/auth';
-import { useRequestRevision } from '@/shared/hooks';
 import { translateApiError } from '@/shared/i18n';
+import { useFeedback } from '@/shared/lib/feedback';
 import { LoadFailure } from '@/shared/ui';
 
 interface Props {
@@ -17,14 +19,28 @@ interface Props {
 const MIN_PASSWORD_LENGTH = 8;
 
 export function ProfilePage({ onUserChanged }: Props) {
-  const [failure, setFailure] = useState<unknown>();
-  const [isLoading, setIsLoading] = useState(true);
+  const changePasswordMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof userApi.changePassword>) =>
+      userApi.changePassword(...parameters),
+  });
+  const updateUserInfoMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof userApi.updateUserInfo>) =>
+      userApi.updateUserInfo(...parameters),
+  });
+
+  const query = useSessionQuery({
+    queryKey: ['profile'],
+    queryFn: (signal) => userApi.getCurrentUser({ signal }),
+  });
+  const [actionFailure, setFailure] = useState<unknown>();
+  const failure = actionFailure ?? query.error ?? undefined;
+  const isLoading = query.isPending;
   const [user, setUser] = useState<User | undefined>(undefined);
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const isChangingPassword = changePasswordMutation.isPending;
 
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
-  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const isUpdatingProfile = updateUserInfoMutation.isPending;
   const [isEditNameError, setIsEditNameError] = useState(false);
   const [isEditEmailError, setIsEditEmailError] = useState(false);
 
@@ -36,22 +52,17 @@ export function ProfilePage({ onUserChanged }: Props) {
   const [isNewPasswordError, setIsNewPasswordError] = useState(false);
   const [isConfirmPasswordError, setIsConfirmPasswordError] = useState(false);
 
-  const loadUserProfile = async () => {
-    const revision = loadRevision.Invalidate();
-    setIsLoading(true);
+  const loadUserProfile = () => {
     setFailure(undefined);
-    try {
-      const loadedUser = await userApi.getCurrentUser();
-      if (!isCurrent() || !loadRevision.IsCurrent(revision)) return;
-      setUser(loadedUser);
-      setEditName(loadedUser.name);
-      setEditEmail(loadedUser.email);
-    } catch (error) {
-      if (isCurrent() && loadRevision.IsCurrent(revision)) setFailure(error);
-    } finally {
-      if (isCurrent() && loadRevision.IsCurrent(revision)) setIsLoading(false);
-    }
+    return query.refetch();
   };
+  useEffect(() => {
+    if (!query.data) return;
+
+    setUser(query.data);
+    setEditName(query.data.name);
+    setEditEmail(query.data.email);
+  }, [query.data]);
 
   const validatePasswordFields = (): boolean => {
     let isValid = true;
@@ -86,20 +97,22 @@ export function ProfilePage({ onUserChanged }: Props) {
       return;
     }
 
-    setIsChangingPassword(true);
-
     try {
-      await userApi.changePassword({ newPassword });
+      await changePasswordMutation.mutateAsync([{ newPassword }]);
       if (!isCurrent()) return;
 
       setNewPassword('');
       setConfirmPassword('');
       invalidateSession();
-      message.success(i18n.t('users.profile.changePassword.signInRequired'));
+      notify({
+        kind: 'success',
+        title: i18n.t('users.profile.changePassword.signInRequired'),
+        isSessionTransition: true,
+      });
     } catch (error: unknown) {
       if (isCurrent()) setFailure(error);
     } finally {
-      if (isCurrent()) setIsChangingPassword(false);
+      if (isCurrent()) changePasswordMutation.reset();
     }
   };
 
@@ -120,28 +133,26 @@ export function ProfilePage({ onUserChanged }: Props) {
     }
     setIsEditEmailError(false);
 
-    setIsUpdatingProfile(true);
-
     try {
       if (editName === user?.name && editEmail === user?.email) {
-        message.info(t('users.profile.noChanges'));
-        if (isCurrent()) setIsUpdatingProfile(false);
+        notify({ kind: 'info', title: t('users.profile.noChanges') });
+        if (isCurrent()) updateUserInfoMutation.reset();
         return;
       }
 
       const submitted = { name: editName, email: editEmail };
-      const acknowledged = await userApi.updateUserInfo(submitted);
+      const acknowledged = await updateUserInfoMutation.mutateAsync([submitted]);
       if (!isCurrent()) return;
 
       setUser(acknowledged);
       setEditName((current) => (current === submitted.name ? acknowledged.name : current));
       setEditEmail((current) => (current === submitted.email ? acknowledged.email : current));
       onUserChanged?.(acknowledged);
-      message.success(i18n.t('users.profile.updated'));
+      notify({ kind: 'success', title: i18n.t('users.profile.updated') });
     } catch (error: unknown) {
       if (isCurrent()) setFailure(error);
     } finally {
-      if (isCurrent()) setIsUpdatingProfile(false);
+      if (isCurrent()) updateUserInfoMutation.reset();
     }
   };
 
@@ -150,20 +161,8 @@ export function ProfilePage({ onUserChanged }: Props) {
   };
   const controlId = useId();
   const { t, i18n } = useTranslation();
-  const { message } = App.useApp();
+  const notify = useFeedback();
   const isCurrent = useSessionGuard();
-  const loadRevision = useRequestRevision();
-
-  const startProfileLoad = useEffectEvent(() => {
-    void loadUserProfile();
-  });
-
-  useEffect(() => {
-    startProfileLoad();
-    return () => {
-      loadRevision.Invalidate();
-    };
-  }, [loadRevision]);
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1">
@@ -175,9 +174,15 @@ export function ProfilePage({ onUserChanged }: Props) {
             (user ? (
               <Alert
                 className="mt-3"
-                type="error"
-                showIcon
-                message={translateApiError(failure, t)}
+                color="danger"
+                icon={
+                  <CircleAlert
+                    aria-hidden
+                    size={16}
+                    className="inline-block shrink-0 align-middle"
+                  />
+                }
+                title={translateApiError(failure, t)}
               />
             ) : (
               <LoadFailure
@@ -195,24 +200,15 @@ export function ProfilePage({ onUserChanged }: Props) {
                     <div className="text-xs font-semibold">{t('users.profile.userId')}</div>
                     <div className="mb-4 text-sm text-muted">{user.id}</div>
 
-                    <Form.Item
-                      htmlFor={controlId + 'field-1'}
-                      label={t('users.fields.name')}
-                      layout="vertical"
-                      className="!mb-3"
-                      validateStatus={isEditNameError ? 'error' : undefined}
-                      help={
-                        isEditNameError ? (
-                          <span id={controlId + 'field-1' + '-error'}>
-                            {t('users.validation.nameRequired')}
-                          </span>
-                        ) : undefined
-                      }
-                    >
-                      <Input
-                        size="small"
+                    <div className="mb-3 min-w-0">
+                      <label
+                        htmlFor={controlId + 'field-1'}
+                        className="mb-1 block text-sm text-content"
+                      >
+                        {t('users.fields.name')}
+                      </label>
+                      <TextInput
                         aria-invalid={isEditNameError}
-                        aria-describedby={controlId + 'field-1' + '-error'}
                         id={controlId + 'field-1'}
                         aria-label={t('users.fields.name')}
                         value={editName}
@@ -220,29 +216,24 @@ export function ProfilePage({ onUserChanged }: Props) {
                           setIsEditNameError(false);
                           setEditName(e.currentTarget.value);
                         }}
-                        status={isEditNameError ? 'error' : undefined}
                         placeholder={t('users.profile.namePlaceholder')}
+                        error={
+                          isEditNameError ? (
+                            <span>{t('users.validation.nameRequired')}</span>
+                          ) : undefined
+                        }
                       />
-                    </Form.Item>
+                    </div>
 
-                    <Form.Item
-                      htmlFor={controlId + 'field-2'}
-                      label={t('users.fields.email')}
-                      layout="vertical"
-                      className="!mb-3"
-                      validateStatus={isEditEmailError ? 'error' : undefined}
-                      help={
-                        isEditEmailError ? (
-                          <span id={controlId + 'field-2' + '-error'}>
-                            {t('users.validation.emailRequired')}
-                          </span>
-                        ) : undefined
-                      }
-                    >
-                      <Input
-                        size="small"
+                    <div className="mb-3 min-w-0">
+                      <label
+                        htmlFor={controlId + 'field-2'}
+                        className="mb-1 block text-sm text-content"
+                      >
+                        {t('users.fields.email')}
+                      </label>
+                      <TextInput
                         aria-invalid={isEditEmailError}
-                        aria-describedby={controlId + 'field-2' + '-error'}
                         id={controlId + 'field-2'}
                         aria-label={t('users.fields.email')}
                         value={editEmail}
@@ -250,11 +241,15 @@ export function ProfilePage({ onUserChanged }: Props) {
                           setIsEditEmailError(false);
                           setEditEmail(e.currentTarget.value.trim().toLowerCase());
                         }}
-                        status={isEditEmailError ? 'error' : undefined}
                         placeholder={t('users.profile.emailPlaceholder')}
                         type="email"
+                        error={
+                          isEditEmailError ? (
+                            <span>{t('users.validation.emailRequired')}</span>
+                          ) : undefined
+                        }
                       />
-                    </Form.Item>
+                    </div>
 
                     <div className="mt-2 mb-1 text-xs font-semibold">{t('users.profile.role')}</div>
                     <div className="mb-4">
@@ -266,11 +261,12 @@ export function ProfilePage({ onUserChanged }: Props) {
                     {(editName !== user.name || editEmail !== user.email) && (
                       <Button
                         className="!h-auto min-h-8 max-w-full !whitespace-normal"
-                        type="primary"
+                        variant="filled"
                         aria-label={t('users.profile.saveChanges')}
                         onClick={handleProfileUpdate}
                         loading={isUpdatingProfile}
                         disabled={isUpdatingProfile}
+                        aria-busy={isUpdatingProfile}
                       >
                         {t('users.profile.saveChanges')}
                       </Button>
@@ -281,10 +277,9 @@ export function ProfilePage({ onUserChanged }: Props) {
                 <div className="mb-6">
                   <Button
                     className="!h-auto min-h-8 max-w-full !whitespace-normal"
-                    type="primary"
-                    ghost
+                    variant="outline"
                     onClick={handleLogout}
-                    danger
+                    color="danger"
                   >
                     {t('users.profile.logout')}
                   </Button>
@@ -296,26 +291,15 @@ export function ProfilePage({ onUserChanged }: Props) {
                   </h3>
 
                   <div className="max-w-sm">
-                    <Form.Item
-                      htmlFor={controlId + 'field-3'}
-                      label={t('users.fields.newPassword')}
-                      layout="vertical"
-                      className="!mb-3"
-                      validateStatus={isNewPasswordError ? 'error' : undefined}
-                      help={
-                        isNewPasswordError ? (
-                          <span id={controlId + 'field-3' + '-error'}>
-                            {t('users.validation.passwordTooShort', {
-                              minLength: MIN_PASSWORD_LENGTH,
-                            })}
-                          </span>
-                        ) : undefined
-                      }
-                    >
-                      <Input.Password
-                        size="small"
+                    <div className="mb-3 min-w-0">
+                      <label
+                        htmlFor={controlId + 'field-3'}
+                        className="mb-1 block text-sm text-content"
+                      >
+                        {t('users.fields.newPassword')}
+                      </label>
+                      <PasswordInput
                         aria-invalid={isNewPasswordError}
-                        aria-describedby={controlId + 'field-3' + '-error'}
                         id={controlId + 'field-3'}
                         placeholder={t('users.profile.changePassword.newPasswordPlaceholder')}
                         aria-label={t('common.fields.password')}
@@ -324,36 +308,33 @@ export function ProfilePage({ onUserChanged }: Props) {
                           setIsNewPasswordError(false);
                           setNewPassword(e.currentTarget.value);
                         }}
-                        status={isNewPasswordError ? 'error' : undefined}
-                        iconRender={(visible) =>
-                          visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />
-                        }
-                        visibilityToggle={{
-                          visible: isNewPasswordVisible,
-                          onVisibleChange: setIsNewPasswordVisible,
-                        }}
+                        visible={isNewPasswordVisible}
+                        onVisibilityChange={setIsNewPasswordVisible}
                         autoComplete="new-password"
+                        visibilityToggleButtonProps={{
+                          'aria-label': t('common.actions.togglePasswordVisibility'),
+                        }}
+                        error={
+                          isNewPasswordError ? (
+                            <span>
+                              {t('users.validation.passwordTooShort', {
+                                minLength: MIN_PASSWORD_LENGTH,
+                              })}
+                            </span>
+                          ) : undefined
+                        }
                       />
-                    </Form.Item>
+                    </div>
 
-                    <Form.Item
-                      htmlFor={controlId + 'field-4'}
-                      label={t('users.profile.changePassword.confirmPassword')}
-                      layout="vertical"
-                      className="!mb-3"
-                      validateStatus={isConfirmPasswordError ? 'error' : undefined}
-                      help={
-                        isConfirmPasswordError ? (
-                          <span id={controlId + 'field-4' + '-error'}>
-                            {t('users.profile.changePassword.passwordsDoNotMatch')}
-                          </span>
-                        ) : undefined
-                      }
-                    >
-                      <Input.Password
-                        size="small"
+                    <div className="mb-3 min-w-0">
+                      <label
+                        htmlFor={controlId + 'field-4'}
+                        className="mb-1 block text-sm text-content"
+                      >
+                        {t('users.profile.changePassword.confirmPassword')}
+                      </label>
+                      <PasswordInput
                         aria-invalid={isConfirmPasswordError}
-                        aria-describedby={controlId + 'field-4' + '-error'}
                         id={controlId + 'field-4'}
                         placeholder={t('users.profile.changePassword.confirmPasswordPlaceholder')}
                         aria-label={t('users.profile.changePassword.confirmPassword')}
@@ -362,25 +343,28 @@ export function ProfilePage({ onUserChanged }: Props) {
                           setIsConfirmPasswordError(false);
                           setConfirmPassword(e.currentTarget.value);
                         }}
-                        status={isConfirmPasswordError ? 'error' : undefined}
-                        iconRender={(visible) =>
-                          visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />
-                        }
                         autoComplete="new-password"
-                        visibilityToggle={{
-                          visible: isConfirmPasswordVisible,
-                          onVisibleChange: setIsConfirmPasswordVisible,
+                        visible={isConfirmPasswordVisible}
+                        onVisibilityChange={setIsConfirmPasswordVisible}
+                        visibilityToggleButtonProps={{
+                          'aria-label': t('common.actions.togglePasswordVisibility'),
                         }}
+                        error={
+                          isConfirmPasswordError ? (
+                            <span>{t('users.profile.changePassword.passwordsDoNotMatch')}</span>
+                          ) : undefined
+                        }
                       />
-                    </Form.Item>
+                    </div>
 
                     {(newPassword || confirmPassword) && (
                       <Button
                         className="!h-auto min-h-8 max-w-full !whitespace-normal"
-                        type="primary"
+                        variant="filled"
                         onClick={handlePasswordChange}
                         loading={isChangingPassword}
                         disabled={isChangingPassword}
+                        aria-busy={isChangingPassword}
                       >
                         {isChangingPassword
                           ? t('users.profile.changePassword.changing')
@@ -392,7 +376,7 @@ export function ProfilePage({ onUserChanged }: Props) {
               </>
             ) : isLoading ? (
               <div>
-                <Spin indicator={<LoadingOutlined spin />} />
+                <Loader role="status" />
               </div>
             ) : null}
           </div>

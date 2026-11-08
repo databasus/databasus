@@ -5,8 +5,9 @@ import { afterAll, describe, expect, it, vi } from 'vitest';
 
 import { ApplicationScreen } from '@/app/ui/ApplicationScreen';
 import { renderApp } from '@/app/ui/renderApp';
-import { API_BASE_PATH } from '@/shared/api';
+import { userApi } from '@/entities/users';
 import { activateSession, invalidateSession } from '@/shared/auth';
+import { finishCancelledApiResponse } from '@/shared/lib/test/finishCancelledApiResponse';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
 
@@ -59,7 +60,7 @@ describe('Application startup', () => {
 
       renderScreen(<ApplicationScreen />);
       const retry = await screen.findByRole('button', { name: 'Retry' });
-      expect(screen.queryByRole('button', { name: 'Users' })).toBeNull();
+      expect(screen.queryByRole('link', { name: 'Users' })).toBeNull();
       expect(screen.queryByRole('button', { name: 'Create workspace' })).toBeNull();
 
       server.use(
@@ -68,7 +69,46 @@ describe('Application startup', () => {
         mockApi.get('/workspaces', 200, { items: [] }),
       );
       fireEvent.click(retry);
-      expect(await screen.findByRole('button', { name: 'Profile' })).toBeTruthy();
+      expect(await screen.findByRole('link', { name: 'Profile' })).toBeTruthy();
+    },
+  );
+
+  it.each(['retry', 'unmount'] as const)(
+    'cancels remaining startup reads after an essential failure and %s',
+    async (action) => {
+      seed();
+      const obsoleteWorkspaces = mockApi.pending('get', '/workspaces');
+      server.use(
+        mockApi.get('/users/{userId}', 500, buildProblem('internal', 500)),
+        obsoleteWorkspaces.handler,
+      );
+      const view = renderScreen(<ApplicationScreen />);
+      const retry = await screen.findByRole('button', { name: 'Retry' });
+      await waitFor(() =>
+        expect(
+          server
+            .getRequests()
+            .some((request) => new URL(request.url).pathname === '/api/v1/workspaces'),
+        ).toBe(true),
+      );
+
+      if (action === 'retry') {
+        server.use(
+          mockApi.get('/users/{userId}', 200, user),
+          mockApi.get('/workspaces', 200, { items: [] }),
+        );
+        fireEvent.click(retry);
+        await screen.findByRole('link', { name: 'Profile' });
+      } else view.unmount();
+
+      const requestsBeforeRelease = server.getRequests().length;
+      await finishCancelledApiResponse(server, '/api/v1/workspaces', () =>
+        obsoleteWorkspaces.respond(HttpResponse.json({ items: [], nextCursor: 'obsolete-cursor' })),
+      );
+
+      expect(server.getRequests()).toHaveLength(requestsBeforeRelease);
+
+      if (action === 'retry') expect(screen.getByRole('link', { name: 'Profile' })).toBeTruthy();
     },
   );
 
@@ -77,11 +117,11 @@ describe('Application startup', () => {
     server.use(mockApi.get('/system/disk-usages', 500, buildProblem('internal', 500)));
 
     renderScreen(<ApplicationScreen />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
+    fireEvent.click(await screen.findByRole('link', { name: 'Profile' }));
 
     expect(await screen.findByDisplayValue('owner@example.com')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Users' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Databasus settings' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Users' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Databasus settings' })).toBeNull();
   });
 
   it('rejects previous account startup after logout and activation of another account', async () => {
@@ -120,16 +160,10 @@ describe('Application startup', () => {
     act(() => {
       activateSession({ token: 'new-session', userId: 'new-owner' });
     });
-    fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
+    fireEvent.click(await screen.findByRole('link', { name: 'Profile' }));
     await screen.findByDisplayValue('another@example.com');
 
-    const responded = new Promise<void>((resolve) =>
-      server.events.on('response:mocked', () => resolve()),
-    );
-    await act(async () => {
-      oldUser.release();
-      await responded;
-    });
+    await finishCancelledApiResponse(server, '/api/v1/users/owner-id', () => oldUser.release());
 
     expect(screen.queryByDisplayValue('owner@example.com')).toBeNull();
     expect(localStorage.getItem('selected_workspace_id')).toBeNull();
@@ -163,7 +197,7 @@ it.each(['ADMIN', 'MEMBER'] as const)(
     localStorage.setItem('selected_workspace_id', 'unavailable-workspace');
 
     renderScreen(<ApplicationScreen />);
-    await screen.findByRole('button', { name: 'Profile' });
+    await screen.findByRole('link', { name: 'Profile' });
 
     await waitFor(() =>
       expect(
@@ -224,17 +258,11 @@ it('retains retried startup when an older essential request finishes later', asy
     mockApi.get('/instance-settings', 200, settings),
   );
   fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
-  await screen.findByRole('button', { name: 'Users' });
+  await screen.findByRole('link', { name: 'Users' });
 
-  const processed = new Promise<void>((resolve) =>
-    server.events.on('response:mocked', () => resolve()),
-  );
-  await act(async () => {
-    oldAccount.release();
-    await processed;
-  });
+  await finishCancelledApiResponse(server, '/api/v1/users/owner-id', () => oldAccount.release());
 
-  expect(screen.getByRole('button', { name: 'Users' })).toBeTruthy();
+  expect(screen.getByRole('link', { name: 'Users' })).toBeTruthy();
 });
 
 it('updates account capabilities without replacing a newer profile draft after a profile acknowledgement', async () => {
@@ -249,7 +277,7 @@ it('updates account capabilities without replacing a newer profile draft after a
   server.use(save.handler);
 
   const view = renderScreen(<ApplicationScreen />);
-  await view.user.click(await screen.findByRole('button', { name: 'Profile' }));
+  await view.user.click(await screen.findByRole('link', { name: 'Profile' }));
   await screen.findByDisplayValue('owner@example.com');
 
   fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), {
@@ -267,8 +295,8 @@ it('updates account capabilities without replacing a newer profile draft after a
   save.release();
 
   await screen.findByText('Profile updated successfully');
-  expect(screen.queryByRole('button', { name: 'Users' })).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Databasus settings' })).toBeNull();
+  expect(screen.queryByRole('link', { name: 'Users' })).toBeNull();
+  expect(screen.queryByRole('link', { name: 'Databasus settings' })).toBeNull();
   expect(screen.getByDisplayValue('Newer profile')).toBeTruthy();
 });
 
@@ -286,14 +314,14 @@ it('retains an acknowledged workspace-creation policy when profile acceptance ch
   );
 
   const view = renderScreen(<ApplicationScreen />);
-  await view.user.click(await screen.findByRole('button', { name: 'Databasus settings' }));
+  await view.user.click(await screen.findByRole('link', { name: 'Databasus settings' }));
   await view.user.click(
     await screen.findByRole('switch', { name: 'Members can create workspaces' }),
   );
   await view.user.click(screen.getByRole('button', { name: 'Save Changes' }));
   await screen.findByText('Settings updated successfully');
 
-  await view.user.click(screen.getByRole('button', { name: 'Profile' }));
+  await view.user.click(screen.getByRole('link', { name: 'Profile' }));
   await screen.findByDisplayValue('owner@example.com');
   fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), {
     target: { value: 'Member profile' },
@@ -301,7 +329,7 @@ it('retains an acknowledged workspace-creation policy when profile acceptance ch
   await view.user.click(screen.getByRole('button', { name: 'Save changes' }));
   await screen.findByText('Profile updated successfully');
 
-  expect(screen.queryByRole('button', { name: 'Users' })).toBeNull();
+  expect(screen.queryByRole('link', { name: 'Users' })).toBeNull();
   expect(screen.getByRole('button', { name: 'Create workspace' })).toBeTruthy();
 });
 
@@ -327,7 +355,7 @@ it.each([false, true])(
     );
 
     renderApp();
-    fireEvent.click(await screen.findByRole('button', { name: 'Settings' }));
+    fireEvent.click(await screen.findByRole('link', { name: 'Settings' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Delete workspace' }));
     const confirmation = await screen.findByRole('dialog');
 
@@ -339,6 +367,9 @@ it.each([false, true])(
     });
 
     if (hasConfirmed) {
+      const databaseReadCount = server
+        .getRequests()
+        .filter((request) => new URL(request.url).pathname.endsWith('/databases')).length;
       server.use(deletionCheck.handler);
       fireEvent.click(within(confirmation).getByRole('button', { name: 'Delete Workspace' }));
       await waitFor(() =>
@@ -346,7 +377,7 @@ it.each([false, true])(
           server
             .getRequests()
             .filter((request) => new URL(request.url).pathname.endsWith('/databases')),
-        ).toHaveLength(2),
+        ).toHaveLength(databaseReadCount + 1),
       );
     }
 
@@ -355,17 +386,7 @@ it.each([false, true])(
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 
     if (hasConfirmed) {
-      const processed = new Promise<void>((resolve) => {
-        const onResponse = () => {
-          server.events.removeListener('response:mocked', onResponse);
-          resolve();
-        };
-        server.events.on('response:mocked', onResponse);
-      });
-      await act(async () => {
-        deletionCheck.release();
-        await processed;
-      });
+      await finishCancelledApiResponse(server, '/api/v1/databases', () => deletionCheck.release());
     }
 
     expect(server.getRequests().filter((request) => request.method === 'DELETE')).toHaveLength(0);
@@ -395,9 +416,9 @@ it('keeps account navigation usable when production release information fails', 
 
   const view = renderScreen(<ApplicationScreen />);
   await failedRelease;
-  await view.user.click(await screen.findByRole('button', { name: 'Profile' }));
+  await view.user.click(await screen.findByRole('link', { name: 'Profile' }));
   expect(await screen.findByDisplayValue('owner@example.com')).toBeTruthy();
-  expect(document.querySelector('.ant-spin-spinning')).toBeNull();
+  expect(document.querySelector('[role="status"]')).toBeNull();
 });
 
 describe('New-version link', () => {
@@ -444,7 +465,7 @@ describe('New-version link', () => {
     renderScreen(<ApplicationScreen />);
     const link = await screen.findByRole('link', { name: NEW_VERSION_EXPLANATION });
 
-    fireEvent.focus(link);
+    act(() => link.focus());
 
     expect((await screen.findByRole('tooltip')).textContent).toBe(NEW_VERSION_EXPLANATION);
   });
@@ -455,7 +476,7 @@ describe('New-version link', () => {
 
     renderScreen(<ApplicationScreen />);
     await releaseAnswered;
-    await screen.findByRole('button', { name: 'Profile' });
+    await screen.findByRole('link', { name: 'Profile' });
 
     expect(screen.queryByRole('link', { name: NEW_VERSION_EXPLANATION })).toBeNull();
   });
@@ -473,42 +494,20 @@ describe('New-version link', () => {
 
     renderScreen(<ApplicationScreen />);
     await releaseAnswered;
-    await screen.findByRole('button', { name: 'Profile' });
+    await screen.findByRole('link', { name: 'Profile' });
 
     expect(screen.queryByRole('link', { name: NEW_VERSION_EXPLANATION })).toBeNull();
   });
 });
 
-it('accepts only the active startup after root StrictMode repeats setup', async () => {
+it('accepts current startup when Strict Mode cancels the first setup', async () => {
   seed();
-  const firstSetup = mockApi.pending('get', '/users/{userId}');
-  let profileReads = 0;
-  server.use(
-    http.get(`*${API_BASE_PATH}/users/:userId`, () =>
-      ++profileReads === 1
-        ? firstSetup.response
-        : HttpResponse.json({ ...user, name: 'Replay owner' }),
-    ),
-  );
-
+  const profileReads = vi.spyOn(userApi, 'getCurrentUser');
+  server.use(mockApi.get('/users/{userId}', 200, { ...user, name: 'Replay owner' }));
   const view = renderScreen(<ApplicationScreen />, { isStrictMode: true });
-  await view.user.click(await screen.findByRole('button', { name: 'Profile' }));
+  await view.user.click(await screen.findByRole('link', { name: 'Profile' }));
   await screen.findByDisplayValue('Replay owner');
-
-  const processed = new Promise<void>((resolve) => {
-    const onResponse = () => {
-      server.events.removeListener('response:mocked', onResponse);
-      resolve();
-    };
-    server.events.on('response:mocked', onResponse);
-  });
-
-  await act(async () => {
-    firstSetup.respond(HttpResponse.json({ ...user, name: 'Obsolete owner', role: 'ADMIN' }));
-    await processed;
-  });
-
-  expect(screen.queryByDisplayValue('Obsolete owner')).toBeNull();
-  expect(screen.getByDisplayValue('Replay owner')).toBeTruthy();
-  expect(screen.queryByRole('button', { name: 'Users' })).toBeNull();
+  expect(profileReads.mock.calls.length).toBeGreaterThanOrEqual(2);
+  expect(profileReads.mock.calls[0][0]?.signal?.aborted).toBe(true);
+  expect(screen.queryByRole('link', { name: 'Users' })).toBeNull();
 });

@@ -1053,42 +1053,48 @@ func (e PostgresqlVersion) Valid() bool {
 
 // Defines values for ProblemCode.
 const (
-	ProblemCodeAdminEmailMissing        ProblemCode = "admin_email_missing"
-	ProblemCodeAlreadyMember            ProblemCode = "already_member"
-	ProblemCodeAlreadyRunning           ProblemCode = "already_running"
-	ProblemCodeBackupNotCompleted       ProblemCode = "backup_not_completed"
-	ProblemCodeCannotChangeOwnRole      ProblemCode = "cannot_change_own_role"
-	ProblemCodeCleanupPending           ProblemCode = "cleanup_pending"
-	ProblemCodeDatabaseConnectionFailed ProblemCode = "database_connection_failed"
-	ProblemCodeEmailNotConfigured       ProblemCode = "email_not_configured"
-	ProblemCodeEmailTaken               ProblemCode = "email_taken"
-	ProblemCodeHumanVerificationFailed  ProblemCode = "human_verification_failed"
-	ProblemCodeInUse                    ProblemCode = "in_use"
-	ProblemCodeInstanceUnhealthy        ProblemCode = "instance_unhealthy"
-	ProblemCodeInsufficientDiskSpace    ProblemCode = "insufficient_disk_space"
-	ProblemCodeInternal                 ProblemCode = "internal"
-	ProblemCodeInvalidCredentials       ProblemCode = "invalid_credentials"
-	ProblemCodeInvalidRequest           ProblemCode = "invalid_request"
-	ProblemCodeInvalidResetCode         ProblemCode = "invalid_reset_code"
-	ProblemCodeNoExtendableChain        ProblemCode = "no_extendable_chain"
-	ProblemCodeNoRestorableBackup       ProblemCode = "no_restorable_backup"
-	ProblemCodeNotFound                 ProblemCode = "not_found"
-	ProblemCodeNotRunning               ProblemCode = "not_running"
-	ProblemCodeOauthFailed              ProblemCode = "oauth_failed"
-	ProblemCodeOauthNotConfigured       ProblemCode = "oauth_not_configured"
-	ProblemCodeOwnerRequiresTransfer    ProblemCode = "owner_requires_transfer"
-	ProblemCodePendingSignInNotUsable   ProblemCode = "pending_sign_in_not_usable"
-	ProblemCodePermissionDenied         ProblemCode = "permission_denied"
-	ProblemCodeRateLimited              ProblemCode = "rate_limited"
-	ProblemCodeRegistrationClosed       ProblemCode = "registration_closed"
-	ProblemCodeSignInCodeIncorrect      ProblemCode = "sign_in_code_incorrect"
-	ProblemCodeSignInCodeNotSent        ProblemCode = "sign_in_code_not_sent"
-	ProblemCodeSignInCodeResentTooSoon  ProblemCode = "sign_in_code_resent_too_soon"
-	ProblemCodeTargetTimeUnreachable    ProblemCode = "target_time_unreachable"
-	ProblemCodeTooManySignInCodes       ProblemCode = "too_many_sign_in_codes"
-	ProblemCodeUnauthenticated          ProblemCode = "unauthenticated"
-	ProblemCodeUserDeactivated          ProblemCode = "user_deactivated"
-	ProblemCodeWorkspaceNotEmpty        ProblemCode = "workspace_not_empty"
+	ProblemCodeAdminEmailMissing          ProblemCode = "admin_email_missing"
+	ProblemCodeAlreadyMember              ProblemCode = "already_member"
+	ProblemCodeAlreadyRunning             ProblemCode = "already_running"
+	ProblemCodeBackupNotCompleted         ProblemCode = "backup_not_completed"
+	ProblemCodeCannotChangeOwnRole        ProblemCode = "cannot_change_own_role"
+	ProblemCodeCleanupPending             ProblemCode = "cleanup_pending"
+	ProblemCodeDatabaseConnectionFailed   ProblemCode = "database_connection_failed"
+	ProblemCodeEmailNotConfigured         ProblemCode = "email_not_configured"
+	ProblemCodeEmailNotFound              ProblemCode = "email_not_found"
+	ProblemCodeEmailTaken                 ProblemCode = "email_taken"
+	ProblemCodeHumanVerificationFailed    ProblemCode = "human_verification_failed"
+	ProblemCodeInUse                      ProblemCode = "in_use"
+	ProblemCodeInstanceUnhealthy          ProblemCode = "instance_unhealthy"
+	ProblemCodeInsufficientDiskSpace      ProblemCode = "insufficient_disk_space"
+	ProblemCodeInternal                   ProblemCode = "internal"
+	ProblemCodeInvalidRequest             ProblemCode = "invalid_request"
+	ProblemCodeInvalidResetCode           ProblemCode = "invalid_reset_code"
+	ProblemCodeNoExtendableChain          ProblemCode = "no_extendable_chain"
+	ProblemCodeNoRestorableBackup         ProblemCode = "no_restorable_backup"
+	ProblemCodeNotFound                   ProblemCode = "not_found"
+	ProblemCodeNotRunning                 ProblemCode = "not_running"
+	ProblemCodeOauthFailed                ProblemCode = "oauth_failed"
+	ProblemCodeOauthNotConfigured         ProblemCode = "oauth_not_configured"
+	ProblemCodeOwnerRequiresTransfer      ProblemCode = "owner_requires_transfer"
+	ProblemCodePasswordIncorrect          ProblemCode = "password_incorrect"
+	ProblemCodePasswordNotSet             ProblemCode = "password_not_set"
+	ProblemCodePasswordNotSetGithub       ProblemCode = "password_not_set_github"
+	ProblemCodePasswordNotSetGoogle       ProblemCode = "password_not_set_google"
+	ProblemCodePasswordNotSetGoogleGithub ProblemCode = "password_not_set_google_github"
+	ProblemCodePendingSignInNotUsable     ProblemCode = "pending_sign_in_not_usable"
+	ProblemCodePermissionDenied           ProblemCode = "permission_denied"
+	ProblemCodeRateLimited                ProblemCode = "rate_limited"
+	ProblemCodeRegistrationClosed         ProblemCode = "registration_closed"
+	ProblemCodeRegistrationIncomplete     ProblemCode = "registration_incomplete"
+	ProblemCodeSignInCodeIncorrect        ProblemCode = "sign_in_code_incorrect"
+	ProblemCodeSignInCodeNotSent          ProblemCode = "sign_in_code_not_sent"
+	ProblemCodeSignInCodeResentTooSoon    ProblemCode = "sign_in_code_resent_too_soon"
+	ProblemCodeTargetTimeUnreachable      ProblemCode = "target_time_unreachable"
+	ProblemCodeTooManySignInCodes         ProblemCode = "too_many_sign_in_codes"
+	ProblemCodeUnauthenticated            ProblemCode = "unauthenticated"
+	ProblemCodeUserDeactivated            ProblemCode = "user_deactivated"
+	ProblemCodeWorkspaceNotEmpty          ProblemCode = "workspace_not_empty"
 )
 
 // Valid indicates whether the value is a known member of the ProblemCode enum.
@@ -1110,6 +1116,8 @@ func (e ProblemCode) Valid() bool {
 		return true
 	case ProblemCodeEmailNotConfigured:
 		return true
+	case ProblemCodeEmailNotFound:
+		return true
 	case ProblemCodeEmailTaken:
 		return true
 	case ProblemCodeHumanVerificationFailed:
@@ -1121,8 +1129,6 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeInsufficientDiskSpace:
 		return true
 	case ProblemCodeInternal:
-		return true
-	case ProblemCodeInvalidCredentials:
 		return true
 	case ProblemCodeInvalidRequest:
 		return true
@@ -1142,6 +1148,16 @@ func (e ProblemCode) Valid() bool {
 		return true
 	case ProblemCodeOwnerRequiresTransfer:
 		return true
+	case ProblemCodePasswordIncorrect:
+		return true
+	case ProblemCodePasswordNotSet:
+		return true
+	case ProblemCodePasswordNotSetGithub:
+		return true
+	case ProblemCodePasswordNotSetGoogle:
+		return true
+	case ProblemCodePasswordNotSetGoogleGithub:
+		return true
 	case ProblemCodePendingSignInNotUsable:
 		return true
 	case ProblemCodePermissionDenied:
@@ -1149,6 +1165,8 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeRateLimited:
 		return true
 	case ProblemCodeRegistrationClosed:
+		return true
+	case ProblemCodeRegistrationIncomplete:
 		return true
 	case ProblemCodeSignInCodeIncorrect:
 		return true
@@ -2287,24 +2305,24 @@ type FtpStorageSettings struct {
 // FtpStorageSettingsType Always `FTP`
 type FtpStorageSettingsType string
 
-// FullBackupsRetention Which full backups are kept
+// FullBackupsRetention Which full backups are kept. GFS selects successful full backups using UTC calendar periods anchored to the creation time of the newest successful full backup. Weeks start on Monday. Hourly and daily counts include the current period; weekly, monthly and yearly counts reserve completed periods and also protect the current period's newest successful candidate. One full backup can represent several levels. This selection does not preserve its incrementals or WAL. A zero count disables its level and candidate. Empty periods are not filled with older full backups.
 type FullBackupsRetention struct {
 	// Count How many of the newest full backups `LAST_N` keeps; 0 with `GFS`
 	Count int `json:"count"`
 
-	// GfsDays For how many of the last days `GFS` keeps the newest full backup of each day
+	// GfsDays Number of UTC calendar days for which `GFS` keeps the newest successful full backup, including the current day
 	GfsDays int `json:"gfsDays"`
 
-	// GfsHours For how many of the last hours `GFS` keeps the newest full backup of each hour
+	// GfsHours Number of UTC calendar hours for which `GFS` keeps the newest successful full backup, including the current hour
 	GfsHours int `json:"gfsHours"`
 
-	// GfsMonths For how many of the last months `GFS` keeps the newest full backup of each month
+	// GfsMonths Number of completed UTC calendar months for which `GFS` keeps the newest successful full backup, plus the current month's candidate
 	GfsMonths int `json:"gfsMonths"`
 
-	// GfsWeeks For how many of the last weeks `GFS` keeps the newest full backup of each week
+	// GfsWeeks Number of completed UTC calendar weeks for which `GFS` keeps the newest successful full backup, plus the current week's candidate
 	GfsWeeks int `json:"gfsWeeks"`
 
-	// GfsYears For how many of the last years `GFS` keeps the newest full backup of each year
+	// GfsYears Number of completed UTC calendar years for which `GFS` keeps the newest successful full backup, plus the current year's candidate
 	GfsYears int `json:"gfsYears"`
 
 	// Policy `LAST_N` keeps the newest `count` full backups, and `GFS` keeps them by grandfather-father-son periods, at least one of them set
@@ -2612,7 +2630,7 @@ type LogicalBackupSettings struct {
 	// NotificationTriggers The backup outcomes that send a notification through the database's notifiers
 	NotificationTriggers []LogicalNotificationTrigger `json:"notificationTriggers"`
 
-	// Retention Which logical backups are kept. `policy` picks the rule; the fields of the other rules keep their saved values.
+	// Retention Which logical backups are kept. `policy` picks the rule; the fields of the other rules keep their saved values. GFS selects successful backups using UTC calendar periods anchored to the creation time of the newest successful backup. Weeks start on Monday. Hourly and daily counts include the current period; weekly, monthly and yearly counts reserve completed periods and also protect the current period's newest successful candidate. A backup can represent several levels without duplicate files. A zero count disables its level and candidate. Empty periods are not filled with older backups.
 	Retention LogicalRetention `json:"retention"`
 
 	// Schedule When recurring work runs; times of day are in UTC
@@ -2640,24 +2658,24 @@ type LogicalBackupVerificationStatus string
 // LogicalNotificationTrigger A logical backup outcome that sends a notification, a failed or a successful backup
 type LogicalNotificationTrigger string
 
-// LogicalRetention Which logical backups are kept. `policy` picks the rule; the fields of the other rules keep their saved values.
+// LogicalRetention Which logical backups are kept. `policy` picks the rule; the fields of the other rules keep their saved values. GFS selects successful backups using UTC calendar periods anchored to the creation time of the newest successful backup. Weeks start on Monday. Hourly and daily counts include the current period; weekly, monthly and yearly counts reserve completed periods and also protect the current period's newest successful candidate. A backup can represent several levels without duplicate files. A zero count disables its level and candidate. Empty periods are not filled with older backups.
 type LogicalRetention struct {
 	// Count How many of the newest backups `COUNT` keeps; greater than 0 with it
 	Count int `json:"count"`
 
-	// GfsDays For how many of the last days `GFS` keeps the newest backup of each day
+	// GfsDays Number of UTC calendar days for which `GFS` keeps the newest successful backup, including the current day
 	GfsDays int `json:"gfsDays"`
 
-	// GfsHours For how many of the last hours `GFS` keeps the newest backup of each hour
+	// GfsHours Number of UTC calendar hours for which `GFS` keeps the newest successful backup, including the current hour
 	GfsHours int `json:"gfsHours"`
 
-	// GfsMonths For how many of the last months `GFS` keeps the newest backup of each month
+	// GfsMonths Number of completed UTC calendar months for which `GFS` keeps the newest successful backup, plus the current month's candidate
 	GfsMonths int `json:"gfsMonths"`
 
-	// GfsWeeks For how many of the last weeks `GFS` keeps the newest backup of each week
+	// GfsWeeks Number of completed UTC calendar weeks for which `GFS` keeps the newest successful backup, plus the current week's candidate
 	GfsWeeks int `json:"gfsWeeks"`
 
-	// GfsYears For how many of the last years `GFS` keeps the newest backup of each year
+	// GfsYears Number of completed UTC calendar years for which `GFS` keeps the newest successful backup, plus the current year's candidate
 	GfsYears int `json:"gfsYears"`
 
 	// Period How long the `TIME_PERIOD` retention keeps a backup
@@ -7087,7 +7105,7 @@ type ClientInterface interface {
 
 	// SignInWithBody Sign in with an email address and a password
 	//
-	// Public, because it creates the session the caller does not have yet. A wrong password, an unknown address, a user who has not finished sign-up and a user without a password all get 401 `invalid_credentials`. A deactivated user gets 403 `user_deactivated` only after the correct password. When the instance requires the second factor, the answer names a pending sign-in and the code goes to the user's address.
+	// Public, because it creates the session the caller does not have yet. Refusals answer 401 with `email_not_found`, `password_incorrect`, `registration_incomplete` or `password_not_set`. Accounts without a password recommend linked, configured providers through `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`. A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise its refusal matches an equivalent active account. Human verification and the per-address rate limit run before these refusals. When the instance requires the second factor, a successful password step names a pending sign-in and sends its code. A refused step sends no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -7096,7 +7114,7 @@ type ClientInterface interface {
 
 	// SignIn Sign in with an email address and a password
 	//
-	// Public, because it creates the session the caller does not have yet. A wrong password, an unknown address, a user who has not finished sign-up and a user without a password all get 401 `invalid_credentials`. A deactivated user gets 403 `user_deactivated` only after the correct password. When the instance requires the second factor, the answer names a pending sign-in and the code goes to the user's address.
+	// Public, because it creates the session the caller does not have yet. Refusals answer 401 with `email_not_found`, `password_incorrect`, `registration_incomplete` or `password_not_set`. Accounts without a password recommend linked, configured providers through `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`. A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise its refusal matches an equivalent active account. Human verification and the per-address rate limit run before these refusals. When the instance requires the second factor, a successful password step names a pending sign-in and sends its code. A refused step sends no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -8972,7 +8990,7 @@ func (c *Client) CancelRestore(ctx context.Context, restoreId RestoreId, reqEdit
 
 // SignInWithBody Sign in with an email address and a password
 //
-// Public, because it creates the session the caller does not have yet. A wrong password, an unknown address, a user who has not finished sign-up and a user without a password all get 401 `invalid_credentials`. A deactivated user gets 403 `user_deactivated` only after the correct password. When the instance requires the second factor, the answer names a pending sign-in and the code goes to the user's address.
+// Public, because it creates the session the caller does not have yet. Refusals answer 401 with `email_not_found`, `password_incorrect`, `registration_incomplete` or `password_not_set`. Accounts without a password recommend linked, configured providers through `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`. A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise its refusal matches an equivalent active account. Human verification and the per-address rate limit run before these refusals. When the instance requires the second factor, a successful password step names a pending sign-in and sends its code. A refused step sends no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
 //
 // Takes any type of body and a specified content type.
 //
@@ -8991,7 +9009,7 @@ func (c *Client) SignInWithBody(ctx context.Context, contentType string, body io
 
 // SignIn Sign in with an email address and a password
 //
-// Public, because it creates the session the caller does not have yet. A wrong password, an unknown address, a user who has not finished sign-up and a user without a password all get 401 `invalid_credentials`. A deactivated user gets 403 `user_deactivated` only after the correct password. When the instance requires the second factor, the answer names a pending sign-in and the code goes to the user's address.
+// Public, because it creates the session the caller does not have yet. Refusals answer 401 with `email_not_found`, `password_incorrect`, `registration_incomplete` or `password_not_set`. Accounts without a password recommend linked, configured providers through `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`. A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise its refusal matches an equivalent active account. Human verification and the per-address rate limit run before these refusals. When the instance requires the second factor, a successful password step names a pending sign-in and sends its code. A refused step sends no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -15276,7 +15294,7 @@ type ClientWithResponsesInterface interface {
 
 	// SignInWithBodyWithResponse Sign in with an email address and a password
 	//
-	// Public, because it creates the session the caller does not have yet. A wrong password, an unknown address, a user who has not finished sign-up and a user without a password all get 401 `invalid_credentials`. A deactivated user gets 403 `user_deactivated` only after the correct password. When the instance requires the second factor, the answer names a pending sign-in and the code goes to the user's address.
+	// Public, because it creates the session the caller does not have yet. Refusals answer 401 with `email_not_found`, `password_incorrect`, `registration_incomplete` or `password_not_set`. Accounts without a password recommend linked, configured providers through `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`. A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise its refusal matches an equivalent active account. Human verification and the per-address rate limit run before these refusals. When the instance requires the second factor, a successful password step names a pending sign-in and sends its code. A refused step sends no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -15285,7 +15303,7 @@ type ClientWithResponsesInterface interface {
 
 	// SignInWithResponse Sign in with an email address and a password
 	//
-	// Public, because it creates the session the caller does not have yet. A wrong password, an unknown address, a user who has not finished sign-up and a user without a password all get 401 `invalid_credentials`. A deactivated user gets 403 `user_deactivated` only after the correct password. When the instance requires the second factor, the answer names a pending sign-in and the code goes to the user's address.
+	// Public, because it creates the session the caller does not have yet. Refusals answer 401 with `email_not_found`, `password_incorrect`, `registration_incomplete` or `password_not_set`. Accounts without a password recommend linked, configured providers through `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`. A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise its refusal matches an equivalent active account. Human verification and the per-address rate limit run before these refusals. When the instance requires the second factor, a successful password step names a pending sign-in and sends its code. A refused step sends no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -24085,7 +24103,7 @@ func (c *ClientWithResponses) CancelRestoreWithResponse(ctx context.Context, res
 
 // SignInWithBodyWithResponse Sign in with an email address and a password
 //
-// Public, because it creates the session the caller does not have yet. A wrong password, an unknown address, a user who has not finished sign-up and a user without a password all get 401 `invalid_credentials`. A deactivated user gets 403 `user_deactivated` only after the correct password. When the instance requires the second factor, the answer names a pending sign-in and the code goes to the user's address.
+// Public, because it creates the session the caller does not have yet. Refusals answer 401 with `email_not_found`, `password_incorrect`, `registration_incomplete` or `password_not_set`. Accounts without a password recommend linked, configured providers through `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`. A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise its refusal matches an equivalent active account. Human verification and the per-address rate limit run before these refusals. When the instance requires the second factor, a successful password step names a pending sign-in and sends its code. A refused step sends no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -24100,7 +24118,7 @@ func (c *ClientWithResponses) SignInWithBodyWithResponse(ctx context.Context, co
 
 // SignInWithResponse Sign in with an email address and a password
 //
-// Public, because it creates the session the caller does not have yet. A wrong password, an unknown address, a user who has not finished sign-up and a user without a password all get 401 `invalid_credentials`. A deactivated user gets 403 `user_deactivated` only after the correct password. When the instance requires the second factor, the answer names a pending sign-in and the code goes to the user's address.
+// Public, because it creates the session the caller does not have yet. Refusals answer 401 with `email_not_found`, `password_incorrect`, `registration_incomplete` or `password_not_set`. Accounts without a password recommend linked, configured providers through `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`. A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise its refusal matches an equivalent active account. Human verification and the per-address rate limit run before these refusals. When the instance requires the second factor, a successful password step names a pending sign-in and sends its code. A refused step sends no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //

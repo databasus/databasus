@@ -1,4 +1,3 @@
-import { Select } from 'antd';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -6,6 +5,7 @@ import type { Schedule } from '@/entities/schedules/model/Schedule';
 import { ScheduleType } from '@/entities/schedules/model/ScheduleType';
 import { SCHEDULE_TYPE_LABEL_KEYS } from '@/entities/schedules/model/ScheduleTypeLabelKeys';
 import { ScheduleDetailsFields } from '@/entities/schedules/ui/ScheduleDetailsFields';
+import { WrappingSelect } from '@/shared/ui';
 
 interface Props {
   label: string;
@@ -27,17 +27,17 @@ export const ScheduleEditor = ({ label, schedule, onChange }: Props) => {
       <div className="mt-4 mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <label
           htmlFor={typeControlId}
-          className="mb-1 max-w-[150px] min-w-[150px] leading-4 sm:mb-0 sm:pr-2"
+          className="mb-1 min-w-0 leading-[1.1428571429] wrap-anywhere sm:mb-0 sm:w-[150px] sm:shrink-0 sm:pr-2"
         >
           {label}
         </label>
-        <Select
+        <WrappingSelect
           id={typeControlId}
           value={schedule?.type}
           onChange={(type) => onChange(schedule ? { ...schedule, type } : { type })}
-          size="small"
+          size="xs"
           className="w-full max-w-[200px] grow"
-          options={scheduleTypeOptions}
+          data={scheduleTypeOptions}
         />
       </div>
 

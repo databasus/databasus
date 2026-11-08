@@ -1,4 +1,5 @@
-import { Alert, Spin } from 'antd';
+import { Alert, Loader } from '@mantine/core';
+import { Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -77,14 +78,14 @@ export function StorageOAuthPage() {
     <div className="mx-auto w-full max-w-lg p-4">
       {status === 'waiting' ? (
         <div role="status">
-          <Spin />
+          <Loader aria-hidden />
           {t('app.oauthStorage.waiting')}
         </div>
       ) : (
         <Alert
-          type={status === 'complete' ? 'success' : 'error'}
-          showIcon
-          message={t(
+          color={status === 'complete' ? 'success' : 'danger'}
+          icon={<Info aria-hidden size={16} className="inline-block shrink-0 align-middle" />}
+          title={t(
             status === 'complete' ? 'app.oauthStorage.complete' : 'app.oauthStorage.restart',
           )}
         />

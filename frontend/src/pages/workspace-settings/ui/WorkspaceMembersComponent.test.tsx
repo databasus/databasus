@@ -77,6 +77,81 @@ const submitAddition = (email: string) => {
 };
 
 describe('WorkspaceMembersComponent', () => {
+  it.each(['ADDED', 'INVITED'] as const)(
+    'retains the acknowledged member when the refresh fails after outcome %s',
+    async (outcome) => {
+      const member = {
+        ...buildMember('newcomer@example.com', 'WORKSPACE_MEMBER'),
+        isInvited: outcome === 'INVITED',
+      };
+      mockMemberList([buildMember(owner.email, 'WORKSPACE_OWNER')]);
+      const additions = mockAddition(201, { ...member, outcome });
+      renderScreen(
+        <WorkspaceMembersComponent selectedWorkspace={selectedWorkspace} user={owner} />,
+      );
+      await openAddMemberDialog();
+
+      mockServer.use(mockApi.get('/workspace-members', 500, buildProblem('internal', 500)));
+
+      submitAddition(member.email);
+      await screen.findByText('An internal server error occurred. Please try again later.');
+
+      const table = within(screen.getByRole('table', { hidden: true }));
+      expect(table.getByText(member.email)).toBeTruthy();
+      expect(table.getByText(owner.email)).toBeTruthy();
+
+      if (outcome === 'INVITED') expect(table.getByText('Invited')).toBeTruthy();
+
+      expect(additions).toHaveLength(1);
+      expect(screen.queryByRole('dialog', { name: 'Add member' })).toBeNull();
+    },
+  );
+
+  it.each([320, 1280])(
+    'submits member removal once when its response is pending at width %i',
+    async (width) => {
+      const previousWidth = window.innerWidth;
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
+      const colleague = buildMember('colleague@example.com', 'WORKSPACE_MEMBER');
+      const removal = mockApi.pending('delete', '/workspace-members/{memberId}');
+      mockMemberList([buildMember(owner.email, 'WORKSPACE_OWNER'), colleague]);
+      mockServer.use(removal.handler);
+      const { user: interaction } = renderScreen(
+        <WorkspaceMembersComponent selectedWorkspace={selectedWorkspace} user={owner} />,
+      );
+
+      try {
+        await screen.findByText(colleague.email);
+        await interaction.click(screen.getByRole('button', { name: 'Remove member' }));
+        const confirm = await screen.findByRole('button', { name: 'Remove' });
+        await interaction.click(confirm);
+        await waitFor(() =>
+          expect(
+            mockServer.getRequests().filter((request) => request.method === 'DELETE'),
+          ).toHaveLength(1),
+        );
+
+        expect((confirm as HTMLButtonElement).disabled).toBe(true);
+        await interaction.click(confirm);
+        fireEvent.click(confirm);
+
+        expect(
+          mockServer.getRequests().filter((request) => request.method === 'DELETE'),
+        ).toHaveLength(1);
+
+        removal.respond(new HttpResponse(null, { status: 204 }));
+        await waitFor(() => expect(screen.queryByText(colleague.email)).toBeNull());
+
+        expect(
+          mockServer.getRequests().filter((request) => request.method === 'DELETE'),
+        ).toHaveLength(1);
+      } finally {
+        removal.cancel();
+        Object.defineProperty(window, 'innerWidth', { configurable: true, value: previousWidth });
+      }
+    },
+  );
+
   it.each(['ADMIN', 'MEMBER'] as const)(
     'associates the visible email label with the control when the user role is %s',
     async (role) => {
@@ -161,7 +236,7 @@ describe('WorkspaceMembersComponent', () => {
     renderScreen(<WorkspaceMembersComponent selectedWorkspace={selectedWorkspace} user={owner} />);
     await openAddMemberDialog();
 
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Role' }));
+    fireEvent.click(screen.getByRole('combobox', { name: 'Role' }));
 
     await waitFor(() =>
       expect(getOfferedRoleLabels()).toEqual(expect.arrayContaining(['Viewer', 'Member', 'Admin'])),
@@ -170,9 +245,7 @@ describe('WorkspaceMembersComponent', () => {
   });
 
   const getOfferedRoleLabels = () =>
-    Array.from(document.querySelectorAll('.ant-select-item-option')).map(
-      (option) => option.textContent,
-    );
+    screen.getAllByRole('option').map((option) => option.textContent);
 
   it.each([false, true])(
     'shows the acknowledged member role when a role change is refused=%s',
@@ -197,9 +270,7 @@ describe('WorkspaceMembersComponent', () => {
       const row = (await screen.findByText(colleague.email)).closest('tr')!;
 
       await interaction.click(within(row).getByRole('combobox', { name: 'Role' }));
-      await interaction.click(
-        await screen.findByText('Viewer', { selector: '.ant-select-item-option-content' }),
-      );
+      await interaction.click(await screen.findByRole('option', { name: 'Viewer' }));
 
       await screen.findByText(
         isRefused ? 'You do not have permission to do this.' : 'Member role updated successfully',
@@ -210,11 +281,9 @@ describe('WorkspaceMembersComponent', () => {
         `/api/v1/workspace-members/${colleague.id}`,
       );
       expect(await request.json()).toEqual({ role: 'WORKSPACE_VIEWER' });
-      expect(
-        within(row).getByText(isRefused ? 'Member' : 'Viewer', {
-          selector: '.ant-select-selection-item',
-        }),
-      ).toBeTruthy();
+      expect(within(row).getByRole('combobox', { name: 'Role' }).textContent).toBe(
+        isRefused ? 'Member' : 'Viewer',
+      );
       expect(screen.getByText(owner.email)).toBeTruthy();
     },
   );
@@ -290,7 +359,7 @@ describe('WorkspaceMembersComponent', () => {
       } else expect(controlsFor(administrator.email).getByRole('combobox')).toBeTruthy();
 
       await interaction.click(controlsFor(colleague.email).getByRole('combobox', { name: 'Role' }));
-      await screen.findByText('Viewer', { selector: '.ant-select-item-option-content' });
+      await screen.findByRole('option', { name: 'Viewer' });
       const offered = getOfferedRoleLabels();
 
       expect(offered).not.toContain('Owner');

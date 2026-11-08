@@ -94,6 +94,42 @@ func TestTwoFactorSignIn(t *testing.T) {
 		assert.Len(t, app.Mail.GetMessagesTo(admin.Email), 1)
 	})
 
+	t.Run("preserves the pending sign-in and its code when a later password is incorrect", func(t *testing.T) {
+		t.Parallel()
+
+		app, admin := newTwoFactorApp(t)
+		pendingSignIn := startTwoFactorSignIn(t, app, admin.Email)
+		code := readLatestMailedCode(t, app, admin.Email)
+		var originalPendingSignIn map[string]any
+		app.QuerySQL(
+			t,
+			&originalPendingSignIn,
+			"SELECT * FROM users_pending_sign_ins WHERE id = ?",
+			pendingSignIn.PendingSignInId,
+		)
+
+		refusedResponse := signIn(t, app, admin.Email, "incorrect-password")
+
+		requireProblem(t, refusedResponse.StatusCode(), refusedResponse.Body, http.StatusUnauthorized,
+			apiclient.ProblemCodePasswordIncorrect)
+		var persistedPendingSignIn map[string]any
+		app.QuerySQL(
+			t,
+			&persistedPendingSignIn,
+			"SELECT * FROM users_pending_sign_ins WHERE id = ?",
+			pendingSignIn.PendingSignInId,
+		)
+		assert.Equal(t, originalPendingSignIn, persistedPendingSignIn)
+		reusedPendingSignIn := startTwoFactorSignIn(t, app, admin.Email)
+		assert.Equal(t, pendingSignIn.PendingSignInId, reusedPendingSignIn.PendingSignInId)
+		assert.Len(t, app.Mail.GetMessagesTo(admin.Email), 1)
+
+		verifiedResponse := verifySignInCode(t, app, pendingSignIn.PendingSignInId, code)
+
+		require.Equal(t, http.StatusOK, verifiedResponse.StatusCode(), string(verifiedResponse.Body))
+		assert.Equal(t, admin.UserID, verifiedResponse.JSON200.UserId)
+	})
+
 	t.Run("sends a fresh code after the password changed during a pending sign-in", func(t *testing.T) {
 		t.Parallel()
 
@@ -181,7 +217,7 @@ func TestTwoFactorSignIn(t *testing.T) {
 		response := signIn(t, app, admin.Email, "wrong-password-123")
 
 		requireProblem(t, response.StatusCode(), response.Body, http.StatusUnauthorized,
-			apiclient.ProblemCodeInvalidCredentials)
+			apiclient.ProblemCodePasswordIncorrect)
 		assert.Empty(t, app.Mail.GetMessagesTo(admin.Email))
 	})
 
@@ -194,7 +230,7 @@ func TestTwoFactorSignIn(t *testing.T) {
 		response := signIn(t, app, unknownEmail, apptest.TestPassword)
 
 		requireProblem(t, response.StatusCode(), response.Body, http.StatusUnauthorized,
-			apiclient.ProblemCodeInvalidCredentials)
+			apiclient.ProblemCodeEmailNotFound)
 		assert.Zero(t, app.Mail.GetMessageCount())
 
 		var pendingSignInCount int64

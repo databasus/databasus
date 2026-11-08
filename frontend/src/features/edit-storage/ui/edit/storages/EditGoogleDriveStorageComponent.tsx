@@ -1,4 +1,5 @@
-import { Alert, Button, Form, Input } from 'antd';
+import { Alert, Button, PasswordInput, TextInput } from '@mantine/core';
+import { CircleAlert } from 'lucide-react';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -27,28 +28,35 @@ export function EditGoogleDriveStorageComponent(props: Props) {
       <a href={getWebsitePageUrl('storagesGoogleDrive', locale)} target="_blank" rel="noreferrer">
         {t('storages.edit.googleDrive.guideLink')}
       </a>
-      <Form.Item label={t('storages.fields.clientId')} htmlFor={`${controlId}-client`}>
-        <Input
+      <div className="mb-3 min-w-0">
+        <label htmlFor={`${controlId}-client`} className="mb-1 block text-sm text-content">
+          {t('storages.fields.clientId')}
+        </label>
+        <TextInput
           id={`${controlId}-client`}
           value={settings.clientId}
-          size="small"
+          size="xs"
           onChange={(event) => onChange({ ...settings, clientId: event.target.value.trim() })}
         />
-      </Form.Item>
-      <Form.Item
-        label={t('storages.fields.clientSecret')}
-        htmlFor={`${controlId}-secret`}
-        help={storageId ? t('storages.edit.googleDrive.reconnectHelp') : undefined}
-      >
-        <Input.Password
+      </div>
+      <div className="mb-3 min-w-0">
+        <label htmlFor={`${controlId}-secret`} className="mb-1 block text-sm text-content">
+          {t('storages.fields.clientSecret')}
+        </label>
+        <PasswordInput
           id={`${controlId}-secret`}
           value={settings.clientSecret || ''}
-          size="small"
+          size="xs"
           onChange={(event) =>
             onChange({ ...settings, clientSecret: toOptionalValue(event.target.value.trim()) })
           }
+          visibilityToggleButtonProps={{
+            'aria-label': t('common.actions.togglePasswordVisibility'),
+          }}
+          description={storageId ? t('storages.edit.googleDrive.reconnectHelp') : undefined}
+          inputWrapperOrder={['label', 'input', 'description', 'error']}
         />
-      </Form.Item>
+      </div>
       {hasAuthorization && <div role="status">{t('storages.edit.googleDrive.authorized')}</div>}
       {authorization.isPending && (
         <div role="status">
@@ -60,11 +68,17 @@ export function EditGoogleDriveStorageComponent(props: Props) {
         </div>
       )}
       {authorization.errorKey && (
-        <Alert type="error" showIcon message={t(authorization.errorKey)} />
+        <Alert
+          color="danger"
+          icon={
+            <CircleAlert aria-hidden size={16} className="inline-block shrink-0 align-middle" />
+          }
+          title={t(authorization.errorKey)}
+        />
       )}
       <div className="mt-2 flex flex-wrap gap-2">
         <Button
-          type="primary"
+          variant="filled"
           disabled={!settings.clientId || !settings.clientSecret}
           onClick={authorization.start}
         >

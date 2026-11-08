@@ -37,8 +37,7 @@ const buildSettings = (
 const getHostInput = () => screen.getByLabelText('Host') as HTMLInputElement;
 
 const getSelectedSslMode = () =>
-  screen.getByText('SSL mode').parentElement!.querySelector('.ant-select-selection-item')!
-    .textContent;
+  screen.getByText('SSL mode').parentElement!.querySelector('button[role="combobox"]')!.textContent;
 
 describe('EditPostgresqlLogicalConnectionComponent', () => {
   it('opens the advanced settings with both exclusion fields when only table data is excluded', () => {

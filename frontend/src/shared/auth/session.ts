@@ -78,14 +78,23 @@ export const invalidateSession = (session = getSessionSnapshot()): boolean => {
   return true;
 };
 
-export const beginAuthIntent = (): AuthIntent => ({
+export const getAuthIntent = (): AuthIntent => ({
   generation: getSessionSnapshot().generation,
-  revision: ++intentRevision,
+  revision: intentRevision,
 });
+export const beginAuthIntent = (): AuthIntent => {
+  globalThis.sessionStorage?.removeItem('databasus_oauth_sign_in_attempt');
+  intentRevision++;
+
+  return getAuthIntent();
+};
 export const isCurrentAuthIntent = (intent: AuthIntent): boolean =>
   intent.generation === getSessionSnapshot().generation && intent.revision === intentRevision;
 export const abandonAuthIntent = (intent: AuthIntent): void => {
-  if (isCurrentAuthIntent(intent)) intentRevision++;
+  if (isCurrentAuthIntent(intent)) {
+    globalThis.sessionStorage?.removeItem('databasus_oauth_sign_in_attempt');
+    intentRevision++;
+  }
 };
 export const acceptAuthSession = ({
   intent,

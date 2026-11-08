@@ -178,7 +178,8 @@ describe('AuthCallbackPage', () => {
       });
       await waitFor(() => expect(server.getRequests()).toHaveLength(1));
 
-      const provider = document.querySelector('.ant-app');
+      const provider = document.querySelector('style[data-mantine-styles="classes"]');
+      expect(provider).not.toBeNull();
       if (mode === 'unmount') view.rerender(<div>Callback closed</div>);
       else activateSession({ token: 'new-session', userId: 'new-owner' });
 
@@ -191,7 +192,7 @@ describe('AuthCallbackPage', () => {
       });
 
       expect(getSessionSnapshot().token).toBe(mode === 'unmount' ? undefined : 'new-session');
-      expect(document.querySelector('.ant-app')).toBe(provider);
+      expect(document.querySelector('style[data-mantine-styles="classes"]')).toBe(provider);
       expect(screen.queryByText(DICTIONARIES.en.app.oauthCallback.failedTitle)).toBeNull();
       expect(screen.queryByText(DICTIONARIES.en.errors.permissionDenied)).toBeNull();
     },

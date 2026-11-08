@@ -912,7 +912,7 @@ const renderNewStorageForm = async (typeLabel: string) => {
     target: { value: 'New storage' },
   });
   await view.user.click(screen.getByRole('combobox', { name: 'Type' }));
-  fireEvent.click(await screen.findByTitle(typeLabel));
+  fireEvent.click(await screen.findByRole('option', { name: typeLabel }));
 
   return view;
 };

@@ -8,6 +8,6 @@ class TestFirstAdmin:
     ) -> None:
         open_application(page)
         sign_in(page, instance_admin)
-        page.get_by_role("button", name="Databasus settings", exact=True).click()
+        page.get_by_role("link", name="Databasus settings", exact=True).click()
 
         expect(page.get_by_role("heading", name="Databasus settings")).to_be_visible()

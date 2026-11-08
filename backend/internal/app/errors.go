@@ -7,9 +7,24 @@ import (
 )
 
 var (
-	ErrUnknownConsoleCommand = errors.New("unknown console command")
-	ErrFatalClientTools      = errors.New("client tools of a fatal bundle are broken")
+	ErrUnknownConsoleCommand   = errors.New("unknown console command")
+	ErrFatalClientTools        = errors.New("client tools of a fatal bundle are broken")
+	ErrDevSeedNotDevelopment   = errors.New("the dev seed runs only in development")
+	ErrDevSeedDatabaseRequired = errors.New("DATABASE_DSN is required for the dev seed")
 )
+
+type devSeedDatabaseError struct {
+	err error
+}
+
+// Connection-driver errors can include the credentials from the DSN.
+func (*devSeedDatabaseError) Error() string {
+	return "connect to the internal database for the dev seed: connection failed"
+}
+
+func (e *devSeedDatabaseError) Unwrap() error {
+	return e.err
+}
 
 // StorageProbeError tells the operator which paths the process could not write to and how to fix
 // their permissions.

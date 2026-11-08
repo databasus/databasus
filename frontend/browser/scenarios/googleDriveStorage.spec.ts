@@ -207,14 +207,16 @@ const openNestedEditor = async (page: Page) => {
   await page.getByText('Config', { exact: true }).click();
   await page.getByText('Backup config', { exact: true }).locator('..').locator('img').click();
   await page.getByPlaceholder('0 2 * * *', { exact: true }).fill('15 3 * * *');
-  const storagePicker = page.locator('.ant-select').filter({ hasText: 'Existing archive' });
+  const storagePicker = page.getByRole('combobox', { name: 'Storage', exact: true });
   await storagePicker.click();
   await page.getByText('Create new storage', { exact: true }).click();
 
   const editor = page.getByRole('dialog', { name: 'Add storage' });
+  await expect(editor.getByRole('button', { name: 'Close', exact: true })).toBeFocused();
+
   await editor.getByRole('combobox', { name: 'Type', exact: true }).focus();
   await page.keyboard.press('ArrowDown');
-  await page.getByText('Google Drive', { exact: true }).last().click();
+  await page.getByRole('option', { name: 'Google Drive', exact: true }).click();
   await editor.getByPlaceholder('My Storage', { exact: true }).fill('Drive draft');
   await editor.getByLabel('Client ID', { exact: true }).fill('public-client');
   await editor.getByLabel('Client Secret', { exact: true }).fill(secret);
@@ -249,7 +251,9 @@ test('authorizes the nested editor without opener and preserves the surrounding 
 }) => {
   const google = await installGoogle(context);
   const { editor, storagePicker } = await openNestedEditor(page);
-  const workspace = await page.getByTitle('Test workspace', { exact: true }).textContent();
+  const workspace = await page
+    .getByRole('combobox', { name: 'Selected workspace', exact: true })
+    .textContent();
 
   const popupPromise = page.waitForEvent('popup');
   await editor.getByRole('button', { name: 'Authorize', exact: true }).click();
@@ -291,18 +295,19 @@ test('authorizes the nested editor without opener and preserves the surrounding 
 
   await assertContainment(page, google);
   await expect(page.getByPlaceholder('0 2 * * *')).toHaveValue('15 3 * * *');
-  await expect(storagePicker.locator('.ant-select-selection-item')).toHaveAttribute(
-    'title',
-    'Existing archive',
-  );
-  expect(await page.getByTitle('Test workspace', { exact: true }).textContent()).toBe(workspace);
+  await expect(storagePicker).toHaveText('Existing archive');
+  expect(
+    await page.getByRole('combobox', { name: 'Selected workspace', exact: true }).textContent(),
+  ).toBe(workspace);
   await expect(editor.getByPlaceholder('My Storage')).toHaveValue('Drive draft');
 
   await editor.getByRole('button', { name: 'Test connection' }).click();
   await editor.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(editor).not.toBeVisible();
   await expect(page.getByPlaceholder('0 2 * * *')).toHaveValue('15 3 * * *');
-  expect(await page.getByTitle('Test workspace', { exact: true }).textContent()).toBe(workspace);
+  expect(
+    await page.getByRole('combobox', { name: 'Selected workspace', exact: true }).textContent(),
+  ).toBe(workspace);
 
   expect(
     boundary.requests.filter(
@@ -310,7 +315,7 @@ test('authorizes the nested editor without opener and preserves the surrounding 
     ),
   ).toHaveLength(1);
   expect(boundary.requests.filter((request) => request.method === 'PUT')).toHaveLength(0);
-  await expect(storagePicker).toHaveCount(0);
+  await expect(storagePicker).toHaveText('Drive draft');
 });
 
 test('keeps the prior storage selection and config draft after canceling an authorized nested editor', async ({
@@ -329,7 +334,10 @@ test('keeps the prior storage selection and config draft after canceling an auth
 
   await editor.getByRole('button', { name: 'Close', exact: true }).click();
   await expect(page.getByPlaceholder('0 2 * * *')).toHaveValue('15 3 * * *');
-  await expect(page.locator('.ant-select').filter({ hasText: 'Existing archive' })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Storage', exact: true })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Storage', exact: true })).toHaveText(
+    'Existing archive',
+  );
 
   expect(
     boundary.requests.filter((request) => request.method !== 'GET' && request.path !== '/token'),

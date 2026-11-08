@@ -91,7 +91,7 @@ for (const theme of ['light', 'dark']) {
       const getProviderControl = (label: string) =>
         dialog
           .getByLabel(label, { exact: true })
-          .and(dialog.locator('input:not([type="radio"]), textarea'));
+          .and(dialog.locator('input:not([type="radio"]), textarea, button[role="combobox"]'));
       const retainedField = providerFieldLabels.length
         ? getProviderControl(providerFieldLabels[0])
         : undefined;
@@ -117,7 +117,7 @@ for (const theme of ['light', 'dark']) {
 
       const accessibility = await new AxeBuilder({ page })
         .disableRules(['color-contrast'])
-        .include('.ant-modal-content')
+        .include('[role="dialog"]')
         .withTags(['wcag2a', 'wcag2aa'])
         .analyze();
 
@@ -127,6 +127,7 @@ for (const theme of ['light', 'dark']) {
       await enlargeText(dialog);
 
       await assertAccountReflow(dialog);
+
       await expect(
         dialog.getByRole('textbox', { name: dictionary.common.fields.name, exact: true }),
       ).toHaveValue('Retained provider draft');

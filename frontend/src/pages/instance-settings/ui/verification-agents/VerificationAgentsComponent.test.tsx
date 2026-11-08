@@ -70,7 +70,7 @@ const pressRowDelete = async (agentName = 'Original agent') => {
   fireEvent.click(within(row).getByRole('button', { name: commonActions.delete }));
 
   const confirmation = await waitFor(() => {
-    const popconfirm = document.querySelector<HTMLElement>('.ant-popconfirm');
+    const popconfirm = document.querySelector<HTMLElement>('[role="dialog"]');
     if (!popconfirm) throw new Error('The delete confirmation is not open');
 
     return popconfirm;
@@ -78,7 +78,7 @@ const pressRowDelete = async (agentName = 'Original agent') => {
   fireEvent.click(within(confirmation).getByRole('button', { name: commonActions.delete }));
 };
 
-const queryMessages = () => document.querySelectorAll('.ant-message-notice');
+const queryMessages = () => document.querySelectorAll('[role="alert"], [role="status"]');
 
 const getAgentRow = (agentName: string) => screen.getByText(agentName).closest('tr') as HTMLElement;
 
@@ -753,7 +753,8 @@ it.each([{ isRefused: false }, { isRefused: true }])(
     await waitFor(() => expect(mockServer.getRequests()).toHaveLength(2));
 
     act(() => activateSession({ token: 'new-session', userId: 'new-owner' }));
-    const provider = document.querySelector('.ant-app');
+    const provider = document.querySelector('style[data-mantine-styles="classes"]');
+    expect(provider).not.toBeNull();
     view.rerender(<div>New account</div>);
 
     const processed = new Promise<void>((resolve) => {
@@ -773,8 +774,8 @@ it.each([{ isRefused: false }, { isRefused: true }])(
       await processed;
     });
 
-    expect(document.querySelector('.ant-app')).toBe(provider);
-    expect(document.querySelector('.ant-message-notice')).toBeNull();
+    expect(document.querySelector('style[data-mantine-styles="classes"]')).toBe(provider);
+    expect(document.querySelector('[role="alert"], [role="status"]')).toBeNull();
     expect(getSessionSnapshot().token).toBe('new-session');
   },
 );

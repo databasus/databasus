@@ -9,10 +9,12 @@ const runFixture = async ({
   mode,
   isInterrupt = false,
   architecture = process.arch,
+  args = ['--project=ui'],
 }: {
   mode: string;
   isInterrupt?: boolean;
   architecture?: string;
+  args?: string[];
 }) => {
   const directory = await mkdtemp(join(tmpdir(), 'databasus-browser-fixture-'));
   const root = join(directory, 'frontend');
@@ -43,6 +45,7 @@ const args = process.argv.slice(2);
 const directory = process.env.FIXTURE_CONTAINERS;
 if(args[0] === 'build') { console.log('BUILD_ARGS '+JSON.stringify(args)); if(process.env.FIXTURE_MODE === 'checksum') { console.error('sha256sum: WARNING: computed checksum did NOT match'); process.exit(9); } process.exit(0); }
 if(args[0] === 'rm') { const marker=path.join(directory,args.at(-1)); if(fs.existsSync(marker)){ const pid=Number(fs.readFileSync(marker)); try { process.kill(pid,'SIGTERM'); } catch {} fs.unlinkSync(marker); } process.exit(0); }
+console.log('RUN_ARGS '+JSON.stringify(args));
 const name = args[args.indexOf('--name')+1];
 const mount = args[args.indexOf('--volume')+1].split(':/work')[0];
 fs.writeFileSync(path.join(directory,name),String(process.pid));
@@ -57,7 +60,7 @@ http.createServer((request,response)=>response.end()).listen(0,'127.0.0.1');
     const entry = join(directory, 'fixture.mjs');
     await writeFile(
       entry,
-      `import { runBrowser } from ${JSON.stringify(pathToFileURL(resolve('tooling/runBrowser.ts')).href)}; process.exitCode = await runBrowser({ frontendRoot: ${JSON.stringify(root)}, args: ['--project=ui'], architecture: ${JSON.stringify(architecture)} });`,
+      `import { runBrowser } from ${JSON.stringify(pathToFileURL(resolve('tooling/runBrowser.ts')).href)}; process.exitCode = await runBrowser({ frontendRoot: ${JSON.stringify(root)}, args: ${JSON.stringify(args)}, architecture: ${JSON.stringify(architecture)} });`,
     );
 
     const child = spawn(process.execPath, [entry], {
@@ -138,6 +141,14 @@ describe('Browser runner resource ownership', () => {
       expect(imageTag(nativeRun.output)).not.toBe(imageTag(otherRun.output));
     },
   );
+  it('requires actual inner runner coverage before starting the UI suite', async () => {
+    const execution = await runFixture({ mode: 'success' });
+
+    expect(execution.exitCode).toBe(0);
+    expect(execution.output).toContain(
+      'node tooling/verifyBrowserShardExecution.ts && node tooling/browserInside.ts',
+    );
+  });
   it('fails before scenarios when the downloaded Node archive fails checksum validation', async () => {
     const failedBuild = await runFixture({ mode: 'checksum' });
 
@@ -173,5 +184,49 @@ describe('Browser runner resource ownership', () => {
     await expect(
       runBrowser({ frontendRoot: resolve('.'), args: ['--project=unknown'] }),
     ).rejects.toThrow('Select exactly');
+  });
+});
+
+describe('Browser shard selection', () => {
+  it.each(['1/3', '2/3', '3/3'])('forwards %s to the owned browser container', async (shard) => {
+    const execution = await runFixture({
+      mode: 'success',
+      args: ['--project=ui', `--shard=${shard}`],
+    });
+    expect(execution.exitCode).toBe(0);
+    expect(execution.output).toContain(`BROWSER_SHARD=${shard}`);
+  });
+  it.each(['0/3', '4/3', '1/0', '-1/3', '1.5/3', '1/3/4', '01/3', '1/9007199254740992', ''])(
+    'rejects invalid shard %s before Docker work',
+    async (shard) => {
+      const { runBrowser } = await import('./runBrowser.ts');
+      await expect(
+        runBrowser({
+          frontendRoot: '/missing-browser-fixture',
+          args: ['--project=ui', `--shard=${shard}`],
+        }),
+      ).rejects.toThrow('Invalid browser shard');
+    },
+  );
+  it.each([
+    ['--shard=1/3', '--shard=1/3'],
+    ['--shard=1/3', '--shard=2/3'],
+    ['--shard=1/3', '--update-references'],
+    ['--shard=1/3', '--unknown'],
+  ])('rejects unsupported shard combinations %j before Docker work', async (...options) => {
+    const { runBrowser } = await import('./runBrowser.ts');
+    await expect(
+      runBrowser({ frontendRoot: '/missing-browser-fixture', args: ['--project=ui', ...options] }),
+    ).rejects.toThrow(/Invalid browser shard|complete UI suite|Unsupported browser argument/);
+  });
+  it('preserves failures and cleanup for a shard', async () => {
+    const failure = await runFixture({ mode: 'scenario', args: ['--project=ui', '--shard=2/3'] });
+    expect(failure.exitCode).toBe(17);
+    const interrupted = await runFixture({
+      mode: 'pending',
+      isInterrupt: true,
+      args: ['--project=ui', '--shard=2/3'],
+    });
+    expect(interrupted.exitCode).toBe(130);
   });
 });

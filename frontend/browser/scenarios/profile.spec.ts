@@ -3,10 +3,12 @@ import { expect } from '@playwright/test';
 import { DICTIONARIES } from '../../src/shared/i18n/dictionaries';
 import { accountFixtures } from '../accountFixtures';
 import { assertAccountReflow } from '../assertAccountReflow';
+import { assertEnlargedTextReflow } from '../assertEnlargedTextReflow';
 import { test } from '../browserTest';
 import { enlargeText } from '../enlargeText';
 import { openAccount } from '../openAccount';
 import { openAccountTab } from '../openAccountTab';
+import { visualContexts } from '../visualContexts';
 
 test.use({ httpFixtures: [accountFixtures(), { scope: 'test' }] });
 
@@ -50,6 +52,8 @@ for (const context of [
     ).toBeVisible();
 
     await enlargeText(region);
+    await assertEnlargedTextReflow(page);
+
     await assertAccountReflow(region);
     for (const name of [dictionary.users.profile.saveChanges, dictionary.users.profile.logout]) {
       const action = region.getByRole('button', { name, exact: true });
@@ -61,6 +65,8 @@ for (const context of [
 
     await change.scrollIntoViewIfNeeded();
     await expect(change).toBeInViewport();
+    await assertEnlargedTextReflow(page);
+
     await assertAccountReflow(region);
   });
 }
@@ -105,7 +111,7 @@ test('retains newer profile input and a single pending save when locale and them
     await page.getByRole('textbox', { name: 'Name', exact: true }).fill('Newer retained profile');
     await page.getByRole('button', { name: /Language:/ }).click();
     await page
-      .getByRole('menuitem', { name: DICTIONARIES.fr.language.nativeName, exact: true })
+      .getByRole('menuitemradio', { name: DICTIONARIES.fr.language.nativeName, exact: true })
       .click();
 
     const dictionary = DICTIONARIES.fr;
@@ -115,7 +121,7 @@ test('retains newer profile input and a single pending save when locale and them
         exact: true,
       })
       .click();
-    await page.getByRole('menuitem', { name: dictionary.app.theme.dark, exact: true }).click();
+    await page.getByRole('menuitemradio', { name: dictionary.app.theme.dark, exact: true }).click();
 
     await expect(
       page.getByRole('button', { name: dictionary.users.profile.saveChanges, exact: true }),
@@ -183,6 +189,8 @@ test('keeps pending profile actions reachable when text is enlarged to 200% at 3
 
     await name.fill('Newer narrow profile');
     await enlargeText(region);
+    await assertEnlargedTextReflow(page);
+
     await assertAccountReflow(region);
     await save.scrollIntoViewIfNeeded();
     await expect(save).toBeInViewport();
@@ -202,8 +210,27 @@ test('keeps pending profile actions reachable when text is enlarged to 200% at 3
     await expect(page.getByText(dictionary.users.profile.updated, { exact: true })).toBeVisible();
     await expect(name).toHaveValue('Newer narrow profile');
     await expect(save).toBeEnabled();
+    await assertEnlargedTextReflow(page);
+
     await assertAccountReflow(region);
   } finally {
     releaseSave();
   }
 });
+
+for (const context of visualContexts) {
+  test(`retains the saved profile in ${context.locale} ${context.theme} ${context.width}`, async ({
+    page,
+  }) => {
+    const dictionary = DICTIONARIES[context.locale];
+
+    await page.setViewportSize({ width: context.width, height: 1000 });
+    await openAccount({ page, ...context });
+    await openAccountTab({ page, locale: context.locale, tab: 'profile' });
+
+    await expect(
+      page.getByRole('textbox', { name: dictionary.users.fields.name, exact: true }),
+    ).toHaveValue('Owner');
+    await assertEnlargedTextReflow(page);
+  });
+}

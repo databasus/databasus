@@ -396,7 +396,8 @@ describe('ProfilePage', () => {
         expect(mockServer.getRequests().some((request) => request.method === 'PUT')).toBe(true),
       );
 
-      const provider = document.querySelector('.ant-app');
+      const provider = document.querySelector('style[data-mantine-styles="classes"]');
+      expect(provider).not.toBeNull();
       view.rerender(<div>Profile closed</div>);
       const responded = new Promise<void>((resolve) =>
         mockServer.events.on('response:mocked', () => resolve()),
@@ -406,7 +407,7 @@ describe('ProfilePage', () => {
         await responded;
       });
 
-      expect(document.querySelector('.ant-app')).toBe(provider);
+      expect(document.querySelector('style[data-mantine-styles="classes"]')).toBe(provider);
       expect(callback).not.toHaveBeenCalled();
       expect(screen.queryByText('You do not have permission to do this.')).toBeNull();
       expect(screen.queryByText('Profile updated successfully')).toBeNull();

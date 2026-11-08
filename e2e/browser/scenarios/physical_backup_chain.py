@@ -58,17 +58,14 @@ def _set_future_cadence(page: Page, schedule: BackupCadence) -> None:
     schedule_type = cadence.get_by_role("combobox", name=schedule.label, exact=True)
     schedule_type.press("ArrowDown")
     expect(schedule_type).to_have_attribute("aria-expanded", "true")
-    listbox_id = schedule_type.get_attribute("aria-controls")
-    assert listbox_id
-    dropdown = page.locator(".ant-select-dropdown").filter(has=page.locator(f'[id="{listbox_id}"]'))
-    dropdown.get_by_title("Cron", exact=True).click()
+    page.get_by_role("option", name="Cron", exact=True).click()
     expect(schedule_type).to_have_attribute("aria-expanded", "false")
-    expect(cadence.get_by_title("Cron", exact=True)).to_be_visible()
+    expect(schedule_type).to_contain_text("Cron")
     cadence.get_by_role("textbox", name="Cron expression (UTC)", exact=True).fill(schedule.cron)
 
 
 def add_physical_database(page: Page, storage_name: str) -> str:
-    page.get_by_role("button", name="Databases", exact=True).click()
+    page.get_by_role("link", name="Databases", exact=True).click()
     page.get_by_role("button", name="Add database").click()
     page.get_by_placeholder("My favourite DB").fill("Critical path physical database")
     page.get_by_role("button", name="Continue", exact=True).click()
@@ -96,7 +93,7 @@ def add_physical_database(page: Page, storage_name: str) -> str:
         ),
     )
     page.get_by_role("dialog").get_by_role("combobox", name="Storage", exact=True).click()
-    page.get_by_title(storage_name, exact=True).click()
+    page.get_by_role("option", name=storage_name, exact=True).click()
     page.get_by_role("button", name="Continue", exact=True).click()
 
     manual_backup_requests: list[str] = []
@@ -197,7 +194,10 @@ def wait_for_backup(page: Page, selection: BackupSelection) -> PhysicalBackup:
     matching = [backup for backup in backups if backup["type"] == selection.kind]
     assert len(matching) == 1, f"unrelated {selection.kind} backups appeared: {matching}"
     backup = matching[0]
-    expect(page.locator(f'tr[data-row-key="{backup["id"]}"]')).to_contain_text("Successful")
+    backup_type_label = "Full" if selection.kind == "FULL" else "Incremental"
+    backup_row = page.get_by_role("row").filter(has=page.get_by_text(backup_type_label, exact=True))
+    expect(backup_row).to_have_count(1)
+    expect(backup_row).to_contain_text("Successful")
 
     return backup
 

@@ -1,6 +1,7 @@
 import type { Notifier } from '@/entities/notifiers/model/Notifier';
 import type { NotifierSettings } from '@/entities/notifiers/model/NotifierSettings';
 import type { NotifierTestResult } from '@/entities/notifiers/model/NotifierTestResult';
+import type { ReadOptions } from '@/shared/api';
 import { getApiClient, requireData, requireSuccess } from '@/shared/api';
 import { collectCursorPages } from '@/shared/lib/collectCursorPages';
 
@@ -11,19 +12,21 @@ const NOTIFIER_PAGE_LIMIT = 100;
 export const notifierApi = {
   // The notifier screen and the database forms need every notifier of the workspace, so this
   // follows the cursor to the last page.
-  async listAllNotifiers(workspaceId: string): Promise<Notifier[]> {
-    return collectCursorPages(async (after: string | undefined) =>
-      requireData(
-        await getApiClient().GET('/notifiers', {
-          params: { query: { workspaceId, limit: NOTIFIER_PAGE_LIMIT, after } },
-        }),
-      ),
+  async listAllNotifiers(workspaceId: string, options: ReadOptions = {}): Promise<Notifier[]> {
+    return collectCursorPages(
+      async (after: string | undefined) =>
+        requireData(
+          await getApiClient(options).GET('/notifiers', {
+            params: { query: { workspaceId, limit: NOTIFIER_PAGE_LIMIT, after } },
+          }),
+        ),
+      options,
     );
   },
 
-  async getNotifier(notifierId: string): Promise<Notifier> {
+  async getNotifier(notifierId: string, options: ReadOptions = {}): Promise<Notifier> {
     return requireData(
-      await getApiClient().GET('/notifiers/{notifierId}', {
+      await getApiClient(options).GET('/notifiers/{notifierId}', {
         params: { path: { notifierId } },
       }),
     );

@@ -5,7 +5,20 @@ export const fr: typeof en = {
     nativeName: 'Français',
   },
   common: {
+    calendar: {
+      monthLevelControl: 'Choisir le mois',
+      yearLevelControl: 'Choisir l’année',
+      nextMonth: 'Mois suivant',
+      previousMonth: 'Mois précédent',
+      nextYear: 'Année suivante',
+      previousYear: 'Année précédente',
+      nextDecade: 'Décennie suivante',
+      previousDecade: 'Décennie précédente',
+      seconds: 'Secondes',
+    },
     actions: {
+      clear: 'Effacer',
+      togglePasswordVisibility: 'Afficher ou masquer le mot de passe',
       back: 'Retour',
       cancel: 'Annuler',
       close: 'Fermer',
@@ -152,7 +165,17 @@ export const fr: typeof en = {
     unauthenticated: 'Votre session a pris fin. Reconnectez-vous.',
     permissionDenied: "Vous n'avez pas l'autorisation de faire cela.",
     humanVerificationFailed: 'La vérification anti-robot a échoué. Effectuez-la et réessayez.',
-    invalidCredentials: "L'adresse e-mail ou le mot de passe est incorrect.",
+    emailNotFound: 'Aucun compte ne correspond à cette adresse e-mail. Vérifiez l’adresse.',
+    passwordIncorrect: 'Le mot de passe est incorrect.',
+    registrationIncomplete:
+      'L’inscription n’est pas terminée. Inscrivez-vous avec cette adresse e-mail pour accepter votre invitation.',
+    passwordNotSet: 'Aucun mot de passe n’est défini pour ce compte.',
+    passwordNotSetGoogle:
+      'Aucun mot de passe n’est défini pour ce compte. Connectez-vous avec Google.',
+    passwordNotSetGithub:
+      'Aucun mot de passe n’est défini pour ce compte. Connectez-vous avec GitHub.',
+    passwordNotSetGoogleGithub:
+      'Aucun mot de passe n’est défini pour ce compte. Connectez-vous avec Google ou GitHub.',
     userDeactivated: 'Ce compte est désactivé. Demandez à un administrateur de le réactiver.',
     registrationClosed:
       'Les inscriptions sont fermées sur cette instance. Demandez une invitation à un administrateur.',
@@ -206,6 +229,9 @@ export const fr: typeof en = {
     },
   },
   schedules: {
+    hours: 'Heures',
+    minutes: 'Minutes',
+    timePeriod: 'AM ou PM',
     types: {
       hourly: 'Toutes les heures',
       daily: 'Tous les jours',
@@ -942,6 +968,9 @@ export const fr: typeof en = {
       submit: 'Se connecter',
       noAccount: 'Pas encore de compte ? <signUpLink>Inscrivez-vous</signUpLink>',
       forgotPassword: 'Mot de passe oublié ?',
+      setPassword: 'Définir un mot de passe',
+      passwordRecoveryHint: 'Utilisez la récupération de mot de passe pour en définir un.',
+      contactAdministratorHint: 'Contactez votre administrateur pour rétablir l’accès.',
     },
     signInCode: {
       title: 'Saisissez le code',
@@ -1493,7 +1522,7 @@ export const fr: typeof en = {
         forever: 'Sans limite',
       },
       retentionPolicyTypes: {
-        gfs: 'GFS (conserver les N dernières sauvegardes horaires, quotidiennes, hebdomadaires, mensuelles et annuelles)',
+        gfs: 'GFS (conservation par périodes calendaires)',
         timePeriod: 'Période (N derniers jours)',
         count: 'Nombre (N dernières sauvegardes)',
       },
@@ -1547,10 +1576,16 @@ export const fr: typeof en = {
           countValue: 'Sauvegardes les plus récentes : {{count}}',
           showGfsHint: "Qu'est-ce que GFS (Grandfather-Father-Son) ?",
           hideGfsHint: 'Masquer',
-          gfsHint:
-            "Rotation GFS (Grandfather-Father-Son) : conserve les N dernières sauvegardes horaires, quotidiennes, hebdomadaires, mensuelles et annuelles. Vous gardez ainsi des sauvegardes sur de longues périodes sans occuper trop d'espace de stockage.",
+          gfsHint: {
+            summary:
+              'GFS conserve les sauvegardes récentes et garde certaines anciennes plus longtemps.',
+            selection:
+              '<strong>Choisissez combien de sauvegardes conserver</strong> par heure, jour, semaine, mois et année. Seules les sauvegardes réussies comptent.',
+            fileCount:
+              '<strong>Une sauvegarde peut compter pour plusieurs réglages</strong>, le nombre total de fichiers peut donc varier.',
+          },
           gfsTooltip:
-            'Rotation Grandfather-Father-Son : conserve les N dernières sauvegardes horaires, quotidiennes, hebdomadaires, mensuelles et annuelles.',
+            'GFS : heures et jours calendaires récents, semaines, mois et années terminés, plus une candidate protégée pour la période en cours.',
           gfsFields: {
             hourly: 'Sauvegardes horaires',
             daily: 'Sauvegardes quotidiennes',
@@ -1649,8 +1684,18 @@ export const fr: typeof en = {
         chainsKept: 'Chaînes conservées',
         fullBackupsKept: 'Sauvegardes complètes conservées',
         fullBackupsCountValue: 'Les plus récentes : {{count}}',
+        gfsHint: {
+          summary:
+            'GFS conserve les sauvegardes complètes récentes et garde certaines anciennes plus longtemps.',
+          selection:
+            '<strong>Choisissez combien de sauvegardes conserver</strong> par heure, jour, semaine, mois et année. Seules les sauvegardes réussies comptent.',
+          fileCount:
+            '<strong>Une sauvegarde peut compter pour plusieurs réglages</strong>, le nombre total de fichiers peut donc varier.',
+          scope:
+            '<strong>GFS ne concerne que les sauvegardes complètes.</strong> Les incrémentales et le WAL sont gérés séparément.',
+        },
         gfsTooltip:
-          'Rotation Grandfather-Father-Son : conserve les N dernières sauvegardes complètes horaires, quotidiennes, hebdomadaires, mensuelles et annuelles.',
+          'GFS : sauvegardes complètes réussies des heures et jours récents et des semaines, mois et années terminés, plus la candidate actuelle.',
       },
       restore: {
         errorHints: {

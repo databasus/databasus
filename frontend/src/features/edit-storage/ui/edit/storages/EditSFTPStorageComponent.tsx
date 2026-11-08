@@ -1,4 +1,4 @@
-import { Checkbox, Form, Input, InputNumber, Select } from 'antd';
+import { Checkbox, NumberInput, PasswordInput, TextInput, Textarea } from '@mantine/core';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -8,6 +8,7 @@ import {
   type SftpStorageSettings,
 } from '@/entities/storages';
 import { toOptionalValue } from '@/shared/lib';
+import { WrappingSelect } from '@/shared/ui';
 import { AdvancedSettingsToggleComponent } from '@/shared/ui';
 
 interface Props {
@@ -42,39 +43,56 @@ export function EditSFTPStorageComponent({
   ];
 
   return (
-    <Form component="div" layout="vertical" size="small" className="w-full max-w-sm">
-      <Form.Item label={t('common.fields.host')} htmlFor={`${controlId}-host`}>
-        <Input
+    <div className="w-full max-w-sm">
+      <div className="mb-3 min-w-0">
+        <label htmlFor={`${controlId}-host`} className="mb-1 block text-sm text-content">
+          {t('common.fields.host')}
+        </label>
+        <TextInput
           id={`${controlId}-host`}
           value={settings.host}
           onChange={(event) => onChange({ ...settings, host: event.target.value.trim() })}
           // eslint-disable-next-line i18next/no-literal-string -- example hostname
           placeholder="sftp.example.com"
         />
-      </Form.Item>
-      <Form.Item label={t('common.fields.port')} htmlFor={`${controlId}-port`}>
-        <InputNumber
+      </div>
+      <div className="mb-3 min-w-0">
+        <label htmlFor={`${controlId}-port`} className="mb-1 block text-sm text-content">
+          {t('common.fields.port')}
+        </label>
+        <NumberInput
           id={`${controlId}-port`}
           value={settings.port}
-          onChange={(port) => port && onChange({ ...settings, port })}
+          onChange={(port) => {
+            if (typeof port === 'number' && port) onChange({ ...settings, port });
+          }}
           min={1}
           max={65535}
+          role="spinbutton"
+          aria-valuenow={typeof settings.port === 'number' ? settings.port : undefined}
+          aria-valuemin={1}
+          aria-valuemax={65535}
         />
-      </Form.Item>
-      <Form.Item label={t('common.fields.username')} htmlFor={`${controlId}-username`}>
-        <Input
+      </div>
+      <div className="mb-3 min-w-0">
+        <label htmlFor={`${controlId}-username`} className="mb-1 block text-sm text-content">
+          {t('common.fields.username')}
+        </label>
+        <TextInput
           id={`${controlId}-username`}
           value={settings.username}
           onChange={(event) => onChange({ ...settings, username: event.target.value.trim() })}
           autoComplete="off"
         />
-      </Form.Item>
-      <Form.Item label={t('storages.fields.authMethod')} htmlFor={`${controlId}-methods`}>
-        <Select
+      </div>
+      <div className="mb-3 min-w-0">
+        <label htmlFor={`${controlId}-methods`} className="mb-1 block text-sm text-content">
+          {t('storages.fields.authMethod')}
+        </label>
+        <WrappingSelect
           id={`${controlId}-methods`}
           value={hasPassword && hasPrivateKey ? 'BOTH' : settings.authMethods[0]}
-          options={authMethodOptions}
-          virtual={false}
+          data={authMethodOptions}
           onChange={(method) => {
             const authMethods: SftpAuthMethod[] =
               method === 'BOTH'
@@ -92,72 +110,72 @@ export function EditSFTPStorageComponent({
             });
           }}
         />
-      </Form.Item>
+      </div>
       {hasPassword && (
-        <Form.Item
-          label={t('common.fields.password')}
-          htmlFor={`${controlId}-password`}
-          help={
-            <span
-              className={isPasswordSaved ? 'text-muted' : 'text-danger'}
-              id={`${controlId}-password-help`}
-            >
-              {isPasswordSaved
-                ? t('storages.edit.sftp.savedPassword')
-                : !settings.password
-                  ? missingSecretText('requiredPassword')
-                  : undefined}
-            </span>
-          }
-          validateStatus={!settings.password && !isPasswordSaved ? 'error' : undefined}
-        >
-          <Input.Password
+        <div className="mb-3 min-w-0">
+          <label htmlFor={`${controlId}-password`} className="mb-1 block text-sm text-content">
+            {t('common.fields.password')}
+          </label>
+          <PasswordInput
             id={`${controlId}-password`}
-            aria-describedby={`${controlId}-password-help`}
             value={settings.password ?? ''}
             onChange={(event) =>
               onChange({ ...settings, password: toOptionalValue(event.target.value) })
             }
             autoComplete="new-password"
+            visibilityToggleButtonProps={{
+              'aria-label': t('common.actions.togglePasswordVisibility'),
+            }}
+            aria-invalid={!settings.password && !isPasswordSaved ? true : undefined}
+            inputWrapperOrder={['label', 'input', 'description', 'error']}
+            description={isPasswordSaved ? t('storages.edit.sftp.savedPassword') : undefined}
+            error={
+              !settings.password && !isPasswordSaved
+                ? missingSecretText('requiredPassword')
+                : undefined
+            }
           />
-        </Form.Item>
+        </div>
       )}
       {hasPrivateKey && (
-        <Form.Item
-          label={t('storages.fields.privateKey')}
-          htmlFor={`${controlId}-key`}
-          help={
-            <span
-              className={isPrivateKeySaved ? 'text-muted' : 'text-danger'}
-              id={`${controlId}-key-help`}
-            >
-              {isPrivateKeySaved
-                ? t('storages.edit.sftp.savedPrivateKey')
-                : !settings.privateKey
-                  ? missingSecretText('requiredPrivateKey')
-                  : t('storages.edit.sftp.privateKeyTooltip')}
-            </span>
-          }
-          validateStatus={!settings.privateKey && !isPrivateKeySaved ? 'error' : undefined}
-        >
-          <Input.TextArea
+        <div className="mb-3 min-w-0">
+          <label htmlFor={`${controlId}-key`} className="mb-1 block text-sm text-content">
+            {t('storages.fields.privateKey')}
+          </label>
+          <Textarea
             id={`${controlId}-key`}
-            aria-describedby={`${controlId}-key-help`}
             value={settings.privateKey ?? ''}
             onChange={(event) =>
               onChange({ ...settings, privateKey: toOptionalValue(event.target.value) })
             }
             rows={4}
+            inputWrapperOrder={['label', 'input', 'description', 'error']}
+            description={
+              isPrivateKeySaved
+                ? t('storages.edit.sftp.savedPrivateKey')
+                : settings.privateKey
+                  ? t('storages.edit.sftp.privateKeyTooltip')
+                  : undefined
+            }
+            descriptionProps={{ className: isPrivateKeySaved ? 'text-muted' : 'text-danger' }}
+            error={
+              !settings.privateKey && !isPrivateKeySaved
+                ? missingSecretText('requiredPrivateKey')
+                : undefined
+            }
           />
-        </Form.Item>
+        </div>
       )}
-      <Form.Item label={t('storages.fields.path')} htmlFor={`${controlId}-path`}>
-        <Input
+      <div className="mb-3 min-w-0">
+        <label htmlFor={`${controlId}-path`} className="mb-1 block text-sm text-content">
+          {t('storages.fields.path')}
+        </label>
+        <TextInput
           id={`${controlId}-path`}
           value={settings.path ?? ''}
           onChange={(event) => onChange({ ...settings, path: toOptionalValue(event.target.value) })}
         />
-      </Form.Item>
+      </div>
       <AdvancedSettingsToggleComponent
         label={t('storages.edit.advancedSettings')}
         isShowAdvanced={isShowAdvanced}
@@ -165,24 +183,22 @@ export function EditSFTPStorageComponent({
         regionId={`${controlId}-advanced`}
       />
       <div id={`${controlId}-advanced`} hidden={!isShowAdvanced}>
-        <Form.Item
-          help={
-            <span id={`${controlId}-skip-host-key-help`}>
-              {t('storages.edit.sftp.skipHostKeyTooltip')}
-            </span>
-          }
-        >
+        <div className="mb-3 min-w-0">
           <Checkbox
             aria-describedby={`${controlId}-skip-host-key-help`}
             checked={settings.isSkipHostKeyVerify}
             onChange={(event) =>
               onChange({ ...settings, isSkipHostKeyVerify: event.target.checked })
             }
-          >
-            {t('storages.edit.sftp.skipHostKeyVerification')}
-          </Checkbox>
-        </Form.Item>
+            label={<>{t('storages.edit.sftp.skipHostKeyVerification')}</>}
+          />
+          <div className="text-sm text-danger">
+            <span id={`${controlId}-skip-host-key-help`}>
+              {t('storages.edit.sftp.skipHostKeyTooltip')}
+            </span>
+          </div>
+        </div>
       </div>
-    </Form>
+    </div>
   );
 }

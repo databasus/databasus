@@ -1,4 +1,5 @@
 import type { HealthcheckConfig } from '@/entities/healthcheck/model/HealthcheckConfig';
+import type { ReadOptions } from '@/shared/api';
 import { getApiClient, requireData } from '@/shared/api';
 
 export const healthcheckConfigApi = {
@@ -11,9 +12,9 @@ export const healthcheckConfigApi = {
       }),
     );
   },
-  async getHealthcheckConfig(databaseId: string) {
+  async getHealthcheckConfig(databaseId: string, options: ReadOptions = {}) {
     return requireData(
-      await getApiClient().GET('/healthcheck-configs/{databaseId}', {
+      await getApiClient(options).GET('/healthcheck-configs/{databaseId}', {
         params: { path: { databaseId } },
       }),
     );

@@ -64,7 +64,7 @@ describe('SignUpComponent', () => {
     submitRegistration();
     await screen.findByText('You do not have permission to do this.');
     await user.click(screen.getByRole('button', { name: /Language/ }));
-    await user.click(await screen.findByRole('menuitem', { name: /Español/ }));
+    await user.click(await screen.findByRole('menuitemradio', { name: /Español/ }));
 
     expect(await screen.findByText(DICTIONARIES.es.errors.permissionDenied)).toBeTruthy();
     expect(screen.getByDisplayValue('New owner')).toBeTruthy();

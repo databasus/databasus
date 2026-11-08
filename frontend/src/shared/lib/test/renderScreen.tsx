@@ -1,11 +1,10 @@
 import { render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ReactElement, ReactNode } from 'react';
-import { MemoryRouter } from 'react-router';
+import type { ReactElement } from 'react';
 
-import { LocaleProvider, type Locale } from '@/shared/i18n';
-import { ScreenConfiguration } from '@/shared/lib/test/ScreenConfiguration';
-import { ThemeProvider, type ThemeMode } from '@/shared/theme';
+import { type Locale } from '@/shared/i18n';
+import { ScreenTestProviders } from '@/shared/lib/test/ScreenTestProviders';
+import { type ThemeMode } from '@/shared/theme';
 import '@/shared/lib/test/screenTestLifecycle';
 
 interface ScreenOptions {
@@ -18,17 +17,14 @@ interface ScreenOptions {
 export const renderScreen = (screen: ReactElement, options: ScreenOptions = {}) => {
   if (options.locale) localStorage.setItem('databasus-locale', options.locale);
   if (options.theme) localStorage.setItem('databasus-theme', options.theme);
-  const Wrapper = ({ children }: { children: ReactNode }) => (
-    <ThemeProvider>
-      <LocaleProvider>
-        <ScreenConfiguration>
-          <MemoryRouter initialEntries={[options.route ?? '/']}>{children}</MemoryRouter>
-        </ScreenConfiguration>
-      </LocaleProvider>
-    </ThemeProvider>
-  );
+
   return {
     user: userEvent.setup(),
-    ...render(screen, { wrapper: Wrapper, reactStrictMode: options.isStrictMode }),
+    ...render(screen, {
+      wrapper: ({ children }) => (
+        <ScreenTestProviders route={options.route}>{children}</ScreenTestProviders>
+      ),
+      reactStrictMode: options.isStrictMode,
+    }),
   };
 };

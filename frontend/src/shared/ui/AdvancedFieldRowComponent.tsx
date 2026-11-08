@@ -1,5 +1,5 @@
-import { InfoCircleOutlined } from '@ant-design/icons';
-import { Tooltip } from 'antd';
+import { Tooltip } from '@mantine/core';
+import { Info } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 interface Props {
@@ -17,9 +17,13 @@ export const AdvancedFieldRowComponent = ({ label, tooltip, children, controlId 
     <div className="flex min-w-0 items-center">
       {children}
 
-      <Tooltip className="cursor-pointer" title={tooltip}>
-        <span id={`${controlId}-help`} className="ml-2 text-muted" tabIndex={0}>
-          <InfoCircleOutlined aria-label={tooltip} />
+      <Tooltip label={tooltip} events={{ hover: true, focus: true, touch: false }}>
+        <span
+          id={`${controlId}-help`}
+          className="ml-2 inline-flex shrink-0 items-center text-muted"
+          tabIndex={0}
+        >
+          <Info size="1em" aria-label={tooltip} className="block" />
         </span>
       </Tooltip>
     </div>

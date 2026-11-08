@@ -1,4 +1,4 @@
-import { Button } from 'antd';
+import { Button } from '@mantine/core';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -15,7 +15,7 @@ export const EditIconButton = ({ subjectId, className, onClick }: Props) => {
   return (
     <Button
       id={buttonId}
-      type="text"
+      variant="subtle"
       className={`!min-w-0 !p-0 ${className}`}
       aria-label={t('common.actions.edit')}
       aria-labelledby={`${buttonId} ${subjectId}`}

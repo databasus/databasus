@@ -15,7 +15,8 @@ if (
 
 const built = await runChild('pnpm', ['build']);
 if (built) process.exit(built);
-const server = await preview({ preview: { host: '127.0.0.1', port: 0, strictPort: true } });
+// Each run owns its container network namespace; a stable origin keeps visible URLs reproducible.
+const server = await preview({ preview: { host: '127.0.0.1', port: 4173, strictPort: true } });
 try {
   if (!server.httpServer.listening) await once(server.httpServer, 'listening');
   const address = server.httpServer.address();
@@ -27,7 +28,13 @@ try {
 
   process.env.BROWSER_BASE_URL = baseURL;
   await verifyBrowserProbes();
-  process.exitCode = await runChild('pnpm', ['exec', 'playwright', 'test', '--project=ui']);
+  process.exitCode = await runChild('pnpm', [
+    'exec',
+    'playwright',
+    'test',
+    '--project=ui',
+    ...(process.env.BROWSER_SHARD ? [`--shard=${process.env.BROWSER_SHARD}`] : []),
+  ]);
 } finally {
   await new Promise<void>((resolve, reject) =>
     server.httpServer.close((error) => (error ? reject(error) : resolve())),

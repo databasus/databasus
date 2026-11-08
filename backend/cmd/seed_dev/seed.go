@@ -8,6 +8,11 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+
+	"databasus-backend/internal/app"
+	"databasus-backend/internal/lib/clock"
+	"databasus-backend/internal/lib/config"
+	"databasus-backend/internal/modules/users"
 )
 
 const (
@@ -24,7 +29,9 @@ type postgresSource struct {
 }
 
 type seedParams struct {
-	BaseURL string
+	BaseURL     string
+	EnvMode     config.EnvMode
+	DatabaseDsn string
 
 	Email    string
 	Password string
@@ -42,18 +49,45 @@ type seedParams struct {
 // Sign-in and sign-up stay one attempt each: sign-in is rate-limited per address, and the seed
 // must never take the password reset path that could change an existing account.
 func seedDevApp(ctx context.Context, httpClient *http.Client, params seedParams, logger *slog.Logger) error {
+	if params.EnvMode != config.EnvModeDevelopment {
+		return app.ErrDevSeedNotDevelopment
+	}
+
 	client := &apiClient{httpClient: httpClient, baseURL: params.BaseURL}
 
-	if err := checkBackendHealth(ctx, client, params.BaseURL); err != nil {
+	if err := checkBackendHealth(ctx, client, logger); err != nil {
 		return err
 	}
 
-	token, err := signInOrSignUp(ctx, client, params, logger)
+	session, err := signInOrSignUp(ctx, client, params, logger)
 	if err != nil {
 		return err
 	}
 
-	client.token = token
+	client.token = session.Token
+
+	if session.UserID == uuid.Nil || session.Token == "" {
+		return fmt.Errorf("the dev account authentication response has no identity or token")
+	}
+
+	isChanged, err := app.EnsureDevSeedBootstrapAdmin(ctx, app.DevSeedAdminRequest{
+		EnvMode:     params.EnvMode,
+		DatabaseDsn: params.DatabaseDsn,
+		Account:     users.DevSeedAccount{UserID: session.UserID, Email: params.Email},
+		Clock:       clock.NewSystem(),
+		AuditLogger: logger.With(slog.String("log_type", "audit")),
+	})
+	if err != nil {
+		return fmt.Errorf("assign the dev account as bootstrap administrator: %w", err)
+	}
+
+	if isChanged {
+		logger.InfoContext(
+			ctx,
+			"assigned the dev account as bootstrap administrator",
+			slog.String("user_id", session.UserID.String()),
+		)
+	}
 
 	workspaceID, err := findOrCreateWorkspace(ctx, client, params.WorkspaceName, logger)
 	if err != nil {
@@ -99,40 +133,27 @@ func seedDevApp(ctx context.Context, httpClient *http.Client, params seedParams,
 	return nil
 }
 
-func checkBackendHealth(ctx context.Context, client *apiClient, baseURL string) error {
-	err := client.get(ctx, "/system/health", nil)
-	if err == nil {
-		return nil
-	}
-
-	if isAPIRefusal(err) {
-		return fmt.Errorf("backend at %s reports itself unhealthy: %w", baseURL, err)
-	}
-
-	return fmt.Errorf("backend at %s does not answer, start the app with `mise run run`: %w", baseURL, err)
-}
-
 func signInOrSignUp(
 	ctx context.Context,
 	client *apiClient,
 	params seedParams,
 	logger *slog.Logger,
-) (string, error) {
+) (sessionResponse, error) {
 	var signIn signInResponse
 
 	signInErr := client.post(ctx, "/sessions",
 		signInRequest{Email: params.Email, Password: params.Password}, &signIn)
 	if signInErr == nil {
 		if signIn.Outcome != "COMPLETED" {
-			return "", fmt.Errorf(
+			return sessionResponse{}, fmt.Errorf(
 				"cannot sign in as %s: the instance requires two-factor sign-in", params.Email)
 		}
 
-		return signIn.Token, nil
+		return sessionResponse{UserID: signIn.UserID, Token: signIn.Token}, nil
 	}
 
 	if !isAPIRefusal(signInErr) {
-		return "", fmt.Errorf("sign in as %s: %w", params.Email, signInErr)
+		return sessionResponse{}, fmt.Errorf("sign in as %s: %w", params.Email, signInErr)
 	}
 
 	var signUp sessionResponse
@@ -143,13 +164,13 @@ func signInOrSignUp(
 		Name:     "Dev",
 	}, &signUp)
 	if signUpErr != nil {
-		return "", fmt.Errorf("cannot sign in as %s (%w) and cannot register it (%w)",
+		return sessionResponse{}, fmt.Errorf("cannot sign in as %s (%w) and cannot register it (%w)",
 			params.Email, signInErr, signUpErr)
 	}
 
 	logger.InfoContext(ctx, "registered the dev account")
 
-	return signUp.Token, nil
+	return signUp, nil
 }
 
 func findOrCreateWorkspace(

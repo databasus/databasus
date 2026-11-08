@@ -1,6 +1,7 @@
 import type { BackupConfig } from '@/entities/backup-configs/model/BackupConfig';
 import type { BackupConfigInput } from '@/entities/backup-configs/model/BackupConfigInput';
 import type { DatabaseTransfer } from '@/entities/backup-configs/model/DatabaseTransfer';
+import type { ReadOptions } from '@/shared/api';
 import { getApiClient, requireData, requireSuccess } from '@/shared/api';
 import { collectCursorPages } from '@/shared/lib/collectCursorPages';
 
@@ -11,21 +12,30 @@ const BACKUP_CONFIG_PAGE_LIMIT = 100;
 export const backupConfigApi = {
   // The database list shows the storage of every card, so this follows the cursor to the last page.
   // A database whose config was never saved is not listed.
-  async listAllWorkspaceBackupConfigs(workspaceId: string): Promise<BackupConfig[]> {
-    return collectCursorPages(async (after: string | undefined) =>
-      requireData(
-        await getApiClient().GET('/backup-configs', {
-          params: { query: { workspaceId, limit: BACKUP_CONFIG_PAGE_LIMIT, after } },
-        }),
-      ),
+  async listAllWorkspaceBackupConfigs(
+    workspaceId: string,
+    options: ReadOptions = {},
+  ): Promise<BackupConfig[]> {
+    return collectCursorPages(
+      async (after: string | undefined) =>
+        requireData(
+          await getApiClient(options).GET('/backup-configs', {
+            params: { query: { workspaceId, limit: BACKUP_CONFIG_PAGE_LIMIT, after } },
+          }),
+        ),
+      options,
     );
   },
 
   // The first page of the configs that back up into the storage; a small limit answers whether the
   // storage is used, or used by more than one database, without reading every config.
-  async listStorageBackupConfigs(storageId: string, limit: number): Promise<BackupConfig[]> {
+  async listStorageBackupConfigs(
+    storageId: string,
+    limit: number,
+    options: ReadOptions = {},
+  ): Promise<BackupConfig[]> {
     const page = requireData(
-      await getApiClient().GET('/backup-configs', {
+      await getApiClient(options).GET('/backup-configs', {
         params: { query: { storageId, limit } },
       }),
     );
@@ -34,9 +44,9 @@ export const backupConfigApi = {
   },
 
   // A database whose config was never saved reads as the default of its backup method.
-  async getBackupConfig(databaseId: string): Promise<BackupConfig> {
+  async getBackupConfig(databaseId: string, options: ReadOptions = {}): Promise<BackupConfig> {
     return requireData(
-      await getApiClient().GET('/backup-configs/{databaseId}', {
+      await getApiClient(options).GET('/backup-configs/{databaseId}', {
         params: { path: { databaseId } },
       }),
     );
@@ -59,17 +69,23 @@ export const backupConfigApi = {
     requireSuccess(response);
   },
 
-  async hasBackupHistory(databaseId: string, isPhysical: boolean): Promise<boolean> {
+  async hasBackupHistory(
+    databaseId: string,
+    isPhysical: boolean,
+    options: ReadOptions = {},
+  ): Promise<boolean> {
     if (isPhysical) {
       const page = requireData(
-        await getApiClient().GET('/physical-backups', {
+        await getApiClient(options).GET('/physical-backups', {
           params: { query: { databaseId, limit: 1 } },
         }),
       );
       return page.items.length > 0;
     }
     const page = requireData(
-      await getApiClient().GET('/logical-backups', { params: { query: { databaseId, limit: 1 } } }),
+      await getApiClient(options).GET('/logical-backups', {
+        params: { query: { databaseId, limit: 1 } },
+      }),
     );
     return page.items.length > 0;
   },

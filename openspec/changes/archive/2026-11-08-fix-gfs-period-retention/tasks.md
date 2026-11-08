@@ -1,0 +1,30 @@
+## 1. Describe the API behavior
+
+- [x] 1.1 Update `LogicalRetention`, `FullBackupsRetention` and their GFS field descriptions in `backend/api/openapi.yaml` with the newest-success anchor, UTC calendar boundaries, current-inclusive hourly/daily periods, completed weekly/monthly/yearly periods, candidates and overlaps. Keep the request/response shape, defaults and validation. Run `mise run generate-api`; verify generated outputs and contract rules with `mise run backend:lint`.
+
+## 2. Repair shared calendar selection
+
+- [x] 2.1 Add a sequential regression in `backend/internal/lib/gfs/gfs_test.go` for daily creation followed by deletion under `days=2, weeks=1, months=1`. Run `go -C backend test -count=1 -run TestGetItemsToRetain ./internal/lib/gfs` on the old implementation and record failure because historical representatives disappear. Implement independent calendar ranges and protected long-period candidates, replace positional selector arguments with a named input, and update both production callers and existing tests. Delete rolling cutoffs, cross-level caps and obsolete helpers. Run the same command and require the regression and existing tests to pass.
+- [x] 2.2 Complete the pure selection matrix: each level alone, more than one completed period, disabled levels, gaps without backfill, UTC offsets, half-open edges, short/leap February, Monday and ISO-year boundaries, ties, shuffled inputs, input immutability, overlapping levels and daily windows longer than monthly windows. Continue repeated cleanup through December and multiple year transitions to prove expiry as well as survival. Include no-item/no-active-level cases and the frozen reference without newer successful items. Verify with `go -C backend test -count=1 ./internal/lib/gfs`.
+
+## 3. Verify cleanup through its consumers
+
+Backend module test commands below use the Fedora preparation from `docs/testing.md#commands`: load `.env` with exported variables, source `scripts/fedora.sh`, run `apply_libedit_shim`, and set `TESTCONTAINERS_RYUK_DISABLED=true` in the pinned mise environment before running the stated `go -C backend test` command.
+
+- [x] 3.1 Extend `TestLogicalBackupRetention` with an API-configured GFS policy, real daily backups, a moving test clock and cleanup after each success from October 12 through November 5. Assert exactly November 5, November 4, November 1 and October 31, with retained file/metadata presence; continue to the next month and process pending file deletions to assert expired representatives and their files disappear. Advance past the one-hour shield at every cleanup. Verify with `go -C backend test -count=1 -run TestLogicalBackupRetention ./internal/modules/backups` after the documented Fedora preparation.
+- [x] 3.2 Add consumer regressions proving newer failed/cancelled logical attempts and newer failed/running/incremental physical records do not change the successful GFS anchor or candidate. Preserve failed/cancelled logical rows and existing invalid-config guards. Reuse API setup wherever possible and existing fixture support only for states the API cannot produce. Verify with `go -C backend test -count=1 ./internal/modules/backups/internal/logical` and `go -C backend test -count=1 -run 'TestLogicalBackupRetention|TestCleanPhysicalBackups' ./internal/modules/backups ./internal/modules/backups/physicalapitests/catalog` after the documented Fedora preparation.
+- [x] 3.3 Extend `TestCleanPhysicalBackups` with successive completed full backups and a cleanup pass after each, using the existing physical catalog fixture for historical completed states and dependency facts. Assert older weekly/monthly fulls survive, obsolete fulls expire after grace, and overlapping tiers retain one full. Exercise `FULL_BACKUPS` and `CHAINS_AND_FULL_BACKUPS`; preserve active-chain, chain-union, dependent-file and WAL behavior. Verify with `go -C backend test -count=1 -run TestCleanPhysicalBackups ./internal/modules/backups/physicalapitests/catalog` after the documented Fedora preparation.
+
+## 4. Explain GFS in the existing interface
+
+- [x] 4.1 Update existing GFS policy descriptions, help and tooltips in every interface dictionary. Give `GfsRetentionHint` an explicit typed logical/physical choice and update both callers so physical help describes full backups. Preserve the current disclosure, values and dirty state. Update affected logical configuration, logical editor and physical fields screen tests to assert the new semantics and one non-English explanation through the real locale provider. Verify with `pnpm --dir frontend test src/shared/i18n/dictionaries.test.ts src/pages/databases/ui/DatabaseConfigComponent.test.tsx src/pages/databases/ui/backup-config/EditLogicalBackupConfigSection.test.tsx src/pages/databases/ui/backup-config/PhysicalBackupConfigFields.test.tsx`.
+
+## 5. Check the complete change
+
+- [x] 5.1 Add GFS candidate, GFS representative and GFS reference instant to the Product table in `docs/glossary.md` using the definitions in design decision 5. Distinguish a protected current long-period candidate from a completed-period representative, explain the newest-success creation-time reference, and document logical versus physical-full eligibility without inventing stored assignments or API fields. Check the definitions against `backup-retention/gfs` and use those terms consistently in the API and help. Search active code, comments, generated API descriptions and interface dictionaries for GFS wording that contradicts the new rules; update affected explanations without rewriting historical change artifacts or agent instructions. Run the backend and frontend formatters on the implementation's own changed files, then run `mise run backend:lint`, `mise run frontend:lint` and `pnpm --dir frontend build`. Run the change verification below before handing the implementation to the automatic review hooks; resolve blocking findings, including glossary consistency, and leave all completed work ready to commit.
+
+## Change verification
+
+```sh
+mise run test
+```

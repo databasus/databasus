@@ -45,7 +45,7 @@ def _fill_connection(page: Page | Locator, database: str, password: str) -> None
 
 
 def _add_database_through_the_wizard(page: Page, database: WizardDatabase) -> None:
-    page.get_by_role("button", name="Databases", exact=True).click()
+    page.get_by_role("link", name="Databases", exact=True).click()
     page.get_by_role("button", name="Add database").click()
     page.get_by_placeholder("My favourite DB").fill(database.name)
     page.get_by_role("button", name="Continue").click()
@@ -59,7 +59,7 @@ def _add_database_through_the_wizard(page: Page, database: WizardDatabase) -> No
     page.get_by_role("button", name="Yes, I accept risks", exact=True).click()
 
     page.get_by_role("dialog").get_by_role("combobox", name="Storage").click()
-    page.get_by_title(database.storage_name).click()
+    page.get_by_role("option", name=database.storage_name, exact=True).click()
     page.get_by_role("button", name="Continue").click()
     page.get_by_role("button", name="Complete").click()
 
@@ -67,7 +67,11 @@ def _add_database_through_the_wizard(page: Page, database: WizardDatabase) -> No
 
 
 def _expect_connection_accepted(page: Page) -> None:
-    connection_outcome = page.get_by_role("alert")
+    connection_outcome = (
+        page.get_by_role("status")
+        .filter(has_text="Connection test passed")
+        .or_(page.get_by_role("alert"))
+    )
 
     expect(connection_outcome.first).to_be_visible()
 

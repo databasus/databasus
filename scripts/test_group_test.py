@@ -58,7 +58,7 @@ class PackageCoverageTest(unittest.TestCase):
         self.assertEqual(go_files_naming_playwright, [])
 
     def test_every_package_except_the_upgrade_test_belongs_to_exactly_one_group(self) -> None:
-        groups = ("physical", "logical", "physical-api", "agent-e2e", "other")
+        groups = ("physical", "logical", "physical-api", "agent-e2e", "storage-providers", "other")
         selections = {}
         for group in groups:
             packages = subprocess.check_output(
@@ -80,6 +80,10 @@ class PackageCoverageTest(unittest.TestCase):
 
         self.assertEqual(set(all_packages), set().union(*selections.values()))
         self.assertEqual(len(all_packages), sum(len(packages) for packages in selections.values()))
+        provider = "databasus-backend/internal/modules/storages/internal/providers"
+        self.assertEqual(selections["storage-providers"], {provider})
+        self.assertNotIn(provider, selections["other"])
+        self.assertIn(provider + "/nas", selections["other"])
         self.assertIn("databasus-backend/migrations", selections["other"])
         self.assertIn("databasus-backend/tools/archlint", selections["other"])
 
@@ -198,6 +202,8 @@ if sys.argv[1:] == ["list", "./..."]:
     print("databasus-backend/internal/lib/ordinary")
     print("databasus-backend/internal/modules/backups/e2e/logical")
     print("databasus-backend/newdirectory/fresh")
+    print("databasus-backend/internal/modules/storages/internal/providers")
+    print("databasus-backend/internal/modules/storages/internal/providers/nas")
     print("databasus-backend/internal/lib/e2e/upgrade")
     print("databasus-backend/e2e/upgrade")
     print("databasus-backend/e2e/upgrade/upgradecheck")
@@ -217,6 +223,9 @@ else:
 
         self.assertEqual(selection.returncode, 0, selection.stderr)
         selected_packages = selection.stdout.splitlines()
+        provider = "databasus-backend/internal/modules/storages/internal/providers"
+        self.assertNotIn(provider, selected_packages)
+        self.assertIn(provider + "/nas", selected_packages)
         self.assertIn("databasus-backend/newdirectory/fresh", selected_packages)
         self.assertIn("databasus-backend/internal/lib/e2e/upgrade", selected_packages)
         self.assertIn("databasus-backend/internal/lib/ordinary", selected_packages)
@@ -229,16 +238,22 @@ else:
 
 class RealShardSelectionTest(ShardFixture):
     def test_three_real_selectors_cover_every_package_test_pair_once(self) -> None:
+        for group in ("physical-api", "other"):
+            with self.subTest(group=group):
+                self.check_shard_coverage(group)
+
+    def check_shard_coverage(self, group: str) -> None:
+        self.calls.write_text("")
         fixture_tests = {
             "alpha": ["TestWeighted", "TestRepeated", "TestPlainAlpha"],
             "beta": ["TestRepeated", "TestPlainBeta", "TestAnother"],
-            "gamma": ["TestHeavy", "TestPlainGamma"],
+            "gamma": ["TestHeavy", "TestHeavySecond", "TestPlainGamma"],
         }
 
         package_directories = {}
         for name, tests in fixture_tests.items():
             directory = self.backend / "internal/modules/backups/physicalapitests" / name
-            directory.mkdir(parents=True)
+            directory.mkdir(parents=True, exist_ok=True)
             (directory / "fixture_test.go").write_text(
                 "package "
                 + name
@@ -246,10 +261,10 @@ class RealShardSelectionTest(ShardFixture):
                 + "\n".join(f"func {test}(t *testing.T) {{}}" for test in tests)
                 + "\nfunc TestMain(m *testing.M) {}\n"
             )
-            package_directories["fixture/internal/modules/backups/physicalapitests/" + name] = str(
-                directory
-            )
-        (self.backend / "test-shard-weights.txt").write_text("10 TestHeavy\n7 TestWeighted\n")
+            package_directories["fixture/" + name] = str(directory)
+        (self.backend / "test-shard-weights.txt").write_text(
+            "10 TestHeavy\n9 TestHeavySecond\n7 TestWeighted\n100 TestDeleted\n"
+        )
         self.environment["FIXTURE_PACKAGES"] = json.dumps(package_directories)
         self.environment["PACKAGE_SELECTOR"] = str(self.workspace / "test-group-packages")
 
@@ -260,7 +275,7 @@ arguments = sys.argv[1:]
 with open(os.environ["CALLS"], "a") as calls:
     calls.write(json.dumps({"args": arguments, "goflags": os.environ.get("GOFLAGS")}) + "\\n")
 packages = json.loads(os.environ["FIXTURE_PACKAGES"])
-if arguments == ["list", "./internal/modules/backups/physicalapitests/..."]:
+if arguments in (["list", "./internal/modules/backups/physicalapitests/..."], ["list", "./..."]):
     print("\\n".join(packages))
 elif arguments[:3] == ["list", "-f", "{{ .Dir }}"]:
     print("\\n".join(packages[package] for package in arguments[3:]))
@@ -282,7 +297,7 @@ sys.exit(subprocess.call(["bash", os.environ["PACKAGE_SELECTOR"]], env={**os.env
             selection = subprocess.run(
                 ["bash", str(self.workspace / "test-group-tests")],
                 cwd=self.backend,
-                env={**self.environment, "usage_group": f"physical-api-{shard}-of-3"},
+                env={**self.environment, "usage_group": f"{group}-{shard}-of-3"},
                 capture_output=True,
                 text=True,
                 timeout=TIMEOUT,
@@ -297,7 +312,14 @@ sys.exit(subprocess.call(["bash", os.environ["PACKAGE_SELECTOR"]], env={**os.env
             for test in re.findall(r"^func (Test\w+)\(", source.read_text(), re.MULTILINE)
             if test != "TestMain"
         ]
-        self.assertEqual(len(inventory), 8)
+        self.assertEqual(len(inventory), 9)
+        heavy_shard = next(
+            index for index, pattern in enumerate(patterns) if pattern.fullmatch("TestHeavy")
+        )
+        second_heavy_shard = next(
+            index for index, pattern in enumerate(patterns) if pattern.fullmatch("TestHeavySecond")
+        )
+        self.assertNotEqual(heavy_shard, second_heavy_shard)
         for package, test in inventory:
             self.assertEqual(
                 sum(bool(pattern.fullmatch(test)) for pattern in patterns), 1, (package, test)
@@ -315,3 +337,33 @@ sys.exit(subprocess.call(["bash", os.environ["PACKAGE_SELECTOR"]], env={**os.env
         for record in self.records():
             self.assertNotIn("-tags", record["args"])
             self.assertEqual(record["goflags"], "")
+
+    def test_pins_collation_when_the_runner_uses_another_locale(self) -> None:
+        sort_path = shutil.which("sort")
+        assert sort_path is not None
+        self.environment["LC_ALL"] = "C.UTF-8"
+        self.stub(
+            "sort",
+            f"""import os, sys
+if os.environ.get("LC_ALL") != "C":
+    sys.exit("test partitioning requires LC_ALL=C")
+os.execv({sort_path!r}, [{sort_path!r}, *sys.argv[1:]])
+""",
+        )
+
+        self.check_shard_coverage("other")
+
+    def test_rejects_invalid_and_empty_shards(self) -> None:
+        self.check_shard_coverage("other")
+        for group in ("other-0-of-3", "other-4-of-3", "other-1-of-0", "other-30-of-30"):
+            with self.subTest(group=group):
+                selection = subprocess.run(
+                    ["bash", str(self.workspace / "test-group-tests")],
+                    cwd=self.backend,
+                    env={**self.environment, "usage_group": group},
+                    capture_output=True,
+                    text=True,
+                    timeout=TIMEOUT,
+                )
+                self.assertNotEqual(selection.returncode, 0)
+                self.assertTrue("outside" in selection.stderr or "has no tests" in selection.stderr)

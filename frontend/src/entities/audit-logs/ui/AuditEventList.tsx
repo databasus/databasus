@@ -1,5 +1,4 @@
-import { Spin, Table } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+import { Loader } from '@mantine/core';
 import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 
@@ -9,10 +8,13 @@ import { AuditEventAuthorComponent } from '@/entities/audit-logs/ui/AuditEventAu
 import { type TranslationKey, useLocale } from '@/shared/i18n';
 import { getUserTimeFormat, getUserShortTimeFormat } from '@/shared/time';
 import { LoadFailure } from '@/shared/ui';
-
+import tableStyles from '@/shared/ui/nativeTable.module.css';
 interface Props {
   events: AuditEvent[];
-  failure?: { error: unknown; onRetry: () => void };
+  failure?: {
+    error: unknown;
+    onRetry: () => void;
+  };
   isLoading: boolean;
   isLoadingMore: boolean;
   hasMore: boolean;
@@ -37,54 +39,10 @@ export function AuditEventList({
     `${dayjs(createdAt).format((view.timeFormat === 'short' ? getUserShortTimeFormat() : getUserTimeFormat()).format)} (${formatRelativeTime(dayjs(createdAt))})`;
   const { t } = useTranslation();
   const { formatRelativeTime } = useLocale();
-  const columns: ColumnsType<AuditEvent> = [
-    ...(view.shouldShowAuthor
-      ? [
-          {
-            title: t('auditLogs.columns.user'),
-            key: 'author',
-            width: 300,
-            render: (_: unknown, event: AuditEvent) => (
-              <AuditEventAuthorComponent author={event.author} />
-            ),
-          },
-        ]
-      : []),
-    {
-      title: t('auditLogs.columns.message'),
-      key: 'message',
-      render: (_: unknown, event: AuditEvent) => (
-        <span className="text-xs break-words text-content">{event.message}</span>
-      ),
-    },
-    ...(view.shouldShowWorkspace
-      ? [
-          {
-            title: t('auditLogs.columns.workspace'),
-            key: 'workspace',
-            width: 200,
-            render: (_: unknown, event: AuditEvent) => (
-              <span className="text-xs break-words text-accent">
-                {getAuditEventWorkspaceLabel(event) ?? '-'}
-              </span>
-            ),
-          },
-        ]
-      : []),
-    {
-      title: t('auditLogs.columns.created'),
-      key: 'createdAt',
-      width: 250,
-      render: (_: unknown, event: AuditEvent) => (
-        <span className="text-xs text-content">{formatTimestamp(event.createdAt)}</span>
-      ),
-    },
-  ];
-
   if (isLoading)
     return (
       <div className="flex h-64 items-center justify-center">
-        <Spin size="large" />
+        <Loader size="md" role="status" />
       </div>
     );
 
@@ -107,24 +65,68 @@ export function AuditEventList({
             <div className="text-xs text-muted">{formatTimestamp(event.createdAt)}</div>
             <div className="my-2 text-sm">{event.message}</div>
             {view.shouldShowWorkspace && (
-              <div className="text-xs text-accent">{getAuditEventWorkspaceLabel(event) ?? '-'}</div>
+              <div className="text-xs text-content">
+                {getAuditEventWorkspaceLabel(event) ?? '-'}
+              </div>
             )}
           </article>
         ))
       ) : (
-        <div className="overflow-x-auto">
-          <Table
-            columns={columns}
-            dataSource={events}
-            pagination={false}
-            rowKey="id"
-            size="small"
-          />
+        <div
+          className="overflow-x-auto"
+          role="region"
+          tabIndex={0}
+          aria-label={t('auditLogs.title')}
+        >
+          <table className={tableStyles.table}>
+            <thead>
+              <tr>
+                {view.shouldShowAuthor && (
+                  <th scope="col" className="w-75">
+                    {t('auditLogs.columns.user')}
+                  </th>
+                )}
+                <th scope="col">{t('auditLogs.columns.message')}</th>
+                {view.shouldShowWorkspace && (
+                  <th scope="col" className="w-50">
+                    {t('auditLogs.columns.workspace')}
+                  </th>
+                )}
+                <th scope="col" className="w-62.5">
+                  {t('auditLogs.columns.created')}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {events.map((event) => (
+                <tr key={event.id}>
+                  {view.shouldShowAuthor && (
+                    <td>
+                      <AuditEventAuthorComponent author={event.author} />
+                    </td>
+                  )}
+                  <td>
+                    <span className="text-xs break-words text-content">{event.message}</span>
+                  </td>
+                  {view.shouldShowWorkspace && (
+                    <td>
+                      <span className="text-xs break-words text-content">
+                        {getAuditEventWorkspaceLabel(event) ?? '-'}
+                      </span>
+                    </td>
+                  )}
+                  <td>
+                    <span className="text-xs text-content">{formatTimestamp(event.createdAt)}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
       {isLoadingMore && (
         <div className="flex justify-center gap-2 py-4 text-sm text-muted">
-          <Spin />
+          <Loader role="status" />
           {t('auditLogs.loadingMore')}
         </div>
       )}

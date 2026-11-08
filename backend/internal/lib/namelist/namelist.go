@@ -1,10 +1,8 @@
 // Package namelist normalizes and formats user-supplied lists of database object names.
 //
-// The UI collects these lists with an AntD tags input that splits pasted text on its
-// token separators without trimming, so a list pasted across several lines reaches us
-// with leading newlines glued to every entry but the first. Such an entry silently
-// matches nothing in mysqldump / pg_dump / mongodump, so the object it names ends up in
-// the backup anyway.
+// User-supplied lists may contain pasted separators and surrounding whitespace. Database
+// dump tools match names literally, so unnormalized exclusions can silently leave the
+// named objects in a backup.
 package namelist
 
 import (

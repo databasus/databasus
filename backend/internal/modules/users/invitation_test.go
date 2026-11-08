@@ -69,7 +69,7 @@ func TestInviteUser(t *testing.T) {
 		assert.Equal(t, 0, countUsersWithStatus(t, app, invitedEmail, "INVITED"))
 	})
 
-	t.Run("refuses a password sign-in for the invited user like a wrong password", func(t *testing.T) {
+	t.Run("identifies incomplete registration when an invited user signs in with a password", func(t *testing.T) {
 		t.Parallel()
 
 		app := apptest.New(t)
@@ -80,9 +80,9 @@ func TestInviteUser(t *testing.T) {
 		wrongPasswordResponse := signIn(t, app, admin.Email, "wrong-password-123")
 
 		requireProblem(t, invitedResponse.StatusCode(), invitedResponse.Body, http.StatusUnauthorized,
-			apiclient.ProblemCodeInvalidCredentials)
+			apiclient.ProblemCodeRegistrationIncomplete)
 		requireProblem(t, wrongPasswordResponse.StatusCode(), wrongPasswordResponse.Body, http.StatusUnauthorized,
-			apiclient.ProblemCodeInvalidCredentials)
+			apiclient.ProblemCodePasswordIncorrect)
 	})
 
 	t.Run("lets the invited user finish sign-up while registration is closed", func(t *testing.T) {

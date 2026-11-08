@@ -1,6 +1,7 @@
-import { Button, Spin, Tooltip } from 'antd';
+import { Button, Loader, Tooltip } from '@mantine/core';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLocation, useNavigate } from 'react-router';
 
 import { useApplicationStartup } from '@/app/model/useApplicationStartup';
 import { useIsNewGitHubVersionAvailable } from '@/app/model/useIsNewGitHubVersionAvailable';
@@ -15,6 +16,7 @@ import { WorkspaceSettingsComponent } from '@/pages/workspace-settings';
 import { useSessionGuard } from '@/shared/auth';
 import { APP_VERSION, CONTAINER_ARCH } from '@/shared/config';
 import { useLocale } from '@/shared/i18n';
+import { getApplicationPath, parseApplicationPath, useNavigationIntent } from '@/shared/navigation';
 import { LoadFailure } from '@/shared/ui';
 import {
   AppShell,
@@ -26,7 +28,11 @@ import {
 } from '@/widgets/app-shell';
 
 export const ApplicationScreen = () => {
-  const [selectedTab, setSelectedTab] = useState<MainTab>('databases');
+  const location = useLocation();
+  const navigationIntent = useNavigationIntent();
+  const navigate = useNavigate();
+  const address = parseApplicationPath(location.pathname) ?? { section: 'databases' as const };
+  const selectedTab = address.section;
   const [isCreateWorkspaceDialogOpen, setShowCreateWorkspaceDialog] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -49,7 +55,7 @@ export const ApplicationScreen = () => {
 
   const { t } = useTranslation();
   const { formatNumber } = useLocale();
-  const startup = useApplicationStartup();
+  const startup = useApplicationStartup(address.workspaceId);
   const isCurrent = useSessionGuard();
   const workspaceCreationInvoker = useRef<HTMLElement | null>(null);
   const {
@@ -60,16 +66,34 @@ export const ApplicationScreen = () => {
     diskUsage,
     isLoading,
     isReady,
+    isReconcilingWorkspace,
     isAdmin,
     canCreateWorkspace,
     canManageWorkspace,
   } = startup;
 
   const isNewGitHubVersionAvailable = useIsNewGitHubVersionAvailable();
+  const getTabPath = (section: MainTab) =>
+    getApplicationPath({ section, workspaceId: selectedWorkspace?.id });
+  const isWorkspaceSection = ['databases', 'storages', 'notifiers', 'settings'].includes(
+    selectedTab,
+  );
+  const isUnavailableSection =
+    !isAdmin && (selectedTab === 'users' || selectedTab === 'databasus-settings');
+  const isUnavailableWorkspace =
+    isWorkspaceSection && address.workspaceId !== selectedWorkspace?.id;
+  const canonicalPath =
+    isUnavailableSection || isUnavailableWorkspace
+      ? getApplicationPath({ section: 'databases', workspaceId: selectedWorkspace?.id })
+      : isWorkspaceSection && !selectedWorkspace
+        ? '/'
+        : location.pathname;
+  const isNavigationReady =
+    isReady && (isReconcilingWorkspace || canonicalPath === location.pathname);
   useEffect(() => {
-    if (!isAdmin && (selectedTab === 'users' || selectedTab === 'databasus-settings'))
-      setSelectedTab('databases');
-  }, [isAdmin, selectedTab]);
+    if (isReady && !isReconcilingWorkspace && canonicalPath !== location.pathname)
+      void navigate(canonicalPath, { replace: true });
+  }, [isReady, isReconcilingWorkspace, canonicalPath, location.pathname, navigate]);
 
   const isUsedMoreThan85Percent =
     diskUsage && diskUsage.usedSpaceBytes / diskUsage.totalSpaceBytes > 0.85;
@@ -82,7 +106,6 @@ export const ApplicationScreen = () => {
       name: 'databases',
       icon: '/icons/menu/database-gray.svg',
       selectedIcon: '/icons/menu/database-white.svg',
-      onClick: () => setSelectedTab('databases'),
       isAdminOnly: false,
       marginTop: '0px',
       isVisible: true,
@@ -92,7 +115,6 @@ export const ApplicationScreen = () => {
       name: 'storages',
       icon: '/icons/menu/storage-gray.svg',
       selectedIcon: '/icons/menu/storage-white.svg',
-      onClick: () => setSelectedTab('storages'),
       isAdminOnly: false,
       marginTop: '0px',
       isVisible: !!selectedWorkspace,
@@ -102,7 +124,6 @@ export const ApplicationScreen = () => {
       name: 'notifiers',
       icon: '/icons/menu/notifier-gray.svg',
       selectedIcon: '/icons/menu/notifier-white.svg',
-      onClick: () => setSelectedTab('notifiers'),
       isAdminOnly: false,
       marginTop: '0px',
       isVisible: !!selectedWorkspace,
@@ -112,7 +133,6 @@ export const ApplicationScreen = () => {
       name: 'settings',
       icon: '/icons/menu/workspace-settings-gray.svg',
       selectedIcon: '/icons/menu/workspace-settings-white.svg',
-      onClick: () => setSelectedTab('settings'),
       isAdminOnly: false,
       marginTop: '0px',
       isVisible: !!selectedWorkspace,
@@ -122,7 +142,6 @@ export const ApplicationScreen = () => {
       name: 'profile',
       icon: '/icons/menu/profile-gray.svg',
       selectedIcon: '/icons/menu/profile-white.svg',
-      onClick: () => setSelectedTab('profile'),
       isAdminOnly: false,
       marginTop: '25px',
       isVisible: true,
@@ -132,7 +151,6 @@ export const ApplicationScreen = () => {
       name: 'databasus-settings',
       icon: '/icons/menu/global-settings-gray.svg',
       selectedIcon: '/icons/menu/global-settings-white.svg',
-      onClick: () => setSelectedTab('databasus-settings'),
       isAdminOnly: true,
       marginTop: '0px',
       isVisible: true,
@@ -142,30 +160,37 @@ export const ApplicationScreen = () => {
       name: 'users',
       icon: '/icons/menu/user-card-gray.svg',
       selectedIcon: '/icons/menu/user-card-white.svg',
-      onClick: () => setSelectedTab('users'),
       isAdminOnly: true,
       marginTop: '0px',
       isVisible: true,
     },
-  ];
+  ].map((tab) => ({ ...tab, href: getTabPath(tab.name as MainTab) })) as SidebarTab[];
 
   return (
     <>
       <AppShell
         workspaceSelector={
-          isReady && (
+          isNavigationReady && (
             <WorkspaceSelectionComponent
               workspaces={workspaces}
               selectedWorkspace={selectedWorkspace}
               onCreateWorkspace={handleCreateWorkspace}
-              onWorkspaceSelect={startup.selectWorkspace}
+              onWorkspaceSelect={(workspace) => {
+                if (selectedWorkspace?.id === workspace.id && !isReconcilingWorkspace) return;
+
+                startup.selectWorkspace(workspace);
+                if (isWorkspaceSection)
+                  void navigate(
+                    getApplicationPath({ section: selectedTab, workspaceId: workspace.id }),
+                  );
+              }}
               canCreateWorkspace={canCreateWorkspace}
             />
           )
         }
         auxiliary={
           isUsedMoreThan85Percent && (
-            <Tooltip title={t('app.diskUsage.hint')}>
+            <Tooltip label={t('app.diskUsage.hint')}>
               <span className={`text-xs ${isUsedMoreThan95Percent ? 'text-danger' : 'text-muted'}`}>
                 {t('app.diskUsage.summary', getDiskUsageValues(diskUsage, formatNumber))}
               </span>
@@ -173,7 +198,7 @@ export const ApplicationScreen = () => {
           )
         }
         sidebar={
-          isReady && (
+          isNavigationReady && (
             <SidebarComponent
               isOpen={isSidebarOpen}
               onClose={() => setIsSidebarOpen(false)}
@@ -187,14 +212,14 @@ export const ApplicationScreen = () => {
         isSidebarOpen={isSidebarOpen}
         onOpenSidebar={() => setIsSidebarOpen(true)}
       >
-        {isLoading ? (
+        {isLoading || isReconcilingWorkspace || (isReady && !isNavigationReady) ? (
           <div className="flex flex-1 items-center justify-center">
-            <Spin />
+            <Loader role="status" />
           </div>
         ) : startup.error !== undefined ? (
           <LoadFailure error={startup.error} onRetry={() => void startup.retry()} />
         ) : (
-          isReady && (
+          isNavigationReady && (
             <>
               {selectedTab === 'profile' && <ProfilePage onUserChanged={startup.acceptUser} />}
               {selectedTab === 'databasus-settings' && isAdmin && (
@@ -202,10 +227,23 @@ export const ApplicationScreen = () => {
               )}
               {selectedTab === 'users' && isAdmin && <UsersPage />}
               {['databases', 'storages', 'notifiers', 'settings'].includes(selectedTab) &&
-                (selectedWorkspace ? (
+                (selectedWorkspace && address.workspaceId === selectedWorkspace.id ? (
                   <Fragment key={selectedWorkspace.id}>
                     {selectedTab === 'databases' && (
                       <DatabasesPage
+                        navigationIntent={navigationIntent}
+                        selectedDatabaseId={address.databaseId}
+                        selectedTab={address.databaseTab}
+                        onNavigate={(selection) => {
+                          const path = getApplicationPath({
+                            section: 'databases',
+                            workspaceId: selectedWorkspace.id,
+                            databaseId: selection.databaseId,
+                            databaseTab: selection.tab,
+                          });
+                          if (path !== window.location.pathname)
+                            void navigate(path, { replace: selection.shouldReplace });
+                        }}
                         onUnavailable={startup.reconcileUnavailableWorkspace}
                         workspace={selectedWorkspace}
                         isCanManageDBs={canManageWorkspace}
@@ -238,7 +276,7 @@ export const ApplicationScreen = () => {
                 ) : (
                   <div className="flex flex-1 items-center justify-center">
                     {canCreateWorkspace && (
-                      <Button type="primary" onClick={handleCreateWorkspace}>
+                      <Button variant="filled" onClick={handleCreateWorkspace}>
                         {t('app.workspaceSelection.create')}
                       </Button>
                     )}
@@ -252,7 +290,10 @@ export const ApplicationScreen = () => {
           <br />
           {CONTAINER_ARCH}
           {isNewGitHubVersionAvailable && (
-            <Tooltip title={t('app.navigation.newVersionAvailable')} trigger={['hover', 'focus']}>
+            <Tooltip
+              label={t('app.navigation.newVersionAvailable')}
+              events={{ hover: true, focus: true, touch: false }}
+            >
               <a
                 className="pointer-events-auto ml-1 inline-flex"
                 aria-label={t('app.navigation.newVersionAvailable')}
@@ -274,7 +315,7 @@ export const ApplicationScreen = () => {
           onClose={handleCloseCreateWorkspace}
           onWorkspaceCreated={(workspace) => {
             startup.acceptWorkspace(workspace);
-            setSelectedTab('databases');
+            void navigate(getApplicationPath({ section: 'databases', workspaceId: workspace.id }));
           }}
         />
       )}

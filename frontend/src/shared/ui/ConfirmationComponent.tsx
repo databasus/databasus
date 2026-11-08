@@ -1,6 +1,8 @@
-import { Button, Modal } from 'antd';
-import { useEffect, useRef, useState, type JSX, type ReactNode } from 'react';
+import { Button } from '@mantine/core';
+import { type JSX, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+
+import { Dialog } from '@/shared/ui/Dialog';
 
 interface Props {
   onConfirm(): void;
@@ -24,28 +26,14 @@ export function ConfirmationComponent({
   cancelText,
   hideCancelButton = false,
 }: Props): JSX.Element {
-  const [invokingControl] = useState(() =>
-    document.activeElement instanceof HTMLElement ? document.activeElement : null,
-  );
-  const isMounted = useRef(false);
   const { t } = useTranslation();
 
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-      queueMicrotask(() => {
-        if (!isMounted.current && invokingControl?.isConnected) invokingControl.focus();
-      });
-    };
-  }, [invokingControl]);
-
   return (
-    <Modal
+    <Dialog
       title={t('common.confirmation.title')}
-      open
-      onCancel={() => onDecline()}
-      footer={<div />}
+      opened
+      onClose={onDecline}
+      closeButtonProps={{ 'aria-label': t('common.actions.close') }}
     >
       <div>{description}</div>
 
@@ -62,12 +50,12 @@ export function ConfirmationComponent({
         <Button
           className="h-auto min-h-8 max-w-full whitespace-normal"
           onClick={() => onConfirm()}
-          danger={isDestructive}
-          type="primary"
+          color={isDestructive ? 'danger' : 'accent'}
+          variant="filled"
         >
           {actionText}
         </Button>
       </div>
-    </Modal>
+    </Dialog>
   );
 }

@@ -1,5 +1,6 @@
-import { InfoCircleOutlined } from '@ant-design/icons';
+import { Info } from 'lucide-react';
 import { Trans, useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 
 import { type Database, HEALTH_STATUS_LABEL_KEYS, HealthStatus } from '@/entities/databases';
 import { type Storage, getStorageLogoFromType } from '@/entities/storages';
@@ -9,24 +10,28 @@ interface Props {
   database: Database;
   storage?: Storage;
   selectedDatabaseId?: string;
-  setSelectedDatabaseId: (databaseId: string) => void;
+  href: string;
 }
 
-export const DatabaseCardComponent = ({
-  database,
-  storage,
-  selectedDatabaseId,
-  setSelectedDatabaseId,
-}: Props) => {
+export const DatabaseCardComponent = ({ database, storage, selectedDatabaseId, href }: Props) => {
   const { t } = useTranslation();
   const { formatRelativeTime } = useLocale();
 
   return (
-    <button
-      type="button"
-      aria-pressed={selectedDatabaseId === database.id}
+    <Link
+      to={href}
+      aria-current={selectedDatabaseId === database.id ? 'true' : 'false'}
       className={`mb-3 block w-full cursor-pointer rounded p-3 text-left shadow ${selectedDatabaseId === database.id ? 'bg-selected' : 'bg-surface'}`}
-      onClick={() => setSelectedDatabaseId(database.id)}
+      onClick={(event) => {
+        if (
+          selectedDatabaseId === database.id &&
+          !event.ctrlKey &&
+          !event.metaKey &&
+          !event.shiftKey &&
+          !event.altKey
+        )
+          event.preventDefault();
+      }}
     >
       <div className="flex">
         <div className="mb-1 min-w-0 font-bold break-words">{database.name}</div>
@@ -76,10 +81,10 @@ export const DatabaseCardComponent = ({
 
       {database.lastBackupErrorMessage && (
         <div className="mt-1 flex items-center text-sm text-danger underline">
-          <InfoCircleOutlined className="mr-1" />
+          <Info className="mr-1" size={14} />
           {t('databases.card.hasBackupError')}
         </div>
       )}
-    </button>
+    </Link>
   );
 };

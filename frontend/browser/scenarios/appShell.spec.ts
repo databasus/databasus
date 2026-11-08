@@ -3,6 +3,8 @@ import { expect } from '@playwright/test';
 import { DICTIONARIES } from '../../src/shared/i18n/dictionaries';
 import { accountFixtures } from '../accountFixtures';
 import { assertAccountReflow } from '../assertAccountReflow';
+import { assertEnlargedTextReflow } from '../assertEnlargedTextReflow';
+import { assertScreenshot } from '../assertScreenshot';
 import { assertSelectedNavigationEntry } from '../assertSelectedNavigationEntry';
 import { assertThemeTextColor } from '../assertThemeTextColor';
 import { test } from '../browserTest';
@@ -56,6 +58,8 @@ for (const usedPercent of [50, 90, 95, 96]) {
         await expect(page.getByRole('tooltip')).not.toBeVisible();
 
         await enlargeText(page.locator('body'));
+        await assertEnlargedTextReflow(page);
+
         await assertAccountReflow(header);
         await expect(summary).toBeInViewport();
 
@@ -70,13 +74,15 @@ for (const usedPercent of [50, 90, 95, 96]) {
           })
           .click();
         await page
-          .getByRole('menuitem', { name: DICTIONARIES.en.app.theme.dark, exact: true })
+          .getByRole('menuitemradio', { name: DICTIONARIES.en.app.theme.dark, exact: true })
           .click();
 
         await expect(page.locator('html')).toHaveClass(/dark/);
         await assertThemeTextColor({ text: summary, role: colorRole });
         await expect(summary).not.toHaveCSS('color', lightColor);
         await expect(summary).toHaveText(diskSummary);
+        await assertEnlargedTextReflow(page);
+
         await assertAccountReflow(header);
         await expect(summary).toBeInViewport();
       });
@@ -115,6 +121,8 @@ test('keeps desktop header actions reachable when the entire shell uses 200% tex
   const name = page.getByRole('textbox', { name: dictionary.users.fields.name, exact: true });
   await name.fill('Retained desktop shell draft');
   await enlargeText(page.locator('body'));
+  await assertEnlargedTextReflow(page);
+
   await assertAccountReflow(page.locator('body'));
 
   const header = page.getByRole('banner');
@@ -150,6 +158,8 @@ test('keeps workspace creation and navigation reachable when the entire shell us
   await name.fill('Retained shell draft');
   const shell = page.locator('body');
   await enlargeText(shell);
+  await assertEnlargedTextReflow(page);
+
   await assertAccountReflow(shell);
 
   const workspaceSelector = page.getByRole('combobox', {
@@ -173,9 +183,12 @@ test('keeps workspace creation and navigation reachable when the entire shell us
     exact: true,
   });
   await expect(creation).toBeVisible();
+  await enlargeText(creation);
+  await assertAccountReflow(creation);
   await expect
     .poll(() => creation.evaluate((dialog) => dialog.contains(document.activeElement)))
     .toBe(true);
+  await assertEnlargedTextReflow(page);
 
   await page.keyboard.press('Escape');
   await expect(creation).not.toBeVisible();
@@ -184,7 +197,11 @@ test('keeps workspace creation and navigation reachable when the entire shell us
   const menu = page.getByRole('button', { name: dictionary.app.navigation.menu, exact: true });
   await menu.focus();
   await menu.press('Enter');
-  await expect(page.getByRole('dialog')).toBeVisible();
+  const sidebar = page.getByRole('dialog');
+  await expect(sidebar).toBeVisible();
+  await enlargeText(sidebar);
+
+  await assertAccountReflow(sidebar);
   await expect(name).toHaveValue('Retained shell draft');
 });
 
@@ -204,7 +221,7 @@ test('keeps navigation reachable when the viewport crosses the 768px boundary', 
   await page.setViewportSize({ width: 769, height: 900 });
   await expect(menu).not.toBeVisible();
   await expect(
-    page.getByRole('button', { name: dictionary.app.navigation.users, exact: true }),
+    page.getByRole('link', { name: dictionary.app.navigation.users, exact: true }),
   ).toBeVisible();
   await expect(name).toHaveValue('Retained boundary draft');
 
@@ -222,8 +239,8 @@ for (const theme of ['light', 'dark']) {
     await openAccount({ page, theme });
 
     const navigation = DICTIONARIES.en.app.navigation;
-    const profile = page.getByRole('button', { name: navigation.profile, exact: true });
-    const users = page.getByRole('button', { name: navigation.users, exact: true });
+    const profile = page.getByRole('link', { name: navigation.profile, exact: true });
+    const users = page.getByRole('link', { name: navigation.users, exact: true });
 
     await profile.click();
     await page.mouse.move(0, 0);
@@ -235,6 +252,7 @@ for (const theme of ['light', 'dark']) {
     await assertSelectedNavigationEntry({ entry: users, iconName: 'user-card' });
     await expect(profile).not.toHaveAttribute('aria-current');
     await expect(page.locator('[aria-current="page"]')).toHaveCount(1);
+    await assertScreenshot(page, `application-shell-${theme}.png`);
   });
 
   test(`shows the selected section in the narrow menu in the ${theme} theme`, async ({ page }) => {
@@ -243,8 +261,8 @@ for (const theme of ['light', 'dark']) {
 
     const navigation = DICTIONARIES.en.app.navigation;
     const menu = page.getByRole('button', { name: navigation.menu, exact: true });
-    const profile = page.getByRole('button', { name: navigation.profile, exact: true });
-    const users = page.getByRole('button', { name: navigation.users, exact: true });
+    const profile = page.getByRole('link', { name: navigation.profile, exact: true });
+    const users = page.getByRole('link', { name: navigation.users, exact: true });
 
     await openAccountTab({ page, locale: 'en', tab: 'profile' });
     await menu.click();
@@ -290,7 +308,7 @@ test('retains the profile draft and sidebar when language is selected with the k
   await page.keyboard.press('Home');
   await page.keyboard.press('ArrowDown');
   await expect(
-    page.getByRole('menuitem', { name: DICTIONARIES.ru.language.nativeName, exact: true }),
+    page.getByRole('menuitemradio', { name: DICTIONARIES.ru.language.nativeName, exact: true }),
   ).toBeFocused();
   await page.keyboard.press('Enter');
   const language = sidebar.getByRole('button', {
@@ -303,13 +321,14 @@ test('retains the profile draft and sidebar when language is selected with the k
 
   await expect(sidebar).toBeVisible();
   await expect(
-    sidebar.getByRole('button', { name: DICTIONARIES.ru.app.navigation.profile, exact: true }),
+    sidebar.getByRole('link', { name: DICTIONARIES.ru.app.navigation.profile, exact: true }),
   ).toBeVisible();
   await expect(language).toBeFocused();
   await language.press('ArrowDown');
   await expect
     .poll(() => page.getByRole('menu').evaluate((menu) => menu.contains(document.activeElement)))
     .toBe(true);
+  await assertEnlargedTextReflow(page);
 
   await page.keyboard.press('Escape');
   await expect(sidebar).toBeVisible();

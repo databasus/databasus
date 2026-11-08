@@ -1,5 +1,5 @@
-import { MenuOutlined } from '@ant-design/icons';
-import { Button } from 'antd';
+import { ActionIcon } from '@mantine/core';
+import { MenuIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -70,14 +70,15 @@ export const AppShell = ({
           </div>
         )}
         {isMobile && (
-          <Button
+          <ActionIcon
             className="ml-auto"
-            type="text"
+            variant="subtle"
             aria-label={t('app.navigation.menu')}
             aria-expanded={isSidebarOpen}
-            icon={<MenuOutlined />}
             onClick={onOpenSidebar}
-          />
+          >
+            <MenuIcon size="1em" className="inline-block shrink-0 align-middle" />
+          </ActionIcon>
         )}
       </header>
       <div className="relative flex min-h-0 min-w-0 flex-1 gap-2 md:gap-3">

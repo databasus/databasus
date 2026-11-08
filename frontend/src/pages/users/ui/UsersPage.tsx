@@ -1,17 +1,21 @@
-import { LoadingOutlined } from '@ant-design/icons';
-import { Alert, App, Button, Drawer, Input, Select, Spin, Switch, Table } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+import { Alert, Button, CloseButton, Drawer, Loader, Switch, TextInput } from '@mantine/core';
 import dayjs from 'dayjs';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { USER_ROLE_LABEL_KEYS, type User, UserRole, userManagementApi } from '@/entities/users';
 import { UserAuditLogsSidebar } from '@/pages/users/ui/UserAuditLogsSidebar';
+import { useSessionMutation } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { useIsMobile, usePagedList, useRequestRevision } from '@/shared/hooks';
 import { translateApiError, useLocale } from '@/shared/i18n';
+import { useFeedback } from '@/shared/lib/feedback';
 import { getUserTimeFormat } from '@/shared/time';
+import { closeOverlayOnEscape } from '@/shared/ui';
+import { OverlayFocusReturn } from '@/shared/ui';
+import { WrappingSelect } from '@/shared/ui';
 import { LoadFailure } from '@/shared/ui';
+import tableStyles from '@/shared/ui/nativeTable.module.css';
 
 const isUserActive = (user: User): boolean => user.status === 'ACTIVE';
 
@@ -26,6 +30,19 @@ const withoutUserId = (userIds: Set<string>, userId: string): Set<string> => {
 };
 
 export function UsersPage() {
+  const deactivateUserMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof userManagementApi.deactivateUser>) =>
+      userManagementApi.deactivateUser(...parameters),
+  });
+  const activateUserMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof userManagementApi.activateUser>) =>
+      userManagementApi.activateUser(...parameters),
+  });
+  const changeUserRoleMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof userManagementApi.changeUserRole>) =>
+      userManagementApi.changeUserRole(...parameters),
+  });
+
   const [searchQuery, setSearchQuery] = useState('');
   const [inputValue, setInputValue] = useState('');
   const [processingUsers, setProcessingUsers] = useState<Set<string>>(new Set());
@@ -52,14 +69,17 @@ export function UsersPage() {
 
     try {
       const changedUser = isUserActive(toggledUser)
-        ? await userManagementApi.deactivateUser(toggledUser.id)
-        : await userManagementApi.activateUser(toggledUser.id);
+        ? await deactivateUserMutation.mutateAsync([toggledUser.id])
+        : await activateUserMutation.mutateAsync([toggledUser.id]);
       if (!isCurrent() || !queryRevision.IsCurrent(requestQueryRevision)) return;
       acknowledgedUsers.set(changedUser.id, changedUser);
       replaceOrPrependItem(changedUser);
-      message.success(
-        i18n.t(isUserActive(changedUser) ? 'users.list.activated' : 'users.list.deactivated'),
-      );
+      notify({
+        kind: 'success',
+        title: i18n.t(
+          isUserActive(changedUser) ? 'users.list.activated' : 'users.list.deactivated',
+        ),
+      });
     } catch (error) {
       if (isCurrent() && queryRevision.IsCurrent(requestQueryRevision)) setFailure(error);
     } finally {
@@ -76,11 +96,11 @@ export function UsersPage() {
     setFailure(undefined);
 
     try {
-      const changedUser = await userManagementApi.changeUserRole(userId, newRole);
+      const changedUser = await changeUserRoleMutation.mutateAsync([userId, newRole]);
       if (!isCurrent() || !queryRevision.IsCurrent(requestQueryRevision)) return;
       acknowledgedUsers.set(changedUser.id, changedUser);
       replaceOrPrependItem(changedUser);
-      message.success(i18n.t('users.list.roleChanged'));
+      notify({ kind: 'success', title: i18n.t('users.list.roleChanged') });
     } catch (error) {
       if (isCurrent() && queryRevision.IsCurrent(requestQueryRevision)) setFailure(error);
     } finally {
@@ -123,16 +143,15 @@ export function UsersPage() {
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted">{t('users.list.roleLabel')}</span>
-            <Select
+            <WrappingSelect
               aria-label={`${t('users.list.columns.systemRole')} (${user.email})`}
               value={user.role}
               onChange={(value) => handleRoleChange(user.id, value)}
-              loading={changingRoleUsers.has(user.id)}
+              isLoading={changingRoleUsers.has(user.id)}
               disabled={processingUsers.has(user.id) || changingRoleUsers.has(user.id)}
-              size="small"
+              size="xs"
               className="w-36"
-
-              options={roleOptions}
+              data={roleOptions}
             />
           </div>
           <div className="flex items-center gap-2">
@@ -141,17 +160,16 @@ export function UsersPage() {
               aria-label={`${t('users.list.columns.isActive')} (${user.email})`}
               checked={isUserActive(user)}
               onChange={() => handleActivationToggle(user)}
-              loading={processingUsers.has(user.id)}
+              aria-busy={processingUsers.has(user.id)}
               disabled={processingUsers.has(user.id) || changingRoleUsers.has(user.id)}
-              size="small"
+              size="xs"
             />
           </div>
         </div>
 
         <Button
-          type="primary"
-          ghost
-          size="small"
+          variant="outline"
+          size="xs"
           onClick={(event) => handleRowClick(user, event.currentTarget)}
           className="!h-auto min-h-8 w-full max-w-full min-w-0 !whitespace-normal"
         >
@@ -163,7 +181,7 @@ export function UsersPage() {
 
   const { t, i18n } = useTranslation();
   const { formatRelativeTime } = useLocale();
-  const { message } = App.useApp();
+  const notify = useFeedback();
   const isMobile = useIsMobile();
   const isCurrent = useSessionGuard();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -217,87 +235,9 @@ export function UsersPage() {
   }, [inputValue, searchQuery]);
 
   const roleOptions = Object.values(UserRole).map((role) => ({
-    label: <span className="text-content">{t(USER_ROLE_LABEL_KEYS[role])}</span>,
+    label: t(USER_ROLE_LABEL_KEYS[role]),
     value: role,
   }));
-
-  const columns: ColumnsType<User> = [
-    {
-      title: t('users.list.columns.user'),
-      key: 'user',
-      width: 350,
-      render: (_, record: User) => (
-        <div>
-          {record.name} ({record.email})
-        </div>
-      ),
-    },
-    {
-      title: t('users.list.columns.systemRole'),
-      dataIndex: 'role',
-      key: 'role',
-      width: 200,
-      render: (role: UserRole, record: User) => (
-        <Select
-          aria-label={`${t('users.list.columns.systemRole')} (${record.email})`}
-          value={role}
-          onChange={(value) => handleRoleChange(record.id, value)}
-          loading={changingRoleUsers.has(record.id)}
-          disabled={processingUsers.has(record.id) || changingRoleUsers.has(record.id)}
-          size="small"
-          className="w-36"
-          options={roleOptions}
-        />
-      ),
-    },
-    {
-      title: t('users.list.columns.isActive'),
-      key: 'isActive',
-      width: 200,
-      render: (_, record: User) => (
-        <Switch
-          aria-label={`${t('users.list.columns.isActive')} (${record.email})`}
-          checked={isUserActive(record)}
-          onChange={() => handleActivationToggle(record)}
-          loading={processingUsers.has(record.id)}
-          disabled={processingUsers.has(record.id) || changingRoleUsers.has(record.id)}
-          size="small"
-        />
-      ),
-    },
-    {
-      title: t('users.list.columns.created'),
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      width: 300,
-      render: (createdAt: string) => {
-        const date = dayjs(createdAt);
-        const timeFormat = getUserTimeFormat();
-        return (
-          <div className="text-sm text-muted">
-            <div>{date.format(timeFormat.format)}</div>
-            <div className="text-xs text-muted">{formatRelativeTime(date)}</div>
-          </div>
-        );
-      },
-    },
-    {
-      title: '',
-      key: 'empty',
-      render: (_, record: User) => (
-        <div>
-          <Button
-            type="primary"
-            ghost
-            size="small"
-            onClick={(event) => handleRowClick(record, event.currentTarget)}
-          >
-            {t('users.list.viewAuditLogs')}
-          </Button>
-        </div>
-      ),
-    },
-  ];
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1">
@@ -316,21 +256,29 @@ export function UsersPage() {
           </div>
 
           <div className="mb-4">
-            <Input
+            <TextInput
               aria-label={t('users.list.searchPlaceholder')}
               placeholder={t('users.list.searchPlaceholder')}
-              allowClear
+              rightSection={
+                inputValue ? (
+                  <CloseButton
+                    aria-label={t('common.actions.clear')}
+                    onClick={() => setInputValue('')}
+                  />
+                ) : null
+              }
+              rightSectionPointerEvents="all"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               style={{ width: isMobile ? '100%' : 400 }}
             />
           </div>
 
-          {failure !== undefined && <Alert type="error" message={translateApiError(failure, t)} />}
+          {failure !== undefined && <Alert color="danger" title={translateApiError(failure, t)} />}
           {listFailure !== undefined && <LoadFailure error={listFailure} onRetry={retryUsers} />}
           {isLoading ? (
             <div className="flex h-64 items-center justify-center">
-              <Spin indicator={<LoadingOutlined spin />} size="large" />
+              <Loader size="md" role="status" />
             </div>
           ) : users.length === 0 ? (
             listFailure === undefined && (
@@ -343,20 +291,95 @@ export function UsersPage() {
               {isMobile ? (
                 <div>{users.map(renderUserCard)}</div>
               ) : (
-                <Table
-                  columns={columns}
-                  dataSource={users}
-                  pagination={false}
-                  rowKey="id"
-                  size="small"
-                  className="mb-4"
-                  scroll={{ x: 'max-content' }}
-                />
+                <div className="relative mb-4 overflow-x-auto">
+                  <table className={tableStyles.table}>
+                    <thead>
+                      <tr>
+                        <th scope="col" style={{ width: 350 }}>
+                          {t('users.list.columns.user')}
+                        </th>
+                        <th scope="col" style={{ width: 200 }}>
+                          {t('users.list.columns.systemRole')}
+                        </th>
+                        <th scope="col" style={{ width: 200 }}>
+                          {t('users.list.columns.isActive')}
+                        </th>
+                        <th scope="col" style={{ width: 300 }}>
+                          {t('users.list.columns.created')}
+                        </th>
+                        <th scope="col">{''}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users.map((user) => (
+                        <tr key={user.id}>
+                          <td>
+                            <div>
+                              {user.name} ({user.email})
+                            </div>
+                          </td>
+                          <td>
+                            <WrappingSelect
+                              aria-label={`${t('users.list.columns.systemRole')} (${user.email})`}
+                              value={user.role}
+                              onChange={(value) => handleRoleChange(user.id, value)}
+                              isLoading={changingRoleUsers.has(user.id)}
+                              disabled={
+                                processingUsers.has(user.id) || changingRoleUsers.has(user.id)
+                              }
+                              size="xs"
+                              className="w-36"
+                              data={roleOptions}
+                            />
+                          </td>
+                          <td>
+                            <Switch
+                              aria-label={`${t('users.list.columns.isActive')} (${user.email})`}
+                              checked={isUserActive(user)}
+                              onChange={() => handleActivationToggle(user)}
+                              aria-busy={processingUsers.has(user.id)}
+                              disabled={
+                                processingUsers.has(user.id) || changingRoleUsers.has(user.id)
+                              }
+                              size="xs"
+                            />
+                          </td>
+                          <td>
+                            {(() => {
+                              const date = dayjs(user.createdAt);
+                              const timeFormat = getUserTimeFormat();
+                              return (
+                                <div className="text-sm text-muted">
+                                  <div>{date.format(timeFormat.format)}</div>
+                                  <div className="text-xs text-muted">
+                                    {formatRelativeTime(date)}
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </td>
+                          <td>
+                            <div>
+                              <Button
+                                variant="outline"
+                                size="xs"
+                                className="min-w-max"
+                                onClick={(event) => handleRowClick(user, event.currentTarget)}
+                              >
+                                {t('users.list.viewAuditLogs')}
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
 
               {isLoadingMore && (
                 <div className="flex justify-center py-4">
-                  <Spin indicator={<LoadingOutlined spin />} />
+                  <Loader role="status" />
                 </div>
               )}
 
@@ -370,18 +393,23 @@ export function UsersPage() {
         </div>
       </div>
       <Drawer
+        closeOnEscape={false}
+        onKeyDown={(event) =>
+          closeOverlayOnEscape(event, { isOpen: isDrawerOpen, onClose: handleDrawerClose })
+        }
         title={
           <div>
             <div className="text-lg font-semibold text-content">{t('users.auditLogs.title')}</div>
             <div className="text-sm text-muted">{selectedUser?.email}</div>
           </div>
         }
-        placement="right"
-        width={isMobile ? '100%' : 900}
-        destroyOnClose
+        position="right"
+        size={isMobile ? '100%' : 900}
         onClose={handleDrawerClose}
-        open={isDrawerOpen}
+        opened={isDrawerOpen}
+        closeButtonProps={{ 'aria-label': t('common.actions.close') }}
       >
+        {isDrawerOpen && <OverlayFocusReturn />}
         {selectedUser && <UserAuditLogsSidebar key={selectedUser.id} user={selectedUser} />}
       </Drawer>
     </div>

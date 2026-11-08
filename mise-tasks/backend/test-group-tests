@@ -9,6 +9,9 @@
 # is not sharded.
 set -euo pipefail
 
+# Runner locales must not change shard assignments.
+export LC_ALL=C
+
 group="${usage_group:?}"
 if [[ ! "$group" =~ -([0-9]+)-of-([0-9]+)$ ]]; then
     exit 0

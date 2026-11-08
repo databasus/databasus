@@ -295,7 +295,9 @@ describe('DatabaseConnectionForm', () => {
     fireEvent.click(submitButton);
     fireEvent.click(submitButton);
 
-    await waitFor(() => expect(getHostInput().disabled).toBe(true));
+    await waitFor(() =>
+      expect((getHostInput().closest('fieldset') as HTMLFieldSetElement).disabled).toBe(true),
+    );
     expect(onSubmit).toHaveBeenCalledTimes(1);
 
     await act(async () => finishSubmission());

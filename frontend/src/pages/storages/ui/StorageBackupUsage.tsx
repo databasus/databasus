@@ -1,4 +1,4 @@
-import { Spin } from 'antd';
+import { Loader } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 
 import { useStorageUsage } from '@/pages/storages/lib/useStorageUsage';
@@ -29,7 +29,7 @@ export const StorageBackupUsage = ({ storageId, workspaceId }: Props) => {
           <LoadFailure error={usageError} onRetry={retry} />
         </div>
       ) : totalUsageMb === undefined ? (
-        <Spin size="small" />
+        <Loader size="xs" role="status" />
       ) : null}
     </div>
   );

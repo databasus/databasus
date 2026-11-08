@@ -83,17 +83,24 @@ Saving the connection section SHALL show the acknowledged values on the screen a
 
 ### Requirement: Copy and transfer update the database screen in place
 
-A successful database copy or transfer SHALL update the list and selection, as the workspace selection rule defines, without reloading the application. A refused copy or transfer SHALL keep the list and the selection unchanged, and a refused transfer SHALL keep the transfer dialog open with its input.
+A successful database copy or transfer SHALL update the list and selection, as the workspace selection rule defines, without reloading the application. When the selection changes, the address SHALL change to the selected database and offered tab, or the workspace database list when none remains. A refused copy or transfer SHALL keep the list, selection and address unchanged, and a refused transfer SHALL keep the transfer dialog open with its input. A late completion after another database, workspace or main section is selected SHALL NOT navigate away from that selection. Switching only tabs of the same database SHALL preserve the accepted completion behavior defined by Database actions report their outcome through themed feedback; it SHALL NOT count as abandoning that database selection.
 
 #### Scenario: A copy succeeds
 
-- **WHEN** an editor confirms copying the selected database and the server creates the copy
-- **THEN** the copy appears in the list and is selected, and the application is not reloaded
+- **WHEN** an editor confirms copying the selected database and the server creates the copy while the source remains continuously selected, including after a tab change within that database
+- **THEN** the copy appears in the list and is selected at the currently displayed tab when offered, otherwise Backups, with its matching address and without reloading the application
+- **AND** a completion after a tab change shows no feedback
 
 #### Scenario: A transfer succeeds
 
-- **WHEN** an editor transfers the selected database to another workspace
-- **THEN** the database leaves the current list and the application is not reloaded
+- **WHEN** an editor transfers the selected database to another workspace while it remains selected
+- **THEN** the database leaves the current list and an available remaining database or the empty list becomes the selected destination with its matching address
+- **AND** the application is not reloaded
+
+#### Scenario: A copy finishes after another database is selected
+
+- **WHEN** a copy finishes after the user selects another database
+- **THEN** the list accepts the copy while the selected database and address remain unchanged
 
 ### Requirement: The database creation wizard keeps the input of every step
 
@@ -145,12 +152,15 @@ The database settings SHALL show the last backup error the server reports, toget
 
 ### Requirement: Database screen loads end in content or a recoverable failure
 
-Loading the database list, the selected database, its backup configuration, the storage of the logical or physical configuration view or the first page of its logical backup list SHALL end either in content or in translated feedback with an explicit retry that reloads the same database and workspace. A failed load SHALL never leave a permanent loading indicator, appear as an empty list or read as a statement about the data, such as scheduled backups being disabled. The logical and physical backup configuration sections SHALL offer that retry together with a way to close the section. While the first page of the logical backup list has failed, the screen SHALL offer no backup start. A failed next page of the logical backup list SHALL keep the loaded rows and show its translated reason once, and a later scroll SHALL request that page again. A response for a database or workspace no longer shown SHALL not change the screen, and leaving the screen SHALL end its pending loads without later feedback. A failed background refresh of a list SHALL keep the current list without feedback unless the workspace database list load establishes that the workspace is unavailable. A current HTTP 403 or 404 during that load SHALL instead clear the workspace database content and refresh accessible workspace selection, on both initial load and background refresh.
+Loading the database list, the selected database, its backup configuration, the storage of the logical or physical configuration view or the first page of its logical backup list SHALL end either in content or in translated feedback with an explicit retry that reloads the same database and workspace, except when a current read establishes resource or workspace unavailability. A current HTTP 403 or 404 for the selected database itself SHALL clear its details, reconcile the workspace collection and access, and automatically resolve to available content with its matching address under frontend-navigation. Network failures and server failures SHALL retain the requested database address and offer retry rather than trigger resource fallback. Failure of a subordinate configuration, storage or backup read alone SHALL NOT establish that the database is unavailable; those views SHALL retain their recovery behavior.
+
+A failed load SHALL never leave a permanent loading indicator. A retryable failure SHALL NOT appear as an empty list or read as a statement about the data, such as scheduled backups being disabled. The logical and physical backup configuration sections SHALL offer that retry together with a way to close the section. While the first page of the logical backup list has failed, the screen SHALL offer no backup start. A failed next page of the logical backup list SHALL keep the loaded rows and show its translated reason once, and a later scroll SHALL request that page again. A response for a database or workspace no longer shown SHALL not change the screen, and leaving the screen SHALL end its pending loads without later feedback. A failed background refresh of a list SHALL keep the current list without feedback unless the workspace database list load establishes that the workspace is unavailable. A current HTTP 403 or 404 during that load SHALL instead clear the workspace database content and refresh accessible workspace selection, on both initial load and background refresh.
 
 #### Scenario: Loading the selected database fails
 
-- **WHEN** the request for the selected database fails
+- **WHEN** the request for the selected database fails because of a network or server failure without establishing resource unavailability
 - **THEN** the loading indicator ends and a translated error with a retry is shown in its place
+- **AND** the requested database address stays unchanged and retry reloads that database
 
 #### Scenario: An earlier database responds late
 
@@ -224,6 +234,18 @@ Loading the database list, the selected database, its backup configuration, the 
 - **WHEN** a background workspace database list load fails with HTTP 403 or 404 while databases are shown
 - **THEN** the previous database list and details are removed and accessible workspace selection is refreshed
 - **AND** the silent-refresh policy does not retain the unavailable workspace content
+
+#### Scenario: The selected database read establishes resource unavailability
+
+- **WHEN** the current request for the selected database returns HTTP 403 or 404
+- **THEN** its details are cleared and the workspace collection and access are reconciled
+- **AND** an available replacement database or list is shown at its matching address instead of offering repeated retries of the unavailable database
+
+#### Scenario: Reconciliation fails after the selected database becomes unavailable
+
+- **WHEN** the selected database read establishes unavailability but refreshing the workspace collection or access fails temporarily
+- **THEN** the unavailable details remain absent and a translated error offers retry of reconciliation
+- **AND** no replacement is claimed available until that reconciliation succeeds
 
 ### Requirement: The database details region has one scroll owner
 
@@ -317,27 +339,27 @@ A save answer for any database settings section, including a rename, SHALL NOT r
 
 ### Requirement: A selected database that lacks the open tab shows its backups
 
-When the selected database does not offer the open tab, the screen SHALL show that database's backups tab instead of an empty area, for the verifications and the monitoring tabs. The user's choice of tab SHALL stay, so selecting a database that offers it SHALL open it again. A verification start answered after the user has left the backup list SHALL NOT switch the tab and SHALL show no feedback.
+When the selected database does not offer the open tab, the screen SHALL show that database's Backups tab instead of an empty area, for the Verifications and Monitoring tabs. The address SHALL become that database's Backups address. This fallback SHALL replace the unavailable tab selection; selecting another database afterward SHALL NOT revive a hidden earlier tab preference. Back and Forward SHALL still restore explicitly recorded tab addresses when those destinations are available. A verification start answered after the user has left the backup list SHALL NOT switch the tab or address and SHALL show no feedback.
 
 #### Scenario: Selecting a database without verifications
 
-- **WHEN** the verifications tab of a PostgreSQL logical database is open and the user selects a MySQL database
-- **THEN** the backups tab of the MySQL database is shown and marked as the open tab
+- **WHEN** the Verifications tab of a PostgreSQL logical database is open and the user selects a MySQL database
+- **THEN** the MySQL database's Backups tab is shown and marked as open, and the address names its Backups tab
 
 #### Scenario: Selecting a database without monitoring
 
-- **WHEN** the monitoring tab of a physical database is open and the user selects a database that has no monitoring
-- **THEN** the backups tab of that database is shown and marked as the open tab
+- **WHEN** the Monitoring tab of a physical database is open and the user selects a database that has no monitoring
+- **THEN** that database's Backups tab is shown and marked as open, and the address names its Backups tab
 
 #### Scenario: Returning to a database that offers the chosen tab
 
-- **WHEN** the backups tab of the MySQL database is shown because it has no verifications and the user selects a PostgreSQL logical database
-- **THEN** the verifications tab of that database opens
+- **WHEN** MySQL Backups is shown after fallback from Verifications and the user selects a PostgreSQL logical database
+- **THEN** the PostgreSQL database's Backups tab opens at its matching address
 
 #### Scenario: A verification start answers after a switch
 
 - **WHEN** the user starts a backup verification, selects another database while the start is pending and the start then succeeds
-- **THEN** the open tab stays as it was and no feedback appears
+- **THEN** the open tab and address stay as they were and no feedback appears
 
 ### Requirement: The logical retention form keeps entered values
 
@@ -819,7 +841,7 @@ Loading the healthcheck configuration, the healthcheck attempts or the workspace
 
 A successful database copy and a successful connection test SHALL show a notice that follows the active theme and language and disappears on its own. A successful rename SHALL show the new name, and a successful delete SHALL remove the database from the list. The reason of a failed copy, rename, connection test or delete SHALL stay on the screen, follow the selected language, leave the entered name in place, and last until the next action of that database, until the user closes it, or until the user leaves the settings tab or selects another database. No database screen SHALL use a browser-native dialog.
 
-An action's answer that arrives after another database was selected SHALL show no feedback and SHALL keep the selection, while the list still follows the server: a late rename shows the new name in the list, a late copy adds the copy without selecting it, and a late delete removes the deleted database. An answer that arrives after another tab of the same database was opened SHALL show no feedback, and the list and selection SHALL follow the server as if the tab had stayed. An answer that arrives after the user left the database screen or the session ended SHALL report nothing and change nothing.
+An action's answer that arrives after another database was selected SHALL show no feedback and SHALL keep the selection, while the list still follows the server: a late rename shows the new name in the list, a late copy adds the copy without selecting it, and a late delete removes the deleted database. Returning to the source database after selecting another one SHALL NOT restore the earlier copy's right to change selection. An answer that arrives after only another tab of the same database was opened SHALL show no feedback, and the list and selection SHALL follow the server as if the tab had stayed: a copy becomes selected at the currently displayed tab when offered, otherwise Backups; a rename retains the current database and tab address; and a delete resolves to an available remaining database or the empty list with its matching address. This same-database tab change SHALL NOT invalidate accepted copy selection or deletion fallback. An answer that arrives after the user left the database screen or the session ended SHALL report nothing and change nothing. Any accepted list update that removes the currently selected resource SHALL still apply ordinary availability reconciliation rather than leave an unavailable selection or address.
 
 #### Scenario: A connection test reports no connection
 
@@ -865,7 +887,7 @@ An action's answer that arrives after another database was selected SHALL show n
 
 - **WHEN** a copy, rename or delete answers after the user opened another tab of the same database
 - **THEN** no feedback appears and the list follows the server
-- **AND** a copy becomes selected, a rename shows the new name, and a delete moves the selection to another database
+- **AND** a copy becomes selected at the currently displayed offered tab address, a rename shows the new name without changing the address, and a delete replaces the address with that of an available remaining database or the empty list
 
 #### Scenario: Answers come after another database was selected
 
@@ -877,6 +899,11 @@ An action's answer that arrives after another database was selected SHALL show n
 
 - **WHEN** a copy, test, rename or delete answers after the user left the database screen or the session ended
 - **THEN** no feedback appears and nothing changes
+
+#### Scenario: A copy answers after leaving and returning to its source database
+
+- **WHEN** a copy of database A is pending, the user selects database B and then A again, and the copy succeeds
+- **THEN** the copy joins the list without changing the current database, tab or address and no feedback appears
 
 ### Requirement: The verify action of a logical backup starts one check per confirmation
 
@@ -983,3 +1010,39 @@ A cleanup response SHALL update only cleanup presentation, never replace an open
 
 - **WHEN** a user switches interface language during cleanup or its status-read error
 - **THEN** the notice and error use the new language while the current draft and operation remain
+
+### Requirement: GFS help explains completed periods and current candidates
+
+The logical and physical backup configuration screens SHALL explain GFS through their existing help controls in every supported interface language. Help SHALL distinguish hourly and daily counts, which include the current calendar period, from weekly, monthly and yearly counts, which reserve completed calendar periods and also protect the current period's newest successful candidate. It SHALL explain that periods use UTC, weeks start on Monday, and the reference is the newest successful eligible backup rather than the user's clock. Physical help SHALL describe full backups as the eligible backups. Help SHALL explain that one backup can satisfy several levels, so the configured counts do not promise a fixed total number of files. Short descriptions elsewhere in these screens SHALL agree with the help. Opening help SHALL NOT change draft values or mark the configuration as changed.
+
+#### Scenario: Logical GFS help with two daily periods
+
+- **WHEN** a user opens GFS help while editing logical retention with two daily periods, one weekly period and one monthly period
+- **THEN** the help explains that the weekly and monthly counts preserve completed periods in addition to the current candidates
+- **AND** the entered retention values and the draft's changed state stay the same
+
+#### Scenario: Physical GFS help
+
+- **WHEN** a user opens the physical configuration's GFS help
+- **THEN** the help describes the same calendar rules for successful full backups
+- **AND** it does not imply that selecting a full backup by GFS preserves its incremental backups or WAL
+
+#### Scenario: A different interface language
+
+- **WHEN** the user reads either GFS help in any supported interface language
+- **THEN** the explanation conveys the same period, candidate and overlap rules
+- **AND** UTC retention boundaries do not change with the interface language or browser region
+
+### Requirement: Database creation and deletion reconcile the current address
+
+Completing the creation wizard SHALL retain the existing rule that selects the created database only when the wizard closes, and that selection SHALL open its Backups address. A successful deletion of the still-selected database SHALL replace its address with an available remaining database's offered tab address or the workspace database list when none remains, including when the user has switched tabs within that database. Refused mutations and completions belonging to an abandoned database selection, workspace, main section or session SHALL NOT select another resource. Accepted removal of a currently selected resource SHALL still trigger ordinary availability reconciliation and canonical address replacement.
+
+#### Scenario: The wizard closes after creating a database
+
+- **WHEN** the wizard has created a database and closes while its workspace is still active
+- **THEN** the database joins the list and its Backups tab becomes the selected destination with its matching address
+
+#### Scenario: The selected database is deleted
+
+- **WHEN** the selected database is successfully deleted while it remains selected
+- **THEN** an available remaining database or the empty list becomes the destination and replaces the deleted database's address

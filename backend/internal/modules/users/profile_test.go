@@ -29,7 +29,7 @@ func TestUpdateUser(t *testing.T) {
 		requireCompletedSignIn(t, signIn(t, app, changedEmail, apptest.TestPassword))
 		previousAddressSignIn := signIn(t, app, admin.Email, apptest.TestPassword)
 		requireProblem(t, previousAddressSignIn.StatusCode(), previousAddressSignIn.Body, http.StatusUnauthorized,
-			apiclient.ProblemCodeInvalidCredentials)
+			apiclient.ProblemCodeEmailNotFound)
 	})
 
 	t.Run("keeps the session that changed the address", func(t *testing.T) {
@@ -129,7 +129,7 @@ func TestChangeUserPassword(t *testing.T) {
 		requireCompletedSignIn(t, signIn(t, app, admin.Email, "new-password-456"))
 		oldPasswordSignIn := signIn(t, app, admin.Email, apptest.TestPassword)
 		requireProblem(t, oldPasswordSignIn.StatusCode(), oldPasswordSignIn.Body, http.StatusUnauthorized,
-			apiclient.ProblemCodeInvalidCredentials)
+			apiclient.ProblemCodePasswordIncorrect)
 	})
 
 	t.Run("returns 401 unauthenticated for a token issued before the change", func(t *testing.T) {

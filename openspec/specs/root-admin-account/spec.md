@@ -102,7 +102,7 @@ An instance whose account was never claimed while other accounts already exist S
 
 ### Requirement: The instance recognizes its bootstrap administrator independently of that account's email address
 
-The instance SHALL record which account is the bootstrap administrator when it creates that account, and SHALL keep recognizing it by that record. No decision about that account SHALL depend on the text of any account's email address. This covers, at minimum, every privilege the requirement below reserves for the bootstrap administrator.
+The instance SHALL record which account is the bootstrap administrator when it creates that account, and SHALL keep recognizing it by that record. Authorization decisions SHALL use that recorded identity rather than the text of any account's email address. The local development seed specified by `local-development-workflow` is the sole exception to preserving this designation: after authenticating the configured dev account, it SHALL explicitly transfer the designation to that account. An email change alone SHALL NOT transfer privileges. This covers, at minimum, every privilege the requirement below reserves for the bootstrap administrator.
 
 #### Scenario: The bootstrap administrator keeps its role after changing address
 
@@ -111,14 +111,45 @@ The instance SHALL record which account is the bootstrap administrator when it c
 
 #### Scenario: Restarting the instance
 
-- **WHEN** an instance is restarted
+- **WHEN** the backend is restarted without running the local development seed
 - **THEN** no account is created, and the recorded bootstrap administrator is unchanged
 
 ### Requirement: The bootstrap administrator keeps its powers over other administrators after changing address
 
 Granting or revoking the administrator role, deactivating an account that holds it, and reactivating one SHALL remain reserved for the bootstrap administrator, and SHALL be permitted on the basis of the instance's record of which account that is. Changing the bootstrap administrator's email address SHALL NOT remove any of these powers, and SHALL NOT grant them to any other account.
 
-The one exception is creating a new account with the administrator role from the host console, which SHALL be permitted to a caller who can execute commands inside the running instance without the bootstrap administrator's involvement. It sits at the trust level of the console password reset, which can already take over the bootstrap administrator's own account. The exception covers only new accounts: the console SHALL NOT grant or revoke the role of an existing account, and SHALL NOT deactivate or reactivate one.
+A production host-console exception is creating a new account with the administrator role from the host console, which SHALL be permitted to a caller who can execute commands inside the running instance without the bootstrap administrator's involvement. It sits at the trust level of the console password reset, which can already take over the bootstrap administrator's own account. The exception covers only new accounts: the console SHALL NOT grant or revoke the role of an existing account, and SHALL NOT deactivate or reactivate one.
+
+The local development seed has the separate, narrow exception specified by `local-development-workflow`: it SHALL grant the dev account the administrator role and transfer the bootstrap designation after successful authentication. The previous bootstrap administrator SHALL retain its administrator role. Ordinary account-management operations and production console commands SHALL NOT expose this transfer.
+
+An overlapping account-management request SHALL NOT apply privileges or bootstrap-protection decisions made stale by this transfer. When the transfer completes before that request's protected administration checks, the request SHALL use the new bootstrap designation: it SHALL NOT demote or deactivate the new holder or allow the previous holder to manage administrators. When administration completes first, the seed SHALL validate the resulting account state before assigning privileges and SHALL refuse an inactive target.
+
+#### Scenario: Development seeding transfers administrator-management powers
+
+- **WHEN** the local development seed transfers the bootstrap designation from another administrator to the dev account
+- **THEN** the dev account can grant or revoke another account's administrator role
+- **AND** the previous holder remains an administrator but cannot manage administrator roles
+- **AND** the audit log identifies the transfer
+
+#### Scenario: An overlapping request cannot demote the new bootstrap administrator
+
+- **WHEN** a request to demote the dev account overlaps a development-seed transfer and the transfer commits before the request's protected administration checks
+- **THEN** the request is refused and the dev account remains the active bootstrap administrator with the administrator role
+
+#### Scenario: An overlapping request cannot deactivate the new bootstrap administrator
+
+- **WHEN** a request to deactivate the dev account overlaps a development-seed transfer and the transfer commits before the request's protected administration checks
+- **THEN** the request is refused and the dev account remains the active bootstrap administrator with the administrator role
+
+#### Scenario: The previous holder cannot keep its powers through an overlapping request
+
+- **WHEN** the previous bootstrap administrator starts a request to grant another account the administrator role and the seed transfer commits before that request's protected administration checks
+- **THEN** the request is refused and the third account's role is unchanged
+
+#### Scenario: Deactivation completes before the seed transfer
+
+- **WHEN** another administrator deactivates the dev account after seed authentication but before the seed validates it for transfer
+- **THEN** the seed refuses the assignment and preserves the previous bootstrap administrator
 
 #### Scenario: Appointing an administrator after the address has changed
 
@@ -185,48 +216,68 @@ A reset requested while an upgraded account still holds the placeholder address 
 - **THEN** the answer is the same as for any other address
 - **AND** no code is sent
 
-### Requirement: Sign-in refuses cleanly and discloses nothing about the accounts an instance holds
+### Requirement: Sign-in explains refusals without disclosing other accounts
 
-A failed sign-in SHALL NOT tell the caller that an account with the login `admin` exists on the instance, SHALL NOT suggest signing in under that login, and SHALL NOT reveal how many accounts the instance holds. This applies regardless of how many accounts there are.
+A failed password sign-in SHALL distinguish an unknown email address, an incorrect password, incomplete registration and an account with no password. The response SHALL carry a stable, specific error code for its cause. These refusals SHALL answer 401 and SHALL issue no access token. An account without a password SHALL be refused cleanly and SHALL leave the instance serving other requests.
 
-A failed password sign-in SHALL give the same answer, with the same status and the same error code, whether the address belongs to no account, to an account that has not finished sign-up, to an account that has no password, or to an account whose password does not match. The answer SHALL say that the account is deactivated only after the password is verified. A caller who does not know an account's password therefore cannot learn from the status or the error code of a sign-in which addresses have accounts.
+For an account with no password, the response SHALL distinguish guidance to use Google, GitHub, either provider, or neither provider. A provider SHALL be recommended only when it is linked to that account and configured on the instance. A stored password SHALL remain usable regardless of linked OAuth providers.
 
-A sign-in attempt for an account that has no password - one created through an external identity provider, or an unclaimed account on an instance that has not yet been upgraded - SHALL be refused the way an incorrect password is refused, and SHALL leave the instance serving other requests.
+A failed sign-in SHALL NOT disclose another account's address, suggest the `admin` login, or reveal how many accounts the instance holds. This applies regardless of how many accounts there are. An owner who does not know their administrator address retains the existing host-console recovery path.
 
-**BREAKING**: an instance holding a single user previously answered a sign-in attempt with an unknown address by naming the `admin` login. That response is removed; an owner recovers the address from the console instead.
-
-**BREAKING**: sign-in previously answered an unknown address, an account that had not finished sign-up and a deactivated account each with its own message before checking the password. Those three answers are replaced by the answer for an incorrect password.
+**BREAKING**: the shared `invalid_credentials` answer is replaced by specific refusal codes. Clients can distinguish whether the submitted address has an account; no compatibility alias for the removed code is retained.
 
 #### Scenario: Mistyped address on a single-user instance
 
 - **WHEN** an anonymous visitor attempts to sign in to an instance that holds only its administrator, using an address that does not exist
-- **THEN** the response does not mention the login `admin` and does not reveal how many accounts the instance holds
+- **THEN** the response identifies the submitted address as unknown
+- **AND** it does not name another address, mention the login `admin` or reveal the account count
 
 #### Scenario: Password sign-in for an account that has no password
 
-- **WHEN** somebody submits the password form for an account that signs in through Google or GitHub
-- **THEN** the attempt is refused in the same way an incorrect password is refused
+- **WHEN** somebody submits the password form for an account without a password
+- **THEN** the response identifies the absence of a password and recommends only linked, configured OAuth providers
 - **AND** the instance keeps answering every other request
 
 #### Scenario: Unknown address and wrong password
 
 - **WHEN** one sign-in uses an address that belongs to no account and another uses an existing account's address with a wrong password
-- **THEN** both get the same status and the same error code
+- **THEN** both receive 401 with different codes identifying the respective causes
 
 #### Scenario: Invited account that has not finished sign-up
 
 - **WHEN** somebody signs in with the address of an account that was invited and has not finished sign-up
-- **THEN** the response is the same as for a wrong password
+- **THEN** the response identifies incomplete registration rather than an incorrect password or a missing password
 
 #### Scenario: Deactivated account with a wrong password
 
 - **WHEN** somebody signs in to a deactivated account with a wrong password
-- **THEN** the response is the same as for a wrong password
+- **THEN** the response is the same as for an active account with a wrong password
 
 #### Scenario: Deactivated account with its correct password
 
 - **WHEN** somebody signs in to a deactivated account with its correct password
 - **THEN** the response says that the account is deactivated and carries no access token
+
+#### Scenario: Both linked providers are available
+
+- **WHEN** an account has no password and is linked to both Google and GitHub, and both providers are configured
+- **THEN** the refusal recommends either Google or GitHub
+
+#### Scenario: A linked provider is unavailable
+
+- **WHEN** an account has no password and one or more of its linked providers are no longer configured
+- **THEN** the refusal recommends only its remaining linked, configured providers
+- **AND** it recommends no OAuth provider if none meets both conditions
+
+#### Scenario: A configured provider is not linked
+
+- **WHEN** an account has no password and an instance-configured provider is not linked to that account
+- **THEN** the refusal does not recommend that provider
+
+#### Scenario: OAuth account also has a password
+
+- **WHEN** an active account has a password as well as an OAuth link and its correct password is submitted
+- **THEN** password sign-in proceeds to the session or required second-factor step
 
 ### Requirement: An owner can recover the administrator addresses from the host
 
@@ -491,3 +542,37 @@ The server SHALL NOT process the new password beyond checking its minimum length
 - **WHEN** somebody enters a wrong code together with a new password shorter than the minimum
 - **THEN** the request is refused as invalid, naming the new password field
 - **AND** the stored count for that code does not grow
+
+### Requirement: Password sign-in reveals deactivation only after password verification
+
+Password sign-in SHALL report account deactivation only after successfully verifying that account's stored password. Before that proof, the status, error code, text and recommended actions SHALL NOT distinguish an inactive account from an otherwise equivalent active account. An inactive account with no password SHALL receive the same password-absence guidance as an equivalent active account, without revealing deactivation. Existing provider-authenticated OAuth behavior SHALL remain unchanged.
+
+#### Scenario: An inactive account has no password
+
+- **WHEN** password sign-in is attempted for an inactive account with no password
+- **THEN** the answer is the same password-absence refusal and guidance given for an active account with the same provider links
+- **AND** it does not identify the account as deactivated
+
+#### Scenario: A password does not match an inactive account
+
+- **WHEN** password sign-in is attempted for an inactive account with an incorrect password
+- **THEN** the response identifies an incorrect password and gives no indication of deactivation
+
+#### Scenario: A password matches an inactive account
+
+- **WHEN** password sign-in verifies an inactive account's correct password
+- **THEN** the response is 403 `user_deactivated`, without issuing a session or creating a new pending sign-in
+
+### Requirement: Specific sign-in refusals remain behind existing attempt controls
+
+Human verification, when configured, and the existing limit of ten attempts per submitted address within a minute SHALL run before account-specific sign-in refusals. The controls SHALL count unknown addresses, incomplete registrations, accounts without passwords and incorrect passwords alike. Once the limit is reached, the response SHALL be 429 `rate_limited` without an account-specific reason.
+
+#### Scenario: Any refusal exhausts the address limit
+
+- **WHEN** ten sign-in attempts for the same address have been accepted by the limiter within a minute, regardless of their refusal cause
+- **THEN** the next attempt receives 429 `rate_limited` rather than a specific account refusal
+
+#### Scenario: Human verification fails
+
+- **WHEN** a sign-in request fails the configured human-verification challenge
+- **THEN** it receives the human-verification refusal without an account-specific reason

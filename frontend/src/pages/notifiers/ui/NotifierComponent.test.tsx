@@ -357,7 +357,7 @@ describe('NotifierComponent', () => {
       await screen.findByText('Test notification sent!');
 
       expect(screen.queryAllByText(failureText)).toHaveLength(0);
-      expect(document.querySelector('.ant-alert-error')).toBeNull();
+      expect(document.querySelector('[role="alert"]')).toBeNull();
     },
   );
 
@@ -490,7 +490,7 @@ describe('NotifierComponent', () => {
 
       await waitFor(() => expect(onNotifierChanged).toHaveBeenCalledWith(changedNotifier));
 
-      const notices = screen.queryAllByText('Test notification sent!').length;
+      await waitFor(() => expect(screen.queryByText('Test notification sent!')).toBeNull());
       const processed = observeResponse();
 
       await act(async () => {
@@ -506,8 +506,8 @@ describe('NotifierComponent', () => {
       });
 
       expect(onNotifierChanged).toHaveBeenCalledTimes(1);
-      expect(view.container.querySelector('.ant-alert-error')).toBeNull();
-      expect(screen.queryAllByText('Test notification sent!')).toHaveLength(notices);
+      expect(view.container.querySelector('[role="alert"]')).toBeNull();
+      expect(screen.queryByText('Test notification sent!')).toBeNull();
       expect(screen.queryByText('Obsolete delivery failure')).toBeNull();
       expect(screen.getByRole('button', { name: 'Send test notification' })).toHaveProperty(
         'disabled',

@@ -1,5 +1,6 @@
-import { LoadingOutlined } from '@ant-design/icons';
-import { Alert, App, Button, Input, Spin } from 'antd';
+import { Alert, Button, Loader, TextInput } from '@mantine/core';
+import { useQueryClient } from '@tanstack/react-query';
+import { CircleAlert } from 'lucide-react';
 import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -9,11 +10,14 @@ import { UserRole } from '@/entities/users';
 import { type Workspace, WorkspaceRole, workspaceApi } from '@/entities/workspaces';
 import { WorkspaceAuditLogsComponent } from '@/pages/workspace-settings/ui/WorkspaceAuditLogsComponent';
 import { WorkspaceMembersComponent } from '@/pages/workspace-settings/ui/WorkspaceMembersComponent';
-import { ApiError } from '@/shared/api';
+import { useSessionMutation } from '@/shared/api';
+import { ApiError, useSessionQuery } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { useLatestRef, useRequestRevision } from '@/shared/hooks';
 import { useIsMobile } from '@/shared/hooks';
 import { translateApiError } from '@/shared/i18n';
+import { useFeedback } from '@/shared/lib/feedback';
+import { Dialog } from '@/shared/ui';
 import { LoadFailure } from '@/shared/ui';
 
 interface Props {
@@ -31,12 +35,35 @@ export function WorkspaceSettingsComponent({
   onDeleted,
   onUnavailable,
 }: Props) {
+  const client = useQueryClient();
+  const updateWorkspaceMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof workspaceApi.updateWorkspace>) =>
+      workspaceApi.updateWorkspace(...parameters),
+  });
+  const deleteWorkspaceMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof workspaceApi.deleteWorkspace>) =>
+      workspaceApi.deleteWorkspace(...parameters),
+  });
+
+  const callbacks = useLatestRef({ onRenamed, onDeleted, onUnavailable });
+  const isCurrent = useSessionGuard();
   const [workspace, setWorkspace] = useState<Workspace | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<unknown>();
+  const query = useSessionQuery({
+    queryKey: ['workspace-settings', selectedWorkspace.id],
+    queryFn: (signal) => workspaceApi.getWorkspace(selectedWorkspace.id, { signal }),
+  });
+  const deletionCheck = useSessionQuery({
+    queryKey: ['workspace-deletion-check', selectedWorkspace.id],
+    enabled: false,
+    queryFn: (signal) => databaseApi.listAllDatabases(selectedWorkspace.id, { signal }),
+  });
+  const isLoading = query.isPending;
+  const [refusalError, setLoadError] = useState<unknown>();
+  const loadError = refusalError ?? query.error ?? undefined;
   const [mutationError, setMutationError] = useState<unknown>();
-  const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const isSaving = updateWorkspaceMutation.isPending;
+  const [isDeleting, setDeleting] = useState(false);
+  const deletionAttempt = useRef<{ isWriteStarted: boolean } | undefined>(undefined);
 
   const [formWorkspace, setFormWorkspace] = useState<Partial<Workspace>>({});
   const [isNameError, setNameError] = useState(false);
@@ -48,13 +75,15 @@ export function WorkspaceSettingsComponent({
     if (!isCurrent()) return;
 
     workspaceRevision.Invalidate();
-    deletionDialog.current?.destroy();
+    deletionAttempt.current = undefined;
+    void client.cancelQueries({ queryKey: deletionCheck.queryKey, exact: true });
+    setDeletionTarget(undefined);
+    setDeleting(false);
     setWorkspace(undefined);
     setFormWorkspace({});
     setLoadError(error);
-    setIsLoading(false);
-    setIsSaving(false);
-    setIsDeleting(false);
+    updateWorkspaceMutation.reset();
+    deleteWorkspaceMutation.reset();
     callbacks.current.onUnavailable?.(selectedWorkspace.id);
   };
 
@@ -67,31 +96,24 @@ export function WorkspaceSettingsComponent({
     setMutationError(error);
   };
 
-  const loadWorkspace = async () => {
-    const revision = workspaceRevision.Invalidate();
-    setIsLoading(true);
+  const loadWorkspace = () => {
     setLoadError(undefined);
-    setWorkspace(undefined);
-    setFormWorkspace({});
-
-    try {
-      const loadedWorkspace = await workspaceApi.getWorkspace(selectedWorkspace.id);
-      if (!isActiveWorkspace(revision)) return;
-
-      setWorkspace(loadedWorkspace);
-      setFormWorkspace(loadedWorkspace);
-      setNameError(false);
-    } catch (error) {
-      if (!isActiveWorkspace(revision)) return;
-
-      setLoadError(error);
-
-      if (error instanceof ApiError && [403, 404].includes(error.status ?? 0))
-        callbacks.current.onUnavailable?.(selectedWorkspace.id);
-    } finally {
-      if (isActiveWorkspace(revision)) setIsLoading(false);
-    }
+    return query.refetch();
   };
+  useEffect(() => {
+    if (!query.data || !isCurrent()) return;
+
+    setWorkspace(query.data);
+    setFormWorkspace(query.data);
+    setNameError(false);
+  }, [query.data, query.dataRevision, isCurrent]);
+  const reportRefusal = useEffectEvent(() =>
+    callbacks.current.onUnavailable?.(selectedWorkspace.id),
+  );
+  useEffect(() => {
+    if (query.error instanceof ApiError && [403, 404].includes(query.error.status ?? 0))
+      reportRefusal();
+  }, [query.error]);
 
   const saveBasicInfo = async () => {
     if (isSaving || !workspace || !canEdit || formWorkspace.name === workspace.name) return;
@@ -106,99 +128,50 @@ export function WorkspaceSettingsComponent({
     const revision = workspaceRevision.GetCurrent();
     setNameError(false);
     setMutationError(undefined);
-    setIsSaving(true);
 
     try {
-      const updatedWorkspace = await workspaceApi.updateWorkspace(
+      const updatedWorkspace = await updateWorkspaceMutation.mutateAsync([
         workspace.id,
         submittedName.trim(),
-      );
+      ]);
       if (!isActiveWorkspace(revision)) return;
 
       setWorkspace(updatedWorkspace);
       setFormWorkspace((current) => (current.name === submittedName ? updatedWorkspace : current));
       callbacks.current.onRenamed?.(updatedWorkspace);
-      message.success(i18n.t('workspaces.settings.updated'));
+      notify({ kind: 'success', title: i18n.t('workspaces.settings.updated') });
     } catch (error) {
       if (isActiveWorkspace(revision)) handleMutationFailure(error);
     } finally {
-      if (isActiveWorkspace(revision)) setIsSaving(false);
+      if (isActiveWorkspace(revision)) updateWorkspaceMutation.reset();
     }
   };
 
   const handleDeleteWorkspace = async () => {
     if (!workspace) {
-      message.error(t('workspaces.delete.notFound'));
+      notify({ kind: 'error', title: t('workspaces.delete.notFound') });
       return;
     }
 
     if (!canDelete) {
-      message.error(t('workspaces.delete.noPermission'));
+      notify({ kind: 'error', title: t('workspaces.delete.noPermission') });
       return;
     }
 
-    const revision = workspaceRevision.GetCurrent();
-    deletionDialog.current?.destroy();
-    deletionDialog.current = modal.confirm({
-      title: t('workspaces.delete.confirmation.title'),
-      content: (
-        <div>
-          <p>
-            <Trans
-              i18nKey="workspaces.delete.confirmation.question"
-              components={{ workspaceName: <strong>{workspace.name}</strong> }}
-            />
-          </p>
-          <p className="mt-2 text-danger">
-            <Trans
-              i18nKey="workspaces.delete.confirmation.warning"
-              components={{ bold: <strong /> }}
-            />
-          </p>
-        </div>
-      ),
-      okText: t('workspaces.delete.confirmation.submit'),
-      okType: 'danger',
-      cancelText: t('common.actions.cancel'),
-      onOk: async () => {
-        if (!isActiveWorkspace(revision)) return;
-
-        setIsDeleting(true);
-
-        try {
-          const databases = await databaseApi.listAllDatabases(workspace.id);
-          if (!isActiveWorkspace(revision)) return;
-
-          if (databases.length > 0) {
-            message.error(t('workspaces.delete.hasDatabases', { count: databases.length }));
-            return;
-          }
-
-          await workspaceApi.deleteWorkspace(workspace.id);
-          if (!isActiveWorkspace(revision)) return;
-
-          message.success(t('workspaces.delete.deleted'));
-          callbacks.current.onDeleted?.(workspace.id);
-        } catch (error: unknown) {
-          if (isActiveWorkspace(revision)) handleMutationFailure(error);
-        } finally {
-          if (isActiveWorkspace(revision)) setIsDeleting(false);
-        }
-      },
-    });
+    setDeletionTarget({ workspace, revision: workspaceRevision.GetCurrent() });
   };
 
   const { t, i18n } = useTranslation();
-  const { message, modal } = App.useApp();
+  const notify = useFeedback();
   const isMobile = useIsMobile();
-  const isCurrent = useSessionGuard();
 
   const workspaceRevision = useRequestRevision();
-  const callbacks = useLatestRef({ onRenamed, onDeleted, onUnavailable });
   const nameControlId = useId();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const deletionDialog = useRef<ReturnType<typeof modal.confirm> | undefined>(undefined);
-
+  const [deletionTarget, setDeletionTarget] = useState<{
+    workspace: Workspace;
+    revision: number;
+  }>();
   const isInstanceAdmin = user.role === UserRole.ADMIN;
   const canEdit =
     isInstanceAdmin ||
@@ -206,23 +179,74 @@ export function WorkspaceSettingsComponent({
     selectedWorkspace.currentUserRole === WorkspaceRole.ADMIN;
   const canDelete = isInstanceAdmin || selectedWorkspace.currentUserRole === WorkspaceRole.OWNER;
 
-  const startWorkspaceLoad = useEffectEvent(() => {
-    void loadWorkspace();
-  });
-
-  useEffect(() => {
-    startWorkspaceLoad();
-
-    return () => {
+  useEffect(
+    () => () => {
       workspaceRevision.Invalidate();
-      deletionDialog.current?.destroy();
-    };
-  }, [workspaceRevision]);
+      setDeletionTarget(undefined);
+    },
+    [workspaceRevision],
+  );
+
+  const cancelDeletion = () => {
+    if (deletionAttempt.current?.isWriteStarted) return;
+
+    deletionAttempt.current = undefined;
+    void client.cancelQueries({ queryKey: deletionCheck.queryKey, exact: true });
+    setDeleting(false);
+    setDeletionTarget(undefined);
+  };
+
+  const deleteWorkspace = async () => {
+    if (!deletionTarget || deletionAttempt.current) return;
+
+    const { workspace, revision } = deletionTarget;
+    if (!isActiveWorkspace(revision)) return;
+
+    const attempt = { isWriteStarted: false };
+    deletionAttempt.current = attempt;
+    const isActiveDeletion = () =>
+      deletionAttempt.current === attempt && isActiveWorkspace(revision);
+    setDeleting(true);
+
+    try {
+      const { data: databases, error } = await deletionCheck.refetch();
+      if (error) throw error;
+      if (!databases) return;
+      if (!isActiveDeletion()) return;
+
+      if (databases.length > 0) {
+        notify({
+          kind: 'error',
+          title: t('workspaces.delete.hasDatabases', { count: databases.length }),
+        });
+        return;
+      }
+
+      attempt.isWriteStarted = true;
+      await deleteWorkspaceMutation.mutateAsync([workspace.id]);
+      if (!isActiveDeletion()) return;
+
+      notify({ kind: 'success', title: t('workspaces.delete.deleted') });
+      callbacks.current.onDeleted?.(workspace.id);
+    } catch (error: unknown) {
+      if (isActiveDeletion()) handleMutationFailure(error);
+    } finally {
+      if (deletionAttempt.current === attempt) {
+        deletionAttempt.current = undefined;
+
+        if (isActiveWorkspace(revision)) {
+          deleteWorkspaceMutation.reset();
+          setDeleting(false);
+          setDeletionTarget((current) => (current === deletionTarget ? undefined : current));
+        }
+      }
+    }
+  };
 
   const isBasicInfoChanged = !!workspace && formWorkspace.name !== workspace.name;
 
   return (
-    <div className="flex min-h-0 min-w-0 grow [&_.ant-btn]:!h-auto [&_.ant-btn]:min-h-8 [&_.ant-btn]:!whitespace-normal">
+    <div className="flex min-h-0 min-w-0 grow">
       <div className="flex min-h-0 w-full min-w-0 flex-col">
         <div
           ref={scrollContainerRef}
@@ -231,13 +255,23 @@ export function WorkspaceSettingsComponent({
           <h1 className="mb-6 text-2xl font-bold">{t('workspaces.settings.title')}</h1>
 
           {isLoading ? (
-            <Spin indicator={<LoadingOutlined spin />} size="large" />
+            <Loader size="md" role="status" />
           ) : loadError !== undefined ? (
             <LoadFailure error={loadError} onRetry={() => void loadWorkspace()} />
           ) : workspace ? (
             <>
               {mutationError !== undefined && (
-                <Alert type="error" showIcon message={translateApiError(mutationError, t)} />
+                <Alert
+                  color="danger"
+                  icon={
+                    <CircleAlert
+                      aria-hidden
+                      size={16}
+                      className="inline-block shrink-0 align-middle"
+                    />
+                  }
+                  title={translateApiError(mutationError, t)}
+                />
               )}
               {!canEdit && (
                 <div className="my-4 max-w-125 rounded-md bg-surface p-3">
@@ -251,10 +285,8 @@ export function WorkspaceSettingsComponent({
                     <label htmlFor={nameControlId} className="mb-1 block font-medium text-content">
                       {t('workspaces.fields.name')}
                     </label>
-                    <Input
+                    <TextInput
                       id={nameControlId}
-                      aria-invalid={isNameError}
-                      aria-describedby={isNameError ? `${nameControlId}-error` : undefined}
                       value={formWorkspace.name || ''}
                       onChange={(e) => {
                         setNameError(false);
@@ -263,22 +295,20 @@ export function WorkspaceSettingsComponent({
                       disabled={!canEdit}
                       placeholder={t('workspaces.fields.namePlaceholder')}
                       maxLength={100}
-                      status={isNameError ? 'error' : undefined}
+                      error={isNameError ? t('workspaces.settings.nameRequired') : undefined}
+                      errorProps={{ role: 'alert', className: 'text-sm' }}
+                      classNames={{ wrapper: 'mb-0' }}
                     />
-                    {isNameError && (
-                      <div id={`${nameControlId}-error`} role="alert" className="text-danger">
-                        {t('workspaces.settings.nameRequired')}
-                      </div>
-                    )}
                   </div>
 
                   {isBasicInfoChanged && canEdit && (
                     <div className="mt-4 flex flex-wrap gap-2">
                       <Button
-                        type="primary"
+                        variant="filled"
                         onClick={saveBasicInfo}
                         loading={isSaving}
                         disabled={isSaving}
+                        aria-busy={isSaving}
                       >
                         {isSaving
                           ? t('workspaces.settings.saving')
@@ -286,7 +316,7 @@ export function WorkspaceSettingsComponent({
                       </Button>
 
                       <Button
-                        type="default"
+                        variant="default"
                         onClick={() => {
                           if (workspace) {
                             const updatedForm = { ...formWorkspace, name: workspace.name };
@@ -331,12 +361,13 @@ export function WorkspaceSettingsComponent({
 
                         <div className={isMobile ? '' : 'ml-4'}>
                           <Button
-                            type="primary"
-                            danger
+                            variant="filled"
+                            color="danger"
                             onClick={handleDeleteWorkspace}
                             disabled={!canDelete || isDeleting || isSaving}
                             loading={isDeleting}
                             className={` ${isMobile ? 'w-full' : ''}`}
+                            aria-busy={isDeleting}
                           >
                             {isDeleting
                               ? t('workspaces.delete.deleting')
@@ -358,6 +389,53 @@ export function WorkspaceSettingsComponent({
           ) : null}
         </div>
       </div>
+
+      {deletionTarget && (
+        <Dialog
+          opened
+          title={
+            <span className="flex items-start gap-2">
+              <CircleAlert aria-hidden size="1.25em" className="shrink-0 text-warning" />
+              <span>{t('workspaces.delete.confirmation.title')}</span>
+            </span>
+          }
+          onClose={cancelDeletion}
+          closeOnEscape={!deleteWorkspaceMutation.isPending}
+          closeOnClickOutside={!deleteWorkspaceMutation.isPending}
+          withCloseButton={!deleteWorkspaceMutation.isPending}
+        >
+          <div>
+            <p>
+              <Trans
+                i18nKey="workspaces.delete.confirmation.question"
+                components={{ workspaceName: <strong>{deletionTarget.workspace.name}</strong> }}
+              />
+            </p>
+            <p className="mt-2 text-danger">
+              <Trans
+                i18nKey="workspaces.delete.confirmation.warning"
+                components={{ bold: <strong /> }}
+              />
+            </p>
+          </div>
+
+          <div className="mt-5 flex flex-wrap justify-end gap-2">
+            <Button onClick={cancelDeletion} disabled={deleteWorkspaceMutation.isPending}>
+              {t('common.actions.cancel')}
+            </Button>
+            <Button
+              color="danger"
+              variant="outline"
+              loading={isDeleting}
+              disabled={isDeleting}
+              onClick={() => void deleteWorkspace()}
+              aria-busy={isDeleting}
+            >
+              {t('workspaces.delete.confirmation.submit')}
+            </Button>
+          </div>
+        </Dialog>
+      )}
     </div>
   );
 }

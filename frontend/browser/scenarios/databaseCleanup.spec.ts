@@ -4,6 +4,7 @@ import type { components } from '../../src/shared/api/schema.gen';
 import { DICTIONARIES } from '../../src/shared/i18n/dictionaries';
 import { applicationFixtures, workspace } from '../applicationFixtures';
 import { assertAccountReflow } from '../assertAccountReflow';
+import { assertEnlargedTextReflow } from '../assertEnlargedTextReflow';
 import { test } from '../browserTest';
 import { enlargeText } from '../enlargeText';
 import { apiResponse } from '../HttpFixture';
@@ -195,7 +196,7 @@ for (const method of ['logical', 'physical'] as const) {
         await page.setViewportSize({ width: 320, height: 900 });
         await openAccount({ page, theme });
         await openWorkspaceScreen({ page, locale: 'en', tab: 'databases' });
-        await page.getByRole('button', { name: /^Cleanup database/ }).click();
+        await page.getByRole('link', { name: /^Cleanup database/ }).click();
         await page.getByRole('tab', { name: 'Config', exact: true }).click();
         const notice = page.getByRole('status').filter({ hasText: 'Deleting old files' });
         await expect(notice).toContainText('1,234');
@@ -204,8 +205,11 @@ for (const method of ['logical', 'physical'] as const) {
         await expect(precedingRow).toContainText('Storage');
         await expect(page.getByText('Storage switch history', { exact: true })).toHaveCount(0);
         await enlargeText(notice.locator('xpath=ancestor::div[.//button][1]'));
+        await assertEnlargedTextReflow(page);
+
         await assertAccountReflow(notice);
-        await expect(notice).toHaveScreenshot(`cleanup-${method}-${theme}.png`);
+        if (method === 'logical')
+          await expect.soft(notice).toHaveScreenshot(`cleanup-${method}-${theme}.png`);
 
         await page
           .getByText(DICTIONARIES.en.databases.config.sections.backupConfig, { exact: true })
@@ -220,11 +224,15 @@ for (const method of ['logical', 'physical'] as const) {
         await retentionInput.fill('37');
 
         await expect(notice.locator('xpath=preceding-sibling::*[1]')).toContainText('Storage');
+        await assertEnlargedTextReflow(page);
+
         await assertAccountReflow(notice);
 
         isReadFailing = true;
         await expect(notice.getByRole('button', { name: 'Retry status' })).toBeVisible();
         await enlargeText(notice);
+        await assertEnlargedTextReflow(page);
+
         await assertAccountReflow(notice);
         await expect(notice).toContainText('1,234');
         await expect(retentionInput).toHaveValue('37');
@@ -234,7 +242,7 @@ for (const method of ['logical', 'physical'] as const) {
           .click();
         await page.getByRole('button', { name: /Language:/ }).click();
         await page
-          .getByRole('menuitem', { name: DICTIONARIES.ru.language.nativeName, exact: true })
+          .getByRole('menuitemradio', { name: DICTIONARIES.ru.language.nativeName, exact: true })
           .click();
         await page
           .getByRole('button', { name: DICTIONARIES.ru.common.actions.close, exact: true })

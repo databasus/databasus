@@ -12,7 +12,6 @@ ROOT = Path(__file__).resolve().parents[1]
 PROVIDER_PACKAGE = "databasus-backend/internal/modules/storages/internal/providers"
 OTHER_PACKAGES = [
     "databasus-backend/internal/app/apptest",
-    PROVIDER_PACKAGE,
     PROVIDER_PACKAGE + "/nas",
 ]
 
@@ -33,7 +32,7 @@ class BackendCiExecutionTest(unittest.TestCase):
             stubs = {
                 "mise": 'case "$2" in\n'
                 'backend:test-group-packages) printf "%s\\n" "$SELECTED_PACKAGES" ;;\n'
-                "backend:test-group-tests) ;;\n"
+                'backend:test-group-tests) case "$TEST_GROUP" in *-of-*) echo "^(TestSelected)$";; esac ;;\n'
                 "*) exit 99 ;;\nesac\n",
                 "docker": "exit 0\n",
                 "go": "exec python3 - \"$@\" <<'PYTHON'\n"
@@ -76,51 +75,56 @@ class BackendCiExecutionTest(unittest.TestCase):
 
         return invocation.returncode, calls, invocation.stderr
 
-    def test_runs_storage_performance_alone_and_every_other_package_once(self) -> None:
-        status, calls, diagnostic = self.run_backend_step("other", OTHER_PACKAGES)
-
-        self.assertEqual(status, 0, diagnostic)
-        self.assertEqual(len(calls), 2)
-        self.assertIn("-p=1", calls[0])
-        self.assertIn("-parallel=1", calls[0])
-        self.assertEqual(
-            [arg for arg in calls[0] if arg.startswith("databasus-")], [PROVIDER_PACKAGE]
-        )
-        self.assertIn("-p=8", calls[1])
-        self.assertIn("-parallel=2", calls[1])
-        self.assertCountEqual(
-            [arg for call in calls for arg in call if arg.startswith("databasus-")], OTHER_PACKAGES
-        )
-        for call in calls:
-            self.assertIn("-race", call)
-            self.assertIn("-count=1", call)
-            self.assertIn("-timeout", call)
-            self.assertIn("40m", call)
-
-    def test_stops_with_the_failure_of_either_storage_or_remaining_packages(self) -> None:
-        for failing_package, call_count in ((PROVIDER_PACKAGE, 1), (OTHER_PACKAGES[0], 2)):
-            with self.subTest(package=failing_package):
-                status, calls, diagnostic = self.run_backend_step(
-                    "other", OTHER_PACKAGES, failing_package
-                )
-
-                self.assertEqual(status, 17, diagnostic)
-                self.assertEqual(len(calls), call_count)
-
-    def test_keeps_other_groups_in_one_parallel_race_checked_command(self) -> None:
-        packages = ["databasus-backend/internal/modules/backups/e2e/mongodb"]
-
-        status, calls, diagnostic = self.run_backend_step("logical", packages)
+    def test_runs_storage_performance_once_without_fallthrough(self) -> None:
+        status, calls, diagnostic = self.run_backend_step("storage-providers", [PROVIDER_PACKAGE])
 
         self.assertEqual(status, 0, diagnostic)
         self.assertEqual(len(calls), 1)
-        self.assertIn("-p=8", calls[0])
-        self.assertIn("-parallel=2", calls[0])
+        self.assertIn("-p=1", calls[0])
+        self.assertIn("-parallel=1", calls[0])
         self.assertIn("-race", calls[0])
-        self.assertEqual([arg for arg in calls[0] if arg.startswith("databasus-")], packages)
+        self.assertEqual(
+            [arg for arg in calls[0] if arg.startswith("databasus-")], [PROVIDER_PACKAGE]
+        )
 
-    def test_fails_before_running_tests_when_the_storage_package_is_missing(self) -> None:
-        status, calls, diagnostic = self.run_backend_step("other", [OTHER_PACKAGES[0]])
+    def test_runs_every_other_shard_once_with_bounded_parallelism(self) -> None:
+        for group in ("other-1-of-3", "other-2-of-3", "other-3-of-3", "logical"):
+            with self.subTest(group=group):
+                status, calls, diagnostic = self.run_backend_step(group, OTHER_PACKAGES)
 
-        self.assertNotEqual(status, 0, diagnostic)
-        self.assertEqual(calls, [])
+                self.assertEqual(status, 0, diagnostic)
+                self.assertEqual(len(calls), 1)
+                self.assertIn("-p=8", calls[0])
+                self.assertIn("-parallel=2", calls[0])
+                self.assertIn("-race", calls[0])
+                self.assertIn("-count=1", calls[0])
+                self.assertIn("-timeout", calls[0])
+                self.assertIn("40m", calls[0])
+                self.assertCountEqual(
+                    [arg for arg in calls[0] if arg.startswith("databasus-")], OTHER_PACKAGES
+                )
+                self.assertNotIn(PROVIDER_PACKAGE, calls[0])
+                if group.startswith("other-"):
+                    self.assertIn("-run", calls[0])
+                    self.assertIn("^(TestSelected)$", calls[0])
+                else:
+                    self.assertNotIn("-run", calls[0])
+
+    def test_propagates_provider_and_shard_failures(self) -> None:
+        for group, packages in (
+            ("storage-providers", [PROVIDER_PACKAGE]),
+            ("other-1-of-3", OTHER_PACKAGES),
+        ):
+            with self.subTest(group=group):
+                status, calls, diagnostic = self.run_backend_step(group, packages, packages[0])
+
+                self.assertEqual(status, 17, diagnostic)
+                self.assertEqual(len(calls), 1)
+
+    def test_rejects_incorrect_provider_package_selections(self) -> None:
+        for packages in ([], OTHER_PACKAGES, [PROVIDER_PACKAGE, *OTHER_PACKAGES]):
+            with self.subTest(packages=packages):
+                status, calls, diagnostic = self.run_backend_step("storage-providers", packages)
+
+                self.assertNotEqual(status, 0, diagnostic)
+                self.assertEqual(calls, [])

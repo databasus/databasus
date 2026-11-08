@@ -4,8 +4,13 @@ import type { components } from '../../src/shared/api/schema.gen';
 import { DICTIONARIES } from '../../src/shared/i18n/dictionaries';
 import { createTestWalStreamStatistics } from '../../src/shared/lib/test/buildWalStreamStatistics';
 import { applicationFixtures } from '../applicationFixtures';
+import { assertAccountReflow } from '../assertAccountReflow';
+import { assertEnlargedTextReflow } from '../assertEnlargedTextReflow';
+import { assertScreenshot } from '../assertScreenshot';
 import { test } from '../browserTest';
+import { enlargeText } from '../enlargeText';
 import { apiResponse } from '../HttpFixture';
+import { openAccount } from '../openAccount';
 
 const database: components['schemas']['Database'] = {
   id: 'physical-id',
@@ -158,8 +163,81 @@ for (const theme of ['light', 'dark'] as const) {
     const amountTicks = axisTicks.filter({ hasText: /^\d[\d.,]*\s*[KMGT]?i?B/ });
     await expect(timeTicks.first()).toBeVisible();
     await expect(amountTicks.first()).toBeVisible();
+    await assertEnlargedTextReflow(page);
+    await assertScreenshot(page, `wal-overview-${theme}.png`);
+    const timeline = page
+      .getByText(DICTIONARIES.en.backups.physical.monitoring.restoreTimeline.title, { exact: true })
+      .locator('..')
+      .locator('..');
+    await timeline.locator('div.absolute').first().hover();
+    await expect(page.getByRole('tooltip')).toContainText(
+      DICTIONARIES.en.backups.physical.monitoring.restoreTimeline.restorable,
+    );
+    await assertEnlargedTextReflow(page);
+
+    await page.mouse.move(0, 0);
+    const technical = page.getByRole('heading', {
+      name: DICTIONARIES.en.backups.physical.monitoring.technicalDetails.title,
+      exact: true,
+    });
+    await technical.evaluate((heading) => heading.scrollIntoView({ block: 'start' }));
+    await expect(technical).toBeVisible();
+    await assertEnlargedTextReflow(page);
   });
 }
+
+test('keeps technical values, tips and help readable with French 200-percent text at 320px', async ({
+  page,
+  httpFixtures,
+}) => {
+  const copy = DICTIONARIES.fr.backups.physical.monitoring;
+  const fixture = httpFixtures.find(
+    (fixture) => fixture.path === '/wal-streams/{databaseId}/statistics',
+  )!;
+  Object.assign(
+    fixture,
+    apiResponse({
+      method: 'get',
+      path: '/wal-streams/{databaseId}/statistics',
+      status: 200,
+      body: {
+        ...statistics,
+        health: { ...statistics.health, notices: [{ code: 'NO_SLOT_WAL_LIMIT', level: 'INFO' }] },
+      },
+    }),
+  );
+  await page.setViewportSize({ width: 320, height: 1000 });
+  await openAccount({ page, locale: 'fr', theme: 'light' });
+  await page.getByRole('link', { name: /WAL source/ }).click();
+  await page.getByText(DICTIONARIES.fr.databases.tabs.monitoring, { exact: true }).click();
+  const plot = page.locator('.recharts-surface').first();
+  await expect(plot).toBeVisible();
+  expect((await plot.boundingBox())!.width).toBeGreaterThan(0);
+  await assertEnlargedTextReflow(page);
+
+  const main = page.getByRole('main');
+  await enlargeText(main);
+
+  const technical = page.getByRole('heading', { name: copy.technicalDetails.title, exact: true });
+  await technical.evaluate((heading) => heading.scrollIntoView({ block: 'start' }));
+
+  const help = page.getByLabel(copy.tooltips.notReceivedYet, { exact: true }).first();
+  await page.keyboard.press('Tab');
+  await help.focus();
+  await expect(help).toBeFocused();
+  await expect(page.getByRole('tooltip')).toHaveText(copy.tooltips.notReceivedYet);
+  await enlargeText(page.getByRole('tooltip'));
+
+  await page.keyboard.press('Tab');
+  const tip = page.getByText(copy.notices.noSlotWalLimit.title, { exact: true });
+  await tip.evaluate((element) => element.scrollIntoView({ block: 'start' }));
+
+  const slotStatus = page.getByText(copy.details.slotStatus, { exact: true }).locator('..');
+  await expect(slotStatus.getByRole('definition')).toHaveText('reserved');
+  await slotStatus.evaluate((row) => row.closest('dl')!.scrollIntoView({ block: 'start' }));
+
+  await assertAccountReflow(main);
+});
 
 test('stops the verdict transition only while the reduced motion preference is set', async ({
   page,

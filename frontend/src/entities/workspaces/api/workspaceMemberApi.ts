@@ -2,6 +2,7 @@ import type { AddedWorkspaceMember } from '@/entities/workspaces/model/AddedWork
 import type { AssignableWorkspaceRole } from '@/entities/workspaces/model/AssignableWorkspaceRole';
 import type { WorkspaceMember } from '@/entities/workspaces/model/WorkspaceMember';
 import type { WorkspaceMemberAddition } from '@/entities/workspaces/model/WorkspaceMemberAddition';
+import type { ReadOptions } from '@/shared/api';
 import { getApiClient, requireData, requireSuccess } from '@/shared/api';
 import { collectCursorPages } from '@/shared/lib/collectCursorPages';
 
@@ -11,13 +12,15 @@ const MEMBER_PAGE_LIMIT = 100;
 export const workspaceMemberApi = {
   // The member screen shows every member and offers each of them for an ownership transfer, so
   // this follows the cursor to the last page.
-  async listAllMembers(workspaceId: string): Promise<WorkspaceMember[]> {
-    return collectCursorPages(async (after: string | undefined) =>
-      requireData(
-        await getApiClient().GET('/workspace-members', {
-          params: { query: { workspaceId, limit: MEMBER_PAGE_LIMIT, after } },
-        }),
-      ),
+  async listAllMembers(workspaceId: string, options: ReadOptions = {}): Promise<WorkspaceMember[]> {
+    return collectCursorPages(
+      async (after: string | undefined) =>
+        requireData(
+          await getApiClient(options).GET('/workspace-members', {
+            params: { query: { workspaceId, limit: MEMBER_PAGE_LIMIT, after } },
+          }),
+        ),
+      options,
     );
   },
 

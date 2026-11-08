@@ -170,8 +170,7 @@ describe('EditNotifierComponent', () => {
 
     await waitFor(() =>
       expect(
-        screen.queryByRole('button', { name: /Save/ })?.classList.contains('ant-btn-loading') ??
-          false,
+        screen.queryByRole('button', { name: /Save/ })?.hasAttribute('disabled') ?? false,
       ).toBe(false),
     );
     expect(screen.getByDisplayValue('Newer edit')).toBeTruthy();
@@ -483,7 +482,7 @@ const renderNewNotifierForm = async (typeLabel: string) => {
     target: { value: 'New alerts' },
   });
   await view.user.click(screen.getByRole('combobox', { name: 'Type' }));
-  fireEvent.click((await screen.findAllByTitle(typeLabel)).pop()!);
+  fireEvent.click(await screen.findByRole('option', { name: typeLabel }));
 
   return view;
 };
@@ -502,7 +501,7 @@ describe('EditNotifierComponent providers', () => {
 
       if (deliveryModeLabel) {
         await view.user.click(screen.getByRole('combobox', { name: 'Connect via' }));
-        fireEvent.click(await screen.findByTitle(deliveryModeLabel));
+        fireEvent.click(await screen.findByRole('option', { name: deliveryModeLabel }));
       }
       for (const [label, value] of Object.entries(entered))
         fireEvent.change(getProviderField(label), { target: { value } });
@@ -893,7 +892,7 @@ describe('EditNotifierComponent address change', () => {
     const { user } = renderSavedNotifierForm(savedMattermostWebhook);
     const selectDeliveryMode = async (optionTitle: string) => {
       await user.click(screen.getByRole('combobox', { name: 'Connect via' }));
-      fireEvent.click((await screen.findAllByTitle(optionTitle)).pop()!);
+      fireEvent.click(await screen.findByRole('option', { name: optionTitle }));
     };
 
     await selectDeliveryMode('Bot account');

@@ -243,7 +243,7 @@ describe('EditNotifierComponent', () => {
       rename('Another name');
 
       await view.user.click(screen.getByRole('button', { name: /Theme/ }));
-      await view.user.click(screen.getByRole('menuitem', { name: /Dark/ }));
+      await view.user.click(screen.getByRole('menuitemradio', { name: /Dark/ }));
 
       expect(document.documentElement.classList.contains('dark')).toBe(true);
 
@@ -641,11 +641,12 @@ describe('EditNotifierComponent', () => {
           expect(server.getRequests()).toHaveLength(operation === 'save' ? 2 : 1),
         );
 
-        const provider = document.querySelector('.ant-app');
+        const provider = document.querySelector('style[data-mantine-styles="classes"]');
+        expect(provider).not.toBeNull();
 
         view.rerender(<div>Editor closed</div>);
 
-        expect(document.querySelector('.ant-app')).toBe(provider);
+        expect(document.querySelector('style[data-mantine-styles="classes"]')).toBe(provider);
         await waitFor(() =>
           expect(
             screen.queryByText(DICTIONARIES.en.notifiers.testNotification.sent.title, {

@@ -1,19 +1,22 @@
 import type { VerificationAgent } from '@/entities/verification-agents/model/VerificationAgent';
+import type { ReadOptions } from '@/shared/api';
 import { getApiClient, requireData, requireSuccess } from '@/shared/api';
 import { collectCursorPages } from '@/shared/lib/collectCursorPages';
 
 export const verificationAgentApi = {
-  async listAgents(): Promise<VerificationAgent[]> {
-    return collectCursorPages(async (after: string | undefined) =>
-      requireData(
-        await getApiClient().GET('/verification-agents', {
-          params: { query: { limit: 100, after } },
-        }),
-      ),
+  async listAgents(options: ReadOptions = {}): Promise<VerificationAgent[]> {
+    return collectCursorPages(
+      async (after: string | undefined) =>
+        requireData(
+          await getApiClient(options).GET('/verification-agents', {
+            params: { query: { limit: 100, after } },
+          }),
+        ),
+      options,
     );
   },
-  async getAgentCount() {
-    return requireData(await getApiClient().GET('/verification-agent-counts'));
+  async getAgentCount(options: ReadOptions = {}) {
+    return requireData(await getApiClient(options).GET('/verification-agent-counts'));
   },
   async createAgent(name: string) {
     return requireData(await getApiClient().POST('/verification-agents', { body: { name } }));

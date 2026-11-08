@@ -16,9 +16,39 @@ var (
 		Detail: "too many attempts, try again later",
 		Errors: nil,
 	}
-	ErrInvalidCredentials = &apierror.Problem{
-		Code:   apierror.CodeInvalidCredentials,
-		Detail: "the email address or the password is incorrect",
+	ErrEmailNotFound = &apierror.Problem{
+		Code:   apierror.CodeEmailNotFound,
+		Detail: "email not found",
+		Errors: nil,
+	}
+	ErrPasswordIncorrect = &apierror.Problem{
+		Code:   apierror.CodePasswordIncorrect,
+		Detail: "the password is incorrect",
+		Errors: nil,
+	}
+	ErrRegistrationIncomplete = &apierror.Problem{
+		Code:   apierror.CodeRegistrationIncomplete,
+		Detail: "incomplete registration",
+		Errors: nil,
+	}
+	ErrPasswordNotSet = &apierror.Problem{
+		Code:   apierror.CodePasswordNotSet,
+		Detail: "password not set",
+		Errors: nil,
+	}
+	ErrPasswordNotSetGoogle = &apierror.Problem{
+		Code:   apierror.CodePasswordNotSetGoogle,
+		Detail: "password not set; use google",
+		Errors: nil,
+	}
+	ErrPasswordNotSetGitHub = &apierror.Problem{
+		Code:   apierror.CodePasswordNotSetGitHub,
+		Detail: "password not set; use github",
+		Errors: nil,
+	}
+	ErrPasswordNotSetGoogleGitHub = &apierror.Problem{
+		Code:   apierror.CodePasswordNotSetGoogleGitHub,
+		Detail: "password not set; use google or github",
 		Errors: nil,
 	}
 	ErrUserDeactivated = &apierror.Problem{

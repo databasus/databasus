@@ -1,4 +1,4 @@
-import { Button, Tooltip } from 'antd';
+import { ActionIcon, Tooltip } from '@mantine/core';
 import type { ReactNode } from 'react';
 
 interface Props {
@@ -18,16 +18,18 @@ export const RowActionButton = ({
   isDisabled,
   onClick,
 }: Props) => (
-  <Tooltip title={title}>
-    <Button
-      type="text"
-      size="small"
+  <Tooltip label={title}>
+    <ActionIcon
+      variant="subtle"
+      size="sm"
       className={`${className} !text-lg`}
       aria-label={title}
-      icon={icon}
       loading={isPending}
       disabled={isDisabled}
       onClick={onClick}
-    />
+      aria-busy={isPending}
+    >
+      {icon}
+    </ActionIcon>
   </Tooltip>
 );

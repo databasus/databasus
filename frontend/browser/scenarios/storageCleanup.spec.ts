@@ -3,6 +3,7 @@ import { expect } from '@playwright/test';
 import type { components } from '../../src/shared/api/schema.gen';
 import { workspace } from '../applicationFixtures';
 import { assertAccountReflow } from '../assertAccountReflow';
+import { assertEnlargedTextReflow } from '../assertEnlargedTextReflow';
 import { test } from '../browserTest';
 import { enlargeText } from '../enlargeText';
 import { openAccount } from '../openAccount';
@@ -51,7 +52,10 @@ for (const theme of ['light', 'dark']) {
     await expect(warning.getByRole('button', { name: 'Wait', exact: true })).toBeFocused();
 
     await enlargeText(warning);
+    await assertEnlargedTextReflow(page);
+
     await assertAccountReflow(warning);
+    await assertEnlargedTextReflow(page);
 
     await page.keyboard.press('Escape');
 

@@ -1,4 +1,4 @@
-import { Button, Modal, Spin } from 'antd';
+import { Button, Loader } from '@mantine/core';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -10,6 +10,7 @@ import { StorageComponent } from '@/pages/storages/ui/StorageComponent';
 import { ApiError } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { useIsMobile, useResourceCollection, useScopedSelection } from '@/shared/hooks';
+import { Dialog } from '@/shared/ui';
 import { ResourceCollectionList, ResourceListDetail, LoadFailure } from '@/shared/ui';
 
 interface Props {
@@ -22,8 +23,8 @@ export const StoragesComponent = ({ workspace, isCanManageStorages, onUnavailabl
   const [isShowAddStorage, setIsShowAddStorage] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const collection = useResourceCollection({
-    scopeKey: workspace.id,
-    read: () => storageApi.listAllStorages(workspace.id),
+    queryKey: ['storages', workspace.id],
+    read: (signal) => storageApi.listAllStorages(workspace.id, { signal }),
     onError: (error) => {
       if (error instanceof ApiError && [403, 404].includes(error.status ?? 0)) {
         collection.clear();
@@ -63,14 +64,6 @@ export const StoragesComponent = ({ workspace, isCanManageStorages, onUnavailabl
   });
   const selectedStorageId = selection.selectedItemId;
 
-  const startStoragesLoad = useEffectEvent(() => {
-    void loadStorages();
-  });
-
-  useEffect(() => {
-    startStoragesLoad();
-  }, [workspace.id]);
-
   // Read when the form closes, because the button can appear after the form opened.
   const returnFocusToButton = useEffectEvent(() => {
     addButtonRef.current?.focus();
@@ -87,7 +80,7 @@ export const StoragesComponent = ({ workspace, isCanManageStorages, onUnavailabl
   const addButton = (
     <Button
       ref={addButtonRef}
-      type="primary"
+      variant="filled"
       className="mb-2 !h-auto min-h-8 w-full !whitespace-normal"
       onClick={() => setIsShowAddStorage(true)}
     >
@@ -119,14 +112,17 @@ export const StoragesComponent = ({ workspace, isCanManageStorages, onUnavailabl
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       {loadError !== undefined && <LoadFailure error={loadError} onRetry={() => loadStorages()} />}
       {isLoading && !collection.isReady ? (
-        <Spin />
+        <Loader role="status" />
       ) : collection.isReady ? (
         <ResourceListDetail
           isMobile={isMobile}
           hasSelection={!!selectedStorageId}
           list={list}
           backAction={
-            <Button className="w-full" onClick={() => selection.select(undefined)}>
+            <Button
+              className="!h-auto min-h-8 w-full !whitespace-normal"
+              onClick={() => selection.select(undefined)}
+            >
               {t('storages.list.backToList')}
             </Button>
           }
@@ -146,12 +142,11 @@ export const StoragesComponent = ({ workspace, isCanManageStorages, onUnavailabl
         />
       ) : null}
       {isShowAddStorage && (
-        <Modal
+        <Dialog
           title={t('storages.list.addStorage')}
-          footer={null}
-          open
-          onCancel={() => setIsShowAddStorage(false)}
-          maskClosable={false}
+          opened
+          onClose={() => setIsShowAddStorage(false)}
+          closeOnClickOutside={false}
         >
           <p className="my-3 text-muted">{t('storages.list.description')}</p>
           <EditStorageComponent
@@ -166,7 +161,7 @@ export const StoragesComponent = ({ workspace, isCanManageStorages, onUnavailabl
               setIsShowAddStorage(false);
             }}
           />
-        </Modal>
+        </Dialog>
       )}
     </div>
   );

@@ -5,9 +5,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { type Database, DatabaseType, createDefaultDatabaseSettings } from '@/entities/databases';
 import type { Notifier } from '@/entities/notifiers';
-import { CreateDatabaseNotifiersStep } from '@/pages/databases/ui/CreateDatabaseNotifiersStep';
-import { DatabaseTransferDialogComponent } from '@/pages/databases/ui/DatabaseTransferDialogComponent';
-import { EditDatabaseNotifiersSection } from '@/pages/databases/ui/EditDatabaseNotifiersSection';
+import { CreateDatabaseNotifiersStep } from '@/pages/databases/create-wizard/ui/CreateDatabaseNotifiersStep';
+import { DatabaseTransferDialogComponent } from '@/pages/databases/settings/ui/DatabaseTransferDialogComponent';
+import { EditDatabaseNotifiersSection } from '@/pages/databases/settings/ui/EditDatabaseNotifiersSection';
 import { API_BASE_PATH } from '@/shared/api';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
@@ -40,9 +40,10 @@ const notifier: Notifier = {
 };
 
 const chooseOption = async (combobox: HTMLElement, label: string) => {
-  fireEvent.mouseDown(combobox);
+  if (combobox.getAttribute('aria-expanded') !== 'true') fireEvent.click(combobox);
+
   const option = await waitFor(() => {
-    const matchingOption = Array.from(document.querySelectorAll('.ant-select-item-option')).find(
+    const matchingOption = Array.from(screen.queryAllByRole('option')).find(
       (candidate) => candidate.textContent === label,
     );
 
@@ -82,6 +83,55 @@ const fillNotifierCreation = async (
 };
 
 describe('Database notifier creation composition', () => {
+  it('filters notifier choices without losing selected values and saves the combined selection', async () => {
+    const existingNotifier = {
+      ...notifier,
+      id: 'source-notifier',
+      name: 'Existing alerts',
+      workspaceId: database.workspaceId,
+    };
+    const additionalNotifier = { ...existingNotifier, id: 'audit-id', name: 'Audit destination' };
+    const onSaved = vi.fn();
+    server.use(
+      mockApi.get('/notifiers', 200, { items: [existingNotifier, additionalNotifier] }),
+      mockApi.put('/databases/{databaseId}', 200, {
+        ...database,
+        notifierIds: [existingNotifier.id, additionalNotifier.id],
+      }),
+    );
+
+    const { user } = renderScreen(
+      <EditDatabaseNotifiersSection database={database} onCancel={() => {}} onSaved={onSaved} />,
+    );
+    const selection = await screen.findByRole('combobox', { name: 'Notifiers' });
+
+    await user.click(selection);
+    const search = screen.getByRole('textbox', { name: 'Notifiers' });
+    await user.type(search, 'aUdIt');
+
+    expect(screen.queryByRole('option', { name: existingNotifier.name })).toBeNull();
+    expect(screen.getByRole('button', { name: `Remove ${existingNotifier.name}` })).toBeTruthy();
+
+    await user.click(screen.getByRole('option', { name: additionalNotifier.name }));
+    await user.clear(search);
+
+    expect(
+      screen.getByRole('option', { name: existingNotifier.name }).getAttribute('aria-selected'),
+    ).toBe('true');
+    expect(
+      screen.getByRole('option', { name: additionalNotifier.name }).getAttribute('aria-selected'),
+    ).toBe('true');
+
+    await user.keyboard('{Escape}');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+
+    const update = server.getRequests().find((request) => request.method === 'PUT')!;
+    expect(await update.json()).toMatchObject({
+      notifierIds: [existingNotifier.id, additionalNotifier.id],
+    });
+  });
+
   it.each(
     (['selection', 'transfer'] as const).flatMap((composition) =>
       (['close', 'workspace', 'unmount'] as const).flatMap((contextChange) =>
@@ -185,6 +235,7 @@ describe('Database notifier creation composition', () => {
             currentNotifier.name,
           );
       }
+
       const previousListRequests = server
         .getRequests()
         .filter((request) => request.method === 'GET').length;
@@ -211,16 +262,12 @@ describe('Database notifier creation composition', () => {
         const selector = screen.getByRole('combobox', {
           name: composition === 'selection' ? 'Notifiers' : 'Notifiers (optional)',
         });
-
-        expect(selector.closest('.ant-select')!.textContent).toContain(currentNotifier.name);
-
-        fireEvent.mouseDown(selector);
-
-        await waitFor(() => expect(document.querySelector('.ant-select-item-option')).toBeTruthy());
-        expect(
-          screen.queryByText(notifier.name, { selector: '.ant-select-item-option-content' }),
-        ).toBeNull();
+        expect(selector.closest('div')!.textContent).toContain(currentNotifier.name);
+        if (selector.getAttribute('aria-expanded') !== 'true') fireEvent.click(selector);
+        await waitFor(() => expect(screen.queryAllByRole('option')[0]).toBeTruthy());
+        expect(screen.queryByRole('option', { name: notifier.name })).toBeNull();
       }
+
       fetchObservation.mockRestore();
     },
   );
@@ -420,8 +467,7 @@ describe('Database notifier creation composition', () => {
         .getByRole('combobox', {
           name: composition === 'selection' ? 'Notifiers' : 'Notifiers (optional)',
         })
-        .closest('.ant-select')!;
-
+        .closest('div')!;
       expect(choice.textContent).toContain(createdNotifier.name);
       expect(choice.textContent).toContain(
         composition === 'selection' ? existingSource.name : existingTarget.name,

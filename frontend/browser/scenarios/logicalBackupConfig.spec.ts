@@ -3,6 +3,7 @@ import { expect, type Page } from '@playwright/test';
 import type { components } from '../../src/shared/api/schema.gen';
 import { DICTIONARIES } from '../../src/shared/i18n/dictionaries';
 import { applicationFixtures, workspace } from '../applicationFixtures';
+import { assertEnlargedTextReflow } from '../assertEnlargedTextReflow';
 import { test } from '../browserTest';
 import { apiResponse } from '../HttpFixture';
 import { openAccount } from '../openAccount';
@@ -143,7 +144,7 @@ const serveDatabasesAndStoredBackupConfig = async (page: Page) => {
   });
 };
 
-const selectDatabase = (page: Page, name: RegExp) => page.getByRole('button', { name }).click();
+const selectDatabase = (page: Page, name: RegExp) => page.getByRole('link', { name }).click();
 
 const openConfigTab = (page: Page) =>
   page.getByRole('main').getByText(dictionary.databases.tabs.config, { exact: true }).click();
@@ -184,6 +185,8 @@ for (const width of [320, 1280]) {
     );
 
     await assertSingleScrollOwner(detailContainer);
+    await assertEnlargedTextReflow(page);
+
     await saveButton.click();
     await expect(saveButton).toBeHidden();
 

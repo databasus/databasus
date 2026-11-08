@@ -3,13 +3,14 @@ import { expect, type Page, type Locator } from '@playwright/test';
 
 import { DICTIONARIES, type Locale } from '../../src/shared/i18n/dictionaries';
 import { applicationFixtures, smtpNotifier } from '../applicationFixtures';
+import { assertEnlargedTextReflow } from '../assertEnlargedTextReflow';
 import { test } from '../browserTest';
 import { apiResponse } from '../HttpFixture';
 
 const assertEditorReflow = async (editor: Locator) => {
   const geometry = await editor.evaluate((region) => {
     const bounds = Array.from(
-      region.querySelectorAll<HTMLElement>('button, label[for], input, .ant-form-item-explain'),
+      region.querySelectorAll<HTMLElement>('button, label[for], input, [role="alert"]'),
     )
       .filter((element) => element.getClientRects().length > 0)
       .map((element) => ({ text: element.textContent, bounds: element.getBoundingClientRect() }));
@@ -63,9 +64,7 @@ const openEditor = async ({
   const menu = page.getByRole('button', { name: dictionary.app.navigation.menu, exact: true });
   if (await menu.isVisible()) await menu.click();
 
-  await page
-    .getByRole('button', { name: dictionary.app.navigation.notifiers, exact: true })
-    .click();
+  await page.getByRole('link', { name: dictionary.app.navigation.notifiers, exact: true }).click();
   const notifier = page.getByRole('button', { name: smtpNotifier.name, exact: true });
   await expect(notifier).toBeVisible();
   await notifier.click();
@@ -126,11 +125,11 @@ test('preserves values, expanded settings and successful testing across locale a
     .toBe(true);
   await page.keyboard.press('Home');
   await expect(
-    page.getByRole('menuitem', { name: DICTIONARIES.en.language.nativeName, exact: true }),
+    page.getByRole('menuitemradio', { name: DICTIONARIES.en.language.nativeName, exact: true }),
   ).toBeFocused();
   await page.keyboard.press('ArrowDown');
   await expect(
-    page.getByRole('menuitem', { name: DICTIONARIES.ru.language.nativeName, exact: true }),
+    page.getByRole('menuitemradio', { name: DICTIONARIES.ru.language.nativeName, exact: true }),
   ).toBeFocused();
 
   await page.keyboard.press('Enter');
@@ -144,8 +143,10 @@ test('preserves values, expanded settings and successful testing across locale a
   await expect(russianLanguage).toBeFocused();
   await page.keyboard.press('ArrowDown');
   await expect(
-    page.getByRole('menuitem', { name: DICTIONARIES.ru.language.nativeName, exact: true }),
-  ).toHaveClass(/ant-dropdown-menu-item-selected/);
+    page.getByRole('menuitemradio', { name: DICTIONARIES.ru.language.nativeName, exact: true }),
+  ).toHaveAttribute('aria-checked', 'true');
+  await assertEnlargedTextReflow(page);
+
   await page.keyboard.press('Escape');
   await expect(russianLanguage).toBeFocused();
   await expect(russianLanguage).toHaveAttribute('aria-expanded', 'false');
@@ -166,7 +167,9 @@ test('preserves values, expanded settings and successful testing across locale a
   });
   await theme.focus();
   await page.keyboard.press('Enter');
-  await page.getByRole('menuitem', { name: new RegExp(DICTIONARIES.ru.app.theme.dark) }).click();
+  await page
+    .getByRole('menuitemradio', { name: new RegExp(DICTIONARIES.ru.app.theme.dark) })
+    .click();
   await expect(page.locator('html')).toHaveClass('dark');
 
   expect(boundary.requests.filter((request) => request.path === '/notifier-tests')).toHaveLength(1);
@@ -242,7 +245,7 @@ test('exposes SMTP fields, associated validation and shared keyboard focus witho
   await page.getByRole('button', { name: /Language:/ }).focus();
   await page.keyboard.press('ArrowDown');
   await page
-    .getByRole('menuitem', { name: DICTIONARIES.ru.language.nativeName, exact: true })
+    .getByRole('menuitemradio', { name: DICTIONARIES.ru.language.nativeName, exact: true })
     .click();
 
   const translatedTarget = page.getByLabel(DICTIONARIES.ru.notifiers.email.targetEmail, {
@@ -270,6 +273,7 @@ test('contains confirmation focus and restores it to the invoking remove control
     await page.keyboard.press('Tab');
     expect(await dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true);
   }
+  await assertEnlargedTextReflow(page);
 
   await page.keyboard.press('Escape');
   await expect(dialog).not.toBeVisible();
@@ -364,9 +368,7 @@ for (const reference of [
             const control = document.getElementById(label.getAttribute('for')!);
             if (!control || control.matches('[type=checkbox]')) return false;
             const labelBounds = label.getBoundingClientRect();
-            const controlBounds =
-              control.closest('.ant-select')?.getBoundingClientRect() ??
-              control.getBoundingClientRect();
+            const controlBounds = control.getBoundingClientRect();
             return (
               labelBounds.bottom > controlBounds.top + 1 &&
               labelBounds.right > controlBounds.left + 1
@@ -406,7 +408,7 @@ test('expires an existing success notice at its original deadline and uses the s
   await page.getByRole('button', { name: /Language:/ }).focus();
   await page.keyboard.press('ArrowDown');
   await page
-    .getByRole('menuitem', { name: DICTIONARIES.ru.language.nativeName, exact: true })
+    .getByRole('menuitemradio', { name: DICTIONARIES.ru.language.nativeName, exact: true })
     .click();
 
   await expect(
@@ -488,11 +490,13 @@ for (const locale of ['fr', 'zh'] as const) {
     await expect(testControl).toBeInViewport();
     await testControl.click();
 
-    const successNotice = page.getByRole('alert').filter({
+    const successNotice = page.getByRole('status').filter({
       hasText: dictionary.notifiers.testNotification.sent.title,
     });
     await expect(successNotice).toBeVisible();
-    await page.getByLabel('Close', { exact: true }).click();
+    await successNotice
+      .getByRole('button', { name: dictionary.common.actions.close, exact: true })
+      .click();
     await expect(successNotice).not.toBeVisible();
 
     const save = editor.getByRole('button', { name: dictionary.common.actions.save, exact: true });
@@ -510,48 +514,6 @@ for (const locale of ['fr', 'zh'] as const) {
     );
   });
 }
-
-test('keeps the sidebar open with restored control focus when a nested menu is dismissed by Escape', async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 320, height: 1200 });
-  await openEditor({ page });
-  await page
-    .getByRole('button', { name: DICTIONARIES.en.app.navigation.menu, exact: true })
-    .click();
-
-  const sidebar = page.getByRole('dialog');
-  await expect(sidebar).toBeVisible();
-  await page.mouse.move(319, 1100);
-
-  for (const { name, firstItem } of [
-    { name: /Language:/, firstItem: DICTIONARIES.en.language.nativeName },
-    { name: /Theme:/, firstItem: DICTIONARIES.en.app.theme.light },
-  ]) {
-    const control = sidebar.getByRole('button', { name });
-    await control.focus();
-    await page.keyboard.press('ArrowDown');
-
-    const menu = page.getByRole('menu').filter({
-      has: page.getByRole('menuitem', { name: firstItem, exact: true }),
-    });
-    await expect(menu).toBeVisible();
-    await expect
-      .poll(() => menu.evaluate((element) => element.contains(document.activeElement)))
-      .toBe(true);
-
-    await page.keyboard.press('Escape');
-    await expect(control).toHaveAttribute('aria-expanded', 'false');
-    await expect(sidebar).toBeVisible();
-    await expect(control).toBeFocused();
-    await control.press('ArrowDown');
-    await expect(control).toHaveAttribute('aria-expanded', 'true');
-    await control.press('Escape');
-    await expect(control).toHaveAttribute('aria-expanded', 'false');
-    await expect(sidebar).toBeVisible();
-    await expect(control).toBeFocused();
-  }
-});
 
 test('preserves the open sidebar and notifier draft when language is selected at 320 pixels', async ({
   page,
@@ -573,10 +535,45 @@ test('preserves the open sidebar and notifier draft when language is selected at
 
   const sidebar = page.getByRole('dialog');
   const language = sidebar.getByRole('button', { name: /Language:/ });
+  const documentation = sidebar.getByRole('link', {
+    name: DICTIONARIES.en.app.navigation.documentation,
+    exact: true,
+  });
+  expect((await documentation.boundingBox())!.y).toBeGreaterThan(page.viewportSize()!.height - 200);
+  for (const { name, firstItem } of [
+    { name: /Language:/, firstItem: DICTIONARIES.en.language.nativeName },
+    { name: /Theme:/, firstItem: DICTIONARIES.en.app.theme.light },
+  ]) {
+    const control = sidebar.getByRole('button', { name });
+    await control.focus();
+    await page.keyboard.press('ArrowDown');
+
+    const menu = page.getByRole('menu').filter({
+      has: page.getByRole('menuitemradio', { name: firstItem, exact: true }),
+    });
+    await expect(menu).toBeVisible();
+    await expect
+      .poll(() => menu.evaluate((element) => element.contains(document.activeElement)))
+      .toBe(true);
+
+    await page.keyboard.press('Escape');
+    await expect(control).toHaveAttribute('aria-expanded', 'false');
+    await expect(sidebar).toBeVisible();
+    await expect(control).toBeFocused();
+    await control.press('ArrowDown');
+    await expect(control).toHaveAttribute('aria-expanded', 'true');
+    await control.press('Escape');
+    await expect(control).toHaveAttribute('aria-expanded', 'false');
+    await expect(sidebar).toBeVisible();
+    await expect(control).toBeFocused();
+  }
   await language.focus();
   await page.keyboard.press('ArrowDown');
   const menu = page.getByRole('menu').filter({
-    has: page.getByRole('menuitem', { name: DICTIONARIES.en.language.nativeName, exact: true }),
+    has: page.getByRole('menuitemradio', {
+      name: DICTIONARIES.en.language.nativeName,
+      exact: true,
+    }),
   });
   await expect
     .poll(() => menu.evaluate((element) => element.contains(document.activeElement)))
@@ -584,19 +581,18 @@ test('preserves the open sidebar and notifier draft when language is selected at
 
   await page.keyboard.press('Home');
   await expect(
-    page.getByRole('menuitem', { name: DICTIONARIES.en.language.nativeName, exact: true }),
+    page.getByRole('menuitemradio', { name: DICTIONARIES.en.language.nativeName, exact: true }),
   ).toBeFocused();
   await page.keyboard.press('ArrowDown');
   await expect(
-    page.getByRole('menuitem', { name: DICTIONARIES.ru.language.nativeName, exact: true }),
+    page.getByRole('menuitemradio', { name: DICTIONARIES.ru.language.nativeName, exact: true }),
   ).toBeFocused();
   await page.keyboard.press('Enter');
 
   const dictionary = DICTIONARIES.ru;
   await expect(sidebar).toBeVisible();
-  await expect(page.locator('.ant-drawer-open').filter({ has: sidebar })).toBeVisible();
   await expect(
-    sidebar.getByRole('button', { name: dictionary.app.navigation.notifiers, exact: true }),
+    sidebar.getByRole('link', { name: dictionary.app.navigation.notifiers, exact: true }),
   ).toBeVisible();
   await expect(
     sidebar.getByRole('link', { name: dictionary.app.navigation.documentation, exact: true }),

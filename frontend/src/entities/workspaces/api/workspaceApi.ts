@@ -1,4 +1,5 @@
 import type { Workspace } from '@/entities/workspaces/model/Workspace';
+import type { ReadOptions } from '@/shared/api';
 import { getApiClient, requireData, requireSuccess } from '@/shared/api';
 import { collectCursorPages } from '@/shared/lib/collectCursorPages';
 
@@ -8,13 +9,15 @@ const WORKSPACE_PAGE_LIMIT = 100;
 export const workspaceApi = {
   // The workspace selector and the transfer dialogs need every workspace, so this follows the
   // cursor to the last page.
-  async listAllWorkspaces(): Promise<Workspace[]> {
-    return collectCursorPages(async (after: string | undefined) =>
-      requireData(
-        await getApiClient().GET('/workspaces', {
-          params: { query: { limit: WORKSPACE_PAGE_LIMIT, after } },
-        }),
-      ),
+  async listAllWorkspaces(options: ReadOptions = {}): Promise<Workspace[]> {
+    return collectCursorPages(
+      async (after: string | undefined) =>
+        requireData(
+          await getApiClient(options).GET('/workspaces', {
+            params: { query: { limit: WORKSPACE_PAGE_LIMIT, after } },
+          }),
+        ),
+      options,
     );
   },
 
@@ -22,9 +25,11 @@ export const workspaceApi = {
     return requireData(await getApiClient().POST('/workspaces', { body: { name } }));
   },
 
-  async getWorkspace(workspaceId: string): Promise<Workspace> {
+  async getWorkspace(workspaceId: string, options: ReadOptions = {}): Promise<Workspace> {
     return requireData(
-      await getApiClient().GET('/workspaces/{workspaceId}', { params: { path: { workspaceId } } }),
+      await getApiClient(options).GET('/workspaces/{workspaceId}', {
+        params: { path: { workspaceId } },
+      }),
     );
   },
 

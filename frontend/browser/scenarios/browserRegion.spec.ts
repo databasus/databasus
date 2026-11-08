@@ -36,7 +36,9 @@ test.describe('with a Traditional Chinese browser', () => {
       exact: true,
     });
     await expect(submit).toBeVisible();
-    await submit.evaluate((button) => button.setAttribute('data-font-probe', ''));
+    await submit
+      .getByText(DICTIONARIES.zh.users.signIn.submit, { exact: true })
+      .evaluate((label) => label.setAttribute('data-font-probe', ''));
 
     const devTools = await page.context().newCDPSession(page);
     await devTools.send('DOM.enable');
@@ -44,7 +46,7 @@ test.describe('with a Traditional Chinese browser', () => {
     const { root } = await devTools.send('DOM.getDocument');
     const { nodeId } = await devTools.send('DOM.querySelector', {
       nodeId: root.nodeId,
-      selector: '[data-font-probe] span',
+      selector: '[data-font-probe]',
     });
     const { fonts } = await devTools.send('CSS.getPlatformFontsForNode', { nodeId });
 

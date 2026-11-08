@@ -3,7 +3,20 @@ import type { en } from '@/shared/i18n/locales/en';
 export const id: typeof en = {
   language: { nativeName: 'Bahasa Indonesia' },
   common: {
+    calendar: {
+      monthLevelControl: 'Pilih bulan',
+      yearLevelControl: 'Pilih tahun',
+      nextMonth: 'Bulan berikutnya',
+      previousMonth: 'Bulan sebelumnya',
+      nextYear: 'Tahun berikutnya',
+      previousYear: 'Tahun sebelumnya',
+      nextDecade: 'Dekade berikutnya',
+      previousDecade: 'Dekade sebelumnya',
+      seconds: 'Detik',
+    },
     actions: {
+      clear: 'Hapus',
+      togglePasswordVisibility: 'Tampilkan atau sembunyikan kata sandi',
       back: 'Kembali',
       cancel: 'Batal',
       close: 'Tutup',
@@ -131,7 +144,15 @@ export const id: typeof en = {
     unauthenticated: 'Sesi kamu sudah berakhir. Silakan masuk lagi.',
     permissionDenied: 'Kamu tidak memiliki izin untuk melakukan tindakan ini.',
     humanVerificationFailed: 'Verifikasi manusia gagal. Selesaikan pemeriksaan dan coba lagi.',
-    invalidCredentials: 'Email atau kata sandi salah.',
+    emailNotFound: 'Tidak ada akun dengan alamat email ini. Periksa alamatnya.',
+    passwordIncorrect: 'Kata sandi salah.',
+    registrationIncomplete:
+      'Pendaftaran belum selesai. Daftar dengan alamat email ini untuk menerima undangan.',
+    passwordNotSet: 'Akun ini belum memiliki kata sandi.',
+    passwordNotSetGoogle: 'Akun ini belum memiliki kata sandi. Masuk dengan Google.',
+    passwordNotSetGithub: 'Akun ini belum memiliki kata sandi. Masuk dengan GitHub.',
+    passwordNotSetGoogleGithub:
+      'Akun ini belum memiliki kata sandi. Masuk dengan Google atau GitHub.',
     userDeactivated: 'Akun ini dinonaktifkan. Minta admin untuk mengaktifkannya.',
     registrationClosed: 'Pendaftaran di instance ini ditutup. Minta undangan kepada admin.',
     emailTaken: 'Alamat email ini sudah digunakan.',
@@ -180,6 +201,9 @@ export const id: typeof en = {
     },
   },
   schedules: {
+    hours: 'Jam',
+    minutes: 'Menit',
+    timePeriod: 'AM atau PM',
     types: {
       hourly: 'Setiap jam',
       daily: 'Setiap hari',
@@ -863,6 +887,9 @@ export const id: typeof en = {
       submit: 'Masuk',
       noAccount: 'Belum punya akun? <signUpLink>Daftar</signUpLink>',
       forgotPassword: 'Lupa kata sandi?',
+      setPassword: 'Tetapkan kata sandi',
+      passwordRecoveryHint: 'Gunakan pemulihan kata sandi untuk menetapkan kata sandi.',
+      contactAdministratorHint: 'Hubungi administrator untuk memulihkan akses.',
     },
     signInCode: {
       title: 'Masukkan kode',
@@ -1360,7 +1387,7 @@ export const id: typeof en = {
         forever: 'Selamanya',
       },
       retentionPolicyTypes: {
-        gfs: 'GFS (simpan N backup terakhir per jam, harian, mingguan, bulanan, dan tahunan)',
+        gfs: 'GFS (retensi berdasarkan periode kalender)',
         timePeriod: 'Periode waktu (N hari terakhir)',
         count: 'Jumlah (N backup terakhir)',
       },
@@ -1411,10 +1438,16 @@ export const id: typeof en = {
           countValue: 'Backup terbaru: {{count}}',
           showGfsHint: 'Apa itu GFS (Grandfather-Father-Son)?',
           hideGfsHint: 'Sembunyikan',
-          gfsHint:
-            'Rotasi GFS (Grandfather-Father-Son): simpan N backup terakhir per jam, harian, mingguan, bulanan, dan tahunan. Ini memungkinkan penyimpanan backup jangka panjang tanpa memakai terlalu banyak ruang.',
+          gfsHint: {
+            summary:
+              'GFS menyimpan backup terbaru dan mempertahankan sebagian backup lama lebih lama.',
+            selection:
+              '<strong>Tentukan jumlah backup yang disimpan</strong> per jam, hari, minggu, bulan, dan tahun. Hanya backup yang berhasil yang dihitung.',
+            fileCount:
+              '<strong>Satu backup bisa dihitung untuk beberapa pengaturan</strong>, sehingga jumlah file dapat berbeda dari total nilai pengaturan.',
+          },
           gfsTooltip:
-            'Rotasi Grandfather-Father-Son: simpan N backup terakhir per jam, harian, mingguan, bulanan, dan tahunan.',
+            'GFS: jam dan hari kalender terbaru, minggu, bulan, dan tahun yang sudah selesai, serta kandidat terlindungi untuk periode saat ini.',
           gfsFields: {
             hourly: 'Backup per jam',
             daily: 'Backup harian',
@@ -1506,8 +1539,18 @@ export const id: typeof en = {
         chainsKept: 'Rantai yang disimpan',
         fullBackupsKept: 'Backup penuh yang disimpan',
         fullBackupsCountValue: 'Terbaru: {{count}}',
+        gfsHint: {
+          summary:
+            'GFS menyimpan backup penuh terbaru dan mempertahankan sebagian backup lama lebih lama.',
+          selection:
+            '<strong>Tentukan jumlah backup yang disimpan</strong> per jam, hari, minggu, bulan, dan tahun. Hanya backup yang berhasil yang dihitung.',
+          fileCount:
+            '<strong>Satu backup bisa dihitung untuk beberapa pengaturan</strong>, sehingga jumlah file dapat berbeda dari total nilai pengaturan.',
+          scope:
+            '<strong>GFS hanya berlaku untuk backup penuh.</strong> Backup inkremental dan WAL dikelola secara terpisah.',
+        },
         gfsTooltip:
-          'Rotasi Grandfather-Father-Son: simpan N backup penuh terakhir per jam, harian, mingguan, bulanan, dan tahunan.',
+          'GFS: backup penuh berhasil untuk jam dan hari kalender terbaru serta minggu, bulan, dan tahun yang sudah selesai, ditambah kandidat saat ini.',
       },
       restore: {
         errorHints: {

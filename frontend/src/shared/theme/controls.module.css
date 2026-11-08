@@ -1,0 +1,280 @@
+@layer components {
+  .focus:focus-visible {
+    outline: 1px solid var(--app-focus);
+    outline-offset: 1px;
+  }
+
+  .button {
+    height: auto;
+    min-height: var(--button-height);
+    max-width: 100%;
+    padding-block: 3px;
+    font-weight: 400;
+    line-height: 1.5714285714;
+  }
+
+  .buttonInner {
+    height: auto;
+    min-width: 0;
+  }
+
+  .buttonLabel {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .actionIcon {
+    flex-shrink: 0;
+  }
+
+  .choiceLabel {
+    line-height: 1.5714285714;
+    overflow-wrap: anywhere;
+  }
+
+  .checkbox {
+    --mantine-cursor-type: pointer;
+
+    &[data-label-position='right'] {
+      --label-offset-start: 8px;
+    }
+
+    &[data-label-position='left'] {
+      --label-offset-end: 8px;
+    }
+  }
+
+  .checkboxInner {
+    margin-block-start: max(0px, calc((1.5714285714em - var(--checkbox-size)) / 2));
+    font-size: var(--label-fz, var(--mantine-font-size-sm));
+  }
+
+  .radio {
+    --mantine-cursor-type: pointer;
+  }
+
+  .radioInner {
+    margin-block-start: max(0px, calc((1.5714285714em - var(--radio-size)) / 2));
+    font-size: var(--label-fz, var(--mantine-font-size-sm));
+  }
+
+  .switchTrack {
+    pointer-events: none;
+  }
+
+  .inputWrapper {
+    min-width: 0;
+  }
+
+  .input {
+    min-height: max(var(--input-height), calc(1.5714285714em + 4px));
+    height: auto;
+    padding-block: 1px;
+    padding-inline-start: var(--input-padding-inline-start, 7px);
+    line-height: 1.5714285714;
+    background-color: var(--app-surface);
+    color: var(--app-content);
+    border-color: var(--app-border);
+
+    &:focus-within {
+      border-color: var(--app-focus);
+    }
+
+    &:focus-visible {
+      outline: 1px solid var(--app-focus);
+      outline-offset: -1px;
+    }
+
+    &[data-error] {
+      border-color: var(--app-danger);
+      outline-color: var(--app-danger);
+    }
+  }
+
+  .passwordInput {
+    font-size: inherit;
+    line-height: inherit;
+    border-radius: inherit;
+
+    &:focus-visible {
+      outline: 1px solid var(--app-focus);
+      outline-offset: 0;
+    }
+
+    &[aria-invalid='true'] {
+      outline-color: var(--app-danger);
+    }
+  }
+
+  .timeFieldsRoot,
+  .timeFieldsGroup {
+    height: auto;
+  }
+
+  .timeFieldsGroup {
+    flex-shrink: 0;
+  }
+
+  .calendarHeaderLevel {
+    height: auto;
+    min-height: var(--level-height, 2rem);
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .tabs {
+    --tab-border-color: var(--app-border);
+
+    &[data-variant='outline'] {
+      --tab-border-color: transparent;
+    }
+  }
+
+  .tab {
+    min-width: 0;
+    max-width: 100%;
+
+    &[data-variant='outline'] {
+      --mantine-color-body: var(--app-surface);
+
+      background-color: var(--app-tab-inactive);
+      color: var(--app-content);
+
+      &[data-active] {
+        background-color: var(--app-surface);
+      }
+    }
+  }
+
+  .tabLabel {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .calendarDay {
+    min-height: 1.6em;
+    line-height: 1;
+  }
+
+  .timeField {
+    height: 1.5714285714em;
+    line-height: 1.5714285714;
+  }
+
+  .fieldLabel {
+    font-weight: 400;
+    line-height: 1.5714285714;
+  }
+
+  .fieldError {
+    font-size: 14px;
+    line-height: 1.5714285714;
+    color: var(--app-danger);
+    overflow-wrap: anywhere;
+  }
+
+  .fieldDescription {
+    font-size: 14px;
+    line-height: 1.5714285714;
+    color: var(--app-description);
+    overflow-wrap: anywhere;
+  }
+
+  .alert {
+    padding: 8px 12px;
+    font-size: 14px;
+    border: var(--alert-bd);
+  }
+
+  .alertTitle {
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.5714285714;
+    color: var(--app-content);
+  }
+
+  .alertMessage {
+    color: var(--app-content);
+    overflow-wrap: anywhere;
+  }
+
+  .overlayContent {
+    background-color: var(--app-raised);
+    color: var(--app-content);
+    overflow-wrap: anywhere;
+  }
+
+  .overlayTitle {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.5;
+  }
+
+  .modalHeader {
+    align-items: flex-start;
+    flex-shrink: 0;
+    padding-bottom: 8px;
+    background-color: var(--app-raised);
+  }
+
+  .modalContent {
+    --modal-content-max-height: calc(100dvh - var(--modal-y-offset) - 20px);
+
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .modalBody {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .dropdown {
+    max-width: calc(100vw - 16px);
+    background-color: var(--app-raised);
+    color: var(--app-content);
+    border-color: var(--app-border);
+  }
+
+  .menuItem {
+    font-size: 14px;
+    line-height: 1.5714285714;
+    overflow-wrap: anywhere;
+
+    &:hover {
+      background-color: var(--app-hover);
+    }
+
+    &[data-combobox-selected] {
+      background-color: var(--app-selected);
+      color: var(--app-content);
+    }
+  }
+
+  .tooltip {
+    overflow-wrap: anywhere;
+  }
+
+  .notification {
+    background-color: var(--app-raised);
+    border-color: var(--app-border);
+  }
+
+  .notificationIcon {
+    width: 16px;
+    height: 16px;
+    margin-inline-end: 8px;
+    background: transparent;
+    color: var(--notification-color);
+  }
+
+  .notifications {
+    width: max-content;
+    max-width: min(
+      var(--notifications-container-width),
+      calc(100vw - var(--mantine-spacing-md) * 2)
+    );
+  }
+}

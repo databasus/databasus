@@ -24,10 +24,8 @@ type UserRecord struct {
 	Status               identity.Status `gorm:"column:status"`
 	GitHubOAuthID        *string         `gorm:"column:github_oauth_id"`
 	GoogleOAuthID        *string         `gorm:"column:google_oauth_id"`
-	// IsBootstrapAdmin marks the user that claimed the empty instance. The column keeps its old
-	// name, so the mark survives a change of the address.
-	IsBootstrapAdmin bool      `gorm:"column:is_root_admin"`
-	CreatedAt        time.Time `gorm:"column:created_at"`
+	IsBootstrapAdmin     bool            `gorm:"column:is_root_admin"`
+	CreatedAt            time.Time       `gorm:"column:created_at"`
 }
 
 func (UserRecord) TableName() string {

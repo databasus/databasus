@@ -10,7 +10,7 @@ To run the backend together with the frontend, the dev database, the test fixtur
 
 > mise run run
 
-The backend runs under [air](.air.toml), which rebuilds and restarts it when a Go file is saved; a build that fails leaves the previous backend serving. Once the backend accepts connections, the [seed command](cmd/seed_dev/doc.go) creates the dev account and the seeded databases if they are missing. To run the seed again against the running app, from `backend/`:
+The backend runs under [air](.air.toml), which rebuilds and restarts it when a Go file is saved; a build that fails leaves the previous backend serving. Once the backend accepts connections, the [seed command](cmd/seed_dev/doc.go) creates the missing dev items and makes the dev account the bootstrap administrator, leaving the previous holder as an ordinary administrator. The seed requires development mode and the same `DATABASE_DSN` as the running backend; authentication and ordinary item creation use the public API, and the privilege assignment uses the local database. To run the seed again against the running app, from `backend/`:
 
 > go run ./cmd/seed_dev
 

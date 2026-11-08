@@ -5,6 +5,7 @@ export {
   activateSession,
   invalidateSession,
   beginAuthIntent,
+  getAuthIntent,
   isCurrentAuthIntent,
   abandonAuthIntent,
   acceptAuthSession,

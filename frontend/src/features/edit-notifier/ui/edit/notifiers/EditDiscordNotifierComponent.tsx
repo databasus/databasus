@@ -1,4 +1,4 @@
-import { Input } from 'antd';
+import { TextInput } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 
 import type { DiscordNotifierSettings } from '@/entities/notifiers';
@@ -19,7 +19,7 @@ export function EditDiscordNotifierComponent({ settings, isSaved, onChange }: Pr
         <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
           {t('notifiers.discord.channelWebhookUrl')}
         </div>
-        <Input
+        <TextInput
           aria-label={t('notifiers.discord.channelWebhookUrl')}
           value={settings.channelWebhookUrl ?? ''}
           onChange={(e) =>
@@ -28,7 +28,7 @@ export function EditDiscordNotifierComponent({ settings, isSaved, onChange }: Pr
               channelWebhookUrl: toOptionalValue(e.target.value.trim()),
             })
           }
-          size="small"
+          size="xs"
           className="w-full max-w-[250px]"
           placeholder={
             isSaved

@@ -60,7 +60,7 @@ const renderDiskUsage = async ({
   );
 
   renderScreen(<ApplicationScreen />, { theme });
-  await screen.findByRole('button', { name: 'Profile' });
+  await screen.findByRole('link', { name: 'Profile' });
 
   let acceptDiskResponse = () => {};
   const diskResponseCompleted = new Promise<void>((resolve) => {

@@ -17,15 +17,16 @@ export const NotifierTransferDialogComponent = ({ notifier, onClose, onTransferr
   return (
     <ResourceTransferDialog
       contextKey={`${notifier.workspaceId}/${notifier.id}`}
-      loadAvailability={async (isActive) => {
+      loadAvailability={async (signal) => {
         const notifierDatabases = await databaseApi.listAllDatabases(notifier.workspaceId, {
           notifierId: notifier.id,
+          signal,
         });
-        if (!isActive()) return;
+        signal.throwIfAborted();
 
         if (notifierDatabases.length > 0) return { isBlocked: true };
 
-        const workspaces = await workspaceApi.listAllWorkspaces();
+        const workspaces = await workspaceApi.listAllWorkspaces({ signal });
 
         return {
           isBlocked: false,
