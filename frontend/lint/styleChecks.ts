@@ -19,7 +19,7 @@ export interface StyleFinding {
 
 const COLOR_OWNERS = new Set([
   'shared/theme/themeTokens.ts',
-  'pages/databases/lib/wal-stream-monitoring/chartColors.ts',
+  'pages/databases/wal-monitoring/lib/chartColors.ts',
 ]);
 const colorProperty =
   /^(?:color|background(?:Color|Image)?|border(?:(?:Top|Right|Bottom|Left|Block|BlockStart|BlockEnd|Inline|InlineStart|InlineEnd)?(?:Color)?)?|fill|stroke|boxShadow|outline(?:Color)?|textShadow|stopColor|caretColor|accentColor)$/;

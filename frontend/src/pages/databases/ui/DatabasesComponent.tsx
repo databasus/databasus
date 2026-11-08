@@ -4,18 +4,16 @@ import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { type BackupConfig, backupConfigApi } from '@/entities/backup-configs';
-import { databaseApi, sortUnavailableDatabasesFirst } from '@/entities/databases';
-import type { Database } from '@/entities/databases';
+import { databaseApi, sortUnavailableDatabasesFirst, type Database } from '@/entities/databases';
 import { type Storage, storageApi } from '@/entities/storages';
 import type { Workspace } from '@/entities/workspaces';
-import { CreateDatabaseComponent } from '@/pages/databases/ui/CreateDatabaseComponent';
+import { CreateDatabaseComponent } from '@/pages/databases/create-wizard/ui/CreateDatabaseComponent';
 import { DatabaseCardComponent } from '@/pages/databases/ui/DatabaseCardComponent';
 import { DatabaseComponent } from '@/pages/databases/ui/DatabaseComponent';
 import { ApiError, useSessionQuery } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { useIsMobile, useLatestRef, useScopedSelection } from '@/shared/hooks';
-import { Dialog } from '@/shared/ui';
-import { ResourceListDetail, LoadFailure } from '@/shared/ui';
+import { Dialog, ResourceListDetail, LoadFailure } from '@/shared/ui';
 
 interface Props {
   workspace: Workspace;

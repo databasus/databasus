@@ -349,6 +349,24 @@ The [FSD skill](../.agents/skills/feature-sliced-design/SKILL.md) gives the plac
 - **An alias of a generated schema names a domain concept.** Keep aliases with their owner, and keep tiny shape aliases with the unit they describe.
 - **File layout.** Every script module sits in a layer, apart from the [source-root exceptions](../frontend/AGENTS.md#architecture-and-skills). The [import-path convention](../frontend/AGENTS.md#import-paths) uses the `@/` source-root alias so references have one spelling regardless of the importing file's location. TypeScript, Vite, Vitest, the browser-test loader and architecture checks resolve that alias consistently, including when tooling consumes source modules. The spelling does not change dependency boundaries; architecture checks also recognize relative references in their fixtures.
 
+### Database page layout
+
+The database page is one slice, `pages/databases`. Its local area directories collect each responsibility's UI, model, requests and supporting logic; technical subdirectories exist only where they hold code.
+
+| Area | Responsibility |
+| --- | --- |
+| `wal-monitoring` | WAL measurements, live updates, charts and monitoring actions |
+| `physical-backups` | Physical backup lists, actions and physical restore commands |
+| `logical-backups` | Logical backup lists, actions, download types and verification badges |
+| `verification` | Verification configuration, runs and their details |
+| `healthcheck` | Healthcheck configuration and attempts |
+| `backup-config` | Logical and physical configuration fields, drafts, retention, notifications and storage selection |
+| `settings` | Database settings composition, editors, display, transfer and forms also used by creation |
+| `create-wizard` | Creation steps and starting the first backup |
+| `restores` | Logical restore presentation and target drafts |
+
+Root `ui` owns the page, list and tab composition and presentation shared by the local areas; root `lib` holds supporting logic shared across areas. Tests stay beside their production units, and page composition tests stay in root `ui`. The local areas remain inside the same slice: they use direct imports, while external consumers use the page's `index.ts`. Folder grouping creates no additional enforced dependency boundary.
+
 ### State and effects
 
 - **Keep state near its lifecycle.** Form drafts, list selection and page-specific async work belong to their screen or interaction. Generic pagination machinery may live in shared. Application lifecycle hooks belong to app, and domain hooks stay with the domain.

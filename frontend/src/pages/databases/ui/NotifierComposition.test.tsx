@@ -5,9 +5,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { type Database, DatabaseType, createDefaultDatabaseSettings } from '@/entities/databases';
 import type { Notifier } from '@/entities/notifiers';
-import { CreateDatabaseNotifiersStep } from '@/pages/databases/ui/CreateDatabaseNotifiersStep';
-import { DatabaseTransferDialogComponent } from '@/pages/databases/ui/DatabaseTransferDialogComponent';
-import { EditDatabaseNotifiersSection } from '@/pages/databases/ui/EditDatabaseNotifiersSection';
+import { CreateDatabaseNotifiersStep } from '@/pages/databases/create-wizard/ui/CreateDatabaseNotifiersStep';
+import { DatabaseTransferDialogComponent } from '@/pages/databases/settings/ui/DatabaseTransferDialogComponent';
+import { EditDatabaseNotifiersSection } from '@/pages/databases/settings/ui/EditDatabaseNotifiersSection';
 import { API_BASE_PATH } from '@/shared/api';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';

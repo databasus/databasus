@@ -12,9 +12,9 @@ import {
   PhysicalDatabaseBackupType,
   createDefaultDatabaseSettings,
 } from '@/entities/databases';
-import { verificationRunsApi } from '@/pages/databases/api/verificationRunsApi';
 // @vitest-environment happy-dom
 import { DatabaseComponent } from '@/pages/databases/ui/DatabaseComponent';
+import { verificationRunsApi } from '@/pages/databases/verification/api/verificationRunsApi';
 import { activateSession, invalidateSession } from '@/shared/auth';
 import { DICTIONARIES, useLocale } from '@/shared/i18n';
 import { waitForCondition } from '@/shared/lib/test/conditionWait';
