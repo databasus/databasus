@@ -212,9 +212,11 @@ const openNestedEditor = async (page: Page) => {
   await page.getByText('Create new storage', { exact: true }).click();
 
   const editor = page.getByRole('dialog', { name: 'Add storage' });
+  await expect(editor.getByRole('button', { name: 'Close', exact: true })).toBeFocused();
+
   await editor.getByRole('combobox', { name: 'Type', exact: true }).focus();
   await page.keyboard.press('ArrowDown');
-  await page.getByText('Google Drive', { exact: true }).last().click();
+  await page.getByRole('option', { name: 'Google Drive', exact: true }).click();
   await editor.getByPlaceholder('My Storage', { exact: true }).fill('Drive draft');
   await editor.getByLabel('Client ID', { exact: true }).fill('public-client');
   await editor.getByLabel('Client Secret', { exact: true }).fill(secret);

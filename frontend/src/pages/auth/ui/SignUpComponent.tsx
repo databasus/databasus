@@ -121,7 +121,7 @@ export function SignUpComponent({
 
   return (
     <div className="w-full max-w-[300px]">
-      <div className="mb-5 text-center text-2xl font-bold">{t('users.signUp.title')}</div>
+      <div className="mb-4 text-center text-xl font-semibold">{t('users.signUp.title')}</div>
 
       {isClaimingInstance && (
         <div className="mb-5 text-center text-sm text-muted">
@@ -129,25 +129,23 @@ export function SignUpComponent({
         </div>
       )}
 
-      <div className="mt-4">
-        <div className="space-y-2">
-          <OAuthSignInButtons />
-        </div>
-      </div>
-
       {(GOOGLE_CLIENT_ID || GITHUB_CLIENT_ID) && (
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-border"></div>
+        <>
+          <OAuthSignInButtons />
+
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="bg-surface px-2 text-muted">{t('users.oauth.divider')}</span>
+            </div>
           </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="bg-surface px-2 text-muted">{t('users.oauth.divider')}</span>
-          </div>
-        </div>
+        </>
       )}
 
-      <div className="mb-6 min-w-0">
-        <label htmlFor={controlId + 'field-1'} className="mb-2 block text-sm text-content">
+      <div className="mb-3 min-w-0">
+        <label htmlFor={controlId + 'field-1'} className="mb-1 block text-sm text-content">
           {t('users.fields.yourName')}
         </label>
         <TextInput
@@ -163,8 +161,8 @@ export function SignUpComponent({
         />
       </div>
 
-      <div className="mb-6 min-w-0">
-        <label htmlFor={controlId + 'field-2'} className="mb-2 block text-sm text-content">
+      <div className="mb-3 min-w-0">
+        <label htmlFor={controlId + 'field-2'} className="mb-1 block text-sm text-content">
           {t('users.fields.yourEmail')}
         </label>
         <TextInput
@@ -181,8 +179,8 @@ export function SignUpComponent({
         />
       </div>
 
-      <div className="mb-6 min-w-0">
-        <label htmlFor={controlId + 'field-3'} className="mb-2 block text-sm text-content">
+      <div className="mb-3 min-w-0">
+        <label htmlFor={controlId + 'field-3'} className="mb-1 block text-sm text-content">
           {t('common.fields.password')}
         </label>
         <PasswordInput
@@ -207,8 +205,8 @@ export function SignUpComponent({
         />
       </div>
 
-      <div className="mb-6 min-w-0">
-        <label htmlFor={controlId + 'field-4'} className="mb-2 block text-sm text-content">
+      <div className="mb-3 min-w-0">
+        <label htmlFor={controlId + 'field-4'} className="mb-1 block text-sm text-content">
           {t('users.fields.confirmPassword')}
         </label>
         <PasswordInput
@@ -232,8 +230,6 @@ export function SignUpComponent({
           }
         />
       </div>
-
-      <div className="mt-3" />
 
       <CloudflareTurnstileWidget containerRef={containerRef} />
 
@@ -273,8 +269,6 @@ export function SignUpComponent({
           />
         </div>
       )}
-
-      <div className="mb-10" />
     </div>
   );
 }

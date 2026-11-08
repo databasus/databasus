@@ -84,8 +84,6 @@ region = us-east-1`}
           </Tooltip>
         </div>
       </div>
-
-      <div className="mb-5" />
     </>
   );
 }

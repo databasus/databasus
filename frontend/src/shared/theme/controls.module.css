@@ -1,7 +1,7 @@
 @layer components {
   .focus:focus-visible {
-    outline: 2px solid var(--app-focus);
-    outline-offset: 2px;
+    outline: 1px solid var(--app-focus);
+    outline-offset: 1px;
   }
 
   .button {
@@ -54,14 +54,30 @@
       border-color: var(--app-focus);
     }
 
+    &:focus-visible {
+      outline: 1px solid var(--app-focus);
+      outline-offset: -1px;
+    }
+
     &[data-error] {
       border-color: var(--app-danger);
+      outline-color: var(--app-danger);
     }
   }
 
   .passwordInput {
     font-size: inherit;
     line-height: inherit;
+    border-radius: inherit;
+
+    &:focus-visible {
+      outline: 1px solid var(--app-focus);
+      outline-offset: 0;
+    }
+
+    &[aria-invalid='true'] {
+      outline-color: var(--app-danger);
+    }
   }
 
   .timeFieldsRoot,

@@ -64,8 +64,8 @@ export function EditEmailNotifierComponent({
 
   return (
     <div className="min-w-0">
-      <div className="mb-6 min-w-0">
-        <label htmlFor={`${fieldPrefix}-targetEmail`} className="mb-2 block text-sm text-content">
+      <div className="mb-3 min-w-0">
+        <label htmlFor={`${fieldPrefix}-targetEmail`} className="mb-1 block text-sm text-content">
           {t('notifiers.email.targetEmail')}
         </label>
         <TextInput
@@ -87,8 +87,8 @@ export function EditEmailNotifierComponent({
         />
       </div>
 
-      <div className="mb-6 min-w-0">
-        <label htmlFor={`${fieldPrefix}-smtpHost`} className="mb-2 block text-sm text-content">
+      <div className="mb-3 min-w-0">
+        <label htmlFor={`${fieldPrefix}-smtpHost`} className="mb-1 block text-sm text-content">
           {t('notifiers.email.smtpHost')}
         </label>
         <TextInput
@@ -110,8 +110,8 @@ export function EditEmailNotifierComponent({
         />
       </div>
 
-      <div className="mb-6 min-w-0">
-        <label htmlFor={`${fieldPrefix}-smtpPort`} className="mb-2 block text-sm text-content">
+      <div className="mb-3 min-w-0">
+        <label htmlFor={`${fieldPrefix}-smtpPort`} className="mb-1 block text-sm text-content">
           {t('notifiers.email.smtpPort')}
         </label>
         <TextInput
@@ -141,8 +141,8 @@ export function EditEmailNotifierComponent({
         />
       </div>
 
-      <div className="mb-6 min-w-0">
-        <label htmlFor={`${fieldPrefix}-smtpUser`} className="mb-2 block text-sm text-content">
+      <div className="mb-3 min-w-0">
+        <label htmlFor={`${fieldPrefix}-smtpUser`} className="mb-1 block text-sm text-content">
           {t('notifiers.email.smtpUser')}
         </label>
         <TextInput
@@ -158,8 +158,8 @@ export function EditEmailNotifierComponent({
         />
       </div>
 
-      <div className="mb-6 min-w-0">
-        <label htmlFor={`${fieldPrefix}-smtpPassword`} className="mb-2 block text-sm text-content">
+      <div className="mb-3 min-w-0">
+        <label htmlFor={`${fieldPrefix}-smtpPassword`} className="mb-1 block text-sm text-content">
           {t('notifiers.email.smtpPassword')}
         </label>
         <TextInput
@@ -184,8 +184,8 @@ export function EditEmailNotifierComponent({
         />
       </div>
 
-      <div className="mb-6 min-w-0">
-        <label htmlFor={`${fieldPrefix}-from`} className="mb-2 block text-sm text-content">
+      <div className="mb-3 min-w-0">
+        <label htmlFor={`${fieldPrefix}-from`} className="mb-1 block text-sm text-content">
           {t('notifiers.email.from')}
         </label>
         <TextInput

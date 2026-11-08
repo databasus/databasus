@@ -39,8 +39,8 @@
     }
 
     & button:focus-visible {
-      outline: 2px solid var(--app-focus);
-      outline-offset: 2px;
+      outline: 1px solid var(--app-focus);
+      outline-offset: 1px;
     }
   }
 

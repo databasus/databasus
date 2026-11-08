@@ -44,8 +44,8 @@ export function EditSFTPStorageComponent({
 
   return (
     <div className="w-full max-w-sm">
-      <div className="mb-6 min-w-0">
-        <label htmlFor={`${controlId}-host`} className="mb-2 block text-sm text-content">
+      <div className="mb-3 min-w-0">
+        <label htmlFor={`${controlId}-host`} className="mb-1 block text-sm text-content">
           {t('common.fields.host')}
         </label>
         <TextInput
@@ -56,8 +56,8 @@ export function EditSFTPStorageComponent({
           placeholder="sftp.example.com"
         />
       </div>
-      <div className="mb-6 min-w-0">
-        <label htmlFor={`${controlId}-port`} className="mb-2 block text-sm text-content">
+      <div className="mb-3 min-w-0">
+        <label htmlFor={`${controlId}-port`} className="mb-1 block text-sm text-content">
           {t('common.fields.port')}
         </label>
         <NumberInput
@@ -74,8 +74,8 @@ export function EditSFTPStorageComponent({
           aria-valuemax={65535}
         />
       </div>
-      <div className="mb-6 min-w-0">
-        <label htmlFor={`${controlId}-username`} className="mb-2 block text-sm text-content">
+      <div className="mb-3 min-w-0">
+        <label htmlFor={`${controlId}-username`} className="mb-1 block text-sm text-content">
           {t('common.fields.username')}
         </label>
         <TextInput
@@ -85,8 +85,8 @@ export function EditSFTPStorageComponent({
           autoComplete="off"
         />
       </div>
-      <div className="mb-6 min-w-0">
-        <label htmlFor={`${controlId}-methods`} className="mb-2 block text-sm text-content">
+      <div className="mb-3 min-w-0">
+        <label htmlFor={`${controlId}-methods`} className="mb-1 block text-sm text-content">
           {t('storages.fields.authMethod')}
         </label>
         <WrappingSelect
@@ -112,8 +112,8 @@ export function EditSFTPStorageComponent({
         />
       </div>
       {hasPassword && (
-        <div className="mb-6 min-w-0">
-          <label htmlFor={`${controlId}-password`} className="mb-2 block text-sm text-content">
+        <div className="mb-3 min-w-0">
+          <label htmlFor={`${controlId}-password`} className="mb-1 block text-sm text-content">
             {t('common.fields.password')}
           </label>
           <PasswordInput
@@ -138,8 +138,8 @@ export function EditSFTPStorageComponent({
         </div>
       )}
       {hasPrivateKey && (
-        <div className="mb-6 min-w-0">
-          <label htmlFor={`${controlId}-key`} className="mb-2 block text-sm text-content">
+        <div className="mb-3 min-w-0">
+          <label htmlFor={`${controlId}-key`} className="mb-1 block text-sm text-content">
             {t('storages.fields.privateKey')}
           </label>
           <Textarea
@@ -166,8 +166,8 @@ export function EditSFTPStorageComponent({
           />
         </div>
       )}
-      <div className="mb-6 min-w-0">
-        <label htmlFor={`${controlId}-path`} className="mb-2 block text-sm text-content">
+      <div className="mb-3 min-w-0">
+        <label htmlFor={`${controlId}-path`} className="mb-1 block text-sm text-content">
           {t('storages.fields.path')}
         </label>
         <TextInput
@@ -183,7 +183,7 @@ export function EditSFTPStorageComponent({
         regionId={`${controlId}-advanced`}
       />
       <div id={`${controlId}-advanced`} hidden={!isShowAdvanced}>
-        <div className="mb-6 min-w-0">
+        <div className="mb-3 min-w-0">
           <Checkbox
             aria-describedby={`${controlId}-skip-host-key-help`}
             checked={settings.isSkipHostKeyVerify}

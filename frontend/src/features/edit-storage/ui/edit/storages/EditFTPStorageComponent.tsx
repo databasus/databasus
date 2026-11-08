@@ -178,8 +178,6 @@ export function EditFTPStorageComponent({ settings, isAddressChanged, onChange }
           )}
         </div>
       )}
-
-      <div className="mb-5" />
     </>
   );
 }

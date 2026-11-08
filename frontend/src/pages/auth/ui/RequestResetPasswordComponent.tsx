@@ -94,7 +94,7 @@ export function RequestResetPasswordComponent({
 
   return (
     <div className="w-full max-w-[300px]">
-      <div className="mb-5 text-center text-2xl font-bold">
+      <div className="mb-4 text-center text-xl font-semibold">
         {t('users.requestPasswordReset.title')}
       </div>
 
@@ -102,8 +102,8 @@ export function RequestResetPasswordComponent({
         {t('users.requestPasswordReset.description')}
       </div>
 
-      <div className="mb-6 min-w-0">
-        <label htmlFor={controlId + 'field-1'} className="mb-2 block text-sm text-content">
+      <div className="mb-3 min-w-0">
+        <label htmlFor={controlId + 'field-1'} className="mb-1 block text-sm text-content">
           {t('users.fields.yourEmail')}
         </label>
         <TextInput
@@ -126,8 +126,6 @@ export function RequestResetPasswordComponent({
           error={isEmailError ? <span>{t('users.validation.emailInvalid')}</span> : undefined}
         />
       </div>
-
-      <div className="mt-3" />
 
       <CloudflareTurnstileWidget containerRef={containerRef} />
 

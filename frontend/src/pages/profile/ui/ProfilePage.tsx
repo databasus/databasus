@@ -203,7 +203,7 @@ export function ProfilePage({ onUserChanged }: Props) {
                     <div className="mb-3 min-w-0">
                       <label
                         htmlFor={controlId + 'field-1'}
-                        className="mb-2 block text-sm text-content"
+                        className="mb-1 block text-sm text-content"
                       >
                         {t('users.fields.name')}
                       </label>
@@ -229,7 +229,7 @@ export function ProfilePage({ onUserChanged }: Props) {
                     <div className="mb-3 min-w-0">
                       <label
                         htmlFor={controlId + 'field-2'}
-                        className="mb-2 block text-sm text-content"
+                        className="mb-1 block text-sm text-content"
                       >
                         {t('users.fields.email')}
                       </label>
@@ -296,7 +296,7 @@ export function ProfilePage({ onUserChanged }: Props) {
                     <div className="mb-3 min-w-0">
                       <label
                         htmlFor={controlId + 'field-3'}
-                        className="mb-2 block text-sm text-content"
+                        className="mb-1 block text-sm text-content"
                       >
                         {t('users.fields.newPassword')}
                       </label>
@@ -332,7 +332,7 @@ export function ProfilePage({ onUserChanged }: Props) {
                     <div className="mb-3 min-w-0">
                       <label
                         htmlFor={controlId + 'field-4'}
-                        className="mb-2 block text-sm text-content"
+                        className="mb-1 block text-sm text-content"
                       >
                         {t('users.profile.changePassword.confirmPassword')}
                       </label>

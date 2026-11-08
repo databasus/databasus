@@ -124,16 +124,17 @@ export function SignInCodeComponent({
 
   return (
     <div className="w-full max-w-[300px]">
-      <div className="mb-5 text-center text-2xl font-bold">{t('users.signInCode.title')}</div>
+      <div className="mb-4 text-center text-xl font-semibold">{t('users.signInCode.title')}</div>
 
       <div className="mb-4 text-center text-sm text-muted">
         {t('users.signInCode.description', { email: pendingSignIn.email })}
       </div>
 
-      <label className="my-1 text-xs font-semibold" htmlFor={controlId + 'field-1'}>
+      <label className="mb-1 block text-sm text-content" htmlFor={controlId + 'field-1'}>
         {t('users.signInCode.code')}
       </label>
       <TextInput
+        className="mb-3"
         id={controlId + 'field-1'}
         placeholder="123456"
         value={code}
@@ -145,8 +146,6 @@ export function SignInCodeComponent({
         error={(isCodeError ? 'error' : undefined) === 'error'}
         maxLength={6}
       />
-
-      <div className="mt-3" />
 
       <CloudflareTurnstileWidget containerRef={containerRef} />
 
@@ -189,8 +188,6 @@ export function SignInCodeComponent({
           {t('users.signInCode.backToSignIn')}
         </button>
       </div>
-
-      <div className="mb-10" />
     </div>
   );
 }

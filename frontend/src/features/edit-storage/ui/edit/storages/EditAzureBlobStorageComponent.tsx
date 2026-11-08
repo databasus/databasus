@@ -228,8 +228,6 @@ export function EditAzureBlobStorageComponent({
           </div>
         </div>
       )}
-
-      <div className="mb-5" />
     </>
   );
 }

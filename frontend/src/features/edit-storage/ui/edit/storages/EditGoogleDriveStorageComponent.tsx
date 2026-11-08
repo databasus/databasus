@@ -28,8 +28,8 @@ export function EditGoogleDriveStorageComponent(props: Props) {
       <a href={getWebsitePageUrl('storagesGoogleDrive', locale)} target="_blank" rel="noreferrer">
         {t('storages.edit.googleDrive.guideLink')}
       </a>
-      <div className="mb-6 min-w-0">
-        <label htmlFor={`${controlId}-client`} className="mb-2 block text-sm text-content">
+      <div className="mb-3 min-w-0">
+        <label htmlFor={`${controlId}-client`} className="mb-1 block text-sm text-content">
           {t('storages.fields.clientId')}
         </label>
         <TextInput
@@ -39,8 +39,8 @@ export function EditGoogleDriveStorageComponent(props: Props) {
           onChange={(event) => onChange({ ...settings, clientId: event.target.value.trim() })}
         />
       </div>
-      <div className="mb-6 min-w-0">
-        <label htmlFor={`${controlId}-secret`} className="mb-2 block text-sm text-content">
+      <div className="mb-3 min-w-0">
+        <label htmlFor={`${controlId}-secret`} className="mb-1 block text-sm text-content">
           {t('storages.fields.clientSecret')}
         </label>
         <PasswordInput

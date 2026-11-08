@@ -58,7 +58,7 @@ export function AuthPage() {
           <div>
             <AuthNavbarComponent />
 
-            <div className="mt-10 flex justify-center px-4 pb-8 sm:mt-[10vh]">
+            <div className="mt-8 flex justify-center px-4 pb-8 sm:mt-[6vh]">
               {authMode === 'signUp' ? (
                 <SignUpComponent
                   onSwitchToSignIn={hasAnyUser ? () => setAuthMode('signIn') : undefined}

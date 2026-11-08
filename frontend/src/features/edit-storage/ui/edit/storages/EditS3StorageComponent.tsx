@@ -283,8 +283,6 @@ export function EditS3StorageComponent({
           </div>
         </div>
       )}
-
-      <div className="mb-5" />
     </>
   );
 }

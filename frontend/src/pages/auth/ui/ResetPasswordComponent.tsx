@@ -139,14 +139,14 @@ export function ResetPasswordComponent({
 
   return (
     <div className="w-full max-w-[300px]">
-      <div className="mb-5 text-center text-2xl font-bold">{t('users.resetPassword.title')}</div>
+      <div className="mb-4 text-center text-xl font-semibold">{t('users.resetPassword.title')}</div>
 
       <div className="mb-4 text-center text-sm text-muted">
         {t('users.resetPassword.description')}
       </div>
 
-      <div className="mb-6 min-w-0">
-        <label htmlFor={controlId + 'field-1'} className="mb-2 block text-sm text-content">
+      <div className="mb-3 min-w-0">
+        <label htmlFor={controlId + 'field-1'} className="mb-1 block text-sm text-content">
           {t('users.fields.yourEmail')}
         </label>
         <TextInput
@@ -163,8 +163,8 @@ export function ResetPasswordComponent({
         />
       </div>
 
-      <div className="mb-6 min-w-0">
-        <label htmlFor={controlId + 'field-2'} className="mb-2 block text-sm text-content">
+      <div className="mb-3 min-w-0">
+        <label htmlFor={controlId + 'field-2'} className="mb-1 block text-sm text-content">
           {t('users.resetPassword.code')}
         </label>
         <TextInput
@@ -182,8 +182,8 @@ export function ResetPasswordComponent({
         />
       </div>
 
-      <div className="mb-6 min-w-0">
-        <label htmlFor={controlId + 'field-3'} className="mb-2 block text-sm text-content">
+      <div className="mb-3 min-w-0">
+        <label htmlFor={controlId + 'field-3'} className="mb-1 block text-sm text-content">
           {t('users.fields.newPassword')}
         </label>
         <PasswordInput
@@ -208,8 +208,8 @@ export function ResetPasswordComponent({
         />
       </div>
 
-      <div className="mb-6 min-w-0">
-        <label htmlFor={controlId + 'field-4'} className="mb-2 block text-sm text-content">
+      <div className="mb-3 min-w-0">
+        <label htmlFor={controlId + 'field-4'} className="mb-1 block text-sm text-content">
           {t('users.resetPassword.confirmPassword')}
         </label>
         <PasswordInput
@@ -233,8 +233,6 @@ export function ResetPasswordComponent({
           }
         />
       </div>
-
-      <div className="mt-3" />
 
       <Button
         aria-label={t('users.resetPassword.submit')}
