@@ -27,7 +27,7 @@ export const ScheduleEditor = ({ label, schedule, onChange }: Props) => {
       <div className="mt-4 mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <label
           htmlFor={typeControlId}
-          className="mb-1 max-w-[150px] min-w-[150px] leading-[1.1428571429] sm:mb-0 sm:pr-2"
+          className="mb-1 min-w-0 leading-[1.1428571429] wrap-anywhere sm:mb-0 sm:w-[150px] sm:shrink-0 sm:pr-2"
         >
           {label}
         </label>

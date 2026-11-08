@@ -61,7 +61,9 @@ export function EditS3StorageComponent({
       </div>
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.s3Bucket')}</div>
+        <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[110px] sm:shrink-0 sm:pr-2">
+          {t('storages.fields.s3Bucket')}
+        </div>
         <TextInput
           aria-label={t('storages.fields.s3Bucket')}
           value={settings.s3Bucket || ''}
@@ -76,7 +78,9 @@ export function EditS3StorageComponent({
       </div>
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.region')}</div>
+        <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[110px] sm:shrink-0 sm:pr-2">
+          {t('storages.fields.region')}
+        </div>
         <TextInput
           aria-label={t('storages.fields.region')}
           value={settings.s3Region || ''}
@@ -91,7 +95,9 @@ export function EditS3StorageComponent({
       </div>
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.accessKey')}</div>
+        <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[110px] sm:shrink-0 sm:pr-2">
+          {t('storages.fields.accessKey')}
+        </div>
         <div className="w-full max-w-[250px]">
           <PasswordInput
             aria-label={t('storages.fields.accessKey')}
@@ -120,7 +126,9 @@ export function EditS3StorageComponent({
       </div>
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.secretKey')}</div>
+        <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[110px] sm:shrink-0 sm:pr-2">
+          {t('storages.fields.secretKey')}
+        </div>
         <div className="w-full max-w-[250px]">
           <PasswordInput
             aria-label={t('storages.fields.secretKey')}
@@ -149,8 +157,10 @@ export function EditS3StorageComponent({
       </div>
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.endpoint')}</div>
-        <div className="flex items-center">
+        <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[110px] sm:shrink-0 sm:pr-2">
+          {t('storages.fields.endpoint')}
+        </div>
+        <div className="flex w-full min-w-0 items-center">
           <TextInput
             aria-label={t('storages.fields.endpoint')}
             value={settings.s3Endpoint || ''}
@@ -180,10 +190,10 @@ export function EditS3StorageComponent({
       {isShowAdvanced && (
         <div id={advancedRegionId}>
           <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-            <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">
+            <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[110px] sm:shrink-0 sm:pr-2">
               {t('storages.fields.folderPrefix')}
             </div>
-            <div className="flex items-center">
+            <div className="flex w-full min-w-0 items-center">
               <TextInput
                 aria-label={t('storages.fields.folderPrefix')}
                 value={settings.s3Prefix || ''}
@@ -205,7 +215,7 @@ export function EditS3StorageComponent({
           </div>
 
           <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-            <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">
+            <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[110px] sm:shrink-0 sm:pr-2">
               {t('storages.fields.virtualHost')}
             </div>
             <div className="flex items-center">
@@ -224,7 +234,7 @@ export function EditS3StorageComponent({
           </div>
 
           <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-            <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">
+            <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[110px] sm:shrink-0 sm:pr-2">
               {t('storages.fields.skipTlsVerify')}
             </div>
             <div className="flex items-center">
@@ -246,7 +256,7 @@ export function EditS3StorageComponent({
           </div>
 
           <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-            <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">
+            <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[110px] sm:shrink-0 sm:pr-2">
               {t('storages.fields.storageClass')}
             </div>
             <div className="flex w-full max-w-[280px] min-w-0 items-center">

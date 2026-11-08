@@ -66,8 +66,10 @@ region = us-east-1`}
       </div>
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.remotePath')}</div>
-        <div className="flex items-center">
+        <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[110px] sm:shrink-0 sm:pr-2">
+          {t('storages.fields.remotePath')}
+        </div>
+        <div className="flex w-full min-w-0 items-center">
           <TextInput
             aria-label={t('storages.fields.remotePath')}
             value={settings.remotePath || ''}

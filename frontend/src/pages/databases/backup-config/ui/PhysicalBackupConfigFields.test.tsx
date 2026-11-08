@@ -73,12 +73,23 @@ describe('PhysicalBackupConfigFields', () => {
       await view.user.click(hintButton);
 
       expect(hintButton.getAttribute('aria-expanded')).toBe('true');
-      expect(screen.getByText(DICTIONARIES.en.backups.physical.config.gfsHint)).toBeTruthy();
+      expect(
+        screen.getByText(DICTIONARIES.en.backups.physical.config.gfsHint.summary),
+      ).toBeTruthy();
+
+      const hint = screen.getByText(
+        DICTIONARIES.en.backups.physical.config.gfsHint.summary,
+      ).parentElement!;
+
+      expect(within(hint).getAllByRole('paragraph')).toHaveLength(4);
+      expect(screen.getByText('GFS applies only to full backups.')).toBeTruthy();
       expect(dailyCount).toHaveProperty('value', '9');
 
       await view.user.click(screen.getByRole('button', { name: 'Hide' }));
 
-      expect(screen.queryByText(DICTIONARIES.en.backups.physical.config.gfsHint)).toBeNull();
+      expect(
+        screen.queryByText(DICTIONARIES.en.backups.physical.config.gfsHint.summary),
+      ).toBeNull();
       expect(dailyCount).toHaveProperty('value', '9');
 
       await chooseOption(view, { controlName: 'Full backups', optionName: 'Count' });
@@ -105,7 +116,11 @@ describe('PhysicalBackupConfigFields', () => {
       screen.getByRole('button', { name: dictionary.logical.config.retention.showGfsHint }),
     );
 
-    expect(screen.getByText(dictionary.physical.config.gfsHint)).toBeTruthy();
+    expect(screen.getByText(dictionary.physical.config.gfsHint.summary)).toBeTruthy();
+
+    const hint = screen.getByText(dictionary.physical.config.gfsHint.summary).parentElement!;
+
+    expect(within(hint).getAllByRole('paragraph')).toHaveLength(4);
     expect(dailyCount).toHaveProperty('value', initialCount);
   });
 

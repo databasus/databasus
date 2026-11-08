@@ -30,10 +30,10 @@ export function EditTeamsNotifierComponent({ settings, isSaved, onChange }: Prop
       </div>
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
+        <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[150px] sm:shrink-0 sm:pr-2">
           {t('notifiers.teams.powerAutomateUrl')}
         </div>
-        <div className="flex items-center">
+        <div className="flex w-full min-w-0 items-center">
           <TextInput
             aria-label={t('notifiers.teams.powerAutomateUrl')}
             value={settings.powerAutomateUrl ?? ''}

@@ -21,7 +21,7 @@ export const RowActionButton = ({
   <Tooltip label={title}>
     <ActionIcon
       variant="subtle"
-      size="xs"
+      size="sm"
       className={`${className} !text-lg`}
       aria-label={title}
       loading={isPending}

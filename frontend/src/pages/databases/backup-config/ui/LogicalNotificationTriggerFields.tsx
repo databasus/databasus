@@ -30,10 +30,10 @@ export const LogicalNotificationTriggerFields = ({ triggers, onChange }: Props) 
 
   return (
     <div className="mt-4 mb-1 flex w-full flex-col items-start sm:flex-row sm:items-start">
-      <div className="mt-0 mb-1 min-w-[150px] sm:mt-1 sm:mb-0 sm:pr-2">
+      <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[150px] sm:shrink-0 sm:pr-2">
         {t('backups.config.notifications')}
       </div>
-      <div className="flex flex-col space-y-2">
+      <div className="flex min-w-0 flex-col space-y-1">
         {SHOWN_TRIGGERS.map((trigger) => (
           <Checkbox
             key={trigger}

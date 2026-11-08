@@ -72,7 +72,7 @@ export const PhysicalRestoreEnvironmentPanel = ({
   const dataDir = clusterDataDir(outputDir, pgVersion);
 
   return (
-    <div>
+    <div className="pt-3">
       <div className="mb-3">
         <div className="mb-2 flex w-full flex-col items-start sm:flex-row sm:items-center">
           <label className="mb-1 shrink-0 sm:mb-0 sm:w-[190px] sm:pr-2" htmlFor={directoryFieldId}>

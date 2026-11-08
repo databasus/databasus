@@ -61,7 +61,7 @@ export function EditMattermostNotifierComponent({
       </div>
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
+        <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[150px] sm:shrink-0 sm:pr-2">
           {t('notifiers.mattermost.connectVia')}
         </div>
         <WrappingSelect
@@ -81,7 +81,7 @@ export function EditMattermostNotifierComponent({
 
       {isWebhookMode ? (
         <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-          <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
+          <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[150px] sm:shrink-0 sm:pr-2">
             {t('notifiers.mattermost.incomingWebhookUrl')}
           </div>
           <TextInput
@@ -104,7 +104,7 @@ export function EditMattermostNotifierComponent({
       ) : (
         <>
           <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-            <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
+            <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[150px] sm:shrink-0 sm:pr-2">
               {t('notifiers.mattermost.serverUrl')}
             </div>
             <TextInput
@@ -122,7 +122,7 @@ export function EditMattermostNotifierComponent({
           </div>
 
           <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-            <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
+            <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[150px] sm:shrink-0 sm:pr-2">
               {t('notifiers.fields.botToken')}
             </div>
             <div className="w-full max-w-[250px]">
@@ -152,10 +152,10 @@ export function EditMattermostNotifierComponent({
           </div>
 
           <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-            <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
+            <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[150px] sm:shrink-0 sm:pr-2">
               {t('notifiers.fields.channelId')}
             </div>
-            <div className="flex items-center">
+            <div className="flex w-full min-w-0 items-center">
               <TextInput
                 aria-label={t('notifiers.fields.channelId')}
                 value={settings.targetChannelId ?? ''}
@@ -198,10 +198,10 @@ export function EditMattermostNotifierComponent({
         <div id={optionalRegionId}>
           {isWebhookMode && (
             <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-              <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
+              <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[150px] sm:shrink-0 sm:pr-2">
                 {t('notifiers.mattermost.channelOverride')}
               </div>
-              <div className="flex items-center">
+              <div className="flex w-full min-w-0 items-center">
                 <TextInput
                   aria-label={t('notifiers.mattermost.channelOverride')}
                   value={settings.targetChannelName ?? ''}
@@ -227,10 +227,10 @@ export function EditMattermostNotifierComponent({
           )}
 
           <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-            <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
+            <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[150px] sm:shrink-0 sm:pr-2">
               {t('notifiers.mattermost.postAsUsername')}
             </div>
-            <div className="flex items-center">
+            <div className="flex w-full min-w-0 items-center">
               <TextInput
                 aria-label={t('notifiers.mattermost.postAsUsername')}
                 value={settings.overrideUsername ?? ''}
@@ -255,10 +255,10 @@ export function EditMattermostNotifierComponent({
           </div>
 
           <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-            <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
+            <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[150px] sm:shrink-0 sm:pr-2">
               {t('notifiers.mattermost.postAsIconUrl')}
             </div>
-            <div className="flex items-center">
+            <div className="flex w-full min-w-0 items-center">
               <TextInput
                 aria-label={t('notifiers.mattermost.postAsIconUrl')}
                 value={settings.overrideIconUrl ?? ''}
@@ -282,7 +282,7 @@ export function EditMattermostNotifierComponent({
           </div>
 
           <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-            <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
+            <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[150px] sm:shrink-0 sm:pr-2">
               {t('notifiers.fields.skipTlsVerify')}
             </div>
             <div className="flex items-center">

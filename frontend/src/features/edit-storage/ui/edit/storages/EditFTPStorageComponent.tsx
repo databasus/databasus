@@ -24,7 +24,9 @@ export function EditFTPStorageComponent({ settings, isAddressChanged, onChange }
   return (
     <>
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('common.fields.host')}</div>
+        <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[110px] sm:shrink-0 sm:pr-2">
+          {t('common.fields.host')}
+        </div>
         <TextInput
           aria-label={t('common.fields.host')}
           value={settings.host || ''}
@@ -39,7 +41,9 @@ export function EditFTPStorageComponent({ settings, isAddressChanged, onChange }
       </div>
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('common.fields.port')}</div>
+        <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[110px] sm:shrink-0 sm:pr-2">
+          {t('common.fields.port')}
+        </div>
         <NumberInput
           aria-label={t('common.fields.port')}
           value={settings.port}
@@ -60,7 +64,9 @@ export function EditFTPStorageComponent({ settings, isAddressChanged, onChange }
       </div>
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('common.fields.username')}</div>
+        <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[110px] sm:shrink-0 sm:pr-2">
+          {t('common.fields.username')}
+        </div>
         <TextInput
           aria-label={t('common.fields.username')}
           value={settings.username || ''}
@@ -74,7 +80,9 @@ export function EditFTPStorageComponent({ settings, isAddressChanged, onChange }
       </div>
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('common.fields.password')}</div>
+        <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[110px] sm:shrink-0 sm:pr-2">
+          {t('common.fields.password')}
+        </div>
         <div className="w-full max-w-[250px]">
           <PasswordInput
             aria-label={t('common.fields.password')}
@@ -102,8 +110,10 @@ export function EditFTPStorageComponent({ settings, isAddressChanged, onChange }
       </div>
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.path')}</div>
-        <div className="flex items-center">
+        <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[110px] sm:shrink-0 sm:pr-2">
+          {t('storages.fields.path')}
+        </div>
+        <div className="flex w-full min-w-0 items-center">
           <TextInput
             aria-label={t('storages.fields.path')}
             value={settings.path || ''}
@@ -128,7 +138,9 @@ export function EditFTPStorageComponent({ settings, isAddressChanged, onChange }
       </div>
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.useSslTls')}</div>
+        <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[110px] sm:shrink-0 sm:pr-2">
+          {t('storages.fields.useSslTls')}
+        </div>
         <div className="flex items-center">
           <Checkbox
             checked={settings.isSsl || false}
@@ -155,7 +167,7 @@ export function EditFTPStorageComponent({ settings, isAddressChanged, onChange }
         <div id={advancedRegionId}>
           {settings.isSsl && (
             <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-              <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">
+              <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[110px] sm:shrink-0 sm:pr-2">
                 {t('storages.fields.skipTlsVerify')}
               </div>
               <div className="flex items-center">

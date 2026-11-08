@@ -77,8 +77,10 @@ export const PhysicalBackupConfigFields = ({
       )}
 
       <div className="mt-5 mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('backups.config.storage')}</div>
-        <div className="flex w-full items-center">
+        <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[150px] sm:shrink-0 sm:pr-2">
+          {t('backups.config.storage')}
+        </div>
+        <div className="flex w-full min-w-0 items-center">
           <BackupStorageSelection
             workspaceId={workspaceId}
             selectedStorageId={draft.storageId ?? undefined}
@@ -91,13 +93,15 @@ export const PhysicalBackupConfigFields = ({
       {storageCleanupNotice}
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('backups.config.encryption')}</div>
-        <div className="flex w-full items-center">
+        <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[150px] sm:shrink-0 sm:pr-2">
+          {t('backups.config.encryption')}
+        </div>
+        <div className="flex w-full min-w-0 items-center">
           <WrappingSelect
             value={draft.encryption}
             onChange={(encryption) => onChange({ ...draft, encryption })}
             size="xs"
-            className="min-w-0 grow"
+            className="w-full max-w-[200px]"
             data={encryptionOptions}
             aria-label={t('backups.config.encryption')}
           />

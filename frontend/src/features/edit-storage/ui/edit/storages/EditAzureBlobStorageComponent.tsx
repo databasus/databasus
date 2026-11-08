@@ -33,7 +33,9 @@ export function EditAzureBlobStorageComponent({
   return (
     <>
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.authMethod')}</div>
+        <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[110px] sm:shrink-0 sm:pr-2">
+          {t('storages.fields.authMethod')}
+        </div>
         <div className="min-w-0">
           <Radio.Group
             value={settings.authMethod || 'ACCOUNT_KEY'}
@@ -60,7 +62,7 @@ export function EditAzureBlobStorageComponent({
 
       {settings.authMethod === 'CONNECTION_STRING' && (
         <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-          <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">
+          <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[110px] sm:shrink-0 sm:pr-2">
             {t('storages.fields.connection')}
           </div>
           <div className="flex w-full max-w-[280px] min-w-0 items-center">
@@ -71,7 +73,7 @@ export function EditAzureBlobStorageComponent({
                 onChange({ ...settings, connectionString: toOptionalValue(e.target.value.trim()) });
               }}
               size="xs"
-              className="max-w-[250px] min-w-0 flex-1"
+              className="w-full max-w-[250px] min-w-0"
               // eslint-disable-next-line i18next/no-literal-string -- connection string format example
               placeholder="DefaultEndpointsProtocol=https;AccountName=..."
               autoComplete="off"
@@ -96,7 +98,7 @@ export function EditAzureBlobStorageComponent({
       {settings.authMethod === 'ACCOUNT_KEY' && (
         <>
           <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-            <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">
+            <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[110px] sm:shrink-0 sm:pr-2">
               {t('storages.fields.accountName')}
             </div>
             <TextInput
@@ -106,14 +108,14 @@ export function EditAzureBlobStorageComponent({
                 onChange({ ...settings, accountName: toOptionalValue(e.target.value.trim()) });
               }}
               size="xs"
-              className="max-w-[250px] min-w-0 flex-1"
+              className="w-full max-w-[250px] min-w-0"
               // eslint-disable-next-line i18next/no-literal-string -- example account name
               placeholder="mystorageaccount"
             />
           </div>
 
           <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-            <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">
+            <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[110px] sm:shrink-0 sm:pr-2">
               {t('storages.fields.accountKey')}
             </div>
             <div className="w-full max-w-[250px] min-w-0 flex-1">
@@ -146,7 +148,7 @@ export function EditAzureBlobStorageComponent({
       )}
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">
+        <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[110px] sm:shrink-0 sm:pr-2">
           {t('storages.fields.containerName')}
         </div>
         <TextInput
@@ -156,7 +158,7 @@ export function EditAzureBlobStorageComponent({
             onChange({ ...settings, containerName: e.target.value.trim() });
           }}
           size="xs"
-          className="max-w-[250px] min-w-0 flex-1"
+          className="w-full max-w-[250px] min-w-0"
           // eslint-disable-next-line i18next/no-literal-string -- example container name
           placeholder="my-container"
         />
@@ -173,10 +175,10 @@ export function EditAzureBlobStorageComponent({
         <div id={advancedRegionId}>
           {settings.authMethod === 'ACCOUNT_KEY' && (
             <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-              <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">
+              <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[110px] sm:shrink-0 sm:pr-2">
                 {t('storages.fields.endpoint')}
               </div>
-              <div className="flex items-center">
+              <div className="flex w-full min-w-0 items-center">
                 <TextInput
                   aria-label={t('storages.fields.endpoint')}
                   value={settings.endpoint || ''}
@@ -184,7 +186,7 @@ export function EditAzureBlobStorageComponent({
                     onChange({ ...settings, endpoint: toOptionalValue(e.target.value.trim()) });
                   }}
                   size="xs"
-                  className="max-w-[250px] min-w-0 flex-1"
+                  className="w-full max-w-[250px] min-w-0"
                   placeholder={t('storages.edit.optionalPlaceholder', {
                     example: 'https://myaccount.blob.core.windows.net',
                   })}
@@ -201,10 +203,10 @@ export function EditAzureBlobStorageComponent({
           )}
 
           <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-            <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">
+            <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[110px] sm:shrink-0 sm:pr-2">
               {t('storages.fields.blobPrefix')}
             </div>
-            <div className="flex items-center">
+            <div className="flex w-full min-w-0 items-center">
               <TextInput
                 aria-label={t('storages.fields.blobPrefix')}
                 value={settings.prefix || ''}
@@ -212,7 +214,7 @@ export function EditAzureBlobStorageComponent({
                   onChange({ ...settings, prefix: toOptionalValue(e.target.value.trim()) });
                 }}
                 size="xs"
-                className="max-w-[250px] min-w-0 flex-1"
+                className="w-full max-w-[250px] min-w-0"
                 placeholder={t('storages.edit.optionalPlaceholder', { example: 'my-prefix/' })}
                 // Every stored blob is named under the prefix, so it is fixed once the storage is saved
                 disabled={isSaved}

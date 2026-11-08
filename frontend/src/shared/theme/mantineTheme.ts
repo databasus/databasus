@@ -119,9 +119,19 @@ export const mantineTheme = createTheme({
     }),
     Checkbox: Checkbox.extend({
       defaultProps: { size: 'xs' },
-      classNames: { label: classes.choiceLabel },
+      classNames: (_theme, { label }) => ({
+        root: classes.checkbox,
+        label: classes.choiceLabel,
+        inner: label ? classes.checkboxInner : undefined,
+      }),
     }),
-    Radio: Radio.extend({ classNames: { label: classes.choiceLabel } }),
+    Radio: Radio.extend({
+      classNames: (_theme, { label }) => ({
+        root: classes.radio,
+        label: classes.choiceLabel,
+        inner: label ? classes.radioInner : undefined,
+      }),
+    }),
     Switch: Switch.extend({
       defaultProps: { size: 'xs' },
       classNames: { track: classes.switchTrack, label: classes.choiceLabel },

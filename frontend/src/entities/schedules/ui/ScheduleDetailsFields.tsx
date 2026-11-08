@@ -41,7 +41,10 @@ export const ScheduleDetailsFields = ({ schedule, onChange }: Props) => {
     <>
       {schedule.type === ScheduleType.WEEKLY && (
         <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-          <label htmlFor={weekdayControlId} className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
+          <label
+            htmlFor={weekdayControlId}
+            className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[150px] sm:shrink-0 sm:pr-2"
+          >
             {t('schedules.weekday')}
           </label>
           <WrappingSelect
@@ -57,7 +60,10 @@ export const ScheduleDetailsFields = ({ schedule, onChange }: Props) => {
 
       {schedule.type === ScheduleType.MONTHLY && (
         <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-          <label htmlFor={dayOfMonthControlId} className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
+          <label
+            htmlFor={dayOfMonthControlId}
+            className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[150px] sm:shrink-0 sm:pr-2"
+          >
             {t('schedules.dayOfMonth')}
           </label>
           <NumberInput
@@ -89,7 +95,10 @@ export const ScheduleDetailsFields = ({ schedule, onChange }: Props) => {
 
       {schedule.type !== ScheduleType.HOURLY && schedule.type !== ScheduleType.CRON && (
         <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-          <label htmlFor={timeOfDayControlId} className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
+          <label
+            htmlFor={timeOfDayControlId}
+            className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[150px] sm:shrink-0 sm:pr-2"
+          >
             {t('schedules.timeOfDay')}
           </label>
           <TimePicker
@@ -120,7 +129,7 @@ export const ScheduleDetailsFields = ({ schedule, onChange }: Props) => {
               };
             }}
             size="xs"
-            className="w-full max-w-[240px] grow"
+            className="w-full max-w-[200px] grow"
             onChange={(pickedTime) => {
               if (!pickedTime) return;
 

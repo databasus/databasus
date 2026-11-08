@@ -1,3 +1,5 @@
+import { ActionIcon } from '@mantine/core';
+import { X } from 'lucide-react';
 import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -96,7 +98,6 @@ export function BackupStorageSelection({
         data={storages.map((storage) => ({ value: storage.id, label: storage.name }))}
         selectedValues={selectedStorageId ? [selectedStorageId] : []}
         onSelect={onSelect}
-        onClear={canClear ? () => onSelect(undefined) : undefined}
         isLoading={isLoading}
         className="max-w-[200px] flex-1"
         isOpen={isDropdownOpen}
@@ -105,6 +106,15 @@ export function BackupStorageSelection({
         createLabel={t('backups.config.createNewStorage')}
         onCreate={createStorage}
       />
+      {canClear && selectedStorageId && (
+        <ActionIcon
+          size="xs"
+          aria-label={t('common.actions.clear')}
+          onClick={() => onSelect(undefined)}
+        >
+          <X aria-hidden size={12} />
+        </ActionIcon>
+      )}
       {selectedStorage && (
         <img
           src={getStorageLogoFromType(selectedStorage.settings.type)}

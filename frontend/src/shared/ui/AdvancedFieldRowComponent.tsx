@@ -18,8 +18,12 @@ export const AdvancedFieldRowComponent = ({ label, tooltip, children, controlId 
       {children}
 
       <Tooltip label={tooltip} events={{ hover: true, focus: true, touch: false }}>
-        <span id={`${controlId}-help`} className="ml-2 text-muted" tabIndex={0}>
-          <Info size="1em" aria-label={tooltip} className="inline-block shrink-0 align-middle" />
+        <span
+          id={`${controlId}-help`}
+          className="ml-2 inline-flex shrink-0 items-center text-muted"
+          tabIndex={0}
+        >
+          <Info size="1em" aria-label={tooltip} className="block" />
         </span>
       </Tooltip>
     </div>

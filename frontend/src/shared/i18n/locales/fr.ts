@@ -1576,8 +1576,14 @@ export const fr: typeof en = {
           countValue: 'Sauvegardes les plus récentes : {{count}}',
           showGfsHint: "Qu'est-ce que GFS (Grandfather-Father-Son) ?",
           hideGfsHint: 'Masquer',
-          gfsHint:
-            'GFS conserve la dernière sauvegarde réussie de chaque période calendaire sélectionnée en UTC. Les heures et les jours incluent la période en cours. Les semaines, mois et années comptent des périodes terminées et protègent aussi la dernière sauvegarde réussie de la période en cours comme candidate. Seule une nouvelle sauvegarde réussie remplace la candidate, jamais un échec. Les semaines commencent le lundi. Les périodes en cours suivent la date de création de la dernière sauvegarde réussie ; une pause ne fait donc pas expirer ces points. Une sauvegarde peut représenter plusieurs périodes : les valeurs ne donnent pas un nombre fixe de fichiers.',
+          gfsHint: {
+            summary:
+              'GFS conserve les sauvegardes récentes et garde certaines anciennes plus longtemps.',
+            selection:
+              '<strong>Choisissez combien de sauvegardes conserver</strong> par heure, jour, semaine, mois et année. Seules les sauvegardes réussies comptent.',
+            fileCount:
+              '<strong>Une sauvegarde peut compter pour plusieurs réglages</strong>, le nombre total de fichiers peut donc varier.',
+          },
           gfsTooltip:
             'GFS : heures et jours calendaires récents, semaines, mois et années terminés, plus une candidate protégée pour la période en cours.',
           gfsFields: {
@@ -1678,8 +1684,16 @@ export const fr: typeof en = {
         chainsKept: 'Chaînes conservées',
         fullBackupsKept: 'Sauvegardes complètes conservées',
         fullBackupsCountValue: 'Les plus récentes : {{count}}',
-        gfsHint:
-          'GFS conserve la dernière sauvegarde complète réussie de chaque période calendaire sélectionnée en UTC. Les heures et les jours incluent la période en cours. Les semaines, mois et années comptent des périodes terminées et protègent aussi la dernière sauvegarde complète réussie de la période en cours comme candidate. Seule une autre sauvegarde complète réussie la remplace, jamais un échec ni une incrémentale. Les semaines commencent le lundi. Les périodes suivent la date de création de la dernière sauvegarde complète réussie, même pendant une pause. Une sauvegarde peut représenter plusieurs périodes, sans total fixe de fichiers. GFS seul ne préserve ni les incrémentales ni le WAL.',
+        gfsHint: {
+          summary:
+            'GFS conserve les sauvegardes complètes récentes et garde certaines anciennes plus longtemps.',
+          selection:
+            '<strong>Choisissez combien de sauvegardes conserver</strong> par heure, jour, semaine, mois et année. Seules les sauvegardes réussies comptent.',
+          fileCount:
+            '<strong>Une sauvegarde peut compter pour plusieurs réglages</strong>, le nombre total de fichiers peut donc varier.',
+          scope:
+            '<strong>GFS ne concerne que les sauvegardes complètes.</strong> Les incrémentales et le WAL sont gérés séparément.',
+        },
         gfsTooltip:
           'GFS : sauvegardes complètes réussies des heures et jours récents et des semaines, mois et années terminés, plus la candidate actuelle.',
       },

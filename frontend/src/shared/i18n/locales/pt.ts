@@ -1554,8 +1554,13 @@ export const pt: typeof en = {
           countValue: 'Backups mais recentes: {{count}}',
           showGfsHint: 'O que é GFS (Grandfather-Father-Son)?',
           hideGfsHint: 'Ocultar',
-          gfsHint:
-            'O GFS mantém o último backup bem-sucedido de cada período selecionado do calendário em UTC. Horas e dias incluem o período atual. Semanas, meses e anos contam períodos concluídos e também protegem o último backup bem-sucedido do período atual como candidato. Só um novo backup bem-sucedido substitui o candidato; tentativas com falha não o substituem. A semana começa na segunda-feira. Os períodos atuais seguem a data de criação do último backup bem-sucedido, por isso uma pausa não faz esses pontos expirarem. Um backup pode representar vários períodos; os valores não somam um número fixo de arquivos.',
+          gfsHint: {
+            summary: 'O GFS mantém backups recentes e guarda alguns mais antigos por mais tempo.',
+            selection:
+              '<strong>Escolha quantos backups manter</strong> por hora, dia, semana, mês e ano. Só contam os backups bem-sucedidos.',
+            fileCount:
+              '<strong>Um backup pode contar para várias configurações</strong>, por isso o total de arquivos pode variar.',
+          },
           gfsTooltip:
             'GFS: horas e dias recentes do calendário, semanas, meses e anos concluídos e um candidato protegido do período atual.',
           gfsFields: {
@@ -1656,8 +1661,16 @@ export const pt: typeof en = {
         chainsKept: 'Cadeias mantidas',
         fullBackupsKept: 'Backups completos mantidos',
         fullBackupsCountValue: 'Mais recentes: {{count}}',
-        gfsHint:
-          'O GFS mantém o último backup completo bem-sucedido de cada período selecionado do calendário em UTC. Horas e dias incluem o período atual. Semanas, meses e anos contam períodos concluídos e também protegem o último backup completo bem-sucedido do período atual como candidato. Só outro backup completo bem-sucedido o substitui; falhas e incrementais não. A semana começa na segunda-feira. Os períodos atuais seguem a data de criação do último backup completo bem-sucedido, mesmo durante uma pausa. Um backup pode representar vários períodos, sem um total fixo de arquivos. O GFS por si só não preserva os incrementais nem o WAL.',
+        gfsHint: {
+          summary:
+            'O GFS mantém backups completos recentes e guarda alguns mais antigos por mais tempo.',
+          selection:
+            '<strong>Escolha quantos backups manter</strong> por hora, dia, semana, mês e ano. Só contam os backups bem-sucedidos.',
+          fileCount:
+            '<strong>Um backup pode contar para várias configurações</strong>, por isso o total de arquivos pode variar.',
+          scope:
+            '<strong>O GFS se aplica apenas a backups completos.</strong> Os incrementais e o WAL são gerenciados separadamente.',
+        },
         gfsTooltip:
           'GFS: backups completos bem-sucedidos de horas e dias recentes do calendário e períodos semanais, mensais e anuais concluídos, mais o candidato atual.',
       },

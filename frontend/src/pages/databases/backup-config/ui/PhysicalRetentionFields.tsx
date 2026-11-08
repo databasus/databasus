@@ -74,17 +74,17 @@ export const PhysicalRetentionFields = ({ retention, backupType, onChange }: Pro
 
   return (
     <div className="mt-5 mb-1 flex w-full flex-col items-start sm:flex-row sm:items-start">
-      <div className="mt-1 mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
+      <div className="mt-1 mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[150px] sm:shrink-0 sm:pr-2">
         {t('backups.physical.config.retention')}
       </div>
-      <div className="flex min-w-0 grow flex-col gap-2">
+      <div className="flex w-full min-w-0 grow flex-col gap-2 sm:w-auto">
         {hasIncrementalBackups(backupType) ? (
-          <div className="flex w-full items-center">
+          <div className="flex w-full min-w-0 items-center">
             <WrappingSelect
               value={policy}
               onChange={(chosenPolicy) => onChange({ ...retention, policy: chosenPolicy })}
               size="xs"
-              className="min-w-0 grow"
+              className="w-full max-w-[200px]"
               aria-label={t('backups.physical.config.retention')}
               data={[
                 {

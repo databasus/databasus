@@ -24,7 +24,7 @@ export const PostgresqlSslModeField = ({ controlId, sslMode, onChange }: Props) 
           value: mode,
         }))}
         size="xs"
-        className="min-w-0 grow"
+        className="w-full max-w-[200px]"
       />
     </ConnectionFieldRow>
   );

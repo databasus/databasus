@@ -1567,8 +1567,14 @@ export const es: typeof en = {
           countValue: 'Copias más recientes: {{count}}',
           showGfsHint: '¿Qué es GFS (Grandfather-Father-Son)?',
           hideGfsHint: 'Ocultar',
-          gfsHint:
-            'GFS conserva la última copia correcta de cada período natural seleccionado en UTC. Las horas y los días incluyen el período actual. Las semanas, los meses y los años cuentan períodos completos y protegen además la última copia correcta del período actual como candidata. Solo una nueva copia correcta sustituye a la candidata; los intentos fallidos no. Las semanas empiezan el lunes. Los períodos actuales se determinan por la fecha de creación de la última copia correcta, por lo que una pausa no hace caducar estos puntos. Una copia puede representar varios períodos; los valores no suman un número fijo de archivos.',
+          gfsHint: {
+            summary:
+              'GFS conserva las copias recientes y guarda algunas antiguas durante más tiempo.',
+            selection:
+              '<strong>Elija cuántas copias conservar</strong> por hora, día, semana, mes y año. Solo cuentan las copias correctas.',
+            fileCount:
+              '<strong>Una copia puede contar para varias opciones</strong>, por lo que el total de archivos puede variar.',
+          },
           gfsTooltip:
             'GFS: horas y días naturales recientes, semanas, meses y años completos, y una candidata protegida del período actual.',
           gfsFields: {
@@ -1669,8 +1675,16 @@ export const es: typeof en = {
         chainsKept: 'Cadenas conservadas',
         fullBackupsKept: 'Copias completas conservadas',
         fullBackupsCountValue: 'Más recientes: {{count}}',
-        gfsHint:
-          'GFS conserva la última copia completa correcta de cada período natural seleccionado en UTC. Las horas y los días incluyen el período actual. Las semanas, los meses y los años cuentan períodos completos y protegen además la última copia completa correcta del período actual como candidata. Solo otra copia completa correcta la sustituye; los fallos y las incrementales no. Las semanas empiezan el lunes. El período actual sigue la fecha de creación de la última copia completa correcta, incluso durante una pausa. Una copia puede representar varios períodos, sin un total fijo de archivos. GFS por sí solo no conserva las incrementales ni el WAL.',
+        gfsHint: {
+          summary:
+            'GFS conserva las copias completas recientes y guarda algunas antiguas durante más tiempo.',
+          selection:
+            '<strong>Elija cuántas copias conservar</strong> por hora, día, semana, mes y año. Solo cuentan las copias correctas.',
+          fileCount:
+            '<strong>Una copia puede contar para varias opciones</strong>, por lo que el total de archivos puede variar.',
+          scope:
+            '<strong>GFS solo se aplica a las copias completas.</strong> Las incrementales y el WAL se gestionan por separado.',
+        },
         gfsTooltip:
           'GFS: copias completas correctas de horas y días naturales recientes y períodos semanales, mensuales y anuales completos, más la candidata actual.',
       },

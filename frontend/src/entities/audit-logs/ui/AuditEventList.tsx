@@ -65,7 +65,9 @@ export function AuditEventList({
             <div className="text-xs text-muted">{formatTimestamp(event.createdAt)}</div>
             <div className="my-2 text-sm">{event.message}</div>
             {view.shouldShowWorkspace && (
-              <div className="text-xs text-accent">{getAuditEventWorkspaceLabel(event) ?? '-'}</div>
+              <div className="text-xs text-content">
+                {getAuditEventWorkspaceLabel(event) ?? '-'}
+              </div>
             )}
           </article>
         ))
@@ -108,7 +110,7 @@ export function AuditEventList({
                   </td>
                   {view.shouldShowWorkspace && (
                     <td>
-                      <span className="text-xs break-words text-accent">
+                      <span className="text-xs break-words text-content">
                         {getAuditEventWorkspaceLabel(event) ?? '-'}
                       </span>
                     </td>

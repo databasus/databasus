@@ -43,7 +43,9 @@ export function EditTelegramNotifierComponent({
   return (
     <>
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('notifiers.fields.botToken')}</div>
+        <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[150px] sm:shrink-0 sm:pr-2">
+          {t('notifiers.fields.botToken')}
+        </div>
         <div className="w-full max-w-[250px]">
           <TextInput
             aria-label={t('notifiers.fields.botToken')}
@@ -83,10 +85,10 @@ export function EditTelegramNotifierComponent({
       </div>
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
+        <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[150px] sm:shrink-0 sm:pr-2">
           {t('notifiers.fields.targetChatId')}
         </div>
-        <div className="flex items-center">
+        <div className="flex w-full min-w-0 items-center">
           <TextInput
             aria-label={t('notifiers.fields.targetChatId')}
             value={settings.targetChatId}
@@ -128,7 +130,7 @@ export function EditTelegramNotifierComponent({
       </div>
 
       <div className="mt-4 mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
+        <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[150px] sm:shrink-0 sm:pr-2">
           {t('notifiers.telegram.sendToGroupTopic')}
         </div>
         <div className="flex items-center">
@@ -156,10 +158,10 @@ export function EditTelegramNotifierComponent({
       {isSendToThreadEnabled && (
         <>
           <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-            <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
+            <div className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[150px] sm:shrink-0 sm:pr-2">
               {t('notifiers.telegram.threadId')}
             </div>
-            <div className="flex items-center">
+            <div className="flex w-full min-w-0 items-center">
               <TextInput
                 aria-label={t('notifiers.telegram.threadId')}
                 value={settings.threadId ? settings.threadId.toString() : ''}

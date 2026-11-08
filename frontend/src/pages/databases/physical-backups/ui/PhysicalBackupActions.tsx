@@ -35,7 +35,7 @@ export const PhysicalBackupActions = ({ backup, actions }: Props): JSX.Element =
       {backup.status === PhysicalBackupStatus.IN_PROGRESS && isCanManageDBs && (
         <RowActionButton
           title={t('backups.list.actions.cancelBackup')}
-          icon={<CircleX size={14} />}
+          icon={<CircleX size={18} />}
           className="!text-danger"
           isPending={cancellingBackupId === backup.id}
           isDisabled={Boolean(cancellingBackupId)}
@@ -47,7 +47,7 @@ export const PhysicalBackupActions = ({ backup, actions }: Props): JSX.Element =
         <>
           <RowActionButton
             title={t('backups.physical.list.restoreFromThisBackup')}
-            icon={<CloudUpload size={14} />}
+            icon={<CloudUpload size={18} />}
             className="!text-accent"
             onClick={() => actions.onRestore(backup)}
           />
@@ -55,7 +55,7 @@ export const PhysicalBackupActions = ({ backup, actions }: Props): JSX.Element =
           {isCanManageDBs && (
             <RowActionButton
               title={t('backups.list.actions.deleteBackup')}
-              icon={<Trash2 size={14} />}
+              icon={<Trash2 size={18} />}
               className="!text-danger"
               isPending={deletingBackupId === backup.id}
               isDisabled={Boolean(deletingBackupId)}

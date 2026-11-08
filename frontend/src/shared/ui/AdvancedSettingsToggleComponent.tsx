@@ -1,4 +1,3 @@
-import { Button } from '@mantine/core';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Props {
@@ -15,21 +14,20 @@ export const AdvancedSettingsToggleComponent = ({
   regionId,
 }: Props) => (
   <div className="mt-4 mb-1 flex items-center">
-    <Button
-      variant="transparent"
-      size="xs"
-      className="!h-auto !px-0 text-left !whitespace-normal"
+    <button
+      type="button"
+      className="inline-flex max-w-full cursor-pointer items-center gap-2 text-left text-sm text-accent"
       aria-expanded={isShowAdvanced}
       aria-controls={regionId}
       onClick={onToggle}
     >
-      <span className="mr-2">{label}</span>
+      <span>{label}</span>
 
       {isShowAdvanced ? (
-        <ChevronUp aria-hidden size={12} className="inline-block shrink-0 align-middle" />
+        <ChevronUp aria-hidden size={12} className="shrink-0" />
       ) : (
-        <ChevronDown aria-hidden size={12} className="inline-block shrink-0 align-middle" />
+        <ChevronDown aria-hidden size={12} className="shrink-0" />
       )}
-    </Button>
+    </button>
   </div>
 );

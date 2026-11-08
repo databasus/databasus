@@ -45,7 +45,7 @@ export const LogicalBackupActions = ({ backup, actions }: Props) => {
       <div className="flex flex-wrap gap-2">
         <RowActionButton
           title={t('backups.list.actions.cancelBackup')}
-          icon={<CircleX size={14} />}
+          icon={<CircleX size={18} />}
           className="!text-danger"
           isPending={cancellingBackupId === backup.id}
           isDisabled={Boolean(cancellingBackupId)}
@@ -63,7 +63,7 @@ export const LogicalBackupActions = ({ backup, actions }: Props) => {
       <div className="flex flex-wrap gap-2">
         <RowActionButton
           title={t('backups.list.actions.deleteBackup')}
-          icon={<Trash2 size={14} />}
+          icon={<Trash2 size={18} />}
           className="!text-danger"
           isPending
           onClick={() => {}}
@@ -77,7 +77,7 @@ export const LogicalBackupActions = ({ backup, actions }: Props) => {
       {actions.isCanManageDBs && (
         <RowActionButton
           title={t('backups.list.actions.deleteBackup')}
-          icon={<Trash2 size={14} />}
+          icon={<Trash2 size={18} />}
           className="!text-danger"
           isDisabled={Boolean(deletingBackupId)}
           onClick={() => actions.onDelete(backup.id)}
@@ -87,7 +87,7 @@ export const LogicalBackupActions = ({ backup, actions }: Props) => {
       {actions.isCanManageDBs && actions.databaseType === DatabaseType.POSTGRES_LOGICAL && (
         <RowActionButton
           title={t('backups.logical.list.actions.verifyRestore')}
-          icon={<ShieldCheck size={14} />}
+          icon={<ShieldCheck size={18} />}
           className="!text-accent"
           isPending={verifyingBackupId === backup.id}
           isDisabled={Boolean(verifyingBackupId)}
@@ -97,14 +97,14 @@ export const LogicalBackupActions = ({ backup, actions }: Props) => {
 
       <RowActionButton
         title={t('backups.logical.list.actions.restore')}
-        icon={<CloudUpload size={14} />}
+        icon={<CloudUpload size={18} />}
         className="!text-accent"
         onClick={() => actions.onRestore(backup)}
       />
 
       <RowActionButton
         title={t(DOWNLOAD_TOOLTIP_KEYS[actions.databaseType])}
-        icon={<Download size={14} />}
+        icon={<Download size={18} />}
         className="!text-accent"
         isPending={downloadingBackupId === backup.id}
         isDisabled={Boolean(downloadingBackupId)}

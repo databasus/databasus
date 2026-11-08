@@ -240,6 +240,7 @@ export function EditEmailNotifierComponent({
               id={`${fieldPrefix}-heloName`}
               description={t('notifiers.email.heloNameTooltip')}
               descriptionProps={{ className: 'sr-only' }}
+              classNames={{ wrapper: 'mb-0' }}
               aria-describedby={`${fieldPrefix}-heloName-help`}
               value={settings.heloName ?? ''}
               onChange={(e) =>
@@ -261,6 +262,7 @@ export function EditEmailNotifierComponent({
           >
             <Checkbox
               id={`${fieldPrefix}-skipTlsVerify`}
+              classNames={{ body: 'items-center' }}
               aria-describedby={`${fieldPrefix}-skipTlsVerify-help`}
               checked={settings.isInsecureSkipVerify}
               onChange={(e) =>

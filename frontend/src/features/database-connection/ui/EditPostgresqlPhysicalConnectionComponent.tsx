@@ -68,7 +68,8 @@ export const EditPostgresqlPhysicalConnectionComponent = ({
               <Radio
                 key={backupType}
                 value={backupType}
-                className="my-1! leading-[17px]!"
+                size="xs"
+                className="my-1"
                 label={
                   <>
                     {t(PHYSICAL_DATABASE_BACKUP_TYPE_LABEL_KEYS[backupType])}

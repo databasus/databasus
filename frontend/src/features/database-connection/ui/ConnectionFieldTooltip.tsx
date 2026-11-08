@@ -7,8 +7,8 @@ interface Props {
 
 export const ConnectionFieldTooltip = ({ title }: Props) => (
   <Tooltip className="cursor-pointer" label={title}>
-    <span className="ml-2 text-muted" tabIndex={0}>
-      <Info aria-label={title} size={14} />
+    <span className="ml-2 inline-flex shrink-0 items-center align-middle text-muted" tabIndex={0}>
+      <Info aria-label={title} size={14} className="block" />
     </span>
   </Tooltip>
 );

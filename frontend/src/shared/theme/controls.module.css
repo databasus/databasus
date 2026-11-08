@@ -32,6 +32,32 @@
     overflow-wrap: anywhere;
   }
 
+  .checkbox {
+    --mantine-cursor-type: pointer;
+
+    &[data-label-position='right'] {
+      --label-offset-start: 8px;
+    }
+
+    &[data-label-position='left'] {
+      --label-offset-end: 8px;
+    }
+  }
+
+  .checkboxInner {
+    margin-block-start: max(0px, calc((1.5714285714em - var(--checkbox-size)) / 2));
+    font-size: var(--label-fz, var(--mantine-font-size-sm));
+  }
+
+  .radio {
+    --mantine-cursor-type: pointer;
+  }
+
+  .radioInner {
+    margin-block-start: max(0px, calc((1.5714285714em - var(--radio-size)) / 2));
+    font-size: var(--label-fz, var(--mantine-font-size-sm));
+  }
+
   .switchTrack {
     pointer-events: none;
   }

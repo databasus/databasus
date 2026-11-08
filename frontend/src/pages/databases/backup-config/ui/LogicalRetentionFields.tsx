@@ -71,7 +71,7 @@ export const LogicalRetentionFields = ({ settings, onChange }: Props) => {
 
   return (
     <div className="mt-5 mb-1 flex w-full flex-col items-start sm:flex-row sm:items-start">
-      <div className="mt-1 mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
+      <div className="mt-1 mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[150px] sm:shrink-0 sm:pr-2">
         {t('backups.logical.config.retentionPolicy')}
       </div>
       <div className="flex w-full min-w-0 grow flex-col gap-1 sm:w-auto">
@@ -79,19 +79,19 @@ export const LogicalRetentionFields = ({ settings, onChange }: Props) => {
           value={retention.policy}
           data={retentionPolicyOptions}
           size="xs"
-          className="w-[200px]"
+          className="w-full max-w-[200px]"
           aria-label={t('backups.logical.config.retentionPolicy')}
           onChange={(policy) => onChange(changeLogicalRetentionPolicy(settings, policy))}
         />
 
         {retention.policy === LogicalRetentionPolicy.TIME_PERIOD && (
-          <div className="flex w-full items-center">
+          <div className="flex w-full min-w-0 items-center">
             <WrappingSelect
               value={retention.period}
               aria-label={t('healthcheck.attempts.period')}
               onChange={(period) => updateRetention({ period })}
               size="xs"
-              className="min-w-0 grow"
+              className="w-full max-w-[200px]"
               data={periodOptions}
             />
 

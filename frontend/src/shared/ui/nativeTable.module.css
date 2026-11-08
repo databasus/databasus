@@ -23,7 +23,7 @@
 
     & td {
       background-color: var(--app-surface);
-      vertical-align: top;
+      vertical-align: middle;
     }
 
     & tbody tr:hover td {
