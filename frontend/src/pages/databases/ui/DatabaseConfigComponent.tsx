@@ -548,7 +548,7 @@ export const DatabaseConfigComponent = ({
           currentStorageId={backupConfig?.storageId ?? undefined}
           onClose={() => setIsShowTransferDialog(false)}
           onTransferred={() => {
-            setIsShowTransferDialog(false);
+            if (isActive()) setIsShowTransferDialog(false);
             onDatabaseTransferred(database.id);
           }}
         />

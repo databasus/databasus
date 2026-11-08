@@ -1,7 +1,8 @@
 import { ActionIcon, Button, Drawer, Tooltip } from '@mantine/core';
 import { X } from 'lucide-react';
-import { useEffect } from 'react';
+import { type MouseEvent, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 
 import { type DiskUsage } from '@/entities/disk';
 import { type User, UserRole } from '@/entities/users';
@@ -27,7 +28,7 @@ export interface SidebarTab {
   name: MainTab;
   icon: string;
   selectedIcon: string;
-  onClick: () => void;
+  href: string;
   isAdminOnly: boolean;
   marginTop: string;
   isVisible: boolean;
@@ -50,8 +51,16 @@ export const SidebarComponent = ({
   user,
   diskUsage,
 }: Props) => {
-  const handleTabClick = (tab: SidebarTab) => {
-    tab.onClick();
+  const handleTabClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (
+      event.currentTarget.getAttribute('aria-current') === 'page' &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.shiftKey &&
+      !event.altKey
+    )
+      event.preventDefault();
+
     if (isMobile) {
       onClose();
     }
@@ -95,11 +104,13 @@ export const SidebarComponent = ({
               return (
                 <div key={tab.text} className="flex justify-center">
                   <ActionIcon
+                    component={Link}
+                    to={tab.href}
                     variant={isSelected ? 'filled' : 'subtle'}
                     aria-label={tab.text}
                     aria-current={isSelected ? 'page' : undefined}
                     className="!h-[50px] !w-[50px] select-none"
-                    onClick={() => handleTabClick(tab)}
+                    onClick={handleTabClick}
                     style={{ marginTop: tab.marginTop }}
                   >
                     <img
@@ -162,6 +173,8 @@ export const SidebarComponent = ({
             return (
               <div key={tab.text}>
                 <Button
+                  component={Link}
+                  to={tab.href}
                   fullWidth
                   variant={isSelected ? 'filled' : 'subtle'}
                   color={isSelected ? 'accent' : 'var(--app-content)'}
@@ -177,7 +190,7 @@ export const SidebarComponent = ({
                   aria-label={tab.text}
                   aria-current={isSelected ? 'page' : undefined}
                   className="!h-auto !justify-start !gap-3 !px-3 !py-3 text-left !whitespace-normal select-none"
-                  onClick={() => handleTabClick(tab)}
+                  onClick={handleTabClick}
                 >
                   <span className="text-sm font-medium">{tab.text}</span>
                 </Button>

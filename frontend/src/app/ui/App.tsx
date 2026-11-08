@@ -1,5 +1,5 @@
-import { BrowserRouter, Navigate, Route } from 'react-router';
-import { Routes } from 'react-router';
+import { useLayoutEffect, useState } from 'react';
+import { BrowserRouter, Navigate, Route, Routes, useNavigate, useLocation } from 'react-router';
 
 import { useVersionCheck } from '@/app/model/useVersionCheck';
 import { ApplicationScreen } from '@/app/ui/ApplicationScreen';
@@ -10,12 +10,36 @@ import { StorageOAuthPage } from '@/pages/storage-oauth';
 import { useSession } from '@/shared/auth';
 import { LocaleProvider, ControlLocalization } from '@/shared/i18n';
 import { FeedbackProvider } from '@/shared/lib/feedback';
+import { parseApplicationPath, useNavigationIntent } from '@/shared/navigation';
 import { ThemeProvider, ThemeConfiguration } from '@/shared/theme';
 
-function AppContent() {
+function ApplicationEntry() {
   const session = useSession();
-  const isAuthorized = !!session.token;
+  const navigationIntent = useNavigationIntent();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [entrySession, setEntrySession] = useState(session);
+  const shouldResetNavigation =
+    !!entrySession.token && entrySession.generation !== session.generation;
+  useLayoutEffect(() => {
+    if (shouldResetNavigation && location.pathname !== '/') void navigate('/', { replace: true });
+    else setEntrySession(session);
+  }, [shouldResetNavigation, session, location.pathname, navigate]);
 
+  if (shouldResetNavigation) return null;
+
+  if (!parseApplicationPath(location.pathname)) return <Navigate to="/" replace />;
+
+  if (location.search || location.hash) return <Navigate to={location.pathname} replace />;
+
+  return session.token ? (
+    <ApplicationScreen key={session.generation} />
+  ) : (
+    <AuthPage key={`${session.generation}:${navigationIntent}`} />
+  );
+}
+
+function AppContent() {
   useVersionCheck();
 
   return (
@@ -24,17 +48,7 @@ function AppContent() {
         <Routes>
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
           <Route path="/storages/google-oauth" element={<StorageOAuthPage />} />
-          <Route
-            path="/"
-            element={
-              !isAuthorized ? (
-                <AuthPage key={session.generation} />
-              ) : (
-                <ApplicationScreen key={session.generation} />
-              )
-            }
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<ApplicationEntry />} />
         </Routes>
       </BrowserRouter>
     </ControlLocalization>

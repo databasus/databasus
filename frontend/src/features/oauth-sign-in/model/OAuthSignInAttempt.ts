@@ -1,5 +1,6 @@
 import { getOAuthRedirectUri } from '@/features/oauth-sign-in/model/getOAuthRedirectUri';
 import { beginAuthIntent } from '@/shared/auth';
+import { parseApplicationPath } from '@/shared/navigation';
 
 export type OAuthProvider = 'github' | 'google';
 export interface OAuthSignInAttempt {
@@ -7,6 +8,7 @@ export interface OAuthSignInAttempt {
   provider: OAuthProvider;
   createdAt: number;
   redirectUri: string;
+  returnPath?: string;
 }
 const ATTEMPT_KEY = 'databasus_oauth_sign_in_attempt';
 const ATTEMPT_TTL_MS = 10 * 60 * 1000;
@@ -19,10 +21,13 @@ export const createOAuthSignInAttempt = (provider: OAuthProvider): OAuthSignInAt
     state: Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join(''),
     createdAt: Date.now(),
     redirectUri: getOAuthRedirectUri(),
+    returnPath: parseApplicationPath(window.location.pathname)
+      ? window.location.pathname
+      : undefined,
   };
 
-  sessionStorage.setItem(ATTEMPT_KEY, JSON.stringify(attempt));
   beginAuthIntent();
+  sessionStorage.setItem(ATTEMPT_KEY, JSON.stringify(attempt));
   return attempt;
 };
 
@@ -45,5 +50,11 @@ export const consumeOAuthSignInAttempt = (state: string | null): OAuthSignInAtte
     throw new Error('OAuth sign-in attempt is invalid');
 
   sessionStorage.removeItem(ATTEMPT_KEY);
-  return attempt;
+  return {
+    ...attempt,
+    returnPath:
+      typeof attempt.returnPath === 'string' && parseApplicationPath(attempt.returnPath)
+        ? attempt.returnPath
+        : undefined,
+  };
 };

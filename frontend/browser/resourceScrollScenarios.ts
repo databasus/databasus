@@ -162,7 +162,7 @@ export const registerResourceScrollScenarios = (resource: 'storages' | 'notifier
         if (width === 1280) {
           expect(await listContainer.evaluate((element) => element.scrollTop)).toBe(listScrollTop);
 
-          const finalNavigationAction = page.getByRole('button', {
+          const finalNavigationAction = page.getByRole('link', {
             name: DICTIONARIES.en.app.navigation.users,
             exact: true,
           });

@@ -45,7 +45,7 @@ def _fill_connection(page: Page | Locator, database: str, password: str) -> None
 
 
 def _add_database_through_the_wizard(page: Page, database: WizardDatabase) -> None:
-    page.get_by_role("button", name="Databases", exact=True).click()
+    page.get_by_role("link", name="Databases", exact=True).click()
     page.get_by_role("button", name="Add database").click()
     page.get_by_placeholder("My favourite DB").fill(database.name)
     page.get_by_role("button", name="Continue").click()

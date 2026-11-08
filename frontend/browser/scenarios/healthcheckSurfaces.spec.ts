@@ -52,7 +52,7 @@ for (const context of visualContexts) {
     await page.setViewportSize({ width: context.width, height: 1000 });
     await openAccount({ page, ...context });
     await openWorkspaceScreen({ page, locale: context.locale, tab: 'databases' });
-    if (context.width === 320) await page.getByRole('button', { name: /^Orders/ }).click();
+    if (context.width === 320) await page.getByRole('link', { name: /^Orders/ }).click();
     const retry = page.getByRole('button', { name: dictionary.common.actions.retry, exact: true });
     await expect(retry).toBeVisible();
     await assertEnlargedTextReflow(page);

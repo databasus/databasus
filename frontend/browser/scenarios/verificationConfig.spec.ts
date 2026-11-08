@@ -151,7 +151,7 @@ for (const { width, theme } of [
     await openAccount({ page, locale: 'ru', theme });
     await openWorkspaceScreen({ page, locale: 'ru', tab: 'databases' });
 
-    if (width === 320) await page.getByRole('button', { name: /^Orders/ }).click();
+    if (width === 320) await page.getByRole('link', { name: /^Orders/ }).click();
 
     await assertEnlargedTextReflow(page);
     await openVerificationSection(page);

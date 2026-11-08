@@ -47,7 +47,7 @@ class TestWorkspaceResources:
         )
 
         page.reload()
-        page.get_by_role("button", name="Storages", exact=True).click()
+        page.get_by_role("link", name="Storages", exact=True).click()
 
         expect(page.get_by_role("button", name=storage_name, exact=True)).to_have_attribute(
             "aria-pressed", "true"
@@ -59,7 +59,7 @@ class TestWorkspaceResources:
 
         assert other_workspace_id != workspace_id
 
-        page.get_by_role("button", name="Storages", exact=True).click()
+        page.get_by_role("link", name="Storages", exact=True).click()
 
         expect(page.get_by_role("button", name="Add storage", exact=True)).to_be_visible()
         expect(page.get_by_role("button", name=storage_name, exact=True)).to_have_count(0)
@@ -75,7 +75,7 @@ class TestWorkspaceResources:
         expect_selected_workspace(page, other_workspace_name)
         assert read_browser_storage(page, SELECTED_WORKSPACE_KEY) == other_workspace_id
 
-        page.get_by_role("button", name="Storages", exact=True).click()
+        page.get_by_role("link", name="Storages", exact=True).click()
 
         expect(page.get_by_role("button", name="Add storage", exact=True)).to_be_visible()
         expect(page.get_by_role("button", name=storage_name, exact=True)).to_have_count(0)

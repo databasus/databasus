@@ -131,7 +131,7 @@ const selectWorkspace = async (workspace: Workspace) => {
   fireEvent.click(option);
 };
 const openSettings = async () => {
-  fireEvent.click(await screen.findByRole('button', { name: 'Settings' }));
+  fireEvent.click(await screen.findByRole('link', { name: 'Settings' }));
   await screen.findByRole('textbox', { name: 'Workspace name' });
 };
 const denyFirstWorkspace = () =>
@@ -165,11 +165,11 @@ const getWorkspaceReadCount = () =>
     .getRequests()
     .filter((request) => new URL(request.url).pathname === `${API_BASE_PATH}/workspaces`).length;
 const waitForDatabaseDetails = async () => {
-  await screen.findByRole('button', { name: /Production database/ });
+  await screen.findByRole('link', { name: /Production database/ });
   await screen.findByRole('tab', { name: 'Backups' });
 };
 const expectNoDatabaseContent = () => {
-  expect(screen.queryByRole('button', { name: /Production database/ })).toBeNull();
+  expect(screen.queryByRole('link', { name: /Production database/ })).toBeNull();
   expect(screen.queryByRole('tab', { name: 'Backups' })).toBeNull();
 };
 const refuseWorkspaceRead = (status: 403 | 404) =>
@@ -224,6 +224,7 @@ describe('Application database workspace access', () => {
         expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
 
         if (hasAnotherWorkspace) {
+          await screen.findByRole('combobox', { name: 'Selected workspace' });
           expect(getWorkspaceSelection().getByText(secondWorkspace.name)).toBeTruthy();
           expect(getWorkspaceSelection().queryByText(firstWorkspace.name)).toBeNull();
         } else {
@@ -241,7 +242,7 @@ describe('Application database workspace access', () => {
           expect(localStorage.getItem('selected_workspace_id')).toBe(secondWorkspace.id);
         } else {
           expect(
-            screen.getAllByRole('button', { name: 'Create workspace' }).length,
+            (await screen.findAllByRole('button', { name: 'Create workspace' })).length,
           ).toBeGreaterThan(0);
           expect(localStorage.getItem('selected_workspace_id')).toBeNull();
         }
@@ -284,15 +285,16 @@ describe('Application database workspace access', () => {
     expectNoDatabaseContent();
   });
 
-  it('restores the sole workspace when startup retry returns unchanged data after access recovers', async () => {
+  it('restores the addressed workspace section when retry confirms access has recovered', async () => {
     openApplication([firstWorkspace]);
     await screen.findByRole('button', { name: 'Add database' });
     denyFirstWorkspace();
     server.use(mockApi.get('/workspaces', 500, buildProblem('internal', 500)));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Notifiers' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Notifiers' }));
     const retry = await screen.findByRole('button', { name: 'Retry' });
 
+    expect(window.location.pathname).toBe(`/workspaces/${firstWorkspace.id}/notifiers`);
     expect(getWorkspaceReadCount()).toBe(2);
     expect(screen.queryByRole('combobox', { name: 'Selected workspace' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Add notifier' })).toBeNull();
@@ -308,6 +310,7 @@ describe('Application database workspace access', () => {
 
     expect(getWorkspaceSelection().getByText(firstWorkspace.name)).toBeTruthy();
     expect(await screen.findByRole('button', { name: 'Add notifier' })).toBeTruthy();
+    expect(window.location.pathname).toBe(`/workspaces/${firstWorkspace.id}/notifiers`);
     expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
     expect(localStorage.getItem('selected_workspace_id')).toBe(firstWorkspace.id);
   });
@@ -396,7 +399,7 @@ describe('Application database workspace access', () => {
       expect(databaseReads).toHaveBeenCalledTimes(1);
       await selectWorkspace(secondWorkspace);
       await selectWorkspace(firstWorkspace);
-      await screen.findByRole('button', { name: /Current database/ });
+      await screen.findByRole('link', { name: /Current database/ });
 
       await releaseAndSettle(
         databaseReads,
@@ -405,7 +408,7 @@ describe('Application database workspace access', () => {
       );
 
       expect(
-        screen.getByRole('button', { name: /Current database/ }).getAttribute('aria-pressed'),
+        screen.getByRole('link', { name: /Current database/ }).getAttribute('aria-current'),
       ).toBe('true');
       expect(getWorkspaceSelection().getByText(firstWorkspace.name)).toBeTruthy();
       expect(getWorkspaceReadCount()).toBe(1);
@@ -462,7 +465,7 @@ describe('Application database workspace access', () => {
         );
 
         if (phase === 'initial') await screen.findByRole('button', { name: 'Retry' });
-        else expect(screen.getByRole('button', { name: /Production database/ })).toBeTruthy();
+        else expect(screen.getByRole('link', { name: /Production database/ })).toBeTruthy();
 
         expect(getWorkspaceReadCount()).toBe(1);
 
@@ -541,7 +544,7 @@ describe('Application database workspace access', () => {
       );
 
       expect(
-        screen.getByRole('button', { name: /Production database/ }).getAttribute('aria-pressed'),
+        screen.getByRole('link', { name: /Production database/ }).getAttribute('aria-current'),
       ).toBe('true');
       expect(getWorkspaceSelection().getByText(firstWorkspace.name)).toBeTruthy();
       expect(getWorkspaceReadCount()).toBe(1);
@@ -555,7 +558,7 @@ describe('Application workspace navigation', () => {
     const application = openApplication([firstWorkspace, secondWorkspace], undefined, [
       firstWorkspaceDatabase,
     ]);
-    await screen.findByRole('button', { name: /Production database/ });
+    await screen.findByRole('link', { name: /Production database/ });
     await screen.findByRole('tab', { name: 'Backups' });
     const reconciliation = mockApi.pending('get', '/workspaces');
     server.use(
@@ -571,10 +574,12 @@ describe('Application workspace navigation', () => {
       fireEvent(document, new Event('visibilitychange'));
 
       await waitFor(() => {
-        expect(screen.queryByRole('button', { name: /Production database/ })).toBeNull();
+        expect(screen.queryByRole('link', { name: /Production database/ })).toBeNull();
         expect(screen.queryByRole('tab', { name: 'Backups' })).toBeNull();
       });
-      expect(getWorkspaceSelection().queryByText(firstWorkspace.name)).toBeNull();
+      await waitFor(() =>
+        expect(getWorkspaceSelection().queryByText(firstWorkspace.name)).toBeNull(),
+      );
       await waitFor(() =>
         expect(
           server
@@ -650,7 +655,8 @@ describe('Application workspace navigation', () => {
     await waitFor(() =>
       expect(getWorkspaceSelection().getByText(secondWorkspace.name)).toBeTruthy(),
     );
-    expect(await screen.findByDisplayValue(secondWorkspace.name)).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Add database' })).toBeTruthy();
+    expect(window.location.pathname).toBe(`/workspaces/${secondWorkspace.id}/databases`);
     expect(screen.queryByDisplayValue('Obsolete workspace draft')).toBeNull();
     expect(getWorkspaceSelection().queryByText(firstWorkspace.name)).toBeNull();
     expect(localStorage.getItem('selected_workspace_id')).toBe(secondWorkspace.id);
@@ -713,9 +719,9 @@ describe('Application workspace navigation', () => {
         await waitFor(() =>
           expect(screen.queryByRole('combobox', { name: 'Selected workspace' })).toBeNull(),
         );
-        expect(screen.getAllByRole('button', { name: 'Create workspace' }).length).toBeGreaterThan(
-          0,
-        );
+        expect(
+          (await screen.findAllByRole('button', { name: 'Create workspace' })).length,
+        ).toBeGreaterThan(0);
         expect(screen.queryByRole('textbox', { name: 'Workspace name' })).toBeNull();
       }
 
@@ -732,7 +738,7 @@ describe('Application workspace navigation', () => {
       server.use(reconciliation.handler);
       denyFirstWorkspace();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Notifiers' }));
+      fireEvent.click(screen.getByRole('link', { name: 'Notifiers' }));
 
       await waitFor(() =>
         expect(getWorkspaceSelection().getByText(secondWorkspace.name)).toBeTruthy(),
@@ -776,7 +782,7 @@ describe('Application workspace navigation', () => {
     denyFirstWorkspace();
     server.use(mockApi.get('/workspaces', 500, buildProblem('internal', 500)));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Notifiers' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Notifiers' }));
     const retry = await screen.findByRole('button', { name: 'Retry' });
 
     expect(screen.queryByRole('combobox', { name: 'Selected workspace' })).toBeNull();
@@ -785,8 +791,9 @@ describe('Application workspace navigation', () => {
     server.use(mockApi.get('/workspaces', 200, { items: [secondWorkspace] }));
 
     fireEvent.click(retry);
-    await screen.findByRole('button', { name: 'Add notifier' });
+    await screen.findByRole('button', { name: 'Add database' });
 
+    expect(window.location.pathname).toBe(`/workspaces/${secondWorkspace.id}/databases`);
     expect(getWorkspaceSelection().getByText(secondWorkspace.name)).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
   });
@@ -804,7 +811,7 @@ describe('Application workspace navigation', () => {
       server.use(reconciliation.handler);
       denyFirstWorkspace();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Notifiers' }));
+      fireEvent.click(screen.getByRole('link', { name: 'Notifiers' }));
 
       await waitFor(() =>
         expect(getWorkspaceSelection().getByText(secondWorkspace.name)).toBeTruthy(),
@@ -908,7 +915,7 @@ describe('Application workspace switch', () => {
       searchLabel: 'Search database',
       buildResource: (workspace: Workspace, name: string) => ({
         ...firstWorkspaceDatabase,
-        id: `${workspace.id}-${name}`,
+        id: `${workspace.id}-${name.replace(/ /g, '-')}`,
         workspaceId: workspace.id,
         name,
       }),
@@ -918,7 +925,7 @@ describe('Application workspace switch', () => {
       path: '/storages',
       preferencePrefix: 'selectedStorageId',
       buildResource: (workspace: Workspace, name: string) => ({
-        id: `${workspace.id}-${name}`,
+        id: `${workspace.id}-${name.replace(/ /g, '-')}`,
         workspaceId: workspace.id,
         name,
         settings: { type: 'LOCAL' },
@@ -930,7 +937,7 @@ describe('Application workspace switch', () => {
       preferencePrefix: 'selectedNotifierId',
       searchLabel: 'Search notifier',
       buildResource: (workspace: Workspace, name: string) => ({
-        id: `${workspace.id}-${name}`,
+        id: `${workspace.id}-${name.replace(/ /g, '-')}`,
         workspaceId: workspace.id,
         name,
         settings: { type: 'DISCORD' },
@@ -955,15 +962,25 @@ describe('Application workspace switch', () => {
   const findResourceCard = (name: string) =>
     // Only fixed test fixture names reach this selector.
     // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
-    screen.findByRole('button', { name: new RegExp(`^${name}`) });
+    waitFor(() => {
+      const cards = [
+        ...screen.queryAllByRole('link', { name: new RegExp(`^${name}`) }),
+        ...screen.queryAllByRole('button', { name: new RegExp(`^${name}`) }),
+      ];
+      expect(cards).toHaveLength(1);
+      return cards[0];
+    });
   const expectResourceSelected = (name: string) =>
     waitFor(async () =>
-      expect((await findResourceCard(name)).getAttribute('aria-pressed')).toBe('true'),
+      expect(
+        (await findResourceCard(name)).getAttribute('aria-current') ??
+          (await findResourceCard(name)).getAttribute('aria-pressed'),
+      ).toBe('true'),
     );
   const openWorkspaceScreen = async (tab: string) => {
     await screen.findByRole('combobox', { name: 'Selected workspace' });
 
-    if (tab !== 'Databases') fireEvent.click(await screen.findByRole('button', { name: tab }));
+    if (tab !== 'Databases') fireEvent.click(await screen.findByRole('link', { name: tab }));
   };
 
   const obsoleteName = 'Obsolete answer';
@@ -1076,7 +1093,10 @@ describe('Application workspace switch', () => {
 
       if (listScreen) {
         await expectResourceSelected('Current two');
-        expect(screen.getByRole('button', { name: /^Current one/ })).toBeTruthy();
+        expect(
+          screen.queryByRole('link', { name: /^Current one/ }) ??
+            screen.getByRole('button', { name: /^Current one/ }),
+        ).toBeTruthy();
         expect(localStorage.getItem(preferenceKey as string)).toBe(storedPreference);
       } else {
         expect(screen.getByDisplayValue(secondWorkspace.name)).toBeTruthy();
@@ -1112,7 +1132,12 @@ describe('Application workspace switch', () => {
         fireEvent.change(screen.getByRole('textbox', { name: searchLabel }), {
           target: { value: 'First 2' },
         });
-        await waitFor(() => expect(screen.queryByRole('button', { name: /^First 1/ })).toBeNull());
+        await waitFor(() =>
+          expect(
+            screen.queryByRole('link', { name: /^First 1/ }) ??
+              screen.queryByRole('button', { name: /^First 1/ }),
+          ).toBeNull(),
+        );
       }
 
       const workspaceSelector = screen.getByRole('combobox', { name: 'Selected workspace' });
@@ -1121,7 +1146,10 @@ describe('Application workspace switch', () => {
       await selectWorkspace(secondWorkspace);
 
       await expectResourceSelected('Second 1');
-      expect(screen.queryByRole('button', { name: /^First/ })).toBeNull();
+      expect(
+        screen.queryByRole('link', { name: /^First/ }) ??
+          screen.queryByRole('button', { name: /^First/ }),
+      ).toBeNull();
       expect(localStorage.getItem(`${preferencePrefix}_${secondWorkspace.id}`)).toBe(
         buildResource(secondWorkspace, 'Second 1').id,
       );
@@ -1136,8 +1164,14 @@ describe('Application workspace switch', () => {
       await selectWorkspace(firstWorkspace);
 
       await expectResourceSelected('First 2');
-      expect(screen.getByRole('button', { name: /^First 1/ })).toBeTruthy();
-      expect(screen.queryByRole('button', { name: /^Second/ })).toBeNull();
+      expect(
+        screen.queryByRole('link', { name: /^First 1/ }) ??
+          screen.getByRole('button', { name: /^First 1/ }),
+      ).toBeTruthy();
+      expect(
+        screen.queryByRole('link', { name: /^Second/ }) ??
+          screen.queryByRole('button', { name: /^Second/ }),
+      ).toBeNull();
     },
   );
 });

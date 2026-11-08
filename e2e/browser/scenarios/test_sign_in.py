@@ -30,7 +30,7 @@ class TestSignIn:
 
         sign_in(page, instance_admin)
 
-        profile_button = page.get_by_role("button", name="Profile", exact=True)
+        profile_button = page.get_by_role("link", name="Profile", exact=True)
         expect(profile_button).to_be_visible()
 
         create_workspace(page, f"Signing out {uuid.uuid4()}")

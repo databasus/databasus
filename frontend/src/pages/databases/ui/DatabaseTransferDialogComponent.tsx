@@ -13,7 +13,7 @@ import { workspaceApi } from '@/entities/workspaces';
 import { EditNotifierComponent } from '@/features/edit-notifier';
 import { EditStorageComponent } from '@/features/edit-storage';
 import { readConcurrentRequests, useSessionMutation, useSessionQuery } from '@/shared/api';
-import { useSessionGuard } from '@/shared/auth';
+import { getSessionSnapshot, isCurrentSession, useSessionGuard } from '@/shared/auth';
 import { useLatestRef, useRequestRevision } from '@/shared/hooks';
 import { translateApiError } from '@/shared/i18n';
 import { useFeedback } from '@/shared/lib/feedback';
@@ -218,6 +218,7 @@ export const DatabaseTransferDialogComponent = ({
     if (!isCurrent() || isTransferring) return;
 
     const revision = contextRevision.GetCurrent();
+    const transferSession = getSessionSnapshot();
     const targetWorkspaceId = selectedWorkspaceId;
     const isActive = () =>
       isCurrent() &&
@@ -236,25 +237,25 @@ export const DatabaseTransferDialogComponent = ({
 
     try {
       await transferDatabaseMutation.mutateAsync([database.id, transfer]);
-      if (!isActive()) return;
-      notify({
-        kind: 'success',
-        title: t('databases.transfer.transferred.title'),
-        description: t('databases.transfer.transferred.description', {
-          name: database.name,
-        }),
-        lifetimeMs: 4500,
-        position: 'top-right',
-      });
+      if (isActive())
+        notify({
+          kind: 'success',
+          title: t('databases.transfer.transferred.title'),
+          description: t('databases.transfer.transferred.description', {
+            name: database.name,
+          }),
+          lifetimeMs: 4500,
+          position: 'top-right',
+        });
 
-      onTransferred();
+      if (isCurrentSession(transferSession)) onTransferred();
     } catch (e) {
       if (!isActive()) return;
 
       setError(e);
     }
 
-    transferDatabaseMutation.reset();
+    if (isActive()) transferDatabaseMutation.reset();
   };
 
   useEffect(() => {

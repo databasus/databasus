@@ -64,9 +64,7 @@ const openEditor = async ({
   const menu = page.getByRole('button', { name: dictionary.app.navigation.menu, exact: true });
   if (await menu.isVisible()) await menu.click();
 
-  await page
-    .getByRole('button', { name: dictionary.app.navigation.notifiers, exact: true })
-    .click();
+  await page.getByRole('link', { name: dictionary.app.navigation.notifiers, exact: true }).click();
   const notifier = page.getByRole('button', { name: smtpNotifier.name, exact: true });
   await expect(notifier).toBeVisible();
   await notifier.click();
@@ -594,7 +592,7 @@ test('preserves the open sidebar and notifier draft when language is selected at
   const dictionary = DICTIONARIES.ru;
   await expect(sidebar).toBeVisible();
   await expect(
-    sidebar.getByRole('button', { name: dictionary.app.navigation.notifiers, exact: true }),
+    sidebar.getByRole('link', { name: dictionary.app.navigation.notifiers, exact: true }),
   ).toBeVisible();
   await expect(
     sidebar.getByRole('link', { name: dictionary.app.navigation.documentation, exact: true }),

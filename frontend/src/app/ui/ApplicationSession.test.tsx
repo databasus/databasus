@@ -177,9 +177,9 @@ describe('Application session isolation', () => {
         session.activateSession({ token: 'replacement-session', userId: replacementAccount.id }),
       );
       await waitForCondition(() =>
-        expect(screen.getByRole('button', { name: fr.app.navigation.profile })).toBeTruthy(),
+        expect(screen.getByRole('link', { name: fr.app.navigation.profile })).toBeTruthy(),
       );
-      fireEvent.click(screen.getByRole('button', { name: fr.app.navigation.profile }));
+      fireEvent.click(screen.getByRole('link', { name: fr.app.navigation.profile }));
       await waitForCondition(() =>
         expect(screen.getByDisplayValue(replacementAccount.email)).toBeTruthy(),
       );
@@ -230,7 +230,7 @@ describe('Application session isolation', () => {
 
       renderApp();
       await screen.findByRole('button', { name: 'Add database' });
-      fireEvent.click(screen.getByRole('button', { name: 'Notifiers' }));
+      fireEvent.click(screen.getByRole('link', { name: 'Notifiers' }));
       if (operation === 'test')
         fireEvent.click(await screen.findByRole('button', { name: 'Send test notification' }));
       const requestPath = `/api/v1/notifiers/${notifier.id}${operation === 'test' ? '/test' : ''}`;
@@ -252,7 +252,7 @@ describe('Application session isolation', () => {
         mockApi.get('/workspaces', 200, { items: [] }),
       );
       act(() => activateSession({ token: 'replacement-session', userId: 'replacement-owner' }));
-      fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
+      fireEvent.click(await screen.findByRole('link', { name: 'Profile' }));
       await screen.findByDisplayValue('replacement@example.com');
 
       await (operation === 'load' ? finishCancelledApiResponse : finishApiResponse)(
@@ -288,7 +288,7 @@ describe('Application session isolation', () => {
       if (path === '/databases') server.use(obsoleteList.handler);
 
       renderApp();
-      const listTab = await screen.findByRole('button', { name: tab });
+      const listTab = await screen.findByRole('link', { name: tab });
       if (path !== '/databases') {
         await screen.findByRole('button', { name: 'Add database' });
         server.use(obsoleteList.handler);
@@ -320,7 +320,7 @@ describe('Application session isolation', () => {
       );
       if (hasReplacementSession) {
         act(() => activateSession({ token: 'replacement-session', userId: replacementAccount.id }));
-        fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
+        fireEvent.click(await screen.findByRole('link', { name: 'Profile' }));
         await screen.findByDisplayValue(replacementAccount.email);
       }
 
@@ -358,7 +358,7 @@ describe('Application session isolation', () => {
       renderApp({ isStrictMode: true });
       if (path !== '/databases') {
         await screen.findByRole('button', { name: 'Add database' });
-        fireEvent.click(screen.getByRole('button', { name: tab }));
+        fireEvent.click(screen.getByRole('link', { name: tab }));
       }
       await screen.findByRole('button', { name: action });
       expect(listRead.mock.calls.length).toBeGreaterThanOrEqual(2);
@@ -392,10 +392,11 @@ describe('Application logout', () => {
     sessionStorage.setItem('databasus_oauth_sign_in_attempt', 'previous-attempt');
 
     renderApp();
-    fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
+    fireEvent.click(await screen.findByRole('link', { name: 'Profile' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Logout' }));
     await screen.findByRole('button', { name: 'Sign in' });
 
+    expect(window.location.pathname).toBe('/');
     expect(getSessionSnapshot()).toMatchObject({ token: undefined, userId: undefined });
     for (const clearedKey of [
       'databasus_user_token',
@@ -417,7 +418,7 @@ describe('Application logout', () => {
   it('waits for fresh startup data after the same account signs in again', async () => {
     seedAccount();
     renderApp();
-    fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
+    fireEvent.click(await screen.findByRole('link', { name: 'Profile' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Logout' }));
     await screen.findByRole('button', { name: 'Sign in' });
 
@@ -441,14 +442,14 @@ describe('Application logout', () => {
       ).toHaveLength(previousReads + 1),
     );
 
-    expect(screen.queryByRole('button', { name: 'Profile' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Profile' })).toBeNull();
 
     await act(async () => freshAccount.release());
-    await screen.findByRole('button', { name: 'Profile' });
+    await screen.findByRole('link', { name: 'Profile' });
 
     server.use(mockApi.get('/users/{userId}', 200, { ...account, name: 'Updated owner' }));
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
+    fireEvent.click(await screen.findByRole('link', { name: 'Profile' }));
     await waitFor(() =>
       expect(screen.getByRole('textbox', { name: 'Name' })).toHaveProperty(
         'value',
@@ -457,61 +458,71 @@ describe('Application logout', () => {
     );
   });
 
-  it('opens the next account on the first database with no filter when both accounts share the workspace', async () => {
-    const buildSharedDatabase = (id: string, name: string) => ({
-      id,
-      name,
-      workspaceId: workspace.id,
-      settings: createDefaultDatabaseSettings(DatabaseType.POSTGRES_LOGICAL),
-      notifierIds: [],
-      healthStatus: 'AVAILABLE' as const,
-    });
-    const firstDatabase = buildSharedDatabase('first-database', 'First database');
-    const secondDatabase = buildSharedDatabase('second-database', 'Second database');
-    const previousFilterDate = '2026-01-01T00:00:00.000Z';
+  it.each([false, true])(
+    'opens the next account on the first database with no filter in a shared workspace after explicit logout=%s',
+    async (shouldLogOut) => {
+      const buildSharedDatabase = (id: string, name: string) => ({
+        id,
+        name,
+        workspaceId: workspace.id,
+        settings: createDefaultDatabaseSettings(DatabaseType.POSTGRES_LOGICAL),
+        notifierIds: [],
+        healthStatus: 'AVAILABLE' as const,
+      });
+      const firstDatabase = buildSharedDatabase('first-database', 'First database');
+      const secondDatabase = buildSharedDatabase('second-database', 'Second database');
+      const previousFilterDate = '2026-01-01T00:00:00.000Z';
 
-    seedAccount();
-    server.use(
-      mockApi.get('/databases', 200, { items: [firstDatabase, secondDatabase] }),
-      http.get(`*${API_BASE_PATH}/databases/:databaseId`, ({ params }) =>
-        HttpResponse.json(params.databaseId === firstDatabase.id ? firstDatabase : secondDatabase),
-      ),
-      mockApi.get('/logical-backups', 200, { totalUsageMb: 0, items: [] }),
-      http.get(`*${API_BASE_PATH}/backup-configs/:databaseId`, () =>
-        HttpResponse.json(buildProblem('not_found', 404), { status: 404 }),
-      ),
-      http.get(`*${API_BASE_PATH}/healthcheck-configs/:databaseId`, () =>
-        HttpResponse.json(buildProblem('not_found', 404), { status: 404 }),
-      ),
-    );
-    localStorage.setItem(
-      'logicalBackupListFilter',
-      JSON.stringify({ createdBefore: previousFilterDate }),
-    );
+      seedAccount();
+      server.use(
+        mockApi.get('/databases', 200, { items: [firstDatabase, secondDatabase] }),
+        http.get(`*${API_BASE_PATH}/databases/:databaseId`, ({ params }) =>
+          HttpResponse.json(
+            params.databaseId === firstDatabase.id ? firstDatabase : secondDatabase,
+          ),
+        ),
+        mockApi.get('/logical-backups', 200, { totalUsageMb: 0, items: [] }),
+        http.get(`*${API_BASE_PATH}/backup-configs/:databaseId`, () =>
+          HttpResponse.json(buildProblem('not_found', 404), { status: 404 }),
+        ),
+        http.get(`*${API_BASE_PATH}/healthcheck-configs/:databaseId`, () =>
+          HttpResponse.json(buildProblem('not_found', 404), { status: 404 }),
+        ),
+      );
+      localStorage.setItem(
+        'logicalBackupListFilter',
+        JSON.stringify({ createdBefore: previousFilterDate }),
+      );
 
-    renderApp();
-    fireEvent.click(await screen.findByText('Second database'));
-    await waitFor(() =>
-      expect(localStorage.getItem('selectedDatabaseId_workspace-id')).toBe(secondDatabase.id),
-    );
-    await waitFor(() => expect(readLogicalBackupFilters()).toContain(previousFilterDate));
+      renderApp();
+      fireEvent.click(await screen.findByText('Second database'));
+      await waitFor(() =>
+        expect(localStorage.getItem('selectedDatabaseId_workspace-id')).toBe(secondDatabase.id),
+      );
+      await waitFor(() => expect(readLogicalBackupFilters()).toContain(previousFilterDate));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Profile' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Logout' }));
-    await screen.findByRole('button', { name: 'Sign in' });
+      if (shouldLogOut) {
+        fireEvent.click(screen.getByRole('link', { name: 'Profile' }));
+        fireEvent.click(await screen.findByRole('button', { name: 'Logout' }));
+        await screen.findByRole('button', { name: 'Sign in' });
+      }
 
-    server.use(
-      mockApi.get('/users/{userId}', 200, {
-        ...account,
-        id: 'replacement-owner',
-        email: 'replacement@example.com',
-      }),
-    );
-    act(() => activateSession({ token: 'replacement-session', userId: 'replacement-owner' }));
+      server.use(
+        mockApi.get('/users/{userId}', 200, {
+          ...account,
+          id: 'replacement-owner',
+          email: 'replacement@example.com',
+        }),
+      );
+      act(() => activateSession({ token: 'replacement-session', userId: 'replacement-owner' }));
 
-    await waitFor(() =>
-      expect(localStorage.getItem('selectedDatabaseId_workspace-id')).toBe(firstDatabase.id),
-    );
-    await waitFor(() => expect(readLogicalBackupFilters().pop()).toBeNull());
-  });
+      await waitFor(() =>
+        expect(localStorage.getItem('selectedDatabaseId_workspace-id')).toBe(firstDatabase.id),
+      );
+      await waitFor(() => expect(readLogicalBackupFilters().pop()).toBeNull());
+      expect(window.location.pathname).toBe(
+        `/workspaces/${workspace.id}/databases/${firstDatabase.id}/backups`,
+      );
+    },
+  );
 });

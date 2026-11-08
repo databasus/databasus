@@ -14,7 +14,7 @@ import {
 } from '@/entities/databases';
 import { verificationRunsApi } from '@/pages/databases/api/verificationRunsApi';
 // @vitest-environment happy-dom
-import { DatabaseComponent } from '@/pages/databases/ui/DatabaseComponent';
+import { DatabaseTestScreen as DatabaseComponent } from '@/pages/databases/ui/test/DatabaseTestScreen';
 import { activateSession, invalidateSession } from '@/shared/auth';
 import { DICTIONARIES, useLocale } from '@/shared/i18n';
 import { waitForCondition } from '@/shared/lib/test/conditionWait';
@@ -830,7 +830,7 @@ describe('DatabaseComponent backup configuration answers', () => {
       await expectBackupsTabShown();
     });
 
-    it('reopens verifications when a logical database is selected again', async () => {
+    it('keeps backups when a logical database is selected after tab fallback', async () => {
       const logicalDatabase = buildScreenDatabase('logical', DatabaseType.POSTGRES_LOGICAL);
       const mysqlDatabase = buildScreenDatabase('mysql', DatabaseType.MYSQL);
       declareTabRequests([logicalDatabase, mysqlDatabase]);
@@ -841,9 +841,7 @@ describe('DatabaseComponent backup configuration answers', () => {
       await screen.findByText('Config');
       view.rerender(renderSelectedDatabase(logicalDatabase.id));
 
-      expect(
-        (await screen.findByRole('tab', { name: 'Verifications' })).getAttribute('aria-selected'),
-      ).toBe('true');
+      await expectBackupsTabShown();
     });
   });
 });

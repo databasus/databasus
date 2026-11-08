@@ -44,7 +44,7 @@ const openProfile = async (isTwoFactorAuthRequired: boolean) => {
   );
 
   renderApp();
-  fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
+  fireEvent.click(await screen.findByRole('link', { name: 'Profile' }));
   await screen.findByDisplayValue('owner@example.com');
   fireEvent.change(screen.getByPlaceholderText('Enter new password'), {
     target: { value: 'replacement-password' },
@@ -89,6 +89,7 @@ describe('App password change', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Change password' }));
         expect(await screen.findByRole('button', { name: 'Sign in' })).toBeTruthy();
         expect(screen.getAllByPlaceholderText('********')).toHaveLength(1);
+        expect(window.location.pathname).toBe('/');
         expect(
           await screen.findByText('Password changed. Sign in again with your new password.'),
         ).toBeTruthy();

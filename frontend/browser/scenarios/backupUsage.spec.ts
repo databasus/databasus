@@ -201,7 +201,9 @@ for (const kind of ['logical', 'physical', 'storage'] as const) {
 
           if (isMobile)
             await page
-              .getByRole('button', { name: kind === 'storage' ? /^Backup archive/ : /^Orders/ })
+              .getByRole(kind === 'storage' ? 'button' : 'link', {
+                name: kind === 'storage' ? /^Backup archive/ : /^Orders/,
+              })
               .click();
 
           const total =

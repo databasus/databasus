@@ -73,7 +73,7 @@ def expect_selected_workspace(page: Page, name: str) -> None:
 
 
 def create_local_storage(page: Page, name: str) -> None:
-    page.get_by_role("button", name="Storages", exact=True).click()
+    page.get_by_role("link", name="Storages", exact=True).click()
     page.get_by_role("button", name="Add storage", exact=True).click()
 
     dialog = page.get_by_role("dialog", name="Add storage", exact=True)

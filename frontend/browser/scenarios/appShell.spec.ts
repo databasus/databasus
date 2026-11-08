@@ -221,7 +221,7 @@ test('keeps navigation reachable when the viewport crosses the 768px boundary', 
   await page.setViewportSize({ width: 769, height: 900 });
   await expect(menu).not.toBeVisible();
   await expect(
-    page.getByRole('button', { name: dictionary.app.navigation.users, exact: true }),
+    page.getByRole('link', { name: dictionary.app.navigation.users, exact: true }),
   ).toBeVisible();
   await expect(name).toHaveValue('Retained boundary draft');
 
@@ -239,8 +239,8 @@ for (const theme of ['light', 'dark']) {
     await openAccount({ page, theme });
 
     const navigation = DICTIONARIES.en.app.navigation;
-    const profile = page.getByRole('button', { name: navigation.profile, exact: true });
-    const users = page.getByRole('button', { name: navigation.users, exact: true });
+    const profile = page.getByRole('link', { name: navigation.profile, exact: true });
+    const users = page.getByRole('link', { name: navigation.users, exact: true });
 
     await profile.click();
     await page.mouse.move(0, 0);
@@ -261,8 +261,8 @@ for (const theme of ['light', 'dark']) {
 
     const navigation = DICTIONARIES.en.app.navigation;
     const menu = page.getByRole('button', { name: navigation.menu, exact: true });
-    const profile = page.getByRole('button', { name: navigation.profile, exact: true });
-    const users = page.getByRole('button', { name: navigation.users, exact: true });
+    const profile = page.getByRole('link', { name: navigation.profile, exact: true });
+    const users = page.getByRole('link', { name: navigation.users, exact: true });
 
     await openAccountTab({ page, locale: 'en', tab: 'profile' });
     await menu.click();
@@ -321,7 +321,7 @@ test('retains the profile draft and sidebar when language is selected with the k
 
   await expect(sidebar).toBeVisible();
   await expect(
-    sidebar.getByRole('button', { name: DICTIONARIES.ru.app.navigation.profile, exact: true }),
+    sidebar.getByRole('link', { name: DICTIONARIES.ru.app.navigation.profile, exact: true }),
   ).toBeVisible();
   await expect(language).toBeFocused();
   await language.press('ArrowDown');

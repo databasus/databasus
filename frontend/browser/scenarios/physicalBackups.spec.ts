@@ -187,7 +187,7 @@ for (const theme of ['light', 'dark']) {
 test('shows the physical backup list as cards that fit a narrow viewport', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 800 });
   await openPhysicalList(page, 'light');
-  await page.getByRole('button', { name: /^Orders/ }).click();
+  await page.getByRole('link', { name: /^Orders/ }).click();
 
   const listTitle = page.getByRole('heading', { name: dictionary.backups.list.title });
   await expect(page.getByRole('button', { name: listCopy.backUpNow })).toBeVisible();
@@ -275,7 +275,7 @@ for (const context of visualContexts) {
     await page.setViewportSize({ width: context.width, height: 900 });
     await openAccount({ page, ...context });
     await openWorkspaceScreen({ page, locale: context.locale, tab: 'databases' });
-    if (context.width === 320) await page.getByRole('button', { name: /^Orders/ }).click();
+    if (context.width === 320) await page.getByRole('link', { name: /^Orders/ }).click();
 
     const failedStatus = page.getByRole('button', {
       name: DICTIONARIES[context.locale].status.physicalBackup.error,
@@ -372,7 +372,7 @@ for (const context of visualContexts) {
     await page.setViewportSize({ width: context.width, height: 1000 });
     await openAccount({ page, ...context });
     await openWorkspaceScreen({ page, locale: context.locale, tab: 'databases' });
-    if (context.width === 320) await page.getByRole('button', { name: /^Orders/ }).click();
+    if (context.width === 320) await page.getByRole('link', { name: /^Orders/ }).click();
     const remove = page
       .getByRole('button', { name: dictionary.backups.list.actions.deleteBackup, exact: true })
       .filter({ visible: true });
@@ -408,7 +408,7 @@ for (const context of visualContexts) {
     await page.setViewportSize({ width: context.width, height: 1000 });
     await openAccount({ page, ...context });
     await openWorkspaceScreen({ page, locale: context.locale, tab: 'databases' });
-    if (context.width === 320) await page.getByRole('button', { name: /^Orders/ }).click();
+    if (context.width === 320) await page.getByRole('link', { name: /^Orders/ }).click();
     await page
       .getByRole('button', { name: dictionary.backups.physical.list.restore, exact: true })
       .click();
@@ -514,7 +514,11 @@ test.describe('regional point-in-time calendar', () => {
 
     await expect(calendar.getByLabel(dictionary.schedules.hours, { exact: true })).toBeFocused();
 
-    await page.keyboard.type('01');
+    await page.keyboard.type('1');
+    await expect(calendar.getByLabel(dictionary.schedules.hours, { exact: true })).toHaveValue(
+      '01',
+    );
+    await page.keyboard.press('ArrowRight');
 
     await expect(calendar.getByLabel(dictionary.schedules.minutes, { exact: true })).toBeFocused();
 
