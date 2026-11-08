@@ -211,8 +211,12 @@ for (const context of visualContexts) {
       if (context.width === 320) {
         await enlargeText(wizard);
         await assertAccountReflow(wizard);
-        if (engine.connectionType === 'postgresql-logical')
+        if (engine.connectionType === 'postgresql-logical') {
+          await expect(
+            page.getByText(dictionary.databases.edit.connectionStringParsed, { exact: true }),
+          ).toBeHidden();
           await assertScreenshot(page, 'connection-ssh-fr-narrow-200.png');
+        }
       }
       await wizard
         .getByRole('button', { name: dictionary.databases.actions.testConnection, exact: true })

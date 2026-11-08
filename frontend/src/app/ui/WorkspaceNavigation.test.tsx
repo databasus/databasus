@@ -960,12 +960,14 @@ describe('Application workspace switch', () => {
       ),
     );
   const findResourceCard = (name: string) =>
-    // Only fixed test fixture names reach this selector.
-    // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
     waitFor(() => {
       const cards = [
-        ...screen.queryAllByRole('link', { name: new RegExp(`^${name}`) }),
-        ...screen.queryAllByRole('button', { name: new RegExp(`^${name}`) }),
+        ...screen.queryAllByRole('link', {
+          name: (accessibleName) => accessibleName.startsWith(name),
+        }),
+        ...screen.queryAllByRole('button', {
+          name: (accessibleName) => accessibleName.startsWith(name),
+        }),
       ];
       expect(cards).toHaveLength(1);
       return cards[0];
