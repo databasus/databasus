@@ -42,7 +42,7 @@ func TestRequestPasswordReset(t *testing.T) {
 		requireCompletedSignIn(t, signIn(t, app, admin.Email, resetPassword))
 		oldPasswordSignIn := signIn(t, app, admin.Email, apptest.TestPassword)
 		requireProblem(t, oldPasswordSignIn.StatusCode(), oldPasswordSignIn.Body, http.StatusUnauthorized,
-			apiclient.ProblemCodeInvalidCredentials)
+			apiclient.ProblemCodePasswordIncorrect)
 	})
 
 	t.Run("records an audit event when a reset code is sent", func(t *testing.T) {

@@ -283,11 +283,15 @@ paths:
       tags: [users]
       summary: Sign in with an email address and a password
       description: >-
-        Public, because it creates the session the caller does not have yet. A wrong password, an
-        unknown address, a user who has not finished sign-up and a user without a password all get
-        401 `invalid_credentials`. A deactivated user gets 403 `user_deactivated` only after the
-        correct password. When the instance requires the second factor, the answer names a
-        pending sign-in and the code goes to the user's address.
+        Public, because it creates the session the caller does not have yet. Refusals answer 401
+        with `email_not_found`, `password_incorrect`, `registration_incomplete` or `password_not_set`.
+        Accounts without a password recommend linked, configured providers through
+        `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`.
+        A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise
+        its refusal matches an equivalent active account. Human verification and the per-address
+        rate limit run before these refusals. When the instance requires the second factor, a
+        successful password step names a pending sign-in and sends its code. A refused step sends
+        no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
       x-access: public
       security: []
       requestBody:
@@ -5566,7 +5570,13 @@ components:
         - not_found
         - rate_limited
         - human_verification_failed
-        - invalid_credentials
+        - email_not_found
+        - password_incorrect
+        - registration_incomplete
+        - password_not_set
+        - password_not_set_google
+        - password_not_set_github
+        - password_not_set_google_github
         - user_deactivated
         - registration_closed
         - email_taken

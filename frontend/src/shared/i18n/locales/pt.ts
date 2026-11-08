@@ -167,7 +167,14 @@ export const pt: typeof en = {
     permissionDenied: 'Você não tem permissão para fazer isso.',
     humanVerificationFailed:
       'A verificação humana falhou. Conclua a verificação e tente novamente.',
-    invalidCredentials: 'E-mail ou senha incorretos.',
+    emailNotFound: 'Nenhuma conta foi encontrada com este e-mail. Confira o endereço.',
+    passwordIncorrect: 'A senha está incorreta.',
+    registrationIncomplete:
+      'O cadastro não foi concluído. Cadastre-se com este e-mail para aceitar o convite.',
+    passwordNotSet: 'Esta conta não tem senha.',
+    passwordNotSetGoogle: 'Esta conta não tem senha. Entre com o Google.',
+    passwordNotSetGithub: 'Esta conta não tem senha. Entre com o GitHub.',
+    passwordNotSetGoogleGithub: 'Esta conta não tem senha. Entre com o Google ou o GitHub.',
     userDeactivated: 'Esta conta está desativada. Peça a um administrador para ativá-la.',
     registrationClosed:
       'O cadastro está fechado nesta instância. Peça um convite a um administrador.',
@@ -949,6 +956,9 @@ export const pt: typeof en = {
       submit: 'Entrar',
       noAccount: 'Não tem uma conta? <signUpLink>Crie uma</signUpLink>',
       forgotPassword: 'Esqueceu a senha?',
+      setPassword: 'Definir uma senha',
+      passwordRecoveryHint: 'Use a recuperação de senha para definir uma.',
+      contactAdministratorHint: 'Entre em contato com o administrador para recuperar o acesso.',
     },
     signInCode: {
       title: 'Digite o código',

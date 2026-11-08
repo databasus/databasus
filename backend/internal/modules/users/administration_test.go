@@ -184,7 +184,7 @@ func TestDeactivateUser(t *testing.T) {
 		response := signIn(t, app, member.Email, "wrong-password-123")
 
 		requireProblem(t, response.StatusCode(), response.Body, http.StatusUnauthorized,
-			apiclient.ProblemCodeInvalidCredentials)
+			apiclient.ProblemCodePasswordIncorrect)
 	})
 
 	t.Run("answers user_deactivated without a token to the correct password", func(t *testing.T) {

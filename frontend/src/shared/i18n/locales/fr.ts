@@ -165,7 +165,17 @@ export const fr: typeof en = {
     unauthenticated: 'Votre session a pris fin. Reconnectez-vous.',
     permissionDenied: "Vous n'avez pas l'autorisation de faire cela.",
     humanVerificationFailed: 'La vérification anti-robot a échoué. Effectuez-la et réessayez.',
-    invalidCredentials: "L'adresse e-mail ou le mot de passe est incorrect.",
+    emailNotFound: 'Aucun compte ne correspond à cette adresse e-mail. Vérifiez l’adresse.',
+    passwordIncorrect: 'Le mot de passe est incorrect.',
+    registrationIncomplete:
+      'L’inscription n’est pas terminée. Inscrivez-vous avec cette adresse e-mail pour accepter votre invitation.',
+    passwordNotSet: 'Aucun mot de passe n’est défini pour ce compte.',
+    passwordNotSetGoogle:
+      'Aucun mot de passe n’est défini pour ce compte. Connectez-vous avec Google.',
+    passwordNotSetGithub:
+      'Aucun mot de passe n’est défini pour ce compte. Connectez-vous avec GitHub.',
+    passwordNotSetGoogleGithub:
+      'Aucun mot de passe n’est défini pour ce compte. Connectez-vous avec Google ou GitHub.',
     userDeactivated: 'Ce compte est désactivé. Demandez à un administrateur de le réactiver.',
     registrationClosed:
       'Les inscriptions sont fermées sur cette instance. Demandez une invitation à un administrateur.',
@@ -958,6 +968,9 @@ export const fr: typeof en = {
       submit: 'Se connecter',
       noAccount: 'Pas encore de compte ? <signUpLink>Inscrivez-vous</signUpLink>',
       forgotPassword: 'Mot de passe oublié ?',
+      setPassword: 'Définir un mot de passe',
+      passwordRecoveryHint: 'Utilisez la récupération de mot de passe pour en définir un.',
+      contactAdministratorHint: 'Contactez votre administrateur pour rétablir l’accès.',
     },
     signInCode: {
       title: 'Saisissez le code',

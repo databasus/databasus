@@ -31,7 +31,7 @@ func TestSignIn(t *testing.T) {
 		require.Equal(t, http.StatusOK, readUser.StatusCode(), string(readUser.Body))
 	})
 
-	t.Run("answers the same status and code when the address is unknown or the password is wrong",
+	t.Run("identifies the cause when the address is unknown or the password is wrong",
 		func(t *testing.T) {
 			t.Parallel()
 
@@ -42,9 +42,9 @@ func TestSignIn(t *testing.T) {
 			wrongPasswordResponse := signIn(t, app, admin.Email, "wrong-password-123")
 
 			requireProblem(t, unknownAddressResponse.StatusCode(), unknownAddressResponse.Body,
-				http.StatusUnauthorized, apiclient.ProblemCodeInvalidCredentials)
+				http.StatusUnauthorized, apiclient.ProblemCodeEmailNotFound)
 			requireProblem(t, wrongPasswordResponse.StatusCode(), wrongPasswordResponse.Body,
-				http.StatusUnauthorized, apiclient.ProblemCodeInvalidCredentials)
+				http.StatusUnauthorized, apiclient.ProblemCodePasswordIncorrect)
 		})
 
 	t.Run("mentions neither admin nor the user count when the address is mistyped on a single-user instance",
@@ -57,7 +57,7 @@ func TestSignIn(t *testing.T) {
 			response := signIn(t, app, apptest.NewTestEmail("mistyped"), apptest.TestPassword)
 
 			requireProblem(t, response.StatusCode(), response.Body, http.StatusUnauthorized,
-				apiclient.ProblemCodeInvalidCredentials)
+				apiclient.ProblemCodeEmailNotFound)
 			assert.NotContains(t, response.ApplicationproblemJSON401.Detail, "admin")
 			assert.NotContains(t, response.ApplicationproblemJSON401.Detail, "1")
 		})

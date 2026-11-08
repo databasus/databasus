@@ -161,7 +161,14 @@ export const en = {
     unauthenticated: 'Your session has ended. Sign in again.',
     permissionDenied: 'You do not have permission to do this.',
     humanVerificationFailed: 'The human verification failed. Complete the check and try again.',
-    invalidCredentials: 'The email or password is incorrect.',
+    emailNotFound: 'No account was found with this email address. Check the address.',
+    passwordIncorrect: 'The password is incorrect.',
+    registrationIncomplete:
+      'Registration is not complete. Sign up with this email address to accept your invitation.',
+    passwordNotSet: 'This account has no password.',
+    passwordNotSetGoogle: 'This account has no password. Sign in with Google.',
+    passwordNotSetGithub: 'This account has no password. Sign in with GitHub.',
+    passwordNotSetGoogleGithub: 'This account has no password. Sign in with Google or GitHub.',
     userDeactivated: 'This account is deactivated. Ask an administrator to activate it.',
     registrationClosed:
       'Registration is closed on this instance. Ask an administrator for an invitation.',
@@ -928,6 +935,9 @@ export const en = {
       submit: 'Sign in',
       noAccount: "Don't have an account? <signUpLink>Sign up</signUpLink>",
       forgotPassword: 'Forgot password?',
+      setPassword: 'Set a password',
+      passwordRecoveryHint: 'Use password recovery to set a password.',
+      contactAdministratorHint: 'Contact your administrator to restore access.',
     },
     signInCode: {
       title: 'Enter the code',

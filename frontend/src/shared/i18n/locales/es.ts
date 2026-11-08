@@ -167,7 +167,16 @@ export const es: typeof en = {
     unauthenticated: 'Su sesión ha terminado. Vuelva a iniciar sesión.',
     permissionDenied: 'No tiene permiso para hacer esto.',
     humanVerificationFailed: 'La verificación humana falló. Complétela e inténtelo de nuevo.',
-    invalidCredentials: 'El correo electrónico o la contraseña no son correctos.',
+    emailNotFound:
+      'No se encontró ninguna cuenta con este correo electrónico. Revise la dirección.',
+    passwordIncorrect: 'La contraseña es incorrecta.',
+    registrationIncomplete:
+      'El registro no está completo. Regístrese con este correo electrónico para aceptar la invitación.',
+    passwordNotSet: 'Esta cuenta no tiene contraseña.',
+    passwordNotSetGoogle: 'Esta cuenta no tiene contraseña. Inicie sesión con Google.',
+    passwordNotSetGithub: 'Esta cuenta no tiene contraseña. Inicie sesión con GitHub.',
+    passwordNotSetGoogleGithub:
+      'Esta cuenta no tiene contraseña. Inicie sesión con Google o GitHub.',
     userDeactivated: 'Esta cuenta está desactivada. Pida a un administrador que la active.',
     registrationClosed:
       'El registro está cerrado en esta instancia. Pida una invitación a un administrador.',
@@ -956,6 +965,9 @@ export const es: typeof en = {
       submit: 'Iniciar sesión',
       noAccount: '¿No tiene cuenta? <signUpLink>Regístrese</signUpLink>',
       forgotPassword: '¿Olvidó su contraseña?',
+      setPassword: 'Establecer una contraseña',
+      passwordRecoveryHint: 'Use la recuperación de contraseña para establecer una.',
+      contactAdministratorHint: 'Contacte con su administrador para recuperar el acceso.',
     },
     signInCode: {
       title: 'Introduzca el código',

@@ -40,6 +40,21 @@ describe('translateApiError', () => {
     expect(translateApiError(hourlyCapReached, t)).toBe(t('errors.tooManySignInCodes'));
   });
 
+  it.each([
+    ['email_not_found', 'errors.emailNotFound'],
+    ['password_incorrect', 'errors.passwordIncorrect'],
+    ['registration_incomplete', 'errors.registrationIncomplete'],
+    ['password_not_set', 'errors.passwordNotSet'],
+    ['password_not_set_google', 'errors.passwordNotSetGoogle'],
+    ['password_not_set_github', 'errors.passwordNotSetGithub'],
+    ['password_not_set_google_github', 'errors.passwordNotSetGoogleGithub'],
+  ] as const)('translates the refusal without backend text when the code is %s', (code, key) => {
+    const refusal = new ApiError({ code, status: 401, message: 'private diagnostic' });
+
+    expect(translateApiError(refusal, t)).toBe(t(key));
+    expect(translateApiError(refusal, t)).not.toContain('private diagnostic');
+  });
+
   it('shows the general message for an unknown code', () => {
     const error = new ApiError({
       message: 'storage quota exceeded',

@@ -144,7 +144,15 @@ export const id: typeof en = {
     unauthenticated: 'Sesi kamu sudah berakhir. Silakan masuk lagi.',
     permissionDenied: 'Kamu tidak memiliki izin untuk melakukan tindakan ini.',
     humanVerificationFailed: 'Verifikasi manusia gagal. Selesaikan pemeriksaan dan coba lagi.',
-    invalidCredentials: 'Email atau kata sandi salah.',
+    emailNotFound: 'Tidak ada akun dengan alamat email ini. Periksa alamatnya.',
+    passwordIncorrect: 'Kata sandi salah.',
+    registrationIncomplete:
+      'Pendaftaran belum selesai. Daftar dengan alamat email ini untuk menerima undangan.',
+    passwordNotSet: 'Akun ini belum memiliki kata sandi.',
+    passwordNotSetGoogle: 'Akun ini belum memiliki kata sandi. Masuk dengan Google.',
+    passwordNotSetGithub: 'Akun ini belum memiliki kata sandi. Masuk dengan GitHub.',
+    passwordNotSetGoogleGithub:
+      'Akun ini belum memiliki kata sandi. Masuk dengan Google atau GitHub.',
     userDeactivated: 'Akun ini dinonaktifkan. Minta admin untuk mengaktifkannya.',
     registrationClosed: 'Pendaftaran di instance ini ditutup. Minta undangan kepada admin.',
     emailTaken: 'Alamat email ini sudah digunakan.',
@@ -879,6 +887,9 @@ export const id: typeof en = {
       submit: 'Masuk',
       noAccount: 'Belum punya akun? <signUpLink>Daftar</signUpLink>',
       forgotPassword: 'Lupa kata sandi?',
+      setPassword: 'Tetapkan kata sandi',
+      passwordRecoveryHint: 'Gunakan pemulihan kata sandi untuk menetapkan kata sandi.',
+      contactAdministratorHint: 'Hubungi administrator untuk memulihkan akses.',
     },
     signInCode: {
       title: 'Masukkan kode',

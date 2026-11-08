@@ -174,7 +174,7 @@ func TestSignInWithGitHub(t *testing.T) {
 		assert.Zero(t, app.Mail.GetMessageCount())
 	})
 
-	t.Run("refuses a password sign-in for the user it created like a wrong password", func(t *testing.T) {
+	t.Run("identifies the missing password and GitHub when the user was created through GitHub", func(t *testing.T) {
 		t.Parallel()
 
 		app := apptest.New(t, apptest.WithGitHub())
@@ -184,7 +184,7 @@ func TestSignInWithGitHub(t *testing.T) {
 		response := signIn(t, app, email, apptest.TestPassword)
 
 		requireProblem(t, response.StatusCode(), response.Body, http.StatusUnauthorized,
-			apiclient.ProblemCodeInvalidCredentials)
+			apiclient.ProblemCodePasswordNotSetGithub)
 		assert.True(t, getSignInOptions(t, app).HasAnyUser)
 	})
 }

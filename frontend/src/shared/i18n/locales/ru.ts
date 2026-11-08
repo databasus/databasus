@@ -163,7 +163,15 @@ export const ru: typeof en = {
     unauthenticated: 'Сессия завершилась. Войдите снова.',
     permissionDenied: 'У вас нет прав на это действие.',
     humanVerificationFailed: 'Проверка на робота не пройдена. Пройдите ее и попробуйте снова.',
-    invalidCredentials: 'Неверная почта или пароль.',
+    emailNotFound: 'Аккаунт с такой почтой не найден. Проверьте адрес.',
+    passwordIncorrect: 'Неверный пароль.',
+    registrationIncomplete:
+      'Регистрация не завершена. Зарегистрируйтесь с этой почтой, чтобы принять приглашение.',
+    passwordNotSet: 'Для этого аккаунта пароль не установлен.',
+    passwordNotSetGoogle: 'Для этого аккаунта пароль не установлен. Войдите через Google.',
+    passwordNotSetGithub: 'Для этого аккаунта пароль не установлен. Войдите через GitHub.',
+    passwordNotSetGoogleGithub:
+      'Для этого аккаунта пароль не установлен. Войдите через Google или GitHub.',
     userDeactivated: 'Аккаунт деактивирован. Попросите администратора активировать его.',
     registrationClosed:
       'Регистрация на этом сервере закрыта. Попросите администратора пригласить вас.',
@@ -933,6 +941,9 @@ export const ru: typeof en = {
       submit: 'Войти',
       noAccount: 'Нет аккаунта? <signUpLink>Зарегистрируйтесь</signUpLink>',
       forgotPassword: 'Забыли пароль?',
+      setPassword: 'Задать пароль',
+      passwordRecoveryHint: 'Задайте пароль через восстановление доступа.',
+      contactAdministratorHint: 'Обратитесь к администратору, чтобы восстановить доступ.',
     },
     signInCode: {
       title: 'Введите код',

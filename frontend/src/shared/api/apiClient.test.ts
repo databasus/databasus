@@ -155,7 +155,7 @@ describe('getApiClient', () => {
   it('keeps the page when a request without a session is refused', async () => {
     mockServer.use(
       http.post(`*${API_BASE_PATH}/sessions`, () =>
-        HttpResponse.json({ code: 'invalid_credentials' }, { status: 401 }),
+        HttpResponse.json({ code: 'password_incorrect' }, { status: 401 }),
       ),
     );
 
