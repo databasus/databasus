@@ -107,7 +107,9 @@ export const mantineTheme = createTheme({
     DateInput: DateInput.extend({ classNames: calendarClassNames }),
     DateTimePicker: DateTimePicker.extend({ classNames: calendarClassNames }),
     InlineDateTimePicker: InlineDateTimePicker.extend({ classNames: calendarClassNames }),
-    Tabs: Tabs.extend({ classNames: { tab: classes.tab, tabLabel: classes.tabLabel } }),
+    Tabs: Tabs.extend({
+      classNames: { root: classes.tabs, tab: classes.tab, tabLabel: classes.tabLabel },
+    }),
     TimePicker: TimePicker.extend({
       classNames: {
         fieldsRoot: classes.timeFieldsRoot,

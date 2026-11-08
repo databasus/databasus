@@ -96,9 +96,28 @@
     overflow-wrap: anywhere;
   }
 
+  .tabs {
+    --tab-border-color: var(--app-border);
+
+    &[data-variant='outline'] {
+      --tab-border-color: transparent;
+    }
+  }
+
   .tab {
     min-width: 0;
     max-width: 100%;
+
+    &[data-variant='outline'] {
+      --mantine-color-body: var(--app-surface);
+
+      background-color: var(--app-tab-inactive);
+      color: var(--app-content);
+
+      &[data-active] {
+        background-color: var(--app-surface);
+      }
+    }
   }
 
   .tabLabel {

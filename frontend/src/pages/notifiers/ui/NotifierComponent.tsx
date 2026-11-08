@@ -404,10 +404,9 @@ export const NotifierComponent = ({
             </div>
 
             {!isEditSettings && (
-              <div className="mt-5">
+              <div className="mt-5 flex flex-wrap items-center gap-1">
                 <Button
                   variant="filled"
-                  className="mr-1"
                   aria-label={t('notifiers.testNotification.send')}
                   onClick={sendTestNotification}
                   loading={isSendingTestNotification}
@@ -424,7 +423,6 @@ export const NotifierComponent = ({
                       color="accent"
                       aria-label={t('notifiers.transfer.submit')}
                       onClick={() => setIsShowTransferDialog(true)}
-                      className="mr-1"
                     >
                       <ArrowRight
                         aria-hidden

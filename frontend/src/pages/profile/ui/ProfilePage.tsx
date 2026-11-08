@@ -208,7 +208,6 @@ export function ProfilePage({ onUserChanged }: Props) {
                         {t('users.fields.name')}
                       </label>
                       <TextInput
-                        size="xs"
                         aria-invalid={isEditNameError}
                         id={controlId + 'field-1'}
                         aria-label={t('users.fields.name')}
@@ -234,7 +233,6 @@ export function ProfilePage({ onUserChanged }: Props) {
                         {t('users.fields.email')}
                       </label>
                       <TextInput
-                        size="xs"
                         aria-invalid={isEditEmailError}
                         id={controlId + 'field-2'}
                         aria-label={t('users.fields.email')}
@@ -301,7 +299,6 @@ export function ProfilePage({ onUserChanged }: Props) {
                         {t('users.fields.newPassword')}
                       </label>
                       <PasswordInput
-                        size="xs"
                         aria-invalid={isNewPasswordError}
                         id={controlId + 'field-3'}
                         placeholder={t('users.profile.changePassword.newPasswordPlaceholder')}
@@ -337,7 +334,6 @@ export function ProfilePage({ onUserChanged }: Props) {
                         {t('users.profile.changePassword.confirmPassword')}
                       </label>
                       <PasswordInput
-                        size="xs"
                         aria-invalid={isConfirmPasswordError}
                         id={controlId + 'field-4'}
                         placeholder={t('users.profile.changePassword.confirmPasswordPlaceholder')}

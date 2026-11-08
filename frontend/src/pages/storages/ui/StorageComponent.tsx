@@ -399,10 +399,9 @@ export const StorageComponent = ({
             </div>
 
             {!isEditSettings && (
-              <div className="mt-5">
+              <div className="mt-5 flex flex-wrap items-center gap-1">
                 <Button
                   variant="filled"
-                  className="mr-1"
                   onClick={testConnection}
                   loading={isTestingConnection}
                   disabled={isTestingConnection}
@@ -418,7 +417,6 @@ export const StorageComponent = ({
                       color="accent"
                       aria-label={t('storages.transfer.title')}
                       onClick={() => setIsShowTransferDialog(true)}
-                      className="mr-1"
                     >
                       <ArrowRight
                         aria-hidden
