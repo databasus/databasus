@@ -156,12 +156,16 @@ func (s *Service) administerUser(
 	var changedUser UserRecord
 
 	err := s.transactor.Transaction(ctx, func(ctx context.Context) error {
+		if err := s.repository.lockAdministration(ctx); err != nil {
+			return err
+		}
+
 		admin, isFound, err := s.repository.getByID(ctx, actor.UserID)
 		if err != nil {
 			return err
 		}
 
-		if !isFound {
+		if !isFound || !admin.IsActive() || admin.Role != identity.RoleAdmin {
 			return ErrNotAdmin
 		}
 

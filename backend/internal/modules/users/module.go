@@ -90,6 +90,26 @@ type Module interface {
 	RenderAdminListing(ctx context.Context) (string, error)
 }
 
+type DevSeedAccount = accounts.DevSeedAccount
+
+type DevSeedAdmin interface {
+	EnsureBootstrapAdmin(ctx context.Context, account DevSeedAccount) (bool, error)
+}
+
+type DevSeedAdminDeps struct {
+	DB         *gorm.DB
+	Transactor *database.Transactor
+	AuditLog   *audit.Log
+}
+
+func NewDevSeedAdmin(deps DevSeedAdminDeps) DevSeedAdmin {
+	return accounts.NewDevSeedAdmin(accounts.DevSeedAdminDeps{
+		Repositories: accounts.NewRepositories(deps.DB),
+		Transactor:   deps.Transactor,
+		AuditLog:     deps.AuditLog,
+	})
+}
+
 type Deps struct {
 	DB          *gorm.DB
 	Transactor  *database.Transactor

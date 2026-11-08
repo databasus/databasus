@@ -45,6 +45,8 @@ func TestSeedHealth(t *testing.T) {
 			assert.Contains(t, output, scenario.failureReason)
 			assert.Contains(t, output, "VERIFICATION_AGENTS: AGENTS_STALE")
 			assert.NotContains(t, output, "seeding with stale verification agents")
+			assertBootstrapAssignment(t, router, admin.UserID)
+
 			users, err := admin.Client.ListUsersWithResponse(t.Context(), nil)
 			require.NoError(t, err)
 			require.Equal(t, http.StatusOK, users.StatusCode())

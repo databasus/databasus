@@ -1,10 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -18,6 +16,7 @@ import (
 
 	"databasus-backend/internal/app/apptest"
 	apiclient "databasus-backend/internal/lib/apiclient"
+	"databasus-backend/internal/lib/config"
 	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/lib/testwait"
 )
@@ -206,11 +205,12 @@ func TestSeed(t *testing.T) {
 		exitCode, output := runSeedForTest(t, params)
 
 		assert.Equal(t, 1, exitCode)
-		assert.Contains(t, output, params.Email)
+		assert.Contains(t, output, "s***@example.com")
 		assert.Contains(t, output, "password is incorrect")
 
 		sessionAfter := signInForTest(t, router, params.Email, otherPassword)
 		assert.Equal(t, profileBefore, getProfile(t, router, sessionAfter.UserId, sessionAfter.Token))
+		assertBootstrapAssignment(t, router, fixture.admin.UserID)
 		assert.Empty(t, listSeededItems(t, router, sessionAfter.Token).workspaceIDs)
 	})
 
@@ -249,12 +249,13 @@ func TestSeed(t *testing.T) {
 		exitCode, output := runSeedForTest(t, params)
 
 		assert.Equal(t, 1, exitCode)
-		assert.Contains(t, output, params.Email)
+		assert.Contains(t, output, "s***@example.com")
 		assert.Contains(t, output, "two-factor sign-in")
+		assertBootstrapAssignment(t, router, fixture.admin.UserID)
 		assert.Empty(t, listSeededItems(t, router, token).workspaceIDs)
 	})
 
-	t.Run("names the workspace when its creation is forbidden", func(t *testing.T) {
+	t.Run("creates the workspace after promotion when member workspace creation is forbidden", func(t *testing.T) {
 		t.Parallel()
 
 		fixture, params := setUpSeedTest(t)
@@ -280,13 +281,11 @@ func TestSeed(t *testing.T) {
 
 		exitCode, output := runSeedForTest(t, params)
 
-		assert.Equal(t, 1, exitCode)
-		assert.Contains(t, output, params.WorkspaceName)
-		assert.Contains(t, output, "the instance does not allow this user to create workspaces")
-
-		assert.Equal(t, workspacesBefore, listWorkspaces(t, router, token))
+		require.Equal(t, 0, exitCode, output)
+		assert.Equal(t, apiclient.UserRoleADMIN, getProfile(t, router, session.UserId, token).Role)
+		assert.Contains(t, listWorkspaces(t, router, token), workspacesBefore[0])
 		assert.Equal(t, storagesBefore, listStorages(t, router, token, existingWorkspace.Id))
-		assert.Equal(t, uuid.Nil, findWorkspaceID(t, router, token, params.WorkspaceName))
+		assert.NotEqual(t, uuid.Nil, findWorkspaceID(t, router, token, params.WorkspaceName))
 	})
 
 	t.Run("suggests the dev task when the backend does not answer", func(t *testing.T) {
@@ -356,8 +355,14 @@ type seedFixture struct {
 
 func setUpSeedTest(t *testing.T) (seedFixture, seedParams) {
 	t.Helper()
-	logicalSource := containers.StartPostgres(t, "postgres:16")
-	walSource := containers.StartPhysicalPostgres(t, "postgres:18")
+	fixture, params := setUpSeedAccounts(t)
+	configureSeedSources(t, &params)
+
+	return fixture, params
+}
+
+func setUpSeedAccounts(t *testing.T) (seedFixture, seedParams) {
+	t.Helper()
 
 	testApp := apptest.New(t)
 	admin := testApp.CreateAdmin(t)
@@ -369,6 +374,17 @@ func setUpSeedTest(t *testing.T) (seedFixture, seedParams) {
 	require.Equal(t, http.StatusOK, response.StatusCode())
 
 	params := buildTestSeedParams(testApp.URL)
+	params.DatabaseDsn = testApp.GetServerConfig().DatabaseDsn
+
+	return seedFixture{router: testApp, admin: admin}, params
+}
+
+func configureSeedSources(t *testing.T, params *seedParams) {
+	t.Helper()
+
+	logicalSource := containers.StartPostgres(t, "postgres:16")
+	walSource := containers.StartPhysicalPostgres(t, "postgres:18")
+
 	params.LogicalSource = postgresSource{
 		Host:     logicalSource.Host,
 		Port:     logicalSource.Port,
@@ -382,8 +398,6 @@ func setUpSeedTest(t *testing.T) (seedFixture, seedParams) {
 		Username: containers.PostgresUsername,
 		Password: containers.PostgresPassword,
 	}
-
-	return seedFixture{router: testApp, admin: admin}, params
 }
 
 type seedSettings struct {
@@ -409,6 +423,7 @@ func updateSeedSettings(t *testing.T, fixture seedFixture, settings seedSettings
 func buildTestSeedParams(baseURL string) seedParams {
 	return seedParams{
 		BaseURL:             baseURL,
+		EnvMode:             config.EnvModeDevelopment,
 		Email:               "seed-" + uuid.NewString() + "@example.com",
 		Password:            seedPassword,
 		WorkspaceName:       "Dev",
@@ -416,16 +431,6 @@ func buildTestSeedParams(baseURL string) seedParams {
 		LogicalDatabaseName: "Logical PG16",
 		WalDatabaseName:     "WAL PG18",
 	}
-}
-
-func runSeedForTest(t *testing.T, params seedParams) (int, string) {
-	t.Helper()
-
-	var output bytes.Buffer
-	exitCode := runSeed(t.Context(), &http.Client{Timeout: requestTimeout}, params,
-		slog.New(slog.NewTextHandler(&output, nil)))
-
-	return exitCode, output.String()
 }
 
 func signUpForTest(t *testing.T, router *apptest.App, email, password string) apiclient.Session {

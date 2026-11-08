@@ -29,6 +29,35 @@ type userRepository struct {
 	db *gorm.DB
 }
 
+func (r *userRepository) lockAdministration(ctx context.Context) error {
+	if err := database.RequireTransaction(ctx); err != nil {
+		return err
+	}
+
+	// Authorization reads and their writes must see the same bootstrap assignment during a dev seed.
+	err := database.Conn(ctx, r.db).Exec("LOCK TABLE users IN SHARE ROW EXCLUSIVE MODE").Error
+	if err != nil {
+		return fmt.Errorf("lock user administration: %w", err)
+	}
+
+	return nil
+}
+
+func (r *userRepository) getBootstrapAdmin(ctx context.Context) (UserRecord, bool, error) {
+	return r.getWhere(ctx, "get the bootstrap administrator", "is_root_admin = ?", true)
+}
+
+func (r *userRepository) updateBootstrapAdmin(ctx context.Context, userID uuid.UUID, isBootstrapAdmin bool) error {
+	err := database.Conn(ctx, r.db).
+		Exec("UPDATE users SET is_root_admin = ? WHERE id = ?", isBootstrapAdmin, userID).
+		Error
+	if err != nil {
+		return fmt.Errorf("update the bootstrap administrator designation: %w", err)
+	}
+
+	return nil
+}
+
 func (r *userRepository) getByID(ctx context.Context, userID uuid.UUID) (UserRecord, bool, error) {
 	return r.getWhere(ctx, "get the user by id", "id = ?", userID)
 }
