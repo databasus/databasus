@@ -129,7 +129,7 @@ export const ScheduleDetailsFields = ({ schedule, onChange }: Props) => {
               };
             }}
             size="xs"
-            className="w-full max-w-[200px] grow"
+            className="w-full grow sm:max-w-[200px]"
             onChange={(pickedTime) => {
               if (!pickedTime) return;
 

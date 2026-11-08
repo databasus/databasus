@@ -1593,14 +1593,38 @@ describe('DatabaseConfigComponent backup configuration', () => {
     },
   );
 
-  it('explains completed GFS periods without changing the logical draft', async () => {
+  it('preserves the logical draft when the GFS explanation opens and closes', async () => {
     const saveButton = await renderLogicalSection(
       buildLogicalConfig({}, { policy: 'GFS', gfsDays: 2, gfsWeeks: 1, gfsMonths: 1 }),
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'What is GFS (Grandfather-Father-Son)?' }));
+    const hintButton = screen.getByRole('button', {
+      name: DICTIONARIES.en.backups.logical.config.retention.showGfsHint,
+    });
 
-    expect(screen.getByText(/Weeks, months and years count completed periods/)).toBeTruthy();
+    expect(hintButton.getAttribute('aria-expanded')).toBe('false');
+
+    fireEvent.click(hintButton);
+
+    expect(hintButton.getAttribute('aria-expanded')).toBe('true');
+    expect(
+      screen.getByText(DICTIONARIES.en.backups.logical.config.retention.gfsHint.summary),
+    ).toBeTruthy();
+    expect(getRetentionInput('Daily backups').value).toBe('2');
+    expect(getRetentionInput('Weekly backups').value).toBe('1');
+    expect(getRetentionInput('Monthly backups').value).toBe('1');
+    expect(saveButton).toHaveProperty('disabled', true);
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: DICTIONARIES.en.backups.logical.config.retention.hideGfsHint,
+      }),
+    );
+
+    expect(hintButton.getAttribute('aria-expanded')).toBe('false');
+    expect(
+      screen.queryByText(DICTIONARIES.en.backups.logical.config.retention.gfsHint.summary),
+    ).toBeNull();
     expect(getRetentionInput('Daily backups').value).toBe('2');
     expect(getRetentionInput('Weekly backups').value).toBe('1');
     expect(getRetentionInput('Monthly backups').value).toBe('1');
