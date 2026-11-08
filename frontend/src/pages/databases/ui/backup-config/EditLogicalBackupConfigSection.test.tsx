@@ -295,7 +295,7 @@ describe('EditLogicalBackupConfigSection', () => {
 
       await chooseOption({
         fieldName: 'Retention policy',
-        optionTitle: 'GFS (keep last N hourly, daily, weekly, monthly and yearly backups)',
+        optionTitle: 'GFS (calendar retention)',
       });
       fireEvent.change(await getFieldInput('Daily backups'), { target: { value: '11' } });
       fireEvent.change(await getFieldInput('Weekly backups'), { target: { value: '12' } });

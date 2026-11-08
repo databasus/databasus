@@ -1509,7 +1509,7 @@ export const fr: typeof en = {
         forever: 'Sans limite',
       },
       retentionPolicyTypes: {
-        gfs: 'GFS (conserver les N dernières sauvegardes horaires, quotidiennes, hebdomadaires, mensuelles et annuelles)',
+        gfs: 'GFS (conservation par périodes calendaires)',
         timePeriod: 'Période (N derniers jours)',
         count: 'Nombre (N dernières sauvegardes)',
       },
@@ -1564,9 +1564,9 @@ export const fr: typeof en = {
           showGfsHint: "Qu'est-ce que GFS (Grandfather-Father-Son) ?",
           hideGfsHint: 'Masquer',
           gfsHint:
-            "Rotation GFS (Grandfather-Father-Son) : conserve les N dernières sauvegardes horaires, quotidiennes, hebdomadaires, mensuelles et annuelles. Vous gardez ainsi des sauvegardes sur de longues périodes sans occuper trop d'espace de stockage.",
+            'GFS conserve la dernière sauvegarde réussie de chaque période calendaire sélectionnée en UTC. Les heures et les jours incluent la période en cours. Les semaines, mois et années comptent des périodes terminées et protègent aussi la dernière sauvegarde réussie de la période en cours comme candidate. Seule une nouvelle sauvegarde réussie remplace la candidate, jamais un échec. Les semaines commencent le lundi. Les périodes en cours suivent la date de création de la dernière sauvegarde réussie ; une pause ne fait donc pas expirer ces points. Une sauvegarde peut représenter plusieurs périodes : les valeurs ne donnent pas un nombre fixe de fichiers.',
           gfsTooltip:
-            'Rotation Grandfather-Father-Son : conserve les N dernières sauvegardes horaires, quotidiennes, hebdomadaires, mensuelles et annuelles.',
+            'GFS : heures et jours calendaires récents, semaines, mois et années terminés, plus une candidate protégée pour la période en cours.',
           gfsFields: {
             hourly: 'Sauvegardes horaires',
             daily: 'Sauvegardes quotidiennes',
@@ -1665,8 +1665,10 @@ export const fr: typeof en = {
         chainsKept: 'Chaînes conservées',
         fullBackupsKept: 'Sauvegardes complètes conservées',
         fullBackupsCountValue: 'Les plus récentes : {{count}}',
+        gfsHint:
+          'GFS conserve la dernière sauvegarde complète réussie de chaque période calendaire sélectionnée en UTC. Les heures et les jours incluent la période en cours. Les semaines, mois et années comptent des périodes terminées et protègent aussi la dernière sauvegarde complète réussie de la période en cours comme candidate. Seule une autre sauvegarde complète réussie la remplace, jamais un échec ni une incrémentale. Les semaines commencent le lundi. Les périodes suivent la date de création de la dernière sauvegarde complète réussie, même pendant une pause. Une sauvegarde peut représenter plusieurs périodes, sans total fixe de fichiers. GFS seul ne préserve ni les incrémentales ni le WAL.',
         gfsTooltip:
-          'Rotation Grandfather-Father-Son : conserve les N dernières sauvegardes complètes horaires, quotidiennes, hebdomadaires, mensuelles et annuelles.',
+          'GFS : sauvegardes complètes réussies des heures et jours récents et des semaines, mois et années terminés, plus la candidate actuelle.',
       },
       restore: {
         errorHints: {

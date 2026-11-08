@@ -15,6 +15,171 @@ import (
 func TestCleanPhysicalBackups(t *testing.T) {
 	t.Parallel()
 
+	for _, policy := range []apiclient.PhysicalRetentionPolicy{apiclient.PhysicalRetentionPolicyFULLBACKUPS, apiclient.PhysicalRetentionPolicyCHAINSANDFULLBACKUPS} {
+		t.Run("keeps completed GFS points after repeated cleanup with "+string(policy), func(t *testing.T) {
+			t.Parallel()
+			catalog := newCleanerCatalog(t)
+			configureRetentionSchedule(&catalog.Config)
+			catalog.Config.Retention.ChainsCount = 1
+			catalog.Config.Retention.FullBackups = &apiclient.FullBackupsRetention{
+				Policy:    apiclient.FullBackupsRetentionPolicyGFS,
+				GfsDays:   2,
+				GfsWeeks:  1,
+				GfsMonths: 1,
+			}
+			start := time.Date(2026, 10, 12, 12, 0, 0, 0, time.UTC)
+			fullIDs := make(map[string]uuid.UUID)
+
+			for day := range 53 {
+				createdAt := start.AddDate(0, 0, day)
+				insertedFull := catalog.seedCompletedFullAt(
+					t,
+					datedFullSpec{CreatedAt: createdAt, StartSegment: day * 3},
+				)
+				fullIDs[createdAt.Format(time.DateOnly)] = insertedFull.ID
+				catalog.App.Clock.Set(createdAt.Add(49 * time.Hour))
+				catalog.clean(t, policy)
+
+				if day == 24 {
+					assert.ElementsMatch(
+						t,
+						[]uuid.UUID{
+							fullIDs["2026-11-05"],
+							fullIDs["2026-11-04"],
+							fullIDs["2026-11-01"],
+							fullIDs["2026-10-31"],
+						},
+						collectBackupIDs(getBackups(t, catalog.catalogFixture, "?type=FULL&limit=1000")),
+					)
+				}
+			}
+
+			assert.ElementsMatch(
+				t,
+				[]uuid.UUID{fullIDs["2026-12-03"], fullIDs["2026-12-02"], fullIDs["2026-11-30"], fullIDs["2026-11-29"]},
+				collectBackupIDs(getBackups(t, catalog.catalogFixture, "?type=FULL&limit=1000")),
+			)
+			assert.False(t, catalog.fullExists(t, fullIDs["2026-10-31"]))
+		})
+	}
+
+	for _, policy := range []apiclient.PhysicalRetentionPolicy{apiclient.PhysicalRetentionPolicyFULLBACKUPS, apiclient.PhysicalRetentionPolicyCHAINSANDFULLBACKUPS} {
+		t.Run("keeps overlapping GFS points and the chain union with "+string(policy), func(t *testing.T) {
+			t.Parallel()
+			catalog := newCleanerCatalog(t)
+			configureRetentionSchedule(&catalog.Config)
+			catalog.Config.Retention.ChainsCount = 1
+			dailyCount := 2
+
+			if policy == apiclient.PhysicalRetentionPolicyCHAINSANDFULLBACKUPS {
+				dailyCount = 1
+			}
+
+			catalog.Config.Retention.FullBackups = &apiclient.FullBackupsRetention{
+				Policy:    apiclient.FullBackupsRetentionPolicyGFS,
+				GfsDays:   dailyCount,
+				GfsWeeks:  1,
+				GfsMonths: 1,
+			}
+			var retainedFullIDs []uuid.UUID
+			for day, createdAt := range []time.Time{
+				time.Date(2026, 5, 30, 12, 0, 0, 0, time.UTC), time.Date(2026, 5, 31, 12, 0, 0, 0, time.UTC),
+				time.Date(2026, 6, 3, 12, 0, 0, 0, time.UTC), time.Date(2026, 6, 4, 12, 0, 0, 0, time.UTC),
+			} {
+				insertedFull := catalog.seedCompletedFullAt(
+					t,
+					datedFullSpec{CreatedAt: createdAt, StartSegment: day * 3},
+				)
+
+				if day > 0 {
+					retainedFullIDs = append(retainedFullIDs, insertedFull.ID)
+				}
+			}
+			catalog.App.Clock.Set(time.Date(2026, 6, 7, 12, 0, 0, 0, time.UTC))
+
+			catalog.clean(t, policy)
+
+			assert.ElementsMatch(
+				t,
+				retainedFullIDs,
+				collectBackupIDs(getBackups(t, catalog.catalogFixture, "?type=FULL&limit=1000")),
+			)
+		})
+	}
+
+	t.Run("keeps the successful GFS anchor with newer failed running and incremental backups", func(t *testing.T) {
+		t.Parallel()
+		catalog := newCleanerCatalog(t)
+		configureRetentionSchedule(&catalog.Config)
+		catalog.Config.Retention.ChainsCount = 1
+		catalog.Config.Retention.FullBackups = &apiclient.FullBackupsRetention{
+			Policy:    apiclient.FullBackupsRetentionPolicyGFS,
+			GfsMonths: 1,
+		}
+		fullIDs := make([]uuid.UUID, 0, 4)
+		for day, createdAt := range []time.Time{
+			time.Date(2026, 8, 31, 12, 0, 0, 0, time.UTC),
+			time.Date(2026, 9, 30, 12, 0, 0, 0, time.UTC),
+			time.Date(2026, 10, 15, 12, 0, 0, 0, time.UTC),
+			time.Date(2026, 10, 31, 12, 0, 0, 0, time.UTC),
+		} {
+			insertedFull := catalog.seedCompletedFullAt(t, datedFullSpec{CreatedAt: createdAt, StartSegment: day * 3})
+			fullIDs = append(fullIDs, insertedFull.ID)
+		}
+
+		newerAt := time.Date(2026, 11, 1, 12, 0, 0, 0, time.UTC)
+		incremental := newIncrementalSeed(
+			incrementalSeedSpec{
+				DatabaseID:       catalog.DatabaseID,
+				StorageID:        catalog.StorageID,
+				RootFullBackupID: fullIDs[3],
+				TimelineID:       1,
+				StartLSN:         cleanerLSN(11),
+				StopLSN:          cleanerLSN(12),
+			},
+		)
+		incremental.CreatedAt = newerAt
+		incremental.CompletedAt = &newerAt
+		catalog.insertIncremental(t, incremental)
+
+		failed := newFullSeed(
+			fullSeedSpec{
+				DatabaseID: catalog.DatabaseID,
+				StorageID:  catalog.StorageID,
+				TimelineID: 1,
+				StartLSN:   cleanerLSN(13),
+				StopLSN:    cleanerLSN(14),
+			},
+		)
+		failed.CreatedAt = newerAt
+		failed.Status = "ERROR"
+		failed.CompletedAt = nil
+		catalog.insertFull(t, failed)
+
+		running := newInProgressFull(
+			inProgressFullSpec{DatabaseID: catalog.DatabaseID, StorageID: catalog.StorageID, TimelineID: 1},
+		)
+		running.CreatedAt = newerAt.Add(time.Hour)
+		catalog.insertFull(t, running)
+
+		catalog.App.Clock.Set(newerAt.Add(49 * time.Hour))
+
+		catalog.clean(t, apiclient.PhysicalRetentionPolicyCHAINSANDFULLBACKUPS)
+
+		assert.False(t, catalog.fullExists(t, fullIDs[0]))
+		for _, fullID := range fullIDs[1:] {
+			assert.True(t, catalog.fullExists(t, fullID))
+		}
+
+		catalog.App.Clock.Advance(400 * 24 * time.Hour)
+		catalog.clean(t, apiclient.PhysicalRetentionPolicyCHAINSANDFULLBACKUPS)
+
+		assert.False(t, catalog.fullExists(t, fullIDs[0]))
+		for _, fullID := range fullIDs[1:] {
+			assert.True(t, catalog.fullExists(t, fullID))
+		}
+	})
+
 	t.Run("keeps the newest inactive chains and the active chain when chain retention runs", func(t *testing.T) {
 		t.Parallel()
 

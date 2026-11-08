@@ -2,7 +2,13 @@ import { Button } from '@mantine/core';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-export const GfsRetentionHint = () => {
+import type { BackupConfig } from '@/entities/backup-configs';
+
+interface Props {
+  backupMethod: BackupConfig['settings']['type'];
+}
+
+export const GfsRetentionHint = ({ backupMethod }: Props) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const hintId = useId();
   const { t } = useTranslation();
@@ -24,7 +30,9 @@ export const GfsRetentionHint = () => {
 
       {isExpanded && (
         <div id={hintId} className="mt-1 max-w-[280px] text-xs text-muted">
-          {t('backups.logical.config.retention.gfsHint')}
+          {backupMethod === 'LOGICAL'
+            ? t('backups.logical.config.retention.gfsHint')
+            : t('backups.physical.config.gfsHint')}
         </div>
       )}
     </div>

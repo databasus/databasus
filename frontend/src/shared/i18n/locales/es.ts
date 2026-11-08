@@ -1501,7 +1501,7 @@ export const es: typeof en = {
         forever: 'Sin límite',
       },
       retentionPolicyTypes: {
-        gfs: 'GFS (conservar las últimas N copias horarias, diarias, semanales, mensuales y anuales)',
+        gfs: 'GFS (retención por períodos naturales)',
         timePeriod: 'Periodo de tiempo (últimos N días)',
         count: 'Cantidad (últimas N copias)',
       },
@@ -1556,9 +1556,9 @@ export const es: typeof en = {
           showGfsHint: '¿Qué es GFS (Grandfather-Father-Son)?',
           hideGfsHint: 'Ocultar',
           gfsHint:
-            'Rotación GFS (Grandfather-Father-Son): conserva las últimas N copias horarias, diarias, semanales, mensuales y anuales. Así se pueden guardar copias durante largos periodos sin ocupar demasiado espacio de almacenamiento.',
+            'GFS conserva la última copia correcta de cada período natural seleccionado en UTC. Las horas y los días incluyen el período actual. Las semanas, los meses y los años cuentan períodos completos y protegen además la última copia correcta del período actual como candidata. Solo una nueva copia correcta sustituye a la candidata; los intentos fallidos no. Las semanas empiezan el lunes. Los períodos actuales se determinan por la fecha de creación de la última copia correcta, por lo que una pausa no hace caducar estos puntos. Una copia puede representar varios períodos; los valores no suman un número fijo de archivos.',
           gfsTooltip:
-            'Rotación Grandfather-Father-Son: conserva las últimas N copias horarias, diarias, semanales, mensuales y anuales.',
+            'GFS: horas y días naturales recientes, semanas, meses y años completos, y una candidata protegida del período actual.',
           gfsFields: {
             hourly: 'Copias horarias',
             daily: 'Copias diarias',
@@ -1657,8 +1657,10 @@ export const es: typeof en = {
         chainsKept: 'Cadenas conservadas',
         fullBackupsKept: 'Copias completas conservadas',
         fullBackupsCountValue: 'Más recientes: {{count}}',
+        gfsHint:
+          'GFS conserva la última copia completa correcta de cada período natural seleccionado en UTC. Las horas y los días incluyen el período actual. Las semanas, los meses y los años cuentan períodos completos y protegen además la última copia completa correcta del período actual como candidata. Solo otra copia completa correcta la sustituye; los fallos y las incrementales no. Las semanas empiezan el lunes. El período actual sigue la fecha de creación de la última copia completa correcta, incluso durante una pausa. Una copia puede representar varios períodos, sin un total fijo de archivos. GFS por sí solo no conserva las incrementales ni el WAL.',
         gfsTooltip:
-          'Rotación Grandfather-Father-Son: conserva las últimas N copias completas horarias, diarias, semanales, mensuales y anuales.',
+          'GFS: copias completas correctas de horas y días naturales recientes y períodos semanales, mensuales y anuales completos, más la candidata actual.',
       },
       restore: {
         errorHints: {

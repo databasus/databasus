@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"slices"
 	"strings"
 	"sync"
@@ -25,6 +26,131 @@ func TestLogicalBackupRetention(t *testing.T) {
 	t.Parallel()
 
 	server := startRestoreServer(t, restoreServerImage)
+
+	t.Run("keeps historical GFS points and their files after daily cleanup across months", func(t *testing.T) {
+		tm := newTeam(t)
+		source := newBackupSourceDatabase(t, tm, server)
+		settings := newLogicalBackupSettings()
+		settings.Retention = apiclient.LogicalRetention{
+			Policy:    apiclient.LogicalRetentionPolicyGFS,
+			Period:    apiclient.RetentionPeriodFOREVER,
+			GfsDays:   2,
+			GfsWeeks:  1,
+			GfsMonths: 1,
+		}
+
+		saveLogicalBackupSettings(
+			t,
+			tm.owner,
+			source.databaseID,
+			source.storageID,
+			settings,
+			apiclient.BackupEncryptionNONE,
+		)
+		start := time.Date(2026, 10, 12, 12, 0, 0, 0, time.UTC)
+		backupIDs := make(map[string]uuid.UUID)
+		backupFiles := make(map[string]string)
+
+		for day := range 53 {
+			backupTime := start.AddDate(0, 0, day)
+			tm.app.Clock.Set(backupTime)
+			backup := completeRestorableBackup(t, tm.owner, source.databaseID)
+			date := backupTime.Format(time.DateOnly)
+			backupIDs[date] = backup.Id
+			backupFiles[date] = getBackupFileName(t, tm, backup.Id)
+
+			tm.app.Clock.Advance(2 * time.Hour)
+			tm.app.RunJobPass(t, logicalBackupRetentionJobName)
+			tm.app.RunJobPass(t, storageFileDeletionJobName)
+
+			if day == 24 {
+				assert.ElementsMatch(
+					t,
+					[]uuid.UUID{
+						backupIDs["2026-11-05"],
+						backupIDs["2026-11-04"],
+						backupIDs["2026-11-01"],
+						backupIDs["2026-10-31"],
+					},
+					listLogicalBackupIDs(t, tm.owner, source.databaseID),
+				)
+				for _, keptDate := range []string{"2026-11-05", "2026-11-04", "2026-11-01", "2026-10-31"} {
+					assert.True(t, tm.app.IsLocalStorageFilePresent(t, backupFiles[keptDate]))
+					assert.True(t, tm.app.IsLocalStorageFilePresent(t, backupFiles[keptDate]+".metadata"))
+				}
+			}
+		}
+
+		assert.ElementsMatch(
+			t,
+			[]uuid.UUID{
+				backupIDs["2026-12-03"],
+				backupIDs["2026-12-02"],
+				backupIDs["2026-11-30"],
+				backupIDs["2026-11-29"],
+			},
+			listLogicalBackupIDs(t, tm.owner, source.databaseID),
+		)
+		assert.False(t, tm.app.IsLocalStorageFilePresent(t, backupFiles["2026-10-31"]))
+		assert.False(t, tm.app.IsLocalStorageFilePresent(t, backupFiles["2026-10-31"]+".metadata"))
+		assert.True(t, tm.app.IsLocalStorageFilePresent(t, backupFiles["2026-11-30"]))
+		assert.True(t, tm.app.IsLocalStorageFilePresent(t, backupFiles["2026-11-30"]+".metadata"))
+	})
+
+	t.Run("keeps the successful GFS candidate after newer cancelled and failed attempts", func(t *testing.T) {
+		tm := newTeam(t)
+		source := newBackupSourceDatabase(t, tm, server)
+		settings := newLogicalBackupSettings()
+		settings.Retention = apiclient.LogicalRetention{
+			Policy:    apiclient.LogicalRetentionPolicyGFS,
+			Period:    apiclient.RetentionPeriodFOREVER,
+			GfsMonths: 1,
+		}
+		saveLogicalBackupSettings(
+			t,
+			tm.owner,
+			source.databaseID,
+			source.storageID,
+			settings,
+			apiclient.BackupEncryptionNONE,
+		)
+
+		tm.app.Clock.Set(time.Date(2026, 9, 30, 12, 0, 0, 0, time.UTC))
+		septemberBackup := completeRestorableBackup(t, tm.owner, source.databaseID)
+
+		tm.app.Clock.Set(time.Date(2026, 10, 31, 12, 0, 0, 0, time.UTC))
+		octoberBackup := completeRestorableBackup(t, tm.owner, source.databaseID)
+
+		tm.app.Clock.Set(time.Date(2026, 11, 1, 12, 0, 0, 0, time.UTC))
+		cancelledBackup, releaseLock := startBlockedSourceBackup(t, tm, server, source)
+		response := requestLogicalBackupCancel(t, tm.owner, cancelledBackup.Id)
+		require.Equal(t, http.StatusAccepted, response.StatusCode())
+		waitForRestorableBackupStatus(t, tm.owner, cancelledBackup.Id, apiclient.LogicalBackupStatusCANCELED)
+		releaseLock()
+		tm.app.WaitForBackupRuns(t)
+
+		routeThroughBastionPort(t, tm, source, getClosedPort(t))
+		failedBackup := startRestorableBackup(t, tm.owner, source.databaseID)
+		waitForRestorableBackupStatus(t, tm.owner, failedBackup.Id, apiclient.LogicalBackupStatusFAILED)
+		tm.app.Clock.Advance(2 * time.Hour)
+
+		tm.app.RunJobPass(t, logicalBackupRetentionJobName)
+
+		assert.ElementsMatch(
+			t,
+			[]uuid.UUID{septemberBackup.Id, octoberBackup.Id, cancelledBackup.Id, failedBackup.Id},
+			listLogicalBackupIDs(t, tm.owner, source.databaseID),
+		)
+
+		tm.app.Clock.Advance(400 * 24 * time.Hour)
+		tm.app.RunJobPass(t, logicalBackupRetentionJobName)
+
+		assert.ElementsMatch(
+			t,
+			[]uuid.UUID{septemberBackup.Id, octoberBackup.Id, cancelledBackup.Id, failedBackup.Id},
+			listLogicalBackupIDs(t, tm.owner, source.databaseID),
+		)
+	})
 
 	t.Run("removes the two oldest of seven backups and deletes their files when the config keeps five",
 		func(t *testing.T) {

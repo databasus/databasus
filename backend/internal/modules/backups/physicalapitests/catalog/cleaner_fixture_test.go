@@ -159,3 +159,20 @@ func (catalog *cleanerCatalog) insertCleanerSample(
 	*sample = catalog.App.InsertPhysicalWalStreamSample(t, *sample)
 	return sample
 }
+
+type datedFullSpec struct {
+	CreatedAt    time.Time
+	StartSegment int
+}
+
+func (catalog *cleanerCatalog) seedCompletedFullAt(t *testing.T, spec datedFullSpec) *apptest.PhysicalFullBackupSeed {
+	t.Helper()
+	full := newFullSeed(fullSeedSpec{
+		DatabaseID: catalog.DatabaseID, StorageID: catalog.StorageID, TimelineID: 1,
+		StartLSN: cleanerLSN(spec.StartSegment), StopLSN: cleanerLSN(spec.StartSegment + 1),
+	})
+	full.CreatedAt = spec.CreatedAt
+	full.CompletedAt = &spec.CreatedAt
+
+	return catalog.insertFull(t, full)
+}

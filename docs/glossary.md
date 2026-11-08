@@ -70,6 +70,9 @@ This is the project's common language. Each concept has one term in the document
 | Recovery script | recovery script | The script Databasus serves that rebuilds a cluster from a downloaded restore set. |
 | Restore | restore | Putting a backup's data into a target database. |
 | Retention | retention | The rule that decides which backups are kept, including the grandfather-father-son (GFS) policy. |
+| GFS candidate | GFS candidate | The newest successful eligible backup protected for the current week, month or year of an enabled GFS level, in addition to its completed-period slots. Only a newer success in that period replaces it. |
+| GFS representative | GFS representative | The newest successful eligible backup selected for a calendar period. A completed weekly, monthly or yearly representative occupies a completed-period slot; the protected selection for a current long period is a GFS candidate. |
+| GFS reference instant | GFS reference instant | The creation time of the newest successful eligible backup, which determines current UTC calendar periods. Logical retention uses completed logical backups; physical full-backup retention uses completed full backups. Failed, cancelled, running and, for full-backup retention, incremental backups do not advance it. |
 | Schedule | schedule | When something runs: every N hours, daily, weekly, monthly or a cron expression. |
 | Verification | verification, `verification_runs` | A check that a backup restores: the agent restores it into a disposable container and compares what it finds. Table names call one verification a run because the module prefix already says "verification". |
 | Failure diagnostic | failure diagnostic, `failureDiagnostic` in the API | The bounded, sanitized diagnostic of a verification's final failed attempt. It is separate from the short failure summary (`failMessage`) used in lists and notifications. |

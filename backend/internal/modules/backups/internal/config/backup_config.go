@@ -69,8 +69,6 @@ type AnyBackupConfig interface {
 	GetMethod() Method
 }
 
-// GfsRetention keeps the newest backup of each of the last Hours hours, Days days, Weeks weeks, Months
-// months and Years years.
 type GfsRetention struct {
 	Hours  int
 	Days   int

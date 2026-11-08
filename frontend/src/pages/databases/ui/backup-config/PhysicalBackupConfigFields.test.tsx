@@ -7,6 +7,7 @@ import type { PhysicalDatabaseBackupType } from '@/entities/databases';
 import { buildPhysicalBackupConfigDraft } from '@/pages/databases/model/physical-backups/buildPhysicalBackupConfigDraft.fixture';
 import type { PhysicalBackupConfigDraft } from '@/pages/databases/model/physical-backups/PhysicalBackupConfigDraft';
 import { PhysicalBackupConfigFields } from '@/pages/databases/ui/backup-config/PhysicalBackupConfigFields';
+import { DICTIONARIES } from '@/shared/i18n/dictionaries';
 import { mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
 
@@ -72,12 +73,12 @@ describe('PhysicalBackupConfigFields', () => {
       await view.user.click(hintButton);
 
       expect(hintButton.getAttribute('aria-expanded')).toBe('true');
-      expect(screen.getByText(/GFS \(Grandfather-Father-Son\) rotation:/)).toBeTruthy();
+      expect(screen.getByText(DICTIONARIES.en.backups.physical.config.gfsHint)).toBeTruthy();
       expect(dailyCount).toHaveProperty('value', '9');
 
       await view.user.click(screen.getByRole('button', { name: 'Hide' }));
 
-      expect(screen.queryByText(/GFS \(Grandfather-Father-Son\) rotation:/)).toBeNull();
+      expect(screen.queryByText(DICTIONARIES.en.backups.physical.config.gfsHint)).toBeNull();
       expect(dailyCount).toHaveProperty('value', '9');
 
       await chooseOption(view, { controlName: 'Full backups', optionName: 'Count' });
@@ -87,6 +88,26 @@ describe('PhysicalBackupConfigFields', () => {
       ).toBeNull();
     },
   );
+
+  it('explains full-backup GFS in the selected language without changing values', async () => {
+    mockServer.use(mockApi.get('/storages', 200, { items: [] }));
+    const draft = buildPhysicalBackupConfigDraft({ backupType: 'FULL' });
+    const view = renderScreen(<FieldsParent initialDraft={draft} backupType="FULL" />, {
+      locale: 'ru',
+    });
+    const dictionary = DICTIONARIES.ru.backups;
+    const dailyCount = screen.getByRole('spinbutton', {
+      name: dictionary.physical.config.gfsFields.daily,
+    });
+    const initialCount = (dailyCount as HTMLInputElement).value;
+
+    await view.user.click(
+      screen.getByRole('button', { name: dictionary.logical.config.retention.showGfsHint }),
+    );
+
+    expect(screen.getByText(dictionary.physical.config.gfsHint)).toBeTruthy();
+    expect(dailyCount).toHaveProperty('value', initialCount);
+  });
 
   it('labels the fields of each schedule separately', async () => {
     renderFields(

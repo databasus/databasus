@@ -427,10 +427,14 @@ func (c *Cleaner) getRetainedTiersByFullBackupID(
 			items[i] = gfs.Item{ID: full.ID, CreatedAt: full.CreatedAt}
 		}
 
-		return gfs.GetItemsToRetain(
-			items, retention.Gfs.Hours, retention.Gfs.Days, retention.Gfs.Weeks,
-			retention.Gfs.Months, retention.Gfs.Years,
-		)
+		return gfs.GetItemsToRetain(gfs.Selection{
+			Items:  items,
+			Hours:  retention.Gfs.Hours,
+			Days:   retention.Gfs.Days,
+			Weeks:  retention.Gfs.Weeks,
+			Months: retention.Gfs.Months,
+			Years:  retention.Gfs.Years,
+		})
 	}
 
 	return nil
