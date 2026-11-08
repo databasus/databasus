@@ -44,7 +44,7 @@ type seedParams struct {
 func seedDevApp(ctx context.Context, httpClient *http.Client, params seedParams, logger *slog.Logger) error {
 	client := &apiClient{httpClient: httpClient, baseURL: params.BaseURL}
 
-	if err := checkBackendHealth(ctx, client, params.BaseURL); err != nil {
+	if err := checkBackendHealth(ctx, client, logger); err != nil {
 		return err
 	}
 
@@ -97,19 +97,6 @@ func seedDevApp(ctx context.Context, httpClient *http.Client, params seedParams,
 	logger.InfoContext(ctx, "dev app is seeded", slog.String("sign_in_email", params.Email))
 
 	return nil
-}
-
-func checkBackendHealth(ctx context.Context, client *apiClient, baseURL string) error {
-	err := client.get(ctx, "/system/health", nil)
-	if err == nil {
-		return nil
-	}
-
-	if isAPIRefusal(err) {
-		return fmt.Errorf("backend at %s reports itself unhealthy: %w", baseURL, err)
-	}
-
-	return fmt.Errorf("backend at %s does not answer, start the app with `mise run run`: %w", baseURL, err)
 }
 
 func signInOrSignUp(

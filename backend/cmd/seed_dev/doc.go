@@ -22,9 +22,10 @@
 // backup right away. An item that already exists is left exactly as it is, including one a
 // developer edited, and an existing account is only ever signed in to. The seed refuses to run
 // unless ENV_MODE in .env is development. It exits with a non-zero status and the backend's
-// reason when the backend does not answer or reports itself unhealthy, when it cannot sign in as
+// reason when the backend does not answer or a required health check fails, when it cannot sign in as
 // the account or register it, when the instance requires two-factor sign-in, and when the backend
-// refuses to create an item.
+// refuses to create an item. Stale verification agents alone produce a warning and do not stop the
+// seed; their records and the instance's reported health stay unchanged.
 //
 // Fixing by hand what the seed leaves alone:
 //

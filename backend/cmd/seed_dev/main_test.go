@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
@@ -28,6 +29,33 @@ const (
 
 func TestSeed(t *testing.T) {
 	t.Parallel()
+
+	t.Run("seeds with a warning when only a verification agent is stale", func(t *testing.T) {
+		t.Parallel()
+
+		fixture, params := setUpSeedTest(t)
+		router := fixture.router
+		agent := router.CreateVerificationAgent(t, fixture.admin)
+		router.ExecuteSQL(t, "UPDATE verification_agents SET created_at = ? WHERE id = ?",
+			router.Clock.Now().Add(-time.Hour), agent.Agent.ID)
+		agentsBefore := router.ListVerificationAgents(t, fixture.admin)
+
+		exitCode, output := runSeedForTest(t, params)
+
+		require.Equal(t, 0, exitCode, output)
+		assert.Contains(t, output, "level=WARN")
+		assert.Contains(t, output, "stale_agent_count=1")
+		token := signInForTest(t, router, params.Email, seedPassword).Token
+		workspaceID := findWorkspaceID(t, router, token, params.WorkspaceName)
+		require.NotEqual(t, uuid.Nil, workspaceID)
+		assert.NotEqual(t, uuid.Nil, findDatabaseID(t, router, token, workspaceID, params.LogicalDatabaseName))
+		assert.NotEqual(t, uuid.Nil, findDatabaseID(t, router, token, workspaceID, params.WalDatabaseName))
+		assert.Equal(t, agentsBefore, router.ListVerificationAgents(t, fixture.admin))
+
+		health, err := router.NewClient(t).GetInstanceHealthWithResponse(t.Context())
+		require.NoError(t, err)
+		assert.Equal(t, http.StatusServiceUnavailable, health.StatusCode())
+	})
 
 	t.Run("creates workspace storage and configured backups when the account is new", func(t *testing.T) {
 		t.Parallel()
@@ -291,7 +319,15 @@ func TestSeed(t *testing.T) {
 
 			writer.Header().Set("Content-Type", "application/problem+json")
 			writer.WriteHeader(http.StatusServiceUnavailable)
-			_, _ = writer.Write([]byte(`{"status":503,"code":"instance_unhealthy","detail":"` + unhealthyReason + `"}`))
+			_, _ = writer.Write([]byte(`{
+				"status":503,"code":"instance_unhealthy","detail":"` + unhealthyReason + `",
+				"checks":[
+					{"name":"DISK","outcome":"FAILED","failureCode":"DISK_FULL"},
+					{"name":"INTERNAL_DATABASE","outcome":"PASSED"},
+					{"name":"CLIENT_TOOLS","outcome":"PASSED"},
+					{"name":"VERIFICATION_AGENTS","outcome":"FAILED","failureCode":"AGENTS_STALE","staleAgentCount":1}
+				],"jobs":[]
+			}`))
 		}))
 		t.Cleanup(stubServer.Close)
 
@@ -299,6 +335,7 @@ func TestSeed(t *testing.T) {
 
 		assert.Equal(t, 1, exitCode)
 		assert.Contains(t, output, unhealthyReason)
+		assert.Contains(t, output, "DISK: DISK_FULL")
 
 		receivedPathsMutex.Lock()
 		defer receivedPathsMutex.Unlock()

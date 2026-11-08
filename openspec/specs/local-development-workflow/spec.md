@@ -365,7 +365,7 @@ When the backend started by `mise run run` begins answering requests, the seed S
 
 The seed SHALL go through the same public API and validation as the web interface. It SHALL find each item by its name, SHALL create only the items that are missing and SHALL NOT change an item that already exists. When the seed creates a database, it SHALL switch its backups on with the local storage and SHALL start the first backup. The logical database SHALL keep its 3 newest backups, and the WAL-streaming database SHALL keep its 2 newest backup chains.
 
-The seed command, `go run ./cmd/seed_dev` in the backend directory, SHALL also run on its own against the app already answering on the backend port, with the same behavior. The repository SHALL NOT provide a separate task for it. When nothing answers on the backend port, the seed command SHALL exit with a non-zero status and say that the app has to be started with `mise run run`. When the backend answers its health check with an error status, for example because disk usage is too high, the seed SHALL exit with a non-zero status and show the reason the backend gave, and SHALL create nothing.
+The seed command, `go run ./cmd/seed_dev` in the backend directory, SHALL also run on its own against the app already answering on the backend port, with the same behavior. The repository SHALL NOT provide a separate task for it. When nothing answers on the backend port, the seed command SHALL exit with a non-zero status and say that the app has to be started with `mise run run`. When the backend answers its health check with an error status, for example because disk usage is too high, the seed SHALL exit with a non-zero status and show the reason the backend gave, including failed dependency names, failure codes and stale background job names, and SHALL create nothing. The sole exception is an `instance_unhealthy` response whose complete diagnostics report passed disk, internal database and client tool checks, only stale verification agents and no stale background jobs: the seed SHALL log a warning with the stale agent count and continue. It SHALL NOT change those agents or the health endpoint's behavior.
 
 When the seed cannot sign in as the dev account and cannot create it, for example because the account exists with a different password or registration is closed, it SHALL exit with a non-zero status and a message that names the account and the reason the backend gave, and SHALL create nothing. When the instance requires two-factor sign-in, the seed SHALL exit with a non-zero status and a message that names the account and says that two-factor sign-in is required, and SHALL create nothing. When the backend refuses to create a seeded item after sign-in, for example because the dev account is a member that may not create workspaces, the seed SHALL exit with a non-zero status, show the name of that item and the reason the backend gave, and SHALL NOT change any item that already exists. A seed that fails SHALL NOT stop the other processes of `mise run run`.
 
@@ -414,6 +414,17 @@ When the seed cannot sign in as the dev account and cannot create it, for exampl
 - **WHEN** the backend answers its health check with an error status and the reason "disk usage is above 95%", and the seed command runs on its own
 - **THEN** the seed exits with a non-zero status and shows that reason
 - **AND** nothing is created
+
+#### Scenario: Only verification agents are stale
+
+- **WHEN** the backend reports stale verification agents while disk, internal database, client tools and background jobs pass their health checks, and the seed runs
+- **THEN** the seed logs a warning with the stale agent count and creates any missing dev items
+- **AND** existing agent records stay unchanged and the health endpoint still reports the stale agents
+
+#### Scenario: Stale agents accompany another health failure
+
+- **WHEN** the backend reports stale verification agents together with a failed disk, internal database or client tool check, or a stale background job, and the seed runs
+- **THEN** the seed exits with a non-zero status, identifies the failed checks or stale jobs and creates nothing
 
 #### Scenario: App is not running
 
