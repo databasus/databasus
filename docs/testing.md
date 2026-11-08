@@ -115,6 +115,7 @@ These tests exercise the production build in a real browser, for what happy-dom 
 - **HTTP.** Fixtures follow generated operations and fail teardown on undeclared requests or page errors, even when application code catches the HTTP failure. Only same-origin GET navigation and static resources pass through.
 - **Scenarios** live in `frontend/browser/scenarios` and need no external provider account. Navigation tests assert both visible selection and canonical URL after reload, Back/Forward and direct mobile entry. Non-English assertions read the interface dictionaries.
 - **Visual references** live in `frontend/browser/references`. A missing or changed image fails an ordinary run. Use the explicit update command from [Commands](#commands) to replace references, then inspect the result.
+- **Inner runner coverage** runs before the application suite in the same pinned container. The real inner entry point builds a small static fixture, runs its harness probes, and executes six recorded cases once as a full suite and then as three disjoint shards. It fails if shard forwarding is lost. Each invocation owns and removes its fixture and preview process.
 - **Failure artifacts** go to the unique run directory under `frontend/browser-results/`, and CI uploads them.
 
 ## Browser end-to-end suite

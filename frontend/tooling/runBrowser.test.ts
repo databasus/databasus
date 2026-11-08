@@ -141,6 +141,14 @@ describe('Browser runner resource ownership', () => {
       expect(imageTag(nativeRun.output)).not.toBe(imageTag(otherRun.output));
     },
   );
+  it('requires actual inner runner coverage before starting the UI suite', async () => {
+    const execution = await runFixture({ mode: 'success' });
+
+    expect(execution.exitCode).toBe(0);
+    expect(execution.output).toContain(
+      'node tooling/verifyBrowserShardExecution.ts && node tooling/browserInside.ts',
+    );
+  });
   it('fails before scenarios when the downloaded Node archive fails checksum validation', async () => {
     const failedBuild = await runFixture({ mode: 'checksum' });
 

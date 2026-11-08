@@ -5,7 +5,7 @@
 
 ## 2. Browser UI shard selection
 
-- [x] 2.1 Add validated optional `--shard=index/count` handling to the existing browser command and forward it into the container's test invocation. Preserve complete runs, two workers, zero retries and existing cleanup; reject duplicates, malformed selections, unknown options and sharded reference updates before Docker work. Verify argument handling, forwarding, failure status and interruption through `pnpm --dir frontend test tooling/runBrowser.test.ts`.
+- [x] 2.1 Add validated optional `--shard=index/count` handling to the existing browser command and forward it into the container's test invocation. Preserve complete runs, two workers, zero retries and existing cleanup; reject duplicates, malformed selections, unknown options and sharded reference updates before Docker work. Verify argument handling, forwarding, failure status and interruption through `pnpm --dir frontend test tooling/runBrowser.test.ts`. The production browser command must also execute the actual inner entry point with a small fixture for full and all three sharded selections, and reject an isolated mutation removing inner forwarding.
 - [x] 2.2 Add an automated enumeration check comparing the full UI project with all three shard selections, proving no omissions or duplicates and automatic inclusion of a new test. Verify with `pnpm --dir frontend test tooling` and run `pnpm --dir frontend test:browser --project=ui --shard=1/3`, repeating for `2/3` and `3/3` against the unchanged references.
 
 ## 3. Backend execution and duration balance

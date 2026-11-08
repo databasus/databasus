@@ -155,7 +155,7 @@ export const runBrowser = async ({
           image,
           'sh',
           '-c',
-          'cp -a /opt/dependencies/node_modules ./node_modules && node tooling/browserInside.ts',
+          'cp -a /opt/dependencies/node_modules ./node_modules && node tooling/verifyBrowserShardExecution.ts && node tooling/browserInside.ts',
         ],
         { signal: controller.signal },
       );
