@@ -1593,6 +1593,20 @@ describe('DatabaseConfigComponent backup configuration', () => {
     },
   );
 
+  it('explains completed GFS periods without changing the logical draft', async () => {
+    const saveButton = await renderLogicalSection(
+      buildLogicalConfig({}, { policy: 'GFS', gfsDays: 2, gfsWeeks: 1, gfsMonths: 1 }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'What is GFS (Grandfather-Father-Son)?' }));
+
+    expect(screen.getByText(/Weeks, months and years count completed periods/)).toBeTruthy();
+    expect(getRetentionInput('Daily backups').value).toBe('2');
+    expect(getRetentionInput('Weekly backups').value).toBe('1');
+    expect(getRetentionInput('Monthly backups').value).toBe('1');
+    expect(saveButton).toHaveProperty('disabled', true);
+  });
+
   it('keeps entered GFS values through a switch to another policy and back', async () => {
     await renderLogicalSection(buildLogicalConfig({}, { policy: 'GFS', gfsDays: 7 }));
     setRetentionValue('Daily backups', '11');

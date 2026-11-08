@@ -1376,7 +1376,7 @@ export const id: typeof en = {
         forever: 'Selamanya',
       },
       retentionPolicyTypes: {
-        gfs: 'GFS (simpan N backup terakhir per jam, harian, mingguan, bulanan, dan tahunan)',
+        gfs: 'GFS (retensi berdasarkan periode kalender)',
         timePeriod: 'Periode waktu (N hari terakhir)',
         count: 'Jumlah (N backup terakhir)',
       },
@@ -1428,9 +1428,9 @@ export const id: typeof en = {
           showGfsHint: 'Apa itu GFS (Grandfather-Father-Son)?',
           hideGfsHint: 'Sembunyikan',
           gfsHint:
-            'Rotasi GFS (Grandfather-Father-Son): simpan N backup terakhir per jam, harian, mingguan, bulanan, dan tahunan. Ini memungkinkan penyimpanan backup jangka panjang tanpa memakai terlalu banyak ruang.',
+            'GFS menyimpan backup berhasil terbaru untuk setiap periode kalender UTC yang dipilih. Jam dan hari mencakup periode saat ini. Minggu, bulan, dan tahun menghitung periode yang sudah selesai serta melindungi backup berhasil terbaru dalam periode saat ini sebagai kandidat. Hanya backup berhasil yang lebih baru menggantikan kandidat; percobaan gagal tidak. Minggu dimulai pada hari Senin. Periode saat ini mengikuti waktu pembuatan backup berhasil terbaru, sehingga jeda backup berhasil tidak membuat titik ini kedaluwarsa. Satu backup dapat mewakili beberapa periode; jumlah pengaturan bukan jumlah file yang pasti.',
           gfsTooltip:
-            'Rotasi Grandfather-Father-Son: simpan N backup terakhir per jam, harian, mingguan, bulanan, dan tahunan.',
+            'GFS: jam dan hari kalender terbaru, minggu, bulan, dan tahun yang sudah selesai, serta kandidat terlindungi untuk periode saat ini.',
           gfsFields: {
             hourly: 'Backup per jam',
             daily: 'Backup harian',
@@ -1522,8 +1522,10 @@ export const id: typeof en = {
         chainsKept: 'Rantai yang disimpan',
         fullBackupsKept: 'Backup penuh yang disimpan',
         fullBackupsCountValue: 'Terbaru: {{count}}',
+        gfsHint:
+          'GFS menyimpan backup penuh berhasil terbaru untuk setiap periode kalender UTC yang dipilih. Jam dan hari mencakup periode saat ini. Minggu, bulan, dan tahun menghitung periode yang sudah selesai serta melindungi backup penuh berhasil terbaru dalam periode saat ini sebagai kandidat. Hanya backup penuh berhasil yang lebih baru menggantikannya; kegagalan dan backup inkremental tidak. Minggu dimulai pada hari Senin. Periode saat ini mengikuti waktu pembuatan backup penuh berhasil terbaru, termasuk selama jeda. Satu backup dapat mewakili beberapa periode, sehingga jumlah file tidak pasti. Pemilihan GFS saja tidak mempertahankan backup inkremental atau WAL.',
         gfsTooltip:
-          'Rotasi Grandfather-Father-Son: simpan N backup penuh terakhir per jam, harian, mingguan, bulanan, dan tahunan.',
+          'GFS: backup penuh berhasil untuk jam dan hari kalender terbaru serta minggu, bulan, dan tahun yang sudah selesai, ditambah kandidat saat ini.',
       },
       restore: {
         errorHints: {

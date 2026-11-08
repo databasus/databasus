@@ -93,8 +93,14 @@ func getDroppedByGfs(gfsRetention config.GfsRetention, databaseBackups []Logical
 		gfsItems = append(gfsItems, gfs.Item{ID: completedBackup.ID, CreatedAt: completedBackup.CreatedAt})
 	}
 
-	retainedTiers := gfs.GetItemsToRetain(gfsItems,
-		gfsRetention.Hours, gfsRetention.Days, gfsRetention.Weeks, gfsRetention.Months, gfsRetention.Years)
+	retainedTiers := gfs.GetItemsToRetain(gfs.Selection{
+		Items:  gfsItems,
+		Hours:  gfsRetention.Hours,
+		Days:   gfsRetention.Days,
+		Weeks:  gfsRetention.Weeks,
+		Months: gfsRetention.Months,
+		Years:  gfsRetention.Years,
+	})
 
 	var droppedBackups []LogicalBackup
 

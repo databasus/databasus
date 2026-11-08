@@ -2287,24 +2287,24 @@ type FtpStorageSettings struct {
 // FtpStorageSettingsType Always `FTP`
 type FtpStorageSettingsType string
 
-// FullBackupsRetention Which full backups are kept
+// FullBackupsRetention Which full backups are kept. GFS selects successful full backups using UTC calendar periods anchored to the creation time of the newest successful full backup. Weeks start on Monday. Hourly and daily counts include the current period; weekly, monthly and yearly counts reserve completed periods and also protect the current period's newest successful candidate. One full backup can represent several levels. This selection does not preserve its incrementals or WAL. A zero count disables its level and candidate. Empty periods are not filled with older full backups.
 type FullBackupsRetention struct {
 	// Count How many of the newest full backups `LAST_N` keeps; 0 with `GFS`
 	Count int `json:"count"`
 
-	// GfsDays For how many of the last days `GFS` keeps the newest full backup of each day
+	// GfsDays Number of UTC calendar days for which `GFS` keeps the newest successful full backup, including the current day
 	GfsDays int `json:"gfsDays"`
 
-	// GfsHours For how many of the last hours `GFS` keeps the newest full backup of each hour
+	// GfsHours Number of UTC calendar hours for which `GFS` keeps the newest successful full backup, including the current hour
 	GfsHours int `json:"gfsHours"`
 
-	// GfsMonths For how many of the last months `GFS` keeps the newest full backup of each month
+	// GfsMonths Number of completed UTC calendar months for which `GFS` keeps the newest successful full backup, plus the current month's candidate
 	GfsMonths int `json:"gfsMonths"`
 
-	// GfsWeeks For how many of the last weeks `GFS` keeps the newest full backup of each week
+	// GfsWeeks Number of completed UTC calendar weeks for which `GFS` keeps the newest successful full backup, plus the current week's candidate
 	GfsWeeks int `json:"gfsWeeks"`
 
-	// GfsYears For how many of the last years `GFS` keeps the newest full backup of each year
+	// GfsYears Number of completed UTC calendar years for which `GFS` keeps the newest successful full backup, plus the current year's candidate
 	GfsYears int `json:"gfsYears"`
 
 	// Policy `LAST_N` keeps the newest `count` full backups, and `GFS` keeps them by grandfather-father-son periods, at least one of them set
@@ -2612,7 +2612,7 @@ type LogicalBackupSettings struct {
 	// NotificationTriggers The backup outcomes that send a notification through the database's notifiers
 	NotificationTriggers []LogicalNotificationTrigger `json:"notificationTriggers"`
 
-	// Retention Which logical backups are kept. `policy` picks the rule; the fields of the other rules keep their saved values.
+	// Retention Which logical backups are kept. `policy` picks the rule; the fields of the other rules keep their saved values. GFS selects successful backups using UTC calendar periods anchored to the creation time of the newest successful backup. Weeks start on Monday. Hourly and daily counts include the current period; weekly, monthly and yearly counts reserve completed periods and also protect the current period's newest successful candidate. A backup can represent several levels without duplicate files. A zero count disables its level and candidate. Empty periods are not filled with older backups.
 	Retention LogicalRetention `json:"retention"`
 
 	// Schedule When recurring work runs; times of day are in UTC
@@ -2640,24 +2640,24 @@ type LogicalBackupVerificationStatus string
 // LogicalNotificationTrigger A logical backup outcome that sends a notification, a failed or a successful backup
 type LogicalNotificationTrigger string
 
-// LogicalRetention Which logical backups are kept. `policy` picks the rule; the fields of the other rules keep their saved values.
+// LogicalRetention Which logical backups are kept. `policy` picks the rule; the fields of the other rules keep their saved values. GFS selects successful backups using UTC calendar periods anchored to the creation time of the newest successful backup. Weeks start on Monday. Hourly and daily counts include the current period; weekly, monthly and yearly counts reserve completed periods and also protect the current period's newest successful candidate. A backup can represent several levels without duplicate files. A zero count disables its level and candidate. Empty periods are not filled with older backups.
 type LogicalRetention struct {
 	// Count How many of the newest backups `COUNT` keeps; greater than 0 with it
 	Count int `json:"count"`
 
-	// GfsDays For how many of the last days `GFS` keeps the newest backup of each day
+	// GfsDays Number of UTC calendar days for which `GFS` keeps the newest successful backup, including the current day
 	GfsDays int `json:"gfsDays"`
 
-	// GfsHours For how many of the last hours `GFS` keeps the newest backup of each hour
+	// GfsHours Number of UTC calendar hours for which `GFS` keeps the newest successful backup, including the current hour
 	GfsHours int `json:"gfsHours"`
 
-	// GfsMonths For how many of the last months `GFS` keeps the newest backup of each month
+	// GfsMonths Number of completed UTC calendar months for which `GFS` keeps the newest successful backup, plus the current month's candidate
 	GfsMonths int `json:"gfsMonths"`
 
-	// GfsWeeks For how many of the last weeks `GFS` keeps the newest backup of each week
+	// GfsWeeks Number of completed UTC calendar weeks for which `GFS` keeps the newest successful backup, plus the current week's candidate
 	GfsWeeks int `json:"gfsWeeks"`
 
-	// GfsYears For how many of the last years `GFS` keeps the newest backup of each year
+	// GfsYears Number of completed UTC calendar years for which `GFS` keeps the newest successful backup, plus the current year's candidate
 	GfsYears int `json:"gfsYears"`
 
 	// Period How long the `TIME_PERIOD` retention keeps a backup

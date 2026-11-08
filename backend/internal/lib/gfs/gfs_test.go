@@ -1,15 +1,16 @@
 package gfs
 
 import (
+	"maps"
+	"slices"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-// itemAt builds an Item with a deterministic ID derived from the offset so a
-// test can refer to the same instant twice and still get a stable identity.
 func itemAt(reference time.Time, offset time.Duration) Item {
 	at := reference.Add(offset)
 
@@ -22,9 +23,39 @@ func itemAt(reference time.Time, offset time.Duration) Item {
 func TestGetItemsToRetain(t *testing.T) {
 	t.Parallel()
 
+	t.Run("keeps completed weekly and monthly points when daily cleanup repeats", func(t *testing.T) {
+		t.Parallel()
+		start := time.Date(2026, 10, 12, 12, 0, 0, 0, time.UTC)
+		var survivingItems []Item
+
+		for day := range 25 {
+			survivingItems = append(survivingItems, itemAt(start, time.Duration(day)*24*time.Hour))
+
+			retainedItems := GetItemsToRetain(
+				Selection{Items: survivingItems, Hours: 0, Days: 2, Weeks: 1, Months: 1, Years: 0},
+			)
+
+			var nextItems []Item
+			for _, survivingItem := range survivingItems {
+				if len(retainedItems[survivingItem.ID]) > 0 {
+					nextItems = append(nextItems, survivingItem)
+				}
+			}
+
+			survivingItems = nextItems
+		}
+
+		assert.ElementsMatch(t, []Item{
+			itemAt(start, 19*24*time.Hour),
+			itemAt(start, 20*24*time.Hour),
+			itemAt(start, 23*24*time.Hour),
+			itemAt(start, 24*24*time.Hour),
+		}, survivingItems)
+	})
+
 	t.Run("keeps nothing without items", func(t *testing.T) {
 		t.Parallel()
-		keep := GetItemsToRetain(nil, 1, 1, 1, 1, 1)
+		keep := GetItemsToRetain(Selection{Items: nil, Hours: 1, Days: 1, Weeks: 1, Months: 1, Years: 1})
 
 		assert.Empty(t, keep)
 	})
@@ -38,7 +69,7 @@ func TestGetItemsToRetain(t *testing.T) {
 			itemAt(reference, -24*time.Hour),
 		}
 
-		keep := GetItemsToRetain(items, 0, 0, 0, 0, 0)
+		keep := GetItemsToRetain(Selection{Items: items, Hours: 0, Days: 0, Weeks: 0, Months: 0, Years: 0})
 
 		assert.Empty(t, keep)
 	})
@@ -47,13 +78,13 @@ func TestGetItemsToRetain(t *testing.T) {
 		t.Parallel()
 		reference := time.Date(2026, 5, 30, 12, 0, 0, 0, time.UTC)
 		newest := itemAt(reference, 0)
-		older := itemAt(reference, -90*24*time.Hour)
+		older := itemAt(reference, -10*365*24*time.Hour)
 
-		keep := GetItemsToRetain([]Item{newest, older}, 1, 1, 1, 1, 1)
+		keep := GetItemsToRetain(
+			Selection{Items: []Item{newest, older}, Hours: 1, Days: 1, Weeks: 1, Months: 1, Years: 1},
+		)
 
-		// The single newest item simultaneously fills the hourly, daily, weekly,
-		// monthly, and yearly slot, so each level is satisfied by it alone.
-		assert.NotEmpty(t, keep[newest.ID])
+		assert.Equal(t, []Tier{TierHourly, TierDaily, TierWeekly, TierMonthly, TierYearly}, keep[newest.ID])
 		assert.Len(t, keep, 1)
 	})
 
@@ -64,10 +95,9 @@ func TestGetItemsToRetain(t *testing.T) {
 		middle := itemAt(reference, -1*time.Hour)
 		oldest := itemAt(reference, -2*time.Hour)
 
-		// Deliberately shuffled: the function must sort newest-first itself.
 		unsorted := []Item{oldest, newest, middle}
 
-		keep := GetItemsToRetain(unsorted, 2, 0, 0, 0, 0)
+		keep := GetItemsToRetain(Selection{Items: unsorted, Hours: 2, Days: 0, Weeks: 0, Months: 0, Years: 0})
 
 		assert.NotEmpty(t, keep[newest.ID])
 		assert.NotEmpty(t, keep[middle.ID])
@@ -82,7 +112,7 @@ func TestGetItemsToRetain(t *testing.T) {
 		newest := itemAt(reference, 0)
 		items := []Item{oldest, newest}
 
-		GetItemsToRetain(items, 5, 0, 0, 0, 0)
+		GetItemsToRetain(Selection{Items: items, Hours: 5, Days: 0, Weeks: 0, Months: 0, Years: 0})
 
 		assert.Equal(t, oldest.ID, items[0].ID)
 		assert.Equal(t, newest.ID, items[1].ID)
@@ -97,11 +127,16 @@ func TestGetItemsToRetain(t *testing.T) {
 		previousHour := itemAt(reference, -1*time.Hour)
 
 		keep := GetItemsToRetain(
-			[]Item{hourMiddle, hourOldest, hourNewest, previousHour}, 2, 0, 0, 0, 0,
+			Selection{
+				Items:  []Item{hourMiddle, hourOldest, hourNewest, previousHour},
+				Hours:  2,
+				Days:   0,
+				Weeks:  0,
+				Months: 0,
+				Years:  0,
+			},
 		)
 
-		// All three of the first three share the same hour bucket, so only the
-		// newest of them is kept; the previous hour fills the second hourly slot.
 		assert.NotEmpty(t, keep[hourNewest.ID])
 		assert.NotEmpty(t, keep[previousHour.ID])
 		assert.Empty(t, keep[hourMiddle.ID])
@@ -119,7 +154,7 @@ func TestGetItemsToRetain(t *testing.T) {
 			itemAt(reference, -3*time.Hour),
 		}
 
-		keep := GetItemsToRetain(items, 2, 0, 0, 0, 0)
+		keep := GetItemsToRetain(Selection{Items: items, Hours: 2, Days: 0, Weeks: 0, Months: 0, Years: 0})
 
 		assert.NotEmpty(t, keep[items[0].ID])
 		assert.NotEmpty(t, keep[items[1].ID])
@@ -137,7 +172,14 @@ func TestGetItemsToRetain(t *testing.T) {
 		twoDaysAgo := itemAt(reference, -48*time.Hour)
 
 		keep := GetItemsToRetain(
-			[]Item{today, todayEarlier, yesterday, twoDaysAgo}, 0, 3, 0, 0, 0,
+			Selection{
+				Items:  []Item{today, todayEarlier, yesterday, twoDaysAgo},
+				Hours:  0,
+				Days:   3,
+				Weeks:  0,
+				Months: 0,
+				Years:  0,
+			},
 		)
 
 		assert.NotEmpty(t, keep[today.ID])
@@ -153,10 +195,12 @@ func TestGetItemsToRetain(t *testing.T) {
 		first := Item{ID: uuid.New(), CreatedAt: at}
 		second := Item{ID: uuid.New(), CreatedAt: at}
 
-		// Two items in the same hour bucket: exactly one survives, regardless of
-		// the input order, and the choice is stable across repeated runs.
-		keepAsGiven := GetItemsToRetain([]Item{first, second}, 1, 0, 0, 0, 0)
-		keepReversed := GetItemsToRetain([]Item{second, first}, 1, 0, 0, 0, 0)
+		keepAsGiven := GetItemsToRetain(
+			Selection{Items: []Item{first, second}, Hours: 1, Days: 0, Weeks: 0, Months: 0, Years: 0},
+		)
+		keepReversed := GetItemsToRetain(
+			Selection{Items: []Item{second, first}, Hours: 1, Days: 0, Weeks: 0, Months: 0, Years: 0},
+		)
 
 		assert.Len(t, keepAsGiven, 1)
 		assert.Equal(t, keepAsGiven, keepReversed)
@@ -174,7 +218,7 @@ func TestGetItemsToRetain(t *testing.T) {
 
 		items := []Item{now, oneHourAgo, yesterday, lastWeek, lastMonth, lastYear}
 
-		keep := GetItemsToRetain(items, 2, 2, 2, 2, 2)
+		keep := GetItemsToRetain(Selection{Items: items, Hours: 2, Days: 2, Weeks: 2, Months: 2, Years: 2})
 
 		assert.NotEmpty(t, keep[now.ID])
 		assert.NotEmpty(t, keep[oneHourAgo.ID])
@@ -190,10 +234,206 @@ func TestGetItemsToRetain(t *testing.T) {
 		recent := itemAt(reference, 0)
 		ancient := itemAt(reference, -10*365*24*time.Hour)
 
-		keep := GetItemsToRetain([]Item{recent, ancient}, 1, 1, 1, 1, 1)
+		keep := GetItemsToRetain(
+			Selection{Items: []Item{recent, ancient}, Hours: 1, Days: 1, Weeks: 1, Months: 1, Years: 1},
+		)
 
 		assert.NotEmpty(t, keep[recent.ID])
 		assert.Empty(t, keep[ancient.ID])
 		assert.Len(t, keep, 1)
 	})
+}
+
+func TestGfsCalendar(t *testing.T) {
+	t.Parallel()
+
+	scenarios := []struct {
+		name             string
+		selection        Selection
+		instants         []string
+		retainedInstants []string
+	}{
+		{
+			name:             "keeps current and previous calendar hours when the reference crosses midnight",
+			selection:        Selection{Hours: 2},
+			instants:         []string{"2026-11-05T00:05:00Z", "2026-11-04T23:00:00Z", "2026-11-04T22:59:59Z"},
+			retainedInstants: []string{"2026-11-05T00:05:00Z", "2026-11-04T23:00:00Z"},
+		},
+		{
+			name: "keeps the whole previous day when two daily periods are enabled", selection: Selection{Days: 2},
+			instants:         []string{"2026-11-05T23:59:00Z", "2026-11-04T00:00:00Z", "2026-11-03T23:59:59Z"},
+			retainedInstants: []string{"2026-11-05T23:59:00Z", "2026-11-04T00:00:00Z"},
+		},
+		{
+			name:      "keeps completed weeks and a candidate when only weekly retention is enabled",
+			selection: Selection{Weeks: 2},
+			instants: []string{
+				"2026-11-05T12:00:00Z",
+				"2026-11-01T12:00:00Z",
+				"2026-10-25T12:00:00Z",
+				"2026-10-18T12:00:00Z",
+			},
+			retainedInstants: []string{"2026-11-05T12:00:00Z", "2026-11-01T12:00:00Z", "2026-10-25T12:00:00Z"},
+		},
+		{
+			name: "leaves empty weeks empty without filling from older history", selection: Selection{Weeks: 1},
+			instants:         []string{"2026-11-05T12:00:00Z", "2026-10-25T12:00:00Z"},
+			retainedInstants: []string{"2026-11-05T12:00:00Z"},
+		},
+		{
+			name:      "keeps completed months and a candidate without shorter levels",
+			selection: Selection{Months: 2},
+			instants: []string{
+				"2026-11-05T12:00:00Z",
+				"2026-10-31T12:00:00Z",
+				"2026-09-30T12:00:00Z",
+				"2026-08-31T12:00:00Z",
+			},
+			retainedInstants: []string{"2026-11-05T12:00:00Z", "2026-10-31T12:00:00Z", "2026-09-30T12:00:00Z"},
+		},
+		{
+			name: "keeps February after a late March backup in a common year", selection: Selection{Months: 1},
+			instants:         []string{"2026-03-31T12:00:00Z", "2026-02-28T12:00:00Z", "2026-01-31T12:00:00Z"},
+			retainedInstants: []string{"2026-03-31T12:00:00Z", "2026-02-28T12:00:00Z"},
+		},
+		{
+			name: "keeps leap February after a late March backup", selection: Selection{Months: 1},
+			instants:         []string{"2028-03-31T12:00:00Z", "2028-02-29T12:00:00Z", "2028-02-28T12:00:00Z"},
+			retainedInstants: []string{"2028-03-31T12:00:00Z", "2028-02-29T12:00:00Z"},
+		},
+		{
+			name: "uses UTC months when timestamps have different offsets", selection: Selection{Months: 1},
+			instants:         []string{"2026-11-01T01:30:00Z", "2026-11-01T00:30:00+03:00"},
+			retainedInstants: []string{"2026-11-01T01:30:00Z", "2026-11-01T00:30:00+03:00"},
+		},
+		{
+			name: "uses UTC days when timestamps have different offsets", selection: Selection{Days: 1},
+			instants:         []string{"2026-11-01T01:30:00Z", "2026-11-01T00:30:00+03:00"},
+			retainedInstants: []string{"2026-11-01T01:30:00Z"},
+		},
+		{
+			name:      "keeps a Monday boundary when a new ISO week starts",
+			selection: Selection{Weeks: 1},
+			instants: []string{
+				"2027-01-04T00:00:00Z",
+				"2027-01-03T23:59:59Z",
+				"2026-12-28T00:00:00Z",
+				"2026-12-27T23:59:59Z",
+			},
+			retainedInstants: []string{"2027-01-04T00:00:00Z", "2027-01-03T23:59:59Z"},
+		},
+		{
+			name:      "keeps completed years and a candidate without other levels",
+			selection: Selection{Years: 2},
+			instants: []string{
+				"2027-01-01T00:00:00Z",
+				"2026-12-31T23:59:59Z",
+				"2025-12-31T23:59:59Z",
+				"2024-12-31T23:59:59Z",
+			},
+			retainedInstants: []string{"2027-01-01T00:00:00Z", "2026-12-31T23:59:59Z", "2025-12-31T23:59:59Z"},
+		},
+		{
+			name:             "keeps an older daily point when monthly retention is shorter",
+			selection:        Selection{Days: 40, Months: 1},
+			instants:         []string{"2026-11-05T12:00:00Z", "2026-09-27T00:00:00Z", "2026-09-26T23:59:59Z"},
+			retainedInstants: []string{"2026-11-05T12:00:00Z", "2026-09-27T00:00:00Z"},
+		},
+		{
+			name:      "keeps one shared point when weekly and monthly periods overlap",
+			selection: Selection{Days: 2, Weeks: 1, Months: 1},
+			instants: []string{
+				"2026-06-04T12:00:00Z",
+				"2026-06-03T12:00:00Z",
+				"2026-05-31T12:00:00Z",
+				"2026-05-30T12:00:00Z",
+			},
+			retainedInstants: []string{"2026-06-04T12:00:00Z", "2026-06-03T12:00:00Z", "2026-05-31T12:00:00Z"},
+		},
+		{
+			name: "keeps no long-period candidate when long levels are disabled", selection: Selection{Hours: 1},
+			instants:         []string{"2026-11-05T12:00:00Z", "2026-11-01T12:00:00Z", "2026-10-31T12:00:00Z"},
+			retainedInstants: []string{"2026-11-05T12:00:00Z"},
+		},
+	}
+
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			t.Parallel()
+			selection := scenario.selection
+			for _, instant := range scenario.instants {
+				selection.Items = append(selection.Items, parseItem(t, instant))
+			}
+
+			retainedTiers := GetItemsToRetain(selection)
+
+			retainedIDs := make([]uuid.UUID, 0, len(scenario.retainedInstants))
+			for _, instant := range scenario.retainedInstants {
+				retainedIDs = append(retainedIDs, parseItem(t, instant).ID)
+			}
+
+			assert.ElementsMatch(t, retainedIDs, slices.Collect(maps.Keys(retainedTiers)))
+		})
+	}
+}
+
+func TestGfsRepeatedCleanup(t *testing.T) {
+	t.Parallel()
+
+	t.Run("expires previous monthly representatives after the next month arrives", func(t *testing.T) {
+		t.Parallel()
+		selection := Selection{Days: 2, Weeks: 1, Months: 1}
+		start := time.Date(2026, 10, 12, 12, 0, 0, 0, time.UTC)
+
+		for day := range 53 {
+			selection.Items = append(selection.Items, itemAt(start, time.Duration(day)*24*time.Hour))
+
+			retainedTiers := GetItemsToRetain(selection)
+
+			selection.Items = slices.DeleteFunc(
+				selection.Items,
+				func(item Item) bool { return len(retainedTiers[item.ID]) == 0 },
+			)
+		}
+
+		retainedDates := make([]string, 0, len(selection.Items))
+		for _, item := range selection.Items {
+			retainedDates = append(retainedDates, item.CreatedAt.Format(time.DateOnly))
+		}
+
+		assert.ElementsMatch(t, []string{"2026-11-29", "2026-11-30", "2026-12-02", "2026-12-03"}, retainedDates)
+	})
+
+	t.Run("promotes and expires yearly candidates after cleanup across year boundaries", func(t *testing.T) {
+		t.Parallel()
+		selection := Selection{Years: 1}
+
+		for _, instant := range []string{
+			"2025-12-30T12:00:00Z", "2025-12-31T12:00:00Z", "2026-01-01T12:00:00Z",
+			"2026-12-31T12:00:00Z", "2027-01-01T12:00:00Z", "2027-12-31T12:00:00Z", "2028-01-01T12:00:00Z",
+		} {
+			selection.Items = append(selection.Items, parseItem(t, instant))
+
+			retainedTiers := GetItemsToRetain(selection)
+
+			selection.Items = slices.DeleteFunc(
+				selection.Items,
+				func(item Item) bool { return len(retainedTiers[item.ID]) == 0 },
+			)
+		}
+
+		assert.ElementsMatch(
+			t,
+			[]Item{parseItem(t, "2027-12-31T12:00:00Z"), parseItem(t, "2028-01-01T12:00:00Z")},
+			selection.Items,
+		)
+	})
+}
+
+func parseItem(t *testing.T, instant string) Item {
+	t.Helper()
+	at, err := time.Parse(time.RFC3339, instant)
+	require.NoError(t, err)
+
+	return itemAt(at, 0)
 }

@@ -170,7 +170,7 @@ export const PhysicalRetentionFields = ({ retention, backupType, onChange }: Pro
 
             {fullBackups.policy === FullBackupsRetentionPolicy.GFS && (
               <>
-                <GfsRetentionHint />
+                <GfsRetentionHint backupMethod="PHYSICAL" />
 
                 <div className="flex flex-col gap-1">
                   {GFS_FIELDS.map(({ field, labelKey }) => (

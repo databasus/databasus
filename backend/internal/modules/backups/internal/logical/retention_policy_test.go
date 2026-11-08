@@ -84,6 +84,15 @@ func TestGetExpiredBackups(t *testing.T) {
 		assert.Empty(t, expiredBackups)
 	})
 
+	t.Run("keeps every completed backup when the persisted GFS policy has no enabled level", func(t *testing.T) {
+		t.Parallel()
+		completedBackups := newHourlyBackups(databaseID, StatusCompleted, now.Add(-2*time.Hour), 3)
+
+		expiredBackups := getExpiredBackups(newGfsRetention(config.GfsRetention{}), completedBackups, now)
+
+		assert.Empty(t, expiredBackups)
+	})
+
 	t.Run("keeps a backup younger than one hour that the policy drops", func(t *testing.T) {
 		t.Parallel()
 		newestBackup := newBackup(databaseID, StatusCompleted, now.Add(-10*time.Minute))

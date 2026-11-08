@@ -130,7 +130,7 @@ export const LogicalRetentionFields = ({ settings, onChange }: Props) => {
 
         {retention.policy === LogicalRetentionPolicy.GFS && (
           <>
-            <GfsRetentionHint />
+            <GfsRetentionHint backupMethod="LOGICAL" />
 
             <div className="flex flex-col gap-1">
               {isGfsHoursShown(schedule) && (

@@ -1466,7 +1466,7 @@ export const en = {
         forever: 'Forever',
       },
       retentionPolicyTypes: {
-        gfs: 'GFS (keep last N hourly, daily, weekly, monthly and yearly backups)',
+        gfs: 'GFS (calendar retention)',
         timePeriod: 'Time period (last N days)',
         count: 'Count (N last backups)',
       },
@@ -1521,9 +1521,9 @@ export const en = {
           showGfsHint: 'What is GFS (Grandfather-Father-Son)?',
           hideGfsHint: 'Hide',
           gfsHint:
-            'GFS (Grandfather-Father-Son) rotation: keep the last N hourly, daily, weekly, monthly and yearly backups. This allows keeping backups over long periods of time within a reasonable storage space.',
+            "GFS keeps the newest successful backup per UTC calendar period. Hours and days include the current period. Weeks, months and years count completed periods and also protect the current period's newest successful backup as a candidate. A newer success replaces the candidate; failed attempts do not. Weeks start on Monday. Current periods are determined by the creation time of the newest successful backup, so a pause in successful backups does not age out these points. One backup can represent several periods, so the counts do not add up to a fixed number of files.",
           gfsTooltip:
-            'Grandfather-Father-Son rotation: keep the last N hourly, daily, weekly, monthly and yearly backups.',
+            'GFS: recent calendar hours/days and completed weeks/months/years, plus a protected current candidate.',
           gfsFields: {
             hourly: 'Hourly backups',
             daily: 'Daily backups',
@@ -1621,8 +1621,10 @@ export const en = {
         chainsKept: 'Chains kept',
         fullBackupsKept: 'Full backups kept',
         fullBackupsCountValue: 'Most recent: {{count}}',
+        gfsHint:
+          "GFS keeps the newest successful full backup per UTC calendar period. Hours and days include the current period. Weeks, months and years count completed periods and also protect the current period's newest successful full backup as a candidate. A newer successful full replaces the candidate; failed attempts and incrementals do not. Weeks start on Monday. Current periods follow the creation time of the newest successful full backup, even during a pause. One full backup can represent several periods, so counts do not promise a fixed file total. GFS selection alone does not preserve incrementals or WAL.",
         gfsTooltip:
-          'Grandfather-Father-Son rotation: keep the last N hourly, daily, weekly, monthly and yearly full backups.',
+          'GFS: successful full backups for recent calendar hours/days and completed weeks/months/years, plus a protected current candidate.',
       },
       restore: {
         errorHints: {
