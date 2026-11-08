@@ -215,11 +215,9 @@ const transferSelectedDatabase = async (user: ReturnType<typeof renderScreen>['u
 };
 
 const findDatabaseCard = (name: string) =>
-  // Only fixed test fixture names reach this selector.
-  // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
   waitFor(() => {
     const card = screen
-      .getAllByRole('link', { name: new RegExp(`^${name}`) })
+      .getAllByRole('link', { name: (accessibleName) => accessibleName.startsWith(name) })
       .find((button) => button.hasAttribute('aria-current'));
     expect(card).toBeTruthy();
     return card!;
