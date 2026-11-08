@@ -16,6 +16,7 @@ import { API_BASE_PATH } from '@/shared/api';
 import { activateSession, invalidateSession } from '@/shared/auth';
 import { DICTIONARIES } from '@/shared/i18n';
 import { advanceClockUntil } from '@/shared/lib/test/advanceClockUntil';
+import { advanceFakeClock } from '@/shared/lib/test/advanceFakeClock';
 import { waitForCondition } from '@/shared/lib/test/conditionWait';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
@@ -93,6 +94,35 @@ function ScrollingVerifications() {
   );
 }
 describe('VerificationsComponent', () => {
+  it('keeps the next availability tick when an agent-count response finishes between ticks', async () => {
+    declareList([]);
+    const availabilityRead = vi.spyOn(verificationAgentApi, 'getAgentCount');
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+
+    renderScreen(<DatabasePage />);
+    await act(async () => {
+      await availabilityRead.mock.results[0].value;
+    });
+
+    const slowRead = mockApi.pending('get', '/verification-agent-counts');
+    mockServer.use(slowRead.handler);
+
+    await advanceFakeClock(5000);
+
+    expect(availabilityRead).toHaveBeenCalledTimes(2);
+
+    await advanceFakeClock(2000);
+    await releaseAndSettle(availabilityRead, () =>
+      slowRead.respond(HttpResponse.json({ agentCount: 1 })),
+    );
+
+    mockServer.use(mockApi.get('/verification-agent-counts', 200, { agentCount: 1 }));
+
+    await advanceFakeClock(3000);
+
+    expect(availabilityRead).toHaveBeenCalledTimes(3);
+  });
+
   it('follows nextCursor and displays the after-backup trigger when the list is scrolled', async () => {
     const cursors: (string | null)[] = [];
     mockServer.use(
@@ -293,7 +323,9 @@ describe('VerificationsComponent', () => {
         const cancelCall = vi.spyOn(verificationRunsApi, 'cancel');
         const heldCancel = declareHeldCancel();
 
-        fireEvent.click(getRowAction(cancelName));
+        await act(async () => {
+          fireEvent.click(getRowAction(cancelName));
+        });
         expect(cancelCall).toHaveBeenCalledOnce();
         leaveTab();
         await releaseAndSettle(cancelCall, () => heldCancel.respond(buildAnswer()));
@@ -316,7 +348,9 @@ describe('VerificationsComponent', () => {
         const cancelCall = vi.spyOn(verificationRunsApi, 'cancel');
         const heldCancel = declareHeldCancel();
 
-        fireEvent.click(getRowAction(cancelName));
+        await act(async () => {
+          fireEvent.click(getRowAction(cancelName));
+        });
         expect(cancelCall).toHaveBeenCalledOnce();
         act(() => {
           invalidateSession();

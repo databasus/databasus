@@ -19,6 +19,7 @@
     "@mantine/hooks": "9.7.5",
     "@mantine/notifications": "9.7.5",
     "@tailwindcss/vite": "^4.3.0",
+    "@tanstack/react-query": "5.107.1",
     "cron-parser": "^5.5.0",
     "dayjs": "^1.11.20",
     "i18next": "^26.4.2",

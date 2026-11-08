@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { useMantineTheme } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
+import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { fireEvent, screen, within } from '@testing-library/react';
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
@@ -8,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
+import { useSessionMutation } from '@/shared/api';
 import { DICTIONARIES, useLocale } from '@/shared/i18n';
 import { useFeedback } from '@/shared/lib/feedback';
 import { advanceFakeClock } from '@/shared/lib/test/advanceFakeClock';
@@ -23,6 +25,7 @@ const ContextScreen = () => {
   const controlsTheme = useMantineTheme();
   const notify = useFeedback();
   const [draft, setDraft] = useState('');
+
   return (
     <>
       <div>{`${locale}:${resolvedTheme}:${location.pathname}${location.search}`}</div>
@@ -158,4 +161,55 @@ describe('renderScreen', () => {
     expect(vi.isFakeTimers()).toBe(false);
     expect(document.body.childElementCount).toBe(0);
   });
+
+  it.each([false, true])(
+    'isolates and disposes request clients with Strict Mode=%s',
+    async (isStrictMode) => {
+      const clients: QueryClient[] = [];
+      const RequestContext = () => {
+        const client = useQueryClient();
+        useQuery({
+          queryKey: ['renderer-state'],
+          queryFn: async () => 'accepted response',
+          enabled: false,
+        });
+        useEffect(() => {
+          if (!clients.includes(client)) clients.push(client);
+        }, [client]);
+        const action = useSessionMutation({ mutationFn: async () => 'completed action' });
+
+        return (
+          <button
+            onClick={() => {
+              client.setQueryData(['renderer-state'], 'accepted response');
+              void action.mutateAsync(undefined);
+            }}
+          >
+            Run action
+          </button>
+        );
+      };
+      const first = renderScreen(<RequestContext />, { isStrictMode });
+
+      await first.user.click(screen.getByRole('button', { name: 'Run action' }));
+
+      const firstClient = clients[0];
+      expect(firstClient.getQueryData(['renderer-state'])).toBe('accepted response');
+      expect(firstClient.getMutationCache().getAll()).toHaveLength(1);
+
+      first.unmount();
+
+      expect(firstClient.getQueryCache().getAll()).toHaveLength(0);
+      expect(firstClient.getMutationCache().getAll()).toHaveLength(0);
+
+      const second = renderScreen(<RequestContext />, { isStrictMode });
+
+      expect(clients).toHaveLength(2);
+      expect(clients[1]).not.toBe(firstClient);
+      expect(clients[1].getQueryData(['renderer-state'])).toBeUndefined();
+      expect(clients[1].getMutationCache().getAll()).toHaveLength(0);
+
+      second.unmount();
+    },
+  );
 });

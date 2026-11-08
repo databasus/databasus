@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { type PendingSignIn, userApi } from '@/entities/users';
 import { useCloudflareTurnstile } from '@/pages/auth/model/useCloudflareTurnstile';
 import { CloudflareTurnstileWidget } from '@/pages/auth/ui/CloudflareTurnstileWidget';
+import { useSessionMutation } from '@/shared/api';
 import { ApiError } from '@/shared/api';
 import { useAuthOperation } from '@/shared/auth';
 import { CLOUDFLARE_TURNSTILE_SITE_KEY } from '@/shared/config';
@@ -28,6 +29,15 @@ export function SignInCodeComponent({
   onPendingSignInLost,
   onSwitchToSignIn,
 }: SignInCodeComponentProps): JSX.Element {
+  const verifySignInCodeMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof userApi.verifySignInCode>) =>
+      userApi.verifySignInCode(...parameters),
+  });
+  const resendSignInCodeMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof userApi.resendSignInCode>) =>
+      userApi.resendSignInCode(...parameters),
+  });
+
   const [code, setCode] = useState('');
   const [isCodeError, setCodeError] = useState(false);
   const [isLoading, setLoading] = useState(false);
@@ -59,10 +69,13 @@ export function SignInCodeComponent({
     setLoading(true);
 
     try {
-      const session = await userApi.verifySignInCode(pendingSignIn.pendingSignInId, {
-        code,
-        cloudflareTurnstileToken: token,
-      });
+      const session = await verifySignInCodeMutation.mutateAsync([
+        pendingSignIn.pendingSignInId,
+        {
+          code,
+          cloudflareTurnstileToken: token,
+        },
+      ]);
       authOperation.accept({ operation, session });
     } catch (e) {
       if (!authOperation.isCurrent(operation)) return;
@@ -80,9 +93,12 @@ export function SignInCodeComponent({
     setResending(true);
 
     try {
-      const resentSignIn = await userApi.resendSignInCode(pendingSignIn.pendingSignInId, {
-        cloudflareTurnstileToken: token,
-      });
+      const resentSignIn = await resendSignInCodeMutation.mutateAsync([
+        pendingSignIn.pendingSignInId,
+        {
+          cloudflareTurnstileToken: token,
+        },
+      ]);
 
       if (!authOperation.isCurrent(operation)) return;
       setCode('');

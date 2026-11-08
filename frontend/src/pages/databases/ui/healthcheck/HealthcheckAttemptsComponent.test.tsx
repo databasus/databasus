@@ -53,6 +53,39 @@ const selectSevenDays = async () => {
 };
 
 describe('HealthcheckAttemptsComponent', () => {
+  it.each([20_000, 70_000])(
+    'keeps scheduled ticks and skips pending reads when a refresh takes %s milliseconds',
+    async (duration) => {
+      const attemptsRead = vi.spyOn(healthcheckAttemptApi, 'getAttemptsByDatabase');
+      mockServer.use(
+        mockApi.get('/healthcheck-configs/{databaseId}', 200, config),
+        http.get(attemptsPath, () => singlePage(attempt('first', 'AVAILABLE'))),
+      );
+      vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+
+      const view = renderScreen(<HealthcheckAttemptsComponent database={database} />);
+      await waitFor(() => expect(view.container.querySelectorAll('[data-status]')).toHaveLength(1));
+
+      const slowRead = mockApi.pending('get', '/healthcheck-attempts');
+      mockServer.use(slowRead.handler);
+
+      await advanceFakeClock(60_000);
+      await advanceFakeClock(duration);
+
+      expect(attemptsRead).toHaveBeenCalledTimes(2);
+
+      await releaseAndSettle(attemptsRead, () =>
+        slowRead.respond(singlePage(attempt('second', 'AVAILABLE'))),
+      );
+
+      mockServer.use(http.get(attemptsPath, () => singlePage(attempt('second', 'AVAILABLE'))));
+
+      await advanceFakeClock(duration === 20_000 ? 40_000 : 50_000);
+
+      expect(attemptsRead).toHaveBeenCalledTimes(3);
+    },
+  );
+
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();

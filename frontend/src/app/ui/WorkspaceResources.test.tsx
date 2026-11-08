@@ -3,6 +3,8 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { notifierApi } from '@/entities/notifiers';
+import { storageApi } from '@/entities/storages';
 import type { Workspace } from '@/entities/workspaces';
 import { NotifiersComponent } from '@/pages/notifiers';
 import { StoragesComponent } from '@/pages/storages';
@@ -11,6 +13,7 @@ import { DICTIONARIES } from '@/shared/i18n';
 import { advanceFakeClock } from '@/shared/lib/test/advanceFakeClock';
 import { waitForCondition } from '@/shared/lib/test/conditionWait';
 import { finishApiResponse } from '@/shared/lib/test/finishApiResponse';
+import { finishCancelledApiResponse } from '@/shared/lib/test/finishCancelledApiResponse';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
@@ -127,7 +130,11 @@ for (const domain of ['storages', 'notifiers'] as const) {
       const search = screen.getByRole('textbox', {
         name: DICTIONARIES.en[domain].list.searchPlaceholder,
       });
-      const requestsBeforeSearch = server.getRequests().length;
+      const getNonPollingRequests = () =>
+        server
+          .getRequests()
+          .filter((request) => !new URL(request.url).pathname.endsWith('/backup-usage'));
+      const requestsBeforeSearch = getNonPollingRequests().length;
 
       await view.user.type(search, 'sEcOnD');
 
@@ -162,7 +169,7 @@ for (const domain of ['storages', 'notifiers'] as const) {
         screen.getByRole('button', { name: resources[0].name }).getAttribute('aria-pressed'),
       ).toBe('true');
       expect(screen.getByRole('button', { name: resources[4].name })).toBeTruthy();
-      expect(server.getRequests()).toHaveLength(requestsBeforeSearch);
+      expect(getNonPollingRequests()).toHaveLength(requestsBeforeSearch);
     });
 
     it('keeps an active search clearable when deleting a resource drops the collection below five', async () => {
@@ -263,7 +270,7 @@ for (const domain of ['storages', 'notifiers'] as const) {
         expect(localStorage.getItem(selectionKey)).toBe(selectedResource.id);
         expect(screen.queryByRole('alert')).toBeNull();
 
-        await finishApiResponse(server, `/api/v1/${domain}`, () =>
+        await finishCancelledApiResponse(server, `/api/v1/${domain}`, () =>
           obsoleteRead.respond(
             status === 200
               ? HttpResponse.json({ items: resources })
@@ -313,7 +320,7 @@ for (const domain of ['storages', 'notifiers'] as const) {
 
         expect(view.container.querySelector('[role="status"]')).not.toBeNull();
 
-        await finishApiResponse(server, `/api/v1/${domain}`, () =>
+        await finishCancelledApiResponse(server, `/api/v1/${domain}`, () =>
           obsoleteRead.respond(
             status === 200
               ? HttpResponse.json({ items: [buildResource('obsolete')] })
@@ -364,7 +371,7 @@ for (const domain of ['storages', 'notifiers'] as const) {
           <ResourceScreen workspace={nextWorkspace} onUnavailable={currentUnavailable} />,
         );
         await screen.findByRole('button', { name: nextResource.name });
-        await finishApiResponse(server, `/api/v1/${domain}`, () => {
+        await finishCancelledApiResponse(server, `/api/v1/${domain}`, () => {
           obsoleteRead.respond(
             status === 200
               ? HttpResponse.json({ items: [buildResource('obsolete')] })
@@ -380,29 +387,21 @@ for (const domain of ['storages', 'notifiers'] as const) {
       },
     );
 
-    it('keeps the newer read when an earlier successful Strict Mode setup finishes last', async () => {
-      const obsoleteRead = createPendingApiResponse();
+    it('loads current data when Strict Mode cancels its first setup', async () => {
       const currentResource = buildResource('current');
-      let listRequests = 0;
-      server.use(
-        http.get(`*${API_BASE_PATH}/${domain}`, () =>
-          ++listRequests === 1
-            ? obsoleteRead.response
-            : HttpResponse.json({ items: [currentResource] }),
-        ),
-        http.get(`*${API_BASE_PATH}/${domain}/:resourceId`, () =>
-          HttpResponse.json(currentResource),
-        ),
-      );
+      const listApi =
+        domain === 'storages'
+          ? vi.spyOn(storageApi, 'listAllStorages')
+          : vi.spyOn(notifierApi, 'listAllNotifiers');
+      server.use(...mockSelectableResources([currentResource]));
+
       renderScreen(<ResourceScreen workspace={workspace} />, { isStrictMode: true });
       await screen.findByRole('button', { name: currentResource.name });
-      await finishApiResponse(server, `/api/v1/${domain}`, () =>
-        obsoleteRead.respond(HttpResponse.json({ items: [buildResource('obsolete')] })),
-      );
 
-      expect(listRequests).toBe(2);
-      expect(screen.getByRole('button', { name: currentResource.name })).toBeTruthy();
-      expect(screen.queryByRole('button', { name: 'Archive obsolete' })).toBeNull();
+      expect(listApi.mock.calls.length).toBeGreaterThanOrEqual(2);
+      expect(listApi.mock.calls[0][1]?.signal?.aborted).toBe(true);
+      expect(listApi.mock.calls[listApi.mock.calls.length - 1]?.[1]?.signal?.aborted).toBe(false);
+      expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
     });
 
     it.each([200, 403])('ignores pending HTTP %i list results after unmount', async (status) => {
@@ -414,7 +413,7 @@ for (const domain of ['storages', 'notifiers'] as const) {
       );
       await waitFor(() => expect(server.getRequests()).toHaveLength(1));
       view.unmount();
-      await finishApiResponse(server, `/api/v1/${domain}`, () =>
+      await finishCancelledApiResponse(server, `/api/v1/${domain}`, () =>
         read.respond(
           status === 200
             ? HttpResponse.json({ items: [buildResource('obsolete')] })
@@ -712,6 +711,81 @@ for (const domain of ['storages', 'notifiers'] as const) {
 
       expect(await screen.findByRole('button', { name: addActionName })).toBeTruthy();
     });
+
+    it.each([403, 404])(
+      'hides refused details while parent reconciliation is pending after HTTP %s',
+      async (status) => {
+        const resource = buildResource('first');
+        server.use(...mockSelectableResources([resource]));
+        const settingsTitle = DICTIONARIES.en[domain].config.settingsTitle;
+        const testAction = domain === 'storages' ? 'Test connection' : 'Send test notification';
+
+        const view = renderScreen(<ResourceScreen workspace={workspace} />);
+        await screen.findByRole('button', { name: testAction });
+
+        await view.user.click(screen.getAllByRole('button', { name: 'Edit' })[1]);
+        await screen.findByRole('region', { name: settingsTitle });
+
+        const detailPath =
+          domain === 'storages' ? '/storages/{storageId}' : '/notifiers/{notifierId}';
+        const detailRead = mockApi.pending('get', detailPath);
+        const parentRead = mockApi.pending('get', listPath);
+        const getListReads = () =>
+          server
+            .getRequests()
+            .filter((request) => new URL(request.url).pathname === `/api/v1/${domain}`);
+        server.use(detailRead.handler, parentRead.handler);
+
+        await view.user.click(screen.getByRole('button', { name: 'Cancel' }));
+        await finishApiResponse(server, `/api/v1/${domain}/${resource.id}`, () =>
+          detailRead.respond(
+            HttpResponse.json(
+              buildProblem(status === 403 ? 'permission_denied' : 'not_found', status),
+              { status },
+            ),
+          ),
+        );
+        await waitFor(() => expect(getListReads()).toHaveLength(2));
+
+        expect(getListReads()[1].signal.aborted).toBe(false);
+        expect(screen.queryByText(settingsTitle)).toBeNull();
+        expect(screen.queryByRole('button', { name: testAction })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();
+        expect(screen.getByRole('button', { name: resource.name })).toBeTruthy();
+
+        await finishApiResponse(server, `/api/v1/${domain}`, () =>
+          parentRead.respond(HttpResponse.json(buildProblem('internal', 500), { status: 500 })),
+        );
+
+        expect(screen.getAllByRole('button', { name: 'Retry' })).toHaveLength(2);
+        expect(screen.queryByText(settingsTitle)).toBeNull();
+        expect(screen.queryByRole('button', { name: testAction })).toBeNull();
+
+        const retryRead = mockApi.pending('get', detailPath);
+        server.use(retryRead.handler);
+
+        await view.user.click(screen.getAllByRole('button', { name: 'Retry' })[1]);
+
+        expect(screen.queryByText(settingsTitle)).toBeNull();
+        expect(screen.queryByRole('button', { name: testAction })).toBeNull();
+
+        await finishApiResponse(server, `/api/v1/${domain}/${resource.id}`, () =>
+          retryRead.respond(HttpResponse.json(buildProblem('internal', 500), { status: 500 })),
+        );
+
+        expect(screen.queryByText(settingsTitle)).toBeNull();
+        expect(screen.queryByRole('button', { name: testAction })).toBeNull();
+
+        server.use(
+          http.get(`*${API_BASE_PATH}/${domain}/:resourceId`, () => HttpResponse.json(resource)),
+        );
+
+        await view.user.click(screen.getAllByRole('button', { name: 'Retry' })[1]);
+
+        expect(await screen.findByRole('button', { name: testAction })).toBeTruthy();
+        expect(screen.getByText(settingsTitle)).toBeTruthy();
+      },
+    );
 
     it('clears the loaded list, requests app reconciliation and offers retry when a refresh confirms loss of access', async () => {
       const resource = buildResource('first');

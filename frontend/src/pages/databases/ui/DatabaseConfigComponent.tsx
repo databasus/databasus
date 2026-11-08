@@ -29,6 +29,7 @@ import { ShowDatabaseNotifiersComponent } from '@/pages/databases/ui/show/ShowDa
 import { ShowDatabaseSpecificDataComponent } from '@/pages/databases/ui/show/ShowDatabaseSpecificDataComponent';
 import { EditVerificationConfigComponent } from '@/pages/databases/ui/verification/EditVerificationConfigComponent';
 import { ShowVerificationConfigComponent } from '@/pages/databases/ui/verification/ShowVerificationConfigComponent';
+import { useSessionMutation } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { translateApiError } from '@/shared/i18n';
 import { useFeedback } from '@/shared/lib/feedback';
@@ -60,6 +61,23 @@ export const DatabaseConfigComponent = ({
   onDatabaseTransferred,
   isCanManageDBs,
 }: Props) => {
+  const copyDatabaseMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof databaseApi.copyDatabase>) =>
+      databaseApi.copyDatabase(...parameters),
+  });
+  const testDatabaseMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof databaseApi.testDatabase>) =>
+      databaseApi.testDatabase(...parameters),
+  });
+  const deleteDatabaseMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof databaseApi.deleteDatabase>) =>
+      databaseApi.deleteDatabase(...parameters),
+  });
+  const updateDatabaseMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof databaseApi.updateDatabase>) =>
+      databaseApi.updateDatabase(...parameters),
+  });
+
   const { t } = useTranslation();
   const notify = useFeedback();
   const isActive = useSessionGuard();
@@ -67,19 +85,24 @@ export const DatabaseConfigComponent = ({
 
   const [editingSection, setEditingSection] = useState<DatabaseSettingsSectionId>();
   const [nameDraft, setNameDraft] = useState('');
-  const [isSavingName, setIsSavingName] = useState(false);
+  const isSavingName = updateDatabaseMutation.isPending;
 
-  const [isTestingConnection, setIsTestingConnection] = useState(false);
-  const [isCopying, setIsCopying] = useState(false);
+  const isTestingConnection = testDatabaseMutation.isPending;
+  const isCopying = copyDatabaseMutation.isPending;
   const [isShowRemoveConfirm, setIsShowRemoveConfirm] = useState(false);
-  const [isRemoving, setIsRemoving] = useState(false);
+  const isRemoving = deleteDatabaseMutation.isPending;
   const [isShowCopyConfirm, setIsShowCopyConfirm] = useState(false);
   const [isShowTransferDialog, setIsShowTransferDialog] = useState(false);
-  const { backupConfig, backupConfigError, reloadBackupConfig, acknowledgeBackupConfig } =
-    useBackupConfigLoad({
-      databaseId: database.id,
-      workspaceId: database.workspaceId,
-    });
+  const {
+    backupConfig,
+    backupConfigRevision,
+    backupConfigError,
+    reloadBackupConfig,
+    acknowledgeBackupConfig,
+  } = useBackupConfigLoad({
+    databaseId: database.id,
+    workspaceId: database.workspaceId,
+  });
   const [actionError, setActionError] = useState<unknown>();
   const [connectionFailureReason, setConnectionFailureReason] = useState<string>();
 
@@ -90,11 +113,10 @@ export const DatabaseConfigComponent = ({
 
   const copyDatabase = () => {
     clearActionFailure();
-    setIsCopying(true);
     setIsShowCopyConfirm(false);
 
-    databaseApi
-      .copyDatabase(database.id)
+    copyDatabaseMutation
+      .mutateAsync([database.id])
       .then((copiedDatabase) => {
         if (isActive()) {
           notify({
@@ -112,15 +134,14 @@ export const DatabaseConfigComponent = ({
         if (isActive()) setActionError(e);
       })
       .finally(() => {
-        if (isActive()) setIsCopying(false);
+        if (isActive()) copyDatabaseMutation.reset();
       });
   };
 
   const testConnection = () => {
     clearActionFailure();
-    setIsTestingConnection(true);
-    databaseApi
-      .testDatabase(database.id)
+    testDatabaseMutation
+      .mutateAsync([database.id])
       .then((testResult) => {
         if (!isActive()) return;
 
@@ -141,16 +162,15 @@ export const DatabaseConfigComponent = ({
         if (isActive()) setActionError(e);
       })
       .finally(() => {
-        if (isActive()) setIsTestingConnection(false);
+        if (isActive()) testDatabaseMutation.reset();
       });
   };
 
   const remove = () => {
     clearActionFailure();
     setIsShowRemoveConfirm(false);
-    setIsRemoving(true);
-    databaseApi
-      .deleteDatabase(database.id)
+    deleteDatabaseMutation
+      .mutateAsync([database.id])
       .then(() => {
         onDatabaseDeleted(database.id);
       })
@@ -158,7 +178,7 @@ export const DatabaseConfigComponent = ({
         if (isActive()) setActionError(e);
       })
       .finally(() => {
-        if (isActive()) setIsRemoving(false);
+        if (isActive()) deleteDatabaseMutation.reset();
       });
   };
 
@@ -194,15 +214,14 @@ export const DatabaseConfigComponent = ({
 
   const saveName = () => {
     clearActionFailure();
-    setIsSavingName(true);
-    databaseApi
-      .updateDatabase(database.id, { ...database, name: nameDraft })
+    updateDatabaseMutation
+      .mutateAsync([database.id, { ...database, name: nameDraft }])
       .then(acceptSavedDatabase)
       .catch((e: unknown) => {
         if (isActive()) setActionError(e);
       })
       .finally(() => {
-        if (isActive()) setIsSavingName(false);
+        if (isActive()) updateDatabaseMutation.reset();
       });
   };
 
@@ -210,6 +229,7 @@ export const DatabaseConfigComponent = ({
     databaseId: database.id,
     workspaceId: database.workspaceId,
     initial: backupConfig?.cleanup,
+    revision: backupConfigRevision,
   });
 
   const isPhysicalDatabase = database.settings.type === DatabaseType.POSTGRES_PHYSICAL;

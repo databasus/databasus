@@ -1,12 +1,13 @@
 import { Alert, Button, Loader, PasswordInput, TextInput } from '@mantine/core';
 import { CircleAlert } from 'lucide-react';
-import { useEffectEvent, useId } from 'react';
+import { useId } from 'react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { USER_ROLE_LABEL_KEYS, type User, userApi } from '@/entities/users';
+import { useSessionMutation } from '@/shared/api';
+import { useSessionQuery } from '@/shared/api';
 import { invalidateSession, useSessionGuard } from '@/shared/auth';
-import { useRequestRevision } from '@/shared/hooks';
 import { translateApiError } from '@/shared/i18n';
 import { useFeedback } from '@/shared/lib/feedback';
 import { LoadFailure } from '@/shared/ui';
@@ -18,14 +19,28 @@ interface Props {
 const MIN_PASSWORD_LENGTH = 8;
 
 export function ProfilePage({ onUserChanged }: Props) {
-  const [failure, setFailure] = useState<unknown>();
-  const [isLoading, setIsLoading] = useState(true);
+  const changePasswordMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof userApi.changePassword>) =>
+      userApi.changePassword(...parameters),
+  });
+  const updateUserInfoMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof userApi.updateUserInfo>) =>
+      userApi.updateUserInfo(...parameters),
+  });
+
+  const query = useSessionQuery({
+    queryKey: ['profile'],
+    queryFn: (signal) => userApi.getCurrentUser({ signal }),
+  });
+  const [actionFailure, setFailure] = useState<unknown>();
+  const failure = actionFailure ?? query.error ?? undefined;
+  const isLoading = query.isPending;
   const [user, setUser] = useState<User | undefined>(undefined);
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const isChangingPassword = changePasswordMutation.isPending;
 
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
-  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const isUpdatingProfile = updateUserInfoMutation.isPending;
   const [isEditNameError, setIsEditNameError] = useState(false);
   const [isEditEmailError, setIsEditEmailError] = useState(false);
 
@@ -37,22 +52,17 @@ export function ProfilePage({ onUserChanged }: Props) {
   const [isNewPasswordError, setIsNewPasswordError] = useState(false);
   const [isConfirmPasswordError, setIsConfirmPasswordError] = useState(false);
 
-  const loadUserProfile = async () => {
-    const revision = loadRevision.Invalidate();
-    setIsLoading(true);
+  const loadUserProfile = () => {
     setFailure(undefined);
-    try {
-      const loadedUser = await userApi.getCurrentUser();
-      if (!isCurrent() || !loadRevision.IsCurrent(revision)) return;
-      setUser(loadedUser);
-      setEditName(loadedUser.name);
-      setEditEmail(loadedUser.email);
-    } catch (error) {
-      if (isCurrent() && loadRevision.IsCurrent(revision)) setFailure(error);
-    } finally {
-      if (isCurrent() && loadRevision.IsCurrent(revision)) setIsLoading(false);
-    }
+    return query.refetch();
   };
+  useEffect(() => {
+    if (!query.data) return;
+
+    setUser(query.data);
+    setEditName(query.data.name);
+    setEditEmail(query.data.email);
+  }, [query.data]);
 
   const validatePasswordFields = (): boolean => {
     let isValid = true;
@@ -87,10 +97,8 @@ export function ProfilePage({ onUserChanged }: Props) {
       return;
     }
 
-    setIsChangingPassword(true);
-
     try {
-      await userApi.changePassword({ newPassword });
+      await changePasswordMutation.mutateAsync([{ newPassword }]);
       if (!isCurrent()) return;
 
       setNewPassword('');
@@ -104,7 +112,7 @@ export function ProfilePage({ onUserChanged }: Props) {
     } catch (error: unknown) {
       if (isCurrent()) setFailure(error);
     } finally {
-      if (isCurrent()) setIsChangingPassword(false);
+      if (isCurrent()) changePasswordMutation.reset();
     }
   };
 
@@ -125,17 +133,15 @@ export function ProfilePage({ onUserChanged }: Props) {
     }
     setIsEditEmailError(false);
 
-    setIsUpdatingProfile(true);
-
     try {
       if (editName === user?.name && editEmail === user?.email) {
         notify({ kind: 'info', title: t('users.profile.noChanges') });
-        if (isCurrent()) setIsUpdatingProfile(false);
+        if (isCurrent()) updateUserInfoMutation.reset();
         return;
       }
 
       const submitted = { name: editName, email: editEmail };
-      const acknowledged = await userApi.updateUserInfo(submitted);
+      const acknowledged = await updateUserInfoMutation.mutateAsync([submitted]);
       if (!isCurrent()) return;
 
       setUser(acknowledged);
@@ -146,7 +152,7 @@ export function ProfilePage({ onUserChanged }: Props) {
     } catch (error: unknown) {
       if (isCurrent()) setFailure(error);
     } finally {
-      if (isCurrent()) setIsUpdatingProfile(false);
+      if (isCurrent()) updateUserInfoMutation.reset();
     }
   };
 
@@ -157,18 +163,6 @@ export function ProfilePage({ onUserChanged }: Props) {
   const { t, i18n } = useTranslation();
   const notify = useFeedback();
   const isCurrent = useSessionGuard();
-  const loadRevision = useRequestRevision();
-
-  const startProfileLoad = useEffectEvent(() => {
-    void loadUserProfile();
-  });
-
-  useEffect(() => {
-    startProfileLoad();
-    return () => {
-      loadRevision.Invalidate();
-    };
-  }, [loadRevision]);
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1">

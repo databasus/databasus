@@ -22,33 +22,51 @@ const renderUsage = (isStrictMode = false) =>
 
 const LocaleControl = () => {
   const { setLocale } = useLocale();
+
   return <button onClick={() => setLocale('ru')}>Switch language</button>;
 };
 
 const observeUsageSubscriptions = () => {
-  const scheduleInterval = vi.spyOn(globalThis, 'setInterval');
-  const clearInterval = vi.spyOn(globalThis, 'clearInterval');
   const addListener = vi.spyOn(document, 'addEventListener');
   const removeListener = vi.spyOn(document, 'removeEventListener');
 
   return {
-    clearInterval,
     removeListener,
     getSubscriptions: () =>
       addListener.mock.calls
         .filter(([event]) => event === 'visibilitychange')
-        .map(([, listener]) => {
-          const intervalIndex = scheduleInterval.mock.calls.findIndex(
-            ([callback, delay]) => callback === listener && delay === 1000,
-          );
-          expect(intervalIndex).toBeGreaterThanOrEqual(0);
-
-          return { listener, timer: scheduleInterval.mock.results[intervalIndex].value };
-        }),
+        .map(([, listener]) => ({ listener })),
   };
 };
 
 describe('StorageBackupUsage', () => {
+  it('keeps the next scheduled tick when a polling response finishes between ticks', async () => {
+    const usageRead = vi.spyOn(storageUsageApi, 'getUsage');
+    server.use(mockApi.get('/storages/{storageId}/backup-usage', 200, { totalUsageMb: 104 }));
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+
+    renderUsage();
+    await screen.findByText('Total usage: 104 MB');
+
+    const slowRead = mockApi.pending('get', '/storages/{storageId}/backup-usage');
+    server.use(slowRead.handler);
+
+    await advanceFakeClock(1000);
+
+    expect(usageRead).toHaveBeenCalledTimes(2);
+
+    await advanceFakeClock(500);
+    await releaseAndSettle(usageRead, () =>
+      slowRead.respond(HttpResponse.json({ totalUsageMb: 200 })),
+    );
+
+    server.use(mockApi.get('/storages/{storageId}/backup-usage', 200, { totalUsageMb: 200 }));
+
+    await advanceFakeClock(500);
+
+    expect(usageRead).toHaveBeenCalledTimes(3);
+  });
+
   it('updates totals every second without reloading when catalog contents change', async () => {
     let totalUsageMb = 104.4;
     server.use(
@@ -129,6 +147,67 @@ describe('StorageBackupUsage', () => {
       await advanceClockUntil(() =>
         expect(requestCount).toBeGreaterThan(requestsBeforeVisibility + 1),
       );
+    },
+  );
+
+  it.each(
+    ([403, 404] as const).flatMap((status) =>
+      (['HTTP 500', 'network error'] as const).map((retryFailure) => ({ status, retryFailure })),
+    ),
+  )(
+    'keeps totals hidden when retry fails with $retryFailure after an HTTP $status refusal',
+    async ({ status, retryFailure }) => {
+      server.use(mockApi.get('/storages/{storageId}/backup-usage', 200, { totalUsageMb: 104 }));
+      const usageRead = vi.spyOn(storageUsageApi, 'getUsage');
+      vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
+
+      renderUsage();
+      await waitForCondition(() => expect(screen.getByText('Total usage: 104 MB')).toBeTruthy());
+
+      server.use(
+        mockApi.get(
+          '/storages/{storageId}/backup-usage',
+          status,
+          buildProblem(status === 403 ? 'permission_denied' : 'not_found', status),
+        ),
+      );
+
+      await advanceFakeClock(1000);
+      await waitForCondition(() =>
+        expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy(),
+      );
+
+      expect(screen.queryByText('Total usage: 104 MB')).toBeNull();
+
+      const retryRead = mockApi.pending('get', '/storages/{storageId}/backup-usage');
+      server.use(retryRead.handler);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+      await waitForCondition(() => expect(usageRead).toHaveBeenCalledTimes(3));
+
+      expect(screen.queryByText('Total usage: 104 MB')).toBeNull();
+
+      await releaseAndSettle(usageRead, () =>
+        retryRead.respond(
+          retryFailure === 'network error'
+            ? HttpResponse.error()
+            : HttpResponse.json(buildProblem('internal', 500), { status: 500 }),
+        ),
+      );
+
+      expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
+      expect(screen.queryByText('Total usage: 104 MB')).toBeNull();
+
+      await advanceFakeClock(3000);
+
+      expect(usageRead).toHaveBeenCalledTimes(3);
+      expect(screen.queryByText('Total usage: 104 MB')).toBeNull();
+
+      server.use(mockApi.get('/storages/{storageId}/backup-usage', 200, { totalUsageMb: 104 }));
+
+      fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+      await waitForCondition(() => expect(screen.getByText('Total usage: 104 MB')).toBeTruthy());
+      await advanceClockUntil(() => expect(usageRead.mock.calls.length).toBeGreaterThan(4));
     },
   );
 
@@ -250,7 +329,6 @@ describe('StorageBackupUsage', () => {
     const [subscription] = subscriptions.getSubscriptions();
 
     view.unmount();
-    expect(subscriptions.clearInterval).toHaveBeenCalledWith(subscription.timer);
     expect(subscriptions.removeListener).toHaveBeenCalledWith(
       'visibilitychange',
       subscription.listener,
@@ -270,6 +348,7 @@ describe('StorageBackupUsage', () => {
     server.use(mockApi.get('/storages/{storageId}/backup-usage', 200, { totalUsageMb: 104 }));
     vi.useFakeTimers();
     const subscriptions = observeUsageSubscriptions();
+    const usageRead = vi.spyOn(storageUsageApi, 'getUsage');
     const view = renderUsage(true);
     await waitForCondition(() => expect(screen.getByText('Total usage: 104 MB')).toBeTruthy());
 
@@ -278,9 +357,7 @@ describe('StorageBackupUsage', () => {
 
     const [earlier, current] = registered;
 
-    expect(subscriptions.clearInterval).toHaveBeenCalledWith(earlier.timer);
     expect(subscriptions.removeListener).toHaveBeenCalledWith('visibilitychange', earlier.listener);
-    expect(subscriptions.clearInterval).not.toHaveBeenCalledWith(current.timer);
     expect(subscriptions.removeListener).not.toHaveBeenCalledWith(
       'visibilitychange',
       current.listener,
@@ -288,8 +365,13 @@ describe('StorageBackupUsage', () => {
 
     view.unmount();
 
-    expect(subscriptions.clearInterval).toHaveBeenCalledWith(current.timer);
     expect(subscriptions.removeListener).toHaveBeenCalledWith('visibilitychange', current.listener);
+
+    const readsBeforeClock = usageRead.mock.calls.length;
+
+    await advanceFakeClock(3000);
+
+    expect(usageRead).toHaveBeenCalledTimes(readsBeforeClock);
   });
 
   it('changes labels and compact decimal separators when the interface language changes', async () => {

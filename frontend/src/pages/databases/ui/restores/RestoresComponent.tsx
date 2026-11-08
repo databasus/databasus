@@ -15,6 +15,7 @@ import { createRestoreTargetDraft } from '@/pages/databases/ui/restores/createRe
 import { RestoreCard } from '@/pages/databases/ui/restores/RestoreCard';
 import { RestoreErrorDialog } from '@/pages/databases/ui/restores/RestoreErrorDialog';
 import { toRestoreTarget } from '@/pages/databases/ui/restores/toRestoreTarget';
+import { useSessionMutation } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { usePolledPagedList } from '@/shared/hooks';
 import { translateApiError } from '@/shared/i18n';
@@ -33,6 +34,15 @@ const NO_RESTORE_OPTIONS: PostgresqlRestoreOptions = {
 };
 
 export const RestoresComponent = ({ database, backup }: Props) => {
+  const startRestoreMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof restoreApi.startRestore>) =>
+      restoreApi.startRestore(...parameters),
+  });
+  const cancelRestoreMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof restoreApi.cancelRestore>) =>
+      restoreApi.cancelRestore(...parameters),
+  });
+
   const { t } = useTranslation();
   const notify = useFeedback();
   const isActive = useSessionGuard();
@@ -64,10 +74,10 @@ export const RestoresComponent = ({ database, backup }: Props) => {
   });
 
   const startRestore = async (submittedDraft: RestoreTargetDraft) => {
-    const startedRestore = await restoreApi.startRestore(
+    const startedRestore = await startRestoreMutation.mutateAsync([
       backup.id,
       toRestoreTarget(submittedDraft, restoreOptions),
-    );
+    ]);
     if (!isActive()) return;
 
     showRestore(startedRestore);
@@ -78,7 +88,7 @@ export const RestoresComponent = ({ database, backup }: Props) => {
     setCancellingRestoreId(restoreId);
 
     try {
-      const cancelledRestore = await restoreApi.cancelRestore(restoreId);
+      const cancelledRestore = await cancelRestoreMutation.mutateAsync([restoreId]);
       if (!isActive()) return;
 
       showRestore(cancelledRestore);

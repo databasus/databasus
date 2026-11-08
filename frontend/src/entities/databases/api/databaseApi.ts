@@ -5,7 +5,7 @@ import type { DatabaseTestResult } from '@/entities/databases/model/DatabaseTest
 import type { DatabaseUpdate } from '@/entities/databases/model/DatabaseUpdate';
 import type { LimitedUser, LimitedUserCheck } from '@/entities/databases/model/LimitedUser';
 import { toDatabaseSettingsRequest } from '@/entities/databases/model/toDatabaseSettingsRequest';
-import { getApiClient, requireData, requireSuccess } from '@/shared/api';
+import { getApiClient, requireData, requireSuccess, type ReadOptions } from '@/shared/api';
 import { collectCursorPages } from '@/shared/lib/collectCursorPages';
 
 // The largest page the contract serves, so a workspace's databases arrive in as few requests as
@@ -19,7 +19,7 @@ const toSettingsTargetRequest = (target: DatabaseSettingsTarget): DatabaseSettin
 });
 
 // Narrows the list to the databases that send to one notifier.
-interface DatabaseListFilter {
+interface DatabaseListFilter extends ReadOptions {
   notifierId?: string;
 }
 
@@ -28,20 +28,22 @@ export const databaseApi = {
   // database that sends to one notifier, so this follows the cursor to the last page.
   async listAllDatabases(
     workspaceId: string,
-    { notifierId }: DatabaseListFilter = {},
+    { notifierId, signal }: DatabaseListFilter = {},
   ): Promise<Database[]> {
-    return collectCursorPages(async (after: string | undefined) =>
-      requireData(
-        await getApiClient().GET('/databases', {
-          params: { query: { workspaceId, notifierId, limit: DATABASE_PAGE_LIMIT, after } },
-        }),
-      ),
+    return collectCursorPages(
+      async (after: string | undefined) =>
+        requireData(
+          await getApiClient({ signal }).GET('/databases', {
+            params: { query: { workspaceId, notifierId, limit: DATABASE_PAGE_LIMIT, after } },
+          }),
+        ),
+      { signal },
     );
   },
 
-  async getDatabase(databaseId: string): Promise<Database> {
+  async getDatabase(databaseId: string, options: ReadOptions = {}): Promise<Database> {
     return requireData(
-      await getApiClient().GET('/databases/{databaseId}', {
+      await getApiClient(options).GET('/databases/{databaseId}', {
         params: { path: { databaseId } },
       }),
     );

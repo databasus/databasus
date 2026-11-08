@@ -12,6 +12,7 @@ import {
   databaseApi,
   toDatabaseSettingsTarget,
 } from '@/entities/databases';
+import { useSessionMutation } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import {
   TransByKey,
@@ -74,13 +75,22 @@ export const CreateLimitedUserComponent = ({
   onSkipped,
   onLimitedUserNotSuggested,
 }: Props) => {
+  const checkLimitedUserMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof databaseApi.checkLimitedUser>) =>
+      databaseApi.checkLimitedUser(...parameters),
+  });
+  const createLimitedUserMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof databaseApi.createLimitedUser>) =>
+      databaseApi.createLimitedUser(...parameters),
+  });
+
   const { t } = useTranslation();
   const { locale } = useLocale();
   const notify = useFeedback();
   const isActive = useSessionGuard();
 
   const [isCheckingReadOnlyUserSuggestion, setIsCheckingReadOnlyUserSuggestion] = useState(false);
-  const [isCreatingReadOnlyUser, setIsCreatingReadOnlyUser] = useState(false);
+  const isCreatingReadOnlyUser = createLimitedUserMutation.isPending;
   const [isShowSkipConfirmation, setShowSkipConfirmation] = useState(false);
   const [privileges, setPrivileges] = useState<string[]>([]);
   const [isPrivilegesExpanded, setIsPrivilegesExpanded] = useState(false);
@@ -95,7 +105,7 @@ export const CreateLimitedUserComponent = ({
 
   const fetchLimitedUserCheck = async (): Promise<LimitedUserCheck | null> => {
     try {
-      return await databaseApi.checkLimitedUser(settingsTarget);
+      return await checkLimitedUserMutation.mutateAsync([settingsTarget]);
     } catch (e) {
       if (isActive()) notify({ kind: 'error', title: translateApiError(e, t) });
       return null;
@@ -117,10 +127,8 @@ export const CreateLimitedUserComponent = ({
   };
 
   const provisionRestrictedUser = async () => {
-    setIsCreatingReadOnlyUser(true);
-
     try {
-      const limitedUser = await databaseApi.createLimitedUser(settingsTarget);
+      const limitedUser = await createLimitedUserMutation.mutateAsync([settingsTarget]);
       if (!isActive()) return;
 
       if (isPhysicalPostgres && !limitedUser.isForcedWalRotationAvailable) {
@@ -136,7 +144,7 @@ export const CreateLimitedUserComponent = ({
       if (isActive()) notify({ kind: 'error', title: translateApiError(e, t) });
     }
 
-    setIsCreatingReadOnlyUser(false);
+    createLimitedUserMutation.reset();
   };
 
   const handleSkip = () => {

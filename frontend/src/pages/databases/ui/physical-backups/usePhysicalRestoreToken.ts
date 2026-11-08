@@ -4,6 +4,7 @@ import {
   type PhysicalRestoreTokenCreate,
   physicalBackupsApi,
 } from '@/pages/databases/api/physicalBackupsApi';
+import { useSessionMutation } from '@/shared/api';
 import { useRequestRevision } from '@/shared/hooks';
 
 interface TokenAnswer {
@@ -17,12 +18,19 @@ interface TokenAnswer {
 // fresh capability the user can curl, not a static command. An answer counts only for the subject
 // it was requested for, so a late one cannot put another target time's token under the shown time.
 export const usePhysicalRestoreToken = (subject: PhysicalRestoreTokenCreate) => {
+  const createPhysicalRestoreTokenMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof physicalBackupsApi.createPhysicalRestoreToken>) =>
+      physicalBackupsApi.createPhysicalRestoreToken(...parameters),
+  });
+
   const [answer, setAnswer] = useState<TokenAnswer>();
 
   const requestRevision = useRequestRevision();
   const subjectKey = JSON.stringify(subject);
 
-  const createToken = useEffectEvent(() => physicalBackupsApi.createPhysicalRestoreToken(subject));
+  const createToken = useEffectEvent(() =>
+    createPhysicalRestoreTokenMutation.mutateAsync([subject]),
+  );
 
   useEffect(() => {
     const revision = requestRevision.Invalidate();

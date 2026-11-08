@@ -1,5 +1,6 @@
 import { Loader, Tabs } from '@mantine/core';
-import { type RefObject, useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { type RefObject, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { type Database, DatabaseType, databaseApi } from '@/entities/databases';
@@ -10,6 +11,7 @@ import { LogicalBackupsComponent } from '@/pages/databases/ui/logical-backups/Lo
 import { PhysicalBackupsComponent } from '@/pages/databases/ui/physical-backups/PhysicalBackupsComponent';
 import { VerificationsComponent } from '@/pages/databases/ui/verification/VerificationsComponent';
 import { WalStreamMonitoringComponent } from '@/pages/databases/ui/wal-stream-monitoring/WalStreamMonitoringComponent';
+import { useSessionQuery } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { LoadFailure } from '@/shared/ui';
 
@@ -38,13 +40,18 @@ export const DatabaseComponent = ({
   const isActive = useSessionGuard();
   const [currentTab, setCurrentTab] = useState<DatabaseTab>('backups');
 
-  const [database, setDatabase] = useState<Database | undefined>();
-  const [loadError, setLoadError] = useState<unknown>();
-  const [loadAttempt, setLoadAttempt] = useState(0);
+  const client = useQueryClient();
+  const query = useSessionQuery({
+    queryKey: ['database', databaseId],
+    queryFn: (signal) => databaseApi.getDatabase(databaseId, { signal }),
+  });
+  const database = query.data;
+  const loadError = query.error ?? undefined;
 
   const acceptChangedDatabase = (changedDatabase: Database) => {
     if (isActive()) {
-      setDatabase((shownDatabase) =>
+      void client.cancelQueries({ queryKey: query.queryKey, exact: true });
+      client.setQueryData<Database>(query.queryKey, (shownDatabase) =>
         shownDatabase?.id === changedDatabase.id ? changedDatabase : shownDatabase,
       );
     }
@@ -60,27 +67,8 @@ export const DatabaseComponent = ({
     (currentTab !== 'monitoring' || isMonitoringShown);
   const shownTab = isCurrentTabOffered ? currentTab : 'backups';
 
-  useEffect(() => {
-    let isActive = true;
-    setDatabase(undefined);
-    setLoadError(undefined);
-    databaseApi
-      .getDatabase(databaseId)
-      .then((loadedDatabase) => {
-        if (isActive) setDatabase(loadedDatabase);
-      })
-      .catch((error) => {
-        if (isActive) setLoadError(error);
-      });
-    return () => {
-      isActive = false;
-    };
-  }, [databaseId, loadAttempt]);
-
   if (loadError !== undefined) {
-    return (
-      <LoadFailure error={loadError} onRetry={() => setLoadAttempt((attempt) => attempt + 1)} />
-    );
+    return <LoadFailure error={loadError} onRetry={() => void query.refetch()} />;
   }
 
   if (!database) {

@@ -7,6 +7,7 @@ import { type PendingSignIn, userApi } from '@/entities/users';
 import { OAuthSignInButtons } from '@/features/oauth-sign-in';
 import { useCloudflareTurnstile } from '@/pages/auth/model/useCloudflareTurnstile';
 import { CloudflareTurnstileWidget } from '@/pages/auth/ui/CloudflareTurnstileWidget';
+import { useSessionMutation } from '@/shared/api';
 import { useAuthOperation } from '@/shared/auth';
 import {
   CLOUDFLARE_TURNSTILE_SITE_KEY,
@@ -28,6 +29,10 @@ export function SignInComponent({
   onSwitchToResetPassword,
   onCodeRequired,
 }: SignInComponentProps): JSX.Element {
+  const signInMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof userApi.signIn>) => userApi.signIn(...parameters),
+  });
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setPasswordVisible] = useState(false);
@@ -70,11 +75,13 @@ export function SignInComponent({
       setLoading(true);
 
       try {
-        const outcome = await userApi.signIn({
-          email,
-          password,
-          cloudflareTurnstileToken: token,
-        });
+        const outcome = await signInMutation.mutateAsync([
+          {
+            email,
+            password,
+            cloudflareTurnstileToken: token,
+          },
+        ]);
 
         if (!authOperation.isCurrent(operation)) return;
         if (outcome.outcome === 'COMPLETED') authOperation.accept({ operation, session: outcome });

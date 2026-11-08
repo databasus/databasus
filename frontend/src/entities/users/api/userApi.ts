@@ -1,5 +1,6 @@
 import type { SignInOutcome } from '@/entities/users/model/SignInOutcome';
 import type { User } from '@/entities/users/model/User';
+import type { ReadOptions } from '@/shared/api';
 import { type ApiComponents, getApiClient, requireData, requireSuccess } from '@/shared/api';
 import { getSessionSnapshot } from '@/shared/auth';
 
@@ -53,8 +54,8 @@ export const userApi = {
     );
   },
 
-  async isAnyUserExists(): Promise<boolean> {
-    const signInOptions = requireData(await getApiClient().GET('/sign-in-options'));
+  async isAnyUserExists(options: ReadOptions = {}): Promise<boolean> {
+    const signInOptions = requireData(await getApiClient(options).GET('/sign-in-options'));
 
     return signInOptions.hasAnyUser;
   },
@@ -68,9 +69,9 @@ export const userApi = {
     );
   },
 
-  async getCurrentUser(): Promise<User> {
+  async getCurrentUser(options: ReadOptions = {}): Promise<User> {
     return requireData(
-      await getApiClient().GET('/users/{userId}', {
+      await getApiClient(options).GET('/users/{userId}', {
         params: { path: { userId: getSignedInUserId() } },
       }),
     );

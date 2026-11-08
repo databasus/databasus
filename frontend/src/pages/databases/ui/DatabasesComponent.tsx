@@ -1,4 +1,5 @@
 import { Button, Loader, TextInput } from '@mantine/core';
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -10,9 +11,9 @@ import type { Workspace } from '@/entities/workspaces';
 import { CreateDatabaseComponent } from '@/pages/databases/ui/CreateDatabaseComponent';
 import { DatabaseCardComponent } from '@/pages/databases/ui/DatabaseCardComponent';
 import { DatabaseComponent } from '@/pages/databases/ui/DatabaseComponent';
-import { ApiError } from '@/shared/api';
+import { ApiError, useSessionQuery } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
-import { useIsMobile, useLatestRef, useRequestRevision, useScopedSelection } from '@/shared/hooks';
+import { useIsMobile, useLatestRef, useScopedSelection } from '@/shared/hooks';
 import { Dialog } from '@/shared/ui';
 import { ResourceListDetail, LoadFailure } from '@/shared/ui';
 
@@ -56,9 +57,67 @@ const mapStoragesByDatabaseId = (
 };
 
 export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }: Props) => {
-  const [collection, setCollection] = useState(createEmptyCollection);
-  const [loadError, setLoadError] = useState<unknown>();
-  const [isLoading, setIsLoading] = useState(true);
+  const client = useQueryClient();
+  const [isUnavailable, setIsUnavailable] = useState(false);
+  const [readError, setReadError] = useState<unknown>();
+  const query = useSessionQuery({
+    queryKey: ['database-collection', workspace.id],
+    queryFn: async (signal): Promise<DatabaseCollection> => {
+      setReadError(undefined);
+      let hasReportedUnavailable = false;
+
+      const handleWorkspaceReadError = (error: unknown): never => {
+        if (!signal.aborted && isCurrent()) setReadError((current: unknown) => current ?? error);
+
+        if (
+          !hasReportedUnavailable &&
+          !signal.aborted &&
+          isCurrent() &&
+          error instanceof ApiError &&
+          [403, 404].includes(error.status ?? 0)
+        ) {
+          hasReportedUnavailable = true;
+          setIsUnavailable(true);
+          onUnavailable?.(workspace.id);
+        }
+
+        throw error;
+      };
+      const reads = [
+        databaseApi.listAllDatabases(workspace.id, { signal }).catch(handleWorkspaceReadError),
+        backupConfigApi
+          .listAllWorkspaceBackupConfigs(workspace.id, { signal })
+          .catch(handleWorkspaceReadError),
+        storageApi.listAllStorages(workspace.id, { signal }).catch(handleWorkspaceReadError),
+      ] as const;
+
+      try {
+        const [databases, configs, storages] = await Promise.all(reads);
+        if (!signal.aborted && isCurrent()) setIsUnavailable(false);
+
+        return {
+          items: sortUnavailableDatabasesFirst(databases),
+          storagesByDatabaseId: mapStoragesByDatabaseId(configs, storages),
+          isReady: true,
+        };
+      } finally {
+        // Keep sibling HTTP work cancellable after publishing the first failure.
+        await Promise.allSettled(reads);
+      }
+    },
+  });
+  const collection = isUnavailable
+    ? createEmptyCollection()
+    : (query.data ?? createEmptyCollection());
+  const loadError =
+    !isUnavailable && !query.data ? (readError ?? query.error ?? undefined) : undefined;
+  const isLoading = query.isPending && loadError === undefined;
+  const setCollection = (update: (current: DatabaseCollection) => DatabaseCollection) => {
+    void client.cancelQueries({ queryKey: query.queryKey, exact: true });
+    client.setQueryData<DatabaseCollection>(query.queryKey, (current) =>
+      update(current ?? createEmptyCollection()),
+    );
+  };
   const [searchQuery, setSearchQuery] = useState('');
 
   const [isShowAddDatabase, setIsShowAddDatabase] = useState(false);
@@ -66,57 +125,8 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
   const [isWideStep, setIsWideStep] = useState(false);
 
   const loadDatabases = (isSilent = false) => {
-    if (!isCurrent()) return;
-
-    const revision = loadRevision.Invalidate();
-    let isWorkspaceUnavailable = false;
-
-    const handleWorkspaceReadError = (error: unknown): never => {
-      if (
-        isCurrent() &&
-        loadRevision.IsCurrent(revision) &&
-        !isWorkspaceUnavailable &&
-        error instanceof ApiError &&
-        [403, 404].includes(error.status ?? 0)
-      ) {
-        isWorkspaceUnavailable = true;
-        setCollection(createEmptyCollection());
-        setLoadError(undefined);
-        onUnavailable?.(workspace.id);
-      }
-
-      throw error;
-    };
-
-    if (!isSilent) {
-      setIsLoading(true);
-      setLoadError(undefined);
-    }
-
-    Promise.all([
-      databaseApi.listAllDatabases(workspace.id).catch(handleWorkspaceReadError),
-      backupConfigApi.listAllWorkspaceBackupConfigs(workspace.id).catch(handleWorkspaceReadError),
-      storageApi.listAllStorages(workspace.id).catch(handleWorkspaceReadError),
-    ])
-      .then(([listedDatabases, listedBackupConfigs, listedStorages]) => {
-        if (!isCurrent() || !loadRevision.IsCurrent(revision) || isWorkspaceUnavailable) return;
-
-        setCollection({
-          items: sortUnavailableDatabasesFirst(listedDatabases),
-          storagesByDatabaseId: mapStoragesByDatabaseId(listedBackupConfigs, listedStorages),
-          isReady: true,
-        });
-        setLoadError(undefined);
-      })
-      .catch((error) => {
-        if (!isCurrent() || !loadRevision.IsCurrent(revision) || isWorkspaceUnavailable) return;
-
-        // A background refresh retries on its own, so it keeps the shown list without feedback.
-        if (!isSilent) setLoadError(error);
-      })
-      .finally(() => {
-        if (isCurrent() && loadRevision.IsCurrent(revision)) setIsLoading(false);
-      });
+    if (!isCurrent() || (isSilent && query.isFetching)) return;
+    void query.refetch({ cancelRefetch: !isSilent });
   };
 
   const acceptDatabase = (database: Database) => {
@@ -126,7 +136,7 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
       ...current,
       items: current.items.map((item) => (item.id === database.id ? database : item)),
     }));
-    loadDatabases(true);
+    void query.refetch();
   };
 
   const addDatabaseToList = (database: Database) => {
@@ -141,7 +151,7 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
 
     addDatabaseToList(database);
     selection.select(database.id);
-    loadDatabases(true);
+    void query.refetch();
   };
 
   const acceptCopiedDatabase = (copiedDatabase: Database, sourceDatabaseId: string) => {
@@ -151,7 +161,7 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
 
     if (latestSelectedDatabaseId.current === sourceDatabaseId) selection.select(copiedDatabase.id);
 
-    loadDatabases(true);
+    void query.refetch();
   };
 
   const rememberDatabaseCreatedInWizard = (database: Database) => {
@@ -177,13 +187,12 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
       ...current,
       items: current.items.filter((item) => item.id !== databaseId),
     }));
-    loadDatabases(true);
+    void query.refetch();
   };
 
   const { t } = useTranslation();
   const isMobile = useIsMobile();
   const isCurrent = useSessionGuard();
-  const loadRevision = useRequestRevision();
   const detailScrollRef = useRef<HTMLDivElement>(null);
   const databaseCreatedInWizard = useRef<Database | undefined>(undefined);
   const databases = collection.items;
@@ -203,12 +212,8 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
     if (document.visibilityState !== 'hidden' && collection.isReady) loadDatabases(true);
   });
 
-  const startDatabasesLoad = useEffectEvent(() => {
-    loadDatabases();
-  });
-
   useEffect(() => {
-    startDatabasesLoad();
+    if (!query.isSessionActive) return;
 
     const refresh = () => refreshIfVisible();
     const interval = setInterval(refresh, DATABASES_REFRESH_INTERVAL_MS);
@@ -218,7 +223,7 @@ export const DatabasesComponent = ({ workspace, isCanManageDBs, onUnavailable }:
       clearInterval(interval);
       document.removeEventListener(VISIBILITY_CHANGE_EVENT, refresh);
     };
-  }, []);
+  }, [query.isSessionActive]);
 
   const filteredDatabases = databases.filter((database) =>
     database.name.toLowerCase().includes(searchQuery.toLowerCase()),

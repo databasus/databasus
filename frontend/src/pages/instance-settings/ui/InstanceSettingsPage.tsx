@@ -1,15 +1,16 @@
 import { ActionIcon, Alert, Button, Loader, Switch } from '@mantine/core';
 import { CircleAlert, Copy } from 'lucide-react';
-import { useEffect, useEffectEvent, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { type InstanceSettings, type InstanceSettingsUpdate, settingsApi } from '@/entities/users';
 import { InstanceAuditLogs } from '@/pages/instance-settings/ui/InstanceAuditLogs';
 import { MailServer } from '@/pages/instance-settings/ui/MailServer';
 import { VerificationAgentsComponent } from '@/pages/instance-settings/ui/verification-agents/VerificationAgentsComponent';
+import { useSessionMutation } from '@/shared/api';
+import { useSessionQuery } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { getApplicationServer } from '@/shared/config';
-import { useRequestRevision } from '@/shared/hooks';
 import { getWebsitePageUrl, translateApiError, useLocale } from '@/shared/i18n';
 import { BrowserClipboard } from '@/shared/lib/BrowserClipboard';
 import { useFeedback } from '@/shared/lib/feedback';
@@ -29,10 +30,20 @@ const toFormSettings = (settings: InstanceSettings): InstanceSettingsUpdate => (
 });
 
 export function InstanceSettingsPage({ onSettingsChanged }: Props) {
+  const updateSettingsMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof settingsApi.updateSettings>) =>
+      settingsApi.updateSettings(...parameters),
+  });
+
   const [settings, setSettings] = useState<InstanceSettings | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [failure, setFailure] = useState<unknown>();
+  const query = useSessionQuery({
+    queryKey: ['instance-settings-editor'],
+    queryFn: (signal) => settingsApi.getSettings({ signal }),
+  });
+  const isLoading = query.isPending;
+  const isSaving = updateSettingsMutation.isPending;
+  const [actionFailure, setFailure] = useState<unknown>();
+  const failure = actionFailure ?? query.error ?? undefined;
 
   const [formSettings, setFormSettings] = useState<InstanceSettingsUpdate>({
     isAllowExternalRegistrations: false,
@@ -41,22 +52,15 @@ export function InstanceSettingsPage({ onSettingsChanged }: Props) {
     isTwoFactorAuthRequired: false,
   });
 
-  const loadSettings = async () => {
-    const revision = loadRevision.Invalidate();
-    setIsLoading(true);
+  const loadSettings = () => {
     setFailure(undefined);
-
-    try {
-      const currentSettings = await settingsApi.getSettings();
-      if (!isCurrent() || !loadRevision.IsCurrent(revision)) return;
-      setSettings(currentSettings);
-      setFormSettings(toFormSettings(currentSettings));
-    } catch (error: unknown) {
-      if (isCurrent() && loadRevision.IsCurrent(revision)) setFailure(error);
-    } finally {
-      if (isCurrent() && loadRevision.IsCurrent(revision)) setIsLoading(false);
-    }
+    return query.refetch();
   };
+  useEffect(() => {
+    if (!query.data) return;
+    setSettings(query.data);
+    setFormSettings(toFormSettings(query.data));
+  }, [query.data]);
 
   const handleSettingChange = (key: keyof InstanceSettingsUpdate, value: boolean) => {
     const newFormSettings = { ...formSettings, [key]: value };
@@ -68,9 +72,8 @@ export function InstanceSettingsPage({ onSettingsChanged }: Props) {
     setFailure(undefined);
     const submitted = { ...formSettings };
 
-    setIsSaving(true);
     try {
-      const updatedSettings = await settingsApi.updateSettings(submitted);
+      const updatedSettings = await updateSettingsMutation.mutateAsync([submitted]);
       if (!isCurrent()) return;
       setSettings(updatedSettings);
       setFormSettings((current) => {
@@ -86,7 +89,7 @@ export function InstanceSettingsPage({ onSettingsChanged }: Props) {
     } catch (error: unknown) {
       if (isCurrent()) setFailure(error);
     } finally {
-      if (isCurrent()) setIsSaving(false);
+      if (isCurrent()) updateSettingsMutation.reset();
     }
   };
 
@@ -99,20 +102,9 @@ export function InstanceSettingsPage({ onSettingsChanged }: Props) {
   const { locale } = useLocale();
   const notify = useFeedback();
   const isCurrent = useSessionGuard();
-  const loadRevision = useRequestRevision();
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const startSettingsLoad = useEffectEvent(() => {
-    void loadSettings();
-  });
-
-  useEffect(() => {
-    startSettingsLoad();
-    return () => {
-      loadRevision.Invalidate();
-    };
-  }, [loadRevision]);
   const hasChanges =
     !!settings &&
     (Object.keys(formSettings) as (keyof InstanceSettingsUpdate)[]).some(

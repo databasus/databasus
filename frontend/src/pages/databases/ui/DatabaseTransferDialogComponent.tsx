@@ -1,6 +1,7 @@
 import { Alert, Button, Loader, MultiSelect, Radio } from '@mantine/core';
+import { useQueryClient } from '@tanstack/react-query';
 import { ArrowRightLeft, CircleAlert, CircleCheck, TriangleAlert } from 'lucide-react';
-import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { type DatabaseTransfer, backupConfigApi } from '@/entities/backup-configs';
@@ -8,9 +9,10 @@ import { type Database, databaseApi } from '@/entities/databases';
 import type { Notifier } from '@/entities/notifiers';
 import { notifierApi } from '@/entities/notifiers';
 import { type Storage, getStorageLogoFromType, storageApi } from '@/entities/storages';
-import { type Workspace, workspaceApi } from '@/entities/workspaces';
+import { workspaceApi } from '@/entities/workspaces';
 import { EditNotifierComponent } from '@/features/edit-notifier';
 import { EditStorageComponent } from '@/features/edit-storage';
+import { readConcurrentRequests, useSessionMutation, useSessionQuery } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { useLatestRef, useRequestRevision } from '@/shared/hooks';
 import { translateApiError } from '@/shared/i18n';
@@ -51,33 +53,34 @@ export const DatabaseTransferDialogComponent = ({
   onClose,
   onTransferred,
 }: Props) => {
+  const transferDatabaseMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof backupConfigApi.transferDatabase>) =>
+      backupConfigApi.transferDatabase(...parameters),
+  });
+
+  const client = useQueryClient();
   const { t } = useTranslation();
   const storageOptionLabelId = useId();
   const notifierOptionLabelId = useId();
-  const [error, setError] = useState<unknown>();
-  const [isLoading, setIsLoading] = useState(true);
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [actionError, setError] = useState<unknown>();
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | undefined>();
 
   const [storageOption, setStorageOption] = useState<'transfer' | 'select'>('select');
-  const [isStorageSharedWithOtherDatabases, setIsStorageSharedWithOtherDatabases] = useState(false);
-  const [isLoadingStorageSharing, setIsLoadingStorageSharing] = useState(false);
+
   const [targetStorages, setTargetStorages] = useState<Storage[]>([]);
   const [selectedStorageId, setSelectedStorageId] = useState<string | undefined>();
   const [isShowCreateStorage, setIsShowCreateStorage] = useState(false);
 
   const [notifierOption, setNotifierOption] = useState<'transfer' | 'select'>('select');
-  const [notifierUsageInfo, setNotifierUsageInfo] = useState<NotifierUsageInfo[]>([]);
-  const [isLoadingNotifierCounts, setIsLoadingNotifierCounts] = useState(false);
+
   const [targetNotifiers, setTargetNotifiers] = useState<Notifier[]>([]);
   const [selectedNotifierIds, setSelectedNotifierIds] = useState<string[]>([]);
   const [isShowCreateNotifier, setIsShowCreateNotifier] = useState(false);
 
-  const [isTransferring, setIsTransferring] = useState(false);
+  const isTransferring = transferDatabaseMutation.isPending;
   const notify = useFeedback();
   const isCurrent = useSessionGuard();
   const contextRevision = useRequestRevision();
-  const targetRevision = useRequestRevision();
   const acknowledgedStorages = useRef<Storage[]>([]);
   const acknowledgedNotifiers = useRef<Notifier[]>([]);
   const targetWorkspace = useLatestRef(selectedWorkspaceId);
@@ -85,101 +88,100 @@ export const DatabaseTransferDialogComponent = ({
   const hasCurrentStorage = !!currentStorageId;
   const hasCurrentNotifiers = database.notifierIds.length > 0;
 
-  const loadWorkspaces = async () => {
-    const revision = contextRevision.GetCurrent();
-    const isActive = () => isCurrent() && contextRevision.IsCurrent(revision);
-    setIsLoading(true);
-
-    try {
-      const listedWorkspaces = await workspaceApi.listAllWorkspaces();
-      if (!isActive()) return;
-
-      const filteredWorkspaces = listedWorkspaces.filter(
-        (workspace) => workspace.id !== database.workspaceId,
-      );
-      setWorkspaces(filteredWorkspaces);
-    } catch (e) {
-      if (!isActive()) return;
-
-      setError(e);
-    }
-
-    setIsLoading(false);
-  };
-
-  const loadStorageSharing = async () => {
-    const revision = contextRevision.GetCurrent();
-    const isActive = () => isCurrent() && contextRevision.IsCurrent(revision);
-
-    if (!currentStorageId) return;
-
-    setIsLoadingStorageSharing(true);
-
-    try {
-      const storageBackupConfigs = await backupConfigApi.listStorageBackupConfigs(
-        currentStorageId,
+  const workspacesQuery = useSessionQuery({
+    queryKey: ['database-transfer-workspaces', database.workspaceId, database.id],
+    queryFn: (signal) => workspaceApi.listAllWorkspaces({ signal }),
+  });
+  const sharingQuery = useSessionQuery({
+    queryKey: ['database-transfer-sharing', database.id, currentStorageId],
+    enabled: hasCurrentStorage,
+    queryFn: async (signal) => {
+      const configs = await backupConfigApi.listStorageBackupConfigs(
+        currentStorageId!,
         STORAGE_SHARING_CHECK_LIMIT,
-      );
-      if (!isActive()) return;
-
-      setIsStorageSharedWithOtherDatabases(
-        storageBackupConfigs.some((backupConfig) => backupConfig.databaseId !== database.id),
-      );
-    } catch (e) {
-      if (!isActive()) return;
-
-      setError(e);
-    }
-
-    setIsLoadingStorageSharing(false);
-  };
-
-  const loadNotifierUsageCounts = async () => {
-    const revision = contextRevision.GetCurrent();
-    const isActive = () => isCurrent() && contextRevision.IsCurrent(revision);
-
-    if (database.notifierIds.length === 0) return;
-
-    setIsLoadingNotifierCounts(true);
-
-    try {
-      const workspaceNotifiers = await notifierApi.listAllNotifiers(database.workspaceId);
-      if (!isActive()) return;
-
-      const databaseNotifiers = workspaceNotifiers.filter((notifier) =>
-        database.notifierIds.includes(notifier.id),
+        { signal },
       );
 
-      const usageInfo: NotifierUsageInfo[] = await Promise.all(
-        databaseNotifiers.map(async (notifier) => {
-          const notifierDatabases = await databaseApi.listAllDatabases(database.workspaceId, {
-            notifierId: notifier.id,
-          });
-          const count = notifierDatabases.length;
+      return configs.some((config) => config.databaseId !== database.id);
+    },
+  });
+  const usageQuery = useSessionQuery({
+    queryKey: [
+      'database-transfer-notifiers',
+      database.workspaceId,
+      database.id,
+      database.notifierIds,
+    ],
+    enabled: hasCurrentNotifiers,
+    queryFn: (signal) =>
+      readConcurrentRequests(signal, async (signal): Promise<NotifierUsageInfo[]> => {
+        const notifiers = await notifierApi.listAllNotifiers(database.workspaceId, { signal });
+        signal.throwIfAborted();
 
-          return {
-            notifier,
-            databaseCount: count,
-            canTransfer: count === 1,
-          };
-        }),
-      );
+        return Promise.all(
+          notifiers
+            .filter((notifier) => database.notifierIds.includes(notifier.id))
+            .map(async (notifier) => {
+              const databases = await databaseApi.listAllDatabases(database.workspaceId, {
+                notifierId: notifier.id,
+                signal,
+              });
 
-      if (!isActive()) return;
+              return {
+                notifier,
+                databaseCount: databases.length,
+                canTransfer: databases.length === 1,
+              };
+            }),
+        );
+      }),
+  });
+  const targetQuery = useSessionQuery({
+    queryKey: ['database-transfer-target', database.workspaceId, database.id, selectedWorkspaceId],
+    enabled: !!selectedWorkspaceId,
+    queryFn: (signal) =>
+      readConcurrentRequests(signal, async (signal) => {
+        const [storages, notifiers] = await Promise.all([
+          storageApi.listAllStorages(selectedWorkspaceId!, { signal }),
+          notifierApi.listAllNotifiers(selectedWorkspaceId!, { signal }),
+        ]);
 
-      setNotifierUsageInfo(usageInfo);
-    } catch (e) {
-      if (!isActive()) return;
-
-      setError(e);
-    }
-
-    setIsLoadingNotifierCounts(false);
-  };
+        return {
+          storages: [
+            ...storages.filter(
+              (storage) => !acknowledgedStorages.current.some((item) => item.id === storage.id),
+            ),
+            ...acknowledgedStorages.current,
+          ],
+          notifiers: [
+            ...notifiers.filter(
+              (notifier) => !acknowledgedNotifiers.current.some((item) => item.id === notifier.id),
+            ),
+            ...acknowledgedNotifiers.current,
+          ],
+        };
+      }),
+  });
+  const isLoading = workspacesQuery.isPending;
+  const workspaces = (workspacesQuery.data ?? []).filter(
+    (workspace) => workspace.id !== database.workspaceId,
+  );
+  const isLoadingStorageSharing = hasCurrentStorage && sharingQuery.isPending;
+  const isStorageSharedWithOtherDatabases = sharingQuery.data ?? false;
+  const isLoadingNotifierCounts = hasCurrentNotifiers && usageQuery.isPending;
+  const notifierUsageInfo = usageQuery.data ?? [];
+  const error =
+    actionError ??
+    workspacesQuery.error ??
+    sharingQuery.error ??
+    usageQuery.error ??
+    targetQuery.error ??
+    undefined;
 
   const acceptTargetStorage = (storage: Storage) => {
     if (!isCurrent() || storage.workspaceId !== targetWorkspace.current) return;
 
+    void client.cancelQueries({ queryKey: targetQuery.queryKey, exact: true });
     acknowledgedStorages.current = [
       ...acknowledgedStorages.current.filter((item) => item.id !== storage.id),
       storage,
@@ -191,6 +193,7 @@ export const DatabaseTransferDialogComponent = ({
   const acceptTargetNotifier = (notifier: Notifier) => {
     if (!isCurrent() || notifier.workspaceId !== targetWorkspace.current) return;
 
+    void client.cancelQueries({ queryKey: targetQuery.queryKey, exact: true });
     acknowledgedNotifiers.current = [
       ...acknowledgedNotifiers.current.filter((item) => item.id !== notifier.id),
       notifier,
@@ -202,36 +205,14 @@ export const DatabaseTransferDialogComponent = ({
     void loadTargetWorkspaceData(notifier.workspaceId);
   };
 
-  const loadTargetWorkspaceData = async (workspaceId: string) => {
-    const revision = targetRevision.Invalidate();
-    const isActive = () =>
-      isCurrent() && targetRevision.IsCurrent(revision) && targetWorkspace.current === workspaceId;
-
-    try {
-      const [storages, notifiers] = await Promise.all([
-        storageApi.listAllStorages(workspaceId),
-        notifierApi.listAllNotifiers(workspaceId),
-      ]);
-      if (!isActive()) return;
-
-      setTargetStorages([
-        ...storages.filter(
-          (storage) => !acknowledgedStorages.current.some((item) => item.id === storage.id),
-        ),
-        ...acknowledgedStorages.current,
-      ]);
-      setTargetNotifiers([
-        ...notifiers.filter(
-          (notifier) => !acknowledgedNotifiers.current.some((item) => item.id === notifier.id),
-        ),
-        ...acknowledgedNotifiers.current,
-      ]);
-    } catch (e) {
-      if (!isActive()) return;
-
-      setError(e);
-    }
+  const loadTargetWorkspaceData = (workspaceId: string) => {
+    if (isCurrent() && targetWorkspace.current === workspaceId) return targetQuery.refetch();
   };
+  useEffect(() => {
+    if (!targetQuery.data) return;
+    setTargetStorages(targetQuery.data.storages);
+    setTargetNotifiers(targetQuery.data.notifiers);
+  }, [targetQuery.data]);
 
   const handleTransfer = async () => {
     if (!isCurrent() || isTransferring) return;
@@ -253,10 +234,8 @@ export const DatabaseTransferDialogComponent = ({
       targetNotifierIds: notifierOption === 'select' ? selectedNotifierIds : [],
     };
 
-    setIsTransferring(true);
-
     try {
-      await backupConfigApi.transferDatabase(database.id, transfer);
+      await transferDatabaseMutation.mutateAsync([database.id, transfer]);
       if (!isActive()) return;
       notify({
         kind: 'success',
@@ -275,31 +254,17 @@ export const DatabaseTransferDialogComponent = ({
       setError(e);
     }
 
-    setIsTransferring(false);
+    transferDatabaseMutation.reset();
   };
-
-  const startContextLoad = useEffectEvent(() => {
-    loadWorkspaces();
-    loadStorageSharing();
-    loadNotifierUsageCounts();
-  });
 
   useEffect(() => {
     contextRevision.Invalidate();
-    startContextLoad();
-
     return () => {
       contextRevision.Invalidate();
-      targetRevision.Invalidate();
     };
-  }, [database.id, contextRevision, targetRevision]);
-
-  const startTargetWorkspaceLoad = useEffectEvent((workspaceId: string) => {
-    loadTargetWorkspaceData(workspaceId);
-  });
+  }, [database.id, contextRevision]);
 
   useEffect(() => {
-    targetRevision.Invalidate();
     acknowledgedStorages.current = [];
     acknowledgedNotifiers.current = [];
     setIsShowCreateStorage(false);
@@ -309,11 +274,10 @@ export const DatabaseTransferDialogComponent = ({
     setTargetNotifiers([]);
 
     if (selectedWorkspaceId) {
-      startTargetWorkspaceLoad(selectedWorkspaceId);
       setSelectedStorageId(undefined);
       setSelectedNotifierIds([]);
     }
-  }, [selectedWorkspaceId, targetRevision]);
+  }, [selectedWorkspaceId]);
 
   const canTransferWithStorage = !isStorageSharedWithOtherDatabases;
   const notifiersBlockingTransfer = notifierUsageInfo.filter((info) => !info.canTransfer);
@@ -355,9 +319,9 @@ export const DatabaseTransferDialogComponent = ({
             disabled={isTransferring}
             onClick={() => {
               setError(undefined);
-              void loadWorkspaces();
-              void loadStorageSharing();
-              void loadNotifierUsageCounts();
+              void workspacesQuery.refetch();
+              if (hasCurrentStorage) void sharingQuery.refetch();
+              if (hasCurrentNotifiers) void usageQuery.refetch();
               if (selectedWorkspaceId) void loadTargetWorkspaceData(selectedWorkspaceId);
             }}
           >

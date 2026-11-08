@@ -670,7 +670,7 @@ describe('PhysicalBackupsComponent', () => {
     );
 
     it.each(HELD_ACTIONS.filter(({ action }) => action !== 'start'))(
-      'requests no list and keeps the rows when an accepted $action answers after the session changed',
+      'requests no list and clears protected rows when an accepted $action answers after the session changed',
       async (heldAction) => {
         activateSession({ token: 'first-token', userId: 'first-user' });
         const { heldAnswer, listCall, actionCall } = await renderAcceptedAction(heldAction);
@@ -684,7 +684,7 @@ describe('PhysicalBackupsComponent', () => {
         );
 
         expect(listCall.mock.calls).toHaveLength(listCallsWhenChanged);
-        expect(screen.getAllByText('111 MB').length).toBeGreaterThan(0);
+        expect(screen.queryAllByText('111 MB')).toHaveLength(0);
       },
     );
   });

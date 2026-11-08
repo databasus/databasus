@@ -38,6 +38,7 @@ import { useCurrentTime } from '@/pages/databases/ui/wal-stream-monitoring/useCu
 import { usePrefersReducedMotion } from '@/pages/databases/ui/wal-stream-monitoring/usePrefersReducedMotion';
 import { VerdictBannerComponent } from '@/pages/databases/ui/wal-stream-monitoring/VerdictBannerComponent';
 import { WalStreamKeepingUpChartComponent } from '@/pages/databases/ui/wal-stream-monitoring/WalStreamChartsComponent';
+import { useSessionMutation } from '@/shared/api';
 import { translateApiError } from '@/shared/i18n';
 import { useFeedback } from '@/shared/lib/feedback';
 import { LoadFailure } from '@/shared/ui';
@@ -105,6 +106,11 @@ const MonitoringSkeletonComponent = () => (
 );
 
 export const WalStreamMonitoringComponent = ({ database, isCanManageDBs, onOpenConfig }: Props) => {
+  const triggerPhysicalBackupMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof physicalBackupsApi.triggerPhysicalBackup>) =>
+      physicalBackupsApi.triggerPhysicalBackup(...parameters),
+  });
+
   const { t, i18n } = useTranslation();
   const notify = useFeedback();
 
@@ -173,6 +179,10 @@ export const WalStreamMonitoringComponent = ({ database, isCanManageDBs, onOpenC
     return () => liveController.stop();
   }, [database.id]);
 
+  const requestFullBackup = useEffectEvent(() =>
+    triggerPhysicalBackupMutation.mutateAsync([database.id, 'FULL']),
+  );
+
   const reportFullBackupRequested = useEffectEvent(() => {
     notify({
       kind: 'success',
@@ -186,7 +196,7 @@ export const WalStreamMonitoringComponent = ({ database, isCanManageDBs, onOpenC
   useEffect(() => {
     const requestController = new FullBackupRequestController(
       {
-        requestFullBackup: () => physicalBackupsApi.triggerPhysicalBackup(database.id, 'FULL'),
+        requestFullBackup: () => requestFullBackup(),
         refreshNow: () => controllerRef.current?.retry(),
         reportRequested: () => reportFullBackupRequested(),
         reportError: (e) => reportFullBackupError(e),

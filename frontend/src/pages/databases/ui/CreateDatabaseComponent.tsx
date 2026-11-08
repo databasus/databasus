@@ -25,6 +25,7 @@ import { ChoosePostgresBackupTypeComponent } from '@/pages/databases/ui/ChoosePo
 import { CreateDatabaseNotifiersStep } from '@/pages/databases/ui/CreateDatabaseNotifiersStep';
 import { CreateLimitedUserComponent } from '@/pages/databases/ui/CreateLimitedUserComponent';
 import { EditDatabaseBaseInfoComponent } from '@/pages/databases/ui/EditDatabaseBaseInfoComponent';
+import { useSessionMutation } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { translateApiError } from '@/shared/i18n';
 import { useFeedback } from '@/shared/lib/feedback';
@@ -58,6 +59,23 @@ export const CreateDatabaseComponent = ({
   onConnectionErrorChange,
   onWideStepChange,
 }: Props) => {
+  const firstBackupMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof startFirstBackup>) =>
+      startFirstBackup(...parameters),
+  });
+  const createDatabaseMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof databaseApi.createDatabase>) =>
+      databaseApi.createDatabase(...parameters),
+  });
+  const updateDatabaseMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof databaseApi.updateDatabase>) =>
+      databaseApi.updateDatabase(...parameters),
+  });
+  const updateBackupConfigMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof backupConfigApi.updateBackupConfig>) =>
+      backupConfigApi.updateBackupConfig(...parameters),
+  });
+
   const { t } = useTranslation();
   const notify = useFeedback();
   const [isCompleting, setIsCompleting] = useState(false);
@@ -121,7 +139,7 @@ export const CreateDatabaseComponent = ({
 
     try {
       if (!database) {
-        database = await databaseApi.createDatabase(completedDraft);
+        database = await createDatabaseMutation.mutateAsync([completedDraft]);
         if (!isCurrent()) return;
 
         setCreatedDatabase(database);
@@ -134,23 +152,26 @@ export const CreateDatabaseComponent = ({
           shownIds: completedDraft.notifierIds,
         })
       ) {
-        database = await databaseApi.updateDatabase(database.id, {
-          ...database,
-          notifierIds: completedDraft.notifierIds,
-        });
+        database = await updateDatabaseMutation.mutateAsync([
+          database.id,
+          {
+            ...database,
+            notifierIds: completedDraft.notifierIds,
+          },
+        ]);
         if (!isCurrent()) return;
 
         setCreatedDatabase(database);
       }
 
       if (!isBackupConfigAcknowledged) {
-        await backupConfigApi.updateBackupConfig(database.id, backupConfigToSave);
+        await updateBackupConfigMutation.mutateAsync([database.id, backupConfigToSave]);
         if (!isCurrent()) return;
 
         setIsBackupConfigAcknowledged(true);
       }
 
-      await startFirstBackup(database.id, backupConfigToSave);
+      await firstBackupMutation.mutateAsync([database.id, backupConfigToSave]);
       if (!isCurrent()) return;
 
       onClose();

@@ -77,6 +77,36 @@ const submitAddition = (email: string) => {
 };
 
 describe('WorkspaceMembersComponent', () => {
+  it.each(['ADDED', 'INVITED'] as const)(
+    'retains the acknowledged member when the refresh fails after outcome %s',
+    async (outcome) => {
+      const member = {
+        ...buildMember('newcomer@example.com', 'WORKSPACE_MEMBER'),
+        isInvited: outcome === 'INVITED',
+      };
+      mockMemberList([buildMember(owner.email, 'WORKSPACE_OWNER')]);
+      const additions = mockAddition(201, { ...member, outcome });
+      renderScreen(
+        <WorkspaceMembersComponent selectedWorkspace={selectedWorkspace} user={owner} />,
+      );
+      await openAddMemberDialog();
+
+      mockServer.use(mockApi.get('/workspace-members', 500, buildProblem('internal', 500)));
+
+      submitAddition(member.email);
+      await screen.findByText('An internal server error occurred. Please try again later.');
+
+      const table = within(screen.getByRole('table', { hidden: true }));
+      expect(table.getByText(member.email)).toBeTruthy();
+      expect(table.getByText(owner.email)).toBeTruthy();
+
+      if (outcome === 'INVITED') expect(table.getByText('Invited')).toBeTruthy();
+
+      expect(additions).toHaveLength(1);
+      expect(screen.queryByRole('dialog', { name: 'Add member' })).toBeNull();
+    },
+  );
+
   it.each([320, 1280])(
     'submits member removal once when its response is pending at width %i',
     async (width) => {

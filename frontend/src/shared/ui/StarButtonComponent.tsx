@@ -1,34 +1,25 @@
 import { Star } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { useSessionQuery } from '@/shared/api';
 import { useLocale } from '@/shared/i18n';
 
 export function StarButtonComponent() {
   const { t } = useTranslation();
   const { formatNumber } = useLocale();
-  const [starCount, setStarCount] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const query = useSessionQuery({
+    queryKey: ['github-stars'],
+    queryFn: async (signal) => {
+      const response = await fetch('https://api.github.com/repos/databasus/databasus', { signal });
+      if (!response.ok) return null;
 
-  const fetchStarCount = async () => {
-    try {
-      const response = await fetch('https://api.github.com/repos/databasus/databasus');
-      if (response.ok) {
-        const data = (await response.json()) as {
-          stargazers_count: number;
-        };
-        setStarCount(data.stargazers_count);
-      }
-    } catch (error) {
-      console.error('Failed to fetch GitHub star count:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      const repository = (await response.json()) as { stargazers_count: number };
 
-  useEffect(() => {
-    fetchStarCount();
-  }, []);
+      return repository.stargazers_count;
+    },
+  });
+  const starCount = query.data ?? null;
+  const isLoading = query.isPending;
 
   return (
     <a

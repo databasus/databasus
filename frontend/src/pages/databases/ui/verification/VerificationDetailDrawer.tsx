@@ -1,18 +1,17 @@
 import { Alert, Drawer, Skeleton } from '@mantine/core';
 import dayjs from 'dayjs';
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
-import { useEffect, useEffectEvent, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { verificationRunsApi } from '@/pages/databases/api/verificationRunsApi';
-import { type VerificationDetails } from '@/pages/databases/model/verification/VerificationDetails';
 import { VerificationStatus } from '@/pages/databases/model/verification/VerificationStatus';
 import { formatOptionalDuration } from '@/pages/databases/ui/verification/formatOptionalDuration';
 import { VerificationFailureDetails } from '@/pages/databases/ui/verification/VerificationFailureDetails';
 import { VerificationStatusLabel } from '@/pages/databases/ui/verification/VerificationStatusLabel';
 import { VerificationTriggerTag } from '@/pages/databases/ui/verification/VerificationTriggerTag';
+import { useSessionQuery } from '@/shared/api';
 import { type LocaleContextValue, useLocale } from '@/shared/i18n';
-import { RequestRevision } from '@/shared/lib/RequestRevision';
 import { getUserTimeFormat } from '@/shared/time';
 import { closeOverlayOnEscape } from '@/shared/ui';
 import { OverlayFocusReturn } from '@/shared/ui';
@@ -70,40 +69,14 @@ const renderSection = (title: string, children: React.ReactNode) => (
 export const VerificationDetailDrawer = ({ verificationId, isOpen, onClose, onClosed }: Props) => {
   const { t } = useTranslation();
   const { formatNumber, formatRelativeTime } = useLocale();
-  const [verification, setVerification] = useState<VerificationDetails | undefined>();
-  const [requestedVerificationId, setRequestedVerificationId] = useState<string>();
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<unknown>();
-  const [loadRevision] = useState(() => new RequestRevision());
-
-  const loadVerification = async () => {
-    const revision = loadRevision.Invalidate();
-
-    setIsLoading(true);
-    setRequestedVerificationId(verificationId);
-    setLoadError(undefined);
-
-    try {
-      const loadedVerification = await verificationRunsApi.getById(verificationId);
-      if (loadRevision.IsCurrent(revision)) setVerification(loadedVerification);
-    } catch (error) {
-      if (loadRevision.IsCurrent(revision)) setLoadError(error);
-    }
-
-    if (loadRevision.IsCurrent(revision)) setIsLoading(false);
-  };
-
-  const startVerificationLoad = useEffectEvent(() => {
-    void loadVerification();
+  const query = useSessionQuery({
+    queryKey: ['verification-details', verificationId],
+    queryFn: (signal) => verificationRunsApi.getById(verificationId, { signal }),
   });
-
-  useEffect(() => {
-    startVerificationLoad();
-
-    return () => {
-      loadRevision.Invalidate();
-    };
-  }, [verificationId, loadRevision]);
+  const verification = query.data;
+  const isLoading = query.isPending;
+  const loadError = query.error ?? undefined;
+  const loadVerification = () => query.refetch();
 
   const sortedStats = useMemo(
     () => [...(verification?.tableStats ?? [])].sort((a, b) => b.rowCount - a.rowCount),
@@ -134,7 +107,7 @@ export const VerificationDetailDrawer = ({ verificationId, isOpen, onClose, onCl
       closeButtonProps={{ 'aria-label': t('common.actions.close') }}
     >
       {isOpen && <OverlayFocusReturn />}
-      {isLoading || requestedVerificationId !== verificationId ? (
+      {isLoading ? (
         <div aria-busy="true">
           {Array.from({ length: 10 }, (_, index) => (
             <Skeleton key={index} height={16} className="mb-4" />

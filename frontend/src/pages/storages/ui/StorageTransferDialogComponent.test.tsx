@@ -4,11 +4,13 @@ import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { BackupConfig } from '@/entities/backup-configs';
+import { backupConfigApi } from '@/entities/backup-configs';
 import type { Storage } from '@/entities/storages';
 import type { Workspace } from '@/entities/workspaces';
 import { StorageTransferDialogComponent } from '@/pages/storages/ui/StorageTransferDialogComponent';
 import { API_BASE_PATH, type ApiComponents } from '@/shared/api';
 import { finishApiResponse } from '@/shared/lib/test/finishApiResponse';
+import { finishCancelledApiResponse } from '@/shared/lib/test/finishCancelledApiResponse';
 import { inspectApiRequest } from '@/shared/lib/test/inspectApiRequest';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
@@ -223,28 +225,15 @@ const chooseTarget = async () => {
 };
 
 describe('Storage transfer lifecycle', () => {
-  it('keeps current targets when a discarded Strict Mode usage read fails last', async () => {
-    const obsoleteRead = createPendingApiResponse();
-    let usageRequests = 0;
-    mockServer.use(
-      http.get(`*${API_BASE_PATH}${usagePath}`, () =>
-        ++usageRequests === 1 ? obsoleteRead.response : HttpResponse.json({ items: [] }),
-      ),
-      mockApi.get('/workspaces', 200, { items: [sourceWorkspace, targetWorkspace] }),
-    );
-
+  it('loads current targets when Strict Mode cancels its first setup', async () => {
+    const usageRead = vi.spyOn(backupConfigApi, 'listStorageBackupConfigs');
+    availableTargets();
     renderScreen(<TransferDialog onClose={() => {}} onTransferred={() => {}} />, {
       isStrictMode: true,
     });
     await screen.findByRole('combobox', { name: 'Target workspace' });
-    await finishApiResponse(mockServer, `/api/v1${usagePath}`, () =>
-      obsoleteRead.respond(
-        HttpResponse.json(buildProblem('permission_denied', 403), { status: 403 }),
-      ),
-    );
-
-    expect(usageRequests).toBe(2);
-    expect(screen.getByRole('combobox', { name: 'Target workspace' })).toBeTruthy();
+    expect(usageRead.mock.calls.length).toBeGreaterThanOrEqual(2);
+    expect(usageRead.mock.calls[0][2]?.signal?.aborted).toBe(true);
     expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
     expect(screen.queryByRole('alert')).toBeNull();
   });
@@ -350,7 +339,7 @@ describe('Storage transfer lifecycle', () => {
       const view = renderScreen(<TransferDialog onClose={onClose} onTransferred={onTransferred} />);
       await waitFor(() => expect(mockServer.getRequests()).toHaveLength(1));
       await view.user.click(screen.getByRole('button', { name: 'Close' }));
-      await finishApiResponse(mockServer, `/api/v1${usagePath}`, () =>
+      await finishCancelledApiResponse(mockServer, `/api/v1${usagePath}`, () =>
         usageRead.respond(
           status === 200
             ? HttpResponse.json({ items: [] })

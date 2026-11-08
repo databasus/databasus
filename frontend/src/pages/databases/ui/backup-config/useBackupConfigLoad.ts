@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { type BackupConfig, backupConfigApi } from '@/entities/backup-configs';
-import { useSession, useSessionGuard } from '@/shared/auth';
-import { useRequestRevision } from '@/shared/hooks';
+import { useSessionQuery } from '@/shared/api';
+import { useSessionGuard } from '@/shared/auth';
 
 interface ConfigScope {
   databaseId: string;
@@ -10,62 +10,26 @@ interface ConfigScope {
 }
 
 export const useBackupConfigLoad = ({ databaseId, workspaceId }: ConfigScope) => {
-  const [backupConfig, setBackupConfig] = useState<BackupConfig | undefined>();
-  const [isBackupConfigLoading, setIsBackupConfigLoading] = useState(false);
-  const [backupConfigError, setBackupConfigError] = useState<unknown>();
-  const [loadAttempt, setLoadAttempt] = useState(0);
-
-  const reloadBackupConfig = () => setLoadAttempt((attempt) => attempt + 1);
+  const client = useQueryClient();
+  const isCurrent = useSessionGuard();
+  const query = useSessionQuery({
+    queryKey: ['backup-config', workspaceId, databaseId],
+    queryFn: (signal) => backupConfigApi.getBackupConfig(databaseId, { signal }),
+  });
 
   const acknowledgeBackupConfig = (config: BackupConfig) => {
-    if (!isCurrentSession()) return;
+    if (!isCurrent()) return;
 
-    loadRevision.Invalidate();
-    setBackupConfig(config);
-    setBackupConfigError(undefined);
-    setIsBackupConfigLoading(false);
+    void client.cancelQueries({ queryKey: query.queryKey, exact: true });
+    client.setQueryData(query.queryKey, config);
   };
 
-  const loadRevision = useRequestRevision();
-  const session = useSession();
-  const isCurrentSession = useSessionGuard();
-
-  useEffect(() => {
-    const revision = loadRevision.Invalidate();
-    let isActive = true;
-    const isCurrentLoad = () => isActive && isCurrentSession() && loadRevision.IsCurrent(revision);
-
-    setIsBackupConfigLoading(true);
-    setBackupConfig(undefined);
-    setBackupConfigError(undefined);
-
-    if (!isCurrentSession()) {
-      setIsBackupConfigLoading(false);
-      return;
-    }
-
-    backupConfigApi
-      .getBackupConfig(databaseId)
-      .then((loadedBackupConfig) => {
-        if (isCurrentLoad()) setBackupConfig(loadedBackupConfig);
-      })
-      .catch((error: unknown) => {
-        if (isCurrentLoad()) setBackupConfigError(error);
-      })
-      .finally(() => {
-        if (isCurrentLoad()) setIsBackupConfigLoading(false);
-      });
-
-    return () => {
-      isActive = false;
-    };
-  }, [databaseId, workspaceId, loadAttempt, session, isCurrentSession, loadRevision]);
-
   return {
-    backupConfig,
-    isBackupConfigLoading,
-    backupConfigError,
-    reloadBackupConfig,
+    backupConfig: query.data,
+    backupConfigRevision: query.dataRevision,
+    isBackupConfigLoading: query.isPending,
+    backupConfigError: query.error ?? undefined,
+    reloadBackupConfig: () => void query.refetch(),
     acknowledgeBackupConfig,
   };
 };

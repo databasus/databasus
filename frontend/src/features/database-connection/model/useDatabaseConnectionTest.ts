@@ -1,10 +1,11 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffectEvent, useLayoutEffect, useRef, useState } from 'react';
 
 import {
   type DatabaseSettingsTarget,
   type DatabaseTestResult,
   databaseApi,
 } from '@/entities/databases';
+import { useSessionMutation } from '@/shared/api';
 import { getSessionSnapshot, isCurrentSession, subscribeSession } from '@/shared/auth';
 import { RequestRevision } from '@/shared/lib/RequestRevision';
 
@@ -18,14 +19,20 @@ interface Options<Change> {
 }
 
 export function useDatabaseConnectionTest<Change>(options: Options<Change>) {
-  const [isTesting, setIsTesting] = useState(false);
+  const testDatabaseSettingsMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof databaseApi.testDatabaseSettings>) =>
+      databaseApi.testDatabaseSettings(...parameters),
+  });
+  const { reset: resetRequest } = testDatabaseSettingsMutation;
+
+  const isTesting = testDatabaseSettingsMutation.isPending;
   const [isTested, setIsTested] = useState(false);
   const [failure, setFailure] = useState<DatabaseConnectionTestFailure>();
 
   const withdrawTest = () => {
     revisions.current.test.Invalidate();
     isTestActive.current = false;
-    setIsTesting(false);
+    resetRequest();
     setIsTested(false);
     setFailure(undefined);
   };
@@ -55,11 +62,11 @@ export function useDatabaseConnectionTest<Change>(options: Options<Change>) {
       revisions.current.test.IsCurrent(testRevision);
 
     isTestActive.current = true;
-    setIsTesting(true);
+
     setFailure(undefined);
 
     try {
-      const testResult = await databaseApi.testDatabaseSettings(target);
+      const testResult = await testDatabaseSettingsMutation.mutateAsync([target]);
       if (!isCurrent()) return;
 
       if (testResult.isConnected) {
@@ -73,7 +80,7 @@ export function useDatabaseConnectionTest<Change>(options: Options<Change>) {
     } finally {
       if (revisions.current.test.IsCurrent(testRevision)) {
         isTestActive.current = false;
-        setIsTesting(false);
+        resetRequest();
       }
     }
   };
@@ -90,11 +97,13 @@ export function useDatabaseConnectionTest<Change>(options: Options<Change>) {
     callbacks.current = options;
   });
 
+  const withdrawSessionTest = useEffectEvent(withdrawTest);
+
   useLayoutEffect(() => {
     const { context: contextRevision, test: testRevision } = revisions.current;
     const cancelForNewSession = () => {
       contextRevision.Invalidate();
-      withdrawTest();
+      withdrawSessionTest();
     };
     const unsubscribe = subscribeSession(cancelForNewSession);
 

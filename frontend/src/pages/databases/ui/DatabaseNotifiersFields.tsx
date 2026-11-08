@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { type Notifier, notifierApi } from '@/entities/notifiers';
 import { EditNotifierComponent } from '@/features/edit-notifier';
 import { useSessionGuard } from '@/shared/auth';
-import { useRequestRevision } from '@/shared/hooks';
+import { useResourceCollection } from '@/shared/hooks';
 import { ResourcePicker } from '@/shared/ui';
 import { Dialog } from '@/shared/ui';
 import { LoadFailure } from '@/shared/ui';
@@ -30,9 +30,23 @@ export const DatabaseNotifiersFields = ({
 }: Props) => {
   const { t } = useTranslation();
 
-  const [error, setError] = useState<unknown>();
-  const [notifiers, setNotifiers] = useState<Notifier[]>([]);
-  const [isNotifiersLoading, setIsNotifiersLoading] = useState(false);
+  const collection = useResourceCollection<Notifier>({
+    queryKey: ['notifiers', workspaceId],
+    read: async (signal) => {
+      const listed = await notifierApi.listAllNotifiers(workspaceId, { signal });
+      const acknowledged = acknowledgedNotifiers.current;
+
+      return [
+        ...listed.filter((notifier) => !acknowledged.some((item) => item.id === notifier.id)),
+        ...acknowledged,
+      ];
+    },
+    onError: () => {},
+  });
+  const notifiers = collection.items;
+  const error = collection.loadError;
+  const isNotifiersLoading = collection.isLoading;
+  const loadNotifiers = collection.reload;
   const [isShowCreateNotifier, setShowCreateNotifier] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -49,55 +63,19 @@ export const DatabaseNotifiersFields = ({
       ...acknowledgedNotifiers.current.filter((item) => item.id !== notifier.id),
       notifier,
     ];
-    setNotifiers((current) => [...current.filter((item) => item.id !== notifier.id), notifier]);
+    collection.accept(notifier);
     void loadNotifiers(true);
   };
 
-  const loadNotifiers = async (isSilent = false) => {
-    const revision = listRevision.Invalidate();
-    const isActive = () => isCurrent() && listRevision.IsCurrent(revision);
-    setError(undefined);
-
-    if (!isSilent) setIsNotifiersLoading(true);
-
-    try {
-      const listedNotifiers = await notifierApi.listAllNotifiers(workspaceId);
-      if (!isActive()) return;
-
-      setNotifiers([
-        ...listedNotifiers.filter(
-          (notifier) => !acknowledgedNotifiers.current.some((item) => item.id === notifier.id),
-        ),
-        ...acknowledgedNotifiers.current,
-      ]);
-    } catch (e) {
-      if (!isActive()) return;
-
-      setError(e);
-    }
-
-    if (isActive()) setIsNotifiersLoading(false);
-  };
-
   const isCurrent = useSessionGuard();
-  const listRevision = useRequestRevision();
   const acknowledgedNotifiers = useRef<Notifier[]>([]);
   const notifierSelectRef = useRef<HTMLButtonElement | HTMLInputElement>(null);
-
-  const startNotifiersLoad = useEffectEvent(() => {
-    void loadNotifiers();
-  });
 
   useEffect(() => {
     acknowledgedNotifiers.current = [];
     setShowCreateNotifier(false);
     setIsDropdownOpen(false);
-    startNotifiersLoad();
-
-    return () => {
-      listRevision.Invalidate();
-    };
-  }, [workspaceId, listRevision]);
+  }, [workspaceId]);
 
   const returnFocusToSelect = useEffectEvent(() => {
     notifierSelectRef.current?.focus();

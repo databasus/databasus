@@ -1,6 +1,7 @@
 import createClient, { type Middleware } from 'openapi-fetch';
 
 import { API_ERROR_CODES, ApiError } from '@/shared/api/ApiError';
+import type { ReadOptions } from '@/shared/api/ReadOptions';
 import type { paths } from '@/shared/api/schema.gen';
 import { getSessionSnapshot, invalidateSession, type SessionSnapshot } from '@/shared/auth';
 import { getApplicationServer } from '@/shared/config';
@@ -50,8 +51,11 @@ const apiMiddleware: Middleware = {
 
 // A client is created per call. getApplicationServer reads window.location, and a client created at
 // import time would keep the fetch it found then, before a test's network mock replaces it.
-export const getApiClient = () => {
-  const client = createClient<paths>({ baseUrl: `${getApplicationServer()}${API_BASE_PATH}` });
+export const getApiClient = (options: ReadOptions = {}) => {
+  const client = createClient<paths>({
+    baseUrl: `${getApplicationServer()}${API_BASE_PATH}`,
+    signal: options.signal,
+  });
   client.use(apiMiddleware);
 
   return client;

@@ -3,6 +3,7 @@ import { Routes } from 'react-router';
 
 import { useVersionCheck } from '@/app/model/useVersionCheck';
 import { ApplicationScreen } from '@/app/ui/ApplicationScreen';
+import { RequestConfiguration } from '@/app/ui/RequestConfiguration';
 import { AuthPage } from '@/pages/auth';
 import { AuthCallbackPage } from '@/pages/auth-callback';
 import { StorageOAuthPage } from '@/pages/storage-oauth';
@@ -46,7 +47,9 @@ function App() {
       <LocaleProvider>
         <ThemeConfiguration isTestEnvironment={import.meta.env.MODE === 'test'}>
           <FeedbackProvider>
-            <AppContent />
+            <RequestConfiguration>
+              <AppContent />
+            </RequestConfiguration>
           </FeedbackProvider>
         </ThemeConfiguration>
       </LocaleProvider>

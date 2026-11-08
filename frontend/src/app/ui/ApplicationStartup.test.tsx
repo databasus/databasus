@@ -5,8 +5,9 @@ import { afterAll, describe, expect, it, vi } from 'vitest';
 
 import { ApplicationScreen } from '@/app/ui/ApplicationScreen';
 import { renderApp } from '@/app/ui/renderApp';
-import { API_BASE_PATH } from '@/shared/api';
+import { userApi } from '@/entities/users';
 import { activateSession, invalidateSession } from '@/shared/auth';
+import { finishCancelledApiResponse } from '@/shared/lib/test/finishCancelledApiResponse';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
 
@@ -72,6 +73,45 @@ describe('Application startup', () => {
     },
   );
 
+  it.each(['retry', 'unmount'] as const)(
+    'cancels remaining startup reads after an essential failure and %s',
+    async (action) => {
+      seed();
+      const obsoleteWorkspaces = mockApi.pending('get', '/workspaces');
+      server.use(
+        mockApi.get('/users/{userId}', 500, buildProblem('internal', 500)),
+        obsoleteWorkspaces.handler,
+      );
+      const view = renderScreen(<ApplicationScreen />);
+      const retry = await screen.findByRole('button', { name: 'Retry' });
+      await waitFor(() =>
+        expect(
+          server
+            .getRequests()
+            .some((request) => new URL(request.url).pathname === '/api/v1/workspaces'),
+        ).toBe(true),
+      );
+
+      if (action === 'retry') {
+        server.use(
+          mockApi.get('/users/{userId}', 200, user),
+          mockApi.get('/workspaces', 200, { items: [] }),
+        );
+        fireEvent.click(retry);
+        await screen.findByRole('button', { name: 'Profile' });
+      } else view.unmount();
+
+      const requestsBeforeRelease = server.getRequests().length;
+      await finishCancelledApiResponse(server, '/api/v1/workspaces', () =>
+        obsoleteWorkspaces.respond(HttpResponse.json({ items: [], nextCursor: 'obsolete-cursor' })),
+      );
+
+      expect(server.getRequests()).toHaveLength(requestsBeforeRelease);
+
+      if (action === 'retry') expect(screen.getByRole('button', { name: 'Profile' })).toBeTruthy();
+    },
+  );
+
   it('opens permitted account screens when supplementary disk data fails', async () => {
     seed();
     server.use(mockApi.get('/system/disk-usages', 500, buildProblem('internal', 500)));
@@ -123,13 +163,7 @@ describe('Application startup', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
     await screen.findByDisplayValue('another@example.com');
 
-    const responded = new Promise<void>((resolve) =>
-      server.events.on('response:mocked', () => resolve()),
-    );
-    await act(async () => {
-      oldUser.release();
-      await responded;
-    });
+    await finishCancelledApiResponse(server, '/api/v1/users/owner-id', () => oldUser.release());
 
     expect(screen.queryByDisplayValue('owner@example.com')).toBeNull();
     expect(localStorage.getItem('selected_workspace_id')).toBeNull();
@@ -226,13 +260,7 @@ it('retains retried startup when an older essential request finishes later', asy
   fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
   await screen.findByRole('button', { name: 'Users' });
 
-  const processed = new Promise<void>((resolve) =>
-    server.events.on('response:mocked', () => resolve()),
-  );
-  await act(async () => {
-    oldAccount.release();
-    await processed;
-  });
+  await finishCancelledApiResponse(server, '/api/v1/users/owner-id', () => oldAccount.release());
 
   expect(screen.getByRole('button', { name: 'Users' })).toBeTruthy();
 });
@@ -355,17 +383,7 @@ it.each([false, true])(
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 
     if (hasConfirmed) {
-      const processed = new Promise<void>((resolve) => {
-        const onResponse = () => {
-          server.events.removeListener('response:mocked', onResponse);
-          resolve();
-        };
-        server.events.on('response:mocked', onResponse);
-      });
-      await act(async () => {
-        deletionCheck.release();
-        await processed;
-      });
+      await finishCancelledApiResponse(server, '/api/v1/databases', () => deletionCheck.release());
     }
 
     expect(server.getRequests().filter((request) => request.method === 'DELETE')).toHaveLength(0);
@@ -479,36 +497,14 @@ describe('New-version link', () => {
   });
 });
 
-it('accepts only the active startup after root StrictMode repeats setup', async () => {
+it('accepts current startup when Strict Mode cancels the first setup', async () => {
   seed();
-  const firstSetup = mockApi.pending('get', '/users/{userId}');
-  let profileReads = 0;
-  server.use(
-    http.get(`*${API_BASE_PATH}/users/:userId`, () =>
-      ++profileReads === 1
-        ? firstSetup.response
-        : HttpResponse.json({ ...user, name: 'Replay owner' }),
-    ),
-  );
-
+  const profileReads = vi.spyOn(userApi, 'getCurrentUser');
+  server.use(mockApi.get('/users/{userId}', 200, { ...user, name: 'Replay owner' }));
   const view = renderScreen(<ApplicationScreen />, { isStrictMode: true });
   await view.user.click(await screen.findByRole('button', { name: 'Profile' }));
   await screen.findByDisplayValue('Replay owner');
-
-  const processed = new Promise<void>((resolve) => {
-    const onResponse = () => {
-      server.events.removeListener('response:mocked', onResponse);
-      resolve();
-    };
-    server.events.on('response:mocked', onResponse);
-  });
-
-  await act(async () => {
-    firstSetup.respond(HttpResponse.json({ ...user, name: 'Obsolete owner', role: 'ADMIN' }));
-    await processed;
-  });
-
-  expect(screen.queryByDisplayValue('Obsolete owner')).toBeNull();
-  expect(screen.getByDisplayValue('Replay owner')).toBeTruthy();
+  expect(profileReads.mock.calls.length).toBeGreaterThanOrEqual(2);
+  expect(profileReads.mock.calls[0][0]?.signal?.aborted).toBe(true);
   expect(screen.queryByRole('button', { name: 'Users' })).toBeNull();
 });

@@ -23,6 +23,8 @@ import { activateSession, invalidateSession } from '@/shared/auth';
 import { useLocale } from '@/shared/i18n';
 import { DICTIONARIES } from '@/shared/i18n/dictionaries';
 import { waitForCondition } from '@/shared/lib/test/conditionWait';
+import { finishApiResponse } from '@/shared/lib/test/finishApiResponse';
+import { finishCancelledApiResponse } from '@/shared/lib/test/finishCancelledApiResponse';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
 import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
@@ -1776,6 +1778,46 @@ describe('DatabaseConfigComponent backup configuration', () => {
   );
 
   it.each(BACKUP_EDITORS)(
+    'cancels unfinished history after configuration loading fails in the $kind editor',
+    async ({ database, config, kind }) => {
+      renderSavedDatabaseConfig(database, [
+        mockApi.get('/backup-configs/{databaseId}', 200, config),
+        ...declareBackupConfigRequests(),
+      ]);
+      await screen.findByText('Backups enabled');
+
+      const historyPath = kind === 'logical' ? '/logical-backups' : '/physical-backups';
+      const failedConfig = mockApi.pending('get', '/backup-configs/{databaseId}');
+      const obsoleteHistory = mockApi.pending('get', historyPath);
+      mockServer.use(failedConfig.handler, obsoleteHistory.handler);
+      const sectionTitle = screen.getByText(BACKUP_SECTION_TITLE).parentElement!;
+
+      fireEvent.click(sectionTitle.querySelector(EDIT_ICON_SELECTOR)!.parentElement!);
+      const getHistoryRequests = () =>
+        mockServer
+          .getRequests()
+          .filter((request) => new URL(request.url).pathname === `/api/v1${historyPath}`);
+      await waitFor(() => expect(getHistoryRequests()).toHaveLength(1));
+
+      await finishApiResponse(mockServer, `/api/v1/backup-configs/${database.id}`, () =>
+        failedConfig.respond(HttpResponse.json(buildProblem('internal', 500), { status: 500 })),
+      );
+      await screen.findByRole('button', { name: 'Retry' });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+      expect(getHistoryRequests()[0].signal.aborted).toBe(true);
+
+      await finishCancelledApiResponse(mockServer, `/api/v1${historyPath}`, () =>
+        obsoleteHistory.respond(HttpResponse.json({ items: [], totalUsageMb: 0 })),
+      );
+
+      expect(getHistoryRequests()).toHaveLength(1);
+      expect(screen.getByText('Backups enabled')).toBeTruthy();
+    },
+  );
+
+  it.each(BACKUP_EDITORS)(
     'shows an accepted storage switch in the $kind configuration view after a save',
     async ({ database, config }) => {
       const acknowledged = { ...config, cleanup: { pendingFileCount: 2, failedFileCount: 0 } };
@@ -1799,6 +1841,39 @@ describe('DatabaseConfigComponent backup configuration', () => {
       fireEvent.click(saveButton);
 
       expect(await screen.findByText('Deleting old files. Files remaining: 2.')).toBeTruthy();
+    },
+  );
+
+  it.each(BACKUP_EDITORS)(
+    'accepts cleanup counts equal to the original counts after polling and saving the $kind config',
+    async ({ database, config }) => {
+      const originalConfig = { ...config, cleanup: { pendingFileCount: 4, failedFileCount: 0 } };
+      let configReads = 0;
+      const onDatabaseChanged = vi.fn();
+      renderSavedDatabaseConfig(
+        database,
+        [
+          http.get(`*${API_BASE_PATH}/backup-configs/:databaseId`, () =>
+            HttpResponse.json(
+              ++configReads === 1
+                ? originalConfig
+                : { ...config, cleanup: { pendingFileCount: 2, failedFileCount: 0 } },
+            ),
+          ),
+          mockApi.put('/backup-configs/{databaseId}', 200, originalConfig),
+          ...declareBackupConfigRequests(),
+        ],
+        onDatabaseChanged,
+      );
+      await screen.findByText('Deleting old files. Files remaining: 4.');
+      await screen.findByText('Deleting old files. Files remaining: 2.');
+      const saveButton = await openBackupSection();
+      toggleSuccessTrigger();
+
+      fireEvent.click(saveButton);
+      await waitFor(() => expect(onDatabaseChanged).toHaveBeenCalledOnce());
+
+      expect(screen.getByText('Deleting old files. Files remaining: 4.')).toBeTruthy();
     },
   );
 

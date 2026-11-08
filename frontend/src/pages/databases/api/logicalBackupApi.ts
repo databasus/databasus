@@ -2,6 +2,7 @@ import type { DownloadToken } from '@/pages/databases/model/DownloadToken';
 import type { LogicalBackup } from '@/pages/databases/model/LogicalBackup';
 import type { LogicalBackupListFilter } from '@/pages/databases/model/LogicalBackupListFilter';
 import type { LogicalBackupPage } from '@/pages/databases/model/LogicalBackupPage';
+import type { ReadOptions } from '@/shared/api';
 import { API_BASE_PATH, getApiClient, requireData, requireSuccess } from '@/shared/api';
 import { getApplicationServer } from '@/shared/config';
 
@@ -13,14 +14,12 @@ interface LogicalBackupPageRequest {
 }
 
 export const logicalBackupApi = {
-  async listLogicalBackups({
-    databaseId,
-    filter,
-    limit,
-    after,
-  }: LogicalBackupPageRequest): Promise<LogicalBackupPage> {
+  async listLogicalBackups(
+    { databaseId, filter, limit, after }: LogicalBackupPageRequest,
+    options: ReadOptions = {},
+  ): Promise<LogicalBackupPage> {
     return requireData(
-      await getApiClient().GET('/logical-backups', {
+      await getApiClient(options).GET('/logical-backups', {
         params: {
           query: {
             databaseId,

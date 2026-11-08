@@ -22,6 +22,8 @@ import {
 } from '@/entities/workspaces';
 import { API_BASE_PATH } from '@/shared/api';
 import { activateSession } from '@/shared/auth';
+import { finishApiResponse } from '@/shared/lib/test/finishApiResponse';
+import { finishCancelledApiResponse } from '@/shared/lib/test/finishCancelledApiResponse';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
 import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
@@ -282,6 +284,34 @@ describe('Application database workspace access', () => {
     expectNoDatabaseContent();
   });
 
+  it('restores the sole workspace when startup retry returns unchanged data after access recovers', async () => {
+    openApplication([firstWorkspace]);
+    await screen.findByRole('button', { name: 'Add database' });
+    denyFirstWorkspace();
+    server.use(mockApi.get('/workspaces', 500, buildProblem('internal', 500)));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Notifiers' }));
+    const retry = await screen.findByRole('button', { name: 'Retry' });
+
+    expect(getWorkspaceReadCount()).toBe(2);
+    expect(screen.queryByRole('combobox', { name: 'Selected workspace' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Add notifier' })).toBeNull();
+
+    const restoredWorkspaces = mockApi.pending('get', '/workspaces');
+    server.use(restoredWorkspaces.handler, mockApi.get('/notifiers', 200, { items: [] }));
+
+    fireEvent.click(retry);
+    await waitFor(() => expect(getWorkspaceReadCount()).toBe(3));
+    await finishApiResponse(server, '/api/v1/workspaces', () =>
+      restoredWorkspaces.respond(HttpResponse.json({ items: [firstWorkspace] })),
+    );
+
+    expect(getWorkspaceSelection().getByText(firstWorkspace.name)).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Add notifier' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+    expect(localStorage.getItem('selected_workspace_id')).toBe(firstWorkspace.id);
+  });
+
   it.each([403, 404] as const)(
     'ignores a late database refusal with HTTP %s after a workspace switch',
     async (status) => {
@@ -363,6 +393,9 @@ describe('Application database workspace access', () => {
       );
 
       fireEvent(document, new Event('visibilitychange'));
+      expect(databaseReads).toHaveBeenCalledTimes(1);
+      await selectWorkspace(secondWorkspace);
+      await selectWorkspace(firstWorkspace);
       await screen.findByRole('button', { name: /Current database/ });
 
       await releaseAndSettle(
@@ -718,22 +751,12 @@ describe('Application workspace navigation', () => {
 
       fireEvent.change(name, { target: { value: 'Current workspace draft' } });
 
-      const processed = new Promise<void>((resolve) => {
-        server.events.on('response:mocked', function onResponse({ request }) {
-          if (!new URL(request.url).pathname.endsWith('/workspaces')) return;
-
-          server.events.removeListener('response:mocked', onResponse);
-          resolve();
-        });
-      });
-
-      await act(async () => {
+      await finishCancelledApiResponse(server, '/api/v1/workspaces', () => {
         reconciliation.respond(
           hasFailed
             ? HttpResponse.json(buildProblem('internal', 500), { status: 500 })
             : HttpResponse.json({ items: [secondWorkspace] }),
         );
-        await processed;
       });
 
       expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
@@ -836,20 +859,12 @@ describe('Application workspace navigation', () => {
         }
       }
 
-      const processed = new Promise<void>((resolve) => {
-        server.events.on('response:mocked', function onResponse() {
-          server.events.removeListener('response:mocked', onResponse);
-          resolve();
-        });
-      });
-
-      await act(async () => {
+      await finishCancelledApiResponse(server, '/api/v1/workspaces', () => {
         reconciliation.respond(
           hasFailed
             ? HttpResponse.json(buildProblem('internal', 500), { status: 500 })
             : HttpResponse.json({ items: [secondWorkspace] }),
         );
-        await processed;
       });
 
       expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();

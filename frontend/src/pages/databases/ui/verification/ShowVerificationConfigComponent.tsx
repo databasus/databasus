@@ -1,6 +1,5 @@
 import { Loader } from '@mantine/core';
 import dayjs from 'dayjs';
-import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -11,10 +10,9 @@ import {
   getNextCronRun,
 } from '@/entities/schedules';
 import { verificationConfigApi } from '@/pages/databases/api/verificationConfigApi';
-import { type VerificationConfig } from '@/pages/databases/model/verification/VerificationConfig';
 import { VERIFICATION_NOTIFICATION_TYPE_LABEL_KEYS } from '@/pages/databases/model/verification/VerificationNotificationTypeLabelKeys';
 import { VerificationScheduleType } from '@/pages/databases/model/verification/VerificationScheduleType';
-import { useSessionGuard } from '@/shared/auth';
+import { useSessionQuery } from '@/shared/api';
 import { useLocale } from '@/shared/i18n';
 import { getUserClockFormat, getUserTimeFormat } from '@/shared/time';
 import { LoadFailure } from '@/shared/ui';
@@ -26,36 +24,16 @@ interface Props {
 export const ShowVerificationConfigComponent = ({ databaseId }: Props) => {
   const { t } = useTranslation();
   const { formatRelativeTime } = useLocale();
-  const isActive = useSessionGuard();
 
-  const [config, setConfig] = useState<VerificationConfig>();
-  const [loadError, setLoadError] = useState<unknown>();
-  const [loadAttempt, setLoadAttempt] = useState(0);
-
-  useEffect(() => {
-    let isCurrentLoad = true;
-
-    setConfig(undefined);
-    setLoadError(undefined);
-
-    verificationConfigApi
-      .getByDatabaseId(databaseId)
-      .then((loadedConfig) => {
-        if (isCurrentLoad && isActive()) setConfig(loadedConfig);
-      })
-      .catch((error: unknown) => {
-        if (isCurrentLoad && isActive()) setLoadError(error);
-      });
-
-    return () => {
-      isCurrentLoad = false;
-    };
-  }, [databaseId, loadAttempt, isActive]);
+  const query = useSessionQuery({
+    queryKey: ['verification-config', databaseId],
+    queryFn: (signal) => verificationConfigApi.getByDatabaseId(databaseId, { signal }),
+  });
+  const config = query.data;
+  const loadError = query.error ?? undefined;
 
   if (loadError !== undefined) {
-    return (
-      <LoadFailure error={loadError} onRetry={() => setLoadAttempt((attempt) => attempt + 1)} />
-    );
+    return <LoadFailure error={loadError} onRetry={() => void query.refetch()} />;
   }
 
   if (!config) {

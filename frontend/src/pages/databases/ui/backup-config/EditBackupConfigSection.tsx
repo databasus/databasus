@@ -9,6 +9,7 @@ import {
   backupConfigApi,
 } from '@/entities/backup-configs';
 import type { Database } from '@/entities/databases';
+import { readConcurrentRequests, useSessionMutation, useSessionQuery } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { translateApiError } from '@/shared/i18n';
 import { ConfirmationComponent, LoadFailure } from '@/shared/ui';
@@ -41,28 +42,45 @@ export const EditBackupConfigSection = <TDraft extends BackupConfigSectionDraft>
   onCancel,
   onSaved,
 }: Props<TDraft>) => {
+  const updateBackupConfigMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof backupConfigApi.updateBackupConfig>) =>
+      backupConfigApi.updateBackupConfig(...parameters),
+  });
+
   const { t } = useTranslation();
   const isActive = useSessionGuard();
 
   const [acknowledgedDraft, setAcknowledgedDraft] = useState<TDraft>();
   const [draft, setDraft] = useState<TDraft>();
-  const [hasHistory, setHasHistory] = useState<boolean | undefined>();
-  const [loadError, setLoadError] = useState<unknown>();
-  const [loadAttempt, setLoadAttempt] = useState(0);
+  const query = useSessionQuery({
+    queryKey: ['backup-config-editor', database.workspaceId, database.id, isPhysical],
+    queryFn: (signal) =>
+      readConcurrentRequests(signal, async (signal) => {
+        const [config, hasHistory] = await Promise.all([
+          backupConfigApi.getBackupConfig(database.id, { signal }),
+          backupConfigApi
+            .hasBackupHistory(database.id, isPhysical, { signal })
+            .catch(() => undefined),
+        ]);
 
-  const [isSaving, setIsSaving] = useState(false);
+        return { config, hasHistory };
+      }),
+  });
+  const hasHistory = query.data?.hasHistory;
+  const loadError = query.error ?? undefined;
+
+  const isSaving = updateBackupConfigMutation.isPending;
   const [saveError, setSaveError] = useState<unknown>();
   const [isShowStorageSwitchWarning, setIsShowStorageSwitchWarning] = useState(false);
 
   const saveDraft = async (savedDraft: TDraft) => {
-    setIsSaving(true);
     setSaveError(undefined);
 
     try {
-      const savedConfig = await backupConfigApi.updateBackupConfig(
+      const savedConfig = await updateBackupConfigMutation.mutateAsync([
         database.id,
         toInput(savedDraft),
-      );
+      ]);
       if (!isActive()) return;
 
       onSaved(savedConfig);
@@ -70,7 +88,7 @@ export const EditBackupConfigSection = <TDraft extends BackupConfigSectionDraft>
       if (!isActive()) return;
 
       setSaveError(error);
-      setIsSaving(false);
+      updateBackupConfigMutation.reset();
     }
   };
 
@@ -86,44 +104,17 @@ export const EditBackupConfigSection = <TDraft extends BackupConfigSectionDraft>
     void saveDraft(savedDraft);
   };
 
-  const loadHasHistory = useEffectEvent(() =>
-    backupConfigApi.hasBackupHistory(database.id, isPhysical),
-  );
   const buildLoadedDraft = useEffectEvent((loadedConfig: BackupConfig) => toDraft(loadedConfig));
-
   useEffect(() => {
-    let isCurrentLoad = true;
-
-    setLoadError(undefined);
-    setAcknowledgedDraft(undefined);
-    setDraft(undefined);
-
-    Promise.all([
-      backupConfigApi.getBackupConfig(database.id),
-      loadHasHistory().catch(() => undefined),
-    ])
-      .then(([loadedConfig, loadedHasHistory]) => {
-        if (!isCurrentLoad) return;
-
-        const loadedDraft = buildLoadedDraft(loadedConfig);
-
-        setAcknowledgedDraft(loadedDraft);
-        setDraft(loadedDraft);
-        setHasHistory(loadedHasHistory);
-      })
-      .catch((error: unknown) => {
-        if (isCurrentLoad) setLoadError(error);
-      });
-
-    return () => {
-      isCurrentLoad = false;
-    };
-  }, [database.id, loadAttempt]);
+    const loadedDraft = query.data ? buildLoadedDraft(query.data.config) : undefined;
+    setAcknowledgedDraft(loadedDraft);
+    setDraft(loadedDraft);
+  }, [query.data]);
 
   if (loadError !== undefined) {
     return (
       <div>
-        <LoadFailure error={loadError} onRetry={() => setLoadAttempt((attempt) => attempt + 1)} />
+        <LoadFailure error={loadError} onRetry={() => void query.refetch()} />
 
         <div className="mt-5 flex">
           <Button variant="outline" color="danger" onClick={onCancel}>

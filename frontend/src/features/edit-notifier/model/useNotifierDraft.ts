@@ -13,6 +13,7 @@ import {
   type NotifierDraft,
   isNotifierDraftUnchanged,
 } from '@/features/edit-notifier/model/NotifierDraft';
+import { useSessionMutation } from '@/shared/api';
 import { getSessionSnapshot, isCurrentSession, subscribeSession } from '@/shared/auth';
 import { RequestRevision } from '@/shared/lib/RequestRevision';
 
@@ -42,10 +43,24 @@ export const useNotifierDraft = ({
   onChanged,
   onTestSucceeded,
 }: Options) => {
+  const testNotifierSettingsMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof notifierApi.testNotifierSettings>) =>
+      notifierApi.testNotifierSettings(...parameters),
+  });
+  const { reset: resetRequest } = testNotifierSettingsMutation;
+  const updateNotifierMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof notifierApi.updateNotifier>) =>
+      notifierApi.updateNotifier(...parameters),
+  });
+  const createNotifierMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof notifierApi.createNotifier>) =>
+      notifierApi.createNotifier(...parameters),
+  });
+
   const [draft, setDraft] = useState(() => createDraft(editingNotifier));
   const [baseline, setBaseline] = useState(draft);
   const [savedNotifierId, setSavedNotifierId] = useState(editingNotifier?.id);
-  const [isTesting, setIsTesting] = useState(false);
+  const isTesting = testNotifierSettingsMutation.isPending;
   const [isSaving, setIsSaving] = useState(false);
   const [testedSettingsRevision, setTestedSettingsRevision] = useState<number>();
   const [error, setError] = useState<NotifierError>();
@@ -81,7 +96,7 @@ export const useNotifierDraft = ({
     revisions.current.settings.Invalidate();
     revisions.current.test.Invalidate();
     activeTest.current = undefined;
-    setIsTesting(false);
+    resetRequest();
     setTestedSettingsRevision(undefined);
     setError(undefined);
 
@@ -111,15 +126,15 @@ export const useNotifierDraft = ({
 
     const request = Symbol();
     activeTest.current = request;
-    setIsTesting(true);
+
     setError(undefined);
 
     try {
-      const response = await notifierApi.testNotifierSettings(
+      const response = await testNotifierSettingsMutation.mutateAsync([
         workspaceId,
         latestDraft.current.settings,
         savedIdRef.current,
-      );
+      ]);
       if (
         !isCurrentSession(authSession) ||
         !session.IsCurrent(sessionRevision) ||
@@ -149,7 +164,7 @@ export const useNotifierDraft = ({
     } finally {
       if (activeTest.current === request) {
         activeTest.current = undefined;
-        setIsTesting(false);
+        resetRequest();
       }
     }
   };
@@ -181,16 +196,16 @@ export const useNotifierDraft = ({
 
     try {
       const savedNotifier = savedIdRef.current
-        ? await notifierApi.updateNotifier(
+        ? await updateNotifierMutation.mutateAsync([
             savedIdRef.current,
             submittedDraft.name,
             submittedDraft.settings,
-          )
-        : await notifierApi.createNotifier(
+          ])
+        : await createNotifierMutation.mutateAsync([
             workspaceId,
             submittedDraft.name,
             submittedDraft.settings,
-          );
+          ]);
       if (!isCurrentSession(authSession) || !session.IsCurrent(sessionRevision)) return;
 
       savedIdRef.current = savedNotifier.id;
@@ -266,8 +281,8 @@ export const useNotifierDraft = ({
     setTestedSettingsRevision(undefined);
     setError(undefined);
     setIsSaving(false);
-    setIsTesting(false);
-  }, [workspaceId, editingNotifier]);
+    resetRequest();
+  }, [workspaceId, editingNotifier, resetRequest]);
 
   useLayoutEffect(() => {
     const { session: sessionRevision, test: testRevision } = revisions.current;
@@ -277,7 +292,7 @@ export const useNotifierDraft = ({
       activeSave.current = undefined;
       activeTest.current = undefined;
       setIsSaving(false);
-      setIsTesting(false);
+      resetRequest();
       setTestedSettingsRevision(undefined);
       setError(undefined);
     };
@@ -289,7 +304,7 @@ export const useNotifierDraft = ({
       activeSave.current = undefined;
       activeTest.current = undefined;
     };
-  }, []);
+  }, [resetRequest]);
 
   return {
     ...draft,

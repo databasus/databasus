@@ -20,16 +20,17 @@ export const StorageTransferDialogComponent = ({ storage, onClose, onTransferred
   return (
     <ResourceTransferDialog
       contextKey={`${storage.workspaceId}/${storage.id}`}
-      loadAvailability={async (isActive) => {
+      loadAvailability={async (signal) => {
         const storageBackupConfigs = await backupConfigApi.listStorageBackupConfigs(
           storage.id,
           STORAGE_USE_CHECK_LIMIT,
+          { signal },
         );
-        if (!isActive()) return;
+        signal.throwIfAborted();
 
         if (storageBackupConfigs.length > 0) return { isBlocked: true };
 
-        const workspaces = await workspaceApi.listAllWorkspaces();
+        const workspaces = await workspaceApi.listAllWorkspaces({ signal });
 
         return {
           isBlocked: false,

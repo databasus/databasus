@@ -1,10 +1,8 @@
 import { Loader } from '@mantine/core';
-import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { healthcheckConfigApi } from '@/entities/healthcheck';
-import type { HealthcheckConfig } from '@/entities/healthcheck';
-import { useSessionGuard } from '@/shared/auth';
+import { useSessionQuery } from '@/shared/api';
 import { LoadFailure } from '@/shared/ui';
 
 interface Props {
@@ -13,38 +11,16 @@ interface Props {
 
 export const ShowHealthcheckConfigComponent = ({ databaseId }: Props) => {
   const { t } = useTranslation();
-  const isActive = useSessionGuard();
 
-  const [healthcheckConfig, setHealthcheckConfig] = useState<HealthcheckConfig | undefined>(
-    undefined,
-  );
-  const [loadError, setLoadError] = useState<unknown>();
-  const [loadAttempt, setLoadAttempt] = useState(0);
-
-  useEffect(() => {
-    let isCurrentLoad = true;
-
-    setHealthcheckConfig(undefined);
-    setLoadError(undefined);
-
-    healthcheckConfigApi
-      .getHealthcheckConfig(databaseId)
-      .then((config) => {
-        if (isCurrentLoad && isActive()) setHealthcheckConfig(config);
-      })
-      .catch((error: unknown) => {
-        if (isCurrentLoad && isActive()) setLoadError(error);
-      });
-
-    return () => {
-      isCurrentLoad = false;
-    };
-  }, [databaseId, loadAttempt, isActive]);
+  const query = useSessionQuery({
+    queryKey: ['healthcheck-config', databaseId],
+    queryFn: (signal) => healthcheckConfigApi.getHealthcheckConfig(databaseId, { signal }),
+  });
+  const healthcheckConfig = query.data;
+  const loadError = query.error ?? undefined;
 
   if (loadError !== undefined) {
-    return (
-      <LoadFailure error={loadError} onRetry={() => setLoadAttempt((attempt) => attempt + 1)} />
-    );
+    return <LoadFailure error={loadError} onRetry={() => void query.refetch()} />;
   }
 
   if (!healthcheckConfig) {

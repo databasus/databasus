@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import type { LogicalBackupListFilter } from '@/pages/databases/model/LogicalBackupListFilter';
 import { LogicalBackupStatus } from '@/pages/databases/model/LogicalBackupStatus';
 import { LOGICAL_BACKUP_STATUS_LABEL_KEYS } from '@/pages/databases/model/LogicalBackupStatusLabelKeys';
+import { useBackupDatePopover } from '@/pages/databases/ui/useBackupDatePopover';
 
 interface Props {
   filter: LogicalBackupListFilter;
@@ -24,12 +25,14 @@ export const LogicalBackupsFiltersPanelComponent = ({ filter, onFilterChange }: 
   const { t } = useTranslation();
   const statusFieldId = useId();
   const beforeFieldId = useId();
+  const datePopover = useBackupDatePopover();
 
   const handleStatusChange = (statuses: LogicalBackupStatus[]) => {
     onFilterChange({ ...filter, statuses: statuses.length > 0 ? statuses : undefined });
   };
 
   const handleCreatedBeforeChange = (date: string | null) => {
+    datePopover.closeAndReturnFocus();
     onFilterChange({
       ...filter,
       createdBefore: date ? dayjs(date).toISOString() : undefined,
@@ -60,14 +63,17 @@ export const LogicalBackupsFiltersPanelComponent = ({ filter, onFilterChange }: 
         />
       </div>
 
-      <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center">
+      <div
+        className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center"
+        onKeyDownCapture={datePopover.onKeyDownCapture}
+      >
         <label className="min-w-[90px] pr-2 text-sm text-muted" htmlFor={beforeFieldId}>
           {t('backups.filters.before')}
         </label>
         <DateInput
+          {...datePopover.inputProps}
           popoverProps={{
-            withRoles: true,
-            returnFocus: true,
+            ...datePopover.popoverProps,
             attributes: { dropdown: { 'aria-label': t('backups.filters.before') } },
           }}
           id={beforeFieldId}

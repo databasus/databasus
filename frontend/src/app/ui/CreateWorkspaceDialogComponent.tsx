@@ -4,6 +4,7 @@ import { Trans, useTranslation } from 'react-i18next';
 
 import { type User, UserRole, type InstanceSettings } from '@/entities/users';
 import { type Workspace, workspaceApi } from '@/entities/workspaces';
+import { useSessionMutation } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { translateApiError } from '@/shared/i18n';
 import { useFeedback } from '@/shared/lib/feedback';
@@ -26,8 +27,13 @@ export const CreateWorkspaceDialogComponent = ({
   onWorkspaceCreated,
   workspacesCount,
 }: Props) => {
+  const createWorkspaceMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof workspaceApi.createWorkspace>) =>
+      workspaceApi.createWorkspace(...parameters),
+  });
+
   const { t, i18n } = useTranslation();
-  const [isCreating, setIsCreating] = useState(false);
+  const isCreating = createWorkspaceMutation.isPending;
   const [workspaceName, setWorkspaceName] = useState(
     workspacesCount === 0 ? t('workspaces.create.defaultName') : '',
   );
@@ -39,10 +45,8 @@ export const CreateWorkspaceDialogComponent = ({
       return;
     }
 
-    setIsCreating(true);
-
     try {
-      const newWorkspace = await workspaceApi.createWorkspace(workspaceName.trim());
+      const newWorkspace = await createWorkspaceMutation.mutateAsync([workspaceName.trim()]);
 
       if (!isCurrent()) return;
 
@@ -52,7 +56,7 @@ export const CreateWorkspaceDialogComponent = ({
     } catch (error) {
       if (isCurrent()) notify({ kind: 'error', title: translateApiError(error, i18n.t) });
     } finally {
-      if (isCurrent()) setIsCreating(false);
+      if (isCurrent()) createWorkspaceMutation.reset();
     }
   };
   const notify = useFeedback();

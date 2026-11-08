@@ -10,6 +10,7 @@ import {
 } from '@/entities/databases';
 import { DatabaseConnectionForm } from '@/features/database-connection';
 import { CreateLimitedUserComponent } from '@/pages/databases/ui/CreateLimitedUserComponent';
+import { useSessionMutation } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { translateApiError } from '@/shared/i18n';
 import { useFeedback } from '@/shared/lib/feedback';
@@ -33,6 +34,15 @@ const createEditDraft = (database: Database): DatabaseEditDraft => ({
 });
 
 export const EditDatabaseConnectionSection = ({ database, onDatabaseSaved, onClose }: Props) => {
+  const checkLimitedUserMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof databaseApi.checkLimitedUser>) =>
+      databaseApi.checkLimitedUser(...parameters),
+  });
+  const updateDatabaseMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof databaseApi.updateDatabase>) =>
+      databaseApi.updateDatabase(...parameters),
+  });
+
   const { t } = useTranslation();
   const notify = useFeedback();
   const isActive = useSessionGuard();
@@ -41,9 +51,9 @@ export const EditDatabaseConnectionSection = ({ database, onDatabaseSaved, onClo
 
   const offerLimitedUserOrClose = async (savedDraft: DatabaseEditDraft) => {
     try {
-      const limitedUserCheck = await databaseApi.checkLimitedUser(
+      const limitedUserCheck = await checkLimitedUserMutation.mutateAsync([
         toDatabaseSettingsTarget(savedDraft),
-      );
+      ]);
       if (!isActive()) return;
 
       if (limitedUserCheck.isAdvisable) {
@@ -64,10 +74,10 @@ export const EditDatabaseConnectionSection = ({ database, onDatabaseSaved, onClo
   // draft is rebased on it only together with opening the dialog, which unmounts the form, so a
   // replaced draft can never inherit a test approval.
   const saveDraft = async (submittedDraft: DatabaseEditDraft) => {
-    const savedDatabase = await databaseApi.updateDatabase(
+    const savedDatabase = await updateDatabaseMutation.mutateAsync([
       submittedDraft.databaseId,
       submittedDraft,
-    );
+    ]);
     if (!isActive()) return;
 
     onDatabaseSaved(savedDatabase);

@@ -23,8 +23,8 @@ export const NotifiersComponent = ({ workspace, isCanManageNotifiers, onUnavaila
   const [isShowAddNotifier, setIsShowAddNotifier] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const collection = useResourceCollection({
-    scopeKey: workspace.id,
-    read: () => notifierApi.listAllNotifiers(workspace.id),
+    queryKey: ['notifiers', workspace.id],
+    read: (signal) => notifierApi.listAllNotifiers(workspace.id, { signal }),
     onError: (error) => {
       if (error instanceof ApiError && [403, 404].includes(error.status ?? 0)) {
         collection.clear();
@@ -69,13 +69,14 @@ export const NotifiersComponent = ({ workspace, isCanManageNotifiers, onUnavaila
   });
 
   useEffect(() => {
-    startNotifiersLoad();
+    if (!collection.isSessionActive) return;
+
     const interval = setInterval(() => startNotifiersLoad(true), 5 * 60000);
 
     return () => {
       clearInterval(interval);
     };
-  }, [workspace.id]);
+  }, [workspace.id, collection.isSessionActive]);
 
   // Read when the form closes, because the button can appear after the form opened.
   const returnFocusToButton = useEffectEvent(() => {

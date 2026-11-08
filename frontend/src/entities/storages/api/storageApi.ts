@@ -1,6 +1,7 @@
 import type { Storage } from '@/entities/storages/model/Storage';
 import type { StorageSettings } from '@/entities/storages/model/StorageSettings';
 import type { StorageTestResult } from '@/entities/storages/model/StorageTestResult';
+import type { ReadOptions } from '@/shared/api';
 import { getApiClient, requireData, requireSuccess } from '@/shared/api';
 import { collectCursorPages } from '@/shared/lib/collectCursorPages';
 
@@ -11,19 +12,21 @@ const STORAGE_PAGE_LIMIT = 100;
 export const storageApi = {
   // The storage screen and the backup config forms need every storage of the workspace, so this
   // follows the cursor to the last page.
-  async listAllStorages(workspaceId: string): Promise<Storage[]> {
-    return collectCursorPages(async (after: string | undefined) =>
-      requireData(
-        await getApiClient().GET('/storages', {
-          params: { query: { workspaceId, limit: STORAGE_PAGE_LIMIT, after } },
-        }),
-      ),
+  async listAllStorages(workspaceId: string, options: ReadOptions = {}): Promise<Storage[]> {
+    return collectCursorPages(
+      async (after: string | undefined) =>
+        requireData(
+          await getApiClient(options).GET('/storages', {
+            params: { query: { workspaceId, limit: STORAGE_PAGE_LIMIT, after } },
+          }),
+        ),
+      options,
     );
   },
 
-  async getStorage(storageId: string): Promise<Storage> {
+  async getStorage(storageId: string, options: ReadOptions = {}): Promise<Storage> {
     return requireData(
-      await getApiClient().GET('/storages/{storageId}', {
+      await getApiClient(options).GET('/storages/{storageId}', {
         params: { path: { storageId } },
       }),
     );

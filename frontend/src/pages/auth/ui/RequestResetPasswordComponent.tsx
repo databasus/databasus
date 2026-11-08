@@ -6,6 +6,7 @@ import { Trans, useTranslation } from 'react-i18next';
 import { userApi } from '@/entities/users';
 import { useCloudflareTurnstile } from '@/pages/auth/model/useCloudflareTurnstile';
 import { CloudflareTurnstileWidget } from '@/pages/auth/ui/CloudflareTurnstileWidget';
+import { useSessionMutation } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { translateApiError } from '@/shared/i18n';
 import { FormValidator } from '@/shared/lib/FormValidator';
@@ -19,6 +20,11 @@ export function RequestResetPasswordComponent({
   onSwitchToSignIn,
   onSwitchToResetPassword,
 }: RequestResetPasswordComponentProps): JSX.Element {
+  const sendResetPasswordCodeMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof userApi.sendResetPasswordCode>) =>
+      userApi.sendResetPasswordCode(...parameters),
+  });
+
   const [email, setEmail] = useState('');
   const [isLoading, setLoading] = useState(false);
   const [isEmailError, setEmailError] = useState(false);
@@ -48,10 +54,12 @@ export function RequestResetPasswordComponent({
       setLoading(true);
 
       try {
-        await userApi.sendResetPasswordCode({
-          email,
-          cloudflareTurnstileToken: token,
-        });
+        await sendResetPasswordCodeMutation.mutateAsync([
+          {
+            email,
+            cloudflareTurnstileToken: token,
+          },
+        ]);
         if (!isCurrent()) return;
         setIsCodeSent(true);
 

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { settingsApi } from '@/entities/users';
+import { useSessionMutation } from '@/shared/api';
 import { type ApiComponents } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { getWebsitePageUrl, translateApiError, useLocale } from '@/shared/i18n';
@@ -12,7 +13,12 @@ interface Props {
 }
 
 export function MailServer({ isEmailConfigured }: Props) {
-  const [isSendingTestEmail, setIsSendingTestEmail] = useState(false);
+  const sendTestEmailMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof settingsApi.sendTestEmail>) =>
+      settingsApi.sendTestEmail(...parameters),
+  });
+
+  const isSendingTestEmail = sendTestEmailMutation.isPending;
   const [testEmailError, setTestEmailError] = useState<unknown>(undefined);
   const [undeliveredTestEmail, setUndeliveredTestEmail] = useState<
     ApiComponents['schemas']['TestEmail'] | undefined
@@ -20,12 +26,12 @@ export function MailServer({ isEmailConfigured }: Props) {
 
   const sendTestEmail = async () => {
     if (isSendingTestEmail) return;
-    setIsSendingTestEmail(true);
+
     setTestEmailError(undefined);
     setUndeliveredTestEmail(undefined);
 
     try {
-      const testEmail = await settingsApi.sendTestEmail();
+      const testEmail = await sendTestEmailMutation.mutateAsync([]);
 
       if (!isCurrent()) return;
       if (testEmail.isDelivered) {
@@ -39,7 +45,7 @@ export function MailServer({ isEmailConfigured }: Props) {
     } catch (error: unknown) {
       if (isCurrent()) setTestEmailError(error);
     } finally {
-      if (isCurrent()) setIsSendingTestEmail(false);
+      if (isCurrent()) sendTestEmailMutation.reset();
     }
   };
   const isCurrent = useSessionGuard();

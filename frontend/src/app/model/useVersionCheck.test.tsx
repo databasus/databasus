@@ -1,8 +1,13 @@
 // @vitest-environment happy-dom
-import { act, waitFor } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
+import { HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { advanceFakeClock } from '@/shared/lib/test/advanceFakeClock';
+import { finishApiResponse } from '@/shared/lib/test/finishApiResponse';
+import { finishCancelledApiResponse } from '@/shared/lib/test/finishCancelledApiResponse';
 import { mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 let useVersionCheck: typeof import('@/app/model/useVersionCheck').useVersionCheck;
@@ -39,6 +44,90 @@ afterEach(() => {
 });
 
 describe('useVersionCheck', () => {
+  it('keeps the next scheduled tick when a version response finishes between ticks', async () => {
+    const { systemApi } = await import('@/entities/system');
+    const versionRead = vi.spyOn(systemApi, 'getVersion');
+    server.use(mockApi.get('/system/version', 200, { version: '1.0.0' }));
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+
+    renderScreen(<VersionLifecycle />);
+    await act(async () => {
+      await versionRead.mock.results[0].value;
+    });
+
+    const slowRead = mockApi.pending('get', '/system/version');
+    server.use(slowRead.handler);
+
+    await advanceFakeClock(300_000);
+
+    expect(versionRead).toHaveBeenCalledTimes(2);
+
+    await advanceFakeClock(100_000);
+    await releaseAndSettle(versionRead, () =>
+      slowRead.respond(HttpResponse.json({ version: '1.0.0' })),
+    );
+
+    server.use(mockApi.get('/system/version', 200, { version: '1.0.0' }));
+
+    await advanceFakeClock(200_000);
+
+    expect(versionRead).toHaveBeenCalledTimes(3);
+  });
+
+  it.each(['read', 'write'] as const)(
+    'keeps the interface usable without reloading when cooldown storage fails during %s',
+    async (operation) => {
+      const reload = vi.spyOn(window.location, 'reload').mockImplementation(() => {});
+      const version = mockApi.pending('get', '/system/version');
+      server.use(version.handler);
+      const onContinue = vi.fn();
+
+      const view = renderScreen(
+        <>
+          <VersionLifecycle />
+          <button onClick={onContinue}>Continue working</button>
+        </>,
+      );
+      await waitFor(() => expect(server.getRequests()).toHaveLength(1));
+
+      const getItem = localStorage.getItem.bind(localStorage);
+      const setItem = localStorage.setItem.bind(localStorage);
+      const cooldownStorage =
+        operation === 'read'
+          ? vi.spyOn(localStorage, 'getItem').mockImplementation((key) => {
+              if (key === 'lastVersionReload')
+                throw new DOMException('Storage is unavailable', 'SecurityError');
+
+              return getItem(key);
+            })
+          : vi.spyOn(localStorage, 'setItem').mockImplementation((key, value) => {
+              if (key === 'lastVersionReload')
+                throw new DOMException('Storage is full', 'QuotaExceededError');
+
+              setItem(key, value);
+            });
+
+      try {
+        await finishApiResponse(server, '/api/v1/system/version', () =>
+          version.respond(HttpResponse.json({ version: '2.0.0' })),
+        );
+
+        await view.user.click(screen.getByRole('button', { name: 'Continue working' }));
+
+        expect(onContinue).toHaveBeenCalledOnce();
+        expect(reload).not.toHaveBeenCalled();
+      } finally {
+        cooldownStorage.mockRestore();
+      }
+
+      server.use(mockApi.get('/system/version', 200, { version: '2.0.0' }));
+
+      await advanceCheck(300_000);
+
+      await waitFor(() => expect(reload).toHaveBeenCalledOnce());
+    },
+  );
+
   it.each(['1.0.0', ''])('keeps the interface when the returned version is %s', async (version) => {
     const reload = vi.spyOn(window.location, 'reload').mockImplementation(() => {});
     server.use(mockApi.get('/system/version', 200, { version }));
@@ -116,14 +205,7 @@ describe('useVersionCheck', () => {
       vi.mocked(globalThis.setInterval).mock.results.slice(-1)[0]?.value,
     );
 
-    const responded = new Promise<void>((resolve) =>
-      server.events.on('response:mocked', () => resolve()),
-    );
-
-    await act(async () => {
-      version.release();
-      await responded;
-    });
+    await finishCancelledApiResponse(server, '/api/v1/system/version', () => version.release());
 
     expect(reload).not.toHaveBeenCalled();
   });
@@ -133,7 +215,7 @@ describe('useVersionCheck', () => {
     server.use(mockApi.network('get', '/system/version'));
 
     const view = renderScreen(<VersionLifecycle />, { isStrictMode: true });
-    await waitFor(() => expect(server.getRequests()).toHaveLength(2));
+    await waitFor(() => expect(server.getRequests()).toHaveLength(1));
 
     server.use(mockApi.get('/system/version', 200, { version: '2.0.0' }));
     await advanceCheck(300_000);

@@ -1,4 +1,10 @@
 export { API_ERROR_CODES, ApiError } from '@/shared/api/ApiError';
 export { API_BASE_PATH, getApiClient } from '@/shared/api/apiClient';
+export { createQueryClient } from '@/shared/api/createQueryClient';
+export { useSessionQuery } from '@/shared/api/useSessionQuery';
+export { useFixedQueryPolling } from '@/shared/api/useFixedQueryPolling';
+export type { ReadOptions } from '@/shared/api/ReadOptions';
 export { requireData, requireSuccess } from '@/shared/api/requireData';
 export type { components as ApiComponents, paths as ApiPaths } from '@/shared/api/schema.gen';
+export { useSessionMutation } from '@/shared/api/useSessionMutation';
+export { readConcurrentRequests } from '@/shared/api/readConcurrentRequests';

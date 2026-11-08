@@ -9,7 +9,10 @@ import type { Storage } from '@/entities/storages';
 import type { Workspace } from '@/entities/workspaces';
 import { DatabaseTransferDialogComponent } from '@/pages/databases/ui/DatabaseTransferDialogComponent';
 import { API_BASE_PATH } from '@/shared/api';
+import { activateSession } from '@/shared/auth';
 import { DICTIONARIES } from '@/shared/i18n/dictionaries';
+import { finishApiResponse } from '@/shared/lib/test/finishApiResponse';
+import { finishCancelledApiResponse } from '@/shared/lib/test/finishCancelledApiResponse';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
 
@@ -135,6 +138,105 @@ const chooseTargetWorkspace = async () => {
 };
 
 describe('DatabaseTransferDialogComponent', () => {
+  it.each(['unmount', 'retry', 'session'] as const)(
+    'cancels unfinished target reads after a failure and %s',
+    async (action) => {
+      mockTransferOperations([buildBackupConfig(transferredDatabase.id)]);
+      const failedStorage = mockApi.pending('get', '/storages');
+      const obsoleteNotifiers = mockApi.pending('get', '/notifiers');
+      mockServer.use(failedStorage.handler, obsoleteNotifiers.handler);
+      const view = renderDialog();
+
+      await chooseTargetWorkspace();
+      const getNotifierRequests = () =>
+        mockServer
+          .getRequests()
+          .filter((request) => new URL(request.url).pathname === '/api/v1/notifiers');
+      await waitFor(() => expect(getNotifierRequests()).toHaveLength(1));
+
+      await finishApiResponse(mockServer, '/api/v1/storages', () =>
+        failedStorage.respond(HttpResponse.json(buildProblem('internal', 500), { status: 500 })),
+      );
+      await screen.findByRole('button', { name: 'Retry' });
+
+      if (action === 'unmount') view.unmount();
+      else if (action === 'retry') {
+        mockServer.use(
+          mockApi.get('/storages', 200, { items: [targetStorage] }),
+          mockApi.get('/notifiers', 200, { items: [] }),
+        );
+        fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+        await waitFor(() => expect(getNotifierRequests()).toHaveLength(2));
+      } else
+        act(() => activateSession({ token: 'replacement-session', userId: 'replacement-user' }));
+
+      expect(getNotifierRequests()[0].signal.aborted).toBe(true);
+
+      const requestsBeforeRelease = getNotifierRequests().length;
+      await finishCancelledApiResponse(mockServer, '/api/v1/notifiers', () =>
+        obsoleteNotifiers.respond(HttpResponse.json({ items: [], nextCursor: 'obsolete-page' })),
+      );
+
+      expect(getNotifierRequests()).toHaveLength(requestsBeforeRelease);
+    },
+  );
+
+  it('cancels unfinished notifier usage listings after a parallel usage read fails', async () => {
+    mockTransferOperations([]);
+    const database = {
+      ...transferredDatabase,
+      notifierIds: ['failed-notifier', 'pending-notifier'],
+    };
+    const failedDatabases = mockApi.pending('get', '/databases');
+    const obsoleteDatabases = mockApi.pending('get', '/databases');
+    mockServer.use(
+      mockApi.get('/notifiers', 200, {
+        items: database.notifierIds.map((id) => ({
+          id,
+          name: id,
+          lastSendError: null,
+          workspaceId: sourceWorkspace.id,
+          settings: { type: 'DISCORD' as const },
+        })),
+      }),
+      http.get(`*${API_BASE_PATH}/databases`, ({ request }) =>
+        new URL(request.url).searchParams.get('notifierId') === 'failed-notifier'
+          ? failedDatabases.response
+          : obsoleteDatabases.response,
+      ),
+    );
+    const view = renderScreen(
+      <DatabaseTransferDialogComponent
+        database={database}
+        onClose={() => {}}
+        onTransferred={() => {}}
+      />,
+    );
+    const getUsageRequests = () =>
+      mockServer
+        .getRequests()
+        .filter((request) => new URL(request.url).pathname === '/api/v1/databases');
+    await waitFor(() => expect(getUsageRequests()).toHaveLength(2));
+
+    await finishApiResponse(mockServer, '/api/v1/databases', () =>
+      failedDatabases.respond(HttpResponse.json(buildProblem('internal', 500), { status: 500 })),
+    );
+    await screen.findByRole('button', { name: 'Retry' });
+    view.unmount();
+
+    expect(
+      getUsageRequests().find(
+        (request) => new URL(request.url).searchParams.get('notifierId') === 'pending-notifier',
+      )!.signal.aborted,
+    ).toBe(true);
+
+    await finishCancelledApiResponse(mockServer, '/api/v1/databases', () =>
+      obsoleteDatabases.respond(HttpResponse.json({ items: [], nextCursor: 'obsolete-page' })),
+    );
+
+    expect(getUsageRequests()).toHaveLength(2);
+  });
+
   it('automatically selects completed storage when creation finishes inside transfer', async () => {
     const transferRequests = mockTransferOperations([buildBackupConfig(transferredDatabase.id)]);
     const database = { ...transferredDatabase, notifierIds: ['source-alerts'] };
@@ -592,20 +694,12 @@ describe('DatabaseTransferDialogComponent', () => {
 
       expect(editor.getByDisplayValue('Newer draft')).toBeTruthy();
 
-      const processed = new Promise<void>((resolve) => {
-        mockServer.events.on('response:mocked', function onResponse() {
-          mockServer.events.removeListener('response:mocked', onResponse);
-          resolve();
-        });
-      });
-
-      await act(async () => {
+      await finishCancelledApiResponse(mockServer, '/api/v1/storages', () => {
         initialList.respond(
           hasFailed
             ? HttpResponse.json(buildProblem('internal', 500), { status: 500 })
             : HttpResponse.json({ items: [targetStorage] }),
         );
-        await processed;
       });
 
       fireEvent.click(

@@ -18,6 +18,7 @@ import { DatabaseComponent } from '@/pages/databases/ui/DatabaseComponent';
 import { activateSession, invalidateSession } from '@/shared/auth';
 import { DICTIONARIES, useLocale } from '@/shared/i18n';
 import { waitForCondition } from '@/shared/lib/test/conditionWait';
+import { finishCancelledApiResponse } from '@/shared/lib/test/finishCancelledApiResponse';
 import { inspectApiRequest } from '@/shared/lib/test/inspectApiRequest';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
@@ -146,14 +147,8 @@ describe('DatabaseComponent', () => {
 
     expect(await screen.findByText('new-shop')).toBeTruthy();
 
-    const oldResponseProcessed = new Promise<void>((resolve) =>
-      server.events.on('response:mocked', ({ request }) => {
-        if (new URL(request.url).pathname.endsWith('/old-shop')) resolve();
-      }),
-    );
-    await act(async () => {
+    await finishCancelledApiResponse(server, '/api/v1/databases/old-shop', () => {
       oldDatabase.respond(HttpResponse.json(createDatabase('old-shop')));
-      await oldResponseProcessed;
     });
 
     expect(screen.getByText('new-shop')).toBeTruthy();
@@ -168,14 +163,9 @@ describe('DatabaseComponent', () => {
 
     const view = renderScreen(<DatabaseComponent {...databaseScreenProps} databaseId="shop-id" />);
     await waitForCondition(() => expect(server.getRequests()).toHaveLength(1));
-    const responseProcessed = new Promise<void>((resolve) =>
-      server.events.on('response:mocked', () => resolve()),
-    );
-
     view.unmount();
-    await act(async () => {
+    await finishCancelledApiResponse(server, '/api/v1/databases/shop-id', () => {
       pendingDatabase.respond(HttpResponse.json(buildProblem('internal', 500), { status: 500 }));
-      await responseProcessed;
     });
 
     expect(showAlert).not.toHaveBeenCalled();
@@ -468,14 +458,8 @@ describe('DatabaseComponent', () => {
     view.rerender(<DatabaseComponent {...databaseScreenProps} databaseId={shopDatabase.id} />);
     await view.user.click(await screen.findByText('Config'));
     expect(await screen.findByText('Latest shop')).toBeTruthy();
-    const earlierLoadProcessed = new Promise<void>((resolve) =>
-      server.events.on('response:mocked', ({ request }) => {
-        if (request.url.endsWith(`/databases/${shopDatabase.id}`)) resolve();
-      }),
-    );
-    await act(async () => {
+    await finishCancelledApiResponse(server, `/api/v1/databases/${shopDatabase.id}`, () => {
       earlierShopLoad.respond(HttpResponse.json({ ...shopDatabase, name: 'Earlier shop' }));
-      await earlierLoadProcessed;
     });
 
     expect(screen.getByText('Latest shop')).toBeTruthy();
@@ -685,8 +669,9 @@ describe('DatabaseComponent backup configuration answers', () => {
       expect(showAlert).not.toHaveBeenCalled();
       expect(screen.queryByText('You do not have permission to do this.')).toBeNull();
       expect(onDatabaseChanged).not.toHaveBeenCalled();
-      expect(screen.getByRole('button', { name: /Save$/ })).toBeTruthy();
-      expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy();
+      expect(screen.queryByRole('button', { name: /Save$/ })).toBeNull();
+      expect(screen.getByRole('status')).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull();
     });
   });
 

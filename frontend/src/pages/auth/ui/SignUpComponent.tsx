@@ -7,6 +7,7 @@ import { userApi } from '@/entities/users';
 import { OAuthSignInButtons } from '@/features/oauth-sign-in';
 import { useCloudflareTurnstile } from '@/pages/auth/model/useCloudflareTurnstile';
 import { CloudflareTurnstileWidget } from '@/pages/auth/ui/CloudflareTurnstileWidget';
+import { useSessionMutation } from '@/shared/api';
 import { useAuthOperation } from '@/shared/auth';
 import { CLOUDFLARE_TURNSTILE_SITE_KEY, GITHUB_CLIENT_ID, GOOGLE_CLIENT_ID } from '@/shared/config';
 import { translateApiError } from '@/shared/i18n';
@@ -21,6 +22,10 @@ export function SignUpComponent({
   onSwitchToSignIn,
   isClaimingInstance,
 }: SignUpComponentProps): JSX.Element {
+  const signUpMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof userApi.signUp>) => userApi.signUp(...parameters),
+  });
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -89,12 +94,14 @@ export function SignUpComponent({
       setLoading(true);
 
       try {
-        const session = await userApi.signUp({
-          email,
-          password,
-          name,
-          cloudflareTurnstileToken: token,
-        });
+        const session = await signUpMutation.mutateAsync([
+          {
+            email,
+            password,
+            name,
+            cloudflareTurnstileToken: token,
+          },
+        ]);
         authOperation.accept({ operation, session });
       } catch (e) {
         if (!authOperation.isCurrent(operation)) return;

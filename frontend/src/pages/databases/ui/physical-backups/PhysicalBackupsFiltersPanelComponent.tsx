@@ -9,6 +9,7 @@ import { PhysicalBackupStatus } from '@/pages/databases/model/physical-backups/P
 import { PHYSICAL_BACKUP_STATUS_LABEL_KEYS } from '@/pages/databases/model/physical-backups/PhysicalBackupStatusLabelKeys';
 import { PhysicalBackupType } from '@/pages/databases/model/physical-backups/PhysicalBackupType';
 import { PHYSICAL_BACKUP_TYPE_LABEL_KEYS } from '@/pages/databases/model/physical-backups/PhysicalBackupTypeLabelKeys';
+import { useBackupDatePopover } from '@/pages/databases/ui/useBackupDatePopover';
 
 interface Props {
   filters: PhysicalBackupsFilters;
@@ -20,6 +21,7 @@ export const PhysicalBackupsFiltersPanelComponent = ({ filters, onFiltersChange 
   const typeFieldId = useId();
   const statusFieldId = useId();
   const beforeFieldId = useId();
+  const datePopover = useBackupDatePopover();
 
   const handleTypeChange = (types: PhysicalBackupType[]) => {
     onFiltersChange({ ...filters, types: types.length > 0 ? types : undefined });
@@ -30,6 +32,7 @@ export const PhysicalBackupsFiltersPanelComponent = ({ filters, onFiltersChange 
   };
 
   const handleBeforeDateChange = (date: string | null) => {
+    datePopover.closeAndReturnFocus();
     onFiltersChange({
       ...filters,
       createdBefore: date ? dayjs(date).toISOString() : undefined,
@@ -82,14 +85,14 @@ export const PhysicalBackupsFiltersPanelComponent = ({ filters, onFiltersChange 
         />
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2" onKeyDownCapture={datePopover.onKeyDownCapture}>
         <label className="min-w-[90px] pr-2 text-sm text-muted" htmlFor={beforeFieldId}>
           {t('backups.filters.before')}
         </label>
         <DateInput
+          {...datePopover.inputProps}
           popoverProps={{
-            withRoles: true,
-            returnFocus: true,
+            ...datePopover.popoverProps,
             attributes: { dropdown: { 'aria-label': t('backups.filters.before') } },
           }}
           id={beforeFieldId}

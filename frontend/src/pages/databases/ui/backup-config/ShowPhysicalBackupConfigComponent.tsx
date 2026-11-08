@@ -1,6 +1,6 @@
 import { Tooltip } from '@mantine/core';
 import { Info } from 'lucide-react';
-import { type JSX, useEffect, useState } from 'react';
+import { type JSX } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -16,13 +16,14 @@ import {
   WEEKDAY_LABEL_KEYS,
   getLocalScheduleParts,
 } from '@/entities/schedules';
-import { type Storage, getStorageLogoFromType, storageApi } from '@/entities/storages';
+import { getStorageLogoFromType, storageApi } from '@/entities/storages';
 import { type FullBackupsRetention } from '@/pages/databases/model/physical-backups/FullBackupsRetention';
 import { FullBackupsRetentionPolicy } from '@/pages/databases/model/physical-backups/FullBackupsRetentionPolicy';
 import { PHYSICAL_NOTIFICATION_TRIGGER_LABEL_KEYS } from '@/pages/databases/model/physical-backups/PhysicalNotificationTriggerLabelKeys';
 import { PhysicalRetentionPolicy } from '@/pages/databases/model/physical-backups/PhysicalRetentionPolicy';
 import { PHYSICAL_RETENTION_POLICY_LABEL_KEYS } from '@/pages/databases/model/physical-backups/PhysicalRetentionPolicyLabelKeys';
 import { StorageCleanupNotice } from '@/pages/databases/ui/backup-config/StorageCleanupNotice';
+import { useSessionQuery } from '@/shared/api';
 import { type LocalizedText, translateLocalizedText } from '@/shared/i18n';
 import { getUserClockFormat } from '@/shared/time';
 import { LoadFailure } from '@/shared/ui';
@@ -65,9 +66,6 @@ export const ShowPhysicalBackupConfigComponent = ({
 }: Props): JSX.Element => {
   const { t } = useTranslation();
   const listSeparator = t('common.listSeparator');
-  const [storage, setStorage] = useState<Storage>();
-  const [storageLoadError, setStorageLoadError] = useState<unknown>();
-  const [storageLoadAttempt, setStorageLoadAttempt] = useState(0);
 
   const describeGfsRetention = (retention: FullBackupsRetention): string => {
     const texts = getGfsRetentionTexts(retention);
@@ -125,27 +123,13 @@ export const ShowPhysicalBackupConfigComponent = ({
 
   const { storageId } = backupConfig;
 
-  useEffect(() => {
-    let isActive = true;
-
-    setStorage(undefined);
-    setStorageLoadError(undefined);
-
-    if (!storageId) return;
-
-    storageApi
-      .getStorage(storageId)
-      .then((loadedStorage) => {
-        if (isActive) setStorage(loadedStorage);
-      })
-      .catch((error: unknown) => {
-        if (isActive) setStorageLoadError(error);
-      });
-
-    return () => {
-      isActive = false;
-    };
-  }, [storageId, storageLoadAttempt]);
+  const storageQuery = useSessionQuery({
+    queryKey: ['storage', storageId],
+    enabled: !!storageId,
+    queryFn: (signal) => storageApi.getStorage(storageId!, { signal }),
+  });
+  const storage = storageQuery.data;
+  const storageLoadError = storageQuery.error ?? undefined;
 
   const { settings } = backupConfig;
   const { retention } = settings;
@@ -182,7 +166,7 @@ export const ShowPhysicalBackupConfigComponent = ({
         <LoadFailure
           className="mb-1"
           error={storageLoadError}
-          onRetry={() => setStorageLoadAttempt((attempt) => attempt + 1)}
+          onRetry={() => void storageQuery.refetch()}
         />
       )}
 

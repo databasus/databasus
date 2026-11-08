@@ -1,8 +1,10 @@
 import { Alert, Button, Loader } from '@mantine/core';
 import { CircleAlert } from 'lucide-react';
-import { useEffect, useEffectEvent, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { useSessionMutation } from '@/shared/api';
+import { useSessionQuery } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { useLatestRef, useRequestRevision } from '@/shared/hooks';
 import { translateApiError } from '@/shared/i18n';
@@ -22,7 +24,7 @@ export type TransferAvailability =
     };
 interface Props {
   contextKey: string;
-  loadAvailability: (isActive: () => boolean) => Promise<TransferAvailability | undefined>;
+  loadAvailability: (signal: AbortSignal) => Promise<TransferAvailability | undefined>;
   transfer: (targetId: string) => Promise<void>;
   onClose: () => void;
   onTransferred: () => void;
@@ -39,12 +41,20 @@ interface Props {
 export const ResourceTransferDialog = (props: Props) => {
   const { contextKey, labels } = props;
   const { t } = useTranslation();
-  const [availability, setAvailability] = useState<TransferAvailability>();
-  const [loadError, setLoadError] = useState<unknown>();
+  const query = useSessionQuery({
+    queryKey: ['resource-transfer', contextKey],
+    queryFn: (signal) => props.loadAvailability(signal),
+  });
+  const availability = query.data;
+  const loadError = query.error ?? undefined;
   const [transferError, setTransferError] = useState<unknown>();
-  const [isLoading, setIsLoading] = useState(true);
+  const isLoading = query.isPending;
   const [selectedTargetId, setSelectedTargetId] = useState<string>();
-  const [isTransferring, setIsTransferring] = useState(false);
+  const transfer = useSessionMutation({
+    mutationFn: (targetId: string) => props.transfer(targetId),
+  });
+  const isTransferring = transfer.isPending;
+  const { reset: resetTransfer } = transfer;
   const [invokingControl] = useState(() =>
     document.activeElement instanceof HTMLElement ? document.activeElement : null,
   );
@@ -65,24 +75,9 @@ export const ResourceTransferDialog = (props: Props) => {
     };
   }, [invokingControl]);
 
-  const loadData = async () => {
-    if (!isCurrent()) return;
-
-    const requestRevision = revision.Invalidate();
-    const isActive = () => isCurrent() && revision.IsCurrent(requestRevision);
-
-    setLoadError(undefined);
+  const loadData = () => {
     setTransferError(undefined);
-    setIsLoading(true);
-
-    try {
-      const loadedAvailability = await latestProps.current.loadAvailability(isActive);
-      if (isActive()) setAvailability(loadedAvailability);
-    } catch (error) {
-      if (isActive()) setLoadError(error);
-    } finally {
-      if (isActive()) setIsLoading(false);
-    }
+    return query.refetch();
   };
 
   const transferResource = async () => {
@@ -92,38 +87,30 @@ export const ResourceTransferDialog = (props: Props) => {
     const isActive = () => isCurrent() && revision.IsCurrent(requestRevision);
 
     hasPendingTransfer.current = true;
-    setIsTransferring(true);
     setTransferError(undefined);
 
     try {
-      await latestProps.current.transfer(selectedTargetId);
+      await transfer.mutateAsync(selectedTargetId);
       if (isActive()) latestProps.current.onTransferred();
     } catch (error) {
       if (isActive()) setTransferError(error);
     } finally {
       if (isActive()) {
         hasPendingTransfer.current = false;
-        setIsTransferring(false);
+        resetTransfer();
       }
     }
   };
 
-  const startDataLoad = useEffectEvent(() => {
-    setAvailability(undefined);
-    setSelectedTargetId(undefined);
-    setIsTransferring(false);
-    hasPendingTransfer.current = false;
-
-    void loadData();
-  });
-
   useEffect(() => {
-    startDataLoad();
+    setSelectedTargetId(undefined);
+    resetTransfer();
+    hasPendingTransfer.current = false;
 
     return () => {
       revision.Invalidate();
     };
-  }, [contextKey, revision]);
+  }, [contextKey, revision, resetTransfer]);
 
   const close = () => {
     revision.Invalidate();

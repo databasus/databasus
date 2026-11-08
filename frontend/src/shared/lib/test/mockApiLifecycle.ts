@@ -94,6 +94,14 @@ export const setUpMockApi = () => {
         finish = resolve;
       });
       inFlight.set(requestId, { settled, finish, request });
+      request.signal.addEventListener(
+        'abort',
+        () => {
+          finish();
+          inFlight.delete(requestId);
+        },
+        { once: true },
+      );
     });
 
     const finishRequest = ({ requestId }: { requestId: string }) => {

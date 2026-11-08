@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { type Database, databaseApi } from '@/entities/databases';
 import { hasSameNotifierIds } from '@/pages/databases/model/hasSameNotifierIds';
 import { DatabaseNotifiersFields } from '@/pages/databases/ui/DatabaseNotifiersFields';
+import { useSessionMutation } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { translateApiError } from '@/shared/i18n';
 
@@ -16,20 +17,27 @@ interface Props {
 }
 
 export const EditDatabaseNotifiersSection = ({ database, onCancel, onSaved }: Props) => {
+  const updateDatabaseMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof databaseApi.updateDatabase>) =>
+      databaseApi.updateDatabase(...parameters),
+  });
+
   const { t } = useTranslation();
   const [notifierIds, setNotifierIds] = useState(database.notifierIds);
-  const [isSaving, setIsSaving] = useState(false);
+  const isSaving = updateDatabaseMutation.isPending;
   const [saveError, setSaveError] = useState<unknown>();
 
   const saveNotifiers = async () => {
-    setIsSaving(true);
     setSaveError(undefined);
 
     try {
-      const savedDatabase = await databaseApi.updateDatabase(database.id, {
-        ...database,
-        notifierIds,
-      });
+      const savedDatabase = await updateDatabaseMutation.mutateAsync([
+        database.id,
+        {
+          ...database,
+          notifierIds,
+        },
+      ]);
       if (!isCurrent()) return;
 
       onSaved(savedDatabase);
@@ -39,7 +47,7 @@ export const EditDatabaseNotifiersSection = ({ database, onCancel, onSaved }: Pr
       setSaveError(e);
     }
 
-    setIsSaving(false);
+    updateDatabaseMutation.reset();
   };
 
   const isCurrent = useSessionGuard();

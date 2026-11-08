@@ -1,4 +1,5 @@
 import { ActionIcon, Autocomplete, Badge, Button, Loader, TextInput, Tooltip } from '@mantine/core';
+import { useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { ArrowRightLeft, Plus, Trash2, UserPlus, UserRound } from 'lucide-react';
 import { useEffect, useEffectEvent, useId, useState } from 'react';
@@ -14,9 +15,10 @@ import {
   workspaceApi,
   workspaceMemberApi,
 } from '@/entities/workspaces';
-import { ApiError } from '@/shared/api';
+import { useSessionMutation } from '@/shared/api';
+import { ApiError, useSessionQuery } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
-import { useRequestRevision } from '@/shared/hooks';
+import { useResourceCollection } from '@/shared/hooks';
 import { useIsMobile } from '@/shared/hooks';
 import { translateApiError, useLocale } from '@/shared/i18n';
 import { useFeedback } from '@/shared/lib/feedback';
@@ -40,16 +42,45 @@ interface AddMemberForm {
 const EMPTY_ADD_MEMBER_FORM: AddMemberForm = { email: '', role: WorkspaceRole.MEMBER };
 
 export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailable }: Props) {
+  const addMemberMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof workspaceMemberApi.addMember>) =>
+      workspaceMemberApi.addMember(...parameters),
+  });
+  const changeMemberRoleMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof workspaceMemberApi.changeMemberRole>) =>
+      workspaceMemberApi.changeMemberRole(...parameters),
+  });
+  const removeMemberMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof workspaceMemberApi.removeMember>) =>
+      workspaceMemberApi.removeMember(...parameters),
+  });
+  const transferOwnershipMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof workspaceApi.transferOwnership>) =>
+      workspaceApi.transferOwnership(...parameters),
+  });
+
   const { t } = useTranslation();
   const { formatRelativeTime } = useLocale();
   const notify = useFeedback();
   const isMobile = useIsMobile();
 
-  const [loadError, setLoadError] = useState<unknown>();
-  const [members, setMembers] = useState<WorkspaceMember[]>([]);
-  const [isLoadingMembers, setIsLoadingMembers] = useState(true);
-  const [hasLoadedMembers, setHasLoadedMembers] = useState(false);
-
+  const client = useQueryClient();
+  const collection = useResourceCollection<WorkspaceMember>({
+    queryKey: ['workspace-members', selectedWorkspace.id],
+    read: (signal) => workspaceMemberApi.listAllMembers(selectedWorkspace.id, { signal }),
+    onError: (error) => {
+      if (error instanceof ApiError && [403, 404].includes(error.status ?? 0)) {
+        collection.clear();
+        onUnavailable?.(error);
+      }
+    },
+  });
+  const members = collection.items;
+  const setMembers = collection.update;
+  const loadError = collection.loadError;
+  const isLoadingMembers = collection.isLoading;
+  const hasLoadedMembers = collection.isReady;
+  const loadMembers = collection.reload;
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [addMemberForm, setAddMemberForm] = useState<AddMemberForm>(EMPTY_ADD_MEMBER_FORM);
   const [isAddingMember, setIsAddingMember] = useState(false);
@@ -63,13 +94,12 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
 
   const [isTransferOwnershipModalOpen, setIsTransferOwnershipModalOpen] = useState(false);
   const [transferForm, setTransferForm] = useState({ selectedMemberId: '' });
-  const [isTransferringOwnership, setIsTransferringOwnership] = useState(false);
+  const isTransferringOwnership = transferOwnershipMutation.isPending;
   const [transferMemberError, setTransferMemberError] = useState(false);
 
   const [removingMembers, setRemovingMembers] = useState<Set<string>>(new Set());
 
-  const [userSearchResults, setUserSearchResults] = useState<User[]>([]);
-  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
+  const [searchedTerm, setSearchedTerm] = useState<string>();
   const [searchInputValue, setSearchInputValue] = useState('');
 
   const isInstanceAdmin = user.role === UserRole.ADMIN;
@@ -98,63 +128,30 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
     member.userId !== user.id &&
     (member.role !== WorkspaceRole.ADMIN || canManageAdmins);
 
-  const loadMembers = async () => {
-    const readRevision = memberReadRevision.Invalidate();
-    const isActive = () => isCurrent() && memberReadRevision.IsCurrent(readRevision);
-    setIsLoadingMembers(true);
-    setLoadError(undefined);
+  const search = useSessionQuery({
+    queryKey: ['workspace-member-search', selectedWorkspace.id, searchedTerm],
+    enabled: isAddMemberModalOpen && user.role === UserRole.ADMIN && searchedTerm !== undefined,
+    queryFn: async (signal) => {
+      const response = await userManagementApi.getUsers(
+        { limit: 10, query: searchedTerm || undefined },
+        { signal },
+      );
 
-    try {
-      const loadedMembers = await workspaceMemberApi.listAllMembers(selectedWorkspace.id);
-      if (!isActive()) return;
-
-      setMembers(loadedMembers);
-      setHasLoadedMembers(true);
-    } catch (error: unknown) {
-      if (!isActive()) return;
-
-      setLoadError(error);
-
-      if (error instanceof ApiError && [403, 404].includes(error.status ?? 0)) {
-        setMembers([]);
-        setHasLoadedMembers(false);
-        onUnavailable?.(error);
-      }
-    } finally {
-      if (isActive()) {
-        setIsLoadingMembers(false);
-      }
-    }
+      return response.items.filter((user) => user.status === 'ACTIVE');
+    },
+  });
+  const userSearchResults = search.data ?? [];
+  const isSearchingUsers = search.isFetching;
+  const searchUsers = (term: string) => {
+    if (term === searchedTerm) void search.refetch();
+    else setSearchedTerm(term);
   };
-
-  const searchUsers = async (query: string) => {
-    const requestRevision = searchRevision.Invalidate();
-    const isActive = () => isCurrent() && searchRevision.IsCurrent(requestRevision);
-
-    if (user.role !== UserRole.ADMIN) return;
-
-    setIsSearchingUsers(true);
-
-    try {
-      const response = await userManagementApi.getUsers({
-        limit: 10,
-        query: query || undefined,
-      });
-      if (!isActive()) return;
-
-      const activeUsers = response.items.filter((foundUser) => foundUser.status === 'ACTIVE');
-      setUserSearchResults(activeUsers);
-    } catch (error: unknown) {
-      if (!isActive()) return;
-
-      notify({ kind: 'error', title: translateApiError(error, t) });
-      setUserSearchResults([]);
-    } finally {
-      if (isActive()) {
-        setIsSearchingUsers(false);
-      }
-    }
-  };
+  const reportSearchFailure = useEffectEvent((error: unknown) =>
+    notify({ kind: 'error', title: translateApiError(error, t) }),
+  );
+  useEffect(() => {
+    if (search.error) reportSearchFailure(search.error);
+  }, [search.error]);
 
   const handleAddMember = async () => {
     if (!addMemberForm.email.trim()) {
@@ -166,13 +163,16 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
     setIsAddingMember(true);
 
     try {
-      const addedMember = await workspaceMemberApi.addMember({
-        workspaceId: selectedWorkspace.id,
-        email: addMemberForm.email.trim(),
-        role: addMemberForm.role,
-      });
+      const addedMember = await addMemberMutation.mutateAsync([
+        {
+          workspaceId: selectedWorkspace.id,
+          email: addMemberForm.email.trim(),
+          role: addMemberForm.role,
+        },
+      ]);
       if (!isCurrent()) return;
 
+      collection.accept(addedMember);
       setAddMemberForm(EMPTY_ADD_MEMBER_FORM);
       setIsAddMemberModalOpen(false);
 
@@ -200,7 +200,7 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
     setIsChangingRole(true);
 
     try {
-      const changedMember = await workspaceMemberApi.changeMemberRole(memberId, newRole);
+      const changedMember = await changeMemberRoleMutation.mutateAsync([memberId, newRole]);
       if (!isCurrent()) return;
 
       setMembers((prev) => prev.map((member) => (member.id === memberId ? changedMember : member)));
@@ -221,7 +221,7 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
     setRemovingMembers((prev) => new Set(prev).add(memberId));
 
     try {
-      await workspaceMemberApi.removeMember(memberId);
+      await removeMemberMutation.mutateAsync([memberId]);
       if (!isCurrent()) return;
 
       setMembers((prev) => prev.filter((member) => member.id !== memberId));
@@ -259,10 +259,9 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
     }
 
     setTransferMemberError(false);
-    setIsTransferringOwnership(true);
 
     try {
-      await workspaceApi.transferOwnership(selectedWorkspace.id, selectedMember.id);
+      await transferOwnershipMutation.mutateAsync([selectedWorkspace.id, selectedMember.id]);
       if (!isCurrent()) return;
 
       setTransferForm({ selectedMemberId: '' });
@@ -275,7 +274,7 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
       notify({ kind: 'error', title: translateApiError(error, t) });
     } finally {
       if (isCurrent()) {
-        setIsTransferringOwnership(false);
+        transferOwnershipMutation.reset();
       }
     }
   };
@@ -372,17 +371,9 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
 
   const memberEmailControlId = useId();
   const isCurrent = useSessionGuard();
-  const searchRevision = useRequestRevision();
-  const memberReadRevision = useRequestRevision();
-
-  const startMembersLoad = useEffectEvent(() => {
-    void loadMembers();
+  const cancelUserSearch = useEffectEvent(() => {
+    void client.cancelQueries({ queryKey: search.queryKey, exact: true });
   });
-
-  useEffect(() => {
-    startMembersLoad();
-  }, []);
-
   const canSearchUsers = useEffectEvent(() => user.role === UserRole.ADMIN);
   const startUserSearch = useEffectEvent((query: string) => {
     searchUsers(query);
@@ -397,9 +388,9 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
 
     return () => {
       clearTimeout(timer);
-      searchRevision.Invalidate();
+      cancelUserSearch();
     };
-  }, [searchInputValue, isAddMemberModalOpen, searchRevision]);
+  }, [searchInputValue, isAddMemberModalOpen, client]);
 
   const assignableRoles: AssignableWorkspaceRole[] = canManageAdmins
     ? [WorkspaceRole.VIEWER, WorkspaceRole.MEMBER, WorkspaceRole.ADMIN]
@@ -600,7 +591,7 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
           setAddMemberForm(EMPTY_ADD_MEMBER_FORM);
           setAddMemberEmailError(false);
           setSearchInputValue('');
-          setUserSearchResults([]);
+          setSearchedTerm(undefined);
         }}
       >
         <div className="py-2">
@@ -681,7 +672,7 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
                 setAddMemberForm(EMPTY_ADD_MEMBER_FORM);
                 setAddMemberEmailError(false);
                 setSearchInputValue('');
-                setUserSearchResults([]);
+                setSearchedTerm(undefined);
               }}
             >
               {t('common.actions.cancel')}

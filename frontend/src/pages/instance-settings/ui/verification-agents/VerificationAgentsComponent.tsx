@@ -13,6 +13,7 @@ import {
 } from '@/pages/instance-settings/ui/verification-agents/RevealedAgentTokenDialog';
 import { RotateAgentTokenDialog } from '@/pages/instance-settings/ui/verification-agents/RotateAgentTokenDialog';
 import { VerificationAgentsTable } from '@/pages/instance-settings/ui/verification-agents/VerificationAgentsTable';
+import { useSessionMutation } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { usePolledPagedList } from '@/shared/hooks';
 import { getWebsitePageUrl, translateApiError, useLocale } from '@/shared/i18n';
@@ -28,19 +29,32 @@ const fetchAgentsPage = async () => ({ items: await verificationAgentApi.listAge
 const getAgentKey = (agent: VerificationAgent) => agent.id;
 
 export const VerificationAgentsComponent = () => {
+  const createAgentMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof verificationAgentApi.createAgent>) =>
+      verificationAgentApi.createAgent(...parameters),
+  });
+  const rotateTokenMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof verificationAgentApi.rotateToken>) =>
+      verificationAgentApi.rotateToken(...parameters),
+  });
+  const deleteAgentMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof verificationAgentApi.deleteAgent>) =>
+      verificationAgentApi.deleteAgent(...parameters),
+  });
+
   const { t } = useTranslation();
   const { locale } = useLocale();
   const notify = useFeedback();
   const isCurrent = useSessionGuard();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
+  const isCreating = createAgentMutation.isPending;
 
   const [revealedToken, setRevealedToken] = useState<RevealedAgentToken | undefined>();
   const [selectedArch, setSelectedArch] = useState<AgentArchitecture>('amd64');
 
   const [rotatingAgent, setRotatingAgent] = useState<VerificationAgent | undefined>();
-  const [isRotating, setIsRotating] = useState(false);
+  const isRotating = rotateTokenMutation.isPending;
 
   const [viewingInstallAgent, setViewingInstallAgent] = useState<VerificationAgent | undefined>();
 
@@ -61,10 +75,8 @@ export const VerificationAgentsComponent = () => {
   };
 
   const createAgent = async (name: string) => {
-    setIsCreating(true);
-
     try {
-      const { agent, token } = await verificationAgentApi.createAgent(name);
+      const { agent, token } = await createAgentMutation.mutateAsync([name]);
       if (!isCurrent()) return;
 
       replaceOrPrependItem(agent);
@@ -74,16 +86,14 @@ export const VerificationAgentsComponent = () => {
       showFailure(error);
     }
 
-    setIsCreating(false);
+    createAgentMutation.reset();
   };
 
   const rotateToken = async () => {
     if (!rotatingAgent || isRotating) return;
 
-    setIsRotating(true);
-
     try {
-      const { token } = await verificationAgentApi.rotateToken(rotatingAgent.id);
+      const { token } = await rotateTokenMutation.mutateAsync([rotatingAgent.id]);
       if (!isCurrent()) return;
 
       setRevealedToken({ token, agentId: rotatingAgent.id, agentName: rotatingAgent.name });
@@ -92,7 +102,7 @@ export const VerificationAgentsComponent = () => {
       showFailure(error);
     }
 
-    setIsRotating(false);
+    rotateTokenMutation.reset();
   };
 
   const deleteAgent = async (agent: VerificationAgent) => {
@@ -101,7 +111,7 @@ export const VerificationAgentsComponent = () => {
     setDeletingAgentId(agent.id);
 
     try {
-      await verificationAgentApi.deleteAgent(agent.id);
+      await deleteAgentMutation.mutateAsync([agent.id]);
 
       if (isCurrent()) {
         notify({ kind: 'success', title: t('verification.agents.deleted', { name: agent.name }) });

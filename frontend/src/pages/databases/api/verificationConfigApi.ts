@@ -1,8 +1,9 @@
+import type { ReadOptions } from '@/shared/api';
 import { getApiClient, requireData, type ApiComponents } from '@/shared/api';
 export const verificationConfigApi = {
-  async getByDatabaseId(databaseId: string) {
+  async getByDatabaseId(databaseId: string, options: ReadOptions = {}) {
     return requireData(
-      await getApiClient().GET('/verification-configs/{databaseId}', {
+      await getApiClient(options).GET('/verification-configs/{databaseId}', {
         params: { path: { databaseId } },
       }),
     );

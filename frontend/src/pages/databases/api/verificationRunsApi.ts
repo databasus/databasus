@@ -1,3 +1,4 @@
+import type { ReadOptions } from '@/shared/api';
 import { getApiClient, requireData } from '@/shared/api';
 export const verificationRunsApi = {
   async listByDatabase(databaseId: string, limit?: number, after?: string) {
@@ -7,9 +8,9 @@ export const verificationRunsApi = {
       }),
     );
   },
-  async getById(verificationId: string) {
+  async getById(verificationId: string, options: ReadOptions = {}) {
     return requireData(
-      await getApiClient().GET('/verifications/{verificationId}', {
+      await getApiClient(options).GET('/verifications/{verificationId}', {
         params: { path: { verificationId } },
       }),
     );

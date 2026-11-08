@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import { USER_ROLE_LABEL_KEYS, type User, UserRole, userManagementApi } from '@/entities/users';
 import { UserAuditLogsSidebar } from '@/pages/users/ui/UserAuditLogsSidebar';
+import { useSessionMutation } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { useIsMobile, usePagedList, useRequestRevision } from '@/shared/hooks';
 import { translateApiError, useLocale } from '@/shared/i18n';
@@ -29,6 +30,19 @@ const withoutUserId = (userIds: Set<string>, userId: string): Set<string> => {
 };
 
 export function UsersPage() {
+  const deactivateUserMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof userManagementApi.deactivateUser>) =>
+      userManagementApi.deactivateUser(...parameters),
+  });
+  const activateUserMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof userManagementApi.activateUser>) =>
+      userManagementApi.activateUser(...parameters),
+  });
+  const changeUserRoleMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof userManagementApi.changeUserRole>) =>
+      userManagementApi.changeUserRole(...parameters),
+  });
+
   const [searchQuery, setSearchQuery] = useState('');
   const [inputValue, setInputValue] = useState('');
   const [processingUsers, setProcessingUsers] = useState<Set<string>>(new Set());
@@ -55,8 +69,8 @@ export function UsersPage() {
 
     try {
       const changedUser = isUserActive(toggledUser)
-        ? await userManagementApi.deactivateUser(toggledUser.id)
-        : await userManagementApi.activateUser(toggledUser.id);
+        ? await deactivateUserMutation.mutateAsync([toggledUser.id])
+        : await activateUserMutation.mutateAsync([toggledUser.id]);
       if (!isCurrent() || !queryRevision.IsCurrent(requestQueryRevision)) return;
       acknowledgedUsers.set(changedUser.id, changedUser);
       replaceOrPrependItem(changedUser);
@@ -82,7 +96,7 @@ export function UsersPage() {
     setFailure(undefined);
 
     try {
-      const changedUser = await userManagementApi.changeUserRole(userId, newRole);
+      const changedUser = await changeUserRoleMutation.mutateAsync([userId, newRole]);
       if (!isCurrent() || !queryRevision.IsCurrent(requestQueryRevision)) return;
       acknowledgedUsers.set(changedUser.id, changedUser);
       replaceOrPrependItem(changedUser);

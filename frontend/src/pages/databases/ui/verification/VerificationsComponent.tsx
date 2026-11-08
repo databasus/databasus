@@ -1,6 +1,6 @@
 import { Alert, Loader } from '@mantine/core';
 import { TriangleAlert } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import type { Database } from '@/entities/databases';
@@ -11,6 +11,7 @@ import type { VerificationRowActions } from '@/pages/databases/ui/verification/V
 import { VerificationCards } from '@/pages/databases/ui/verification/VerificationCards';
 import { VerificationDetailDrawer } from '@/pages/databases/ui/verification/VerificationDetailDrawer';
 import { VerificationsTable } from '@/pages/databases/ui/verification/VerificationsTable';
+import { useFixedQueryPolling, useSessionMutation, useSessionQuery } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { usePolledPagedList } from '@/shared/hooks';
 import { getWebsitePageUrl, translateApiError, useLocale } from '@/shared/i18n';
@@ -27,6 +28,11 @@ const VERIFICATIONS_REFRESH_MS = 1000;
 const VERIFICATIONS_PAGE_SIZE = 50;
 
 export const VerificationsComponent = ({ database, isCanManageDBs, scrollContainerRef }: Props) => {
+  const cancelMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof verificationRunsApi.cancel>) =>
+      verificationRunsApi.cancel(...parameters),
+  });
+
   const { t } = useTranslation();
   const { locale } = useLocale();
   const notify = useFeedback();
@@ -34,7 +40,20 @@ export const VerificationsComponent = ({ database, isCanManageDBs, scrollContain
 
   const [detailVerificationId, setDetailVerificationId] = useState<string | undefined>();
   const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const [hasAgents, setHasAgents] = useState<boolean | undefined>();
+  const availability = useSessionQuery({
+    queryKey: ['verification-agent-count', database.workspaceId, database.id],
+    queryFn: (signal) => verificationAgentApi.getAgentCount({ signal }),
+  });
+  useFixedQueryPolling({
+    query: availability,
+    intervalMs: AGENT_AVAILABILITY_REFRESH_MS,
+    shouldRunInBackground: true,
+  });
+  const hasAgents = availability.error
+    ? undefined
+    : availability.data
+      ? availability.data.agentCount > 0
+      : undefined;
   const [cancellingVerificationId, setCancellingVerificationId] = useState<string | undefined>();
 
   const fetchVerificationsPage = async (after: string | undefined) => {
@@ -52,7 +71,7 @@ export const VerificationsComponent = ({ database, isCanManageDBs, scrollContain
     setCancellingVerificationId(verificationId);
 
     try {
-      await verificationRunsApi.cancel(verificationId);
+      await cancelMutation.mutateAsync([verificationId]);
       if (isActive()) await refreshVerifications();
     } catch (error) {
       if (isActive()) notify({ kind: 'error', title: translateApiError(error, t) });
@@ -84,31 +103,6 @@ export const VerificationsComponent = ({ database, isCanManageDBs, scrollContain
       if (failedPage === 'next') notify({ kind: 'error', title: translateApiError(error, t) });
     },
   });
-
-  useEffect(() => {
-    let isCancelled = false;
-
-    const loadAvailability = () => {
-      verificationAgentApi
-        .getAgentCount()
-        .then((availability) => {
-          if (isCancelled) return;
-          setHasAgents(availability.agentCount > 0);
-        })
-        .catch(() => {
-          if (isCancelled) return;
-          setHasAgents(undefined);
-        });
-    };
-
-    loadAvailability();
-    const intervalId = setInterval(loadAvailability, AGENT_AVAILABILITY_REFRESH_MS);
-
-    return () => {
-      isCancelled = true;
-      clearInterval(intervalId);
-    };
-  }, []);
 
   const rowActions: VerificationRowActions = {
     isCanManageDBs,

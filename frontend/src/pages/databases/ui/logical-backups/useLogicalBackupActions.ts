@@ -6,6 +6,7 @@ import { verificationRunsApi } from '@/pages/databases/api/verificationRunsApi';
 import { isLogicalBackupListedByFilter } from '@/pages/databases/model/isLogicalBackupListedByFilter';
 import type { LogicalBackup } from '@/pages/databases/model/LogicalBackup';
 import type { LogicalBackupListFilter } from '@/pages/databases/model/LogicalBackupListFilter';
+import { useSessionMutation } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { translateApiError } from '@/shared/i18n';
 import { useFeedback } from '@/shared/lib/feedback';
@@ -38,11 +39,32 @@ export const useLogicalBackupActions = ({
   reloadBackups,
   onNavigateToVerifications,
 }: Params) => {
+  const startLogicalBackupMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof logicalBackupApi.startLogicalBackup>) =>
+      logicalBackupApi.startLogicalBackup(...parameters),
+  });
+  const cancelLogicalBackupMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof logicalBackupApi.cancelLogicalBackup>) =>
+      logicalBackupApi.cancelLogicalBackup(...parameters),
+  });
+  const deleteLogicalBackupMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof logicalBackupApi.deleteLogicalBackup>) =>
+      logicalBackupApi.deleteLogicalBackup(...parameters),
+  });
+  const createDownloadTokenMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof logicalBackupApi.createDownloadToken>) =>
+      logicalBackupApi.createDownloadToken(...parameters),
+  });
+  const startVerificationMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof verificationRunsApi.startVerification>) =>
+      verificationRunsApi.startVerification(...parameters),
+  });
+
   const { t } = useTranslation();
   const notify = useFeedback();
   const isActive = useSessionGuard();
 
-  const [isStartingBackup, setIsStartingBackup] = useState(false);
+  const isStartingBackup = startLogicalBackupMutation.isPending;
   const [cancellingBackupId, setCancellingBackupId] = useState<string | undefined>();
   const [deletingBackupId, setDeletingBackupId] = useState<string | undefined>();
   const [downloadingBackupId, setDownloadingBackupId] = useState<string | undefined>();
@@ -53,10 +75,8 @@ export const useLogicalBackupActions = ({
   };
 
   const startBackup = async () => {
-    setIsStartingBackup(true);
-
     try {
-      const startedBackup = await logicalBackupApi.startLogicalBackup(databaseId);
+      const startedBackup = await startLogicalBackupMutation.mutateAsync([databaseId]);
       if (isActive() && isLogicalBackupListedByFilter(startedBackup, filter)) {
         replaceOrPrependBackup(startedBackup);
       }
@@ -64,7 +84,7 @@ export const useLogicalBackupActions = ({
       showFailure(error);
     }
 
-    setIsStartingBackup(false);
+    startLogicalBackupMutation.reset();
   };
 
   const cancelBackup = async (backupId: string) => {
@@ -73,7 +93,7 @@ export const useLogicalBackupActions = ({
     setCancellingBackupId(backupId);
 
     try {
-      const cancelledBackup = await logicalBackupApi.cancelLogicalBackup(backupId);
+      const cancelledBackup = await cancelLogicalBackupMutation.mutateAsync([backupId]);
       if (isActive()) replaceOrPrependBackup(cancelledBackup);
     } catch (error) {
       showFailure(error);
@@ -86,7 +106,7 @@ export const useLogicalBackupActions = ({
     setDeletingBackupId(backupId);
 
     try {
-      await logicalBackupApi.deleteLogicalBackup(backupId);
+      await deleteLogicalBackupMutation.mutateAsync([backupId]);
       if (isActive()) await reloadBackups();
     } catch (error) {
       showFailure(error);
@@ -101,7 +121,7 @@ export const useLogicalBackupActions = ({
     setDownloadingBackupId(backupId);
 
     try {
-      const downloadToken = await logicalBackupApi.createDownloadToken(backupId);
+      const downloadToken = await createDownloadTokenMutation.mutateAsync([backupId]);
       if (isActive()) {
         openFileLink(
           logicalBackupApi.getLogicalBackupFileUrl(backupId, downloadToken.token),
@@ -119,7 +139,7 @@ export const useLogicalBackupActions = ({
     setVerifyingBackupId(backupId);
 
     try {
-      await verificationRunsApi.startVerification(backupId);
+      await startVerificationMutation.mutateAsync([backupId]);
       if (isActive()) {
         notify({ kind: 'success', title: t('backups.logical.list.verifyRestore.queued') });
         onNavigateToVerifications?.();

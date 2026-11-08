@@ -23,8 +23,8 @@ export const StoragesComponent = ({ workspace, isCanManageStorages, onUnavailabl
   const [isShowAddStorage, setIsShowAddStorage] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const collection = useResourceCollection({
-    scopeKey: workspace.id,
-    read: () => storageApi.listAllStorages(workspace.id),
+    queryKey: ['storages', workspace.id],
+    read: (signal) => storageApi.listAllStorages(workspace.id, { signal }),
     onError: (error) => {
       if (error instanceof ApiError && [403, 404].includes(error.status ?? 0)) {
         collection.clear();
@@ -63,14 +63,6 @@ export const StoragesComponent = ({ workspace, isCanManageStorages, onUnavailabl
     isMobile,
   });
   const selectedStorageId = selection.selectedItemId;
-
-  const startStoragesLoad = useEffectEvent(() => {
-    void loadStorages();
-  });
-
-  useEffect(() => {
-    startStoragesLoad();
-  }, [workspace.id]);
 
   // Read when the form closes, because the button can appear after the form opened.
   const returnFocusToButton = useEffectEvent(() => {

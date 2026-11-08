@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { type Storage, getStorageLogoFromType, storageApi } from '@/entities/storages';
 import { EditStorageComponent } from '@/features/edit-storage';
 import { useSessionGuard } from '@/shared/auth';
-import { useLatestRef, useRequestRevision } from '@/shared/hooks';
+import { useLatestRef, useResourceCollection } from '@/shared/hooks';
 import { ResourcePicker } from '@/shared/ui';
 import { Dialog } from '@/shared/ui';
 import { LoadFailure } from '@/shared/ui';
@@ -22,9 +22,23 @@ export function BackupStorageSelection({
   canClear,
   onSelect,
 }: Props) {
-  const [storages, setStorages] = useState<Storage[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<unknown>();
+  const collection = useResourceCollection<Storage>({
+    queryKey: ['storages', workspaceId],
+    read: async (signal) => {
+      const choices = await storageApi.listAllStorages(workspaceId, { signal });
+      const acknowledged = acknowledgedStorages.current;
+
+      return [
+        ...choices.filter((storage) => !acknowledged.some((item) => item.id === storage.id)),
+        ...acknowledged,
+      ];
+    },
+    onError: () => {},
+  });
+  const storages = collection.items;
+  const isLoading = collection.isLoading;
+  const error = collection.loadError;
+  const load = collection.reload;
   const [isCreating, setIsCreating] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -41,54 +55,22 @@ export function BackupStorageSelection({
       ...acknowledgedStorages.current.filter((item) => item.id !== storage.id),
       storage,
     ];
-    setStorages((current) => [...current.filter((item) => item.id !== storage.id), storage]);
+    collection.accept(storage);
     void load();
-  };
-
-  const load = async () => {
-    const revision = requests.Invalidate();
-    setIsLoading(true);
-    setError(undefined);
-
-    try {
-      const choices = await storageApi.listAllStorages(workspaceId);
-      if (!isCurrent() || !requests.IsCurrent(revision)) return;
-
-      const acknowledged = acknowledgedStorages.current;
-      setStorages([
-        ...choices.filter((storage) => !acknowledged.some((item) => item.id === storage.id)),
-        ...acknowledged,
-      ]);
-    } catch (failure) {
-      if (isCurrent() && requests.IsCurrent(revision)) setError(failure);
-    } finally {
-      if (isCurrent() && requests.IsCurrent(revision)) setIsLoading(false);
-    }
   };
 
   const { t } = useTranslation();
   const controlId = useId();
   const isCurrent = useSessionGuard();
-  const requests = useRequestRevision();
   const acknowledgedStorages = useRef<Storage[]>([]);
   const storageSelectRef = useRef<HTMLButtonElement | HTMLInputElement>(null);
   const currentWorkspace = useLatestRef(workspaceId);
 
-  const startStoragesLoad = useEffectEvent(() => {
-    void load();
-  });
-
   useEffect(() => {
     acknowledgedStorages.current = [];
-    setStorages([]);
     setIsCreating(false);
     setIsDropdownOpen(false);
-    startStoragesLoad();
-
-    return () => {
-      requests.Invalidate();
-    };
-  }, [workspaceId, requests]);
+  }, [workspaceId]);
 
   const returnFocusToSelect = useEffectEvent(() => {
     storageSelectRef.current?.focus();

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -249,6 +249,8 @@ describe('EditHealthcheckConfigComponent', () => {
         renderScreen(<EditHealthcheckConfigComponent databaseId={databaseId} onClose={onClose} />);
         fireEvent.change(await getIntervalField(), { target: { value: '12' } });
         fireEvent.click(await screen.findByRole('button', { name: 'Save' }));
+        await waitFor(() => expect(saveCall).toHaveBeenCalledOnce());
+
         act(() => {
           invalidateSession();
         });

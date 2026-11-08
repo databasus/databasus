@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { Storage } from '@/entities/storages';
 import { BackupStorageSelection } from '@/pages/databases/ui/BackupStorageSelection';
+import { finishCancelledApiResponse } from '@/shared/lib/test/finishCancelledApiResponse';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
 
@@ -187,20 +188,12 @@ describe('Composed backup storage creation', () => {
 
       view.rerender(<BackupStorageSelection {...props} selectedStorageId={storage.id} />);
       await within(screen.getByRole('combobox', { name: 'Storage' })).findByText(storage.name);
-      const processed = new Promise<void>((resolve) => {
-        server.events.on('response:mocked', function onResponse() {
-          server.events.removeListener('response:mocked', onResponse);
-          resolve();
-        });
-      });
-
-      await act(async () => {
+      await finishCancelledApiResponse(server, '/api/v1/storages', () => {
         initialList.respond(
           hasFailed
             ? HttpResponse.json(buildProblem('internal', 500), { status: 500 })
             : HttpResponse.json({ items: [] }),
         );
-        await processed;
       });
 
       expect(

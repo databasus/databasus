@@ -4,7 +4,7 @@ import utc from 'dayjs/plugin/utc';
 import { HttpResponse, type RequestHandler, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
-import { type BackupConfig } from '@/entities/backup-configs';
+import { type BackupConfig, backupConfigApi } from '@/entities/backup-configs';
 import {
   type Database,
   DatabaseType,
@@ -12,13 +12,15 @@ import {
   createDefaultDatabaseSettings,
   databaseApi,
 } from '@/entities/databases';
-import type { Storage } from '@/entities/storages';
+import { type Storage, storageApi } from '@/entities/storages';
 import type { Workspace } from '@/entities/workspaces';
 // @vitest-environment happy-dom
 import { DatabasesComponent } from '@/pages/databases/ui/DatabasesComponent';
 import { API_BASE_PATH, type ApiComponents } from '@/shared/api';
 import { activateSession, invalidateSession } from '@/shared/auth';
 import { waitForCondition } from '@/shared/lib/test/conditionWait';
+import { finishApiResponse } from '@/shared/lib/test/finishApiResponse';
+import { finishCancelledApiResponse } from '@/shared/lib/test/finishCancelledApiResponse';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
 import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
@@ -547,15 +549,9 @@ describe('DatabasesComponent', () => {
 
     await user.click(await findDatabaseCard('Bravo'));
     await user.click(await screen.findByText('Config'));
-    const alphaProcessed = new Promise<void>((resolve) =>
-      mockServer.events.on('response:mocked', ({ request }) => {
-        if (request.url.endsWith(`/databases/${alphaDatabase.id}`)) resolve();
-      }),
+    await finishCancelledApiResponse(mockServer, `/api/v1/databases/${alphaDatabase.id}`, () =>
+      pendingAlpha.respond(HttpResponse.json(alphaDatabase)),
     );
-    await act(async () => {
-      pendingAlpha.respond(HttpResponse.json(alphaDatabase));
-      await alphaProcessed;
-    });
 
     expect((await findDatabaseCard('Bravo')).getAttribute('aria-pressed')).toBe('true');
     expect(screen.getAllByText('Bravo')).toHaveLength(2);
@@ -907,6 +903,125 @@ describe('DatabasesComponent during the backup step of the wizard', () => {
       );
     },
   );
+});
+
+describe('DatabasesComponent aggregate cancellation', () => {
+  it.each([403, 404])(
+    'keeps a recovered collection when a superseded sibling returns HTTP %i',
+    async (status) => {
+      const obsoleteStorageRead = mockApi.pending('get', '/storages');
+      mockServer.use(
+        mockApi.get('/databases', 500, buildProblem('internal', 500)),
+        mockApi.get('/backup-configs', 200, { items: [] }),
+        obsoleteStorageRead.handler,
+      );
+      const onUnavailable = vi.fn();
+      renderScreen(
+        <DatabasesComponent workspace={workspace} isCanManageDBs onUnavailable={onUnavailable} />,
+      );
+      await waitFor(() => expect(countRequests('/storages')).toBe(1));
+      const retry = await screen.findByRole('button', { name: 'Retry' });
+      const recoveredDatabase = buildDatabase('Recovered database');
+      declarePendingDetailRequests();
+      declareListResponses([recoveredDatabase]);
+
+      fireEvent.click(retry);
+      await findDatabaseCard(recoveredDatabase.name);
+
+      const obsoleteRequest = mockServer
+        .getRequests()
+        .find((request) => new URL(request.url).pathname === '/api/v1/storages')!;
+      expect(obsoleteRequest.signal.aborted).toBe(true);
+
+      await finishCancelledApiResponse(mockServer, '/api/v1/storages', () =>
+        obsoleteStorageRead.respond(
+          HttpResponse.json(buildProblem('permission_denied', status), { status }),
+        ),
+      );
+
+      expect(onUnavailable).not.toHaveBeenCalled();
+      expect(await findDatabaseCard(recoveredDatabase.name)).toBeTruthy();
+    },
+  );
+
+  it('reconciles once when concurrent siblings refuse access after a temporary failure', async () => {
+    const configRead = vi.spyOn(backupConfigApi, 'listAllWorkspaceBackupConfigs');
+    const storageRead = vi.spyOn(storageApi, 'listAllStorages');
+    const refusedConfigs = mockApi.pending('get', '/backup-configs');
+    const refusedStorages = mockApi.pending('get', '/storages');
+    mockServer.use(
+      mockApi.get('/databases', 500, buildProblem('internal', 500)),
+      refusedConfigs.handler,
+      refusedStorages.handler,
+    );
+    const onUnavailable = vi.fn();
+    renderScreen(
+      <DatabasesComponent workspace={workspace} isCanManageDBs onUnavailable={onUnavailable} />,
+    );
+    await screen.findByRole('button', { name: 'Retry' });
+    await waitFor(() => expect(countRequests('/storages')).toBe(1));
+
+    await act(async () => {
+      refusedConfigs.respond(
+        HttpResponse.json(buildProblem('permission_denied', 403), { status: 403 }),
+      );
+      refusedStorages.respond(HttpResponse.json(buildProblem('not_found', 404), { status: 404 }));
+      await Promise.allSettled([
+        configRead.mock.results[0].value,
+        storageRead.mock.results[0].value,
+      ]);
+    });
+
+    expect(onUnavailable).toHaveBeenCalledExactlyOnceWith(workspace.id);
+  });
+
+  it('reconciles access loss when a sibling of the current failed aggregate refuses access', async () => {
+    const currentStorageRead = mockApi.pending('get', '/storages');
+    mockServer.use(
+      mockApi.get('/databases', 500, buildProblem('internal', 500)),
+      mockApi.get('/backup-configs', 200, { items: [] }),
+      currentStorageRead.handler,
+    );
+    const onUnavailable = vi.fn();
+    renderScreen(
+      <DatabasesComponent workspace={workspace} isCanManageDBs onUnavailable={onUnavailable} />,
+    );
+    await screen.findByRole('button', { name: 'Retry' });
+    await waitFor(() => expect(countRequests('/storages')).toBe(1));
+    expect(
+      mockServer
+        .getRequests()
+        .find((request) => new URL(request.url).pathname === '/api/v1/storages')!.signal.aborted,
+    ).toBe(false);
+
+    await finishApiResponse(mockServer, '/api/v1/storages', () =>
+      currentStorageRead.respond(
+        HttpResponse.json(buildProblem('permission_denied', 403), { status: 403 }),
+      ),
+    );
+
+    expect(onUnavailable).toHaveBeenCalledExactlyOnceWith(workspace.id);
+  });
+
+  it('cancels remaining collection reads after a failed aggregate unmounts', async () => {
+    const obsoleteStorageRead = mockApi.pending('get', '/storages');
+    mockServer.use(
+      mockApi.get('/databases', 500, buildProblem('internal', 500)),
+      mockApi.get('/backup-configs', 200, { items: [] }),
+      obsoleteStorageRead.handler,
+    );
+    const view = renderDatabasesScreen();
+    await screen.findByRole('button', { name: 'Retry' });
+    await waitFor(() => expect(countRequests('/storages')).toBe(1));
+
+    view.unmount();
+
+    await finishCancelledApiResponse(mockServer, '/api/v1/storages', () =>
+      obsoleteStorageRead.respond(HttpResponse.json({ items: [], nextCursor: 'obsolete-cursor' })),
+    );
+
+    expect(countRequests('/storages')).toBe(1);
+  });
 });
 
 describe('DatabasesComponent with a late rename', () => {
@@ -1286,7 +1401,8 @@ describe('DatabasesComponent with late database actions', () => {
       expect(listLoads.mock.calls.length).toBe(listLoadsBeforeEnd);
       expect(screen.queryByRole('button', { name: /^Copy of Shop/ })).toBeNull();
       expect(screen.queryByRole('button', { name: /^Storefront/ })).toBeNull();
-      expect(screen.getByRole('button', { name: /^Shop/ })).toBeTruthy();
+      expect(screen.queryByRole('button', { name: /^Shop/ })).toBeNull();
+      expect(screen.getByRole('status')).toBeTruthy();
       expect(screen.queryByText('Storefront', { selector: 'div.text-xl > span' })).toBeNull();
     },
   );

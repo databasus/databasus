@@ -4,6 +4,7 @@ import { type JSX, useEffect, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { userApi } from '@/entities/users';
+import { useSessionMutation } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { translateApiError } from '@/shared/i18n';
 import { useFeedback } from '@/shared/lib/feedback';
@@ -20,6 +21,11 @@ export function ResetPasswordComponent({
   onSwitchToRequestCode,
   initialEmail = '',
 }: ResetPasswordComponentProps): JSX.Element {
+  const resetPasswordMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof userApi.resetPassword>) =>
+      userApi.resetPassword(...parameters),
+  });
+
   const [email, setEmail] = useState(initialEmail);
   const [code, setCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -94,11 +100,13 @@ export function ResetPasswordComponent({
       setLoading(true);
 
       try {
-        await userApi.resetPassword({
-          email,
-          code,
-          newPassword,
-        });
+        await resetPasswordMutation.mutateAsync([
+          {
+            email,
+            code,
+            newPassword,
+          },
+        ]);
 
         if (!isCurrent()) return;
         setIsResetComplete(true);

@@ -1,16 +1,13 @@
 import { Loader, Tooltip } from '@mantine/core';
 import dayjs from 'dayjs';
-import { useEffect, useId, useState } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { type Database, HealthStatus } from '@/entities/databases';
-import {
-  type HealthcheckAttempt,
-  healthcheckAttemptApi,
-  healthcheckConfigApi,
-} from '@/entities/healthcheck';
-import { useSessionGuard } from '@/shared/auth';
+import { healthcheckAttemptApi, healthcheckConfigApi } from '@/entities/healthcheck';
+import { useFixedQueryPolling, useSessionQuery } from '@/shared/api';
 import { useLocale } from '@/shared/i18n';
+import { collectCursorPages } from '@/shared/lib/collectCursorPages';
 import { getUserShortTimeFormat } from '@/shared/time/getUserTimeFormat';
 import { WrappingSelect } from '@/shared/ui';
 import { LoadFailure } from '@/shared/ui';
@@ -44,108 +41,53 @@ const getSinceByPeriod = (period: 'today' | '7d' | '30d' | 'all'): Date => {
 export const HealthcheckAttemptsComponent = ({ database }: Props) => {
   const { t } = useTranslation();
   const { formatRelativeTime } = useLocale();
-  const isSessionActive = useSessionGuard();
   const periodFieldId = useId();
 
-  const [isHealthcheckConfigLoading, setIsHealthcheckConfigLoading] = useState(false);
-  const [isShowHealthcheckConfig, setIsShowHealthcheckConfig] = useState(false);
-  const [configLoadError, setConfigLoadError] = useState<unknown>();
-
-  const [isLoading, setIsLoading] = useState(false);
-  const [healthcheckAttempts, setHealthcheckAttempts] = useState<HealthcheckAttempt[]>([]);
-  const [attemptsLoadError, setAttemptsLoadError] = useState<unknown>();
   const [period, setPeriod] = useState<'today' | '7d' | '30d' | 'all'>('today');
-  const [loadAttempt, setLoadAttempt] = useState(0);
-
-  const retryLoad = () => setLoadAttempt((attempt) => attempt + 1);
-
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | undefined;
-    let isCancelled = false;
-    let loadSequence = 0;
-
-    const isCurrentLoad = (sequence: number) =>
-      !isCancelled && sequence === loadSequence && isSessionActive();
-
-    const fetchAllAttempts = async (sequence: number) => {
+  const configQuery = useSessionQuery({
+    queryKey: ['healthcheck-config', database.id, period],
+    queryFn: (signal) => healthcheckConfigApi.getHealthcheckConfig(database.id, { signal }),
+  });
+  const attemptsQuery = useSessionQuery({
+    queryKey: ['healthcheck-attempts', database.workspaceId, database.id, period],
+    enabled: configQuery.data?.isHealthcheckEnabled === true,
+    queryFn: (signal) => {
       const since = getSinceByPeriod(period);
-      const attempts: HealthcheckAttempt[] = [];
-      let after: string | undefined;
 
-      do {
-        const page = await healthcheckAttemptApi.getAttemptsByDatabase(database.id, since, after);
-        if (!isCurrentLoad(sequence)) return undefined;
-
-        attempts.push(...page.items);
-        after = page.nextCursor;
-      } while (after);
-
-      return attempts;
-    };
-
-    const refreshHealthcheckAttempts = async () => {
-      const sequence = ++loadSequence;
-
-      try {
-        const attempts = await fetchAllAttempts(sequence);
-        if (attempts) setHealthcheckAttempts(attempts);
-      } catch {
-        // A failed refresh keeps the shown attempts, and the next tick repairs them on its own.
-      }
-    };
-
-    const loadHealthcheckAttempts = async () => {
-      const sequence = ++loadSequence;
-      setIsLoading(true);
-
-      try {
-        const attempts = await fetchAllAttempts(sequence);
-        if (!attempts) return;
-
-        setHealthcheckAttempts(attempts);
-
-        // Polling starts only after a successful load, so a tick cannot replace a shown failure.
-        if (period === 'today') {
-          interval = setInterval(() => {
-            void refreshHealthcheckAttempts();
-          }, 60000);
-        }
-      } catch (e) {
-        if (isCurrentLoad(sequence)) setAttemptsLoadError(e);
-      } finally {
-        if (isCurrentLoad(sequence)) setIsLoading(false);
-      }
-    };
-
-    setIsHealthcheckConfigLoading(true);
-    setIsShowHealthcheckConfig(false);
-    setConfigLoadError(undefined);
-    setAttemptsLoadError(undefined);
-    setHealthcheckAttempts([]);
-
-    healthcheckConfigApi
-      .getHealthcheckConfig(database.id)
-      .then((config) => {
-        if (isCancelled || !isSessionActive()) return;
-
-        setIsShowHealthcheckConfig(config.isHealthcheckEnabled);
-
-        if (config.isHealthcheckEnabled) void loadHealthcheckAttempts();
-      })
-      .catch((e: unknown) => {
-        if (isCancelled || !isSessionActive()) return;
-
-        setConfigLoadError(e);
-      })
-      .finally(() => {
-        if (!isCancelled && isSessionActive()) setIsHealthcheckConfigLoading(false);
-      });
-
-    return () => {
-      isCancelled = true;
-      if (interval) clearInterval(interval);
-    };
-  }, [database.id, period, loadAttempt, isSessionActive]);
+      return collectCursorPages(
+        (after: string | undefined) =>
+          healthcheckAttemptApi.getAttemptsByDatabase({
+            databaseId: database.id,
+            since,
+            after,
+            signal,
+          }),
+        { signal },
+      );
+    },
+  });
+  useFixedQueryPolling({
+    query: attemptsQuery,
+    intervalMs: 60000,
+    isEnabled:
+      configQuery.data?.isHealthcheckEnabled === true &&
+      period === 'today' &&
+      attemptsQuery.data !== undefined,
+    shouldRunInBackground: true,
+  });
+  const isHealthcheckConfigLoading = configQuery.isPending;
+  const isShowHealthcheckConfig = configQuery.data?.isHealthcheckEnabled;
+  const configLoadError = configQuery.error ?? undefined;
+  const healthcheckAttempts = attemptsQuery.data ?? [];
+  const isLoading = attemptsQuery.isPending;
+  const attemptsLoadError =
+    attemptsQuery.data === undefined ? (attemptsQuery.error ?? undefined) : undefined;
+  const retryLoad = async () => {
+    const config = await configQuery.refetch();
+    if (config.data?.isHealthcheckEnabled && attemptsQuery.error !== null) {
+      await attemptsQuery.refetch();
+    }
+  };
 
   if (isHealthcheckConfigLoading) {
     return (

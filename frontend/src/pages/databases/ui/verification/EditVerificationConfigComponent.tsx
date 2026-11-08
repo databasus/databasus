@@ -16,6 +16,8 @@ import { type VerificationConfig } from '@/pages/databases/model/verification/Ve
 import { VerificationNotificationType } from '@/pages/databases/model/verification/VerificationNotificationType';
 import { VERIFICATION_NOTIFICATION_TYPE_LABEL_KEYS } from '@/pages/databases/model/verification/VerificationNotificationTypeLabelKeys';
 import { VerificationScheduleType } from '@/pages/databases/model/verification/VerificationScheduleType';
+import { useSessionMutation } from '@/shared/api';
+import { useSessionQuery } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { useLatestRef } from '@/shared/hooks';
 import { getWebsitePageUrl, translateApiError, useLocale } from '@/shared/i18n';
@@ -30,6 +32,12 @@ interface Props {
 }
 
 export const EditVerificationConfigComponent = ({ databaseId, onClose }: Props) => {
+  const saveMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof verificationConfigApi.save>) =>
+      verificationConfigApi.save(...parameters),
+  });
+  const { reset: resetRequest } = saveMutation;
+
   const { t } = useTranslation();
   const { locale } = useLocale();
   const isActive = useSessionGuard();
@@ -38,10 +46,13 @@ export const EditVerificationConfigComponent = ({ databaseId, onClose }: Props) 
 
   const [acknowledgedConfig, setAcknowledgedConfig] = useState<VerificationConfig>();
   const [draft, setDraft] = useState<VerificationConfig>();
-  const [loadError, setLoadError] = useState<unknown>();
-  const [loadAttempt, setLoadAttempt] = useState(0);
+  const query = useSessionQuery({
+    queryKey: ['verification-config', databaseId],
+    queryFn: (signal) => verificationConfigApi.getByDatabaseId(databaseId, { signal }),
+  });
+  const loadError = query.error ?? undefined;
 
-  const [isSaving, setIsSaving] = useState(false);
+  const isSaving = saveMutation.isPending;
   const [saveError, setSaveError] = useState<unknown>();
 
   const updateDraft = (patch: Partial<VerificationConfig>) => {
@@ -81,14 +92,13 @@ export const EditVerificationConfigComponent = ({ databaseId, onClose }: Props) 
 
     const isShownRequest = () => isActive() && shownDatabaseId.current === databaseId;
 
-    setIsSaving(true);
     setSaveError(undefined);
 
     try {
-      await verificationConfigApi.save(
+      await saveMutation.mutateAsync([
         databaseId,
         buildVerificationConfigForSave({ acknowledgedConfig, draft }),
-      );
+      ]);
       if (!isShownRequest()) return;
 
       onClose();
@@ -96,40 +106,27 @@ export const EditVerificationConfigComponent = ({ databaseId, onClose }: Props) 
       if (!isShownRequest()) return;
 
       setSaveError(error);
-      setIsSaving(false);
+      resetRequest();
     }
   };
 
   useEffect(() => {
-    let isCurrentLoad = true;
-
-    setLoadError(undefined);
     setAcknowledgedConfig(undefined);
     setDraft(undefined);
     setSaveError(undefined);
-    setIsSaving(false);
-
-    verificationConfigApi
-      .getByDatabaseId(databaseId)
-      .then((loadedConfig) => {
-        if (!isCurrentLoad || !isActive()) return;
-
-        setAcknowledgedConfig(loadedConfig);
-        setDraft(loadedConfig);
-      })
-      .catch((error: unknown) => {
-        if (isCurrentLoad && isActive()) setLoadError(error);
-      });
-
-    return () => {
-      isCurrentLoad = false;
-    };
-  }, [databaseId, loadAttempt, isActive]);
+    resetRequest();
+  }, [databaseId, resetRequest]);
+  useEffect(() => {
+    if (isActive() && query.data !== undefined) {
+      setAcknowledgedConfig(query.data);
+      setDraft(query.data);
+    }
+  }, [query.data, isActive]);
 
   if (loadError !== undefined) {
     return (
       <div>
-        <LoadFailure error={loadError} onRetry={() => setLoadAttempt((attempt) => attempt + 1)} />
+        <LoadFailure error={loadError} onRetry={() => void query.refetch()} />
 
         <div className="mt-6 flex justify-end">
           <Button onClick={onClose}>{t('common.actions.cancel')}</Button>

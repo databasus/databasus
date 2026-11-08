@@ -1,6 +1,5 @@
 import { Tooltip } from '@mantine/core';
 import { Info } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -16,11 +15,12 @@ import {
   WEEKDAY_LABEL_KEYS,
   getLocalScheduleParts,
 } from '@/entities/schedules';
-import { type Storage, getStorageLogoFromType, storageApi } from '@/entities/storages';
+import { getStorageLogoFromType, storageApi } from '@/entities/storages';
 import { LOGICAL_NOTIFICATION_TRIGGER_LABEL_KEYS } from '@/pages/databases/model/LogicalNotificationTriggerLabelKeys';
 import { LogicalRetentionPolicy } from '@/pages/databases/model/LogicalRetentionPolicy';
 import { RETENTION_PERIOD_LABEL_KEYS } from '@/pages/databases/model/RetentionPeriodLabelKeys';
 import { StorageCleanupNotice } from '@/pages/databases/ui/backup-config/StorageCleanupNotice';
+import { useSessionQuery } from '@/shared/api';
 import { type LocalizedText, translateLocalizedText } from '@/shared/i18n';
 import { getUserClockFormat } from '@/shared/time';
 import { LoadFailure } from '@/shared/ui';
@@ -63,9 +63,6 @@ export const ShowLogicalBackupConfigComponent = ({
 }: Props) => {
   const { t } = useTranslation();
   const listSeparator = t('common.listSeparator');
-  const [storage, setStorage] = useState<Storage>();
-  const [storageLoadError, setStorageLoadError] = useState<unknown>();
-  const [storageLoadAttempt, setStorageLoadAttempt] = useState(0);
 
   const describeGfsRetention = (retention: LogicalBackupSettings['retention']): string => {
     const texts = getGfsRetentionTexts(retention);
@@ -76,27 +73,13 @@ export const ShowLogicalBackupConfigComponent = ({
 
   const { storageId } = backupConfig;
 
-  useEffect(() => {
-    let isActive = true;
-
-    setStorage(undefined);
-    setStorageLoadError(undefined);
-
-    if (!storageId) return;
-
-    storageApi
-      .getStorage(storageId)
-      .then((loadedStorage) => {
-        if (isActive) setStorage(loadedStorage);
-      })
-      .catch((error: unknown) => {
-        if (isActive) setStorageLoadError(error);
-      });
-
-    return () => {
-      isActive = false;
-    };
-  }, [storageId, storageLoadAttempt]);
+  const storageQuery = useSessionQuery({
+    queryKey: ['storage', storageId],
+    enabled: !!storageId,
+    queryFn: (signal) => storageApi.getStorage(storageId!, { signal }),
+  });
+  const storage = storageQuery.data;
+  const storageLoadError = storageQuery.error ?? undefined;
 
   const { schedule, retention } = backupConfig.settings;
 
@@ -132,7 +115,7 @@ export const ShowLogicalBackupConfigComponent = ({
         <LoadFailure
           className="mb-1"
           error={storageLoadError}
-          onRetry={() => setStorageLoadAttempt((attempt) => attempt + 1)}
+          onRetry={() => void storageQuery.refetch()}
         />
       )}
 

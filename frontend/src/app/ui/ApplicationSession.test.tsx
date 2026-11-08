@@ -1,12 +1,20 @@
 // @vitest-environment happy-dom
-import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
 import { renderApp } from '@/app/ui/renderApp';
+import { databaseApi } from '@/entities/databases';
 import { createDefaultDatabaseSettings, DatabaseType } from '@/entities/databases';
+import { notifierApi } from '@/entities/notifiers';
+import { storageApi } from '@/entities/storages';
 import { API_BASE_PATH } from '@/shared/api';
 import { activateSession, getSessionSnapshot, invalidateSession } from '@/shared/auth';
+import { fr } from '@/shared/i18n/locales/fr';
+import { advanceFakeClock } from '@/shared/lib/test/advanceFakeClock';
+import { waitForCondition } from '@/shared/lib/test/conditionWait';
+import { finishApiResponse } from '@/shared/lib/test/finishApiResponse';
+import { finishCancelledApiResponse } from '@/shared/lib/test/finishCancelledApiResponse';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 
 const server = setUpMockApi();
@@ -104,17 +112,106 @@ const seedAccount = () => {
   );
 };
 
-const observeListResponse = (path: string) =>
-  new Promise<void>((resolve) => {
-    const onResponse = ({ request }: { request: Request }) => {
-      if (new URL(request.url).pathname !== `/api/v1${path}`) return;
-      server.events.removeListener('response:mocked', onResponse);
-      resolve();
-    };
-    server.events.on('response:mocked', onResponse);
+describe('Application session isolation', () => {
+  it('stops old polling and preserves preferences and reload cooldown when the session changes', async () => {
+    seedAccount();
+    let view: ReturnType<typeof render> | undefined;
+
+    try {
+      vi.stubEnv('VITE_APP_VERSION', '1.0.0');
+      vi.resetModules();
+      const [{ default: App }, session] = await Promise.all([
+        import('@/app/ui/App'),
+        import('@/shared/auth'),
+      ]);
+      vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
+      vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+      const reload = vi.spyOn(window.location, 'reload').mockImplementation(() => {});
+      const initialVersion = mockApi.pending('get', '/system/version');
+      server.use(initialVersion.handler);
+      localStorage.setItem('databasus-locale', 'fr');
+      localStorage.setItem('databasus-theme', 'dark');
+      localStorage.setItem('lastVersionReload', String(Date.now()));
+      const getDatabaseReads = () =>
+        server
+          .getRequests()
+          .filter((request) => new URL(request.url).pathname === '/api/v1/databases');
+
+      view = render(<App />);
+      await waitForCondition(() =>
+        expect(screen.getByRole('button', { name: fr.databases.list.addDatabase })).toBeTruthy(),
+      );
+      await finishApiResponse(server, '/api/v1/system/version', () =>
+        initialVersion.respond(HttpResponse.json({ version: '2.0.0' })),
+      );
+
+      expect(getDatabaseReads()).toHaveLength(1);
+      expect(reload).not.toHaveBeenCalled();
+
+      const obsoleteRefresh = mockApi.pending('get', '/databases');
+      server.use(obsoleteRefresh.handler);
+
+      await advanceFakeClock(30_000);
+      await waitForCondition(() => expect(getDatabaseReads()).toHaveLength(2));
+
+      const pendingRefresh = getDatabaseReads()[1];
+      expect(pendingRefresh.headers.get('Authorization')).toBe('Bearer origin-session');
+      expect(pendingRefresh.signal.aborted).toBe(false);
+
+      const replacementAccount = {
+        ...account,
+        id: 'replacement-owner',
+        email: 'replacement@example.com',
+      };
+      const replacementVersion = mockApi.pending('get', '/system/version');
+      const reloadCooldown = String(Date.now());
+      server.use(
+        mockApi.get('/users/{userId}', 200, replacementAccount),
+        mockApi.get('/workspaces', 200, { items: [] }),
+        mockApi.get('/databases', 200, { items: [] }),
+        replacementVersion.handler,
+      );
+      localStorage.setItem('lastVersionReload', reloadCooldown);
+
+      act(() =>
+        session.activateSession({ token: 'replacement-session', userId: replacementAccount.id }),
+      );
+      await waitForCondition(() =>
+        expect(screen.getByRole('button', { name: fr.app.navigation.profile })).toBeTruthy(),
+      );
+      fireEvent.click(screen.getByRole('button', { name: fr.app.navigation.profile }));
+      await waitForCondition(() =>
+        expect(screen.getByDisplayValue(replacementAccount.email)).toBeTruthy(),
+      );
+      await finishApiResponse(server, '/api/v1/system/version', () =>
+        replacementVersion.respond(HttpResponse.json({ version: '2.0.0' })),
+      );
+
+      expect(pendingRefresh.signal.aborted).toBe(true);
+      expect(reload).not.toHaveBeenCalled();
+
+      await finishCancelledApiResponse(server, '/api/v1/databases', () =>
+        obsoleteRefresh.respond(HttpResponse.json({ items: [lists[0].item] })),
+      );
+      await advanceFakeClock(60_001);
+
+      expect(getDatabaseReads()).toHaveLength(2);
+      expect(session.getSessionSnapshot().token).toBe('replacement-session');
+      expect(screen.getByDisplayValue(replacementAccount.email)).toBeTruthy();
+      expect(screen.queryByText(lists[0].item.name)).toBeNull();
+      expect(localStorage.getItem(lists[0].selectionKey)).toBeNull();
+      expect(localStorage.getItem('databasus-locale')).toBe('fr');
+      expect(document.documentElement.lang).toBe('fr');
+      expect(localStorage.getItem('databasus-theme')).toBe('dark');
+      expect(document.documentElement.classList.contains('dark')).toBe(true);
+      expect(localStorage.getItem('lastVersionReload')).toBe(reloadCooldown);
+      expect(reload).not.toHaveBeenCalled();
+    } finally {
+      view?.unmount();
+      vi.unstubAllEnvs();
+    }
   });
 
-describe('Application session isolation', () => {
   it.each(['load', 'test'] as const)(
     'suppresses obsolete notifier details feedback after account replacement during $0',
     async (operation) => {
@@ -158,15 +255,17 @@ describe('Application session isolation', () => {
       fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
       await screen.findByDisplayValue('replacement@example.com');
 
-      const processed = observeListResponse(requestPath.replace('/api/v1', ''));
-      await act(async () => {
-        obsoleteOperation.respond(
-          operation === 'load'
-            ? HttpResponse.json(buildProblem('unauthenticated', 401), { status: 401 })
-            : HttpResponse.json({ isDelivered: false, error: 'Obsolete diagnostic' }),
-        );
-        await processed;
-      });
+      await (operation === 'load' ? finishCancelledApiResponse : finishApiResponse)(
+        server,
+        requestPath,
+        () => {
+          obsoleteOperation.respond(
+            operation === 'load'
+              ? HttpResponse.json(buildProblem('unauthenticated', 401), { status: 401 })
+              : HttpResponse.json({ isDelivered: false, error: 'Obsolete diagnostic' }),
+          );
+        },
+      );
 
       expect(alert).not.toHaveBeenCalled();
       expect(getSessionSnapshot().token).toBe('replacement-session');
@@ -225,15 +324,13 @@ describe('Application session isolation', () => {
         await screen.findByDisplayValue(replacementAccount.email);
       }
 
-      const processed = observeListResponse(path);
-      await act(async () => {
+      await finishCancelledApiResponse(server, `/api/v1${path}`, () => {
         obsoleteList.respond(
           HttpResponse.json(
             status === 200 ? { items: [item] } : buildProblem('unauthenticated', status),
             { status },
           ),
         );
-        await processed;
       });
 
       expect(alert).not.toHaveBeenCalled();
@@ -252,29 +349,20 @@ describe('Application session isolation', () => {
     async ({ path, tab, action }) => {
       seedAccount();
       const alert = vi.spyOn(window, 'alert').mockImplementation(() => {});
-      const obsoleteSetup = mockApi.pending('get', path);
-      let listReadCount = 0;
-      const listHandler = http.get(`*${API_BASE_PATH}${path}`, () =>
-        ++listReadCount === 1 ? obsoleteSetup.response : HttpResponse.json({ items: [] }),
-      );
-      if (path === '/databases') server.use(listHandler);
-
+      const listRead =
+        path === '/databases'
+          ? vi.spyOn(databaseApi, 'listAllDatabases')
+          : path === '/storages'
+            ? vi.spyOn(storageApi, 'listAllStorages')
+            : vi.spyOn(notifierApi, 'listAllNotifiers');
       renderApp({ isStrictMode: true });
       if (path !== '/databases') {
         await screen.findByRole('button', { name: 'Add database' });
-        server.use(listHandler);
         fireEvent.click(screen.getByRole('button', { name: tab }));
       }
       await screen.findByRole('button', { name: action });
-      expect(listReadCount).toBe(2);
-
-      const processed = observeListResponse(path);
-      await act(async () => {
-        obsoleteSetup.respond(
-          HttpResponse.json(buildProblem('permission_denied', 403), { status: 403 }),
-        );
-        await processed;
-      });
+      expect(listRead.mock.calls.length).toBeGreaterThanOrEqual(2);
+      expect(listRead.mock.calls[0][1]?.signal?.aborted).toBe(true);
 
       expect(alert).not.toHaveBeenCalled();
       expect(screen.getByRole('button', { name: action })).toBeTruthy();
@@ -324,6 +412,49 @@ describe('Application logout', () => {
     expect(localStorage.getItem('databasus-locale')).toBe('en');
     expect(localStorage.getItem('databasus-theme')).toBe('dark');
     expect(localStorage.getItem('lastVersionReload')).toBe('123');
+  });
+
+  it('waits for fresh startup data after the same account signs in again', async () => {
+    seedAccount();
+    renderApp();
+    fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Logout' }));
+    await screen.findByRole('button', { name: 'Sign in' });
+
+    const freshAccount = mockApi.delayed({
+      method: 'get',
+      path: '/users/{userId}',
+      status: 200,
+      body: { ...account, name: 'Updated owner' },
+    });
+    server.use(freshAccount.handler);
+    const previousReads = server
+      .getRequests()
+      .filter((request) => new URL(request.url).pathname.endsWith(`/users/${account.id}`)).length;
+
+    act(() => activateSession({ token: 'second-session', userId: account.id }));
+    await waitFor(() =>
+      expect(
+        server
+          .getRequests()
+          .filter((request) => new URL(request.url).pathname.endsWith(`/users/${account.id}`)),
+      ).toHaveLength(previousReads + 1),
+    );
+
+    expect(screen.queryByRole('button', { name: 'Profile' })).toBeNull();
+
+    await act(async () => freshAccount.release());
+    await screen.findByRole('button', { name: 'Profile' });
+
+    server.use(mockApi.get('/users/{userId}', 200, { ...account, name: 'Updated owner' }));
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
+    await waitFor(() =>
+      expect(screen.getByRole('textbox', { name: 'Name' })).toHaveProperty(
+        'value',
+        'Updated owner',
+      ),
+    );
   });
 
   it('opens the next account on the first database with no filter when both accounts share the workspace', async () => {

@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 
 import { healthcheckConfigApi } from '@/entities/healthcheck';
 import type { HealthcheckConfig } from '@/entities/healthcheck';
+import { useSessionMutation } from '@/shared/api';
+import { useSessionQuery } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { useLatestRef } from '@/shared/hooks';
 import { translateApiError } from '@/shared/i18n';
@@ -16,6 +18,12 @@ interface Props {
 }
 
 export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) => {
+  const saveHealthcheckConfigMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof healthcheckConfigApi.saveHealthcheckConfig>) =>
+      healthcheckConfigApi.saveHealthcheckConfig(...parameters),
+  });
+  const { reset: resetRequest } = saveHealthcheckConfigMutation;
+
   const { t } = useTranslation();
   const isActive = useSessionGuard();
   const latestDatabaseId = useLatestRef(databaseId);
@@ -25,25 +33,27 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
   const attemptsFieldId = useId();
   const retentionFieldId = useId();
 
-  const [isSaving, setIsSaving] = useState(false);
+  const isSaving = saveHealthcheckConfigMutation.isPending;
   const [isUnsaved, setIsUnsaved] = useState(false);
   const [saveError, setSaveError] = useState<unknown>();
   const [healthcheckConfig, setHealthcheckConfig] = useState<HealthcheckConfig | undefined>(
     undefined,
   );
-  const [loadError, setLoadError] = useState<unknown>();
-  const [loadAttempt, setLoadAttempt] = useState(0);
+  const query = useSessionQuery({
+    queryKey: ['healthcheck-config', databaseId],
+    queryFn: (signal) => healthcheckConfigApi.getHealthcheckConfig(databaseId, { signal }),
+  });
+  const loadError = query.error ?? undefined;
 
   const handleSave = async () => {
     if (!healthcheckConfig) return;
 
     const isCurrentSave = () => isActive() && latestDatabaseId.current === databaseId;
 
-    setIsSaving(true);
     setSaveError(undefined);
 
     try {
-      await healthcheckConfigApi.saveHealthcheckConfig(healthcheckConfig);
+      await saveHealthcheckConfigMutation.mutateAsync([healthcheckConfig]);
 
       if (!isCurrentSave()) return;
 
@@ -52,37 +62,26 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
     } catch (e) {
       if (isCurrentSave()) setSaveError(e);
     } finally {
-      if (isCurrentSave()) setIsSaving(false);
+      if (isCurrentSave()) resetRequest();
     }
   };
 
   useEffect(() => {
-    let isCurrentLoad = true;
-
     setHealthcheckConfig(undefined);
-    setLoadError(undefined);
-    setSaveError(undefined);
     setIsUnsaved(false);
-    setIsSaving(false);
-
-    healthcheckConfigApi
-      .getHealthcheckConfig(databaseId)
-      .then((config) => {
-        if (isCurrentLoad && isActive()) setHealthcheckConfig(config);
-      })
-      .catch((error: unknown) => {
-        if (isCurrentLoad && isActive()) setLoadError(error);
-      });
-
-    return () => {
-      isCurrentLoad = false;
-    };
-  }, [databaseId, loadAttempt, isActive]);
+    setSaveError(undefined);
+    resetRequest();
+  }, [databaseId, resetRequest]);
+  useEffect(() => {
+    if (isActive() && query.data !== undefined) {
+      setHealthcheckConfig(query.data);
+    }
+  }, [query.data, isActive]);
 
   if (loadError !== undefined) {
     return (
       <div>
-        <LoadFailure error={loadError} onRetry={() => setLoadAttempt((attempt) => attempt + 1)} />
+        <LoadFailure error={loadError} onRetry={() => void query.refetch()} />
 
         <div className="mt-6 flex justify-end">
           <Button onClick={onClose}>{t('common.actions.cancel')}</Button>

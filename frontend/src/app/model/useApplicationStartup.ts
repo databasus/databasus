@@ -1,59 +1,92 @@
-import { useEffect, useEffectEvent, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 
-import { diskApi, type DiskUsage } from '@/entities/disk';
+import { diskApi } from '@/entities/disk';
 import { settingsApi, userApi, UserRole, type User, type InstanceSettings } from '@/entities/users';
 import { workspaceApi, WorkspaceRole, type Workspace } from '@/entities/workspaces';
+import { useSessionQuery } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { useRequestRevision } from '@/shared/hooks';
 
 export function useApplicationStartup() {
+  const client = useQueryClient();
   const [user, setUser] = useState<User>();
   const [settings, setSettings] = useState<InstanceSettings>();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>();
-  const [diskUsage, setDiskUsage] = useState<DiskUsage>();
-  const [error, setError] = useState<unknown>();
-  const [isLoading, setIsLoading] = useState(true);
+  const [startupReadError, setStartupReadError] = useState<unknown>();
+  const query = useSessionQuery({
+    queryKey: ['application-startup'],
+    queryFn: async (signal) => {
+      setStartupReadError(undefined);
 
-  const load = async () => {
-    const requestRevision = revision.Invalidate();
-    accessRevision.Invalidate();
-    const isCurrent = () => isSessionCurrent() && revision.IsCurrent(requestRevision);
-    setIsLoading(true);
-    setError(undefined);
+      const reportFailure = (error: unknown): never => {
+        if (!signal.aborted && isSessionCurrent())
+          setStartupReadError((current: unknown) => current ?? error);
 
-    void diskApi
-      .getDiskUsage()
-      .then((disk) => {
-        if (isCurrent()) setDiskUsage(disk);
-      })
-      .catch(() => {});
+        throw error;
+      };
+      const reads = [
+        userApi.getCurrentUser({ signal }).catch(reportFailure),
+        settingsApi.getSettings({ signal }).catch(reportFailure),
+        workspaceApi.listAllWorkspaces({ signal }).catch(reportFailure),
+      ] as const;
 
-    try {
-      const [currentUser, currentSettings, accessibleWorkspaces] = await Promise.all([
-        userApi.getCurrentUser(),
-        settingsApi.getSettings(),
-        workspaceApi.listAllWorkspaces(),
-      ]);
-      if (!isCurrent()) return;
-
-      setUser(currentUser);
-      setSettings(currentSettings);
-      setWorkspaces(accessibleWorkspaces);
-      let remembered: string | null = null;
       try {
-        remembered = localStorage.getItem('selected_workspace_id');
-      } catch {}
-      setSelectedWorkspaceId(
-        (current) =>
-          accessibleWorkspaces.find((workspace) => workspace.id === (current ?? remembered))?.id ??
-          accessibleWorkspaces[0]?.id,
-      );
-    } catch (failure) {
-      if (isCurrent()) setError(failure);
-    } finally {
-      if (isCurrent()) setIsLoading(false);
-    }
+        const [user, settings, workspaces] = await Promise.all(reads);
+
+        return { user, settings, workspaces };
+      } finally {
+        // A failed essential read must not release still-running sibling requests.
+        await Promise.allSettled(reads);
+      }
+    },
+  });
+  const disk = useSessionQuery({
+    queryKey: ['disk-usage'],
+    queryFn: (signal) => diskApi.getDiskUsage({ signal }),
+  });
+  const access = useSessionQuery({
+    queryKey: ['workspace-access'],
+    queryFn: (signal) => workspaceApi.listAllWorkspaces({ signal }),
+    enabled: false,
+  });
+  const diskUsage = disk.data;
+  const [accessError, setError] = useState<unknown>();
+  const error = accessError ?? startupReadError ?? query.error ?? undefined;
+  const isLoading =
+    startupReadError === undefined && (query.isPending || (query.isFetching && query.isError));
+
+  const load = () => {
+    discardWorkspaceRead();
+    setError(undefined);
+    void disk.refetch();
+
+    return query.refetch();
+  };
+  useEffect(() => {
+    if (!query.data) return;
+
+    const { user, settings, workspaces } = query.data;
+    setUser(user);
+    setSettings(settings);
+    setWorkspaces(workspaces);
+
+    let remembered: string | null = null;
+    try {
+      remembered = localStorage.getItem('selected_workspace_id');
+    } catch {}
+
+    setSelectedWorkspaceId(
+      (current) =>
+        workspaces.find((workspace) => workspace.id === (current ?? remembered))?.id ??
+        workspaces[0]?.id,
+    );
+  }, [query.data, query.dataRevision]);
+
+  const discardWorkspaceRead = () => {
+    accessRevision.Invalidate();
+    void client.cancelQueries({ queryKey: access.queryKey, exact: true });
   };
 
   const acceptUser = (changedUser: User) => {
@@ -65,14 +98,14 @@ export function useApplicationStartup() {
   const acceptWorkspace = (workspace: Workspace) => {
     if (!isSessionCurrent()) return;
 
-    accessRevision.Invalidate();
+    discardWorkspaceRead();
     setWorkspaces((current) => [...current.filter((item) => item.id !== workspace.id), workspace]);
     setSelectedWorkspaceId(workspace.id);
   };
   const updateWorkspace = (workspace: Workspace) => {
     if (!isSessionCurrent()) return;
 
-    accessRevision.Invalidate();
+    discardWorkspaceRead();
     setWorkspaces((current) =>
       current.map((item) => (item.id === workspace.id ? workspace : item)),
     );
@@ -80,7 +113,7 @@ export function useApplicationStartup() {
   const removeWorkspace = (workspaceId: string) => {
     if (!isSessionCurrent()) return;
 
-    accessRevision.Invalidate();
+    discardWorkspaceRead();
     setWorkspaces((current) => current.filter((workspace) => workspace.id !== workspaceId));
     setSelectedWorkspaceId((current) =>
       current === workspaceId
@@ -91,7 +124,7 @@ export function useApplicationStartup() {
   const selectWorkspace = (workspace: Workspace) => {
     if (!isSessionCurrent()) return;
 
-    accessRevision.Invalidate();
+    discardWorkspaceRead();
     setSelectedWorkspaceId(workspace.id);
   };
   const reconcileUnavailableWorkspace = async (workspaceId: string) => {
@@ -101,7 +134,9 @@ export function useApplicationStartup() {
     const requestRevision = accessRevision.Invalidate();
 
     try {
-      const accessible = await workspaceApi.listAllWorkspaces();
+      const { data: accessible, error } = await access.refetch();
+      if (error) throw error;
+      if (!accessible) return;
       if (!isSessionCurrent() || !accessRevision.IsCurrent(requestRevision)) return;
 
       setWorkspaces(accessible);
@@ -113,21 +148,8 @@ export function useApplicationStartup() {
     }
   };
   const isSessionCurrent = useSessionGuard();
-  const revision = useRequestRevision();
   const accessRevision = useRequestRevision();
 
-  const startApplicationLoad = useEffectEvent(() => {
-    void load();
-  });
-
-  useEffect(() => {
-    startApplicationLoad();
-
-    return () => {
-      revision.Invalidate();
-      accessRevision.Invalidate();
-    };
-  }, [revision, accessRevision]);
   useEffect(() => {
     if (isLoading || error !== undefined) return;
 
