@@ -12,7 +12,8 @@ from workflow_jobs import get_jobs
 ROOT = Path(__file__).resolve().parents[1]
 ARCHITECTURES = {"amd64", "arm64"}
 BACKEND_GROUPS = {
-    "other",
+    "storage-providers",
+    *(f"other-{shard}-of-3" for shard in range(1, 4)),
     "logical",
     "agent-e2e",
     *(f"physical-{shard}-of-3" for shard in range(1, 4)),
@@ -24,12 +25,18 @@ REQUIRED_TEST_JOBS = {
     "test-frontend",
     "test-frontend-browser-ui",
     "test-e2e-browser",
+    "test-e2e-browser-lifecycle",
     "test-verification-agent",
     "e2e-verification-agent-podman",
     "test-filesystems",
     "test-upgrade",
 }
-CANDIDATE_JOBS = {"test-e2e-browser", "test-filesystems", "test-upgrade"}
+CANDIDATE_JOBS = {
+    "test-e2e-browser",
+    "test-e2e-browser-lifecycle",
+    "test-filesystems",
+    "test-upgrade",
+}
 
 
 def get_matrix_entries(job: str) -> list[dict[str, str]]:
@@ -54,16 +61,15 @@ def check_release_coverage(workflow: str) -> None:
     for name in REQUIRED_TEST_JOBS | {"build-storage-image", "build-verification-image"}:
         job = jobs[name]
         entries = get_matrix_entries(job)
-        groups = (
-            BACKEND_GROUPS
-            if name == "test-backend"
-            else (
-                {"permissions", "upgrades", "lifecycle", "network"}
-                if name == "test-filesystems"
-                else {""}
-            )
-        )
-        identities = [(entry["arch"], entry.get("group", "")) for entry in entries]
+        groups = {
+            "test-backend": BACKEND_GROUPS,
+            "test-filesystems": {"permissions", "upgrades", "lifecycle", "network"},
+            "test-frontend-browser-ui": {"1", "2", "3"},
+            "test-e2e-browser-lifecycle": {"failures", "interruption", "isolation"},
+        }.get(name, {""})
+        identities = [
+            (entry["arch"], entry.get("shard", entry.get("group", ""))) for entry in entries
+        ]
         if len(set(identities)) != len(identities) or set(identities) != {
             (architecture, group) for architecture in ARCHITECTURES for group in groups
         }:
@@ -80,7 +86,14 @@ def check_release_coverage(workflow: str) -> None:
             if is_vm:
                 required_runner = "ubuntu-24.04" + ("-arm" if architecture == "arm64" else "")
             elif name == "test-backend":
-                size = "8vcpu-16ram" if entry["group"] in {"other", "logical"} else "4vcpu-8ram"
+                size = (
+                    "8vcpu-16ram"
+                    if (
+                        entry["group"].startswith("other-")
+                        or entry["group"] in {"storage-providers", "logical"}
+                    )
+                    else "4vcpu-8ram"
+                )
                 required_runner = f"namespace-profile-{size}-ubuntu-22-" + (
                     "arm" if architecture == "arm64" else "x64"
                 )
@@ -101,6 +114,8 @@ def check_release_coverage(workflow: str) -> None:
                 raise AssertionError(f"{name}: test failure is allowed")
         if re.search(r"(?m)^    if:", job):
             raise AssertionError(f"{name}: required suite can be skipped")
+    if "needs: [build-storage-image]" not in jobs["test-e2e-browser-lifecycle"]:
+        raise AssertionError("lifecycle: disconnected candidate prerequisite")
     for name in CANDIDATE_JOBS | {"build-storage-image"}:
         job = jobs[name]
         if (
@@ -108,6 +123,10 @@ def check_release_coverage(workflow: str) -> None:
             or job.count("          name: ${{ env.ARTIFACT_NAME }}\n") != 3
         ):
             raise AssertionError(f"{name}: artifact architecture mismatch")
+        if name in CANDIDATE_JOBS and re.findall(r"DATABASUS_IMAGE: ([^\n]+)", job) != [
+            "databasus-storage-test:${{ github.sha }}-${{ matrix.arch }}"
+        ]:
+            raise AssertionError(f"{name}: scenario candidate architecture mismatch")
         if "databasus-storage-test:${{ github.sha }}-${{ matrix.arch }}" not in job:
             raise AssertionError(f"{name}: candidate architecture mismatch")
         if "databasus-storage-test-${{ matrix.arch }}.tar.zst" not in job:
@@ -175,6 +194,111 @@ class NativeReleaseTest(unittest.TestCase):
                 self.assertRaisesRegex(AssertionError, diagnostic),
             ):
                 check_release_coverage(changed)
+
+    def test_rejects_missing_duplicate_disconnected_and_non_native_new_selections(self) -> None:
+        workflow = (ROOT / ".github/workflows/ci-release.yml").read_text()
+        mutations = [
+            (
+                "test-backend",
+                "- group: other-3-of-3",
+                "- group: other-2-of-3",
+                "incomplete native matrix",
+            ),
+            (
+                "test-backend",
+                "- group: storage-providers",
+                "- group: other-1-of-3",
+                "incomplete native matrix",
+            ),
+            ("test-frontend-browser-ui", "shard: 3", "shard: 2", "incomplete native matrix"),
+            (
+                "test-e2e-browser-lifecycle",
+                "group: isolation",
+                "group: failures",
+                "incomplete native matrix",
+            ),
+            (
+                "test-e2e-browser-lifecycle",
+                "needs: [build-storage-image]",
+                "needs: [lint-backend]",
+                "disconnected candidate prerequisite",
+            ),
+            (
+                "determine-version",
+                "        test-e2e-browser-lifecycle,\n",
+                "",
+                "disconnected release gate",
+            ),
+            (
+                "test-e2e-browser-lifecycle",
+                "run: mise run e2e:lifecycle",
+                "continue-on-error: true\n        run: mise run e2e:lifecycle",
+                "test failure is allowed",
+            ),
+            (
+                "test-e2e-browser-lifecycle",
+                "ARTIFACT_NAME: databasus-storage-test-${{ matrix.arch }}",
+                "ARTIFACT_NAME: databasus-storage-test-amd64",
+                "artifact architecture mismatch",
+            ),
+            (
+                "test-e2e-browser-lifecycle",
+                "DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}-${{ matrix.arch }}",
+                "DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}-amd64",
+                "scenario candidate architecture mismatch",
+            ),
+            (
+                "test-e2e-browser-lifecycle",
+                "scripts/check_native_architecture.sh ${{ matrix.arch }} databasus-storage-test:${{ github.sha }}-${{ matrix.arch }}",
+                "scripts/check_native_architecture.sh ${{ matrix.arch }} databasus-storage-test:${{ github.sha }}-amd64",
+                "candidate is not checked",
+            ),
+            (
+                "test-e2e-browser-lifecycle",
+                "    timeout-minutes: 30",
+                "    if: always()\n    timeout-minutes: 30",
+                "required suite can be skipped",
+            ),
+        ]
+        for job_name, original, replacement, diagnostic in mutations:
+            with self.subTest(job=job_name, diagnostic=diagnostic):
+                matched_job = re.search(
+                    r"^  " + job_name + r":\n.*?(?=^  [a-zA-Z0-9_-]+:|\Z)", workflow, re.M | re.S
+                )
+                assert matched_job is not None
+                job = matched_job.group()
+                self.assertIn(original, job)
+                changed = (
+                    workflow[: matched_job.start()]
+                    + job.replace(original, replacement, 1)
+                    + workflow[matched_job.end() :]
+                )
+                with self.assertRaisesRegex(AssertionError, diagnostic):
+                    check_release_coverage(changed)
+
+        for job_name, axis in (
+            ("test-backend", "group"),
+            ("test-frontend-browser-ui", "arch"),
+            ("test-e2e-browser-lifecycle", "arch"),
+        ):
+            with self.subTest(job=job_name, mutation="missing leg"):
+                matched_job = re.search(
+                    r"^  " + job_name + r":\n.*?(?=^  [a-zA-Z0-9_-]+:|\Z)", workflow, re.M | re.S
+                )
+                assert matched_job is not None
+                job = matched_job.group()
+                changed_job, count = re.subn(
+                    r"          - " + axis + r": [^\n]+\n(?:            [^\n]+\n)+",
+                    "",
+                    job,
+                    count=1,
+                )
+                self.assertEqual(count, 1)
+                changed = (
+                    workflow[: matched_job.start()] + changed_job + workflow[matched_job.end() :]
+                )
+                with self.assertRaisesRegex(AssertionError, "incomplete native matrix"):
+                    check_release_coverage(changed)
 
 
 class NativeArchitectureTest(unittest.TestCase):

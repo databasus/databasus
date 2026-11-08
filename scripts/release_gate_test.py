@@ -39,6 +39,7 @@ RELEASE_GATE_JOBS = {
     "test-frontend",
     "test-frontend-browser-ui",
     "test-e2e-browser",
+    "test-e2e-browser-lifecycle",
     "test-verification-agent",
     "e2e-verification-agent-podman",
     "test-filesystems",
@@ -117,7 +118,8 @@ class ReleaseGateTest(unittest.TestCase):
     def test_browser_end_to_end_check_waits_only_for_its_image(self) -> None:
         jobs = get_jobs(CI_RELEASE)
 
-        self.assertEqual(get_transitive_needs(jobs, "test-e2e-browser"), {"build-storage-image"})
+        for job in ("test-e2e-browser", "test-e2e-browser-lifecycle"):
+            self.assertEqual(get_transitive_needs(jobs, job), {"build-storage-image"})
 
     def test_upgrade_check_waits_only_for_its_image_and_tests_it(self) -> None:
         jobs = get_jobs(CI_RELEASE)
@@ -134,7 +136,10 @@ class ReleaseGateTest(unittest.TestCase):
         self.assertEqual(
             set(re.findall(r"- group: (\S+)", test_backend)),
             {
-                "other",
+                "storage-providers",
+                "other-1-of-3",
+                "other-2-of-3",
+                "other-3-of-3",
                 "agent-e2e",
                 "logical",
                 "physical-1-of-3",
@@ -214,6 +219,7 @@ class ReleaseGateTest(unittest.TestCase):
 
         for job_name in RELEASE_GATE_JOBS - {
             "test-e2e-browser",
+            "test-e2e-browser-lifecycle",
             "test-filesystems",
             "test-upgrade",
         }:

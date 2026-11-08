@@ -28,6 +28,7 @@ CANDIDATE_DOWNLOAD = ArtifactTransfer(
 )
 TRANSFERS = {
     "test-e2e-browser": CANDIDATE_DOWNLOAD,
+    "test-e2e-browser-lifecycle": CANDIDATE_DOWNLOAD,
     "test-filesystems": CANDIDATE_DOWNLOAD,
     "test-upgrade": CANDIDATE_DOWNLOAD,
     "build-storage-image": ArtifactTransfer(

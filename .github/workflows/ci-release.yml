@@ -204,7 +204,7 @@ jobs:
           pnpm test
 
   test-frontend-browser-ui:
-    name: test-frontend-browser-ui (${{ matrix.arch }})
+    name: test-frontend-browser-ui (${{ matrix.arch }}, ${{ matrix.shard }}/3)
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 20
     strategy:
@@ -212,8 +212,22 @@ jobs:
       matrix:
         include:
           - arch: amd64
+            shard: 1
+            runner: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+          - arch: amd64
+            shard: 2
+            runner: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+          - arch: amd64
+            shard: 3
             runner: namespace-profile-4vcpu-8ram-ubuntu-26-x64
           - arch: arm64
+            shard: 1
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
+          - arch: arm64
+            shard: 2
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
+          - arch: arm64
+            shard: 3
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
     steps:
       - name: Check out code
@@ -231,13 +245,13 @@ jobs:
         run: pnpm --dir frontend install --frozen-lockfile
 
       - name: Verify production browser UI
-        run: pnpm --dir frontend test:browser --project=ui
+        run: pnpm --dir frontend test:browser --project=ui --shard=${{ matrix.shard }}/3
 
       - name: Upload synthetic browser failure artifacts
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: frontend-browser-ui-${{ matrix.arch }}
+          name: frontend-browser-ui-${{ matrix.arch }}-${{ matrix.shard }}-of-3
           path: frontend/browser-results/
           retention-days: 7
 
@@ -321,10 +335,65 @@ jobs:
           DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}-${{ matrix.arch }}
         run: mise run e2e:browser
 
+  test-e2e-browser-lifecycle:
+    needs: [build-storage-image]
+    name: test-e2e-browser-lifecycle (${{ matrix.arch }}, ${{ matrix.group }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    env:
+      ARTIFACT_NAME: databasus-storage-test-${{ matrix.arch }}
+      ARTIFACT_PATTERN: ''
+      ARTIFACT_PATH: /tmp
+      ARTIFACT_MERGE_MULTIPLE: 'false'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            group: failures
+            runner: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+          - arch: amd64
+            group: interruption
+            runner: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+          - arch: amd64
+            group: isolation
+            runner: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+          - arch: arm64
+            group: failures
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
+          - arch: arm64
+            group: interruption
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
+          - arch: arm64
+            group: isolation
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Check native runner architecture
+        run: scripts/check_native_architecture.sh ${{ matrix.arch }}
+
+      - *download-artifact-1
+
+      - *download-artifact-2
+
+      - *download-artifact-3
+
+      - name: Load the storage candidate
+        run: |
+          zstd -dc /tmp/databasus-storage-test-${{ matrix.arch }}.tar.zst | docker load
+          scripts/check_native_architecture.sh ${{ matrix.arch }} databasus-storage-test:${{ github.sha }}-${{ matrix.arch }}
+
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: 'python uv'
+
       - name: Check the suite's cleanup and failure handling
         env:
           DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}-${{ matrix.arch }}
-        run: mise run e2e:lifecycle
+        run: mise run e2e:lifecycle ${{ matrix.group }}
 
   test-verification-agent:
     name: test-verification-agent (${{ matrix.arch }})
@@ -459,10 +528,28 @@ jobs:
       matrix:
         # Logical tests run several database engines concurrently; other runs many packages.
         include:
-          - group: other
+          - group: other-1-of-3
             arch: amd64
             runner: namespace-profile-8vcpu-16ram-ubuntu-22-x64
-          - group: other
+          - group: other-1-of-3
+            arch: arm64
+            runner: namespace-profile-8vcpu-16ram-ubuntu-22-arm
+          - group: other-2-of-3
+            arch: amd64
+            runner: namespace-profile-8vcpu-16ram-ubuntu-22-x64
+          - group: other-2-of-3
+            arch: arm64
+            runner: namespace-profile-8vcpu-16ram-ubuntu-22-arm
+          - group: other-3-of-3
+            arch: amd64
+            runner: namespace-profile-8vcpu-16ram-ubuntu-22-x64
+          - group: other-3-of-3
+            arch: arm64
+            runner: namespace-profile-8vcpu-16ram-ubuntu-22-arm
+          - group: storage-providers
+            arch: amd64
+            runner: namespace-profile-8vcpu-16ram-ubuntu-22-x64
+          - group: storage-providers
             arch: arm64
             runner: namespace-profile-8vcpu-16ram-ubuntu-22-arm
           - group: agent-e2e
@@ -568,12 +655,12 @@ jobs:
           }
           report_runner_resources
           trap report_runner_resources EXIT
-          if [[ "$TEST_GROUP" == other ]]; then
-            # The latency regression measures storage throughput, so it needs the runner to itself.
+          if [[ "$TEST_GROUP" == storage-providers ]]; then
+            # The latency regression needs exclusive use of its runner.
             isolated_package=databasus-backend/internal/modules/storages/internal/providers
-            grep -Fxq "$isolated_package" <<< "$packages"
+            [[ "$packages" == "$isolated_package" && -z "$run_pattern" ]]
             go test -race -p=1 -parallel=1 -count=1 -failfast -timeout 40m "$isolated_package"
-            packages=$(grep -Fxv "$isolated_package" <<< "$packages")
+            exit
           fi
           # Each leg runs one group on its own runner and allows extra time for CI contention.
           # shellcheck disable=SC2086 # one import path per word
@@ -888,6 +975,7 @@ jobs:
         test-frontend,
         test-frontend-browser-ui,
         test-e2e-browser,
+        test-e2e-browser-lifecycle,
         test-verification-agent,
         e2e-verification-agent-podman,
         test-filesystems,

@@ -65,7 +65,8 @@ hide = true
 
 [tasks."e2e:lifecycle"]
 description = "Drive the browser end-to-end command through failures, interruptions, crashes and overlapping runs"
-run = "uv run --locked --project e2e/browser pytest e2e/browser/lifecycle"
+usage = 'arg "[group]" help="failures, interruption or isolation; omitted runs every lifecycle probe"'
+run = 'uv run --locked --project e2e/browser python e2e/browser/lifecycle_suite.py ${usage_group:+"$usage_group"}'
 env = { PYTHONDONTWRITEBYTECODE = "1", UV_PYTHON_PREFERENCE = "only-system" }
 hide = true
 
