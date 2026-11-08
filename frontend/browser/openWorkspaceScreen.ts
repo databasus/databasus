@@ -16,7 +16,7 @@ export const openWorkspaceScreen = async ({ page, locale, tab }: Options) => {
 
   if (isNarrowLayout) await menu.click();
 
-  await page.getByRole('button', { name: dictionary.app.navigation[tab], exact: true }).click();
+  await page.getByRole('link', { name: dictionary.app.navigation[tab], exact: true }).click();
 
   // The closing drawer returns focus to the menu button when its animation ends, so a scenario
   // that focuses a control earlier would lose that focus.

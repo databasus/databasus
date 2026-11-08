@@ -144,7 +144,7 @@ const serveDatabasesAndStoredBackupConfig = async (page: Page) => {
   });
 };
 
-const selectDatabase = (page: Page, name: RegExp) => page.getByRole('button', { name }).click();
+const selectDatabase = (page: Page, name: RegExp) => page.getByRole('link', { name }).click();
 
 const openConfigTab = (page: Page) =>
   page.getByRole('main').getByText(dictionary.databases.tabs.config, { exact: true }).click();

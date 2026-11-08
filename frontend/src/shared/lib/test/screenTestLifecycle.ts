@@ -16,6 +16,8 @@ let restoreDocument = () => {};
 beforeEach(() => {
   const localEntries = readStorage(localStorage);
   const sessionEntries = readStorage(sessionStorage);
+  const address = window.location.href;
+  const historyState: unknown = window.history.state;
   const title = document.title;
   const language = document.documentElement.getAttribute('lang');
   const classes = document.documentElement.className;
@@ -26,6 +28,7 @@ beforeEach(() => {
   restoreDocument = () => {
     restoreStorage(localStorage, localEntries);
     restoreStorage(sessionStorage, sessionEntries);
+    window.history.replaceState(historyState, '', address);
     document.title = title;
     if (language === null) document.documentElement.removeAttribute('lang');
     else document.documentElement.lang = language;

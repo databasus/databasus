@@ -234,7 +234,7 @@ for (const width of [320, 1280]) {
     await openAccount({ page });
     await openWorkspaceScreen({ page, locale: 'en', tab: 'databases' });
 
-    if (width === 320) await page.getByRole('button', { name: /^Orders/ }).click();
+    if (width === 320) await page.getByRole('link', { name: /^Orders/ }).click();
 
     await openConnectionSection(page);
     await page.getByRole('button', { name: 'Advanced settings' }).click();

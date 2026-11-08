@@ -65,7 +65,7 @@ def _set_future_cadence(page: Page, schedule: BackupCadence) -> None:
 
 
 def add_physical_database(page: Page, storage_name: str) -> str:
-    page.get_by_role("button", name="Databases", exact=True).click()
+    page.get_by_role("link", name="Databases", exact=True).click()
     page.get_by_role("button", name="Add database").click()
     page.get_by_placeholder("My favourite DB").fill("Critical path physical database")
     page.get_by_role("button", name="Continue", exact=True).click()

@@ -52,7 +52,7 @@ for (const resource of ['workspaces', 'storages', 'notifiers'] as const) {
 
       if (resource !== 'workspaces') {
         await openWorkspaceScreen({ page, locale: context.locale, tab: 'databases' });
-        if (context.width === 320) await page.getByRole('button', { name: /^Orders/ }).click();
+        if (context.width === 320) await page.getByRole('link', { name: /^Orders/ }).click();
         await page
           .getByRole('tab', { name: dictionary.databases.tabs.config, exact: true })
           .click();

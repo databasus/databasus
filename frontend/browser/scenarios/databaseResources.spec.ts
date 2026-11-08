@@ -173,7 +173,7 @@ for (const { width, theme, locale } of visualContexts) {
     await openAccount({ page, theme, locale });
     await openWorkspaceScreen({ page, locale, tab: 'databases' });
 
-    if (width === 320) await page.getByRole('button', { name: /^Orders/ }).click();
+    if (width === 320) await page.getByRole('link', { name: /^Orders/ }).click();
 
     const lastFirstPageBackup = page
       .getByText(`${101 + FIRST_PAGE_SIZE - 1} MB`, { exact: true })
@@ -221,7 +221,7 @@ for (const theme of ['light', 'dark'] as const) {
     await openAccount({ page, theme });
     await openWorkspaceScreen({ page, locale: 'en', tab: 'databases' });
 
-    const databaseCard = page.getByRole('button', { name: /^Orders/ });
+    const databaseCard = page.getByRole('link', { name: /^Orders/ });
     await expect(databaseCard).toBeVisible();
     await expect(
       databaseCard.getByText(DICTIONARIES.en.status.health.available, { exact: true }),
@@ -298,7 +298,7 @@ test('shows a focus indicator when tabbing to a tab and an edit icon', async ({ 
   await openDatabaseSettings(page, 'light');
 
   const configTab = page.getByRole('tab', { name: /Config$/ });
-  await page.getByRole('button', { name: /^Orders/ }).focus();
+  await page.getByRole('link', { name: /^Orders/ }).focus();
   await expect
     .poll(async () => {
       await page.keyboard.press('Tab');

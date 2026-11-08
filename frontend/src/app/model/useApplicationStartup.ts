@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 
 import { diskApi } from '@/entities/disk';
 import { settingsApi, userApi, UserRole, type User, type InstanceSettings } from '@/entities/users';
@@ -7,9 +7,14 @@ import { workspaceApi, WorkspaceRole, type Workspace } from '@/entities/workspac
 import { useSessionQuery } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { useRequestRevision } from '@/shared/hooks';
+import { useNavigationIntent } from '@/shared/navigation';
 
-export function useApplicationStartup() {
+export function useApplicationStartup(requestedWorkspaceId?: string) {
   const client = useQueryClient();
+  const navigationIntent = useNavigationIntent();
+  const isSessionCurrent = useSessionGuard();
+  const accessRevision = useRequestRevision();
+  const rejectedWorkspaceIds = useRef(new Set<string>());
   const [user, setUser] = useState<User>();
   const [settings, setSettings] = useState<InstanceSettings>();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -53,17 +58,37 @@ export function useApplicationStartup() {
   });
   const diskUsage = disk.data;
   const [accessError, setError] = useState<unknown>();
+  const [reconcilingWorkspaceId, setReconcilingWorkspaceId] = useState<string>();
+  const isReconcilingWorkspace = reconcilingWorkspaceId !== undefined && accessError === undefined;
   const error = accessError ?? startupReadError ?? query.error ?? undefined;
   const isLoading =
     startupReadError === undefined && (query.isPending || (query.isFetching && query.isError));
 
+  const discardWorkspaceRead = () => {
+    accessRevision.Invalidate();
+    void client.cancelQueries({ queryKey: access.queryKey, exact: true });
+  };
+
   const load = () => {
+    rejectedWorkspaceIds.current.clear();
+
+    if (reconcilingWorkspaceId) return refreshWorkspaceAccess();
+
     discardWorkspaceRead();
     setError(undefined);
     void disk.refetch();
 
     return query.refetch();
   };
+  const discardNavigatedWorkspaceRead = useEffectEvent(() => {
+    rejectedWorkspaceIds.current.clear();
+    discardWorkspaceRead();
+    setReconcilingWorkspaceId(undefined);
+    setError(undefined);
+  });
+  useEffect(() => {
+    discardNavigatedWorkspaceRead();
+  }, [navigationIntent]);
   useEffect(() => {
     if (!query.data) return;
 
@@ -83,11 +108,6 @@ export function useApplicationStartup() {
         workspaces[0]?.id,
     );
   }, [query.data, query.dataRevision]);
-
-  const discardWorkspaceRead = () => {
-    accessRevision.Invalidate();
-    void client.cancelQueries({ queryKey: access.queryKey, exact: true });
-  };
 
   const acceptUser = (changedUser: User) => {
     if (isSessionCurrent()) setUser(changedUser);
@@ -127,28 +147,53 @@ export function useApplicationStartup() {
     discardWorkspaceRead();
     setSelectedWorkspaceId(workspace.id);
   };
-  const reconcileUnavailableWorkspace = async (workspaceId: string) => {
+
+  useEffect(() => {
+    if (
+      !requestedWorkspaceId ||
+      !workspaces.some((workspace) => workspace.id === requestedWorkspaceId)
+    )
+      return;
+
+    setSelectedWorkspaceId(requestedWorkspaceId);
+  }, [requestedWorkspaceId, workspaces]);
+  const refreshWorkspaceAccess = async () => {
     if (!isSessionCurrent()) return;
 
-    removeWorkspace(workspaceId);
+    setError(undefined);
     const requestRevision = accessRevision.Invalidate();
 
     try {
       const { data: accessible, error } = await access.refetch();
       if (error) throw error;
+
       if (!accessible) return;
+
       if (!isSessionCurrent() || !accessRevision.IsCurrent(requestRevision)) return;
 
-      setWorkspaces(accessible);
-      setSelectedWorkspaceId((current) =>
-        accessible.some((workspace) => workspace.id === current) ? current : accessible[0]?.id,
+      const availableWorkspaces = accessible.filter(
+        (workspace) => !rejectedWorkspaceIds.current.has(workspace.id),
       );
+      setWorkspaces(availableWorkspaces);
+      setSelectedWorkspaceId((current) =>
+        availableWorkspaces.some((workspace) => workspace.id === current)
+          ? current
+          : availableWorkspaces[0]?.id,
+      );
+      setReconcilingWorkspaceId(undefined);
     } catch (failure) {
       if (isSessionCurrent() && accessRevision.IsCurrent(requestRevision)) setError(failure);
     }
   };
-  const isSessionCurrent = useSessionGuard();
-  const accessRevision = useRequestRevision();
+  const reconcileUnavailableWorkspace = (workspaceId: string) => {
+    if (!isSessionCurrent()) return;
+
+    rejectedWorkspaceIds.current.add(workspaceId);
+    removeWorkspace(workspaceId);
+    setReconcilingWorkspaceId(workspaceId);
+
+    return refreshWorkspaceAccess();
+  };
 
   useEffect(() => {
     if (isLoading || error !== undefined) return;
@@ -160,7 +205,9 @@ export function useApplicationStartup() {
   }, [selectedWorkspaceId, isLoading, error]);
 
   const selectedWorkspace =
-    workspaces.find((workspace) => workspace.id === selectedWorkspaceId) ?? workspaces[0];
+    workspaces.find(
+      (workspace) => workspace.id === (requestedWorkspaceId ?? selectedWorkspaceId),
+    ) ?? workspaces[0];
   const isReady = !isLoading && error === undefined && !!user && !!settings;
   const isAdmin = isReady && user.role === UserRole.ADMIN;
   const canCreateWorkspace = isReady && (isAdmin || settings.isMemberAllowedToCreateWorkspaces);
@@ -180,6 +227,7 @@ export function useApplicationStartup() {
     error,
     isLoading,
     isReady,
+    isReconcilingWorkspace,
     isAdmin,
     canCreateWorkspace,
     canManageWorkspace,

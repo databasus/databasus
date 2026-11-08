@@ -18,7 +18,9 @@ describe('OAuthSignInButtons', () => {
     'binds an unpredictable tab record when %s sign-in is started',
     async (provider) => {
       const navigate = vi.spyOn(window.location, 'assign').mockImplementation(() => {});
-      const { user } = renderScreen(<OAuthSignInButtons />);
+      const returnPath = '/workspaces/team-id/databases/shop-id/config';
+      window.history.replaceState(null, '', returnPath);
+      const { user } = renderScreen(<OAuthSignInButtons />, { route: returnPath });
       const button = screen.getByRole('button', { name: `Continue with ${provider}` });
 
       await user.click(button);
@@ -32,8 +34,11 @@ describe('OAuthSignInButtons', () => {
         'createdAt',
         'provider',
         'redirectUri',
+        'returnPath',
         'state',
       ]);
+      expect(firstAttempt.returnPath).toBe(returnPath);
+      expect(secondAttempt.returnPath).toBe(returnPath);
       expect(secondAttempt.provider).toBe(provider.toLowerCase());
       expect(new URL(String(navigate.mock.calls[1][0])).searchParams.get('state')).toBe(
         secondAttempt.state,

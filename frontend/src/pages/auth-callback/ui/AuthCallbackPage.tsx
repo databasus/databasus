@@ -33,7 +33,8 @@ export function AuthCallbackPage() {
     void callback
       .Start()
       .then((session) => {
-        if (isAttached && callback.Accept(session)) navigate('/', { replace: true });
+        if (isAttached && callback.Accept(session))
+          navigate(callback.GetReturnPath(), { replace: true });
       })
       .catch((failure) => {
         if (isAttached && callback.IsCurrent()) setFailure(failure);

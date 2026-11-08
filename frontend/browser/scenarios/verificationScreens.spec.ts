@@ -208,7 +208,7 @@ const openVerificationList = async (page: Page, theme: string, locale: Locale = 
   await openAccount({ page, locale, theme });
   await openWorkspaceScreen({ page, locale, tab: 'databases' });
   if (page.viewportSize()!.width < 768)
-    await page.getByRole('button', { name: 'Orders', exact: true }).click();
+    await page.getByRole('link', { name: 'Orders', exact: true }).click();
   await page
     .getByRole('main')
     .getByText(DICTIONARIES[locale].databases.tabs.verifications, { exact: true })

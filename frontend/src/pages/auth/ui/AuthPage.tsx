@@ -9,10 +9,15 @@ import { SignInCodeComponent } from '@/pages/auth/ui/SignInCodeComponent';
 import { SignInComponent } from '@/pages/auth/ui/SignInComponent';
 import { SignUpComponent } from '@/pages/auth/ui/SignUpComponent';
 import { useSessionQuery } from '@/shared/api';
+import { beginAuthIntent, abandonAuthIntent } from '@/shared/auth';
 import { useScreenHeight } from '@/shared/hooks';
 import { LoadFailure } from '@/shared/ui';
 
 export function AuthPage() {
+  useEffect(() => {
+    const intent = beginAuthIntent();
+    return () => abandonAuthIntent(intent);
+  }, []);
   const query = useSessionQuery({
     queryKey: ['registration-options'],
     queryFn: (signal) => userApi.isAnyUserExists({ signal }),

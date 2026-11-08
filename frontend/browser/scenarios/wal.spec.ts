@@ -208,7 +208,7 @@ test('keeps technical values, tips and help readable with French 200-percent tex
   );
   await page.setViewportSize({ width: 320, height: 1000 });
   await openAccount({ page, locale: 'fr', theme: 'light' });
-  await page.getByRole('button', { name: /WAL source/ }).click();
+  await page.getByRole('link', { name: /WAL source/ }).click();
   await page.getByText(DICTIONARIES.fr.databases.tabs.monitoring, { exact: true }).click();
   const plot = page.locator('.recharts-surface').first();
   await expect(plot).toBeVisible();

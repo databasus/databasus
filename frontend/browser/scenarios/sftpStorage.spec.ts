@@ -53,7 +53,7 @@ for (const authMethods of [
       boundary,
     }) => {
       await openAccount({ page });
-      await page.getByRole('button', { name: 'Storages', exact: true }).click();
+      await page.getByRole('link', { name: 'Storages', exact: true }).click();
       await expect(page.getByText('sftp.example.com')).toBeVisible();
       await expect(page.getByText('Private key', { exact: true })).toBeVisible();
       if (authMethods.includes('PASSWORD'))

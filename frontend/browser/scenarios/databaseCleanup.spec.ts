@@ -196,7 +196,7 @@ for (const method of ['logical', 'physical'] as const) {
         await page.setViewportSize({ width: 320, height: 900 });
         await openAccount({ page, theme });
         await openWorkspaceScreen({ page, locale: 'en', tab: 'databases' });
-        await page.getByRole('button', { name: /^Cleanup database/ }).click();
+        await page.getByRole('link', { name: /^Cleanup database/ }).click();
         await page.getByRole('tab', { name: 'Config', exact: true }).click();
         const notice = page.getByRole('status').filter({ hasText: 'Deleting old files' });
         await expect(notice).toContainText('1,234');

@@ -1,23 +1,31 @@
 import { Loader, Tabs } from '@mantine/core';
-import { useQueryClient } from '@tanstack/react-query';
-import { type RefObject, useState } from 'react';
+import { CancelledError, useQueryClient } from '@tanstack/react-query';
+import { type RefObject, useEffect, useEffectEvent, useLayoutEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { type Database, DatabaseType, databaseApi } from '@/entities/databases';
 import { HealthcheckAttemptsComponent } from '@/pages/databases/healthcheck/ui';
+import { getDatabaseTab } from '@/pages/databases/lib/getDatabaseTab';
 import { LogicalBackupsComponent } from '@/pages/databases/logical-backups/ui/LogicalBackupsComponent';
+import type { DatabaseTab } from '@/pages/databases/model/DatabaseTab';
 import { PhysicalBackupsComponent } from '@/pages/databases/physical-backups/ui/PhysicalBackupsComponent';
 import { DatabaseConfigComponent } from '@/pages/databases/settings/ui/DatabaseConfigComponent';
 import { VerificationsComponent } from '@/pages/databases/verification/ui/VerificationsComponent';
 import { isMonitoringTabShown } from '@/pages/databases/wal-monitoring/lib/monitoringTab';
 import { WalStreamMonitoringComponent } from '@/pages/databases/wal-monitoring/ui/WalStreamMonitoringComponent';
-import { useSessionQuery } from '@/shared/api';
+import { ApiError, useSessionQuery } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
+import { useLatestRef } from '@/shared/hooks';
+import { useNavigationIntent } from '@/shared/navigation';
 import { LoadFailure } from '@/shared/ui';
 
 interface Props {
   scrollContainerRef: RefObject<HTMLDivElement | null>;
   databaseId: string;
+  workspaceId: string;
+  currentTab: DatabaseTab;
+  onTabChange: (tab: DatabaseTab, shouldReplace?: boolean) => void;
+  onUnavailable: (databaseId: string) => void;
   onDatabaseChanged: (database: Database) => void;
   onDatabaseDeleted: (deletedDatabaseId: string) => void;
   onDatabaseCopied: (copiedDatabase: Database, sourceDatabaseId: string) => void;
@@ -25,11 +33,13 @@ interface Props {
   isCanManageDBs: boolean;
 }
 
-type DatabaseTab = 'config' | 'backups' | 'verifications' | 'monitoring';
-
 export const DatabaseComponent = ({
   scrollContainerRef,
   databaseId,
+  workspaceId,
+  currentTab,
+  onTabChange,
+  onUnavailable,
   onDatabaseChanged,
   onDatabaseDeleted,
   onDatabaseCopied,
@@ -38,15 +48,47 @@ export const DatabaseComponent = ({
 }: Props) => {
   const { t } = useTranslation();
   const isActive = useSessionGuard();
-  const [currentTab, setCurrentTab] = useState<DatabaseTab>('backups');
+  const navigationIntent = useNavigationIntent();
+  const latestNavigationIntent = useLatestRef(navigationIntent);
 
   const client = useQueryClient();
   const query = useSessionQuery({
     queryKey: ['database', databaseId],
-    queryFn: (signal) => databaseApi.getDatabase(databaseId, { signal }),
+    queryFn: async (signal) => {
+      const requestNavigationIntent = latestNavigationIntent.current;
+      const isCurrentRead = () =>
+        !signal.aborted && isActive() && latestNavigationIntent.current === requestNavigationIntent;
+
+      try {
+        const database = await databaseApi.getDatabase(databaseId, { signal });
+        if (!isCurrentRead()) throw new CancelledError({ revert: true });
+
+        return database;
+      } catch (error) {
+        if (!isCurrentRead()) throw new CancelledError({ revert: true });
+
+        throw error;
+      }
+    },
   });
-  const database = query.data;
+  const detailNavigation = useRef(navigationIntent);
+  const refreshNavigatedDetail = useEffectEvent(() => {
+    if (query.isFetching) void query.refetch();
+  });
+  useLayoutEffect(() => {
+    if (detailNavigation.current === navigationIntent) return;
+
+    detailNavigation.current = navigationIntent;
+    refreshNavigatedDetail();
+  }, [navigationIntent]);
+  const database = query.data?.workspaceId === workspaceId ? query.data : undefined;
   const loadError = query.error ?? undefined;
+  const isUnavailable =
+    (query.data && query.data.workspaceId !== workspaceId) ||
+    (loadError instanceof ApiError && [403, 404].includes(loadError.status ?? 0));
+  useEffect(() => {
+    if (isUnavailable) onUnavailable(databaseId);
+  }, [isUnavailable, databaseId, onUnavailable]);
 
   const acceptChangedDatabase = (changedDatabase: Database) => {
     if (isActive()) {
@@ -62,10 +104,12 @@ export const DatabaseComponent = ({
   const isLogicalDatabase = database?.settings.type === DatabaseType.POSTGRES_LOGICAL;
   const isPhysicalDatabase = database?.settings.type === DatabaseType.POSTGRES_PHYSICAL;
   const isMonitoringShown = database !== undefined && isMonitoringTabShown(database);
-  const isCurrentTabOffered =
-    (currentTab !== 'verifications' || isLogicalDatabase) &&
-    (currentTab !== 'monitoring' || isMonitoringShown);
-  const shownTab = isCurrentTabOffered ? currentTab : 'backups';
+  const shownTab = database ? getDatabaseTab(database, currentTab) : currentTab;
+  useEffect(() => {
+    if (database && currentTab !== shownTab) onTabChange(shownTab, true);
+  }, [database, currentTab, shownTab, onTabChange]);
+
+  if (isUnavailable) return <Loader role="status" />;
 
   if (loadError !== undefined) {
     return <LoadFailure error={loadError} onRetry={() => void query.refetch()} />;
@@ -80,7 +124,7 @@ export const DatabaseComponent = ({
       <Tabs
         value={shownTab}
         onChange={(tab) => {
-          if (tab) setCurrentTab(tab as DatabaseTab);
+          if (tab && tab !== shownTab) onTabChange(tab as DatabaseTab);
         }}
         variant="outline"
         keepMounted={false}
@@ -124,7 +168,7 @@ export const DatabaseComponent = ({
                     database={database}
                     isCanManageDBs={isCanManageDBs}
                     scrollContainerRef={scrollContainerRef}
-                    onNavigateToVerifications={() => setCurrentTab('verifications')}
+                    onNavigateToVerifications={() => onTabChange('verifications')}
                   />
                 )}
               </>
@@ -134,7 +178,7 @@ export const DatabaseComponent = ({
               <WalStreamMonitoringComponent
                 database={database}
                 isCanManageDBs={isCanManageDBs}
-                onOpenConfig={() => setCurrentTab('config')}
+                onOpenConfig={() => onTabChange('config')}
               />
             )}
 
