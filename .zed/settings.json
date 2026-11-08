@@ -1,1 +1,11 @@
-{}
+{
+  "lsp": {
+    "tailwindcss-language-server": {
+      "settings": {
+        "lint": {
+          "suggestCanonicalClasses": "ignore"
+        }
+      }
+    }
+  }
+}
