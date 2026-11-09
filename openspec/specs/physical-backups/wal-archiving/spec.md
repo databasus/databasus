@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Defines how finalized WAL segments of a streaming PostgreSQL database reach storage, how fast that must work against a distant storage, and when Databasus reports archiving as broken or fallen behind.
+Defines how finalized WAL segments of a streaming PostgreSQL database reach storage, how uploads overlap and respond to cancellation, and when Databasus reports archiving as broken or fallen behind.
 
 ## Requirements
 
@@ -12,9 +12,9 @@ For a database in WAL streaming mode, Databasus SHALL upload up to four finalize
 
 #### Scenario: Slow storage with a queued backlog
 
-- **WHEN** eight finalized segments wait in the local queue and each segment's upload, from claim to commit, takes one second
+- **WHEN** eight finalized segments wait in the local queue and the first four uploads are held in progress
 - **THEN** four segments are uploading at once
-- **AND** all eight are archived in about two seconds rather than eight
+- **AND** the remaining four wait until an upload slot becomes available
 
 #### Scenario: Limit is never exceeded
 
@@ -43,19 +43,34 @@ Databasus SHALL NOT start a second upload of a segment while an upload of that s
 - **THEN** the segment's file stays in the local queue
 - **AND** a later pass uploads it again under a new object name
 
-### Requirement: Archiving keeps up with a busy source when the storage is far away
+### Requirement: Storage accepts overlapping segment writes
 
-For a storage of type S3-compatible, Azure Blob, SFTP, FTP, SMB or local, four concurrent writers SHALL store at least two pairs per second of a 16 MB segment-sized file and a 1 KB metadata file, when every response from the storage arrives 50 ms later than on a local network. These are the files WAL archiving writes for each segment.
+For a storage of type S3-compatible, Azure Blob, SFTP, FTP, SMB or local, four writers SHALL be able to consume independent upload streams while all four writes remain unfinished. Each writer SHALL store a 16 MiB segment-sized file followed by its 1 KiB metadata file without mixing, truncating or overwriting another writer's content. Completion SHALL NOT depend on meeting an elapsed-time or transfer-rate threshold.
 
-#### Scenario: Storage in another region
+#### Scenario: Four uploads overlap
 
-- **WHEN** a storage answers every request 50 ms late and four concurrent writers store twenty-four pairs of a 16 MB file and a 1 KB file
-- **THEN** all twenty-four pairs are stored within twelve seconds
+- **WHEN** four writers start independent segment uploads and each upload source is held before providing its content
+- **THEN** all four writes request content before any source is released
+- **AND** after the sources are released, every segment and metadata file can be read back with its original content
 
-#### Scenario: Local storage
+### Requirement: Consecutive writes reuse storage connections
 
-- **WHEN** four concurrent writers store twenty-four pairs of a 16 MB file and a 1 KB file in a local storage
-- **THEN** all twenty-four pairs are stored within twelve seconds
+For a storage of type S3-compatible, Azure Blob, SFTP, FTP or SMB, consecutive successful writes using unchanged settings SHALL reuse healthy connections. FTP data connections are separate from its reusable control connection.
+
+#### Scenario: Metadata files follow a successful write
+
+- **WHEN** a write establishes a healthy connection and ten metadata files are then written sequentially with unchanged settings
+- **THEN** no additional storage session or HTTP connection is opened for those writes
+
+### Requirement: SFTP streams keep blocks in flight
+
+An SFTP upload from a source whose length is unknown SHALL continue consuming source blocks while an earlier write acknowledgement is pending. The resulting file SHALL retain the complete original content.
+
+#### Scenario: Acknowledgement is withheld
+
+- **WHEN** an SFTP upload has opened its remote file and the response to its first data block is withheld
+- **THEN** the upload consumes another source block before that response is released
+- **AND** after responses resume, the uploaded file can be read back with its original content
 
 ### Requirement: Storage connections opened with old settings are never used again
 
@@ -84,12 +99,12 @@ A write SHALL use only a connection opened with the storage's current settings, 
 
 ### Requirement: A storage that stops answering does not hold an upload
 
-For a storage of type S3-compatible, Azure Blob, SFTP, FTP or SMB, when the storage stops answering in the middle of a write, the write SHALL fail no later than three seconds after the deadline of the operation that started it, and the connection it used SHALL be closed. A later write SHALL NOT reuse that connection.
+For a storage of type S3-compatible, Azure Blob, SFTP, FTP or SMB, cancellation of an upload whose storage has stopped answering SHALL make the write fail without waiting for the storage response. The connection it used SHALL be closed. A later write SHALL NOT reuse that connection. Cancellation checks SHALL observe operation completion rather than enforce a machine-dependent elapsed-time threshold.
 
 #### Scenario: Storage goes silent mid-write
 
-- **WHEN** a storage stops answering while a segment is being written and the segment's upload deadline passes
-- **THEN** the write fails within three seconds after the deadline
+- **WHEN** a storage response is withheld while a segment is being written and the upload is cancelled
+- **THEN** the write fails while the response remains withheld
 - **AND** the upload slot is free for the next segment
 - **AND** the next write to that storage opens a new connection
 

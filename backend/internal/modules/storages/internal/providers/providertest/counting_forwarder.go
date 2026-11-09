@@ -25,8 +25,10 @@ type CountingForwarder struct {
 
 	mutex         sync.Mutex
 	acceptedCount int
+	closedCount   int
 	isClosed      bool
 	connections   []net.Conn
+	responseGate  *ResponseGate
 }
 
 func StartCountingForwarder(t *testing.T, targetAddress string) *CountingForwarder {
@@ -73,6 +75,13 @@ func (f *CountingForwarder) GetAcceptedCount() int {
 	return f.acceptedCount
 }
 
+func (f *CountingForwarder) GetClosedCount() int {
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
+
+	return f.closedCount
+}
+
 func (f *CountingForwarder) acceptConnections() {
 	for {
 		clientConnection, err := f.listener.Accept()
@@ -112,6 +121,11 @@ func (f *CountingForwarder) forward(clientConnection net.Conn) {
 		"copy to TCP target",
 		func(context.Context) error {
 			pipeAndClose(connectionStream{destination: targetConnection, source: clientConnection})
+
+			f.mutex.Lock()
+			f.closedCount++
+			f.mutex.Unlock()
+
 			return nil
 		},
 	)
@@ -119,7 +133,10 @@ func (f *CountingForwarder) forward(clientConnection net.Conn) {
 		f.ctx,
 		"copy from TCP target",
 		func(context.Context) error {
-			pipeAndClose(connectionStream{destination: clientConnection, source: targetConnection})
+			pipeAndClose(connectionStream{
+				destination: &forwardedResponse{Conn: clientConnection, forwarder: f},
+				source:      targetConnection,
+			})
 			return nil
 		},
 	)
@@ -155,7 +172,7 @@ func (f *CountingForwarder) close() {
 }
 
 type connectionStream struct {
-	destination net.Conn
+	destination io.WriteCloser
 	source      net.Conn
 }
 

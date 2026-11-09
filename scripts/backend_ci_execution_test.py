@@ -75,7 +75,7 @@ class BackendCiExecutionTest(unittest.TestCase):
 
         return invocation.returncode, calls, invocation.stderr
 
-    def test_runs_storage_performance_once_without_fallthrough(self) -> None:
+    def test_runs_storage_providers_once_without_fallthrough(self) -> None:
         status, calls, diagnostic = self.run_backend_step("storage-providers", [PROVIDER_PACKAGE])
 
         self.assertEqual(status, 0, diagnostic)
