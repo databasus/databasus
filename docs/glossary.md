@@ -146,3 +146,12 @@ This is the project's common language. Each concept has one term in the document
 | Console command | console command | An operation of the Databasus binary that the operator runs on the host or in the container instead of starting the server, such as a password reset. The `healthcheck` subcommand is not one: it only asks the running server. |
 | Migration | migration | A goose SQL file in `backend/migrations`, the only way to change the schema. |
 | Test application | test app | A backend instance built for one test by `apptest.New`, with its own database, clock and fakes. |
+
+## Dependency maintenance
+
+| Term | In code and API | Meaning |
+|---|---|---|
+| Dependency verification | dependency verification | Checks of known local pins, related declarations and committed client hashes. Native package managers verify their own locked graphs and downloaded content; the updater reviews release age, upstream changes and compatibility. |
+| Release hold | release hold | The normal waiting period used when selecting a dependency update. The upgrade guide defines its duration and how the updater reports missing age information or a departure from that period. |
+
+The [dependency upgrade guide](how-to-upgrade-deps.md) describes the procedure, sources and verification limits.

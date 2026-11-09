@@ -7,7 +7,7 @@ steps {
     ["python-lint"] {
         glob = List(
             "**/*.py", "**/pyproject.toml", "**/uv.lock", "**/requirements*.txt",
-            "**/poetry.lock", "**/Pipfile", "**/Pipfile.lock", "**/mise.toml",
+            "**/poetry.lock", "**/Pipfile", "**/Pipfile.lock", "**/mise.toml", "**/mise.lock",
             "**/hk.pkl", "**/.gitignore", "**/.ignore", "**/.ruff.toml",
             "**/ruff.toml", "**/ty.toml", "**/.python-version"
         )

@@ -388,7 +388,7 @@ func StartPhysicalRestoreTarget(t *testing.T, image string) RestoreTarget {
 	dockerfile := fmt.Sprintf(
 		"FROM %s\nRUN apt-get update && apt-get install -y --no-install-recommends zstd "+
 			"&& rm -rf /var/lib/apt/lists/*\n",
-		image,
+		GetPinnedImage(t, image),
 	)
 	if err := os.WriteFile(filepath.Join(contextDir, "Dockerfile"), []byte(dockerfile), 0o600); err != nil {
 		t.Fatalf("failed to write restore-target Dockerfile: %v", err)

@@ -11,7 +11,7 @@
     "typecheck": "tsc -b",
     "test": "vitest run",
     "test:browser": "node tooling/runBrowser.ts",
-    "generate:api": "pnpm --package=openapi-typescript@7.13.0 --package=typescript@5.8.3 dlx openapi-typescript ../backend/api/openapi.yaml -o src/shared/api/schema.gen.ts"
+    "generate:api": "pnpm exec openapi-typescript ../backend/api/openapi.yaml -o src/shared/api/schema.gen.ts"
   },
   "dependencies": {
     "@mantine/core": "9.7.5",
@@ -47,6 +47,7 @@
     "eslint-plugin-i18next": "^6.1.5",
     "happy-dom": "^21.0.4",
     "msw": "^2.15.0",
+    "openapi-typescript": "7.13.0",
     "oxfmt": "^0.72.0",
     "oxlint": "^1.87.0",
     "postcss": "8.5.32",
@@ -56,5 +57,10 @@
     "vite": "^6.4.2",
     "vitest": "^3.2.4"
   },
-  "packageManager": "pnpm@9.15.9"
+  "packageManager": "pnpm@9.15.9",
+  "pnpm": {
+    "overrides": {
+      "openapi-typescript>@redocly/openapi-core": "1.34.23"
+    }
+  }
 }

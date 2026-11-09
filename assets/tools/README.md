@@ -54,8 +54,9 @@ a `pg_dump` older than its sibling `pg_basebackup` is how issue #725 (pg_dump
 
 Bundled MySQL patches (identical on both arches, upstream glibc2.28 tarballs
 from `https://cdn.mysql.com/Downloads/MySQL-<dir>/mysql-<patch>-linux-glibc2.28-{x86_64,aarch64}.tar.xz`,
-where `<dir>` is the line for 5.7 through 9 and `<major>.<minor>` from 26 on,
-for example `MySQL-26.7`):
+where `<dir>` is `8.0`, `8.4`, `9.7` or `26.7`. MySQL 5.7 uses the archived
+`mysql-5.7.44-linux-glibc2.12-x86_64.tar.gz` from
+`https://cdn.mysql.com/archives/mysql-5.7/`):
 
 | bundle     | patch  | notes                                     |
 |------------|--------|-------------------------------------------|
@@ -131,8 +132,17 @@ takes the MariaDB interactive client with it. It is also the one soname a
 non-Debian development host is missing — Fedora ships the upstream
 `libedit.so.0` — which is what `mise run run` and `mise run test` shim around.
 
-To refresh a tool set, run the script for that engine, or drop the
-corresponding `bin/` contents in place, and commit. For PostgreSQL the source
+Exact release versions, vendor build families, archive URLs, SHA256 checksums and committed-file hashes for both
+architectures are recorded in `tools/dependencies/clients.json`. The offline
+`mise run verify-deps` checks these local files and their executable permissions.
+The [upgrade guide](../../docs/how-to-upgrade-deps.md) describes source review
+and download verification. These local hashes preserve the existing MySQL
+binaries; they do not claim byte equality with the archive members. The MongoDB
+tools remain unmodified vendor binaries.
+
+To refresh a tool set, verify its recorded source archive, extract the selected
+programs and update the source records with the resulting file hashes.
+For PostgreSQL the source
 is `postgresql-client-<major>` from `apt.postgresql.org` for `bookworm`, both
 `amd64` and `arm64`, matching the `debian:bookworm-slim` runtime base in the
 Dockerfile. Update the tables above in the same commit.

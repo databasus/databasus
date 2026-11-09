@@ -24,6 +24,7 @@ const runFixture = async ({
   try {
     await Promise.all([
       mkdir(join(root, 'browser'), { recursive: true }),
+      mkdir(join(directory, 'tools/pnpm'), { recursive: true }),
       mkdir(markers),
       mkdir(binary),
     ]);
@@ -36,6 +37,8 @@ const runFixture = async ({
     ])
       await cp(resolve(file), join(root, file));
     await cp(resolve('../mise.toml'), join(directory, 'mise.toml'));
+    for (const file of ['package.json', 'package-lock.json'])
+      await cp(resolve('../tools/pnpm', file), join(directory, 'tools/pnpm', file));
 
     const docker = `#!${process.execPath}
 const fs = require('node:fs');

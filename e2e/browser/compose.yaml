@@ -17,7 +17,7 @@ services:
       start_interval: 1s
 
   databases:
-    image: postgres:18@sha256:3a4264520e121176619f54ff867d12774bc81e95e7b84db58d63bccdb6144b81
+    image: docker.io/library/postgres:18@sha256:3a4264520e121176619f54ff867d12774bc81e95e7b84db58d63bccdb6144b81
     environment:
       POSTGRES_DB: e2e_backed_up
       POSTGRES_USER: e2e
@@ -34,7 +34,7 @@ services:
       start_interval: 1s
 
   recovery-engine:
-    image: docker:29.9.2-dind@sha256:9e79b879b177fbd72c34376a3dd3d91747da5db49e1f560f76aea59561471977
+    image: docker.io/library/docker:29.9.2-dind@sha256:9e79b879b177fbd72c34376a3dd3d91747da5db49e1f560f76aea59561471977
     privileged: true
     environment:
       DOCKER_TLS_CERTDIR: ""
@@ -53,7 +53,7 @@ services:
       start_interval: 1s
 
   recovery:
-    image: postgres:18@sha256:3a4264520e121176619f54ff867d12774bc81e95e7b84db58d63bccdb6144b81
+    image: docker.io/library/postgres:18@sha256:3a4264520e121176619f54ff867d12774bc81e95e7b84db58d63bccdb6144b81
     init: true
     entrypoint: ["sh", "/prepare-recovery.sh"]
     environment:

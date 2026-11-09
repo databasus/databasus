@@ -357,6 +357,19 @@ class ImagePreparationTest(unittest.TestCase):
                     tempfile.TemporaryDirectory() as directory,
                 ):
                     binary = Path(directory)
+                    catalog = json.loads(
+                        (ROOT / "backend/internal/lib/testimages/images.json").read_text()
+                    )["images"]
+                    platform = "linux-arm64" if architecture == "aarch64" else "linux-x64"
+
+                    references = {
+                        name: record["reference"].split("@")[0]
+                        + "@"
+                        + record["platforms"][platform]
+                        for name, record in catalog.items()
+                        if platform in record["platforms"]
+                    }
+
                     pull_log = binary / "pulled"
                     (binary / "uname").write_text(f"#!/bin/sh\necho {architecture}\n")
                     (binary / "sleep").write_text("#!/bin/sh\nexit 0\n")
@@ -372,7 +385,7 @@ class ImagePreparationTest(unittest.TestCase):
                             **os.environ,
                             "PATH": f"{binary}:{os.environ['PATH']}",
                             "PULL_LOG": str(pull_log),
-                            "FAILING_IMAGE": failing_image,
+                            "FAILING_IMAGE": references[failing_image] if failing_image else "",
                         },
                         text=True,
                         capture_output=True,
@@ -381,15 +394,23 @@ class ImagePreparationTest(unittest.TestCase):
                     self.assertEqual(
                         invocation.returncode == 0, not failing_image, invocation.stderr
                     )
-                    images = set(pull_log.read_text().splitlines())
-                    self.assertIn("mysql:8.0", images)
-                    self.assertIn("mariadb:10.1", images)
+                    catalog_keys = {
+                        record["reference"].split("@", 1)[0]: name
+                        for name, record in catalog.items()
+                    }
+                    pulled_images = {
+                        catalog_keys[reference.split("@", 1)[0]]
+                        for reference in pull_log.read_text().splitlines()
+                    }
+
+                    self.assertIn("mysql:8.0", pulled_images)
+                    self.assertIn("mariadb:10.1", pulled_images)
                     for image, reason in policy["arm64"].items():
                         if architecture == "aarch64":
-                            self.assertNotIn(image, images)
+                            self.assertNotIn(image, pulled_images)
                             self.assertIn(reason, invocation.stderr)
                         else:
-                            self.assertIn(image, images)
+                            self.assertIn(image, pulled_images)
 
 
 class NfsFixtureTest(unittest.TestCase):

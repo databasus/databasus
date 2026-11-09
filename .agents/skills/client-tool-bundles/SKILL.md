@@ -28,14 +28,14 @@ Adding an engine version is mostly about the binary, not about the code that rea
 - [ ] **An identity names a line, so its digits do not name the patch in the bundle.** A bundle holding a release from a different line is a mistake.
 - [ ] **Add the identity constant on both sides**: in the backend and in `frontend/src/entities/databases/model/<engine>/`.
 - [ ] **Add the version to the test matrices** that boot a real server of each version, such as the engine tests in `backend/internal/engines/<engine>/` and `backend/internal/modules/backups/e2e/<engine>/engine_<engine>_test.go`. A unit test of the version mapping proves nothing about a dump.
-- [ ] **Update the supported-version lists** in the root `README.md`, in all five copies under `assets/readme/`, and the tables in `assets/tools/README.md`.
+- [ ] **Update the supported-version lists** in the root `README.md`, in all six copies under `assets/readme/`, and the tables in `assets/tools/README.md`.
 
 ## Refreshing a patch level
 
-A refresh changes the client for every server already using that bundle, so it is never a silent operation. For MariaDB, `tools/refresh-mariadb-bundle.sh <bundle> <arch>` does the work; edit the pinned package version in it instead of passing one in.
+A refresh changes the client for every server already using that bundle, so it is never a silent operation. For MariaDB, `tools/refresh-mariadb-bundle.sh <bundle> <arch>` does the work; edit its pinned source records in `tools/dependencies/clients.json` instead of passing a version in.
 
 - [ ] Keep every binary within one bundle on the same upstream build. A tool older than its sibling can emit wrong data unnoticed.
-- [ ] Pin the exact upstream package version in the refresh script. "The newest patch of this line" makes the result depend on the day it ran, and two architectures refreshed a week apart then disagree.
+- [ ] Pin the exact upstream package version in the source records consumed by the refresh script. "The newest patch of this line" makes the result depend on the day it ran, and two architectures refreshed a week apart then disagree.
 - [ ] Refresh both architectures from the same upstream source in the same change. Otherwise one directory name comes to mean two different builds.
 - [ ] Before committing, run the refreshed binary's `--version` for each architecture in a container of the runtime base image the `Dockerfile` names, with `assets/tools` mounted read-only and the shared libraries from the README table installed.
 

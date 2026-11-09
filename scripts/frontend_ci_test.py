@@ -132,7 +132,11 @@ class FrontendCiTest(unittest.TestCase):
         self.assertIn("path: frontend/browser-results/", job)
 
         for action in re.findall(r"uses: ([^\s]+)", job):
-            self.assertRegex(action, r"@[a-f0-9]{40}$")
+            if action.startswith("./"):
+                self.assertEqual(action, "./.github/actions/read-mise-bootstrap")
+                self.assertTrue((ROOT / action / "action.yml").is_file())
+            else:
+                self.assertRegex(action, r"@[a-f0-9]{40}$")
 
         environment = json.loads((ROOT / "frontend/browser/environment.json").read_text())
         self.assertRegex(environment["playwrightImage"], r"@sha256:[a-f0-9]{64}$")
@@ -188,7 +192,11 @@ class FrontendCiTest(unittest.TestCase):
         self.assertNotIn("test-backend", job)
 
         for action in re.findall(r"uses: ([^\s]+)", job):
-            self.assertRegex(action, r"@[a-f0-9]{40}$")
+            if action.startswith("./"):
+                self.assertEqual(action, "./.github/actions/read-mise-bootstrap")
+                self.assertTrue((ROOT / action / "action.yml").is_file())
+            else:
+                self.assertRegex(action, r"@[a-f0-9]{40}$")
 
         release = get_jobs(self.workflow)["determine-version"]
         self.assertIn("test-e2e-browser,", release)

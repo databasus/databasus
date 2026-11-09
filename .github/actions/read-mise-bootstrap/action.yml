@@ -1,0 +1,15 @@
+name: Read mise bootstrap identity
+description: Read the exact mise binary version and checksum for the runner architecture
+outputs:
+  version:
+    description: Pinned mise version
+    value: ${{ steps.identity.outputs.version }}
+  sha256:
+    description: Expected mise binary SHA256
+    value: ${{ steps.identity.outputs.sha256 }}
+runs:
+  using: composite
+  steps:
+    - id: identity
+      shell: bash
+      run: /usr/bin/python3 "$GITHUB_WORKSPACE/scripts/read_mise_bootstrap.py"

@@ -31,20 +31,27 @@ jobs:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: 'go golangci-lint vacuum go:golang.org/x/vuln/cmd/govulncheck'
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
+          install_args: 'go go@1.27.2 golangci-lint vacuum'
 
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
         with:
           cache: go
 
-      - name: Download Go modules
+      - name: Prepare locked Go modules
         run: |
           cd backend
-          go mod download
+          go mod tidy -diff
 
       - name: Verify Go module checksums
         run: |
@@ -64,9 +71,16 @@ jobs:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'node pnpm'
 
       - name: Install dependencies
@@ -89,9 +103,16 @@ jobs:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'shellcheck'
 
       - name: Run shellcheck
@@ -108,14 +129,21 @@ jobs:
           - arch: amd64
             runner: namespace-profile-4vcpu-8ram-ubuntu-26-x64
           - arch: arm64
-            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
+            runner: namespace-profile-4vcpu-8ram-ubuntu-26-arm
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'go shellcheck jq node pnpm python uv ruff ty hk'
 
       - name: Check native runner architecture
@@ -134,9 +162,16 @@ jobs:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'actionlint'
 
       - name: Run actionlint
@@ -151,9 +186,16 @@ jobs:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'aqua:aquasecurity/trivy'
 
       - name: Trivy Dockerfile misconfiguration scan
@@ -183,9 +225,16 @@ jobs:
       - name: Check native runner architecture
         run: scripts/check_native_architecture.sh ${{ matrix.arch }}
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'node pnpm'
 
       - name: Set up pnpm cache
@@ -236,9 +285,16 @@ jobs:
       - name: Check native runner architecture
         run: scripts/check_native_architecture.sh ${{ matrix.arch }}
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'node pnpm'
 
       - name: Install dependencies
@@ -322,9 +378,16 @@ jobs:
           zstd -dc /tmp/databasus-storage-test-${{ matrix.arch }}.tar.zst | docker load
           scripts/check_native_architecture.sh ${{ matrix.arch }} databasus-storage-test:${{ github.sha }}-${{ matrix.arch }}
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'python uv'
 
       - name: Check the suite's own code
@@ -385,9 +448,16 @@ jobs:
           zstd -dc /tmp/databasus-storage-test-${{ matrix.arch }}.tar.zst | docker load
           scripts/check_native_architecture.sh ${{ matrix.arch }} databasus-storage-test:${{ github.sha }}-${{ matrix.arch }}
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'python uv'
 
       - name: Check the suite's cleanup and failure handling
@@ -414,9 +484,16 @@ jobs:
       - name: Check native runner architecture
         run: scripts/check_native_architecture.sh ${{ matrix.arch }}
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'go ripgrep'
 
       - name: Set up Go cache
@@ -424,10 +501,10 @@ jobs:
         with:
           cache: go
 
-      - name: Download Go modules
+      - name: Prepare locked Go modules
         run: |
           cd backend
-          go mod download
+          go mod tidy -diff
 
       - name: Run Go tests
         run: mise run agent:test
@@ -453,9 +530,16 @@ jobs:
       - name: Check native runner architecture
         run: scripts/check_native_architecture.sh ${{ matrix.arch }}
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'go python'
 
       - &install-database-clients
@@ -470,10 +554,10 @@ jobs:
           sudo ln -sf "${library_directory}/libtinfo.so.6" "${library_directory}/libtinfo.so.5"
 
       - &download-backend-modules
-        name: Download Go modules
+        name: Prepare locked Go modules
         run: |
           cd backend
-          go mod download
+          go mod tidy -diff
 
       - &create-backend-test-environment
         name: Create .env file for testing
@@ -607,9 +691,16 @@ jobs:
       - name: Check native runner architecture
         run: scripts/check_native_architecture.sh ${{ matrix.arch }}
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'go golangci-lint jq'
 
       - name: Set up Go cache
@@ -809,9 +900,16 @@ jobs:
           zstd -dc /tmp/databasus-storage-test-${{ matrix.arch }}.tar.zst | docker load
           scripts/check_native_architecture.sh ${{ matrix.arch }} databasus-storage-test:${{ github.sha }}-${{ matrix.arch }}
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install: false
 
       - name: Run filesystem suite
@@ -848,9 +946,16 @@ jobs:
       - name: Check native runner architecture
         run: scripts/check_native_architecture.sh ${{ matrix.arch }}
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'go'
 
       - name: Set up Go cache
@@ -906,9 +1011,16 @@ jobs:
           tags: |
             databasus:smoke-${{ github.sha }}
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'aqua:aquasecurity/trivy'
 
       - name: Check image
@@ -996,9 +1108,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'node npm:semver'
 
       - name: Get current version
@@ -1218,16 +1337,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Pin the base to its current manifest digest so the published image is
-      # reproducible rather than tracking a floating postgres:<major> tag.
-      - name: Resolve digest-pinned base image
-        id: pinned-base-image
-        run: |
-          # buildx v0.32.1 on Namespace runners ignores --format and prints the full
-          # summary, so the digest is hashed from the raw manifest bytes instead.
-          manifest_hash=$(docker buildx imagetools inspect --raw postgres:${{ matrix.major }} | sha256sum | cut -d' ' -f1)
-          echo "image=postgres:${{ matrix.major }}@sha256:${manifest_hash}" >> "$GITHUB_OUTPUT"
-
       - name: Build and push verification image by digest
         id: verification-image-push
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
@@ -1236,7 +1345,6 @@ jobs:
           platforms: ${{ matrix.platform }}
           build-args: |
             PG_MAJOR=${{ matrix.major }}
-            BASE_IMAGE=${{ steps.pinned-base-image.outputs.image }}
           outputs: type=image,name=databasus/verification-postgres,push-by-digest=true,name-canonical=true,push=true
 
       - name: Export image digest
@@ -1433,9 +1541,16 @@ jobs:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'helm'
 
       - name: Log in to GHCR

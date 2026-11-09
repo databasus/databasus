@@ -57,6 +57,8 @@ export const runBrowser = async ({
   const inputs = [
     'browser/Dockerfile',
     'browser/environment.json',
+    '../tools/pnpm/package.json',
+    '../tools/pnpm/package-lock.json',
     'package.json',
     'pnpm-lock.yaml',
   ];
@@ -87,6 +89,9 @@ export const runBrowser = async ({
     for (const input of ['package.json', 'pnpm-lock.yaml'])
       await cp(join(frontendRoot, input), join(context, input));
     await cp(join(frontendRoot, 'browser/Dockerfile'), join(context, 'Dockerfile'));
+    await mkdir(join(context, 'pnpm-bootstrap'));
+    for (const input of ['package.json', 'package-lock.json'])
+      await cp(join(frontendRoot, '../tools/pnpm', input), join(context, 'pnpm-bootstrap', input));
 
     const built = await runChild(
       'docker',
@@ -100,8 +105,6 @@ export const runBrowser = async ({
         `NODE_VERSION=${environment.nodeVersion}`,
         '--build-arg',
         `NODE_ARCHIVE_SHA256=${environment.nodeArchiveSha256[architecture]}`,
-        '--build-arg',
-        `PNPM_VERSION=${environment.pnpmVersion}`,
         '--tag',
         image,
         context,

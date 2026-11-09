@@ -11,7 +11,7 @@ from workflow_jobs import get_jobs, get_steps
 ROOT = Path(__file__).resolve().parents[1]
 PREPARATION_NAMES = (
     "Install database client dependencies",
-    "Download Go modules",
+    "Prepare locked Go modules",
     "Create .env file for testing",
     "Start test containers",
     "Wait for containers to be ready",
@@ -149,7 +149,7 @@ class BackendTestPreparationTest(unittest.TestCase):
                         "dpkg-architecture -qDEB_HOST_MULTIARCH",
                         "sudo ln -sf /usr/lib/test-architecture-linux-gnu/libncurses.so.6 /usr/lib/test-architecture-linux-gnu/libncurses.so.5",
                         "sudo ln -sf /usr/lib/test-architecture-linux-gnu/libtinfo.so.6 /usr/lib/test-architecture-linux-gnu/libtinfo.so.5",
-                        "go mod download",
+                        "go mod tidy -diff",
                         "docker compose -f docker-compose.yml up -d backend-db-test",
                         "timeout 60 bash -c until docker exec backend-db-test pg_isready -U postgres; do sleep 2; done",
                         "docker exec backend-db-test pg_isready -U postgres",
