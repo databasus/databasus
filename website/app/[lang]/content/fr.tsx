@@ -257,8 +257,7 @@ export default function Index() {
             </div>
 
             <h1 className="text-2xl sm:text-4xl sm:max-w-[300px] md:text-4xl leading-tight font-bold mb-4 md:mb-6 mx-auto md:max-w-[650px]">
-              Sauvegarde PostgreSQL avec Point-in-Time Recovery et vérification
-              de restauration
+              Sauvegarde PostgreSQL
             </h1>
 
             <p className="text-sm sm:text-lg text-gray-200 max-w-[720px] mx-auto mb-6 md:mb-10 px-2">
