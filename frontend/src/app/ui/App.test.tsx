@@ -1,6 +1,6 @@
 import { fireEvent, screen } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { renderApp } from '@/app/ui/renderApp';
 // @vitest-environment happy-dom
@@ -119,62 +119,36 @@ describe('App password change', () => {
 });
 
 describe('App routes', () => {
-  it.each(['/unrecognized/path', '/auth/callback?error=access_denied'])(
-    'opens a fresh sign-in page after recovery from %s',
-    async (path) => {
-      const previousAddress = window.location.href;
-      invalidateSession();
-      mockServer.use(
-        mockApi.get('/sign-in-options', 200, { hasAnyUser: true }),
-        http.get('https://api.github.com/repos/databasus/databasus', () =>
-          HttpResponse.json({ stargazers_count: 1 }),
-        ),
-      );
-      window.history.replaceState(null, '', path);
+  it.each([
+    '/unrecognized/path',
+    '/auth/callback?error=access_denied',
+    '/storages/google-oauth?code=synthetic-code&state=obsolete',
+  ])('opens a fresh sign-in page after recovery from %s', async (path) => {
+    const previousAddress = window.location.href;
+    invalidateSession();
+    mockServer.use(
+      mockApi.get('/sign-in-options', 200, { hasAnyUser: true }),
+      http.get('https://api.github.com/repos/databasus/databasus', () =>
+        HttpResponse.json({ stargazers_count: 1 }),
+      ),
+    );
+    window.history.replaceState(null, '', path);
 
-      try {
-        renderApp();
-        if (path.startsWith('/auth/callback')) {
-          fireEvent.click(await screen.findByRole('button', { name: 'Return to sign in' }));
-        }
-
-        expect(await screen.findByRole('button', { name: 'Sign in' })).toBeTruthy();
-        expect(window.location.pathname).toBe('/');
-        expect(window.location.search).toBe('');
-        expect(getSessionSnapshot().token).toBeUndefined();
-        expect(
-          mockServer.getRequests().filter((request) => request.method === 'POST'),
-        ).toHaveLength(0);
-      } finally {
-        window.history.replaceState(null, '', previousAddress);
+    try {
+      renderApp();
+      if (path.startsWith('/auth/callback')) {
+        fireEvent.click(await screen.findByRole('button', { name: 'Return to sign in' }));
       }
-    },
-  );
-});
 
-it('rejects an unbound legacy storage callback without requests or draft reconstruction', async () => {
-  const previousAddress = window.location.href;
-  vi.spyOn(window, 'alert').mockImplementation(() => {});
-  const state = encodeURIComponent(
-    JSON.stringify({
-      workspaceId: 'workspace-id',
-      name: 'Private draft',
-      settings: { type: 'GOOGLE_DRIVE', clientId: 'client', clientSecret: '' },
-    }),
-  );
-  window.history.replaceState(
-    null,
-    '',
-    `/storages/google-oauth?code=synthetic-code&state=${state}`,
-  );
-
-  try {
-    renderApp();
-    expect(window.location.search).toBe('');
-    expect(await screen.findByRole('alert')).toBeTruthy();
-    expect(mockServer.getRequests()).toHaveLength(0);
-    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
-  } finally {
-    window.history.replaceState(null, '', previousAddress);
-  }
+      expect(await screen.findByRole('button', { name: 'Sign in' })).toBeTruthy();
+      expect(window.location.pathname).toBe('/');
+      expect(window.location.search).toBe('');
+      expect(getSessionSnapshot().token).toBeUndefined();
+      expect(mockServer.getRequests().filter((request) => request.method === 'POST')).toHaveLength(
+        0,
+      );
+    } finally {
+      window.history.replaceState(null, '', previousAddress);
+    }
+  });
 });

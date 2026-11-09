@@ -151,7 +151,7 @@ export default function SecurityPage() {
               <p>
                 Internamente, o Databasus usa uma base de dados PostgreSQL para
                 guardar detalhes de conexão e as configurações de notificadores
-                e armazenamentos (S3, Google Drive, Dropbox, etc.).
+                e armazenamentos (S3, Azure Blob Storage, Dropbox, etc.).
               </p>
 
               <p>Todos os dados sensíveis são criptografados. Por exemplo:</p>
@@ -215,7 +215,7 @@ export default function SecurityPage() {
 
               <p>
                 <strong>Resultado</strong>: mesmo que alguém consiga acesso ao
-                seu armazenamento na nuvem (S3, Google Drive, etc.), não
+                seu armazenamento na nuvem (S3, Azure Blob Storage, etc.), não
                 consegue ler os backups sem a sua chave mestra.
               </p>
 

@@ -7,7 +7,7 @@ import InstallationComponent from "@/app/components/InstallationComponent";
 export const metadata: Metadata = {
   title: "Backup MySQL com suporte a MariaDB",
   description:
-    "Ferramenta gratuita e open source para backups agendados de MySQL e MariaDB. Alternativa ao mysqldump com interface web, armazenamento em nuvem (S3, Google Drive), notificações (Slack, Discord, Telegram) e criptografia AES-256.",
+    "Ferramenta gratuita e open source para backups agendados de MySQL e MariaDB. Alternativa ao mysqldump com interface web, armazenamento em nuvem (S3, Azure Blob Storage), notificações (Slack, Discord, Telegram) e criptografia AES-256.",
   keywords:
     "backup MySQL, backup MariaDB, alternativa ao mysqldump, mysqldump GUI, automação de backup MySQL, ferramenta de backup MySQL, ferramenta de backup MariaDB, backup MySQL agendado, backup MySQL na nuvem, backup MySQL S3, backup MySQL Docker, criptografia de backup MySQL",
   robots: "index, follow",
@@ -80,7 +80,7 @@ export default function MysqlBackupPage() {
             },
             featureList: [
               "Backups agendados de MySQL e MariaDB",
-              "Vários destinos de armazenamento (S3, Google Drive, Dropbox, SFTP, rclone, etc.)",
+              "Vários destinos de armazenamento (S3, Azure Blob Storage, Dropbox, SFTP, rclone, etc.)",
               "Notificações em tempo real (Slack, Telegram, Discord, Webhook, email, etc.)",
               "Monitoramento de saúde da base de dados MySQL",
               "Auto-hospedado via Docker",
@@ -186,7 +186,7 @@ export default function MysqlBackupPage() {
               O Databasus é uma ferramenta gratuita, open source e
               auto-hospedada para fazer cópia de segurança de bases de dados
               MySQL e MariaDB. Agende dumps automáticos e guarde-os no S3, no
-              Google Drive ou localmente. Receba notificações via Slack, Discord
+              Azure Blob Storage ou localmente. Receba notificações via Slack, Discord
               ou Telegram quando os backups terminarem
             </p>
 
@@ -344,7 +344,7 @@ export default function MysqlBackupPage() {
 
               <p className="text-gray-400 text-sm md:text-base mb-4 md:mb-5">
                 Mantenha os arquivos de backup MySQL localmente, em
-                armazenamento compatível com S3, Google Drive, Dropbox, NAS ou
+                armazenamento compatível com S3, Azure Blob Storage, Dropbox, NAS ou
                 outros destinos. Os seus dados ficam sob o seu controle.{" "}
                 <a
                   href="/pt/storages"
@@ -887,7 +887,7 @@ export default function MysqlBackupPage() {
             <FaqItem
               number="1"
               question="O que é o Databasus e como ele faz backup de bases de dados MySQL?"
-              answer="O Databasus é uma ferramenta de backup auto-hospedada, com licença Apache 2.0, que usa o mysqldump internamente para criar backups consistentes de MySQL. Por cima do mysqldump, ele adiciona uma interface web moderna, agendamento automático, integração com armazenamento em nuvem (S3, Google Drive, Dropbox), notificações em tempo real (Slack, Discord, Telegram) e criptografia AES-256-GCM, dispensando scripts shell personalizados e cron jobs."
+              answer="O Databasus é uma ferramenta de backup auto-hospedada, com licença Apache 2.0, que usa o mysqldump internamente para criar backups consistentes de MySQL. Por cima do mysqldump, ele adiciona uma interface web moderna, agendamento automático, integração com armazenamento em nuvem (S3, Azure Blob Storage, Dropbox), notificações em tempo real (Slack, Discord, Telegram) e criptografia AES-256-GCM, dispensando scripts shell personalizados e cron jobs."
             />
             <FaqItem
               number="2"
@@ -917,7 +917,7 @@ export default function MysqlBackupPage() {
             <FaqItem
               number="7"
               question="Onde ficam guardados os meus backups MySQL?"
-              answer="Você escolhe onde guardar os arquivos de backup MySQL: localmente no seu servidor, em armazenamento compatível com S3 (AWS S3, MinIO, Backblaze B2), Google Drive, Cloudflare R2, Dropbox, NAS via SFTP, ou qualquer destino suportado pelo rclone. Cada base de dados pode ter o seu próprio destino de armazenamento. Os arquivos de backup ficam sob o seu controle."
+              answer="Você escolhe onde guardar os arquivos de backup MySQL: localmente no seu servidor, em armazenamento compatível com S3 (AWS S3, MinIO, Backblaze B2), Azure Blob Storage, Cloudflare R2, Dropbox, NAS via SFTP, ou qualquer destino suportado pelo rclone. Cada base de dados pode ter o seu próprio destino de armazenamento. Os arquivos de backup ficam sob o seu controle."
             />
             <FaqItem
               number="8"

@@ -2,7 +2,7 @@
   <img src="../logo.svg" alt="Databasus Logo" width="250"/>
 
   <h3>Alat backup PostgreSQL</h3>
-  <p>Databasus adalah alat gratis, open source, dan self-hosted untuk backup PostgreSQL. Buat backup ke berbagai penyimpanan (S3, Google Drive, FTP, dan lain-lain) dan dapatkan notifikasi progresnya (Slack, Discord, Telegram, dan lain-lain). Fokusnya Point-in-Time Recovery dengan RPO/RTO rendah</p>
+  <p>Databasus adalah alat gratis, open source, dan self-hosted untuk backup PostgreSQL. Buat backup ke berbagai penyimpanan (S3, Azure Blob Storage, FTP, dan lain-lain) dan dapatkan notifikasi progresnya (Slack, Discord, Telegram, dan lain-lain). Fokusnya Point-in-Time Recovery dengan RPO/RTO rendah</p>
 
   <!-- Badges -->
 
@@ -80,7 +80,7 @@ Databasus melakukan restore sungguhan untuk memastikan backup bisa dipakai, buka
 ### 🗄️ **Berbagai tujuan penyimpanan** <a href="https://databasus.com/id/storages/">(lihat penyimpanan yang didukung)</a>
 
 - **Penyimpanan lokal**: simpan backup di VPS/server kamu
-- **Penyimpanan cloud**: S3, Cloudflare R2, Google Drive, NAS, Dropbox, SFTP, Rclone, dan lainnya
+- **Penyimpanan cloud**: S3, Cloudflare R2, Azure Blob Storage, NAS, Dropbox, SFTP, Rclone, dan lainnya
 - **Aman**: semua data tetap dalam kendali kamu
 
 ### 📱 **Notifikasi** <a href="https://databasus.com/id/notifiers/">(lihat kanal yang didukung)</a>
@@ -255,7 +255,7 @@ Untuk opsi lain (NodePort, TLS, HTTPRoute untuk Gateway API), lihat [README char
 2. **Tambahkan database pertama untuk backup**: klik "New Database" dan ikuti wizard setup
 3. **Atur jadwal**: pilih interval per jam, harian, mingguan, bulanan, atau cron
 4. **Isi koneksi database**: masukkan kredensial dan detail koneksi database kamu
-5. **Pilih penyimpanan**: tentukan tempat menyimpan backup (lokal, S3, Google Drive, dan lain-lain)
+5. **Pilih penyimpanan**: tentukan tempat menyimpan backup (lokal, S3, Azure Blob Storage, dan lain-lain)
 6. **Atur kebijakan retensi**: pilih periode waktu, jumlah, atau GFS untuk mengatur berapa lama backup disimpan
 7. **Tambahkan notifikasi** (opsional): atur notifikasi email, Telegram, Slack, Mattermost, atau webhook
 8. **Simpan dan mulai**: Databasus akan memvalidasi pengaturan dan memulai jadwal backup

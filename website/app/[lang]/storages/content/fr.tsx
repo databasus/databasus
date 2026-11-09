@@ -11,12 +11,11 @@ import DocTableOfContentComponent from "@/app/components/DocTableOfContentCompon
 export const metadata: Metadata = {
   title: "Stockages - Documentation Databasus",
   description:
-    "Liste des destinations de stockage prises en charge pour les sauvegardes Databasus : stockage local, S3, Cloudflare R2, Google Drive, Azure Blob Storage, NAS, FTP, SFTP, rclone et Dropbox.",
+    "Liste des destinations de stockage prises en charge pour les sauvegardes Databasus : stockage local, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP, rclone et Dropbox.",
   keywords: [
     "stockages Databasus",
     "stockage de sauvegardes",
     "stockage S3",
-    "sauvegarde Google Drive",
     "Cloudflare R2",
     "sauvegarde NAS",
     "sauvegarde Dropbox",
@@ -29,7 +28,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Stockages - Documentation Databasus",
     description:
-      "Liste des destinations de stockage prises en charge pour les sauvegardes Databasus : stockage local, S3, Cloudflare R2, Google Drive, Azure Blob Storage, NAS, FTP, SFTP, rclone et Dropbox.",
+      "Liste des destinations de stockage prises en charge pour les sauvegardes Databasus : stockage local, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP, rclone et Dropbox.",
     type: "article",
     url: getLocalizedUrl("fr", "storages"),
     locale: OG_LOCALES.fr,
@@ -38,7 +37,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "Stockages - Documentation Databasus",
     description:
-      "Liste des destinations de stockage prises en charge pour les sauvegardes Databasus : stockage local, S3, Cloudflare R2, Google Drive, Azure Blob Storage, NAS, FTP, SFTP, rclone et Dropbox.",
+      "Liste des destinations de stockage prises en charge pour les sauvegardes Databasus : stockage local, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP, rclone et Dropbox.",
   },
   alternates: {
     canonical: getLocalizedUrl("fr", "storages"),
@@ -59,7 +58,7 @@ export default function StoragesPage() {
             "@type": "TechArticle",
             headline: "Stockages - Documentation Databasus",
             description:
-              "Liste des destinations de stockage prises en charge pour les sauvegardes Databasus : stockage local, S3, Cloudflare R2, Google Drive, Azure Blob Storage, NAS, FTP, SFTP, rclone et Dropbox.",
+              "Liste des destinations de stockage prises en charge pour les sauvegardes Databasus : stockage local, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP, rclone et Dropbox.",
             author: {
               "@type": "Organization",
               name: "Databasus",
@@ -113,15 +112,6 @@ export default function StoragesPage() {
                     Cloudflare R2
                   </a>{" "}
                   - Stockage objet compatible S3 de Cloudflare
-                </li>
-                <li>
-                  <a
-                    href="/fr/storages/google-drive"
-                    className="font-semibold! text-blue-600 hover:text-blue-800"
-                  >
-                    Google Drive
-                  </a>{" "}
-                  - Stockage cloud de Google
                 </li>
                 <li>
                   <strong>Azure Blob Storage</strong> - Stockage cloud de

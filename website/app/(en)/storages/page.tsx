@@ -7,12 +7,11 @@ import DocTableOfContentComponent from "@/app/components/DocTableOfContentCompon
 export const metadata: Metadata = {
   title: "Storages - Databasus Documentation",
   description:
-    "List of supported storage destinations for Databasus backups including local storage, S3, Cloudflare R2, Google Drive, Azure Blob Storage, NAS, FTP, SFTP, rclone and Dropbox.",
+    "List of supported storage destinations for Databasus backups including local storage, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP, rclone and Dropbox.",
   keywords: [
     "Databasus storages",
     "backup storage",
     "S3 storage",
-    "Google Drive backup",
     "Cloudflare R2",
     "NAS backup",
     "Dropbox backup",
@@ -25,7 +24,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Storages - Databasus Documentation",
     description:
-      "List of supported storage destinations for Databasus backups including local storage, S3, Cloudflare R2, Google Drive, Azure Blob Storage, NAS, FTP, SFTP, rclone and Dropbox.",
+      "List of supported storage destinations for Databasus backups including local storage, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP, rclone and Dropbox.",
     type: "article",
     locale: "en_US",
     url: "https://databasus.com/storages",
@@ -34,7 +33,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "Storages - Databasus Documentation",
     description:
-      "List of supported storage destinations for Databasus backups including local storage, S3, Cloudflare R2, Google Drive, Azure Blob Storage, NAS, FTP, SFTP, rclone and Dropbox.",
+      "List of supported storage destinations for Databasus backups including local storage, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP, rclone and Dropbox.",
   },
   alternates: {
     canonical: "https://databasus.com/storages",
@@ -55,7 +54,7 @@ export default function StoragesPage() {
             "@type": "TechArticle",
             headline: "Storages - Databasus Documentation",
             description:
-              "List of supported storage destinations for Databasus backups including local storage, S3, Cloudflare R2, Google Drive, Azure Blob Storage, NAS, FTP, SFTP, rclone and Dropbox.",
+              "List of supported storage destinations for Databasus backups including local storage, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP, rclone and Dropbox.",
             author: {
               "@type": "Organization",
               name: "Databasus",
@@ -109,15 +108,6 @@ export default function StoragesPage() {
                     Cloudflare R2
                   </a>{" "}
                   - S3-compatible object storage from Cloudflare
-                </li>
-                <li>
-                  <a
-                    href="/storages/google-drive"
-                    className="font-semibold! text-blue-600 hover:text-blue-800"
-                  >
-                    Google Drive
-                  </a>{" "}
-                  - Cloud storage from Google
                 </li>
                 <li>
                   <strong>Azure Blob Storage</strong> - Cloud storage from

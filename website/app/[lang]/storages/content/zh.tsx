@@ -7,12 +7,11 @@ import DocTableOfContentComponent from "@/app/components/DocTableOfContentCompon
 export const metadata: Metadata = {
   title: "存储 - Databasus 文档",
   description:
-    "Databasus 备份支持的存储目标列表，包括本地存储、S3、Cloudflare R2、Google Drive、Azure Blob Storage、NAS、FTP、SFTP、rclone 和 Dropbox。",
+    "Databasus 备份支持的存储目标列表，包括本地存储、S3、Cloudflare R2、Azure Blob Storage、NAS、FTP、SFTP、rclone 和 Dropbox。",
   keywords: [
     "Databasus 存储",
     "备份存储",
     "S3 存储",
-    "Google Drive 备份",
     "Cloudflare R2",
     "NAS 备份",
     "Dropbox 备份",
@@ -25,7 +24,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "存储 - Databasus 文档",
     description:
-      "Databasus 备份支持的存储目标列表，包括本地存储、S3、Cloudflare R2、Google Drive、Azure Blob Storage、NAS、FTP、SFTP、rclone 和 Dropbox。",
+      "Databasus 备份支持的存储目标列表，包括本地存储、S3、Cloudflare R2、Azure Blob Storage、NAS、FTP、SFTP、rclone 和 Dropbox。",
     type: "article",
     url: getLocalizedUrl("zh", "storages"),
     locale: OG_LOCALES.zh,
@@ -34,7 +33,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "存储 - Databasus 文档",
     description:
-      "Databasus 备份支持的存储目标列表，包括本地存储、S3、Cloudflare R2、Google Drive、Azure Blob Storage、NAS、FTP、SFTP、rclone 和 Dropbox。",
+      "Databasus 备份支持的存储目标列表，包括本地存储、S3、Cloudflare R2、Azure Blob Storage、NAS、FTP、SFTP、rclone 和 Dropbox。",
   },
   alternates: {
     canonical: getLocalizedUrl("zh", "storages"),
@@ -55,7 +54,7 @@ export default function StoragesPage() {
             "@type": "TechArticle",
             headline: "存储 - Databasus 文档",
             description:
-              "Databasus 备份支持的存储目标列表，包括本地存储、S3、Cloudflare R2、Google Drive、Azure Blob Storage、NAS、FTP、SFTP、rclone 和 Dropbox。",
+              "Databasus 备份支持的存储目标列表，包括本地存储、S3、Cloudflare R2、Azure Blob Storage、NAS、FTP、SFTP、rclone 和 Dropbox。",
             author: {
               "@type": "Organization",
               name: "Databasus",
@@ -107,15 +106,6 @@ export default function StoragesPage() {
                     Cloudflare R2
                   </a>{" "}
                   - Cloudflare 提供的 S3 兼容对象存储
-                </li>
-                <li>
-                  <a
-                    href="/zh/storages/google-drive"
-                    className="font-semibold! text-blue-600 hover:text-blue-800"
-                  >
-                    Google Drive
-                  </a>{" "}
-                  - Google 提供的云存储
                 </li>
                 <li>
                   <strong>Azure Blob Storage</strong> - Microsoft Azure

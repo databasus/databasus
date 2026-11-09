@@ -125,7 +125,7 @@ export default function DatabasusVsPgBackWebPage() {
                   <tr>
                     <td>Storage options</td>
                     <td data-label="Databasus">
-                      Local, S3, Google Drive, Cloudflare R2, Azure, NAS,
+                      Local, S3, Cloudflare R2, Azure, NAS,
                       Dropbox
                     </td>
                     <td data-label="PgBackWeb">Local, S3-compatible only</td>
@@ -232,7 +232,6 @@ export default function DatabasusVsPgBackWebPage() {
                   <ul>
                     <li>Local storage</li>
                     <li>Amazon S3 and S3-compatible services</li>
-                    <li>Google Drive</li>
                     <li>Cloudflare R2</li>
                     <li>Azure Blob Storage</li>
                     <li>NAS (Network-attached storage)</li>
@@ -532,7 +531,7 @@ export default function DatabasusVsPgBackWebPage() {
                   <li>Enterprise-grade security with 3-level protection</li>
                   <li>Team collaboration with workspaces and audit logs</li>
                   <li>
-                    Multiple storage destinations (Google Drive, Azure etc.)
+                    Multiple storage destinations (FTP, SFTP, Azure etc.)
                   </li>
                   <li>Built-in notifications to Slack, Teams, Telegram etc.</li>
                   <li>Quick installation with one-line script or Docker</li>

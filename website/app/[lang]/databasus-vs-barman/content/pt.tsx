@@ -650,7 +650,6 @@ export default function DatabasusVsBarmanPage() {
               <ul>
                 <li>Armazenamento local</li>
                 <li>Amazon S3 e serviços compatíveis com S3</li>
-                <li>Google Drive</li>
                 <li>Cloudflare R2</li>
                 <li>Azure Blob Storage</li>
                 <li>NAS (armazenamento conectado à rede)</li>

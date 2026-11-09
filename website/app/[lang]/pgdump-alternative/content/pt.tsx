@@ -143,7 +143,7 @@ export default function PgDumpAlternativePage() {
                     <td>Destinos de armazenamento</td>
                     <td data-label="pg_dump">Sistema local</td>
                     <td data-label="Databasus">
-                      Local, S3, Google Drive, R2, Azure, NAS, Dropbox
+                      Local, S3, R2, Azure, NAS, Dropbox
                     </td>
                   </tr>
                   <tr>
@@ -459,7 +459,7 @@ fi`}</code>
                 </li>
                 <li>
                   <strong>Envio para a nuvem</strong>: envio direto para S3,
-                  Google Drive, Cloudflare R2, Azure ou outros destinos.
+                  Cloudflare R2, Azure ou outros destinos.
                 </li>
                 <li>
                   <strong>Políticas de retenção</strong>: limpeza automática de
@@ -491,7 +491,6 @@ fi`}</code>
               <ul>
                 <li>Armazenamento local</li>
                 <li>Amazon S3 e serviços compatíveis com S3</li>
-                <li>Google Drive</li>
                 <li>Cloudflare R2</li>
                 <li>Azure Blob Storage</li>
                 <li>NAS (armazenamento conectado à rede)</li>
@@ -783,7 +782,7 @@ fi`}</code>
                     Quer backups automáticos e agendados sem escrever scripts
                   </li>
                   <li>
-                    Precisa de guardar backups na nuvem (S3, Google Drive, etc.)
+                    Precisa de guardar backups na nuvem (S3, Azure Blob Storage, etc.)
                   </li>
                   <li>
                     Quer criptografia integrada sem gerenciar chaves manualmente

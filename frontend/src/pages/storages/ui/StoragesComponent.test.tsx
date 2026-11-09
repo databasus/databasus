@@ -48,6 +48,24 @@ const openStorageSettings = async (user: ReturnType<typeof renderScreen>['user']
 };
 
 describe('StoragesComponent', () => {
+  it('offers every supported provider when creating storage', async () => {
+    mockServer.use(mockApi.get('/storages', 200, { items: [] }));
+    const { user } = renderStoragesScreen();
+
+    await user.click(await screen.findByRole('button', { name: 'Add storage' }));
+    await user.click(screen.getByRole('combobox', { name: 'Type' }));
+
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'Local storage',
+      'S3',
+      'NAS',
+      'Azure Blob Storage',
+      'FTP',
+      'SFTP',
+      'Rclone',
+    ]);
+  });
+
   it('searches storages like notifiers when a name substring uses different casing', async () => {
     const storages = [
       storage,

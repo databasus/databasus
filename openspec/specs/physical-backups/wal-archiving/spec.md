@@ -45,7 +45,7 @@ Databasus SHALL NOT start a second upload of a segment while an upload of that s
 
 ### Requirement: Archiving keeps up with a busy source when the storage is far away
 
-For a storage of type S3-compatible, Azure Blob, SFTP, FTP, SMB, rclone or local, four concurrent writers SHALL store at least two pairs per second of a 16 MB segment-sized file and a 1 KB metadata file, when every response from the storage arrives 50 ms later than on a local network. These are the files WAL archiving writes for each segment. Google Drive is not covered by this requirement.
+For a storage of type S3-compatible, Azure Blob, SFTP, FTP, SMB, rclone or local, four concurrent writers SHALL store at least two pairs per second of a 16 MB segment-sized file and a 1 KB metadata file, when every response from the storage arrives 50 ms later than on a local network. These are the files WAL archiving writes for each segment.
 
 #### Scenario: Storage in another region
 
@@ -84,7 +84,7 @@ A write SHALL use only a connection opened with the storage's current settings, 
 
 ### Requirement: A storage that stops answering does not hold an upload
 
-For a storage of type S3-compatible, Azure Blob, SFTP, FTP or SMB, when the storage stops answering in the middle of a write, the write SHALL fail no later than three seconds after the deadline of the operation that started it, and the connection it used SHALL be closed. A later write SHALL NOT reuse that connection. rclone and Google Drive are not covered, because how they wait depends on the remote service behind them.
+For a storage of type S3-compatible, Azure Blob, SFTP, FTP or SMB, when the storage stops answering in the middle of a write, the write SHALL fail no later than three seconds after the deadline of the operation that started it, and the connection it used SHALL be closed. A later write SHALL NOT reuse that connection. rclone is not covered, because how it waits depends on the remote service behind it.
 
 #### Scenario: Storage goes silent mid-write
 

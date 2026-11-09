@@ -117,8 +117,7 @@ export default function SecurityPage() {
               <h2 id="level-1-sensitive-data-encryption">Lapisan 1: enkripsi data sensitif</h2>
               <p>
                 Secara internal, Databasus memakai database PostgreSQL untuk menyimpan detail
-                koneksi, konfigurasi, serta pengaturan kanal notifikasi dan penyimpanan (S3, Google
-                Drive, Dropbox, dll.).
+                koneksi, konfigurasi, serta pengaturan kanal notifikasi dan penyimpanan (S3, Azure Blob Storage, Dropbox, dll.).
               </p>
               <p>Semua data sensitif dienkripsi. Contohnya:</p>
               <ul>
@@ -161,7 +160,7 @@ export default function SecurityPage() {
               </ul>
               <p>
                 <strong>Hasilnya</strong>: Sekalipun seseorang mendapat akses ke penyimpanan cloud
-                kamu (S3, Google Drive, dll.), mereka tidak bisa membaca backup tanpa kunci utama.
+                kamu (S3, Azure Blob Storage, dll.), mereka tidak bisa membaca backup tanpa kunci utama.
               </p>
               <h2 id="level-3-read-only-access">Lapisan 3: akses database hanya-baca</h2>
               <p>

@@ -7,7 +7,7 @@ import InstallationComponent from "@/app/components/InstallationComponent";
 export const metadata: Metadata = {
   title: "MongoDB backup",
   description:
-    "Free and open source tool for MongoDB scheduled backups. Automate mongodump with web UI, store archives in S3, Google Drive or locally. Get notifications via Slack, Discord, Telegram. AES-256 encryption for BSON data.",
+    "Free and open source tool for MongoDB scheduled backups. Automate mongodump with web UI, store archives in S3, Azure Blob Storage or locally. Get notifications via Slack, Discord, Telegram. AES-256 encryption for BSON data.",
   keywords:
     "MongoDB backup, mongodump alternative, MongoDB backup automation, MongoDB backup tool, MongoDB scheduled backup, MongoDB cloud backup, MongoDB S3 backup, MongoDB Docker backup, MongoDB backup encryption, MongoDB Atlas backup, replica set backup, document database backup, BSON backup, NoSQL backup",
   robots: "index, follow",
@@ -80,7 +80,7 @@ export default function MongodbBackupPage() {
             },
             featureList: [
               "Scheduled MongoDB backups via mongodump",
-              "Multiple storage destinations (S3, Google Drive, Dropbox, SFTP, rclone, etc.)",
+              "Multiple storage destinations (S3, Azure Blob Storage, Dropbox, SFTP, rclone, etc.)",
               "Real-time notifications (Slack, Telegram, Discord, Webhook, email, etc.)",
               "MongoDB connection health monitoring",
               "Self-hosted via Docker",
@@ -182,7 +182,7 @@ export default function MongodbBackupPage() {
             <p className="text-sm sm:text-lg text-gray-200 max-w-[720px] mx-auto mb-6 md:mb-10 px-2">
               Databasus is a free, open source and self-hosted tool to backup
               MongoDB document databases. Automate mongodump with scheduling,
-              store BSON archives in S3, Google Drive or locally. Get notified
+              store BSON archives in S3, Azure Blob Storage or locally. Get notified
               via Slack, Discord or Telegram when backups complete
             </p>
 
@@ -338,7 +338,7 @@ export default function MongodbBackupPage() {
 
               <p className="text-gray-400 text-sm md:text-base mb-4 md:mb-5">
                 Keep MongoDB backup archives locally, in S3-compatible storage,
-                Google Drive, Dropbox, NAS or other destinations. Your document
+                Azure Blob Storage, Dropbox, NAS or other destinations. Your document
                 data stays under your control.{" "}
                 <a
                   href="/storages"
@@ -787,7 +787,7 @@ export default function MongodbBackupPage() {
             <FaqItem
               number="1"
               question="What is Databasus and how does it backup MongoDB databases?"
-              answer="Databasus is an Apache 2.0 licensed, self-hosted backup tool that uses mongodump under the hood to create consistent MongoDB backups. It wraps mongodump with a modern web interface, automated scheduling, cloud storage integration (S3, Google Drive, Dropbox), real-time notifications (Slack, Discord, Telegram) and AES-256-GCM encryption — eliminating the need for custom shell scripts and cron jobs."
+              answer="Databasus is an Apache 2.0 licensed, self-hosted backup tool that uses mongodump under the hood to create consistent MongoDB backups. It wraps mongodump with a modern web interface, automated scheduling, cloud storage integration (S3, Azure Blob Storage, Dropbox), real-time notifications (Slack, Discord, Telegram) and AES-256-GCM encryption — eliminating the need for custom shell scripts and cron jobs."
             />
             <FaqItem
               number="2"

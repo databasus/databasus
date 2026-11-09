@@ -24,7 +24,6 @@ const CORE_PAGE_SETTINGS: Record<
   "faq/localhost": { priority: 0.8, changeFrequency: "monthly" },
   "faq/supabase": { priority: 0.8, changeFrequency: "monthly" },
   storages: { priority: 0.8, changeFrequency: "monthly" },
-  "storages/google-drive": { priority: 0.7, changeFrequency: "monthly" },
   "storages/cloudflare-r2": { priority: 0.7, changeFrequency: "monthly" },
   notifiers: { priority: 0.8, changeFrequency: "monthly" },
   "notifiers/slack": { priority: 0.7, changeFrequency: "monthly" },

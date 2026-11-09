@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description:
     "Бесплатный open source инструмент для резервного копирования PostgreSQL по расписанию (поддерживаются также MySQL и MongoDB). Храните бекапы локально и в облаках. Уведомления в Slack, Discord, Telegram, на почту, через вебхук и другие каналы.",
   keywords:
-    "PostgreSQL, резервное копирование, бекап, мониторинг, база данных, бекапы по расписанию, Docker, self-hosted, open source, S3, Google Drive, уведомления в Slack, Discord, DevOps, мониторинг баз данных, pg_dump, восстановление базы данных, шифрование, AES-256, шифрование бекапов",
+    "PostgreSQL, резервное копирование, бекап, мониторинг, база данных, бекапы по расписанию, Docker, self-hosted, open source, S3, Azure Blob Storage, уведомления в Slack, Discord, DevOps, мониторинг баз данных, pg_dump, восстановление базы данных, шифрование, AES-256, шифрование бекапов",
   robots: "index, follow",
   alternates: {
     canonical: getLocalizedUrl("ru", ""),
@@ -82,7 +82,7 @@ export default function Index() {
             },
             featureList: [
               "Резервное копирование PostgreSQL по расписанию",
-              "Много хранилищ для бекапов (S3, Google Drive, Dropbox, SFTP, rclone и другие)",
+              "Много хранилищ для бекапов (S3, Azure Blob Storage, Dropbox, SFTP, rclone и другие)",
               "Мгновенные уведомления (Slack, Telegram, Discord, вебхук, почта и другие)",
               "Мониторинг состояния баз данных",
               "Self-hosted развертывание через Docker",
@@ -139,7 +139,7 @@ export default function Index() {
                 name: "Что такое Databasus и почему он лучше самописных скриптов?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus — это self-hosted сервис под лицензией Apache 2.0 для резервного копирования PostgreSQL с 13 по 18 версию. От shell-скриптов он отличается веб-интерфейсом: запуск по расписанию, сжатие, сохранение архивов сразу в несколько хранилищ (локальный диск, S3, Google Drive, Dropbox, SFTP, rclone и другие), автоудаление старых бекапов по политикам хранения и уведомления об успехе или сбое — и все это без единой строчки самописного кода",
+                  text: "Databasus — это self-hosted сервис под лицензией Apache 2.0 для резервного копирования PostgreSQL с 13 по 18 версию. От shell-скриптов он отличается веб-интерфейсом: запуск по расписанию, сжатие, сохранение архивов сразу в несколько хранилищ (локальный диск, S3, Azure Blob Storage, Dropbox, SFTP, rclone и другие), автоудаление старых бекапов по политикам хранения и уведомления об успехе или сбое — и все это без единой строчки самописного кода",
                 },
               },
               {
@@ -163,7 +163,7 @@ export default function Index() {
                 name: "Где хранятся мои бекапы и сколько места они займут?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Архивы можно сохранять на локальные диски, в S3-совместимые бакеты, Google Drive, Dropbox и другие облачные хранилища. Databasus применяет сбалансированное сжатие: обычно оно уменьшает размер дампа в 4-8 раз при накладных расходах всего около 20% времени, так что вы экономите и место, и трафик.",
+                  text: "Архивы можно сохранять на локальные диски, в S3-совместимые бакеты, Azure Blob Storage, Dropbox и другие облачные хранилища. Databasus применяет сбалансированное сжатие: обычно оно уменьшает размер дампа в 4-8 раз при накладных расходах всего около 20% времени, так что вы экономите и место, и трафик.",
                 },
               },
               {
@@ -264,7 +264,7 @@ export default function Index() {
             <p className="text-sm sm:text-lg text-gray-200 max-w-[720px] mx-auto mb-6 md:mb-10 px-2">
               Databasus — открытый self-hosted инструмент для резервного
               копирования PostgreSQL. Делайте бекапы в разные хранилища (S3,
-              Google Drive, FTP и другие) и получайте уведомления о результате
+              Azure Blob Storage, FTP и другие) и получайте уведомления о результате
               (Slack, Discord, Telegram и другие). С фокусом на Point-in-Time
               Recovery{" "}
               <span className="underline decoration-2 underline-offset-2 decoration-blue-600">
@@ -1069,7 +1069,7 @@ export default function Index() {
 
                 <div className="space-y-3 max-w-[370px] text-gray-400 text-sm md:text-base">
                   <p>
-                    Файлы бекапов можно хранить локально, в S3, Google Drive,
+                    Файлы бекапов можно хранить локально, в S3, Azure Blob Storage,
                     NAS, Dropbox и других сервисах
                   </p>
                   <p>
@@ -1200,7 +1200,7 @@ export default function Index() {
             <FaqItem
               number="1"
               question="Что такое Databasus и почему он лучше самописных скриптов?"
-              answer="Databasus — это self-hosted сервис для резервного копирования баз данных под лицензией Apache 2.0. От shell-скриптов он отличается веб-интерфейсом: запуск по расписанию, сжатие, сохранение архивов сразу в несколько хранилищ (локальный диск, S3, Google Drive, NAS, Dropbox, SFTP, rclone и другие), автоудаление старых бекапов по политикам хранения и уведомления об успехе или сбое — и все это без единой строчки самописного кода"
+              answer="Databasus — это self-hosted сервис для резервного копирования баз данных под лицензией Apache 2.0. От shell-скриптов он отличается веб-интерфейсом: запуск по расписанию, сжатие, сохранение архивов сразу в несколько хранилищ (локальный диск, S3, Azure Blob Storage, NAS, Dropbox, SFTP, rclone и другие), автоудаление старых бекапов по политикам хранения и уведомления об успехе или сбое — и все это без единой строчки самописного кода"
             />
             <FaqItem
               number="2"
@@ -1285,7 +1285,7 @@ export default function Index() {
                   <br />
                   Дальше введите хост PostgreSQL, порт, имя базы, учетные данные
                   и настройки SSL. Выберите, куда отправлять архив (локальный
-                  путь, бакет S3, папка Google Drive, Dropbox и так далее).{" "}
+                  путь, бакет S3, Azure Blob Storage, Dropbox и так далее).{" "}
                   <br />
                   <br />
                   При необходимости добавьте каналы уведомлений — почту, Slack,

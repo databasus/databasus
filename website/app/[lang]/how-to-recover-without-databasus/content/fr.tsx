@@ -308,7 +308,7 @@ mongorestore --host hostname:27017 --username username --password password \\
               <ul>
                 <li>
                   <strong>Le fichier de sauvegarde</strong> depuis votre
-                  stockage (stockage local, S3, Google Drive, etc.)
+                  stockage (stockage local, S3, Azure Blob Storage, etc.)
                 </li>
                 <li>
                   <strong>Le fichier de métadonnées</strong> depuis le même

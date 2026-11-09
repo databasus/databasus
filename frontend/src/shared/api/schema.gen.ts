@@ -2493,7 +2493,7 @@ export interface components {
             error?: string;
         };
         /** @description The settings of the storage's provider; `type` tells the providers apart */
-        StorageSettings: components["schemas"]["LocalStorageSettings"] | components["schemas"]["S3StorageSettings"] | components["schemas"]["GoogleDriveStorageSettings"] | components["schemas"]["NasStorageSettings"] | components["schemas"]["AzureBlobStorageSettings"] | components["schemas"]["FtpStorageSettings"] | components["schemas"]["SftpStorageSettings"] | components["schemas"]["RcloneStorageSettings"];
+        StorageSettings: components["schemas"]["LocalStorageSettings"] | components["schemas"]["S3StorageSettings"] | components["schemas"]["NasStorageSettings"] | components["schemas"]["AzureBlobStorageSettings"] | components["schemas"]["FtpStorageSettings"] | components["schemas"]["SftpStorageSettings"] | components["schemas"]["RcloneStorageSettings"];
         /** @description The data folder of the Databasus instance */
         LocalStorageSettings: {
             /**
@@ -2529,20 +2529,6 @@ export interface components {
         };
         /** @description The provider-defined storage class, forwarded unchanged; absent or empty selects the bucket's default */
         S3StorageClass: string;
-        /** @description The Google Drive of the account that authorized the OAuth client */
-        GoogleDriveStorageSettings: {
-            /**
-             * @description Always `GOOGLE_DRIVE` (enum property replaced by openapi-typescript)
-             * @enum {string}
-             */
-            type: "GOOGLE_DRIVE";
-            /** @description The ID of the OAuth client */
-            clientId: string;
-            /** @description The secret of the OAuth client */
-            clientSecret?: string;
-            /** @description The OAuth token with its refresh token, as JSON */
-            tokenJson?: string;
-        };
         /** @description A share of an SMB server */
         NasStorageSettings: {
             /**

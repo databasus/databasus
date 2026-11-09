@@ -212,31 +212,6 @@ func TestStorageSecretsLifecycle(t *testing.T) {
 			},
 		},
 		{
-			name: "Google Drive",
-			createSettings: func(t *testing.T) apiclient.StorageSettings {
-				t.Helper()
-
-				return newGoogleDriveSettings(t, apiclient.GoogleDriveStorageSettings{
-					ClientId:     "client-id",
-					ClientSecret: new("original-client-secret"),
-					TokenJson:    new(`{"access_token":"access","refresh_token":"original-refresh"}`),
-				})
-			},
-			updateSettings: func(t *testing.T) apiclient.StorageSettings {
-				t.Helper()
-
-				return newGoogleDriveSettings(t, apiclient.GoogleDriveStorageSettings{ClientId: "updated-client-id"})
-			},
-			secretColumns: []storedSecretColumn{
-				{table: "storages_google_drive", column: "client_secret", plaintext: "original-client-secret"},
-				{
-					table:     "storages_google_drive",
-					column:    "token_json",
-					plaintext: `{"access_token":"access","refresh_token":"original-refresh"}`,
-				},
-			},
-		},
-		{
 			name: "NAS",
 			createSettings: func(t *testing.T) apiclient.StorageSettings {
 				t.Helper()

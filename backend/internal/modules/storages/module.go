@@ -25,13 +25,13 @@ import (
 	"databasus-backend/internal/modules/storages/internal/providers"
 	"databasus-backend/internal/modules/storages/internal/providers/azureblob"
 	"databasus-backend/internal/modules/storages/internal/providers/ftp"
-	"databasus-backend/internal/modules/storages/internal/providers/googledrive"
 	"databasus-backend/internal/modules/storages/internal/providers/local"
 	"databasus-backend/internal/modules/storages/internal/providers/nas"
 	"databasus-backend/internal/modules/storages/internal/providers/rclone"
 	"databasus-backend/internal/modules/storages/internal/providers/s3"
 	"databasus-backend/internal/modules/storages/internal/providers/sftp"
 	"databasus-backend/internal/modules/storages/internal/storage"
+	"databasus-backend/internal/modules/storages/internal/upgrade"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 )
@@ -139,11 +139,6 @@ func New(deps Deps) Module {
 			Repositories:   s3.NewRepositories(deps.DB, deps.FieldEncryptor),
 			FieldEncryptor: deps.FieldEncryptor,
 		}),
-		googledrive.New(googledrive.Deps{
-			Repositories:   googledrive.NewRepositories(deps.DB, deps.FieldEncryptor),
-			FieldEncryptor: deps.FieldEncryptor,
-			Logger:         deps.Logger,
-		}),
 		nas.New(nas.Deps{
 			Repositories:   nas.NewRepositories(deps.DB, deps.FieldEncryptor),
 			FieldEncryptor: deps.FieldEncryptor,
@@ -228,4 +223,8 @@ func New(deps Deps) Module {
 // the internal database exists, so it needs no Deps.
 func ProbeLocalStorage(ctx context.Context, probe LocalStorageProbe) error {
 	return local.Probe(ctx, local.ProbeSpec{Folders: probe.Folders, Logger: probe.Logger})
+}
+
+func CheckUpgradeEligibility(ctx context.Context, db *gorm.DB) error {
+	return upgrade.CheckEligibility(ctx, db)
 }

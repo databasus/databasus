@@ -398,7 +398,7 @@ sudo curl -sSL https://raw.githubusercontent.com/databasus/databasus/refs/heads/
                 </li>
                 <li>
                   <strong>Pilih tujuan penyimpanan</strong>: Pilih tempat menyimpan backup (lokal,
-                  S3, Google Drive, dan sebagainya)
+                  S3, Azure Blob Storage, dan sebagainya)
                 </li>
                 <li>
                   <strong>Atur notifikasi</strong>: Tambahkan kanal notifikasi (Slack, Telegram,

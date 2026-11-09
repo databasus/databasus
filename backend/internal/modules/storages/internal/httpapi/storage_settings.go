@@ -6,7 +6,6 @@ import (
 	"databasus-backend/internal/modules/storages/internal/providers"
 	"databasus-backend/internal/modules/storages/internal/providers/azureblob"
 	"databasus-backend/internal/modules/storages/internal/providers/ftp"
-	"databasus-backend/internal/modules/storages/internal/providers/googledrive"
 	"databasus-backend/internal/modules/storages/internal/providers/local"
 	"databasus-backend/internal/modules/storages/internal/providers/nas"
 	"databasus-backend/internal/modules/storages/internal/providers/rclone"
@@ -27,8 +26,6 @@ func toProviderSettings(body StorageSettings) (providers.Settings, error) {
 		return local.Settings{}, nil
 	case S3StorageSettings:
 		return toS3Settings(typedBody), nil
-	case GoogleDriveStorageSettings:
-		return toGoogleDriveSettings(typedBody), nil
 	case NasStorageSettings:
 		return toNasSettings(typedBody), nil
 	case AzureBlobStorageSettings:
@@ -55,8 +52,6 @@ func fromProviderSettings(settings providers.Settings) (StorageSettings, error) 
 		err = body.FromLocalStorageSettings(LocalStorageSettings{Type: LocalStorageSettingsTypeLOCAL})
 	case s3.Settings:
 		err = body.FromS3StorageSettings(fromS3Settings(typedSettings))
-	case googledrive.Settings:
-		err = body.FromGoogleDriveStorageSettings(fromGoogleDriveSettings(typedSettings))
 	case nas.Settings:
 		err = body.FromNasStorageSettings(fromNasSettings(typedSettings))
 	case azureblob.Settings:

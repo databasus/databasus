@@ -253,21 +253,6 @@ func (e FullBackupsRetentionPolicy) Valid() bool {
 	}
 }
 
-// Defines values for GoogleDriveStorageSettingsType.
-const (
-	GoogleDriveStorageSettingsTypeGOOGLEDRIVE GoogleDriveStorageSettingsType = "GOOGLE_DRIVE"
-)
-
-// Valid indicates whether the value is a known member of the GoogleDriveStorageSettingsType enum.
-func (e GoogleDriveStorageSettingsType) Valid() bool {
-	switch e {
-	case GoogleDriveStorageSettingsTypeGOOGLEDRIVE:
-		return true
-	default:
-		return false
-	}
-}
-
 // Defines values for HealthCheckFailureCode.
 const (
 	HealthCheckFailureCodeAGENTSSTALE      HealthCheckFailureCode = "AGENTS_STALE"
@@ -2331,24 +2316,6 @@ type FullBackupsRetention struct {
 
 // FullBackupsRetentionPolicy `LAST_N` keeps the newest `count` full backups, and `GFS` keeps them by grandfather-father-son periods, at least one of them set
 type FullBackupsRetentionPolicy string
-
-// GoogleDriveStorageSettings The Google Drive of the account that authorized the OAuth client
-type GoogleDriveStorageSettings struct {
-	// ClientId The ID of the OAuth client
-	ClientId string `json:"clientId"`
-
-	// ClientSecret The secret of the OAuth client
-	ClientSecret *string `json:"clientSecret,omitempty"`
-
-	// TokenJson The OAuth token with its refresh token, as JSON
-	TokenJson *string `json:"tokenJson,omitempty"`
-
-	// Type Always `GOOGLE_DRIVE`
-	Type GoogleDriveStorageSettingsType `json:"type"`
-}
-
-// GoogleDriveStorageSettingsType Always `GOOGLE_DRIVE`
-type GoogleDriveStorageSettingsType string
 
 // HealthCheck One dependency monitoring result without internal errors
 type HealthCheck struct {
@@ -6158,40 +6125,6 @@ func (t *StorageSettings) MergeS3StorageSettings(v S3StorageSettings) error {
 	return err
 }
 
-// AsGoogleDriveStorageSettings returns the union data inside the StorageSettings as a GoogleDriveStorageSettings
-func (t StorageSettings) AsGoogleDriveStorageSettings() (GoogleDriveStorageSettings, error) {
-	var body GoogleDriveStorageSettings
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromGoogleDriveStorageSettings overwrites any union data inside the StorageSettings as the provided GoogleDriveStorageSettings
-func (t *StorageSettings) FromGoogleDriveStorageSettings(v GoogleDriveStorageSettings) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-	b, err = runtime.JSONMerge(b, []byte(`{"type":"GOOGLE_DRIVE"}`))
-	t.union = b
-	return err
-}
-
-// MergeGoogleDriveStorageSettings performs a merge with any union data inside the StorageSettings, using the provided GoogleDriveStorageSettings
-func (t *StorageSettings) MergeGoogleDriveStorageSettings(v GoogleDriveStorageSettings) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-	b, err = runtime.JSONMerge(b, []byte(`{"type":"GOOGLE_DRIVE"}`))
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
 // AsNasStorageSettings returns the union data inside the StorageSettings as a NasStorageSettings
 func (t StorageSettings) AsNasStorageSettings() (NasStorageSettings, error) {
 	var body NasStorageSettings
@@ -6380,8 +6313,6 @@ func (t StorageSettings) ValueByDiscriminator() (interface{}, error) {
 		return t.AsAzureBlobStorageSettings()
 	case "FTP":
 		return t.AsFtpStorageSettings()
-	case "GOOGLE_DRIVE":
-		return t.AsGoogleDriveStorageSettings()
 	case "LOCAL":
 		return t.AsLocalStorageSettings()
 	case "NAS":

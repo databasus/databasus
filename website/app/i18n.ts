@@ -53,7 +53,6 @@ export const TRANSLATED_PATHS = [
   "faq/localhost",
   "faq/supabase",
   "storages",
-  "storages/google-drive",
   "storages/cloudflare-r2",
   "notifiers",
   "notifiers/slack",

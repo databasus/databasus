@@ -6,7 +6,6 @@ export { StorageType } from '@/entities/storages/model/StorageType';
 export type {
   AzureBlobStorageSettings,
   FtpStorageSettings,
-  GoogleDriveStorageSettings,
   NasStorageSettings,
   RcloneStorageSettings,
   S3StorageSettings,

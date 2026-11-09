@@ -137,7 +137,7 @@ export default function PgDumpAlternativePage() {
                     <td>存储目标</td>
                     <td data-label="pg_dump">仅本地文件系统</td>
                     <td data-label="Databasus">
-                      本地、S3、Google Drive、R2、Azure、NAS、Dropbox
+                      本地、S3、R2、Azure、NAS、Dropbox
                     </td>
                   </tr>
                   <tr>
@@ -413,8 +413,7 @@ fi`}</code>
                   加密，每个备份使用唯一密钥。
                 </li>
                 <li>
-                  <strong>云端上传</strong>：直接上传到 S3、Google
-                  Drive、Cloudflare R2、Azure 等目标。
+                  <strong>云端上传</strong>：直接上传到 S3、Cloudflare R2、Azure 等目标。
                 </li>
                 <li>
                   <strong>保留策略</strong>
@@ -440,7 +439,6 @@ fi`}</code>
               <ul>
                 <li>本地存储</li>
                 <li>Amazon S3 及 S3 兼容服务</li>
-                <li>Google Drive</li>
                 <li>Cloudflare R2</li>
                 <li>Azure Blob Storage</li>
                 <li>NAS（网络附加存储）</li>
@@ -691,7 +689,7 @@ fi`}</code>
                 </p>
                 <ul className="text-blue-200 mb-0">
                   <li>你想要按计划自动备份，而不用写脚本</li>
-                  <li>你需要把备份存到云端（S3、Google Drive 等）</li>
+                  <li>你需要把备份存到云端（S3、Azure Blob Storage 等）</li>
                   <li>你想要内置加密，而不用手动管理密钥</li>
                   <li>你需要在备份成功或失败时收到通知</li>
                   <li>你在团队中工作，需要协作功能</li>

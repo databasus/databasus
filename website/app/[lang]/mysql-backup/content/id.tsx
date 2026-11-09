@@ -7,7 +7,7 @@ import InstallationComponent from "@/app/components/InstallationComponent";
 export const metadata: Metadata = {
   title: "Backup MySQL dengan dukungan MariaDB",
   description:
-    "Tool gratis dan open source untuk backup MySQL dan MariaDB terjadwal. Alternatif mysqldump dengan antarmuka web, penyimpanan cloud (S3, Google Drive), notifikasi (Slack, Discord, Telegram), dan enkripsi AES-256.",
+    "Tool gratis dan open source untuk backup MySQL dan MariaDB terjadwal. Alternatif mysqldump dengan antarmuka web, penyimpanan cloud (S3, Azure Blob Storage), notifikasi (Slack, Discord, Telegram), dan enkripsi AES-256.",
   keywords:
     "backup MySQL, backup MariaDB, alternatif mysqldump, GUI mysqldump, otomatisasi backup MySQL, tool backup MySQL, tool backup MariaDB, backup MySQL terjadwal, backup MySQL cloud, backup MySQL S3, backup MySQL Docker, enkripsi backup MySQL",
   robots: "index, follow",
@@ -76,7 +76,7 @@ export default function MysqlBackupPage() {
             },
             featureList: [
               "Backup MySQL dan MariaDB terjadwal",
-              "Berbagai tujuan penyimpanan (S3, Google Drive, Dropbox, SFTP, rclone, dan lainnya)",
+              "Berbagai tujuan penyimpanan (S3, Azure Blob Storage, Dropbox, SFTP, rclone, dan lainnya)",
               "Notifikasi real-time (Slack, Telegram, Discord, Webhook, email, dan lainnya)",
               "Pemantauan ketersediaan database MySQL",
               "Self-hosted melalui Docker",
@@ -172,7 +172,7 @@ export default function MysqlBackupPage() {
             </h1>
             <p className="text-sm sm:text-lg text-gray-200 max-w-[720px] mx-auto mb-6 md:mb-10 px-2">
               Databasus adalah tool gratis, open source, dan self-hosted untuk backup database MySQL
-              dan MariaDB. Jadwalkan dump otomatis, simpan di S3, Google Drive, atau secara lokal.
+              dan MariaDB. Jadwalkan dump otomatis, simpan di S3, Azure Blob Storage, atau secara lokal.
               Terima notifikasi melalui Slack, Discord, atau Telegram saat backup selesai
             </p>
             <div className="flex flex-col sm:flex-row sm:flex-wrap items-center justify-center gap-2 sm:gap-2 max-w-[400px] mx-auto pb-0 sm:pb-[50px] lg:pb-0">
@@ -300,7 +300,7 @@ export default function MysqlBackupPage() {
                 Simpan dump MySQL di mana saja
               </h3>
               <p className="text-gray-400 text-sm md:text-base mb-4 md:mb-5">
-                Simpan file backup MySQL secara lokal, di penyimpanan kompatibel S3, Google Drive,
+                Simpan file backup MySQL secara lokal, di penyimpanan kompatibel S3, Azure Blob Storage,
                 Dropbox, NAS, atau tujuan lain. Data tetap dalam kendalimu.{" "}
                 <a
                   href={getLocalizedHref("id", "storages")}
@@ -720,7 +720,7 @@ export default function MysqlBackupPage() {
             <FaqItem
               number="1"
               question="Apa itu Databasus dan bagaimana cara melakukan backup database MySQL?"
-              answer="Databasus adalah tool backup self-hosted berlisensi Apache 2.0 yang menggunakan mysqldump untuk membuat backup MySQL yang konsisten. Databasus melengkapinya dengan antarmuka web modern, penjadwalan otomatis, integrasi penyimpanan cloud (S3, Google Drive, Dropbox), notifikasi real-time (Slack, Discord, Telegram), dan enkripsi AES-256-GCM, sehingga tidak perlu menulis skrip shell dan cron job sendiri."
+              answer="Databasus adalah tool backup self-hosted berlisensi Apache 2.0 yang menggunakan mysqldump untuk membuat backup MySQL yang konsisten. Databasus melengkapinya dengan antarmuka web modern, penjadwalan otomatis, integrasi penyimpanan cloud (S3, Azure Blob Storage, Dropbox), notifikasi real-time (Slack, Discord, Telegram), dan enkripsi AES-256-GCM, sehingga tidak perlu menulis skrip shell dan cron job sendiri."
             />
             <FaqItem
               number="2"
@@ -750,7 +750,7 @@ export default function MysqlBackupPage() {
             <FaqItem
               number="7"
               question="Di mana backup MySQL disimpan?"
-              answer="Kamu menentukan tempat penyimpanan file backup MySQL: secara lokal di server, di penyimpanan kompatibel S3 (AWS S3, MinIO, Backblaze B2), Google Drive, Cloudflare R2, Dropbox, NAS melalui SFTP, atau tujuan apa pun yang didukung rclone. Setiap database bisa memiliki tujuan penyimpanan sendiri. File backup tetap dalam kendalimu."
+              answer="Kamu menentukan tempat penyimpanan file backup MySQL: secara lokal di server, di penyimpanan kompatibel S3 (AWS S3, MinIO, Backblaze B2), Azure Blob Storage, Cloudflare R2, Dropbox, NAS melalui SFTP, atau tujuan apa pun yang didukung rclone. Setiap database bisa memiliki tujuan penyimpanan sendiri. File backup tetap dalam kendalimu."
             />
             <FaqItem
               number="8"

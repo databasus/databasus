@@ -301,7 +301,7 @@ mongorestore --host hostname:27017 --username username --password password \\
               <ul>
                 <li>
                   <strong>Backup file</strong> from your storage (local storage,
-                  S3, Google Drive, etc.)
+                  S3, Azure Blob Storage, etc.)
                 </li>
                 <li>
                   <strong>Metadata file</strong> from the same storage. It named

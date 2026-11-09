@@ -7,7 +7,7 @@ import InstallationComponent from "@/app/components/InstallationComponent";
 export const metadata: Metadata = {
   title: "Резервное копирование MongoDB",
   description:
-    "Бесплатный open source инструмент для регулярных бекапов MongoDB. Автоматизируйте mongodump через веб-интерфейс, храните архивы в S3, Google Drive или локально. Уведомления в Slack, Discord, Telegram. Шифрование BSON-данных AES-256.",
+    "Бесплатный open source инструмент для регулярных бекапов MongoDB. Автоматизируйте mongodump через веб-интерфейс, храните архивы в S3, Azure Blob Storage или локально. Уведомления в Slack, Discord, Telegram. Шифрование BSON-данных AES-256.",
   keywords:
     "резервное копирование MongoDB, альтернатива mongodump, автоматизация бекапов MongoDB, инструмент для бекапа MongoDB, бекап MongoDB по расписанию, облачный бекап MongoDB, бекап MongoDB в S3, бекап MongoDB в Docker, шифрование бекапов MongoDB, бекап MongoDB Atlas, бекап replica set, бекап документной базы данных, бекап BSON, бекап NoSQL",
   robots: "index, follow",
@@ -80,7 +80,7 @@ export default function MongodbBackupPage() {
             },
             featureList: [
               "Бекапы MongoDB по расписанию через mongodump",
-              "Разные хранилища (S3, Google Drive, Dropbox, SFTP, rclone и другие)",
+              "Разные хранилища (S3, Azure Blob Storage, Dropbox, SFTP, rclone и другие)",
               "Мгновенные уведомления (Slack, Telegram, Discord, Webhook, email и другие)",
               "Мониторинг доступности подключения к MongoDB",
               "Self-hosted установка через Docker",
@@ -183,7 +183,7 @@ export default function MongodbBackupPage() {
             <p className="text-sm sm:text-lg text-gray-200 max-w-[720px] mx-auto mb-6 md:mb-10 px-2">
               Databasus — бесплатный self-hosted инструмент с открытым исходным
               кодом для бекапа документных баз данных MongoDB. Автоматизируйте
-              mongodump по расписанию, храните BSON-архивы в S3, Google Drive
+              mongodump по расписанию, храните BSON-архивы в S3, Azure Blob Storage
               или локально. Получайте уведомления в Slack, Discord или Telegram
               о завершении бекапов
             </p>
@@ -341,7 +341,7 @@ export default function MongodbBackupPage() {
 
               <p className="text-gray-400 text-sm md:text-base mb-4 md:mb-5">
                 Держите архивы бекапов MongoDB локально, в S3-совместимом
-                хранилище, Google Drive, Dropbox, на NAS или в других местах.
+                хранилище, Azure Blob Storage, Dropbox, на NAS или в других местах.
                 Ваши документы остаются под вашим контролем.{" "}
                 <a
                   href="/ru/storages"
@@ -794,7 +794,7 @@ export default function MongodbBackupPage() {
             <FaqItem
               number="1"
               question="Что такое Databasus и как он делает бекапы MongoDB?"
-              answer="Databasus — это self-hosted инструмент резервного копирования с лицензией Apache 2.0, который использует mongodump для создания консистентных бекапов MongoDB. Он дополняет mongodump современным веб-интерфейсом, расписаниями, интеграцией с облачными хранилищами (S3, Google Drive, Dropbox), мгновенными уведомлениями (Slack, Discord, Telegram) и шифрованием AES-256-GCM — самописные shell-скрипты и cron-задачи больше не нужны."
+              answer="Databasus — это self-hosted инструмент резервного копирования с лицензией Apache 2.0, который использует mongodump для создания консистентных бекапов MongoDB. Он дополняет mongodump современным веб-интерфейсом, расписаниями, интеграцией с облачными хранилищами (S3, Azure Blob Storage, Dropbox), мгновенными уведомлениями (Slack, Discord, Telegram) и шифрованием AES-256-GCM — самописные shell-скрипты и cron-задачи больше не нужны."
             />
             <FaqItem
               number="2"

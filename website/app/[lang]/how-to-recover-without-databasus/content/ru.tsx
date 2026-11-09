@@ -303,7 +303,7 @@ mongorestore --host hostname:27017 --username username --password password \\
               <ul>
                 <li>
                   <strong>Файл бекапа</strong> из вашего хранилища (локальное
-                  хранилище, S3, Google Drive и т.д.)
+                  хранилище, S3, Azure Blob Storage и т.д.)
                 </li>
                 <li>
                   <strong>Файл метаданных</strong> из того же хранилища. Он

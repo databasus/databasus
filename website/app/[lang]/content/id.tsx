@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description:
     "Alat gratis dan open source untuk backup PostgreSQL terjadwal (juga mendukung MySQL dan MongoDB). Simpan secara lokal dan di cloud. Notifikasi ke Slack, Discord, Telegram, email, webhook, dan lainnya.",
   keywords:
-    "PostgreSQL, backup, pemantauan, database, backup terjadwal, Docker, self-hosted, open source, S3, Google Drive, notifikasi Slack, Discord, DevOps, pemantauan database, pg_dump, restore database, enkripsi, AES-256, enkripsi backup",
+    "PostgreSQL, backup, pemantauan, database, backup terjadwal, Docker, self-hosted, open source, S3, Azure Blob Storage, notifikasi Slack, Discord, DevOps, pemantauan database, pg_dump, restore database, enkripsi, AES-256, enkripsi backup",
   robots: "index, follow",
   alternates: { canonical: getLocalizedUrl("id", ""), languages: getLanguageAlternates("") },
   openGraph: {
@@ -73,7 +73,7 @@ export default function Index() {
             },
             featureList: [
               "Backup PostgreSQL terjadwal",
-              "Beragam tujuan penyimpanan (S3, Google Drive, Dropbox, SFTP, rclone, dan lainnya)",
+              "Beragam tujuan penyimpanan (S3, Azure Blob Storage, Dropbox, SFTP, rclone, dan lainnya)",
               "Notifikasi real-time (Slack, Telegram, Discord, Webhook, email, dan lainnya)",
               "Pemantauan ketersediaan database",
               "Self-hosted melalui Docker",
@@ -130,7 +130,7 @@ export default function Index() {
                 name: "Apa itu Databasus dan mengapa perlu menggunakannya alih-alih script buatan sendiri?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus adalah layanan self-hosted berlisensi Apache 2.0 untuk backup PostgreSQL v13 hingga v18. Berbeda dari shell script, Databasus menyediakan antarmuka untuk menjadwalkan tugas, mengompresi dan menyimpan arsip ke berbagai tujuan (disk lokal, S3, Google Drive, Dropbox, SFTP, rclone, dan lainnya), mengatur kebijakan retensi agar backup lama dihapus otomatis, serta memberi tahu tim saat tugas selesai atau gagal, tanpa menulis kode sendiri",
+                  text: "Databasus adalah layanan self-hosted berlisensi Apache 2.0 untuk backup PostgreSQL v13 hingga v18. Berbeda dari shell script, Databasus menyediakan antarmuka untuk menjadwalkan tugas, mengompresi dan menyimpan arsip ke berbagai tujuan (disk lokal, S3, Azure Blob Storage, Dropbox, SFTP, rclone, dan lainnya), mengatur kebijakan retensi agar backup lama dihapus otomatis, serta memberi tahu tim saat tugas selesai atau gagal, tanpa menulis kode sendiri",
                 },
               },
               {
@@ -154,7 +154,7 @@ export default function Index() {
                 name: "Di mana backup disimpan dan berapa ruang yang dibutuhkan?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Arsip bisa disimpan di volume lokal, bucket kompatibel S3, Google Drive, Dropbox, dan tujuan cloud lainnya. Databasus menggunakan kompresi seimbang yang biasanya memperkecil dump 4-8x dengan tambahan waktu proses hanya sekitar 20%, sehingga menghemat penyimpanan dan bandwidth.",
+                  text: "Arsip bisa disimpan di volume lokal, bucket kompatibel S3, Azure Blob Storage, Dropbox, dan tujuan cloud lainnya. Databasus menggunakan kompresi seimbang yang biasanya memperkecil dump 4-8x dengan tambahan waktu proses hanya sekitar 20%, sehingga menghemat penyimpanan dan bandwidth.",
                 },
               },
               {
@@ -243,7 +243,7 @@ export default function Index() {
             </h1>
             <p className="text-sm sm:text-lg text-gray-200 max-w-[720px] mx-auto mb-6 md:mb-10 px-2">
               Databasus adalah alat gratis, open source, dan self-hosted untuk backup PostgreSQL.
-              Gunakan berbagai penyimpanan (S3, Google Drive, FTP, dan lainnya) serta notifikasi
+              Gunakan berbagai penyimpanan (S3, Azure Blob Storage, FTP, dan lainnya) serta notifikasi
               perkembangan (Slack, Discord, Telegram, dan lainnya). Berfokus pada Point-in-Time
               Recovery{" "}
               <span className="underline decoration-2 underline-offset-2 decoration-blue-600">
@@ -875,7 +875,7 @@ export default function Index() {
                 </h3>
                 <div className="space-y-3 max-w-[370px] text-gray-400 text-sm md:text-base">
                   <p>
-                    Kamu bisa menyimpan file backup secara lokal, di S3, Google Drive, NAS, Dropbox,
+                    Kamu bisa menyimpan file backup secara lokal, di S3, Azure Blob Storage, NAS, Dropbox,
                     dan layanan lain
                   </p>
                   <p>Pastikan ruang penyimpanan yang tersedia mencukupi</p>
@@ -980,7 +980,7 @@ export default function Index() {
             <FaqItem
               number="1"
               question="Apa itu Databasus dan mengapa perlu menggunakannya alih-alih script buatan sendiri?"
-              answer="Databasus adalah layanan self-hosted berlisensi Apache 2.0 untuk backup database. Berbeda dari shell script, Databasus menyediakan antarmuka untuk menjadwalkan tugas, mengompresi dan menyimpan arsip ke berbagai tujuan (disk lokal, S3, Google Drive, NAS, Dropbox, SFTP, rclone, dan lainnya), mengatur kebijakan retensi agar backup lama dihapus otomatis, serta memberi tahu tim saat tugas selesai atau gagal, tanpa menulis kode sendiri"
+              answer="Databasus adalah layanan self-hosted berlisensi Apache 2.0 untuk backup database. Berbeda dari shell script, Databasus menyediakan antarmuka untuk menjadwalkan tugas, mengompresi dan menyimpan arsip ke berbagai tujuan (disk lokal, S3, Azure Blob Storage, NAS, Dropbox, SFTP, rclone, dan lainnya), mengatur kebijakan retensi agar backup lama dihapus otomatis, serta memberi tahu tim saat tugas selesai atau gagal, tanpa menulis kode sendiri"
             />
             <FaqItem
               number="2"
@@ -1057,7 +1057,7 @@ export default function Index() {
                   <br />
                   <br />
                   Lalu masukkan host PostgreSQL, nomor port, nama database, kredensial, dan pilihan
-                  SSL. Pilih tujuan arsip (path lokal, bucket S3, folder Google Drive, Dropbox, dan
+                  SSL. Pilih tujuan arsip (path lokal, bucket S3, Azure Blob Storage, Dropbox, dan
                   lainnya). <br />
                   <br />
                   Jika perlu, tambahkan kanal notifikasi seperti email, Slack, Telegram, atau

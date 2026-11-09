@@ -94,12 +94,6 @@ export const id: typeof en = {
       returnToSignIn: 'Kembali ke halaman masuk',
       completing: 'Menyelesaikan autentikasi...',
     },
-    oauthStorage: {
-      waiting: 'Menyelesaikan otorisasi penyimpanan...',
-      complete: 'Otorisasi diterima. Kembali ke editor penyimpanan.',
-      restart:
-        'Otorisasi tidak dapat diteruskan ke editor asal. Tutup jendela ini dan mulai otorisasi lagi dari editor tersebut.',
-    },
   },
   errors: {
     cleanupPending:
@@ -564,8 +558,7 @@ export const id: typeof en = {
         selectPlaceholder: 'Pilih penyimpanan',
         createNew: 'Buat penyimpanan baru',
         addTitle: 'Tambah penyimpanan',
-        description:
-          'Penyimpanan adalah tempat menyimpan backup (disk lokal, S3, Google Drive, dll.)',
+        description: 'Penyimpanan adalah tempat menyimpan backup (disk lokal, S3, dll.)',
       },
       notifiers: {
         title: 'Kanal notifikasi (opsional)',
@@ -768,7 +761,7 @@ export const id: typeof en = {
       submit: 'Buat ruang kerja',
       defaultName: 'Ruang kerja saya',
       description:
-        'Ruang kerja adalah tempat mengelompokkan:<lineBreak/>- database;<lineBreak/>- penyimpanan (disk lokal, S3, Google Drive, dll.);<lineBreak/>- kanal notifikasi (email, Slack, Telegram, dll.);<lineBreak/>- kontrol akses (jika bekerja dalam tim);',
+        'Ruang kerja adalah tempat mengelompokkan:<lineBreak/>- database;<lineBreak/>- penyimpanan (disk lokal, S3, dll.);<lineBreak/>- kanal notifikasi (email, Slack, Telegram, dll.);<lineBreak/>- kontrol akses (jika bekerja dalam tim);',
       nameRequired: 'Masukkan nama ruang kerja',
       created: 'Ruang kerja berhasil dibuat',
       permissionDenied: {
@@ -1358,8 +1351,7 @@ export const id: typeof en = {
       selectStorage: 'Pilih penyimpanan',
       createNewStorage: 'Buat penyimpanan baru',
       addStorageTitle: 'Tambah penyimpanan',
-      storageDescription:
-        'Penyimpanan adalah tempat menyimpan backup (disk lokal, S3, Google Drive, dll.)',
+      storageDescription: 'Penyimpanan adalah tempat menyimpan backup (disk lokal, S3, dll.)',
       encryption: 'Enkripsi',
       notifications: 'Notifikasi',
       noNotifications: 'Tidak ada',
@@ -1397,7 +1389,7 @@ export const id: typeof en = {
         makeBackupNow: 'Jalankan backup sekarang',
         encrypted: 'Terenkripsi',
         sizeTooltip:
-          'Atas: ukuran file backup terkompresi yang benar-benar disimpan di penyimpanan (lokal, S3, Google Drive, dll.). Bawah (abu-abu): ukuran asli database tanpa kompresi saat backup dibuat. Backup biasanya dikompresi sekitar 5x.',
+          'Atas: ukuran file backup terkompresi yang benar-benar disimpan di penyimpanan (lokal, S3, dll.). Bawah (abu-abu): ukuran asli database tanpa kompresi saat backup dibuat. Backup biasanya dikompresi sekitar 5x.',
         databaseSize: '{{size}} (ukuran database)',
         deleteConfirmation: 'Yakin ingin menghapus backup ini?',
         actions: {
@@ -1923,7 +1915,6 @@ export const id: typeof en = {
     types: {
       local: 'Penyimpanan lokal',
       s3: 'S3',
-      googleDrive: 'Google Drive',
       nas: 'NAS',
       azureBlob: 'Azure Blob Storage',
       ftp: 'FTP',
@@ -1956,7 +1947,6 @@ export const id: typeof en = {
       type: {
         local: 'Jenis: penyimpanan lokal',
         s3: 'Jenis: S3',
-        googleDrive: 'Jenis: Google Drive',
         nas: 'Jenis: NAS',
         azureBlob: 'Jenis: Azure Blob Storage',
         ftp: 'Jenis: FTP',
@@ -2015,8 +2005,6 @@ export const id: typeof en = {
       accountName: 'Nama akun',
       accountKey: 'Kunci akun',
       containerName: 'Nama container',
-      clientId: 'Client ID',
-      clientSecret: 'Client Secret',
       userToken: 'Token pengguna',
       config: 'Konfigurasi',
     },
@@ -2045,26 +2033,6 @@ export const id: typeof en = {
           'Lewati verifikasi sertifikat TLS. Aktifkan jika penyimpanan yang kompatibel dengan S3 menggunakan sertifikat self-signed. Peringatan: ini mengurangi keamanan.',
         storageClassTooltip:
           'Kelas penyimpanan S3 untuk objek yang diunggah. Biarkan default untuk Standard. Beberapa penyedia menawarkan kelas lebih murah seperti One Zone IA. Jangan gunakan Glacier/Deep Archive karena file harus langsung tersedia untuk restore.',
-      },
-      googleDrive: {
-        guideLink: 'Bagaimana cara menghubungkan Google Drive?',
-        authorize: 'Otorisasi',
-        authorized: 'Terotorisasi',
-        waiting: 'Menunggu otorisasi Google...',
-        exchanging: 'Menukar kode otorisasi...',
-        cancel: 'Batalkan otorisasi',
-        restart: 'Mulai ulang otorisasi',
-        reconnect: 'Hubungkan kembali',
-        reconnectHelp:
-          'Masukkan client secret lagi untuk menghubungkan kembali. Kredensial tersimpan tetap dipertahankan jika koneksi ulang gagal.',
-        expired: 'Otorisasi kedaluwarsa. Mulai lagi.',
-        refused: 'Otorisasi Google ditolak. Kamu bisa mencoba lagi.',
-        exchangeFailed: 'Tidak dapat menukar kode otorisasi. Mulai lagi.',
-        missingRefreshToken:
-          'Google tidak mengembalikan refresh token. Mulai otorisasi lagi dan berikan akses offline.',
-        popupBlocked: 'Jendela otorisasi diblokir. Izinkan popup dan coba lagi.',
-        unavailable:
-          'Otorisasi tidak tersedia di browser ini. Periksa dukungan BroadcastChannel dan coba lagi.',
       },
       nas: {
         shareWithSlashWarning:

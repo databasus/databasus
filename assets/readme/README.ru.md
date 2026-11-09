@@ -2,7 +2,7 @@
   <img src="../logo.svg" alt="Databasus Logo" width="250"/>
 
   <h3>Инструмент для резервного копирования PostgreSQL</h3>
-  <p>Databasus — бесплатный open source self-hosted инструмент для резервного копирования PostgreSQL. Делайте бекапы в разные хранилища (S3, Google Drive, FTP и другие) и получайте уведомления о ходе процесса (Slack, Discord, Telegram и другие). С фокусом на Point-in-Time Recovery с низкими RPO/RTO</p>
+  <p>Databasus — бесплатный open source self-hosted инструмент для резервного копирования PostgreSQL. Делайте бекапы в разные хранилища (S3, Azure Blob Storage, FTP и другие) и получайте уведомления о ходе процесса (Slack, Discord, Telegram и другие). С фокусом на Point-in-Time Recovery с низкими RPO/RTO</p>
   
   <!-- Badges -->
    [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
@@ -79,7 +79,7 @@ Databasus по-настоящему восстанавливает бекап, �
 ### 🗄️ **Разные хранилища** <a href="https://databasus.com/ru/storages/">(смотреть все)</a>
 
 - **Локальное хранилище**: держите бекапы на своем VPS или сервере
-- **Облачные хранилища**: S3, Cloudflare R2, Google Drive, NAS, Dropbox, SFTP, Rclone и другие
+- **Облачные хранилища**: S3, Cloudflare R2, Azure Blob Storage, NAS, Dropbox, SFTP, Rclone и другие
 - **Безопасно**: все данные остаются под вашим контролем
 
 ### 📱 **Уведомления** <a href="https://databasus.com/ru/notifiers/">(смотреть все)</a>
@@ -254,7 +254,7 @@ helm install databasus oci://ghcr.io/databasus/charts/databasus \
 2. **Добавьте первую базу для бекапа**: нажмите "New Database" и пройдите мастер настройки
 3. **Настройте расписание**: выберите интервал — каждый час, день, неделю, месяц или cron
 4. **Укажите подключение к базе**: введите учетные данные и параметры соединения
-5. **Выберите хранилище**: решите, где хранить бекапы (локально, S3, Google Drive и так далее)
+5. **Выберите хранилище**: решите, где хранить бекапы (локально, S3, Azure Blob Storage и так далее)
 6. **Настройте политику хранения**: по сроку, по количеству или GFS — так вы определите, сколько бекапы живут
 7. **Добавьте уведомления** (необязательно): почта, Telegram, Slack, Mattermost или вебхук
 8. **Сохраните и запустите**: Databasus проверит настройки и начнет делать бекапы по расписанию

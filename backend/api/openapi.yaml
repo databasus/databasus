@@ -4621,7 +4621,6 @@ components:
       oneOf:
         - $ref: "#/components/schemas/LocalStorageSettings"
         - $ref: "#/components/schemas/S3StorageSettings"
-        - $ref: "#/components/schemas/GoogleDriveStorageSettings"
         - $ref: "#/components/schemas/NasStorageSettings"
         - $ref: "#/components/schemas/AzureBlobStorageSettings"
         - $ref: "#/components/schemas/FtpStorageSettings"
@@ -4632,7 +4631,6 @@ components:
         mapping:
           LOCAL: "#/components/schemas/LocalStorageSettings"
           S3: "#/components/schemas/S3StorageSettings"
-          GOOGLE_DRIVE: "#/components/schemas/GoogleDriveStorageSettings"
           NAS: "#/components/schemas/NasStorageSettings"
           AZURE_BLOB: "#/components/schemas/AzureBlobStorageSettings"
           FTP: "#/components/schemas/FtpStorageSettings"
@@ -4687,26 +4685,6 @@ components:
     S3StorageClass:
       type: string
       description: The provider-defined storage class, forwarded unchanged; absent or empty selects the bucket's default
-    GoogleDriveStorageSettings:
-      type: object
-      description: The Google Drive of the account that authorized the OAuth client
-      required: [type, clientId]
-      properties:
-        type:
-          type: string
-          enum: [GOOGLE_DRIVE]
-          description: Always `GOOGLE_DRIVE`
-        clientId:
-          type: string
-          description: The ID of the OAuth client
-        clientSecret:
-          type: string
-          writeOnly: true
-          description: The secret of the OAuth client
-        tokenJson:
-          type: string
-          writeOnly: true
-          description: The OAuth token with its refresh token, as JSON
     NasStorageSettings:
       type: object
       description: A share of an SMB server

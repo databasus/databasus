@@ -11,7 +11,6 @@ How the system is built is described in `docs/`:
 - [`docs/machine-setup.md`](docs/machine-setup.md) — storage recommendations for faster local tests
 - [`docs/frontend-design.md`](docs/frontend-design.md) — frontend design conventions and their code owners
 - [`docs/frontend-localization.md`](docs/frontend-localization.md) — dictionaries, safe interpolation and regional formats
-- [`docs/google-drive-storage-authorization.md`](docs/google-drive-storage-authorization.md) — how a storage editor authorizes with Google Drive
 
 Product behavior is specified in `openspec/specs`.
 

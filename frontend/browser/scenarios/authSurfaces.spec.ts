@@ -191,11 +191,6 @@ for (const context of [
       await expect(page.getByRole('alert')).toContainText(dictionary.app.oauthCallback.failedTitle);
       await expect(page).toHaveURL(/\/auth\/callback$/);
       await assertEnlargedTextReflow(page);
-
-      await page.goto('/storages/google-oauth?state=obsolete');
-      await expect(page.getByRole('alert')).toContainText(dictionary.app.oauthStorage.restart);
-      await expect(page).toHaveURL(/\/storages\/google-oauth$/);
-      await assertEnlargedTextReflow(page);
     });
 
     test('keeps the callback pending when a valid OAuth exchange has not answered', async ({

@@ -71,6 +71,13 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		return nil, err
 	}
 
+	if err := storages.CheckUpgradeEligibility(ctx, db); err != nil {
+		closeDatabase(db)
+		appLogger.ErrorContext(ctx, "refusing to upgrade unsupported storages", slog.Any("error", err))
+
+		return nil, err
+	}
+
 	appLogger.InfoContext(ctx, "running database migrations")
 
 	appliedMigrations, err := database.Migrate(ctx, db, migrations.Files)

@@ -113,12 +113,6 @@ export const es: typeof en = {
       returnToSignIn: 'Volver al inicio de sesión',
       completing: 'Completando la autenticación...',
     },
-    oauthStorage: {
-      waiting: 'Completando la autorización del almacenamiento...',
-      complete: 'Autorización recibida. Vuelve al editor del almacenamiento.',
-      restart:
-        'No se pudo contactar con el editor original. Cierra esta ventana e inicia la autorización de nuevo desde el editor.',
-    },
   },
   errors: {
     cleanupPending:
@@ -622,7 +616,7 @@ export const es: typeof en = {
         createNew: 'Crear almacenamiento',
         addTitle: 'Añadir almacenamiento',
         description:
-          'Un almacenamiento es el lugar donde se guardan las copias de seguridad (disco local, S3, Google Drive, etc.)',
+          'Un almacenamiento es el lugar donde se guardan las copias de seguridad (disco local, S3, etc.)',
       },
       notifiers: {
         title: 'Canales de notificación (opcional)',
@@ -841,7 +835,7 @@ export const es: typeof en = {
       submit: 'Crear espacio de trabajo',
       defaultName: 'Mi espacio de trabajo',
       description:
-        'Un espacio de trabajo agrupa:<lineBreak/>- sus bases de datos;<lineBreak/>- almacenamientos (disco local, S3, Google Drive, etc.);<lineBreak/>- canales de notificación (correo electrónico, Slack, Telegram, etc.);<lineBreak/>- control de acceso (si trabaja en equipo).',
+        'Un espacio de trabajo agrupa:<lineBreak/>- sus bases de datos;<lineBreak/>- almacenamientos (disco local, S3, etc.);<lineBreak/>- canales de notificación (correo electrónico, Slack, Telegram, etc.);<lineBreak/>- control de acceso (si trabaja en equipo).',
       nameRequired: 'Introduzca un nombre para el espacio de trabajo',
       created: 'Espacio de trabajo creado',
       permissionDenied: {
@@ -1485,7 +1479,7 @@ export const es: typeof en = {
       createNewStorage: 'Crear almacenamiento',
       addStorageTitle: 'Añadir almacenamiento',
       storageDescription:
-        'Un almacenamiento es el lugar donde se guardan las copias de seguridad (disco local, S3, Google Drive, etc.)',
+        'Un almacenamiento es el lugar donde se guardan las copias de seguridad (disco local, S3, etc.)',
       encryption: 'Cifrado',
       notifications: 'Notificaciones',
       noNotifications: 'Ninguna',
@@ -1526,7 +1520,7 @@ export const es: typeof en = {
         makeBackupNow: 'Hacer copia de seguridad ahora',
         encrypted: 'Cifrada',
         sizeTooltip:
-          'Arriba: el tamaño del archivo comprimido de la copia de seguridad que realmente se guarda en el almacenamiento (local, S3, Google Drive, etc.). Abajo (en gris): el tamaño original sin comprimir de la base de datos en el momento de la copia. Las copias suelen comprimirse unas 5 veces.',
+          'Arriba: el tamaño del archivo comprimido de la copia de seguridad que realmente se guarda en el almacenamiento (local, S3, etc.). Abajo (en gris): el tamaño original sin comprimir de la base de datos en el momento de la copia. Las copias suelen comprimirse unas 5 veces.',
         databaseSize: '{{size}} (tamaño de la BD)',
         deleteConfirmation: '¿Seguro que desea eliminar esta copia de seguridad?',
         actions: {
@@ -2075,7 +2069,6 @@ export const es: typeof en = {
     types: {
       local: 'Almacenamiento local',
       s3: 'S3',
-      googleDrive: 'Google Drive',
       nas: 'NAS',
       azureBlob: 'Azure Blob Storage',
       ftp: 'FTP',
@@ -2112,7 +2105,6 @@ export const es: typeof en = {
       type: {
         local: 'Tipo: almacenamiento local',
         s3: 'Tipo: S3',
-        googleDrive: 'Tipo: Google Drive',
         nas: 'Tipo: NAS',
         azureBlob: 'Tipo: Azure Blob Storage',
         ftp: 'Tipo: FTP',
@@ -2173,8 +2165,6 @@ export const es: typeof en = {
       accountName: 'Nombre de la cuenta',
       accountKey: 'Clave de la cuenta',
       containerName: 'Nombre del contenedor',
-      clientId: 'ID de cliente',
-      clientSecret: 'Secreto de cliente',
       userToken: 'Token de usuario',
       config: 'Configuración',
     },
@@ -2204,27 +2194,6 @@ export const es: typeof en = {
           'No verifica el certificado TLS. Active esta opción si su almacenamiento compatible con S3 usa un certificado autofirmado. Advertencia: esto reduce la seguridad.',
         storageClassTooltip:
           'Clase de almacenamiento de S3 para los objetos subidos. Déjela en el valor predeterminado para Standard. Algunos proveedores ofrecen clases más baratas, como One Zone IA. No use Glacier/Deep Archive: los archivos deben estar accesibles de inmediato para las restauraciones.',
-      },
-      googleDrive: {
-        guideLink: '¿Cómo conectar Google Drive?',
-        authorize: 'Autorizar',
-        authorized: 'Autorizado',
-        waiting: 'Esperando la autorización de Google...',
-        exchanging: 'Intercambiando el código de autorización...',
-        cancel: 'Cancelar autorización',
-        restart: 'Reiniciar autorización',
-        reconnect: 'Volver a conectar',
-        reconnectHelp:
-          'Introduce de nuevo el secreto del cliente para reconectar. Si falla, se conservan las credenciales guardadas.',
-        expired: 'La autorización ha caducado. Vuelve a empezar.',
-        refused: 'Se rechazó la autorización de Google. Puedes intentarlo de nuevo.',
-        exchangeFailed: 'No se pudo intercambiar el código de autorización. Vuelve a empezar.',
-        missingRefreshToken:
-          'Google no devolvió un token de actualización. Repite la autorización y permite el acceso sin conexión.',
-        popupBlocked:
-          'Se bloqueó la ventana de autorización. Permite las ventanas emergentes e inténtalo de nuevo.',
-        unavailable:
-          'La autorización no está disponible en este navegador. Comprueba la compatibilidad con BroadcastChannel e inténtalo de nuevo.',
       },
       nas: {
         shareWithSlashWarning:

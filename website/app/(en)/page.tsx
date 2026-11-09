@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description:
     "Free and open source tool for PostgreSQL scheduled backups (with MySQL and MongoDB support). Save them locally and to clouds. Notifications to Slack, Discord, Telegram, email, webhook, etc.",
   keywords:
-    "PostgreSQL, backup, monitoring, database, scheduled backups, Docker, self-hosted, open source, S3, Google Drive, Slack notifications, Discord, DevOps, database monitoring, pg_dump, database restore, encryption, AES-256, backup encryption",
+    "PostgreSQL, backup, monitoring, database, scheduled backups, Docker, self-hosted, open source, S3, Azure Blob Storage, Slack notifications, Discord, DevOps, database monitoring, pg_dump, database restore, encryption, AES-256, backup encryption",
   robots: "index, follow",
   alternates: {
     canonical: "https://databasus.com",
@@ -82,7 +82,7 @@ export default function Index() {
             },
             featureList: [
               "Scheduled PostgreSQL backups",
-              "Multiple storage destinations (S3, Google Drive, Dropbox, SFTP, rclone, etc.)",
+              "Multiple storage destinations (S3, Azure Blob Storage, Dropbox, SFTP, rclone, etc.)",
               "Real-time notifications (Slack, Telegram, Discord, Webhook, email, etc.)",
               "Database health monitoring",
               "Self-hosted via Docker",
@@ -139,7 +139,7 @@ export default function Index() {
                 name: "What is Databasus and why should I use it instead of hand-rolled scripts?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus is an Apache 2.0 licensed, self-hosted service backing up PostgreSQL, v13 to v18. It differs from shell scripts in that it has a frontend for scheduling tasks, compressing and storing archives on multiple targets (local disk, S3, Google Drive, Dropbox, SFTP, rclone, etc.), configuring retention policies to automatically prune old backups and notifying your team when tasks finish or fail — all without hand-rolled code",
+                  text: "Databasus is an Apache 2.0 licensed, self-hosted service backing up PostgreSQL, v13 to v18. It differs from shell scripts in that it has a frontend for scheduling tasks, compressing and storing archives on multiple targets (local disk, S3, Azure Blob Storage, Dropbox, SFTP, rclone, etc.), configuring retention policies to automatically prune old backups and notifying your team when tasks finish or fail — all without hand-rolled code",
                 },
               },
               {
@@ -163,7 +163,7 @@ export default function Index() {
                 name: "Where do my backups live and how much space will they occupy?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Archives can be saved to local volumes, S3-compatible buckets, Google Drive, Dropbox and other cloud targets. Databasus implements balanced compression, which typically shrinks dump size by 4-8x with incremental only about 20% of runtime overhead, so you have storage and bandwidth savings.",
+                  text: "Archives can be saved to local volumes, S3-compatible buckets, Azure Blob Storage, Dropbox and other cloud targets. Databasus implements balanced compression, which typically shrinks dump size by 4-8x with incremental only about 20% of runtime overhead, so you have storage and bandwidth savings.",
                 },
               },
               {
@@ -262,8 +262,7 @@ export default function Index() {
 
             <p className="text-sm sm:text-lg text-gray-200 max-w-[720px] mx-auto mb-6 md:mb-10 px-2">
               Databasus is a free, open source and self-hosted tool to backup
-              PostgreSQL. Make backups with different storages (S3, Google
-              Drive, FTP, etc.) and notifications about progress (Slack,
+              PostgreSQL. Make backups with different storages (S3, Azure Blob Storage, FTP, etc.) and notifications about progress (Slack,
               Discord, Telegram, etc.). With a focus on Point-in-Time Recovery{" "}
               <span className="underline decoration-2 underline-offset-2 decoration-blue-600">
                 at low RPO/RTO
@@ -1066,8 +1065,7 @@ export default function Index() {
 
                 <div className="space-y-3 max-w-[370px] text-gray-400 text-sm md:text-base">
                   <p>
-                    You can keep files with backups locally, in S3, in Google
-                    Drive, NAS, Dropbox and other services
+                    You can keep files with backups locally, in S3, in Azure Blob Storage, NAS, Dropbox and other services
                   </p>
                   <p>
                     Please keep in mind that you need to have enough space on
@@ -1198,7 +1196,7 @@ export default function Index() {
             <FaqItem
               number="1"
               question="What is Databasus and why should I use it instead of hand-rolled scripts?"
-              answer="Databasus is an Apache 2.0 licensed, self-hosted service backing up databases. It differs from shell scripts in that it has a frontend for scheduling tasks, compressing and storing archives on multiple targets (local disk, S3, Google Drive, NAS, Dropbox, SFTP, rclone, etc.), configuring retention policies to automatically prune old backups and notifying your team when tasks finish or fail — all without hand-rolled code"
+              answer="Databasus is an Apache 2.0 licensed, self-hosted service backing up databases. It differs from shell scripts in that it has a frontend for scheduling tasks, compressing and storing archives on multiple targets (local disk, S3, Azure Blob Storage, NAS, Dropbox, SFTP, rclone, etc.), configuring retention policies to automatically prune old backups and notifying your team when tasks finish or fail — all without hand-rolled code"
             />
             <FaqItem
               number="2"
@@ -1282,7 +1280,7 @@ export default function Index() {
                   <br />
                   Then input your PostgreSQL host, port number, database name,
                   credentials and SSL preference. Choose where the archive
-                  should be sent (local path, S3 bucket, Google Drive folder,
+                  should be sent (local path, S3 bucket, Azure Blob Storage,
                   Dropbox, etc.). <br />
                   <br />
                   If you need, add notification channels such as email, Slack,

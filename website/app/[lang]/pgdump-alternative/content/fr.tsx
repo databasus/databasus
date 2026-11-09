@@ -143,7 +143,7 @@ export default function PgDumpAlternativePage() {
                     <td>Destinations de stockage</td>
                     <td data-label="pg_dump">Système de fichiers local</td>
                     <td data-label="Databasus">
-                      Local, S3, Google Drive, R2, Azure, NAS, Dropbox
+                      Local, S3, R2, Azure, NAS, Dropbox
                     </td>
                   </tr>
                   <tr>
@@ -474,7 +474,7 @@ fi`}</code>
                 </li>
                 <li>
                   <strong>Envoi vers le cloud</strong> : envoi direct vers S3,
-                  Google Drive, Cloudflare R2, Azure et d&apos;autres
+                  Cloudflare R2, Azure et d&apos;autres
                   destinations.
                 </li>
                 <li>
@@ -507,7 +507,6 @@ fi`}</code>
               <ul>
                 <li>Stockage local</li>
                 <li>Amazon S3 et les services compatibles S3</li>
-                <li>Google Drive</li>
                 <li>Cloudflare R2</li>
                 <li>Azure Blob Storage</li>
                 <li>NAS (stockage en réseau)</li>
@@ -813,8 +812,7 @@ fi`}</code>
                     écrire de scripts
                   </li>
                   <li>
-                    Vous devez stocker les backups dans le cloud (S3, Google
-                    Drive, etc.)
+                    Vous devez stocker les backups dans le cloud (S3, Azure Blob Storage, etc.)
                   </li>
                   <li>
                     Vous voulez un chiffrement intégré sans gérer les clés à la

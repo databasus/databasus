@@ -18,6 +18,28 @@ const storage: Storage = {
 };
 
 describe('Composed backup storage creation', () => {
+  it('offers every supported provider when creating storage from backup settings', async () => {
+    server.use(mockApi.get('/storages', 200, { items: [] }));
+    const { user } = renderScreen(
+      <BackupStorageSelection workspaceId={storage.workspaceId} canClear onSelect={() => {}} />,
+    );
+
+    await user.click(await screen.findByRole('combobox', { name: 'Storage' }));
+    await user.click(await screen.findByRole('button', { name: 'Create new storage' }));
+    const dialog = within(await screen.findByRole('dialog'));
+    await user.click(dialog.getByRole('combobox', { name: 'Type' }));
+
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'Local storage',
+      'S3',
+      'NAS',
+      'Azure Blob Storage',
+      'FTP',
+      'SFTP',
+      'Rclone',
+    ]);
+  });
+
   it('keeps newer input open after creation and selects the assigned ID after updating it', async () => {
     const pending = mockApi.delayed({
       method: 'post',

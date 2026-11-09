@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description:
     "Herramienta gratuita y de código abierto para copias de seguridad programadas de PostgreSQL (con soporte para MySQL y MongoDB). Guárdelas en local y en la nube. Notificaciones a Slack, Discord, Telegram, correo, webhook y más.",
   keywords:
-    "PostgreSQL, copia de seguridad, respaldo, monitoreo, base de datos, copias de seguridad programadas, Docker, self-hosted, código abierto, S3, Google Drive, notificaciones en Slack, Discord, DevOps, monitoreo de bases de datos, pg_dump, restauración de base de datos, cifrado, AES-256, cifrado de copias de seguridad",
+    "PostgreSQL, copia de seguridad, respaldo, monitoreo, base de datos, copias de seguridad programadas, Docker, self-hosted, código abierto, S3, Azure Blob Storage, notificaciones en Slack, Discord, DevOps, monitoreo de bases de datos, pg_dump, restauración de base de datos, cifrado, AES-256, cifrado de copias de seguridad",
   robots: "index, follow",
   alternates: {
     canonical: getLocalizedUrl("es", ""),
@@ -82,7 +82,7 @@ export default function Index() {
             },
             featureList: [
               "Copias de seguridad programadas de PostgreSQL",
-              "Múltiples destinos de almacenamiento (S3, Google Drive, Dropbox, SFTP, rclone, etc.)",
+              "Múltiples destinos de almacenamiento (S3, Azure Blob Storage, Dropbox, SFTP, rclone, etc.)",
               "Notificaciones en tiempo real (Slack, Telegram, Discord, webhook, correo, etc.)",
               "Monitoreo del estado de las bases de datos",
               "Autoalojado mediante Docker",
@@ -139,7 +139,7 @@ export default function Index() {
                 name: "¿Qué es Databasus y por qué usarlo en lugar de scripts escritos a mano?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus es un servicio autoalojado con licencia Apache 2.0 que respalda PostgreSQL, de la v13 a la v18. Se diferencia de los scripts de shell en que ofrece una interfaz para programar tareas, comprimir y guardar los archivos en varios destinos (disco local, S3, Google Drive, Dropbox, SFTP, rclone, etc.), configurar políticas de retención que eliminan automáticamente las copias antiguas y avisar a su equipo cuando las tareas terminan o fallan, todo sin escribir código a mano",
+                  text: "Databasus es un servicio autoalojado con licencia Apache 2.0 que respalda PostgreSQL, de la v13 a la v18. Se diferencia de los scripts de shell en que ofrece una interfaz para programar tareas, comprimir y guardar los archivos en varios destinos (disco local, S3, Azure Blob Storage, Dropbox, SFTP, rclone, etc.), configurar políticas de retención que eliminan automáticamente las copias antiguas y avisar a su equipo cuando las tareas terminan o fallan, todo sin escribir código a mano",
                 },
               },
               {
@@ -163,7 +163,7 @@ export default function Index() {
                 name: "¿Dónde se guardan mis copias de seguridad y cuánto espacio ocuparán?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Los archivos pueden guardarse en volúmenes locales, buckets compatibles con S3, Google Drive, Dropbox y otros destinos en la nube. Databasus aplica una compresión equilibrada que normalmente reduce el tamaño del volcado entre 4 y 8 veces con solo un 20% de sobrecarga adicional en el tiempo de ejecución, de modo que ahorra almacenamiento y ancho de banda.",
+                  text: "Los archivos pueden guardarse en volúmenes locales, buckets compatibles con S3, Azure Blob Storage, Dropbox y otros destinos en la nube. Databasus aplica una compresión equilibrada que normalmente reduce el tamaño del volcado entre 4 y 8 veces con solo un 20% de sobrecarga adicional en el tiempo de ejecución, de modo que ahorra almacenamiento y ancho de banda.",
                 },
               },
               {
@@ -264,7 +264,7 @@ export default function Index() {
             <p className="text-sm sm:text-lg text-gray-200 max-w-[720px] mx-auto mb-6 md:mb-10 px-2">
               Databasus es una herramienta gratuita, de código abierto y
               autoalojada para respaldar PostgreSQL. Cree copias de seguridad en
-              distintos almacenamientos (S3, Google Drive, FTP, etc.) con
+              distintos almacenamientos (S3, Azure Blob Storage, FTP, etc.) con
               notificaciones sobre el progreso (Slack, Discord, Telegram, etc.).
               Con un enfoque en Point-in-Time Recovery{" "}
               <span className="underline decoration-2 underline-offset-2 decoration-blue-600">
@@ -1088,7 +1088,7 @@ export default function Index() {
                 <div className="space-y-3 max-w-[370px] text-gray-400 text-sm md:text-base">
                   <p>
                     Puede guardar los archivos con las copias de seguridad en
-                    local, en S3, en Google Drive, NAS, Dropbox y otros
+                    local, en S3, en Azure Blob Storage, NAS, Dropbox y otros
                     servicios
                   </p>
                   <p>
@@ -1220,7 +1220,7 @@ export default function Index() {
             <FaqItem
               number="1"
               question="¿Qué es Databasus y por qué usarlo en lugar de scripts escritos a mano?"
-              answer="Databasus es un servicio autoalojado con licencia Apache 2.0 que respalda bases de datos. Se diferencia de los scripts de shell en que ofrece una interfaz para programar tareas, comprimir y guardar los archivos en varios destinos (disco local, S3, Google Drive, NAS, Dropbox, SFTP, rclone, etc.), configurar políticas de retención que eliminan automáticamente las copias antiguas y avisar a su equipo cuando las tareas terminan o fallan, todo sin escribir código a mano"
+              answer="Databasus es un servicio autoalojado con licencia Apache 2.0 que respalda bases de datos. Se diferencia de los scripts de shell en que ofrece una interfaz para programar tareas, comprimir y guardar los archivos en varios destinos (disco local, S3, Azure Blob Storage, NAS, Dropbox, SFTP, rclone, etc.), configurar políticas de retención que eliminan automáticamente las copias antiguas y avisar a su equipo cuando las tareas terminan o fallan, todo sin escribir código a mano"
             />
             <FaqItem
               number="2"
@@ -1312,7 +1312,7 @@ export default function Index() {
                   A continuación introduzca el host de su PostgreSQL, el número
                   de puerto, el nombre de la base de datos, las credenciales y
                   la preferencia de SSL. Elija adónde debe enviarse el archivo
-                  (ruta local, bucket de S3, carpeta de Google Drive, Dropbox,
+                  (ruta local, bucket de S3, Azure Blob Storage, Dropbox,
                   etc.). <br />
                   <br />
                   Si lo necesita, añada canales de notificación como correo,
