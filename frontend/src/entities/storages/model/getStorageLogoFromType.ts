@@ -14,8 +14,6 @@ export const getStorageLogoFromType = (type: StorageType) => {
       return '/icons/storages/ftp.svg';
     case StorageType.SFTP:
       return '/icons/storages/sftp.svg';
-    case StorageType.RCLONE:
-      return '/icons/storages/rclone.svg';
     default:
       return '';
   }

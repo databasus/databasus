@@ -58,7 +58,5 @@ export const isStorageSettingsFilled = (
               savedSettings.authMethods.includes(method)),
         )
       );
-    case StorageType.RCLONE:
-      return isSaved || !!settings.configContent;
   }
 };

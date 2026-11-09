@@ -2029,7 +2029,6 @@ export const ru: typeof en = {
       azureBlob: 'Azure Blob Storage',
       ftp: 'FTP',
       sftp: 'SFTP',
-      rclone: 'Rclone',
     },
     s3StorageClasses: {
       default: 'По умолчанию (Standard)',
@@ -2064,7 +2063,6 @@ export const ru: typeof en = {
         azureBlob: 'Тип: Azure Blob Storage',
         ftp: 'Тип: FTP',
         sftp: 'Тип: SFTP',
-        rclone: 'Тип: Rclone',
       },
     },
     config: {
@@ -2093,7 +2091,6 @@ export const ru: typeof en = {
     },
     fields: {
       path: 'Путь',
-      remotePath: 'Удаленный путь',
       share: 'Общая папка',
       domain: 'Домен',
       useSsl: 'Использовать SSL',
@@ -2120,7 +2117,6 @@ export const ru: typeof en = {
       accountKey: 'Ключ учетной записи',
       containerName: 'Имя контейнера',
       userToken: 'Токен пользователя',
-      config: 'Конфигурация',
     },
     edit: {
       namePlaceholder: 'Мое хранилище',
@@ -2180,15 +2176,6 @@ export const ru: typeof en = {
         skipHostKeyVerification: 'Не проверять ключ хоста',
         skipHostKeyTooltip:
           'Не проверять SSH-ключ хоста. Включите, если доверяете серверу. Внимание: это снижает безопасность.',
-      },
-      rclone: {
-        configTooltip:
-          "Вставьте сюда содержимое rclone.conf. Его можно получить командой 'rclone config file' и скопировать. Такая конфигурация поддерживает более 70 облачных хранилищ.",
-        configHiddenNote:
-          '*содержимое скрыто, чтобы не раскрывать конфиденциальные данные. Чтобы обновить конфигурацию, вставьте сюда новую',
-        docsLink: 'Документация Rclone',
-        remotePathTooltip:
-          "Необязательный префикс пути в удаленном хранилище, куда будут сохраняться бекапы (например, '/backups' или 'my-folder/backups')",
       },
     },
   },

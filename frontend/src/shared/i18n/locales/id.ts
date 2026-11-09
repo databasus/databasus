@@ -1919,7 +1919,6 @@ export const id: typeof en = {
       azureBlob: 'Azure Blob Storage',
       ftp: 'FTP',
       sftp: 'SFTP',
-      rclone: 'Rclone',
     },
     s3StorageClasses: {
       default: 'Default (Standard)',
@@ -1951,7 +1950,6 @@ export const id: typeof en = {
         azureBlob: 'Jenis: Azure Blob Storage',
         ftp: 'Jenis: FTP',
         sftp: 'Jenis: SFTP',
-        rclone: 'Jenis: Rclone',
       },
     },
     config: {
@@ -1979,7 +1977,6 @@ export const id: typeof en = {
     },
     fields: {
       path: 'Path',
-      remotePath: 'Path remote',
       share: 'Share',
       domain: 'Domain',
       useSsl: 'Gunakan SSL',
@@ -2006,7 +2003,6 @@ export const id: typeof en = {
       accountKey: 'Kunci akun',
       containerName: 'Nama container',
       userToken: 'Token pengguna',
-      config: 'Konfigurasi',
     },
     edit: {
       namePlaceholder: 'Penyimpanan saya',
@@ -2066,15 +2062,6 @@ export const id: typeof en = {
         skipHostKeyVerification: 'Lewati verifikasi host key',
         skipHostKeyTooltip:
           'Lewati verifikasi host key SSH. Aktifkan jika kamu memercayai server. Peringatan: ini mengurangi keamanan.',
-      },
-      rclone: {
-        configTooltip:
-          "Tempel isi rclone.conf di sini. Jalankan 'rclone config file' dan salin isinya. Konfigurasi ini mendukung 70+ penyedia penyimpanan cloud.",
-        configHiddenNote:
-          '*konten disembunyikan agar data sensitif tidak terekspos. Untuk memperbarui konfigurasi yang ada, masukkan konfigurasi baru di sini',
-        docsLink: 'Dokumentasi Rclone',
-        remotePathTooltip:
-          "Prefix path opsional di remote tempat backup disimpan (misalnya '/backups' atau 'my-folder/backups')",
       },
     },
   },

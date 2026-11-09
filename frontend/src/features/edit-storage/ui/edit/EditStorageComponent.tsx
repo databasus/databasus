@@ -18,7 +18,6 @@ import { EditAzureBlobStorageComponent } from '@/features/edit-storage/ui/edit/s
 import { EditFTPStorageComponent } from '@/features/edit-storage/ui/edit/storages/EditFTPStorageComponent';
 import { EditLocalStorageComponent } from '@/features/edit-storage/ui/edit/storages/EditLocalStorageComponent';
 import { EditNASStorageComponent } from '@/features/edit-storage/ui/edit/storages/EditNASStorageComponent';
-import { EditRcloneStorageComponent } from '@/features/edit-storage/ui/edit/storages/EditRcloneStorageComponent';
 import { EditS3StorageComponent } from '@/features/edit-storage/ui/edit/storages/EditS3StorageComponent';
 import { EditSFTPStorageComponent } from '@/features/edit-storage/ui/edit/storages/EditSFTPStorageComponent';
 import { translateApiError } from '@/shared/i18n';
@@ -207,14 +206,6 @@ export function EditStorageComponent({
               savedSettings?.type === StorageType.SFTP ? savedSettings.authMethods : []
             }
             isAddressChanged={isAddressChanged}
-            onChange={changeSettings}
-          />
-        )}
-
-        {settings.type === StorageType.RCLONE && (
-          <EditRcloneStorageComponent
-            settings={settings}
-            isSaved={isSaved}
             onChange={changeSettings}
           />
         )}

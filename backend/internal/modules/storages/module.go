@@ -27,7 +27,6 @@ import (
 	"databasus-backend/internal/modules/storages/internal/providers/ftp"
 	"databasus-backend/internal/modules/storages/internal/providers/local"
 	"databasus-backend/internal/modules/storages/internal/providers/nas"
-	"databasus-backend/internal/modules/storages/internal/providers/rclone"
 	"databasus-backend/internal/modules/storages/internal/providers/s3"
 	"databasus-backend/internal/modules/storages/internal/providers/sftp"
 	"databasus-backend/internal/modules/storages/internal/storage"
@@ -154,10 +153,6 @@ func New(deps Deps) Module {
 		}),
 		sftp.New(sftp.Deps{
 			Repositories:   sftp.NewRepositories(deps.DB, deps.FieldEncryptor),
-			FieldEncryptor: deps.FieldEncryptor,
-		}),
-		rclone.New(rclone.Deps{
-			Repositories:   rclone.NewRepositories(deps.DB, deps.FieldEncryptor),
 			FieldEncryptor: deps.FieldEncryptor,
 		}),
 	)

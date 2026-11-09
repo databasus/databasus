@@ -177,7 +177,7 @@ Storage and notifier creation from database settings and transfers SHALL retain 
 
 ### Requirement: Resource operations retain provider and access policy
 
-All existing storage and notifier provider variants, validation, secret omission, saved-type restrictions, connection or delivery tests, deletion conflicts, transfers and storage migration progress SHALL remain available under their existing permissions. Rclone management SHALL retain its instance-admin restriction. A refusal SHALL retain the last acknowledged resource and provide translated correction or recovery. An accepted transfer or migration SHALL continue to show its actual progress rather than imply immediate completion.
+All supported storage and notifier provider variants, validation, secret omission, saved-type restrictions, connection or delivery tests, deletion conflicts, transfers and storage migration progress SHALL remain available under their existing permissions. A refusal SHALL retain the last acknowledged resource and provide translated correction or recovery. An accepted transfer or migration SHALL continue to show its actual progress rather than imply immediate completion.
 
 #### Scenario: A resource in use cannot be deleted
 

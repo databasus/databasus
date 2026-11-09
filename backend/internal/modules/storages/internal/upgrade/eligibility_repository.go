@@ -20,15 +20,27 @@ func CheckEligibility(ctx context.Context, db *gorm.DB) error {
 		return nil
 	}
 
-	var hasGoogleDrive bool
+	var blockers struct {
+		HasGoogleDrive bool
+		HasRclone      bool
+	}
 	err = database.Conn(ctx, db).Raw(
-		"SELECT EXISTS (SELECT 1 FROM storages WHERE type = 'GOOGLE_DRIVE')",
-	).Scan(&hasGoogleDrive).Error
+		`SELECT EXISTS (SELECT 1 FROM storages WHERE type = 'GOOGLE_DRIVE') AS has_google_drive,
+ EXISTS (SELECT 1 FROM storages WHERE type = 'RCLONE') AS has_rclone`,
+	).Scan(&blockers).Error
 	if err != nil {
 		return fmt.Errorf("inspect storages before upgrading: %w", err)
 	}
 
-	if hasGoogleDrive {
+	if blockers.HasGoogleDrive && blockers.HasRclone {
+		return ErrGoogleDriveAndRcloneRetired
+	}
+
+	if blockers.HasRclone {
+		return ErrRcloneRetired
+	}
+
+	if blockers.HasGoogleDrive {
 		return ErrGoogleDriveRetired
 	}
 

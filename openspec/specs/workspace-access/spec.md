@@ -11,7 +11,7 @@ Defines who may see and change a workspace and what is inside it: what each work
 A member's workspace role SHALL decide what the member may do in the workspace, and the roles SHALL build on each other:
 
 - a viewer MAY see the workspace, its members and its content, MAY send test messages through the workspace's saved notifiers, MAY test the connection of the workspace's saved storages and saved databases, and MAY start, download and restore the logical backups of the workspace's databases;
-- a member MAY also create, change and delete the workspace's databases, storages and notifiers and everything attached to them, MAY cancel and delete logical backups and cancel restores, MAY test notifier, storage and database settings that are not saved yet, except where the `storages` spec reserves rclone settings for instance admins, and MAY check and create limited users of the workspace's databases;
+- a member MAY also create, change and delete the workspace's databases, storages and notifiers and everything attached to them, MAY cancel and delete logical backups and cancel restores, MAY test notifier, storage and database settings that are not saved yet, and MAY check and create limited users of the workspace's databases;
 - an admin MAY also rename the workspace and add, change and remove members who are not admins or the owner;
 - the owner MAY also add, change and remove admins, transfer ownership and delete the workspace.
 

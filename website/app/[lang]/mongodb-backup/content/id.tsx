@@ -76,7 +76,7 @@ export default function MongodbBackupPage() {
             },
             featureList: [
               "Backup MongoDB terjadwal melalui mongodump",
-              "Berbagai tujuan penyimpanan (S3, Azure Blob Storage, Dropbox, SFTP, rclone, dan lainnya)",
+              "Berbagai tujuan penyimpanan (S3, Azure Blob Storage, FTP, SFTP, NAS, dan lainnya)",
               "Notifikasi real-time (Slack, Telegram, Discord, Webhook, email, dan lainnya)",
               "Pemantauan ketersediaan koneksi MongoDB",
               "Self-hosted melalui Docker",
@@ -294,7 +294,7 @@ export default function MongodbBackupPage() {
                 Simpan arsip BSON di mana saja
               </h3>
               <p className="text-gray-400 text-sm md:text-base mb-4 md:mb-5">
-                Simpan arsip backup MongoDB secara lokal, di penyimpanan kompatibel S3, Azure Blob Storage, Dropbox, NAS, atau tujuan lain. Data dokumen tetap dalam kendalimu.{" "}
+                Simpan arsip backup MongoDB secara lokal, di penyimpanan kompatibel S3, Azure Blob Storage, FTP, NAS, atau tujuan lain. Data dokumen tetap dalam kendalimu.{" "}
                 <a
                   href={getLocalizedHref("id", "storages")}
                   className="text-blue-500 hover:text-blue-600 font-medium"
@@ -648,7 +648,7 @@ export default function MongodbBackupPage() {
             <FaqItem
               number="1"
               question="Apa itu Databasus dan bagaimana cara melakukan backup database MongoDB?"
-              answer="Databasus adalah tool backup self-hosted berlisensi Apache 2.0 yang menggunakan mongodump untuk membuat backup MongoDB yang konsisten. Databasus melengkapinya dengan antarmuka web modern, penjadwalan otomatis, integrasi penyimpanan cloud (S3, Azure Blob Storage, Dropbox), notifikasi real-time (Slack, Discord, Telegram), dan enkripsi AES-256-GCM, sehingga tidak perlu menulis skrip shell dan cron job sendiri."
+              answer="Databasus adalah tool backup self-hosted berlisensi Apache 2.0 yang menggunakan mongodump untuk membuat backup MongoDB yang konsisten. Databasus melengkapinya dengan antarmuka web modern, penjadwalan otomatis, integrasi penyimpanan cloud (S3, Azure Blob Storage, FTP), notifikasi real-time (Slack, Discord, Telegram), dan enkripsi AES-256-GCM, sehingga tidak perlu menulis skrip shell dan cron job sendiri."
             />
             <FaqItem
               number="2"

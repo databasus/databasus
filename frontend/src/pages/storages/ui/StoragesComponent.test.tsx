@@ -62,7 +62,6 @@ describe('StoragesComponent', () => {
       'Azure Blob Storage',
       'FTP',
       'SFTP',
-      'Rclone',
     ]);
   });
 

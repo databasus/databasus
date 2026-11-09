@@ -2059,7 +2059,6 @@ export const pt: typeof en = {
       azureBlob: 'Azure Blob Storage',
       ftp: 'FTP',
       sftp: 'SFTP',
-      rclone: 'Rclone',
     },
     s3StorageClasses: {
       default: 'Padrão (Standard)',
@@ -2095,7 +2094,6 @@ export const pt: typeof en = {
         azureBlob: 'Tipo: Azure Blob Storage',
         ftp: 'Tipo: FTP',
         sftp: 'Tipo: SFTP',
-        rclone: 'Tipo: Rclone',
       },
     },
     config: {
@@ -2124,7 +2122,6 @@ export const pt: typeof en = {
     },
     fields: {
       path: 'Caminho',
-      remotePath: 'Caminho remoto',
       share: 'Compartilhamento',
       domain: 'Domínio',
       useSsl: 'Usar SSL',
@@ -2151,7 +2148,6 @@ export const pt: typeof en = {
       accountKey: 'Chave da conta',
       containerName: 'Nome do container',
       userToken: 'Token do usuário',
-      config: 'Configuração',
     },
     edit: {
       namePlaceholder: 'Meu armazenamento',
@@ -2213,15 +2209,6 @@ export const pt: typeof en = {
         skipHostKeyVerification: 'Não verificar a chave do host',
         skipHostKeyTooltip:
           'Não verifica a chave SSH do host. Ative se você confia no servidor. Atenção: isso reduz a segurança.',
-      },
-      rclone: {
-        configTooltip:
-          "Cole aqui o conteúdo do rclone.conf. Você pode obtê-lo executando 'rclone config file' e copiando o resultado. Essa configuração aceita mais de 70 provedores de armazenamento na nuvem.",
-        configHiddenNote:
-          '*o conteúdo fica oculto para não expor dados sensíveis. Se quiser atualizar a configuração existente, cole uma nova aqui',
-        docsLink: 'Documentação do Rclone',
-        remotePathTooltip:
-          "Prefixo de caminho opcional no remote do rclone onde os backups serão guardados (por exemplo, '/backups' ou 'my-folder/backups')",
       },
     },
   },

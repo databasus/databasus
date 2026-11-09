@@ -91,7 +91,7 @@ func TestGoogleDriveRemovalMigration(t *testing.T) {
 				goose.WithDisableGlobalRegistry(true))
 			require.NoError(t, err)
 
-			_, err = provider.Down(t.Context())
+			_, err = provider.DownTo(t.Context(), 20261109083399)
 			require.NoError(t, err)
 			assert.True(t, db.Migrator().HasTable("storages_google_drive"))
 			assert.Empty(t, listIDs(t, db, "SELECT storage_id FROM storages_google_drive"))

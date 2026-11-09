@@ -623,7 +623,7 @@ export default function DatabasusVsWalGPage() {
                 <li>Cloudflare R2</li>
                 <li>Azure Blob Storage</li>
                 <li>NAS（网络附加存储）</li>
-                <li>Dropbox</li>
+                <li>FTP</li>
               </ul>
 
               <h3 id="storage-wal-g">WAL-G 的存储</h3>

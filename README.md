@@ -79,7 +79,7 @@ Databasus performs a real restore to confirm backups are usable, not just intact
 ### 🗄️ **Multiple storage destinations** <a href="https://databasus.com/storages">(view supported)</a>
 
 - **Local storage**: Keep backups on your VPS/server
-- **Cloud storage**: S3, Cloudflare R2, Azure Blob Storage, NAS, Dropbox, SFTP, Rclone and more
+- **Cloud storage**: S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP and more
 - **Secure**: All data stays under your control
 
 ### 📱 **Notifications** <a href="https://databasus.com/notifiers">(view supported)</a>

@@ -144,7 +144,7 @@ export default function PgDumpAlternativePage() {
                     <td>Destinos de almacenamiento</td>
                     <td data-label="pg_dump">Sistema de archivos local</td>
                     <td data-label="Databasus">
-                      Local, S3, R2, Azure, NAS, Dropbox
+                      Local, S3, R2, Azure, NAS, FTP
                     </td>
                   </tr>
                   <tr>
@@ -503,7 +503,7 @@ fi`}</code>
                 <li>Cloudflare R2</li>
                 <li>Azure Blob Storage</li>
                 <li>NAS (almacenamiento conectado en red)</li>
-                <li>Dropbox</li>
+                <li>FTP</li>
               </ul>
 
               <p>

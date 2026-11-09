@@ -36,7 +36,6 @@ describe('Composed backup storage creation', () => {
       'Azure Blob Storage',
       'FTP',
       'SFTP',
-      'Rclone',
     ]);
   });
 

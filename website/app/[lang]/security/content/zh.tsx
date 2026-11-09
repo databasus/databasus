@@ -133,7 +133,7 @@ export default function SecurityPage() {
 
               <p>
                 Databasus 内部使用 PostgreSQL 数据库保存连接信息、配置，
-                以及通知渠道和存储（S3、Azure Blob Storage、Dropbox 等）的设置。
+                以及通知渠道和存储（S3、Azure Blob Storage、FTP 等）的设置。
               </p>
 
               <p>所有敏感数据都会加密。例如：</p>

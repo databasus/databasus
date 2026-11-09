@@ -79,7 +79,7 @@ Databasus 会真正执行一次恢复，确认备份可用，而不只是检查�
 ### 🗄️ **多种存储目标** <a href="https://databasus.com/zh/storages/">(查看支持列表)</a>
 
 - **本地存储**：备份留在你的 VPS 或服务器上
-- **云存储**：S3、Cloudflare R2、Azure Blob Storage、NAS、Dropbox、SFTP、Rclone 等
+- **云存储**：S3、Cloudflare R2、Azure Blob Storage、NAS、FTP、SFTP 等
 - **安全**：所有数据都在你的掌控之中
 
 ### 📱 **通知** <a href="https://databasus.com/zh/notifiers/">(查看支持列表)</a>

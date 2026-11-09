@@ -150,7 +150,7 @@ The resource address SHALL be compared exactly as the request and the saved sett
 - a database: the host, the port and the address of its SSH tunnel, and also the SRV flag for MongoDB, for the password, which is always used, and for the PostgreSQL client key, which is used while the request sends a client certificate;
 - the SSH tunnel of a database: whether it is enabled, and its host and port while it is enabled, for the SSH password and the private key, each used while the tunnel is enabled and its authentication type is selected, and for the key passphrase, which is never filled in after a change and is removed with the old address.
 
-A secret that carries its own address, such as a Discord or Teams webhook URL, an Azure connection string, a Telegram proxy URL while the proxy stays on or an rclone configuration, and a secret whose service has a fixed address, such as a Slack bot token, SHALL keep its stored value when the request leaves it out.
+A secret that carries its own address, such as a Discord or Teams webhook URL, an Azure connection string or a Telegram proxy URL while the proxy stays on, and a secret whose service has a fixed address, such as a Slack bot token, SHALL keep its stored value when the request leaves it out.
 
 #### Scenario: Endpoint changed without the keys
 

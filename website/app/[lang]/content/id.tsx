@@ -73,7 +73,7 @@ export default function Index() {
             },
             featureList: [
               "Backup PostgreSQL terjadwal",
-              "Beragam tujuan penyimpanan (S3, Azure Blob Storage, Dropbox, SFTP, rclone, dan lainnya)",
+              "Beragam tujuan penyimpanan (S3, Azure Blob Storage, FTP, SFTP, NAS, dan lainnya)",
               "Notifikasi real-time (Slack, Telegram, Discord, Webhook, email, dan lainnya)",
               "Pemantauan ketersediaan database",
               "Self-hosted melalui Docker",
@@ -130,7 +130,7 @@ export default function Index() {
                 name: "Apa itu Databasus dan mengapa perlu menggunakannya alih-alih script buatan sendiri?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus adalah layanan self-hosted berlisensi Apache 2.0 untuk backup PostgreSQL v13 hingga v18. Berbeda dari shell script, Databasus menyediakan antarmuka untuk menjadwalkan tugas, mengompresi dan menyimpan arsip ke berbagai tujuan (disk lokal, S3, Azure Blob Storage, Dropbox, SFTP, rclone, dan lainnya), mengatur kebijakan retensi agar backup lama dihapus otomatis, serta memberi tahu tim saat tugas selesai atau gagal, tanpa menulis kode sendiri",
+                  text: "Databasus adalah layanan self-hosted berlisensi Apache 2.0 untuk backup PostgreSQL v13 hingga v18. Berbeda dari shell script, Databasus menyediakan antarmuka untuk menjadwalkan tugas, mengompresi dan menyimpan arsip ke berbagai tujuan (disk lokal, S3, Azure Blob Storage, FTP, SFTP, NAS, dan lainnya), mengatur kebijakan retensi agar backup lama dihapus otomatis, serta memberi tahu tim saat tugas selesai atau gagal, tanpa menulis kode sendiri",
                 },
               },
               {
@@ -154,7 +154,7 @@ export default function Index() {
                 name: "Di mana backup disimpan dan berapa ruang yang dibutuhkan?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Arsip bisa disimpan di volume lokal, bucket kompatibel S3, Azure Blob Storage, Dropbox, dan tujuan cloud lainnya. Databasus menggunakan kompresi seimbang yang biasanya memperkecil dump 4-8x dengan tambahan waktu proses hanya sekitar 20%, sehingga menghemat penyimpanan dan bandwidth.",
+                  text: "Arsip bisa disimpan di volume lokal, bucket kompatibel S3, Azure Blob Storage, FTP, dan tujuan cloud lainnya. Databasus menggunakan kompresi seimbang yang biasanya memperkecil dump 4-8x dengan tambahan waktu proses hanya sekitar 20%, sehingga menghemat penyimpanan dan bandwidth.",
                 },
               },
               {
@@ -875,7 +875,7 @@ export default function Index() {
                 </h3>
                 <div className="space-y-3 max-w-[370px] text-gray-400 text-sm md:text-base">
                   <p>
-                    Kamu bisa menyimpan file backup secara lokal, di S3, Azure Blob Storage, NAS, Dropbox,
+                    Kamu bisa menyimpan file backup secara lokal, di S3, Azure Blob Storage, NAS, FTP,
                     dan layanan lain
                   </p>
                   <p>Pastikan ruang penyimpanan yang tersedia mencukupi</p>
@@ -980,7 +980,7 @@ export default function Index() {
             <FaqItem
               number="1"
               question="Apa itu Databasus dan mengapa perlu menggunakannya alih-alih script buatan sendiri?"
-              answer="Databasus adalah layanan self-hosted berlisensi Apache 2.0 untuk backup database. Berbeda dari shell script, Databasus menyediakan antarmuka untuk menjadwalkan tugas, mengompresi dan menyimpan arsip ke berbagai tujuan (disk lokal, S3, Azure Blob Storage, NAS, Dropbox, SFTP, rclone, dan lainnya), mengatur kebijakan retensi agar backup lama dihapus otomatis, serta memberi tahu tim saat tugas selesai atau gagal, tanpa menulis kode sendiri"
+              answer="Databasus adalah layanan self-hosted berlisensi Apache 2.0 untuk backup database. Berbeda dari shell script, Databasus menyediakan antarmuka untuk menjadwalkan tugas, mengompresi dan menyimpan arsip ke berbagai tujuan (disk lokal, S3, Azure Blob Storage, NAS, FTP, SFTP, dan lainnya), mengatur kebijakan retensi agar backup lama dihapus otomatis, serta memberi tahu tim saat tugas selesai atau gagal, tanpa menulis kode sendiri"
             />
             <FaqItem
               number="2"
@@ -1057,7 +1057,7 @@ export default function Index() {
                   <br />
                   <br />
                   Lalu masukkan host PostgreSQL, nomor port, nama database, kredensial, dan pilihan
-                  SSL. Pilih tujuan arsip (path lokal, bucket S3, Azure Blob Storage, Dropbox, dan
+                  SSL. Pilih tujuan arsip (path lokal, bucket S3, Azure Blob Storage, FTP, dan
                   lainnya). <br />
                   <br />
                   Jika perlu, tambahkan kanal notifikasi seperti email, Slack, Telegram, atau

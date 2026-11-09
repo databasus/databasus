@@ -10,5 +10,4 @@ const (
 	TypeAzureBlob Type = "AZURE_BLOB"
 	TypeFTP       Type = "FTP"
 	TypeSFTP      Type = "SFTP"
-	TypeRclone    Type = "RCLONE"
 )

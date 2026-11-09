@@ -172,7 +172,7 @@ Engines live in `internal/engines/<engine>`: `postgresql`, `mysql`, `mariadb` an
 
 ## Shared code
 
-`internal/lib` holds code without domain logic, one concept per package, so the directory listing tells what is available. Test support may live there too, but neither production binary may depend on it or on test libraries. The only exceptions are third-party dependencies required for rclone providers; the architecture linter's [explicit allowlist](../backend/tools/archlint/production_dependencies.go) records their reasons and rejects any other importer.
+`internal/lib` holds code without domain logic, one concept per package, so the directory listing tells what is available. Test support may live there too, but neither production binary may depend on it or on test libraries. This restriction also applies to third-party dependencies.
 
 ### Audit events
 

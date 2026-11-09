@@ -753,7 +753,7 @@ export default function DatabasusVsWalGPage() {
                 <li>Cloudflare R2</li>
                 <li>Azure Blob Storage</li>
                 <li>NAS (armazenamento conectado à rede)</li>
-                <li>Dropbox</li>
+                <li>FTP</li>
               </ul>
 
               <h3 id="storage-wal-g">Armazenamento no WAL-G</h3>

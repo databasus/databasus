@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestProductionDependencies(t *testing.T) {
@@ -24,7 +26,7 @@ func TestProductionDependencies(t *testing.T) {
 		})
 	})
 
-	t.Run("fails when a third-party package outside the accepted list imports testing", func(t *testing.T) {
+	t.Run("fails when a third-party package imports testing", func(t *testing.T) {
 		t.Parallel()
 		violations := checkFixture(t, withFakeThirdPartyModule("example.com/sdk", map[string]string{
 			"cmd/databasus/main.go": "package main\n\nimport _ \"example.com/sdk\"\n\nfunc main() {}\n",
@@ -37,13 +39,36 @@ func TestProductionDependencies(t *testing.T) {
 		})
 	})
 
-	t.Run("passes when an accepted third-party importer imports testing", func(t *testing.T) {
+	t.Run("fails when the Proton bridge imports testing", func(t *testing.T) {
 		t.Parallel()
 		violations := checkFixture(t, withFakeThirdPartyModule("github.com/rclone/Proton-API-Bridge", map[string]string{
 			"cmd/databasus/main.go": "package main\n\nimport _ \"github.com/rclone/Proton-API-Bridge\"\n\nfunc main() {}\n",
 		}))
 
-		assert.Empty(t, violations)
+		requireSingleViolation(t, violations, violationSpec{
+			position: "github.com/rclone/Proton-API-Bridge/sdk.go:3", rule: "production-dependencies",
+			messageParts: []string{"github.com/rclone/Proton-API-Bridge imports testing"},
+		})
+	})
+
+	t.Run("fails when the Files.com library imports an assertion library", func(t *testing.T) {
+		t.Parallel()
+		files := withFakeTestify(map[string]string{
+			"cmd/databasus/main.go": "package main\n\nimport _ \"github.com/Files-com/files-sdk-go/v3/lib\"\n\nfunc main() {}\n",
+			"files-sdk/go.mod":      "module github.com/Files-com/files-sdk-go/v3\n\ngo 1.26\n",
+			"files-sdk/lib/sdk.go":  "package lib\n\nimport _ \"github.com/stretchr/testify/assert\"\n",
+		})
+		files["go.mod"] += "\nrequire github.com/Files-com/files-sdk-go/v3 v3.0.0\nreplace github.com/Files-com/files-sdk-go/v3 => ./files-sdk\n"
+
+		violations := checkFixture(t, files)
+
+		requireSingleViolation(t, violations, violationSpec{
+			position: "files-sdk/lib/sdk.go:3",
+			rule:     "production-dependencies",
+			messageParts: []string{
+				"github.com/Files-com/files-sdk-go/v3/lib imports github.com/stretchr/testify/assert",
+			},
+		})
 	})
 
 	t.Run("passes when the entry point imports nothing from tests", func(t *testing.T) {
@@ -115,4 +140,34 @@ func withFakeServerFrameworks(files map[string]string) map[string]string {
 	files["gorm.io/gorm/clause/clause.go"] = "package clause\n"
 
 	return files
+}
+
+func TestRcloneProductionDependencies(t *testing.T) {
+	t.Parallel()
+
+	for _, entryPoint := range []string{"cmd/databasus/main.go", "cmd/verification-agent/main.go"} {
+		for _, isTransitive := range []bool{false, true} {
+			t.Run(
+				fmt.Sprintf("fails with %s when rclone is transitive %t", entryPoint, isTransitive),
+				func(t *testing.T) {
+					t.Parallel()
+					files := map[string]string{
+						"go.mod":                    "module fixture\n\ngo 1.26\nrequire github.com/rclone/rclone v1.0.0\nreplace github.com/rclone/rclone => ./rclone\n",
+						"rclone/go.mod":             "module github.com/rclone/rclone\n\ngo 1.26\n",
+						"rclone/backend/all/all.go": "package all\n",
+						entryPoint:                  "package main\nimport _ \"github.com/rclone/rclone/backend/all\"\nfunc main() {}\n",
+					}
+					if isTransitive {
+						files[entryPoint] = "package main\nimport _ \"fixture/internal/lib/adapter\"\nfunc main() {}\n"
+						files["internal/lib/adapter/adapter.go"] = "package adapter\nimport _ \"github.com/rclone/rclone/backend/all\"\n"
+					}
+
+					violations := checkFixture(t, files)
+
+					require.Len(t, violations, 1)
+					assert.Contains(t, violations[0].message, "imports github.com/rclone/rclone/backend/all")
+				},
+			)
+		}
+	}
 }

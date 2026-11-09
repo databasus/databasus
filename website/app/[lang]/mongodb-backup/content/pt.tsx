@@ -80,7 +80,7 @@ export default function MongodbBackupPage() {
             },
             featureList: [
               "Backups agendados de MongoDB via mongodump",
-              "Vários destinos de armazenamento (S3, Azure Blob Storage, Dropbox, SFTP, rclone, etc.)",
+              "Vários destinos de armazenamento (S3, Azure Blob Storage, FTP, SFTP, NAS, etc.)",
               "Notificações em tempo real (Slack, Telegram, Discord, Webhook, email, etc.)",
               "Monitoramento de saúde da conexão MongoDB",
               "Auto-hospedado via Docker",
@@ -344,7 +344,7 @@ export default function MongodbBackupPage() {
 
               <p className="text-gray-400 text-sm md:text-base mb-4 md:mb-5">
                 Mantenha os arquivos de backup MongoDB localmente, em
-                armazenamento compatível com S3, Azure Blob Storage, Dropbox, NAS ou
+                armazenamento compatível com S3, Azure Blob Storage, FTP, NAS ou
                 outros destinos. Os seus dados de documentos ficam sob o seu
                 controle.{" "}
                 <a
@@ -802,7 +802,7 @@ export default function MongodbBackupPage() {
             <FaqItem
               number="1"
               question="O que é o Databasus e como ele faz backup de bases de dados MongoDB?"
-              answer="O Databasus é uma ferramenta de backup auto-hospedada, com licença Apache 2.0, que usa o mongodump internamente para criar backups consistentes de MongoDB. Por cima do mongodump, ele adiciona uma interface web moderna, agendamento automático, integração com armazenamento em nuvem (S3, Azure Blob Storage, Dropbox), notificações em tempo real (Slack, Discord, Telegram) e criptografia AES-256-GCM, dispensando scripts shell personalizados e cron jobs."
+              answer="O Databasus é uma ferramenta de backup auto-hospedada, com licença Apache 2.0, que usa o mongodump internamente para criar backups consistentes de MongoDB. Por cima do mongodump, ele adiciona uma interface web moderna, agendamento automático, integração com armazenamento em nuvem (S3, Azure Blob Storage, FTP), notificações em tempo real (Slack, Discord, Telegram) e criptografia AES-256-GCM, dispensando scripts shell personalizados e cron jobs."
             />
             <FaqItem
               number="2"

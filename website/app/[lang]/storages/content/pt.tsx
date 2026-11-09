@@ -7,24 +7,22 @@ import DocTableOfContentComponent from "@/app/components/DocTableOfContentCompon
 export const metadata: Metadata = {
   title: "Armazenamentos - Documentação do Databasus",
   description:
-    "Lista de destinos de armazenamento suportados para backups do Databasus, incluindo armazenamento local, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP, rclone e Dropbox.",
+    "Lista de destinos de armazenamento suportados para backups do Databasus, incluindo armazenamento local, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP.",
   keywords: [
     "armazenamentos Databasus",
     "armazenamento de backups",
     "armazenamento S3",
     "Cloudflare R2",
     "backup em NAS",
-    "backup no Dropbox",
     "armazenamento local",
     "Azure Blob Storage",
     "backup por FTP",
     "backup por SFTP",
-    "backup com rclone",
   ],
   openGraph: {
     title: "Armazenamentos - Documentação do Databasus",
     description:
-      "Lista de destinos de armazenamento suportados para backups do Databasus, incluindo armazenamento local, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP, rclone e Dropbox.",
+      "Lista de destinos de armazenamento suportados para backups do Databasus, incluindo armazenamento local, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP.",
     type: "article",
     url: getLocalizedUrl("pt", "storages"),
     locale: OG_LOCALES.pt,
@@ -33,7 +31,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "Armazenamentos - Documentação do Databasus",
     description:
-      "Lista de destinos de armazenamento suportados para backups do Databasus, incluindo armazenamento local, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP, rclone e Dropbox.",
+      "Lista de destinos de armazenamento suportados para backups do Databasus, incluindo armazenamento local, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP.",
   },
   alternates: {
     canonical: getLocalizedUrl("pt", "storages"),
@@ -54,7 +52,7 @@ export default function StoragesPage() {
             "@type": "TechArticle",
             headline: "Armazenamentos - Documentação do Databasus",
             description:
-              "Lista de destinos de armazenamento suportados para backups do Databasus, incluindo armazenamento local, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP, rclone e Dropbox.",
+              "Lista de destinos de armazenamento suportados para backups do Databasus, incluindo armazenamento local, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP.",
             author: {
               "@type": "Organization",
               name: "Databasus",
@@ -122,10 +120,6 @@ export default function StoragesPage() {
                 </li>
                 <li>
                   <strong>SFTP</strong> - Servidores SSH File Transfer Protocol
-                </li>
-                <li>
-                  <strong>rclone</strong> - Conecte-se a mais de 70 provedores
-                  de armazenamento na nuvem via rclone
                 </li>
               </ul>
             </article>

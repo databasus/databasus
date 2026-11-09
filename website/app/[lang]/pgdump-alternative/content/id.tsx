@@ -125,7 +125,7 @@ export default function PgDumpAlternativePage() {
                   <tr>
                     <td>Tujuan penyimpanan</td>
                     <td data-label="pg_dump">Filesystem lokal</td>
-                    <td data-label="Databasus">Lokal, S3, R2, Azure, NAS, Dropbox</td>
+                    <td data-label="Databasus">Lokal, S3, R2, Azure, NAS, FTP</td>
                   </tr>
                   <tr>
                     <td>Kompresi</td>
@@ -400,7 +400,7 @@ fi`}</code>
                 <li>Cloudflare R2</li>
                 <li>Azure Blob Storage</li>
                 <li>NAS (Network-attached storage)</li>
-                <li>Dropbox</li>
+                <li>FTP</li>
               </ul>
               <p>
                 Setiap database dapat memiliki tujuan penyimpanan sendiri, dan beberapa tujuan dapat

@@ -18,7 +18,6 @@ const STORAGE_CARD_TYPE_KEYS: Record<StorageType, TranslationKey> = {
   [StorageType.AZURE_BLOB]: 'storages.card.type.azureBlob',
   [StorageType.FTP]: 'storages.card.type.ftp',
   [StorageType.SFTP]: 'storages.card.type.sftp',
-  [StorageType.RCLONE]: 'storages.card.type.rclone',
 };
 
 export const StorageCardComponent = ({

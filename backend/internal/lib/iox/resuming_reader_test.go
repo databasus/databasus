@@ -29,8 +29,6 @@ func Test_ResumingReader_ConnectionDropsMidStream_ResumesFromOffsetAndReturnsWho
 	)
 }
 
-// Issue #714: a multi-hour rclone restore died once the drops outnumbered the budget, even though
-// every one of them resumed and made progress.
 func Test_ResumingReader_DropsFarExceedTheBudgetButEachDeliversBytes_CompletesStream(t *testing.T) {
 	fileBytes := generateBytes(30000)
 	source := &stubSource{

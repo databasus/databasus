@@ -7,7 +7,6 @@ export type {
   AzureBlobStorageSettings,
   FtpStorageSettings,
   NasStorageSettings,
-  RcloneStorageSettings,
   S3StorageSettings,
   SftpStorageSettings,
 } from '@/entities/storages/model/ProviderStorageSettings';

@@ -144,7 +144,7 @@ export default function PgDumpAlternativePage() {
                     <td>Хранилища</td>
                     <td data-label="pg_dump">Локальная файловая система</td>
                     <td data-label="Databasus">
-                      Локальный диск, S3, R2, Azure, NAS, Dropbox
+                      Локальный диск, S3, R2, Azure, NAS, FTP
                     </td>
                   </tr>
                   <tr>
@@ -482,7 +482,7 @@ fi`}</code>
                 <li>Cloudflare R2</li>
                 <li>Azure Blob Storage</li>
                 <li>NAS (сетевые хранилища)</li>
-                <li>Dropbox</li>
+                <li>FTP</li>
               </ul>
 
               <p>

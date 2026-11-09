@@ -8,5 +8,4 @@ export const STORAGE_TYPE_LABEL_KEYS: Record<StorageType, TranslationKey> = {
   [StorageType.AZURE_BLOB]: 'storages.types.azureBlob',
   [StorageType.FTP]: 'storages.types.ftp',
   [StorageType.SFTP]: 'storages.types.sftp',
-  [StorageType.RCLONE]: 'storages.types.rclone',
 };

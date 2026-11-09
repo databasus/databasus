@@ -30,15 +30,6 @@ var (
 		Detail: "a storage of the workspace is still in use",
 		Errors: nil,
 	}
-	// ErrRcloneRequiresAdmin guards a free-form rclone configuration, whose backends can read local
-	// files of the host (local, alias, combine, union, crypt, chunker, cache) or connect to any
-	// address (http, webdav, sftp, ftp). Only an instance admin, who operates the host anyway, may
-	// write or try one.
-	ErrRcloneRequiresAdmin = &apierror.Problem{
-		Code:   apierror.CodePermissionDenied,
-		Detail: "only an instance admin manages rclone settings",
-		Errors: nil,
-	}
 	ErrInvalidName = apierror.NewInvalidFieldsProblem([]apierror.FieldError{
 		{Field: "name", Detail: "must be between 1 and 255 characters long"},
 	})

@@ -14,24 +14,33 @@ import (
 	"databasus-backend/internal/lib/testwait"
 )
 
-func getStoppedRetirementSnapshot(t *testing.T, docker *dockerHost, resources upgradeResources) string {
+type retirementSnapshotSpec struct {
+	resources upgradeResources
+	image     string
+}
+
+func getStoppedRetirementSnapshot(t *testing.T, docker *dockerHost, spec retirementSnapshotSpec) string {
 	t.Helper()
 
 	require.NoError(t, docker.startContainer(t.Context(), containerSpec{
-		name: resources.sourceContainerName, image: googleDriveReleaseImage,
+		name:  spec.resources.sourceContainerName,
+		image: spec.image,
 		entrypoint: []string{"sh", "-c", `printf 'local all all trust\n' > /tmp/retirement-pg_hba
 exec gosu databasus /usr/lib/postgresql/17/bin/postgres -D /databasus-data/pgdata -c hba_file=/tmp/retirement-pg_hba -c unix_socket_directories=/tmp -c listen_addresses=''`},
-		env: nil, volumeMount: resources.volumeName + ":" + instanceDataPath,
-		networkName: resources.networkName, networkAlias: resources.sourceContainerName, publishedPort: "5437/tcp",
+		env:           nil,
+		volumeMount:   spec.resources.volumeName + ":" + instanceDataPath,
+		networkName:   spec.resources.networkName,
+		networkAlias:  spec.resources.sourceContainerName,
+		publishedPort: "5437/tcp",
 	}))
 
 	testwait.Until(t, "the snapshot database to answer read-only queries", func(ctx context.Context) error {
-		_, err := docker.executeRetirementCommand(ctx, resources.sourceContainerName,
+		_, err := docker.executeRetirementCommand(ctx, spec.resources.sourceContainerName,
 			[]string{"psql", "-h", "/tmp", "-p", "5437", "-U", "postgres", "-d", "databasus", "-AtX", "-c", "SELECT 1"})
 		return err
 	})
 
-	snapshot, err := docker.executeRetirementCommand(t.Context(), resources.sourceContainerName,
+	snapshot, err := docker.executeRetirementCommand(t.Context(), spec.resources.sourceContainerName,
 		[]string{"sh", "-c", `psql -h /tmp -p 5437 -U postgres -d databasus -AtXq -v ON_ERROR_STOP=1 <<'SQL'
 BEGIN READ ONLY;
 SELECT format('SELECT %L || coalesce(jsonb_agg(to_jsonb(records) ORDER BY to_jsonb(records)::text), ''[]'')::text FROM %I records', tablename, tablename)
@@ -42,8 +51,8 @@ SQL`})
 	require.NoError(t, err)
 	require.NotEmpty(t, snapshot)
 
-	require.NoError(t, docker.stopContainer(t.Context(), resources.sourceContainerName))
-	removeRetirementContainer(t, docker, resources.sourceContainerName)
+	require.NoError(t, docker.stopContainer(t.Context(), spec.resources.sourceContainerName))
+	removeRetirementContainer(t, docker, spec.resources.sourceContainerName)
 
 	return snapshot
 }

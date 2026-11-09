@@ -14,7 +14,7 @@ for (const theme of ['light', 'dark']) {
   const locale = theme === 'light' ? 'fr' : 'ru';
   const dictionary = DICTIONARIES[locale];
 
-  for (const provider of ['local', 's3', 'nas', 'azureBlob', 'ftp', 'sftp', 'rclone'] as const) {
+  for (const provider of ['local', 's3', 'nas', 'azureBlob', 'ftp', 'sftp'] as const) {
     test(`keeps ${provider} storage controls accessible with ${theme} theme and enlarged narrow text`, async ({
       page,
     }) => {
@@ -38,9 +38,17 @@ for (const theme of ['light', 'dark']) {
 
       await expect(type).toBeFocused();
 
+      await type.press('ArrowDown');
+      await expect(page.getByRole('option')).toHaveText(
+        ['local', 's3', 'nas', 'azureBlob', 'ftp', 'sftp'].map(
+          (type) => dictionary.storages.types[type as keyof typeof dictionary.storages.types],
+        ),
+      );
+
       if (provider !== 'local') {
-        await type.press('ArrowDown');
         await page.getByText(dictionary.storages.types[provider], { exact: true }).last().click();
+      } else {
+        await type.press('Escape');
       }
 
       const providerFieldLabels = {
@@ -76,7 +84,6 @@ for (const theme of ['light', 'dark']) {
           dictionary.storages.fields.authMethod,
           dictionary.storages.fields.path,
         ],
-        rclone: [dictionary.storages.fields.config, dictionary.storages.fields.remotePath],
       }[provider];
       const getProviderControl = (label: string) =>
         dialog

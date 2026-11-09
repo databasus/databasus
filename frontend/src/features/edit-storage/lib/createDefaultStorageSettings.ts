@@ -33,7 +33,5 @@ export const createDefaultStorageSettings = (type: StorageType): StorageSettings
         authMethods: ['PASSWORD'],
         isSkipHostKeyVerify: false,
       };
-    case StorageType.RCLONE:
-      return { type };
   }
 };

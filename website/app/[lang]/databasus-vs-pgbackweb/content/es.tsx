@@ -130,7 +130,7 @@ export default function DatabasusVsPgBackWebPage() {
                     <td>Opciones de almacenamiento</td>
                     <td data-label="Databasus">
                       Local, S3, Cloudflare R2, Azure, NAS,
-                      Dropbox
+                      FTP
                     </td>
                     <td data-label="PgBackWeb">
                       Solo local y compatible con S3

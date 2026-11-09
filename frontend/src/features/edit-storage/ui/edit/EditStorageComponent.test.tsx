@@ -785,18 +785,6 @@ const providerStorages: {
       isSkipTlsVerify: false,
     },
   },
-  {
-    provider: 'rclone',
-    typeLabel: 'Rclone',
-    entered: { Config: '[remote]\ntype = sftp', 'Remote path': '/backups' },
-    secretLabels: { configContent: 'Config' },
-    sentOnCreate: {
-      type: 'RCLONE',
-      configContent: '[remote]\ntype = sftp',
-      remotePath: '/backups',
-    },
-    saved: { type: 'RCLONE', remotePath: '/backups' },
-  },
 ];
 
 // Their rename and secret rules belong to the provider tests above, so only creation is listed here.

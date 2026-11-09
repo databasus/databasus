@@ -128,7 +128,7 @@ export default function DatabasusVsPgBackWebPage() {
                     <td>Варианты хранилищ</td>
                     <td data-label="Databasus">
                       Локальное, S3, Cloudflare R2, Azure, NAS,
-                      Dropbox
+                      FTP
                     </td>
                     <td data-label="PgBackWeb">
                       Только локальное и S3-совместимое

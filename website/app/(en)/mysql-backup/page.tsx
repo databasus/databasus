@@ -80,7 +80,7 @@ export default function MysqlBackupPage() {
             },
             featureList: [
               "Scheduled MySQL and MariaDB backups",
-              "Multiple storage destinations (S3, Azure Blob Storage, Dropbox, SFTP, rclone, etc.)",
+              "Multiple storage destinations (S3, Azure Blob Storage, FTP, SFTP, NAS, etc.)",
               "Real-time notifications (Slack, Telegram, Discord, Webhook, email, etc.)",
               "MySQL database health monitoring",
               "Self-hosted via Docker",
@@ -340,7 +340,7 @@ export default function MysqlBackupPage() {
 
               <p className="text-gray-400 text-sm md:text-base mb-4 md:mb-5">
                 Keep MySQL backup files locally, in S3-compatible storage,
-                Azure Blob Storage, Dropbox, NAS or other destinations. Your data
+                Azure Blob Storage, FTP, NAS or other destinations. Your data
                 stays under your control.{" "}
                 <a
                   href="/storages"
@@ -875,7 +875,7 @@ export default function MysqlBackupPage() {
             <FaqItem
               number="1"
               question="What is Databasus and how does it backup MySQL databases?"
-              answer="Databasus is an Apache 2.0 licensed, self-hosted backup tool that uses mysqldump under the hood to create consistent MySQL backups. It wraps mysqldump with a modern web interface, automated scheduling, cloud storage integration (S3, Azure Blob Storage, Dropbox), real-time notifications (Slack, Discord, Telegram) and AES-256-GCM encryption — eliminating the need for custom shell scripts and cron jobs."
+              answer="Databasus is an Apache 2.0 licensed, self-hosted backup tool that uses mysqldump under the hood to create consistent MySQL backups. It wraps mysqldump with a modern web interface, automated scheduling, cloud storage integration (S3, Azure Blob Storage, FTP), real-time notifications (Slack, Discord, Telegram) and AES-256-GCM encryption — eliminating the need for custom shell scripts and cron jobs."
             />
             <FaqItem
               number="2"
@@ -905,7 +905,7 @@ export default function MysqlBackupPage() {
             <FaqItem
               number="7"
               question="Where are my MySQL backups stored?"
-              answer="You choose where to store MySQL backup files: locally on your server, in S3-compatible storage (AWS S3, MinIO, Backblaze B2), Azure Blob Storage, Cloudflare R2, Dropbox, NAS via SFTP, or any destination supported by rclone. Each database can have its own storage destination. Your backup files stay under your control."
+              answer="You choose where to store MySQL backup files: locally on your server, in S3-compatible storage (AWS S3, MinIO, Backblaze B2), Azure Blob Storage, Cloudflare R2, FTP, NAS via SFTP. Each database can have its own storage destination. Your backup files stay under your control."
             />
             <FaqItem
               number="8"

@@ -80,7 +80,7 @@ export default function MysqlBackupPage() {
             },
             featureList: [
               "Copias de seguridad programadas de MySQL y MariaDB",
-              "Múltiples destinos de almacenamiento (S3, Azure Blob Storage, Dropbox, SFTP, rclone, etc.)",
+              "Múltiples destinos de almacenamiento (S3, Azure Blob Storage, FTP, SFTP, NAS, etc.)",
               "Notificaciones en tiempo real (Slack, Telegram, Discord, Webhook, correo electrónico, etc.)",
               "Monitorización del estado de la base de datos MySQL",
               "Autoalojado mediante Docker",
@@ -345,7 +345,7 @@ export default function MysqlBackupPage() {
 
               <p className="text-gray-400 text-sm md:text-base mb-4 md:mb-5">
                 Guarde los archivos de respaldo de MySQL localmente, en
-                almacenamiento compatible con S3, Azure Blob Storage, Dropbox, NAS u
+                almacenamiento compatible con S3, Azure Blob Storage, FTP, NAS u
                 otros destinos. Sus datos permanecen bajo su control.{" "}
                 <a
                   href="/es/storages"
@@ -891,7 +891,7 @@ export default function MysqlBackupPage() {
             <FaqItem
               number="1"
               question="¿Qué es Databasus y cómo realiza copias de seguridad de bases de datos MySQL?"
-              answer="Databasus es una herramienta de respaldo autoalojada con licencia Apache 2.0 que usa mysqldump internamente para crear copias de seguridad consistentes de MySQL. Envuelve mysqldump con una interfaz web moderna, programación automatizada, integración con almacenamiento en la nube (S3, Azure Blob Storage, Dropbox), notificaciones en tiempo real (Slack, Discord, Telegram) y cifrado AES-256-GCM, así que no necesita scripts de shell personalizados ni tareas cron."
+              answer="Databasus es una herramienta de respaldo autoalojada con licencia Apache 2.0 que usa mysqldump internamente para crear copias de seguridad consistentes de MySQL. Envuelve mysqldump con una interfaz web moderna, programación automatizada, integración con almacenamiento en la nube (S3, Azure Blob Storage, FTP), notificaciones en tiempo real (Slack, Discord, Telegram) y cifrado AES-256-GCM, así que no necesita scripts de shell personalizados ni tareas cron."
             />
             <FaqItem
               number="2"
@@ -921,7 +921,7 @@ export default function MysqlBackupPage() {
             <FaqItem
               number="7"
               question="¿Dónde se guardan mis copias de seguridad de MySQL?"
-              answer="Usted elige dónde guardar los archivos de respaldo de MySQL: localmente en su servidor, en almacenamiento compatible con S3 (AWS S3, MinIO, Backblaze B2), Azure Blob Storage, Cloudflare R2, Dropbox, NAS por SFTP o cualquier destino compatible con rclone. Cada base de datos puede tener su propio destino de almacenamiento. Sus archivos de respaldo permanecen bajo su control."
+              answer="Usted elige dónde guardar los archivos de respaldo de MySQL: localmente en su servidor, en almacenamiento compatible con S3 (AWS S3, MinIO, Backblaze B2), Azure Blob Storage, Cloudflare R2, FTP, NAS por SFTP. Cada base de datos puede tener su propio destino de almacenamiento. Sus archivos de respaldo permanecen bajo su control."
             />
             <FaqItem
               number="8"

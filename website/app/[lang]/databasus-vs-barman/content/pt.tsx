@@ -653,7 +653,7 @@ export default function DatabasusVsBarmanPage() {
                 <li>Cloudflare R2</li>
                 <li>Azure Blob Storage</li>
                 <li>NAS (armazenamento conectado à rede)</li>
-                <li>Dropbox</li>
+                <li>FTP</li>
               </ul>
 
               <h3 id="storage-barman">Armazenamento no Barman</h3>

@@ -80,7 +80,7 @@ export default function MongodbBackupPage() {
             },
             featureList: [
               "Бекапы MongoDB по расписанию через mongodump",
-              "Разные хранилища (S3, Azure Blob Storage, Dropbox, SFTP, rclone и другие)",
+              "Разные хранилища (S3, Azure Blob Storage, FTP, SFTP, NAS и другие)",
               "Мгновенные уведомления (Slack, Telegram, Discord, Webhook, email и другие)",
               "Мониторинг доступности подключения к MongoDB",
               "Self-hosted установка через Docker",
@@ -341,7 +341,7 @@ export default function MongodbBackupPage() {
 
               <p className="text-gray-400 text-sm md:text-base mb-4 md:mb-5">
                 Держите архивы бекапов MongoDB локально, в S3-совместимом
-                хранилище, Azure Blob Storage, Dropbox, на NAS или в других местах.
+                хранилище, Azure Blob Storage, FTP, на NAS или в других местах.
                 Ваши документы остаются под вашим контролем.{" "}
                 <a
                   href="/ru/storages"
@@ -794,7 +794,7 @@ export default function MongodbBackupPage() {
             <FaqItem
               number="1"
               question="Что такое Databasus и как он делает бекапы MongoDB?"
-              answer="Databasus — это self-hosted инструмент резервного копирования с лицензией Apache 2.0, который использует mongodump для создания консистентных бекапов MongoDB. Он дополняет mongodump современным веб-интерфейсом, расписаниями, интеграцией с облачными хранилищами (S3, Azure Blob Storage, Dropbox), мгновенными уведомлениями (Slack, Discord, Telegram) и шифрованием AES-256-GCM — самописные shell-скрипты и cron-задачи больше не нужны."
+              answer="Databasus — это self-hosted инструмент резервного копирования с лицензией Apache 2.0, который использует mongodump для создания консистентных бекапов MongoDB. Он дополняет mongodump современным веб-интерфейсом, расписаниями, интеграцией с облачными хранилищами (S3, Azure Blob Storage, FTP), мгновенными уведомлениями (Slack, Discord, Telegram) и шифрованием AES-256-GCM — самописные shell-скрипты и cron-задачи больше не нужны."
             />
             <FaqItem
               number="2"

@@ -16,9 +16,19 @@ type checkSpec struct {
 func getBackendSpec() checkSpec {
 	return checkSpec{
 		entryPoints: []entryPointSpec{
-			{path: "./cmd/databasus", forbiddenPaths: getTestLibraryPaths()},
-			{path: "./cmd/verification-agent", forbiddenPaths: slices.Concat(getTestLibraryPaths(),
-				[]string{"gorm.io", "github.com/gin-gonic/gin", "github.com/pressly/goose"})},
+			{
+				path:           "./cmd/databasus",
+				forbiddenPaths: slices.Concat(getTestLibraryPaths(), []string{"github.com/rclone/rclone"}),
+			},
+			{path: "./cmd/verification-agent", forbiddenPaths: slices.Concat(
+				getTestLibraryPaths(),
+				[]string{
+					"github.com/rclone/rclone",
+					"gorm.io",
+					"github.com/gin-gonic/gin",
+					"github.com/pressly/goose",
+				},
+			)},
 		},
 		cascadeCutoff: 20261024122431,
 	}

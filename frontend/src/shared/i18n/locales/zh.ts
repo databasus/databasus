@@ -1924,7 +1924,6 @@ export const zh: typeof en = {
       azureBlob: 'Azure Blob Storage',
       ftp: 'FTP',
       sftp: 'SFTP',
-      rclone: 'Rclone',
     },
     s3StorageClasses: {
       default: '默认（Standard）',
@@ -1959,7 +1958,6 @@ export const zh: typeof en = {
         azureBlob: '类型：Azure Blob Storage',
         ftp: '类型：FTP',
         sftp: '类型：SFTP',
-        rclone: '类型：Rclone',
       },
     },
     config: {
@@ -1987,7 +1985,6 @@ export const zh: typeof en = {
     },
     fields: {
       path: '路径',
-      remotePath: '远程路径',
       share: '共享名',
       domain: '域',
       useSsl: '使用 SSL',
@@ -2014,7 +2011,6 @@ export const zh: typeof en = {
       accountKey: '账户密钥',
       containerName: '容器名称',
       userToken: '用户令牌',
-      config: '配置',
     },
     edit: {
       namePlaceholder: '我的存储',
@@ -2069,14 +2065,6 @@ export const zh: typeof en = {
         skipHostKeyVerification: '跳过主机密钥验证',
         skipHostKeyTooltip:
           '跳过 SSH 主机密钥验证。如果你信任该服务器，可以开启此项。警告：这会降低安全性。',
-      },
-      rclone: {
-        configTooltip:
-          "在此粘贴 rclone.conf 的内容。运行 'rclone config file' 可以找到该文件，然后复制其中的内容。这份配置支持 70 多家云存储服务商。",
-        configHiddenNote: '*内容已隐藏，以免泄露敏感数据。如需更新现有配置，请在此填入新的配置',
-        docsLink: 'Rclone 文档',
-        remotePathTooltip:
-          "远程存储上存放备份的可选路径前缀（例如 '/backups' 或 'my-folder/backups'）",
       },
     },
   },

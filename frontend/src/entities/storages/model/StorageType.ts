@@ -11,5 +11,4 @@ export const StorageType = {
   AZURE_BLOB: 'AZURE_BLOB',
   FTP: 'FTP',
   SFTP: 'SFTP',
-  RCLONE: 'RCLONE',
 } as const satisfies Record<string, StorageType>;
