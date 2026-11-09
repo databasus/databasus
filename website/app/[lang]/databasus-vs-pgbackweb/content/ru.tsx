@@ -127,7 +127,7 @@ export default function DatabasusVsPgBackWebPage() {
                   <tr>
                     <td>Варианты хранилищ</td>
                     <td data-label="Databasus">
-                      Локальное, S3, Google Drive, Cloudflare R2, Azure, NAS,
+                      Локальное, S3, Cloudflare R2, Azure, NAS,
                       Dropbox
                     </td>
                     <td data-label="PgBackWeb">
@@ -233,7 +233,6 @@ export default function DatabasusVsPgBackWebPage() {
                   <ul>
                     <li>Локальное хранилище</li>
                     <li>Amazon S3 и S3-совместимые сервисы</li>
-                    <li>Google Drive</li>
                     <li>Cloudflare R2</li>
                     <li>Azure Blob Storage</li>
                     <li>NAS (сетевые хранилища)</li>
@@ -535,7 +534,7 @@ export default function DatabasusVsPgBackWebPage() {
                     Командная работа с рабочими пространствами и журналом аудита
                   </li>
                   <li>
-                    Несколько вариантов хранилищ (Google Drive, Azure и т.д.)
+                    Несколько вариантов хранилищ (FTP, SFTP, Azure и т.д.)
                   </li>
                   <li>
                     Встроенные уведомления в Slack, Teams, Telegram и т.д.

@@ -277,8 +277,7 @@ mongorestore --host hostname:27017 --username username --password password \\
               <p>Untuk memulihkan backup secara manual, siapkan:</p>
               <ul>
                 <li>
-                  <strong>File backup</strong> dari penyimpanan (penyimpanan lokal, S3, Google
-                  Drive, dan lainnya)
+                  <strong>File backup</strong> dari penyimpanan (penyimpanan lokal, S3, Azure Blob Storage, dan lainnya)
                 </li>
                 <li>
                   <strong>File metadata</strong> dari penyimpanan yang sama. Namanya sama dengan

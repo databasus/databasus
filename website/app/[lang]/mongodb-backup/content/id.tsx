@@ -7,7 +7,7 @@ import InstallationComponent from "@/app/components/InstallationComponent";
 export const metadata: Metadata = {
   title: "Backup MongoDB",
   description:
-    "Tool gratis dan open source untuk backup MongoDB terjadwal. Otomatiskan mongodump melalui UI web, simpan arsip di S3, Google Drive, atau secara lokal. Terima notifikasi melalui Slack, Discord, Telegram. Enkripsi AES-256 untuk data BSON.",
+    "Tool gratis dan open source untuk backup MongoDB terjadwal. Otomatiskan mongodump melalui UI web, simpan arsip di S3, Azure Blob Storage, atau secara lokal. Terima notifikasi melalui Slack, Discord, Telegram. Enkripsi AES-256 untuk data BSON.",
   keywords:
     "backup MongoDB, alternatif mongodump, otomatisasi backup MongoDB, tool backup MongoDB, backup MongoDB terjadwal, backup MongoDB cloud, backup MongoDB S3, backup MongoDB Docker, enkripsi backup MongoDB, backup MongoDB Atlas, backup replica set, backup database dokumen, backup BSON, backup NoSQL",
   robots: "index, follow",
@@ -76,7 +76,7 @@ export default function MongodbBackupPage() {
             },
             featureList: [
               "Backup MongoDB terjadwal melalui mongodump",
-              "Berbagai tujuan penyimpanan (S3, Google Drive, Dropbox, SFTP, rclone, dan lainnya)",
+              "Berbagai tujuan penyimpanan (S3, Azure Blob Storage, Dropbox, SFTP, rclone, dan lainnya)",
               "Notifikasi real-time (Slack, Telegram, Discord, Webhook, email, dan lainnya)",
               "Pemantauan ketersediaan koneksi MongoDB",
               "Self-hosted melalui Docker",
@@ -166,7 +166,7 @@ export default function MongodbBackupPage() {
             <p className="text-sm sm:text-lg text-gray-200 max-w-[720px] mx-auto mb-6 md:mb-10 px-2">
               Databasus adalah tool gratis, open source, dan self-hosted untuk backup database
               dokumen MongoDB. Otomatiskan mongodump dengan penjadwalan, simpan arsip BSON di S3,
-              Google Drive, atau secara lokal. Terima notifikasi melalui Slack, Discord, atau
+              Azure Blob Storage, atau secara lokal. Terima notifikasi melalui Slack, Discord, atau
               Telegram saat backup selesai
             </p>
             <div className="flex flex-col sm:flex-row sm:flex-wrap items-center justify-center gap-2 sm:gap-2 max-w-[400px] mx-auto pb-0 sm:pb-[50px] lg:pb-0">
@@ -294,8 +294,7 @@ export default function MongodbBackupPage() {
                 Simpan arsip BSON di mana saja
               </h3>
               <p className="text-gray-400 text-sm md:text-base mb-4 md:mb-5">
-                Simpan arsip backup MongoDB secara lokal, di penyimpanan kompatibel S3, Google
-                Drive, Dropbox, NAS, atau tujuan lain. Data dokumen tetap dalam kendalimu.{" "}
+                Simpan arsip backup MongoDB secara lokal, di penyimpanan kompatibel S3, Azure Blob Storage, Dropbox, NAS, atau tujuan lain. Data dokumen tetap dalam kendalimu.{" "}
                 <a
                   href={getLocalizedHref("id", "storages")}
                   className="text-blue-500 hover:text-blue-600 font-medium"
@@ -649,7 +648,7 @@ export default function MongodbBackupPage() {
             <FaqItem
               number="1"
               question="Apa itu Databasus dan bagaimana cara melakukan backup database MongoDB?"
-              answer="Databasus adalah tool backup self-hosted berlisensi Apache 2.0 yang menggunakan mongodump untuk membuat backup MongoDB yang konsisten. Databasus melengkapinya dengan antarmuka web modern, penjadwalan otomatis, integrasi penyimpanan cloud (S3, Google Drive, Dropbox), notifikasi real-time (Slack, Discord, Telegram), dan enkripsi AES-256-GCM, sehingga tidak perlu menulis skrip shell dan cron job sendiri."
+              answer="Databasus adalah tool backup self-hosted berlisensi Apache 2.0 yang menggunakan mongodump untuk membuat backup MongoDB yang konsisten. Databasus melengkapinya dengan antarmuka web modern, penjadwalan otomatis, integrasi penyimpanan cloud (S3, Azure Blob Storage, Dropbox), notifikasi real-time (Slack, Discord, Telegram), dan enkripsi AES-256-GCM, sehingga tidak perlu menulis skrip shell dan cron job sendiri."
             />
             <FaqItem
               number="2"

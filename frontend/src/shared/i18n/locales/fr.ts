@@ -113,12 +113,6 @@ export const fr: typeof en = {
       returnToSignIn: 'Retour à la connexion',
       completing: "Finalisation de l'authentification...",
     },
-    oauthStorage: {
-      waiting: 'Finalisation de l’autorisation du stockage...',
-      complete: 'Autorisation reçue. Revenez à l’éditeur du stockage.',
-      restart:
-        'Impossible de joindre l’éditeur d’origine. Fermez cette fenêtre et relancez l’autorisation depuis cet éditeur.',
-    },
   },
   errors: {
     cleanupPending:
@@ -621,7 +615,7 @@ export const fr: typeof en = {
         createNew: 'Créer un stockage',
         addTitle: 'Ajouter un stockage',
         description:
-          "Un stockage est l'endroit où les sauvegardes sont conservées (disque local, S3, Google Drive, etc.)",
+          "Un stockage est l'endroit où les sauvegardes sont conservées (disque local, S3, etc.)",
       },
       notifiers: {
         title: 'Canaux de notification (facultatif)',
@@ -844,7 +838,7 @@ export const fr: typeof en = {
       submit: "Créer l'espace de travail",
       defaultName: 'Mon espace de travail',
       description:
-        "Un espace de travail regroupe :<lineBreak/>- vos bases de données ;<lineBreak/>- les stockages (disque local, S3, Google Drive, etc.) ;<lineBreak/>- les canaux de notification (e-mail, Slack, Telegram, etc.) ;<lineBreak/>- le contrôle d'accès (si vous travaillez en équipe).",
+        "Un espace de travail regroupe :<lineBreak/>- vos bases de données ;<lineBreak/>- les stockages (disque local, S3, etc.) ;<lineBreak/>- les canaux de notification (e-mail, Slack, Telegram, etc.) ;<lineBreak/>- le contrôle d'accès (si vous travaillez en équipe).",
       nameRequired: "Saisissez un nom d'espace de travail",
       created: 'Espace de travail créé',
       permissionDenied: {
@@ -1494,7 +1488,7 @@ export const fr: typeof en = {
       createNewStorage: 'Créer un stockage',
       addStorageTitle: 'Ajouter un stockage',
       storageDescription:
-        "Un stockage est l'endroit où les sauvegardes sont conservées (disque local, S3, Google Drive, etc.)",
+        "Un stockage est l'endroit où les sauvegardes sont conservées (disque local, S3, etc.)",
       encryption: 'Chiffrement',
       notifications: 'Notifications',
       noNotifications: 'Aucune',
@@ -1535,7 +1529,7 @@ export const fr: typeof en = {
         makeBackupNow: 'Lancer une sauvegarde maintenant',
         encrypted: 'Chiffrée',
         sizeTooltip:
-          "En haut : la taille du fichier de sauvegarde compressé réellement conservé dans le stockage (local, S3, Google Drive, etc.). En bas (en gris) : la taille d'origine de la base de données non compressée au moment de la sauvegarde. Une sauvegarde est en général environ 5 fois plus petite que la base.",
+          "En haut : la taille du fichier de sauvegarde compressé réellement conservé dans le stockage (local, S3, etc.). En bas (en gris) : la taille d'origine de la base de données non compressée au moment de la sauvegarde. Une sauvegarde est en général environ 5 fois plus petite que la base.",
         databaseSize: '{{size}} (taille de la base)',
         deleteConfirmation: 'Voulez-vous vraiment supprimer cette sauvegarde ?',
         actions: {
@@ -2090,7 +2084,6 @@ export const fr: typeof en = {
     types: {
       local: 'Stockage local',
       s3: 'S3',
-      googleDrive: 'Google Drive',
       nas: 'NAS',
       azureBlob: 'Azure Blob Storage',
       ftp: 'FTP',
@@ -2127,7 +2120,6 @@ export const fr: typeof en = {
       type: {
         local: 'Type : stockage local',
         s3: 'Type : S3',
-        googleDrive: 'Type : Google Drive',
         nas: 'Type : NAS',
         azureBlob: 'Type : Azure Blob Storage',
         ftp: 'Type : FTP',
@@ -2188,8 +2180,6 @@ export const fr: typeof en = {
       accountName: 'Nom du compte',
       accountKey: 'Clé du compte',
       containerName: 'Nom du conteneur',
-      clientId: 'ID client',
-      clientSecret: 'Secret client',
       userToken: 'Jeton utilisateur',
       config: 'Configuration',
     },
@@ -2218,27 +2208,6 @@ export const fr: typeof en = {
           'Ne pas vérifier le certificat TLS. Activez cette option si votre stockage compatible S3 utilise un certificat auto-signé. Attention : cela réduit la sécurité.',
         storageClassTooltip:
           "Classe de stockage S3 des objets envoyés. Laissez la valeur par défaut pour Standard. Certains fournisseurs proposent des classes moins chères comme One Zone IA. N'utilisez pas Glacier/Deep Archive : les fichiers doivent être accessibles immédiatement pour les restaurations.",
-      },
-      googleDrive: {
-        guideLink: 'Comment connecter Google Drive ?',
-        authorize: 'Autoriser',
-        authorized: 'Autorisé',
-        waiting: 'En attente de l’autorisation Google...',
-        exchanging: 'Échange du code d’autorisation...',
-        cancel: 'Annuler l’autorisation',
-        restart: 'Relancer l’autorisation',
-        reconnect: 'Reconnecter',
-        reconnectHelp:
-          'Saisissez à nouveau le secret client pour reconnecter le stockage. Les identifiants enregistrés sont conservés en cas d’échec.',
-        expired: 'L’autorisation a expiré. Recommencez.',
-        refused: 'L’autorisation Google a été refusée. Vous pouvez réessayer.',
-        exchangeFailed: 'Impossible d’échanger le code d’autorisation. Recommencez.',
-        missingRefreshToken:
-          'Google n’a pas renvoyé de jeton d’actualisation. Relancez l’autorisation et autorisez l’accès hors connexion.',
-        popupBlocked:
-          'La fenêtre d’autorisation a été bloquée. Autorisez les fenêtres surgissantes et réessayez.',
-        unavailable:
-          'L’autorisation n’est pas disponible dans ce navigateur. Vérifiez la prise en charge de BroadcastChannel et réessayez.',
       },
       nas: {
         shareWithSlashWarning:

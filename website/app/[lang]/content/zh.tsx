@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description:
     "免费开源的 PostgreSQL 定时备份工具（同时支持 MySQL 和 MongoDB）。备份可保存到本地和云端。支持 Slack、Discord、Telegram、邮件、webhook 等多种通知方式。",
   keywords:
-    "PostgreSQL、备份、监控、数据库、定时备份、Docker、自托管、开源、S3、Google Drive、Slack 通知、Discord、DevOps、数据库监控、pg_dump、数据库恢复、加密、AES-256、备份加密",
+    "PostgreSQL、备份、监控、数据库、定时备份、Docker、自托管、开源、S3、Azure Blob Storage、Slack 通知、Discord、DevOps、数据库监控、pg_dump、数据库恢复、加密、AES-256、备份加密",
   robots: "index, follow",
   alternates: {
     canonical: getLocalizedUrl("zh", ""),
@@ -82,7 +82,7 @@ export default function Index() {
             },
             featureList: [
               "PostgreSQL 定时备份",
-              "多种存储目标（S3、Google Drive、Dropbox、SFTP、rclone 等）",
+              "多种存储目标（S3、Azure Blob Storage、Dropbox、SFTP、rclone 等）",
               "实时通知（Slack、Telegram、Discord、Webhook、邮件等）",
               "数据库健康监控",
               "通过 Docker 自托管部署",
@@ -139,7 +139,7 @@ export default function Index() {
                 name: "Databasus 是什么？为什么应该用它而不是自己写脚本？",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus 是一个采用 Apache 2.0 许可证的自托管服务，用于备份 PostgreSQL v13 到 v18。它与 shell 脚本的区别在于：它提供了前端界面，可以调度任务、压缩归档并存储到多个目标（本地磁盘、S3、Google Drive、Dropbox、SFTP、rclone 等）、配置保留策略来自动清理旧备份，并在任务完成或失败时通知你的团队，这一切都无需手写代码",
+                  text: "Databasus 是一个采用 Apache 2.0 许可证的自托管服务，用于备份 PostgreSQL v13 到 v18。它与 shell 脚本的区别在于：它提供了前端界面，可以调度任务、压缩归档并存储到多个目标（本地磁盘、S3、Azure Blob Storage、Dropbox、SFTP、rclone 等）、配置保留策略来自动清理旧备份，并在任务完成或失败时通知你的团队，这一切都无需手写代码",
                 },
               },
               {
@@ -163,7 +163,7 @@ export default function Index() {
                 name: "我的备份存放在哪里？会占用多少空间？",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "归档可以保存到本地卷、S3 兼容存储桶、Google Drive、Dropbox 和其他云端目标。Databasus 采用均衡压缩，通常能把转储文件缩小 4-8 倍，而运行时开销只增加约 20%，从而节省存储和带宽。",
+                  text: "归档可以保存到本地卷、S3 兼容存储桶、Azure Blob Storage、Dropbox 和其他云端目标。Databasus 采用均衡压缩，通常能把转储文件缩小 4-8 倍，而运行时开销只增加约 20%，从而节省存储和带宽。",
                 },
               },
               {
@@ -262,7 +262,7 @@ export default function Index() {
 
             <p className="text-sm sm:text-lg text-gray-200 max-w-[720px] mx-auto mb-6 md:mb-10 px-2">
               Databasus 是一款免费、开源、可自托管的 PostgreSQL
-              备份工具。支持多种存储（S3、Google Drive、FTP
+              备份工具。支持多种存储（S3、Azure Blob Storage、FTP
               等）并可将进度通知发送到 Slack、Discord、Telegram 等渠道。专注于{" "}
               <span className="underline decoration-2 underline-offset-2 decoration-blue-600">
                 低 RPO/RTO
@@ -1039,7 +1039,7 @@ export default function Index() {
 
                 <div className="space-y-3 max-w-[370px] text-gray-400 text-sm md:text-base">
                   <p>
-                    备份文件可以保存在本地、S3、Google Drive、NAS、Dropbox
+                    备份文件可以保存在本地、S3、Azure Blob Storage、NAS、Dropbox
                     等服务中
                   </p>
                   <p>请注意，存储位置需要有足够的空间</p>
@@ -1161,7 +1161,7 @@ export default function Index() {
             <FaqItem
               number="1"
               question="Databasus 是什么？为什么应该用它而不是自己写脚本？"
-              answer="Databasus 是一个采用 Apache 2.0 许可证的自托管数据库备份服务。它与 shell 脚本的区别在于：它提供了前端界面，可以调度任务、压缩归档并存储到多个目标（本地磁盘、S3、Google Drive、NAS、Dropbox、SFTP、rclone 等）、配置保留策略来自动清理旧备份，并在任务完成或失败时通知你的团队，这一切都无需手写代码"
+              answer="Databasus 是一个采用 Apache 2.0 许可证的自托管数据库备份服务。它与 shell 脚本的区别在于：它提供了前端界面，可以调度任务、压缩归档并存储到多个目标（本地磁盘、S3、Azure Blob Storage、NAS、Dropbox、SFTP、rclone 等）、配置保留策略来自动清理旧备份，并在任务完成或失败时通知你的团队，这一切都无需手写代码"
             />
             <FaqItem
               number="2"
@@ -1233,8 +1233,8 @@ export default function Index() {
                   <br />
                   <br />
                   接着填写 PostgreSQL 的主机、端口号、数据库名称、凭据和 SSL
-                  选项，并选择归档的存放位置（本地路径、S3 存储桶、Google Drive
-                  文件夹、Dropbox 等）。 <br />
+                  选项，并选择归档的存放位置（本地路径、S3 存储桶、Azure Blob Storage、
+                  Dropbox 等）。 <br />
                   <br />
                   如有需要，可添加邮件、Slack、Telegram 或 webhook
                   等通知渠道，然后点击 Save。Databasus

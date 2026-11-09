@@ -2,7 +2,7 @@
   <img src="../logo.svg" alt="Databasus Logo" width="250"/>
 
   <h3>Ferramenta de backup PostgreSQL</h3>
-  <p>O Databasus é uma ferramenta gratuita, de código aberto e self-hosted para fazer backup de PostgreSQL. Crie backups em diferentes armazenamentos (S3, Google Drive, FTP, etc.) com notificações sobre o progresso (Slack, Discord, Telegram, etc.). Com foco em Point-in-Time Recovery com RPO/RTO baixos</p>
+  <p>O Databasus é uma ferramenta gratuita, de código aberto e self-hosted para fazer backup de PostgreSQL. Crie backups em diferentes armazenamentos (S3, Azure Blob Storage, FTP, etc.) com notificações sobre o progresso (Slack, Discord, Telegram, etc.). Com foco em Point-in-Time Recovery com RPO/RTO baixos</p>
   
   <!-- Badges -->
    [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
@@ -79,7 +79,7 @@ O Databasus faz uma restauração de verdade para confirmar que os backups serve
 ### 🗄️ **Vários destinos de armazenamento** <a href="https://databasus.com/pt/storages/">(ver suportados)</a>
 
 - **Armazenamento local**: mantenha os backups no seu VPS ou servidor
-- **Armazenamento na nuvem**: S3, Cloudflare R2, Google Drive, NAS, Dropbox, SFTP, Rclone e outros
+- **Armazenamento na nuvem**: S3, Cloudflare R2, Azure Blob Storage, NAS, Dropbox, SFTP, Rclone e outros
 - **Seguro**: todos os dados continuam sob o seu controle
 
 ### 📱 **Notificações** <a href="https://databasus.com/pt/notifiers/">(ver suportados)</a>
@@ -254,7 +254,7 @@ Para mais opções (NodePort, TLS, HTTPRoute do Gateway API), veja o [README do 
 2. **Adicione a sua primeira base de dados para backup**: clique em "New Database" e siga o assistente de configuração
 3. **Configure o agendamento**: escolha entre intervalos de hora em hora, diário, semanal, mensal ou cron
 4. **Informe a conexão com a base**: preencha as credenciais e os dados de conexão da sua base de dados
-5. **Escolha o armazenamento**: selecione onde guardar os backups (local, S3, Google Drive, etc.)
+5. **Escolha o armazenamento**: selecione onde guardar os backups (local, S3, Azure Blob Storage, etc.)
 6. **Configure a política de retenção**: escolha período de tempo, quantidade ou GFS para definir por quanto tempo os backups ficam guardados
 7. **Adicione notificações** (opcional): configure notificações por e-mail, Telegram, Slack, Mattermost ou webhook
 8. **Salve e inicie**: o Databasus valida as configurações e começa a seguir o agendamento dos backups

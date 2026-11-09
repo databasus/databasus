@@ -22,7 +22,7 @@
 
 - **Databases:** PostgreSQL 12-18, MySQL 5.7, 8.0, 8.4, 9 and 26, MariaDB 5.5, 10, 11, 12 and 13, MongoDB 4.2+, 5, 6, 7, 8 and 9. PostgreSQL is the primary focus.
 - **Schedules:** hourly, daily, weekly, monthly or cron, with an exact run time. Weekly schedules take weekdays, and monthly schedules take calendar days.
-- **Storages:** local disk, S3 and S3-compatible services such as Cloudflare R2, Google Drive, NAS, Azure Blob Storage, FTP, SFTP and rclone. Rclone connects 70+ providers, including Dropbox.
+- **Storages:** local disk, S3 and S3-compatible services such as Cloudflare R2, NAS, Azure Blob Storage, FTP, SFTP and rclone. Rclone connects 70+ providers, including Dropbox.
 - **Notifications:** email, Slack, Telegram, Discord, Microsoft Teams, Mattermost and webhooks.
 - **Compression:** balanced compression shrinks dumps 4-8x with about 20% runtime overhead.
 - **Encryption:** AES-256-GCM for backup files, useless to attackers even if the storage is compromised.
@@ -77,7 +77,6 @@ See [Security & reliability engineering](https://databasus.com/security#security
 ### Storages and notifications
 
 - [Storages](https://databasus.com/storages): supported storages and how to configure them.
-- [Google Drive](https://databasus.com/storages/google-drive): setup with OAuth.
 - [Cloudflare R2](https://databasus.com/storages/cloudflare-r2): S3-compatible storage setup.
 - [Notifiers](https://databasus.com/notifiers): supported notification channels and how to configure them.
 - [Slack](https://databasus.com/notifiers/slack): webhook setup.

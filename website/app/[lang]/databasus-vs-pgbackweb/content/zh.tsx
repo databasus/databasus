@@ -122,7 +122,7 @@ export default function DatabasusVsPgBackWebPage() {
                   <tr>
                     <td>存储选项</td>
                     <td data-label="Databasus">
-                      本地、S3、Google Drive、Cloudflare
+                      本地、S3、Cloudflare
                       R2、Azure、NAS、Dropbox
                     </td>
                     <td data-label="PgBackWeb">仅本地和 S3 兼容存储</td>
@@ -221,7 +221,6 @@ export default function DatabasusVsPgBackWebPage() {
                   <ul>
                     <li>本地存储</li>
                     <li>Amazon S3 及 S3 兼容服务</li>
-                    <li>Google Drive</li>
                     <li>Cloudflare R2</li>
                     <li>Azure Blob Storage</li>
                     <li>NAS（网络附加存储）</li>
@@ -496,7 +495,7 @@ export default function DatabasusVsPgBackWebPage() {
                   <li>三层防护的企业级安全</li>
                   <li>带工作区和审计日志的团队协作</li>
                   <li>
-                    多种存储目标（Google Drive、Azure 等）
+                    多种存储目标（FTP、SFTP、Azure 等）
                   </li>
                   <li>内置的 Slack、Teams、Telegram 等通知</li>
                   <li>一行脚本或 Docker 的快速安装</li>

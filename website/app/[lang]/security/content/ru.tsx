@@ -151,7 +151,7 @@ export default function SecurityPage() {
               <p>
                 Внутри Databasus использует базу PostgreSQL для хранения
                 параметров подключений, конфигураций, настроек уведомлений и
-                хранилищ (S3, Google Drive, Dropbox и т.д.).
+                хранилищ (S3, Azure Blob Storage, Dropbox и т.д.).
               </p>
 
               <p>Любые чувствительные данные шифруются. Например:</p>
@@ -215,7 +215,7 @@ export default function SecurityPage() {
 
               <p>
                 <strong>Результат</strong>: даже если кто-то получит доступ к
-                вашему облачному хранилищу (S3, Google Drive и т.д.), прочитать
+                вашему облачному хранилищу (S3, Azure Blob Storage и т.д.), прочитать
                 бекапы без вашего мастер-ключа он не сможет.
               </p>
 

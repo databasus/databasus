@@ -487,7 +487,7 @@ sudo curl -sSL https://raw.githubusercontent.com/databasus/databasus/refs/heads/
                 </li>
                 <li>
                   <strong>Choose storage destination</strong>: Select where to
-                  store your backups (local, S3, Google Drive, etc.)
+                  store your backups (local, S3, Azure Blob Storage, etc.)
                 </li>
                 <li>
                   <strong>Set up notifications</strong>: Add notification

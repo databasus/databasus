@@ -467,7 +467,7 @@ sudo curl -sSL https://raw.githubusercontent.com/databasus/databasus/refs/heads/
                 </li>
                 <li>
                   <strong>选择存储位置</strong>：指定备份保存的位置（本地、
-                  S3、Google Drive 等）
+                  S3、Azure Blob Storage 等）
                 </li>
                 <li>
                   <strong>设置通知</strong>：添加通知渠道（Slack、Telegram、

@@ -546,7 +546,6 @@ export default function DatabasusVsPgBackRestPage() {
               <ul>
                 <li>本地存储</li>
                 <li>Amazon S3 及 S3 兼容服务</li>
-                <li>Google Drive</li>
                 <li>Cloudflare R2</li>
                 <li>Azure Blob Storage</li>
                 <li>NAS（网络附加存储）</li>

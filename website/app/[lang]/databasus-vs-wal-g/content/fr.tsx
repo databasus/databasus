@@ -763,7 +763,6 @@ export default function DatabasusVsWalGPage() {
               <ul>
                 <li>Stockage local</li>
                 <li>Amazon S3 et services compatibles S3</li>
-                <li>Google Drive</li>
                 <li>Cloudflare R2</li>
                 <li>Azure Blob Storage</li>
                 <li>NAS (stockage en réseau)</li>

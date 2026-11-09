@@ -2,7 +2,7 @@
   <img src="../logo.svg" alt="Databasus Logo" width="250"/>
 
   <h3>Outil de sauvegarde PostgreSQL</h3>
-  <p>Databasus est un outil gratuit, open source et auto-hébergé pour faire des backups de PostgreSQL. Créez des sauvegardes vers différents stockages (S3, Google Drive, FTP, etc.) avec des notifications sur leur progression (Slack, Discord, Telegram, etc.). Avec un focus sur le Point-in-Time Recovery à faible RPO/RTO</p>
+  <p>Databasus est un outil gratuit, open source et auto-hébergé pour faire des backups de PostgreSQL. Créez des sauvegardes vers différents stockages (S3, Azure Blob Storage, FTP, etc.) avec des notifications sur leur progression (Slack, Discord, Telegram, etc.). Avec un focus sur le Point-in-Time Recovery à faible RPO/RTO</p>
   
   <!-- Badges -->
    [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
@@ -79,7 +79,7 @@ Databasus effectue une vraie restauration pour confirmer que les sauvegardes son
 ### 🗄️ **Plusieurs destinations de stockage** <a href="https://databasus.com/fr/storages/">(voir les stockages pris en charge)</a>
 
 - **Stockage local** : gardez les sauvegardes sur votre VPS ou votre serveur
-- **Stockage cloud** : S3, Cloudflare R2, Google Drive, NAS, Dropbox, SFTP, Rclone et d'autres
+- **Stockage cloud** : S3, Cloudflare R2, Azure Blob Storage, NAS, Dropbox, SFTP, Rclone et d'autres
 - **Sûr** : toutes les données restent sous votre contrôle
 
 ### 📱 **Notifications** <a href="https://databasus.com/fr/notifiers/">(voir les canaux pris en charge)</a>
@@ -254,7 +254,7 @@ Pour les autres options (NodePort, TLS, HTTPRoute pour Gateway API), consultez l
 2. **Ajoutez votre première base à sauvegarder** : cliquez sur "New Database" et suivez l'assistant
 3. **Configurez la planification** : toutes les heures, chaque jour, chaque semaine, chaque mois ou selon un intervalle cron
 4. **Renseignez la connexion** : saisissez les identifiants et les paramètres de connexion de votre base
-5. **Choisissez le stockage** : indiquez où déposer vos sauvegardes (local, S3, Google Drive, etc.)
+5. **Choisissez le stockage** : indiquez où déposer vos sauvegardes (local, S3, Azure Blob Storage, etc.)
 6. **Configurez la rétention** : période, nombre ou GFS, selon la durée de conservation voulue
 7. **Ajoutez des notifications** (facultatif) : e-mail, Telegram, Slack, Mattermost ou webhook
 8. **Enregistrez et démarrez** : Databasus valide les paramètres et lance la planification des sauvegardes

@@ -2,7 +2,7 @@
   <img src="../logo.svg" alt="Databasus Logo" width="250"/>
 
   <h3>PostgreSQL 备份工具</h3>
-  <p>Databasus 是一款免费、开源、可自托管的 PostgreSQL 备份工具。备份可以存放到各种存储（S3、Google Drive、FTP 等），进度通知可以发到 Slack、Discord、Telegram 等渠道。专注于低 RPO/RTO 的时间点恢复</p>
+  <p>Databasus 是一款免费、开源、可自托管的 PostgreSQL 备份工具。备份可以存放到各种存储（S3、Azure Blob Storage、FTP 等），进度通知可以发到 Slack、Discord、Telegram 等渠道。专注于低 RPO/RTO 的时间点恢复</p>
   
   <!-- Badges -->
    [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
@@ -79,7 +79,7 @@ Databasus 会真正执行一次恢复，确认备份可用，而不只是检查�
 ### 🗄️ **多种存储目标** <a href="https://databasus.com/zh/storages/">(查看支持列表)</a>
 
 - **本地存储**：备份留在你的 VPS 或服务器上
-- **云存储**：S3、Cloudflare R2、Google Drive、NAS、Dropbox、SFTP、Rclone 等
+- **云存储**：S3、Cloudflare R2、Azure Blob Storage、NAS、Dropbox、SFTP、Rclone 等
 - **安全**：所有数据都在你的掌控之中
 
 ### 📱 **通知** <a href="https://databasus.com/zh/notifiers/">(查看支持列表)</a>
@@ -254,7 +254,7 @@ helm install databasus oci://ghcr.io/databasus/charts/databasus \
 2. **添加第一个要备份的数据库**：点击 "New Database"，跟着向导走完
 3. **配置计划**：可选每小时、每天、每周、每月或 cron 周期
 4. **填写数据库连接**：输入数据库的凭据和连接信息
-5. **选择存储**：决定备份存到哪里（本地、S3、Google Drive 等）
+5. **选择存储**：决定备份存到哪里（本地、S3、Azure Blob Storage 等）
 6. **配置保留策略**：按时间段、数量或 GFS 控制备份保留多久
 7. **添加通知**（可选）：配置邮件、Telegram、Slack、Mattermost 或 webhook 通知
 8. **保存并启动**：Databasus 会校验配置，然后按计划开始备份

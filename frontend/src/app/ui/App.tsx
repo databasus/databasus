@@ -6,7 +6,6 @@ import { ApplicationScreen } from '@/app/ui/ApplicationScreen';
 import { RequestConfiguration } from '@/app/ui/RequestConfiguration';
 import { AuthPage } from '@/pages/auth';
 import { AuthCallbackPage } from '@/pages/auth-callback';
-import { StorageOAuthPage } from '@/pages/storage-oauth';
 import { useSession } from '@/shared/auth';
 import { LocaleProvider, ControlLocalization } from '@/shared/i18n';
 import { FeedbackProvider } from '@/shared/lib/feedback';
@@ -47,7 +46,6 @@ function AppContent() {
       <BrowserRouter>
         <Routes>
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
-          <Route path="/storages/google-oauth" element={<StorageOAuthPage />} />
           <Route path="*" element={<ApplicationEntry />} />
         </Routes>
       </BrowserRouter>

@@ -144,7 +144,7 @@ export default function PgDumpAlternativePage() {
                     <td>Хранилища</td>
                     <td data-label="pg_dump">Локальная файловая система</td>
                     <td data-label="Databasus">
-                      Локальный диск, S3, Google Drive, R2, Azure, NAS, Dropbox
+                      Локальный диск, S3, R2, Azure, NAS, Dropbox
                     </td>
                   </tr>
                   <tr>
@@ -452,8 +452,7 @@ fi`}</code>
                   уникальным ключом для каждого бекапа.
                 </li>
                 <li>
-                  <strong>Загрузка в облако</strong>: напрямую в S3, Google
-                  Drive, Cloudflare R2, Azure и другие хранилища.
+                  <strong>Загрузка в облако</strong>: напрямую в S3, Cloudflare R2, Azure и другие хранилища.
                 </li>
                 <li>
                   <strong>Политики хранения</strong>: автоматическое удаление
@@ -480,7 +479,6 @@ fi`}</code>
               <ul>
                 <li>Локальное хранилище</li>
                 <li>Amazon S3 и S3-совместимые сервисы</li>
-                <li>Google Drive</li>
                 <li>Cloudflare R2</li>
                 <li>Azure Blob Storage</li>
                 <li>NAS (сетевые хранилища)</li>
@@ -766,7 +764,7 @@ fi`}</code>
                     скриптов
                   </li>
                   <li>
-                    Вам нужно складывать бекапы в облако (S3, Google Drive и
+                    Вам нужно складывать бекапы в облако (S3, Azure Blob Storage и
                     т.д.)
                   </li>
                   <li>

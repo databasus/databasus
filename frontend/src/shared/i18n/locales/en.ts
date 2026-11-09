@@ -112,12 +112,6 @@ export const en = {
       returnToSignIn: 'Return to sign in',
       completing: 'Completing authentication...',
     },
-    oauthStorage: {
-      waiting: 'Completing storage authorization...',
-      complete: 'Authorization received. Return to the storage editor.',
-      restart:
-        'Authorization could not reach the original editor. Close this window and start authorization again from that editor.',
-    },
   },
   errors: {
     cleanupPending:
@@ -604,8 +598,7 @@ export const en = {
         selectPlaceholder: 'Select storage',
         createNew: 'Create new storage',
         addTitle: 'Add storage',
-        description:
-          'Storage - is a place where backups will be stored (local disk, S3, Google Drive, etc.)',
+        description: 'Storage - is a place where backups will be stored (local disk, S3, etc.)',
       },
       notifiers: {
         title: 'Notifiers (optional)',
@@ -811,7 +804,7 @@ export const en = {
       submit: 'Create workspace',
       defaultName: 'My workspace',
       description:
-        'Workspace is a place where you group:<lineBreak/>- your databases;<lineBreak/>- storages (like local drive, S3, Google Drive, etc.)<lineBreak/>- notifiers (like email, Slack, Telegram, etc.);<lineBreak/>- access control (if you have team);',
+        'Workspace is a place where you group:<lineBreak/>- your databases;<lineBreak/>- storages (like local drive, S3, etc.)<lineBreak/>- notifiers (like email, Slack, Telegram, etc.);<lineBreak/>- access control (if you have team);',
       nameRequired: 'Please enter a workspace name',
       created: 'Workspace created successfully',
       permissionDenied: {
@@ -1448,7 +1441,7 @@ export const en = {
       createNewStorage: 'Create new storage',
       addStorageTitle: 'Add storage',
       storageDescription:
-        'Storage - is a place where backups will be stored (local disk, S3, Google Drive, etc.)',
+        'Storage - is a place where backups will be stored (local disk, S3, etc.)',
       encryption: 'Encryption',
       notifications: 'Notifications',
       noNotifications: 'None',
@@ -1489,7 +1482,7 @@ export const en = {
         makeBackupNow: 'Make backup right now',
         encrypted: 'Encrypted',
         sizeTooltip:
-          'Top: the compressed backup file size we actually store in the storage (local, S3, Google Drive, etc.). Bottom (grayed): the original uncompressed database size at backup time. Backups are usually compressed ~5x.',
+          'Top: the compressed backup file size we actually store in the storage (local, S3, etc.). Bottom (grayed): the original uncompressed database size at backup time. Backups are usually compressed ~5x.',
         databaseSize: '{{size}} (DB size)',
         deleteConfirmation: 'Are you sure you want to delete this backup?',
         actions: {
@@ -2020,7 +2013,6 @@ export const en = {
     types: {
       local: 'Local storage',
       s3: 'S3',
-      googleDrive: 'Google Drive',
       nas: 'NAS',
       azureBlob: 'Azure Blob Storage',
       ftp: 'FTP',
@@ -2056,7 +2048,6 @@ export const en = {
       type: {
         local: 'Type: local storage',
         s3: 'Type: S3',
-        googleDrive: 'Type: Google Drive',
         nas: 'Type: NAS',
         azureBlob: 'Type: Azure Blob Storage',
         ftp: 'Type: FTP',
@@ -2117,8 +2108,6 @@ export const en = {
       accountName: 'Account name',
       accountKey: 'Account key',
       containerName: 'Container name',
-      clientId: 'Client ID',
-      clientSecret: 'Client Secret',
       userToken: 'User Token',
       config: 'Config',
     },
@@ -2146,26 +2135,6 @@ export const en = {
           'Skip TLS certificate verification. Enable this if your S3-compatible storage uses a self-signed certificate. Warning: this reduces security.',
         storageClassTooltip:
           'S3 storage class for uploaded objects. Leave as default for Standard. Some providers offer cheaper classes like One Zone IA. Do not use Glacier/Deep Archive - files must be immediately accessible for restores.',
-      },
-      googleDrive: {
-        guideLink: 'How to connect Google Drive?',
-        authorize: 'Authorize',
-        authorized: 'Authorized',
-        waiting: 'Waiting for Google authorization...',
-        exchanging: 'Exchanging authorization code...',
-        cancel: 'Cancel authorization',
-        restart: 'Restart authorization',
-        reconnect: 'Reconnect',
-        reconnectHelp:
-          'Enter the client secret again to reconnect. Stored credentials are kept if reconnection fails.',
-        expired: 'Authorization expired. Start again.',
-        refused: 'Google authorization was refused. You can try again.',
-        exchangeFailed: 'Could not exchange the authorization code. Start again.',
-        missingRefreshToken:
-          'Google did not return a refresh token. Start authorization again and grant offline access.',
-        popupBlocked: 'The authorization window was blocked. Allow popups and try again.',
-        unavailable:
-          'Authorization is unavailable in this browser. Check support for BroadcastChannel and try again.',
       },
       nas: {
         shareWithSlashWarning:

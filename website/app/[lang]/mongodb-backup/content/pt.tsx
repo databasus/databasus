@@ -7,7 +7,7 @@ import InstallationComponent from "@/app/components/InstallationComponent";
 export const metadata: Metadata = {
   title: "Backup MongoDB",
   description:
-    "Ferramenta gratuita e open source para backups agendados de MongoDB. Automatize o mongodump com interface web, guarde os arquivos no S3, no Google Drive ou localmente. Receba notificações via Slack, Discord, Telegram. Criptografia AES-256 para dados BSON.",
+    "Ferramenta gratuita e open source para backups agendados de MongoDB. Automatize o mongodump com interface web, guarde os arquivos no S3, no Azure Blob Storage ou localmente. Receba notificações via Slack, Discord, Telegram. Criptografia AES-256 para dados BSON.",
   keywords:
     "backup MongoDB, alternativa ao mongodump, automação de backup MongoDB, ferramenta de backup MongoDB, backup MongoDB agendado, backup MongoDB na nuvem, backup MongoDB S3, backup MongoDB Docker, criptografia de backup MongoDB, backup MongoDB Atlas, backup de replica set, backup de base de dados de documentos, backup BSON, backup NoSQL",
   robots: "index, follow",
@@ -80,7 +80,7 @@ export default function MongodbBackupPage() {
             },
             featureList: [
               "Backups agendados de MongoDB via mongodump",
-              "Vários destinos de armazenamento (S3, Google Drive, Dropbox, SFTP, rclone, etc.)",
+              "Vários destinos de armazenamento (S3, Azure Blob Storage, Dropbox, SFTP, rclone, etc.)",
               "Notificações em tempo real (Slack, Telegram, Discord, Webhook, email, etc.)",
               "Monitoramento de saúde da conexão MongoDB",
               "Auto-hospedado via Docker",
@@ -184,7 +184,7 @@ export default function MongodbBackupPage() {
               O Databasus é uma ferramenta gratuita, open source e
               auto-hospedada para fazer cópia de segurança de bases de dados de
               documentos MongoDB. Automatize o mongodump com agendamento, guarde
-              os arquivos BSON no S3, no Google Drive ou localmente. Seja
+              os arquivos BSON no S3, no Azure Blob Storage ou localmente. Seja
               notificado via Slack, Discord ou Telegram quando os backups
               terminarem
             </p>
@@ -344,7 +344,7 @@ export default function MongodbBackupPage() {
 
               <p className="text-gray-400 text-sm md:text-base mb-4 md:mb-5">
                 Mantenha os arquivos de backup MongoDB localmente, em
-                armazenamento compatível com S3, Google Drive, Dropbox, NAS ou
+                armazenamento compatível com S3, Azure Blob Storage, Dropbox, NAS ou
                 outros destinos. Os seus dados de documentos ficam sob o seu
                 controle.{" "}
                 <a
@@ -802,7 +802,7 @@ export default function MongodbBackupPage() {
             <FaqItem
               number="1"
               question="O que é o Databasus e como ele faz backup de bases de dados MongoDB?"
-              answer="O Databasus é uma ferramenta de backup auto-hospedada, com licença Apache 2.0, que usa o mongodump internamente para criar backups consistentes de MongoDB. Por cima do mongodump, ele adiciona uma interface web moderna, agendamento automático, integração com armazenamento em nuvem (S3, Google Drive, Dropbox), notificações em tempo real (Slack, Discord, Telegram) e criptografia AES-256-GCM, dispensando scripts shell personalizados e cron jobs."
+              answer="O Databasus é uma ferramenta de backup auto-hospedada, com licença Apache 2.0, que usa o mongodump internamente para criar backups consistentes de MongoDB. Por cima do mongodump, ele adiciona uma interface web moderna, agendamento automático, integração com armazenamento em nuvem (S3, Azure Blob Storage, Dropbox), notificações em tempo real (Slack, Discord, Telegram) e criptografia AES-256-GCM, dispensando scripts shell personalizados e cron jobs."
             />
             <FaqItem
               number="2"

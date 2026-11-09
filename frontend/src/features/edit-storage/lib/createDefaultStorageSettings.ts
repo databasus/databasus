@@ -11,8 +11,6 @@ export const createDefaultStorageSettings = (type: StorageType): StorageSettings
       return { type };
     case StorageType.S3:
       return { type, s3Bucket: '', isVirtualHostedStyle: false, isSkipTlsVerify: false };
-    case StorageType.GOOGLE_DRIVE:
-      return { type, clientId: '' };
     case StorageType.NAS:
       return { type, host: '', port: DEFAULT_NAS_PORT, share: '', username: '', isSsl: false };
     case StorageType.AZURE_BLOB:

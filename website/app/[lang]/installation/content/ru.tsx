@@ -487,7 +487,7 @@ sudo curl -sSL https://raw.githubusercontent.com/databasus/databasus/refs/heads/
                 </li>
                 <li>
                   <strong>Выберите хранилище</strong>: укажите, куда складывать
-                  бекапы (локальный диск, S3, Google Drive и т.д.)
+                  бекапы (локальный диск, S3, Azure Blob Storage и т.д.)
                 </li>
                 <li>
                   <strong>Подключите уведомления</strong>: добавьте каналы

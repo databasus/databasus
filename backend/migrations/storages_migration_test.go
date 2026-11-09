@@ -175,10 +175,6 @@ func insertOldStorageOfEveryTypeWithSecrets(
 	execute(t, db, `INSERT INTO s3_storages (storage_id, s3_bucket, s3_region, s3_access_key, s3_secret_key)
 		VALUES (?, 'backups', 'us-east-1', 'enc:s3-access', 'enc:s3-secret')`, s3StorageID)
 
-	googleDriveStorageID := insertOldStorage(t, db, "GOOGLE_DRIVE", &workspaceID)
-	execute(t, db, `INSERT INTO google_drive_storages (storage_id, client_id, client_secret, token_json)
-		VALUES (?, 'client', 'enc:drive-secret', 'enc:drive-token')`, googleDriveStorageID)
-
 	nasStorageID := insertOldStorage(t, db, "NAS", &workspaceID)
 	execute(t, db, `INSERT INTO nas_storages (storage_id, host, port, share, username, password)
 		VALUES (?, 'nas.example.com', 445, 'backups', 'ops', 'enc:nas-password')`, nasStorageID)
@@ -204,14 +200,6 @@ func insertOldStorageOfEveryTypeWithSecrets(
 	return []storedStorageSecret{
 		{storageID: s3StorageID, table: "storages_s3", column: "s3_access_key", value: "enc:s3-access"},
 		{storageID: s3StorageID, table: "storages_s3", column: "s3_secret_key", value: "enc:s3-secret"},
-		{
-			storageID: googleDriveStorageID, table: "storages_google_drive", column: "client_secret",
-			value: "enc:drive-secret",
-		},
-		{
-			storageID: googleDriveStorageID, table: "storages_google_drive", column: "token_json",
-			value: "enc:drive-token",
-		},
 		{storageID: nasStorageID, table: "storages_nas", column: "password", value: "enc:nas-password"},
 		{
 			storageID: azureBlobStorageID, table: "storages_azure_blob", column: "connection_string",

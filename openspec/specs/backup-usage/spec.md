@@ -118,7 +118,7 @@ On layouts that replace the table with cards, the screen SHALL show one compact,
 
 ### Requirement: Saved-storage details show backup usage beneath the name
 
-Every saved storage's detail page SHALL display a localized Total usage line directly beneath its name, before Storage settings. Its value SHALL use the compact total format and visually secondary text. This SHALL apply to local, S3-compatible, Google Drive, NAS, Azure Blob, FTP, SFTP and rclone storages, including for users who can only view them. Usage loading and refresh SHALL NOT reset a storage name or settings draft or its connection-test state.
+Every saved storage's detail page SHALL display a localized Total usage line directly beneath its name, before Storage settings. Its value SHALL use the compact total format and visually secondary text. This SHALL apply to local, S3-compatible, NAS, Azure Blob, FTP, SFTP and rclone storages, including for users who can only view them. Usage loading and refresh SHALL NOT reset a storage name or settings draft or its connection-test state.
 
 An initial usage failure SHALL show localized feedback with an explicit retry without claiming zero or preventing the storage details from being used. A failed background usage refresh SHALL retain the last value with a visible translated indication that it could not be refreshed and an explicit retry. A current authorization failure SHALL hide that value. A successful empty usage read SHALL show `0 MB`.
 

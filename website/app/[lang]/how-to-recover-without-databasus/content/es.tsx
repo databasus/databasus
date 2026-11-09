@@ -311,7 +311,7 @@ mongorestore --host hostname:27017 --username username --password password \\
               <ul>
                 <li>
                   <strong>El archivo de la copia</strong> desde su
-                  almacenamiento (almacenamiento local, S3, Google Drive, etc.)
+                  almacenamiento (almacenamiento local, S3, Azure Blob Storage, etc.)
                 </li>
                 <li>
                   <strong>El archivo de metadatos</strong> del mismo

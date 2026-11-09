@@ -129,7 +129,7 @@ export default function DatabasusVsPgBackWebPage() {
                   <tr>
                     <td>Options de stockage</td>
                     <td data-label="Databasus">
-                      Local, S3, Google Drive, Cloudflare R2, Azure, NAS,
+                      Local, S3, Cloudflare R2, Azure, NAS,
                       Dropbox
                     </td>
                     <td data-label="PgBackWeb">
@@ -249,7 +249,6 @@ export default function DatabasusVsPgBackWebPage() {
                   <ul>
                     <li>Stockage local</li>
                     <li>Amazon S3 et services compatibles S3</li>
-                    <li>Google Drive</li>
                     <li>Cloudflare R2</li>
                     <li>Azure Blob Storage</li>
                     <li>NAS (stockage en réseau)</li>
@@ -564,7 +563,7 @@ export default function DatabasusVsPgBackWebPage() {
                     d&apos;audit
                   </li>
                   <li>
-                    Plusieurs destinations de stockage (Google Drive, Azure,
+                    Plusieurs destinations de stockage (FTP, SFTP, Azure,
                     etc.)
                   </li>
                   <li>

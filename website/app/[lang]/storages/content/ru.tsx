@@ -7,12 +7,11 @@ import DocTableOfContentComponent from "@/app/components/DocTableOfContentCompon
 export const metadata: Metadata = {
   title: "Хранилища - документация Databasus",
   description:
-    "Список поддерживаемых хранилищ для бекапов Databasus: локальное хранилище, S3, Cloudflare R2, Google Drive, Azure Blob Storage, NAS, FTP, SFTP, rclone и Dropbox.",
+    "Список поддерживаемых хранилищ для бекапов Databasus: локальное хранилище, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP, rclone и Dropbox.",
   keywords: [
     "хранилища Databasus",
     "хранилище бекапов",
     "хранилище S3",
-    "бекап в Google Drive",
     "Cloudflare R2",
     "бекап на NAS",
     "бекап в Dropbox",
@@ -25,7 +24,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Хранилища - документация Databasus",
     description:
-      "Список поддерживаемых хранилищ для бекапов Databasus: локальное хранилище, S3, Cloudflare R2, Google Drive, Azure Blob Storage, NAS, FTP, SFTP, rclone и Dropbox.",
+      "Список поддерживаемых хранилищ для бекапов Databasus: локальное хранилище, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP, rclone и Dropbox.",
     type: "article",
     url: getLocalizedUrl("ru", "storages"),
     locale: OG_LOCALES.ru,
@@ -34,7 +33,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "Хранилища - документация Databasus",
     description:
-      "Список поддерживаемых хранилищ для бекапов Databasus: локальное хранилище, S3, Cloudflare R2, Google Drive, Azure Blob Storage, NAS, FTP, SFTP, rclone и Dropbox.",
+      "Список поддерживаемых хранилищ для бекапов Databasus: локальное хранилище, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP, rclone и Dropbox.",
   },
   alternates: {
     canonical: getLocalizedUrl("ru", "storages"),
@@ -55,7 +54,7 @@ export default function StoragesPage() {
             "@type": "TechArticle",
             headline: "Хранилища - документация Databasus",
             description:
-              "Список поддерживаемых хранилищ для бекапов Databasus: локальное хранилище, S3, Cloudflare R2, Google Drive, Azure Blob Storage, NAS, FTP, SFTP, rclone и Dropbox.",
+              "Список поддерживаемых хранилищ для бекапов Databasus: локальное хранилище, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP, rclone и Dropbox.",
             author: {
               "@type": "Organization",
               name: "Databasus",
@@ -108,15 +107,6 @@ export default function StoragesPage() {
                     Cloudflare R2
                   </a>{" "}
                   - S3-совместимое объектное хранилище от Cloudflare
-                </li>
-                <li>
-                  <a
-                    href="/ru/storages/google-drive"
-                    className="font-semibold! text-blue-600 hover:text-blue-800"
-                  >
-                    Google Drive
-                  </a>{" "}
-                  - облачное хранилище от Google
                 </li>
                 <li>
                   <strong>Azure Blob Storage</strong> - облачное хранилище от

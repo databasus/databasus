@@ -133,7 +133,7 @@ export default function SecurityPage() {
 
               <p>
                 Databasus 内部使用 PostgreSQL 数据库保存连接信息、配置，
-                以及通知渠道和存储（S3、Google Drive、Dropbox 等）的设置。
+                以及通知渠道和存储（S3、Azure Blob Storage、Dropbox 等）的设置。
               </p>
 
               <p>所有敏感数据都会加密。例如：</p>
@@ -187,8 +187,7 @@ export default function SecurityPage() {
               </ul>
 
               <p>
-                <strong>结果</strong>：即使有人拿到了你的云存储（S3、Google
-                Drive 等）的访问权限，没有你的主密钥也读不了备份。
+                <strong>结果</strong>：即使有人拿到了你的云存储（S3、Azure Blob Storage 等）的访问权限，没有你的主密钥也读不了备份。
               </p>
 
               <h2 id="level-3-read-only-access">第 3 层：数据库只读访问</h2>

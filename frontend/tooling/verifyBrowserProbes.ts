@@ -44,7 +44,7 @@ test('isolated harness failure probe', async ({ page }) => {
     await opened.waitForLoadState();
   } else if (mode === 'popup-error') {
     const popup = page.waitForEvent('popup');
-    await page.evaluate((url) => { window.open(url); }, process.env.BROWSER_BASE_URL + '/storages/google-oauth');
+    await page.evaluate((url) => { window.open(url); }, process.env.BROWSER_BASE_URL + '/auth/callback');
     const opened = await popup;
     await opened.waitForLoadState();
     const failure = opened.waitForEvent('pageerror');

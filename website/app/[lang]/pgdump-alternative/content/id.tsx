@@ -125,7 +125,7 @@ export default function PgDumpAlternativePage() {
                   <tr>
                     <td>Tujuan penyimpanan</td>
                     <td data-label="pg_dump">Filesystem lokal</td>
-                    <td data-label="Databasus">Lokal, S3, Google Drive, R2, Azure, NAS, Dropbox</td>
+                    <td data-label="Databasus">Lokal, S3, R2, Azure, NAS, Dropbox</td>
                   </tr>
                   <tr>
                     <td>Kompresi</td>
@@ -375,7 +375,7 @@ fi`}</code>
                   setiap backup.
                 </li>
                 <li>
-                  <strong>Upload ke cloud</strong>: Upload langsung ke S3, Google Drive, Cloudflare
+                  <strong>Upload ke cloud</strong>: Upload langsung ke S3, Cloudflare
                   R2, Azure, atau tujuan lain.
                 </li>
                 <li>
@@ -397,7 +397,6 @@ fi`}</code>
               <ul>
                 <li>Penyimpanan lokal</li>
                 <li>Amazon S3 dan layanan kompatibel S3</li>
-                <li>Google Drive</li>
                 <li>Cloudflare R2</li>
                 <li>Azure Blob Storage</li>
                 <li>NAS (Network-attached storage)</li>
@@ -613,7 +612,7 @@ fi`}</code>
                 <ul className="text-blue-200 mb-0">
                   <li>Menginginkan backup otomatis terjadwal tanpa menulis script</li>
                   <li>
-                    Perlu menyimpan backup di penyimpanan cloud (S3, Google Drive, dan lainnya)
+                    Perlu menyimpan backup di penyimpanan cloud (S3, Azure Blob Storage, dan lainnya)
                   </li>
                   <li>Menginginkan enkripsi bawaan tanpa mengelola kunci secara manual</li>
                   <li>Membutuhkan notifikasi saat backup berhasil atau gagal</li>

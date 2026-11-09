@@ -146,8 +146,7 @@ export default function SecurityPage() {
 
               <p>
                 Internally, Databasus uses PostgreSQL DB to store connection
-                details, configs, settings of notifiers and storages (S3, Google
-                Drive, Dropbox, etc.).
+                details, configs, settings of notifiers and storages (S3, Azure Blob Storage, Dropbox, etc.).
               </p>
 
               <p>Any sensitive data is encrypted. For example:</p>
@@ -210,7 +209,7 @@ export default function SecurityPage() {
 
               <p>
                 <strong>Result</strong>: Even if someone gains access to your
-                cloud storage (S3, Google Drive, etc.), they cannot read the
+                cloud storage (S3, Azure Blob Storage, etc.), they cannot read the
                 backups without your master key.
               </p>
 

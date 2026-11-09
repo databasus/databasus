@@ -7,7 +7,7 @@ import InstallationComponent from "@/app/components/InstallationComponent";
 export const metadata: Metadata = {
   title: "Copia de seguridad de MongoDB",
   description:
-    "Herramienta gratuita y de código abierto para copias de seguridad programadas de MongoDB. Automatice mongodump con interfaz web, guarde los archivos en S3, Google Drive o localmente. Reciba notificaciones por Slack, Discord, Telegram. Cifrado AES-256 para datos BSON.",
+    "Herramienta gratuita y de código abierto para copias de seguridad programadas de MongoDB. Automatice mongodump con interfaz web, guarde los archivos en S3, Azure Blob Storage o localmente. Reciba notificaciones por Slack, Discord, Telegram. Cifrado AES-256 para datos BSON.",
   keywords:
     "copia de seguridad de MongoDB, alternativa a mongodump, automatización de copias de seguridad de MongoDB, herramienta de copia de seguridad de MongoDB, copia de seguridad programada de MongoDB, copia de seguridad de MongoDB en la nube, copia de seguridad de MongoDB en S3, copia de seguridad de MongoDB en Docker, cifrado de copias de seguridad de MongoDB, copia de seguridad de MongoDB Atlas, copia de seguridad de replica set, copia de seguridad de base de datos documental, copia de seguridad BSON, copia de seguridad NoSQL",
   robots: "index, follow",
@@ -80,7 +80,7 @@ export default function MongodbBackupPage() {
             },
             featureList: [
               "Copias de seguridad programadas de MongoDB mediante mongodump",
-              "Múltiples destinos de almacenamiento (S3, Google Drive, Dropbox, SFTP, rclone, etc.)",
+              "Múltiples destinos de almacenamiento (S3, Azure Blob Storage, Dropbox, SFTP, rclone, etc.)",
               "Notificaciones en tiempo real (Slack, Telegram, Discord, Webhook, correo electrónico, etc.)",
               "Monitorización del estado de la conexión a MongoDB",
               "Autoalojado mediante Docker",
@@ -184,7 +184,7 @@ export default function MongodbBackupPage() {
               Databasus es una herramienta gratuita, de código abierto y
               autoalojada para respaldar bases de datos documentales MongoDB.
               Automatice mongodump con programación y guarde los archivos BSON
-              en S3, Google Drive o localmente. Reciba avisos por Slack, Discord
+              en S3, Azure Blob Storage o localmente. Reciba avisos por Slack, Discord
               o Telegram cuando los respaldos terminen
             </p>
 
@@ -343,7 +343,7 @@ export default function MongodbBackupPage() {
 
               <p className="text-gray-400 text-sm md:text-base mb-4 md:mb-5">
                 Guarde los archivos de respaldo de MongoDB localmente, en
-                almacenamiento compatible con S3, Google Drive, Dropbox, NAS u
+                almacenamiento compatible con S3, Azure Blob Storage, Dropbox, NAS u
                 otros destinos. Sus datos documentales permanecen bajo su
                 control.{" "}
                 <a
@@ -803,7 +803,7 @@ export default function MongodbBackupPage() {
             <FaqItem
               number="1"
               question="¿Qué es Databasus y cómo realiza copias de seguridad de bases de datos MongoDB?"
-              answer="Databasus es una herramienta de respaldo autoalojada con licencia Apache 2.0 que usa mongodump internamente para crear copias de seguridad consistentes de MongoDB. Envuelve mongodump con una interfaz web moderna, programación automatizada, integración con almacenamiento en la nube (S3, Google Drive, Dropbox), notificaciones en tiempo real (Slack, Discord, Telegram) y cifrado AES-256-GCM, así que no necesita scripts de shell personalizados ni tareas cron."
+              answer="Databasus es una herramienta de respaldo autoalojada con licencia Apache 2.0 que usa mongodump internamente para crear copias de seguridad consistentes de MongoDB. Envuelve mongodump con una interfaz web moderna, programación automatizada, integración con almacenamiento en la nube (S3, Azure Blob Storage, Dropbox), notificaciones en tiempo real (Slack, Discord, Telegram) y cifrado AES-256-GCM, así que no necesita scripts de shell personalizados ni tareas cron."
             />
             <FaqItem
               number="2"

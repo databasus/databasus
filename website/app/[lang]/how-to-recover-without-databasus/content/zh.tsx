@@ -299,8 +299,7 @@ mongorestore --host hostname:27017 --username username --password password \\
 
               <ul>
                 <li>
-                  <strong>备份文件</strong>，来自你的存储（本地存储、S3、 Google
-                  Drive 等）
+                  <strong>备份文件</strong>，来自你的存储（本地存储、S3、 Azure Blob Storage 等）
                 </li>
                 <li>
                   <strong>元数据文件</strong>，来自同一存储。它与备份文件

@@ -112,11 +112,6 @@ export const zh: typeof en = {
       returnToSignIn: '返回登录',
       completing: '正在完成认证…',
     },
-    oauthStorage: {
-      waiting: '正在完成存储授权...',
-      complete: '已收到授权结果。请返回存储编辑器。',
-      restart: '无法联系原来的编辑器。请关闭此窗口，并从编辑器重新开始授权。',
-    },
   },
   errors: {
     cleanupPending:
@@ -576,7 +571,7 @@ export const zh: typeof en = {
         selectPlaceholder: '选择存储',
         createNew: '新建存储',
         addTitle: '添加存储',
-        description: '存储是存放备份的位置（本地磁盘、S3、Google Drive 等）',
+        description: '存储是存放备份的位置（本地磁盘、S3 等）',
       },
       notifiers: {
         title: '通知渠道（可选）',
@@ -772,7 +767,7 @@ export const zh: typeof en = {
       submit: '创建工作区',
       defaultName: '我的工作区',
       description:
-        '工作区用来集中管理：<lineBreak/>- 你的数据库；<lineBreak/>- 存储（本地磁盘、S3、Google Drive 等）；<lineBreak/>- 通知渠道（邮件、Slack、Telegram 等）；<lineBreak/>- 访问控制（如果你有团队）。',
+        '工作区用来集中管理：<lineBreak/>- 你的数据库；<lineBreak/>- 存储（本地磁盘、S3 等）；<lineBreak/>- 通知渠道（邮件、Slack、Telegram 等）；<lineBreak/>- 访问控制（如果你有团队）。',
       nameRequired: '请输入工作区名称',
       created: '工作区已创建',
       permissionDenied: {
@@ -1394,7 +1389,7 @@ export const zh: typeof en = {
       selectStorage: '选择存储',
       createNewStorage: '新建存储',
       addStorageTitle: '添加存储',
-      storageDescription: '存储是存放备份的位置（本地磁盘、S3、Google Drive 等）',
+      storageDescription: '存储是存放备份的位置（本地磁盘、S3 等）',
       encryption: '加密',
       notifications: '通知',
       noNotifications: '无',
@@ -1435,7 +1430,7 @@ export const zh: typeof en = {
         makeBackupNow: '立即创建备份',
         encrypted: '已加密',
         sizeTooltip:
-          '上方：实际存放在存储（本地、S3、Google Drive 等）中的压缩后备份文件大小。下方（灰色）：备份时数据库未压缩的原始大小。备份通常能压缩到原来的五分之一左右。',
+          '上方：实际存放在存储（本地、S3 等）中的压缩后备份文件大小。下方（灰色）：备份时数据库未压缩的原始大小。备份通常能压缩到原来的五分之一左右。',
         databaseSize: '{{size}}（数据库大小）',
         deleteConfirmation: '确定要删除这个备份吗？',
         actions: {
@@ -1925,7 +1920,6 @@ export const zh: typeof en = {
     types: {
       local: '本地存储',
       s3: 'S3',
-      googleDrive: 'Google Drive',
       nas: 'NAS',
       azureBlob: 'Azure Blob Storage',
       ftp: 'FTP',
@@ -1961,7 +1955,6 @@ export const zh: typeof en = {
       type: {
         local: '类型：本地存储',
         s3: '类型：S3',
-        googleDrive: '类型：Google Drive',
         nas: '类型：NAS',
         azureBlob: '类型：Azure Blob Storage',
         ftp: '类型：FTP',
@@ -2020,8 +2013,6 @@ export const zh: typeof en = {
       accountName: '账户名',
       accountKey: '账户密钥',
       containerName: '容器名称',
-      clientId: '客户端 ID',
-      clientSecret: '客户端密钥',
       userToken: '用户令牌',
       config: '配置',
     },
@@ -2048,23 +2039,6 @@ export const zh: typeof en = {
           '跳过 TLS 证书验证。如果 S3 兼容存储使用自签名证书，请开启此项。警告：这会降低安全性。',
         storageClassTooltip:
           '上传对象使用的 S3 存储类别。保持默认即为 Standard。部分服务商提供更便宜的类别，例如 One Zone IA。不要使用 Glacier/Deep Archive：恢复时文件必须能立即访问。',
-      },
-      googleDrive: {
-        guideLink: '如何连接 Google Drive？',
-        authorize: '授权',
-        authorized: '已授权',
-        waiting: '正在等待 Google 授权...',
-        exchanging: '正在交换授权码...',
-        cancel: '取消授权',
-        restart: '重新授权',
-        reconnect: '重新连接',
-        reconnectHelp: '重新连接需要再次输入客户端密钥。如果连接失败，已保存的凭据将保持不变。',
-        expired: '授权已过期。请重新开始。',
-        refused: 'Google 授权被拒绝。您可以重试。',
-        exchangeFailed: '无法交换授权码。请重新开始。',
-        missingRefreshToken: 'Google 未返回刷新令牌。请重新授权并允许离线访问。',
-        popupBlocked: '授权窗口被拦截。请允许弹出窗口后重试。',
-        unavailable: '此浏览器无法进行授权。请检查是否支持 BroadcastChannel 后重试。',
       },
       nas: {
         shareWithSlashWarning:

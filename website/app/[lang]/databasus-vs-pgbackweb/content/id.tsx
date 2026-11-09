@@ -108,7 +108,7 @@ export default function DatabasusVsPgBackWebPage() {
                   <tr>
                     <td>Pilihan penyimpanan</td>
                     <td data-label="Databasus">
-                      Lokal, S3, Google Drive, Cloudflare R2, Azure, NAS, Dropbox
+                      Lokal, S3, Cloudflare R2, Azure, NAS, Dropbox
                     </td>
                     <td data-label="PgBackWeb">Hanya lokal dan kompatibel S3</td>
                   </tr>
@@ -197,7 +197,6 @@ export default function DatabasusVsPgBackWebPage() {
                   <ul>
                     <li>Penyimpanan lokal</li>
                     <li>Amazon S3 dan layanan kompatibel S3</li>
-                    <li>Google Drive</li>
                     <li>Cloudflare R2</li>
                     <li>Azure Blob Storage</li>
                     <li>NAS (Network-attached storage)</li>
@@ -434,7 +433,7 @@ export default function DatabasusVsPgBackWebPage() {
                 <ul className="text-blue-200 mb-0">
                   <li>Keamanan kelas perusahaan dengan perlindungan 3 tingkat</li>
                   <li>Kolaborasi tim dengan ruang kerja dan log audit</li>
-                  <li>Banyak tujuan penyimpanan (Google Drive, Azure, dan lainnya)</li>
+                  <li>Banyak tujuan penyimpanan (FTP, SFTP, Azure, dan lainnya)</li>
                   <li>Notifikasi bawaan ke Slack, Teams, Telegram, dan lainnya</li>
                   <li>Instalasi cepat dengan script satu baris atau Docker</li>
                   <li>UI modern yang intuitif dan mudah dipelajari</li>

@@ -17,8 +17,6 @@ export const isStorageSettingsFilled = (
         !!settings.s3Bucket &&
         (canKeepAddressBoundSecret || (!!settings.s3AccessKey && !!settings.s3SecretKey))
       );
-    case StorageType.GOOGLE_DRIVE:
-      return !!settings.clientId && (isSaved || (!!settings.clientSecret && !!settings.tokenJson));
     case StorageType.NAS:
       return (
         !!settings.host &&

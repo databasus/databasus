@@ -2,7 +2,7 @@
   <img src="../logo.svg" alt="Databasus Logo" width="250"/>
 
   <h3>Herramienta de copia de seguridad de PostgreSQL</h3>
-  <p>Databasus es una herramienta gratuita, de código abierto y autoalojada para respaldar PostgreSQL. Cree copias de seguridad en distintos almacenamientos (S3, Google Drive, FTP, etc.) con notificaciones sobre el progreso (Slack, Discord, Telegram, etc.). Con un enfoque en Point-in-Time Recovery con RPO/RTO bajos</p>
+  <p>Databasus es una herramienta gratuita, de código abierto y autoalojada para respaldar PostgreSQL. Cree copias de seguridad en distintos almacenamientos (S3, Azure Blob Storage, FTP, etc.) con notificaciones sobre el progreso (Slack, Discord, Telegram, etc.). Con un enfoque en Point-in-Time Recovery con RPO/RTO bajos</p>
   
   <!-- Badges -->
    [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
@@ -79,7 +79,7 @@ Databasus ejecuta una restauración real para confirmar que las copias sirven, e
 ### 🗄️ **Múltiples destinos de almacenamiento** <a href="https://databasus.com/es/storages/">(ver compatibles)</a>
 
 - **Almacenamiento local**: guarde las copias en su VPS o servidor
-- **Almacenamiento en la nube**: S3, Cloudflare R2, Google Drive, NAS, Dropbox, SFTP, Rclone y más
+- **Almacenamiento en la nube**: S3, Cloudflare R2, Azure Blob Storage, NAS, Dropbox, SFTP, Rclone y más
 - **Seguro**: todos los datos quedan bajo su control
 
 ### 📱 **Notificaciones** <a href="https://databasus.com/es/notifiers/">(ver compatibles)</a>
@@ -254,7 +254,7 @@ Para más opciones (NodePort, TLS, HTTPRoute para Gateway API), consulte el [REA
 2. **Añada su primera base de datos para respaldar**: pulse "New Database" y siga el asistente
 3. **Configure la programación**: elija entre intervalos horarios, diarios, semanales, mensuales o cron
 4. **Indique la conexión a la base de datos**: introduzca sus credenciales y los datos de conexión
-5. **Elija el almacenamiento**: seleccione dónde guardar las copias (local, S3, Google Drive, etc.)
+5. **Elija el almacenamiento**: seleccione dónde guardar las copias (local, S3, Azure Blob Storage, etc.)
 6. **Configure la política de retención**: elija periodo de tiempo, cantidad o GFS para controlar cuánto se conservan las copias
 7. **Añada notificaciones** (opcional): configure avisos por correo, Telegram, Slack, Mattermost o webhook
 8. **Guarde y arranque**: Databasus validará la configuración y pondrá en marcha la programación de respaldos

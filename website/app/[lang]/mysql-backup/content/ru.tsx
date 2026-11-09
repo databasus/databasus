@@ -7,7 +7,7 @@ import InstallationComponent from "@/app/components/InstallationComponent";
 export const metadata: Metadata = {
   title: "Резервное копирование MySQL с поддержкой MariaDB",
   description:
-    "Бесплатный open source инструмент для регулярных бекапов MySQL и MariaDB. Альтернатива mysqldump с веб-интерфейсом, облачными хранилищами (S3, Google Drive), уведомлениями (Slack, Discord, Telegram) и шифрованием AES-256.",
+    "Бесплатный open source инструмент для регулярных бекапов MySQL и MariaDB. Альтернатива mysqldump с веб-интерфейсом, облачными хранилищами (S3, Azure Blob Storage), уведомлениями (Slack, Discord, Telegram) и шифрованием AES-256.",
   keywords:
     "резервное копирование MySQL, резервное копирование MariaDB, альтернатива mysqldump, mysqldump GUI, автоматизация бекапов MySQL, инструмент для бекапа MySQL, инструмент для бекапа MariaDB, бекап MySQL по расписанию, облачный бекап MySQL, бекап MySQL в S3, бекап MySQL в Docker, шифрование бекапов MySQL",
   robots: "index, follow",
@@ -80,7 +80,7 @@ export default function MysqlBackupPage() {
             },
             featureList: [
               "Бекапы MySQL и MariaDB по расписанию",
-              "Разные хранилища (S3, Google Drive, Dropbox, SFTP, rclone и другие)",
+              "Разные хранилища (S3, Azure Blob Storage, Dropbox, SFTP, rclone и другие)",
               "Мгновенные уведомления (Slack, Telegram, Discord, Webhook, email и другие)",
               "Мониторинг доступности базы данных MySQL",
               "Self-hosted установка через Docker",
@@ -185,7 +185,7 @@ export default function MysqlBackupPage() {
             <p className="text-sm sm:text-lg text-gray-200 max-w-[720px] mx-auto mb-6 md:mb-10 px-2">
               Databasus — бесплатный self-hosted инструмент с открытым исходным
               кодом для бекапа баз данных MySQL и MariaDB. Настраивайте
-              автоматические дампы по расписанию, храните их в S3, Google Drive
+              автоматические дампы по расписанию, храните их в S3, Azure Blob Storage
               или локально. Получайте уведомления в Slack, Discord или Telegram
               о завершении бекапов
             </p>
@@ -342,7 +342,7 @@ export default function MysqlBackupPage() {
 
               <p className="text-gray-400 text-sm md:text-base mb-4 md:mb-5">
                 Держите бекапы MySQL локально, в S3-совместимом хранилище,
-                Google Drive, Dropbox, на NAS или в других местах. Ваши данные
+                Azure Blob Storage, Dropbox, на NAS или в других местах. Ваши данные
                 остаются под вашим контролем.{" "}
                 <a
                   href="/ru/storages"
@@ -881,7 +881,7 @@ export default function MysqlBackupPage() {
             <FaqItem
               number="1"
               question="Что такое Databasus и как он делает бекапы MySQL?"
-              answer="Databasus — это self-hosted инструмент резервного копирования с лицензией Apache 2.0, который использует mysqldump для создания консистентных бекапов MySQL. Он дополняет mysqldump современным веб-интерфейсом, расписаниями, интеграцией с облачными хранилищами (S3, Google Drive, Dropbox), мгновенными уведомлениями (Slack, Discord, Telegram) и шифрованием AES-256-GCM — самописные shell-скрипты и cron-задачи больше не нужны."
+              answer="Databasus — это self-hosted инструмент резервного копирования с лицензией Apache 2.0, который использует mysqldump для создания консистентных бекапов MySQL. Он дополняет mysqldump современным веб-интерфейсом, расписаниями, интеграцией с облачными хранилищами (S3, Azure Blob Storage, Dropbox), мгновенными уведомлениями (Slack, Discord, Telegram) и шифрованием AES-256-GCM — самописные shell-скрипты и cron-задачи больше не нужны."
             />
             <FaqItem
               number="2"
@@ -911,7 +911,7 @@ export default function MysqlBackupPage() {
             <FaqItem
               number="7"
               question="Где хранятся мои бекапы MySQL?"
-              answer="Вы сами выбираете, где хранить файлы бекапов MySQL: локально на сервере, в S3-совместимом хранилище (AWS S3, MinIO, Backblaze B2), Google Drive, Cloudflare R2, Dropbox, на NAS через SFTP или в любом хранилище, которое поддерживает rclone. У каждой базы может быть свое хранилище. Файлы бекапов остаются под вашим контролем."
+              answer="Вы сами выбираете, где хранить файлы бекапов MySQL: локально на сервере, в S3-совместимом хранилище (AWS S3, MinIO, Backblaze B2), Azure Blob Storage, Cloudflare R2, Dropbox, на NAS через SFTP или в любом хранилище, которое поддерживает rclone. У каждой базы может быть свое хранилище. Файлы бекапов остаются под вашим контролем."
             />
             <FaqItem
               number="8"

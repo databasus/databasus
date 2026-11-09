@@ -7,7 +7,7 @@ import InstallationComponent from "@/app/components/InstallationComponent";
 export const metadata: Metadata = {
   title: "Sauvegarde MySQL avec prise en charge de MariaDB",
   description:
-    "Outil gratuit et open source pour les backups planifiés de MySQL et MariaDB. Alternative à mysqldump avec interface web, stockage cloud (S3, Google Drive), notifications (Slack, Discord, Telegram) et chiffrement AES-256.",
+    "Outil gratuit et open source pour les backups planifiés de MySQL et MariaDB. Alternative à mysqldump avec interface web, stockage cloud (S3, Azure Blob Storage), notifications (Slack, Discord, Telegram) et chiffrement AES-256.",
   keywords:
     "sauvegarde MySQL, sauvegarde MariaDB, alternative mysqldump, mysqldump GUI, automatisation sauvegarde MySQL, outil de sauvegarde MySQL, outil de sauvegarde MariaDB, sauvegarde MySQL planifiée, sauvegarde MySQL cloud, sauvegarde MySQL S3, sauvegarde MySQL Docker, chiffrement sauvegarde MySQL",
   robots: "index, follow",
@@ -80,7 +80,7 @@ export default function MysqlBackupPage() {
             },
             featureList: [
               "Sauvegardes planifiées de MySQL et MariaDB",
-              "Plusieurs destinations de stockage (S3, Google Drive, Dropbox, SFTP, rclone, etc.)",
+              "Plusieurs destinations de stockage (S3, Azure Blob Storage, Dropbox, SFTP, rclone, etc.)",
               "Notifications en temps réel (Slack, Telegram, Discord, Webhook, email, etc.)",
               "Supervision de l'état des bases de données MySQL",
               "Auto-hébergé via Docker",
@@ -185,7 +185,7 @@ export default function MysqlBackupPage() {
             <p className="text-sm sm:text-lg text-gray-200 max-w-[720px] mx-auto mb-6 md:mb-10 px-2">
               Databasus est un outil gratuit, open source et auto-hébergé pour
               sauvegarder les bases de données MySQL et MariaDB. Planifiez des
-              dumps automatiques, stockez-les dans S3, Google Drive ou en local.
+              dumps automatiques, stockez-les dans S3, Azure Blob Storage ou en local.
               Recevez des notifications via Slack, Discord ou Telegram quand les
               backups se terminent
             </p>
@@ -345,7 +345,7 @@ export default function MysqlBackupPage() {
 
               <p className="text-gray-400 text-sm md:text-base mb-4 md:mb-5">
                 Conservez vos fichiers de backup MySQL en local, dans un
-                stockage compatible S3, Google Drive, Dropbox, un NAS ou
+                stockage compatible S3, Azure Blob Storage, Dropbox, un NAS ou
                 d&apos;autres destinations. Vos données restent sous votre
                 contrôle.{" "}
                 <a
@@ -890,7 +890,7 @@ export default function MysqlBackupPage() {
             <FaqItem
               number="1"
               question="Qu'est-ce que Databasus et comment sauvegarde-t-il les bases de données MySQL ?"
-              answer="Databasus est un outil de sauvegarde auto-hébergé sous licence Apache 2.0 qui utilise mysqldump en interne pour créer des backups MySQL cohérents. Il complète mysqldump avec une interface web moderne, une planification automatisée, l'intégration du stockage cloud (S3, Google Drive, Dropbox), des notifications en temps réel (Slack, Discord, Telegram) et le chiffrement AES-256-GCM : plus besoin de scripts shell maison ni de tâches cron."
+              answer="Databasus est un outil de sauvegarde auto-hébergé sous licence Apache 2.0 qui utilise mysqldump en interne pour créer des backups MySQL cohérents. Il complète mysqldump avec une interface web moderne, une planification automatisée, l'intégration du stockage cloud (S3, Azure Blob Storage, Dropbox), des notifications en temps réel (Slack, Discord, Telegram) et le chiffrement AES-256-GCM : plus besoin de scripts shell maison ni de tâches cron."
             />
             <FaqItem
               number="2"
@@ -920,7 +920,7 @@ export default function MysqlBackupPage() {
             <FaqItem
               number="7"
               question="Où mes sauvegardes MySQL sont-elles stockées ?"
-              answer="Vous choisissez où stocker vos fichiers de backup MySQL : en local sur votre serveur, dans un stockage compatible S3 (AWS S3, MinIO, Backblaze B2), Google Drive, Cloudflare R2, Dropbox, un NAS via SFTP, ou toute destination prise en charge par rclone. Chaque base de données peut avoir sa propre destination de stockage. Vos fichiers de backup restent sous votre contrôle."
+              answer="Vous choisissez où stocker vos fichiers de backup MySQL : en local sur votre serveur, dans un stockage compatible S3 (AWS S3, MinIO, Backblaze B2), Azure Blob Storage, Cloudflare R2, Dropbox, un NAS via SFTP, ou toute destination prise en charge par rclone. Chaque base de données peut avoir sa propre destination de stockage. Vos fichiers de backup restent sous votre contrôle."
             />
             <FaqItem
               number="8"

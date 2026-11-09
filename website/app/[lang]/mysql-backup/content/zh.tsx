@@ -7,7 +7,7 @@ import InstallationComponent from "@/app/components/InstallationComponent";
 export const metadata: Metadata = {
   title: "MySQL 备份工具，支持 MariaDB",
   description:
-    "免费开源的 MySQL 和 MariaDB 定时备份工具。mysqldump 的替代方案，提供 Web 界面、云存储（S3、Google Drive）、通知（Slack、Discord、Telegram）和 AES-256 加密。",
+    "免费开源的 MySQL 和 MariaDB 定时备份工具。mysqldump 的替代方案，提供 Web 界面、云存储（S3、Azure Blob Storage）、通知（Slack、Discord、Telegram）和 AES-256 加密。",
   keywords:
     "MySQL 备份、MariaDB 备份、mysqldump 替代方案、mysqldump GUI、MySQL 备份自动化、MySQL 备份工具、MariaDB 备份工具、MySQL 定时备份、MySQL 云备份、MySQL S3 备份、MySQL Docker 备份、MySQL 备份加密",
   robots: "index, follow",
@@ -80,7 +80,7 @@ export default function MysqlBackupPage() {
             },
             featureList: [
               "MySQL 和 MariaDB 定时备份",
-              "多种存储目标（S3、Google Drive、Dropbox、SFTP、rclone 等）",
+              "多种存储目标（S3、Azure Blob Storage、Dropbox、SFTP、rclone 等）",
               "实时通知（Slack、Telegram、Discord、Webhook、邮件等）",
               "MySQL 数据库健康监控",
               "通过 Docker 自托管",
@@ -184,7 +184,7 @@ export default function MysqlBackupPage() {
 
             <p className="text-sm sm:text-lg text-gray-200 max-w-[720px] mx-auto mb-6 md:mb-10 px-2">
               Databasus 是一款免费、开源、可自托管的 MySQL 和 MariaDB
-              数据库备份工具。按计划自动执行转储，将备份存放到 S3、Google Drive
+              数据库备份工具。按计划自动执行转储，将备份存放到 S3、Azure Blob Storage
               或本地。备份完成后通过 Slack、Discord 或 Telegram 接收通知
             </p>
 
@@ -337,8 +337,7 @@ export default function MysqlBackupPage() {
               </h3>
 
               <p className="text-gray-400 text-sm md:text-base mb-4 md:mb-5">
-                将 MySQL 备份文件存放在本地、S3 兼容存储、Google
-                Drive、Dropbox、NAS 或其他目标。数据始终在你的掌控之中。{" "}
+                将 MySQL 备份文件存放在本地、S3 兼容存储、Azure Blob Storage、Dropbox、NAS 或其他目标。数据始终在你的掌控之中。{" "}
                 <a
                   href="/zh/storages"
                   className="text-blue-500 hover:text-blue-600 font-medium"
@@ -860,7 +859,7 @@ export default function MysqlBackupPage() {
             <FaqItem
               number="1"
               question="Databasus 是什么？它如何备份 MySQL 数据库？"
-              answer="Databasus 是一款采用 Apache 2.0 许可证的自托管备份工具，底层使用 mysqldump 创建一致的 MySQL 备份。它在 mysqldump 之上提供现代化 Web 界面、自动定时调度、云存储集成（S3、Google Drive、Dropbox）、实时通知（Slack、Discord、Telegram）和 AES-256-GCM 加密，让你无需再编写自定义 Shell 脚本和 cron 任务。"
+              answer="Databasus 是一款采用 Apache 2.0 许可证的自托管备份工具，底层使用 mysqldump 创建一致的 MySQL 备份。它在 mysqldump 之上提供现代化 Web 界面、自动定时调度、云存储集成（S3、Azure Blob Storage、Dropbox）、实时通知（Slack、Discord、Telegram）和 AES-256-GCM 加密，让你无需再编写自定义 Shell 脚本和 cron 任务。"
             />
             <FaqItem
               number="2"
@@ -890,7 +889,7 @@ export default function MysqlBackupPage() {
             <FaqItem
               number="7"
               question="我的 MySQL 备份存放在哪里？"
-              answer="MySQL 备份文件的存放位置由你决定：服务器本地、S3 兼容存储（AWS S3、MinIO、Backblaze B2）、Google Drive、Cloudflare R2、Dropbox、通过 SFTP 访问的 NAS，或 rclone 支持的任何目标。每个数据库都可以有自己的存储目标。备份文件始终在你的掌控之中。"
+              answer="MySQL 备份文件的存放位置由你决定：服务器本地、S3 兼容存储（AWS S3、MinIO、Backblaze B2）、Azure Blob Storage、Cloudflare R2、Dropbox、通过 SFTP 访问的 NAS，或 rclone 支持的任何目标。每个数据库都可以有自己的存储目标。备份文件始终在你的掌控之中。"
             />
             <FaqItem
               number="8"

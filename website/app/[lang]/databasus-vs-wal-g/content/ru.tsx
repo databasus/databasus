@@ -709,7 +709,6 @@ export default function DatabasusVsWalGPage() {
               <ul>
                 <li>Локальное хранилище</li>
                 <li>Amazon S3 и S3-совместимые сервисы</li>
-                <li>Google Drive</li>
                 <li>Cloudflare R2</li>
                 <li>Azure Blob Storage</li>
                 <li>NAS (сетевые хранилища)</li>

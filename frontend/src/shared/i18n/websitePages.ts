@@ -30,7 +30,6 @@ export const WEBSITE_PAGES = {
   restoreVerification: { path: 'restore-verification', isTranslated: true },
   faqLocalhost: { path: 'faq/localhost', isTranslated: true },
   faqSupabase: { path: 'faq/supabase', isTranslated: true },
-  storagesGoogleDrive: { path: 'storages/google-drive', isTranslated: true },
   storagesCloudflareR2: { path: 'storages/cloudflare-r2', isTranslated: true },
   notifiersSlack: { path: 'notifiers/slack', isTranslated: true },
   notifiersTeams: { path: 'notifiers/teams', isTranslated: true },

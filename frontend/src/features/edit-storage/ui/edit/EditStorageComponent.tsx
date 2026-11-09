@@ -16,7 +16,6 @@ import type { StorageDraft } from '@/features/edit-storage/lib/StorageDraft';
 import { useStorageDraft } from '@/features/edit-storage/model/useStorageDraft';
 import { EditAzureBlobStorageComponent } from '@/features/edit-storage/ui/edit/storages/EditAzureBlobStorageComponent';
 import { EditFTPStorageComponent } from '@/features/edit-storage/ui/edit/storages/EditFTPStorageComponent';
-import { EditGoogleDriveStorageComponent } from '@/features/edit-storage/ui/edit/storages/EditGoogleDriveStorageComponent';
 import { EditLocalStorageComponent } from '@/features/edit-storage/ui/edit/storages/EditLocalStorageComponent';
 import { EditNASStorageComponent } from '@/features/edit-storage/ui/edit/storages/EditNASStorageComponent';
 import { EditRcloneStorageComponent } from '@/features/edit-storage/ui/edit/storages/EditRcloneStorageComponent';
@@ -173,15 +172,6 @@ export function EditStorageComponent({
             isAddressChanged={isAddressChanged}
             onChange={changeSettings}
             connectionError={connectionError}
-          />
-        )}
-
-        {settings.type === StorageType.GOOGLE_DRIVE && (
-          <EditGoogleDriveStorageComponent
-            settings={settings}
-            onChange={changeSettings}
-            workspaceId={workspaceId}
-            storageId={storageId}
           />
         )}
 

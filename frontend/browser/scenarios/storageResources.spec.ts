@@ -14,16 +14,7 @@ for (const theme of ['light', 'dark']) {
   const locale = theme === 'light' ? 'fr' : 'ru';
   const dictionary = DICTIONARIES[locale];
 
-  for (const provider of [
-    'local',
-    's3',
-    'googleDrive',
-    'nas',
-    'azureBlob',
-    'ftp',
-    'sftp',
-    'rclone',
-  ] as const) {
+  for (const provider of ['local', 's3', 'nas', 'azureBlob', 'ftp', 'sftp', 'rclone'] as const) {
     test(`keeps ${provider} storage controls accessible with ${theme} theme and enlarged narrow text`, async ({
       page,
     }) => {
@@ -60,7 +51,6 @@ for (const theme of ['light', 'dark']) {
           dictionary.storages.fields.accessKey,
           dictionary.storages.fields.secretKey,
         ],
-        googleDrive: [dictionary.storages.fields.clientId, dictionary.storages.fields.clientSecret],
         nas: [
           dictionary.common.fields.host,
           dictionary.common.fields.port,

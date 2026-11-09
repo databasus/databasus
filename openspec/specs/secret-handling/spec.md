@@ -5,22 +5,6 @@ Defines how the backend treats the secrets it stores and uses: tokens stay out o
 
 ## Requirements
 
-### Requirement: OAuth tokens never reach the process output
-
-When the backend uses or refreshes an OAuth token of a storage, it SHALL NOT write the token or any part of it to standard output, standard error or the log. Events about the refresh SHALL go through the application log, which masks sensitive data.
-
-#### Scenario: Google Drive token refresh
-
-- **WHEN** a Google Drive storage operation fails with an authorization error and the backend refreshes the token
-- **THEN** standard output and standard error contain no part of the old or the new access token or refresh token
-- **AND** the application log records that the token was refreshed
-
-#### Scenario: Refresh fails
-
-- **WHEN** the token refresh of a Google Drive storage fails
-- **THEN** the operation fails with an error that says the refresh failed
-- **AND** no part of a token appears in the process output
-
 ### Requirement: The master encryption key is generated once
 
 On a fresh installation, the backend SHALL generate the master encryption key once and SHALL use that one key for every secret it encrypts. The backend SHALL load or create the key while it starts, before it serves requests or runs background work. This SHALL hold when several backend processes start at the same time before the key exists. A key that an older release left in the internal database SHALL be written into the key file before the key is loaded, replacing whatever the file held, and SHALL then be removed from the database.
@@ -166,7 +150,7 @@ The resource address SHALL be compared exactly as the request and the saved sett
 - a database: the host, the port and the address of its SSH tunnel, and also the SRV flag for MongoDB, for the password, which is always used, and for the PostgreSQL client key, which is used while the request sends a client certificate;
 - the SSH tunnel of a database: whether it is enabled, and its host and port while it is enabled, for the SSH password and the private key, each used while the tunnel is enabled and its authentication type is selected, and for the key passphrase, which is never filled in after a change and is removed with the old address.
 
-A secret that carries its own address, such as a Discord or Teams webhook URL, an Azure connection string, a Telegram proxy URL while the proxy stays on or an rclone configuration, and a secret whose service has a fixed address, such as a Slack bot token or Google Drive credentials, SHALL keep its stored value when the request leaves it out.
+A secret that carries its own address, such as a Discord or Teams webhook URL, an Azure connection string, a Telegram proxy URL while the proxy stays on or an rclone configuration, and a secret whose service has a fixed address, such as a Slack bot token, SHALL keep its stored value when the request leaves it out.
 
 #### Scenario: Endpoint changed without the keys
 

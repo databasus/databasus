@@ -33,13 +33,6 @@ type previousS3Request struct {
 	S3StorageClass          string `json:"s3StorageClass"`
 }
 
-type previousGoogleDriveRequest struct {
-	Type         string `json:"type"`
-	ClientID     string `json:"clientId"`
-	ClientSecret string `json:"clientSecret"`
-	TokenJSON    string `json:"tokenJson"`
-}
-
 type previousNASRequest struct {
 	Type     string `json:"type"`
 	Host     string `json:"host"`
@@ -131,21 +124,6 @@ func newWrittenStorages(workspaceID string) []writtenStorage {
 				"isVirtualHostedStyle": "true",
 				"isSkipTlsVerify":      "true",
 				"s3StorageClass":       "STANDARD_IA",
-			},
-		},
-		{
-			request: previousStorageRequest{
-				WorkspaceID: workspaceID, Name: "upgrade google drive", Settings: &previousGoogleDriveRequest{
-					Type:         "GOOGLE_DRIVE",
-					ClientID:     "upgrade-client-id.apps.googleusercontent.com",
-					ClientSecret: "upgrade-client-secret",
-					TokenJSON: `{"access_token":"upgrade-access-token","token_type":"Bearer",` +
-						`"refresh_token":"upgrade-refresh-token","expiry":"2030-01-01T00:00:00Z"}`,
-				},
-			},
-			expectedValues: map[string]string{
-				"type":     "GOOGLE_DRIVE",
-				"clientId": "upgrade-client-id.apps.googleusercontent.com",
 			},
 		},
 		{

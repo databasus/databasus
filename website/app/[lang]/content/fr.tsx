@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description:
     "Outil gratuit et open source pour les sauvegardes planifiées de PostgreSQL (avec prise en charge de MySQL et MongoDB). Stockez-les en local et dans le cloud. Notifications vers Slack, Discord, Telegram, e-mail, webhook, etc.",
   keywords:
-    "PostgreSQL, sauvegarde, backup, supervision, base de données, sauvegardes planifiées, Docker, auto-hébergé, open source, S3, Google Drive, notifications Slack, Discord, DevOps, supervision de bases de données, pg_dump, restauration de base de données, chiffrement, AES-256, chiffrement des sauvegardes",
+    "PostgreSQL, sauvegarde, backup, supervision, base de données, sauvegardes planifiées, Docker, auto-hébergé, open source, S3, Azure Blob Storage, notifications Slack, Discord, DevOps, supervision de bases de données, pg_dump, restauration de base de données, chiffrement, AES-256, chiffrement des sauvegardes",
   robots: "index, follow",
   alternates: {
     canonical: getLocalizedUrl("fr", ""),
@@ -82,7 +82,7 @@ export default function Index() {
             },
             featureList: [
               "Sauvegardes planifiées de PostgreSQL",
-              "Plusieurs destinations de stockage (S3, Google Drive, Dropbox, SFTP, rclone, etc.)",
+              "Plusieurs destinations de stockage (S3, Azure Blob Storage, Dropbox, SFTP, rclone, etc.)",
               "Notifications en temps réel (Slack, Telegram, Discord, webhook, e-mail, etc.)",
               "Supervision de l'état des bases de données",
               "Auto-hébergé via Docker",
@@ -139,7 +139,7 @@ export default function Index() {
                 name: "Qu'est-ce que Databasus et pourquoi l'utiliser plutôt que des scripts écrits à la main ?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus est un service auto-hébergé sous licence Apache 2.0 qui sauvegarde PostgreSQL, de la v13 à la v18. Il se distingue des scripts shell par son interface qui permet de planifier les tâches, de compresser et de stocker les archives vers plusieurs destinations (disque local, S3, Google Drive, Dropbox, SFTP, rclone, etc.), de configurer des politiques de rétention pour supprimer automatiquement les anciennes sauvegardes et de notifier votre équipe lorsque les tâches se terminent ou échouent, le tout sans code écrit à la main",
+                  text: "Databasus est un service auto-hébergé sous licence Apache 2.0 qui sauvegarde PostgreSQL, de la v13 à la v18. Il se distingue des scripts shell par son interface qui permet de planifier les tâches, de compresser et de stocker les archives vers plusieurs destinations (disque local, S3, Azure Blob Storage, Dropbox, SFTP, rclone, etc.), de configurer des politiques de rétention pour supprimer automatiquement les anciennes sauvegardes et de notifier votre équipe lorsque les tâches se terminent ou échouent, le tout sans code écrit à la main",
                 },
               },
               {
@@ -163,7 +163,7 @@ export default function Index() {
                 name: "Où sont stockées mes sauvegardes et combien d'espace occuperont-elles ?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Les archives peuvent être enregistrées sur des volumes locaux, des buckets compatibles S3, Google Drive, Dropbox et d'autres destinations cloud. Databasus applique une compression équilibrée, qui réduit en général la taille du dump de 4 à 8 fois avec seulement environ 20 % de surcoût d'exécution, ce qui économise du stockage et de la bande passante.",
+                  text: "Les archives peuvent être enregistrées sur des volumes locaux, des buckets compatibles S3, Azure Blob Storage, Dropbox et d'autres destinations cloud. Databasus applique une compression équilibrée, qui réduit en général la taille du dump de 4 à 8 fois avec seulement environ 20 % de surcoût d'exécution, ce qui économise du stockage et de la bande passante.",
                 },
               },
               {
@@ -264,7 +264,7 @@ export default function Index() {
             <p className="text-sm sm:text-lg text-gray-200 max-w-[720px] mx-auto mb-6 md:mb-10 px-2">
               Databasus est un outil gratuit, open source et auto-hébergé pour
               faire des backups de PostgreSQL. Créez des sauvegardes vers
-              différents stockages (S3, Google Drive, FTP, etc.) avec des
+              différents stockages (S3, Azure Blob Storage, FTP, etc.) avec des
               notifications sur leur progression (Slack, Discord, Telegram,
               etc.). Avec un focus sur le Point-in-Time Recovery{" "}
               <span className="underline decoration-2 underline-offset-2 decoration-blue-600">
@@ -1091,7 +1091,7 @@ export default function Index() {
                 <div className="space-y-3 max-w-[370px] text-gray-400 text-sm md:text-base">
                   <p>
                     Vous pouvez conserver les fichiers de sauvegarde en local,
-                    dans S3, Google Drive, sur un NAS, Dropbox et d&apos;autres
+                    dans S3, Azure Blob Storage, sur un NAS, Dropbox et d&apos;autres
                     services
                   </p>
                   <p>
@@ -1224,7 +1224,7 @@ export default function Index() {
             <FaqItem
               number="1"
               question="Qu'est-ce que Databasus et pourquoi l'utiliser plutôt que des scripts écrits à la main ?"
-              answer="Databasus est un service auto-hébergé sous licence Apache 2.0 qui sauvegarde les bases de données. Il se distingue des scripts shell par son interface qui permet de planifier les tâches, de compresser et de stocker les archives vers plusieurs destinations (disque local, S3, Google Drive, NAS, Dropbox, SFTP, rclone, etc.), de configurer des politiques de rétention pour supprimer automatiquement les anciennes sauvegardes et de notifier votre équipe lorsque les tâches se terminent ou échouent, le tout sans code écrit à la main"
+              answer="Databasus est un service auto-hébergé sous licence Apache 2.0 qui sauvegarde les bases de données. Il se distingue des scripts shell par son interface qui permet de planifier les tâches, de compresser et de stocker les archives vers plusieurs destinations (disque local, S3, Azure Blob Storage, NAS, Dropbox, SFTP, rclone, etc.), de configurer des politiques de rétention pour supprimer automatiquement les anciennes sauvegardes et de notifier votre équipe lorsque les tâches se terminent ou échouent, le tout sans code écrit à la main"
             />
             <FaqItem
               number="2"
@@ -1319,7 +1319,7 @@ export default function Index() {
                   Saisissez ensuite l&apos;hôte de votre PostgreSQL, le port, le
                   nom de la base, les identifiants et la préférence SSL.
                   Choisissez où l&apos;archive doit être envoyée (chemin local,
-                  bucket S3, dossier Google Drive, Dropbox, etc.). <br />
+                  bucket S3, Azure Blob Storage, Dropbox, etc.). <br />
                   <br />
                   Si besoin, ajoutez des canaux de notification comme
                   l&apos;e-mail, Slack, Telegram ou un webhook et cliquez sur

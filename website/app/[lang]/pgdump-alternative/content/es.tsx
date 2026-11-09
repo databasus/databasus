@@ -144,7 +144,7 @@ export default function PgDumpAlternativePage() {
                     <td>Destinos de almacenamiento</td>
                     <td data-label="pg_dump">Sistema de archivos local</td>
                     <td data-label="Databasus">
-                      Local, S3, Google Drive, R2, Azure, NAS, Dropbox
+                      Local, S3, R2, Azure, NAS, Dropbox
                     </td>
                   </tr>
                   <tr>
@@ -469,8 +469,7 @@ fi`}</code>
                   claves únicas por copia.
                 </li>
                 <li>
-                  <strong>Subida a la nube</strong>: subida directa a S3, Google
-                  Drive, Cloudflare R2, Azure y otros destinos.
+                  <strong>Subida a la nube</strong>: subida directa a S3, Cloudflare R2, Azure y otros destinos.
                 </li>
                 <li>
                   <strong>Políticas de retención</strong>: limpieza automática
@@ -501,7 +500,6 @@ fi`}</code>
               <ul>
                 <li>Almacenamiento local</li>
                 <li>Amazon S3 y servicios compatibles con S3</li>
-                <li>Google Drive</li>
                 <li>Cloudflare R2</li>
                 <li>Azure Blob Storage</li>
                 <li>NAS (almacenamiento conectado en red)</li>
@@ -801,7 +799,7 @@ fi`}</code>
                     Quiere copias automáticas y programadas sin escribir scripts
                   </li>
                   <li>
-                    Necesita guardar las copias en la nube (S3, Google Drive,
+                    Necesita guardar las copias en la nube (S3, Azure Blob Storage,
                     etc.)
                   </li>
                   <li>Quiere cifrado integrado sin gestionar claves a mano</li>
