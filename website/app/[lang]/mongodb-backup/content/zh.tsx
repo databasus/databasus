@@ -80,7 +80,7 @@ export default function MongodbBackupPage() {
             },
             featureList: [
               "通过 mongodump 定时备份 MongoDB",
-              "多种存储目标（S3、Azure Blob Storage、Dropbox、SFTP、rclone 等）",
+              "多种存储目标（S3、Azure Blob Storage、FTP、SFTP、NAS 等）",
               "实时通知（Slack、Telegram、Discord、Webhook、邮件等）",
               "MongoDB 连接健康监控",
               "通过 Docker 自托管",
@@ -336,7 +336,7 @@ export default function MongodbBackupPage() {
               </h3>
 
               <p className="text-gray-400 text-sm md:text-base mb-4 md:mb-5">
-                将 MongoDB 备份归档存放在本地、S3 兼容存储、Azure Blob Storage、Dropbox、NAS 或其他目标。文档数据始终在你的掌控之中。{" "}
+                将 MongoDB 备份归档存放在本地、S3 兼容存储、Azure Blob Storage、FTP、NAS 或其他目标。文档数据始终在你的掌控之中。{" "}
                 <a
                   href="/zh/storages"
                   className="text-blue-500 hover:text-blue-600 font-medium"
@@ -774,7 +774,7 @@ export default function MongodbBackupPage() {
             <FaqItem
               number="1"
               question="Databasus 是什么？它如何备份 MongoDB 数据库？"
-              answer="Databasus 是一款采用 Apache 2.0 许可证的自托管备份工具，底层使用 mongodump 创建一致的 MongoDB 备份。它在 mongodump 之上提供现代化 Web 界面、自动定时调度、云存储集成（S3、Azure Blob Storage、Dropbox）、实时通知（Slack、Discord、Telegram）和 AES-256-GCM 加密，让你无需再编写自定义 Shell 脚本和 cron 任务。"
+              answer="Databasus 是一款采用 Apache 2.0 许可证的自托管备份工具，底层使用 mongodump 创建一致的 MongoDB 备份。它在 mongodump 之上提供现代化 Web 界面、自动定时调度、云存储集成（S3、Azure Blob Storage、FTP）、实时通知（Slack、Discord、Telegram）和 AES-256-GCM 加密，让你无需再编写自定义 Shell 脚本和 cron 任务。"
             />
             <FaqItem
               number="2"

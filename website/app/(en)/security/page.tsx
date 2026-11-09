@@ -146,7 +146,7 @@ export default function SecurityPage() {
 
               <p>
                 Internally, Databasus uses PostgreSQL DB to store connection
-                details, configs, settings of notifiers and storages (S3, Azure Blob Storage, Dropbox, etc.).
+                details, configs, settings of notifiers and storages (S3, Azure Blob Storage, FTP, etc.).
               </p>
 
               <p>Any sensitive data is encrypted. For example:</p>

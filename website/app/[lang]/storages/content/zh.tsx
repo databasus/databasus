@@ -7,24 +7,22 @@ import DocTableOfContentComponent from "@/app/components/DocTableOfContentCompon
 export const metadata: Metadata = {
   title: "存储 - Databasus 文档",
   description:
-    "Databasus 备份支持的存储目标列表，包括本地存储、S3、Cloudflare R2、Azure Blob Storage、NAS、FTP、SFTP、rclone 和 Dropbox。",
+    "Databasus 备份支持的存储目标列表，包括本地存储、S3、Cloudflare R2、Azure Blob Storage、NAS、FTP、SFTP。",
   keywords: [
     "Databasus 存储",
     "备份存储",
     "S3 存储",
     "Cloudflare R2",
     "NAS 备份",
-    "Dropbox 备份",
     "本地存储",
     "Azure Blob Storage",
     "FTP 备份",
     "SFTP 备份",
-    "rclone 备份",
   ],
   openGraph: {
     title: "存储 - Databasus 文档",
     description:
-      "Databasus 备份支持的存储目标列表，包括本地存储、S3、Cloudflare R2、Azure Blob Storage、NAS、FTP、SFTP、rclone 和 Dropbox。",
+      "Databasus 备份支持的存储目标列表，包括本地存储、S3、Cloudflare R2、Azure Blob Storage、NAS、FTP、SFTP。",
     type: "article",
     url: getLocalizedUrl("zh", "storages"),
     locale: OG_LOCALES.zh,
@@ -33,7 +31,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "存储 - Databasus 文档",
     description:
-      "Databasus 备份支持的存储目标列表，包括本地存储、S3、Cloudflare R2、Azure Blob Storage、NAS、FTP、SFTP、rclone 和 Dropbox。",
+      "Databasus 备份支持的存储目标列表，包括本地存储、S3、Cloudflare R2、Azure Blob Storage、NAS、FTP、SFTP。",
   },
   alternates: {
     canonical: getLocalizedUrl("zh", "storages"),
@@ -54,7 +52,7 @@ export default function StoragesPage() {
             "@type": "TechArticle",
             headline: "存储 - Databasus 文档",
             description:
-              "Databasus 备份支持的存储目标列表，包括本地存储、S3、Cloudflare R2、Azure Blob Storage、NAS、FTP、SFTP、rclone 和 Dropbox。",
+              "Databasus 备份支持的存储目标列表，包括本地存储、S3、Cloudflare R2、Azure Blob Storage、NAS、FTP、SFTP。",
             author: {
               "@type": "Organization",
               name: "Databasus",
@@ -119,10 +117,6 @@ export default function StoragesPage() {
                 </li>
                 <li>
                   <strong>SFTP</strong> - SSH 文件传输协议（SFTP）服务器
-                </li>
-                <li>
-                  <strong>rclone</strong> - 通过 rclone 接入 70 多家云存储
-                  服务商
                 </li>
               </ul>
             </article>

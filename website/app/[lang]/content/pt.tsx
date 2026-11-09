@@ -82,7 +82,7 @@ export default function Index() {
             },
             featureList: [
               "Backups agendados de PostgreSQL",
-              "Vários destinos de armazenamento (S3, Azure Blob Storage, Dropbox, SFTP, rclone, etc.)",
+              "Vários destinos de armazenamento (S3, Azure Blob Storage, FTP, SFTP, NAS, etc.)",
               "Notificações em tempo real (Slack, Telegram, Discord, webhook, e-mail, etc.)",
               "Monitoramento da saúde das bases de dados",
               "Self-hosted via Docker",
@@ -139,7 +139,7 @@ export default function Index() {
                 name: "O que é o Databasus e por que usá-lo em vez de scripts escritos à mão?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "O Databasus é um serviço self-hosted com licença Apache 2.0 que faz backup de PostgreSQL, da v13 à v18. A diferença em relação a scripts shell é que ele tem uma interface para agendar tarefas, comprimir e guardar os arquivos em vários destinos (disco local, S3, Azure Blob Storage, Dropbox, SFTP, rclone, etc.), configurar políticas de retenção para apagar automaticamente backups antigos e notificar a sua equipe quando as tarefas terminam ou falham — tudo sem código escrito à mão",
+                  text: "O Databasus é um serviço self-hosted com licença Apache 2.0 que faz backup de PostgreSQL, da v13 à v18. A diferença em relação a scripts shell é que ele tem uma interface para agendar tarefas, comprimir e guardar os arquivos em vários destinos (disco local, S3, Azure Blob Storage, FTP, SFTP, NAS, etc.), configurar políticas de retenção para apagar automaticamente backups antigos e notificar a sua equipe quando as tarefas terminam ou falham — tudo sem código escrito à mão",
                 },
               },
               {
@@ -163,7 +163,7 @@ export default function Index() {
                 name: "Onde ficam os meus backups e quanto espaço vão ocupar?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Os arquivos podem ser guardados em volumes locais, buckets compatíveis com S3, Azure Blob Storage, Dropbox e outros destinos na nuvem. O Databasus aplica compressão balanceada, que normalmente reduz o tamanho do dump em 4-8x com apenas cerca de 20% de tempo de execução adicional, gerando economia de armazenamento e de tráfego de rede.",
+                  text: "Os arquivos podem ser guardados em volumes locais, buckets compatíveis com S3, Azure Blob Storage, FTP e outros destinos na nuvem. O Databasus aplica compressão balanceada, que normalmente reduz o tamanho do dump em 4-8x com apenas cerca de 20% de tempo de execução adicional, gerando economia de armazenamento e de tráfego de rede.",
                 },
               },
               {
@@ -1082,7 +1082,7 @@ export default function Index() {
                 <div className="space-y-3 max-w-[370px] text-gray-400 text-sm md:text-base">
                   <p>
                     Você pode guardar os arquivos de backup localmente, no S3,
-                    no Azure Blob Storage, em NAS, no Dropbox e em outros serviços
+                    no Azure Blob Storage, em NAS, no FTP e em outros serviços
                   </p>
                   <p>
                     Lembre-se de que é preciso ter espaço suficiente no
@@ -1213,7 +1213,7 @@ export default function Index() {
             <FaqItem
               number="1"
               question="O que é o Databasus e por que usá-lo em vez de scripts escritos à mão?"
-              answer="O Databasus é um serviço self-hosted com licença Apache 2.0 que faz backup de bases de dados. A diferença em relação a scripts shell é que ele tem uma interface para agendar tarefas, comprimir e guardar os arquivos em vários destinos (disco local, S3, Azure Blob Storage, NAS, Dropbox, SFTP, rclone, etc.), configurar políticas de retenção para apagar automaticamente backups antigos e notificar a sua equipe quando as tarefas terminam ou falham — tudo sem código escrito à mão"
+              answer="O Databasus é um serviço self-hosted com licença Apache 2.0 que faz backup de bases de dados. A diferença em relação a scripts shell é que ele tem uma interface para agendar tarefas, comprimir e guardar os arquivos em vários destinos (disco local, S3, Azure Blob Storage, NAS, FTP, SFTP, etc.), configurar políticas de retenção para apagar automaticamente backups antigos e notificar a sua equipe quando as tarefas terminam ou falham — tudo sem código escrito à mão"
             />
             <FaqItem
               number="2"
@@ -1303,7 +1303,7 @@ export default function Index() {
                   Em seguida, informe o host do PostgreSQL, a porta, o nome da
                   base, as credenciais e a preferência de SSL. Escolha para onde
                   o arquivo deve ser enviado (caminho local, bucket S3, pasta do
-                  Azure Blob Storage, Dropbox, etc.). <br />
+                  Azure Blob Storage, FTP, etc.). <br />
                   <br />
                   Se quiser, adicione canais de notificação como e-mail, Slack,
                   Telegram ou um webhook e clique em Save. O Databasus valida os

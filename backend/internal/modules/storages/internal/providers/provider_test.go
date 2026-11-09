@@ -9,7 +9,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sync"
 	"testing"
 	"time"
@@ -30,7 +29,6 @@ import (
 	"databasus-backend/internal/modules/storages/internal/providers/local"
 	"databasus-backend/internal/modules/storages/internal/providers/nas"
 	"databasus-backend/internal/modules/storages/internal/providers/providertest"
-	"databasus-backend/internal/modules/storages/internal/providers/rclone"
 	"databasus-backend/internal/modules/storages/internal/providers/s3"
 	"databasus-backend/internal/modules/storages/internal/providers/sftp"
 )
@@ -38,8 +36,7 @@ import (
 // The storage answers every packet 50 ms late, so each round trip a write pays shows up in its
 // duration and in nothing else the runner's load can inflate as much. The check targets the two
 // mistakes that keep WAL archiving from keeping up with a distant storage: a handshake per file and
-// a round trip per block. The connection count catches the first exactly, while S3, Azure and
-// Rclone reconnect for only one TCP round trip, too little for any timing to tell apart.
+// a round trip per block. The connection count catches the first exactly.
 const (
 	roundTripEgressDelay   = 50 * time.Millisecond
 	reusedFileWriteCount   = 10
@@ -62,8 +59,6 @@ const (
 	testBucketName         = "test-bucket"
 	testAzureContainerName = "test-container"
 )
-
-var rcloneSecretLine = regexp.MustCompile(`(?m)^secret_access_key = .*$`)
 
 func TestFileOperations(t *testing.T) {
 	smallContent := []byte("This is test data for storage testing")
@@ -213,10 +208,6 @@ func TestSaveFile(t *testing.T) {
 
 	t.Run("fails by the deadline and redials when the storage goes silent mid-connection", func(t *testing.T) {
 		for _, target := range getProviderTargets(false) {
-			if target.name == "Rclone" {
-				continue
-			}
-
 			t.Run(target.name, func(t *testing.T) {
 				t.Parallel()
 
@@ -258,45 +249,6 @@ func TestSaveFile(t *testing.T) {
 	})
 }
 
-func TestRcloneDeleteFile(t *testing.T) {
-	t.Run("returns an error and keeps the object when the sign-in fails on the lookup", func(t *testing.T) {
-		address := providertest.GetAddress(containers.StartMinio(t))
-		minioClient := createTestBucket(t, address)
-		fileName := uuid.NewString()
-		testData := []byte("rclone delete bug repro")
-
-		_, err := minioClient.PutObject(
-			t.Context(),
-			testBucketName,
-			fileName,
-			bytes.NewReader(testData),
-			int64(len(testData)),
-			minio.PutObjectOptions{},
-		)
-		require.NoError(t, err)
-
-		fieldEncryptor := providertest.NewFieldEncryptor(t)
-		provider := rclone.New(rclone.Deps{Repositories: rclone.Repositories{}, FieldEncryptor: fieldEncryptor})
-		location := providers.Location{
-			StorageID: uuid.New(),
-			Settings: rclone.Settings{
-				ConfigContent: getRcloneMinioConfig(address, "totally-wrong-secret-key"),
-				RemotePath:    testBucketName,
-			},
-		}
-
-		err = provider.DeleteFile(t.Context(), providers.FileAccess{
-			Location: location,
-			FileName: fileName,
-			Logger:   providertest.NewDiscardLogger(),
-		})
-		require.Error(t, err)
-
-		_, statErr := minioClient.StatObject(t.Context(), testBucketName, fileName, minio.StatObjectOptions{})
-		assert.NoError(t, statErr)
-	})
-}
-
 type providerTarget struct {
 	name           string
 	startContainer func(t *testing.T) containers.ContainerHandle
@@ -324,7 +276,6 @@ func getProviderTargets(isLocalIncluded bool) []providerTarget {
 		{"SFTP", containers.StartSftpContainer, buildSftpStorage},
 		{"FTP", containers.StartFtpContainer, buildFtpStorage},
 		{"NAS", containers.StartSambaContainer, buildNasStorage},
-		{"Rclone", containers.StartMinioContainer, buildRcloneStorage},
 	}
 
 	if isLocalIncluded {
@@ -548,29 +499,6 @@ func buildSftpStorage(t *testing.T, container containers.ContainerHandle) *teste
 		containers.SftpPassword, settingsWithSecret)
 }
 
-func buildRcloneStorage(t *testing.T, container containers.ContainerHandle) *testedStorage {
-	t.Helper()
-
-	address := providertest.GetAddress(container.Endpoint)
-	createTestBucket(t, address)
-
-	fieldEncryptor := providertest.NewFieldEncryptor(t)
-	provider := rclone.New(rclone.Deps{Repositories: rclone.Repositories{}, FieldEncryptor: fieldEncryptor})
-	settingsWithSecret := func(secret string) providers.Settings {
-		configContent := rcloneSecretLine.ReplaceAllLiteralString(
-			getRcloneMinioConfig(address, containers.MinioRootPassword), "secret_access_key = "+secret,
-		)
-
-		return rclone.Settings{
-			ConfigContent: providertest.Encrypt(t, fieldEncryptor, configContent),
-			RemotePath:    testBucketName,
-		}
-	}
-
-	return withSecrets(newTestedStorage(t, provider, settingsWithSecret(containers.MinioRootPassword)),
-		containers.MinioRootPassword, settingsWithSecret)
-}
-
 func withSecrets(
 	storage *testedStorage,
 	correctSecret string,
@@ -580,16 +508,6 @@ func withSecrets(
 	storage.withSecretOf = settingsWithSecret
 
 	return storage
-}
-
-func getRcloneMinioConfig(address, secretKey string) string {
-	return fmt.Sprintf(`[minio]
-type = s3
-provider = Other
-access_key_id = %s
-secret_access_key = %s
-endpoint = http://%s
-acl = private`, containers.MinioRootUser, secretKey, address)
 }
 
 // createTestBucket creates the test bucket on the MinIO server at address (host:port).

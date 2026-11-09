@@ -9,7 +9,7 @@ This is the project's common language. Each concept has one term in the document
 | Database | database | A user's database that Databasus connects to and backs up. The term never means Databasus's own database. |
 | Internal database | internal database | The embedded PostgreSQL inside the Databasus container that holds Databasus's own state. |
 | Engine | engine | A kind of database server Databasus supports: PostgreSQL, MySQL, MariaDB or MongoDB. The term also names the code in `internal/engines` that drives it. |
-| Storage | storage | A place where backups are kept: local disk, S3, NAS, Azure Blob, FTP, SFTP, rclone. |
+| Storage | storage | A place where backups are kept: local disk, S3, NAS, Azure Blob, FTP, SFTP. |
 | SFTP authentication method | `sftp.AuthMethod`, generated `SftpAuthMethod`, API `authMethods`; `PASSWORD`, `PRIVATE_KEY` | A credential kind selected for one SFTP storage: password or private key. A storage can select both. |
 | Notifier | notifier | A channel Databasus sends notifications to: email, Telegram, Slack, Discord, Teams, Mattermost, webhook. |
 | Notification | notification, `notifiers.Notification` | A message about an event of a database, with a category, a heading and a text, which Databasus sends to the notifiers of that database. |

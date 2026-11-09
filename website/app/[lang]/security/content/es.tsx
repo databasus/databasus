@@ -149,7 +149,7 @@ export default function SecurityPage() {
               <p>
                 Internamente, Databasus usa una base de datos PostgreSQL para
                 guardar los datos de conexión, las configuraciones y los ajustes
-                de notificadores y almacenamientos (S3, Azure Blob Storage, Dropbox,
+                de notificadores y almacenamientos (S3, Azure Blob Storage, FTP,
                 etc.).
               </p>
 

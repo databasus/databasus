@@ -7,24 +7,22 @@ import DocTableOfContentComponent from "@/app/components/DocTableOfContentCompon
 export const metadata: Metadata = {
   title: "Penyimpanan - Dokumentasi Databasus",
   description:
-    "Daftar tujuan penyimpanan yang didukung untuk backup Databasus, termasuk penyimpanan lokal, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP, rclone, dan Dropbox.",
+    "Daftar tujuan penyimpanan yang didukung untuk backup Databasus, termasuk penyimpanan lokal, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP.",
   keywords: [
     "penyimpanan Databasus",
     "penyimpanan backup",
     "penyimpanan S3",
     "Cloudflare R2",
     "backup NAS",
-    "backup Dropbox",
     "penyimpanan lokal",
     "Azure Blob Storage",
     "backup FTP",
     "backup SFTP",
-    "backup rclone",
   ],
   openGraph: {
     title: "Penyimpanan - Dokumentasi Databasus",
     description:
-      "Daftar tujuan penyimpanan yang didukung untuk backup Databasus, termasuk penyimpanan lokal, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP, rclone, dan Dropbox.",
+      "Daftar tujuan penyimpanan yang didukung untuk backup Databasus, termasuk penyimpanan lokal, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP.",
     type: "article",
     url: getLocalizedUrl("id", "storages"),
     locale: OG_LOCALES.id,
@@ -33,7 +31,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "Penyimpanan - Dokumentasi Databasus",
     description:
-      "Daftar tujuan penyimpanan yang didukung untuk backup Databasus, termasuk penyimpanan lokal, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP, rclone, dan Dropbox.",
+      "Daftar tujuan penyimpanan yang didukung untuk backup Databasus, termasuk penyimpanan lokal, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP.",
   },
   alternates: {
     canonical: getLocalizedUrl("id", "storages"),
@@ -53,7 +51,7 @@ export default function StoragesPage() {
             "@type": "TechArticle",
             headline: "Penyimpanan - Dokumentasi Databasus",
             description:
-              "Daftar tujuan penyimpanan yang didukung untuk backup Databasus, termasuk penyimpanan lokal, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP, rclone, dan Dropbox.",
+              "Daftar tujuan penyimpanan yang didukung untuk backup Databasus, termasuk penyimpanan lokal, S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP.",
             author: { "@type": "Organization", name: "Databasus" },
             publisher: {
               "@type": "Organization",
@@ -105,10 +103,6 @@ export default function StoragesPage() {
                 </li>
                 <li>
                   <strong>SFTP</strong> - Server SSH File Transfer Protocol
-                </li>
-                <li>
-                  <strong>rclone</strong> - Terhubung ke 70+ penyedia penyimpanan cloud
-                  melalui rclone
                 </li>
               </ul>
             </article>

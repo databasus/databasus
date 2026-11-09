@@ -79,7 +79,7 @@ Databasus по-настоящему восстанавливает бекап, �
 ### 🗄️ **Разные хранилища** <a href="https://databasus.com/ru/storages/">(смотреть все)</a>
 
 - **Локальное хранилище**: держите бекапы на своем VPS или сервере
-- **Облачные хранилища**: S3, Cloudflare R2, Azure Blob Storage, NAS, Dropbox, SFTP, Rclone и другие
+- **Облачные хранилища**: S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP и другие
 - **Безопасно**: все данные остаются под вашим контролем
 
 ### 📱 **Уведомления** <a href="https://databasus.com/ru/notifiers/">(смотреть все)</a>

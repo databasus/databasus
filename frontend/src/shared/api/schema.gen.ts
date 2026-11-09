@@ -642,7 +642,7 @@ export interface paths {
         put?: never;
         /**
          * Create a storage in a workspace
-         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace; rclone settings need an instance admin. The type in `settings` is fixed once the storage exists. Settings the provider refuses get 400 `invalid_request` with the field in `errors`.
+         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the storage exists. Settings the provider refuses get 400 `invalid_request` with the field in `errors`.
          */
         post: operations["createStorage"];
         delete?: never;
@@ -668,7 +668,7 @@ export interface paths {
         get: operations["getStorage"];
         /**
          * Replace the name and the settings of a storage
-         * @description Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value while the storage's resource address stays the stored one: the S3 endpoint, the Azure Blob endpoint and account name, or the host and port of FTP, NAS and SFTP. With another resource address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+         * @description Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value while the storage's resource address stays the stored one: the S3 endpoint, the Azure Blob endpoint and account name, or the host and port of FTP, NAS and SFTP. With another resource address, a secret the settings use must be sent again or the answer is 400 `invalid_request` with a field error, and a secret they no longer use is removed. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
          */
         put: operations["updateStorage"];
         post?: never;
@@ -762,7 +762,7 @@ export interface paths {
         put?: never;
         /**
          * Test the connection with settings that are not saved
-         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
+         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
          */
         post: operations["testStorageSettings"];
         delete?: never;
@@ -2493,7 +2493,7 @@ export interface components {
             error?: string;
         };
         /** @description The settings of the storage's provider; `type` tells the providers apart */
-        StorageSettings: components["schemas"]["LocalStorageSettings"] | components["schemas"]["S3StorageSettings"] | components["schemas"]["NasStorageSettings"] | components["schemas"]["AzureBlobStorageSettings"] | components["schemas"]["FtpStorageSettings"] | components["schemas"]["SftpStorageSettings"] | components["schemas"]["RcloneStorageSettings"];
+        StorageSettings: components["schemas"]["LocalStorageSettings"] | components["schemas"]["S3StorageSettings"] | components["schemas"]["NasStorageSettings"] | components["schemas"]["AzureBlobStorageSettings"] | components["schemas"]["FtpStorageSettings"] | components["schemas"]["SftpStorageSettings"];
         /** @description The data folder of the Databasus instance */
         LocalStorageSettings: {
             /**
@@ -2629,18 +2629,6 @@ export interface components {
             path?: string;
             /** @description Host-key verification preference. The transport currently ignores host keys regardless of this value; credential selection does not establish host authenticity. */
             isSkipHostKeyVerify: boolean;
-        };
-        /** @description A remote of rclone; only an instance admin may write or test its configuration */
-        RcloneStorageSettings: {
-            /**
-             * @description Always `RCLONE` (enum property replaced by openapi-typescript)
-             * @enum {string}
-             */
-            type: "RCLONE";
-            /** @description One remote section of an rclone configuration file */
-            configContent?: string;
-            /** @description The folder inside the remote, absent for its root */
-            remotePath?: string;
         };
         /** @description A database a workspace backs up, without its secrets */
         Database: {

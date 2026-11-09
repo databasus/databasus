@@ -1290,8 +1290,7 @@ paths:
       tags: [storages]
       summary: Create a storage in a workspace
       description: >-
-        Needs the role `WORKSPACE_MEMBER` or higher in the workspace; rclone settings need an
-        instance admin. The type in `settings` is fixed once the storage exists. Settings the
+        Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the storage exists. Settings the
         provider refuses get 400 `invalid_request` with the field in `errors`.
       requestBody:
         description: The storage to create, with every secret its provider needs.
@@ -1347,7 +1346,7 @@ paths:
       tags: [storages]
       summary: Replace the name and the settings of a storage
       description: >-
-        Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A
+        Needs the role `WORKSPACE_MEMBER` or higher. A
         secret the request leaves out keeps its stored value while the storage's resource address
         stays the stored one: the S3 endpoint, the Azure Blob endpoint and account name, or the host
         and port of FTP, NAS and SFTP. With another resource address, a secret the settings use must
@@ -1511,7 +1510,7 @@ paths:
       summary: Test the connection with settings that are not saved
       description: >-
         Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects
-        wherever the request points; rclone settings need an instance admin. With `storageId`, a
+        wherever the request points. With `storageId`, a
         secret the request leaves out is taken from that storage, which must belong to the same
         workspace, or the answer is 404 `not_found`; settings of another type or another prefix than
         that storage's get 400 `invalid_request`. With another resource address than the storage's, a
@@ -4625,7 +4624,6 @@ components:
         - $ref: "#/components/schemas/AzureBlobStorageSettings"
         - $ref: "#/components/schemas/FtpStorageSettings"
         - $ref: "#/components/schemas/SftpStorageSettings"
-        - $ref: "#/components/schemas/RcloneStorageSettings"
       discriminator:
         propertyName: type
         mapping:
@@ -4635,7 +4633,6 @@ components:
           AZURE_BLOB: "#/components/schemas/AzureBlobStorageSettings"
           FTP: "#/components/schemas/FtpStorageSettings"
           SFTP: "#/components/schemas/SftpStorageSettings"
-          RCLONE: "#/components/schemas/RcloneStorageSettings"
     LocalStorageSettings:
       type: object
       description: The data folder of the Databasus instance
@@ -4842,22 +4839,6 @@ components:
           description: >-
             Host-key verification preference. The transport currently ignores host keys regardless
             of this value; credential selection does not establish host authenticity.
-    RcloneStorageSettings:
-      type: object
-      description: A remote of rclone; only an instance admin may write or test its configuration
-      required: [type]
-      properties:
-        type:
-          type: string
-          enum: [RCLONE]
-          description: Always `RCLONE`
-        configContent:
-          type: string
-          writeOnly: true
-          description: One remote section of an rclone configuration file
-        remotePath:
-          type: string
-          description: The folder inside the remote, absent for its root
     Database:
       type: object
       description: A database a workspace backs up, without its secrets

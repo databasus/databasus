@@ -217,13 +217,3 @@ func newSftpSettings(t *testing.T, sftp apiclient.SftpStorageSettings) apiclient
 		return settings.FromSftpStorageSettings(sftp)
 	})
 }
-
-func newRcloneSettings(t *testing.T, rclone apiclient.RcloneStorageSettings) apiclient.StorageSettings {
-	t.Helper()
-
-	rclone.Type = apiclient.RcloneStorageSettingsTypeRCLONE
-
-	return toSettings(t, func(settings *apiclient.StorageSettings) error {
-		return settings.FromRcloneStorageSettings(rclone)
-	})
-}

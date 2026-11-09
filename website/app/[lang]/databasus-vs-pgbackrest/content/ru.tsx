@@ -628,7 +628,7 @@ export default function DatabasusVsPgBackRestPage() {
                 <li>Cloudflare R2</li>
                 <li>Azure Blob Storage</li>
                 <li>NAS (сетевые хранилища)</li>
-                <li>Dropbox</li>
+                <li>FTP</li>
               </ul>
 
               <h3 id="storage-pgbackrest">Хранилища pgBackRest</h3>

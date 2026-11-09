@@ -42,7 +42,7 @@ Before the upgrade, the test SHALL write through the API of the old release, the
 
 #### Scenario: Upgrade keeps every storage
 
-- **WHEN** the current code starts on the volume of an old release that has a local, S3, NAS, Azure Blob, FTP, SFTP and rclone storage
+- **WHEN** the current code starts on the volume of an old release that has a local, S3, NAS, Azure Blob, FTP and SFTP storage
 - **THEN** each of them is listed with its type, its name and its settings that are not secrets, and the backup config still uses the local storage
 
 #### Scenario: Upgrade keeps every logical database type
@@ -187,3 +187,42 @@ The test SHALL then start 3.67.0 again on that volume, sign in and verify that t
 
 - **WHEN** the newest release used by the general upgrade test advances beyond 3.67.0
 - **THEN** general upgrade coverage creates only currently supported storage types and the retirement regression still starts from 3.67.0
+
+### Requirement: A 3.67.1 rclone installation has a tested refusal and recovery path
+
+Upgrade coverage SHALL use the actual Databasus 3.67.1 image, with its resolved release identity pinned, to create an account, a workspace, an unused rclone storage with synthetic configuration and a supported storage through its public API. It SHALL attempt startup of the candidate on the same volume and observe a non-zero exit with rclone-only recovery guidance naming 3.67.1 and both recovery options. It SHALL compare persisted records, encrypted configuration and migration history before and after refusal and prove they are unchanged without disclosing credentials.
+
+The regression SHALL restart 3.67.1 on that same volume, sign in, check the records, delete the unused rclone storage through its API and retry the candidate directly. Startup SHALL succeed, supported records and encrypted credentials SHALL remain available, and obsolete rclone settings schema SHALL be absent. The regression SHALL require no real cloud account, valid remote credentials or external storage access. It SHALL remain anchored to 3.67.1 when the newest release used for general upgrade coverage changes.
+
+#### Scenario: Refusal leaves 3.67.1 usable
+
+- **WHEN** the candidate attempts to upgrade the 3.67.1 volume containing rclone
+- **THEN** it exits non-zero without advancing migrations or changing stored records
+- **AND** 3.67.1 can restart, sign in and list the unchanged records
+
+#### Scenario: Removal permits the direct retry
+
+- **WHEN** the test removes the unused rclone storage through the restarted 3.67.1 API and starts the candidate directly
+- **THEN** the upgrade succeeds, supported records and encrypted credentials survive, and the obsolete settings schema is absent
+
+#### Scenario: The newest release advances
+
+- **WHEN** the newest published release no longer accepts rclone
+- **THEN** general upgrade coverage still seeds only supported storage types and this regression still starts from 3.67.1
+
+### Requirement: Combined blockers have a released-image recovery regression
+
+Upgrade coverage SHALL use the actual Databasus 3.67.0 image with pinned release identity to create an account, workspace, unused Google Drive and rclone storages with synthetic credentials, and a supported storage through its public API. Starting the candidate directly on that volume SHALL exit non-zero before any pending migration. One diagnostic SHALL name both blocking types and select 3.67.0 to remove both, or remain on 3.67.0. Persisted records, encrypted credentials and migration history SHALL remain unchanged, and output SHALL disclose none of those credentials.
+
+The test SHALL restart 3.67.0 on the original volume, sign in, verify the records and remove both unused storages through its API. Starting the candidate directly SHALL then succeed and preserve supported records and encrypted credentials. Both obsolete providers' settings schemas SHALL be absent. The regression SHALL NOT start an intermediate 3.67.1 instance. It SHALL remain anchored to 3.67.0 independently of newest-release selection and SHALL retain the existing Google Drive-only regression as independent coverage.
+
+#### Scenario: Direct jump from a release supporting both types
+
+- **WHEN** the candidate starts on a 3.67.0 volume containing both blocking types
+- **THEN** it reports both types together and identifies 3.67.0 as the common recovery version
+- **AND** records and migration history are unchanged and 3.67.0 can reopen the volume
+
+#### Scenario: Both types are removed on 3.67.0
+
+- **WHEN** the regression deletes both unused storages through the restarted 3.67.0 API and retries the candidate
+- **THEN** startup succeeds without running 3.67.1 and supported records and credentials survive

@@ -790,7 +790,6 @@ describe('StorageComponent usage', () => {
       authMethods: ['PASSWORD'],
       isSkipHostKeyVerify: false,
     },
-    { type: 'RCLONE', remotePath: 'backups' },
   ] satisfies Storage['settings'][])(
     'shows catalog usage when a viewer opens $type storage',
     async (settings) => {

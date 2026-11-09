@@ -79,7 +79,7 @@ Databasus ejecuta una restauración real para confirmar que las copias sirven, e
 ### 🗄️ **Múltiples destinos de almacenamiento** <a href="https://databasus.com/es/storages/">(ver compatibles)</a>
 
 - **Almacenamiento local**: guarde las copias en su VPS o servidor
-- **Almacenamiento en la nube**: S3, Cloudflare R2, Azure Blob Storage, NAS, Dropbox, SFTP, Rclone y más
+- **Almacenamiento en la nube**: S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP y más
 - **Seguro**: todos los datos quedan bajo su control
 
 ### 📱 **Notificaciones** <a href="https://databasus.com/es/notifiers/">(ver compatibles)</a>

@@ -108,7 +108,7 @@ export default function DatabasusVsPgBackWebPage() {
                   <tr>
                     <td>Pilihan penyimpanan</td>
                     <td data-label="Databasus">
-                      Lokal, S3, Cloudflare R2, Azure, NAS, Dropbox
+                      Lokal, S3, Cloudflare R2, Azure, NAS, FTP
                     </td>
                     <td data-label="PgBackWeb">Hanya lokal dan kompatibel S3</td>
                   </tr>

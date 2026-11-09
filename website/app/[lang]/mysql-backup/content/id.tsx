@@ -76,7 +76,7 @@ export default function MysqlBackupPage() {
             },
             featureList: [
               "Backup MySQL dan MariaDB terjadwal",
-              "Berbagai tujuan penyimpanan (S3, Azure Blob Storage, Dropbox, SFTP, rclone, dan lainnya)",
+              "Berbagai tujuan penyimpanan (S3, Azure Blob Storage, FTP, SFTP, NAS, dan lainnya)",
               "Notifikasi real-time (Slack, Telegram, Discord, Webhook, email, dan lainnya)",
               "Pemantauan ketersediaan database MySQL",
               "Self-hosted melalui Docker",
@@ -301,7 +301,7 @@ export default function MysqlBackupPage() {
               </h3>
               <p className="text-gray-400 text-sm md:text-base mb-4 md:mb-5">
                 Simpan file backup MySQL secara lokal, di penyimpanan kompatibel S3, Azure Blob Storage,
-                Dropbox, NAS, atau tujuan lain. Data tetap dalam kendalimu.{" "}
+                FTP, NAS, atau tujuan lain. Data tetap dalam kendalimu.{" "}
                 <a
                   href={getLocalizedHref("id", "storages")}
                   className="text-blue-500 hover:text-blue-600 font-medium"
@@ -720,7 +720,7 @@ export default function MysqlBackupPage() {
             <FaqItem
               number="1"
               question="Apa itu Databasus dan bagaimana cara melakukan backup database MySQL?"
-              answer="Databasus adalah tool backup self-hosted berlisensi Apache 2.0 yang menggunakan mysqldump untuk membuat backup MySQL yang konsisten. Databasus melengkapinya dengan antarmuka web modern, penjadwalan otomatis, integrasi penyimpanan cloud (S3, Azure Blob Storage, Dropbox), notifikasi real-time (Slack, Discord, Telegram), dan enkripsi AES-256-GCM, sehingga tidak perlu menulis skrip shell dan cron job sendiri."
+              answer="Databasus adalah tool backup self-hosted berlisensi Apache 2.0 yang menggunakan mysqldump untuk membuat backup MySQL yang konsisten. Databasus melengkapinya dengan antarmuka web modern, penjadwalan otomatis, integrasi penyimpanan cloud (S3, Azure Blob Storage, FTP), notifikasi real-time (Slack, Discord, Telegram), dan enkripsi AES-256-GCM, sehingga tidak perlu menulis skrip shell dan cron job sendiri."
             />
             <FaqItem
               number="2"
@@ -750,7 +750,7 @@ export default function MysqlBackupPage() {
             <FaqItem
               number="7"
               question="Di mana backup MySQL disimpan?"
-              answer="Kamu menentukan tempat penyimpanan file backup MySQL: secara lokal di server, di penyimpanan kompatibel S3 (AWS S3, MinIO, Backblaze B2), Azure Blob Storage, Cloudflare R2, Dropbox, NAS melalui SFTP, atau tujuan apa pun yang didukung rclone. Setiap database bisa memiliki tujuan penyimpanan sendiri. File backup tetap dalam kendalimu."
+              answer="Kamu menentukan tempat penyimpanan file backup MySQL: secara lokal di server, di penyimpanan kompatibel S3 (AWS S3, MinIO, Backblaze B2), Azure Blob Storage, Cloudflare R2, FTP, NAS melalui SFTP. Setiap database bisa memiliki tujuan penyimpanan sendiri. File backup tetap dalam kendalimu."
             />
             <FaqItem
               number="8"

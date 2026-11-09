@@ -80,7 +80,7 @@ export default function MongodbBackupPage() {
             },
             featureList: [
               "Scheduled MongoDB backups via mongodump",
-              "Multiple storage destinations (S3, Azure Blob Storage, Dropbox, SFTP, rclone, etc.)",
+              "Multiple storage destinations (S3, Azure Blob Storage, FTP, SFTP, NAS, etc.)",
               "Real-time notifications (Slack, Telegram, Discord, Webhook, email, etc.)",
               "MongoDB connection health monitoring",
               "Self-hosted via Docker",
@@ -338,7 +338,7 @@ export default function MongodbBackupPage() {
 
               <p className="text-gray-400 text-sm md:text-base mb-4 md:mb-5">
                 Keep MongoDB backup archives locally, in S3-compatible storage,
-                Azure Blob Storage, Dropbox, NAS or other destinations. Your document
+                Azure Blob Storage, FTP, NAS or other destinations. Your document
                 data stays under your control.{" "}
                 <a
                   href="/storages"
@@ -787,7 +787,7 @@ export default function MongodbBackupPage() {
             <FaqItem
               number="1"
               question="What is Databasus and how does it backup MongoDB databases?"
-              answer="Databasus is an Apache 2.0 licensed, self-hosted backup tool that uses mongodump under the hood to create consistent MongoDB backups. It wraps mongodump with a modern web interface, automated scheduling, cloud storage integration (S3, Azure Blob Storage, Dropbox), real-time notifications (Slack, Discord, Telegram) and AES-256-GCM encryption — eliminating the need for custom shell scripts and cron jobs."
+              answer="Databasus is an Apache 2.0 licensed, self-hosted backup tool that uses mongodump under the hood to create consistent MongoDB backups. It wraps mongodump with a modern web interface, automated scheduling, cloud storage integration (S3, Azure Blob Storage, FTP), real-time notifications (Slack, Discord, Telegram) and AES-256-GCM encryption — eliminating the need for custom shell scripts and cron jobs."
             />
             <FaqItem
               number="2"

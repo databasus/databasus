@@ -67,11 +67,6 @@ func (s *ConnectionTestService) TestSettings(
 		return TestResult{}, err
 	}
 
-	err = checkRcloneAllowed(actor, settingsTest.Settings.GetType())
-	if err != nil {
-		return TestResult{}, err
-	}
-
 	location, err := s.prepareLocation(ctx, settingsTest)
 	if err != nil {
 		return TestResult{}, err

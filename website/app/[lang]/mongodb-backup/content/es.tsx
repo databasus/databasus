@@ -80,7 +80,7 @@ export default function MongodbBackupPage() {
             },
             featureList: [
               "Copias de seguridad programadas de MongoDB mediante mongodump",
-              "Múltiples destinos de almacenamiento (S3, Azure Blob Storage, Dropbox, SFTP, rclone, etc.)",
+              "Múltiples destinos de almacenamiento (S3, Azure Blob Storage, FTP, SFTP, NAS, etc.)",
               "Notificaciones en tiempo real (Slack, Telegram, Discord, Webhook, correo electrónico, etc.)",
               "Monitorización del estado de la conexión a MongoDB",
               "Autoalojado mediante Docker",
@@ -343,7 +343,7 @@ export default function MongodbBackupPage() {
 
               <p className="text-gray-400 text-sm md:text-base mb-4 md:mb-5">
                 Guarde los archivos de respaldo de MongoDB localmente, en
-                almacenamiento compatible con S3, Azure Blob Storage, Dropbox, NAS u
+                almacenamiento compatible con S3, Azure Blob Storage, FTP, NAS u
                 otros destinos. Sus datos documentales permanecen bajo su
                 control.{" "}
                 <a
@@ -803,7 +803,7 @@ export default function MongodbBackupPage() {
             <FaqItem
               number="1"
               question="¿Qué es Databasus y cómo realiza copias de seguridad de bases de datos MongoDB?"
-              answer="Databasus es una herramienta de respaldo autoalojada con licencia Apache 2.0 que usa mongodump internamente para crear copias de seguridad consistentes de MongoDB. Envuelve mongodump con una interfaz web moderna, programación automatizada, integración con almacenamiento en la nube (S3, Azure Blob Storage, Dropbox), notificaciones en tiempo real (Slack, Discord, Telegram) y cifrado AES-256-GCM, así que no necesita scripts de shell personalizados ni tareas cron."
+              answer="Databasus es una herramienta de respaldo autoalojada con licencia Apache 2.0 que usa mongodump internamente para crear copias de seguridad consistentes de MongoDB. Envuelve mongodump con una interfaz web moderna, programación automatizada, integración con almacenamiento en la nube (S3, Azure Blob Storage, FTP), notificaciones en tiempo real (Slack, Discord, Telegram) y cifrado AES-256-GCM, así que no necesita scripts de shell personalizados ni tareas cron."
             />
             <FaqItem
               number="2"

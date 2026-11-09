@@ -123,7 +123,7 @@ export default function DatabasusVsPgBackWebPage() {
                     <td>存储选项</td>
                     <td data-label="Databasus">
                       本地、S3、Cloudflare
-                      R2、Azure、NAS、Dropbox
+                      R2、Azure、NAS、FTP
                     </td>
                     <td data-label="PgBackWeb">仅本地和 S3 兼容存储</td>
                   </tr>

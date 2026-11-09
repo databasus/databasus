@@ -137,7 +137,7 @@ export default function PgDumpAlternativePage() {
                     <td>存储目标</td>
                     <td data-label="pg_dump">仅本地文件系统</td>
                     <td data-label="Databasus">
-                      本地、S3、R2、Azure、NAS、Dropbox
+                      本地、S3、R2、Azure、NAS、FTP
                     </td>
                   </tr>
                   <tr>
@@ -442,7 +442,7 @@ fi`}</code>
                 <li>Cloudflare R2</li>
                 <li>Azure Blob Storage</li>
                 <li>NAS（网络附加存储）</li>
-                <li>Dropbox</li>
+                <li>FTP</li>
               </ul>
 
               <p>每个数据库可以有自己的存储目标，也可以配置多个目标做冗余。</p>

@@ -125,11 +125,6 @@ func (s *Service) CreateStorage(ctx context.Context, actor users.Actor, creation
 		return WithSettings{}, err
 	}
 
-	err = checkRcloneAllowed(actor, creation.Settings.GetType())
-	if err != nil {
-		return WithSettings{}, err
-	}
-
 	provider, err := s.registry.GetProvider(creation.Settings.GetType())
 	if err != nil {
 		return WithSettings{}, err
@@ -194,16 +189,6 @@ func (s *Service) UpdateStorage(ctx context.Context, actor users.Actor, change C
 			workspaces.ActionEditContent,
 			forUpdateRowLock,
 		)
-		if err != nil {
-			return err
-		}
-
-		err = checkRcloneAllowed(actor, storedStorage.Type)
-		if err != nil {
-			return err
-		}
-
-		err = checkRcloneAllowed(actor, change.Settings.GetType())
 		if err != nil {
 			return err
 		}
@@ -336,14 +321,6 @@ func (s *Service) mergeAndValidate(
 	}
 
 	return mergedSettings, nil
-}
-
-func checkRcloneAllowed(actor users.Actor, storageType Type) error {
-	if storageType == providers.TypeRclone && actor.Role != users.RoleAdmin {
-		return ErrRcloneRequiresAdmin
-	}
-
-	return nil
 }
 
 func validateName(name string) error {

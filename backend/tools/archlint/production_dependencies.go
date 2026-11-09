@@ -17,21 +17,6 @@ func getTestLibraryPaths() []string {
 	return []string{"testing", "github.com/stretchr/testify", "github.com/testcontainers/testcontainers-go"}
 }
 
-func getAcceptedThirdPartyTestImporters() map[string]string {
-	return map[string]string{
-		"github.com/Files-com/files-sdk-go/v3/lib": "rclone's Files.com backend links the SDK's lib package, " +
-			"which keeps assertion helpers in production code",
-		"github.com/rclone/Proton-API-Bridge": "rclone's Proton Drive backend links the bridge, " +
-			"which imports testing in production code",
-	}
-}
-
-func isTestLibrary(importPath string) bool {
-	return slices.ContainsFunc(getTestLibraryPaths(), func(libraryPath string) bool {
-		return hasPathPrefix(importPath, libraryPath)
-	})
-}
-
 type entryPointSpec struct {
 	path           string
 	forbiddenPaths []string
@@ -88,10 +73,6 @@ func checkEntryPointDependencies(root string, entryPoint entryPointSpec) ([]viol
 
 		for importPath := range loadedPackage.Imports {
 			if !entryPoint.isForbiddenDependency(importPath) {
-				continue
-			}
-
-			if isTestLibrary(importPath) && getAcceptedThirdPartyTestImporters()[loadedPackage.PkgPath] != "" {
 				continue
 			}
 

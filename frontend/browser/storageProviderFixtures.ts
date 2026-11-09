@@ -71,5 +71,4 @@ export const storageProviders: {
       path: '/nightly',
     },
   },
-  { settings: { type: 'RCLONE', remotePath: '/archives' } },
 ];
