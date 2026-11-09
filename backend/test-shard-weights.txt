@@ -148,7 +148,6 @@
 3 TestServe
 3 TestStartLogicalBackupOfPhysicalDatabase
 3 TestTestPhysicalDatabase
-3 Test_SetEgressLoss_WhenApplied_DialTimesOut
 2 TestBootContainer
 2 TestDiskInspectionFailure
 2 TestExecuteJobReportGiveup
@@ -156,7 +155,4 @@
 2 TestOperationsWithoutSession
 2 TestReadReplicationSettings
 2 TestWaitForReady
-2 Test_AddEgressDelay_WhenAppliedToMinio_TcpHandshakeTakesAtLeastTheDelay
-2 Test_ClearEgressShaping_AfterLoss_DialSucceedsAgain
-2 Test_ClearEgressShaping_WhenCalledTwice_Succeeds
 1 TestGetVersion

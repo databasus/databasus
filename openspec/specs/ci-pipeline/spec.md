@@ -104,7 +104,7 @@ The upgrade suite and its comparison helper SHALL run only in `test-upgrade`, se
 - **WHEN** a test invokes the Go linter on either architecture
 - **THEN** the repository-pinned linter is available natively
 
-#### Scenario: Storage-provider timing checks run alone
+#### Scenario: Storage-provider checks run alone
 
 - **WHEN** CI runs the root storage-provider test package on either architecture
 - **THEN** all its tests run once in `storage-providers`, without concurrent packages or scenarios on that runner

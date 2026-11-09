@@ -16,7 +16,7 @@ esac
 policy=./internal/lib/testcontainers/unavailable_images.json
 
 # shellcheck disable=SC2016 # the inner script expands $1 and $n itself
-grep -rhoE '"(mysql|mariadb|mongo|postgres):[0-9][a-zA-Z0-9._-]*"|"pgsty/minio:[a-zA-Z0-9._-]+"|"(databasus/verification-postgres|timescale/timescaledb):[a-zA-Z0-9._-]+"|"nicolaka/netshoot:[a-zA-Z0-9._-]+"' ./internal |
+grep -rhoE '"(mysql|mariadb|mongo|postgres):[0-9][a-zA-Z0-9._-]*"|"pgsty/minio:[a-zA-Z0-9._-]+"|"(databasus/verification-postgres|timescale/timescaledb):[a-zA-Z0-9._-]+"' ./internal |
     tr -d '"' | sort -u |
     while IFS= read -r image; do
         reason=$(jq -r --arg architecture "$architecture" --arg image "$image" '.[$architecture][$image] // empty' "$policy")
