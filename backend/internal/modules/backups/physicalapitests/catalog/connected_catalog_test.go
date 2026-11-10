@@ -53,7 +53,7 @@ func newConnectedCatalog(t *testing.T) *catalogFixture {
 func TestStopWalStreamingAfterBackupTypeChange(t *testing.T) {
 	t.Parallel()
 
-	t.Run("deletes the streamer and keeps the running full when the database stops streaming WAL", func(t *testing.T) {
+	t.Run("retains the streamer claim and running full when the database stops streaming WAL", func(t *testing.T) {
 		t.Parallel()
 
 		catalog := newConnectedCatalog(t)
@@ -78,7 +78,7 @@ func TestStopWalStreamingAfterBackupTypeChange(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, updated.StatusCode(), "%s", updated.Body)
 
-		catalog.assertStreamerAbsent(t)
+		catalog.assertStreamerRetained(t)
 		assert.NotNil(t, catalog.getRunningBackupID(t))
 	})
 }

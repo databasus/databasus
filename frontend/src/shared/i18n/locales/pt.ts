@@ -1822,6 +1822,13 @@ export const pt: typeof en = {
             'Nesse ritmo, o banco de dados vai apagar alterações que o Databasus ainda não recebeu em cerca de {{duration}}.',
         },
         reasons: {
+          systemIdentifierMismatch: {
+            title: 'O endereço leva a outro cluster',
+            whatHappened:
+              'O Databasus parou de receber alterações porque o endereço leva a outro cluster PostgreSQL. Os backups existentes são preservados.',
+            whatToDo:
+              'Restaure o roteamento para o cluster original. O Databasus tenta novamente automaticamente e remove este erro após a retomada do fluxo verificado.',
+          },
           streamingStopped: {
             title: 'O salvamento parou',
             whatHappened: 'O Databasus parou de receber alterações há {{duration}}.',

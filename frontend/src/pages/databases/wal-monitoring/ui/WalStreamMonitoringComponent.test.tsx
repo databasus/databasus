@@ -460,3 +460,29 @@ describe('WalStreamMonitoringComponent readings', () => {
     expect(screen.queryByText(copy.refreshFailed)).toBeNull();
   });
 });
+
+describe('WAL source identity refusal', () => {
+  it('keeps recovery guidance visible after the language changes with an active refusal', async () => {
+    const statistics = createTestWalStreamStatistics({
+      health: {
+        level: WalStreamHealthLevel.BROKEN,
+        reasons: [
+          {
+            code: WalStreamReasonCode.SYSTEM_IDENTIFIER_MISMATCH,
+            level: WalStreamReasonLevel.BROKEN,
+          },
+        ],
+        notices: [],
+        isFullBackupPending: false,
+      },
+    });
+    declareStatistics(() => HttpResponse.json(statistics));
+    renderDatabasePage();
+    const english = DICTIONARIES.en.backups.physical.monitoring.reasons.systemIdentifierMismatch;
+    const russian = DICTIONARIES.ru.backups.physical.monitoring.reasons.systemIdentifierMismatch;
+    await waitForCondition(() => screen.getByText(english.whatToDo));
+    fireEvent.click(screen.getByRole('button', { name: 'Switch language' }));
+    await waitForCondition(() => screen.getByText(russian.whatToDo));
+    expect(screen.queryByText(english.whatToDo)).toBeNull();
+  });
+});

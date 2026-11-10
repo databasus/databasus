@@ -27,7 +27,14 @@ func (s *Source) VerifySlot(ctx context.Context, logger *slog.Logger, slotName s
 	}
 	defer closeInspection(ctx, inspection, logger)
 
-	slot, err := inspection.GetSlot(ctx, slotName)
+	return inspection.EnsureSlot(ctx, logger, slotName)
+}
+
+func (i *Inspection) EnsureSlot(ctx context.Context, logger *slog.Logger, slotName string) error {
+	if slotName == "" {
+		return ErrSlotNameEmpty
+	}
+	slot, err := i.GetSlot(ctx, slotName)
 	if err != nil {
 		return err
 	}
@@ -44,7 +51,7 @@ func (s *Source) VerifySlot(ctx context.Context, logger *slog.Logger, slotName s
 		return nil
 	}
 
-	if err := inspection.CreateSlot(ctx, slotName); err != nil {
+	if err := i.CreateSlot(ctx, slotName); err != nil {
 		if errors.Is(err, ErrSlotNameTaken) {
 			logger.DebugContext(
 				ctx,
@@ -76,7 +83,14 @@ func (s *Source) DropSlot(ctx context.Context, logger *slog.Logger, slotName str
 	}
 	defer closeInspection(ctx, inspection, logger)
 
-	slot, err := inspection.GetSlot(ctx, slotName)
+	return inspection.DropSlot(ctx, logger, slotName)
+}
+
+func (i *Inspection) DropSlot(ctx context.Context, logger *slog.Logger, slotName string) error {
+	if slotName == "" {
+		return ErrSlotNameEmpty
+	}
+	slot, err := i.GetSlot(ctx, slotName)
 	if err != nil {
 		return err
 	}
@@ -101,7 +115,7 @@ func (s *Source) DropSlot(ctx context.Context, logger *slog.Logger, slotName str
 		)
 	}
 
-	return inspection.dropSlot(ctx, logger, slotName)
+	return i.dropSlot(ctx, logger, slotName)
 }
 
 // DropSlotForRemoval drops the slot when its database is being removed. Unlike DropSlot it does

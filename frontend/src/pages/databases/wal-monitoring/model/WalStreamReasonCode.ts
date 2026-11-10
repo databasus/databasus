@@ -4,6 +4,7 @@ import type { TranslationKey } from '@/shared/i18n';
 export type WalStreamReasonCode = ApiComponents['schemas']['WalStreamReasonCode'];
 
 export const WalStreamReasonCode = {
+  SYSTEM_IDENTIFIER_MISMATCH: 'SYSTEM_IDENTIFIER_MISMATCH',
   STREAMING_STOPPED: 'STREAMING_STOPPED',
   SOURCE_UNREACHABLE: 'SOURCE_UNREACHABLE',
   WAL_CHAIN_BROKEN: 'WAL_CHAIN_BROKEN',
@@ -20,6 +21,8 @@ export const WalStreamReasonCode = {
 } as const satisfies Record<string, WalStreamReasonCode>;
 
 export const WAL_STREAM_REASON_CODE_LABEL_KEYS: Record<WalStreamReasonCode, TranslationKey> = {
+  [WalStreamReasonCode.SYSTEM_IDENTIFIER_MISMATCH]:
+    'backups.physical.monitoring.reasons.systemIdentifierMismatch.title',
   [WalStreamReasonCode.STREAMING_STOPPED]:
     'backups.physical.monitoring.reasons.streamingStopped.title',
   [WalStreamReasonCode.SOURCE_UNREACHABLE]:

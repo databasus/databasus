@@ -47,6 +47,7 @@ func (s *Streamer) rebuildSlot(ctx context.Context, logger *slog.Logger, reason 
 	}
 
 	if !released {
+		logger.WarnContext(ctx, "wal receiver did not release its slot; checking backend ownership")
 		terminated, terminateErr := s.terminateOwnedSlotBackend(ctx, logger)
 		if terminateErr != nil {
 			return fmt.Errorf("terminate owned slot backend: %w", terminateErr)
@@ -71,8 +72,13 @@ func (s *Streamer) rebuildSlot(ctx context.Context, logger *slog.Logger, reason 
 		}
 	}
 
-	if err := pgphysical.NewSource(s.spec.SourceDB.Engine).
-		DropSlot(ctx, logger, s.spec.SourceDB.WalStreamSlotName); err != nil {
+	logger.InfoContext(ctx, "rebuilding released replication slot")
+	inspection, err := s.openSourceInspection(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = inspection.Close(context.WithoutCancel(ctx)) }()
+	if err := inspection.DropSlot(ctx, logger, s.spec.SourceDB.WalStreamSlotName); err != nil {
 		return fmt.Errorf("drop slot: %w", err)
 	}
 
@@ -94,7 +100,7 @@ func (s *Streamer) rebuildSlot(ctx context.Context, logger *slog.Logger, reason 
 }
 
 func (s *Streamer) terminateOwnedSlotBackend(ctx context.Context, logger *slog.Logger) (bool, error) {
-	conn, err := pgphysical.NewSource(s.spec.SourceDB.Engine).OpenInspection(ctx)
+	conn, err := s.openSourceInspection(ctx)
 	if err != nil {
 		return false, fmt.Errorf("open inspection connection: %w", err)
 	}
@@ -146,7 +152,7 @@ func (s *Streamer) waitForSlotReleased(ctx context.Context, logger *slog.Logger)
 }
 
 func (s *Streamer) isSlotActive(ctx context.Context, logger *slog.Logger) (active, ok bool) {
-	conn, err := pgphysical.NewSource(s.spec.SourceDB.Engine).OpenInspection(ctx)
+	conn, err := s.openSourceInspection(ctx)
 	if err != nil {
 		logger.DebugContext(ctx, "rebuild: source unreachable while waiting for slot release", slog.Any("error", err))
 

@@ -2,9 +2,6 @@ package physical
 
 import (
 	"context"
-	"log/slog"
-
-	"github.com/google/uuid"
 
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/modules/backups/internal/config"
@@ -21,7 +18,7 @@ func (s *Service) ReactToSavedConfig(
 		if err := s.canceller.CancelRunningForDatabase(ctx, saved.DatabaseID); err != nil {
 			return err
 		}
-		s.cancelStreaming(ctx, saved.DatabaseID)
+		s.cancellations.Cancel(saved.DatabaseID)
 	}
 	return nil
 }
@@ -65,11 +62,4 @@ func (s *Service) RemoveBackupsForStorageChange(
 	}
 
 	return history, nil
-}
-
-func (s *Service) cancelStreaming(ctx context.Context, databaseID uuid.UUID) {
-	s.cancellations.Cancel(databaseID)
-	if err := s.walStreamers.DeleteByDatabaseID(ctx, databaseID); err != nil {
-		s.logger.ErrorContext(ctx, "failed to delete wal streamer row", slog.Any("error", err))
-	}
 }

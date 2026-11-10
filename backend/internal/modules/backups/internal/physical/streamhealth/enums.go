@@ -21,19 +21,20 @@ const (
 type ReasonCode string
 
 const (
-	ReasonCodeStreamingStopped        ReasonCode = "STREAMING_STOPPED"
-	ReasonCodeSourceUnreachable       ReasonCode = "SOURCE_UNREACHABLE"
-	ReasonCodeWalChainBroken          ReasonCode = "WAL_CHAIN_BROKEN"
-	ReasonCodeSlotMissing             ReasonCode = "SLOT_MISSING"
-	ReasonCodeSlotLost                ReasonCode = "SLOT_LOST"
-	ReasonCodeArchiveNotAdvancing     ReasonCode = "ARCHIVE_NOT_ADVANCING"
-	ReasonCodeArchiveSlowerThanSource ReasonCode = "ARCHIVE_SLOWER_THAN_SOURCE"
-	ReasonCodeSlotKeepsExtraWal       ReasonCode = "SLOT_KEEPS_EXTRA_WAL"
-	ReasonCodeSlotLimitApproaching    ReasonCode = "SLOT_LIMIT_APPROACHING"
-	ReasonCodeNearSlotRebuild         ReasonCode = "NEAR_SLOT_REBUILD"
-	ReasonCodeLocalQueueFilling       ReasonCode = "LOCAL_QUEUE_FILLING"
-	ReasonCodeFrequentRestarts        ReasonCode = "FREQUENT_RESTARTS"
-	ReasonCodeForcedRotationRefused   ReasonCode = "FORCED_ROTATION_REFUSED"
+	ReasonCodeSystemIdentifierMismatch ReasonCode = "SYSTEM_IDENTIFIER_MISMATCH"
+	ReasonCodeStreamingStopped         ReasonCode = "STREAMING_STOPPED"
+	ReasonCodeSourceUnreachable        ReasonCode = "SOURCE_UNREACHABLE"
+	ReasonCodeWalChainBroken           ReasonCode = "WAL_CHAIN_BROKEN"
+	ReasonCodeSlotMissing              ReasonCode = "SLOT_MISSING"
+	ReasonCodeSlotLost                 ReasonCode = "SLOT_LOST"
+	ReasonCodeArchiveNotAdvancing      ReasonCode = "ARCHIVE_NOT_ADVANCING"
+	ReasonCodeArchiveSlowerThanSource  ReasonCode = "ARCHIVE_SLOWER_THAN_SOURCE"
+	ReasonCodeSlotKeepsExtraWal        ReasonCode = "SLOT_KEEPS_EXTRA_WAL"
+	ReasonCodeSlotLimitApproaching     ReasonCode = "SLOT_LIMIT_APPROACHING"
+	ReasonCodeNearSlotRebuild          ReasonCode = "NEAR_SLOT_REBUILD"
+	ReasonCodeLocalQueueFilling        ReasonCode = "LOCAL_QUEUE_FILLING"
+	ReasonCodeFrequentRestarts         ReasonCode = "FREQUENT_RESTARTS"
+	ReasonCodeForcedRotationRefused    ReasonCode = "FORCED_ROTATION_REFUSED"
 )
 
 type NoticeCode string

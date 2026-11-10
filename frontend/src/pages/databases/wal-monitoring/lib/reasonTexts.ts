@@ -32,6 +32,10 @@ interface ReasonSentenceKeys {
 }
 
 const REASON_SENTENCE_KEYS: Record<WalStreamReasonCode, ReasonSentenceKeys> = {
+  [WalStreamReasonCode.SYSTEM_IDENTIFIER_MISMATCH]: {
+    whatHappened: 'backups.physical.monitoring.reasons.systemIdentifierMismatch.whatHappened',
+    whatToDo: 'backups.physical.monitoring.reasons.systemIdentifierMismatch.whatToDo',
+  },
   [WalStreamReasonCode.STREAMING_STOPPED]: {
     whatHappened: 'backups.physical.monitoring.reasons.streamingStopped.whatHappened',
     whatToDo: 'backups.physical.monitoring.reasons.streamingStopped.whatToDo',

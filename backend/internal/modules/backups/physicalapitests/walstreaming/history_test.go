@@ -54,20 +54,21 @@ func TestPhysicalTimelineHistory(t *testing.T) {
 
 				primary, standby := containers.StartPhysicalPrimaryWithStandby(t, "postgres:17")
 				observer := historyObserver{Handler: slog.DiscardHandler, events: make(chan string, 1024)}
-				team := newWalTeam(t, walTeamSpec{SourceEndpoint: &standby, LogSink: observer})
+				sourceEndpoint := standby
+				var clusterProxy *containers.PostgresProxy
+				var foreignSource containers.Endpoint
+				if failure == "cluster" {
+					clusterProxy = containers.StartPostgresProxy(t, standby)
+					foreignSource = containers.StartPhysicalPostgres(t, "postgres:17")
+					sourceEndpoint = clusterProxy.Endpoint
+				}
+				team := newWalTeam(t, walTeamSpec{SourceEndpoint: &sourceEndpoint, LogSink: observer})
+				team.Source = standby
 				var namespace *apptest.StorageNamespace
 				if failure == "storage" || failure == "metadata" {
 					storage := apptest.CreateStorageNamespace(t, team.Owner, team.Workspace.Id)
 					namespace = &storage
 					team.StorageID = storage.StorageID
-				}
-
-				if failure == "cluster" {
-					team.App.ExecuteSQL(
-						t,
-						"UPDATE databases_postgresql_physical SET system_identifier='another-cluster' WHERE database_id=?",
-						team.Database.Id,
-					)
 				}
 
 				team.enable(t)
@@ -119,6 +120,12 @@ func TestPhysicalTimelineHistory(t *testing.T) {
 				var isPromoted bool
 				require.NoError(t, source.QueryRow(t.Context(), "SELECT pg_promote()").Scan(&isPromoted))
 				require.True(t, isPromoted)
+
+				if failure == "cluster" {
+					clusterProxy.Route(
+						containers.PostgresProxyRoute{SQLDestination: standby, ReplicationDestination: foreignSource},
+					)
+				}
 
 				historyPath := team.App.GetWalQueueFilePath(team.Database.Id, "00000002.history")
 				require.NoError(t, os.WriteFile(historyPath, []byte("untrusted local bytes\n"), 0o600))
@@ -191,31 +198,10 @@ func TestPhysicalTimelineHistory(t *testing.T) {
 				}
 
 				if failure == "cluster" {
-					team.disable(t)
-					testwait.Until(t, "the rejected source snapshot stops", func(context.Context) error {
-						team.App.RunJobPass(t, "backups_physical_wal_stream_manager")
-						if team.live(t).IsStreamerRunning {
-							return fmt.Errorf("streamer still running")
-						}
-
-						return nil
-					})
-					var identifier string
-					require.NoError(
-						t,
-						source.QueryRow(t.Context(), "SELECT system_identifier::text FROM pg_control_system()").
-							Scan(&identifier),
+					clusterProxy.Route(
+						containers.PostgresProxyRoute{SQLDestination: standby, ReplicationDestination: standby},
 					)
-					team.App.ExecuteSQL(
-						t,
-						"UPDATE databases_postgresql_physical SET system_identifier=? WHERE database_id=?",
-						identifier,
-						team.Database.Id,
-					)
-					team.enable(t)
 					team.App.RunJobPass(t, "backups_physical_wal_stream_manager")
-					team.waitForReceiver(t)
-					require.NoError(t, os.WriteFile(historyPath, []byte("untrusted local bytes\n"), 0o600))
 				}
 
 				observer.Wait(t, "timeline switch observed via .history")

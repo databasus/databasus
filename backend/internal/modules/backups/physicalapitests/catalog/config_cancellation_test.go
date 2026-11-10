@@ -87,7 +87,7 @@ func TestCancelPhysicalWorkAfterConfigSave(t *testing.T) {
 			assert.NotContains(t, pendingFiles, fileName+suffix)
 		}
 	})
-	t.Run("cancels the running backup and deletes the streamer when backups are disabled", func(t *testing.T) {
+	t.Run("cancels the running backup and retains the streamer claim when backups are disabled", func(t *testing.T) {
 		t.Parallel()
 
 		catalog := newCatalog(t)
@@ -112,7 +112,7 @@ func TestCancelPhysicalWorkAfterConfigSave(t *testing.T) {
 		page := getBackups(t, catalog, "")
 		require.Len(t, page.Backups, 1)
 		assert.Equal(t, "CANCELED", page.Backups[0].Status)
-		catalog.assertStreamerAbsent(t)
+		catalog.assertStreamerRetained(t)
 	})
 }
 
@@ -136,7 +136,7 @@ func (catalog *catalogFixture) seedRunningBackupAndStreamer(t *testing.T) {
 	)
 }
 
-func (catalog *catalogFixture) assertStreamerAbsent(t *testing.T) {
+func (catalog *catalogFixture) assertStreamerRetained(t *testing.T) {
 	t.Helper()
 	var streamerIDs []uuid.UUID
 	catalog.App.QuerySQL(
@@ -145,5 +145,14 @@ func (catalog *catalogFixture) assertStreamerAbsent(t *testing.T) {
 		"SELECT database_id FROM backups_physical_wal_streamers WHERE database_id=?",
 		catalog.DatabaseID,
 	)
-	assert.Empty(t, streamerIDs)
+	assert.Equal(t, []uuid.UUID{catalog.DatabaseID}, streamerIDs)
+
+	response, err := catalog.Owner.Client.GetWalStreamStatisticsWithResponse(
+		t.Context(),
+		catalog.DatabaseID,
+		&apiclient.GetWalStreamStatisticsParams{Period: apiclient.WalStreamStatisticsPeriodHOUR},
+	)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, response.StatusCode(), "%s", response.Body)
+	assert.Equal(t, apiclient.WalStreamHealthLevelNOTSTREAMING, response.JSON200.Health.Level)
 }

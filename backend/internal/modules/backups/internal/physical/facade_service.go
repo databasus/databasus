@@ -160,7 +160,6 @@ func New(deps Deps) *Service {
 			},
 		),
 		cancellations: deps.Cancellations,
-		walStreamers:  deps.WalStreamers,
 		logger:        deps.Logger,
 		backuping:     backupsService,
 		cleaner:       cleaner,

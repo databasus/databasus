@@ -549,3 +549,26 @@ func (b *lockedBuffer) String() string {
 
 	return b.buffer.String()
 }
+
+func TestProcessEnvironment(t *testing.T) {
+	t.Run("removes inherited connection overrides before adding explicit child settings", func(t *testing.T) {
+		t.Setenv("PGHOSTADDR", "foreign.example.com")
+		t.Setenv("PGSERVICE", "foreign_service")
+		t.Setenv("PGSERVICEFILE", "/foreign/service.conf")
+		var output bytes.Buffer
+		err := Run(
+			t.Context(),
+			Spec{
+				Path:     "env",
+				UnsetEnv: []string{"PGHOSTADDR", "PGSERVICE", "PGSERVICEFILE"},
+				Env:      []string{"PGAPPNAME=verified_receiver"},
+				Stdout:   &output,
+			},
+		)
+		require.NoError(t, err)
+		require.NotContains(t, output.String(), "PGHOSTADDR=")
+		require.NotContains(t, output.String(), "PGSERVICE=")
+		require.NotContains(t, output.String(), "PGSERVICEFILE=")
+		require.Contains(t, output.String(), "PGAPPNAME=verified_receiver")
+	})
+}

@@ -33,5 +33,5 @@ func (s *Service) OnDatabaseBackupTypeChanged(ctx context.Context, event databas
 	if !event.OldBackupType.IsWalStreaming() || event.NewBackupType.IsWalStreaming() {
 		return nil
 	}
-	return database.AfterCommit(ctx, func(ctx context.Context) { s.cancelStreaming(ctx, event.DatabaseID) })
+	return database.AfterCommit(ctx, func(context.Context) { s.cancellations.Cancel(event.DatabaseID) })
 }

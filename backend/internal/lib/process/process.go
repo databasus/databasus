@@ -10,6 +10,8 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"slices"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -20,11 +22,12 @@ type Spec struct {
 	Args []string
 	// Env is added to the environment the backend runs with; a variable set in both takes the
 	// value from Env.
-	Env    []string
-	Dir    string
-	Stdin  io.Reader
-	Stdout io.Writer
-	Stderr io.Writer
+	UnsetEnv []string
+	Env      []string
+	Dir      string
+	Stdin    io.Reader
+	Stdout   io.Writer
+	Stderr   io.Writer
 	// StopSignal is sent to the process group when ctx ends; nil sends SIGKILL at once.
 	StopSignal os.Signal
 	// KillAfter is how long the group may take to exit after StopSignal before SIGKILL. It also
@@ -47,8 +50,13 @@ func Start(ctx context.Context, spec Spec) (*Running, error) {
 	// Callers select an executable and separate arguments; no shell interprets the command.
 	// nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command
 	cmd := exec.CommandContext(ctx, spec.Path, spec.Args...)
-	if len(spec.Env) > 0 {
-		cmd.Env = append(cmd.Environ(), spec.Env...)
+	if len(spec.Env) > 0 || len(spec.UnsetEnv) > 0 {
+		environment := slices.DeleteFunc(cmd.Environ(), func(entry string) bool {
+			name, _, _ := strings.Cut(entry, "=")
+			return slices.Contains(spec.UnsetEnv, name)
+		})
+		environment = append(environment, spec.Env...)
+		cmd.Env = environment
 	}
 	cmd.Dir = spec.Dir
 	cmd.Stdin = spec.Stdin

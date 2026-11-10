@@ -9,6 +9,12 @@ import (
 )
 
 type streamStatistics struct {
+	Health struct {
+		Level   string `json:"level"`
+		Reasons []struct {
+			Code string `json:"code"`
+		} `json:"reasons"`
+	} `json:"health"`
 	Streamer struct {
 		State            string     `json:"state"`
 		SessionStartedAt *time.Time `json:"sessionStartedAt"`

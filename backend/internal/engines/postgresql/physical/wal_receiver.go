@@ -3,11 +3,12 @@ package physical
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os/exec"
-	"strconv"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -25,17 +26,19 @@ const (
 	WalReceiverRetryable
 	WalReceiverFatal
 	WalReceiverResumeMismatch
+	WalReceiverIdentityMismatch
 )
 
 type WalReceiverSpec struct {
-	ClientTools     pgshared.ClientTools
-	Version         pgshared.Version
-	ApplicationName string
-	WatchDir        string
-	SlotName        string
-	Clock           clock.Source
-	Logger          *slog.Logger
-	OnStarted       func()
+	ExpectedSystemIdentifier string
+	ClientTools              pgshared.ClientTools
+	Version                  pgshared.Version
+	ApplicationName          string
+	WatchDir                 string
+	SlotName                 string
+	Clock                    clock.Source
+	Logger                   *slog.Logger
+	OnStarted                func()
 }
 
 type WalReceiverExit struct {
@@ -45,6 +48,41 @@ type WalReceiverExit struct {
 }
 
 func (s *Source) ReceiveWal(ctx context.Context, spec WalReceiverSpec) WalReceiverExit {
+	attemptCtx, cancelAttempt := context.WithCancelCause(ctx)
+	defer cancelAttempt(nil)
+	setupCtx, cancelSetup := context.WithTimeout(ctx, 30*time.Second)
+	defer cancelSetup()
+	var isSetupPending atomic.Bool
+	isSetupPending.Store(true)
+	stopSetup := context.AfterFunc(setupCtx, func() {
+		if errors.Is(setupCtx.Err(), context.DeadlineExceeded) && isSetupPending.Swap(false) {
+			cancelAttempt(context.DeadlineExceeded)
+		}
+	})
+	defer stopSetup()
+
+	onStarted := spec.OnStarted
+	spec.OnStarted = func() {
+		if !isSetupPending.Swap(false) {
+			return
+		}
+
+		cancelSetup()
+		if onStarted != nil {
+			onStarted()
+		}
+	}
+
+	exit := s.receiveVerifiedWal(attemptCtx, spec)
+	if exit.Disposition == WalReceiverStopped && ctx.Err() == nil {
+		spec.Logger.WarnContext(ctx, "wal receiver setup timed out")
+		exit.Disposition = WalReceiverRetryable
+	}
+
+	return exit
+}
+
+func (s *Source) receiveVerifiedWal(ctx context.Context, spec WalReceiverSpec) WalReceiverExit {
 	toolPath := spec.ClientTools.GetExecutable(spec.Version, pgshared.ExecutablePgReceivewal)
 	if _, err := exec.LookPath(toolPath); err != nil {
 		spec.Logger.ErrorContext(
@@ -56,16 +94,46 @@ func (s *Source) ReceiveWal(ctx context.Context, spec WalReceiverSpec) WalReceiv
 		return WalReceiverExit{Disposition: WalReceiverRetryable}
 	}
 
-	creds, err := pgshared.WriteCredentialFilesToTempDir(s.settings.GetCredentialSpec(), s.settings.Password)
+	session, err := s.openWalSession(ctx, spec)
 	if err != nil {
-		spec.Logger.ErrorContext(ctx, "write pg_receivewal credentials", slog.Any("error", err))
+		if _, isMismatch := errors.AsType[*SourceIdentityError](err); isMismatch {
+			return WalReceiverExit{Disposition: WalReceiverIdentityMismatch, FatalErr: err}
+		}
+		if errors.Is(err, ErrSourceIdentityMissing) {
+			return WalReceiverExit{Disposition: WalReceiverFatal, FatalErr: err}
+		}
+		if ctx.Err() != nil {
+			return WalReceiverExit{Disposition: WalReceiverStopped}
+		}
+		switch classifyServerError(err) {
+		case serverErrorBadPassword,
+			serverErrorNoHbaEntry,
+			serverErrorNoReplicationPrivilege,
+			serverErrorPermissionDenied:
+			return WalReceiverExit{Disposition: WalReceiverFatal, FatalErr: err}
+		case serverErrorOther, serverErrorNameTaken, serverErrorObjectMissing:
+		}
+		spec.Logger.WarnContext(ctx, "open verified WAL session", slog.Any("error", err))
 		return WalReceiverExit{Disposition: WalReceiverRetryable}
 	}
+	defer session.Close(ctx)
+	return s.runWalReceiver(
+		ctx,
+		walReceiverProcessSpec{Receiver: spec, ToolPath: toolPath, SocketDirectory: session.directory},
+	)
+}
 
-	defer creds.Remove()
+type walReceiverProcessSpec struct {
+	Receiver        WalReceiverSpec
+	ToolPath        string
+	SocketDirectory string
+}
+
+func (s *Source) runWalReceiver(ctx context.Context, processSpec walReceiverProcessSpec) WalReceiverExit {
+	spec := processSpec.Receiver
 	var stderr bytes.Buffer
 	running, err := process.Start(ctx, process.Spec{
-		Path: toolPath,
+		Path: processSpec.ToolPath,
 		Args: []string{
 			"--directory=" + spec.WatchDir,
 			"--slot=" + spec.SlotName,
@@ -74,13 +142,20 @@ func (s *Source) ReceiveWal(ctx context.Context, spec WalReceiverSpec) WalReceiv
 			"--verbose",
 			"--no-password",
 			"-h",
-			s.settings.Host,
+			processSpec.SocketDirectory,
 			"-p",
-			strconv.Itoa(s.settings.Port),
+			"5432",
 			"-U",
 			s.settings.Username,
 		},
-		Env:        append(s.getClientEnvironment(creds), "PGAPPNAME="+spec.ApplicationName),
+		UnsetEnv: []string{"PGHOSTADDR", "PGSERVICE", "PGSERVICEFILE", "PGPASSWORD"},
+		Env: []string{
+			"PGAPPNAME=" + spec.ApplicationName,
+			"PGSSLMODE=disable",
+			"PGCONNECT_TIMEOUT=30",
+			"LC_ALL=C",
+			"PGPASSFILE=" + processSpec.SocketDirectory + "/.pgpass",
+		},
 		Stderr:     &stderr,
 		StopSignal: syscall.SIGINT,
 		KillAfter:  clientToolKillAfter,
@@ -94,9 +169,6 @@ func (s *Source) ReceiveWal(ctx context.Context, spec WalReceiverSpec) WalReceiv
 	}
 
 	startedAt := spec.Clock.Now()
-	if spec.OnStarted != nil {
-		spec.OnStarted()
-	}
 
 	spec.Logger.InfoContext(ctx, "pg_receivewal started", slog.String("watch_dir", spec.WatchDir))
 

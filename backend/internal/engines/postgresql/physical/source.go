@@ -98,7 +98,7 @@ func (s *Source) connect(ctx context.Context) (*pgx.Conn, error) {
 // connect time; an ordinary "host all" rule does not cover it, so a logical (replication=database)
 // probe would wrongly accept a cluster that real backups cannot stream. It uses the low-level
 // pgconn because no ordinary SQL is allowed on a physical replication connection.
-func (s *Source) connectReplication(ctx context.Context) (*pgconn.PgConn, error) {
+func (s *Source) connectReplication(ctx context.Context, applicationName string) (*pgconn.PgConn, error) {
 	credentialSpec := s.settings.GetCredentialSpec()
 
 	files, err := pgshared.WriteCredentialFilesToTempDir(credentialSpec, s.settings.Password)
@@ -110,6 +110,10 @@ func (s *Source) connectReplication(ctx context.Context) (*pgconn.PgConn, error)
 	connConfig, err := pgshared.BuildReplicationConnConfig(credentialSpec, s.settings.Password, "postgres", files)
 	if err != nil {
 		return nil, err
+	}
+
+	if applicationName != "" {
+		connConfig.RuntimeParams["application_name"] = applicationName
 	}
 
 	return pgconn.ConnectConfig(ctx, connConfig)

@@ -1688,6 +1688,13 @@ export const id: typeof en = {
             'Dengan laju ini, database akan menghapus perubahan yang belum diterima Databasus dalam sekitar {{duration}}.',
         },
         reasons: {
+          systemIdentifierMismatch: {
+            title: 'Alamat mengarah ke klaster lain',
+            whatHappened:
+              'Databasus berhenti menerima perubahan karena alamat mengarah ke klaster PostgreSQL lain. Cadangan yang ada tetap disimpan.',
+            whatToDo:
+              'Pulihkan perutean ke klaster asal. Databasus mencoba lagi secara otomatis dan menghapus kesalahan ini setelah aliran terverifikasi berjalan kembali.',
+          },
           streamingStopped: {
             title: 'Penyimpanan berhenti',
             whatHappened: 'Databasus berhenti menerima perubahan {{duration}} lalu.',
