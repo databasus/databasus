@@ -1,0 +1,49 @@
+## Why
+
+Losing the Databasus server also loses its users, settings, credentials and backup catalog, even when database backup files survive in remote storage. The owner also has no in-app prompt to save the encryption key needed to recover those files.
+
+## What Changes
+
+- Add encrypted backups of the complete internal database, scheduled and started manually, to one or more existing workspace storages. These backups contain instance state and the backup catalog, not the stored database backup files or the encryption key.
+- Keep live references to workspace storages. Do not copy their settings, introduce global storages or change who can edit them. Block deletion of a selected storage, including through workspace deletion, until root admin removes it from the Databasus backup destinations.
+- Give root admin a Databasus backups section in global settings: destination selection across workspaces, inline workspace/storage creation with automatic selection, shared schedule and retention, history, per-destination outcomes and archive download. Default to hourly backups and 30-day retention.
+- Prompt root admin to save the master key on their first authenticated visit, including after upgrading an existing installation. Allow later download after identity confirmation. Show HTTP risk and host-file guidance before any key transfer.
+- Show setup reminders only after the instance has a user database or storage. Report failed, partially saved and overdue backups through a persistent floating notice and, when available, the instance SMTP server. Removing the final destination immediately reports that backups have stopped, even if onboarding would otherwise suppress a reminder.
+- Explain missing SMTP in the backup section and link directly to the existing mail-server section with scroll and focus. Reuse the system mail service; add no notifier selection.
+- Restore an archive and a separately saved key into a fresh instance at startup, before normal migrations. Require the exact Databasus release, including its patch version. A mismatch refuses recovery and names the required image version; upgrading happens only after recovery on that version.
+- Start recovered instances in a durable pause that prevents background activity and remote writes/deletions until root admin confirms the old server is stopped. Verify a complete backup/recovery cycle, including subsequent recovery of logical and physical database backups.
+
+### Out of scope
+
+- Global storages, copied credentials, extra restrictions on workspace storage editors, or a special workspace type.
+- Secondary copies of users' database backups, storage scanning/catalog reconciliation, immutable storage management and a general notification rule engine.
+- A browser-based archive-import wizard or remote-storage discovery during recovery. The initial recovery path takes an archive file and key file supplied at startup.
+- In-place recovery over a used instance, cross-version restore, unattended activation of a recovered instance and monitoring an entirely stopped Databasus process.
+
+## Capabilities
+
+### New Capabilities
+
+- `databasus-backups`: encrypted internal-database archives, live destinations, scheduling, independent delivery, retention, safe archive access and durable history.
+- `databasus-recovery`: exact-version startup recovery into an unused instance, failure safety, paused activation and treatment of recovered runtime state.
+- `databasus-backup-ui`: root-only configuration, inline creation, key onboarding, destination outcomes, SMTP navigation and floating reminders.
+- `databasus-backup-alerts`: missing, failed, partial, overdue and stopped protection, system SMTP delivery and bounded repeated alerts.
+- `master-key-export`: root-only, explicitly confirmed key download with recent identity proof, HTTP warning and persistent acknowledgment.
+
+### Modified Capabilities
+
+- `storages`: selected Databasus backup destinations cannot be deleted; their normal editing and transfer permissions remain unchanged.
+- `workspace-deletion`: deletion also refuses a workspace containing a selected Databasus backup destination.
+- `internal-database-migrations`: startup recovery validates and imports before the normal migration path, refusing all cross-version archives.
+- `backup-streaming`: encrypted temporary staging is a bounded-memory disk-use exception for internal-database archives delivered to several storages.
+- `storage-file-cleanup`: lost-server recovery does not replay copied source-instance cleanup obligations; ordinary restart and upgrade guarantees remain unchanged.
+
+## Impact
+
+- Backend: a new `instancebackups` module, storage reference/deletion integration, bootstrap-admin identity checks, system mail, startup recovery composition, migrations and generated user API. The verification-agent API remains unchanged.
+- Frontend: root-only global-settings content, reusable workspace/storage creation flows, app-level notices, key download and all interface dictionaries. System SMTP continues to be configured by the operator; the UI links to its existing instructions and test-email action.
+- Runtime: private encrypted temporary archive files, a pre-migration recovery entry point and a durable recovery pause. Existing deployment behavior is unchanged when recovery inputs are absent.
+- Documentation: define the new terms and their code/API names in `docs/glossary.md`, including Databasus backup, its destination and copy, Databasus backup health and incident, recovery pause and schema identity. Extend the existing Master key entry instead of introducing a second name or secret. Update architecture, recovery instructions, SMTP guidance, FAQ, security page and README installation advice, including the corresponding six translations. Do not remove the documented manual data-directory backup option before describing the limits of the new archive.
+- Agent instructions: add a narrow existing-master-key attachment-export exception beside the secret-response rule in `.agents/skills/api-design/SKILL.md`, with root-only access, recent purpose-bound identity confirmation, short-lived single-use download authorization, no-store and secret-free audit requirements. Ordinary stored-secret response prohibitions remain unchanged.
+- This change answers to root `AGENTS.md`, `backend/AGENTS.md`, `frontend/AGENTS.md`, `website/AGENTS.md` and `assets/readme/AGENTS.md`. It requires no new external service or dependency.
+- No existing API, configuration setting or archive format is removed. Recovery of these new archives intentionally requires the exact source release rather than accepting a newer release as discussed in the exploratory notes.
