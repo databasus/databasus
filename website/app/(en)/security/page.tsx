@@ -355,18 +355,11 @@ export default function SecurityPage() {
               <h3 id="dependency-management">Dependency management</h3>
 
               <p>
-                Dependabot checks the configured dependency ecosystems against the GitHub
-                Advisory Database. Its coverage depends on those ecosystems and the
-                advisories available for them; it does not cover every external component.
-              </p>
-
-              <p>
                 Ordinary updates wait seven complete days for packages, development tools
                 and GitHub Actions, or fourteen days for images, database clients and
-                standalone verification extensions. Unsolicited major-version proposals wait
-                thirty days. Maintainers check publication dates and compatibility,
-                including exact version selections and security updates that can bypass age
-                filters. Exceptions are reported with a reason.
+                standalone verification extensions. Maintainers check publication dates and
+                compatibility, including exact version selections and security updates that
+                can bypass age filters. Exceptions are reported with a reason.
               </p>
 
               <p>

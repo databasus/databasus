@@ -58,7 +58,7 @@ All data stays in containers and accounts you control. Three runtime layers prot
 Before every release, we run engineering checks:
 
 - CodeQL static analysis, gitleaks secret scanning and semgrep security rules;
-- Dependabot CVE monitoring with a version cooldown, and the Dependency Review Action failing on HIGH and CRITICAL CVEs;
+- Dependency Review Action failing on HIGH and CRITICAL CVEs;
 - Trivy scans of the image on both architectures and of Dockerfiles;
 - GitHub Actions pinned to commit SHAs, least-privilege workflow permissions and periodic Codex Security audits from OpenAI;
 - integration tests against real database containers for every engine, and full backup-then-restore cycles before every release.

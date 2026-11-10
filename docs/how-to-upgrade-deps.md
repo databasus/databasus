@@ -53,11 +53,11 @@ This procedure covers dependencies from other projects. Treat images built from 
 | Packages, development tools and GitHub Actions | Seven complete days |
 | Container images, database clients and standalone verification extensions | Fourteen complete days |
 
-Use the longer period when several dependencies must be updated together. Ordinary Dependabot updates use the delays configured for them, called cooldowns. Unsolicited major-version proposals for npm and Go modules keep the longer thirty-day delay. Docker and GitHub Actions do not support separate cooldowns by version type, so all their version updates use the default fourteen-day and seven-day delays, respectively. Package managers' minimum-age settings help filter releases where supported.
+Use the longer period when several dependencies must be updated together. Package managers' minimum-age settings help filter releases where supported.
 
 **Check official publication dates yourself.** Age filters may not cover exact version selections, newly selected transitive dependencies or security updates. Review the lock-file changes for unexpected packages, publisher changes and installation scripts.
 
-Report missing dates, uncertain sources and any exception to the waiting period. Explain the reason for an exception. Do not invent dates or use an image's build timestamp as the publication date of its digest. A digest identifies exact image content; the content may have been built before it was published. Ordinary cooldown settings do not guarantee that security updates observe the same delay.
+Report missing dates, uncertain sources and any exception to the waiting period. Explain the reason for an exception. Do not invent dates or use an image's build timestamp as the publication date of its digest. A digest identifies exact image content; the content may have been built before it was published.
 
 Choose the newest patch release that has completed the waiting period within the agreed release line. A patch updates an existing line, such as a later `8.0.x` release. You make this choice; `mise run verify-deps` works offline and does not look up available releases.
 

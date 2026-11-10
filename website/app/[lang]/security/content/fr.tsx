@@ -389,17 +389,10 @@ export default function SecurityPage() {
               <h3 id="dependency-management">Gestion des dépendances</h3>
 
               <p>
-                Dependabot vérifie les écosystèmes de dépendances configurés à partir de la
-                GitHub Advisory Database. Sa couverture dépend de ces écosystèmes et des
-                avis disponibles ; elle n’inclut pas tous les composants externes.
-              </p>
-
-              <p>
                 Les mises à jour ordinaires attendent sept jours complets pour les paquets,
                 les outils de développement et les GitHub Actions. Le délai est de quatorze
                 jours pour les images, les clients de bases de données et les extensions de
-                vérification autonomes. Les propositions non sollicitées de changement de
-                version majeure attendent trente jours. Les responsables vérifient les dates
+                vérification autonomes. Les responsables vérifient les dates
                 de publication et la compatibilité, y compris pour les versions exactes et
                 les mises à jour de sécurité qui peuvent contourner les filtres
                 d’ancienneté. Toute exception est signalée avec son motif.

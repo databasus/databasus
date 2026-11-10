@@ -366,16 +366,9 @@ export default function SecurityPage() {
               <h3 id="dependency-management">Gerenciamento de dependências</h3>
 
               <p>
-                O Dependabot compara os ecossistemas de dependências configurados com a
-                GitHub Advisory Database. A cobertura depende desses ecossistemas e dos
-                avisos disponíveis; ela não inclui todos os componentes externos.
-              </p>
-
-              <p>
                 Atualizações comuns aguardam sete dias completos para pacotes, ferramentas
                 de desenvolvimento e GitHub Actions. Para imagens, clientes de banco de
                 dados e extensões de verificação independentes, o prazo é de quatorze dias.
-                Propostas não solicitadas de uma nova versão principal aguardam trinta dias.
                 Os responsáveis conferem datas de publicação e compatibilidade, incluindo
                 versões exatas e atualizações de segurança que podem escapar dos filtros de
                 idade. Toda exceção é informada com seu motivo.

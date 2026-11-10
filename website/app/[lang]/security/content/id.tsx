@@ -279,17 +279,9 @@ export default function SecurityPage() {
               <h3 id="dependency-management">Pengelolaan dependency</h3>
 
               <p>
-                Dependabot memeriksa ekosistem dependency yang dikonfigurasi dengan mengacu
-                pada GitHub Advisory Database. Cakupannya bergantung pada ekosistem tersebut
-                dan informasi kerentanan yang tersedia; tidak semua komponen eksternal
-                tercakup.
-              </p>
-
-              <p>
                 Pembaruan biasa menunggu tujuh hari penuh untuk paket, alat pengembangan,
                 dan GitHub Actions. Image, klien database, dan ekstensi verifikasi mandiri
-                menunggu empat belas hari. Usulan versi mayor baru yang tidak diminta
-                menunggu tiga puluh hari. Pengelola memeriksa tanggal publikasi dan
+                menunggu empat belas hari. Pengelola memeriksa tanggal publikasi dan
                 kompatibilitas, termasuk versi yang ditetapkan secara pasti dan pembaruan
                 keamanan yang bisa melewati filter umur rilis. Setiap pengecualian
                 dilaporkan beserta alasannya.
