@@ -16,6 +16,7 @@ const (
 	receiverRetryable                           // non-zero exit that a local respawn may fix (network)
 	receiverFatal                               // non-retryable exit — escalate so the supervisor reclaims it on a later tick
 	receiverResumeMismatch                      // asked for WAL the server no longer has — realign the resume point and retry
+	receiverIdentityMismatch
 )
 
 type receiverRunResult struct {
@@ -35,12 +36,16 @@ func (s *Streamer) spawnAndSupervise(ctx context.Context, logger *slog.Logger) r
 
 	source := pgphysical.NewSource(s.spec.SourceDB.Engine)
 	receiver := source.ReceiveWal(procCtx, pgphysical.WalReceiverSpec{
-		ClientTools: s.spec.ClientTools, Version: s.spec.SourceDB.Version,
+		ExpectedSystemIdentifier: s.getExpectedSystemIdentifier(),
+		ClientTools:              s.spec.ClientTools, Version: s.spec.SourceDB.Version,
 		ApplicationName: pgphysical.WalReceiverApplicationNamePrefix + s.spec.SourceDB.DatabaseID.String(),
 		WatchDir:        s.watchDir, SlotName: s.slotName, Clock: s.spec.Clock, Logger: logger,
-		OnStarted: func() { s.receiverRunStartedAtUnixNano.Store(s.spec.Clock.Now().UnixNano()) },
+		OnStarted: func() { s.recordVerifiedReceiverStarted(procCtx) },
 	})
 
+	if receiver.Disposition == pgphysical.WalReceiverIdentityMismatch {
+		return receiverRunResult{Exit: receiverIdentityMismatch, RanFor: receiver.RanFor, FatalErr: receiver.FatalErr}
+	}
 	if ctx.Err() != nil {
 		return receiverRunResult{Exit: receiverCtxCancelled, RanFor: receiver.RanFor}
 	}
@@ -51,7 +56,7 @@ func (s *Streamer) spawnAndSupervise(ctx context.Context, logger *slog.Logger) r
 	switch receiver.Disposition {
 	case pgphysical.WalReceiverStopped, pgphysical.WalReceiverRetryable:
 		return receiverRunResult{Exit: receiverRetryable, RanFor: receiver.RanFor}
-	case pgphysical.WalReceiverFatal:
+	case pgphysical.WalReceiverFatal, pgphysical.WalReceiverIdentityMismatch:
 		return receiverRunResult{Exit: receiverFatal, RanFor: receiver.RanFor, FatalErr: receiver.FatalErr}
 	case pgphysical.WalReceiverResumeMismatch:
 		return receiverRunResult{Exit: receiverResumeMismatch, RanFor: receiver.RanFor}

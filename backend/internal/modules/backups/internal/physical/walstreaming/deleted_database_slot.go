@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/uuid"
 
-	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	"databasus-backend/internal/modules/databases"
 )
 
@@ -16,9 +15,13 @@ type StreamedDatabases interface {
 }
 
 func (s *Streamer) createSlotUnlessDatabaseDeleted(ctx context.Context, logger *slog.Logger) error {
-	source := pgphysical.NewSource(s.spec.SourceDB.Engine)
+	inspection, err := s.openSourceInspection(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = inspection.Close(context.WithoutCancel(ctx)) }()
 
-	if err := source.VerifySlot(ctx, logger, s.spec.SourceDB.WalStreamSlotName); err != nil {
+	if err := inspection.EnsureSlot(ctx, logger, s.spec.SourceDB.WalStreamSlotName); err != nil {
 		return err
 	}
 
@@ -35,7 +38,7 @@ func (s *Streamer) createSlotUnlessDatabaseDeleted(ctx context.Context, logger *
 		return nil
 	}
 
-	if err := source.DropSlot(ctx, logger, s.spec.SourceDB.WalStreamSlotName); err != nil {
+	if err := inspection.DropSlot(ctx, logger, s.spec.SourceDB.WalStreamSlotName); err != nil {
 		return fmt.Errorf("drop the slot of a deleted database: %w", err)
 	}
 

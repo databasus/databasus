@@ -50,7 +50,6 @@ type Service struct {
 	streams              *walstreaming.Manager
 	health               *streamhealth.Service
 	cancellations        *background.CancellationRegistry
-	walStreamers         *catalog.WalStreamerRepository
 	logger               *slog.Logger
 	appCtx               context.Context
 }

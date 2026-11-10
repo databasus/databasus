@@ -21,6 +21,7 @@ type WalStreamer struct {
 	// it, so a streamer that never gets as far as its first sample still shows how
 	// long it has been failing.
 	FailingSince *time.Time `gorm:"column:failing_since"`
+	ErrorReason  *string    `gorm:"column:error_reason"`
 }
 
 func (WalStreamer) TableName() string {

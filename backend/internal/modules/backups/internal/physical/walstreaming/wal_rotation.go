@@ -107,7 +107,7 @@ func (s *Streamer) getCurrentWalLsnIfReachable(
 	ctx context.Context,
 	logger *slog.Logger,
 ) (currentLSN walmath.LSN, isSourceReachable bool) {
-	conn, err := pgphysical.NewSource(s.spec.SourceDB.Engine).OpenInspection(ctx)
+	conn, err := s.openSourceInspection(ctx)
 	if err != nil {
 		logger.DebugContext(ctx, "forced wal rotation: source unreachable this tick", slog.Any("error", err))
 
@@ -124,7 +124,7 @@ func (s *Streamer) getCurrentWalLsnIfReachable(
 }
 
 func (s *Streamer) forceWalRotation(ctx context.Context) (currentLSNAfterRotation walmath.LSN, err error) {
-	conn, err := pgphysical.NewSource(s.spec.SourceDB.Engine).OpenInspection(ctx)
+	conn, err := s.openSourceInspection(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("open conn for wal switch: %w", err)
 	}

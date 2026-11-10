@@ -1845,6 +1845,13 @@ export const fr: typeof en = {
             "À ce rythme, la base de données supprimera des modifications que Databasus n'a pas encore reçues dans environ {{duration}}.",
         },
         reasons: {
+          systemIdentifierMismatch: {
+            title: 'L’adresse mène à un autre cluster',
+            whatHappened:
+              'Databasus a arrêté de recevoir les modifications car l’adresse mène à un autre cluster PostgreSQL. Les sauvegardes existantes sont conservées.',
+            whatToDo:
+              'Rétablissez le routage vers le cluster d’origine. Databasus réessaie automatiquement et efface cette erreur après la reprise du flux vérifié.',
+          },
           streamingStopped: {
             title: "L'enregistrement s'est arrêté",
             whatHappened: 'Databasus a cessé de recevoir des modifications il y a {{duration}}.',

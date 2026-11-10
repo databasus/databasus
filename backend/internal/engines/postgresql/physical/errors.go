@@ -125,3 +125,20 @@ func truncateStderr(stderr []byte) string {
 	}
 	return string(stderr)
 }
+
+type SourceIdentityError struct {
+	ExpectedSystemIdentifier string
+	ActualSystemIdentifier   string
+}
+
+func (e *SourceIdentityError) Error() string {
+	return fmt.Sprintf(
+		"SYSTEM_IDENTIFIER_MISMATCH: expected cluster %s, connected to %s; restore routing to the original cluster to resume WAL streaming",
+		e.ExpectedSystemIdentifier,
+		e.ActualSystemIdentifier,
+	)
+}
+
+var ErrSourceIdentityMissing = errors.New(
+	"stored system identifier is missing; verify the original cluster before enabling WAL streaming",
+)

@@ -89,7 +89,7 @@ func TestWalStreamShutdown(t *testing.T) {
 		team.disable(t)
 		team.App.RunJobPass(t, "backups_physical_wal_stream_manager")
 		testwait.Until(t, "the statistics report a stopped streamer", func(context.Context) error {
-			if state := team.statistics(t).Streamer.State; state != "NOT_STARTED" {
+			if state := team.statistics(t).Streamer.State; state != "NOT_RUNNING" || team.live(t).IsStreamerRunning {
 				return fmt.Errorf("streamer state: %s", state)
 			}
 			return nil

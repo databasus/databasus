@@ -94,7 +94,7 @@ func (r *WalStreamerRepository) ClearFailingSince(ctx context.Context, claimID u
 	return database.Conn(ctx, r.db).
 		Model(&WalStreamer{}).
 		Where("claim_id = ?", claimID).
-		Where("failing_since IS NOT NULL").
+		Where("failing_since IS NOT NULL AND error_reason IS NULL").
 		Update("failing_since", nil).Error
 }
 
@@ -130,7 +130,20 @@ func (r *WalStreamerRepository) FindByDatabaseID(ctx context.Context, databaseID
 	return &row, true, nil
 }
 
-func (r *WalStreamerRepository) DeleteByDatabaseID(ctx context.Context, databaseID uuid.UUID) error {
+func (r *WalStreamerRepository) MarkIdentityMismatch(ctx context.Context, claimID uuid.UUID, now time.Time) error {
+	return database.Conn(ctx, r.db).Model(&WalStreamer{}).Where("claim_id = ?", claimID).Updates(map[string]any{
+		"status":        WalStreamerStatusFailed,
+		"error_reason":  "SYSTEM_IDENTIFIER_MISMATCH",
+		"failing_since": gorm.Expr("COALESCE(failing_since, ?)", now),
+	}).Error
+}
+
+func (r *WalStreamerRepository) MarkVerifiedStreaming(ctx context.Context, claimID uuid.UUID) error {
 	return database.Conn(ctx, r.db).
-		Delete(&WalStreamer{}, "database_id = ?", databaseID).Error
+		Model(&WalStreamer{}).
+		Where("claim_id = ? AND status = ?", claimID, WalStreamerStatusRunning).
+		Updates(map[string]any{
+			"error_reason": nil, "failing_since": nil,
+		}).
+		Error
 }

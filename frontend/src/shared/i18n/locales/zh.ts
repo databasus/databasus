@@ -1710,6 +1710,13 @@ export const zh: typeof en = {
             '按这个速度，大约 {{duration}}后数据库将删除 Databasus 尚未接收的变更。',
         },
         reasons: {
+          systemIdentifierMismatch: {
+            title: '地址指向了其他集群',
+            whatHappened:
+              'Databasus 已停止接收更改，因为该地址指向了其他 PostgreSQL 集群。现有备份会保留。',
+            whatToDo:
+              '请将路由恢复为原始集群。Databasus 会自动重试，并在经过验证的流恢复后清除此错误。',
+          },
           streamingStopped: {
             title: '保存已停止',
             whatHappened: 'Databasus 在 {{duration}}前停止接收变更。',

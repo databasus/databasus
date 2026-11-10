@@ -1836,6 +1836,13 @@ export const es: typeof en = {
             'A este ritmo, la base de datos eliminará cambios que Databasus aún no ha recibido en unos {{duration}}.',
         },
         reasons: {
+          systemIdentifierMismatch: {
+            title: 'La dirección lleva a otro clúster',
+            whatHappened:
+              'Databasus dejó de recibir cambios porque la dirección lleva a otro clúster PostgreSQL. Las copias existentes se conservan.',
+            whatToDo:
+              'Restablezca la ruta al clúster original. Databasus reintenta automáticamente y quita este error cuando se reanuda el flujo verificado.',
+          },
           streamingStopped: {
             title: 'El guardado se ha detenido',
             whatHappened: 'Databasus dejó de recibir cambios hace {{duration}}.',

@@ -30,7 +30,7 @@ func (s *Source) GetTimelineHistory(ctx context.Context, request TimelineHistory
 
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	connection, err := s.connectReplication(ctx)
+	connection, err := s.connectReplication(ctx, "")
 	if err != nil {
 		return TimelineHistory{}, fmt.Errorf("connect to obtain timeline history: %w", err)
 	}

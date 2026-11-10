@@ -16,6 +16,21 @@ func GetVerdict(input VerdictInput) Verdict {
 		return Verdict{Level: HealthLevelNotStreaming, Reasons: []Reason{}, Notices: []Notice{}}
 	}
 
+	if input.Streamer != nil && input.Streamer.ErrorReason != nil &&
+		*input.Streamer.ErrorReason == string(ReasonCodeSystemIdentifierMismatch) {
+		return Verdict{
+			Level: HealthLevelBroken,
+			Reasons: []Reason{
+				{
+					Code:  ReasonCodeSystemIdentifierMismatch,
+					Level: ReasonLevelBroken,
+					Since: input.Streamer.FailingSince,
+				},
+			},
+			Notices: []Notice{},
+		}
+	}
+
 	if isCollectingData(input) {
 		return Verdict{Level: HealthLevelCollectingData, Reasons: []Reason{}, Notices: []Notice{}}
 	}
