@@ -227,8 +227,7 @@ func (f *Forwarder) dialTarget() (net.Conn, error) {
 
 	// A refused or filtered target is the database's problem, not the transport's: the bastion
 	// answered. Discarding a healthy session here would re-authenticate on every connection.
-	var openChannelError *ssh.OpenChannelError
-	if errors.As(err, &openChannelError) {
+	if _, isOpenChannelError := errors.AsType[*ssh.OpenChannelError](err); isOpenChannelError {
 		return nil, fmt.Errorf("failed to reach the database through the SSH tunnel host: %w", err)
 	}
 

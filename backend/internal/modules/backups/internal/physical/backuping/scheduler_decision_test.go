@@ -127,7 +127,8 @@ func TestDecidePhysicalBackup(t *testing.T) {
 				state.extendableRootID = nil
 				state.recentFullBackups = append(
 					[]*catalog.Backup{{Status: catalog.BackupStatusError}},
-					state.recentFullBackups...)
+					state.recentFullBackups...,
+				)
 			},
 			expectedKind: catalog.BackupTypeFull,
 		},

@@ -1,4 +1,4 @@
-FROM alpine:3.21
+FROM docker.io/library/alpine:3.21@sha256:bc21487101ae47172509130ee1092cc273a831968d64b617776d1f69c81e42ab
 
 RUN apk add --no-cache openssh-server \
  && ssh-keygen -A \

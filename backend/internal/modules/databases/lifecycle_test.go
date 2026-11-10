@@ -142,7 +142,8 @@ func TestCreateDatabase(t *testing.T) {
 			}, otherDatabaseID)
 
 			response, err := tm.owner.Client.CreateDatabaseWithBodyWithResponse(
-				t.Context(), "application/json", bytes.NewReader(body))
+				t.Context(), "application/json", bytes.NewReader(body),
+			)
 
 			require.NoError(t, err)
 			require.Equal(t, http.StatusCreated, response.StatusCode(), string(response.Body))

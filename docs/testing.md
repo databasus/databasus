@@ -192,7 +192,7 @@ The release workflow defines shared artifact-transfer and backend-preparation st
 - Browser end-to-end, filesystem and upgrade tests consume an architecture-specific candidate built from the same commit. Image tags, compressed archives and transport artifacts include the architecture. Before running scenarios, CI checks the actual host, Docker engine and candidate architectures. Matrix configuration and local amd64 results do not establish native ARM runtime success; hosted ARM results supply that evidence.
 - Podman and network-filesystem checks use full GitHub VMs on both architectures. Other backend groups use Ubuntu 22 Namespace profiles for MongoDB kernel compatibility. Network coverage includes CIFS and kernel NFS with `root_squash`; the NFS fixture builds natively from a pinned multi-architecture Debian image and removes only its run's resources. Local fixture-configuration checks do not prove mounted-filesystem behavior.
 - CI runs backend tests with `-race`, and a data race fails the test. Local runs leave it out, because it makes them several times slower. To reproduce a race, add `-race` to the command that repeats the test.
-- The shared `lint-python.yml` workflow checks Python before release version selection and before either dev-image architecture is published. Both publication workflows require its success.
+- The shared `lint-python.yml` workflow checks Python before release version selection and before either dev-image architecture is published. Both publication workflows require its success. The same shared job also runs `mise run verify-deps` for known local dependency pins, coordinated versions and vendored-client hashes; it does not establish publication age or replace native frozen installation.
 
 ### Python quality checks
 

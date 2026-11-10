@@ -106,7 +106,8 @@ func TestPhysicalBackupsMigration(t *testing.T) {
 					t,
 					db,
 					"INSERT INTO "+table+" (id, database_id, storage_id, timeline_id, status"+columns+") VALUES (?, ?, ?, 1, 'COMPLETED'"+values+")",
-					arguments...)
+					arguments...,
+				)
 				execute(
 					t,
 					db,

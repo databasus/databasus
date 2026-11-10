@@ -162,7 +162,8 @@ func (m *Manager) Spawn(jobCtx context.Context, req SpawnRequest) (*PostgresCont
 	labels := attemptLabels(m.agentID, req.VerificationID.String())
 
 	networkID, err := prepareAttemptNetwork(
-		jobCtx, m.engine, "databasus-verif-"+req.VerificationID.String(), labels)
+		jobCtx, m.engine, "databasus-verif-"+req.VerificationID.String(), labels,
+	)
 	if err != nil {
 		return nil, err
 	}

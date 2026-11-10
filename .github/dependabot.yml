@@ -11,7 +11,7 @@ updates:
       default-days: 7
       semver-major-days: 30
       semver-minor-days: 7
-      semver-patch-days: 3
+      semver-patch-days: 7
     groups:
       frontend-minor-and-patch:
         update-types: ["minor", "patch"]
@@ -29,7 +29,7 @@ updates:
       default-days: 7
       semver-major-days: 30
       semver-minor-days: 7
-      semver-patch-days: 3
+      semver-patch-days: 7
     groups:
       backend-minor-and-patch:
         update-types: ["minor", "patch"]
@@ -45,9 +45,6 @@ updates:
     open-pull-requests-limit: 5
     cooldown:
       default-days: 14
-      semver-major-days: 30
-      semver-minor-days: 14
-      semver-patch-days: 7
     labels: ["dependencies", "docker"]
     commit-message:
       prefix: "REFACTOR (deps)"
@@ -60,9 +57,6 @@ updates:
     open-pull-requests-limit: 5
     cooldown:
       default-days: 7
-      semver-major-days: 30
-      semver-minor-days: 7
-      semver-patch-days: 3
     groups:
       actions-minor-and-patch:
         update-types: ["minor", "patch"]

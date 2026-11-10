@@ -341,118 +341,131 @@ export default function SecurityPage() {
               </h2>
 
               <p>
-                Databasus trabaja con datos sensibles, así que prevenir
-                vulnerabilidades, accesos no autorizados y fugas de datos es
-                una preocupación primordial. Invertimos en ello en ambos lados
-                del sistema: en el propio código (comprobaciones de permisos,
-                cifrado, manejo cuidadoso de los secretos) y en la
-                infraestructura que lo rodea (análisis de dependencias,
-                respuesta a CVE, prácticas DevSecOps). La canalización que se
-                describe a continuación se ejecuta automáticamente antes de
-                cada versión: ninguna capa basta por sí sola, pero juntas
-                reducen la probabilidad de que código vulnerable, dependencias
-                inseguras, imágenes rotas o copias no restaurables lleguen a
-                una versión publicada.
+                Databasus maneja datos sensibles. Antes de cada versión, las comprobaciones
+                automáticas buscan problemas de seguridad y verifican que las copias se
+                puedan restaurar. Estas comprobaciones reducen el riesgo, pero no garantizan
+                la ausencia de vulnerabilidades.
               </p>
 
               <h3 id="static-analysis">Análisis estático</h3>
 
               <p>
-                El análisis estático se ejecuta en varias pasadas
-                independientes. CodeQL escanea todo el código en busca de
-                problemas de seguridad. Antes de cada versión, <strong>gitleaks</strong> busca
-                secretos filtrados y <strong>semgrep</strong> revisa el código con
-                reglas de seguridad. Los
-                Dockerfiles y los flujos de CI tienen reglas adicionales propias
-                (referencias de acciones fijadas, permisos de mínimo privilegio,
-                imágenes base sospechosas), de modo que los patrones inseguros
-                se señalan antes de publicar una versión.
+                CodeQL analiza Go, JavaScript/TypeScript y los flujos de GitHub Actions.
+                gitleaks busca secretos expuestos en el historial de Git de la versión.
+                semgrep comprueba el código fuente, los Dockerfiles y los flujos de CI con
+                reglas de seguridad. Estos análisis se ejecutan antes de cada versión y
+                semanalmente.
               </p>
 
               <p>
-                Además de estas comprobaciones previas a la publicación,{" "}
-                <strong>Codex Security</strong> de OpenAI realiza auditorías
-                periódicas y más profundas de todo el código. Es un programa
-                aparte que detecta problemas arquitectónicos y transversales que
-                los escaneos automáticos más limitados pasan por alto.
+                Los hallazgos de CodeQL de nivel <strong>CRITICAL</strong> abiertos en el
+                análisis de la versión bloquean su publicación. Los de nivel{" "}
+                <strong>HIGH</strong> generan advertencias.
+              </p>
+
+              <p>
+                Codex Security de OpenAI también realiza auditorías periódicas más
+                profundas. Pueden detectar problemas de arquitectura que los análisis más
+                específicos pasen por alto. Se realizan por separado de las comprobaciones
+                automáticas de publicación.
               </p>
 
               <h3 id="dependency-management">Gestión de dependencias</h3>
 
               <p>
-                Dependabot vigila todas nuestras dependencias contra la GitHub
-                Advisory Database y detecta los CVE a los pocos minutos de su
-                publicación. Las actualizaciones pasan por un periodo de espera
-                para que las versiones recién publicadas maduren antes de
-                adoptarlas, una defensa deliberada contra incidentes de paquetes
-                comprometidos como los ataques a la cadena de suministro.
+                Dependabot contrasta los ecosistemas de dependencias configurados con la
+                GitHub Advisory Database. Su cobertura depende de esos ecosistemas y de los
+                avisos disponibles; no abarca todos los componentes externos.
               </p>
 
               <p>
-                La <strong>Dependency Review Action</strong> bloquea una versión que introduzca un CVE nuevo de
-                nivel{" "}
-                <strong>HIGH</strong> o <strong>CRITICAL</strong>.
+                Las actualizaciones ordinarias esperan siete días completos para paquetes,
+                herramientas de desarrollo y GitHub Actions. El plazo es de catorce días
+                para imágenes, clientes de bases de datos y extensiones de verificación
+                independientes. Las propuestas no solicitadas de una nueva versión principal
+                esperan treinta días. Los responsables revisan las fechas de publicación y
+                la compatibilidad, incluidas las versiones exactas y las actualizaciones de
+                seguridad que pueden saltarse los filtros de antigüedad. Toda excepción se
+                comunica con su motivo.
               </p>
 
-              <h3 id="container-and-ci-hardening">
-                Endurecimiento de contenedores y CI
-              </h3>
+              <p>
+                Dependency Review Action compara la versión candidata con la anterior y
+                bloquea las nuevas vulnerabilidades de nivel <strong>HIGH</strong> o{" "}
+                <strong>CRITICAL</strong>. govulncheck bloquea la comprobación de Go cuando
+                nuestro código puede llamar a una función con una vulnerabilidad conocida.
+                El comando <code>go mod verify</code> contrasta los módulos Go descargados
+                con sus sumas de verificación registradas.
+              </p>
+
+              <p>
+                Antes de publicar una versión o imágenes de desarrollo,{" "}
+                <code>mise run verify-deps</code> comprueba las versiones fijas de
+                herramientas, imágenes y GitHub Actions. También verifica que las versiones
+                relacionadas de los entornos de ejecución coincidan y comprueba los hashes y
+                permisos de ejecución de los clientes de bases de datos incluidos en el
+                repositorio. Estas comprobaciones cubren una lista definida de declaraciones
+                y archivos locales. Los gestores de paquetes verifican por separado las
+                versiones de los archivos de bloqueo y las sumas de verificación de los
+                paquetes descargados.
+              </p>
+
+              <p>
+                La comprobación local de dependencias no certifica la seguridad del código
+                de terceros ni impone una antigüedad mínima a cada dependencia. La selección
+                y revisión de versiones siguen siendo responsabilidad de los responsables
+                del proyecto.
+              </p>
+
+              <h3 id="container-and-ci-hardening">Seguridad de contenedores y CI</h3>
 
               <ul>
                 <li>
-                  La imagen de la aplicación se escanea con <strong>Trivy</strong> en
-                  ambas arquitecturas antes de cada versión.
+                  Trivy analiza la imagen de la aplicación en amd64 y arm64. Las
+                  vulnerabilidades <strong>CRITICAL</strong> con una corrección disponible
+                  hacen fallar la comprobación. Las de nivel <strong>HIGH</strong> con
+                  corrección se notifican sin bloquearla. Las vulnerabilidades sin corrección
+                  se excluyen de esta comprobación.
                 </li>
                 <li>
-                  Una pasada aparte de Trivy sobre el Dockerfile detecta
-                  configuraciones incorrectas antes de que lleguen a una imagen.
+                  Un análisis de configuración independiente de Trivy bloquea hallazgos{" "}
+                  <strong>HIGH</strong> y <strong>CRITICAL</strong> en los Dockerfiles de la
+                  aplicación, del agente de verificación y de determinadas imágenes de prueba.
                 </li>
                 <li>
-                  Todas las GitHub Actions están fijadas a SHA de commit
-                  completos en lugar de etiquetas flotantes como{" "}
-                  <code>@v4</code> o <code>@main</code>, que han sido un vector
-                  de ataque activo en 2025.
+                  Las GitHub Actions de terceros se fijan a SHA completos de commit. Así,
+                  cambiar un tag no puede sustituir silenciosamente el código de la acción
+                  ejecutada.
                 </li>
                 <li>
-                  Los flujos de trabajo usan por defecto permisos de mínimo
-                  privilegio y solo los elevan por trabajo cuando es realmente
-                  necesario.
+                  Los flujos tienen acceso de solo lectura al repositorio por defecto. Cada
+                  tarea recibe permisos adicionales únicamente cuando los necesita.
                 </li>
               </ul>
 
               <h3 id="testing-and-verification">Pruebas y verificación</h3>
 
               <p>
-                Las rutas críticas están cubiertas por pruebas unitarias y de
-                integración, ejecutadas contra contenedores de bases de datos
-                reales para cada motor y versión mayor compatibles.
+                Las pruebas unitarias y de integración cubren el comportamiento crítico.
+                Antes de cada versión, se ejecutan ciclos completos de copia de seguridad y
+                restauración en contenedores reales para cada motor y versión principal
+                compatibles. Verifican que los datos se puedan restaurar, no solo que se
+                haya creado un archivo.
               </p>
 
               <p>
-                La restauración es la ruta que más importa en una herramienta
-                de respaldo, así que la probamos explícitamente: antes de cada
-                versión, ejecutamos ciclos completos de copia y restauración
-                contra esos mismos contenedores reales, verificando que las
-                copias realmente pueden restaurarse de extremo a extremo, no
-                solo escribirse con éxito.
+                Las comprobaciones también incluyen análisis de estilo, comprobación de
+                tipos, pruebas en navegador, pruebas básicas de imágenes y compilaciones y
+                pruebas nativas en amd64 y arm64. La publicación espera a que pasen todas
+                las tareas obligatorias, incluidas las comprobaciones de seguridad descritas
+                arriba.
               </p>
 
-              <p>
-                El resto de la canalización de CI/CD ejecuta lint,
-                comprobación de tipos, la suite de pruebas completa, pruebas
-                de humo de las imágenes y builds multiarquitectura antes de
-                cada versión. Una versión se publica solo cuando todo esto y
-                los escaneos de seguridad pasan y no queda ninguna alerta
-                crítica de CodeQL abierta.
-              </p>
-
-              <h3 id="reporting-a-vulnerability">
-                Informar de una vulnerabilidad
-              </h3>
+              <h3 id="reporting-a-vulnerability">Cómo comunicar una vulnerabilidad</h3>
 
               <p>
-                ¿Ha encontrado una vulnerabilidad? Infórmela a través de la
-                pestaña Security de GitHub; consulte{" "}
+                Comunique las vulnerabilidades de forma privada mediante las opciones de
+                contacto de{" "}
                 <a
                   href="https://github.com/databasus/databasus?tab=security-ov-file#readme"
                   target="_blank"
@@ -460,7 +473,7 @@ export default function SecurityPage() {
                 >
                   SECURITY.md
                 </a>
-                . Los informes de seguridad se atienden con la máxima prioridad.
+                . No abra un issue público. Los informes de seguridad tienen prioridad.
               </p>
             </article>
           </div>

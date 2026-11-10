@@ -191,8 +191,7 @@ func (r *Runner) downloadBackupIntoContainer(
 			return nil
 		}
 
-		var respErr *api.ResponseError
-		if errors.As(err, &respErr) {
+		if respErr, isResponseError := errors.AsType[*api.ResponseError](err); isResponseError {
 			if respErr.IsGone() {
 				logger.InfoContext(jobCtx, "backup stream gone (410); dropping without report")
 

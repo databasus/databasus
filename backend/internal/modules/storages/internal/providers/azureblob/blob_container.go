@@ -191,8 +191,7 @@ func (c *blobContainer) openFile(ctx context.Context, logger *slog.Logger, fileN
 }
 
 func isRetryableAzureError(err error) bool {
-	var responseError *azcore.ResponseError
-	if errors.As(err, &responseError) {
+	if responseError, isResponseError := errors.AsType[*azcore.ResponseError](err); isResponseError {
 		return responseError.StatusCode == http.StatusRequestTimeout ||
 			responseError.StatusCode == http.StatusTooManyRequests ||
 			responseError.StatusCode >= http.StatusInternalServerError
@@ -407,11 +406,9 @@ func (c *blobContainer) getClient() (*azblob.Client, error) {
 
 func (c *blobContainer) buildClientOptions() *azblob.ClientOptions {
 	return &azblob.ClientOptions{
-		ClientOptions: azcore.ClientOptions{
-			Transport: c.provider.httpClient,
-			Retry: policy.RetryOptions{
-				MaxRetries: 0,
-			},
+		Transport: c.provider.httpClient,
+		Retry: policy.RetryOptions{
+			MaxRetries: 0,
 		},
 	}
 }

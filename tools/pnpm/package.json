@@ -1,0 +1,8 @@
+{
+  "name": "databasus-pnpm-bootstrap",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "pnpm": "12.17.0"
+  }
+}

@@ -1,11 +1,15 @@
 # ========= BUILD FRONTEND =========
-FROM --platform=$BUILDPLATFORM node:24.21.0-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS frontend-build
+FROM --platform=$BUILDPLATFORM docker.io/library/node:24.21.0-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS frontend-build
 
 WORKDIR /frontend
 
-COPY frontend/package.json frontend/pnpm-lock.yaml ./
+COPY tools/pnpm/package.json tools/pnpm/package-lock.json /opt/pnpm/
+RUN npm --prefix /opt/pnpm ci --ignore-scripts --no-audit --no-fund \
+    && node /opt/pnpm/node_modules/pnpm/install.js
+ENV PATH="/opt/pnpm/node_modules/.bin:${PATH}"
+COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
 RUN --mount=type=cache,target=/pnpm/store \
-  corepack enable && pnpm install --frozen-lockfile --store-dir /pnpm/store
+  pnpm install --frozen-lockfile --ignore-scripts --store-dir /pnpm/store
 COPY frontend/ ./
 
 # APP_VERSION changes with every commit and invalidates the build cache of every
@@ -16,14 +20,10 @@ RUN pnpm build
 
 # ========= BUILD BACKEND =========
 # Backend build stage
-FROM --platform=$BUILDPLATFORM golang:1.26.10@sha256:670bb5aa5349ae03b8516764718486f4f16399134bdc9acd0c46a23f043ab05c AS backend-build
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.27.3@sha256:e519d3b0a5b285e5aa53ab9eef02bc6bbb9cb04608389b743a136a9ce75f0d1e AS backend-build
 
 # Set working directory
 WORKDIR /app
-
-# Install Go dependencies
-COPY backend/go.mod backend/go.sum ./
-RUN go mod download
 
 # Create required directories for embedding
 RUN mkdir -p /app/ui/build
@@ -34,37 +34,41 @@ COPY --from=frontend-build /frontend/dist /app/ui/build
 # Copy the backend sources
 COPY backend/ ./
 
+RUN --mount=type=cache,target=/go/pkg/mod go mod tidy -diff
+
 # Compile the backend
 ARG TARGETOS
 ARG TARGETARCH
 ARG TARGETVARIANT
 RUN --mount=type=cache,target=/root/.cache/go-build \
+  --mount=type=cache,target=/go/pkg/mod \
   CGO_ENABLED=0 \
   GOOS=$TARGETOS \
   GOARCH=$TARGETARCH \
-  go build -o /app/main ./cmd/databasus
+  go build -mod=readonly -o /app/main ./cmd/databasus
 
 
 # ========= BUILD VERIFICATION AGENT =========
-FROM --platform=$BUILDPLATFORM golang:1.26.10@sha256:670bb5aa5349ae03b8516764718486f4f16399134bdc9acd0c46a23f043ab05c AS verification-agent-build
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.27.3@sha256:e519d3b0a5b285e5aa53ab9eef02bc6bbb9cb04608389b743a136a9ce75f0d1e AS verification-agent-build
 
 WORKDIR /app
 
-COPY backend/go.mod backend/go.sum ./
-RUN go mod download
-
 COPY backend/ ./
+
+RUN --mount=type=cache,target=/go/pkg/mod go mod tidy -diff
 
 ARG APP_VERSION=dev
 
 RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go build -ldflags "-X main.Version=${APP_VERSION}" \
+    go build -mod=readonly -ldflags "-X main.Version=${APP_VERSION}" \
     -o /verification-agent-binaries/databasus-verification-agent-linux-amd64 ./cmd/verification-agent
 
 RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=linux GOARCH=arm64 \
-    go build -ldflags "-X main.Version=${APP_VERSION}" \
+    go build -mod=readonly -ldflags "-X main.Version=${APP_VERSION}" \
     -o /verification-agent-binaries/databasus-verification-agent-linux-arm64 ./cmd/verification-agent
 
 
@@ -75,7 +79,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 #   - Anything pulled in for a single build step is purged within the same layer.
 #   - We keep this tight because every extra binary widens the attack surface and
 #     adds another CVE to track.
-FROM debian:bookworm-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3
+FROM docker.io/library/debian:bookworm-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3
 
 ARG TARGETARCH
 ENV CONTAINER_ARCH=$TARGETARCH

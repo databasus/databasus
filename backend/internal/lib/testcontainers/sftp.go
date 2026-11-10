@@ -52,12 +52,10 @@ func StartSftpWithCredentials(t *testing.T, credentials SftpCredentials) Contain
 	t.Helper()
 
 	req := testcontainers.ContainerRequest{
-		FromDockerfile: testcontainers.FromDockerfile{
-			Context:   getFixtureDirectory(t, "sftp"),
-			Repo:      "databasus-test-sftp",
-			Tag:       "latest",
-			KeepImage: true,
-		},
+		Context:      getFixtureDirectory(t, "sftp"),
+		Repo:         "databasus-test-sftp",
+		Tag:          "latest",
+		KeepImage:    true,
 		ExposedPorts: []string{sftpPort},
 		Env:          map[string]string{"SFTP_PASSWORD": credentials.Password},
 		WaitingFor:   sftpReady(),

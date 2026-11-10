@@ -61,7 +61,8 @@ func TestStageBackupViaExec(t *testing.T) {
 		r := NewRestorer(slog.New(slog.DiscardHandler))
 
 		err := r.StageBackupViaExec(
-			t.Context(), exec, strings.NewReader("ARCHIVE BYTES"), "/restore/x.dump")
+			t.Context(), exec, strings.NewReader("ARCHIVE BYTES"), "/restore/x.dump",
+		)
 
 		require.NoError(t, err)
 		require.Len(t, exec.recorded, 1)

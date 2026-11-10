@@ -13,7 +13,7 @@ class DevelopmentCommandsTest(unittest.TestCase):
         self.assertNotIn("backend:test-package", mise_config)
         self.assertFalse((ROOT / "mise-tasks/backend/test-group").exists())
 
-    def test_only_the_eight_user_commands_are_visible_from_every_module(self) -> None:
+    def test_only_the_supported_user_commands_are_visible_from_every_module(self) -> None:
         user_commands = {
             "run",
             "test",
@@ -23,6 +23,7 @@ class DevelopmentCommandsTest(unittest.TestCase):
             "doctor",
             "review",
             "generate-api",
+            "verify-deps",
         }
         removed_commands = {
             "dev",

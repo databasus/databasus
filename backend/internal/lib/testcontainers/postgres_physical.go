@@ -388,19 +388,17 @@ func StartPhysicalRestoreTarget(t *testing.T, image string) RestoreTarget {
 	dockerfile := fmt.Sprintf(
 		"FROM %s\nRUN apt-get update && apt-get install -y --no-install-recommends zstd "+
 			"&& rm -rf /var/lib/apt/lists/*\n",
-		image,
+		GetPinnedImage(t, image),
 	)
 	if err := os.WriteFile(filepath.Join(contextDir, "Dockerfile"), []byte(dockerfile), 0o600); err != nil {
 		t.Fatalf("failed to write restore-target Dockerfile: %v", err)
 	}
 
 	req := testcontainers.ContainerRequest{
-		FromDockerfile: testcontainers.FromDockerfile{
-			Context:   contextDir,
-			Repo:      "databasus-test-postgres-restore-target",
-			Tag:       restoreTargetTag(image),
-			KeepImage: true,
-		},
+		Context:      contextDir,
+		Repo:         "databasus-test-postgres-restore-target",
+		Tag:          restoreTargetTag(image),
+		KeepImage:    true,
 		ExposedPorts: []string{postgresPort},
 		Entrypoint:   []string{"sleep", "infinity"},
 		Tmpfs:        map[string]string{"/restore": physicalDataDirTmpfsOptions},

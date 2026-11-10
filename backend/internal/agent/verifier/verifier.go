@@ -99,7 +99,8 @@ func (v *Verifier) collectTableStats(
 	dbSizeBytes int64,
 ) []TableStat {
 	analyzeCtx, cancel := context.WithTimeout(
-		ctx, computeAnalyzeTimeout(dbSizeBytes, v.analyzeTimeoutMax))
+		ctx, computeAnalyzeTimeout(dbSizeBytes, v.analyzeTimeoutMax),
+	)
 	defer cancel()
 
 	if _, err := pgConn.Exec(analyzeCtx, "ANALYZE"); err != nil {

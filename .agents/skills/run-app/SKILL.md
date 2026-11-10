@@ -7,7 +7,7 @@ description: Start, reuse and stop the local Databasus app, and check its pages 
 
 The browser server is registered for Claude Code and Codex as `chrome-devtools`. It opens a fresh browser profile in every session, so sign in at the start of each one. Whether the browser is headless or visible is the developer's choice in `.env`; leave `BROWSER_HEADLESS` as it is.
 
-The ports to check and open are the ones the `links` process prints in [`process-compose.yaml`](../../../process-compose.yaml). The account, the seeded databases and their sources are listed in the package comment of the [seed command](../../../backend/cmd/seed_dev/doc.go).
+The backend and frontend ports to check and open are the ones the `links` process prints in [`process-compose.yaml`](../../../process-compose.yaml). It also prints the website address. The account, the seeded databases and their sources are listed in the package comment of the [seed command](../../../backend/cmd/seed_dev/doc.go).
 
 ## Before opening a page
 
@@ -26,4 +26,4 @@ Check both ports first, and act on what you find:
 
 ## When you are done
 
-Stop a run you started yourself before handing the task over. Send SIGINT to the `process-compose` process whose working directory is your worktree root, wait for it to exit, and confirm that both ports are free. A run killed with SIGKILL leaves processes and containers behind, so never use it. If a port stays held, tell the user which one.
+Stop a run you started yourself before handing the task over. Send SIGINT to the `process-compose` process whose working directory is your worktree root, wait for it to exit, and confirm that the ports of all processes started by that run are free. A run killed with SIGKILL leaves processes and containers behind, so never use it. If a port stays held, tell the user which one.

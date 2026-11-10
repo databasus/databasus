@@ -357,119 +357,130 @@ export default function SecurityPage() {
               </h2>
 
               <p>
-                Databasus manipule des données sensibles, donc la prévention
-                des vulnérabilités, des accès non autorisés et des fuites de
-                données est une préoccupation de premier plan. Nous y
-                investissons des deux côtés du système : dans le code lui-même
-                (contrôles de permissions, chiffrement, gestion soigneuse des
-                secrets) et dans l&apos;infrastructure qui l&apos;entoure
-                (analyse des dépendances, réponse aux CVE, pratiques
-                DevSecOps). Le pipeline ci-dessous s&apos;exécute
-                automatiquement avant chaque release. Aucune couche ne suffit
-                à elle seule, mais ensemble elles réduisent le risque
-                qu&apos;un code vulnérable, des dépendances dangereuses, des
-                images cassées ou des backups non restaurables atteignent une
-                release.
+                Databasus traite des données sensibles. Avant chaque version, des contrôles
+                automatiques recherchent les problèmes de sécurité et vérifient que les
+                sauvegardes peuvent être restaurées. Ils réduisent les risques, mais ne
+                garantissent pas l’absence de vulnérabilités.
               </p>
 
               <h3 id="static-analysis">Analyse statique</h3>
 
               <p>
-                L&apos;analyse statique s&apos;exécute en plusieurs passes
-                indépendantes. CodeQL analyse l&apos;ensemble du code à la
-                recherche de problèmes de sécurité. Avant chaque release,{" "}
-                <strong>gitleaks</strong> recherche les secrets divulgués et{" "}
-                <strong>semgrep</strong> vérifie le code selon des règles de
-                sécurité. Les Dockerfiles et les workflows CI
-                ont leurs propres règles supplémentaires (références
-                d&apos;actions épinglées, permissions de moindre privilège,
-                images de base suspectes), si bien que les schémas non sûrs sont
-                signalés avant une release.
+                CodeQL analyse Go, JavaScript/TypeScript et les workflows GitHub Actions.
+                gitleaks recherche les secrets exposés dans l’historique Git de la version.
+                semgrep vérifie le code source, les Dockerfiles et les workflows CI à l’aide
+                de règles de sécurité. Ces analyses sont exécutées avant chaque version et
+                chaque semaine.
               </p>
 
               <p>
-                En plus de ces contrôles avant release, <strong>Codex Security</strong>{" "}
-                d&apos;OpenAI effectue des audits réguliers et plus approfondis
-                de tout le code. C&apos;est un programme distinct qui détecte
-                les problèmes architecturaux et transverses que les analyses automatiques plus ciblées laissent passer.
+                Les alertes CodeQL de niveau <strong>CRITICAL</strong> ouvertes dans
+                l’analyse de la version bloquent sa publication. Les alertes{" "}
+                <strong>HIGH</strong> génèrent des avertissements.
+              </p>
+
+              <p>
+                Codex Security d’OpenAI réalise aussi des audits réguliers plus approfondis.
+                Ils peuvent révéler des problèmes d’architecture que des analyses plus
+                ciblées risquent de manquer. Ces audits sont distincts des contrôles
+                automatiques de publication.
               </p>
 
               <h3 id="dependency-management">Gestion des dépendances</h3>
 
               <p>
-                Dependabot surveille toutes nos dépendances par rapport à la
-                GitHub Advisory Database et fait remonter les CVE quelques
-                minutes après leur publication. Les mises à jour sont appliquées
-                avec un délai, pour laisser aux versions fraîchement publiées le
-                temps de mûrir avant que nous les adoptions : une défense
-                délibérée contre les attaques de la chaîne
-                d&apos;approvisionnement, comme les paquets compromis.
+                Dependabot vérifie les écosystèmes de dépendances configurés à partir de la
+                GitHub Advisory Database. Sa couverture dépend de ces écosystèmes et des
+                avis disponibles ; elle n’inclut pas tous les composants externes.
               </p>
 
               <p>
-                La <strong>Dependency Review Action</strong> bloque une release qui introduit une nouvelle CVE{" "}
-                <strong>HIGH</strong> ou <strong>CRITICAL</strong>.
+                Les mises à jour ordinaires attendent sept jours complets pour les paquets,
+                les outils de développement et les GitHub Actions. Le délai est de quatorze
+                jours pour les images, les clients de bases de données et les extensions de
+                vérification autonomes. Les propositions non sollicitées de changement de
+                version majeure attendent trente jours. Les responsables vérifient les dates
+                de publication et la compatibilité, y compris pour les versions exactes et
+                les mises à jour de sécurité qui peuvent contourner les filtres
+                d’ancienneté. Toute exception est signalée avec son motif.
               </p>
 
-              <h3 id="container-and-ci-hardening">
-                Durcissement des conteneurs et de la CI
-              </h3>
+              <p>
+                Dependency Review Action compare la version candidate à la précédente et
+                bloque les nouvelles vulnérabilités <strong>HIGH</strong> ou{" "}
+                <strong>CRITICAL</strong>. govulncheck fait échouer le contrôle Go si notre
+                code peut appeler une fonction ayant une vulnérabilité connue. La commande{" "}
+                <code>go mod verify</code> compare les modules Go téléchargés aux sommes de
+                contrôle enregistrées.
+              </p>
+
+              <p>
+                Avant la publication d’une version ou d’images de développement,{" "}
+                <code>mise run verify-deps</code> vérifie les versions fixes des outils,
+                images et GitHub Actions. Il contrôle aussi la cohérence des versions
+                associées des environnements d’exécution, ainsi que les empreintes et les
+                droits d’exécution des clients de bases de données inclus dans le dépôt. Ces
+                vérifications couvrent une liste définie de déclarations et de fichiers
+                locaux. Les gestionnaires de paquets vérifient séparément les versions
+                verrouillées et les sommes de contrôle des paquets téléchargés.
+              </p>
+
+              <p>
+                Le contrôle local des dépendances ne certifie pas la sécurité du code tiers
+                et n’impose pas un délai minimal après publication à chaque dépendance. Le
+                choix et la revue des versions restent à la charge des responsables du
+                projet.
+              </p>
+
+              <h3 id="container-and-ci-hardening">Sécurité des conteneurs et de la CI</h3>
 
               <ul>
                 <li>
-                  L&apos;image de l&apos;application est analysée avec <strong>Trivy</strong> sur
-                  les deux architectures avant chaque release.
+                  Trivy analyse l’image de l’application sur amd64 et arm64. Les
+                  vulnérabilités <strong>CRITICAL</strong> disposant d’un correctif font
+                  échouer le contrôle. Les vulnérabilités <strong>HIGH</strong> avec correctif
+                  sont signalées sans le bloquer. Les vulnérabilités sans correctif sont
+                  exclues de ce contrôle.
                 </li>
                 <li>
-                  Une passe Trivy distincte sur le Dockerfile détecte les
-                  erreurs de configuration avant qu&apos;elles n&apos;arrivent
-                  dans une image.
+                  Une analyse de configuration Trivy distincte bloque les problèmes{" "}
+                  <strong>HIGH</strong> et <strong>CRITICAL</strong> dans les Dockerfiles de
+                  l’application, de l’agent de vérification et de certaines images de test.
                 </li>
                 <li>
-                  Toutes les GitHub Actions sont épinglées sur des SHA de commit
-                  complets plutôt que sur des tags flottants comme{" "}
-                  <code>@v4</code> ou <code>@main</code>, qui ont été un vecteur
-                  d&apos;attaque actif en 2025.
+                  Les GitHub Actions tierces sont fixées à des SHA de commit complets.
+                  Déplacer un tag ne peut donc pas modifier discrètement le code de l’action
+                  exécutée.
                 </li>
                 <li>
-                  Les workflows utilisent par défaut des permissions de moindre
-                  privilège et ne les élèvent par job que lorsque c&apos;est
-                  réellement nécessaire.
+                  Les workflows n’ont par défaut qu’un accès en lecture au dépôt. Chaque tâche
+                  reçoit des droits supplémentaires uniquement si nécessaire.
                 </li>
               </ul>
 
               <h3 id="testing-and-verification">Tests et vérification</h3>
 
               <p>
-                Les chemins critiques sont couverts par des tests unitaires et
-                d&apos;intégration, exécutés contre de vrais conteneurs de bases
-                de données pour chaque moteur et version majeure pris en charge.
+                Des tests unitaires et d’intégration couvrent les comportements critiques.
+                Avant chaque version, des cycles complets de sauvegarde et de restauration
+                sont exécutés dans de vrais conteneurs, pour chaque moteur et version
+                majeure pris en charge. Ils vérifient la restauration des données, pas
+                seulement la création d’un fichier de sauvegarde.
               </p>
 
               <p>
-                La restauration est le chemin qui compte le plus pour un outil
-                de sauvegarde, donc nous la testons explicitement : avant
-                chaque release, nous exécutons des cycles complets de
-                sauvegarde puis restauration contre ces mêmes conteneurs
-                réels, en vérifiant que les backups peuvent réellement être
-                restaurés de bout en bout, et pas seulement écrits avec
-                succès.
-              </p>
-
-              <p>
-                Le reste du pipeline CI/CD exécute le lint, la vérification de
-                types, la suite de tests complète, des smoke tests
-                d&apos;image et des builds multi-architecture avant chaque
-                release. Une release ne sort qu&apos;une fois tout cela et les
-                analyses de sécurité passés, sans alerte critique CodeQL
-                ouverte.
+                Les contrôles incluent aussi le lint, la vérification des types, les tests
+                dans le navigateur, les tests de démarrage des images et les compilations et
+                tests natifs sur amd64 et arm64. La publication attend la réussite de toutes
+                les tâches obligatoires, y compris les contrôles de sécurité décrits
+                ci-dessus.
               </p>
 
               <h3 id="reporting-a-vulnerability">Signaler une vulnérabilité</h3>
 
               <p>
-                Vous avez trouvé une vulnérabilité ? Signalez-la via
-                l&apos;onglet GitHub Security, voir{" "}
+                Signalez les vulnérabilités en privé par les moyens de contact indiqués
+                dans{" "}
                 <a
                   href="https://github.com/databasus/databasus?tab=security-ov-file#readme"
                   target="_blank"
@@ -477,7 +488,8 @@ export default function SecurityPage() {
                 >
                   SECURITY.md
                 </a>
-                . Les rapports de sécurité sont traités en priorité absolue.
+                . N’ouvrez pas d’issue publique. Les signalements de sécurité sont
+                prioritaires.
               </p>
             </article>
           </div>

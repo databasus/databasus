@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import LandingFooterComponent from "@/app/components/LandingFooterComponent";
 import LandingHeaderComponent from "@/app/components/LandingHeaderComponent";
-import { getLanguageAlternates } from "@/app/i18n";
+import { getLanguageAlternates, getLocalizedHref } from "@/app/i18n";
 import HeroStatsComponent from "@/app/components/HeroStatsComponent";
 import InstallationComponent from "@/app/components/InstallationComponent";
 import LiteYouTubeEmbed from "@/app/components/LiteYouTubeEmbed";
@@ -179,7 +179,7 @@ export default function Index() {
                 name: "How does Databasus ensure security?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus enforces security on three levels: (1) Sensitive data encryption — all passwords, tokens and credentials are encrypted with AES-256-GCM and stored separately from the database; (2) Backup encryption — each backup file is encrypted with a unique key derived from a master key, backup ID and random salt, making backups useless without your encryption key even if someone gains storage access; (3) Read-only database access — Databasus only requires SELECT permissions and performs comprehensive checks to ensure no write privileges exist, preventing data corruption even if the tool is compromised. Sign-in itself can require a second factor: with it on, a correct password is followed by a six-digit code emailed to the account, while sign-in through Google or GitHub keeps relying on the provider's own checks. Beyond runtime, security and reliability are engineered into every release: CodeQL static analysis, gitleaks secret scanning, semgrep security rules, Dependabot CVE monitoring, Trivy image and Dockerfile scans, and periodic Codex Security audits from OpenAI. Integration tests run against real PostgreSQL, MySQL, MariaDB and MongoDB containers and verify full backup-then-restore cycles before every release. GitHub Actions are pinned to commit SHAs and workflows follow least-privilege permissions. All operations run in containers you control on servers you own, and because it's open source, your security team can audit every line of code before deployment.",
+                  text: "Databasus enforces security on three levels: (1) Sensitive data encryption — all passwords, tokens and credentials are encrypted with AES-256-GCM and stored separately from the database; (2) Backup encryption — each backup file is encrypted with a unique key derived from a master key, backup ID and random salt, making backups useless without your encryption key even if someone gains storage access; (3) Read-only database access — Databasus only requires SELECT permissions and performs comprehensive checks to ensure no write privileges exist, preventing data corruption even if the tool is compromised. Sign-in itself can require a second factor: with it on, a correct password is followed by a six-digit code emailed to the account, while sign-in through Google or GitHub keeps relying on the provider's own checks. Before each release, automated checks scan code, dependencies, secrets and container images. Tests verify full backup-and-restore cycles against real PostgreSQL, MySQL, MariaDB and MongoDB containers. Required checks must pass before publication. Regular Codex Security audits from OpenAI complement these checks and are separate from the release pipeline. All operations run in containers you control on servers you own, and because it's open source, your security team can audit every line of code before deployment.",
                 },
               },
               {
@@ -230,6 +230,14 @@ export default function Index() {
                   text: 'The first account created on the instance administers it. If you cannot remember which address that is, run docker exec -it databasus ./main --list-admins on the server where Databasus runs — it names every administrator account with its email address, display name, creation date and active state, and prints no password material. To set a new password for that account, run docker exec -it databasus ./main --new-password="YourNewSecurePassword123" --email="owner@example.com". An instance created before the first account administered it still carries the placeholder address admin until its owner replaces it. If the instance also requires an emailed code at sign-in and the mail server has stopped delivering it, run docker exec -it databasus ./main --disable-2fa to stop requiring the code. All three commands are documented on the password page.',
                 },
               },
+              {
+                "@type": "Question",
+                name: "How is AI used in Databasus development?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "AI helps us develop Databasus within a defined engineering process. People set the direction and make the final decision. A human reads every line before a change is merged. Independent agents review correctness, architecture, tests and documentation in separate, read-only sessions. Strict linting and tests with real databases support their reviews. Required CI checks must pass before release.",
+                },
+              },
             ],
           }),
         }}
@@ -256,8 +264,7 @@ export default function Index() {
             </div>
 
             <h1 className="text-2xl sm:text-4xl sm:max-w-[300px] md:text-4xl leading-tight font-bold mb-4 md:mb-6 mx-auto md:max-w-[650px]">
-              PostgreSQL backup tool with Point-in-time-recovery and restore
-              verification
+              PostgreSQL backup tool
             </h1>
 
             <p className="text-sm sm:text-lg text-gray-200 max-w-[720px] mx-auto mb-6 md:mb-10 px-2">
@@ -1232,23 +1239,19 @@ export default function Index() {
                   relying on the provider&apos;s own checks.
                   <br />
                   <br />
-                  Beyond runtime, security and reliability are engineered into
-                  every release: CodeQL static analysis, gitleaks secret
-                  scanning, semgrep security rules, Dependabot CVE monitoring,
-                  Trivy image and Dockerfile scans, and periodic Codex
-                  Security audits from OpenAI. Integration tests run against
-                  real PostgreSQL, MySQL, MariaDB and MongoDB containers and
-                  verify full backup-then-restore cycles before every release.
-                  GitHub Actions are pinned to commit SHAs and workflows
-                  follow least-privilege permissions.
+                  Before each release, automated checks scan code, dependencies, secrets and
+                  container images. Tests verify full backup-and-restore cycles against real
+                  PostgreSQL, MySQL, MariaDB and MongoDB containers. Required checks must pass
+                  before publication. Regular Codex Security audits from OpenAI complement
+                  these checks and are separate from the release pipeline.
                   <br />
                   <br />
                   See{" "}
                   <a
-                    href="/security#security-and-reliability-engineering"
+                    href={`${getLocalizedHref("en", "security")}#security-and-reliability-engineering`}
                     className="text-blue-400 hover:text-blue-600"
                   >
-                    Security &amp; reliability engineering
+                    Security and reliability engineering
                   </a>{" "}
                   for the full pipeline.
                   <br />
@@ -1488,6 +1491,30 @@ export default function Index() {
             />
             <FaqItem
               number="12"
+              question="How is AI used in Databasus development?"
+              answer={
+                <>
+                  <p>
+                    AI helps us develop Databasus within a defined engineering process. People set the direction and
+                    make the final decision. <strong>A human reads every line before a change is merged.</strong>
+                  </p>
+                  <p className="mt-3">
+                    Independent agents review correctness, architecture, tests and documentation in separate,
+                    read-only sessions. Strict linting and tests with real databases support their reviews. Required
+                    CI checks must pass before release.{" "}
+                    <a
+                      href={`${getLocalizedHref("en", "faq")}#ai-usage`}
+                      className="text-blue-400 hover:text-blue-600"
+                    >
+                      Read about the development process
+                    </a>
+                    .
+                  </p>
+                </>
+              }
+            />
+            <FaqItem
+              number="13"
               question="How can I join the Databasus community?"
               answer={
                 <>
@@ -1508,7 +1535,7 @@ export default function Index() {
               }
             />
             <FaqItem
-              number="13"
+              number="14"
               question="What is the adoption level of Databasus?"
               answer={
                 <>
@@ -1541,7 +1568,7 @@ export default function Index() {
               }
             />
             <FaqItem
-              number="14"
+              number="15"
               question="I forgot my admin email or password"
               answer={
                 <>

@@ -1,0 +1,353 @@
+{
+  "images": {
+    "alpine:3.21": {
+      "platforms": {
+        "linux-arm64": "sha256:e77b401c86e6d0651b12ca45dea812bdf6ffca3b6e16662b7c116180e56ec9f7",
+        "linux-x64": "sha256:2d8a11041a92082ba21e364dec73559ce44f1de69b60fa68315f6d3774e59117"
+      },
+      "reference": "docker.io/library/alpine:3.21@sha256:bc21487101ae47172509130ee1092cc273a831968d64b617776d1f69c81e42ab"
+    },
+    "axllent/mailpit:v1.20.5": {
+      "platforms": {
+        "linux-arm64": "sha256:aae33ecddbd4a85a61f5a22f4092cfe059b3f03314d75a8bf912aea84a294ff6",
+        "linux-x64": "sha256:0654f65727b89d5f5eb6a325581a987f3c456075772ed79eda771dcb03df4b36"
+      },
+      "reference": "docker.io/axllent/mailpit:v1.20.5@sha256:cd75e91719cace4e3100eab9f848ecf2ecdd7f4db01e1573a0114769dad4ba2e"
+    },
+    "databasus/databasus:v3.67.0@sha256:356f0d75d8e7d3e964fe7be6e353f8a0370f3b661d2dc77a0afb6f7d067b44c6": {
+      "platforms": {
+        "linux-arm64": "sha256:c9c3f9e47b09b08c0b5cad9e8788d93dcd8a4e93deafa1ab44f374ca2f2f7cb9",
+        "linux-x64": "sha256:2c6034b01df6bbfb66b9a7a094196810c8fa3694743ec11fb605de34eddaf61c"
+      },
+      "reference": "docker.io/databasus/databasus:v3.67.0@sha256:356f0d75d8e7d3e964fe7be6e353f8a0370f3b661d2dc77a0afb6f7d067b44c6"
+    },
+    "databasus/databasus:v3.67.1@sha256:663dd65f995d31802b41d4eb20399798285bff7367cc4f91dcb5617f6af83b80": {
+      "platforms": {
+        "linux-arm64": "sha256:a2cf915c4ed13f7c633040c9e5da6b0cbb363ca0f9dc3aae463a96efc0b4ad69",
+        "linux-x64": "sha256:4daf68ad535a6c3c2d4f24b92944e099f8299411877df0b33dc6aca192d85c5d"
+      },
+      "reference": "docker.io/databasus/databasus:v3.67.1@sha256:663dd65f995d31802b41d4eb20399798285bff7367cc4f91dcb5617f6af83b80"
+    },
+    "databasus/databasus@sha256:a4bbf8b285c54f76c61a997d604cb22d7f53a01fe72b644a8abdb9b5b4cc82a5": {
+      "platforms": {
+        "linux-arm64": "sha256:1cb5419c1a2e776ef21aa47c5d461ccf1b170c85b18c12be24bf0021945757da",
+        "linux-x64": "sha256:dca80ac1bf555b706d33cd9506a6422387a34fb22eea5ca1cacfc52babd58d2e"
+      },
+      "reference": "docker.io/databasus/databasus@sha256:a4bbf8b285c54f76c61a997d604cb22d7f53a01fe72b644a8abdb9b5b4cc82a5"
+    },
+    "databasus/verification-postgres:12": {
+      "platforms": {
+        "linux-arm64": "sha256:4dd03049f53cc808ff11e535299b855c4540eebc91ac90e7843e4af252094e02",
+        "linux-x64": "sha256:89d8f32252d235a7747c54de145b76da3caeb33cae98d14848f135adc90c9dc8"
+      },
+      "reference": "docker.io/databasus/verification-postgres:12@sha256:06a8ceed0f9f02aa599a43ff29a38e0d9ec8de1a394f3c9979a9dc9456e5f0b9"
+    },
+    "databasus/verification-postgres:13": {
+      "platforms": {
+        "linux-arm64": "sha256:95759de0d774528e2a79071404639facdca14e9b04f82c73eac9b0cdbca72b68",
+        "linux-x64": "sha256:85f6163a9de538941a116cbab161682d851dbd3f68975a23554419125422a2eb"
+      },
+      "reference": "docker.io/databasus/verification-postgres:13@sha256:baea253ae8eb001b9b005b649f5d62d101258ec33fb801fbdabe2ca81b152635"
+    },
+    "databasus/verification-postgres:14": {
+      "platforms": {
+        "linux-arm64": "sha256:33b7b2f1b8729923a27c8308cc2d767f5e884733a4d2be9ff150d02109ffa3dc",
+        "linux-x64": "sha256:9e48d174565a0e777dbcc4f8a156c49d7ecb9c15e8ba3731aa237b230bbdd7d0"
+      },
+      "reference": "docker.io/databasus/verification-postgres:14@sha256:071b52929e80331fdd75cf9c954bd3d55049d598bc7b398a191c6e2d0005ee0c"
+    },
+    "databasus/verification-postgres:15": {
+      "platforms": {
+        "linux-arm64": "sha256:078977fde8e069055132fa6b49fd151c9740958b92cb0ef1c9820a2ca6bf302c",
+        "linux-x64": "sha256:b4f99631c1f60156a476bb9a3bafea81178d890985eaf63d79021a4423eebfe4"
+      },
+      "reference": "docker.io/databasus/verification-postgres:15@sha256:4cca8316cf14a5f95dba8a51731d9862db19f8b85028b9f4a8309366372d6c1e"
+    },
+    "databasus/verification-postgres:16": {
+      "platforms": {
+        "linux-arm64": "sha256:8e3e9232df0c84b909e8a43d593d1e87c411026e414a83572b6d2648d120c2ea",
+        "linux-x64": "sha256:308da2ce377e104755e37d426175e4899bd2b2c17c7fb4167327ed0968b0ea55"
+      },
+      "reference": "docker.io/databasus/verification-postgres:16@sha256:01deef4c543ac9bfd0f504ec8b190653fcc5171d72e1502aef8a681352db8ab2"
+    },
+    "databasus/verification-postgres:17": {
+      "platforms": {
+        "linux-arm64": "sha256:9beb11e4d777603a183df58a11f972c5269cdb1de0397340408a3641ed74ba28",
+        "linux-x64": "sha256:564f098b980e035499feee4d2b0fde7c204dee65d25860c4b7a1755707824def"
+      },
+      "reference": "docker.io/databasus/verification-postgres:17@sha256:e61100407910936acc445c155406d1a215050e29f8f1699f1bb6c05755b0754e"
+    },
+    "databasus/verification-postgres:18": {
+      "platforms": {
+        "linux-arm64": "sha256:22ac33f0ce967a334a7729321957cdcbc3d59c34b101fb22e2c6aa35ef9410b2",
+        "linux-x64": "sha256:d6c42a33ba057ea1a93f4b54c093f8288e2fc07d20752fb52983a6cc7df21a23"
+      },
+      "reference": "docker.io/databasus/verification-postgres:18@sha256:e8dc93d4acf3feb73bf7d54e5e2f2651e26af35ec474ef484fa4fdb5c8890a5e"
+    },
+    "debian:bookworm-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3": {
+      "platforms": {
+        "linux-arm64": "sha256:7ccb8b5b60c7654f5b795d94ee7d751cd0811500803f0b09cefcd555e755a55a",
+        "linux-x64": "sha256:a3bba7dc7dbcc1f37c2856c51fc9a7fac96608f50cb87b1b4e4d8b8c85ae988e"
+      },
+      "reference": "docker.io/library/debian:bookworm-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3"
+    },
+    "docker/dockerfile:1": {
+      "platforms": {
+        "linux-arm64": "sha256:e291cde6b1429712d3951bca77be92338719212df6654812f1a55874a481742d",
+        "linux-x64": "sha256:7b32114e84ca21aeb2d6f871a0b62b3a0762193f75d9afd048ee4cbe889f3148"
+      },
+      "reference": "docker.io/docker/dockerfile:1@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e"
+    },
+    "docker:29.9.2-dind@sha256:9e79b879b177fbd72c34376a3dd3d91747da5db49e1f560f76aea59561471977": {
+      "platforms": {
+        "linux-arm64": "sha256:cb160a57fcb936668f8ab8e4a9d73c66b7975226aa87e466233734edbcd83ccc",
+        "linux-x64": "sha256:97545b7bab66319a476800a85b008b25c06681733d484909e2a776281e41574f"
+      },
+      "reference": "docker.io/library/docker:29.9.2-dind@sha256:9e79b879b177fbd72c34376a3dd3d91747da5db49e1f560f76aea59561471977"
+    },
+    "dperson/samba:latest": {
+      "platforms": {
+        "linux-arm64": "sha256:4cb487986c024c4b42c7900b03ee5cc051d66ba57ec687c9f393e64a54cac3e3",
+        "linux-x64": "sha256:e1d2a7366690749a7be06f72bdbf6a5a7d15726fc84e4e4f41e967214516edfd"
+      },
+      "reference": "docker.io/dperson/samba:latest@sha256:66088b78a19810dd1457a8f39340e95e663c728083efa5fe7dc0d40b2478e869"
+    },
+    "golang:1.27.3@sha256:e519d3b0a5b285e5aa53ab9eef02bc6bbb9cb04608389b743a136a9ce75f0d1e": {
+      "platforms": {
+        "linux-arm64": "sha256:4f03804fe5085b5e565347663bc51a54177634097cc71e9f816af6c2672f7662",
+        "linux-x64": "sha256:a5406f41680f17b4aa0b49de641e00f116215f5c8829d548d29cb44c4f85aa4f"
+      },
+      "reference": "docker.io/library/golang:1.27.3@sha256:e519d3b0a5b285e5aa53ab9eef02bc6bbb9cb04608389b743a136a9ce75f0d1e"
+    },
+    "mariadb:10.1": {
+      "platforms": {
+        "linux-arm64": "sha256:7c4492d44fea3d10590d5870e1e24381fe583c93f241a6d453d7b1b5ebdb884d",
+        "linux-x64": "sha256:bd44f3ef0bf4544a119732df8ffd038fec2992ff75435d03d6f1f142595f9020"
+      },
+      "reference": "docker.io/library/mariadb:10.1@sha256:1205b21b713812a6ba9fb59df206017dc06976fe68e172fbc6d153d7a4e13dfe"
+    },
+    "mariadb:10.11": {
+      "platforms": {
+        "linux-arm64": "sha256:0de9840f23463c22eb4892d9bfd63086367e4bffe9b68ff4b62621d6eced854c",
+        "linux-x64": "sha256:6c65a843396dc6c78dd0da19eccaa0a91d25d9d26a4c2afcb75010ac3f59f5ea"
+      },
+      "reference": "docker.io/library/mariadb:10.11@sha256:d769e37960821dfdcf096954f6e7ac89f747e116c1bba98e48edd265dfc7deae"
+    },
+    "mariadb:10.6": {
+      "platforms": {
+        "linux-arm64": "sha256:038f57f839584e0c49332edc363e9a771b97666c6b3f275364d6ef6d508b4e2e",
+        "linux-x64": "sha256:2b7259ea544fd0bfa1c58ac83a65042a5da5ed42a19a79323d61b50c3670eacc"
+      },
+      "reference": "docker.io/library/mariadb:10.6@sha256:f1c56f035ed268a0d7c2c2e06dc879f6319b997cb434cf822a4cfd72a7aa184d"
+    },
+    "mariadb:11.4": {
+      "platforms": {
+        "linux-arm64": "sha256:9640785a96ddd0aa19b50f89f693eebb065e2c7b494d8ae16e5b776a3680e7fb",
+        "linux-x64": "sha256:d9fc02976678d4236145299c40dc267051681b33489c994f0ec4a097ce4a9521"
+      },
+      "reference": "docker.io/library/mariadb:11.4@sha256:d1891ede5a559f1086f55053bb8cc1569b0298338c4d72d71725a7f74f6ba620"
+    },
+    "mariadb:11.8": {
+      "platforms": {
+        "linux-arm64": "sha256:51d5a3273562df11f0642bf1815ae64922f1657b0ee0edff35b65a4f489c3925",
+        "linux-x64": "sha256:8a4a99eff981d95c3ab12d019b82fe59725fb7761f1f9a5f155bc3f025528f4f"
+      },
+      "reference": "docker.io/library/mariadb:11.8@sha256:c4124d1afa875e47f2892edf26b482fa54f796e2f342d3717a04ca091a22a9bd"
+    },
+    "mariadb:12.0": {
+      "platforms": {
+        "linux-arm64": "sha256:1513c5354bc9c049ea05f6af42b8561d32205fdaa855f929b72ce127d128ed07",
+        "linux-x64": "sha256:1c84068c7b5ca8520b1393098459bd39e91dcde84246dfe1fa5f6df860c8038e"
+      },
+      "reference": "docker.io/library/mariadb:12.0@sha256:607835cd628b78e2876f6a586d0ec37b296c47683b31ef750002d3d17d3d8f7a"
+    },
+    "mariadb:13.0": {
+      "platforms": {
+        "linux-arm64": "sha256:6d882f903b25c6517caf5d14422ebfc371f4c34ebb8fd3c64320a6dc43c9271d",
+        "linux-x64": "sha256:0231965d72f758adea93162ed7be119dfd49f14172c5754ed8c9d49b0f17bbc6"
+      },
+      "reference": "docker.io/library/mariadb:13.0@sha256:f4054da26e3a9dd6c8b5cc97363e544408b15c0fb369d7359c25dc04826eb6e1"
+    },
+    "mariadb:5.5": {
+      "platforms": {
+        "linux-x64": "sha256:0901e838313efbfd7d209325353ff0d690eb92cee78fbc8a286e14dc0d657dd5"
+      },
+      "reference": "docker.io/library/mariadb:5.5@sha256:8665c074af5a5fb7e04b9570fcf8551e9d82955182be50375d5013838d4f9137"
+    },
+    "mcr.microsoft.com/azure-storage/azurite": {
+      "platforms": {
+        "linux-arm64": "sha256:31df561bf46f4b2856635b0c633c6924568f41ae2500c66837cc6bb09d9327a5",
+        "linux-x64": "sha256:f9791d0a0613e93057c06ae31f7ac0c0222f0530590e67e020b0986c66a36fa6"
+      },
+      "reference": "mcr.microsoft.com/azure-storage/azurite@sha256:830430c1da1a2d537e08f3e6764dd1f5ae00cf0346bcaf625b968ec3f0971fd5"
+    },
+    "mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea": {
+      "platforms": {
+        "linux-arm64": "sha256:969a9e3655576186a7f3b3d85502f8c4041f4afce571df7aadba6384d93ee61f",
+        "linux-x64": "sha256:d65108d1a8095d8b0c4a5e32bf1807a40a5ce90ff0c78473e1116b1c243235e8"
+      },
+      "reference": "mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea"
+    },
+    "mongo:4.2": {
+      "platforms": {
+        "linux-arm64": "sha256:b7d03784e85c0ff38f499863a64ab07101d05fd7c2da76d6a6b1850bed2f5dee",
+        "linux-x64": "sha256:e43605102083aca04677b02446d9289ef495b0e97251d298c9840abe1f0256a1"
+      },
+      "reference": "docker.io/library/mongo:4.2@sha256:699d652ed67423d689258bad7b316cf005dfbb82b334118ec306f049042f3717"
+    },
+    "mongo:5.0": {
+      "platforms": {
+        "linux-arm64": "sha256:8a72de634669a02bf3a71d50414fe12b4869df54e270c5054d8b490343bb1741",
+        "linux-x64": "sha256:9fe0747650162376edd9f67a0b8e48a43e920cca54f134be82e45ce46ae7fc8d"
+      },
+      "reference": "docker.io/library/mongo:5.0@sha256:41108d183e972dcbf98d09ed83f6cfc89a471a3f15d06f9d64a95e45d9db8dd2"
+    },
+    "mongo:6.0": {
+      "platforms": {
+        "linux-arm64": "sha256:3ed30e2875f51747c16be3807301f5595ea44a29ab339be3668c3eecd115cd89",
+        "linux-x64": "sha256:268eb517abcb8a1bb4cf5f290ec2ac37185e78bfb62e7111576bbb3d8b092456"
+      },
+      "reference": "docker.io/library/mongo:6.0@sha256:8b6d8f5bbedb25cb73517b65cf99f13aeb75ad5b157a56c479287a840bbad3ac"
+    },
+    "mongo:7.0": {
+      "platforms": {
+        "linux-arm64": "sha256:ac1b6a874c5af924c3128c09ee5c9cb801c79a82028b0eb7282cbb13008c9fa8",
+        "linux-x64": "sha256:e634fcaae4d0915b365fb88c076dd33c851ed61a611c7ee9816aba6d6b5159cd"
+      },
+      "reference": "docker.io/library/mongo:7.0@sha256:8bb4442761a63a8dda452744082cdac9644b429807eb977b42324a63cef59ca4"
+    },
+    "mongo:8.2.3-noble": {
+      "platforms": {
+        "linux-arm64": "sha256:302152741a2170bc97ff81b9d1948bcada6772ec826e80f1c6db9763cd318657",
+        "linux-x64": "sha256:7bb3bbcfb45e3f3110707aa6656d787be856c88593db0cb0a8be336f04142d64"
+      },
+      "reference": "docker.io/library/mongo:8.2.3-noble@sha256:e30bf5231ff01512e7db91feda37b7ef4fd499867b89a1e13bd6988a55745cf4"
+    },
+    "mongo:9.0.2-noble": {
+      "platforms": {
+        "linux-arm64": "sha256:a18a67668df9389cbfe49d81ca9bd20428fa6b82ce9ae0b79961dadf56281493",
+        "linux-x64": "sha256:17148334f6b0a4fad09ad70f6449cf4d0330bbf49469b6dff4338123a5f7bcbf"
+      },
+      "reference": "docker.io/library/mongo:9.0.2-noble@sha256:61dd87ff554dc20386c63ebe1f7ede27314370ad5a7bf357c685fab424672158"
+    },
+    "mysql:26.7": {
+      "platforms": {
+        "linux-arm64": "sha256:3142cfba35bd09e111cc37917bd69b0c647a8ed5b05882bf39150a50d3ace5d5",
+        "linux-x64": "sha256:67e8e370d4aa4b6103bb3bbcc2a1c96ed367dd34dfc2c88aa7f1a37d3c8cf44a"
+      },
+      "reference": "docker.io/library/mysql:26.7@sha256:625f74ddf93652d9d0f8d4ea7d741b9189554a5e96d27bb770abd0902d89c6e3"
+    },
+    "mysql:5.7": {
+      "platforms": {
+        "linux-x64": "sha256:dab0a802b44617303694fb17d166501de279c3031ddeb28c56ecf7fcab5ef0da"
+      },
+      "reference": "docker.io/library/mysql:5.7@sha256:4bc6bc963e6d8443453676cae56536f4b8156d78bae03c0145cbe47c2aad73bb"
+    },
+    "mysql:8.0": {
+      "platforms": {
+        "linux-arm64": "sha256:213bbfaf699693a40a20a12bb4342d2589a15a3dc7153db698eaed252a92458e",
+        "linux-x64": "sha256:62fb722c78b24245ddff1796a0fcee4a49cc5b87e0aaaf20c92d1da9e0a2497b"
+      },
+      "reference": "docker.io/library/mysql:8.0@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b"
+    },
+    "mysql:8.4": {
+      "platforms": {
+        "linux-arm64": "sha256:f4539b86c82f2c168fc95b439448bde3b9f48e8460344ce41e39081867d2b58e",
+        "linux-x64": "sha256:72c368d898861f3b3a07af0e6d690400f44f048799ed46822783d9224cc2c86d"
+      },
+      "reference": "docker.io/library/mysql:8.4@sha256:a81d043930e51745522bd5c430961cf8286f0a23f0a9a2a6e0108f7ea71b0902"
+    },
+    "mysql:9": {
+      "platforms": {
+        "linux-arm64": "sha256:290970fdd7f34b74bbc9a627a7a1fdd307de27b79a01acc08e3676ebb5ca7054",
+        "linux-x64": "sha256:1954314de304d70fe85c67204d4676891ffa11dcd7caedaf5e9bc50b5f6be446"
+      },
+      "reference": "docker.io/library/mysql:9@sha256:df90258da46f6e7ff8574ff84f17618aba0765cac749928299c69fd4e7cb8ad8"
+    },
+    "node:24.21.0-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1": {
+      "platforms": {
+        "linux-arm64": "sha256:38a36422dc7de80f3ced964270f23b3b17f73af816728d21a5fbbf84bf8be46f",
+        "linux-x64": "sha256:83f1c388c31fb2e51f7cbd4dea949b96260798c98f206e8e4696bc93bd964e3a"
+      },
+      "reference": "docker.io/library/node:24.21.0-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1"
+    },
+    "pgsty/minio:RELEASE.2026-08-04T00-00-00Z": {
+      "platforms": {
+        "linux-arm64": "sha256:1026039cd0771ff3bece8559c0f880a38a2ba4f4e7f8d1d506187a1daf809f17",
+        "linux-x64": "sha256:2b36182f3479c58b5cba920f20479738ee85ce218de0596a244f9a1368268db9"
+      },
+      "reference": "docker.io/pgsty/minio:RELEASE.2026-08-04T00-00-00Z@sha256:b6bfe7239bfc83fb90d31612d9704d86039dd714f7904b3f1ad68f211e602372"
+    },
+    "postgres:12": {
+      "platforms": {
+        "linux-arm64": "sha256:9fc57848f07313edb7e40e2f659b5e7ac7f59fe70885dff51f0c0b4e7b16d4d7",
+        "linux-x64": "sha256:4bf4eb8e5932534db5fb9d3d91a212a91406aecf1fa626a60df4a9e2781d73ae"
+      },
+      "reference": "docker.io/library/postgres:12@sha256:2f2a8c2a7d10862e7fba2602e304523554f9df8244c632dafe2628ccb398fb5c"
+    },
+    "postgres:13": {
+      "platforms": {
+        "linux-arm64": "sha256:c995d7b4aa2def30788ce3566d70f66ffc38db5b0c0b1f63fb78baa7ac2b0bea",
+        "linux-x64": "sha256:1094e2cdc5605e5c7914633bcd93758a9c52ae8c8b2855ddd1c3a8afbe4795d5"
+      },
+      "reference": "docker.io/library/postgres:13@sha256:4689940c683801b4ab839ab3b0a0a3555a5fe425371422310944e89eca7d8068"
+    },
+    "postgres:14": {
+      "platforms": {
+        "linux-arm64": "sha256:6e2302670f95ac5312dd7c9b78e5c7a5ef5e983c8f896599341cc48ef3d20cdf",
+        "linux-x64": "sha256:a4a139181ce9290fbc5a16973ef1931f3e1dfb491ccaf2407a992a3557cf71ea"
+      },
+      "reference": "docker.io/library/postgres:14@sha256:834a046089d76edd1d2e81c4741f3ad5d1853646ededc86c2708936aad31c1ed"
+    },
+    "postgres:15": {
+      "platforms": {
+        "linux-arm64": "sha256:6fd00320c0d70da5caf73c9382162d5a2b0fc718f3861f94687badb6ef8ab1c4",
+        "linux-x64": "sha256:61a5b377afa2f8604cf6f3e6d7b17b7bcee2ac3cc0245a7b698a43a29e9896c6"
+      },
+      "reference": "docker.io/library/postgres:15@sha256:1aac5b49cefd627f02816141ca4ad012d6cc19460dfe02a9b5168a105be3fc53"
+    },
+    "postgres:16": {
+      "platforms": {
+        "linux-arm64": "sha256:dbac72df02f02f9f7c63e0e45735bbe37902608390ad9bd983d1cc3a018160fd",
+        "linux-x64": "sha256:43f9275df91e012c3da3d86bea5d7bb5e67a473296cc906c5f9e80b8176b1a37"
+      },
+      "reference": "docker.io/library/postgres:16@sha256:f9a7b9ebf6f56201f949db745e47bc423c0f0f8294bafe991cc10bf74b029657"
+    },
+    "postgres:17": {
+      "platforms": {
+        "linux-arm64": "sha256:f998bd5067cabb2b023800c6fbf04f24bd22fbb7f8430cfd8c8503a6c3834777",
+        "linux-x64": "sha256:996e9dc583ba9f0265a2c75547a9c95fb22c251e394749cab205a0a00e1856a1"
+      },
+      "reference": "docker.io/library/postgres:17@sha256:ff87138949ad9a46f32ff23bd6852b52ce024a13dffe9b4087be98292cdd3b4f"
+    },
+    "postgres:17@sha256:a63c1ea3f6a3a5a1621f97d2aba3b30faecfab4224c1b0000cc85ced57bb1939": {
+      "platforms": {
+        "linux-arm64": "sha256:8630835ad34e3e09007371ac2d8785bd941c3c1fccc02145e3af050b9e520659",
+        "linux-x64": "sha256:3518071376d0b6156b02e1db2747a78511b5b9dc3763cc79c506ebe2dc2ee71c"
+      },
+      "reference": "docker.io/library/postgres:17@sha256:a63c1ea3f6a3a5a1621f97d2aba3b30faecfab4224c1b0000cc85ced57bb1939"
+    },
+    "postgres:18": {
+      "platforms": {
+        "linux-arm64": "sha256:a8a18afebc8b2b529112c931f193151b712e566b7a49563dc0f328d51f652087",
+        "linux-x64": "sha256:e923a22ac074261dd73970c57edf659475bf0497cb9456f17d98ed7cdd3ca913"
+      },
+      "reference": "docker.io/library/postgres:18@sha256:e3d24f6906d0760bf4da0dae872415391ededefad23fd471c47dc53b0ddf3c42"
+    },
+    "postgres:18@sha256:3a4264520e121176619f54ff867d12774bc81e95e7b84db58d63bccdb6144b81": {
+      "platforms": {
+        "linux-arm64": "sha256:9a74990a5c776ff210361b67616b347750c66c36ea0dfbb4f575d19fcc3d8437",
+        "linux-x64": "sha256:f4b419e350fd98d4a8429603295208976dea4c8fb8326d818d346d3e29f1db6f"
+      },
+      "reference": "docker.io/library/postgres:18@sha256:3a4264520e121176619f54ff867d12774bc81e95e7b84db58d63bccdb6144b81"
+    },
+    "timescale/timescaledb:2.17.0-pg17": {
+      "platforms": {
+        "linux-arm64": "sha256:03027b6c6d310e7275f4531860804ab7a48c80eead0f9eafb127b75546721ed2",
+        "linux-x64": "sha256:9ccd527cf39c46724996f9722eab536732aac52ec24f4ac3cfa912883ab95da7"
+      },
+      "reference": "docker.io/timescale/timescaledb:2.17.0-pg17@sha256:3937e6efadb2fa38bab0f41647e6353be9d07ae5e53d2aa27fe452a6cd32291b"
+    }
+  },
+  "schema": 1
+}

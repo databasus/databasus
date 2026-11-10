@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import LandingFooterComponent from "@/app/components/LandingFooterComponent";
 import LandingHeaderComponent from "@/app/components/LandingHeaderComponent";
-import { OG_LOCALES, getLanguageAlternates, getLocalizedUrl } from "@/app/i18n";
+import { OG_LOCALES, getLanguageAlternates, getLocalizedUrl, getLocalizedHref } from "@/app/i18n";
 import HeroStatsComponent from "@/app/components/HeroStatsComponent";
 import InstallationComponent from "@/app/components/InstallationComponent";
 import LiteYouTubeEmbed from "@/app/components/LiteYouTubeEmbed";
@@ -179,7 +179,7 @@ export default function Index() {
                 name: "Como o Databasus garante a segurança?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "O Databasus aplica segurança em três níveis: (1) Criptografia de dados sensíveis — todas as senhas, tokens e credenciais são criptografados com AES-256-GCM e guardados separadamente da base de dados; (2) Criptografia de backups — cada arquivo de backup é criptografado com uma chave única derivada de uma chave mestra, do ID do backup e de um salt aleatório, tornando os backups inúteis sem a sua chave de criptografia mesmo que alguém obtenha acesso ao armazenamento; (3) Acesso somente leitura à base de dados — o Databasus exige apenas permissões SELECT e faz verificações completas para garantir que não existem privilégios de escrita, evitando corrupção de dados mesmo que a ferramenta seja comprometida. O próprio login pode exigir um segundo fator: com ele ativado, depois da senha correta chega um código de seis dígitos ao e-mail da conta, enquanto o login pelo Google ou pelo GitHub continua contando com as verificações desses provedores. Além do tempo de execução, segurança e confiabilidade fazem parte de cada release: análise estática com CodeQL, detecção de segredos com gitleaks, regras de segurança com semgrep, monitoramento de CVEs pelo Dependabot, varreduras de imagem e Dockerfile com Trivy e auditorias periódicas do Codex Security da OpenAI. Testes de integração rodam contra contêineres reais de PostgreSQL, MySQL, MariaDB e MongoDB e verificam ciclos completos de backup e restauração antes de cada release. As GitHub Actions são fixadas em SHAs de commit e os workflows seguem permissões de privilégio mínimo. Todas as operações rodam em contêineres sob o seu controle, em servidores seus, e como o código é aberto, a sua equipe de segurança pode auditar cada linha antes da implantação.",
+                  text: "O Databasus aplica segurança em três níveis: (1) Criptografia de dados sensíveis — todas as senhas, tokens e credenciais são criptografados com AES-256-GCM e guardados separadamente da base de dados; (2) Criptografia de backups — cada arquivo de backup é criptografado com uma chave única derivada de uma chave mestra, do ID do backup e de um salt aleatório, tornando os backups inúteis sem a sua chave de criptografia mesmo que alguém obtenha acesso ao armazenamento; (3) Acesso somente leitura à base de dados — o Databasus exige apenas permissões SELECT e faz verificações completas para garantir que não existem privilégios de escrita, evitando corrupção de dados mesmo que a ferramenta seja comprometida. O próprio login pode exigir um segundo fator: com ele ativado, depois da senha correta chega um código de seis dígitos ao e-mail da conta, enquanto o login pelo Google ou pelo GitHub continua contando com as verificações desses provedores. Antes de cada versão, verificações automáticas analisam código, dependências, segredos e imagens de contêineres. Os testes verificam ciclos completos de backup e restauração em contêineres reais de PostgreSQL, MySQL, MariaDB e MongoDB. As verificações obrigatórias precisam passar antes da publicação. Auditorias periódicas do Codex Security da OpenAI complementam essas verificações e são independentes do processo de publicação. Todas as operações rodam em contêineres sob o seu controle, em servidores seus, e como o código é aberto, a sua equipe de segurança pode auditar cada linha antes da implantação.",
                 },
               },
               {
@@ -230,6 +230,14 @@ export default function Index() {
                   text: 'A primeira conta criada na instância é quem a administra. Se você não lembra qual é esse endereço, execute docker exec -it databasus ./main --list-admins no servidor onde o Databasus está em execução: ele nomeia cada conta de administrador com seu endereço de email, nome de exibição, data de criação e estado de atividade, e não imprime nenhuma senha. Para definir uma nova senha para essa conta, execute docker exec -it databasus ./main --new-password="YourNewSecurePassword123" --email="owner@example.com". Uma instância criada antes de a primeira conta administrá-la ainda carrega o endereço provisório admin até que seu dono o substitua. Se a instância também exigir um código ao entrar e o servidor de e-mail tiver parado de entregá-lo, execute docker exec -it databasus ./main --disable-2fa para que ela pare de pedir o código. Os três comandos estão documentados na página de senha.',
                 },
               },
+              {
+                "@type": "Question",
+                name: "Como a IA é usada no desenvolvimento do Databasus?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "A IA nos ajuda a desenvolver o Databasus seguindo um processo de engenharia definido. As pessoas definem o rumo e tomam as decisões finais. Uma pessoa lê cada linha de código antes de integrar uma mudança. Agentes independentes revisam a correção, a arquitetura, os testes e a documentação em sessões separadas, somente para leitura. A análise estática rigorosa e os testes com bancos reais complementam suas revisões. As verificações obrigatórias de CI precisam passar antes da publicação.",
+                },
+              },
             ],
           }),
         }}
@@ -257,8 +265,7 @@ export default function Index() {
             </div>
 
             <h1 className="text-2xl sm:text-4xl sm:max-w-[300px] md:text-4xl leading-tight font-bold mb-4 md:mb-6 mx-auto md:max-w-[650px]">
-              Backup PostgreSQL com Point-in-Time Recovery e verificação de
-              restauração
+              Backup PostgreSQL
             </h1>
 
             <p className="text-sm sm:text-lg text-gray-200 max-w-[720px] mx-auto mb-6 md:mb-10 px-2">
@@ -1250,22 +1257,17 @@ export default function Index() {
                   continua contando com as verificações desses provedores.
                   <br />
                   <br />
-                  Além do tempo de execução, segurança e confiabilidade fazem
-                  parte de cada release: análise estática com CodeQL, detecção
-                  de segredos com gitleaks, regras de segurança com semgrep,
-                  monitoramento de CVEs pelo Dependabot, varreduras de imagem
-                  e Dockerfile com Trivy e auditorias periódicas do Codex
-                  Security da OpenAI. Testes de integração rodam contra
-                  contêineres reais de PostgreSQL, MySQL, MariaDB e MongoDB e
-                  verificam ciclos completos de backup e restauração antes de
-                  cada release. As GitHub Actions são fixadas em SHAs de
-                  commit e os workflows seguem permissões de privilégio
-                  mínimo.
+                  Antes de cada versão, verificações automáticas analisam código,
+                  dependências, segredos e imagens de contêineres. Os testes verificam ciclos
+                  completos de backup e restauração em contêineres reais de PostgreSQL, MySQL,
+                  MariaDB e MongoDB. As verificações obrigatórias precisam passar antes da
+                  publicação. Auditorias periódicas do Codex Security da OpenAI complementam
+                  essas verificações e são independentes do processo de publicação.
                   <br />
                   <br />
                   Veja{" "}
                   <a
-                    href="/pt/security#security-and-reliability-engineering"
+                    href={`${getLocalizedHref("pt", "security")}#security-and-reliability-engineering`}
                     className="text-blue-400 hover:text-blue-600"
                   >
                     Engenharia de segurança e confiabilidade
@@ -1518,6 +1520,32 @@ export default function Index() {
             />
             <FaqItem
               number="12"
+              question="Como a IA é usada no desenvolvimento do Databasus?"
+              answer={
+                <>
+                  <p>
+                    A IA nos ajuda a desenvolver o Databasus seguindo um processo de engenharia definido. As pessoas
+                    definem o rumo e tomam as decisões finais.{" "}
+                    <strong>Uma pessoa lê cada linha de código antes de integrar uma mudança.</strong>
+                  </p>
+                  <p className="mt-3">
+                    Agentes independentes revisam a correção, a arquitetura, os testes e a documentação em sessões
+                    separadas, somente para leitura. A análise estática rigorosa e os testes com bancos reais
+                    complementam suas revisões. As verificações obrigatórias de CI precisam passar antes da
+                    publicação.{" "}
+                    <a
+                      href={`${getLocalizedHref("pt", "faq")}#ai-usage`}
+                      className="text-blue-400 hover:text-blue-600"
+                    >
+                      Conheça o processo de desenvolvimento
+                    </a>
+                    .
+                  </p>
+                </>
+              }
+            />
+            <FaqItem
+              number="13"
               question="Como posso entrar para a comunidade do Databasus?"
               answer={
                 <>
@@ -1538,7 +1566,7 @@ export default function Index() {
               }
             />
             <FaqItem
-              number="13"
+              number="14"
               question="Qual é o nível de adoção do Databasus?"
               answer={
                 <>
@@ -1573,7 +1601,7 @@ export default function Index() {
               }
             />
             <FaqItem
-              number="14"
+              number="15"
               question="Esqueci o email ou a senha do administrador"
               answer={
                 <>

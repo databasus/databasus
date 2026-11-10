@@ -7,6 +7,7 @@ How the system is built is described in `docs/`:
 
 - [`docs/architecture.md`](docs/architecture.md) — the layout, the module boundaries, data, the API contract, long-running work, and the reasons behind each rule
 - [`docs/testing.md`](docs/testing.md) — the kinds of tests, isolation, test selection and runs
+- [`docs/how-to-upgrade-deps.md`](docs/how-to-upgrade-deps.md) — dependency inventory, eligibility, locked installation and verification
 - [`docs/glossary.md`](docs/glossary.md) — one term per concept, in prose and in code
 - [`docs/machine-setup.md`](docs/machine-setup.md) — storage recommendations for faster local tests
 - [`docs/frontend-design.md`](docs/frontend-design.md) — frontend design conventions and their code owners
@@ -39,16 +40,17 @@ Reply to the user in the language they write in, and keep everything committed t
 
 ## Development environment
 
-Work happens on a Fedora host; any other host distro is on its own. Tool versions are pinned in [`mise.toml`](mise.toml), and the `mise run` commands below are tasks from the same file and `mise-tasks/` that run from any directory of the repository. Run `mise install` once and activate mise in your shell, so every command resolves to the pinned version. Once per clone, run `mise exec lefthook@2.2.1 -- lefthook uninstall` if an older checkout installed lefthook, then `hk install --mise`, so the commit hook from [`hk.pkl`](hk.pkl) checks formatting and lint without changing files; worktrees share the clone's hook. In a fresh worktree, copy `.env.example` to `.env`.
+Work happens on a Fedora host; any other host distro is on its own. Tool versions are pinned in [`mise.toml`](mise.toml), and the `mise run` commands below are tasks from the same file and `mise-tasks/` that run from any directory of the repository. Run `mise install --locked --include-task-tools` once and activate mise in your shell, so every command resolves to the pinned version. Once per clone, run `mise run hooks:migrate` if an older checkout installed lefthook, then `hk install --mise`, so the commit hook from [`hk.pkl`](hk.pkl) checks formatting and lint without changing files; worktrees share the clone's hook. In a fresh worktree, copy `.env.example` to `.env`.
 
 The repository's skills live in `.agents/skills/`, which Codex reads directly; Claude Code reads them through `.claude/skills`, a symlink to that directory, so each skill has one source file.
 
 | Command | Purpose |
 |---|---|
-| `mise run run` | Start the app locally: dev database, test fixtures, WAL backup source with its load generator, backend and frontend; seeds a dev account with databases and restarts the backend when its code changes |
+| `mise run run` | Start the app locally: dev database, test fixtures, WAL backup source with its load generator, backend, frontend and website; seeds a dev account with databases and restarts the backend when its code changes |
 | `mise run test` | Check the work: the backend packages without the end-to-end ones and the frontend tests |
 | `mise run test-full` | Run all tests for the usual Docker development environment; [testing.md](docs/testing.md#checking-work) lists the included suites and the Podman/filesystem exceptions |
 | `mise run lint` | Check every module without changing files; `backend:lint`, `frontend:lint` and `python:lint` check one area |
+| `mise run verify-deps` | Check known dependency pins, coordinated versions and local client hashes without changing the checkout |
 | `mise run format` | Format every module; `backend:format`, `frontend:format` and `python:format` format one area |
 | `mise run doctor` | Check review tools and whether Codex project hooks are enabled and trusted |
 | `mise run review [<change>]` | Manually rerun parallel AI reviews of a finished OpenSpec change when hooks did not run or another review is needed |
@@ -58,7 +60,7 @@ The repository's skills live in `.agents/skills/`, which Codex reads directly; C
 
 ### Code search and navigation
 
-Search text with `rg`. For definitions, references, callers, implementations and type errors, use the LSP tool: the project enables the gopls and typescript-language-server plugins in `.claude/settings.json`, and `mise.toml` pins both servers. The TypeScript server takes TypeScript from `frontend/node_modules`, so it needs `pnpm install` in `frontend/`. It answers "who calls this" and "what breaks if I rename this" more reliably than a text search, and reports compile errors right after an edit. Check shell scripts with `shellcheck`.
+Search text with `rg`. For definitions, references, callers, implementations and type errors, use the LSP tool: the project enables the gopls and typescript-language-server plugins in `.claude/settings.json`. `tools/go/gopls/go.mod` pins gopls, and `mise.toml` pins typescript-language-server. The TypeScript server takes TypeScript from `frontend/node_modules`, so it needs `pnpm install` in `frontend/`. It answers "who calls this" and "what breaks if I rename this" more reliably than a text search, and reports compile errors right after an edit. Check shell scripts with `shellcheck`.
 
 For a client without the LSP tool, such as Codex, use the `gopls` command line for Go navigation and diagnostics, and `pnpm --dir frontend typecheck` to check TypeScript types.
 

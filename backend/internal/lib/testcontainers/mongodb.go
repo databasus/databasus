@@ -28,7 +28,7 @@ const mongodbStartupTimeout = 240 * time.Second
 // a connection that is immediately reset.
 func mongodbReady() wait.Strategy {
 	return wait.ForAll(
-		wait.ForLog("Waiting for connections").
+		wait.ForLog("(?i)waiting for connections").AsRegexp().
 			WithOccurrence(2).WithStartupTimeout(mongodbStartupTimeout),
 		wait.ForListeningPort(mongodbPort),
 	)
@@ -73,13 +73,13 @@ func startMongodbOnNetwork(t *testing.T, spec OnNetworkSpec) ContainerHandle {
 
 	req := mongodbRequest(spec.Image)
 	// wait.ForListeningPort resolves the published host port, and this container has none.
-	req.WaitingFor = wait.ForLog("Waiting for connections").
+	req.WaitingFor = wait.ForLog("(?i)waiting for connections").AsRegexp().
 		WithOccurrence(2).WithStartupTimeout(mongodbStartupTimeout)
 
 	container := startUnpublished(t, req, spec.Placement)
 
 	return ContainerHandle{
-		Endpoint:  Endpoint{Host: spec.Placement.Alias, Port: getPortNumber(mongodbPort)},
+		Host: spec.Placement.Alias, Port: getPortNumber(mongodbPort),
 		Container: container,
 	}
 }

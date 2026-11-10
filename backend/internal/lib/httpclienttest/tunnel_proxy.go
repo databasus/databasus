@@ -221,8 +221,9 @@ func AssertProxyReceivedOnlyTunnelRequest(t *testing.T, exchange ProxiedExchange
 func AssertCertificateRejected(t *testing.T, exchange ProxiedExchange) {
 	t.Helper()
 
-	var verificationErr *tls.CertificateVerificationError
-	if !errors.As(exchange.Err, &verificationErr) {
+	if _, isCertificateVerificationError := errors.AsType[*tls.CertificateVerificationError](
+		exchange.Err,
+	); !isCertificateVerificationError {
 		t.Fatalf("expected a certificate verification error, got %v", exchange.Err)
 	}
 

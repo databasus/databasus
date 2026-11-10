@@ -15,6 +15,7 @@ permissions:
 # tools its tasks need through install_args.
 env:
   MISE_TASK_RUN_AUTO_INSTALL: 'false'
+  DOCKER_BUILD_RECORD_UPLOAD: 'false'
 
 concurrency:
   group: ci-release-${{ github.event_name }}-${{ github.ref }}
@@ -29,22 +30,29 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
 
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: 'go golangci-lint vacuum go:golang.org/x/vuln/cmd/govulncheck'
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
+          install_args: 'go go@1.27.3 golangci-lint vacuum'
 
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
         with:
           cache: go
 
-      - name: Download Go modules
+      - name: Prepare locked Go modules
         run: |
           cd backend
-          go mod download
+          go mod tidy -diff
 
       - name: Verify Go module checksums
         run: |
@@ -62,11 +70,18 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
 
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'node pnpm'
 
       - name: Install dependencies
@@ -87,11 +102,18 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
 
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'shellcheck'
 
       - name: Run shellcheck
@@ -108,14 +130,21 @@ jobs:
           - arch: amd64
             runner: namespace-profile-4vcpu-8ram-ubuntu-26-x64
           - arch: arm64
-            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
+            runner: namespace-profile-4vcpu-8ram-ubuntu-26-arm
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
 
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'go shellcheck jq node pnpm python uv ruff ty hk'
 
       - name: Check native runner architecture
@@ -132,11 +161,18 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
 
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'actionlint'
 
       - name: Run actionlint
@@ -149,11 +185,18 @@ jobs:
       contents: read
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
 
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'aqua:aquasecurity/trivy'
 
       - name: Trivy Dockerfile misconfiguration scan
@@ -178,14 +221,21 @@ jobs:
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Check native runner architecture
         run: scripts/check_native_architecture.sh ${{ matrix.arch }}
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'node pnpm'
 
       - name: Set up pnpm cache
@@ -231,14 +281,21 @@ jobs:
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Check native runner architecture
         run: scripts/check_native_architecture.sh ${{ matrix.arch }}
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'node pnpm'
 
       - name: Install dependencies
@@ -275,7 +332,7 @@ jobs:
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Check native runner architecture
         run: scripts/check_native_architecture.sh ${{ matrix.arch }}
@@ -322,9 +379,16 @@ jobs:
           zstd -dc /tmp/databasus-storage-test-${{ matrix.arch }}.tar.zst | docker load
           scripts/check_native_architecture.sh ${{ matrix.arch }} databasus-storage-test:${{ github.sha }}-${{ matrix.arch }}
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'python uv'
 
       - name: Check the suite's own code
@@ -369,7 +433,7 @@ jobs:
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Check native runner architecture
         run: scripts/check_native_architecture.sh ${{ matrix.arch }}
@@ -385,9 +449,16 @@ jobs:
           zstd -dc /tmp/databasus-storage-test-${{ matrix.arch }}.tar.zst | docker load
           scripts/check_native_architecture.sh ${{ matrix.arch }} databasus-storage-test:${{ github.sha }}-${{ matrix.arch }}
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'python uv'
 
       - name: Check the suite's cleanup and failure handling
@@ -409,14 +480,21 @@ jobs:
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Check native runner architecture
         run: scripts/check_native_architecture.sh ${{ matrix.arch }}
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'go ripgrep'
 
       - name: Set up Go cache
@@ -424,10 +502,10 @@ jobs:
         with:
           cache: go
 
-      - name: Download Go modules
+      - name: Prepare locked Go modules
         run: |
           cd backend
-          go mod download
+          go mod tidy -diff
 
       - name: Run Go tests
         run: mise run agent:test
@@ -448,14 +526,21 @@ jobs:
             runner: ubuntu-24.04-arm
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Check native runner architecture
         run: scripts/check_native_architecture.sh ${{ matrix.arch }}
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'go python'
 
       - &install-database-clients
@@ -470,10 +555,10 @@ jobs:
           sudo ln -sf "${library_directory}/libtinfo.so.6" "${library_directory}/libtinfo.so.5"
 
       - &download-backend-modules
-        name: Download Go modules
+        name: Prepare locked Go modules
         run: |
           cd backend
-          go mod download
+          go mod tidy -diff
 
       - &create-backend-test-environment
         name: Create .env file for testing
@@ -602,14 +687,21 @@ jobs:
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Check native runner architecture
         run: scripts/check_native_architecture.sh ${{ matrix.arch }}
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'go golangci-lint jq'
 
       - name: Set up Go cache
@@ -685,13 +777,13 @@ jobs:
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Check native runner architecture
         run: scripts/check_native_architecture.sh ${{ matrix.arch }}
 
       - name: Build native storage candidate and load locally
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           push: false
@@ -789,7 +881,7 @@ jobs:
             runner: ubuntu-24.04-arm
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Check native runner architecture
         run: scripts/check_native_architecture.sh ${{ matrix.arch }}
@@ -809,9 +901,16 @@ jobs:
           zstd -dc /tmp/databasus-storage-test-${{ matrix.arch }}.tar.zst | docker load
           scripts/check_native_architecture.sh ${{ matrix.arch }} databasus-storage-test:${{ github.sha }}-${{ matrix.arch }}
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install: false
 
       - name: Run filesystem suite
@@ -841,16 +940,23 @@ jobs:
     steps:
       # The previous release is the newest v* tag, which lives on main, so the checkout needs every tag.
       - name: Check out code with tags
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
       - name: Check native runner architecture
         run: scripts/check_native_architecture.sh ${{ matrix.arch }}
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'go'
 
       - name: Set up Go cache
@@ -889,13 +995,13 @@ jobs:
             runner: namespace-profile-2vcpu-4ram-ubuntu-26-arm
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Check native runner architecture
         run: scripts/check_native_architecture.sh ${{ matrix.arch }}
 
       - name: Build image and load locally
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           push: false
@@ -906,9 +1012,16 @@ jobs:
           tags: |
             databasus:smoke-${{ github.sha }}
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'aqua:aquasecurity/trivy'
 
       - name: Check image
@@ -930,7 +1043,7 @@ jobs:
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # A representative major checks the Dockerfile before version selection;
       # publishing builds the full multi-arch matrix.
@@ -938,7 +1051,7 @@ jobs:
         run: scripts/check_native_architecture.sh ${{ matrix.arch }}
 
       - name: Build native verification image (no push)
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: backend/cmd/verification-agent/images/postgres
           push: false
@@ -992,13 +1105,20 @@ jobs:
       bump_type: ${{ steps.version_bump.outputs.bump_type }}
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
 
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'node npm:semver'
 
       - name: Get current version
@@ -1097,17 +1217,17 @@ jobs:
             runner: namespace-profile-2vcpu-4ram-ubuntu-26-arm
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push release image by digest
         id: release-image-push
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           platforms: ${{ matrix.platform }}
@@ -1148,13 +1268,13 @@ jobs:
       - *download-artifact-3
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Log in to GHCR
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -1210,33 +1330,22 @@ jobs:
             runner: namespace-profile-2vcpu-4ram-ubuntu-26-arm
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Pin the base to its current manifest digest so the published image is
-      # reproducible rather than tracking a floating postgres:<major> tag.
-      - name: Resolve digest-pinned base image
-        id: pinned-base-image
-        run: |
-          # buildx v0.32.1 on Namespace runners ignores --format and prints the full
-          # summary, so the digest is hashed from the raw manifest bytes instead.
-          manifest_hash=$(docker buildx imagetools inspect --raw postgres:${{ matrix.major }} | sha256sum | cut -d' ' -f1)
-          echo "image=postgres:${{ matrix.major }}@sha256:${manifest_hash}" >> "$GITHUB_OUTPUT"
-
       - name: Build and push verification image by digest
         id: verification-image-push
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: backend/cmd/verification-agent/images/postgres
           platforms: ${{ matrix.platform }}
           build-args: |
             PG_MAJOR=${{ matrix.major }}
-            BASE_IMAGE=${{ steps.pinned-base-image.outputs.image }}
           outputs: type=image,name=databasus/verification-postgres,push-by-digest=true,name-canonical=true,push=true
 
       - name: Export image digest
@@ -1275,7 +1384,7 @@ jobs:
       - *download-artifact-3
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -1304,13 +1413,24 @@ jobs:
       contents: write
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
+          install_args: 'gh'
+
       - name: Generate changelog
-        id: changelog
         shell: bash
         run: |
           NEW_VERSION="${{ needs.determine-version.outputs.new_version }}"
@@ -1400,26 +1520,14 @@ jobs:
           CHANGELOG="${CHANGELOG}- **Mirror**: \`ghcr.io/databasus/databasus:v${NEW_VERSION}\`${NL}"
           CHANGELOG="${CHANGELOG}- **Platforms**: linux/amd64, linux/arm64${NL}"
 
-          # Use a random delimiter so any literal "EOF" line inside the
-          # changelog (e.g. inside a commit subject) cannot prematurely
-          # terminate the multiline output heredoc.
-          DELIMITER="EOF_$(openssl rand -hex 16)"
-          {
-            printf '%s<<%s\n' 'changelog' "$DELIMITER"
-            printf '%s\n' "$CHANGELOG"
-            printf '%s\n' "$DELIMITER"
-          } >> "$GITHUB_OUTPUT"
+          printf '%s\n' "$CHANGELOG" > "$RUNNER_TEMP/release-notes.md"
 
       - name: Create GitHub Release
-        uses: actions/create-release@0cb9c9b65d5d1901c1f53e5e66eaf4afd303e70e # v1.1.4
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ needs.determine-version.outputs.new_version }}
-          release_name: Release v${{ needs.determine-version.outputs.new_version }}
-          body: ${{ steps.changelog.outputs.changelog }}
-          draft: false
-          prerelease: false
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: v${{ needs.determine-version.outputs.new_version }}
+        run: gh release create "$RELEASE_TAG" --target "$GITHUB_SHA" --title "Release $RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md"
 
   publish-helm-chart:
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
@@ -1431,11 +1539,18 @@ jobs:
       packages: write
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
 
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'helm'
 
       - name: Log in to GHCR

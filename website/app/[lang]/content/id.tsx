@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import LandingFooterComponent from "@/app/components/LandingFooterComponent";
 import LandingHeaderComponent from "@/app/components/LandingHeaderComponent";
-import { OG_LOCALES, getLanguageAlternates, getLocalizedUrl } from "@/app/i18n";
+import { OG_LOCALES, getLanguageAlternates, getLocalizedUrl, getLocalizedHref } from "@/app/i18n";
 import HeroStatsComponent from "@/app/components/HeroStatsComponent";
 import InstallationComponent from "@/app/components/InstallationComponent";
 import LiteYouTubeEmbed from "@/app/components/LiteYouTubeEmbed";
@@ -170,7 +170,7 @@ export default function Index() {
                 name: "Bagaimana Databasus menjaga keamanan?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus menerapkan keamanan pada tiga tingkat: (1) Enkripsi data sensitif: semua password, token, dan kredensial dienkripsi dengan AES-256-GCM dan disimpan terpisah dari database; (2) Enkripsi backup: setiap file backup dienkripsi dengan key unik yang diturunkan dari master key, ID backup, dan salt acak, sehingga backup tidak berguna tanpa key enkripsi kamu meskipun seseorang mendapat akses penyimpanan; (3) Akses database read-only: Databasus hanya memerlukan izin SELECT dan melakukan pemeriksaan menyeluruh untuk memastikan tidak ada hak tulis, sehingga mencegah kerusakan data meskipun alat ini disusupi. Login juga bisa mewajibkan faktor kedua: jika diaktifkan, password yang benar diikuti kode enam digit yang dikirim ke email akun, sedangkan login melalui Google atau GitHub tetap mengandalkan pemeriksaan penyedia tersebut. Di luar runtime, keamanan dan keandalan diperiksa sebelum setiap rilis melalui analisis statis CodeQL, pemindaian secret gitleaks, aturan keamanan semgrep, pemantauan CVE Dependabot, pemindaian image dan Dockerfile Trivy, serta audit berkala Codex Security dari OpenAI. Integration test berjalan pada container PostgreSQL, MySQL, MariaDB, dan MongoDB sungguhan serta memverifikasi siklus backup lalu restore lengkap sebelum setiap rilis. GitHub Actions dipatok ke SHA commit dan workflow mengikuti prinsip hak akses minimum. Semua operasi berjalan di container yang kamu kendalikan pada server milik kamu. Karena open source, tim keamanan bisa mengaudit setiap baris kode sebelum deployment.",
+                  text: "Databasus menerapkan keamanan pada tiga tingkat: (1) Enkripsi data sensitif: semua password, token, dan kredensial dienkripsi dengan AES-256-GCM dan disimpan terpisah dari database; (2) Enkripsi backup: setiap file backup dienkripsi dengan key unik yang diturunkan dari master key, ID backup, dan salt acak, sehingga backup tidak berguna tanpa key enkripsi kamu meskipun seseorang mendapat akses penyimpanan; (3) Akses database read-only: Databasus hanya memerlukan izin SELECT dan melakukan pemeriksaan menyeluruh untuk memastikan tidak ada hak tulis, sehingga mencegah kerusakan data meskipun alat ini disusupi. Login juga bisa mewajibkan faktor kedua: jika diaktifkan, password yang benar diikuti kode enam digit yang dikirim ke email akun, sedangkan login melalui Google atau GitHub tetap mengandalkan pemeriksaan penyedia tersebut. Sebelum setiap rilis, pemeriksaan otomatis memindai kode, dependency, secret, dan image container. Pengujian memverifikasi siklus backup dan restore lengkap pada container PostgreSQL, MySQL, MariaDB, dan MongoDB sungguhan. Semua pemeriksaan wajib harus lolos sebelum publikasi. Audit berkala Codex Security dari OpenAI melengkapi pemeriksaan ini dan dilakukan terpisah dari proses rilis. Semua operasi berjalan di container yang kamu kendalikan pada server milik kamu. Karena open source, tim keamanan bisa mengaudit setiap baris kode sebelum deployment.",
                 },
               },
               {
@@ -221,6 +221,14 @@ export default function Index() {
                   text: 'Akun pertama yang dibuat pada instance bertugas mengelolanya. Jika lupa alamatnya, jalankan docker exec -it databasus ./main --list-admins pada server tempat Databasus berjalan. Perintah ini menampilkan setiap akun administrator beserta alamat email, nama tampilan, tanggal pembuatan, dan status aktifnya, tanpa menampilkan informasi password. Untuk mengatur password baru akun tersebut, jalankan docker exec -it databasus ./main --new-password="YourNewSecurePassword123" --email="owner@example.com". Instance yang dibuat sebelum akun pertama bertugas mengelolanya masih menggunakan alamat placeholder admin sampai pemilik menggantinya. Jika instance juga mewajibkan kode email saat login dan mail server tidak lagi mengirimkannya, jalankan docker exec -it databasus ./main --disable-2fa untuk menonaktifkan kewajiban kode. Ketiga perintah didokumentasikan di halaman password.',
                 },
               },
+              {
+                "@type": "Question",
+                name: "Bagaimana AI digunakan dalam pengembangan Databasus?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "AI membantu kami mengembangkan Databasus dengan proses rekayasa yang jelas. Manusia menentukan arah dan mengambil keputusan akhir. Pengembang membaca setiap baris kode sebelum perubahan digabungkan. Agen independen meninjau kebenaran perilaku, arsitektur, pengujian, dan dokumentasi dalam sesi terpisah dengan akses hanya baca. Pemeriksaan lint yang ketat dan pengujian dengan database sungguhan melengkapi review mereka. Pemeriksaan CI wajib harus lulus sebelum rilis.",
+                },
+              },
             ],
           }),
         }}
@@ -239,7 +247,7 @@ export default function Index() {
               <span className="text-sm font-medium">Databasus</span>
             </div>
             <h1 className="text-2xl sm:text-4xl sm:max-w-[300px] md:text-4xl leading-tight font-bold mb-4 md:mb-6 mx-auto md:max-w-[650px]">
-              Alat backup PostgreSQL dengan Point-in-time-recovery dan verifikasi restore
+              Alat backup PostgreSQL
             </h1>
             <p className="text-sm sm:text-lg text-gray-200 max-w-[720px] mx-auto mb-6 md:mb-10 px-2">
               Databasus adalah alat gratis, open source, dan self-hosted untuk backup PostgreSQL.
@@ -1012,20 +1020,17 @@ export default function Index() {
                   atau GitHub tetap mengandalkan pemeriksaan penyedia tersebut.
                   <br />
                   <br />
-                  Di luar runtime, keamanan dan keandalan diperiksa sebelum setiap rilis melalui
-                  analisis statis CodeQL, pemindaian secret gitleaks, aturan keamanan semgrep,
-                  pemantauan CVE Dependabot, pemindaian image dan Dockerfile Trivy, serta audit
-                  berkala Codex Security dari OpenAI. Integration test berjalan pada container
-                  PostgreSQL, MySQL, MariaDB, dan MongoDB sungguhan serta memverifikasi siklus
-                  backup lalu restore lengkap sebelum setiap rilis. GitHub Actions dipatok ke
-                  SHA commit dan workflow mengikuti prinsip hak akses minimum.
+                  Sebelum setiap rilis, pemeriksaan otomatis memindai kode, dependency,
+                  secret, dan image container. Pengujian memverifikasi siklus backup dan
+                  restore lengkap pada container PostgreSQL, MySQL, MariaDB, dan MongoDB
+                  sungguhan. Semua pemeriksaan wajib harus lolos sebelum publikasi. Audit
+                  berkala Codex Security dari OpenAI melengkapi pemeriksaan ini dan dilakukan
+                  terpisah dari proses rilis.
                   <br />
                   <br />
                   Lihat{" "}
                   <a
-                    href={
-                      getLocalizedUrl("id", "security") + "#security-and-reliability-engineering"
-                    }
+                    href={`${getLocalizedHref("id", "security")}#security-and-reliability-engineering`}
                     className="text-blue-400 hover:text-blue-600"
                   >
                     Rekayasa keamanan dan keandalan
@@ -1251,6 +1256,31 @@ export default function Index() {
             />
             <FaqItem
               number="12"
+              question="Bagaimana AI digunakan dalam pengembangan Databasus?"
+              answer={
+                <>
+                  <p>
+                    AI membantu kami mengembangkan Databasus dengan proses rekayasa yang jelas. Manusia menentukan
+                    arah dan mengambil keputusan akhir.{" "}
+                    <strong>Pengembang membaca setiap baris kode sebelum perubahan digabungkan.</strong>
+                  </p>
+                  <p className="mt-3">
+                    Agen independen meninjau kebenaran perilaku, arsitektur, pengujian, dan dokumentasi dalam sesi
+                    terpisah dengan akses hanya baca. Pemeriksaan lint yang ketat dan pengujian dengan database
+                    sungguhan melengkapi review mereka. Pemeriksaan CI wajib harus lulus sebelum rilis.{" "}
+                    <a
+                      href={`${getLocalizedHref("id", "faq")}#ai-usage`}
+                      className="text-blue-400 hover:text-blue-600"
+                    >
+                      Pelajari proses pengembangannya
+                    </a>
+                    .
+                  </p>
+                </>
+              }
+            />
+            <FaqItem
+              number="13"
               question="Bagaimana cara bergabung dengan komunitas Databasus?"
               answer={
                 <>
@@ -1270,7 +1300,7 @@ export default function Index() {
               }
             />
             <FaqItem
-              number="13"
+              number="14"
               question="Seberapa besar adopsi Databasus?"
               answer={
                 <>
@@ -1301,7 +1331,7 @@ export default function Index() {
               }
             />
             <FaqItem
-              number="14"
+              number="15"
               question="Saya lupa email atau password admin"
               answer={
                 <>

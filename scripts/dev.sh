@@ -56,6 +56,7 @@ docker compose -f "$root/docker-compose.yml" up -d "${own_services[@]}" "${test_
 timeout 60 bash -c 'until docker exec backend-db pg_isready -U postgres >/dev/null; do sleep 2; done'
 
 pnpm --dir "$root/frontend" install --frozen-lockfile
+pnpm --dir "$root/website" install --frozen-lockfile
 stop_stale_backend_watchers
 free_backend_port
 

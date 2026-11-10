@@ -97,6 +97,14 @@ export default function FAQPage() {
                   text: "Pada Maret 2026, Databasus diterima dalam Claude for Open Source dari Anthropic dan Codex for Open Source dari OpenAI. Dukungan program ini menjadi penanda keandalan: proyek telah dievaluasi secara independen dan diakui oleh para pemimpin industri sebagai infrastruktur open-source penting yang layak didukung.",
                 },
               },
+              {
+                "@type": "Question",
+                name: "Bagaimana AI digunakan dalam pengembangan Databasus?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "AI membantu kami mengembangkan Databasus, dari perencanaan dan implementasi hingga pengujian dan dokumentasi. Manusia menentukan arah dan mengambil keputusan akhir. Pengembang membaca setiap baris kode sebelum perubahan digabungkan. Kami menggunakan pengembangan berbasis spesifikasi (SDD) dengan OpenSpec untuk menyepakati perilaku sebelum implementasi. Review independen pada setiap tahap Hook otomatis memulai sesi peninjau terpisah dengan akses hanya baca ke repositori. Setiap agen memeriksa kode terkait dan memberikan temuannya sendiri. Agen pelaksana tidak dapat menyetujui pekerjaannya sendiri. Review dimulai sebelum implementasi. Agen perencanaan terpisah mencari solusi yang lebih sederhana, memeriksa nama yang diusulkan, dan menilai desain. Mereka juga memeriksa kesesuaian persyaratan dengan tugas verifikasi. Peninjau kode: Mencari bug, kasus batas yang terlewat, penanganan error yang salah, kondisi balapan, kebocoran sumber daya, dan masalah keamanan. Peninjau persyaratan: Menelusuri implementasi dan pengujian untuk setiap persyaratan. Memeriksa apakah pengujian benar-benar membuktikan perilaku yang dijanjikan. Peninjau arsitektur: Memeriksa batas modul, arah dependensi, kepemilikan data, migrasi, dan aturan API. Peninjau struktur kode: Memeriksa nama, tanggung jawab file dan fungsi, komentar, serta keterbacaan. Peninjau pengujian: Menilai apakah pengujian dapat mendeteksi perilaku yang hilang atau regresi. Juga memeriksa penantian kondisi, pembersihan, dan bukti verifikasi. Peninjau dokumentasi dan tugas: Memeriksa kesesuaian dokumentasi dengan kode, penyelesaian tugas, dan bukti pemeriksaan yang dilaporkan. Review implementasi lengkap berjalan paralel. Setiap spesifikasi yang berubah memiliki peninjau persyaratannya sendiri. Arsitektur, pengujian, dan dokumentasi memiliki peninjau terpisah. Jadi, perubahan pada dua spesifikasi mendapat lima agen review lengkap. Temuan yang menghalangi penerimaan menghentikan persetujuan pekerjaan. Agen pelaksana memperbaikinya atau menjelaskan mengapa suatu temuan keliru. Peninjau lanjutan memeriksa penyelesaian itu dan perubahan berikutnya. Review yang tidak dapat berjalan tidak dianggap lulus. Pemeriksaan otomatis dan restore sungguhan Review independen didampingi pemeriksaan otomatis yang ketat. golangci-lint dan pemeriksa arsitektur kami memeriksa dependensi backend, batas modul, dan aturan migrasi. Pemeriksaan API memvalidasi kontrak OpenAPI dan kode hasil generasi. Frontend memeriksa TypeScript, React, impor antarlapisan, gaya, dan pelokalan. Ruff dan ty memeriksa format, aturan kode, dan tipe Python. ShellCheck memeriksa skrip shell, sedangkan actionlint memeriksa workflow GitHub Actions. Hook sebelum commit memeriksa file backend, frontend, dan Python yang terkait tanpa menulis ulang file. CI juga menjalankan pemeriksaan lint. Pengujian memeriksa perilaku nyata. Backend diuji melalui API aplikasi, sedangkan mesin database diperiksa dengan database sungguhan dalam container. Skenario menyeluruh membuat backup, melakukan restore, lalu memeriksa data hasil restore. Pengujian lain mencakup upgrade, layar frontend, dan alur browser dengan perbandingan visual. Pemeriksaan dipilih sesuai perubahan. Rangkaian pengujian wajib untuk rilis berjalan pada amd64 dan arm64. Agen pelaksana menjalankan pemeriksaan lint dan pengujian terkait sebelum review. Peninjau memeriksa buktinya tanpa menjalankan ulang perintah tersebut. Sebelum publikasi, CodeQL dan Semgrep menganalisis kode, Gitleaks mencari rahasia, dan dependensi diperiksa untuk menemukan kerentanan. Trivy memindai image container dan Dockerfile. Pemeriksaan CI wajib harus lulus sebelum rilis.",
+                },
+              },
             ],
           }),
         }}
@@ -319,6 +327,144 @@ export default function FAQPage() {
                 versi 3.42.0 dan akan terus bekerja untuk waktu yang lama, jadi tidak ada yang
                 rusak.
               </p>
+              <h2 id="ai-usage">Bagaimana AI digunakan dalam pengembangan Databasus?</h2>
+
+              <p>
+                AI membantu kami mengembangkan Databasus, dari perencanaan dan implementasi hingga pengujian dan
+                dokumentasi. Manusia menentukan arah dan mengambil keputusan akhir.{" "}
+                <strong>Pengembang membaca setiap baris kode sebelum perubahan digabungkan.</strong>
+              </p>
+
+              <p>
+                Kami menggunakan pengembangan berbasis spesifikasi (SDD) dengan{" "}
+                <a href="https://github.com/databasus/databasus/tree/main/openspec">OpenSpec</a> untuk
+                menyepakati perilaku sebelum implementasi.
+              </p>
+
+              <h3 id="ai-review-hooks">Review independen pada setiap tahap</h3>
+
+              <p>
+                Hook otomatis memulai sesi peninjau terpisah dengan akses hanya baca ke repositori. Setiap agen
+                memeriksa kode terkait dan memberikan temuannya sendiri. Agen pelaksana tidak dapat menyetujui
+                pekerjaannya sendiri.
+              </p>
+
+              <p>
+                Review dimulai sebelum implementasi. Agen perencanaan terpisah mencari solusi yang lebih
+                sederhana, memeriksa nama yang diusulkan, dan menilai desain. Mereka juga memeriksa kesesuaian
+                persyaratan dengan tugas verifikasi.
+              </p>
+
+              <ul>
+                <li>
+                  <strong>Peninjau kode:</strong> Mencari bug, kasus batas yang terlewat, penanganan error yang
+                  salah, kondisi balapan, kebocoran sumber daya, dan masalah keamanan.
+                </li>
+                <li>
+                  <strong>Peninjau persyaratan:</strong> Menelusuri implementasi dan pengujian untuk setiap
+                  persyaratan. Memeriksa apakah pengujian benar-benar membuktikan perilaku yang dijanjikan.
+                </li>
+                <li>
+                  <strong>Peninjau arsitektur:</strong> Memeriksa batas modul, arah dependensi, kepemilikan
+                  data, migrasi, dan aturan API.
+                </li>
+                <li>
+                  <strong>Peninjau struktur kode:</strong> Memeriksa nama, tanggung jawab file dan fungsi,
+                  komentar, serta keterbacaan.
+                </li>
+                <li>
+                  <strong>Peninjau pengujian:</strong> Menilai apakah pengujian dapat mendeteksi perilaku yang
+                  hilang atau regresi. Juga memeriksa penantian kondisi, pembersihan, dan bukti verifikasi.
+                </li>
+                <li>
+                  <strong>Peninjau dokumentasi dan tugas:</strong> Memeriksa kesesuaian dokumentasi dengan kode,
+                  penyelesaian tugas, dan bukti pemeriksaan yang dilaporkan.
+                </li>
+              </ul>
+
+              <p>
+                Review implementasi lengkap berjalan paralel. Setiap spesifikasi yang berubah memiliki peninjau
+                persyaratannya sendiri. Arsitektur, pengujian, dan dokumentasi memiliki peninjau terpisah. Jadi,
+                perubahan pada dua spesifikasi mendapat lima agen review lengkap.
+              </p>
+
+              <p>
+                <strong>Temuan yang menghalangi penerimaan menghentikan persetujuan pekerjaan.</strong> Agen
+                pelaksana memperbaikinya atau menjelaskan mengapa suatu temuan keliru. Peninjau lanjutan
+                memeriksa penyelesaian itu dan perubahan berikutnya. Review yang tidak dapat berjalan tidak
+                dianggap lulus.
+              </p>
+
+              <p>
+                <a href="https://github.com/databasus/databasus/blob/main/.agent-hooks/review_gate.py">
+                  Implementasi hook review
+                </a>
+                {" · "}
+                <a href="https://github.com/databasus/databasus/tree/main/.agent-hooks">Instruksi peninjau</a>
+              </p>
+
+              <h3 id="ai-linting">Pemeriksaan otomatis dan restore sungguhan</h3>
+
+              <p>
+                Review independen didampingi pemeriksaan otomatis yang ketat. golangci-lint dan pemeriksa
+                arsitektur kami memeriksa dependensi backend, batas modul, dan aturan migrasi. Pemeriksaan API
+                memvalidasi kontrak OpenAPI dan kode hasil generasi. Frontend memeriksa TypeScript, React, impor
+                antarlapisan, gaya, dan pelokalan.
+              </p>
+
+              <p>
+                Ruff dan ty memeriksa format, aturan kode, dan tipe Python. ShellCheck memeriksa skrip shell,
+                sedangkan actionlint memeriksa workflow GitHub Actions. Hook sebelum commit memeriksa file
+                backend, frontend, dan Python yang terkait tanpa menulis ulang file. CI juga menjalankan
+                pemeriksaan lint.
+              </p>
+
+              <p>
+                <a href="https://github.com/databasus/databasus/blob/main/mise-tasks/backend/lint">
+                  Pemeriksaan lint backend
+                </a>
+                {" · "}
+                <a href="https://github.com/databasus/databasus/blob/main/frontend/lint/check.sh">
+                  Pemeriksaan lint frontend
+                </a>
+                {" · "}
+                <a href="https://github.com/databasus/databasus/blob/main/scripts/python_quality.py">
+                  Pemeriksaan Python
+                </a>
+              </p>
+
+              <p>
+                Pengujian memeriksa perilaku nyata. Backend diuji melalui API aplikasi, sedangkan mesin database
+                diperiksa dengan database sungguhan dalam container. Skenario menyeluruh membuat backup,
+                melakukan restore, lalu memeriksa data hasil restore. Pengujian lain mencakup upgrade, layar
+                frontend, dan alur browser dengan perbandingan visual.
+              </p>
+
+              <p>
+                Pemeriksaan dipilih sesuai perubahan. Rangkaian pengujian wajib untuk rilis berjalan pada amd64
+                dan arm64. Agen pelaksana menjalankan pemeriksaan lint dan pengujian terkait sebelum review.
+                Peninjau memeriksa buktinya tanpa menjalankan ulang perintah tersebut.
+              </p>
+
+              <p>
+                <a href="https://github.com/databasus/databasus/blob/main/docs/testing.md">
+                  Strategi pengujian dan perintah
+                </a>
+              </p>
+
+              <p>
+                Sebelum publikasi, CodeQL dan Semgrep menganalisis kode, Gitleaks mencari rahasia, dan
+                dependensi diperiksa untuk menemukan kerentanan. Trivy memindai image container dan Dockerfile.
+              </p>
+
+              <p>
+                <strong>Pemeriksaan CI wajib harus lulus sebelum rilis.</strong>{" "}
+                <a href={`${getLocalizedHref("id", "security")}#security-and-reliability-engineering`}>
+                  Keamanan dan keandalan
+                </a>
+                .
+              </p>
+
               <h2 id="backup-databasus">Bagaimana cara membuat backup Databasus itu sendiri?</h2>
               <p>
                 Untuk membuat backup instance Databasus (termasuk semua konfigurasi, database, dan

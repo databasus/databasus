@@ -25,28 +25,35 @@ jobs:
         working-directory: website
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
 
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: 'node'
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
+          install_args: "node pnpm"
 
-      - name: Set up npm cache
+      - name: Set up pnpm cache
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
         with:
-          cache: npm
+          cache: pnpm
 
       - name: Set up Pages
-        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
         with:
           static_site_generator: next
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Build with Next.js
-        run: npm run build
+        run: pnpm build
 
       - name: Add .nojekyll file
         run: touch ./out/.nojekyll
@@ -60,7 +67,7 @@ jobs:
           echo "Build verification successful"
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: website/out
 
@@ -77,7 +84,7 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
         with:
           timeout: 600000
           error_count: 10

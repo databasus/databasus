@@ -75,7 +75,8 @@ func TestWriteProtectionConnection(t *testing.T) {
 			} else {
 				var sessionPID int
 				require.NoError(t, files.store.writeProtection.connection.QueryRowContext(
-					t.Context(), "SELECT pg_backend_pid()").Scan(&sessionPID))
+					t.Context(), "SELECT pg_backend_pid()",
+				).Scan(&sessionPID))
 				files.execute(t, "SELECT pg_terminate_backend(?)", sessionPID)
 			}
 		}

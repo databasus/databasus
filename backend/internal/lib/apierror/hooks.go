@@ -35,8 +35,7 @@ func (h *Hooks) HandleParameterError(ctx *gin.Context, err error, _ int) {
 
 // HandleHandlerError answers a Problem the service returned as it is, and anything else as 500.
 func (h *Hooks) HandleHandlerError(ctx *gin.Context, err error) {
-	var problem *Problem
-	if errors.As(err, &problem) {
+	if problem, isProblem := errors.AsType[*Problem](err); isProblem {
 		Write(ctx, problem)
 
 		return

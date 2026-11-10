@@ -339,8 +339,7 @@ func (s *ftpServer) retrieveFileFromOffset(
 // A protocol reply such as 550 leaves the control channel in a clean state, so only transport
 // failures make a session unusable.
 func ignoreFtpReply(err error) error {
-	var protocolError *textproto.Error
-	if errors.As(err, &protocolError) {
+	if _, isProtocolError := errors.AsType[*textproto.Error](err); isProtocolError {
 		return nil
 	}
 

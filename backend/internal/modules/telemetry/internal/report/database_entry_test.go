@@ -16,9 +16,11 @@ func TestDatabaseEntry(t *testing.T) {
 	t.Run("keeps engine facts when mapping each supported database type", func(t *testing.T) {
 		t.Parallel()
 		for _, databaseType := range []databases.Type{databases.TypePostgresqlLogical, databases.TypePostgresqlPhysical, databases.TypeMysql, databases.TypeMariadb, databases.TypeMongodb} {
-			database := databases.TelemetryEntry{Type: databaseType}
-			database.Version = "server-version"
-			database.IsSSHTunnelEnabled = true
+			database := databases.TelemetryEntry{
+				Type:               databaseType,
+				Version:            "server-version",
+				IsSSHTunnelEnabled: true,
+			}
 
 			entry := buildDatabaseEntry(database)
 

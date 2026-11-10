@@ -2,9 +2,6 @@
 #MISE hide=true
 #MISE description="Pull the database, object storage and agent restore images the backend tests use"
 #MISE dir="backend"
-# For the bare names the tag must start with a digit, so a quoted "postgres:postgres" chown arg in
-# physical tests isn't mistaken for an image tag; every real image tag there is version-like. A
-# namespaced name (owner/image) cannot be confused with anything, so its tag is matched as written.
 set -euo pipefail
 
 architecture=$(uname -m)
@@ -14,16 +11,23 @@ case "$architecture" in
     *) echo "unsupported test architecture: $architecture" >&2; exit 1 ;;
 esac
 policy=./internal/lib/testcontainers/unavailable_images.json
+catalog=./internal/lib/testimages/images.json
+platform="linux-x64"
+if [[ "$architecture" == "arm64" ]]; then
+    platform="linux-arm64"
+fi
 
-# shellcheck disable=SC2016 # the inner script expands $1 and $n itself
-grep -rhoE '"(mysql|mariadb|mongo|postgres):[0-9][a-zA-Z0-9._-]*"|"pgsty/minio:[a-zA-Z0-9._-]+"|"(databasus/verification-postgres|timescale/timescaledb):[a-zA-Z0-9._-]+"' ./internal |
-    tr -d '"' | sort -u |
+# shellcheck disable=SC2016 # The child shell expands its own $1 and $n.
+jq -r '.images | keys[] | select(test("^(mysql|mariadb|mongo|postgres):|^(pgsty/minio|databasus/verification-postgres|timescale/timescaledb):"))' "$catalog" |
     while IFS= read -r image; do
         reason=$(jq -r --arg architecture "$architecture" --arg image "$image" '.[$architecture][$image] // empty' "$policy")
         if [[ -n "$reason" ]]; then
             echo "Skipping $image on $architecture: $reason" >&2
         else
-            echo "$image"
+            jq -er --arg image "$image" --arg platform "$platform" \
+                '.images[$image] | if .platforms[$platform] then
+                  (.reference | split("@")[0]) + "@" + .platforms[$platform]
+                else error("missing immutable test image: " + $image) end' "$catalog"
         fi
     done |
     xargs -P 4 -I {} sh -c 'for n in 1 2 3; do docker pull "$1" && exit 0; echo "retry $1 ($n)"; sleep 3; done; echo "FAILED to pull $1 after 3 attempts"; exit 1' sh {}

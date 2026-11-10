@@ -30,7 +30,8 @@ func requireRestoredClusterNeedsNoZstd(t *testing.T, target containers.RestoreTa
 		"the recovery config must not reference zstd")
 
 	leftoverCompressed := strings.TrimSpace(string(
-		target.Exec(t, "sh", "-c", "ls "+clusterDir+"/databasus_wal_restore/*.zst 2>/dev/null | wc -l")))
+		target.Exec(t, "sh", "-c", "ls "+clusterDir+"/databasus_wal_restore/*.zst 2>/dev/null | wc -l"),
+	))
 	require.Equal(t, "0", leftoverCompressed,
 		"the WAL archive the cluster reads must hold no still-compressed segments")
 

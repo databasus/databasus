@@ -40,10 +40,12 @@ func TestCopyDatabase(t *testing.T) {
 			})
 
 			require.NoError(t, tm.app.RecordBackupSuccess(
-				t.Context(), originalDatabase.Id, time.Now().UTC()))
+				t.Context(), originalDatabase.Id, time.Now().UTC(),
+			))
 			unavailable := databases.HealthStatusUnavailable
 			require.NoError(t, tm.app.SetHealthStatus(
-				t.Context(), originalDatabase.Id, &unavailable))
+				t.Context(), originalDatabase.Id, &unavailable,
+			))
 
 			copiedDatabase := copyDatabase(t, tm.owner, originalDatabase.Id)
 

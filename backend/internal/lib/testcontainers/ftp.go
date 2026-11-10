@@ -57,12 +57,10 @@ func StartFtpContainer(t *testing.T) ContainerHandle {
 	passivePorts := findFreePassivePortRange(t)
 
 	req := testcontainers.ContainerRequest{
-		FromDockerfile: testcontainers.FromDockerfile{
-			Context:   getFixtureDirectory(t, "ftp"),
-			Repo:      "databasus-test-ftp",
-			Tag:       "latest",
-			KeepImage: true,
-		},
+		Context:      getFixtureDirectory(t, "ftp"),
+		Repo:         "databasus-test-ftp",
+		Tag:          "latest",
+		KeepImage:    true,
 		ExposedPorts: ftpExposedPorts(passivePorts),
 		Env: map[string]string{
 			"FTP_USER_PASS":     FtpPassword,

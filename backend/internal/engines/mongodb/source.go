@@ -6,9 +6,9 @@ import (
 	"log/slog"
 
 	"github.com/google/uuid"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 // Source is the engine's handle on one MongoDB database.
@@ -35,7 +35,7 @@ func (s *Source) TestConnection(
 	logger *slog.Logger,
 	excludeCollections []string,
 ) (Version, error) {
-	client, err := s.connect(ctx)
+	client, err := s.connect()
 	if err != nil {
 		// The URI carries the password, so only the database name goes into the log.
 		logger.ErrorContext(ctx, "failed to open the mongodb connection",
@@ -74,7 +74,7 @@ func (s *Source) TestConnection(
 }
 
 func (s *Source) DetectVersion(ctx context.Context, logger *slog.Logger) (Version, error) {
-	client, err := s.connect(ctx)
+	client, err := s.connect()
 	if err != nil {
 		return "", fmt.Errorf("failed to connect to database: %w", err)
 	}
@@ -91,7 +91,7 @@ func (s *Source) GetRawSizeMb(ctx context.Context, logger *slog.Logger) (float64
 		return 0, nil
 	}
 
-	client, err := s.connect(ctx)
+	client, err := s.connect()
 	if err != nil {
 		return 0, fmt.Errorf("failed to connect to MongoDB: %w", err)
 	}
@@ -110,8 +110,10 @@ func (s *Source) GetRawSizeMb(ctx context.Context, logger *slog.Logger) (float64
 	return stats.DataSize / (1024 * 1024), nil
 }
 
-func (s *Source) connect(ctx context.Context) (*mongo.Client, error) {
-	return mongo.Connect(ctx, options.Client().ApplyURI(s.settings.BuildConnectionURI()))
+func (s *Source) connect() (*mongo.Client, error) {
+	return mongo.Connect(options.Client().
+		ApplyURI(s.settings.BuildConnectionURI()).
+		SetBSONOptions(&options.BSONOptions{DefaultDocumentM: true}))
 }
 
 func disconnect(ctx context.Context, client *mongo.Client, logger *slog.Logger) {

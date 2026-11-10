@@ -35,7 +35,7 @@ type listedWorkspaceRow struct {
 
 func (r listedWorkspaceRow) toListedWorkspace() ListedWorkspace {
 	return ListedWorkspace{
-		Workspace:       Workspace{ID: r.ID, Name: r.Name, CreatedAt: r.CreatedAt},
+		ID: r.ID, Name: r.Name, CreatedAt: r.CreatedAt,
 		CurrentUserRole: r.CurrentUserRole,
 	}
 }

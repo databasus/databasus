@@ -139,13 +139,11 @@ func startPostgresBuild(t *testing.T, contextDir, repo string) Endpoint {
 	t.Helper()
 
 	req := testcontainers.ContainerRequest{
-		FromDockerfile: testcontainers.FromDockerfile{
-			Context:    contextDir,
-			Dockerfile: "Dockerfile",
-			Repo:       repo,
-			Tag:        "latest",
-			KeepImage:  true,
-		},
+		Context:      contextDir,
+		Dockerfile:   "Dockerfile",
+		Repo:         repo,
+		Tag:          "latest",
+		KeepImage:    true,
 		ExposedPorts: []string{postgresPort},
 		Env:          postgresEnv(),
 		WaitingFor:   postgresReady(),

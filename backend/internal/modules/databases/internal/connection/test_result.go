@@ -19,8 +19,9 @@ func newTestResult(testErr error) TestResult {
 		return TestResult{IsConnected: true, Reason: nil, Error: ""}
 	}
 
-	var connectionTestErr *pgshared.ConnectionTestError
-	if errors.As(testErr, &connectionTestErr) {
+	if connectionTestErr, isConnectionTestError := errors.AsType[*pgshared.ConnectionTestError](
+		testErr,
+	); isConnectionTestError {
 		return TestResult{IsConnected: false, Reason: &connectionTestErr.Code, Error: testErr.Error()}
 	}
 

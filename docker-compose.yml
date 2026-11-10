@@ -31,7 +31,7 @@ services:
   # For development only, because this DB
   # exposes its port to the public
   backend-db:
-    image: postgres:17
+    image: docker.io/library/postgres:17@sha256:ff87138949ad9a46f32ff23bd6852b52ce024a13dffe9b4087be98292cdd3b4f
     ports:
       - "${BACKEND_DB_PORT:-5437}:5432"
     environment:
@@ -45,7 +45,7 @@ services:
 
   # Each test owns a database and a connection pool on this shared test server.
   backend-db-test:
-    image: postgres:17
+    image: docker.io/library/postgres:17@sha256:ff87138949ad9a46f32ff23bd6852b52ce024a13dffe9b4087be98292cdd3b4f
     command: postgres -c max_connections=1000 -c fsync=off -c synchronous_commit=off -c full_page_writes=off
     ports:
       - "${BACKEND_DB_TEST_PORT:-5438}:5432"
@@ -64,7 +64,7 @@ services:
 
   # Development logical source used by the seed command. Automated tests own their containers.
   test-logical-postgres-16:
-    image: postgres:16
+    image: docker.io/library/postgres:16@sha256:f9a7b9ebf6f56201f949db745e47bc423c0f0f8294bafe991cc10bf74b029657
     ports:
       - "${TEST_LOGICAL_POSTGRES_16_PORT:-5004}:5432"
     environment:
@@ -124,7 +124,7 @@ services:
   # Generates continuous WAL on wal-backup-postgres-18: random inserts every 10s,
   # CHECKPOINT + WAL switch every 30s.
   wal-backup-loader:
-    image: postgres:18
+    image: docker.io/library/postgres:18@sha256:e3d24f6906d0760bf4da0dae872415391ededefad23fd471c47dc53b0ddf3c42
     depends_on:
       wal-backup-postgres-18:
         condition: service_healthy

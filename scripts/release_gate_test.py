@@ -78,11 +78,16 @@ class ReleaseGateTest(unittest.TestCase):
         self.assertIn("timeout-minutes:", lint_job)
         self.assertIn("install_args: 'python uv ruff ty'", lint_job)
         self.assertIn("run: mise run python:lint", lint_job)
+        self.assertIn("run: mise run verify-deps", lint_job)
         self.assertNotIn("continue-on-error", lint_job)
         self.assertNotRegex(lint_job, r"(?m)^\s+if:")
         self.assertNotIn("secrets.", python_workflow)
         for action in re.findall(r"uses: (\S+)", lint_job):
-            self.assertRegex(action, r"@[a-f0-9]{40}$")
+            if action.startswith("./"):
+                self.assertEqual(action, "./.github/actions/read-mise-bootstrap")
+                self.assertTrue((ROOT / action / "action.yml").is_file())
+            else:
+                self.assertRegex(action, r"@[a-f0-9]{40}$")
 
         for workflow_name, publishing_jobs in (
             ("ci-release.yml", PUBLISHING_JOBS),

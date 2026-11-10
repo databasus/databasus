@@ -1,5 +1,5 @@
 import { ActionIcon, Button, Drawer, Tooltip } from '@mantine/core';
-import { X } from 'lucide-react';
+import { type LucideIcon, X } from 'lucide-react';
 import { type MouseEvent, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -26,8 +26,8 @@ export type MainTab =
 export interface SidebarTab {
   text: string;
   name: MainTab;
-  icon: string;
-  selectedIcon: string;
+  icon: string | LucideIcon;
+  selectedIcon?: string;
   href: string;
   isAdminOnly: boolean;
   marginTop: string;
@@ -100,6 +100,7 @@ export const SidebarComponent = ({
           <div className="flex-1">
             {filteredTabs.map((tab) => {
               const isSelected = selectedTab === tab.name;
+              const TabIcon = tab.icon;
 
               return (
                 <div key={tab.text} className="flex justify-center">
@@ -113,12 +114,20 @@ export const SidebarComponent = ({
                     onClick={handleTabClick}
                     style={{ marginTop: tab.marginTop }}
                   >
-                    <img
-                      src={isSelected ? tab.selectedIcon : tab.icon}
-                      width={20}
-                      alt=""
-                      loading="lazy"
-                    />
+                    {typeof TabIcon === 'string' ? (
+                      <img
+                        src={isSelected ? tab.selectedIcon : TabIcon}
+                        width={20}
+                        alt=""
+                        loading="lazy"
+                      />
+                    ) : (
+                      <TabIcon
+                        size={20}
+                        aria-hidden="true"
+                        color={isSelected ? 'currentColor' : 'var(--app-navigation-icon)'}
+                      />
+                    )}
                   </ActionIcon>
                 </div>
               );
@@ -169,6 +178,7 @@ export const SidebarComponent = ({
             const showDivider =
               index < filteredTabs.length - 1 && filteredTabs[index + 1]?.marginTop !== '0px';
             const isSelected = selectedTab === tab.name;
+            const TabIcon = tab.icon;
 
             return (
               <div key={tab.text}>
@@ -180,12 +190,20 @@ export const SidebarComponent = ({
                   color={isSelected ? 'accent' : 'var(--app-content)'}
                   styles={{ inner: { justifyContent: 'flex-start' } }}
                   leftSection={
-                    <img
-                      src={isSelected ? tab.selectedIcon : tab.icon}
-                      width={24}
-                      alt=""
-                      loading="lazy"
-                    />
+                    typeof TabIcon === 'string' ? (
+                      <img
+                        src={isSelected ? tab.selectedIcon : TabIcon}
+                        width={24}
+                        alt=""
+                        loading="lazy"
+                      />
+                    ) : (
+                      <TabIcon
+                        size={24}
+                        aria-hidden="true"
+                        color={isSelected ? 'currentColor' : 'var(--app-navigation-icon)'}
+                      />
+                    )
                   }
                   aria-label={tab.text}
                   aria-current={isSelected ? 'page' : undefined}

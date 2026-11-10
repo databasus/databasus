@@ -125,14 +125,12 @@ func (s *Service) CreateNotifier(ctx context.Context, actor users.Actor, creatio
 	}
 
 	createdNotifier := WithSettings{
-		Notifier: Notifier{
-			ID:            uuid.New(),
-			WorkspaceID:   creation.WorkspaceID,
-			Name:          creation.Name,
-			Type:          provider.GetType(),
-			LastSendError: nil,
-		},
-		Settings: creation.Settings,
+		ID:            uuid.New(),
+		WorkspaceID:   creation.WorkspaceID,
+		Name:          creation.Name,
+		Type:          provider.GetType(),
+		LastSendError: nil,
+		Settings:      creation.Settings,
 	}
 
 	err = s.transactor.Transaction(ctx, func(ctx context.Context) error {

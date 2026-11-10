@@ -54,9 +54,8 @@ func TestTelemetryShutdown(t *testing.T) {
 		serveContext, stop := context.WithCancel(t.Context())
 		serveErrors := make(chan error, 1)
 		serveDone := make(chan struct{})
-		address := reserveFreeAddress(t)
 		go func() {
-			serveErrors <- application.Serve(serveContext, address)
+			serveErrors <- application.Serve(serveContext, "127.0.0.1:0")
 			close(serveDone)
 		}()
 		t.Cleanup(func() {

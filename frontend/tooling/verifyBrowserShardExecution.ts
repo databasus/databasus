@@ -14,13 +14,23 @@ try {
     filter: (path) => !['scenarios', 'references'].includes(basename(path)),
   });
   await mkdir(join(directory, 'browser/scenarios'));
-  for (const name of ['node_modules', 'src'])
-    await symlink(join(frontendRoot, name), join(directory, name), 'dir');
-  for (const name of ['playwright.config.ts', 'tsconfig.node.json'])
+  await cp(join(frontendRoot, 'node_modules'), join(directory, 'node_modules'), {
+    recursive: true,
+    verbatimSymlinks: true,
+  });
+  await symlink(join(frontendRoot, 'src'), join(directory, 'src'), 'dir');
+  for (const name of [
+    'playwright.config.ts',
+    'tsconfig.node.json',
+    'pnpm-lock.yaml',
+    'pnpm-workspace.yaml',
+  ])
     await cp(join(frontendRoot, name), join(directory, name));
+
+  const manifest = JSON.parse(await readFile(join(frontendRoot, 'package.json'), 'utf8'));
   await writeFile(
     join(directory, 'package.json'),
-    JSON.stringify({ type: 'module', scripts: { build: 'vite build' } }),
+    JSON.stringify({ ...manifest, scripts: { ...manifest.scripts, build: 'vite build' } }),
   );
   await writeFile(
     join(directory, 'index.html'),

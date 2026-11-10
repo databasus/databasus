@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "version": "2026.10.6",
+  "platforms": {
+    "linux-x64": "3f44343eebc7e0d6623bcea46e304864f02dff648edd75c82871b53cc697b366",
+    "linux-arm64": "5f3187febbe9ff98e4c78b3596c7bbfde0e3ef8e4b1820494d03efd499de7b6e"
+  }
+}

@@ -594,7 +594,8 @@ func TestCleanPhysicalBackups(t *testing.T) {
 
 		for sampleIndex := range 3 {
 			catalog.insertCleanerSample(t, newCleanerSample(
-				catalog.DatabaseID, stoppedStreamingAt.Add(-time.Duration(sampleIndex)*30*time.Second)))
+				catalog.DatabaseID, stoppedStreamingAt.Add(-time.Duration(sampleIndex)*30*time.Second),
+			))
 		}
 
 		catalog.clean(t, "CHAINS")

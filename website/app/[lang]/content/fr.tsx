@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import LandingFooterComponent from "@/app/components/LandingFooterComponent";
 import LandingHeaderComponent from "@/app/components/LandingHeaderComponent";
-import { OG_LOCALES, getLanguageAlternates, getLocalizedUrl } from "@/app/i18n";
+import { OG_LOCALES, getLanguageAlternates, getLocalizedUrl, getLocalizedHref } from "@/app/i18n";
 import HeroStatsComponent from "@/app/components/HeroStatsComponent";
 import InstallationComponent from "@/app/components/InstallationComponent";
 import LiteYouTubeEmbed from "@/app/components/LiteYouTubeEmbed";
@@ -179,7 +179,7 @@ export default function Index() {
                 name: "Comment Databasus assure-t-il la sécurité ?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus applique la sécurité à trois niveaux : (1) Chiffrement des données sensibles — tous les mots de passe, jetons et identifiants sont chiffrés avec AES-256-GCM et stockés séparément de la base de données ; (2) Chiffrement des sauvegardes — chaque fichier de sauvegarde est chiffré avec une clé unique dérivée d'une clé maître, de l'ID de la sauvegarde et d'un sel aléatoire, ce qui rend les sauvegardes inutilisables sans votre clé de chiffrement même si quelqu'un accède au stockage ; (3) Accès en lecture seule à la base — Databasus ne requiert que des permissions SELECT et effectue des vérifications complètes pour s'assurer qu'aucun privilège d'écriture n'existe, ce qui empêche toute corruption de données même si l'outil est compromis. La connexion elle-même peut exiger un second facteur : une fois activé, un mot de passe correct est suivi d'un code à six chiffres envoyé à l'adresse du compte, tandis que la connexion par Google ou GitHub continue de s'appuyer sur les vérifications de ces fournisseurs. Au-delà de l'exécution, la sécurité et la fiabilité sont intégrées à chaque release : analyse statique CodeQL, détection de secrets avec gitleaks, règles de sécurité avec semgrep, surveillance des CVE par Dependabot, scans Trivy des images et Dockerfiles, et audits périodiques Codex Security d'OpenAI. Les tests d'intégration s'exécutent contre de vrais conteneurs PostgreSQL, MySQL, MariaDB et MongoDB et vérifient des cycles complets sauvegarde puis restauration avant chaque release. Les GitHub Actions sont épinglées sur des SHA de commit et les workflows suivent le principe du moindre privilège. Toutes les opérations tournent dans des conteneurs que vous contrôlez sur des serveurs qui vous appartiennent, et comme le projet est open source, votre équipe de sécurité peut auditer chaque ligne de code avant le déploiement.",
+                  text: "Databasus applique la sécurité à trois niveaux : (1) Chiffrement des données sensibles — tous les mots de passe, jetons et identifiants sont chiffrés avec AES-256-GCM et stockés séparément de la base de données ; (2) Chiffrement des sauvegardes — chaque fichier de sauvegarde est chiffré avec une clé unique dérivée d'une clé maître, de l'ID de la sauvegarde et d'un sel aléatoire, ce qui rend les sauvegardes inutilisables sans votre clé de chiffrement même si quelqu'un accède au stockage ; (3) Accès en lecture seule à la base — Databasus ne requiert que des permissions SELECT et effectue des vérifications complètes pour s'assurer qu'aucun privilège d'écriture n'existe, ce qui empêche toute corruption de données même si l'outil est compromis. La connexion elle-même peut exiger un second facteur : une fois activé, un mot de passe correct est suivi d'un code à six chiffres envoyé à l'adresse du compte, tandis que la connexion par Google ou GitHub continue de s'appuyer sur les vérifications de ces fournisseurs. Avant chaque version, des contrôles automatiques analysent le code, les dépendances, les secrets et les images de conteneurs. Les tests vérifient des cycles complets de sauvegarde et de restauration dans de vrais conteneurs PostgreSQL, MySQL, MariaDB et MongoDB. Les contrôles obligatoires doivent réussir avant la publication. Des audits réguliers de Codex Security d’OpenAI les complètent et sont distincts du processus de publication. Toutes les opérations tournent dans des conteneurs que vous contrôlez sur des serveurs qui vous appartiennent, et comme le projet est open source, votre équipe de sécurité peut auditer chaque ligne de code avant le déploiement.",
                 },
               },
               {
@@ -230,6 +230,14 @@ export default function Index() {
                   text: "Le premier compte créé sur l'instance est celui qui l'administre. Si vous ne savez plus quelle est cette adresse, exécutez docker exec -it databasus ./main --list-admins sur le serveur où Databasus tourne : la commande nomme chaque compte administrateur avec son adresse e-mail, son nom affiché, sa date de création et son état d'activité, et n'affiche aucun mot de passe. Pour définir un nouveau mot de passe pour ce compte, exécutez docker exec -it databasus ./main --new-password=\"YourNewSecurePassword123\" --email=\"owner@example.com\". Une instance créée avant que le premier compte ne l'administre porte encore l'adresse provisoire admin tant que son propriétaire ne l'a pas remplacée. Si l'instance exige en plus un code à la connexion et que le serveur de messagerie ne le délivre plus, exécutez docker exec -it databasus ./main --disable-2fa pour qu'elle cesse de le demander. Les trois commandes sont documentées sur la page mot de passe.",
                 },
               },
+              {
+                "@type": "Question",
+                name: "Comment l’IA est-elle utilisée dans le développement de Databasus ?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "L’IA nous aide à développer Databasus dans un cadre d’ingénierie défini. Les personnes définissent l’orientation et prennent les décisions finales. Une personne lit chaque ligne de code avant l’intégration d’un changement. Des agents indépendants examinent le fonctionnement, l’architecture, les tests et la documentation dans des sessions séparées en lecture seule. Une analyse statique stricte et des tests sur de vraies bases de données complètent leurs revues. Les contrôles CI obligatoires doivent réussir avant la publication.",
+                },
+              },
             ],
           }),
         }}
@@ -257,8 +265,7 @@ export default function Index() {
             </div>
 
             <h1 className="text-2xl sm:text-4xl sm:max-w-[300px] md:text-4xl leading-tight font-bold mb-4 md:mb-6 mx-auto md:max-w-[650px]">
-              Sauvegarde PostgreSQL avec Point-in-Time Recovery et vérification
-              de restauration
+              Sauvegarde PostgreSQL
             </h1>
 
             <p className="text-sm sm:text-lg text-gray-200 max-w-[720px] mx-auto mb-6 md:mb-10 px-2">
@@ -1264,25 +1271,20 @@ export default function Index() {
                   sur les vérifications de ces fournisseurs.
                   <br />
                   <br />
-                  Au-delà de l&apos;exécution, la sécurité et la fiabilité
-                  sont intégrées à chaque release : analyse statique CodeQL,
-                  détection de secrets avec gitleaks, règles de sécurité avec
-                  semgrep, surveillance des CVE par Dependabot, scans Trivy
-                  des images et Dockerfiles, et audits périodiques Codex
-                  Security d&apos;OpenAI. Les tests d&apos;intégration
-                  s&apos;exécutent contre de vrais conteneurs PostgreSQL,
-                  MySQL, MariaDB et MongoDB et vérifient des cycles complets
-                  sauvegarde puis restauration avant chaque release. Les
-                  GitHub Actions sont épinglées sur des SHA de commit et les
-                  workflows suivent le principe du moindre privilège.
+                  Avant chaque version, des contrôles automatiques analysent le code, les
+                  dépendances, les secrets et les images de conteneurs. Les tests vérifient
+                  des cycles complets de sauvegarde et de restauration dans de vrais
+                  conteneurs PostgreSQL, MySQL, MariaDB et MongoDB. Les contrôles obligatoires
+                  doivent réussir avant la publication. Des audits réguliers de Codex Security
+                  d’OpenAI les complètent et sont distincts du processus de publication.
                   <br />
                   <br />
                   Consultez{" "}
                   <a
-                    href="/fr/security#security-and-reliability-engineering"
+                    href={`${getLocalizedHref("fr", "security")}#security-and-reliability-engineering`}
                     className="text-blue-400 hover:text-blue-600"
                   >
-                    Security &amp; reliability engineering
+                    Ingénierie de la sécurité et de la fiabilité
                   </a>{" "}
                   pour le pipeline complet.
                   <br />
@@ -1540,6 +1542,32 @@ export default function Index() {
             />
             <FaqItem
               number="12"
+              question="Comment l’IA est-elle utilisée dans le développement de Databasus ?"
+              answer={
+                <>
+                  <p>
+                    L’IA nous aide à développer Databasus dans un cadre d’ingénierie défini. Les personnes
+                    définissent l’orientation et prennent les décisions finales.{" "}
+                    <strong>Une personne lit chaque ligne de code avant l’intégration d’un changement.</strong>
+                  </p>
+                  <p className="mt-3">
+                    Des agents indépendants examinent le fonctionnement, l’architecture, les tests et la
+                    documentation dans des sessions séparées en lecture seule. Une analyse statique stricte et des
+                    tests sur de vraies bases de données complètent leurs revues. Les contrôles CI obligatoires
+                    doivent réussir avant la publication.{" "}
+                    <a
+                      href={`${getLocalizedHref("fr", "faq")}#ai-usage`}
+                      className="text-blue-400 hover:text-blue-600"
+                    >
+                      Découvrez le processus de développement
+                    </a>
+                    .
+                  </p>
+                </>
+              }
+            />
+            <FaqItem
+              number="13"
               question="Comment rejoindre la communauté Databasus ?"
               answer={
                 <>
@@ -1561,7 +1589,7 @@ export default function Index() {
               }
             />
             <FaqItem
-              number="13"
+              number="14"
               question="Quel est le niveau d'adoption de Databasus ?"
               answer={
                 <>
@@ -1598,7 +1626,7 @@ export default function Index() {
               }
             />
             <FaqItem
-              number="14"
+              number="15"
               question="J'ai oublié l'e-mail ou le mot de passe de l'administrateur"
               answer={
                 <>

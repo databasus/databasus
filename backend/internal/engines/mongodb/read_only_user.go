@@ -7,8 +7,8 @@ import (
 	"log/slog"
 	"slices"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 
 	"databasus-backend/internal/lib/crypto"
 )
@@ -70,7 +70,7 @@ var writeActions = map[string]bool{
 // ShouldSuggestReadOnlyUser lists the roles of the connecting user and suggests a read-only user
 // when a role, or a privilege a custom role inherits, can write.
 func (s *Source) ShouldSuggestReadOnlyUser(ctx context.Context, logger *slog.Logger) (bool, []string, error) {
-	client, err := s.connect(ctx)
+	client, err := s.connect()
 	if err != nil {
 		return false, nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
@@ -111,7 +111,7 @@ func (s *Source) ShouldSuggestReadOnlyUser(ctx context.Context, logger *slog.Log
 // returns its name and password. A generated name that is already taken is retried with a new one;
 // any other failure ends the creation.
 func (s *Source) CreateReadOnlyUser(ctx context.Context, logger *slog.Logger) (string, string, error) {
-	client, err := s.connect(ctx)
+	client, err := s.connect()
 	if err != nil {
 		return "", "", fmt.Errorf("failed to connect to database: %w", err)
 	}

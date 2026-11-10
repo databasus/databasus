@@ -40,8 +40,7 @@ func (g *Group) Go(ctx context.Context, name string, fn func(ctx context.Context
 			return
 		}
 
-		var panicError *PanicError
-		if errors.As(err, &panicError) {
+		if panicError, isPanicError := errors.AsType[*PanicError](err); isPanicError {
 			g.logger.ErrorContext(ctx, "background goroutine panicked",
 				slog.String("goroutine", name),
 				slog.Any("error", panicError),

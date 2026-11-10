@@ -133,7 +133,7 @@ func (s *Service) CreateWorkspace(ctx context.Context, actor users.Actor, name s
 
 	ownerRole := access.RoleOwner
 	createdWorkspace := ListedWorkspace{
-		Workspace:       Workspace{ID: uuid.New(), Name: name, CreatedAt: s.clock.Now()},
+		ID: uuid.New(), Name: name, CreatedAt: s.clock.Now(),
 		CurrentUserRole: &ownerRole,
 	}
 

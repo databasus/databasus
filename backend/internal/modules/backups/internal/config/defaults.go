@@ -22,15 +22,13 @@ const (
 
 func newDefaultLogicalBackupConfig(databaseID uuid.UUID) LogicalBackupConfig {
 	return LogicalBackupConfig{
-		BackupConfig: BackupConfig{
-			DatabaseID:       databaseID,
-			IsBackupsEnabled: false,
-			StorageID:        nil,
-			Encryption:       EncryptionNone,
-			NotificationTriggers: []NotificationTrigger{
-				NotificationTriggerBackupFailed,
-				NotificationTriggerBackupSuccess,
-			},
+		DatabaseID:       databaseID,
+		IsBackupsEnabled: false,
+		StorageID:        nil,
+		Encryption:       EncryptionNone,
+		NotificationTriggers: []NotificationTrigger{
+			NotificationTriggerBackupFailed,
+			NotificationTriggerBackupSuccess,
 		},
 		Schedule: newDailySchedule(),
 		Retention: LogicalRetention{
@@ -51,13 +49,11 @@ func newDefaultPhysicalBackupConfig(
 	backupType databases.PhysicalBackupType,
 ) PhysicalBackupConfig {
 	defaultConfig := PhysicalBackupConfig{
-		BackupConfig: BackupConfig{
-			DatabaseID:           databaseID,
-			IsBackupsEnabled:     false,
-			StorageID:            nil,
-			Encryption:           EncryptionNone,
-			NotificationTriggers: slices.Clone(getPhysicalNotificationTriggers()),
-		},
+		DatabaseID:                databaseID,
+		IsBackupsEnabled:          false,
+		StorageID:                 nil,
+		Encryption:                EncryptionNone,
+		NotificationTriggers:      slices.Clone(getPhysicalNotificationTriggers()),
 		BackupType:                backupType,
 		FullBackupSchedule:        newDailySchedule(),
 		IncrementalBackupSchedule: nil,

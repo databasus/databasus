@@ -3,7 +3,7 @@ min_version = "2026.10.6"
 # User commands
 
 [tasks.run]
-description = "Start the app locally: dev database, test fixtures, WAL backup source, backend and frontend"
+description = "Start the app locally: dev database, test fixtures, WAL backup source, backend, frontend and website"
 run = "scripts/dev.sh"
 
 [tasks.test]
@@ -31,6 +31,10 @@ run = '.agent-hooks/run.sh doctor ${usage_client:+--client "$usage_client"}'
 description = "Manually rerun parallel AI reviews of a finished OpenSpec change; runs no linting or tests"
 usage = 'arg "[change]" help="The OpenSpec change to review; every active change with all tasks checked when omitted"; flag "--client <client>" help="Review client: codex or claude; defaults to AGENT_REVIEW_CLIENT"'
 run = '.agent-hooks/run.sh review "${usage_change:-}" ${usage_client:+--client "$usage_client"}'
+
+[tasks.verify-deps]
+description = "Check known dependency pins, coordinated versions and local client hashes"
+run = "scripts/verify-deps.sh"
 
 [tasks.generate-api]
 description = "Regenerate the servers, the test clients and the frontend types from backend/api/*.yaml"
@@ -75,10 +79,31 @@ description = "Check the GitHub Actions workflows with actionlint"
 run = "actionlint -shellcheck="
 hide = true
 
+[tasks."hooks:migrate"]
+description = "Remove a hook installed by an older lefthook checkout"
+tools = { lefthook = "2.2.1" }
+run = "lefthook uninstall"
+hide = true
+
 [tasks."security:go"]
 description = "Scan the backend for reachable Go vulnerabilities"
 dir = "backend"
 run = "govulncheck ./..."
+hide = true
+
+[tasks."tools:go"]
+description = "Build a Go development tool from its frozen module graph"
+dir = "tools/go"
+usage = 'arg "<tool>" help="gopls or govulncheck"'
+tools = { go = "1.27.3" }
+env = { GOFLAGS = "-mod=readonly", GOTOOLCHAIN = "local", GOENV = "off", GOWORK = "off", GOPROXY = "https://proxy.golang.org", GOSUMDB = "sum.golang.org", GONOSUMDB = "", GOPRIVATE = "", GOINSECURE = "" }
+run = '''
+case "$usage_tool" in
+  gopls|govulncheck) ;;
+  *) echo "unsupported Go development tool" >&2; exit 2 ;;
+esac
+go -C "$usage_tool" tool -n "$usage_tool"
+'''
 hide = true
 
 [tasks."security:secrets"]
@@ -112,13 +137,13 @@ hide = true
 # Dependencies
 
 [tools]
-go = "1.26.10"
+go = "1.27.3"
 node = "24.21.0"
-pnpm = "9.15.9"
+"github:pnpm/pnpm" = "12.17.0"
 hk = "2.8.1"
 process-compose = "1.122.0"
 "aqua:pressly/goose" = "3.27.3"
-golangci-lint = "2.11.3"
+golangci-lint = "2.15.0"
 "aqua:air-verse/air" = "1.67.4"
 "npm:chrome-devtools-mcp" = "1.11.0"
 python = "3.14.7"
@@ -126,7 +151,6 @@ uv = "0.13.7"
 ruff = "0.17.3"
 ty = "0.0.97"
 "npm:@fission-ai/openspec" = "1.11.0"
-"go:golang.org/x/tools/gopls" = "v0.24.0"
 "npm:typescript-language-server" = "6.0.2"
 ripgrep = "15.2.0"
 shellcheck = "0.11.0"
@@ -136,11 +160,17 @@ gh = "2.103.3"
 jq = "1.8.2"
 actionlint = "1.7.12"
 gitleaks = "8.30.1"
-"go:golang.org/x/vuln/cmd/govulncheck" = "1.9.0"
 "npm:semver" = "7.8.6"
-helm = "3.14.0"
+helm = "4.3.1"
 "pypi:semgrep" = "1.182.1"
+
+[settings]
+locked = true
+minimum_release_age = "7d"
+
+[settings.task]
+run_auto_install = false
 
 [env]
 # The TypeScript wrapper supplies frontend/node_modules before the mise shim changes NODE_PATH.
-_.path = ["{{config_root}}/tools/lsp"]
+_.path = ["{{config_root}}/tools/bin", "{{config_root}}/tools/lsp"]

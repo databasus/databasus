@@ -146,7 +146,7 @@ func newTestProvider(t *testing.T) (*Provider, providers.LocalFolders) {
 
 func newFileAccess(fileName string) providers.FileAccess {
 	return providers.FileAccess{
-		Location: providers.Location{StorageID: uuid.New(), Settings: Settings{}},
+		StorageID: uuid.New(), Settings: Settings{},
 		FileName: fileName,
 		Logger:   slog.New(slog.DiscardHandler),
 	}

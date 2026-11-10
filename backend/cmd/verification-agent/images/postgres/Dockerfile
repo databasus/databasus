@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker.io/docker/dockerfile:1@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
 
 # Databasus verification image: the official Postgres image plus a curated set of
 # common extensions, so a dump's CREATE EXTENSION statements succeed when the
@@ -6,17 +6,23 @@
 # timescale/timescaledb for TimescaleDB. Built per PG major and published as
 # databasus/verification-postgres:<major>.
 #
-# BASE_IMAGE is digest-pinned by CI (postgres:<major>@sha256:...). The tag-only
-# default exists solely for local `docker build --build-arg PG_MAJOR=16` runs.
 ARG PG_MAJOR=16
-ARG BASE_IMAGE=postgres:${PG_MAJOR}
 
-FROM ${BASE_IMAGE}
+FROM docker.io/library/postgres:12@sha256:2f2a8c2a7d10862e7fba2602e304523554f9df8244c632dafe2628ccb398fb5c AS postgres-12
+FROM docker.io/library/postgres:13@sha256:4689940c683801b4ab839ab3b0a0a3555a5fe425371422310944e89eca7d8068 AS postgres-13
+FROM docker.io/library/postgres:14@sha256:834a046089d76edd1d2e81c4741f3ad5d1853646ededc86c2708936aad31c1ed AS postgres-14
+FROM docker.io/library/postgres:15@sha256:1aac5b49cefd627f02816141ca4ad012d6cc19460dfe02a9b5168a105be3fc53 AS postgres-15
+FROM docker.io/library/postgres:16@sha256:f9a7b9ebf6f56201f949db745e47bc423c0f0f8294bafe991cc10bf74b029657 AS postgres-16
+FROM docker.io/library/postgres:17@sha256:ff87138949ad9a46f32ff23bd6852b52ce024a13dffe9b4087be98292cdd3b4f AS postgres-17
+FROM docker.io/library/postgres:18@sha256:e3d24f6906d0760bf4da0dae872415391ededefad23fd471c47dc53b0ddf3c42 AS postgres-18
+
+FROM postgres-${PG_MAJOR}
 
 # ARGs declared before FROM are not visible in the build stage, so redeclare it.
 ARG PG_MAJOR
 ARG TARGETARCH
 ARG VCHORD_VERSION=1.1.1
+COPY vectorchord.sha256 /opt/vectorchord.sha256
 
 # Extensions whose CREATE EXTENSION works once the files are present, plus the
 # Tier-2 monitoring extensions that additionally need shared_preload_libraries
@@ -89,6 +95,10 @@ RUN set -eux; \
             curl --fail --location --silent --show-error \
                 --output /tmp/vchord.deb \
                 "https://github.com/tensorchord/VectorChord/releases/download/${VCHORD_VERSION}/postgresql-${PG_MAJOR}-vchord_${VCHORD_VERSION}-1_${TARGETARCH}.deb"; \
+            vchord_file="postgresql-${PG_MAJOR}-vchord_${VCHORD_VERSION}-1_${TARGETARCH}.deb"; \
+            vchord_sha256="$(awk -v name="${vchord_file}" '$2 == name { print $1 }' /opt/vectorchord.sha256)"; \
+            test "${#vchord_sha256}" -eq 64; \
+            printf '%s  %s\n' "${vchord_sha256}" /tmp/vchord.deb | sha256sum --check --strict; \
             apt-get install -y --no-install-recommends /tmp/vchord.deb; \
             rm /tmp/vchord.deb; \
             version_specific_preload_libraries="${version_specific_preload_libraries},vchord" \

@@ -11,7 +11,7 @@
     "typecheck": "tsc -b",
     "test": "vitest run",
     "test:browser": "node tooling/runBrowser.ts",
-    "generate:api": "pnpm --package=openapi-typescript@7.13.0 --package=typescript@5.8.3 dlx openapi-typescript ../backend/api/openapi.yaml -o src/shared/api/schema.gen.ts"
+    "generate:api": "pnpm exec openapi-typescript ../backend/api/openapi.yaml -o src/shared/api/schema.gen.ts"
   },
   "dependencies": {
     "@mantine/core": "9.7.5",
@@ -25,10 +25,10 @@
     "i18next": "^26.4.2",
     "lucide-react": "1.70.0",
     "openapi-fetch": "^0.17.0",
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
     "react-i18next": "^17.0.14",
-    "react-router": "^7.15.0",
+    "react-router": "8.5.1",
     "recharts": "^3.8.1",
     "tailwindcss": "^4.3.0"
   },
@@ -40,21 +40,23 @@
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "14.6.8",
     "@types/color-name": "2.0.0",
+    "@types/node": "24.19.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^4.7.0",
+    "@vitejs/plugin-react": "6.2.1",
     "color-name": "2.1.0",
     "eslint-plugin-i18next": "^6.1.5",
     "happy-dom": "^21.0.4",
     "msw": "^2.15.0",
+    "openapi-typescript": "7.13.0",
     "oxfmt": "^0.72.0",
     "oxlint": "^1.87.0",
     "postcss": "8.5.32",
     "postcss-value-parser": "4.2.0",
     "steiger": "0.8.1",
-    "typescript": "~5.8.3",
-    "vite": "^6.4.2",
-    "vitest": "^3.2.4"
+    "typescript": "5.9.3",
+    "vite": "8.3.5",
+    "vitest": "5.1.0"
   },
-  "packageManager": "pnpm@9.15.9"
+  "packageManager": "pnpm@12.17.0"
 }

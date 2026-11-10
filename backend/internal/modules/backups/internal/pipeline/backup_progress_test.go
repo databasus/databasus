@@ -209,8 +209,8 @@ func TestLogicalBackupProgress(t *testing.T) {
 		waitForClosed(t, "the storage read the end of the file", isFileRead)
 
 		select {
-		case <-streamFailure:
-			t.Fatal("the stream returned while a progress call was in flight")
+		case streamErr := <-streamFailure:
+			t.Fatalf("the stream returned while a progress call was in flight: %v", streamErr)
 		case <-time.After(noLaterCallWindow):
 		}
 

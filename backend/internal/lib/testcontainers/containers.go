@@ -131,8 +131,15 @@ func startContainer(t *testing.T, req testcontainers.ContainerRequest, mappedPor
 // Each failed attempt is logged, so an image that keeps needing a retry still shows up in the output.
 func bootContainer(t *testing.T, req testcontainers.ContainerRequest) testcontainers.Container {
 	t.Helper()
-	skipUnavailableImage(t, req.Image)
+
 	imageName := req.Image
+
+	if req.Image != "" {
+		req.Image = GetPinnedImage(t, req.Image)
+	} else if req.Context == "" && req.ContextArchive == nil {
+		t.Fatal("test container requires an immutable image or a first-party build context")
+	}
+
 	if imageName == "" {
 		imageName = req.Repo + ":" + req.Tag
 	}

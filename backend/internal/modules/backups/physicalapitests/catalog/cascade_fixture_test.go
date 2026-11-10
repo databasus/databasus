@@ -164,5 +164,6 @@ func (catalog *catalogFixture) keepFullPass(t *testing.T) {
 	cleaner := cleanerCatalog{catalogFixture: catalog, Config: settings}
 	cleaner.clean(t, apiclient.PhysicalRetentionPolicyFULLBACKUPS)
 }
+
 func fmtWalName(timelineID, segment int) string { return fmt.Sprintf("%08X%016X", timelineID, segment) }
 func fmtHistoryName(timelineID int) string      { return fmt.Sprintf("%08X.history", timelineID) }

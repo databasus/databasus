@@ -110,7 +110,8 @@ func TestVerificationFailureDiagnosticValidation(t *testing.T) {
 			status, body := newProtocolAgent(t, team.App, agent).postRawJSON(
 				"/api/v1/agent/verifications/"+agent.Agent.ID.String()+
 					"/"+verification.Id.String()+
-					"/report", string(payload))
+					"/report", string(payload),
+			)
 
 			require.Equal(t, http.StatusBadRequest, status, string(body))
 			assert.Contains(t, string(body), "invalid_request")

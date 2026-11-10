@@ -121,7 +121,8 @@ func TestImageForMajor(t *testing.T) {
 func TestImageForJob(t *testing.T) {
 	t.Run("returns version matched timescale image when a TimescaleDB version is set", func(t *testing.T) {
 		image := imageForJob(
-			SpawnRequest{PgMajor: "17", TimescaledbVersion: "2.17.0"}, "databasus/verification-postgres")
+			SpawnRequest{PgMajor: "17", TimescaledbVersion: "2.17.0"}, "databasus/verification-postgres",
+		)
 
 		assert.Equal(t, "timescale/timescaledb:2.17.0-pg17", image,
 			"timescale jobs ignore the engine repo and use the version-matched timescale image")
@@ -136,7 +137,8 @@ func TestImageForJob(t *testing.T) {
 func TestStockFallbackImage(t *testing.T) {
 	t.Run("falls back to stock postgres when the bundled image is unavailable", func(t *testing.T) {
 		fallbackImage, canFallBack := stockFallbackImage(
-			SpawnRequest{PgMajor: "16"}, "databasus/verification-postgres:16")
+			SpawnRequest{PgMajor: "16"}, "databasus/verification-postgres:16",
+		)
 
 		assert.True(t, canFallBack)
 		assert.Equal(t, "postgres:16", fallbackImage)
@@ -148,7 +150,8 @@ func TestStockFallbackImage(t *testing.T) {
 	})
 	t.Run("does not fall back when the job uses TimescaleDB", func(t *testing.T) {
 		_, canFallBack := stockFallbackImage(
-			SpawnRequest{PgMajor: "16", TimescaledbVersion: "2.17.0"}, "timescale/timescaledb:2.17.0-pg16")
+			SpawnRequest{PgMajor: "16", TimescaledbVersion: "2.17.0"}, "timescale/timescaledb:2.17.0-pg16",
+		)
 
 		assert.False(t, canFallBack,
 			"timescale needs its exact version-matched image; stock postgres cannot restore it")

@@ -64,7 +64,7 @@ func startSftpServer(t *testing.T) *sftpServer {
 
 func (s *sftpServer) access(fileName string) providers.FileAccess {
 	return providers.FileAccess{
-		Location: providers.Location{StorageID: s.storageID, Settings: s.settings},
+		StorageID: s.storageID, Settings: s.settings,
 		FileName: fileName,
 		Logger:   providertest.NewDiscardLogger(),
 	}

@@ -207,13 +207,11 @@ func reserveBastionHostPort(t *testing.T) int {
 func sshBastionRequest(t *testing.T) testcontainers.ContainerRequest {
 	t.Helper()
 	return testcontainers.ContainerRequest{
-		FromDockerfile: testcontainers.FromDockerfile{
-			Context:    GetSSHBastionTestdataDir(t),
-			Dockerfile: "Dockerfile",
-			Repo:       "databasus-test-ssh-bastion",
-			Tag:        "latest",
-			KeepImage:  true,
-		},
+		Context:      GetSSHBastionTestdataDir(t),
+		Dockerfile:   "Dockerfile",
+		Repo:         "databasus-test-ssh-bastion",
+		Tag:          "latest",
+		KeepImage:    true,
 		ExposedPorts: []string{sshBastionPort},
 		WaitingFor: wait.ForAll(
 			wait.ForListeningPort(sshBastionPort).WithStartupTimeout(120*time.Second),

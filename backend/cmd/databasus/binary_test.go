@@ -233,7 +233,8 @@ func TestBinary(t *testing.T) {
 		require.Equal(t, 0, createRun.exitCode, createRun.output)
 
 		executeStatement(t, databaseDsn, fmt.Sprintf(
-			"INSERT INTO goose_db_version (version_id, is_applied) VALUES (%d, TRUE)", newerMigrationVersion))
+			"INSERT INTO goose_db_version (version_id, is_applied) VALUES (%d, TRUE)", newerMigrationVersion,
+		))
 
 		accountsBeforeRollback := listAccountRows(t, databaseDsn)
 		versionsBeforeRollback := listMigrationVersions(t, databaseDsn)
@@ -428,8 +429,7 @@ func runBinary(t *testing.T, host operatorHost, variables map[string]string, arg
 
 	output, err := command.CombinedOutput()
 
-	var exitError *exec.ExitError
-	if errors.As(err, &exitError) {
+	if exitError, isExitError := errors.AsType[*exec.ExitError](err); isExitError {
 		return binaryRun{exitCode: exitError.ExitCode(), output: string(output)}
 	}
 

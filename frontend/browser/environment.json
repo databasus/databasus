@@ -6,5 +6,5 @@
     "x64": "6e1db87ef58b8819e5d5402eff1536491b18edd8eb7bee5ef7897876e88dc5ff",
     "arm64": "724282c3b43aec998aa9527380465b45d229e021b58035f5f4f63095eabfe5d5"
   },
-  "pnpmVersion": "9.15.9"
+  "pnpmVersion": "12.17.0"
 }

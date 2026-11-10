@@ -47,11 +47,13 @@ class PythonQualityTest(unittest.TestCase):
             "e2e/browser/pyproject.toml",
             "e2e/browser/uv.lock",
             "mise.toml",
+            "mise.lock",
             "hk.pkl",
         ):
             target = self.root / path
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / path, target)
+        shutil.copytree(ROOT / ".mise/locks", self.root / ".mise/locks")
         (self.root / "e2e/browser/.venv").symlink_to(
             ROOT / "e2e/browser/.venv", target_is_directory=True
         )
@@ -124,6 +126,7 @@ class PythonQualityTest(unittest.TestCase):
             "e2e/browser/uv.lock",
             "new area/requirements-dev.txt",
             "mise.toml",
+            "mise.lock",
             "hk.pkl",
             ".gitignore",
             "new area/.gitignore",

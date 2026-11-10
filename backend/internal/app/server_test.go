@@ -27,11 +27,7 @@ import (
 func TestServe(t *testing.T) {
 	t.Run("answers requests until its context ends and then stops every loop in time", func(t *testing.T) {
 		testApp := newTestApp(t)
-		address := reserveFreeAddress(t)
-		serveCtx, stopServing := context.WithCancel(t.Context())
-		serveErrors := make(chan error, 1)
-
-		go func() { serveErrors <- testApp.Serve(serveCtx, address) }()
+		address, stopServing, serveErrors := serveTestApp(t, testApp)
 
 		requireStatus(t, "http://"+address+"/api/v1/system/version", http.StatusOK)
 		requireStatus(t, "http://"+address+"/api/v1/no-such-route", http.StatusNotFound)
@@ -71,9 +67,7 @@ func TestServe(t *testing.T) {
 		serveCtx, stopServing := context.WithCancel(t.Context())
 		serveErrors := make(chan error, 1)
 
-		address := reserveFreeAddress(t)
-
-		go func() { serveErrors <- testApp.Serve(serveCtx, address) }()
+		go func() { serveErrors <- testApp.Serve(serveCtx, "127.0.0.1:0") }()
 
 		testwait.Until(t, "the job pass to start", func(context.Context) error {
 			if !isPassStarted.Load() {
@@ -99,11 +93,7 @@ func TestServe(t *testing.T) {
 		}))
 		t.Cleanup(slowWebhook.Close)
 		notifierID := insertWebhookNotifier(t, testApp, slowWebhook.URL)
-		serveCtx, stopServing := context.WithCancel(t.Context())
-		serveErrors := make(chan error, 1)
-		address := reserveFreeAddress(t)
-
-		go func() { serveErrors <- testApp.Serve(serveCtx, address) }()
+		address, stopServing, serveErrors := serveTestApp(t, testApp)
 
 		requireStatus(t, "http://"+address+"/api/v1/system/version", http.StatusOK)
 		testApp.Notify(t.Context(), []uuid.UUID{notifierID}, notifiers.Notification{
@@ -201,25 +191,14 @@ func insertWebhookNotifier(t *testing.T, testApp *App, webhookURL string) uuid.U
 		workspaceID, "Shutdown workspace").Error)
 	require.NoError(t, testApp.db.Exec(
 		"INSERT INTO notifiers (id, workspace_id, name, type, last_send_error) VALUES (?, ?, ?, 'WEBHOOK', ?)",
-		notifierID, workspaceID, "Slow webhook", "the previous delivery failed").Error)
+		notifierID, workspaceID, "Slow webhook", "the previous delivery failed",
+	).Error)
 	require.NoError(t, testApp.db.Exec(
 		"INSERT INTO notifiers_webhook (notifier_id, webhook_url, webhook_method) VALUES (?, ?, 'POST')",
-		notifierID, webhookURL).Error)
+		notifierID, webhookURL,
+	).Error)
 
 	return notifierID
-}
-
-func reserveFreeAddress(t *testing.T) string {
-	t.Helper()
-
-	var listenConfig net.ListenConfig
-	listener, err := listenConfig.Listen(t.Context(), "tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-
-	address := listener.Addr().String()
-	require.NoError(t, listener.Close())
-
-	return address
 }
 
 // requireStatus waits until the server answers, since Serve opens its port in the test's goroutine.

@@ -1,0 +1,927 @@
+{
+  "schema": 1,
+  "archives": [
+    {
+      "bundle": "mariadb-10.6",
+      "version": "1:10.6.28+maria~ubu2204",
+      "build_family": "ubuntu2204",
+      "architecture": "x64",
+      "url": "https://archive.mariadb.org/mariadb-10.6.28/repo/ubuntu/pool/main/m/mariadb-10.6/mariadb-client-10.6_10.6.28+maria~ubu2204_amd64.deb",
+      "sha256": "cdf2ef9b6592443f864b1fbf934b8e1f3933c13950db7b5348587d5ca8266d8b",
+      "files": [
+        {
+          "path": "assets/tools/x64/mariadb/mariadb-10.6/bin/mariadb-dump",
+          "member": "usr/bin/mysqldump",
+          "sha256": "b378c34489e61a72eb756949a66ee304ec7a3c23a81b7fcb1487789895c0e672",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "mariadb-10.6",
+      "version": "1:10.6.28+maria~ubu2204",
+      "build_family": "ubuntu2204",
+      "architecture": "x64",
+      "url": "https://archive.mariadb.org/mariadb-10.6.28/repo/ubuntu/pool/main/m/mariadb-10.6/mariadb-client-core-10.6_10.6.28+maria~ubu2204_amd64.deb",
+      "sha256": "24ebe8578c5e4bd612896d165280bd5fd3a9304dcc04fbfcc4f6bd65293b979e",
+      "files": [
+        {
+          "path": "assets/tools/x64/mariadb/mariadb-10.6/bin/mariadb",
+          "member": "usr/bin/mysql",
+          "sha256": "553e43e119fe85ee663669e989f1cc865356fdd79392f8de70a10ca91db1e651",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "mariadb-10.6",
+      "version": "1:10.6.28+maria~ubu2204",
+      "build_family": "ubuntu2204",
+      "architecture": "arm",
+      "url": "https://archive.mariadb.org/mariadb-10.6.28/repo/ubuntu/pool/main/m/mariadb-10.6/mariadb-client-10.6_10.6.28+maria~ubu2204_arm64.deb",
+      "sha256": "c3428b74df01adf73495ad6043bf3e1af1b2d3d99b21ec3cd6038900d1dbb21d",
+      "files": [
+        {
+          "path": "assets/tools/arm/mariadb/mariadb-10.6/bin/mariadb-dump",
+          "member": "usr/bin/mysqldump",
+          "sha256": "877fa1aa53b8a246f991dbea77e039c2e252486d7d551423ab4899bd7eec1437",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "mariadb-10.6",
+      "version": "1:10.6.28+maria~ubu2204",
+      "build_family": "ubuntu2204",
+      "architecture": "arm",
+      "url": "https://archive.mariadb.org/mariadb-10.6.28/repo/ubuntu/pool/main/m/mariadb-10.6/mariadb-client-core-10.6_10.6.28+maria~ubu2204_arm64.deb",
+      "sha256": "95a40f79dca1cfd3627150b986d231e697157243300150b4dd6bd4c0a836e062",
+      "files": [
+        {
+          "path": "assets/tools/arm/mariadb/mariadb-10.6/bin/mariadb",
+          "member": "usr/bin/mysql",
+          "sha256": "360e60763183d44ad82cda36da4d9008d59ddd804c51530342c22ec0599708f0",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "mariadb-12.3",
+      "version": "1:12.3.3+maria~deb12",
+      "build_family": "debian12",
+      "architecture": "x64",
+      "url": "https://archive.mariadb.org/mariadb-12.3.3/repo/debian/pool/main/m/mariadb/mariadb-client_12.3.3+maria~deb12_amd64.deb",
+      "sha256": "ec33ee21a2d99741578bf2b72706f14da9a80da10ed39cc97d420bab3843ce31",
+      "files": [
+        {
+          "path": "assets/tools/x64/mariadb/mariadb-12.3/bin/mariadb-dump",
+          "member": "usr/bin/mariadb-dump",
+          "sha256": "f95f3f649ce2f89fc21767f91c1576283bb87545fcaf4f5fa28b0d13609ec8db",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "mariadb-12.3",
+      "version": "1:12.3.3+maria~deb12",
+      "build_family": "debian12",
+      "architecture": "x64",
+      "url": "https://archive.mariadb.org/mariadb-12.3.3/repo/debian/pool/main/m/mariadb/mariadb-client-core_12.3.3+maria~deb12_amd64.deb",
+      "sha256": "990db747e0bbb4aa1aba9c8fab4fb64e60336e869d5701e953843b58bb88b061",
+      "files": [
+        {
+          "path": "assets/tools/x64/mariadb/mariadb-12.3/bin/mariadb",
+          "member": "usr/bin/mariadb",
+          "sha256": "9fb54cb55dcc29ca6dcc5c4cfb1fd975e11b36860ce6228878bbe57713b47184",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "mariadb-12.3",
+      "version": "1:12.3.3+maria~deb12",
+      "build_family": "debian12",
+      "architecture": "arm",
+      "url": "https://archive.mariadb.org/mariadb-12.3.3/repo/debian/pool/main/m/mariadb/mariadb-client_12.3.3+maria~deb12_arm64.deb",
+      "sha256": "978ea77efa6bc24e8f8c59c8e83124ffe212f0eb867485f30cec557c82178733",
+      "files": [
+        {
+          "path": "assets/tools/arm/mariadb/mariadb-12.3/bin/mariadb-dump",
+          "member": "usr/bin/mariadb-dump",
+          "sha256": "e31fe7d189c3df5cec2517419076b8be8e5f2431a754f57bb56322dcf9853f4d",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "mariadb-12.3",
+      "version": "1:12.3.3+maria~deb12",
+      "build_family": "debian12",
+      "architecture": "arm",
+      "url": "https://archive.mariadb.org/mariadb-12.3.3/repo/debian/pool/main/m/mariadb/mariadb-client-core_12.3.3+maria~deb12_arm64.deb",
+      "sha256": "e11b7257b243dd5129f3ed808185e45e69ca12aeefb83407bd7eb43af9fabb36",
+      "files": [
+        {
+          "path": "assets/tools/arm/mariadb/mariadb-12.3/bin/mariadb",
+          "member": "usr/bin/mariadb",
+          "sha256": "45a0ae89d8c8ab0f47dd3467f76e82f75fcda1d898e38e20f00f5512bf8af5f2",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "mariadb-13.0",
+      "version": "1:13.0.2+maria~ubu2204",
+      "build_family": "ubuntu2204",
+      "architecture": "x64",
+      "url": "https://archive.mariadb.org/mariadb-13.0.2/repo/ubuntu/pool/main/m/mariadb/mariadb-client_13.0.2+maria~ubu2204_amd64.deb",
+      "sha256": "936807d9758c1dd2459cf479df14ccca7633b66402e0d19b09c2bb52b6996704",
+      "files": [
+        {
+          "path": "assets/tools/x64/mariadb/mariadb-13.0/bin/mariadb-dump",
+          "member": "usr/bin/mariadb-dump",
+          "sha256": "54253d39ad636b354eeb8217e3b288858bbaa901d667c5b5f288468400bd519a",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "mariadb-13.0",
+      "version": "1:13.0.2+maria~ubu2204",
+      "build_family": "ubuntu2204",
+      "architecture": "x64",
+      "url": "https://archive.mariadb.org/mariadb-13.0.2/repo/ubuntu/pool/main/m/mariadb/mariadb-client-core_13.0.2+maria~ubu2204_amd64.deb",
+      "sha256": "ac170f8838065aa8ae397c6982404a47cf704ffb3584291a95b9b313a8ff4cd7",
+      "files": [
+        {
+          "path": "assets/tools/x64/mariadb/mariadb-13.0/bin/mariadb",
+          "member": "usr/bin/mariadb",
+          "sha256": "6bd80fa5dfe4a98f34b0ef363ca4809818f01f2bfcd865652af157f0833db990",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "mariadb-13.0",
+      "version": "1:13.0.2+maria~ubu2204",
+      "build_family": "ubuntu2204",
+      "architecture": "arm",
+      "url": "https://archive.mariadb.org/mariadb-13.0.2/repo/ubuntu/pool/main/m/mariadb/mariadb-client_13.0.2+maria~ubu2204_arm64.deb",
+      "sha256": "254cab40aed67d1f3b5142eca342524e55ae00b0401e648db1c9265e5f50daf1",
+      "files": [
+        {
+          "path": "assets/tools/arm/mariadb/mariadb-13.0/bin/mariadb-dump",
+          "member": "usr/bin/mariadb-dump",
+          "sha256": "1218e655ce2bf8172fd360a1be5a2071ebda0d2218604c6f1d4f4618d9678667",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "mariadb-13.0",
+      "version": "1:13.0.2+maria~ubu2204",
+      "build_family": "ubuntu2204",
+      "architecture": "arm",
+      "url": "https://archive.mariadb.org/mariadb-13.0.2/repo/ubuntu/pool/main/m/mariadb/mariadb-client-core_13.0.2+maria~ubu2204_arm64.deb",
+      "sha256": "2b135c37e014478dffd949f3eb9f2008b6e433fbdf0b9b6a623e29eff5f41a65",
+      "files": [
+        {
+          "path": "assets/tools/arm/mariadb/mariadb-13.0/bin/mariadb",
+          "member": "usr/bin/mariadb",
+          "sha256": "68fe19f4e4bb36c8bf7d6f9b8b9876139d28243aa75727db0191050b88201dac",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "postgresql-12",
+      "version": "12.22-3.pgdg12+1",
+      "build_family": "pgdg-debian12",
+      "architecture": "x64",
+      "url": "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-12/postgresql-client-12_12.22-3.pgdg12+1_amd64.deb",
+      "sha256": "08fceee95b0126f195e47f369eeffebb4fa38441b1cd69357b9e398b5912476a",
+      "files": [
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-12/bin/pg_dump",
+          "member": "usr/lib/postgresql/12/bin/pg_dump",
+          "sha256": "36454df03050b264a4e304ff478682e00867484296551a254e958b60c53f3195",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-12/bin/pg_restore",
+          "member": "usr/lib/postgresql/12/bin/pg_restore",
+          "sha256": "db760287fe7e845da6261d412864ae5936b271e5dc3b46de13a8776438dd0933",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-12/bin/psql",
+          "member": "usr/lib/postgresql/12/bin/psql",
+          "sha256": "97051925637540a4962bcd30d45b5bb7203aed906748dd3f1380c012904e9885",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "postgresql-13",
+      "version": "13.23-1.pgdg12+1",
+      "build_family": "pgdg-debian12",
+      "architecture": "x64",
+      "url": "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-13/postgresql-client-13_13.23-1.pgdg12+1_amd64.deb",
+      "sha256": "d0d03eaefd9764310898fa639b3f2b3f4801758801f76f6898f965d528e4e33e",
+      "files": [
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-13/bin/pg_dump",
+          "member": "usr/lib/postgresql/13/bin/pg_dump",
+          "sha256": "ad8d07a3a01d74898c71a04c1722ddff31934aa3849224660bed4a4030aa20ad",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-13/bin/pg_restore",
+          "member": "usr/lib/postgresql/13/bin/pg_restore",
+          "sha256": "12d0be42bb48588a23fe682393e54b8d238027c32d43289741ea9cacef9505db",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-13/bin/psql",
+          "member": "usr/lib/postgresql/13/bin/psql",
+          "sha256": "1662208e8d17e4741e270ce94c7152f28a6ced651d32142fbc5e5ecb440ede47",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "postgresql-14",
+      "version": "14.23-1.pgdg12+1",
+      "build_family": "pgdg-debian12",
+      "architecture": "x64",
+      "url": "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-14/postgresql-client-14_14.23-1.pgdg12+1_amd64.deb",
+      "sha256": "72f85db981d224b6d5ed7563d73ae252d9324ae817bd2c77eb587ef216d83abe",
+      "files": [
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-14/bin/pg_dump",
+          "member": "usr/lib/postgresql/14/bin/pg_dump",
+          "sha256": "9f81d0497af345e90047741c35341ef578c1b1a9362a2bc3dd5e2519220be160",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-14/bin/pg_restore",
+          "member": "usr/lib/postgresql/14/bin/pg_restore",
+          "sha256": "c8dac529893d9c768ca75ff1ba53098a821bcba497b74b65f0e2edef1eb0fb6d",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-14/bin/psql",
+          "member": "usr/lib/postgresql/14/bin/psql",
+          "sha256": "7f439b26d1c4274e9ddf48cc70c3514ff65fb1973a628a641fd35256a4d86bd2",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "postgresql-15",
+      "version": "15.18-1.pgdg12+1",
+      "build_family": "pgdg-debian12",
+      "architecture": "x64",
+      "url": "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-15/postgresql-client-15_15.18-1.pgdg12+1_amd64.deb",
+      "sha256": "9404369c6d981627b051c09e03c3eddc1bd3cede8a716985a1c29df0bc2d34a4",
+      "files": [
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-15/bin/pg_dump",
+          "member": "usr/lib/postgresql/15/bin/pg_dump",
+          "sha256": "b4ccd3f9f554a156b1e42056aebce6e546f02fe9367c456bf097f15c0f01100c",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-15/bin/pg_restore",
+          "member": "usr/lib/postgresql/15/bin/pg_restore",
+          "sha256": "e2b7b7cb701aabc69ebbe20929114fe89f6672d23b11b6c93f5d25a8bb81dc62",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-15/bin/psql",
+          "member": "usr/lib/postgresql/15/bin/psql",
+          "sha256": "f707971b2159132d713fc4ff30ced4bb67688d67aa29c3c2888d54515c8fdd3f",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "postgresql-16",
+      "version": "16.14-1.pgdg12+1",
+      "build_family": "pgdg-debian12",
+      "architecture": "x64",
+      "url": "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-16/postgresql-client-16_16.14-1.pgdg12+1_amd64.deb",
+      "sha256": "acdbd3a7b03d41cd30113455bb04d5135e6fce9320709420af54b3d28b38cec9",
+      "files": [
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-16/bin/pg_dump",
+          "member": "usr/lib/postgresql/16/bin/pg_dump",
+          "sha256": "46a3f2e68d35be1065a28e8c74d89c63bc2f0f197b88fae0617319c00e36046e",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-16/bin/pg_restore",
+          "member": "usr/lib/postgresql/16/bin/pg_restore",
+          "sha256": "dee9891290fa9fe605d053b2851b8ecc4020a94c23519998f85ca874474719fb",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-16/bin/psql",
+          "member": "usr/lib/postgresql/16/bin/psql",
+          "sha256": "a8b2db446ebaa7d612c0828e8ad0ffa38fa3bfe42784d7248d078ff618fc9d68",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "postgresql-17",
+      "version": "17.10-1.pgdg12+1",
+      "build_family": "pgdg-debian12",
+      "architecture": "x64",
+      "url": "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-17/postgresql-client-17_17.10-1.pgdg12+1_amd64.deb",
+      "sha256": "3c81bce683425d5ee8468cc20f4ec381409c24b43013091c6530c1946bbbc943",
+      "files": [
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-17/bin/pg_basebackup",
+          "member": "usr/lib/postgresql/17/bin/pg_basebackup",
+          "sha256": "656fde3c0edfa77b302079ec955453dac24a74b830257d8699a0263576f09330",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-17/bin/pg_combinebackup",
+          "member": "usr/lib/postgresql/17/bin/pg_combinebackup",
+          "sha256": "976af4dd167ae25c1b116aebd53d4a19e33e117863dd451798221d345d178385",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-17/bin/pg_dump",
+          "member": "usr/lib/postgresql/17/bin/pg_dump",
+          "sha256": "ad0e2786ce5aef8eb34a30ac27bc4047b4709f630d8a42459aedb19e333054a8",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-17/bin/pg_receivewal",
+          "member": "usr/lib/postgresql/17/bin/pg_receivewal",
+          "sha256": "cae20a0c8b38b52fa693ed2d669a04f4bd6267711b39aa2b18d00c220df001d0",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-17/bin/pg_restore",
+          "member": "usr/lib/postgresql/17/bin/pg_restore",
+          "sha256": "3fb40108e59f4639c37364aed2ece86dca401ef40d3f779bdcce1308623c69bf",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-17/bin/psql",
+          "member": "usr/lib/postgresql/17/bin/psql",
+          "sha256": "0cffb41180f1cb141448b0114d253c438e678b02b2e83749a02983528d4c506e",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "postgresql-18",
+      "version": "18.4-1.pgdg12+1",
+      "build_family": "pgdg-debian12",
+      "architecture": "x64",
+      "url": "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-18/postgresql-client-18_18.4-1.pgdg12+1_amd64.deb",
+      "sha256": "21c9b6e141053fcecceddd5cb196a105eef9e0c5fd9d6d4f5b52a9b4693a871f",
+      "files": [
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-18/bin/pg_basebackup",
+          "member": "usr/lib/postgresql/18/bin/pg_basebackup",
+          "sha256": "1adb6671e3941ceb5ed6260ef145b92230aff3317221b99dea79ec121ba254ff",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-18/bin/pg_combinebackup",
+          "member": "usr/lib/postgresql/18/bin/pg_combinebackup",
+          "sha256": "22481e29385d7d5bcd4b01e7476e1f2eeeb39ec575ef7e62ce1bf25d418c5a6f",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-18/bin/pg_dump",
+          "member": "usr/lib/postgresql/18/bin/pg_dump",
+          "sha256": "e83fd416df0d912acdd132b33c8dc37156dcfbb74f4fcd5e1d9b365707efd6c0",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-18/bin/pg_receivewal",
+          "member": "usr/lib/postgresql/18/bin/pg_receivewal",
+          "sha256": "ee47beb50b64bdd12ed91ea75eb391892cc58ef09e54a39cfc187e621ca1ebd3",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-18/bin/pg_restore",
+          "member": "usr/lib/postgresql/18/bin/pg_restore",
+          "sha256": "92682c6b27ac0c15e5121eba6f6f8b415b37c248dc33802c1f419657245e6b2e",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-18/bin/psql",
+          "member": "usr/lib/postgresql/18/bin/psql",
+          "sha256": "8782b122db13f8a5de3f7a7db0c1c0dc99b52340466de529f0baaa075678f161",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "mysql-5.7",
+      "version": "5.7.44",
+      "build_family": "linux-glibc2.12",
+      "architecture": "x64",
+      "url": "https://cdn.mysql.com/archives/mysql-5.7/mysql-5.7.44-linux-glibc2.12-x86_64.tar.gz",
+      "sha256": "798ff0a14cdc1ab259f8a3b6a7f683403e9bbaa85957d82e5370f82b27ba6805",
+      "files": [
+        {
+          "path": "assets/tools/x64/mysql/mysql-5.7/bin/mysql",
+          "member": "mysql-5.7.44-linux-glibc2.12-x86_64/bin/mysql",
+          "sha256": "6f376c7dd75b721c07c17170bb649328fa53011226bfb7732a5dc3214b21d5e3",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/mysql/mysql-5.7/bin/mysqldump",
+          "member": "mysql-5.7.44-linux-glibc2.12-x86_64/bin/mysqldump",
+          "sha256": "2cb0470183178ec86ccb20e88a8497d473cf0f219eda78b0c742f4d5a10f5a9c",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "mysql-8.0",
+      "version": "8.0.46",
+      "build_family": "linux-glibc2.28",
+      "architecture": "x64",
+      "url": "https://cdn.mysql.com/Downloads/MySQL-8.0/mysql-8.0.46-linux-glibc2.28-x86_64.tar.xz",
+      "sha256": "0fcdb2e88b5bb151118420745070a34621463dd85a50e1eacd7c3aa1b9d1f4a2",
+      "files": [
+        {
+          "path": "assets/tools/x64/mysql/mysql-8.0/bin/mysql",
+          "member": "mysql-8.0.46-linux-glibc2.28-x86_64/bin/mysql",
+          "sha256": "f30868ffc338aa070f4781602170f0c7bd87f6cceb6105b91728a7bb7342ae35",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/mysql/mysql-8.0/bin/mysqldump",
+          "member": "mysql-8.0.46-linux-glibc2.28-x86_64/bin/mysqldump",
+          "sha256": "832b0e08f46452af1e410a214778b48dff2fbf2ca7b760fcbf0655052ecf3761",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "mysql-8.4",
+      "version": "8.4.11",
+      "build_family": "linux-glibc2.28",
+      "architecture": "x64",
+      "url": "https://cdn.mysql.com/Downloads/MySQL-8.4/mysql-8.4.11-linux-glibc2.28-x86_64.tar.xz",
+      "sha256": "94e204cc94dede3746d2773fa5818f28f555cd8368c75ca0612eac124e6f3e58",
+      "files": [
+        {
+          "path": "assets/tools/x64/mysql/mysql-8.4/bin/mysql",
+          "member": "mysql-8.4.11-linux-glibc2.28-x86_64/bin/mysql",
+          "sha256": "e5a3ea0dec017ec595a6b401c47fc83da54dc5b371668b4788feffebe9be019f",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/mysql/mysql-8.4/bin/mysqldump",
+          "member": "mysql-8.4.11-linux-glibc2.28-x86_64/bin/mysqldump",
+          "sha256": "0a67ecf8f40ba1919cecdc1c3df1e336109d0f878fd26e84d3259aacb2ef40d5",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "mysql-9",
+      "version": "9.7.2",
+      "build_family": "linux-glibc2.28",
+      "architecture": "x64",
+      "url": "https://cdn.mysql.com/Downloads/MySQL-9.7/mysql-9.7.2-linux-glibc2.28-x86_64.tar.xz",
+      "sha256": "18ebfc721b14980d2d46bd670f85b69319aa136dbb956821c037890a02017adc",
+      "files": [
+        {
+          "path": "assets/tools/x64/mysql/mysql-9/bin/mysql",
+          "member": "mysql-9.7.2-linux-glibc2.28-x86_64/bin/mysql",
+          "sha256": "410806b7a8d97122a56ea04b83516306a4f875f5e2075c6dc23d48fb2b499052",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/mysql/mysql-9/bin/mysqldump",
+          "member": "mysql-9.7.2-linux-glibc2.28-x86_64/bin/mysqldump",
+          "sha256": "67a6b0a9b155c445b22a10b42ae2ae3934504236f0098b4ee302474bc5b48959",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "mysql-26",
+      "version": "26.7.0",
+      "build_family": "linux-glibc2.28",
+      "architecture": "x64",
+      "url": "https://cdn.mysql.com/Downloads/MySQL-26.7/mysql-26.7.0-linux-glibc2.28-x86_64.tar.xz",
+      "sha256": "ff8ee807234f239b3b5d0dc4767bc70b1f5d68cc7e357866e87bf529755f2e9c",
+      "files": [
+        {
+          "path": "assets/tools/x64/mysql/mysql-26/bin/mysql",
+          "member": "mysql-26.7.0-linux-glibc2.28-x86_64/bin/mysql",
+          "sha256": "8f084b9d3bfc5ca3d4743577ca1509371b692ca081bc2abdb766024dc671a365",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/mysql/mysql-26/bin/mysqldump",
+          "member": "mysql-26.7.0-linux-glibc2.28-x86_64/bin/mysqldump",
+          "sha256": "5299532b6e4d11d1eed14e68d10294b09a27e056ba71528c1f88e9d65b6c00b5",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/mysql/mysql-26/lib/private/libcrypto.so.3",
+          "member": "mysql-26.7.0-linux-glibc2.28-x86_64/lib/private/libcrypto.so.3",
+          "sha256": "7cd146cfc33b301d86a34f7392037cd3919c1203383e01874fe25c299bb8c5b4",
+          "mode": 420
+        },
+        {
+          "path": "assets/tools/x64/mysql/mysql-26/lib/private/libssl.so.3",
+          "member": "mysql-26.7.0-linux-glibc2.28-x86_64/lib/private/libssl.so.3",
+          "sha256": "28a8440863bd18087ca8cf0ad4b7078301538a026188d986cacee40b31440cd7",
+          "mode": 420
+        }
+      ]
+    },
+    {
+      "bundle": "mongodb",
+      "version": "100.19.1",
+      "build_family": "ubuntu2204",
+      "architecture": "x64",
+      "url": "https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-100.19.1.tgz",
+      "sha256": "8312f251c360ddfbcdd430c64758bee58b7050e1041e8c9df2906761098acd49",
+      "files": [
+        {
+          "path": "assets/tools/x64/mongodb/bin/mongodump",
+          "member": "mongodb-database-tools-ubuntu2204-x86_64-100.19.1/bin/mongodump",
+          "sha256": "d63aff30d952bbaa5f057293100f176724ab52c43e2394067e3b1c0bfaf4f3b3",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/mongodb/bin/mongorestore",
+          "member": "mongodb-database-tools-ubuntu2204-x86_64-100.19.1/bin/mongorestore",
+          "sha256": "305be16ef46f9191a17312ff8583ecd14dd42b2420509c04ef423ba3cd461da7",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "postgresql-12",
+      "version": "12.22-3.pgdg12+1",
+      "build_family": "pgdg-debian12",
+      "architecture": "arm",
+      "url": "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-12/postgresql-client-12_12.22-3.pgdg12+1_arm64.deb",
+      "sha256": "9a003291351ccd42038635f5e47ac591d4192d33e638068bf7e4728c08a5c609",
+      "files": [
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-12/bin/pg_dump",
+          "member": "usr/lib/postgresql/12/bin/pg_dump",
+          "sha256": "47e46497d99c13912d3107ff24aabddc907d8b756eada8b0398d3c52bbbb542b",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-12/bin/pg_restore",
+          "member": "usr/lib/postgresql/12/bin/pg_restore",
+          "sha256": "f461191274aa442345eb0c8360577a5f0cc740b51addcfee3a40114f2eeb3b80",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-12/bin/psql",
+          "member": "usr/lib/postgresql/12/bin/psql",
+          "sha256": "7601d1d0c7eb9bb28a8325f439e8c41aae37505a6e22febc05078be23ea4d877",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "postgresql-13",
+      "version": "13.23-1.pgdg12+1",
+      "build_family": "pgdg-debian12",
+      "architecture": "arm",
+      "url": "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-13/postgresql-client-13_13.23-1.pgdg12+1_arm64.deb",
+      "sha256": "a531c861a77c4b5c033b0ef3372ee911c6d21a6caf586d1944544d6865e31cb3",
+      "files": [
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-13/bin/pg_dump",
+          "member": "usr/lib/postgresql/13/bin/pg_dump",
+          "sha256": "c15ccd80974cea3446caaf440d72debf810d9144dd3b1b26603ecc8fbf02dd52",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-13/bin/pg_restore",
+          "member": "usr/lib/postgresql/13/bin/pg_restore",
+          "sha256": "d44ce0c1356a6b1989bc73aa0020ca1f10e22c50c596a10582bc9dcda0e301ce",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-13/bin/psql",
+          "member": "usr/lib/postgresql/13/bin/psql",
+          "sha256": "b7331afd19703d947f3316f43004bdad0cb178c73b3b2cd72abf2e0efd09e689",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "postgresql-14",
+      "version": "14.23-1.pgdg12+1",
+      "build_family": "pgdg-debian12",
+      "architecture": "arm",
+      "url": "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-14/postgresql-client-14_14.23-1.pgdg12+1_arm64.deb",
+      "sha256": "3b589a2f0004632f6daa4caa763c00a3c236b94fce1d03716d1b07f5ba83428c",
+      "files": [
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-14/bin/pg_dump",
+          "member": "usr/lib/postgresql/14/bin/pg_dump",
+          "sha256": "b74f38617e78ffc37fd94aa80757aecaa47df6161b1e2c6cfb25470f1c5cf846",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-14/bin/pg_restore",
+          "member": "usr/lib/postgresql/14/bin/pg_restore",
+          "sha256": "8e9f423a8abd2cad20e0d74162d0dc57a4fa05ea975dced307d32e13fdb23dbe",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-14/bin/psql",
+          "member": "usr/lib/postgresql/14/bin/psql",
+          "sha256": "2e125e5f494fab017d6571045b9198163c66fa8487f811443bcb2cc3755e0857",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "postgresql-15",
+      "version": "15.18-1.pgdg12+1",
+      "build_family": "pgdg-debian12",
+      "architecture": "arm",
+      "url": "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-15/postgresql-client-15_15.18-1.pgdg12+1_arm64.deb",
+      "sha256": "eb52c2bdac053fdabe743a51c3ea6e9abd8195202b5b6e3d2cadae614efba15f",
+      "files": [
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-15/bin/pg_dump",
+          "member": "usr/lib/postgresql/15/bin/pg_dump",
+          "sha256": "97e5393be358aa21d5b1c63c609714e715d6faa595e9378d7bd8345a9fe336a3",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-15/bin/pg_restore",
+          "member": "usr/lib/postgresql/15/bin/pg_restore",
+          "sha256": "82b6ac638e7995bdd1a152cfdb8856277369f8a9b9bc983fd0959dad7065c50a",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-15/bin/psql",
+          "member": "usr/lib/postgresql/15/bin/psql",
+          "sha256": "c1757b1c42b0d9ea9d7db2011d166df888b4f815dabcddbb02fa5af29283298b",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "postgresql-16",
+      "version": "16.14-1.pgdg12+1",
+      "build_family": "pgdg-debian12",
+      "architecture": "arm",
+      "url": "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-16/postgresql-client-16_16.14-1.pgdg12+1_arm64.deb",
+      "sha256": "105e4107543fb50bd17eb87400d4d47f88c0e6cbbbdbe786b7cd5547e94e995a",
+      "files": [
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-16/bin/pg_dump",
+          "member": "usr/lib/postgresql/16/bin/pg_dump",
+          "sha256": "e3c13e3ec7636072aec767346e7ca4daa9882dc5eac2725f6d7f882fbaec9ca7",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-16/bin/pg_restore",
+          "member": "usr/lib/postgresql/16/bin/pg_restore",
+          "sha256": "4a7e6589fc7315e7cdbbad476a194666b67964dd32b325fd89e3614f668514d3",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-16/bin/psql",
+          "member": "usr/lib/postgresql/16/bin/psql",
+          "sha256": "ec4e08dcf8adbe8e8f386ce34dc12de8d53a7bc1e27331d2acfefef7759dcb67",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "postgresql-17",
+      "version": "17.10-1.pgdg12+1",
+      "build_family": "pgdg-debian12",
+      "architecture": "arm",
+      "url": "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-17/postgresql-client-17_17.10-1.pgdg12+1_arm64.deb",
+      "sha256": "70ca5ca55324370988a73ed27c1bc490b26f764db3c56e5160a728133801c6f0",
+      "files": [
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-17/bin/pg_basebackup",
+          "member": "usr/lib/postgresql/17/bin/pg_basebackup",
+          "sha256": "a40d1f338d17539fcc353264c03f98bb371959f36e7596e6bd7a151de307d136",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-17/bin/pg_combinebackup",
+          "member": "usr/lib/postgresql/17/bin/pg_combinebackup",
+          "sha256": "948000d6a79260ebde1607cdd8b565793592f5ae73899526cdccbc360d0da4dc",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-17/bin/pg_dump",
+          "member": "usr/lib/postgresql/17/bin/pg_dump",
+          "sha256": "aa27a3e49eeea2c6c0ce43f84eac1118e0927d66e34f3e930b19fcfddbc3699b",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-17/bin/pg_receivewal",
+          "member": "usr/lib/postgresql/17/bin/pg_receivewal",
+          "sha256": "4ec593b7aa249e3490950841ae4e8093324c3baabaa3630cec3768757ad985c8",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-17/bin/pg_restore",
+          "member": "usr/lib/postgresql/17/bin/pg_restore",
+          "sha256": "a5be77189bde6d6a3c140298038440b48628be980acee310396ef231bd8c4f3b",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-17/bin/psql",
+          "member": "usr/lib/postgresql/17/bin/psql",
+          "sha256": "6a8a263ac89d6bf8cce4940343c601f0ccedb738964e8bbef03ca5bf2f12a1e5",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "postgresql-18",
+      "version": "18.4-1.pgdg12+1",
+      "build_family": "pgdg-debian12",
+      "architecture": "arm",
+      "url": "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-18/postgresql-client-18_18.4-1.pgdg12+1_arm64.deb",
+      "sha256": "8fbcd33a01b4603a55bf7e9a8d695b0114d0d1ca340f88771d59cd96ca65dd74",
+      "files": [
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-18/bin/pg_basebackup",
+          "member": "usr/lib/postgresql/18/bin/pg_basebackup",
+          "sha256": "32e01074105274b98422649e3592f45e740a9c932bf174ebc2ea895cd3d2f123",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-18/bin/pg_combinebackup",
+          "member": "usr/lib/postgresql/18/bin/pg_combinebackup",
+          "sha256": "6201b5fe4d1494d5f69cd7030d5464aefe553c833c4d5ae0570d8f23d7588265",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-18/bin/pg_dump",
+          "member": "usr/lib/postgresql/18/bin/pg_dump",
+          "sha256": "a91ddf8e1200eb2cc71ef7c11a7c0868b1b8a24712a7a4165597c8fd369c3945",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-18/bin/pg_receivewal",
+          "member": "usr/lib/postgresql/18/bin/pg_receivewal",
+          "sha256": "201faf45b2d91b71c0bcaa1d179b70d2e9924426c23ac72e326aa7bec8c29f00",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-18/bin/pg_restore",
+          "member": "usr/lib/postgresql/18/bin/pg_restore",
+          "sha256": "90902f85d0cfbed01fa09636e8f2ce0e79fffb7fd86609637c8a384f476866c0",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-18/bin/psql",
+          "member": "usr/lib/postgresql/18/bin/psql",
+          "sha256": "494d165ea5ce0be48087a3ea94aa510078f765c1668a6062f7f222fc57abed05",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "mysql-8.0",
+      "version": "8.0.46",
+      "build_family": "linux-glibc2.28",
+      "architecture": "arm",
+      "url": "https://cdn.mysql.com/Downloads/MySQL-8.0/mysql-8.0.46-linux-glibc2.28-aarch64.tar.xz",
+      "sha256": "49cda0de886b021df1c2e3e382164ca3c61e93e7e5c4ee90849e13862e30dd7f",
+      "files": [
+        {
+          "path": "assets/tools/arm/mysql/mysql-8.0/bin/mysql",
+          "member": "mysql-8.0.46-linux-glibc2.28-aarch64/bin/mysql",
+          "sha256": "dff3eade0997f2d17995cb60c81a8bacb795b491d818ed061718ee57b0e236a2",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/mysql/mysql-8.0/bin/mysqldump",
+          "member": "mysql-8.0.46-linux-glibc2.28-aarch64/bin/mysqldump",
+          "sha256": "52af6fa624f7c1a23adf72784a07bd513bf91432d7cad9b8545c5644d88fe277",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "mysql-8.4",
+      "version": "8.4.11",
+      "build_family": "linux-glibc2.28",
+      "architecture": "arm",
+      "url": "https://cdn.mysql.com/Downloads/MySQL-8.4/mysql-8.4.11-linux-glibc2.28-aarch64.tar.xz",
+      "sha256": "04b2f9791d314167a9eb83abcb476f45a7cd9e4aa88fa7a638cba40d1bc2a109",
+      "files": [
+        {
+          "path": "assets/tools/arm/mysql/mysql-8.4/bin/mysql",
+          "member": "mysql-8.4.11-linux-glibc2.28-aarch64/bin/mysql",
+          "sha256": "d210ee3e846a65783387289970eadea6be0a8cf2967f0c5351ffcafef4f85f33",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/mysql/mysql-8.4/bin/mysqldump",
+          "member": "mysql-8.4.11-linux-glibc2.28-aarch64/bin/mysqldump",
+          "sha256": "b10b43ba850fdadbe08b3a5707bd28c186a7b15eaf808931578943b117007728",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "mysql-9",
+      "version": "9.7.2",
+      "build_family": "linux-glibc2.28",
+      "architecture": "arm",
+      "url": "https://cdn.mysql.com/Downloads/MySQL-9.7/mysql-9.7.2-linux-glibc2.28-aarch64.tar.xz",
+      "sha256": "1a9c8da6c0de200390c0aa38f456b975b6a54a88bd3ece9c6f71573ac391f991",
+      "files": [
+        {
+          "path": "assets/tools/arm/mysql/mysql-9/bin/mysql",
+          "member": "mysql-9.7.2-linux-glibc2.28-aarch64/bin/mysql",
+          "sha256": "ab99cb89a8d991fbcfc4bddc63b8707525acaef62e687f94743933b423426915",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/mysql/mysql-9/bin/mysqldump",
+          "member": "mysql-9.7.2-linux-glibc2.28-aarch64/bin/mysqldump",
+          "sha256": "c236059520652e9b65f54572ef7f5137dc09afd79ea6518bf93791e8602b3616",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "mysql-26",
+      "version": "26.7.0",
+      "build_family": "linux-glibc2.28",
+      "architecture": "arm",
+      "url": "https://cdn.mysql.com/Downloads/MySQL-26.7/mysql-26.7.0-linux-glibc2.28-aarch64.tar.xz",
+      "sha256": "894da547042baf5f7da6eac72252978dc3da146aca706dbbae2f4176aded34b4",
+      "files": [
+        {
+          "path": "assets/tools/arm/mysql/mysql-26/bin/mysql",
+          "member": "mysql-26.7.0-linux-glibc2.28-aarch64/bin/mysql",
+          "sha256": "5c21d159aa4cfed8fd1b2aeebfb6f067da04682a8d756a4400a8a66b3284f185",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/mysql/mysql-26/bin/mysqldump",
+          "member": "mysql-26.7.0-linux-glibc2.28-aarch64/bin/mysqldump",
+          "sha256": "ea2699fc496aaf415a6fd79456fd1ba2eff75916d2c736e3dfe796beb47d1218",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/mysql/mysql-26/lib/private/libcrypto.so.3",
+          "member": "mysql-26.7.0-linux-glibc2.28-aarch64/lib/private/libcrypto.so.3",
+          "sha256": "653ddc43ce4fdb8a1f0a684fe10b54e66b70ca881e46094c8605f4d70d138e15",
+          "mode": 420
+        },
+        {
+          "path": "assets/tools/arm/mysql/mysql-26/lib/private/libssl.so.3",
+          "member": "mysql-26.7.0-linux-glibc2.28-aarch64/lib/private/libssl.so.3",
+          "sha256": "4a16f329e29565c1bb99563d91edf624259a5049a21d652fc0162430a04bbbce",
+          "mode": 420
+        }
+      ]
+    },
+    {
+      "bundle": "mongodb",
+      "version": "100.19.1",
+      "build_family": "ubuntu2204",
+      "architecture": "arm",
+      "url": "https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-arm64-100.19.1.tgz",
+      "sha256": "e5d37e679ff815c45a86c17bc17de200c3a215a6eafc82516e5ba271f563373e",
+      "files": [
+        {
+          "path": "assets/tools/arm/mongodb/bin/mongodump",
+          "member": "mongodb-database-tools-ubuntu2204-arm64-100.19.1/bin/mongodump",
+          "sha256": "2f5302df36c0ebb57ebb23035caa619fd905d12424a0482d2d4620c9f74dfb92",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/mongodb/bin/mongorestore",
+          "member": "mongodb-database-tools-ubuntu2204-arm64-100.19.1/bin/mongorestore",
+          "sha256": "43dd15dbbcf0657a33f620165083c53bb33e3731f43f11853051087086695d71",
+          "mode": 493
+        }
+      ]
+    }
+  ]
+}

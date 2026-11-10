@@ -44,12 +44,20 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        if: matrix.language == 'go'
+        uses: ./.github/actions/read-mise-bootstrap
 
       - name: Install tools from mise.toml
         if: matrix.language == 'go'
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'go'
 
       - name: Initialize CodeQL
@@ -77,11 +85,18 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
 
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'gh jq'
 
       - name: Check CodeQL alerts of the release analysis
@@ -98,14 +113,21 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # gitleaks scans every commit, so it needs the full history.
           fetch-depth: 0
 
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
+
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'gitleaks'
 
       # A release reads only its own history, so a finding on an unrelated branch cannot stop it.
@@ -123,11 +145,18 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Read locked mise bootstrap
+        id: mise-bootstrap
+        uses: ./.github/actions/read-mise-bootstrap
 
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ steps.mise-bootstrap.outputs.version }}
+          sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
+          cache: false
           install_args: 'python uv pypi:semgrep'
 
       # Private keys are left to gitleaks, which keeps the allowlist of test keys in .gitleaksignore.
