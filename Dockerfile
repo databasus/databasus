@@ -1,5 +1,5 @@
 # ========= BUILD FRONTEND =========
-FROM --platform=$BUILDPLATFORM docker.io/library/node:24.21.0-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS frontend-build
+FROM --platform=$BUILDPLATFORM docker.io/library/node:26.12.1-alpine@sha256:40cd011b55415bc894e45b02fdd5a5dfde056921b7d23a64c74f80497af48797 AS frontend-build
 
 WORKDIR /frontend
 
