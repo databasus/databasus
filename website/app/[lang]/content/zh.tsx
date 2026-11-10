@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import LandingFooterComponent from "@/app/components/LandingFooterComponent";
 import LandingHeaderComponent from "@/app/components/LandingHeaderComponent";
-import { OG_LOCALES, getLanguageAlternates, getLocalizedUrl } from "@/app/i18n";
+import { OG_LOCALES, getLanguageAlternates, getLocalizedUrl, getLocalizedHref } from "@/app/i18n";
 import HeroStatsComponent from "@/app/components/HeroStatsComponent";
 import InstallationComponent from "@/app/components/InstallationComponent";
 import LiteYouTubeEmbed from "@/app/components/LiteYouTubeEmbed";
@@ -179,7 +179,7 @@ export default function Index() {
                 name: "Databasus 如何保证安全性？",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus 从三个层面保障安全：（1）敏感数据加密——所有密码、令牌和凭据均使用 AES-256-GCM 加密，并与数据库分开存储；（2）备份加密——每个备份文件都使用由主密钥、备份 ID 和随机盐派生出的唯一密钥加密，即使有人获得了存储的访问权限，没有你的加密密钥备份也毫无用处；（3）只读数据库访问——Databasus 只需要 SELECT 权限，并会做全面检查确保不存在任何写权限，即使工具本身被攻破也不会破坏数据。登录本身也可以要求第二重验证：启用后，密码正确之后账号邮箱会收到六位验证码，而通过 Google 或 GitHub 登录仍然依赖这些服务商自己的验证。在运行时之外，安全性和可靠性也被落实到每一次发布：CodeQL 静态分析、gitleaks 密钥扫描、semgrep 安全规则检查、Dependabot CVE 监控、Trivy 镜像与 Dockerfile 扫描，以及 OpenAI 定期进行的 Codex Security 审计。集成测试针对真实的 PostgreSQL、MySQL、MariaDB 和 MongoDB 容器运行，并在每次发布前验证完整的备份加恢复流程。GitHub Actions 固定到提交 SHA，工作流遵循最小权限原则。所有操作都在你控制的容器和你拥有的服务器上运行，而且因为它是开源的，你的安全团队可以在部署前审计每一行代码。",
+                  text: "Databasus 从三个层面保障安全：（1）敏感数据加密——所有密码、令牌和凭据均使用 AES-256-GCM 加密，并与数据库分开存储；（2）备份加密——每个备份文件都使用由主密钥、备份 ID 和随机盐派生出的唯一密钥加密，即使有人获得了存储的访问权限，没有你的加密密钥备份也毫无用处；（3）只读数据库访问——Databasus 只需要 SELECT 权限，并会做全面检查确保不存在任何写权限，即使工具本身被攻破也不会破坏数据。登录本身也可以要求第二重验证：启用后，密码正确之后账号邮箱会收到六位验证码，而通过 Google 或 GitHub 登录仍然依赖这些服务商自己的验证。每次发布前，自动检查都会扫描代码、依赖、密钥等敏感信息和容器镜像。测试在真实的 PostgreSQL、MySQL、MariaDB 和 MongoDB 容器中验证完整的备份与恢复流程。发布前必须通过所有必需检查。OpenAI 的 Codex Security 定期审计作为补充，与发布流程分开进行。 所有操作都在你控制的容器和你拥有的服务器上运行，而且因为它是开源的，你的安全团队可以在部署前审计每一行代码。",
                 },
               },
               {
@@ -228,6 +228,14 @@ export default function Index() {
                 acceptedAnswer: {
                   "@type": "Answer",
                   text: '实例上创建的第一个账户就是它的管理员。如果你不记得那个地址，可以在运行 Databasus 的服务器上执行 docker exec -it databasus ./main --list-admins：它会列出每个管理员账户的邮箱、显示名称、创建日期和活动状态，并且不会输出任何密码。要为该账户设置新密码，请执行 docker exec -it databasus ./main --new-password="YourNewSecurePassword123" --email="owner@example.com"。在第一个账户成为管理员之前创建的实例，在其所有者替换之前仍使用占位地址 admin。如果实例还要求登录验证码，而邮件服务器已经无法送达，请执行 docker exec -it databasus ./main --disable-2fa，让实例不再要求验证码。这三条命令都记录在密码页面上。',
+                },
+              },
+              {
+                "@type": "Question",
+                name: "Databasus 开发中如何使用 AI？",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "我们在明确的工程规范下使用 AI 开发 Databasus。开发者确定方向并做出最终决定。 合并变更前，开发者会逐行阅读代码。 独立代理在各自的只读会话中审查正确性、架构、测试和文档。严格的静态检查和真实数据库测试与这些审查配合进行。发布前必须通过所有必需的 CI 检查。",
                 },
               },
             ],
@@ -1192,16 +1200,13 @@ export default function Index() {
                   Google 或 GitHub 登录仍然依赖这些服务商自己的验证。
                   <br />
                   <br />
-                  在运行时之外，安全性和可靠性也被落实到每一次发布：CodeQL 静态分析、gitleaks 密钥扫描、semgrep
-                  安全规则检查、Dependabot CVE 监控、Trivy 镜像与 Dockerfile 扫描，以及 OpenAI
-                  定期进行的 Codex Security 审计。集成测试针对真实的 PostgreSQL、MySQL、MariaDB 和
-                  MongoDB 容器运行，并在每次发布前验证完整的备份加恢复流程。GitHub Actions 固定到提交
-                  SHA，工作流遵循最小权限原则。
+                  每次发布前，自动检查都会扫描代码、依赖、密钥等敏感信息和容器镜像。测试在真实的 PostgreSQL、MySQL、MariaDB 和 MongoDB
+                  容器中验证完整的备份与恢复流程。发布前必须通过所有必需检查。OpenAI 的 Codex Security 定期审计作为补充，与发布流程分开进行。
                   <br />
                   <br />
                   完整流程请参阅{" "}
                   <a
-                    href="/zh/security#security-and-reliability-engineering"
+                    href={`${getLocalizedHref("zh", "security")}#security-and-reliability-engineering`}
                     className="text-blue-400 hover:text-blue-600"
                   >
                     安全与可靠性工程
@@ -1419,6 +1424,29 @@ export default function Index() {
             />
             <FaqItem
               number="12"
+              question="Databasus 开发中如何使用 AI？"
+              answer={
+                <>
+                  <p>
+                    我们在明确的工程规范下使用 AI 开发 Databasus。开发者确定方向并做出最终决定。{" "}
+                    <strong>合并变更前，开发者会逐行阅读代码。</strong>
+                  </p>
+                  <p className="mt-3">
+                    独立代理在各自的只读会话中审查正确性、架构、测试和文档。严格的静态检查和真实数据库测试与这些审查配合进行。发布前必须通过所有必需的
+                    CI 检查。{" "}
+                    <a
+                      href={`${getLocalizedHref("zh", "faq")}#ai-usage`}
+                      className="text-blue-400 hover:text-blue-600"
+                    >
+                      了解完整开发流程
+                    </a>
+                    .
+                  </p>
+                </>
+              }
+            />
+            <FaqItem
+              number="13"
               question="如何加入 Databasus 社区？"
               answer={
                 <>
@@ -1437,7 +1465,7 @@ export default function Index() {
               }
             />
             <FaqItem
-              number="13"
+              number="14"
               question="Databasus 的普及程度如何？"
               answer={
                 <>
@@ -1465,7 +1493,7 @@ export default function Index() {
               }
             />
             <FaqItem
-              number="14"
+              number="15"
               question="我忘记了管理员邮箱或密码"
               answer={
                 <>

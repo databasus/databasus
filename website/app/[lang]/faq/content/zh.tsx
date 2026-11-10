@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { OG_LOCALES, getLanguageAlternates, getLocalizedUrl } from "@/app/i18n";
+import { OG_LOCALES, getLanguageAlternates, getLocalizedHref, getLocalizedUrl } from "@/app/i18n";
 import DocsNavbarComponent from "@/app/components/DocsNavbarComponent";
 import DocsSidebarComponent from "@/app/components/DocsSidebarComponent";
 import DocTableOfContentComponent from "@/app/components/DocTableOfContentComponent";
@@ -96,6 +96,14 @@ export default function FAQPage() {
                 acceptedAnswer: {
                   "@type": "Answer",
                   text: "2026 年 3 月，Databasus 同时被 Anthropic 的 Claude for Open Source 和 OpenAI 的 Codex for Open Source 计划接纳。获得这些计划的支持是一个可靠性信号：项目经过独立评估，被行业领导者认可为值得支持的关键开源基础设施。",
+                },
+              },
+              {
+                "@type": "Question",
+                name: "Databasus 开发中如何使用 AI？",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "AI 帮助我们开发 Databasus，参与规划、实现、测试和文档工作。开发者确定方向并做出最终决定。 合并变更前，开发者会逐行阅读代码。 我们使用 OpenSpec 进行规格驱动开发（SDD），在实现前约定行为。 每个阶段都有独立审查 自动钩子启动独立的审查会话，对仓库的访问权限为只读。每个代理自行检查相关代码，给出自己的审查结果。执行实现的代理不能批准自己的工作。 审查在实现前就开始了。独立的规划审查代理寻找更简单的方案，检查拟定的名称并评估设计。它们还检查需求与验证任务是否一致。 代码审查代理：查找缺陷、遗漏的边界情况、错误处理问题、竞态条件、资源泄漏和安全问题。 需求审查代理：找到每项需求对应的实现和测试，检查测试是否真正证明了承诺的行为。 架构审查代理：检查模块边界、依赖方向、数据归属、迁移和 API 规则。 代码结构审查代理：检查命名、文件和函数的职责、注释以及可读性。 测试审查代理：评估测试能否发现行为缺失或回归问题，还检查条件等待、清理和验证证据。 文档和任务审查代理：检查文档是否与代码一致、任务是否完成，以及所声称的检查是否有证据支持。 完整的实现审查并行运行。每项修改后的规格说明都有自己的需求审查代理。架构、测试和文档也各有独立代理。因此，涉及两项规格说明的变更会有五个完整审查代理。 阻塞性问题会阻止工作被接受。 执行实现的代理修复问题，或解释某项审查意见为何有误。后续审查代理检查处理结果和之后的修改。未能运行的审查不算通过。 自动检查与真实恢复 独立审查还配有严格的自动检查。golangci-lint 和项目自有的架构检查工具检查后端依赖、模块边界和迁移规则。API 检查验证 OpenAPI 契约和生成代码。前端检查 TypeScript、React、分层导入、样式和本地化。 Ruff 和 ty 检查 Python 的格式、代码规则和类型。ShellCheck 检查 shell 脚本，actionlint 检查 GitHub Actions 工作流。提交前的钩子检查涉及的后端、前端和 Python 文件，不改写文件。CI 也会运行静态检查。 测试检查真实行为。后端测试通过应用的 API 操作，数据库引擎使用真实的数据库容器进行测试。端到端场景创建备份、执行恢复并检查恢复后的数据。其他测试覆盖升级、前端页面和浏览器操作流程，包括视觉对比。 检查范围取决于变更内容。发布前，在 amd64 和 arm64 上运行必需的测试套件。执行实现的代理在审查前运行所需的静态检查和测试。审查代理检查证据，不重复运行这些命令。 发布前，CodeQL 和 Semgrep 分析代码，Gitleaks 扫描密钥等敏感信息，依赖检查查找漏洞。Trivy 扫描容器镜像和 Dockerfile。 发布前必须通过所有必需的 CI 检查。",
                 },
               },
             ],
@@ -339,6 +347,125 @@ export default function FAQPage() {
                 <strong>3.42.0 版本</strong>，或在升级前自行删除旧的 agent
                 备份。基于 agent 的实现在 3.42.0
                 及之前的版本中仍然可用，并会长期继续工作，所以不会有任何东西坏掉。
+              </p>
+
+              <h2 id="ai-usage">Databasus 开发中如何使用 AI？</h2>
+
+              <p>
+                AI 帮助我们开发 Databasus，参与规划、实现、测试和文档工作。开发者确定方向并做出最终决定。{" "}
+                <strong>合并变更前，开发者会逐行阅读代码。</strong>
+              </p>
+
+              <p>
+                我们使用 <a href="https://github.com/databasus/databasus/tree/main/openspec">OpenSpec</a>{" "}
+                进行规格驱动开发（SDD），在实现前约定行为。
+              </p>
+
+              <h3 id="ai-review-hooks">每个阶段都有独立审查</h3>
+
+              <p>
+                自动钩子启动独立的审查会话，对仓库的访问权限为只读。每个代理自行检查相关代码，给出自己的审查结果。执行实现的代理不能批准自己的工作。
+              </p>
+
+              <p>
+                审查在实现前就开始了。独立的规划审查代理寻找更简单的方案，检查拟定的名称并评估设计。它们还检查需求与验证任务是否一致。
+              </p>
+
+              <ul>
+                <li>
+                  <strong>代码审查代理：</strong>{" "}
+                  查找缺陷、遗漏的边界情况、错误处理问题、竞态条件、资源泄漏和安全问题。
+                </li>
+                <li>
+                  <strong>需求审查代理：</strong>{" "}
+                  找到每项需求对应的实现和测试，检查测试是否真正证明了承诺的行为。
+                </li>
+                <li>
+                  <strong>架构审查代理：</strong> 检查模块边界、依赖方向、数据归属、迁移和 API 规则。
+                </li>
+                <li>
+                  <strong>代码结构审查代理：</strong> 检查命名、文件和函数的职责、注释以及可读性。
+                </li>
+                <li>
+                  <strong>测试审查代理：</strong>{" "}
+                  评估测试能否发现行为缺失或回归问题，还检查条件等待、清理和验证证据。
+                </li>
+                <li>
+                  <strong>文档和任务审查代理：</strong>{" "}
+                  检查文档是否与代码一致、任务是否完成，以及所声称的检查是否有证据支持。
+                </li>
+              </ul>
+
+              <p>
+                完整的实现审查并行运行。每项修改后的规格说明都有自己的需求审查代理。架构、测试和文档也各有独立代理。因此，涉及两项规格说明的变更会有五个完整审查代理。
+              </p>
+
+              <p>
+                <strong>阻塞性问题会阻止工作被接受。</strong>{" "}
+                执行实现的代理修复问题，或解释某项审查意见为何有误。后续审查代理检查处理结果和之后的修改。未能运行的审查不算通过。
+              </p>
+
+              <p>
+                <a href="https://github.com/databasus/databasus/blob/main/.agent-hooks/review_gate.py">
+                  审查钩子的实现
+                </a>
+                {" · "}
+                <a href="https://github.com/databasus/databasus/tree/main/.agent-hooks">审查代理的指令</a>
+              </p>
+
+              <h3 id="ai-linting">自动检查与真实恢复</h3>
+
+              <p>
+                独立审查还配有严格的自动检查。golangci-lint
+                和项目自有的架构检查工具检查后端依赖、模块边界和迁移规则。API 检查验证 OpenAPI
+                契约和生成代码。前端检查 TypeScript、React、分层导入、样式和本地化。
+              </p>
+
+              <p>
+                Ruff 和 ty 检查 Python 的格式、代码规则和类型。ShellCheck 检查 shell 脚本，actionlint 检查
+                GitHub Actions 工作流。提交前的钩子检查涉及的后端、前端和 Python 文件，不改写文件。CI
+                也会运行静态检查。
+              </p>
+
+              <p>
+                <a href="https://github.com/databasus/databasus/blob/main/mise-tasks/backend/lint">
+                  后端静态检查
+                </a>
+                {" · "}
+                <a href="https://github.com/databasus/databasus/blob/main/frontend/lint/check.sh">
+                  前端静态检查
+                </a>
+                {" · "}
+                <a href="https://github.com/databasus/databasus/blob/main/scripts/python_quality.py">
+                  Python 检查
+                </a>
+              </p>
+
+              <p>
+                测试检查真实行为。后端测试通过应用的 API
+                操作，数据库引擎使用真实的数据库容器进行测试。端到端场景创建备份、执行恢复并检查恢复后的数据。其他测试覆盖升级、前端页面和浏览器操作流程，包括视觉对比。
+              </p>
+
+              <p>
+                检查范围取决于变更内容。发布前，在 amd64 和 arm64
+                上运行必需的测试套件。执行实现的代理在审查前运行所需的静态检查和测试。审查代理检查证据，不重复运行这些命令。
+              </p>
+
+              <p>
+                <a href="https://github.com/databasus/databasus/blob/main/docs/testing.md">测试策略与命令</a>
+              </p>
+
+              <p>
+                发布前，CodeQL 和 Semgrep 分析代码，Gitleaks 扫描密钥等敏感信息，依赖检查查找漏洞。Trivy
+                扫描容器镜像和 Dockerfile。
+              </p>
+
+              <p>
+                <strong>发布前必须通过所有必需的 CI 检查。</strong>{" "}
+                <a href={`${getLocalizedHref("zh", "security")}#security-and-reliability-engineering`}>
+                  安全与可靠性工程
+                </a>
+                .
               </p>
 
               <h2 id="backup-databasus">如何备份 Databasus 自身？</h2>

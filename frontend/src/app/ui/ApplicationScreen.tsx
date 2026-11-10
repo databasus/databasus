@@ -1,4 +1,5 @@
 import { Button, Loader, Tooltip } from '@mantine/core';
+import { HardDrive } from 'lucide-react';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router';
@@ -113,8 +114,7 @@ export const ApplicationScreen = () => {
     {
       text: t('app.navigation.storages'),
       name: 'storages',
-      icon: '/icons/menu/storage-gray.svg',
-      selectedIcon: '/icons/menu/storage-white.svg',
+      icon: HardDrive,
       isAdminOnly: false,
       marginTop: '0px',
       isVisible: !!selectedWorkspace,

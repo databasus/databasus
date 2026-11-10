@@ -3,7 +3,7 @@ min_version = "2026.10.6"
 # User commands
 
 [tasks.run]
-description = "Start the app locally: dev database, test fixtures, WAL backup source, backend and frontend"
+description = "Start the app locally: dev database, test fixtures, WAL backup source, backend, frontend and website"
 run = "scripts/dev.sh"
 
 [tasks.test]

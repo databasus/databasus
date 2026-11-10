@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { screen } from '@testing-library/react';
+import { HardDrive } from 'lucide-react';
 import { HttpResponse, http } from 'msw';
 import { useLocation } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -17,7 +18,7 @@ const server = setUpMockApi();
 const buildTab = ({ name, text }: { name: MainTab; text: string }): SidebarTab => ({
   text,
   name,
-  icon: `/icons/menu/${name}-gray.svg`,
+  icon: name === 'storages' ? HardDrive : `/icons/menu/${name}-gray.svg`,
   selectedIcon: `/icons/menu/${name}-white.svg`,
   href: `/${name}`,
   isAdminOnly: false,
@@ -87,7 +88,9 @@ describe('SidebarComponent', () => {
       expect(activatedTab.getAttribute('aria-current')).toBe('page');
       expect(previousTab.getAttribute('aria-current')).toBeNull();
       expect(document.querySelectorAll('[aria-current="page"]')).toHaveLength(1);
-      expect(getTabIcon(activatedTab).getAttribute('src')).toBe('/icons/menu/storages-white.svg');
+      expect(activatedTab.querySelector('svg.lucide-hard-drive')?.getAttribute('aria-hidden')).toBe(
+        'true',
+      );
       expect(getTabIcon(previousTab).getAttribute('src')).toBe('/icons/menu/databases-gray.svg');
     });
   });

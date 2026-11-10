@@ -64,6 +64,6 @@ The repo-wide "English only" rule has two carve-outs here: rendered content and 
 
 ## Verification
 
-- `npm run build` — static export must succeed; `out/index.html` and `out/404.html` must exist.
-- `npm run lint` (`next lint` was removed in Next 16).
+- `pnpm build` — static export must succeed; `out/index.html` and `out/404.html` must exist.
+- `pnpm lint` (`next lint` was removed in Next 16).
 - Completeness: for every `TRANSLATED_PATHS` × locale pair, `out/{lang}/{path}/index.html` exists with the right `<html lang=`, hreflang links, and a translated `<title>`.

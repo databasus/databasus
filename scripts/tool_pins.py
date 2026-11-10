@@ -5,7 +5,7 @@ from pathlib import Path
 NATIVE_MANIFESTS = {
     "backend/go.mod": "backend/go.sum",
     "frontend/package.json": "frontend/pnpm-lock.yaml",
-    "website/package.json": "website/package-lock.json",
+    "website/package.json": "website/pnpm-lock.yaml",
     "e2e/browser/pyproject.toml": "e2e/browser/uv.lock",
     "tools/pnpm/package.json": "tools/pnpm/package-lock.json",
     "tools/go/gopls/go.mod": "tools/go/gopls/go.sum",

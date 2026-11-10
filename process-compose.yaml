@@ -5,6 +5,7 @@ processes:
     command: |
       echo "backend http://localhost:4005"
       echo "frontend http://localhost:5173"
+      echo "website http://localhost:3000"
 
   backend:
     command: air
@@ -32,6 +33,10 @@ processes:
 
   frontend:
     command: pnpm --dir frontend dev
+
+  website:
+    command: pnpm dev --port 3000
+    working_dir: website
 
   db:
     command: docker compose -f docker-compose.yml logs --follow --no-log-prefix backend-db

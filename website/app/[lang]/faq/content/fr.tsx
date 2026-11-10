@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { OG_LOCALES, getLanguageAlternates, getLocalizedUrl } from "@/app/i18n";
+import { OG_LOCALES, getLanguageAlternates, getLocalizedHref, getLocalizedUrl } from "@/app/i18n";
 import DocsNavbarComponent from "@/app/components/DocsNavbarComponent";
 import DocsSidebarComponent from "@/app/components/DocsSidebarComponent";
 import DocTableOfContentComponent from "@/app/components/DocTableOfContentComponent";
@@ -96,6 +96,14 @@ export default function FAQPage() {
                 acceptedAnswer: {
                   "@type": "Answer",
                   text: "En mars 2026, Databasus a été accepté à la fois dans Claude for Open Source d'Anthropic et Codex for Open Source d'OpenAI. Être soutenu par ces programmes est un signal de fiabilité : le projet a été évalué de manière indépendante et reconnu par des leaders du secteur comme une infrastructure open source critique méritant d'être soutenue.",
+                },
+              },
+              {
+                "@type": "Question",
+                name: "Comment l’IA est-elle utilisée dans le développement de Databasus ?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "L’IA nous aide à développer Databasus, de la planification et de l’implémentation aux tests et à la documentation. Les personnes définissent l’orientation et prennent les décisions finales. Une personne lit chaque ligne de code avant l’intégration d’un changement. Nous utilisons le développement guidé par les spécifications (SDD) avec OpenSpec pour convenir du comportement avant l’implémentation. Une revue indépendante à chaque étape Les hooks automatiques lancent des sessions de revue séparées avec un accès au dépôt en lecture seule. Chaque agent inspecte le code concerné et rend ses propres conclusions. L’agent chargé de l’implémentation ne peut pas approuver son propre travail. La revue commence avant l’implémentation. Des agents de planification séparés cherchent des solutions plus simples, vérifient les noms proposés et évaluent la conception. Ils vérifient aussi la cohérence entre les exigences et les tâches de vérification. Revue du code : Recherche de bugs, de cas limites oubliés, d’erreurs de gestion des échecs, de conditions de course, de fuites de ressources et de problèmes de sécurité. Revue des exigences : Recherche de l’implémentation et des tests de chaque exigence. Vérification que les tests démontrent le comportement promis. Revue d’architecture : Vérification des frontières entre modules, du sens des dépendances, de la propriété des données, des migrations et des règles d’API. Revue de la structure du code : Vérification des noms, des responsabilités des fichiers et fonctions, des commentaires et de la lisibilité. Revue des tests : Évaluation de leur capacité à détecter un comportement absent ou une régression. Vérification des attentes de conditions, du nettoyage et des preuves de vérification. Revue de la documentation et des tâches : Vérification de la cohérence avec le code, de l’achèvement des tâches et des preuves des contrôles déclarés. Les revues complètes d’implémentation s’exécutent en parallèle. Chaque spécification modifiée a son propre agent de revue des exigences. L’architecture, les tests et la documentation ont des agents séparés. Un changement portant sur deux spécifications reçoit donc cinq agents de revue complète. Les problèmes bloquants empêchent l’acceptation du travail. L’agent chargé de l’implémentation les corrige ou explique pourquoi un signalement est erroné. Un agent de suivi vérifie cette résolution et les modifications suivantes. Une revue qui n’a pas pu s’exécuter ne compte pas comme réussie. Contrôles automatiques et restaurations réelles La revue indépendante s’accompagne de contrôles automatiques stricts. golangci-lint et notre analyseur d’architecture vérifient les dépendances du backend, les frontières entre modules et les règles de migration. Les contrôles d’API valident les contrats OpenAPI et le code généré. Le frontend vérifie TypeScript, React, les imports entre couches, les styles et la localisation. Ruff et ty vérifient le formatage, les règles de code et les types Python. ShellCheck vérifie les scripts shell et actionlint, les workflows GitHub Actions. Les hooks de pré-commit vérifient les fichiers concernés du backend, du frontend et de Python sans les réécrire. L’analyse statique s’exécute aussi dans la CI. Les tests vérifient des comportements réels. Le backend est testé par l’API de l’application et les moteurs, avec de vraies bases de données en conteneurs. Les scénarios de bout en bout créent des sauvegardes, les restaurent et vérifient les données restaurées. D’autres tests couvrent les mises à niveau, les écrans du frontend et les parcours dans le navigateur avec des comparaisons visuelles. Les contrôles sont choisis selon le changement. Les suites obligatoires de publication s’exécutent sur amd64 et arm64. L’agent chargé de l’implémentation exécute les analyseurs et les tests requis avant la revue. Les agents de revue inspectent les preuves sans relancer ces commandes. Avant la publication, CodeQL et Semgrep analysent le code, Gitleaks recherche les secrets et les dépendances sont vérifiées pour détecter les vulnérabilités. Trivy analyse les images de conteneur et les Dockerfiles. Les contrôles CI obligatoires doivent réussir avant la publication.",
                 },
               },
             ],
@@ -405,6 +413,152 @@ export default function FAQPage() {
                 mise à jour. L&apos;implémentation par agent reste disponible
                 jusqu&apos;à la version 3.42.0 et continuera de fonctionner
                 pendant longtemps, donc rien ne casse.
+              </p>
+
+              <h2 id="ai-usage">Comment l’IA est-elle utilisée dans le développement de Databasus ?</h2>
+
+              <p>
+                L’IA nous aide à développer Databasus, de la planification et de l’implémentation aux tests et à
+                la documentation. Les personnes définissent l’orientation et prennent les décisions finales.{" "}
+                <strong>Une personne lit chaque ligne de code avant l’intégration d’un changement.</strong>
+              </p>
+
+              <p>
+                Nous utilisons le développement guidé par les spécifications (SDD) avec{" "}
+                <a href="https://github.com/databasus/databasus/tree/main/openspec">OpenSpec</a> pour convenir
+                du comportement avant l’implémentation.
+              </p>
+
+              <h3 id="ai-review-hooks">Une revue indépendante à chaque étape</h3>
+
+              <p>
+                Les hooks automatiques lancent des sessions de revue séparées avec un accès au dépôt en lecture
+                seule. Chaque agent inspecte le code concerné et rend ses propres conclusions. L’agent chargé de
+                l’implémentation ne peut pas approuver son propre travail.
+              </p>
+
+              <p>
+                La revue commence avant l’implémentation. Des agents de planification séparés cherchent des
+                solutions plus simples, vérifient les noms proposés et évaluent la conception. Ils vérifient
+                aussi la cohérence entre les exigences et les tâches de vérification.
+              </p>
+
+              <ul>
+                <li>
+                  <strong>Revue du code :</strong> Recherche de bugs, de cas limites oubliés, d’erreurs de
+                  gestion des échecs, de conditions de course, de fuites de ressources et de problèmes de
+                  sécurité.
+                </li>
+                <li>
+                  <strong>Revue des exigences :</strong> Recherche de l’implémentation et des tests de chaque
+                  exigence. Vérification que les tests démontrent le comportement promis.
+                </li>
+                <li>
+                  <strong>Revue d’architecture :</strong> Vérification des frontières entre modules, du sens des
+                  dépendances, de la propriété des données, des migrations et des règles d’API.
+                </li>
+                <li>
+                  <strong>Revue de la structure du code :</strong> Vérification des noms, des responsabilités
+                  des fichiers et fonctions, des commentaires et de la lisibilité.
+                </li>
+                <li>
+                  <strong>Revue des tests :</strong> Évaluation de leur capacité à détecter un comportement
+                  absent ou une régression. Vérification des attentes de conditions, du nettoyage et des preuves
+                  de vérification.
+                </li>
+                <li>
+                  <strong>Revue de la documentation et des tâches :</strong> Vérification de la cohérence avec
+                  le code, de l’achèvement des tâches et des preuves des contrôles déclarés.
+                </li>
+              </ul>
+
+              <p>
+                Les revues complètes d’implémentation s’exécutent en parallèle. Chaque spécification modifiée a
+                son propre agent de revue des exigences. L’architecture, les tests et la documentation ont des
+                agents séparés. Un changement portant sur deux spécifications reçoit donc cinq agents de revue
+                complète.
+              </p>
+
+              <p>
+                <strong>Les problèmes bloquants empêchent l’acceptation du travail.</strong> L’agent chargé de
+                l’implémentation les corrige ou explique pourquoi un signalement est erroné. Un agent de suivi
+                vérifie cette résolution et les modifications suivantes. Une revue qui n’a pas pu s’exécuter ne
+                compte pas comme réussie.
+              </p>
+
+              <p>
+                <a href="https://github.com/databasus/databasus/blob/main/.agent-hooks/review_gate.py">
+                  Implémentation des hooks de revue
+                </a>
+                {" · "}
+                <a href="https://github.com/databasus/databasus/tree/main/.agent-hooks">
+                  Instructions des agents de revue
+                </a>
+              </p>
+
+              <h3 id="ai-linting">Contrôles automatiques et restaurations réelles</h3>
+
+              <p>
+                La revue indépendante s’accompagne de contrôles automatiques stricts. golangci-lint et notre
+                analyseur d’architecture vérifient les dépendances du backend, les frontières entre modules et
+                les règles de migration. Les contrôles d’API valident les contrats OpenAPI et le code généré. Le
+                frontend vérifie TypeScript, React, les imports entre couches, les styles et la localisation.
+              </p>
+
+              <p>
+                Ruff et ty vérifient le formatage, les règles de code et les types Python. ShellCheck vérifie
+                les scripts shell et actionlint, les workflows GitHub Actions. Les hooks de pré-commit vérifient
+                les fichiers concernés du backend, du frontend et de Python sans les réécrire. L’analyse
+                statique s’exécute aussi dans la CI.
+              </p>
+
+              <p>
+                <a href="https://github.com/databasus/databasus/blob/main/mise-tasks/backend/lint">
+                  Analyse du backend
+                </a>
+                {" · "}
+                <a href="https://github.com/databasus/databasus/blob/main/frontend/lint/check.sh">
+                  Analyse du frontend
+                </a>
+                {" · "}
+                <a href="https://github.com/databasus/databasus/blob/main/scripts/python_quality.py">
+                  Contrôles Python
+                </a>
+              </p>
+
+              <p>
+                Les tests vérifient des comportements réels. Le backend est testé par l’API de l’application et
+                les moteurs, avec de vraies bases de données en conteneurs. Les scénarios de bout en bout créent
+                des sauvegardes, les restaurent et vérifient les données restaurées. D’autres tests couvrent les
+                mises à niveau, les écrans du frontend et les parcours dans le navigateur avec des comparaisons
+                visuelles.
+              </p>
+
+              <p>
+                Les contrôles sont choisis selon le changement. Les suites obligatoires de publication
+                s’exécutent sur amd64 et arm64. L’agent chargé de l’implémentation exécute les analyseurs et les
+                tests requis avant la revue. Les agents de revue inspectent les preuves sans relancer ces
+                commandes.
+              </p>
+
+              <p>
+                <a href="https://github.com/databasus/databasus/blob/main/docs/testing.md">
+                  Stratégie de test et commandes
+                </a>
+              </p>
+
+              <p>
+                Avant la publication, CodeQL et Semgrep analysent le code, Gitleaks recherche les secrets et les
+                dépendances sont vérifiées pour détecter les vulnérabilités. Trivy analyse les images de
+                conteneur et les Dockerfiles.
+              </p>
+
+              <p>
+                <strong>Les contrôles CI obligatoires doivent réussir avant la publication.</strong>{" "}
+                <a href={`${getLocalizedHref("fr", "security")}#security-and-reliability-engineering`}>
+                  Sécurité et fiabilité
+                </a>
+                .
               </p>
 
               <h2 id="backup-databasus">

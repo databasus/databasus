@@ -327,110 +327,117 @@ export default function SecurityPage() {
               </h2>
 
               <p>
-                Databasus works with sensitive data, so preventing
-                vulnerabilities, unauthorised access and data leaks is a
-                primary concern. We invest in this on both sides of the
-                system: in the code itself (permission checks, encryption,
-                careful handling of secrets) and in the infrastructure around
-                it (dependency analysis, CVE response, DevSecOps practices).
-                The pipeline below runs automatically before every release —
-                no single layer is enough on its own, but together they reduce
-                the chance of vulnerable code, unsafe dependencies, broken
-                images, or non-restorable backups reaching a release.
+                Databasus handles sensitive data. Before each release, automated checks look
+                for security issues and verify that backups can be restored. These checks
+                reduce risk, but cannot guarantee that software is free of vulnerabilities.
               </p>
 
               <h3 id="static-analysis">Static analysis</h3>
 
               <p>
-                Static analysis runs in several independent passes. CodeQL
-                scans the full codebase for security issues. Before every
-                release,{" "}
-                <strong>gitleaks</strong> scans for leaked secrets and{" "}
-                <strong>semgrep</strong> checks the code against security rules.
-                Dockerfiles and CI workflows get extra rules of their own
-                (pinned action references, least-privilege permissions,
-                suspicious base images), so insecure patterns are flagged
-                before a release.
+                CodeQL checks Go, JavaScript/TypeScript and GitHub Actions workflows.
+                gitleaks scans the release&#x27;s Git history for leaked secrets. semgrep
+                checks source code, Dockerfiles and CI workflows against security rules.
+                These scans run before each release and on a weekly schedule.
               </p>
 
               <p>
-                On top of these release checks,{" "}
-                <strong>Codex Security</strong> from OpenAI runs regular,
-                deeper audits of the whole codebase. It is a separate program
-                that catches architectural and cross-cutting issues which
-                narrower automated scans miss.
+                Open <strong>CRITICAL</strong> CodeQL findings in the release analysis block
+                publication. <strong>HIGH</strong> findings produce warnings.
+              </p>
+
+              <p>
+                OpenAI&#x27;s Codex Security also provides regular, deeper audits. These can
+                find architectural issues that narrower scans may miss. They are separate
+                from the automated release checks.
               </p>
 
               <h3 id="dependency-management">Dependency management</h3>
 
               <p>
-                Dependabot watches all of our dependencies against the GitHub
-                Advisory Database and surfaces CVEs within minutes of
-                publication. Updates run through a cooldown so newly-published
-                versions get a chance to mature before we adopt them — a
-                deliberate defence against compromised-package incidents like
-                supply-chain attacks.
+                Dependabot checks the configured dependency ecosystems against the GitHub
+                Advisory Database. Its coverage depends on those ecosystems and the
+                advisories available for them; it does not cover every external component.
               </p>
 
               <p>
-                The <strong>Dependency Review Action</strong> blocks a release
-                that introduces a new <strong>HIGH</strong> or <strong>CRITICAL</strong> CVE.
+                Ordinary updates wait seven complete days for packages, development tools
+                and GitHub Actions, or fourteen days for images, database clients and
+                standalone verification extensions. Unsolicited major-version proposals wait
+                thirty days. Maintainers check publication dates and compatibility,
+                including exact version selections and security updates that can bypass age
+                filters. Exceptions are reported with a reason.
               </p>
 
-              <h3 id="container-and-ci-hardening">
-                Container &amp; CI hardening
-              </h3>
+              <p>
+                Dependency Review Action compares the candidate release with the previous
+                release and blocks newly introduced vulnerabilities rated{" "}
+                <strong>HIGH</strong> or <strong>CRITICAL</strong>. govulncheck blocks the
+                Go check when our code can call a function with a known vulnerability. The{" "}
+                <code>go mod verify</code> command checks downloaded Go modules against
+                their recorded checksums.
+              </p>
+
+              <p>
+                Before release and development-image publication,{" "}
+                <code>mise run verify-deps</code> checks fixed versions of tools, images and
+                GitHub Actions. It also checks that related runtime versions agree and
+                verifies hashes and executable permissions for database clients committed to
+                the repository. These checks cover a defined list of local declarations and
+                files. Package managers separately verify locked versions and the checksums
+                of downloaded packages.
+              </p>
+
+              <p>
+                The local dependency check does not certify the safety of third-party code
+                or enforce a minimum publication age for every dependency. Release selection
+                and review remain the maintainer&#x27;s responsibility.
+              </p>
+
+              <h3 id="container-and-ci-hardening">Container and CI security</h3>
 
               <ul>
                 <li>
-                  Before a release, <strong>Trivy</strong> scans the application
-                  image on both architectures.
+                  Trivy scans the application image on amd64 and arm64.{" "}
+                  <strong>CRITICAL</strong> vulnerabilities with an available fix fail the
+                  check. <strong>HIGH</strong> vulnerabilities with an available fix are
+                  reported without blocking it; vulnerabilities without a fix are excluded
+                  from this check.
                 </li>
                 <li>
-                  A separate Trivy pass on the Dockerfile catches
-                  misconfigurations before they make it into an image.
+                  A separate Trivy configuration scan blocks <strong>HIGH</strong> and{" "}
+                  <strong>CRITICAL</strong> findings in the application, verification-agent
+                  and selected test Dockerfiles.
                 </li>
                 <li>
-                  All GitHub Actions are pinned to full commit SHAs rather than
-                  floating tags like <code>@v4</code> or <code>@main</code>,
-                  which have been an active attack vector in 2025.
+                  Third-party GitHub Actions are fixed to full commit SHAs. This prevents a
+                  moved tag from silently changing the action code we run.
                 </li>
                 <li>
-                  Workflows default to least-privilege permissions and only
-                  elevate per-job when genuinely needed.
+                  Workflows default to read-only repository access. Individual jobs receive
+                  additional permissions only when needed.
                 </li>
               </ul>
 
-              <h3 id="testing-and-verification">Testing &amp; verification</h3>
+              <h3 id="testing-and-verification">Testing and verification</h3>
 
               <p>
-                Critical paths are covered by both unit and integration tests,
-                run against real database containers for every supported engine
-                and major version.
+                Unit and integration tests cover critical behavior. Before each release,
+                full backup-and-restore tests run against real database containers for every
+                supported engine and major version. They check that data can be restored,
+                not just that a backup file was created.
               </p>
 
               <p>
-                Restore is the path that matters most for a backup tool, so we
-                test it explicitly: before every release, we run full
-                backup-then-restore cycles against those same real containers,
-                verifying that backups can actually be restored end-to-end —
-                not just written successfully.
+                Release checks also include lint, type checks, browser tests, image smoke
+                tests and native amd64 and arm64 builds and tests. Publication waits for all
+                required jobs to pass, including the security checks described above.
               </p>
 
-              <p>
-                The rest of the CI/CD pipeline runs lint, type-check, the full
-                test suite, image smoke tests and multi-architecture builds
-                before every release. A release ships only after all of it and
-                the security scans pass, with no open critical CodeQL alert.
-              </p>
-
-              <h3 id="reporting-a-vulnerability">
-                Reporting a vulnerability
-              </h3>
+              <h3 id="reporting-a-vulnerability">Reporting a vulnerability</h3>
 
               <p>
-                Found a vulnerability? Report it via the GitHub Security tab —
-                see{" "}
+                Report vulnerabilities privately using the contact options in{" "}
                 <a
                   href="https://github.com/databasus/databasus?tab=security-ov-file#readme"
                   target="_blank"
@@ -438,7 +445,7 @@ export default function SecurityPage() {
                 >
                   SECURITY.md
                 </a>
-                . Security reports are the highest-priority work queue.
+                . Please do not open a public issue. Security reports take priority.
               </p>
             </article>
           </div>

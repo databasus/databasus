@@ -1,89 +1,147 @@
 # Upgrading dependencies
 
-The person or agent preparing an update owns release selection, upstream review and compatibility judgment. Native package managers verify locked package graphs and downloaded package content. `mise run verify-deps` catches common mistakes in known pins, related versions and committed client files; it does not prove that every dependency is old enough or safe.
+Databasus uses software maintained by other projects: libraries, development tools, container images and database clients. These are its **dependencies**. Updating them brings fixes and improvements, but can also change behavior or break a build.
+
+A dependency update means choosing a suitable release, recording its exact version and checking that Databasus still works with it. Some versions appear in several places, such as local development settings, CI workflows and Dockerfiles. Those declarations need to agree.
+
+Two kinds of files usually describe a package installation:
+
+- A **manifest**, such as `package.json` or `go.mod`, declares the dependencies the project needs.
+- A **lock file**, such as `pnpm-lock.yaml`, records the exact versions to install, including dependencies required by other packages. Those indirect dependencies are also called **transitive dependencies**.
+
+Go uses `go.mod` and `go.sum` to select module versions and verify downloaded content.
+
+**The person or agent preparing the update is responsible for choosing releases and checking compatibility.** Read the maintainers' release notes and security notices. Package managers check that the recorded dependencies and downloaded content agree. `mise run verify-deps` catches common mistakes in version declarations and committed client files. Neither check proves that every dependency is old enough or safe.
 
 ## Inventory and sources
 
-Review every surface the requested update affects, including new dependencies introduced by the change. The table is the starting point, not a promise that a scanner will discover every external input.
+Start with the files below. Check every area affected by the requested update, including any dependencies it adds. **Do not rely on automated checks to discover every dependency.** Review affected files outside this list too.
 
-| Surface | Authoritative inputs | Official source |
+| Area | Files that record the dependencies | Official source |
 | --- | --- | --- |
-| Backend | `backend/go.mod`, `go.sum` | Go module/checksum services and upstream releases |
-| Go development tools | `tools/go/<tool>/go.mod`, `go.sum`; compiler in `mise.toml` | The tool's upstream repository and Go services |
-| Frontend and API generator | `frontend/package.json`, `pnpm-workspace.yaml`, `pnpm-lock.yaml` | npm registry and upstream releases |
-| Website | `website/package.json`, `package-lock.json` | npm registry and upstream releases; keep npm |
-| Development tools | `mise.toml`, `mise.lock`, referenced `.mise/locks/` sidecars | Vendor releases and the backend's native registry |
-| pnpm bootstrap | `tools/pnpm/package.json`, `package-lock.json`; mise's `github:pnpm/pnpm` declaration | Official pnpm GitHub binaries for mise; the official pnpm npm package for containers |
-| Python browser suite | `e2e/browser/pyproject.toml`, `uv.lock` | PyPI and upstream releases |
+| Backend | `backend/go.mod`, `go.sum` | Go module and checksum services; official project releases |
+| Go development tools | `tools/go/<tool>/go.mod`, `go.sum`; compiler in `mise.toml` | The tool's official repository and Go services |
+| Frontend and API generator | `frontend/package.json`, `pnpm-workspace.yaml`, `pnpm-lock.yaml` | npm registry and official project releases |
+| Website | `website/package.json`, `pnpm-workspace.yaml`, `pnpm-lock.yaml` | npm registry and official project releases |
+| Development tools | `mise.toml`, `mise.lock`, referenced `.mise/locks/` sidecars | Vendor releases and the registry used by the mise backend |
+| pnpm installation | `tools/pnpm/package.json`, `package-lock.json`; mise's `github:pnpm/pnpm` declaration | Official pnpm GitHub binaries for mise; the official pnpm npm package for containers |
+| Python browser tests | `e2e/browser/pyproject.toml`, `uv.lock` | PyPI and official project releases |
 | Browser environment | `frontend/browser/environment.json`, browser Dockerfile and Compose configuration | Node distributions and Microsoft Playwright images |
-| CI installer and actions | `tools/dependencies/mise-bootstrap.json`, workflow action commit pins | Upstream releases and repositories |
+| CI installer and actions | `tools/dependencies/mise-bootstrap.json`, workflow action commit pins | Official project releases and repositories |
 | Build/test images | Dockerfiles, Compose files, `backend/internal/lib/testimages/images.json` | The publisher's container registry |
 | Database clients | `assets/tools/README.md`, files under `assets/tools/`, `tools/dependencies/clients.json` | PGDG, Oracle MySQL, MariaDB archives and MongoDB Database Tools |
 | Verification extensions | Verification Dockerfile and its `vectorchord.sha256` | PGDG/vendor repositories and official extension releases |
 
-Distinguish third-party inputs from first-party candidate images, operator-selected runtime references and host prerequisites. Historical compatibility fixtures retain the release line they test. Do not change supported database versions or upgrade a historical fixture merely to simplify pinning.
+This procedure covers dependencies from other projects. Treat images built from Databasus for testing separately, along with runtime images selected by operators and software required on the host.
+
+**Keep supported database versions intact.** Some test fixtures use older releases to check compatibility with them. Keep each fixture on the release line it tests; do not upgrade it just to make version declarations easier to manage.
 
 ## Plan before editing
 
 1. Inspect the working tree and preserve other contributors' changes.
-2. Identify current versions, suitable candidates, official release notes, security advisories, peer/runtime constraints and related declarations.
-3. Explain selected versions, compatibility breaks, required checks, deferred major migrations and EOL dependencies. Agree the upgrade scope before implementing it.
-4. Update manifests with native tools and commit their corresponding locks. Update related runtime/package/image pins and both supported architecture records together.
-5. Review changed installation scripts and this procedure for obsolete commands or unnecessary work. Repair routine defects within the agreed upgrade; propose broader process changes separately.
+2. Find the current versions and suitable releases. Read official release notes and security notices. Check required runtime versions, compatibility with other packages and every place that declares a related version.
+3. **Agree the upgrade scope before editing.** Explain the selected versions, breaking changes and required checks. List major-version migrations left for later. Flag dependencies that have reached end of life (EOL), which means their maintainers no longer support them.
+4. Update manifests with their package managers and commit the matching lock files. Update related runtime, package and image versions together. Keep the records for both supported architectures in sync.
+5. Review installation scripts changed by the update. Check this procedure for obsolete commands or unnecessary work. Fix routine defects within the agreed scope; propose broader process changes separately.
 
-## Review release age
+## Check release dates
 
-The normal waiting period is seven complete days for packages, development tools and actions, and fourteen days for container images, database clients and standalone verification extensions. Use the longer period for coordinated updates. Ordinary Dependabot updates use the configured cooldowns; unsolicited major proposals retain the longer thirty-day delay. Existing native minimum-age settings assist selection where supported.
+**Wait before selecting a new release.** The normal waiting periods are:
 
-Review official publication information for selected releases. Exact pins, newly selected transitives and security updates can fall outside native filters. Review the lock diff, especially unexpected new packages, publisher changes and installation scripts. Report missing dates, uncertain source information or a departure from the normal waiting period with its reason. Do not invent dates, treat an image build timestamp as its digest's publication date or present an ordinary cooldown as a guarantee about security updates.
+| Dependency | Waiting period after publication |
+| --- | --- |
+| Packages, development tools and GitHub Actions | Seven complete days |
+| Container images, database clients and standalone verification extensions | Fourteen complete days |
 
-Choose the newest eligible patch in the agreed release line. These examples describe updater decisions; the offline command does not query a release catalog:
+Use the longer period when several dependencies must be updated together. Ordinary Dependabot updates use the delays configured for them, called cooldowns. Unsolicited major-version proposals keep the longer thirty-day delay. Package managers' minimum-age settings help filter releases where supported.
+
+**Check official publication dates yourself.** Age filters may not cover exact version selections, newly selected transitive dependencies or security updates. Review the lock-file changes for unexpected packages, publisher changes and installation scripts.
+
+Report missing dates, uncertain sources and any exception to the waiting period. Explain the reason for an exception. Do not invent dates or use an image's build timestamp as the publication date of its digest. A digest identifies exact image content; the content may have been built before it was published. Ordinary cooldown settings do not guarantee that security updates observe the same delay.
+
+Choose the newest patch release that has completed the waiting period within the agreed release line. A patch updates an existing line, such as a later `8.0.x` release. You make this choice; `mise run verify-deps` works offline and does not look up available releases.
 
 | Case | Selection |
 | --- | --- |
-| Maintained client line, newest patch has completed fourteen days | Select that patch. |
-| EOL client line, final patch has completed fourteen days | Select the final patch and report EOL status. |
-| Newest client patch is too fresh, predecessor is eligible | Keep the predecessor and report the deferred patch and eligibility date. |
+| Maintained client line; newest patch was published at least fourteen complete days ago | Select that patch. |
+| EOL client line; final patch was published at least fourteen complete days ago | Select the final patch and report EOL status. |
+| Newest client patch is too recent; the previous patch has completed the waiting period | Keep the previous patch. Report the deferred patch and the date its waiting period ends. |
 
-If no suitable release has completed the period, report the deferral or explain why the update needs to proceed sooner. Keep the designated release line and documented architecture support intact.
+If no suitable release has completed the waiting period, report that the update is deferred. If it must proceed sooner, explain why. Keep the agreed release line and documented architecture support intact.
 
-## Use native frozen installation
+## Install from lock files
 
-Use the pinned tools. Tasks do not automatically install missing tools; prepare them through the explicit locked installation below. Refresh a native lock only for inputs the update changes, retaining both platform records and all referenced sidecars.
+**Install the recorded versions without changing them.** This is called a frozen or locked installation. It checks that the manifests and lock files agree instead of choosing new versions during installation.
+
+Use the tool versions pinned in the repository. Tasks do not install missing tools automatically. Prepare them with the locked installation below.
+
+Refresh a lock file only when the update changes its inputs. For mise, retain the records for both platforms and all referenced files under `.mise/locks/`. These extra lock files are called sidecars.
 
 ```sh
 mise lock --platform linux-x64,linux-arm64
 mise install --locked --include-task-tools
 go -C backend mod tidy -diff
 pnpm --dir frontend install --frozen-lockfile --ignore-scripts
-npm --prefix website ci --ignore-scripts --no-audit --no-fund
+pnpm --dir website install --frozen-lockfile --ignore-scripts
 uv sync --locked --project e2e/browser
 ```
 
-For an unchanged mise tool whose transitive graph needs refreshing, target it with `mise lock --bump <tool>`. Review its resulting sidecar diff. Go preparation uses `go mod tidy -diff` to download dependencies while rejecting any required change to committed `go.mod` or `go.sum`; image compilation also uses `-mod=readonly`. Do not run a mutating `go mod download` before that validation. Do not replace native locks with another resolved-version inventory. Frozen installation and native checksum verification remain the authority for package graph consistency and package content; the offline checker only verifies required lock presence and known declarations.
+To refresh an unchanged mise tool's transitive dependencies, use `mise lock --bump <tool>`. Review the changes to its sidecar files.
 
-Go development tools use separate native modules where their dependency graphs require isolation. The hidden `tools:go` task selects their pinned compiler and readonly modules. Run the installed wrapper from the project directory being analyzed. API generation uses the frontend's locked `openapi-typescript` package:
+Go preparation uses `go mod tidy -diff`. It downloads dependencies but fails if the committed `go.mod` or `go.sum` needs to change. Image compilation also uses `-mod=readonly`. **Do not run a `go mod download` command that changes those files before this check.**
+
+Keep each package manager's own lock files. A separate list of resolved versions cannot replace them. Frozen installation and checksum verification check the dependency selection and downloaded content. The offline checker only checks that required lock files exist and that known declarations agree.
+
+### Go tools and API generation
+
+Go development tools use separate modules when their dependencies need isolation. The hidden `tools:go` task selects the pinned compiler and uses the modules without changing them. Run the installed wrapper from the project directory you want to analyze.
+
+API generation uses the frontend's locked `openapi-typescript` package:
 
 ```sh
 mise run generate-api
 mise run frontend:lint
 ```
 
-Do not restore independently resolved `pnpm dlx`, global npm installs or an unlocked package-manager bootstrap. Review any dependency lifecycle scripts before allowing them; ordinary checks must not turn verification off to make installation succeed.
+### Installation scripts and pnpm
 
-mise installs pnpm's official native binary. Container builds install the frozen `tools/pnpm` npm graph with lifecycle scripts disabled, then explicitly run pnpm's reviewed installer to link its locked platform binary. Frontend overrides belong in `pnpm-workspace.yaml`; keep it in the Docker build inputs and browser-environment hash.
+**Review package installation scripts before allowing them to run.** Package managers may call these lifecycle scripts during installation. Do not disable verification checks just to make installation succeed.
+
+Keep package-manager installation locked too. Do not reintroduce `pnpm dlx` commands that resolve packages independently, global npm installs or package-manager setup without a lock.
+
+mise installs pnpm's official native binary. Container builds install the locked npm dependencies in `tools/pnpm` with lifecycle scripts disabled. They then run pnpm's reviewed installer explicitly to link the locked binary for that platform.
+
+Dependency overrides and build-script permissions belong in each project's `pnpm-workspace.yaml`. Keep the frontend file among the Docker build inputs and the files used to calculate the browser-environment hash.
 
 ## Check clients, images and direct downloads
 
-Read the [client bundle procedure](../.agents/skills/client-tool-bundles/SKILL.md) and [client inventory](../assets/tools/README.md) before a refresh. Record the exact vendor release, `build_family`, source URL, archive SHA256 and committed executable/private-library hashes in `tools/dependencies/clients.json`. The build family identifies the vendor distribution or ABI variant, such as MongoDB's `ubuntu2204` or MySQL's `linux-glibc2.28`, and must match across sibling files and architectures even when the release version is unchanged. Check official checksum information and available vendor signatures with standard tools. A locally computed hash identifies bytes; it does not authenticate their publisher.
+### Database clients
 
-Verify expected archive bytes before extraction, then verify the resulting files and executable permissions. Preserve existing source-distribution equality guarantees, including the unmodified MongoDB tools. Local file hashes detect drift in committed clients; they do not assert that the existing MySQL executables are byte-identical to their archive members. Update sibling tools and both supported architectures together. MySQL 5.7 remains intentionally absent on arm64.
+Read the [client bundle procedure](../.agents/skills/client-tool-bundles/SKILL.md) and [client inventory](../assets/tools/README.md) before refreshing a bundle. In `tools/dependencies/clients.json`, record:
 
-For MariaDB, update its exact package/source records before running `tools/refresh-mariadb-bundle.sh <bundle> <arch>`. The script uses Python, `ar` and the standard archive reader, verifies package and member hashes before replacing files, and does not select versions. Run refreshed binaries in the runtime image and follow the engine test requirements in the bundle procedure. Never replace expected hashes automatically after a mismatch.
+- The exact vendor release and `build_family`.
+- The source URL and archive SHA256 checksum.
+- The hashes of committed executables and their private libraries.
 
-Keep third-party image digests in their existing declarations or the test-image catalog. Verification-image bases are pinned per PostgreSQL major directly in their Dockerfile, so `PG_MAJOR` selects the same base locally and in CI. Standalone VectorChord downloads check their recorded SHA256 before installation. Keep database clients committed; application image builds do not download them.
+The `build_family` identifies the vendor's distribution or binary compatibility variant. Examples are MongoDB's `ubuntu2204` and MySQL's `linux-glibc2.28`. It must match across related files and both architectures, even when the release version stays the same.
 
-A base digest fixes the base image's content. Additional packages installed through apt still come from distribution repositories and use their normal signature verification; their complete dependency closure is not locked or retained here. Consequently this procedure does not promise identical image bytes on every later rebuild.
+**Verify the download before extracting it.** Compare its checksum with the vendor's official checksum and check available vendor signatures with standard tools. A SHA256 checksum, also called a hash, identifies file content. Computing one locally does not prove who published that content.
+
+After extraction, check the resulting files and executable permissions. Preserve existing requirements for files to match the vendor distribution, including the unmodified MongoDB tools. Local hashes detect changes to committed clients. They do not establish that the existing MySQL executables are byte-for-byte copies of their archive members.
+
+Update related tools and both supported architectures together. MySQL 5.7 remains intentionally absent on arm64.
+
+For MariaDB, update the exact package and source records before running `tools/refresh-mariadb-bundle.sh <bundle> <arch>`. The script uses Python, `ar` and the standard archive reader. It checks package and archive-member hashes before replacing files; it does not choose versions.
+
+Run refreshed binaries in the runtime image. Follow the database engine's test requirements in the bundle procedure. **Never replace expected hashes automatically after a mismatch.**
+
+### Images and verification extensions
+
+Keep third-party image digests in their existing declarations or the test-image catalog. The verification Dockerfile pins a base image for each PostgreSQL major version. This makes `PG_MAJOR` select the same base locally and in CI.
+
+Standalone VectorChord downloads check their recorded SHA256 before installation. Keep database clients committed to the repository; application image builds do not download them.
+
+**A fixed base image does not guarantee an identical rebuilt image.** Extra packages installed through apt still come from distribution repositories and use their normal signature checks. This repository does not lock or retain all those packages and their dependencies, so their content can change on a later rebuild.
 
 ## Run the checks and report the result
 
@@ -91,8 +149,26 @@ A base digest fixes the base image's content. Additional packages installed thro
 mise run verify-deps
 ```
 
-The command works from the root or a module directory with the normal Python runtime available. It checks exact tool pins and required native-lock files, known action/image pins, coordinated Go/Node/pnpm/Playwright versions, recorded client architecture/build consistency, local file hashes and executable permissions in the working copy and existing Git index. It reads known local files and never queries registries, installs dependencies or writes the checkout/index. Its source lists define its scope; review and extend them when introducing new dependency surfaces.
+Run this from the root or a module directory with the normal Python runtime available. It checks:
 
-CI runs the same command in the required shared Python-quality job before release version selection and release/dev-image publication. Frozen installations, architecture tests, vulnerability scans and secret scans remain required separately. A green offline result establishes only the configured local checks.
+- Exact tool versions and the presence of required lock files.
+- Known GitHub Action and container image version declarations.
+- Matching Go, Node, pnpm and Playwright versions across related declarations.
+- Consistent client architectures and builds.
+- Local file hashes and executable permissions, both in the working copy and in the existing Git index, which holds files staged for commit.
 
-Select functional verification through [docs/testing.md](testing.md#checking-work). Report selected identities and official sources, compatibility effects, coordinated changes, release-age review and exceptions, deferred updates and EOL lines, the local verification result and functional checks actually run. Identify incomplete checks beside the claims they limit.
+The command only reads known local files. It does not query registries, install dependencies or write to the checkout or Git index. Its source lists define what it checks. Review and extend those lists when adding a new kind of dependency.
+
+CI runs the same command in the required shared Python-quality job. It runs before release version selection and publication of release and development images.
+
+**A passing `verify-deps` check covers only those local checks.** Frozen installations, architecture tests, vulnerability scans and secret scans remain separate requirements. Choose functional checks using [docs/testing.md](testing.md#checking-work).
+
+When reporting the update, include:
+
+- Selected versions or digests and their official sources.
+- Compatibility effects and related declarations updated together.
+- The release-age review and any exceptions.
+- Deferred updates and EOL release lines.
+- The local verification result and functional checks actually run.
+
+Put any incomplete check beside the claim it limits, so the reader can see what remains unverified.

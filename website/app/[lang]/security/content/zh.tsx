@@ -272,91 +272,95 @@ export default function SecurityPage() {
               </h2>
 
               <p>
-                Databasus 处理敏感数据，所以防范漏洞、越权访问和数据泄露是
-                首要关注点。我们在系统的两侧都投入这方面的工作：代码本身 （权限检查、加密、谨慎处理机密）和围绕代码的基础设施
-                （依赖分析、CVE 响应、DevSecOps 实践）。下面这条流水线在 每次发布前自动运行。任何单独一层都不够，但它们叠加
-                起来，能降低有漏洞的代码、不安全的依赖、损坏的镜像或无法 恢复的备份混进发布版本的概率。
+                Databasus 处理敏感数据。每次发布前，自动检查都会查找安全问题，并验证备份能否恢复。这些检查可以降低风险，但不能保证软件完全没有漏洞。
               </p>
 
               <h3 id="static-analysis">静态分析</h3>
 
               <p>
-                静态分析分几个独立环节运行。CodeQL 扫描整个代码库的安全
-                问题。每次发布前都会运行{" "}
-                <strong>gitleaks</strong> 扫描泄露的机密，并用{" "}
-                <strong>semgrep</strong> 按安全规则检查代码。Dockerfile 和 CI
-                工作流还有额外的专属规则（固定 action 引用、最小权限、
-                可疑基础镜像），不安全的写法在发布之前就会被标记出来。
+                CodeQL 检查 Go、JavaScript/TypeScript 和 GitHub Actions 工作流。gitleaks 在本次发布的 Git
+                历史中查找泄露的密钥等敏感信息。semgrep 根据安全规则检查源代码、Dockerfile 和 CI
+                工作流。这些扫描在每次发布前运行，也会每周定时运行。
               </p>
 
               <p>
-                在这些发布前检查之上，OpenAI 的{" "}
-                <strong>Codex Security</strong>{" "}
-                会定期对整个代码库做更深入的审计。它是一个独立的程序，
-                能发现架构性和跨模块的问题，而这些是范围更窄的自动扫描
-                会漏掉的。
+                发布分析中尚未处理的 <strong>CRITICAL</strong> 级 CodeQL 问题会阻止发布。<strong>HIGH</strong>{" "}
+                级问题会生成警告。
+              </p>
+
+              <p>
+                OpenAI 的 Codex Security 还会定期开展更深入的审计。这些审计有助于发现专项扫描可能遗漏的架构问题，与自动发布检查分开进行。
               </p>
 
               <h3 id="dependency-management">依赖管理</h3>
 
               <p>
-                Dependabot 对照 GitHub Advisory Database 监控我们所有的
-                依赖，CVE 公布后几分钟内就会浮出水面。更新要经过一段冷却期，
-                让刚发布的版本先经受住考验再被采用，这是针对供应链攻击等
-                恶意包事件的有意防御。
+                Dependabot 根据 GitHub Advisory Database
+                检查已配置的依赖生态系统。其覆盖范围取决于这些生态系统和可用的安全公告，并不涵盖所有外部组件。
               </p>
 
               <p>
-                <strong>Dependency Review Action</strong> 会让任何引入新的 <strong>HIGH</strong> 或 <strong>CRITICAL</strong> CVE 的发布检查失败。
+                常规更新需要等待发布满七天，适用于软件包、开发工具和 GitHub
+                Actions。镜像、数据库客户端和独立验证扩展需要等待满十四天。未经请求的主要版本升级提案需要等待三十天。维护者会检查发布日期和兼容性，包括可能绕过版本年龄过滤的精确版本选择和安全更新。例外情况会说明原因。
               </p>
 
-              <h3 id="container-and-ci-hardening">容器与 CI 加固</h3>
+              <p>
+                Dependency Review Action 将候选版本与上一次发布比较，阻止引入新的 <strong>HIGH</strong> 或{" "}
+                <strong>CRITICAL</strong> 级漏洞。当我们的 Go 代码可能调用存在已知漏洞的函数时，govulncheck 会使 Go
+                检查失败。<code>go mod verify</code> 命令将下载的 Go 模块与记录的校验和进行比对。
+              </p>
+
+              <p>
+                发布正式版本或开发镜像前，<code>mise run verify-deps</code> 会检查工具、镜像和 GitHub Actions
+                的固定版本。它还会检查相关运行环境的版本是否一致，以及仓库中数据库客户端的哈希值和可执行权限。这些检查只覆盖指定的本地版本声明和文件。包管理器会另行检查锁定的版本及下载软件包的校验和。
+              </p>
+
+              <p>
+                本地依赖检查不能证明第三方代码安全，也不会为每个依赖强制执行最短发布等待期。版本选择与审查仍由维护者负责。
+              </p>
+
+              <h3 id="container-and-ci-hardening">容器与 CI 安全</h3>
 
               <ul>
                 <li>
-                  发布前，应用镜像会在两种架构上都用 <strong>Trivy</strong> 扫描。
+                  Trivy 在 amd64 和 arm64 上扫描应用镜像。有可用修复的 <strong>CRITICAL</strong>{" "}
+                  级漏洞会使检查失败。有修复的 <strong>HIGH</strong> 级漏洞会列入报告，但不会阻止检查通过。尚无修复的漏洞不在此项检查范围内。
                 </li>
                 <li>
-                  另有一轮 Trivy 检查 Dockerfile，把配置错误挡在镜像 之外。
+                  独立的 Trivy 配置扫描会阻止应用、验证代理和指定测试镜像的 Dockerfile 中出现 <strong>HIGH</strong> 或{" "}
+                  <strong>CRITICAL</strong> 级问题。
                 </li>
                 <li>
-                  所有 GitHub Actions 都固定到完整的 commit SHA，而不是{" "}
-                  <code>@v4</code> 或 <code>@main</code> 这类浮动标签，后者在
-                  2025 年是活跃的攻击途径。
+                  第三方 GitHub Actions 固定到完整的提交 SHA。这样，即使标签指向发生变化，也不会悄悄替换实际运行的 action 代码。
                 </li>
-                <li>工作流默认最小权限，只在确有必要时按任务提升。</li>
+                <li>
+                  工作流默认只有仓库读取权限。各项任务仅在需要时获得额外权限。
+                </li>
               </ul>
 
               <h3 id="testing-and-verification">测试与验证</h3>
 
               <p>
-                关键路径同时有单元测试和集成测试覆盖，针对每个受支持的
-                数据库引擎和主版本，在真实的数据库容器上运行。
+                单元测试和集成测试覆盖关键行为。每次发布前，都会针对每个受支持的数据库引擎和主要版本，在真实数据库容器中运行完整的备份与恢复流程。测试验证的是数据能否恢复，而不只是是否生成了备份文件。
               </p>
 
               <p>
-                对备份工具来说，恢复是最要紧的路径，所以我们对它做显式 测试：每次发布前都会在同样的真实容器上跑完整的
-                备份加恢复流程，验证备份端到端真的能恢复出来，而不只是 写入成功。
-              </p>
-
-              <p>
-                CI/CD 流水线的其余部分在每次发布前运行 lint、类型检查、
-                完整测试套件、镜像冒烟测试和多架构构建。只有这些检查和安全扫描全部通过，且没有未处理的 CodeQL
-                严重告警，版本才会发布。
+                发布检查还包括 lint、类型检查、浏览器测试、镜像冒烟测试，以及在 amd64 和 arm64
+                上进行的原生构建与测试。只有所有必需任务通过后才会发布，其中也包括上述安全检查。
               </p>
 
               <h3 id="reporting-a-vulnerability">报告漏洞</h3>
 
               <p>
-                发现漏洞？请通过 GitHub 的 Security 标签页报告，详见{" "}
+                请通过{" "}
                 <a
                   href="https://github.com/databasus/databasus?tab=security-ov-file#readme"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
                   SECURITY.md
-                </a>
-                。安全报告是优先级最高的工作队列。
+                </a>{" "}
+                 中列出的联系方式私下报告漏洞，不要创建公开 issue。安全报告会优先处理。
               </p>
             </article>
           </div>

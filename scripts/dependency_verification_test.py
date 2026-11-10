@@ -27,7 +27,7 @@ class DependencyVerificationTest(unittest.TestCase):
             "frontend/pnpm-lock.yaml",
             "frontend/browser",
             "website/package.json",
-            "website/package-lock.json",
+            "website/pnpm-lock.yaml",
             "e2e/browser/compose.yaml",
             "e2e/browser/pyproject.toml",
             "e2e/browser/uv.lock",
@@ -171,6 +171,17 @@ class DependencyVerificationTest(unittest.TestCase):
 
         self.assertNotEqual(execution.returncode, 0)
         self.assertIn("Node/pnpm versions disagree", execution.stdout)
+
+    def test_rejects_an_inconsistent_website_package_manager(self) -> None:
+        manifest = self.root / "website/package.json"
+        website = json.loads(manifest.read_text())
+        website["packageManager"] = "pnpm@0.0.1"
+        manifest.write_text(json.dumps(website))
+
+        execution = self.run_check()
+
+        self.assertNotEqual(execution.returncode, 0)
+        self.assertIn("website and mise versions disagree", execution.stdout)
 
     def test_rejects_unpinned_actions_and_images(self) -> None:
         workflow = self.root / ".github/workflows/unpinned.yml"

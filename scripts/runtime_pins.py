@@ -27,12 +27,15 @@ def verify_runtime_pins(root: Path) -> None:
 
     pnpm_version = tools["github:pnpm/pnpm"]
     frontend = json.loads((root / "frontend/package.json").read_text())
+    website = json.loads((root / "website/package.json").read_text())
     bootstrap = json.loads((root / "tools/pnpm/package.json").read_text())
     browser = json.loads((root / "frontend/browser/environment.json").read_text())
-    if frontend.get("packageManager") != "pnpm@" + pnpm_version or bootstrap.get(
-        "dependencies"
-    ) != {"pnpm": pnpm_version}:
-        raise ValueError("pnpm bootstrap, frontend and mise versions disagree")
+    if (
+        frontend.get("packageManager") != "pnpm@" + pnpm_version
+        or website.get("packageManager") != "pnpm@" + pnpm_version
+        or bootstrap.get("dependencies") != {"pnpm": pnpm_version}
+    ):
+        raise ValueError("pnpm bootstrap, frontend, website and mise versions disagree")
 
     if browser.get("nodeVersion") != tools["node"] or browser.get("pnpmVersion") != pnpm_version:
         raise ValueError("browser and mise Node/pnpm versions disagree")

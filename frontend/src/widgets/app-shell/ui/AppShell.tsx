@@ -47,7 +47,7 @@ export const AppShell = ({
         {!isMobile && (
           <div className="ml-auto flex max-w-full min-w-0 flex-wrap items-center justify-end gap-x-5 gap-y-2">
             <a
-              className="font-[450] !text-content"
+              className="font-normal !text-content"
               href={getWebsitePageUrl('installation', locale)}
               target="_blank"
               rel="noreferrer"
@@ -55,7 +55,7 @@ export const AppShell = ({
               {t('app.navigation.docs')}
             </a>
             <a
-              className="font-[450] !text-content"
+              className="font-normal !text-content"
               href="https://t.me/databasus_community"
               target="_blank"
               rel="noreferrer"

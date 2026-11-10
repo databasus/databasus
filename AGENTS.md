@@ -46,7 +46,7 @@ The repository's skills live in `.agents/skills/`, which Codex reads directly; C
 
 | Command | Purpose |
 |---|---|
-| `mise run run` | Start the app locally: dev database, test fixtures, WAL backup source with its load generator, backend and frontend; seeds a dev account with databases and restarts the backend when its code changes |
+| `mise run run` | Start the app locally: dev database, test fixtures, WAL backup source with its load generator, backend, frontend and website; seeds a dev account with databases and restarts the backend when its code changes |
 | `mise run test` | Check the work: the backend packages without the end-to-end ones and the frontend tests |
 | `mise run test-full` | Run all tests for the usual Docker development environment; [testing.md](docs/testing.md#checking-work) lists the included suites and the Podman/filesystem exceptions |
 | `mise run lint` | Check every module without changing files; `backend:lint`, `frontend:lint` and `python:lint` check one area |

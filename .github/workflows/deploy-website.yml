@@ -37,12 +37,12 @@ jobs:
           version: ${{ steps.mise-bootstrap.outputs.version }}
           sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
           cache: false
-          install_args: 'node'
+          install_args: "node pnpm"
 
-      - name: Set up npm cache
+      - name: Set up pnpm cache
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
         with:
-          cache: npm
+          cache: pnpm
 
       - name: Set up Pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
@@ -50,10 +50,10 @@ jobs:
           static_site_generator: next
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Build with Next.js
-        run: npm run build
+        run: pnpm build
 
       - name: Add .nojekyll file
         run: touch ./out/.nojekyll

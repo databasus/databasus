@@ -1,0 +1,3 @@
+allowBuilds:
+  # Static exports use unoptimized images and do not need sharp's optional source build.
+  sharp@0.34.5: false

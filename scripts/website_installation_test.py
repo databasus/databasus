@@ -21,22 +21,18 @@ class WebsiteInstallationTest(unittest.TestCase):
         return shlex.split(installation[1]) + [
             "--offline",
             "--ignore-scripts",
-            "--no-audit",
-            "--no-fund",
         ]
 
     def create_lock(self, root: Path) -> None:
         subprocess.run(
             [
-                "npm",
+                "pnpm",
                 "install",
-                "--package-lock-only",
+                "--lockfile-only",
                 "--offline",
                 "--ignore-scripts",
-                "--no-audit",
-                "--no-fund",
-                "--cache",
-                str(root / "lock-cache"),
+                "--store-dir",
+                str(root / "lock-store"),
             ],
             cwd=root,
             check=True,
@@ -64,22 +60,22 @@ class WebsiteInstallationTest(unittest.TestCase):
             command = self.get_installation_command()
 
             installed = subprocess.run(
-                command, cwd=root, capture_output=True, text=True, check=False
+                command, cwd=root, capture_output=True, text=True, check=False, timeout=60
             )
 
             self.assertEqual(installed.returncode, 0, installed.stderr)
 
-            lock = (root / "package-lock.json").read_bytes()
+            lock = (root / "pnpm-lock.yaml").read_bytes()
             manifest["dependencies"] = {"local-package": "file:./second"}
             (root / "package.json").write_text(json.dumps(manifest))
 
             rejected = subprocess.run(
-                command, cwd=root, capture_output=True, text=True, check=False
+                command, cwd=root, capture_output=True, text=True, check=False, timeout=60
             )
 
             self.assertNotEqual(rejected.returncode, 0, rejected.stdout + rejected.stderr)
-            self.assertIn("in sync", rejected.stderr)
-            self.assertEqual((root / "package-lock.json").read_bytes(), lock)
+            self.assertIn("ERR_PNPM_OUTDATED_LOCKFILE", rejected.stdout + rejected.stderr)
+            self.assertEqual((root / "pnpm-lock.yaml").read_bytes(), lock)
 
     def write_package_archive(self, archive: Path, content: bytes) -> None:
         manifest = json.dumps({"name": "local-package", "version": "1.0.0"}).encode()
@@ -107,14 +103,13 @@ class WebsiteInstallationTest(unittest.TestCase):
                 )
             )
             self.create_lock(root)
-            lock = (root / "package-lock.json").read_bytes()
-            integrity = json.loads(lock)["packages"]["node_modules/local-package"]["integrity"]
-            self.assertTrue(integrity.startswith("sha512-"))
+            lock = (root / "pnpm-lock.yaml").read_bytes()
+            self.assertIn(b"integrity: sha512-", lock)
 
             command = self.get_installation_command()
 
             installed = subprocess.run(
-                [*command, "--cache", str(root / "accepted-cache")],
+                [*command, "--store-dir", str(root / "accepted-store")],
                 cwd=root,
                 capture_output=True,
                 text=True,
@@ -127,7 +122,7 @@ class WebsiteInstallationTest(unittest.TestCase):
             self.write_package_archive(archive, b"module.exports = 'replaced';")
 
             rejected = subprocess.run(
-                [*command, "--cache", str(root / "rejected-cache")],
+                [*command, "--store-dir", str(root / "rejected-store")],
                 cwd=root,
                 capture_output=True,
                 text=True,
@@ -136,8 +131,8 @@ class WebsiteInstallationTest(unittest.TestCase):
             )
 
             self.assertNotEqual(rejected.returncode, 0, rejected.stdout + rejected.stderr)
-            self.assertIn("EINTEGRITY", rejected.stderr)
-            self.assertEqual((root / "package-lock.json").read_bytes(), lock)
+            self.assertIn("ERR_PNPM_TARBALL_INTEGRITY", rejected.stdout + rejected.stderr)
+            self.assertEqual((root / "pnpm-lock.yaml").read_bytes(), lock)
 
 
 if __name__ == "__main__":

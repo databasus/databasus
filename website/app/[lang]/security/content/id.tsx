@@ -246,90 +246,133 @@ export default function SecurityPage() {
                 .
               </p>
               <h2 id="security-and-reliability-engineering">🛡️ Rekayasa keamanan dan keandalan</h2>
+
               <p>
-                Databasus menangani data sensitif, jadi pencegahan kerentanan, akses tanpa izin,
-                dan kebocoran data menjadi perhatian utama. Kami mengerjakannya di dua sisi: di
-                kode (pemeriksaan izin, enkripsi, penanganan secret yang hati-hati) dan di
-                infrastruktur pendukungnya (analisis dependency, respons CVE, praktik
-                DevSecOps). Pipeline berikut berjalan otomatis sebelum setiap rilis. Tidak ada
-                satu lapisan yang cukup sendirian, tetapi secara bersama-sama semuanya
-                mengurangi kemungkinan kode rentan, dependency tidak aman, image rusak, atau
-                backup yang tidak bisa di-restore masuk ke rilis.
+                Databasus menangani data sensitif. Sebelum setiap rilis, pemeriksaan
+                otomatis mencari masalah keamanan dan memastikan backup bisa di-restore.
+                Pemeriksaan ini mengurangi risiko, tetapi tidak menjamin perangkat lunak
+                bebas kerentanan.
               </p>
+
               <h3 id="static-analysis">Analisis statis</h3>
+
               <p>
-                Analisis statis dijalankan dalam beberapa pemeriksaan terpisah. CodeQL memindai
-                seluruh codebase untuk menemukan masalah keamanan. Sebelum setiap rilis,{" "}
-                <strong>gitleaks</strong> memindai kebocoran secret dan <strong>semgrep</strong>{" "}
-                memeriksa kode terhadap aturan keamanan. Dockerfile dan workflow CI mendapat aturan
-                tambahan (referensi action yang dipin, izin minimum, base image mencurigakan),
-                sehingga pola tidak aman ditandai sebelum rilis.
+                CodeQL memeriksa Go, JavaScript/TypeScript, dan workflow GitHub Actions.
+                gitleaks mencari secret yang bocor dalam riwayat Git untuk rilis tersebut.
+                semgrep memeriksa kode sumber, Dockerfile, dan workflow CI berdasarkan
+                aturan keamanan. Pemindaian ini berjalan sebelum setiap rilis dan setiap
+                minggu.
               </p>
+
               <p>
-                Selain pemeriksaan sebelum rilis, <strong>Codex Security</strong> dari OpenAI menjalankan
-                audit yang lebih mendalam atas seluruh codebase secara berkala. Program terpisah ini
-                menemukan masalah arsitektur dan lintas bagian sistem yang tidak terjangkau
-                pemindaian otomatis yang lebih sempit.
+                Temuan CodeQL tingkat <strong>CRITICAL</strong> yang masih terbuka pada
+                analisis rilis memblokir publikasi. Temuan <strong>HIGH</strong>{" "}
+                menghasilkan peringatan.
               </p>
+
+              <p>
+                Codex Security dari OpenAI juga melakukan audit berkala yang lebih mendalam.
+                Audit ini dapat menemukan masalah arsitektur yang terlewat oleh pemindaian
+                yang lebih khusus. Audit dilakukan terpisah dari pemeriksaan rilis otomatis.
+              </p>
+
               <h3 id="dependency-management">Pengelolaan dependency</h3>
+
               <p>
-                Dependabot memantau semua dependency dengan mengacu pada GitHub Advisory Database
-                dan melaporkan CVE dalam hitungan menit setelah dipublikasikan. Pembaruan melewati
-                masa tunggu agar versi yang baru diterbitkan sempat stabil sebelum kami memakainya.
-                Ini merupakan perlindungan yang disengaja terhadap insiden paket yang disusupi,
-                seperti serangan supply-chain.
+                Dependabot memeriksa ekosistem dependency yang dikonfigurasi dengan mengacu
+                pada GitHub Advisory Database. Cakupannya bergantung pada ekosistem tersebut
+                dan informasi kerentanan yang tersedia; tidak semua komponen eksternal
+                tercakup.
               </p>
+
               <p>
-                Pemeriksaan <strong>Dependency Review Action</strong> gagal jika rilis membawa CVE baru
-                dengan tingkat <strong>HIGH</strong> atau <strong>CRITICAL</strong>.
+                Pembaruan biasa menunggu tujuh hari penuh untuk paket, alat pengembangan,
+                dan GitHub Actions. Image, klien database, dan ekstensi verifikasi mandiri
+                menunggu empat belas hari. Usulan versi mayor baru yang tidak diminta
+                menunggu tiga puluh hari. Pengelola memeriksa tanggal publikasi dan
+                kompatibilitas, termasuk versi yang ditetapkan secara pasti dan pembaruan
+                keamanan yang bisa melewati filter umur rilis. Setiap pengecualian
+                dilaporkan beserta alasannya.
               </p>
-              <h3 id="container-and-ci-hardening">Penguatan keamanan container dan CI</h3>
+
+              <p>
+                Dependency Review Action membandingkan calon rilis dengan rilis sebelumnya
+                dan memblokir kerentanan baru tingkat <strong>HIGH</strong> atau{" "}
+                <strong>CRITICAL</strong>. govulncheck menggagalkan pemeriksaan Go jika kode
+                kami dapat memanggil fungsi dengan kerentanan yang diketahui. Perintah{" "}
+                <code>go mod verify</code> membandingkan modul Go yang diunduh dengan
+                checksum yang tercatat.
+              </p>
+
+              <p>
+                Sebelum publikasi rilis dan image pengembangan,{" "}
+                <code>mise run verify-deps</code> memeriksa versi tetap alat, image, dan
+                GitHub Actions. Perintah ini juga memeriksa kecocokan versi lingkungan
+                runtime yang terkait, serta hash dan izin eksekusi klien database dalam
+                repositori. Pemeriksaan ini mencakup daftar deklarasi dan file lokal yang
+                telah ditentukan. Pengelola paket secara terpisah memeriksa versi dalam lock
+                file dan checksum paket yang diunduh.
+              </p>
+
+              <p>
+                Pemeriksaan dependency lokal tidak menjamin keamanan kode pihak ketiga atau
+                menerapkan batas umur publikasi untuk setiap dependency. Pemilihan dan
+                peninjauan rilis tetap menjadi tanggung jawab pengelola.
+              </p>
+
+              <h3 id="container-and-ci-hardening">Keamanan container dan CI</h3>
+
               <ul>
                 <li>
-                  Sebelum rilis, <strong>Trivy</strong> memindai image aplikasi pada kedua arsitektur.
+                  Trivy memindai image aplikasi pada amd64 dan arm64. Kerentanan{" "}
+                  <strong>CRITICAL</strong> dengan perbaikan yang tersedia menggagalkan
+                  pemeriksaan. Kerentanan <strong>HIGH</strong> dengan perbaikan dilaporkan
+                  tanpa memblokirnya. Kerentanan yang belum memiliki perbaikan dikecualikan
+                  dari pemeriksaan ini.
                 </li>
                 <li>
-                  Pemeriksaan Trivy terpisah pada Dockerfile mendeteksi kesalahan konfigurasi
-                  sebelum masuk ke image.
+                  Pemindaian konfigurasi Trivy yang terpisah memblokir temuan{" "}
+                  <strong>HIGH</strong> dan <strong>CRITICAL</strong> pada Dockerfile
+                  aplikasi, agen verifikasi, dan image pengujian tertentu.
                 </li>
                 <li>
-                  Semua GitHub Actions dipin ke SHA commit lengkap, bukan tag yang bisa berubah
-                  seperti <code>@v4</code> atau <code>@main</code>, yang menjadi jalur serangan
-                  aktif pada 2025.
+                  GitHub Actions pihak ketiga dipatok ke SHA commit lengkap. Perubahan tag
+                  tidak dapat diam-diam mengganti kode action yang dijalankan.
                 </li>
                 <li>
-                  Workflow memakai izin minimum secara default dan hanya menaikkannya per job jika
-                  benar-benar diperlukan.
+                  Workflow secara default hanya memiliki akses baca ke repositori. Setiap job
+                  mendapat izin tambahan hanya saat diperlukan.
                 </li>
               </ul>
+
               <h3 id="testing-and-verification">Pengujian dan verifikasi</h3>
+
               <p>
-                Alur kritis dicakup oleh unit test dan integration test yang dijalankan terhadap
-                container database nyata untuk setiap engine dan versi mayor yang didukung.
+                Unit test dan integration test mencakup perilaku kritis. Sebelum setiap
+                rilis, siklus backup dan restore lengkap berjalan pada container database
+                sungguhan untuk setiap engine dan versi mayor yang didukung. Pengujian
+                memastikan data bisa di-restore, bukan sekadar file backup berhasil dibuat.
               </p>
+
               <p>
-                Restore adalah alur terpenting bagi alat backup, jadi kami mengujinya secara
-                khusus. Sebelum setiap rilis, kami menjalankan siklus backup penuh lalu restore
-                terhadap container nyata yang sama, untuk memastikan backup benar-benar bisa
-                di-restore dari awal hingga akhir, bukan sekadar berhasil ditulis.
+                Pemeriksaan rilis juga mencakup lint, pemeriksaan tipe, pengujian browser,
+                smoke test image, serta build dan pengujian native pada amd64 dan arm64.
+                Publikasi menunggu semua job wajib lolos, termasuk pemeriksaan keamanan di
+                atas.
               </p>
-              <p>
-                Bagian lain dari pipeline CI/CD menjalankan lint, type-check, seluruh test
-                suite, smoke test image, dan build multi-arsitektur sebelum setiap rilis. Rilis
-                hanya diterbitkan jika semua pemeriksaan tersebut dan pemindaian keamanan lolos,
-                tanpa alert CodeQL kritis yang masih terbuka.
-              </p>
+
               <h3 id="reporting-a-vulnerability">Melaporkan kerentanan</h3>
+
               <p>
-                Menemukan kerentanan? Laporkan lewat tab GitHub Security. Lihat{" "}
+                Laporkan kerentanan secara privat melalui pilihan kontak dalam{" "}
                 <a
-                  href="https://github.com/databasus/databasus?tab=security-ov-file"
+                  href="https://github.com/databasus/databasus?tab=security-ov-file#readme"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
                   SECURITY.md
                 </a>
-                . Laporan keamanan menjadi pekerjaan dengan prioritas tertinggi.
+                . Jangan membuka issue publik. Laporan keamanan ditangani lebih dahulu.
               </p>
             </article>
           </div>

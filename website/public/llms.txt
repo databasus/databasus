@@ -65,6 +65,16 @@ Before every release, we run engineering checks:
 
 See [Security & reliability engineering](https://databasus.com/security#security-and-reliability-engineering).
 
+## AI-assisted development
+
+AI helps us develop Databasus, from planning and implementation to tests and documentation. People set the direction and make the final decision. **A human reads every line before a change is merged.**
+
+Automatic hooks launch independent reviewers in separate, read-only sessions. They check correctness, requirements, architecture, code structure, tests and documentation. Full implementation review assigns one agent to each changed specification, plus separate architecture, test and documentation reviewers. Blocking findings stop acceptance and their resolution is reviewed again. A review that could not run does not count as passed.
+
+Development uses OpenSpec to agree on behavior before implementation. Strict linting and architecture checks run alongside tests with real databases and backup-and-restore scenarios. Required CI checks must pass before release.
+
+See [AI usage and the development process](https://databasus.com/faq#ai-usage).
+
 ## Documentation
 
 ### Setup
