@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"testing"
 	"time"
@@ -34,6 +35,7 @@ type (
 		SourceOptions  []containers.PhysicalPostgresOption
 		SourceEndpoint *containers.Endpoint
 		Image          string
+		LogSink        slog.Handler
 		Timings        *backups.WalStreamTimings
 		IsWithoutLoops bool
 		IsMtls         bool
@@ -76,6 +78,10 @@ func newWalTeam(t *testing.T, spec walTeamSpec) *walTeam {
 	}
 
 	options := []apptest.Option{apptest.WithWalStreamTimings(timings)}
+	if spec.LogSink != nil {
+		options = append(options, apptest.WithLogSink(spec.LogSink))
+	}
+
 	if !spec.IsWithoutLoops {
 		options = append(options, apptest.WithPhysicalBackupLoops())
 	}

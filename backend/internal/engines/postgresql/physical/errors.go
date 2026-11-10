@@ -10,14 +10,15 @@ import (
 )
 
 var (
-	ErrSlotNameTaken       = errors.New("replication slot name is taken")
-	ErrWalSwitchDenied     = errors.New("WAL switch permission denied")
-	ErrUnsupportedVersion  = errors.New("physical backup requires PostgreSQL 17 or 18")
-	ErrUnreadableVersion   = errors.New("could not parse version")
-	ErrSlotNameEmpty       = errors.New("replication slot name is empty; row corruption or BeforeCreate bypassed")
-	ErrCannotCreateRoles   = errors.New("current user cannot create roles — connect as a platform admin")
-	ErrUserNameCollision   = errors.New("failed to generate unique username")
-	ErrAzureReplicationOff = errors.New(
+	ErrInvalidTimelineHistory = errors.New("invalid timeline history")
+	ErrSlotNameTaken          = errors.New("replication slot name is taken")
+	ErrWalSwitchDenied        = errors.New("WAL switch permission denied")
+	ErrUnsupportedVersion     = errors.New("physical backup requires PostgreSQL 17 or 18")
+	ErrUnreadableVersion      = errors.New("could not parse version")
+	ErrSlotNameEmpty          = errors.New("replication slot name is empty; row corruption or BeforeCreate bypassed")
+	ErrCannotCreateRoles      = errors.New("current user cannot create roles — connect as a platform admin")
+	ErrUserNameCollision      = errors.New("failed to generate unique username")
+	ErrAzureReplicationOff    = errors.New(
 		"replication must be enabled at the server level in the Azure portal (Server parameters → wal_level=logical → restart); after that, retry",
 	)
 	ErrGcpReplicationOff = errors.New(

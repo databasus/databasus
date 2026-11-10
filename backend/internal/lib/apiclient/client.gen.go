@@ -4413,10 +4413,10 @@ type WalStreamStatistics struct {
 	// KeepingUp wal stream keeping up
 	KeepingUp WalStreamKeepingUp `json:"keepingUp"`
 
-	// LatestRestorableAt latest restorable at
+	// LatestRestorableAt The newest reachable time. Archive WAL replay above timeline 1 requires published history in the selected storage; without it, this is the newest included completed backup time.
 	LatestRestorableAt *time.Time `json:"latestRestorableAt"`
 
-	// RestorableRanges restorable ranges
+	// RestorableRanges Reachable intervals using the same prerequisites as restore downloads. Without required timeline history, ranges contain only completed backup points; missing history alone is not a WAL gap.
 	RestorableRanges []WalStreamTimeRange `json:"restorableRanges"`
 
 	// Series wal stream series
@@ -6906,14 +6906,14 @@ type ClientInterface interface {
 
 	// DownloadPhysicalRestoreSet Download a physical restore set
 	//
-	// Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. A restore set that can no longer be built gets the same problem as at token issue. Streams the archive without HTTP gzip, even when the client accepts gzip. The complete archive length is not required in advance; Content-Length may be absent.
+	// Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. The restore set and its required timeline history are checked again before streaming. A restore set that can no longer be built gets the same problem as at token issue. Streams the archive without HTTP gzip, even when the client accepts gzip. The complete archive length is not required in advance; Content-Length may be absent.
 	//
 	// Corresponds with GET /physical-restore-sets (the `DownloadPhysicalRestoreSet` operationId).
 	DownloadPhysicalRestoreSet(ctx context.Context, params *DownloadPhysicalRestoreSetParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CreatePhysicalRestoreTokenWithBody Issue a token for one physical restore set
 	//
-	// Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request.
+	// Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. Archive WAL replay on a timeline above 1 requires its published history in the selected storage. Without that history, latest recovery stops at the newest included completed backup and later target times get 409 target_time_unreachable. Explicit backup recovery does not require separate history. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -6922,7 +6922,7 @@ type ClientInterface interface {
 
 	// CreatePhysicalRestoreToken Issue a token for one physical restore set
 	//
-	// Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request.
+	// Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. Archive WAL replay on a timeline above 1 requires its published history in the selected storage. Without that history, latest recovery stops at the newest included completed backup and later target times get 409 target_time_unreachable. Explicit backup recovery does not require separate history. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -8711,7 +8711,7 @@ func (c *Client) GetRecoveryScript(ctx context.Context, reqEditors ...RequestEdi
 
 // DownloadPhysicalRestoreSet Download a physical restore set
 //
-// Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. A restore set that can no longer be built gets the same problem as at token issue. Streams the archive without HTTP gzip, even when the client accepts gzip. The complete archive length is not required in advance; Content-Length may be absent.
+// Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. The restore set and its required timeline history are checked again before streaming. A restore set that can no longer be built gets the same problem as at token issue. Streams the archive without HTTP gzip, even when the client accepts gzip. The complete archive length is not required in advance; Content-Length may be absent.
 //
 // Corresponds with GET /physical-restore-sets (the `DownloadPhysicalRestoreSet` operationId).
 func (c *Client) DownloadPhysicalRestoreSet(ctx context.Context, params *DownloadPhysicalRestoreSetParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -8728,7 +8728,7 @@ func (c *Client) DownloadPhysicalRestoreSet(ctx context.Context, params *Downloa
 
 // CreatePhysicalRestoreTokenWithBody Issue a token for one physical restore set
 //
-// Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request.
+// Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. Archive WAL replay on a timeline above 1 requires its published history in the selected storage. Without that history, latest recovery stops at the newest included completed backup and later target times get 409 target_time_unreachable. Explicit backup recovery does not require separate history. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request.
 //
 // Takes any type of body and a specified content type.
 //
@@ -8747,7 +8747,7 @@ func (c *Client) CreatePhysicalRestoreTokenWithBody(ctx context.Context, content
 
 // CreatePhysicalRestoreToken Issue a token for one physical restore set
 //
-// Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request.
+// Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. Archive WAL replay on a timeline above 1 requires its published history in the selected storage. Without that history, latest recovery stops at the newest included completed backup and later target times get 409 target_time_unreachable. Explicit backup recovery does not require separate history. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -15087,7 +15087,7 @@ type ClientWithResponsesInterface interface {
 
 	// DownloadPhysicalRestoreSetWithResponse Download a physical restore set
 	//
-	// Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. A restore set that can no longer be built gets the same problem as at token issue. Streams the archive without HTTP gzip, even when the client accepts gzip. The complete archive length is not required in advance; Content-Length may be absent.
+	// Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. The restore set and its required timeline history are checked again before streaming. A restore set that can no longer be built gets the same problem as at token issue. Streams the archive without HTTP gzip, even when the client accepts gzip. The complete archive length is not required in advance; Content-Length may be absent.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -15096,7 +15096,7 @@ type ClientWithResponsesInterface interface {
 
 	// CreatePhysicalRestoreTokenWithBodyWithResponse Issue a token for one physical restore set
 	//
-	// Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request.
+	// Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. Archive WAL replay on a timeline above 1 requires its published history in the selected storage. Without that history, latest recovery stops at the newest included completed backup and later target times get 409 target_time_unreachable. Explicit backup recovery does not require separate history. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -15105,7 +15105,7 @@ type ClientWithResponsesInterface interface {
 
 	// CreatePhysicalRestoreTokenWithResponse Issue a token for one physical restore set
 	//
-	// Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request.
+	// Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. Archive WAL replay on a timeline above 1 requires its published history in the selected storage. Without that history, latest recovery stops at the newest included completed backup and later target times get 409 target_time_unreachable. Explicit backup recovery does not require separate history. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -23848,7 +23848,7 @@ func (c *ClientWithResponses) GetRecoveryScriptWithResponse(ctx context.Context,
 
 // DownloadPhysicalRestoreSetWithResponse Download a physical restore set
 //
-// Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. A restore set that can no longer be built gets the same problem as at token issue. Streams the archive without HTTP gzip, even when the client accepts gzip. The complete archive length is not required in advance; Content-Length may be absent.
+// Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. The restore set and its required timeline history are checked again before streaming. A restore set that can no longer be built gets the same problem as at token issue. Streams the archive without HTTP gzip, even when the client accepts gzip. The complete archive length is not required in advance; Content-Length may be absent.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -23863,7 +23863,7 @@ func (c *ClientWithResponses) DownloadPhysicalRestoreSetWithResponse(ctx context
 
 // CreatePhysicalRestoreTokenWithBodyWithResponse Issue a token for one physical restore set
 //
-// Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request.
+// Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. Archive WAL replay on a timeline above 1 requires its published history in the selected storage. Without that history, latest recovery stops at the newest included completed backup and later target times get 409 target_time_unreachable. Explicit backup recovery does not require separate history. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -23878,7 +23878,7 @@ func (c *ClientWithResponses) CreatePhysicalRestoreTokenWithBodyWithResponse(ctx
 
 // CreatePhysicalRestoreTokenWithResponse Issue a token for one physical restore set
 //
-// Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request.
+// Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. Archive WAL replay on a timeline above 1 requires its published history in the selected storage. Without that history, latest recovery stops at the newest included completed backup and later target times get 409 target_time_unreachable. Explicit backup recovery does not require separate history. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //

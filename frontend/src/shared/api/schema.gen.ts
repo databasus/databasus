@@ -1163,7 +1163,7 @@ export interface paths {
         put?: never;
         /**
          * Issue a token for one physical restore set
-         * @description Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request.
+         * @description Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. Archive WAL replay on a timeline above 1 requires its published history in the selected storage. Without that history, latest recovery stops at the newest included completed backup and later target times get 409 target_time_unreachable. Explicit backup recovery does not require separate history. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request.
          */
         post: operations["createPhysicalRestoreToken"];
         delete?: never;
@@ -1181,7 +1181,7 @@ export interface paths {
         };
         /**
          * Download a physical restore set
-         * @description Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. A restore set that can no longer be built gets the same problem as at token issue. Streams the archive without HTTP gzip, even when the client accepts gzip. The complete archive length is not required in advance; Content-Length may be absent.
+         * @description Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. The restore set and its required timeline history are checked again before streaming. A restore set that can no longer be built gets the same problem as at token issue. Streams the archive without HTTP gzip, even when the client accepts gzip. The complete archive length is not required in advance; Content-Length may be absent.
          */
         get: operations["downloadPhysicalRestoreSet"];
         put?: never;
@@ -3782,10 +3782,10 @@ export interface components {
             health: components["schemas"]["WalStreamHealth"];
             /**
              * Format: date-time
-             * @description latest restorable at
+             * @description The newest reachable time. Archive WAL replay above timeline 1 requires published history in the selected storage; without it, this is the newest included completed backup time.
              */
             latestRestorableAt: string | null;
-            /** @description restorable ranges */
+            /** @description Reachable intervals using the same prerequisites as restore downloads. Without required timeline history, ranges contain only completed backup points; missing history alone is not a WAL gap. */
             restorableRanges: components["schemas"]["WalStreamTimeRange"][];
             streamer: components["schemas"]["WalStreamStreamer"];
             /** @description current */

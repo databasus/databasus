@@ -67,6 +67,11 @@ func (namespace StorageNamespace) MakeUnavailable(t *testing.T, owner Session) {
 	namespace.setEndpoint(t, owner, "http://127.0.0.1:1")
 }
 
+func (namespace StorageNamespace) MakeAvailable(t *testing.T, owner Session) {
+	t.Helper()
+	namespace.setEndpoint(t, owner, namespace.Client.EndpointURL().String())
+}
+
 func (namespace StorageNamespace) setEndpoint(t *testing.T, owner Session, endpoint string) {
 	t.Helper()
 

@@ -53,16 +53,11 @@ func (s *Service) ResolveRestoreSet(ctx context.Context, databaseID uuid.UUID,
 		return nil, WalGapBeforeTargetError{LatestRestorableLSN: reach.reachableLSN}
 	}
 
-	historyFiles, err := s.walHistoryRepository.FindAllByDatabase(ctx, databaseID)
-	if err != nil {
-		return nil, err
-	}
-
 	return &RestoreSet{
 		RootFull:            reach.chain.RootFull,
 		Incrementals:        reach.incrementals,
 		WalSegments:         reach.walRun,
-		HistoryFiles:        historyFiles,
+		HistoryFiles:        reach.historyFiles,
 		LastIncludedStopLSN: reach.lastStopLSN,
 		MaxReplayableLSN:    reach.reachableLSN,
 	}, nil
@@ -73,6 +68,7 @@ type restoreReach struct {
 	incrementals  []*catalog.Backup
 	lastStopLSN   walmath.LSN
 	walSegments   []*catalog.WalSegment
+	historyFiles  []*catalog.WalHistoryFile
 	walRun        []*catalog.WalSegment
 	reachableLSN  walmath.LSN
 	reachableTime time.Time
@@ -108,13 +104,35 @@ func (s *Service) resolveRestoreReach(ctx context.Context, databaseID uuid.UUID,
 		return nil, err
 	}
 
+	var historyFiles []*catalog.WalHistoryFile
+	if chain.RootFull.TimelineID > 1 {
+		history, isFound, historyErr := s.walHistoryRepository.FindByDatabaseTimeline(
+			ctx,
+			databaseID,
+			chain.RootFull.TimelineID,
+		)
+		if historyErr != nil {
+			return nil, historyErr
+		}
+
+		if isFound && history.StorageID == chain.RootFull.StorageID {
+			historyFiles = []*catalog.WalHistoryFile{history}
+		} else {
+			restoreWalSegments = nil
+		}
+	}
+
 	walRun, reachableLSN, reachableTime := contiguousWalRun(restoreWalSegments, lastStopLSN, lastBackupTime)
+	if len(walRun) == 0 {
+		historyFiles = nil
+	}
 
 	return &restoreReach{
 		chain:         chain,
 		incrementals:  incrementals,
 		lastStopLSN:   lastStopLSN,
 		walSegments:   restoreWalSegments,
+		historyFiles:  historyFiles,
 		walRun:        walRun,
 		reachableLSN:  reachableLSN,
 		reachableTime: reachableTime,
@@ -140,6 +158,7 @@ func (s *Service) ResolveRestoreSetForBackup(ctx context.Context, databaseID, ba
 	if backup.Kind == catalog.BackupKindFull {
 		return restoreSetForFull(backup)
 	}
+
 	return s.restoreSetForIncremental(ctx, backup)
 }
 

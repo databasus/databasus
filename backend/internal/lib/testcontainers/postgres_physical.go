@@ -238,9 +238,50 @@ func StartPhysicalPrimaryWithStandby(
 	t.Cleanup(func() { _ = replicationNetwork.Remove(context.WithoutCancel(t.Context())) })
 
 	primary := startPhysicalPrimaryOnNetwork(t, image, options, replicationNetwork.Name)
-	standby := startPhysicalStandbyOnNetwork(t, image, options, replicationNetwork.Name)
+	standby := startPhysicalStandbyOnNetwork(
+		t,
+		physicalStandbySpec{
+			Image:         image,
+			Options:       options,
+			NetworkName:   replicationNetwork.Name,
+			UpstreamAlias: physicalPrimaryAlias,
+		},
+	)
 
 	return primary, standby
+}
+
+func StartPhysicalCascadingStandbys(t *testing.T, image string) (Endpoint, Endpoint, Endpoint) {
+	t.Helper()
+
+	options := resolvePhysicalPostgresOptions(nil)
+	options.shouldEnableFullPageWrites = true
+	replicationNetwork, err := newLabelledNetwork(t)
+	if err != nil {
+		t.Fatalf("create cascading replication network: %v", err)
+	}
+	t.Cleanup(func() { _ = replicationNetwork.Remove(context.WithoutCancel(t.Context())) })
+	primary := startPhysicalPrimaryOnNetwork(t, image, options, replicationNetwork.Name)
+	standby := startPhysicalStandbyOnNetwork(
+		t,
+		physicalStandbySpec{
+			Image:         image,
+			Options:       options,
+			NetworkName:   replicationNetwork.Name,
+			UpstreamAlias: physicalPrimaryAlias,
+			Alias:         "cascade-source",
+		},
+	)
+	cascading := startPhysicalStandbyOnNetwork(
+		t,
+		physicalStandbySpec{
+			Image:         image,
+			Options:       options,
+			NetworkName:   replicationNetwork.Name,
+			UpstreamAlias: "cascade-source",
+		},
+	)
+	return primary, standby, cascading
 }
 
 // startPhysicalPrimaryOnNetwork boots the replication source joined to networkName under
@@ -261,33 +302,40 @@ func startPhysicalPrimaryOnNetwork(
 	return start(t, req, postgresPort)
 }
 
+type physicalStandbySpec struct {
+	Image         string
+	Options       physicalPostgresOptions
+	NetworkName   string
+	UpstreamAlias string
+	Alias         string
+}
+
 // startPhysicalStandbyOnNetwork boots a standby that clones the primary (reached by alias on
 // networkName) before postgres starts. A custom entrypoint runs pg_basebackup -R into PGDATA, then
 // hands the same WAL flags to the image entrypoint, which serves the cloned cluster as a streaming
 // standby. The readiness log differs from a primary ("read-only connections"), so it gets its own
 // wait.
-func startPhysicalStandbyOnNetwork(
-	t *testing.T,
-	image string,
-	options physicalPostgresOptions,
-	networkName string,
-) Endpoint {
+func startPhysicalStandbyOnNetwork(t *testing.T, spec physicalStandbySpec) Endpoint {
 	t.Helper()
 
 	req := testcontainers.ContainerRequest{
-		Image:        image,
+		Image:        spec.Image,
 		ExposedPorts: []string{postgresPort},
 		Env:          postgresEnv(),
 		Entrypoint:   []string{"/usr/local/bin/databasus-standby-entrypoint.sh"},
-		Cmd:          physicalPostgresCmd(options),
+		Cmd:          physicalPostgresCmd(spec.Options),
 		Files: []testcontainers.ContainerFile{{
-			Reader:            strings.NewReader(standbyEntrypointScript()),
+			Reader:            strings.NewReader(standbyEntrypointScript(spec.UpstreamAlias)),
 			ContainerFilePath: "/usr/local/bin/databasus-standby-entrypoint.sh",
 			FileMode:          0o755,
 		}},
-		Tmpfs:      map[string]string{postgresDataDir(image): physicalDataDirTmpfsOptions},
-		Networks:   []string{networkName},
+		Tmpfs:      map[string]string{postgresDataDir(spec.Image): physicalDataDirTmpfsOptions},
+		Networks:   []string{spec.NetworkName},
 		WaitingFor: standbyReady(),
+	}
+
+	if spec.Alias != "" {
+		req.NetworkAliases = map[string][]string{spec.NetworkName: {spec.Alias}}
 	}
 
 	return start(t, req, postgresPort)
@@ -298,16 +346,16 @@ func startPhysicalStandbyOnNetwork(
 // root (the image default) and drops to postgres for the clone so the cluster files are owned by
 // the server uid, then exec's the image entrypoint to serve it. The final "$@" forwards the WAL
 // flags passed as the container command.
-func standbyEntrypointScript() string {
+func standbyEntrypointScript(upstreamAlias string) string {
 	return `#!/bin/bash
 set -euo pipefail
 mkdir -p "$PGDATA"
 chown -R postgres:postgres "$PGDATA"
 echo "databasus-standby: waiting for primary to accept connections"
-until pg_isready -h ` + physicalPrimaryAlias + ` -p 5432 -U ` + PostgresUsername + ` >/dev/null 2>&1; do sleep 1; done
+until pg_isready -h ` + upstreamAlias + ` -p 5432 -U ` + PostgresUsername + ` >/dev/null 2>&1; do sleep 1; done
 echo "databasus-standby: cloning primary via pg_basebackup"
 gosu postgres pg_basebackup -D "$PGDATA" -R -X stream -c fast -C -S ` + physicalStandbySlotName + ` -w \
-  -d "host=` + physicalPrimaryAlias + ` port=5432 user=` + PostgresUsername +
+  -d "host=` + upstreamAlias + ` port=5432 user=` + PostgresUsername +
 		` password=` + PostgresPassword + ` dbname=postgres"
 echo "databasus-standby: starting as a streaming standby"
 exec docker-entrypoint.sh postgres "$@"

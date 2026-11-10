@@ -1929,10 +1929,10 @@ type WalStreamStatistics struct {
 	// KeepingUp wal stream keeping up
 	KeepingUp WalStreamKeepingUp `json:"keepingUp"`
 
-	// LatestRestorableAt latest restorable at
+	// LatestRestorableAt The newest reachable time. Archive WAL replay above timeline 1 requires published history in the selected storage; without it, this is the newest included completed backup time.
 	LatestRestorableAt *time.Time `json:"latestRestorableAt"`
 
-	// RestorableRanges restorable ranges
+	// RestorableRanges Reachable intervals using the same prerequisites as restore downloads. Without required timeline history, ranges contain only completed backup points; missing history alone is not a WAL gap.
 	RestorableRanges []WalStreamTimeRange `json:"restorableRanges"`
 
 	// Series wal stream series

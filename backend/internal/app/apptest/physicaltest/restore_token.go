@@ -41,7 +41,17 @@ func (team Team) restoreToken(t *testing.T, targetTime *time.Time) string {
 func (team Team) downloadRestoreBundle(t *testing.T, targetTime *time.Time) string {
 	t.Helper()
 
-	token := team.restoreToken(t, targetTime)
+	return team.downloadBackupBundle(t, team.restoreTokenCall(targetTime))
+}
+
+func (team Team) downloadBackupBundle(t *testing.T, request apptest.PhysicalRequest) string {
+	t.Helper()
+
+	var responseToken struct {
+		Token string `json:"token"`
+	}
+	team.call(t, physicalResponseSpec{Call: request, Status: http.StatusCreated, Destination: &responseToken})
+	token := responseToken.Token
 	hostPath := filepath.Join(t.TempDir(), "restore.tar")
 	response := team.App.OpenPhysicalAPI(t, apptest.Session{}, apptest.PhysicalDownloadRequest(token))
 	defer func() { _ = response.Body.Close() }()
