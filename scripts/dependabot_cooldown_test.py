@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 class DependabotCooldownTest(unittest.TestCase):
-    def test_ordinary_cooldowns_keep_the_documented_period_and_longer_major_delay(self) -> None:
+    def test_cooldowns_preserve_release_delays_with_supported_fields(self) -> None:
         configuration = (ROOT / ".github/dependabot.yml").read_text()
         periods = {"npm": 7, "gomod": 7, "docker": 14, "github-actions": 7}
 
@@ -15,9 +15,16 @@ class DependabotCooldownTest(unittest.TestCase):
             cooldown = record.split("    cooldown:\n", 1)[1]
 
             with self.subTest(ecosystem=ecosystem):
-                for release_type in ("default-days", "semver-minor-days", "semver-patch-days"):
-                    self.assertRegex(cooldown, rf"(?m)^      {release_type}: {periods[ecosystem]}$")
-                self.assertRegex(cooldown, r"(?m)^      semver-major-days: 30$")
+                self.assertRegex(cooldown, rf"(?m)^      default-days: {periods[ecosystem]}$")
+
+                if ecosystem in ("npm", "gomod"):
+                    for release_type in ("semver-minor-days", "semver-patch-days"):
+                        self.assertRegex(
+                            cooldown, rf"(?m)^      {release_type}: {periods[ecosystem]}$"
+                        )
+                    self.assertRegex(cooldown, r"(?m)^      semver-major-days: 30$")
+                else:
+                    self.assertNotRegex(cooldown, r"(?m)^      semver-")
 
 
 if __name__ == "__main__":
