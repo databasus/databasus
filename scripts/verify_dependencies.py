@@ -7,6 +7,7 @@ from image_pins import verify_image_pins
 from runtime_pins import verify_runtime_pins
 from tool_pins import verify_tool_pins
 from verification_extension_pins import verify_verification_extension_pins
+from workflow_tool_pins import verify_workflow_tool_pins
 
 
 def main() -> int:
@@ -16,6 +17,7 @@ def main() -> int:
     for label, check in (
         ("native lock presence and tool pins", verify_tool_pins),
         ("coordinated runtime versions", verify_runtime_pins),
+        ("workflow tool declarations", verify_workflow_tool_pins),
         ("workflow action commits", verify_action_pins),
         ("known container image digests", verify_image_pins),
         ("verification extension versions and checksums", verify_verification_extension_pins),

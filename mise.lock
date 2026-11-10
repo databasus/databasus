@@ -83,23 +83,6 @@ url = "https://github.com/cli/cli/releases/download/v2.103.3/gh_2.103.3_linux_am
 url_api = "https://api.github.com/repos/cli/cli/releases/assets/679195621"
 provenance = "github-attestations"
 
-[[tools."github:pnpm/pnpm"]]
-version = "12.17.0"
-backend = "github:pnpm/pnpm"
-specifiers = ["12.17.0"]
-
-[tools."github:pnpm/pnpm"."platforms.linux-arm64"]
-checksum = "sha256:ce5a5b95a9974a0bbd713a5ef74416dbcd0e3fdf11f69ea92c5995b9c18ccb47"
-url = "https://github.com/pnpm/pnpm/releases/download/v12.17.0/pnpm-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/692316703"
-provenance = "github-attestations"
-
-[tools."github:pnpm/pnpm"."platforms.linux-x64"]
-checksum = "sha256:2c58959fd5df5cb9f4e72784c08a60ffc7ee558fed9b04b22254e29112203a51"
-url = "https://github.com/pnpm/pnpm/releases/download/v12.17.0/pnpm-linux-x64.tar.gz"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/692316705"
-provenance = "github-attestations"
-
 [[tools.gitleaks]]
 version = "8.30.1"
 backend = "aqua:gitleaks/gitleaks"
@@ -243,6 +226,23 @@ version = "6.0.2"
 aube = { path = ".mise/locks/npm-typescript-language-server/6.0.2", digest = "sha256:c04c228752c1b960fe23a17ede2a5332d60f7a757f2485adadabf23ec0facdf0" }
 backend = "npm:typescript-language-server"
 specifiers = ["6.0.2"]
+
+[[tools.pnpm]]
+version = "12.17.0"
+backend = "github:pnpm/pnpm"
+specifiers = ["12.17.0"]
+
+[tools.pnpm."platforms.linux-arm64"]
+checksum = "sha256:ce5a5b95a9974a0bbd713a5ef74416dbcd0e3fdf11f69ea92c5995b9c18ccb47"
+url = "https://github.com/pnpm/pnpm/releases/download/v12.17.0/pnpm-linux-arm64.tar.gz"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/692316703"
+provenance = "github-attestations"
+
+[tools.pnpm."platforms.linux-x64"]
+checksum = "sha256:2c58959fd5df5cb9f4e72784c08a60ffc7ee558fed9b04b22254e29112203a51"
+url = "https://github.com/pnpm/pnpm/releases/download/v12.17.0/pnpm-linux-x64.tar.gz"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/692316705"
+provenance = "github-attestations"
 
 [[tools.process-compose]]
 version = "1.122.0"

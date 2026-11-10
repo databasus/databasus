@@ -50,7 +50,7 @@ export const runBrowser = async ({
   const mise = await readFile(join(frontendRoot, '../mise.toml'), 'utf8');
   if (
     !mise.includes(`node = "${environment.nodeVersion}"`) ||
-    !mise.includes(`"github:pnpm/pnpm" = "${environment.pnpmVersion}"`)
+    !mise.includes(`pnpm = "${environment.pnpmVersion}"`)
   )
     throw new Error('Browser tool versions disagree with mise.toml');
 

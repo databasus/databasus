@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { mkdtemp, mkdir, writeFile, readdir, rm, cp } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, readdir, rm, cp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -116,6 +116,28 @@ http.createServer((request,response)=>response.end()).listen(0,'127.0.0.1');
 };
 
 describe('Browser runner resource ownership', () => {
+  it('rejects mismatching pnpm versions before starting Docker', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'databasus-browser-version-'));
+    const frontendRoot = join(directory, 'frontend');
+
+    try {
+      await mkdir(join(frontendRoot, 'browser'), { recursive: true });
+      const environment = JSON.parse(await readFile('browser/environment.json', 'utf8'));
+      await writeFile(
+        join(directory, 'mise.toml'),
+        `\n[tools]\nnode = "${environment.nodeVersion}"\npnpm = "0.0.1"\n`,
+      );
+      await writeFile(join(frontendRoot, 'browser/environment.json'), JSON.stringify(environment));
+      const { runBrowser } = await import('./runBrowser.ts');
+
+      await expect(runBrowser({ frontendRoot, args: ['--project=ui'] })).rejects.toThrow(
+        'Browser tool versions disagree with mise.toml',
+      );
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
   it.each([
     {
       architecture: 'x64',

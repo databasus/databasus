@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 
@@ -63,6 +64,7 @@ class DependencyVerificationTest(unittest.TestCase):
             "verification_extension_pins.py",
             "client_bundles.py",
             "read_mise_bootstrap.py",
+            "workflow_tool_pins.py",
         ):
             shutil.copy2(ROOT / "scripts" / name, scripts / name)
 
@@ -160,6 +162,114 @@ class DependencyVerificationTest(unittest.TestCase):
 
         self.assertNotEqual(execution.returncode, 0)
         self.assertIn("missing native lock sidecar", execution.stdout)
+
+    def test_rejects_a_workflow_tool_without_a_declaration(self) -> None:
+        workflow = self.root / ".github/workflows/unknown-tool.yaml"
+        workflow.write_text("install_args: 'unknown-tool'\n")
+
+        execution = self.run_check()
+
+        self.assertNotEqual(execution.returncode, 0)
+        self.assertIn("unknown-tool.yaml:1", execution.stdout)
+        self.assertIn("unknown-tool", execution.stdout)
+
+    def test_accepts_static_workflow_tools_with_exact_global_and_task_versions(self) -> None:
+        workflow = self.root / ".github/workflows/tools.yaml"
+        for arguments in (
+            "'node pnpm go@1.27.3 lefthook@2.2.1 npm:semver'",
+            '"node pnpm" # locked tools',
+            "node pnpm # locked tools",
+        ):
+            with self.subTest(arguments=arguments):
+                workflow.write_text(f"install_args: {arguments}\n")
+
+                execution = self.run_check()
+
+                self.assertEqual(execution.returncode, 0, execution.stdout + execution.stderr)
+
+    def test_rejects_workflow_versions_without_matching_declarations(self) -> None:
+        workflow = self.root / ".github/workflows/tools.yaml"
+        for tool in ("node@latest", "node@0.0.1", "lefthook"):
+            with self.subTest(tool=tool):
+                workflow.write_text(f"install_args: '{tool}'\n")
+
+                execution = self.run_check()
+
+                self.assertNotEqual(execution.returncode, 0)
+                self.assertIn(f"tools.yaml:1: {tool}", execution.stdout)
+                self.assertIn("missing exact mise tool declaration", execution.stdout)
+
+    def test_rejects_a_workflow_version_without_a_native_lock(self) -> None:
+        lockfile = self.root / "mise.lock"
+        lockfile.write_text(lockfile.read_text().replace('version = "2.2.1"', 'version = "0.0.1"'))
+        workflow = self.root / ".github/workflows/tools.yaml"
+        workflow.write_text("install_args: 'lefthook@2.2.1'\n")
+
+        execution = self.run_check()
+
+        self.assertNotEqual(execution.returncode, 0)
+        self.assertIn("tools.yaml:1: lefthook@2.2.1: missing native tool lock", execution.stdout)
+
+    def test_rejects_dynamic_multiline_and_empty_workflow_tool_lists(self) -> None:
+        workflow = self.root / ".github/workflows/tools.yaml"
+        for arguments in (
+            "'node ${{ matrix.tool }}'",
+            ">-\n  node pnpm",
+            "|\n  node pnpm",
+            "node\n  pnpm",
+            "''",
+            "--force node",
+        ):
+            with self.subTest(arguments=arguments):
+                workflow.write_text(f"install_args: {arguments}\n")
+
+                execution = self.run_check()
+
+                self.assertNotEqual(execution.returncode, 0)
+                self.assertIn("tools.yaml:1: unsupported install_args", execution.stdout)
+
+    def test_rejects_pnpm_without_the_github_backend_alias(self) -> None:
+        configuration = self.root / "mise.toml"
+        pinned_configuration = configuration.read_text()
+        for alias in ("", 'pnpm = "aqua:pnpm/pnpm"'):
+            with self.subTest(alias=alias):
+                configuration.write_text(
+                    pinned_configuration.replace('pnpm = "github:pnpm/pnpm"', alias)
+                )
+
+                execution = self.run_check()
+
+                self.assertNotEqual(execution.returncode, 0)
+                self.assertIn("pnpm requires a short tool declaration", execution.stdout)
+
+    def test_rejects_a_backend_alias_that_disagrees_with_the_native_lock(self) -> None:
+        configuration = self.root / "mise.toml"
+        configuration.write_text(
+            configuration.read_text().replace(
+                "[tool_alias]", '[tool_alias]\nnode = "github:nodejs/node"'
+            )
+        )
+
+        execution = self.run_check()
+
+        self.assertNotEqual(execution.returncode, 0)
+        self.assertIn(
+            "node@24.21.0: configured alias and locked backend disagree", execution.stdout
+        )
+
+    def test_rejects_a_missing_download_url_on_either_architecture(self) -> None:
+        lockfile = self.root / "mise.lock"
+        pinned_lockfile = lockfile.read_text()
+        node_lock = tomllib.loads(pinned_lockfile)["tools"]["node"][0]
+        for platform in ("linux-x64", "linux-arm64"):
+            with self.subTest(platform=platform):
+                url = node_lock[f"platforms.{platform}"]["url"]
+                lockfile.write_text(pinned_lockfile.replace(f'url = "{url}"', 'url = ""'))
+
+                execution = self.run_check()
+
+                self.assertNotEqual(execution.returncode, 0)
+                self.assertIn(f"missing {platform} download URL", execution.stdout)
 
     def test_rejects_an_inconsistent_browser_runtime(self) -> None:
         environment = self.root / "frontend/browser/environment.json"

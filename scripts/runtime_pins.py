@@ -25,7 +25,7 @@ def verify_runtime_pins(root: Path) -> None:
         if not versions or any(version != tools[tool] for version in versions):
             raise ValueError(f"{tool}: Docker build and mise runtime versions disagree")
 
-    pnpm_version = tools["github:pnpm/pnpm"]
+    pnpm_version = tools["pnpm"]
     frontend = json.loads((root / "frontend/package.json").read_text())
     website = json.loads((root / "website/package.json").read_text())
     bootstrap = json.loads((root / "tools/pnpm/package.json").read_text())
