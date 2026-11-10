@@ -48,6 +48,8 @@ def refresh_mariadb_bundle(root: Path, selection: MariaDBRefreshSelection) -> No
             if len(payloads) != 1:
                 raise ValueError("MariaDB package requires one native data archive")
 
+            # The data filter rejects paths and links outside the extraction directory.
+            # nosemgrep: trailofbits.python.tarfile-extractall-traversal.tarfile-extractall-traversal
             with tarfile.open(payloads[0]) as payload:
                 payload.extractall(extracted, filter="data")
 

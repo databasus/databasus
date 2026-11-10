@@ -20,6 +20,8 @@ def download_verified_artifact(url: str, destination: Path, sha256: str) -> None
 
     checksum = hashlib.sha256()
     try:
+        # The scheme allowlist above rejects local files; urllib also rejects redirects to file URLs.
+        # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
         with urlopen(url, timeout=60) as response, destination.open("wb") as stream:
             while chunk := response.read(1024 * 1024):
                 checksum.update(chunk)

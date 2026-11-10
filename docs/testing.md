@@ -87,6 +87,24 @@ Tests from every worktree on a machine share one Docker daemon, so nothing a tes
 
 The [testing skill](../.agents/skills/testing/SKILL.md#waiting) defines condition-wait limits and their exceptions; fixed sleeps and `Eventually` are rejected by lint. Move the injected clock when time drives behavior. Go's timeout covers the whole package, so a call that hangs outside a bounded wait can still consume that timeout.
 
+## Physical schema recovery tests
+
+`TestRestorePhysicalSchemaAndSequences` and `TestRestorePhysicalSchemaAndSequencesToTargetTime` in `internal/modules/backups/e2e/postgresqlphysical/pg17` and `pg18` run four recoveries per PostgreSQL version: FULL plus subsequent WAL without incrementals, FULL plus two incrementals and subsequent WAL, and PITR before and after a schema transaction commits. The early target comes after that transaction has executed its DDL but before its commit. Both PITR targets follow the final incremental, and WAL through a later schema transaction is archived before recovery starts.
+
+The shared fixture in `internal/app/apptest/physicaltest` checks created schemas and tables, added and renamed columns, defaults, a type conversion that rewrites rows, indexes, constraints, object renames and deletions, and rolled-back DDL. It compares semantic catalog definitions and stored rows before exercising writes in the recovered cluster. `SchemaRecovery` and `SequenceRecovery` prepare and inspect objects through PostgreSQL connections; future HA scenarios can reuse them without copying assertions or depending on the restore runner's containers.
+
+Sequence coverage includes serial and identity columns, explicit defaults, objects from before and after FULL, both cache settings, forward `setval`, `nextval`, changed parameters and rollback behavior. Recovery checks preserve definitions, prevent reuse of restored IDs and detect a lost forward repositioning. Each sequence's first generated-ID insert runs before standalone allocation probes; its ID and every subsequent allocation must exceed the restored committed IDs. The checks allow native PostgreSQL sequence gaps and do not require the first recovered value to equal the largest stored ID plus one. Cached allocations are also checked across separate connections. After positive recovery assertions, disposable mutations prove that the observations distinguish a missing added column and an altered sequence cache.
+
+Run all eight scenarios from the repository root with the pinned tools and the [Fedora preparation](#commands):
+
+```sh
+source scripts/fedora.sh
+apply_libedit_shim
+TESTCONTAINERS_RYUK_DISABLED=true go -C backend test -count=1 -run '^TestRestorePhysicalSchemaAndSequences' \
+  ./internal/modules/backups/e2e/postgresqlphysical/pg17 \
+  ./internal/modules/backups/e2e/postgresqlphysical/pg18
+```
+
 ## Verification agent end-to-end tests
 
 These tests run the real agent binary against a real backend, proving that they agree on the contract and can restore a backup. The separate agent unit-test command needs neither a container engine nor the test database. [Commands](#commands) lists both runs and the rootful Podman subset; source servers still use Docker in that subset.
