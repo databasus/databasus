@@ -47,7 +47,7 @@
     "color-name": "2.1.0",
     "eslint-plugin-i18next": "^6.1.5",
     "happy-dom": "^21.0.4",
-    "msw": "^2.15.0",
+    "msw": "^3.0.3",
     "openapi-typescript": "7.13.0",
     "oxfmt": "^0.72.0",
     "oxlint": "^1.87.0",
