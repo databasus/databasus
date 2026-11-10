@@ -75,10 +75,13 @@ class FrontendLintExitStatusTest(unittest.TestCase):
         repository_configuration = tomllib.loads((ROOT / "mise.toml").read_text())
         tasks = repository_configuration["tasks"]
         configuration = ["[tools]"]
-        for tool_name in ("node", "github:pnpm/pnpm"):
+        for tool_name in ("node", "pnpm"):
             configuration.append(
                 f"{json.dumps(tool_name)} = {json.dumps(repository_configuration['tools'][tool_name])}"
             )
+        configuration.extend(
+            ("[tool_alias]", f"pnpm = {json.dumps(repository_configuration['tool_alias']['pnpm'])}")
+        )
         for task_name in ("lint", "frontend:lint"):
             configuration.append(f"[tasks.{json.dumps(task_name)}]")
             for field_name in ("run", "dir"):

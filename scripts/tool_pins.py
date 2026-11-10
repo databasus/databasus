@@ -31,6 +31,10 @@ def verify_tool_pins(root: Path) -> None:
             raise ValueError(f"{name}@{version}: missing native tool lock")
 
         record = records[0]
+        backend_alias = configuration.get("tool_alias", {}).get(name)
+        if isinstance(backend_alias, str) and record.get("backend") != backend_alias:
+            raise ValueError(f"{name}@{version}: configured alias and locked backend disagree")
+
         sidecar = record.get("aube") or record.get("uv")
         if sidecar is not None:
             directory = root / sidecar["path"]
@@ -48,6 +52,8 @@ def verify_tool_pins(root: Path) -> None:
                 platform_record = record.get("platforms." + platform, {})
                 if not re.fullmatch(DIGEST, platform_record.get("checksum", "")):
                     raise ValueError(f"{name}@{version}: missing {platform} checksum")
+                if not isinstance(platform_record.get("url"), str) or not platform_record["url"]:
+                    raise ValueError(f"{name}@{version}: missing {platform} download URL")
 
     for manifest, lock in NATIVE_MANIFESTS.items():
         if not (root / manifest).is_file() or not (root / lock).is_file():

@@ -24,7 +24,7 @@ Start with the files below. Check every area affected by the requested update, i
 | Frontend and API generator | `frontend/package.json`, `pnpm-workspace.yaml`, `pnpm-lock.yaml` | npm registry and official project releases |
 | Website | `website/package.json`, `pnpm-workspace.yaml`, `pnpm-lock.yaml` | npm registry and official project releases |
 | Development tools | `mise.toml`, `mise.lock`, referenced `.mise/locks/` sidecars | Vendor releases and the registry used by the mise backend |
-| pnpm installation | `tools/pnpm/package.json`, `package-lock.json`; mise's `github:pnpm/pnpm` declaration | Official pnpm GitHub binaries for mise; the official pnpm npm package for containers |
+| pnpm installation | `tools/pnpm/package.json`, `package-lock.json`; mise's `pnpm` declaration and backend alias | Official pnpm GitHub binaries for mise; the official pnpm npm package for containers |
 | Python browser tests | `e2e/browser/pyproject.toml`, `uv.lock` | PyPI and official project releases |
 | Browser environment | `frontend/browser/environment.json`, browser Dockerfile and Compose configuration | Node distributions and Microsoft Playwright images |
 | CI installer and actions | `tools/dependencies/mise-bootstrap.json`, workflow action commit pins | Official project releases and repositories |
@@ -53,11 +53,11 @@ This procedure covers dependencies from other projects. Treat images built from 
 | Packages, development tools and GitHub Actions | Seven complete days |
 | Container images, database clients and standalone verification extensions | Fourteen complete days |
 
-Use the longer period when several dependencies must be updated together. Ordinary Dependabot updates use the delays configured for them, called cooldowns. Unsolicited major-version proposals for npm and Go modules keep the longer thirty-day delay. Docker and GitHub Actions do not support separate cooldowns by version type, so all their version updates use the default fourteen-day and seven-day delays, respectively. Package managers' minimum-age settings help filter releases where supported.
+Use the longer period when several dependencies must be updated together. Package managers' minimum-age settings help filter releases where supported.
 
 **Check official publication dates yourself.** Age filters may not cover exact version selections, newly selected transitive dependencies or security updates. Review the lock-file changes for unexpected packages, publisher changes and installation scripts.
 
-Report missing dates, uncertain sources and any exception to the waiting period. Explain the reason for an exception. Do not invent dates or use an image's build timestamp as the publication date of its digest. A digest identifies exact image content; the content may have been built before it was published. Ordinary cooldown settings do not guarantee that security updates observe the same delay.
+Report missing dates, uncertain sources and any exception to the waiting period. Explain the reason for an exception. Do not invent dates or use an image's build timestamp as the publication date of its digest. A digest identifies exact image content; the content may have been built before it was published.
 
 Choose the newest patch release that has completed the waiting period within the agreed release line. A patch updates an existing line, such as a later `8.0.x` release. You make this choice; `mise run verify-deps` works offline and does not look up available releases.
 
@@ -109,7 +109,7 @@ mise run frontend:lint
 
 Keep package-manager installation locked too. Do not reintroduce `pnpm dlx` commands that resolve packages independently, global npm installs or package-manager setup without a lock.
 
-mise installs pnpm's official native binary. Container builds install the locked npm dependencies in `tools/pnpm` with lifecycle scripts disabled. They then run pnpm's reviewed installer explicitly to link the locked binary for that platform.
+mise declares pnpm under the short name `pnpm` and maps it to `github:pnpm/pnpm` in `[tool_alias]`. The `pnpm` lockfile entry records that backend and the official native binaries for both Linux architectures, so `mise install --locked node pnpm` uses the same version locally and in CI. Container builds install the locked npm dependencies in `tools/pnpm` with lifecycle scripts disabled. They then run pnpm's reviewed installer explicitly to link the locked binary for that platform.
 
 Dependency overrides and build-script permissions belong in each project's `pnpm-workspace.yaml`. Keep the frontend file among the Docker build inputs and the files used to calculate the browser-environment hash.
 
@@ -151,7 +151,8 @@ mise run verify-deps
 
 Run this from the root or a module directory with the normal Python runtime available. It checks:
 
-- Exact tool versions and the presence of required lock files.
+- Exact tool versions, required lock files, matching backend aliases, and download URLs and checksums for both Linux architectures.
+- Static single-line workflow `install_args` lists against mise declarations and native locks, including explicitly requested task-tool versions. Dynamic or multiline lists require extending the checker before use.
 - Known GitHub Action and container image version declarations.
 - Matching Go, Node, pnpm and Playwright versions across related declarations.
 - Consistent client architectures and builds.
