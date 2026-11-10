@@ -53,7 +53,7 @@ jobs:
 
       - name: Install tools from mise.toml
         if: matrix.language == 'go'
-        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
         with:
           version: ${{ steps.mise-bootstrap.outputs.version }}
           sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
@@ -61,14 +61,14 @@ jobs:
           install_args: 'go'
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4.35.4
+        uses: github/codeql-action/init@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
           queries: security-extended
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4.35.4
+        uses: github/codeql-action/analyze@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
         with:
           category: "/language:${{ matrix.language }}"
 
@@ -92,7 +92,7 @@ jobs:
         uses: ./.github/actions/read-mise-bootstrap
 
       - name: Install tools from mise.toml
-        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
         with:
           version: ${{ steps.mise-bootstrap.outputs.version }}
           sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
@@ -123,7 +123,7 @@ jobs:
         uses: ./.github/actions/read-mise-bootstrap
 
       - name: Install tools from mise.toml
-        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
         with:
           version: ${{ steps.mise-bootstrap.outputs.version }}
           sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
@@ -152,7 +152,7 @@ jobs:
         uses: ./.github/actions/read-mise-bootstrap
 
       - name: Install tools from mise.toml
-        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
         with:
           version: ${{ steps.mise-bootstrap.outputs.version }}
           sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
