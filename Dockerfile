@@ -4,9 +4,10 @@ FROM --platform=$BUILDPLATFORM docker.io/library/node:24.21.0-alpine@sha256:ebfe
 WORKDIR /frontend
 
 COPY tools/pnpm/package.json tools/pnpm/package-lock.json /opt/pnpm/
-RUN npm --prefix /opt/pnpm ci --ignore-scripts --no-audit --no-fund
+RUN npm --prefix /opt/pnpm ci --ignore-scripts --no-audit --no-fund \
+    && node /opt/pnpm/node_modules/pnpm/install.js
 ENV PATH="/opt/pnpm/node_modules/.bin:${PATH}"
-COPY frontend/package.json frontend/pnpm-lock.yaml ./
+COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
 RUN --mount=type=cache,target=/pnpm/store \
   pnpm install --frozen-lockfile --ignore-scripts --store-dir /pnpm/store
 COPY frontend/ ./
@@ -19,7 +20,7 @@ RUN pnpm build
 
 # ========= BUILD BACKEND =========
 # Backend build stage
-FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.26.10@sha256:670bb5aa5349ae03b8516764718486f4f16399134bdc9acd0c46a23f043ab05c AS backend-build
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.27.3@sha256:e519d3b0a5b285e5aa53ab9eef02bc6bbb9cb04608389b743a136a9ce75f0d1e AS backend-build
 
 # Set working directory
 WORKDIR /app
@@ -48,7 +49,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 
 
 # ========= BUILD VERIFICATION AGENT =========
-FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.26.10@sha256:670bb5aa5349ae03b8516764718486f4f16399134bdc9acd0c46a23f043ab05c AS verification-agent-build
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.27.3@sha256:e519d3b0a5b285e5aa53ab9eef02bc6bbb9cb04608389b743a136a9ce75f0d1e AS verification-agent-build
 
 WORKDIR /app
 

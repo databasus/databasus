@@ -154,7 +154,7 @@ class DependencyVerificationTest(unittest.TestCase):
         self.assertIn("SHA256 mismatch", execution.stdout)
 
     def test_rejects_a_missing_native_sidecar(self) -> None:
-        (self.root / ".mise/locks/pnpm/9.15.9/aube-lock.yaml").unlink()
+        (self.root / ".mise/locks/npm-semver/7.8.6/aube-lock.yaml").unlink()
 
         execution = self.run_check()
 

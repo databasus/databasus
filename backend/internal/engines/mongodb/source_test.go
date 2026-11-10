@@ -12,9 +12,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 
 	containers "databasus-backend/internal/lib/testcontainers"
 )
@@ -27,6 +27,7 @@ type supportedServer struct {
 
 func getSupportedServers() []supportedServer {
 	return []supportedServer{
+		{"MongoDB 4.2", Version4, "mongo:4.2"},
 		{"MongoDB 5.0", Version5, "mongo:5.0"},
 		{"MongoDB 6.0", Version6, "mongo:6.0"},
 		{"MongoDB 7.0", Version7, "mongo:7.0"},
@@ -139,7 +140,7 @@ func connectToServer(t *testing.T, endpoint containers.Endpoint, username, passw
 		containers.MongodbAuthDatabase,
 	)
 
-	client, err := mongo.Connect(t.Context(), options.Client().ApplyURI(uri))
+	client, err := mongo.Connect(options.Client().ApplyURI(uri))
 	require.NoError(t, err)
 
 	t.Cleanup(func() { _ = client.Disconnect(getCleanupContext(t)) })

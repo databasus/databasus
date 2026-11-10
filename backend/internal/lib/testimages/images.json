@@ -112,12 +112,12 @@
       },
       "reference": "docker.io/dperson/samba:latest@sha256:66088b78a19810dd1457a8f39340e95e663c728083efa5fe7dc0d40b2478e869"
     },
-    "golang:1.26.10@sha256:670bb5aa5349ae03b8516764718486f4f16399134bdc9acd0c46a23f043ab05c": {
+    "golang:1.27.3@sha256:e519d3b0a5b285e5aa53ab9eef02bc6bbb9cb04608389b743a136a9ce75f0d1e": {
       "platforms": {
-        "linux-arm64": "sha256:220fc85e089da8f6ebdb609cfe9c952e4c0784d525679419ca2bbd53f5a6cdfe",
-        "linux-x64": "sha256:4ddd76d158c062213aaf055513809cdac05a445b2db3a0f12dbb624ed2e577d9"
+        "linux-arm64": "sha256:4f03804fe5085b5e565347663bc51a54177634097cc71e9f816af6c2672f7662",
+        "linux-x64": "sha256:a5406f41680f17b4aa0b49de641e00f116215f5c8829d548d29cb44c4f85aa4f"
       },
-      "reference": "docker.io/library/golang:1.26.10@sha256:670bb5aa5349ae03b8516764718486f4f16399134bdc9acd0c46a23f043ab05c"
+      "reference": "docker.io/library/golang:1.27.3@sha256:e519d3b0a5b285e5aa53ab9eef02bc6bbb9cb04608389b743a136a9ce75f0d1e"
     },
     "mariadb:10.1": {
       "platforms": {
@@ -187,6 +187,13 @@
         "linux-x64": "sha256:d65108d1a8095d8b0c4a5e32bf1807a40a5ce90ff0c78473e1116b1c243235e8"
       },
       "reference": "mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea"
+    },
+    "mongo:4.2": {
+      "platforms": {
+        "linux-arm64": "sha256:b7d03784e85c0ff38f499863a64ab07101d05fd7c2da76d6a6b1850bed2f5dee",
+        "linux-x64": "sha256:e43605102083aca04677b02446d9289ef495b0e97251d298c9840abe1f0256a1"
+      },
+      "reference": "docker.io/library/mongo:4.2@sha256:699d652ed67423d689258bad7b316cf005dfbb82b334118ec306f049042f3717"
     },
     "mongo:5.0": {
       "platforms": {

@@ -59,10 +59,12 @@ class FrontendCiTest(unittest.TestCase):
 
         configuration = tomllib.loads((ROOT / "mise.toml").read_text())
         self.assertIn("node", configuration["tools"])
-        self.assertIn("pnpm", configuration["tools"])
+        self.assertIn("github:pnpm/pnpm", configuration["tools"])
 
         package = json.loads((ROOT / "frontend/package.json").read_text())
-        self.assertEqual(package["packageManager"], f"pnpm@{configuration['tools']['pnpm']}")
+        self.assertEqual(
+            package["packageManager"], f"pnpm@{configuration['tools']['github:pnpm/pnpm']}"
+        )
 
     def test_script_suite_installs_its_frontend_tools_before_discovery(self) -> None:
         job = get_jobs(self.workflow)["test-scripts"]
@@ -142,7 +144,7 @@ class FrontendCiTest(unittest.TestCase):
         self.assertRegex(environment["playwrightImage"], r"@sha256:[a-f0-9]{64}$")
         configuration = tomllib.loads((ROOT / "mise.toml").read_text())
         self.assertEqual(environment["nodeVersion"], configuration["tools"]["node"])
-        self.assertEqual(environment["pnpmVersion"], configuration["tools"]["pnpm"])
+        self.assertEqual(environment["pnpmVersion"], configuration["tools"]["github:pnpm/pnpm"])
 
         package = json.loads((ROOT / "frontend/package.json").read_text())
         self.assertEqual(

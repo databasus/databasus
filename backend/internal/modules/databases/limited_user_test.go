@@ -96,7 +96,8 @@ func TestPostgresqlLimitedUser(t *testing.T) {
 				newPostgresqlLogicalSettings(t, newPostgresqlContainerTarget(postgresServer)))
 
 			response, err := member.Client.CheckLimitedUserWithResponse(t.Context(), newSettingsTarget(
-				tm.workspace.Id, &savedDatabase.Id, newPostgresqlLogicalSettings(t, recorder.getPostgresqlTarget())))
+				tm.workspace.Id, &savedDatabase.Id, newPostgresqlLogicalSettings(t, recorder.getPostgresqlTarget()),
+			))
 
 			require.NoError(t, err)
 			requireInvalidField(t, response.StatusCode(), response.Body, "settings.password")
@@ -112,7 +113,8 @@ func TestPostgresqlLimitedUser(t *testing.T) {
 				newPostgresqlLogicalSettings(t, newPostgresqlContainerTarget(postgresServer)))
 
 			response, err := member.Client.CreateLimitedUserWithResponse(t.Context(), newSettingsTarget(
-				tm.workspace.Id, &savedDatabase.Id, newPostgresqlLogicalSettings(t, recorder.getPostgresqlTarget())))
+				tm.workspace.Id, &savedDatabase.Id, newPostgresqlLogicalSettings(t, recorder.getPostgresqlTarget()),
+			))
 
 			require.NoError(t, err)
 			requireInvalidField(t, response.StatusCode(), response.Body, "settings.password")
@@ -128,7 +130,8 @@ func TestPostgresqlLimitedUser(t *testing.T) {
 				newPostgresqlLogicalSettings(t, newPostgresqlContainerTarget(postgresServer)))
 
 			response, err := viewer.Client.CheckLimitedUserWithResponse(t.Context(), newSettingsTarget(
-				tm.workspace.Id, &savedDatabase.Id, newPostgresqlLogicalSettings(t, recorder.getPostgresqlTarget())))
+				tm.workspace.Id, &savedDatabase.Id, newPostgresqlLogicalSettings(t, recorder.getPostgresqlTarget()),
+			))
 
 			require.NoError(t, err)
 			requireProblem(t, response.StatusCode(), response.Body, http.StatusForbidden,
@@ -146,7 +149,8 @@ func TestPostgresqlLimitedUser(t *testing.T) {
 		)
 
 		response, err := viewer.Client.CreateLimitedUserWithResponse(t.Context(), newSettingsTarget(
-			tm.workspace.Id, &savedDatabase.Id, newPostgresqlLogicalSettings(t, recorder.getPostgresqlTarget())))
+			tm.workspace.Id, &savedDatabase.Id, newPostgresqlLogicalSettings(t, recorder.getPostgresqlTarget()),
+		))
 
 		require.NoError(t, err)
 		requireProblem(t, response.StatusCode(), response.Body, http.StatusForbidden,
@@ -165,7 +169,8 @@ func TestPostgresqlLimitedUser(t *testing.T) {
 
 		response, err := outsider.Client.CheckLimitedUserWithResponse(t.Context(), newSettingsTarget(
 			outsiderWorkspace.Id, &savedDatabase.Id,
-			newPostgresqlLogicalSettings(t, newPostgresqlContainerTarget(postgresServer))))
+			newPostgresqlLogicalSettings(t, newPostgresqlContainerTarget(postgresServer)),
+		))
 
 		require.NoError(t, err)
 		requireProblem(t, response.StatusCode(), response.Body, http.StatusNotFound, apiclient.ProblemCodeNotFound)
@@ -175,7 +180,8 @@ func TestPostgresqlLimitedUser(t *testing.T) {
 		tm := newTeam(t)
 
 		response, err := tm.app.NewClient(t).CreateLimitedUserWithResponse(t.Context(), newSettingsTarget(
-			tm.workspace.Id, nil, newPostgresqlLogicalSettings(t, newPostgresqlContainerTarget(postgresServer))))
+			tm.workspace.Id, nil, newPostgresqlLogicalSettings(t, newPostgresqlContainerTarget(postgresServer)),
+		))
 
 		require.NoError(t, err)
 		requireProblem(t, response.StatusCode(), response.Body, http.StatusUnauthorized,

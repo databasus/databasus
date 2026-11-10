@@ -50,7 +50,7 @@ export const runBrowser = async ({
   const mise = await readFile(join(frontendRoot, '../mise.toml'), 'utf8');
   if (
     !mise.includes(`node = "${environment.nodeVersion}"`) ||
-    !mise.includes(`pnpm = "${environment.pnpmVersion}"`)
+    !mise.includes(`"github:pnpm/pnpm" = "${environment.pnpmVersion}"`)
   )
     throw new Error('Browser tool versions disagree with mise.toml');
 
@@ -61,6 +61,7 @@ export const runBrowser = async ({
     '../tools/pnpm/package-lock.json',
     'package.json',
     'pnpm-lock.yaml',
+    'pnpm-workspace.yaml',
   ];
   const identity = createHash('sha256');
   identity.update(platform);
@@ -86,7 +87,7 @@ export const runBrowser = async ({
   try {
     const context = join(temporaryRoot, 'image');
     await mkdir(context);
-    for (const input of ['package.json', 'pnpm-lock.yaml'])
+    for (const input of ['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml'])
       await cp(join(frontendRoot, input), join(context, input));
     await cp(join(frontendRoot, 'browser/Dockerfile'), join(context, 'Dockerfile'));
     await mkdir(join(context, 'pnpm-bootstrap'));

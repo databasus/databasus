@@ -60,7 +60,8 @@ func TestDatabaseStatusUpdates(t *testing.T) {
 		passwordBefore := getStoredPassword(t, tm, "databases_postgresql_logical", databaseID)
 
 		require.NoError(t, tm.app.RecordBackupFailure(
-			t.Context(), databaseID, "connection refused"))
+			t.Context(), databaseID, "connection refused",
+		))
 
 		databaseAfter := getDatabase(t, tm.owner, databaseID)
 		assert.Equal(t, new("connection refused"), databaseAfter.LastBackupErrorMessage)
@@ -76,9 +77,11 @@ func TestDatabaseStatusUpdates(t *testing.T) {
 			available := databases.HealthStatusAvailable
 
 			successErr := tm.app.RecordBackupSuccess(
-				t.Context(), missingDatabaseID, time.Now().UTC())
+				t.Context(), missingDatabaseID, time.Now().UTC(),
+			)
 			failureErr := tm.app.RecordBackupFailure(
-				t.Context(), missingDatabaseID, "connection refused")
+				t.Context(), missingDatabaseID, "connection refused",
+			)
 			healthErr := tm.app.SetHealthStatus(t.Context(), missingDatabaseID, &available)
 
 			require.ErrorIs(t, successErr, databases.ErrDatabaseNotFound)

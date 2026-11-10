@@ -133,13 +133,11 @@ func newDailyConfig(timeOfDay string) config.LogicalBackupConfig {
 	storageID := uuid.New()
 
 	return config.LogicalBackupConfig{
-		BackupConfig: config.BackupConfig{
-			DatabaseID:           uuid.New(),
-			IsBackupsEnabled:     true,
-			StorageID:            &storageID,
-			Encryption:           config.EncryptionNone,
-			NotificationTriggers: nil,
-		},
+		DatabaseID:           uuid.New(),
+		IsBackupsEnabled:     true,
+		StorageID:            &storageID,
+		Encryption:           config.EncryptionNone,
+		NotificationTriggers: nil,
 		Schedule: schedule.Schedule{
 			Type:           schedule.TypeDaily,
 			TimeOfDay:      &timeOfDay,

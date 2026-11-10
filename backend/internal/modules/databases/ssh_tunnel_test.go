@@ -127,7 +127,8 @@ func TestDatabaseSSHTunnel(t *testing.T) {
 			movedLogical.Password = new(containers.PostgresPassword)
 
 			testResponse, err := tm.owner.Client.TestDatabaseSettingsWithResponse(t.Context(), newSettingsTarget(
-				tm.workspace.Id, &createdDatabase.Id, fromLogicalSettings(t, movedLogical)))
+				tm.workspace.Id, &createdDatabase.Id, fromLogicalSettings(t, movedLogical),
+			))
 
 			require.NoError(t, err)
 			requireInvalidField(t, testResponse.StatusCode(), testResponse.Body, "settings.sshTunnel.password")
@@ -165,7 +166,8 @@ func TestDatabaseSSHTunnel(t *testing.T) {
 			movedLogical.SshTunnel.PrivateKey = nil
 
 			testResult := testUnsavedSettings(t, member, newSettingsTarget(
-				tm.workspace.Id, &createdDatabase.Id, fromLogicalSettings(t, movedLogical)))
+				tm.workspace.Id, &createdDatabase.Id, fromLogicalSettings(t, movedLogical),
+			))
 
 			assert.True(t, testResult.IsConnected, "%v", testResult.Error)
 

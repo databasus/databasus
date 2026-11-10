@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"slices"
 
 	"github.com/google/uuid"
 	"github.com/klauspost/compress/zstd"
@@ -87,8 +88,8 @@ func openArtifact(
 
 	cleanups := []func(){func() { _ = base.Close() }}
 	runCleanup := func() {
-		for i := len(cleanups) - 1; i >= 0; i-- {
-			cleanups[i]()
+		for _, cleanup := range slices.Backward(cleanups) {
+			cleanup()
 		}
 	}
 

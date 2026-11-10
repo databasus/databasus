@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	mysqldriver "github.com/go-sql-driver/mysql"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 
 	"databasus-backend/internal/lib/testwait"
 )
@@ -189,7 +189,7 @@ func createExcludedMysqlTable(ctx context.Context, hostPort int) error {
 }
 
 func createExcludedMongodbCollection(ctx context.Context, hostPort int) error {
-	client, err := mongo.Connect(ctx, options.Client().
+	client, err := mongo.Connect(options.Client().
 		ApplyURI(fmt.Sprintf("mongodb://127.0.0.1:%d/?directConnection=true", hostPort)).
 		SetAuth(options.Credential{
 			Username:   engineSourceUsername,

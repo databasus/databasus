@@ -395,12 +395,10 @@ func StartPhysicalRestoreTarget(t *testing.T, image string) RestoreTarget {
 	}
 
 	req := testcontainers.ContainerRequest{
-		FromDockerfile: testcontainers.FromDockerfile{
-			Context:   contextDir,
-			Repo:      "databasus-test-postgres-restore-target",
-			Tag:       restoreTargetTag(image),
-			KeepImage: true,
-		},
+		Context:      contextDir,
+		Repo:         "databasus-test-postgres-restore-target",
+		Tag:          restoreTargetTag(image),
+		KeepImage:    true,
 		ExposedPorts: []string{postgresPort},
 		Entrypoint:   []string{"sleep", "infinity"},
 		Tmpfs:        map[string]string{"/restore": physicalDataDirTmpfsOptions},

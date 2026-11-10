@@ -34,6 +34,7 @@ const runFixture = async ({
       'browser/environment.json',
       'package.json',
       'pnpm-lock.yaml',
+      'pnpm-workspace.yaml',
     ])
       await cp(resolve(file), join(root, file));
     await cp(resolve('../mise.toml'), join(directory, 'mise.toml'));

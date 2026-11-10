@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -107,8 +108,8 @@ func (s testServer) dropDatabaseAndRoles(t *testing.T, databaseName string, role
 		`CHECKPOINT`,
 	}
 
-	for index := len(roleNames) - 1; index >= 0; index-- {
-		statements = append(statements, fmt.Sprintf(`DROP ROLE IF EXISTS "%s"`, roleNames[index]))
+	for _, roleName := range slices.Backward(roleNames) {
+		statements = append(statements, fmt.Sprintf(`DROP ROLE IF EXISTS "%s"`, roleName))
 	}
 
 	for _, statement := range statements {

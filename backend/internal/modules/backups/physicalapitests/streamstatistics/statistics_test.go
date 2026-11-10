@@ -160,7 +160,8 @@ func TestGetWalStreamStatistics(t *testing.T) {
 		busyArchivedBytes := []int64{30 * segmentBytes, 60 * segmentBytes, 90 * segmentBytes}
 		for sampleIndex, archivedBytes := range busyArchivedBytes {
 			sample := newStreamSample(
-				catalog.DatabaseID, busyBucketStartedAt.Add(time.Duration(sampleIndex+1)*time.Minute))
+				catalog.DatabaseID, busyBucketStartedAt.Add(time.Duration(sampleIndex+1)*time.Minute),
+			)
 			sample.ArchivedWalBytes = archivedBytes
 			catalog.insertSample(t, sample)
 		}

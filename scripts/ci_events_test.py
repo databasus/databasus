@@ -100,6 +100,11 @@ class CiEventsTest(unittest.TestCase):
         self.assertIn("head-ref: ${{ github.sha }}", review_workflow)
         self.assertIn("fail-on-severity: high", review_workflow)
 
+    def test_release_tag_targets_the_checked_commit(self) -> None:
+        release_job = get_jobs((WORKFLOWS / "ci-release.yml").read_text())["release"]
+
+        self.assertIn('--target "$GITHUB_SHA"', release_job)
+
 
 if __name__ == "__main__":
     unittest.main()

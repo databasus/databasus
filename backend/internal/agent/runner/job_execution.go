@@ -229,7 +229,8 @@ func (r *Runner) downloadVerificationBackup(ctx context.Context, spec verificati
 
 func (r *Runner) prepareVerificationRestore(ctx context.Context, spec verificationRestoreSpec) bool {
 	archiveOwnerRoleNames, err := r.restorer.EnsureArchiveOwnerRoles(
-		spec.JobContext, spec.Container, spec.ArchivePath, spec.Container.GetVerifierConn())
+		spec.JobContext, spec.Container, spec.ArchivePath, spec.Container.GetVerifierConn(),
+	)
 	if err != nil {
 		if spec.ReportIfDiskLimitHit() {
 			return false

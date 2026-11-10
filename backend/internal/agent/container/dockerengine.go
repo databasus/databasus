@@ -173,11 +173,9 @@ func toContainerConfigs(spec SpawnSpec) (*container.Config, *container.HostConfi
 				{HostIP: netip.MustParseAddr("127.0.0.1"), HostPort: "0"},
 			},
 		},
-		Resources: container.Resources{
-			NanoCPUs:  spec.NanoCPUs,
-			Memory:    spec.MemoryBytes,
-			PidsLimit: pidsLimit,
-		},
+		NanoCPUs:  spec.NanoCPUs,
+		Memory:    spec.MemoryBytes,
+		PidsLimit: pidsLimit,
 	}
 
 	config := &container.Config{

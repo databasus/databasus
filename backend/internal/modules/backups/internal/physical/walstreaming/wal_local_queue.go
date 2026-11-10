@@ -23,7 +23,8 @@ func listQueuedWalSegments(watchDir string, segmentSizeBytes int64) []queuedWalS
 
 	return append(
 		queuedSegments,
-		listQueuedWalSegmentsIn(filepath.Join(watchDir, pendingUploadDirName), segmentSizeBytes)...)
+		listQueuedWalSegmentsIn(filepath.Join(watchDir, pendingUploadDirName), segmentSizeBytes)...,
+	)
 }
 
 func listQueuedWalSegmentsIn(directory string, segmentSizeBytes int64) []queuedWalSegment {

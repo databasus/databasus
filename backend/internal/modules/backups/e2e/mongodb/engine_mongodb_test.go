@@ -9,9 +9,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 
 	"databasus-backend/internal/app/apptest/enginetest"
 	apiclient "databasus-backend/internal/lib/apiclient"
@@ -30,6 +30,7 @@ func getMongodbVersions() []struct {
 		version apiclient.MongodbVersion
 		image   string
 	}{
+		{"MongoDB 4.2", apiclient.MongodbVersionN4, "mongo:4.2"},
 		{"MongoDB 5.0", apiclient.MongodbVersionN5, "mongo:5.0"},
 		{"MongoDB 6.0", apiclient.MongodbVersionN6, "mongo:6.0"},
 		{"MongoDB 7.0", apiclient.MongodbVersionN7, "mongo:7.0"},
@@ -280,7 +281,7 @@ func connectToMongodb(t *testing.T, endpoint containers.Endpoint, uriOptions str
 	connectCtx, cancelConnect := context.WithTimeout(t.Context(), mongodbConnectTimeout)
 	defer cancelConnect()
 
-	client, err := mongo.Connect(connectCtx, options.Client().ApplyURI(uri))
+	client, err := mongo.Connect(options.Client().ApplyURI(uri))
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = client.Disconnect(context.WithoutCancel(t.Context())) })
 

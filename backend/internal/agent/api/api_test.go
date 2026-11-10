@@ -153,7 +153,8 @@ func TestDownloadBackup(t *testing.T) {
 		)
 
 		body, err := client.DownloadBackup(
-			t.Context(), uuid.MustParse("22222222-2222-2222-2222-222222222222"))
+			t.Context(), uuid.MustParse("22222222-2222-2222-2222-222222222222"),
+		)
 		require.NoError(t, err)
 		t.Cleanup(func() { _ = body.Close() })
 

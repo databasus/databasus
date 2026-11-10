@@ -32,7 +32,8 @@ func (r *Restorer) StageBackupViaExec(
 
 	if result.ExitCode != 0 {
 		return fmt.Errorf(
-			"stage dd exited %d: %s", result.ExitCode, tailString(result.Stderr, 2048))
+			"stage dd exited %d: %s", result.ExitCode, tailString(result.Stderr, 2048),
+		)
 	}
 
 	return nil

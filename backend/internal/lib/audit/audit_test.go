@@ -460,7 +460,7 @@ type scopedCapturer struct {
 func (s *scopedCapturer) Enabled(context.Context, slog.Level) bool { return true }
 
 func (s *scopedCapturer) WithAttrs(attrs []slog.Attr) slog.Handler {
-	return &scopedCapturer{capturer: s.capturer, attrs: append(s.attrs[:len(s.attrs):len(s.attrs)], attrs...)}
+	return &scopedCapturer{capturer: s.capturer, attrs: append(slices.Clip(s.attrs), attrs...)}
 }
 
 func (s *scopedCapturer) WithGroup(string) slog.Handler { return s }

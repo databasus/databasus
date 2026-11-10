@@ -141,7 +141,8 @@ func (rw *Writer) writeBackupDir(
 			iv:         artifact.EncryptionIV,
 			keyID:      artifact.RowID,
 			codec:      catalog.BackupCompressionNone,
-		})
+		},
+	)
 	if err != nil {
 		return err
 	}
@@ -182,7 +183,8 @@ func (rw *Writer) writeManifest(
 			iv:         artifact.ManifestIV,
 			keyID:      artifact.RowID,
 			codec:      catalog.BackupCompressionNone,
-		})
+		},
+	)
 	if err != nil {
 		return err
 	}
@@ -223,7 +225,8 @@ func (rw *Writer) writeWalSegment(
 			iv:         segment.EncryptionIV,
 			keyID:      segment.ID,
 			codec:      catalog.BackupCompressionNone,
-		})
+		},
+	)
 	if err != nil {
 		return err
 	}
@@ -267,7 +270,8 @@ func (rw *Writer) writeHistoryFile(
 			iv:         emptyToNil(metadata.EncryptionIV),
 			keyID:      history.ID,
 			codec:      catalog.BackupCompressionZstd,
-		})
+		},
+	)
 	if err != nil {
 		return err
 	}

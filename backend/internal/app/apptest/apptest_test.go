@@ -687,7 +687,8 @@ func getPhysicalStreamStatistics(
 func openPhysicalSource(t *testing.T, source containers.Endpoint) *pgx.Conn {
 	t.Helper()
 	conn, err := pgx.Connect(t.Context(), fmt.Sprintf(
-		"host=%s port=%d user=testuser password=testpassword dbname=testdb sslmode=disable", source.Host, source.Port))
+		"host=%s port=%d user=testuser password=testpassword dbname=testdb sslmode=disable", source.Host, source.Port,
+	))
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, conn.Close(context.WithoutCancel(t.Context()))) })
 	return conn

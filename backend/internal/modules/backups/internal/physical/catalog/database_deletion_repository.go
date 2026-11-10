@@ -42,7 +42,8 @@ func (r *Repository) GetDatabaseFileReferences(
 
 	for _, segment := range segments {
 		references = append(references, artifactReferences(
-			segment.StorageID, getFileName(segment.FileName), "")...)
+			segment.StorageID, getFileName(segment.FileName), "",
+		)...)
 	}
 
 	var historyFiles []WalHistoryFile
@@ -52,7 +53,8 @@ func (r *Repository) GetDatabaseFileReferences(
 
 	for _, historyFile := range historyFiles {
 		references = append(references, artifactReferences(
-			historyFile.StorageID, historyFile.FileName, "")...)
+			historyFile.StorageID, historyFile.FileName, "",
+		)...)
 	}
 
 	return references, nil

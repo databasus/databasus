@@ -1,0 +1,4 @@
+overrides:
+  openapi-typescript>@redocly/openapi-core: 1.34.23
+allowBuilds:
+  msw@2.15.0: false

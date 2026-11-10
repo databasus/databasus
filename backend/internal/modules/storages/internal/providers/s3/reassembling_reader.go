@@ -353,8 +353,7 @@ func isRetryableReadError(err error) bool {
 		return false
 	}
 
-	var errorResponse minio.ErrorResponse
-	if errors.As(err, &errorResponse) {
+	if errorResponse, isResponseError := errors.AsType[minio.ErrorResponse](err); isResponseError {
 		return errorResponse.StatusCode == http.StatusRequestTimeout ||
 			errorResponse.StatusCode == http.StatusTooManyRequests ||
 			errorResponse.StatusCode >= http.StatusInternalServerError

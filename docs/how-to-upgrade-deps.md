@@ -10,10 +10,10 @@ Review every surface the requested update affects, including new dependencies in
 | --- | --- | --- |
 | Backend | `backend/go.mod`, `go.sum` | Go module/checksum services and upstream releases |
 | Go development tools | `tools/go/<tool>/go.mod`, `go.sum`; compiler in `mise.toml` | The tool's upstream repository and Go services |
-| Frontend and API generator | `frontend/package.json`, `pnpm-lock.yaml` | npm registry and upstream releases |
+| Frontend and API generator | `frontend/package.json`, `pnpm-workspace.yaml`, `pnpm-lock.yaml` | npm registry and upstream releases |
 | Website | `website/package.json`, `package-lock.json` | npm registry and upstream releases; keep npm |
 | Development tools | `mise.toml`, `mise.lock`, referenced `.mise/locks/` sidecars | Vendor releases and the backend's native registry |
-| pnpm bootstrap | `tools/pnpm/package.json`, `package-lock.json`; mise's pnpm declaration | The official pnpm npm package |
+| pnpm bootstrap | `tools/pnpm/package.json`, `package-lock.json`; mise's `github:pnpm/pnpm` declaration | Official pnpm GitHub binaries for mise; the official pnpm npm package for containers |
 | Python browser suite | `e2e/browser/pyproject.toml`, `uv.lock` | PyPI and upstream releases |
 | Browser environment | `frontend/browser/environment.json`, browser Dockerfile and Compose configuration | Node distributions and Microsoft Playwright images |
 | CI installer and actions | `tools/dependencies/mise-bootstrap.json`, workflow action commit pins | Upstream releases and repositories |
@@ -70,6 +70,8 @@ mise run frontend:lint
 ```
 
 Do not restore independently resolved `pnpm dlx`, global npm installs or an unlocked package-manager bootstrap. Review any dependency lifecycle scripts before allowing them; ordinary checks must not turn verification off to make installation succeed.
+
+mise installs pnpm's official native binary. Container builds install the frozen `tools/pnpm` npm graph with lifecycle scripts disabled, then explicitly run pnpm's reviewed installer to link its locked platform binary. Frontend overrides belong in `pnpm-workspace.yaml`; keep it in the Docker build inputs and browser-environment hash.
 
 ## Check clients, images and direct downloads
 

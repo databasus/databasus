@@ -155,16 +155,14 @@ func (s *Service) AddMember(ctx context.Context, actor users.Actor, addition Add
 		}
 
 		addedMember.ListedMember = ListedMember{
-			Member: Member{
-				ID:          uuid.New(),
-				WorkspaceID: addition.WorkspaceID,
-				UserID:      memberUser.ID,
-				Role:        addition.Role,
-				CreatedAt:   s.clock.Now(),
-			},
-			Email:     memberUser.Email,
-			Name:      memberUser.Name,
-			IsInvited: memberUser.Status == users.StatusInvited,
+			ID:          uuid.New(),
+			WorkspaceID: addition.WorkspaceID,
+			UserID:      memberUser.ID,
+			Role:        addition.Role,
+			CreatedAt:   s.clock.Now(),
+			Email:       memberUser.Email,
+			Name:        memberUser.Name,
+			IsInvited:   memberUser.Status == users.StatusInvited,
 		}
 
 		err = s.repository.insert(ctx, addedMember.Member)

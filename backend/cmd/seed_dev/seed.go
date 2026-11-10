@@ -146,7 +146,8 @@ func signInOrSignUp(
 	if signInErr == nil {
 		if signIn.Outcome != "COMPLETED" {
 			return sessionResponse{}, fmt.Errorf(
-				"cannot sign in as %s: the instance requires two-factor sign-in", params.Email)
+				"cannot sign in as %s: the instance requires two-factor sign-in", params.Email,
+			)
 		}
 
 		return sessionResponse{UserID: signIn.UserID, Token: signIn.Token}, nil

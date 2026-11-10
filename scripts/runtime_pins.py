@@ -25,15 +25,16 @@ def verify_runtime_pins(root: Path) -> None:
         if not versions or any(version != tools[tool] for version in versions):
             raise ValueError(f"{tool}: Docker build and mise runtime versions disagree")
 
+    pnpm_version = tools["github:pnpm/pnpm"]
     frontend = json.loads((root / "frontend/package.json").read_text())
     bootstrap = json.loads((root / "tools/pnpm/package.json").read_text())
     browser = json.loads((root / "frontend/browser/environment.json").read_text())
-    if frontend.get("packageManager") != "pnpm@" + tools["pnpm"] or bootstrap.get(
+    if frontend.get("packageManager") != "pnpm@" + pnpm_version or bootstrap.get(
         "dependencies"
-    ) != {"pnpm": tools["pnpm"]}:
+    ) != {"pnpm": pnpm_version}:
         raise ValueError("pnpm bootstrap, frontend and mise versions disagree")
 
-    if browser.get("nodeVersion") != tools["node"] or browser.get("pnpmVersion") != tools["pnpm"]:
+    if browser.get("nodeVersion") != tools["node"] or browser.get("pnpmVersion") != pnpm_version:
         raise ValueError("browser and mise Node/pnpm versions disagree")
 
     python = tomllib.loads((root / "e2e/browser/pyproject.toml").read_text())

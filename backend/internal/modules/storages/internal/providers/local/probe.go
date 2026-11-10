@@ -26,7 +26,7 @@ type ProbeSpec struct {
 func Probe(ctx context.Context, spec ProbeSpec) error {
 	provider := New(Deps{Repositories: Repositories{settings: nil}, Folders: spec.Folders})
 	probeFile := providers.FileAccess{
-		Location: providers.Location{StorageID: uuid.Nil, Settings: Settings{}},
+		StorageID: uuid.Nil, Settings: Settings{},
 		FileName: ".databasus-storage-test-" + uuid.NewString(),
 		Logger:   spec.Logger,
 	}

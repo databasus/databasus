@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"slices"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -207,8 +208,8 @@ func (r *recordingTB) Logf(format string, args ...any) {
 }
 
 func (r *recordingTB) runCleanups() {
-	for cleanupIndex := len(r.cleanups) - 1; cleanupIndex >= 0; cleanupIndex-- {
-		r.cleanups[cleanupIndex]()
+	for _, cleanup := range slices.Backward(r.cleanups) {
+		cleanup()
 	}
 }
 

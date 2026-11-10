@@ -116,7 +116,8 @@ func (c *Config) Validate() (Capacity, error) {
 func (c *Config) DeriveCapacity() (Capacity, error) {
 	if c.MaxConcurrentJobs < 1 {
 		return Capacity{}, fmt.Errorf(
-			"max-concurrent-jobs must be >= 1 (got %d)", c.MaxConcurrentJobs)
+			"max-concurrent-jobs must be >= 1 (got %d)", c.MaxConcurrentJobs,
+		)
 	}
 
 	if c.MaxCPU < 1 {
@@ -129,7 +130,8 @@ func (c *Config) DeriveCapacity() (Capacity, error) {
 
 	if c.MaxRAMMb < minRAMMbPerJob {
 		return Capacity{}, fmt.Errorf(
-			"max-ram-mb must be >= %d (got %d)", minRAMMbPerJob, c.MaxRAMMb)
+			"max-ram-mb must be >= %d (got %d)", minRAMMbPerJob, c.MaxRAMMb,
+		)
 	}
 
 	cpuPerJob := c.MaxCPU / c.MaxConcurrentJobs
@@ -139,14 +141,16 @@ func (c *Config) DeriveCapacity() (Capacity, error) {
 		return Capacity{}, fmt.Errorf(
 			"max-cpu (%d) split across max-concurrent-jobs (%d) yields < 1 CPU per job; "+
 				"lower max-concurrent-jobs or raise max-cpu",
-			c.MaxCPU, c.MaxConcurrentJobs)
+			c.MaxCPU, c.MaxConcurrentJobs,
+		)
 	}
 
 	if ramMbPerJob < minRAMMbPerJob {
 		return Capacity{}, fmt.Errorf(
 			"max-ram-mb (%d) split across max-concurrent-jobs (%d) yields %d MB per job, "+
 				"below the %d MB floor; lower max-concurrent-jobs or raise max-ram-mb",
-			c.MaxRAMMb, c.MaxConcurrentJobs, ramMbPerJob, minRAMMbPerJob)
+			c.MaxRAMMb, c.MaxConcurrentJobs, ramMbPerJob, minRAMMbPerJob,
+		)
 	}
 
 	return Capacity{
@@ -177,7 +181,8 @@ func (c *Config) ValidateTransport(ctx context.Context, log *slog.Logger, isStdi
 
 	default:
 		return fmt.Errorf(
-			"databasus-host must start with https:// or http:// (got scheme %q)", parsed.Scheme)
+			"databasus-host must start with https:// or http:// (got scheme %q)", parsed.Scheme,
+		)
 	}
 }
 
@@ -214,7 +219,8 @@ func (c *Config) consentToInsecureHTTP(ctx context.Context, log *slog.Logger, is
 		return fmt.Errorf(
 			"refusing to use plain HTTP over a non-interactive connection: " +
 				"switch --databasus-host to https:// or pass --allow-insecure-http " +
-				"to accept unencrypted transport")
+				"to accept unencrypted transport",
+		)
 	}
 
 	fmt.Fprint(os.Stderr,

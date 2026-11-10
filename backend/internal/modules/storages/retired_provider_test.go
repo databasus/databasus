@@ -86,17 +86,20 @@ func TestRetiredStorageProvider(t *testing.T) {
 						switch operation {
 						case "create":
 							response, requestErr := actor.Client.CreateStorageWithBodyWithResponse(
-								t.Context(), "application/json", bytes.NewReader(encodedBody))
+								t.Context(), "application/json", bytes.NewReader(encodedBody),
+							)
 							require.NoError(t, requestErr)
 							responseStatus, responseBody = response.StatusCode(), response.Body
 						case "update":
 							response, requestErr := actor.Client.UpdateStorageWithBodyWithResponse(
-								t.Context(), savedStorage.Id, "application/json", bytes.NewReader(encodedBody))
+								t.Context(), savedStorage.Id, "application/json", bytes.NewReader(encodedBody),
+							)
 							require.NoError(t, requestErr)
 							responseStatus, responseBody = response.StatusCode(), response.Body
 						case "test":
 							response, requestErr := actor.Client.TestStorageSettingsWithBodyWithResponse(
-								t.Context(), "application/json", bytes.NewReader(encodedBody))
+								t.Context(), "application/json", bytes.NewReader(encodedBody),
+							)
 							require.NoError(t, requestErr)
 							responseStatus, responseBody = response.StatusCode(), response.Body
 						}
