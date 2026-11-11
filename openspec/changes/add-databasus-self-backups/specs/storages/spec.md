@@ -37,9 +37,11 @@ After ordinary authorization, deletion SHALL check an active Databasus backup de
 
 ### Requirement: A connection test reports its outcome and changes nothing
 
-Testing a saved storage SHALL run its provider's connection check with the stored settings, and SHALL answer `200` with the outcome: connected, or not connected together with the error the storage gave. Each provider keeps the check it runs today: it connects with the settings and reaches the configured location, and the S3 and Azure Blob providers also write a probe object there and remove it. A viewer of the workspace SHALL be allowed to test a saved storage. Except for the recovery-validation transition below, a test SHALL change nothing in the saved storage, its secrets included.
+Testing a saved storage SHALL run its provider's connection check with the stored settings, and SHALL answer `200` with the outcome: connected, or not connected together with the error the storage gave. Except for the extended recovered-local-storage probe below, each provider SHALL keep its existing check; the S3 and Azure Blob providers also write a probe object and remove it. A viewer of the workspace SHALL be allowed to test a saved storage. Except for the recovery-validation transition below, a test SHALL change nothing in the saved storage, its secrets included.
 
 After recovery activation, a successful saved connection test of a recovered local storage SHALL change its `recoveryValidationStatus` from `REQUIRES_VALIDATION` to `AVAILABLE` only when the caller is authorized to edit that storage and the stored settings have not changed since the probe began. This exception SHALL change no settings or secrets. A viewer's test SHALL remain diagnostic only, even when successful, and SHALL NOT validate the recovered storage. Failed tests and tests of unsaved settings SHALL NOT make it available. The recovery pause SHALL block writing probes before activation. The interface SHALL distinguish successful connectivity from recovery validation and explain that an editor must validate a storage that remains unavailable.
+
+For recovered local storage requiring validation, the saved connection test SHALL additionally verify the actual directory used to retain backup files. It SHALL create a unique temporary probe there, write non-empty content, read and verify it, and remove the probe without touching existing backup files. All those steps and the ordinary temporary-storage check SHALL succeed before availability can change. A missing or inaccessible backup directory, a failed write/read or a failed probe removal SHALL report not connected and leave `REQUIRES_VALIDATION` unchanged, even when temporary storage is writable. Probe cleanup SHALL be attempted on failure. This extended probe SHALL apply to viewer tests as well, without granting viewers a validation transition.
 
 #### Scenario: Test of a working storage
 
@@ -66,6 +68,12 @@ After recovery activation, a successful saved connection test of a recovered loc
 
 - **WHEN** an authorized editor tests a recovered local storage after activation and the probe fails
 - **THEN** the response reports not connected with a safe diagnostic and the storage remains `REQUIRES_VALIDATION`
+
+#### Scenario: Temporary storage is writable but the backup directory is inaccessible
+
+- **WHEN** an editor tests a recovered local storage after activation and its temporary directory is writable but its actual backup directory is inaccessible
+- **THEN** the response reports not connected and identifies the backup-directory access failure safely
+- **AND** the storage remains `REQUIRES_VALIDATION`, with its settings, secrets and existing backup files unchanged
 
 #### Scenario: Settings change during a validation probe
 

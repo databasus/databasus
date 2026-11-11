@@ -37,28 +37,59 @@ Schema identity SHALL contain a digest of the ordered migration bundle and the e
 - **THEN** recovery accepts the Databasus backup file and preserves those historical entries without rerunning or deleting them
 - **AND** no application migration is applied as part of recovery
 
-### Requirement: Startup recovery accepts mounted archive and key files only on an unused target
+### Requirement: Startup recovery accepts mounted files on a fresh or automatically initialized target
 
-The supplied Docker deployment SHALL support startup recovery from an archive file and a separate master-key file supplied through paths in a mounted volume, including the persistent data volume. Both paths SHALL be required together. A new startup recovery SHALL run before normal application initialization, SHALL require an unused target, and SHALL NOT overwrite an existing installation. It SHALL authenticate and validate the complete archive before publishing recovered state. A wrong key, truncated or modified archive, incompatible schema or failed import SHALL leave no apparently usable partial installation.
+The supplied Docker deployment SHALL support startup recovery from an archive file and a separate master-key file supplied through paths in a mounted volume, including the persistent data volume. Both paths SHALL be required together. A new startup recovery SHALL run before normal application initialization and SHALL accept either a fresh target or one whose state was created entirely by automatic initialization. Previous ordinary starts, existing application tables, recorded migrations, unmodified default settings and an automatically generated target master key SHALL NOT by themselves prevent recovery. Supplying both files and configuring both paths after an ordinary start SHALL permit recovery at the next start without deleting the volume, provided the target still meets these conditions. Adding files alone SHALL NOT trigger recovery in a running instance.
+
+Startup recovery SHALL refuse to replace a target containing any user account, including a sole root account, other user data or user-changed persisted settings. Checking only account count SHALL NOT establish eligibility. Unknown or unverifiable state SHALL be refused, and exclusive publication SHALL recheck eligibility so concurrently created user state cannot be overwritten. The newer-schema refusal SHALL remain in force. An ineligible target SHALL remain unchanged and the refusal SHALL direct the owner to confirmed UI import or a separate fresh target.
+
+Recovery SHALL authenticate and validate the complete archive before publishing recovered state. A wrong key, truncated or modified archive, incompatible schema or failed import SHALL preserve any existing target database and key and SHALL leave no apparently usable partial recovered installation. On success, the source key SHALL replace an automatically generated target key only as part of consistent publication.
 
 #### Scenario: Recovery on a fresh target
 
-- **WHEN** the owner supplies a valid archive and its correct key to an unused target of the exact source release
+- **WHEN** the owner supplies a valid archive and its correct key to a fresh target of the exact source release
 - **THEN** startup recovers the snapshot and installs that key before opening the recovered application
 
-#### Scenario: Recovery on an existing installation
+#### Scenario: Owner adds recovery files after the first ordinary start
 
-- **WHEN** the target already contains an installation
-- **THEN** recovery is refused without changing its accounts, data or key
+- **WHEN** the owner starts Databasus normally without recovery inputs, stops it without creating accounts, user data or changing persisted settings, then adds the archive and source key to the same mounted volume and restarts the exact source release with both paths configured
+- **THEN** startup accepts the automatically initialized target without requiring deletion of its volume
+- **AND** successful recovery replaces its automatically generated key with the exact source key and opens the recovered instance paused
+
+#### Scenario: A root account exists without workspace data
+
+- **WHEN** the target contains only a user-created root account in addition to automatically initialized state
+- **THEN** startup recovery is refused without changing the account, database or key
+- **AND** the owner is directed to confirmed UI import or a separate fresh target
+
+#### Scenario: No account exists but persisted user state remains
+
+- **WHEN** the target has no accounts but contains user data or user-changed persisted settings
+- **THEN** startup recovery is refused without changing that state or its key
+
+#### Scenario: Target state cannot be classified safely
+
+- **WHEN** recovery cannot establish that the target contains only known automatic initialization state
+- **THEN** it refuses recovery without changing the target database or key
+
+#### Scenario: User state appears before publication
+
+- **WHEN** a target passes initial eligibility checks but another process creates user state before exclusive publication
+- **THEN** publication is refused and preserves the new user state and target key
+
+#### Scenario: Automatically initialized target has a newer schema
+
+- **WHEN** the target has only automatic initialization state but records migrations newer than the running image carries
+- **THEN** startup recovery refuses without replacing the database or key and retains the newer-schema diagnostic
 
 #### Scenario: Damaged archive or incorrect key
 
 - **WHEN** the archive is corrupted or the supplied key does not decrypt it
-- **THEN** recovery fails without activating partial recovered state or replacing an existing key
+- **THEN** recovery fails without activating partial recovered state or replacing an existing database or key, including an automatically initialized target's key
 
 ### Requirement: Completed startup recovery is deduplicated by archive content
 
-Startup recovery SHALL identify an archive by SHA-256 of the complete encrypted file. Successful consumption SHALL survive replacement of snapshot state and SHALL be recorded only after the database, exact source key and recovery pause are durably published. Restarting with the same successfully consumed archive SHALL start the current installation without importing it again, even when the file is renamed, an explicit UI import has since replaced the snapshot or the application is being upgraded normally. A different archive at the same configured path SHALL NOT be treated as consumed and SHALL be refused on a used target. A failed attempt SHALL NOT be marked successfully consumed. An interrupted accepted recovery SHALL resume or finish its recorded publication safely rather than begin another import. A deliberate new UI import of identical bytes SHALL remain possible; retries of one accepted operation SHALL NOT publish it twice.
+Startup recovery SHALL identify an archive by SHA-256 of the complete encrypted file. Successful consumption SHALL survive replacement of snapshot state and SHALL be recorded only after the database, exact source key and recovery pause are durably published. Restarting with the same successfully consumed archive SHALL start the current installation without importing it again, even when the file is renamed, an explicit UI import has since replaced the snapshot or the application is being upgraded normally. A different archive at the same configured path SHALL NOT be treated as consumed and SHALL be refused on a target containing user accounts, user data or user-changed settings. A failed attempt SHALL NOT be marked successfully consumed. An interrupted accepted recovery SHALL resume or finish its recorded publication safely rather than begin another import. A deliberate new UI import of identical bytes SHALL remain possible; retries of one accepted operation SHALL NOT publish it twice.
 
 #### Scenario: Restart with unchanged startup inputs
 
@@ -114,7 +145,7 @@ Preparation SHALL authenticate the entire archive, validate release and schema c
 
 ### Requirement: UI replacement requires current root authorization and explicit confirmation
 
-Upload, preparation status, cancellation and apply SHALL require the target installation's current root admin; other administrators and workspace members SHALL be refused. Applying SHALL require a recent single-use password or email identity proof bound to the current root account/session, that recovery operation and the immutable archive content. The owner SHALL explicitly confirm replacement after seeing the snapshot date, source version and warning that current users, settings and backup catalog will be replaced. Possession of the source key alone SHALL NOT authorize replacement. Invalid, expired, reused or wrong-purpose proofs SHALL NOT apply an import. If root cannot provide password or email proof, the interface SHALL explain the mounted-file startup path instead.
+Upload, preparation status, cancellation and apply SHALL require the target installation's current root admin; other administrators and workspace members SHALL be refused. Applying SHALL require a recent single-use password or email identity proof bound to the current root account/session, that recovery operation and the immutable archive content. The owner SHALL explicitly confirm replacement after seeing the snapshot date, source version and warning that current users, settings and backup catalog will be replaced. Possession of the source key alone SHALL NOT authorize replacement. Invalid, expired, reused or wrong-purpose proofs SHALL NOT apply an import. If root cannot provide password or email proof, the interface SHALL explain mounted-file startup recovery into a separate fresh target; it SHALL NOT imply that mounted files can replace the current account-bearing target.
 
 #### Scenario: Another administrator imports an archive
 
@@ -223,7 +254,7 @@ Recovery SHALL end operations that were in progress at the snapshot as interrupt
 
 Recovered local storages SHALL expose a requires-validation state and an explanation that the original host files were not restored by the Databasus backup. Activation alone SHALL NOT make them available. Until a successful validation, automated and manual backup writes, backup reads/downloads/restores and file cleanup against them SHALL be blocked with an explicit storage-unavailable outcome. Other validated destinations SHALL continue to operate independently.
 
-After activation, the existing saved connection-test action SHALL be the only file-access exception to the unavailable state. It SHALL check the configured local location and its read/write access using a probe. A successful probe by a user authorized to edit that storage SHALL make it available only if its saved settings have not changed since the probe began. Viewers SHALL retain permission to test saved storages, but their results SHALL remain diagnostic only and SHALL NOT change availability. The interface SHALL explain when an editor's validation is still required. A failed probe SHALL retain the unavailable state and show a safe failure reason. Before instance activation the recovery pause SHALL still block a writing probe. Validation SHALL NOT claim that missing historical backup files were recovered.
+After activation, the existing saved connection-test action SHALL be the only file-access exception to the unavailable state. In addition to the ordinary temporary-storage check, it SHALL verify the actual backup directory by creating a unique probe, writing non-empty content, reading and verifying it, and removing the probe without changing existing backups. Every step SHALL succeed; writable temporary storage alone SHALL NOT establish backup-directory access. A successful probe by a user authorized to edit that storage SHALL make it available only if its saved settings have not changed since the probe began. Viewers SHALL retain permission to test saved storages with the same extended probe, but their results SHALL remain diagnostic only and SHALL NOT change availability. The interface SHALL explain when an editor's validation is still required. A failed probe SHALL attempt cleanup, retain the unavailable state and show a safe failure reason. Before instance activation the recovery pause SHALL still block a writing probe. Validation SHALL NOT claim that missing historical backup files were recovered.
 
 #### Scenario: Activation leaves local storage unvalidated
 
@@ -240,6 +271,12 @@ After activation, the existing saved connection-test action SHALL be the only fi
 
 - **WHEN** validation cannot read or write the configured local location
 - **THEN** the storage remains unavailable with a safe diagnostic and its backup, restore/download and cleanup operations stay blocked
+
+#### Scenario: Backup directory is inaccessible despite writable temporary storage
+
+- **WHEN** an authorized editor tests a recovered local storage after activation and its temporary directory is writable but the actual backup directory is inaccessible
+- **THEN** validation fails and the storage remains `REQUIRES_VALIDATION`
+- **AND** its settings, secrets and existing backup files stay unchanged and ordinary storage operations remain blocked
 
 #### Scenario: Viewer tests connectivity without validating recovery
 
