@@ -300,7 +300,7 @@ func (r *reassemblingReader) resumeAfterFailure(cause error) error {
 		return errors.Join(cause, err)
 	}
 
-	if !isRetryableReadError(cause) {
+	if !isRetryableTransferError(cause) {
 		return cause
 	}
 
@@ -346,7 +346,7 @@ func (r *reassemblingReader) abandonAttempt() {
 	}
 }
 
-func isRetryableReadError(err error) bool {
+func isRetryableTransferError(err error) bool {
 	if errors.Is(err, io_utils.ErrRangeNotHonoured) ||
 		errors.Is(err, ErrChunkSizeMismatch) ||
 		errors.Is(err, ErrChunkChecksumMismatch) {

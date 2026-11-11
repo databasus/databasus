@@ -18,6 +18,8 @@ import (
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+
+	io_utils "databasus-backend/internal/lib/iox"
 )
 
 // bucket is one S3 storage while a call runs: the settings it was called with and the provider
@@ -149,7 +151,7 @@ func (b *bucket) saveFile(ctx context.Context, logger *slog.Logger, fileName str
 	logger.DebugContext(ctx, "stream exceeds one part, saving to s3 as a chunked object",
 		slog.Any("file_name", fileName), slog.Any("object_key", baseKey))
 
-	if err := b.uploadChunked(ctx, coreClient, client, baseKey, source); err != nil {
+	if err := b.uploadChunked(ctx, logger, coreClient, client, baseKey, source); err != nil {
 		logger.ErrorContext(ctx, "failed to save chunked file to s3", slog.Any("file_name", fileName),
 			slog.Any("object_key", baseKey), slog.Any("error", err))
 
@@ -489,6 +491,7 @@ func (b *bucket) uploadSingleObject(
 
 func (b *bucket) uploadChunked(
 	ctx context.Context,
+	logger *slog.Logger,
 	coreClient *minio.Core,
 	client *minio.Client,
 	baseKey string,
@@ -557,6 +560,7 @@ func (b *bucket) uploadChunked(
 
 			if err := b.putInnerPart(
 				ctx,
+				logger,
 				coreClient,
 				objectKey,
 				uploadID,
@@ -619,8 +623,13 @@ func (b *bucket) uploadChunked(
 	return nil
 }
 
+// putInnerPart retries a failed part with backoff on top of the client's own retries. The client gives
+// up after about ten seconds, while a provider can answer 503 for longer than that, and one lost part
+// fails a backup that may have been streaming for hours. The part is still in memory, so sending it
+// again under the same part number is safe.
 func (b *bucket) putInnerPart(
 	ctx context.Context,
+	logger *slog.Logger,
 	coreClient *minio.Core,
 	objectKey string,
 	uploadID string,
@@ -633,29 +642,54 @@ func (b *bucket) putInnerPart(
 	// nosemgrep: go.lang.security.audit.crypto.use_of_weak_crypto.use-of-md5
 	partMd5 := md5.Sum(partData)
 	md5Base64 := base64.StdEncoding.EncodeToString(partMd5[:])
+	retryPolicy := io_utils.NewReadRetryPolicy(b.provider.partUploadRetry)
 
-	part, err := coreClient.PutObjectPart(
-		ctx,
-		b.settings.Bucket,
-		objectKey,
-		uploadID,
-		partNumber,
-		bytes.NewReader(partData),
-		int64(len(partData)),
-		minio.PutObjectPartOptions{Md5Base64: md5Base64},
-	)
-	if err != nil {
+	for {
+		part, err := coreClient.PutObjectPart(
+			ctx,
+			b.settings.Bucket,
+			objectKey,
+			uploadID,
+			partNumber,
+			bytes.NewReader(partData),
+			int64(len(partData)),
+			minio.PutObjectPartOptions{Md5Base64: md5Base64},
+		)
+		if err == nil {
+			objectHasher.Write(partData)
+			*parts = append(*parts, minio.CompletePart{PartNumber: partNumber, ETag: part.ETag})
+
+			return nil
+		}
+
 		if ctx.Err() != nil {
 			return fmt.Errorf("upload cancelled: %w", ctx.Err())
 		}
 
-		return fmt.Errorf("failed to upload part %d of %s: %w", partNumber, objectKey, err)
+		if !isRetryableTransferError(err) {
+			return fmt.Errorf("failed to upload part %d of %s: %w", partNumber, objectKey, err)
+		}
+
+		retryPolicy.RegisterFailedAttempt(false)
+
+		if retryPolicy.IsExhausted() {
+			return fmt.Errorf(
+				"failed to upload part %d of %s after %d attempts: %w",
+				partNumber, objectKey, retryPolicy.GetAttemptsSinceProgress(), err,
+			)
+		}
+
+		logger.WarnContext(ctx, "s3 part upload failed, retrying",
+			slog.String("object_key", objectKey),
+			slog.Int("part_number", partNumber),
+			slog.Int("attempt", retryPolicy.GetAttemptsSinceProgress()),
+			slog.Int("max_attempts", retryPolicy.GetMaxAttemptsWithoutProgress()),
+			slog.Any("error", err))
+
+		if err := retryPolicy.WaitBeforeRetry(ctx); err != nil {
+			return fmt.Errorf("upload cancelled: %w", err)
+		}
 	}
-
-	objectHasher.Write(partData)
-	*parts = append(*parts, minio.CompletePart{PartNumber: partNumber, ETag: part.ETag})
-
-	return nil
 }
 
 func (b *bucket) putObjectOptions() minio.PutObjectOptions {

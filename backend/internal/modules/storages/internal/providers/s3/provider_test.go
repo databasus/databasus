@@ -8,9 +8,12 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/http/httputil"
+	"net/url"
 	"reflect"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -21,6 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	test_utils "databasus-backend/internal/lib/httpclienttest"
+	io_utils "databasus-backend/internal/lib/iox"
 	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/modules/storages/internal/providers"
 	"databasus-backend/internal/modules/storages/internal/providers/providertest"
@@ -438,6 +442,59 @@ func TestSaveFile(t *testing.T) {
 		reassembledBytes := readWholeFile(t, testedBucket, fileName)
 		assert.Equal(t, persistedBytes, reassembledBytes)
 	})
+
+	t.Run("saves the file when part uploads fail with 503 longer than the client retries", func(t *testing.T) {
+		rawClient, minioBucket := setupChunkedBucket(t)
+		proxy := startPartUploadFailingProxy(t, minioBucket.settings.Endpoint, partUploadFailure{
+			status: http.StatusServiceUnavailable,
+			code:   "ServiceUnavailable",
+			count:  int32(minio.MaxRetry),
+		})
+		testedBucket := newProxiedBucket(t, minioBucket, proxy)
+
+		// 12 MiB with 5 MiB parts and 2 parts/object: three parts, so the stream is chunked and the
+		// failures land on the first part of the first object.
+		persistedBytes := generateBytes(12 * 1024 * 1024)
+		fileName := uuid.NewString()
+
+		require.NoError(
+			t,
+			testedBucket.provider.SaveFile(t.Context(), testedBucket.access(fileName), bytes.NewReader(persistedBytes)),
+		)
+
+		assert.Equal(t, int32(minio.MaxRetry)+3, proxy.partUploads.Load())
+		assert.ElementsMatch(t, []string{
+			fileName + ".part000001",
+			fileName + ".part000002",
+			fileName + manifestSuffix,
+		}, listObjectKeys(t, rawClient, minioBucket.settings.Bucket, fileName))
+
+		reassembledBytes := readWholeFile(t, minioBucket, fileName)
+		assert.Equal(t, persistedBytes, reassembledBytes)
+	})
+
+	t.Run("returns an error without retrying when a part upload is rejected with 403", func(t *testing.T) {
+		rawClient, minioBucket := setupChunkedBucket(t)
+		proxy := startPartUploadFailingProxy(t, minioBucket.settings.Endpoint, partUploadFailure{
+			status: http.StatusForbidden,
+			code:   s3ErrCodeAccessDenied,
+			count:  int32(minio.MaxRetry) * 10,
+		})
+		testedBucket := newProxiedBucket(t, minioBucket, proxy)
+
+		persistedBytes := generateBytes(12 * 1024 * 1024)
+		fileName := uuid.NewString()
+
+		err := testedBucket.provider.SaveFile(
+			t.Context(),
+			testedBucket.access(fileName),
+			bytes.NewReader(persistedBytes),
+		)
+
+		require.Error(t, err)
+		assert.Equal(t, int32(1), proxy.partUploads.Load())
+		assert.Empty(t, listObjectKeys(t, rawClient, minioBucket.settings.Bucket, fileName))
+	})
 }
 
 func TestTestConnection(t *testing.T) {
@@ -719,6 +776,71 @@ func readWholeFile(t *testing.T, testedBucket *testBucket, fileName string) []by
 	require.NoError(t, err)
 
 	return content
+}
+
+type partUploadFailure struct {
+	status int
+	code   string
+	count  int32
+}
+
+// partUploadFailingProxy fronts MinIO with a failure MinIO cannot produce: the first failure.count
+// part uploads get failure.status, and every other request passes through unchanged.
+type partUploadFailingProxy struct {
+	server      *httptest.Server
+	partUploads atomic.Int32
+}
+
+func startPartUploadFailingProxy(
+	t *testing.T,
+	minioEndpoint string,
+	failure partUploadFailure,
+) *partUploadFailingProxy {
+	t.Helper()
+
+	minioURL, err := url.Parse(minioEndpoint)
+	require.NoError(t, err)
+
+	// The proxy keeps the incoming Host header, so the client's signature still matches at MinIO.
+	reverseProxy := httputil.NewSingleHostReverseProxy(minioURL)
+	proxy := &partUploadFailingProxy{}
+
+	proxy.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		isPartUpload := r.Method == http.MethodPut && r.URL.Query().Has("partNumber")
+		if !isPartUpload || proxy.partUploads.Add(1) > failure.count {
+			reverseProxy.ServeHTTP(w, r)
+			return
+		}
+
+		_, _ = io.Copy(io.Discard, r.Body)
+		writeXMLResponse(
+			w,
+			failure.status,
+			fmt.Sprintf("<Error><Code>%s</Code><Message>%s</Message></Error>", failure.code, failure.code),
+		)
+	}))
+	t.Cleanup(proxy.server.Close)
+
+	return proxy
+}
+
+// newProxiedBucket is minioBucket reached through the proxy, with retry delays shrunk so a test does
+// not wait out the production backoff.
+func newProxiedBucket(t *testing.T, minioBucket *testBucket, proxy *partUploadFailingProxy) *testBucket {
+	t.Helper()
+
+	proxiedBucket := newTestBucket(t, Settings{
+		Bucket:   minioBucket.settings.Bucket,
+		Region:   minioBucket.settings.Region,
+		Endpoint: proxy.server.URL,
+	})
+	proxiedBucket.provider.partLayout = minioBucket.provider.partLayout
+	proxiedBucket.provider.partUploadRetry = io_utils.ReadRetryPolicySpec{
+		MaxAttemptsWithoutProgress: 0,
+		BaseDelay:                  time.Millisecond,
+	}
+
+	return proxiedBucket
 }
 
 func listObjectKeys(t *testing.T, client *minio.Client, bucketName, prefix string) []string {

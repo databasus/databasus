@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"databasus-backend/internal/lib/crypto"
+	io_utils "databasus-backend/internal/lib/iox"
 	"databasus-backend/internal/modules/storages/internal/providers"
 )
 
@@ -19,6 +20,9 @@ type Provider struct {
 	transports     sharedTransports
 	bucketRegions  *bucketRegionCache
 	partLayout     partLayout
+	// partUploadRetry is the backoff for one part upload. The zero value takes the iox defaults, ten
+	// retries with a delay doubling from one second up to 30 seconds; tests shrink the delay.
+	partUploadRetry io_utils.ReadRetryPolicySpec
 }
 
 // partLayout is how a file is split into objects. Tests shrink it, because rolling at the production
