@@ -9,8 +9,8 @@ through the saved endpoint; it does not call Patroni to choose a primary.
 Enable data checksums and WAL summaries for PostgreSQL physical incremental
 backups. Keep `fsync`, `full_page_writes` and `synchronous_commit` enabled.
 For an asynchronous replica, a successful client commit alone does not prove
-that the replica has received it. The test fixture checks replay of a committed
-marker and its post-commit flush LSN before switching or killing the primary.
+that the replica has received it. Data not replayed on the promoted replica
+can be lost when the primary changes.
 
 ## Access and external slot ownership
 
@@ -19,8 +19,8 @@ user through Databasus, then save that user's credentials for backups. The
 replication-only user can perform physical backups and WAL reception without
 becoming a superuser or reading ordinary application tables. Its privileges
 replicate with the PostgreSQL catalog and remain restricted after promotion.
-Keep the source's normal TLS and HBA policy; the fixture's isolated, loopback
-published endpoints use SCRAM authentication without TLS.
+Keep the source's normal TLS and HBA policy. Test-network authentication
+settings are not a deployment recommendation.
 
 Databasus owns its physical replication slot. Before enabling WAL reception,
 inspect the saved slot name in Databasus's internal database. The user API does
@@ -73,29 +73,19 @@ full backup is unavailable: restore-token creation returns
 PITR eligibility follows source transaction timestamps in the selected
 timeline's contiguous published WAL. A delayed upload of old WAL cannot extend
 that timeline into the promotion gap. Inclusive recovery needs a transaction
-strictly later than the target, so the reported bound is one microsecond before
-the latest confirming transaction. WAL catalog rows without timestamp evidence
-do not extend that bound beyond a completed backup; latest recovery and explicit
-completed-backup recovery remain available.
+strictly later than the target to confirm coverage. WAL without that evidence
+does not extend the time bound beyond a completed backup; latest recovery and
+explicit completed-backup recovery remain available. [Physical backup
+operations](../openspec/specs/physical-backups/operations/spec.md) define the
+exact coverage and failure behavior.
 
 The recovery script prepares an independent PostgreSQL instance. It removes
 inherited primary connection settings, standby/recovery signals and competing
 recovery targets from copied configuration, and disables source archiving.
-This covers assignments with or without `=` and follows local `include`,
-`include_if_exists` and `include_dir` directives. Directly included files are
-processed regardless of filename extension.
-Absolute includes below the source `data_directory` recorded in the copied
-configuration are rebased to relative paths inside the restored directory.
-The script finds that setting through local includes before sanitization,
-including when an absolute include appears before its declaration.
-Source-local HBA and ident paths are rebased to their copied files, including
-files in subdirectories when the default root-level files are absent. Copied
-default files remain usable for source-specific authentication overrides.
-A referenced copied authentication file takes precedence over an unrelated
-root-level default.
-Authentication paths point under the prepared local PGDATA or, with
-`--combine-image`, the selected image's PGDATA. Recovery uses only the selected
-backup and downloaded WAL; the former primary need not be reachable.
+Included configuration and authentication files copied inside the source's
+data directory are prepared for the local target, including paths that differ
+from PostgreSQL's defaults. Recovery uses only the selected backup and
+downloaded WAL; the former primary need not be reachable.
 
 Configuration stored outside the source's data directory is not in the physical
 backup. The recovery script reports the missing files. Prepare an independent
@@ -105,21 +95,13 @@ policy without changing the source configuration.
 
 ## Verified environment
 
-Local verification on 2026-11-11 ran PostgreSQL 17.11 and 18.6 on Linux amd64.
-The fixture uses two real PostgreSQL nodes managed by Patroni 4.1.5,
-etcd 3.6.16 and HAProxy 3.2.26. Dependency references, publication dates and
-the hash-locked Python dependency selection are recorded in the
-[fixture dependency manifest](../backend/internal/lib/testcontainers/testdata/patroni/README.md).
+The [recorded verification](../openspec/changes/archive/2026-11-11-verify-postgresql-patroni-wal/verification.md)
+owns the exercised versions, architecture, scenarios and results. The
+[fixture README](../backend/internal/lib/testcontainers/testdata/patroni/README.md)
+owns its dependency records; [testing guidance](testing.md#patroni-physical-backup-tests)
+provides the command and prerequisites.
 
-The matrix covers PostgreSQL 17 and 18: initial recovery, two planned
-switchovers, abrupt primary loss, interrupted full and incremental transfers,
-routing outages, external slot survival and loss, independent recovery and
-retention. It checks rows, schema definitions, sequences and generated-ID writes
-after actually starting the restored server. The two-switchover cases also
-require PostgreSQL to read the published timeline history during recovery.
-
-See [the test command and prerequisites](testing.md#patroni-physical-backup-tests).
-No native arm64 scenario execution is claimed. The added arm64 `pg_waldump`
-binaries were started through QEMU with the Debian bookworm runtime ABI.
-These container tests do not establish Kubernetes, operator, multi-datacenter,
-network-partition or every Patroni configuration's behavior.
+Those results do not establish native arm64 scenario execution or the behavior
+of Kubernetes, operators, multiple data centers, network partitions or every
+Patroni configuration. Starting a client binary under emulation does not
+establish recovery behavior on that architecture.

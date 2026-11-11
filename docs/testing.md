@@ -36,42 +36,31 @@ Paths under `internal/` are inside `backend/`. The table distinguishes the test 
 
 ## The test application
 
-Backend tests share one idea: `apptest.New(t)` builds the whole backend with `app.New`, the same function the server uses. A test therefore sees the real routing, middleware, modules and wiring, and it owns everything the instance uses:
+Backend tests build the same application composition as the server, so they exercise real routing, middleware, modules and wiring. Each instance owns an isolated internal database, directories, encryption key, service state and lifecycle. External systems use the substitutes permitted by the [testing skill](../.agents/skills/testing/SKILL.md#unit-tests-and-fakes).
 
-- its own internal database from `testdb.Open(t)`;
-- a clock that the test moves forward, so schedules and deadlines need no real waiting;
-- fakes for external systems: an email recorder, an HTTP server for webhook and chat notifiers and a local directory or a MinIO bucket for storages;
-- background jobs that stay stopped by default, so the test runs each pass explicitly with `RunJobPass`. Scheduling tests can start selected jobs with `StartJobRunner`, which the harness stops before closing the application. `WithStorageFileTimings` lets a cleanup latency test retain the production interval, so a short test interval cannot hide a missing wake signal.
-
-Each application owns its directories, encryption key, service state and lifecycle. Several can stay alive in one test process, and shutting down one leaves the others usable.
+A movable clock makes schedules deterministic. Background jobs stay stopped by default: tests advance time and run individual passes explicitly. Tests of live scheduling can start selected jobs without replacing the production mechanism or shortening an interval whose latency is under test. The [test application](../backend/internal/app/apptest) owns these setup and lifecycle options.
 
 ### Talking to the application
 
-- The test talks to the instance over real HTTP through `apiclient.New(t, url)` and creates its data through the API. The testing skill lists the few cases where direct SQL is allowed.
-- `contracttest` fails the test when a response differs from `openapi.yaml` in status, content type, body or field formats. The frontend tests mock responses by the contract, so they rely on this check.
-- A response with `format: binary` keeps its body unread, so the caller can stream it.
-- Tests of agent operations use `agentclienttest`. It checks responses against `agent.yaml` in the same way.
+Tests create data and observe outcomes through real HTTP. Contract-checking clients validate status, content type, bodies and field formats for both the user and agent APIs. Binary responses remain streams rather than being read eagerly. The testing skill defines the few cases where direct SQL is allowed.
 
 ### Live jobs and real time
 
-Live physical backup jobs and tests serving a real agent use the system clock rather than the movable test clock. The agent's heartbeats and rate limits must advance with its process. Physical backup duration, progress and stall detection also follow real time, even when the schedule clock is fixed. The [test application options](../backend/internal/app/apptest/options.go) select these modes.
+Live physical backup jobs and tests serving a real agent use system time for execution, heartbeats and rate limits. Physical duration, progress and stall detection follow real time even when the schedule clock is fixed.
 
-- A scheduler pass returns after dispatching backups; wait for their outcome through the API.
-- The physical cleaner runs only through an explicit pass. Streamer-management passes require live-job mode, because they start long-lived streamers.
-- Tests with live jobs seed timestamps with margins of minutes. Negative checks use explicit passes, and live-job checks wait for positive outcomes.
+A scheduler pass dispatches work; tests wait for completion through the API. Physical cleanup still requires explicit passes, while streamer management needs live-job mode. Seed timestamps with enough margin for live processing. Use explicit passes for negative checks and wait for positive outcomes from live jobs.
 
 ### Restarting and cleanup
 
-- `RestartModules` stops the live jobs, cancels the module runs and waits for them, then runs startup recovery and restarts the live jobs.
-- Cleanup stops jobs and module runs before closing the internal database. Work that outlives the cleanup fails the test.
+A restart drains jobs and module work before startup recovery and resumption. Cleanup stops all instance-owned work before closing its dependencies; work that outlives cleanup fails the test. Several test applications can coexist, and stopping one must leave the others usable.
 
 ## Isolation
 
 Tests from every worktree on a machine share one Docker daemon, so nothing a test creates may collide with another test's resources.
 
 - **Internal database.** All worktrees share one test PostgreSQL server. A test run never stops it.
-  - `testdb.Open(t)` creates a fresh database with a unique name from a template with every migration applied. The template is keyed by a hash of the migrations and built once, under an advisory lock.
-  - A passing test drops its database. A failing test keeps it and prints its address. Each test process removes databases older than an hour with no connections.
+  - Each test gets a uniquely named database from a template matching its migrations. Template creation is coordinated across concurrent runs.
+  - Passing tests drop their databases; failing tests retain them and print their addresses. Stale, unused databases are collected automatically.
   - The server runs without durability, so a crash of the server or the host can corrupt it. A plain recreation does not help, because it keeps the data volume and reuses the existing template.
   - After such a crash, and only while no test run is active, discard the volume: `docker compose up -d --force-recreate --renew-anon-volumes backend-db-test`. The next test then builds a new template.
 - **Database servers for engines.** Tests reuse a source inside its engine-version scope, and each scope stops its container before starting the next version.
@@ -79,7 +68,7 @@ Tests from every worktree on a machine share one Docker daemon, so nothing a tes
   - The servers keep data in memory with durability off.
   - Tests sharing a server give a unique name to every database, role, schema and replication slot.
 - **Storages.** Each test uses its own bucket, container or directory.
-- **Docker networks.** A network a test creates takes a subnet outside Docker's default address pools, through `WithFreeSubnet` in `internal/lib/testcontainers`. The verification agent creates its own networks from those pools.
+- **Docker networks.** Test-created networks use subnets outside Docker's default address pools, because the verification agent allocates its networks from those pools. The [container fixtures](../backend/internal/lib/testcontainers) own allocation.
 - **Everything else.** Ports come from `127.0.0.1:0` or `httptest`, and files from `t.TempDir()`. Containers and processes get unique names and labels, and `t.Cleanup` removes them.
 - **Shared sources.** Local and CI preparation never reset shared source servers. Seed tests own their logical and physical source containers. Development compose sources stay available to `mise run run`, and test cleanup never removes their databases, roles or replication slots.
 
@@ -89,13 +78,9 @@ The [testing skill](../.agents/skills/testing/SKILL.md#waiting) defines conditio
 
 ## Physical schema recovery tests
 
-`TestRestorePhysicalSchemaAndSequences` and `TestRestorePhysicalSchemaAndSequencesToTargetTime` in `internal/modules/backups/e2e/postgresqlphysical/pg17` and `pg18` run four recoveries per PostgreSQL version: FULL plus subsequent WAL without incrementals, FULL plus two incrementals and subsequent WAL, and PITR before and after a schema transaction commits. The early target comes after that transaction has executed its DDL but before its commit. Both PITR targets follow the final incremental, and WAL through a later schema transaction is archived before recovery starts.
+Physical recovery tests start the recovered server and verify data, schema and generated-ID writes. They cover full and incremental chains and point-in-time recovery across transaction boundaries. PostgreSQL permits sequence gaps, so recovery checks prevent ID reuse without assuming consecutive allocations. The [physical suites](../backend/internal/modules/backups/e2e/postgresqlphysical) and their [shared fixtures](../backend/internal/app/apptest/physicaltest) own the detailed scenario matrix.
 
-The shared fixture in `internal/app/apptest/physicaltest` checks created schemas and tables, added and renamed columns, defaults, a type conversion that rewrites rows, indexes, constraints, object renames and deletions, and rolled-back DDL. It compares semantic catalog definitions and stored rows before exercising writes in the recovered cluster. `SchemaRecovery` and `SequenceRecovery` prepare and inspect objects through PostgreSQL connections; HA scenarios reuse them without copying assertions or depending on the restore runner's containers.
-
-Sequence coverage includes serial and identity columns, explicit defaults, objects from before and after FULL, both cache settings, forward `setval`, `nextval`, changed parameters and rollback behavior. Recovery checks preserve definitions, prevent reuse of restored IDs and detect a lost forward repositioning. Each sequence's first generated-ID insert runs before standalone allocation probes; its ID and every subsequent allocation must exceed the restored committed IDs. The checks allow native PostgreSQL sequence gaps and do not require the first recovered value to equal the largest stored ID plus one. Cached allocations are also checked across separate connections. After positive recovery assertions, disposable mutations prove that the observations distinguish a missing added column and an altered sequence cache.
-
-Run all eight scenarios from the repository root with the pinned tools and the [Fedora preparation](#commands):
+Run the schema and sequence scenarios from the repository root with the pinned tools and the [Fedora preparation](#commands):
 
 ```sh
 source scripts/fedora.sh
@@ -107,23 +92,9 @@ TESTCONTAINERS_RYUK_DISABLED=true go -C backend test -count=1 -run '^TestRestore
 
 ## Patroni physical backup tests
 
-The Patroni suite runs a real two-node PostgreSQL cluster, etcd and HAProxy for
-both PostgreSQL 17 and 18. Unlike the reusable engine servers, these sources use
-disk-backed data and durable PostgreSQL settings. Each scenario owns its network,
-containers, volumes and application database. Each root test limits concurrent
-fixtures to two; lifecycle and backup roots can overlap. Expected-failure child
-tests verify resource cleanup after partial startup, cancellation and a held
-backup transfer, while preserving an unrelated network. Before launching each
-child, the parent registers fallback cleanup restricted to that fixture label
-and its own temporary directory. An additional case kills the child process
-group after startup and verifies this fallback without relying on child cleanup.
+The Patroni suite exercises physical backup and recovery through a real highly available PostgreSQL source. Unlike the reusable engine servers, these sources use disk-backed data and durable settings. Every scenario owns its resources and tests cleanup on failure and interruption.
 
-Install the pinned tools and client bundles, provide Docker and the shared test
-PostgreSQL server as described in [Commands](#commands), and allow network access
-for the initial fixture build. The build downloads pinned PostgreSQL and etcd
-images, hash-locked Python distributions, authenticated distribution packages
-and checksum-verified HAProxy source. Subsequent runs reuse the Docker build
-cache. Missing tools and failed builds fail the suite; scenarios are not skipped.
+Prepare Docker, the shared test PostgreSQL server, pinned tools and client bundles as described in [Commands](#commands). The initial fixture build needs network access; later runs can reuse its build cache. Missing tools and build failures fail the suite rather than skip scenarios. The [fixture README](../backend/internal/lib/testcontainers/testdata/patroni/README.md) owns dependency and build details.
 
 Run the complete matrix from the repository root:
 
@@ -134,10 +105,7 @@ TESTCONTAINERS_RYUK_DISABLED=true go -C backend test -count=1 -timeout 40m \
   ./internal/modules/backups/e2e/postgresqlphysical/patroni
 ```
 
-Use `-run '^TestPatroniFixtureLifecycle$'` for fixture checks, or
-`-run '^TestPatroniPhysicalBackups/recovers_after_two_switchovers'` for one
-scenario on both majors. [PostgreSQL with Patroni](postgresql-patroni.md) explains
-the endpoint, external slot ownership, limited user and recovery gaps.
+Use Go's `-run` filter to repeat an individual scenario. [PostgreSQL with Patroni](postgresql-patroni.md) explains endpoint routing, external slot ownership and recovery gaps.
 
 ## Verification agent end-to-end tests
 
@@ -152,34 +120,30 @@ These tests run the real agent binary against a real backend, proving that they 
 Screen tests render real components and mock only the network, typed by the contract, so they cover every answer the contract allows. The [testing skill](../.agents/skills/testing/SKILL.md#frontend-screen-tests) gives the authoring rules.
 
 - **Environment.** Screen tests select happy-dom with `// @vitest-environment happy-dom` on the first line. Pure logic, API and architecture fixtures keep the default node environment.
-- **Rendering.** `renderScreen` from `shared/lib/test` supplies real providers, an isolated query client with production defaults, an in-memory router and options for locale, theme, route and Strict Mode. Hook suites that need the same context use its `ScreenTestProviders` composition. Whole-application tests use the app-level renderer, because App supplies its own providers and browser router.
-- **HTTP.** The harness supplies `mockApi` for contract-typed responses and helpers for request inspection. It rejects all-method handlers and pathname wildcards, and fails teardown on an unexpected request even when the component catches the rejection. Use its controlled responses for overlapping requests. Cancellation is a settled transport outcome; MSW may emit no `response:mocked` event for an aborted read. `finishCancelledApiResponse` checks the aborted signal before releasing such a response, while `finishApiResponse` waits for a current response. Strict Mode can cancel the first facade call before it reaches HTTP, so two setups do not imply two server requests.
-- **Cleanup** unmounts before cancelling pending responses, then restores storage, document state, dayjs locale, global overrides and fake clocks. The renderer clears its query and mutation client on session changes and unmount. Components own their timers, listeners and late-response guards. Tests of a pending action wait for HTTP dispatch before replacing its session; tests of polling advance clocks and assert reads and cleanup without relying on the library timer callback identity.
-- **Limits.** Test and condition-wait limits are shared across the suite, rather than selected by each test.
-- **Tooling tests.** Node runner and style fixtures live under `frontend/tooling/*.test.ts`. Playwright scenarios stay outside Vitest discovery. Expected-failure fixtures run in isolated child Vitest processes.
+- **Rendering.** The [shared test infrastructure](../frontend/src/shared/lib/test) supplies real providers, isolated query state, routing, locale, theme and Strict Mode. Whole-application tests use the app-level renderer because the application supplies its own providers and browser router.
+- **HTTP.** Contract-typed mocks declare finite methods and paths and fail teardown on unexpected requests, even if the component catches the error. Controlled responses expose overlapping work without timers. A cancelled request is a settled transport outcome; Strict Mode setup counts do not imply an equal number of HTTP requests.
+- **Cleanup.** Unmount before settling pending responses, then restore browser state, globals and clocks. Session changes and unmount clear owned query state. Components own timers, listeners and late-response guards. Wait for observable dispatch before changing a pending action's session; polling tests assert reads and cleanup rather than library internals.
+- **Limits.** Test and condition-wait limits are shared across the suite.
+- **Tooling.** Expected-failure fixtures run in isolated child processes. Browser scenarios stay outside unit-test discovery.
 
 ## Browser UI tests
 
 These tests exercise the production build in a real browser, for what happy-dom cannot establish: geometry, focus, fonts and images. Screen tests stay the faster layer for overlapping responses and editing-session policy. The [browser UI command](#commands) needs Docker and no backend services, because HTTP responses are finite synthetic fixtures.
 
-- **Environment.** Each run uses a digest-pinned browser image, an unprivileged user and its own temporary checkout and container. The production preview listens on `127.0.0.1:4173` inside that container's private network namespace, without publishing a host port. Its stable origin keeps displayed healthcheck URLs and installation commands reproducible in screenshots. Cleanup removes only that run's resources.
-- **Architecture.** The runner selects native amd64 or arm64 from the host, using the matching pinned Node archive and an architecture-specific image cache. Other architectures fail before scenarios. Both architectures use the committed references and the same zero-pixel comparison threshold; updates always require the explicit command.
-- **HTTP.** Fixtures follow generated operations and fail teardown on undeclared requests or page errors, even when application code catches the HTTP failure. Only same-origin GET navigation and static resources pass through.
-- **Scenarios** live in `frontend/browser/scenarios` and need no external provider account. Navigation tests assert both visible selection and canonical URL after reload, Back/Forward and direct mobile entry. Non-English assertions read the interface dictionaries.
-- **Visual references** live in `frontend/browser/references`. A missing or changed image fails an ordinary run. Use the explicit update command from [Commands](#commands) to replace references, then inspect the result.
-- **Inner runner coverage** runs before the application suite in the same pinned container. The real inner entry point builds a small static fixture, runs its harness probes, and executes six recorded cases once as a full suite and then as three disjoint shards. It fails if shard forwarding is lost. Each invocation owns and removes its fixture and preview process.
-- **Failure artifacts** go to the unique run directory under `frontend/browser-results/`, and CI uploads them.
+- **Isolation.** Each run uses a pinned browser environment and an unprivileged container with its own temporary checkout and private preview server. It publishes no host port and cleans up only its own resources.
+- **Architectures.** Native amd64 and arm64 use the same committed references and exact pixel comparisons. Other architectures fail before scenarios; reference updates require the explicit command below.
+- **HTTP.** Finite contract fixtures fail teardown on undeclared requests or page errors, even if the application catches the failure. Only same-origin GET navigation and static resources pass through.
+- **References and artifacts.** [Browser fixtures](../frontend/browser) own scenarios, visual references and runner probes. Missing or changed images fail an ordinary run. Inspect changes after the explicit reference-update command. Failed runs save artifacts under `frontend/browser-results/` for local inspection and CI upload.
 
 ## Browser end-to-end suite
 
 These tests exercise the application image through its screens, without importing backend or frontend code or using paths into those trees from scenarios and fixtures. They need Docker with `image save --platform` support and the pinned tools, but no `.env`, running application or shared test database. The standalone command tests `DATABASUS_IMAGE` when set, or builds an image from the checkout; CI requires an explicit image.
 
 - **Isolation.** Each run has its own application, source database, browser, recovery runner and private Docker daemon. Runs may overlap without taking a lock or conflicting with development ports. The private engine requires privileged containers; its Unix socket and writable data volumes belong only to that run. The host engine socket is never mounted, and only the browser publishes a host port.
-- **Evidence.** One critical path registers one account and reuses one application, workspace, storage and PostgreSQL 18 source. After checking a logical backup and restore, it adds a physical connection, completes a full and incremental backup, and archives two distinct WAL segments containing later writes. It fills both Script restore forms with directories containing spaces and custom Host tools or a digest-pinned Docker image. It executes the displayed recovery, ownership and startup commands unchanged and checks the recorded full, incremental and WAL-stage rows in both running clusters and the source. Screen status alone cannot prove success.
-- **URL navigation.** Isolated API-created workspaces, databases and an invited account cover direct nested entry and reload through the production static server, history restoration, cross-workspace membership validation and access fallback. Missing resources resolve to an available database, an empty database list or the empty-workspace root, with the visible selection and URL checked together.
-- **Recovery tools.** The source enables replication and WAL summaries. Before starting the containers, the supervisor exports the pinned PostgreSQL image for the Docker server's platform from the host cache into its run directory, pulling it only when absent. It hashes the archived image config to obtain the identity shared by containerd and legacy Docker stores. The recovery runner loads that archive into its private engine and uses that config ID, so nested recovery needs no registry access. The idle PostgreSQL 18 runner installs curl, zstd and a Docker CLI from Debian repositories during setup, so setup still needs network access. Its PostgreSQL tools are deliberately outside the Host execution PATH. The runner and private engine share the same recovery-volume path, allowing the displayed Docker bind mounts to work without altering their paths or the application address.
-- **Cleanup.** Every outcome removes all resources the run created, including its image if it built one. Removal failures fail the run and name the resource. Startup also removes leftovers whose supervisor has died. Failed runs retain no resources and print outer container, Host PostgreSQL and nested container log tails with passwords, bearer tokens and restore URL tokens masked. Log collection has independent limits for outer and recovery streams, preserving completed and partial output when either source fails or times out. Command output uses regular files in the recovery volume, so a started PostgreSQL server cannot keep a client pipe open. Cleanup removes the entire private engine and its nested containers after failure, interruption or a later crashed-run sweep.
-- **Checks of the suite.** Separate commands cover its unit logic and lifecycle failures, interruption and overlapping runs. CI runs these checks against the candidate image and skips probes requiring an image build. Interrupting the lifecycle command itself remains a manual check, described in [Checking work](#checking-work).
+- **Evidence.** Success requires actual restored data in running databases, not screen status alone. Scenarios execute the recovery commands the interface presents and validate selection together with the canonical URL. The [suite](../e2e/browser) owns scenario coverage and recovery-runner setup.
+- **Prerequisites.** Recovery setup needs network access for its packages and any missing pinned images; nested recovery uses a locally supplied image. It supports Host tools and Docker recovery without rewriting the displayed commands.
+- **Cleanup.** Success, failure, interruption and crashed-run recovery remove only the run's resources, including nested containers and any image it built. Removal failures fail the run. Failed runs print bounded diagnostics with credentials and tokens masked; diagnostic failure cannot prevent cleanup.
+- **Checks of the suite.** Separate commands exercise unit logic and lifecycle failures, interruptions and overlapping runs. [Checking work](#checking-work) selects these checks, including the standalone lifecycle-command interruption check.
 
 ## Checking work
 
@@ -204,26 +168,11 @@ A change to the browser end-to-end suite's own code owes its commands too:
 
 ### What `mise run test` runs
 
-After installing the frontend dependencies from the lockfile, the command runs three concurrent processes and waits for all of them, so one failure does not hide others:
+The routine command prepares locked frontend dependencies and runs backend tests outside the end-to-end packages plus frontend unit and screen tests. Independent groups finish even if another fails, and the summary identifies failures. Migration and architecture-linter tests are included.
 
-- the backend packages listed in `backend/test-slow-packages.txt`, longest first, with a low package limit;
-- all other backend packages, with a higher limit, so they do not wait for slow ones;
-- the frontend unit and screen tests.
+The full command adds the Docker end-to-end, browser, upgrade, script and review-hook suites described above. Image and browser checks run sequentially to avoid timing interference. Both commands share a machine-wide lock; a direct package test takes no such lock.
 
-`mise run test-full` adds the end-to-end packages to the backend selection. After the backend and frontend processes pass, it runs these checks in order and stops if one fails:
-
-1. Script tests, review hook tests and browser e2e unit tests.
-2. Frontend browser UI.
-3. Upgrade test.
-4. Browser end-to-end scenarios.
-5. Browser e2e lifecycle checks, then their interruption test.
-
-The image and browser suites run sequentially because they disturb each other's timing under load.
-
-- Output lines carry the name of their process, and the summary names each process that failed.
-- The run allows 40 minutes per slow package and 15 minutes per other package and holds a machine-wide lock, so only one `mise run test` or `mise run test-full` goes at a time.
-- A package missing from the list runs with the fast packages, so a new package needs no entry. A package belongs in the list when it starts containers or networks or runs for over a minute. A script test fails on an entry that neither `mise run test` nor `mise run test-full` selects.
-- Migration tests and architecture linter tests run here too.
+The [test runner](../scripts/test.sh) owns process limits, package timeouts and full-run ordering. [Slow-package selection](../backend/test-slow-packages.txt) bounds container load: register a package there when it starts containers or networks or runs for over a minute. Unlisted packages still run in the fast group.
 
 ### What runs separately
 
@@ -233,30 +182,25 @@ The image and browser suites run sequentially because they disturb each other's 
 
 ### CI
 
-The release workflow defines shared artifact-transfer and backend-preparation steps through whole-step YAML anchors at their first use. Other jobs reference those steps with aliases. Artifact names, paths, compression and transfer settings belong to the calling job's environment; retry conditions, per-attempt timeouts and failure handling belong to the shared steps. Workflow checks expand aliases before inspecting each job and check its artifact settings separately. The six backend-preparation steps share their commands and visible step boundaries between the backend matrix and the Podman check.
+CI repeats local verification on clean runners. The [release workflow](../.github/workflows/ci-release.yml) owns triggers, matrix groups, shard counts, resource limits and artifact transfer. All required results gate release version selection; manual development runs do not publish releases.
 
-- The CI and Release workflow runs automatically on pushes to `main` and manually on `develop`. Every existing test suite runs natively on both amd64 and arm64: backend groups, verification agent unit and Docker/Podman tests, frontend tests, browser UI, browser end-to-end scenarios with their unit and lifecycle checks, script tests, filesystem groups and upgrade tests. Review hook tests and the standalone browser lifecycle-interruption test run separately. Lint and security scans run once. Manual runs verify without selecting a release version or publishing artifacts.
-- Backend checks have twelve groups/shards on each architecture. Physical backup, physical API and remaining-package (`other`) groups each have three shards selected by measured top-level test durations. Logical, verification agent Docker e2e and the root storage-provider package run as whole groups. New packages join their owning group automatically, and missing or stale duration weights never exclude a test. Selection uses `LC_ALL=C` so runner locales cannot change shard assignments. A failure does not cancel other matrix legs. Release version selection waits for every required result on both architectures.
-- Backend groups keep `-race` and up to eight concurrent package processes, with two parallel test scenarios per binary on both architectures. Logical, remaining-package and isolated provider groups use eight-CPU runners. The `storage-providers` leg runs the complete root provider package with one package and one scenario at a time to bound its real storage fixtures. Its checks observe connection counts, overlapping upload-source reads, SFTP read-ahead with acknowledgements withheld, cancellation and read-back integrity. They enforce no transfer-rate or elapsed-write-time threshold; shared condition-wait limits bound a hung operation. That exact root package is excluded from every `other` shard; nested provider packages stay in `other`. Each package runs once and any failure blocks the job. This bounds simultaneous engine fixtures and application instances without changing operation timeouts or test assertions. Logs include resource-pressure and cgroup snapshots before and after the test command. FTP and SFTP fixtures build natively from pinned Debian images; they retain password/key authentication and real file transfers on both architectures.
-- Browser UI has three shards per architecture, each with two workers, zero retries, the same pinned visual environment and exact screenshot comparisons. Every shard runs the harness probes. Failure artifact names include the architecture and shard. The unsharded local command remains complete; shard selection cannot update references.
-- Browser e2e keeps unit checks and all main application scenarios in `test-e2e-browser`. Its separate `test-e2e-browser-lifecycle` matrix runs `failures`, `interruption` and `isolation` on both architectures. Both jobs wait only for candidate images. `failures` owns `test_failing_runs.py`; `interruption` owns `test_crashed_runs.py` and `test_interruption.py`; `isolation` discovers every remaining lifecycle test file, including newly added files. Tests remain sequential within each lifecycle group, retaining intentional overlap probes and unconditional cleanup. Release version selection requires all six lifecycle results as well as both main-scenario results.
-- The only unavailable-image exclusions are MySQL 5.7 and MariaDB 5.5 server scenarios on arm64. Image preparation and fixtures read the same policy in `backend/internal/lib/testcontainers/unavailable_images.json`; each excluded version reports its reason. Those scenarios still run on amd64, and container-free unsupported-version checks still run on ARM. Other image failures are fatal.
-- Browser end-to-end, filesystem and upgrade tests consume an architecture-specific candidate built from the same commit. Image tags, compressed archives and transport artifacts include the architecture. Before running scenarios, CI checks the actual host, Docker engine and candidate architectures. Matrix configuration and local amd64 results do not establish native ARM runtime success; hosted ARM results supply that evidence.
-- Podman and network-filesystem checks use full GitHub VMs on both architectures. Other backend groups use Ubuntu 22 Namespace profiles for MongoDB kernel compatibility. Network coverage includes CIFS and kernel NFS with `root_squash`; the NFS fixture builds natively from a pinned multi-architecture Debian image and removes only its run's resources. Local fixture-configuration checks do not prove mounted-filesystem behavior.
-- CI runs backend tests with `-race`, and a data race fails the test. Local runs leave it out, because it makes them several times slower. To reproduce a race, add `-race` to the command that repeats the test.
-- The shared `lint-python.yml` workflow checks Python before release version selection and before either dev-image architecture is published. Both publication workflows require its success. The same shared job also runs `mise run verify-deps` for known local dependency pins, coordinated versions and vendored-client hashes; it does not establish publication age or replace native frozen installation.
+- Native amd64 and arm64 jobs exercise supported test surfaces. An architecture matrix or a local amd64 pass does not establish a successful native ARM run.
+- Sharding cannot exclude unweighted or newly added tests. Failures do not cancel other matrix legs, and each selected package runs once.
+- Unsupported server images follow the [shared exclusion policy](../backend/internal/lib/testcontainers/unavailable_images.json). Those versions still run where images exist, and container-free refusal checks remain on ARM. Other image failures are fatal.
+- Image-based suites consume candidates built for the tested commit and architecture. Host, engine and candidate architecture are checked before scenarios.
+- Podman and network-filesystem tests need suitable hosts. Local fixture checks do not prove mounted-filesystem behavior.
+- Backend CI uses race detection. Add `-race` to a direct local command when reproducing a reported race; routine local runs omit it for speed.
+- Python quality and dependency checks gate both release and development publication. Offline dependency checks do not establish release age or replace locked installation.
 
 ### Python quality checks
 
 `mise run lint` includes every repository-owned Python file. `mise run format` applies Python formatting and safe lint fixes. The hidden `python:lint` and `python:format` tasks run those checks alone, from any repository directory. Tool versions are pinned in `mise.toml`; root `pyproject.toml` defines lint, annotation, formatting and type rules.
 
-The runner selects tracked and eligible untracked `.py` files through Git, including hidden directories and newly added directories, and skips deleted files and ignored dependency environments. It passes the same selection to Ruff lint, Ruff formatting checks and ty. A failed stage does not hide later diagnostics. Checks never change source, the index or the stash. Explicit formatting makes safe automatic fixes and reports remaining lint errors; it does not rewrite types.
+Lint, formatting checks and type checks cover repository-owned Python, including new and hidden directories. Generated environments and deleted files are excluded. A failed stage does not hide later diagnostics; checks never modify source, the index or the stash. Explicit formatting makes safe fixes without rewriting types. The [quality runner](../scripts/python_quality.py) owns file discovery and tool invocation.
 
-Type checking prepares pytest and Playwright from `e2e/browser/uv.lock` through locked uv execution with the pinned system Python. It needs neither an activated virtual environment nor Docker, browser binaries or a running application. The first run may download the locked packages. Tool or dependency setup failures fail lint. The [Python annotation convention](../AGENTS.md#functions-methods-and-types) applies at function and external-data boundaries.
+Type checking uses the browser project's locked dependencies and pinned Python. It needs neither Docker nor a running application; initial dependency preparation may need network access, and setup failures fail lint. The [annotation convention](../AGENTS.md#functions-methods-and-types) applies at function and external-data boundaries.
 
-The hk Python step runs the full check once when selected files include Python source or Python quality, dependency, tool, hook or ignore configuration. Checking the full selection catches errors in unchanged callers. Unrelated documentation does not select the step. The pre-commit hook keeps fixes disabled and stashes nothing.
-
-hk's pinned version omits deleted paths and a rename's old path from its automatic selection. For a deletion-only change or a Python file renamed to another extension, run `hk check --check --all --step python-lint`; an explicit deleted path also selects the step. CI always checks the full Python selection.
+The pre-commit hook checks the full Python selection when Python or its quality configuration changes, without automatic fixes or stashing. Unrelated prose does not select it. For deletion-only changes or a rename out of Python, explicitly run the full hook step below because automatic path selection omits deleted and old paths. CI checks the full selection.
 
 Run the checks directly with:
 
@@ -350,5 +294,3 @@ Use `other-2-of-3` and `other-3-of-3` for the remaining selections. The provider
 ```sh
 TESTCONTAINERS_RYUK_DISABLED=true go -C backend test -race -p=1 -parallel=1 -count=1 -timeout 40m ./internal/modules/storages/internal/providers
 ```
-
-The successful manual [CI run 42495867813](https://github.com/databasus/databasus/actions/runs/42495867813) took about 30 minutes before this partition. Its ARM backend remainder job took 19.5 minutes, browser UI 12.6 minutes, and lifecycle step 15.9 minutes. Initial estimates for the longest new parts are 6–9, 4–6 and 6–8 minutes respectively. These ranges are estimates, not acceptance thresholds. Splitting adds sixteen matrix legs overall and repeats setup; queue time can offset execution savings. Compare hosted queue and execution times separately. Local amd64 timing does not establish ARM performance.

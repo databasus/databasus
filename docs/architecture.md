@@ -28,7 +28,7 @@ This document explains the system's boundaries, data flow and the reasons behind
 - **The internal database is PostgreSQL.** It always runs inside the container, and the image pins its version.
 - **Client tools are vendored** under `assets/`, per engine, major version and architecture, so the build is reproducible and works offline. The `client-tool-bundles` skill covers adding and refreshing them.
 - **One process per installation** (spec `single-instance-runtime`). It owns the cache, the rate-limit counters, task cancellation and the WAL streamers, so there is no worker process and no shared cache service.
-- **Backups run remotely**, over the network or through an SSH tunnel to a jump host. Managed databases forbid host installs, and an agent on the host would double the release and test surface. We tried one and removed it.
+- **Backups run remotely**, over the network or through an SSH tunnel to a jump host. Managed databases forbid host installs, and an agent on the host would double the release and test surface.
 
 ## Backend layout
 
@@ -74,9 +74,7 @@ internal/modules/<name>/
 
 Exported aliases and constants belong in `module.go` only when code outside the owning module uses them, or when an externally used contract declaration requires them through its signature, type definition or initializer. Consumers include other modules, application composition, commands, test support and tests outside the module. The module's implementation and its own tests do not establish that need, even when a test uses a separate test package.
 
-`archlint` enforces this with the `module-contract-usage` rule. It resolves references and follows declaration dependencies transitively from external consumers. Unused local declaration chains and cycles do not preserve their members, and function bodies inside the module are not contract dependencies. The check reports each unused alias or constant separately, including names in grouped declarations, without changing source files.
-
-The usage check covers the host platform's default build, without additional build tags, including test consumers and packages outside the production entry-point graph. An excluded contract file is outside that run's guarantee. Package-loading and type-resolution errors fail analysis rather than produce unused-declaration findings from incomplete information.
+The [architecture linter](../backend/tools/archlint) checks these contract boundaries. Its analysis covers the host's default build, including external test consumers; it does not establish usage in excluded build configurations.
 
 | Module         | Owns                                                                                                                                                                             |
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -97,8 +95,8 @@ The dependency graph between modules has no cycles. From lowest to highest, the 
 - Modules talk only through the interfaces in `module.go`.
 - To read a set of records, the consumer calls a batch method with their IDs and joins the results in Go. It never calls a method per record in a loop.
 - The request's user is an `Actor` from `users`: the user ID and the global role. A module never receives a `users` model.
-- Only `workspaces.Authorize(ctx, actor, workspaceID, action)` checks access to a workspace and to anything inside it. A module first looks the object up in its own table and answers 404 when it is missing. `Authorize` then answers 404 for a non-member and 403 when the role does not allow the action.
-- A lower module that needs something done by higher ones publishes an event declared in its `module.go`, for example `workspaces.WorkspaceDeleting`.
+- Only the workspaces module checks access to a workspace and to anything inside it. A module first looks the object up in its own table and answers 404 when it is missing. Workspace authorization then answers 404 for a non-member and 403 when the role does not allow the action.
+- A lower module that needs something done by higher ones publishes an event declared in its public contract.
   - Handlers run synchronously, in the publisher's transaction, in the order that the single wiring file in `internal/app` registers them.
   - An effect outside the database, such as dropping a replication slot, is an after-commit handler. An effect that stays correct after a rollback, such as deleting files that already have a pending deletion, may run inside the handler.
 - If two areas keep needing a SQL JOIN of each other's tables, they belong in one module.
@@ -106,7 +104,7 @@ The dependency graph between modules has no cycles. From lowest to highest, the 
 ### Roles inside a module
 
 - **Handler** decodes the request through the generated strict server, calls one service method and encodes the response.
-- **Service** holds the rules: validation, `Authorize`, transactions, audit events, notifications. It writes no SQL.
+- **Service** holds the rules: validation, authorization, transactions, audit events, notifications. It writes no SQL.
 - **Repository** owns queries of the module's tables and joins the transaction from the caller's context.
 
 [The backend rules](../backend/AGENTS.md#handlers-services-repositories) hold the details of each role, including what a repository returns when it finds no row.
@@ -128,10 +126,9 @@ Each module owns its part of the internal database. Integrity rules live in the 
 - **Enum values** follow [the backend migration rules](../backend/AGENTS.md#migrations).
 - **Types.** Lists are `text[]`. `JSONB` holds only data we treat as opaque and store in clear, such as webhook headers. Time is `TIMESTAMPTZ`, and all time is UTC. Identifiers are UUIDs with `DEFAULT gen_random_uuid()`, and a row that continues another row of the same module takes that row's ID as its primary key.
 - **Transactions travel in the context** and are never passed as parameters.
-  - A service opens one with `Transaction(ctx, fn)` of the `*database.Transactor` from `Deps`, so it never holds the pool itself.
-  - Every repository call made with that context, in any module, joins the transaction through `database.Conn(ctx, r.db)`. The query uses its caller's context even inside a transaction, so a shorter child deadline or child cancellation limits that query without changing which transaction it joins.
-  - Background work that outlives its caller, such as a notification delivery, detaches with `database.WithoutTransaction(ctx)`.
-  - An effect outside the database registers a hook with `database.AfterCommit(ctx, hook)`. The outermost transaction runs its hooks in order after it commits and drops them on rollback. The hooks get a context without the transaction.
+  - Services open transactions through an injected transactor and never hold the connection pool. Repositories in any module join the caller's transaction while honoring the query's own deadline and cancellation.
+  - Work that outlives its caller detaches from the transaction. External effects register after-commit hooks: the outermost commit runs them in order without the transaction, and rollback discards them.
+  - The [database package](../backend/internal/lib/database) supplies the transaction primitives; [backend rules](../backend/AGENTS.md#handlers-services-repositories) define their use.
 - **Secrets** of providers and databases are encrypted per field with the master key and decrypted only where they are used. The cipher is AES-GCM, and an encrypted value starts with `enc:`. Account passwords and agent tokens are hashed.
 
 ### Migrations
@@ -185,8 +182,7 @@ Engines live in `internal/engines/<engine>`: `postgresql`, `mysql`, `mariadb` an
 Two contracts describe the API, and the servers, test clients and frontend types are generated from them. `backend/api/openapi.yaml` describes what the SPA and users' scripts call, with paths relative to `/api/v1`. `backend/api/agent.yaml` describes what the verification agent calls. The `api-design` skill holds the rules for designing an operation.
 
 - **The contract comes first.** A change starts there, and `mise run generate-api` regenerates the code. Generated files (`*.gen.go`, `*.gen.ts`) are never edited by hand.
-- **Request context.** Every generated strict server adapter passes `ctx.Request.Context()` to its application handler. Gin contexts stay inside the transport adapter and its strict middleware, because Gin reuses them after a request finishes. Both API contracts use the shared `backend/api/templates/strict-gin.tmpl` override, registered as `strict/strict-gin.tmpl` in each strict-server configuration. Template paths are relative to the generator's package; generation and the generated-output check both run from that directory.
-- **Generator upgrades.** The strict template is based on `oapi-codegen` v2.8.0's `pkg/codegen/templates/strict/strict-gin.tmpl`. When upgrading the pinned generator, compare the override with the new upstream template and retain only the change that passes the request context to the application handler. Update this version reference, regenerate with `mise run generate-api`, run the request-context regressions in `internal/lib/httpserver` and the verification module, and run `mise run backend:lint` to check generated output.
+- **Request context.** Application handlers receive the HTTP request's context. Gin contexts stay inside transport adapters and strict middleware, because Gin reuses them after a request finishes. The [generator override](../backend/api/templates/README.md) preserves this boundary for both contracts.
 - **Implementation.** A module implements its generated strict server in `internal/modules/<name>/internal/httpapi`, or in `internal/agentapi` for `agent.yaml`. Operations are assigned to modules by tag. The `system` tag is the exception: it describes the running instance, and `internal/app/systemhttpapi` serves it.
 - **Mounting mistakes.** A route registered without an operation in the contract answers 500, so a mistake cannot expose an operation without its access checks.
 - **Errors** use the `Problem` format (RFC 9457) with a machine-readable `code`, and every operation declares a `default` response with it. An internal error's text never reaches the client, and the frontend chooses its translation by `code`.
@@ -194,10 +190,7 @@ Two contracts describe the API, and the servers, test clients and frontend types
 - **Access to the agent API.** Its operations run on a separate route group behind their own contract guard, and the verification module authenticates each with the agent token.
 - **Lists** are paged with a cursor through `limit` and `after`.
 - **Long operations**, such as a backup, a restore or a verification, answer 202 with the resource in its in-progress state.
-- **Starting a physical backup** is the one exception and answers 202 with no body.
-  - It only records a request in the backup config, and the backup request job creates the backup on a later pass.
-  - WAL streaming and a storage switch share that request, and a start must wait for an earlier backup's process. Creating the row in the request would add a second way to start a backup and refuse a start during a running backup.
-  - A client finds the backup in the list and cannot distinguish simultaneous manual and scheduled starts.
+- **Starting a physical backup** is the exception and answers 202 with no body. All triggers record requests for one background dispatch path, so starts can wait for an earlier process to drain without creating competing lifecycle owners. The client observes the resulting backup through the list; [physical backup operations](../openspec/specs/physical-backups/operations/spec.md) define the behavior.
 - **Unknown paths.** A path under `/api` that matches no route answers 404, and every other path serves the SPA.
 - **Compatibility.** A release may break the user API if the same change updates the frontend.
   - `/api/v1/system/version` and `/api/v1/system/verification-agent` never change, because installed agents update themselves through them.
@@ -208,14 +201,14 @@ Two contracts describe the API, and the servers, test clients and frontend types
 
 Backups, restores and periodic jobs outlive any single request, so they follow one set of rules about starting, stopping and observing work.
 
-- **Background jobs** run through `background.Runner`, and each run of a job is a pass.
+- **Background jobs** share a runner, and each run of a job is a pass.
   - The runner puts `job_name` and `job_id` into the pass's context and never overlaps two passes of one job.
   - A job can receive a wake signal to run before its next interval. A buffered signal received during a pass schedules another pass after it finishes.
-  - A failed or panicked pass is logged, and the next pass still runs on schedule. Starting a runner twice panics, because it is always a bug.
+  - A failed or panicked pass is logged, and the next pass still runs on schedule. A runner has one lifecycle owner and cannot be started twice.
   - Health reads use copied [job snapshots](glossary.md#code) and remain available while a pass blocks.
 - **Instance health** is the public `/api/v1/system/health` operation (spec `instance-health`). Raw errors stay in logs. `/system/version` and agent downloads do not depend on it, and Helm probes target `/system/version`.
 - **Permitted pass duration** is a monitoring budget that cancels nothing and changes no schedule, as the [glossary](glossary.md#code) defines.
-- **Supervision** uses `background.Group` for the HTTP server and module work that must be drained at shutdown.
+- **Supervision** ties the HTTP server and module work to one shutdown lifecycle and drains them before their dependencies close.
 - **External tools** (`pg_dump`, `pg_basebackup`, `pg_receivewal`, `mysqldump` and others) run through `lib/process`. It kills the whole process group when the operation's context ends.
   - The one exception is the verification agent's detached daemon start, because the daemon must outlive the command that starts it.
   - After a tool exits, the limit on its standard output covers only waiting for more output. The writer's time to accept it does not count, so a slow storage cannot fail a finished dump.
@@ -248,7 +241,7 @@ Backups are encrypted per file. The key for each file is derived from the master
 
 A file in a storage must never lose its owner, even when a backup crashes halfway. Backup code therefore never calls a storage provider directly: every write and delete goes through the file store of `storages`, and every read goes through its storage reader.
 
-- `WriteFile` records a pending deletion before the first byte leaves and returns a write receipt. The transaction that publishes the backup spends the receipt and so keeps the file.
+- A write records a pending deletion before the first byte leaves and returns a write receipt. The transaction that publishes the backup spends the receipt and so keeps the file.
 - Any other outcome leaves the pending deletion in place, and the deletion worker removes the file. That covers a provider error, a crash, a rolled-back publication and a cancellation.
 - A terminal failure asks for the deletion in the same transaction that records the failure.
 - A committed deletion request wakes the deletion worker immediately. Full batches schedule another pass, and a finished write wakes cleanup again so files protected during the write can be removed. The periodic pass remains available for retries and recovery after a restart.
@@ -264,11 +257,10 @@ A storage switch activates the new storage immediately and cleans up the old fil
   - Cancellation keeps protection until the write returns. Session failure cancels writers and rejects receipts; process death releases locks but leaves durable deletion obligations.
 - **A switch commits in one transaction:** the target config, the workspace transfer and notifier changes, the removal of the old backup catalog and scoped file-deletion requests.
 - **Authorize the current state.** Config saves re-read and authorize the database under database and config locks. The workspace read there decides storage ownership and acceptance scope, so concurrent transfers cannot leave a stale decision.
-- **Keep one queue.** `storages` owns each pending file deletion and retries until confirmed absence or explicit storage removal. A reassignment adds the database and accepting workspace as attribution; duplicate requests retain the original scope. These IDs have no foreign keys, so entity removal cannot erase obligations. Batch claims reserve rows; attempt counts increase only when a file deletion starts with a valid lease. Backup configs expose current counts from one batched scope read, with no operation history or copied cleanup state.
+- **Keep one queue.** `storages` owns durable deletion obligations until confirmed absence or explicit storage removal. Attribution survives removal of the database or workspace, and duplicate requests retain their original scope. A valid lease protects each attempt; counts measure started deletions, not row reservations. Consumers read current counts in batches instead of copying cleanup state.
 - **Delete storage explicitly.** Ordinary removal refuses outstanding queue entries, including protected uploads; live references take priority. Explicit abandonment deletes the storage and its queue entries atomically and records a bounded audit snapshot. Neither path contacts the provider. Workspace removal applies the ordinary guard to every storage and rolls back the whole deletion on refusal.
 - **WAL stays consistent after cleanup.** After removing old physical FULLs, cleanup reconciles WAL and timeline history against the surviving completed FULLs. This includes WAL and history that ordinary cascade deletion skipped because a FULL was running.
-- **Reject publication into replaced storage.** Every selection change advances a storage generation. Physical runs capture it and validate both generation and selection before publishing base, manifest, WAL or timeline-history rows or spending receipts.
-  - Object names start with the database UUID, and a cleared config retains its last selected storage ID without a foreign key, so cleanup can still find unfinished writes.
+- **Reject publication into replaced storage.** Physical work validates its captured storage generation and selection in the publishing transaction, including receipt consumption and reuse of existing files. Cleanup must still identify unfinished writes after a config is cleared.
   - After-commit cancellation drains old work while retaining its busy reservation. Separate WAL claim identities prevent an old exit or heartbeat from affecting a new owner.
 - **Lock order.** Scheduling and physical config changes acquire the physical-history lock before database and config locks. Publication takes database and config locks without waiting for the physical-history lock.
 
@@ -287,20 +279,16 @@ PostgreSQL owns the backup format and the block-level incrementals. Product rule
 - **Compress on the source.** Server-side compression reduces traffic over the source link, which client-side compression and local staging cannot do.
 - **Codec fallback.** Without zstd on the source, the codec falls back to gzip and then to none. Every backup tries zstd first.
 - **Manifest.** With server compression, `pg_basebackup` cannot embed `backup_manifest`, so Databasus rebuilds it from the tar stream and stores it as an encrypted sidecar file for `--incremental`.
-  - Tests validate rebuilt manifests with PostgreSQL's own verifier, including compressed archives, so format drift fails the test.
   - Speaking the replication protocol directly would avoid the rebuild, but we would then maintain our own `pg_basebackup`.
 - **Coordinate status and files.** One lifecycle owner commits each transition with its file obligations. Completion records database success before updating the backup, preserving database-before-backup lock order. Cancellation and deletion commit before the process stops; the database remains busy until its old run ends.
 - **Reserve each database once.** Full and incremental backups share one table, with restrictive references to their parent and root full backup. A unique constraint permits only one in-progress backup per database; that row reserves the database.
-- **Deciding what to run.** Two pure decision steps choose a full backup, an incremental or nothing, and the scheduler loads chain facts only when the second needs them.
-  - A pass with nothing due ends before a transaction.
-  - Otherwise the scheduler takes the advisory lock shared with orphan WAL cleanup, reloads the state, repeats the decision and inserts what it chooses.
+- **Scheduling and cleanup agree on chain state.** Idle scheduling avoids transactions and unnecessary chain reads. Dispatch rechecks the decision under the history lock shared with orphan WAL cleanup, so a backup cannot start against history being removed.
 - **Separate periodic scheduling from requests** (spec `physical-backups/background-load`). The full scheduler evaluates enabled configs with a fixed query count; the request job reads only pending requests, so manual starts stay fast. Polling committed configs avoids depending on every request writer to send a wake-up signal.
 - **Separate reported health from live control.** API health comes from stored WAL samples and persisted source identity refusals. The streamer's live tracking sends notifications and controls receiver pauses, slot rebuilding and WAL rotation.
-- **Verify the session that supplies WAL.** The physical engine checks the saved cluster identity on each connection that receives WAL or mutates a WAL slot. A separate preflight check leaves a routing race between connections. A private, one-use Unix socket hands the authenticated session to stock `pg_receivewal`, preserving upstream TLS and leaving WAL writing and timeline handling to PostgreSQL's client. The backups module owns retries and persisted identity refusals; a refusal remains unresolved until verified streaming resumes.
-- **Timeline history.** Both FULL completion and the WAL queue watcher acquire history through one publisher. The publisher checks `IDENTIFY_SYSTEM` against the saved cluster identity and requests `TIMELINE_HISTORY` on the same physical replication connection. This needs replication privileges and one temporary WAL sender; it grants no server-file access. Acquisition and connection cleanup have bounded contexts. The publisher validates the filename, ancestors and fork positions while preserving the source bytes. A queued local `.history` is a notification retained until publication succeeds.
-  - Publication uses separate object names and receipts for each attempt. Existing-row reuse and concurrent winners validate the captured storage generation and selected storage under the same transaction locks as publication.
+- **Verify the session that supplies WAL.** The physical engine checks the saved cluster identity on each connection that receives WAL or mutates a WAL slot. A separate preflight check leaves a routing race between connections. Session handoff preserves upstream TLS and leaves WAL writing and timeline handling to PostgreSQL's client. The backups module owns retries and persisted identity refusals; a refusal remains unresolved until verified streaming resumes.
+- **Timeline history.** One publisher acquires history with identity verification on the same replication session. It needs replication privileges and a temporary WAL sender, not server-file access. Acquisition and cleanup are bounded; publication validates history while preserving the source bytes and retains local work until it succeeds. It follows the same write-receipt and storage-generation rules as other archived files.
 - **Restore.** The user restores from a downloaded restore set with the recovery script Databasus serves. Archive replay above timeline 1 requires the selected timeline's published history in the FULL's storage. Restore tokens, downloads and coverage share that prerequisite. Without history, latest recovery stops at a completed backup and a later requested time is unreachable. A valid FULL remains completed, and explicit backup recovery needs no separate history because the backup includes its own WAL.
-  - PITR time bounds use complete transaction timestamps decoded by `pg_waldump` from the selected timeline's archived WAL. WAL receipt time measures archiving, because delayed ingestion cannot establish which source transactions can be recovered. WAL without transaction evidence does not extend that time bound.
+  - PITR time bounds use complete source transaction timestamps from the selected timeline's archived WAL. WAL receipt time measures archiving, because delayed ingestion cannot establish which source transactions can be recovered. WAL without transaction evidence does not extend that time bound. [Patroni guidance](postgresql-patroni.md) explains recovery gaps after promotion.
 
 ## Verification agent
 
@@ -310,7 +298,7 @@ The verification agent is a CLI worker on a machine the user provides. It proves
 - **New work** goes only to an agent with [assignment eligibility](glossary.md#product) (spec `backup-verification`). The verification service checks it after authentication and request validation, before locking any pending row. An ineligible agent gets the empty `204` of `claimVerification`, and the verification stays pending for another agent.
 - **Heartbeats and claims run independently**, so a first claim may find no accepted heartbeat yet and retries on its next poll.
 - **An agent whose eligibility has expired** stays listed, so an administrator can find and repair it. Work already running continues until the scheduler's stale-run pass requeues or fails it.
-- **Failure diagnostics.** Failed reports carry a sanitized excerpt of the underlying error, keeping the beginning and end within 65,536 UTF-8 bytes. The agent masks known credentials and omits the unstructured stream from the first PostgreSQL sensitive section onward, because SQL bodies and row values can imitate diagnostic record prefixes. It also uses the [shared redaction rules](#logs); the server reapplies that policy before storage. The terminal failed outcome and diagnostic are written atomically on the verification row after checking its current owner under a row lock. Requeued attempts, completion, cancellation and server-detected failures clear the diagnostic. Authorized verification detail reads return it after the disposable container is gone; lists and notifications keep only the short failure summary.
+- **Failure diagnostics.** Agent and server both redact diagnostics before storage or delivery. SQL bodies and row values are excluded because they can imitate diagnostic prefixes. The final diagnostic belongs atomically to the failed attempt and its verified owner; other outcomes clear it. Detail reads require authorization, while lists and notifications expose only a short summary. [Backup verification](../openspec/specs/backup-verification/spec.md) defines the payload bounds and outcome rules; [shared redaction](#logs) applies as well.
 - **Updates.** The agent periodically checks the server version and atomically replaces its executable, so its account needs write access to the executable's directory. The upgrade test exercises the [manual recovery procedure](testing.md#manual-agent-recovery) for a failed replacement.
 
 ## Configuration
@@ -355,54 +343,48 @@ The [FSD skill](../.agents/skills/feature-sliced-design/SKILL.md) gives the plac
 
 ### Database page layout
 
-The database page is one slice, `pages/databases`. Its local area directories collect each responsibility's UI, model, requests and supporting logic; technical subdirectories exist only where they hold code.
+The database page is one slice. Local areas group each responsibility's UI, state, requests and supporting logic; technical subdirectories exist only where they hold code. Root UI composes the page, list and tabs, while root libraries hold logic shared across areas. Tests stay beside their units, with page-composition tests beside the root UI.
 
-| Area | Responsibility |
-| --- | --- |
-| `wal-monitoring` | WAL measurements, live updates, charts and monitoring actions |
-| `physical-backups` | Physical backup lists, actions and physical restore commands |
-| `logical-backups` | Logical backup lists, actions, download types and verification badges |
-| `verification` | Verification configuration, runs and their details |
-| `healthcheck` | Healthcheck configuration and attempts |
-| `backup-config` | Logical and physical configuration fields, drafts, retention, notifications and storage selection |
-| `settings` | Database settings composition, editors, display, transfer and forms also used by creation |
-| `create-wizard` | Creation steps and starting the first backup |
-| `restores` | Logical restore presentation and target drafts |
-
-Root `ui` owns the page, list and tab composition and presentation shared by the local areas; root `lib` holds supporting logic shared across areas. Tests stay beside their production units, and page composition tests stay in root `ui`. The local areas remain inside the same slice: they use direct imports, while external consumers use the page's `index.ts`. Folder grouping creates no additional enforced dependency boundary.
+Local grouping creates no additional dependency boundary: areas import each other directly, while external consumers use the page's public API. The [page directory](../frontend/src/pages/databases) shows the areas without duplicating their inventory here.
 
 ### State and effects
 
-- **Keep state near its lifecycle.** Form drafts, list selection and page-specific async work belong to their screen or interaction. Generic pagination machinery may live in shared. Application lifecycle hooks belong to app, and domain hooks stay with the domain.
-- **Ordinary server state uses TanStack Query.** App composes its client; [the factory](../frontend/src/shared/api/createQueryClient.ts) defines production defaults. Results stay only while observed, and each new visit waits for a fresh read even when a sibling already holds data. Explicit operations run without an offline queue, automatic retry or focus/reconnect refresh. Screens retain their polling, error and permission policy; paged-list and WAL controllers retain their domain reconciliation. The shared [fixed query polling hook](../frontend/src/shared/api/useFixedQueryPolling.ts) keeps interval ticks independent of request completion and skips pending reads. Its consumers choose prerequisites, visibility and failure behavior; backup cleanup retains its completion-relative scheduler.
-- **Session request helpers have a narrow role.** `useSessionQuery` scopes keys to a session generation, forwards cancellation and hides responses until that visit completes a read. Explicit supersession cancels an initial request as well as a refresh. Most consumers stay bound to their mounted session; version and storage-usage lifecycles explicitly follow session changes. `useSessionMutation` checks the captured session before the library dispatches HTTP; consumers still guard completion effects and draft acknowledgement.
-- **Cleanup** cancels ordinary reads through their HTTP signals, stops polling and removes subscriptions. Complete-list traversal checks cancellation before another cursor page. Parallel reads either cancel unfinished siblings when a required branch fails or keep the aggregate pending until every branch settles when current-load refusal handling must continue. Losing one observer leaves requests needed by an active sibling alive, and setup after cleanup works again.
+- **Keep state near its lifecycle.** Screens and interactions own drafts, selection and asynchronous work. App owns application lifecycle; domain hooks stay with the domain. Shared code may own generic transport and pagination mechanics.
+- **Separate server state from interaction state.** TanStack Query owns ordinary reads; app composes its client and shared API owns its defaults. Reads belong to a session and visit, honor cancellation and cannot expose a previous visit's data. Explicit operations have no offline queue or automatic retry. Screens retain polling, permissions, errors and reconciliation; generic query helpers do not acquire product policy.
+- **Guard completion as well as dispatch.** A request accepted by the transport can become obsolete before it finishes. Session changes, newer reads and closed editing interactions revoke its right to change UI state. Draft acknowledgement must preserve newer input.
+- **Cleanup** cancels unused reads, stops polling and removes subscriptions. Cancellation reaches every cursor page. Parallel work either cancels unfinished siblings after a required failure or waits for them when refusal handling needs all outcomes. One observer leaving cannot cancel work still needed by another, and setup after cleanup must work again.
 
-[Frontend effect rules](../frontend/AGENTS.md#effects-and-rendering) describe dependencies, current-value callbacks and lint exemptions.
+The [API request specification](../openspec/specs/frontend-api-requests/spec.md) defines freshness, polling and cancellation behavior. [Frontend effect rules](../frontend/AGENTS.md#effects-and-rendering) describe dependencies, current-value callbacks and lint exemptions.
 
 ### Session and startup
 
-- **Shared session state owns account transitions** (spec `frontend-session`). It publishes a coherent token/user snapshot with a generation; only the active authentication interaction accepts a sign-in response. Requests belong to that snapshot, and a 401 invalidates only that session.
-- **Account transitions reset account-owned state.** Logout, password-change logout and an active-session 401 replace the address with `/` and clear the previous sign-in destination. Session replacement resets the address, screens and workspace selection, close account-owned confirmations and reject obsolete destructive callbacks. Language, theme and version-reload cooldown survive. The app-owned query client synchronously cancels reads and clears query and mutation stores when the session changes. Other providers remain mounted, so password-change feedback survives the transition to sign-in.
-- **Startup and shell have separate owners.** App accepts essential user, settings and workspace data together, derives capabilities and owns workspace selection and version polling. The shell widget receives slots and owns viewport and drawer presentation.
-- **A sign-in attempt stays in its tab** and is consumed before code exchange. A signed-out screen link remains the destination through password and two-factor sign-in. OAuth binds a validated local screen path to the attempt and consumes it once; callback, external, query-bearing and malformed destinations are rejected. New authentication intent, unmount or session replacement prevents an older completion from activating a session.
-- **Theme infrastructure stays in shared.** Application tokens own semantic CSS roles and feed both the library configuration and Tailwind utilities. [Frontend design](frontend-design.md) explains presentation and its checks.
+- **Shared session state owns account transitions.** Token and user form one coherent snapshot with a generation. Only the active authentication interaction can accept sign-in; an old response or 401 cannot replace or invalidate a newer session.
+- **Account transitions reset account-owned state.** Navigation, selections, confirmations and cached requests belong to the account. App cancels reads and clears query and mutation stores synchronously on a session change, while other providers stay mounted so transition feedback survives. Language, theme and version-reload cooldown belong to the browser instead.
+- **Startup and shell have separate owners.** App accepts essential startup data together, derives capabilities and owns workspace selection and version polling. The shell widget receives slots and owns viewport and drawer presentation.
+- **Authentication intent stays in its tab.** Sign-in attempts are single-use and bind the provider callback to a validated local destination. New intent, unmount or session replacement invalidates an older completion. External, malformed and callback destinations are rejected.
+- **Theme infrastructure stays in shared.** Semantic roles feed both library configuration and Tailwind utilities; [frontend design](frontend-design.md) explains presentation.
+
+[Frontend session](../openspec/specs/frontend-session/spec.md) and [navigation](../openspec/specs/frontend-navigation/spec.md) define account transitions and sign-in destinations.
 
 ### Addressed navigation
 
-- **App owns URL navigation.** The existing browser router keeps the authenticated shell mounted while the address selects a workspace, main section, database and database tab. Shell and database cards receive link destinations; the database page exposes controlled selection and navigation callbacks. Shared navigation contains the local path grammar, builder and deliberate-navigation identity, without resource fallback policy. Callback routes remain separate.
-- **Addresses take precedence over preferences.** App validates addressed workspaces against accepted startup data. The database page validates selection against the complete workspace collection before loading details, independently of search. Remembered workspace and database selections supply unspecified-entry defaults only; mobile database entry without an ID opens the list. A resolved explicit selection survives viewport, language and theme changes. Storage and notifier detail selections remain local.
-- **Resource pages reconcile availability.** A missing database or confirmed detail 403/404 hides its details, refreshes the collection and chooses an available destination within the addressed workspace. Returned details must still belong to that workspace. Rejected candidates stay excluded during the resolution so stale lists cannot cause loops. An unavailable workspace resolves to the first accessible workspace's databases; exhausted collections resolve to the list or root empty-workspace experience. Temporary failures retain the requested address and recovery action. Stale reads cannot redirect a newer navigation.
-- **History records deliberate navigation.** Section, workspace, database and offered-tab selections push a destination; repeated selection does nothing. Normalization, access fallback and selected-resource removal replace it. Browser history restores and revalidates addresses. Mobile Back to list uses the list address. Database tabs have no separate hidden preference: unsupported tabs resolve to Backups.
-- **Mutation selection has a lifetime.** Leaving a database, workspace or main section invalidates a pending action's right to select another resource, even after returning. Switching tabs within the same continuously selected database retains that right: a late copy selects its copy at the currently displayed offered tab, and a late removal reconciles the selection. Unmounted tabs show no late feedback. Accepted collection updates can still remove an unavailable current resource.
+- **App owns URL navigation.** The authenticated shell stays mounted while the address chooses the workspace, section and database. Screens expose controlled selections and callbacks; shared navigation owns path construction without resource fallback policy.
+- **Addresses take precedence over preferences.** Domain pages validate resource membership against accepted, complete data independently of search. Missing or forbidden resources reconcile within the addressed workspace; transient failures retain the requested destination. Stale reads cannot redirect a newer navigation.
+- **History distinguishes intent from reconciliation.** Deliberate navigation pushes history, while normalization and access fallback replace it. Back and Forward revalidate addresses rather than revive stale selections.
+- **Mutation selection has a lifetime.** Leaving a selected resource revokes a pending action's right to select another, even after returning. A tab change within the continuously selected database retains that right. Unmounted views show no late feedback.
+
+[Frontend navigation](../openspec/specs/frontend-navigation/spec.md) owns path syntax, fallback destinations, tab defaults and exact history behavior.
 
 ### Editors and resource pages
 
-- **Keep response acceptance with the editor.** Query state owns ordinary read lifetimes; monotonic revisions remain for draft, interaction and capability ownership. Storage and notifier editors own drafts, acknowledged baselines, persisted IDs and acceptance rules; profile and instance settings follow the same policy. A response may acknowledge submitted values without replacing newer input. Completion selects the resource and closes the editor only when the submitted snapshot is fully acknowledged.
-- **Test approval belongs to the tested settings.** Any change invalidates approval, even a change away and back. The reusable database connection form owns approval; its containers own saving.
-- **Resource pages own collection policy:** domain reads, access-refusal handling, refresh timing and detail mutations. They may delegate collection request state, stale-response protection and local item reconciliation to shared hooks. App recreates resource and workspace-settings screens when the workspace changes. Shared selection, searchable list presentation and transfer interaction receive callbacks and content; they know nothing about resource APIs, permissions or domain editors. Transfer adapters retain usage checks, target queries and transfer operations.
-- **Database pages compose editing features.** One controlled connection form serves creation, settings and restore targets, whose containers own their drafts, saving and navigation. Shared draft types belong to entities and distinguish these scenarios, so a restore target cannot request a stored secret. Only pages compose storage and notifier editors; config editors own switch confirmation, and database pages show current cleanup beside Storage. The notice and read retry stay beside Storage during editing. A successful save acknowledges its returned config and cleanup summary. Polling updates only cleanup counts, independently of editing drafts, retains the latest known summary on read failure, and stops on zero or a read failure.
-- **Screen tests reuse real providers** through shared test infrastructure, without importing app. Tests replace only HTTP, as [testing.md](testing.md#frontend-tests) describes.
+- **Editors own acceptance.** They hold drafts, acknowledged baselines, persisted identity and response-acceptance rules. A response may acknowledge submitted values without replacing newer input; completion selects and closes only a fully acknowledged submission.
+- **Test approval belongs to the tested settings.** Any settings change invalidates approval, including a change away and back. Reusable connection forms own approval; their containers own saving.
+- **Resource pages own collection policy.** Domain reads, access handling, refresh timing and mutations stay with the page. Shared hooks may handle request lifetimes and local reconciliation. Shared lists, selections and transfers receive content and callbacks, without resource APIs, permissions or domain editors. Workspace changes recreate workspace-owned screens.
+- **Database pages compose editing features.** One controlled connection form serves creation, settings and restore targets. Containers own their drafts, saving and navigation; entity-owned draft types distinguish these scenarios so a restore target cannot request a stored secret. Only pages compose storage and notifier editors, and backup-config editors own storage-switch confirmation.
+- **Background observations cannot overwrite drafts.** Cleanup counts and other live observations update independently of submitted settings. Their failures and retry actions stay with the relevant field, preserving the latest accepted state.
+- **Screen tests reuse real providers** without importing app and replace only HTTP, as [testing](testing.md#frontend-tests) describes.
+
+[Database screens](../openspec/specs/frontend-database-screens/spec.md), [database connection](../openspec/specs/frontend-database-connection/spec.md) and [storage assignment](../openspec/specs/backup-storage-assignment/spec.md) define the detailed editing and cleanup behavior.
 
 ## End-to-end suites
 
