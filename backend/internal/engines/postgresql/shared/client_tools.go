@@ -18,6 +18,7 @@ const (
 	ExecutablePgBasebackup    Executable = "pg_basebackup"
 	ExecutablePgReceivewal    Executable = "pg_receivewal"
 	ExecutablePgCombinebackup Executable = "pg_combinebackup"
+	ExecutablePgWaldump       Executable = "pg_waldump"
 )
 
 // Every PostgreSQL client answers --version with "<tool> (PostgreSQL) 17.10".
@@ -69,6 +70,7 @@ func getRequiredCommands(version Version) []string {
 			string(ExecutablePgBasebackup),
 			string(ExecutablePgReceivewal),
 			string(ExecutablePgCombinebackup),
+			string(ExecutablePgWaldump),
 		)
 	}
 

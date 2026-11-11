@@ -341,6 +341,13 @@
       },
       "reference": "docker.io/library/postgres:18@sha256:3a4264520e121176619f54ff867d12774bc81e95e7b84db58d63bccdb6144b81"
     },
+    "quay.io/coreos/etcd:v3.6.16": {
+      "platforms": {
+        "linux-arm64": "sha256:07f85c14d7e231cdae5be7f1eeba170eab86c93af3e02ca2e782549e9e5d04f8",
+        "linux-x64": "sha256:2524e87ee7a2b5ee35eda29c57d826d666783faa0fdcd9fc8dd435fccf3c46a3"
+      },
+      "reference": "quay.io/coreos/etcd:v3.6.16@sha256:a9c7cc12156f4b26ca41f0b57ba5b76c45037ff6c1e47ea3d68cb7908d48a965"
+    },
     "timescale/timescaledb:2.17.0-pg17": {
       "platforms": {
         "linux-arm64": "sha256:03027b6c6d310e7275f4531860804ab7a48c80eead0f9eafb127b75546721ed2",

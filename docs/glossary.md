@@ -64,6 +64,13 @@ This is the project's common language. Each concept has one term in the document
 | Archive staleness threshold | `ArchiveStalenessThreshold` | How long the archive progress point may stay still while the source writes before archiving counts as fallen behind. |
 | Local WAL queue | local WAL queue, `WalQueueDir`, `LocalQueuePauseBytes` | The directory where `pg_receivewal` writes segments before they are uploaded. |
 | Replication slot | slot | A slot on the source that keeps WAL until Databasus has received it. |
+| Primary | primary | The PostgreSQL node accepting writes and serving physical backups and WAL reception. |
+| Standby | standby | A PostgreSQL node replaying WAL from the primary until it is promoted. |
+| Promotion | promotion | Making a standby writable on a new PostgreSQL timeline. |
+| Switchover | switchover | A planned transfer of the primary role to a standby. |
+| Failover | failover | Electing and promoting a standby after the primary becomes unavailable. |
+| Distributed configuration store (DCS) | DCS | The shared store Patroni uses to coordinate configuration and primary ownership, such as etcd. |
+| Point-in-time recovery (PITR) | PITR, `targetTime` | Replaying archived WAL after a physical backup up to a selected recoverable time. |
 | Timeline | timeline | PostgreSQL's history branch number, which changes when a replica is promoted. |
 | Restore set | restore set | The files needed to restore a database to a moment: a full backup, its incrementals and the WAL up to the target. |
 | Recovery script | recovery script | The script Databasus serves that rebuilds a cluster from a downloaded restore set. |

@@ -21,8 +21,9 @@ type PhysicalWalSegmentSeed struct {
 
 	CompressedSizeMb float64 `json:"compressedSizeMb" gorm:"column:compressed_size_mb;type:double precision;not null;default:0"`
 
-	ReceivedAt time.Time `json:"receivedAt" gorm:"column:received_at"`
-	ClaimedAt  time.Time `json:"claimedAt"  gorm:"column:claimed_at"`
+	ReceivedAt        time.Time  `json:"receivedAt"        gorm:"column:received_at"`
+	ClaimedAt         time.Time  `json:"claimedAt"         gorm:"column:claimed_at"`
+	LastTransactionAt *time.Time `json:"lastTransactionAt" gorm:"column:last_transaction_at"`
 
 	Encryption     string  `json:"encryption" gorm:"column:encryption;type:text;not null;default:'NONE'"`
 	EncryptionSalt *string `json:"-"          gorm:"column:encryption_salt;type:text"`

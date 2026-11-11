@@ -207,6 +207,8 @@ func NewStreamer(spec WalStreamSpec) *Streamer {
 		MasterKey:           spec.MasterKey,
 		WalSegmentRepo:      spec.WalSegmentRepo,
 		WalSegmentSizeBytes: walSegmentSizeBytes(spec.SourceDB),
+		ClientTools:         spec.ClientTools,
+		Version:             spec.SourceDB.Version,
 		Logger:              scopedLogger,
 		WatchDir:            watchDir,
 		OnGapDetected:       spec.OnGapDetected,

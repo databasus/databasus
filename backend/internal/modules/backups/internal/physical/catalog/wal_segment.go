@@ -23,8 +23,9 @@ type WalSegment struct {
 
 	CompressedSizeMb float64 `gorm:"column:compressed_size_mb;type:double precision;not null;default:0"`
 
-	ReceivedAt time.Time `gorm:"column:received_at"`
-	ClaimedAt  time.Time `gorm:"column:claimed_at"`
+	ReceivedAt        time.Time  `gorm:"column:received_at"`
+	ClaimedAt         time.Time  `gorm:"column:claimed_at"`
+	LastTransactionAt *time.Time `gorm:"column:last_transaction_at"`
 
 	Encryption     BackupEncryption `gorm:"column:encryption;type:text;not null;default:'NONE'"`
 	EncryptionSalt *string          `gorm:"column:encryption_salt;type:text"`

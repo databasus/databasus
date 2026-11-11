@@ -2,6 +2,7 @@ package chains
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -123,6 +124,16 @@ func (s *Service) resolveRestoreReach(ctx context.Context, databaseID uuid.UUID,
 	}
 
 	walRun, reachableLSN, reachableTime := contiguousWalRun(restoreWalSegments, lastStopLSN, lastBackupTime)
+	if targetTime != nil && targetTime.Equal(lastBackupTime) {
+		hasConfirmingTransaction := slices.ContainsFunc(walRun, func(segment *catalog.WalSegment) bool {
+			return segment.LastTransactionAt != nil && segment.LastTransactionAt.After(lastBackupTime)
+		})
+		if !hasConfirmingTransaction {
+			walRun = nil
+			reachableLSN = lastStopLSN
+		}
+	}
+
 	if len(walRun) == 0 {
 		historyFiles = nil
 	}
@@ -325,7 +336,13 @@ func contiguousWalRun(
 
 		run = append(run, segment)
 		cursor = segment.EndLSN
-		reachableTime = segment.ReceivedAt
+		if segment.LastTransactionAt != nil {
+			// Inclusive time recovery stops before a later transaction, not at the last timestamp.
+			transactionBound := segment.LastTransactionAt.Add(-time.Microsecond)
+			if transactionBound.After(reachableTime) {
+				reachableTime = transactionBound
+			}
+		}
 	}
 
 	return run, cursor, reachableTime

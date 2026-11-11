@@ -1,6 +1,7 @@
 package schedule
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -855,6 +856,32 @@ func TestIsDueForCronSchedule(t *testing.T) {
 		isDue := nilSchedule.IsDue(now, &lastRun)
 		assert.False(t, isDue)
 	})
+}
+
+func TestIsDueForCronScheduleWithStoredTimezone(t *testing.T) {
+	t.Parallel()
+
+	for _, offset := range []int{-3, 0, 3} {
+		for _, scenario := range []struct {
+			name  string
+			now   time.Time
+			isDue bool
+		}{
+			{name: "waits before the UTC cron boundary", now: time.Date(2026, 11, 11, 9, 47, 59, 0, time.UTC)},
+			{name: "runs at the UTC cron boundary", now: time.Date(2026, 11, 11, 9, 48, 0, 0, time.UTC), isDue: true},
+		} {
+			t.Run(fmt.Sprintf("%s with stored offset %d", scenario.name, offset), func(t *testing.T) {
+				t.Parallel()
+
+				expression := "48 9 11 11 *"
+				cronSchedule := Schedule{Type: TypeCron, CronExpression: &expression}
+				lastRun := time.Date(2026, 11, 11, 9, 46, 0, 0, time.UTC).
+					In(time.FixedZone("stored timestamp", offset*60*60))
+
+				assert.Equal(t, scenario.isDue, cronSchedule.IsDue(scenario.now, &lastRun))
+			})
+		}
+	}
 }
 
 func TestValidate(t *testing.T) {

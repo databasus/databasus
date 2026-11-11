@@ -19,10 +19,10 @@ type Team struct {
 	Settings apiclient.PostgresqlPhysicalSettings
 }
 
-func newTeam(t *testing.T) Team {
+func newTeam(t *testing.T, options ...apptest.Option) Team {
 	t.Helper()
 
-	return Team{Team: enginetest.NewTeam(t, apptest.WithPhysicalBackupLoops())}
+	return Team{Team: enginetest.NewTeam(t, append([]apptest.Option{apptest.WithPhysicalBackupLoops()}, options...)...)}
 }
 
 type physicalDatabaseSpec struct {

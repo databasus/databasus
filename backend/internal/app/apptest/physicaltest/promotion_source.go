@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/app/apptest/enginetest"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	apiclient "databasus-backend/internal/lib/apiclient"
 	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/lib/testwait"
@@ -39,6 +40,7 @@ func (team *Team) createPromotionDatabase(t *testing.T, spec promotionSourceSpec
 			Scan(&hasRole); err != nil {
 			return err
 		}
+
 		if !hasRole {
 			return fmt.Errorf("backup role has not replayed")
 		}
@@ -55,12 +57,30 @@ func (team *Team) createPromotionDatabase(t *testing.T, spec promotionSourceSpec
 func (team Team) requireRestrictedPromotionRole(t *testing.T) {
 	t.Helper()
 
-	connectionConfig, err := pgx.ParseConfig(
-		fmt.Sprintf("host=%s port=%d dbname=testdb sslmode=disable", team.Settings.Host, team.Settings.Port),
-	)
+	credentials := pgshared.CredentialSpec{
+		Host: team.Settings.Host, Port: team.Settings.Port, Username: team.Settings.Username,
+		TLS: pgshared.TLS{Mode: pgshared.SslMode(team.Settings.SslMode)},
+	}
+
+	if team.Settings.SslClientCert != nil {
+		credentials.TLS.ClientCert = *team.Settings.SslClientCert
+	}
+
+	if team.Settings.SslClientKey != nil {
+		credentials.TLS.ClientKey = *team.Settings.SslClientKey
+	}
+
+	if team.Settings.SslRootCert != nil {
+		credentials.TLS.RootCert = *team.Settings.SslRootCert
+	}
+
+	files, err := pgshared.WriteCredentialFilesToTempDir(credentials, *team.Settings.Password)
 	require.NoError(t, err)
-	connectionConfig.User = team.Settings.Username
-	connectionConfig.Password = *team.Settings.Password
+	t.Cleanup(files.Remove)
+
+	connectionConfig, err := pgshared.BuildConnConfig(credentials, *team.Settings.Password, "testdb", files)
+	require.NoError(t, err)
+
 	connection, err := pgx.ConnectConfig(t.Context(), connectionConfig)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = connection.Close(context.WithoutCancel(t.Context())) })

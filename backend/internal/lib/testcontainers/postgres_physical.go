@@ -38,6 +38,7 @@ type physicalPostgresOptions struct {
 	shouldOmitReplicationHbaEntry bool
 	shouldSpreadCheckpoints       bool
 	maxConnections                int
+	maxPreparedTransactions       int
 	maxWalSenders                 int
 	walKeepSizeMB                 int
 }
@@ -73,6 +74,10 @@ func WithWalKeepSize(megabytes int) PhysicalPostgresOption {
 // "insufficient parameter settings" case.
 func WithMaxConnections(connections int) PhysicalPostgresOption {
 	return func(o *physicalPostgresOptions) { o.maxConnections = connections }
+}
+
+func WithMaxPreparedTransactions(transactions int) PhysicalPostgresOption {
+	return func(options *physicalPostgresOptions) { options.maxPreparedTransactions = transactions }
 }
 
 // WithMaxWalSenders caps the cluster's WAL sender slots so a test can hold all of them and observe
@@ -139,6 +144,10 @@ func physicalPostgresCmd(opts physicalPostgresOptions) []string {
 	}
 	if opts.maxConnections > 0 {
 		cmd = append(cmd, "-c", fmt.Sprintf("max_connections=%d", opts.maxConnections))
+	}
+
+	if opts.maxPreparedTransactions > 0 {
+		cmd = append(cmd, "-c", fmt.Sprintf("max_prepared_transactions=%d", opts.maxPreparedTransactions))
 	}
 
 	if opts.shouldSpreadCheckpoints {

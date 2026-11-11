@@ -91,7 +91,7 @@ The [testing skill](../.agents/skills/testing/SKILL.md#waiting) defines conditio
 
 `TestRestorePhysicalSchemaAndSequences` and `TestRestorePhysicalSchemaAndSequencesToTargetTime` in `internal/modules/backups/e2e/postgresqlphysical/pg17` and `pg18` run four recoveries per PostgreSQL version: FULL plus subsequent WAL without incrementals, FULL plus two incrementals and subsequent WAL, and PITR before and after a schema transaction commits. The early target comes after that transaction has executed its DDL but before its commit. Both PITR targets follow the final incremental, and WAL through a later schema transaction is archived before recovery starts.
 
-The shared fixture in `internal/app/apptest/physicaltest` checks created schemas and tables, added and renamed columns, defaults, a type conversion that rewrites rows, indexes, constraints, object renames and deletions, and rolled-back DDL. It compares semantic catalog definitions and stored rows before exercising writes in the recovered cluster. `SchemaRecovery` and `SequenceRecovery` prepare and inspect objects through PostgreSQL connections; future HA scenarios can reuse them without copying assertions or depending on the restore runner's containers.
+The shared fixture in `internal/app/apptest/physicaltest` checks created schemas and tables, added and renamed columns, defaults, a type conversion that rewrites rows, indexes, constraints, object renames and deletions, and rolled-back DDL. It compares semantic catalog definitions and stored rows before exercising writes in the recovered cluster. `SchemaRecovery` and `SequenceRecovery` prepare and inspect objects through PostgreSQL connections; HA scenarios reuse them without copying assertions or depending on the restore runner's containers.
 
 Sequence coverage includes serial and identity columns, explicit defaults, objects from before and after FULL, both cache settings, forward `setval`, `nextval`, changed parameters and rollback behavior. Recovery checks preserve definitions, prevent reuse of restored IDs and detect a lost forward repositioning. Each sequence's first generated-ID insert runs before standalone allocation probes; its ID and every subsequent allocation must exceed the restored committed IDs. The checks allow native PostgreSQL sequence gaps and do not require the first recovered value to equal the largest stored ID plus one. Cached allocations are also checked across separate connections. After positive recovery assertions, disposable mutations prove that the observations distinguish a missing added column and an altered sequence cache.
 
@@ -104,6 +104,40 @@ TESTCONTAINERS_RYUK_DISABLED=true go -C backend test -count=1 -run '^TestRestore
   ./internal/modules/backups/e2e/postgresqlphysical/pg17 \
   ./internal/modules/backups/e2e/postgresqlphysical/pg18
 ```
+
+## Patroni physical backup tests
+
+The Patroni suite runs a real two-node PostgreSQL cluster, etcd and HAProxy for
+both PostgreSQL 17 and 18. Unlike the reusable engine servers, these sources use
+disk-backed data and durable PostgreSQL settings. Each scenario owns its network,
+containers, volumes and application database. Each root test limits concurrent
+fixtures to two; lifecycle and backup roots can overlap. Expected-failure child
+tests verify resource cleanup after partial startup, cancellation and a held
+backup transfer, while preserving an unrelated network. Before launching each
+child, the parent registers fallback cleanup restricted to that fixture label
+and its own temporary directory. An additional case kills the child process
+group after startup and verifies this fallback without relying on child cleanup.
+
+Install the pinned tools and client bundles, provide Docker and the shared test
+PostgreSQL server as described in [Commands](#commands), and allow network access
+for the initial fixture build. The build downloads pinned PostgreSQL and etcd
+images, hash-locked Python distributions, authenticated distribution packages
+and checksum-verified HAProxy source. Subsequent runs reuse the Docker build
+cache. Missing tools and failed builds fail the suite; scenarios are not skipped.
+
+Run the complete matrix from the repository root:
+
+```sh
+source scripts/fedora.sh
+apply_libedit_shim
+TESTCONTAINERS_RYUK_DISABLED=true go -C backend test -count=1 -timeout 40m \
+  ./internal/modules/backups/e2e/postgresqlphysical/patroni
+```
+
+Use `-run '^TestPatroniFixtureLifecycle$'` for fixture checks, or
+`-run '^TestPatroniPhysicalBackups/recovers_after_two_switchovers'` for one
+scenario on both majors. [PostgreSQL with Patroni](postgresql-patroni.md) explains
+the endpoint, external slot ownership, limited user and recovery gaps.
 
 ## Verification agent end-to-end tests
 
@@ -187,7 +221,7 @@ After installing the frontend dependencies from the lockfile, the command runs t
 The image and browser suites run sequentially because they disturb each other's timing under load.
 
 - Output lines carry the name of their process, and the summary names each process that failed.
-- The run allows 15 minutes per package and holds a machine-wide lock, so only one `mise run test` or `mise run test-full` goes at a time.
+- The run allows 40 minutes per slow package and 15 minutes per other package and holds a machine-wide lock, so only one `mise run test` or `mise run test-full` goes at a time.
 - A package missing from the list runs with the fast packages, so a new package needs no entry. A package belongs in the list when it starts containers or networks or runs for over a minute. A script test fails on an entry that neither `mise run test` nor `mise run test-full` selects.
 - Migration tests and architecture linter tests run here too.
 

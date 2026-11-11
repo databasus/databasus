@@ -34,7 +34,7 @@ func fetchRecoveryScript(t *testing.T, testApp *apptest.App) string {
 	return hostPath
 }
 
-func reconstructCluster(t *testing.T, target containers.RestoreTarget, spec restoreSpec) {
+func reconstructCluster(t *testing.T, target containers.RestoreTarget, spec restoreSpec) []byte {
 	t.Helper()
 
 	hostScript := fetchRecoveryScript(t, spec.App)
@@ -45,13 +45,16 @@ func reconstructCluster(t *testing.T, target containers.RestoreTarget, spec rest
 	target.CopyFileToContainer(t, spec.BundlePath, stagedBundle, 0o644)
 	target.CopyFileToContainer(t, hostScript, stagedScript, 0o755)
 
+	var output []byte
 	if spec.TargetTime != nil {
-		formattedTarget := spec.TargetTime.UTC().Format("2006-01-02 15:04:05-07:00")
-		target.Exec(t, "sh", stagedScript, "--target-time", formattedTarget, stagedBundle, restoreWorkDir)
+		formattedTarget := spec.TargetTime.UTC().Format("2006-01-02 15:04:05.999999-07:00")
+		output = target.Exec(t, "sh", stagedScript, "--target-time", formattedTarget, stagedBundle, restoreWorkDir)
 	} else {
-		target.Exec(t, "sh", stagedScript, stagedBundle, restoreWorkDir)
+		output = target.Exec(t, "sh", stagedScript, stagedBundle, restoreWorkDir)
 	}
 
 	target.Exec(t, "chown", "-R", "postgres:postgres", restoreWorkDir)
 	target.Exec(t, "chmod", "0700", restoredClusterDir(spec.Image))
+
+	return output
 }

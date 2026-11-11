@@ -314,7 +314,7 @@ The statistics SHALL also list notices, which never change the verdict:
 
 - **WHEN** the newest chain has a WAL gap below the archive progress point, an incremental backup of that chain completed after the gap, and every segment after that backup is archived without a gap
 - **THEN** the WAL chain broken reason is not listed
-- **AND** the latest restorable moment is the time Databasus received the newest archived segment
+- **AND** the latest restorable moment is the latest confirmed inclusive PITR bound from source transaction timestamps in contiguous archived WAL
 
 #### Scenario: Gap after the newest incremental backup
 
@@ -681,33 +681,33 @@ A refresh SHALL keep the previous content on screen until the new content arrive
 
 ### Requirement: The statistics state what the backups can restore
 
-The statistics SHALL state the latest moment to which the database's backups can restore it at the time of the request. That moment SHALL be the one a restore to the latest available point reaches. Archived WAL on a timeline above 1 SHALL extend recovery only after that timeline's verified history is published under the current backup storage selection. Timeline 1 needs no history file. Without required history, the latest restorable moment SHALL be the newest completed backup's completion time, and each completed backup opens only its own completion point rather than a stretch through subsequent WAL. These values SHALL use the same prerequisite as restore token issuance and restore downloads.
+The statistics SHALL state the latest moment to which the database's backups can restore it at the time of the request. That moment SHALL be the latest confirmed explicit PITR target. A latest restore without a target may also apply the final transaction that confirms this boundary. Archived WAL on a timeline above 1 SHALL extend recovery only after that timeline's verified history is published under the current backup storage selection. Timeline 1 needs no history file. Without required history, the latest restorable moment SHALL be the newest completed backup's completion time, and each completed backup opens only its own completion point rather than a stretch through subsequent WAL. These values SHALL use the same prerequisite as restore token issuance and restore downloads.
 
-That moment starts from the newest completed backup of the newest chain, full or incremental, and, when the history prerequisite is satisfied, extends through the WAL that follows that backup without a gap. With eligible WAL after that backup, it is the time Databasus received the last segment before the first gap after that backup, or the newest segment when there is no such gap. Without eligible WAL after that backup, it is the backup's completion time. When no full backup has completed, the statistics SHALL state that no moment can be restored yet.
+That moment starts from the newest completed backup of the newest chain, full or incremental, and, when the history prerequisite is satisfied, extends through the WAL that follows that backup without a gap. With eligible WAL after that backup, complete COMMIT or ABORT records in the selected timeline's contiguous published run SHALL confirm the upper bound. Because inclusive time recovery stops before a transaction strictly later than the target, this bound SHALL be one microsecond before the latest confirming source timestamp, never earlier than the completed-backup anchor. Receipt or upload time SHALL NOT extend it. A segment without timestamp evidence SHALL preserve the previously confirmed bound. Source time SHALL use the maximum trusted transaction timestamp even when timestamps decrease in WAL order. Without eligible WAL after that backup, it is the backup's completion time. When no full backup has completed, the statistics SHALL state that no moment can be restored yet.
 
 The statistics SHALL also state the stretches of time the newest chain can restore to, oldest first. When the history prerequisite is satisfied, each completed backup of that chain, full or incremental, opens a stretch from its completion time to the moment the WAL after it reaches without a gap, by the same rule as above. Stretches that overlap or touch SHALL be merged. A WAL segment that is still being uploaded SHALL end a stretch like a gap. The last stretch SHALL end at the latest restorable moment. Without a completed full backup, the list SHALL be empty.
 
 #### Scenario: Streaming without gaps
 
 - **WHEN** the newest full backup completed yesterday, required timeline history is published or the timeline is 1, and every WAL segment since then is archived without a gap
-- **THEN** the latest restorable moment is the time Databasus received the newest archived segment
+- **THEN** the latest restorable moment is the latest confirmed inclusive PITR bound from source transaction timestamps in contiguous archived WAL
 
 #### Scenario: Gap in the newest chain
 
-- **WHEN** the history prerequisite is satisfied, the slot was rebuilt at 07:51, which left a WAL gap after the segment received at 07:50, no backup completed after the gap, and segments after the gap keep arriving
+- **WHEN** the history prerequisite is satisfied, the slot was rebuilt at 07:51, which left a WAL gap after a segment confirming an inclusive PITR bound of 07:50, no backup completed after the gap, and segments after the gap keep arriving
 - **THEN** the latest restorable moment is 07:50
-- **AND** a restore to the latest available point reaches the same moment
+- **AND** an explicit PITR request for 07:50 remains eligible
 
 #### Scenario: Incremental backup after the gap
 
 - **WHEN** the history prerequisite is satisfied, the newest chain has a WAL gap at 07:51, an incremental backup of that chain completed at 09:00, and every segment after 09:00 is archived without a gap
-- **THEN** the latest restorable moment is the time Databasus received the newest archived segment
-- **AND** the restorable stretches are two: from the full backup's completion to 07:50, and from 09:00 to the newest archived segment
+- **THEN** the latest restorable moment is the latest confirmed inclusive PITR bound from source transaction timestamps in contiguous archived WAL
+- **AND** the restorable stretches are two: from the full backup's completion to 07:50, and from 09:00 to the newest confirmed inclusive PITR bound
 
 #### Scenario: Incremental backup before the gap
 
 - **WHEN** the history prerequisite is satisfied, an incremental backup of the newest chain completed at 06:00, and the chain has a WAL gap at 07:51 with segments after it
-- **THEN** the latest restorable moment is the time Databasus received the last segment before the gap
+- **THEN** the latest restorable moment is the latest confirmed inclusive PITR bound from source transaction timestamps before the gap
 - **AND** the restorable stretches are one, from the full backup's completion to that moment
 
 #### Scenario: Newer full backup

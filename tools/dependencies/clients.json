@@ -922,6 +922,70 @@
           "mode": 493
         }
       ]
+    },
+    {
+      "bundle": "postgresql-17",
+      "version": "17.10-1.pgdg12+1",
+      "build_family": "pgdg-debian12",
+      "architecture": "x64",
+      "url": "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-17/postgresql-17_17.10-1.pgdg12+1_amd64.deb",
+      "sha256": "1175e5d9b42cad823d2387e70f012d553c06d7fb6a433eb7939a2ee7f4bfa3a0",
+      "files": [
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-17/bin/pg_waldump",
+          "member": "usr/lib/postgresql/17/bin/pg_waldump",
+          "sha256": "749d3296cc8194b634f868ab6be8ec1ea9727cede3db6f84a868ecfe3065eb03",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "postgresql-18",
+      "version": "18.4-1.pgdg12+1",
+      "build_family": "pgdg-debian12",
+      "architecture": "x64",
+      "url": "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-18/postgresql-18_18.4-1.pgdg12+1_amd64.deb",
+      "sha256": "a25cb3bc8f02ea3196f49d2a61e2ab3462d3bd6dd28b95894139742c9ece2965",
+      "files": [
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-18/bin/pg_waldump",
+          "member": "usr/lib/postgresql/18/bin/pg_waldump",
+          "sha256": "e490da70aa341503cd3293b33f88de4ccccdb77491e5eb72803a2275a1ab9031",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "postgresql-17",
+      "version": "17.10-1.pgdg12+1",
+      "build_family": "pgdg-debian12",
+      "architecture": "arm",
+      "url": "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-17/postgresql-17_17.10-1.pgdg12+1_arm64.deb",
+      "sha256": "eddb1d7a9e10dd2eba067f545dacd1ff4d96e8ce5dc023605222b070f58bd340",
+      "files": [
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-17/bin/pg_waldump",
+          "member": "usr/lib/postgresql/17/bin/pg_waldump",
+          "sha256": "bf1cf74742f9325ddd4f01b144cd7901b5f9c0a94f8e293e03be8622cda00e63",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "postgresql-18",
+      "version": "18.4-1.pgdg12+1",
+      "build_family": "pgdg-debian12",
+      "architecture": "arm",
+      "url": "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-18/postgresql-18_18.4-1.pgdg12+1_arm64.deb",
+      "sha256": "2d676dd54e72520e96f8ee762f801fad2cbb9fde22bc94c671221eb570f7d852",
+      "files": [
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-18/bin/pg_waldump",
+          "member": "usr/lib/postgresql/18/bin/pg_waldump",
+          "sha256": "76fa3f32c3b92b82cf14ef92a9ef1c234c9917b7ddeea31e30a7b232e013c613",
+          "mode": 493
+        }
+      ]
     }
   ]
 }

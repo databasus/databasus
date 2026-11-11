@@ -1,0 +1,5 @@
+patroni[etcd3,psycopg3]==4.1.5
+psycopg==3.3.7
+psycopg-binary==3.3.7
+setuptools
+wheel

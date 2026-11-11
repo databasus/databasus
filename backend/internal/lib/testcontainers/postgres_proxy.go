@@ -20,11 +20,13 @@ import (
 
 type PostgresProxyEvent struct {
 	ConnectionID     int
+	BackendPID       int
 	Destination      Endpoint
 	IsReplication    bool
 	Kind             string
 	Command          string
 	SystemIdentifier string
+	TransferredBytes int
 }
 
 type PostgresProxyCommandBarrier struct {
@@ -42,6 +44,9 @@ type PostgresProxyRoute struct {
 type PostgresProxy struct {
 	responseFragmentSize int
 	commandBarrier       *PostgresProxyCommandBarrier
+	transferGate         *PostgresTransferGate
+	isUnavailable        bool
+	isReplicationBlocked bool
 
 	Endpoint               Endpoint
 	mu                     sync.Mutex
@@ -191,6 +196,16 @@ func (p *PostgresProxy) forward(ctx context.Context, client net.Conn, connection
 	}
 	p.mu.Unlock()
 	event := PostgresProxyEvent{ConnectionID: connectionID, Destination: destination, IsReplication: isReplication}
+	p.mu.Lock()
+	isBlocked := p.isUnavailable || (isReplication && p.isReplicationBlocked)
+	p.mu.Unlock()
+
+	if isBlocked {
+		event.Kind = "unavailable"
+		p.record(event)
+		return nil
+	}
+
 	defer func() { closedEvent := event; closedEvent.Kind = "closed"; p.record(closedEvent) }()
 	source, err := (&net.Dialer{}).DialContext(
 		ctx,
@@ -206,6 +221,10 @@ func (p *PostgresProxy) forward(ctx context.Context, client net.Conn, connection
 	if _, err := source.Write(startupPacket); err != nil {
 		return err
 	}
+
+	ctx, cancelForwarding := context.WithCancel(ctx)
+	defer cancelForwarding()
+
 	var queryMu sync.Mutex
 	lastQuery := ""
 	responsesDone := make(chan struct{})
@@ -213,13 +232,37 @@ func (p *PostgresProxy) forward(ctx context.Context, client net.Conn, connection
 		defer close(responsesDone)
 		defer func() { _ = client.Close() }()
 		isStreaming := false
+		backendPID := 0
+
 		for {
 			packet, readErr := readPostgresProxyPacket(source, false)
 			if readErr != nil {
 				return nil
 			}
+
 			responseEvent := event
+			responseEvent.BackendPID = backendPID
+
+			queryMu.Lock()
+			transferCommand := lastQuery
+			queryMu.Unlock()
+
+			p.mu.Lock()
+			gate := p.transferGate
+			hasBackupData := len(packet) > 6 && packet[0] == 'd' && packet[5] == 'd'
+			shouldHoldTransfer := hasBackupData && gate != nil && !gate.hasTriggered &&
+				strings.HasPrefix(transferCommand, "BASE_BACKUP")
+			if shouldHoldTransfer {
+				gate.hasTriggered = true
+			}
+			p.mu.Unlock()
+
+			packetSize := len(packet)
 			switch packet[0] {
+			case 'K':
+				if len(packet) >= 9 {
+					backendPID = int(binary.BigEndian.Uint32(packet[5:9]))
+				}
 			case 'R':
 				if len(packet) >= 9 && binary.BigEndian.Uint32(packet[5:9]) == 0 {
 					responseEvent.Kind = "authenticated"
@@ -243,12 +286,14 @@ func (p *PostgresProxy) forward(ctx context.Context, client net.Conn, connection
 				responseEvent.Kind = "streaming"
 				p.record(responseEvent)
 			}
+
 			p.mu.Lock()
 			fragmentSize := p.responseFragmentSize
 			if isStreaming {
 				fragmentSize = 0
 			}
 			p.mu.Unlock()
+
 			for len(packet) > 0 {
 				writeSize := len(packet)
 				if fragmentSize > 0 && writeSize > fragmentSize {
@@ -259,6 +304,19 @@ func (p *PostgresProxy) forward(ctx context.Context, client net.Conn, connection
 					return nil
 				}
 				packet = packet[written:]
+			}
+
+			if shouldHoldTransfer {
+				responseEvent.Kind = "transfer"
+				responseEvent.Command = transferCommand
+				responseEvent.TransferredBytes = packetSize - 6
+				p.record(responseEvent)
+				gate.Reached <- responseEvent
+				select {
+				case <-gate.release:
+				case <-ctx.Done():
+					return nil
+				}
 			}
 		}
 	})
@@ -271,6 +329,18 @@ func (p *PostgresProxy) forward(ctx context.Context, client net.Conn, connection
 		switch packet[0] {
 		case 'Q':
 			command = strings.TrimSpace(strings.TrimRight(string(packet[5:]), "\x00;"))
+			limitedCommand, err := p.limitBackupTransfer(command)
+			if err != nil {
+				return err
+			}
+
+			if limitedCommand != command {
+				command = limitedCommand
+				packet, err = (&pgproto3.Query{String: command}).Encode(nil)
+				if err != nil {
+					return fmt.Errorf("encode rate-limited backup command: %w", err)
+				}
+			}
 		case 'P':
 			var parsed pgproto3.Parse
 			if err := parsed.Decode(packet[5:]); err != nil {
@@ -293,6 +363,7 @@ func (p *PostgresProxy) forward(ctx context.Context, client net.Conn, connection
 				barrier.hasTriggered = true
 			}
 			p.mu.Unlock()
+
 			if shouldHold {
 				barrier.Reached <- commandEvent
 				select {
@@ -306,8 +377,11 @@ func (p *PostgresProxy) forward(ctx context.Context, client net.Conn, connection
 			break
 		}
 	}
+
+	cancelForwarding()
 	_ = source.Close()
 	<-responsesDone
+
 	return nil
 }
 

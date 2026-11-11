@@ -2,6 +2,7 @@ package physicaltest
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"testing"
 
@@ -14,6 +15,14 @@ import (
 func (team Team) requirePublishedTimelineHistory(t *testing.T, source *pgx.Conn) {
 	t.Helper()
 
+	var timelineID int
+	require.NoError(
+		t,
+		source.QueryRow(t.Context(), "SELECT ('x'||substr(pg_walfile_name(pg_current_wal_lsn()),1,8))::bit(32)::int").
+			Scan(&timelineID),
+	)
+	historyFilename := fmt.Sprintf("%08X.history", timelineID)
+
 	var histories []struct {
 		ID        uuid.UUID
 		FileName  string
@@ -22,16 +31,21 @@ func (team Team) requirePublishedTimelineHistory(t *testing.T, source *pgx.Conn)
 	team.App.QuerySQL(
 		t,
 		&histories,
-		"SELECT id,file_name,storage_id FROM backups_physical_wal_history_files WHERE database_id=? AND timeline_id=2",
+		"SELECT id,file_name,storage_id FROM backups_physical_wal_history_files WHERE database_id=? AND timeline_id=?",
 		team.Database.Id,
+		timelineID,
 	)
 	require.Len(t, histories, 1)
-	require.Equal(t, team.StorageID, histories[0].StorageID)
+	configuration, err := team.Owner.Client.GetBackupConfigWithResponse(t.Context(), team.Database.Id)
+	require.NoError(t, err)
+	require.NotNil(t, configuration.JSON200)
+	require.NotNil(t, configuration.JSON200.StorageId)
+	require.Equal(t, *configuration.JSON200.StorageId, histories[0].StorageID)
 
 	var sourceHistory []byte
 	require.NoError(
 		t,
-		source.QueryRow(t.Context(), "SELECT pg_read_binary_file('pg_wal/00000002.history')").Scan(&sourceHistory),
+		source.QueryRow(t.Context(), "SELECT pg_read_binary_file($1)", "pg_wal/"+historyFilename).Scan(&sourceHistory),
 	)
 
 	compressed, err := os.ReadFile(team.App.GetLocalStorageFilePath(histories[0].FileName))
@@ -57,6 +71,6 @@ func (team Team) requirePublishedTimelineHistory(t *testing.T, source *pgx.Conn)
 
 	require.Equal(t, histories[0].ID, metadata.WalHistoryFileID)
 	require.Equal(t, team.Database.Id, metadata.DatabaseID)
-	require.Equal(t, 2, metadata.TimelineID)
-	require.Equal(t, "00000002.history", metadata.HistoryFilename)
+	require.Equal(t, timelineID, metadata.TimelineID)
+	require.Equal(t, historyFilename, metadata.HistoryFilename)
 }

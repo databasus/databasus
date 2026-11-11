@@ -71,6 +71,7 @@ STUB_SOURCES = {
                 echo "databasus-backend/e2e/upgrade/upgradecheck"
                 echo "databasus-backend/internal/agent/e2e"
                 echo "databasus-backend/internal/modules/backups/e2e/mysql"
+                echo "databasus-backend/internal/modules/backups/e2e/postgresqlphysical/patroni"
             fi
             exit "${STUB_GO_LIST_EXIT_STATUS:-0}"
         else
@@ -110,6 +111,7 @@ STUB_SOURCES = {
 }
 
 SLOW_PACKAGE_LIST = """# A comment
+databasus-backend/internal/modules/backups/e2e/postgresqlphysical/patroni
 databasus-backend/internal/lib/slower
 databasus-backend/internal/lib/slow
 databasus-backend/internal/lib/removed
@@ -448,12 +450,26 @@ class TestScriptTestCase(unittest.TestCase):
         )
         self.assertLess(slow_limit, other_limit)
 
-    def test_every_package_process_has_a_timeout_of_15_minutes(self) -> None:
+    def test_slow_packages_have_40_minutes_and_other_packages_have_15(self) -> None:
         exit_status, _, stderr = self.finish_script(self.start_script())
         self.assertEqual(exit_status, 0, stderr)
 
-        for selection in self.get_go_selections():
-            self.assertEqual(selection[selection.index("-timeout") + 1], "15m")
+        slow_selection = self.get_selection_of("databasus-backend/internal/lib/slow")
+        other_selection = self.get_selection_of("databasus-backend/internal/lib/ordinary")
+        self.assertEqual(slow_selection[slow_selection.index("-timeout") + 1], "40m")
+        self.assertEqual(other_selection[other_selection.index("-timeout") + 1], "15m")
+
+    def test_full_run_selects_patroni_once_with_the_slow_timeout(self) -> None:
+        exit_status, _, stderr = self.finish_script(self.start_full_script())
+
+        self.assertEqual(exit_status, 0, stderr)
+
+        package = "databasus-backend/internal/modules/backups/e2e/postgresqlphysical/patroni"
+        selection = self.get_selection_of(package)
+
+        self.assertEqual(self.get_selected_packages().count(package), 1)
+        self.assertIn("databasus-backend/internal/lib/slow", selection)
+        self.assertEqual(selection[selection.index("-timeout") + 1], "40m")
 
     def test_the_upgrade_test_has_a_timeout_of_15_minutes_and_30_in_ci(self) -> None:
         upgrade_task = (REPOSITORY_ROOT / "mise-tasks/backend/test-upgrade").read_text()
