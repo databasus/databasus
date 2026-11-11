@@ -1,17 +1,62 @@
 ## Purpose
 
-Provides the root administrator with one place to configure Databasus backups, save the master key and resolve protection or mail-delivery problems without navigating between workspace screens.
+Provides the root administrator with one place to configure Databasus backups, save the master key, import recovery files and resolve protection or mail-delivery problems without navigating between workspace screens.
 
 ## ADDED Requirements
 
 ### Requirement: Global settings contain a root-only Databasus backups section
 
-The section SHALL show master-key acknowledgment, selected destinations, editable shared schedule and retention, manual backup, encrypted archive download and paged history with outcomes per destination. Only root admin SHALL see or operate this section. Ordinary workspace storage forms SHALL have no Databasus backup selection checkbox. The section SHALL explain the snapshot's contents and the need to retain the key and access to at least one storage separately. A local destination SHALL carry a visible warning that it does not protect against loss of the same host.
+The section SHALL show master-key acknowledgment, selected destinations, editable shared schedule and retention, manual backup, encrypted archive download, file-based recovery and paged history with outcomes per destination. Only root admin SHALL see or operate this section. Ordinary workspace storage forms SHALL have no Databasus backup selection checkbox. The section SHALL explain the snapshot's contents and the need to retain the key and access to at least one storage separately. A local destination SHALL carry a visible warning that it does not protect against loss of the same host.
 
 #### Scenario: Another instance administrator opens global settings
 
 - **WHEN** an administrator other than root admin opens global settings
 - **THEN** the existing settings remain available but the Databasus backup section and master-key actions do not appear
+
+### Requirement: Recovery starts with archive and master-key files from the computer
+
+The section SHALL offer import through two separately labeled file inputs: an encrypted Databasus backup and its source master key. It SHALL explain that the owner can obtain the archive from S3, another storage or another server independently, and that the target's own key does not replace the source key. Import SHALL be available without destinations or backup history on the target. History SHALL retain archive download; using an archive from that history SHALL follow the same download-then-import flow without a direct restore action.
+
+The form SHALL show missing-file feedback, upload and preparation progress, cancellation before apply, and actionable validation errors beside the import. A failed validation SHALL keep the current installation usable and allow the owner to correct the files. Dismissing the flow or changing session SHALL clear selected file handles and root-only preparation details. Selected files and key material SHALL NOT be placed in browser persistent storage. All controls SHALL support keyboard use and narrow layouts.
+
+#### Scenario: Owner imports an independently downloaded archive
+
+- **WHEN** root admin opens recovery on an initialized target without destinations or history
+- **THEN** the form accepts the archive and separate source-key files without requesting storage configuration
+- **AND** successful preparation shows the authenticated snapshot date and source version before replacement is possible
+
+#### Scenario: One input file is missing
+
+- **WHEN** root admin selects only the archive or only the master key
+- **THEN** the form identifies the missing file and does not start the upload
+
+#### Scenario: Preparation rejects the selected files
+
+- **WHEN** the server reports a wrong key, damaged archive, version mismatch or upload limit failure
+- **THEN** the form shows a safe actionable error and permits correction without claiming that recovery succeeded
+- **AND** a version mismatch identifies the required source release
+
+### Requirement: Replacement is confirmed after preparation and reconnects to restored accounts
+
+After successful preparation the interface SHALL show the snapshot date and source version and explain that application replaces current accounts, settings and backup history. Applying SHALL require explicit replacement confirmation and recent root identity proof. Cancelling this confirmation SHALL NOT submit apply. Repeated clicks or request retries SHALL continue observing the same accepted recovery rather than create another one.
+
+Once apply is accepted, the interface SHALL show that Databasus is restoring and may temporarily disconnect. It SHALL NOT report success merely because connectivity changes. When the previous session is invalidated it SHALL guide the owner to sign in using the snapshot's accounts and credentials. After sign-in it SHALL show the durable recovery pause and existing root activation flow. Failed apply SHALL show a safe error without claiming that the imported installation is active.
+
+#### Scenario: Owner cancels replacement
+
+- **WHEN** root admin cancels after viewing the prepared snapshot and replacement warning
+- **THEN** no apply request is sent and the current installation remains available
+
+#### Scenario: Restored account differs from the temporary target account
+
+- **WHEN** import replaces a temporary target root account with the snapshot's accounts
+- **THEN** the interface requires sign-in with restored credentials and does not retain the temporary account's session
+- **AND** a successful sign-in shows the recovery pause until root confirms activation
+
+#### Scenario: Session changes while preparation is pending
+
+- **WHEN** a preparation response arrives after sign-out or a switch to another account
+- **THEN** it cannot expose the selected files, snapshot details or apply controls in the new session
 
 ### Requirement: Selection and creation stay in one configuration flow
 

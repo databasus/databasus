@@ -1,12 +1,12 @@
 ## Purpose
 
-Restores a lost Databasus installation from an encrypted Databasus backup file and its separately retained key without allowing recovery to upgrade the snapshot or start competing work.
+Restores Databasus from an encrypted backup file and its separately retained master key through mounted startup files or confirmed UI file import, without upgrading the snapshot or starting competing work.
 
 ## ADDED Requirements
 
 ### Requirement: Recovery requires the exact source release
 
-Startup recovery SHALL accept a Databasus backup file only when its authenticated source release exactly matches the running Databasus release, including the patch version, and its schema identity is compatible with the running build under the rules below. Both older and newer releases SHALL be refused before importing data, applying application migrations or replacing the destination key. The refusal SHALL name the source and running releases and instruct the owner to start the source release, recover there, and then upgrade normally. There SHALL be no override accepting a different release.
+Both startup recovery and UI file import SHALL accept a Databasus backup file only when its authenticated source release exactly matches the running Databasus release, including the patch version, and its schema identity is compatible with the running build under the rules below. Both older and newer releases SHALL be refused before importing data, applying application migrations or replacing the destination key. The refusal SHALL name the source and running releases and instruct the owner to start the source release, recover there, and then upgrade normally. There SHALL be no override accepting a different release. Successfully consumed startup inputs SHALL be skipped on later normal starts as specified below; leaving them configured SHALL NOT turn an ordinary upgrade into a new recovery attempt.
 
 Schema identity SHALL contain a digest of the ordered migration bundle and the effective applied migration versions captured in the snapshot. Compatibility SHALL require an identical bundle digest, every migration carried by the target recorded as applied in the snapshot, and no applied version newer than the target's newest migration. Additional historical applied versions absent from the current bundle SHALL be accepted when they are no newer than that newest version, as ordinary upgraded installations permit. Those historical entries SHALL be preserved. Recovery SHALL compare the imported migration history with the authenticated snapshot identity before activation; it SHALL NOT require the entire applied-version set to equal the current bundle's version set.
 
@@ -20,6 +20,12 @@ Schema identity SHALL contain a digest of the ordered migration bundle and the e
 - **WHEN** an archive and running instance differ only in patch version
 - **THEN** recovery is refused with the same guidance
 
+#### Scenario: UI import uses a different release
+
+- **WHEN** root admin uploads a valid archive from a different release, including a patch difference
+- **THEN** import is refused with the source and running releases and guidance to recover on the source release
+- **AND** the current installation's data and master key remain unchanged
+
 #### Scenario: Development builds share a release label
 
 - **WHEN** source and target have the same development release label but different migration-bundle digests
@@ -31,9 +37,9 @@ Schema identity SHALL contain a digest of the ordered migration bundle and the e
 - **THEN** recovery accepts the Databasus backup file and preserves those historical entries without rerunning or deleting them
 - **AND** no application migration is applied as part of recovery
 
-### Requirement: Startup recovery accepts an archive and a separate key only on an unused target
+### Requirement: Startup recovery accepts mounted archive and key files only on an unused target
 
-The supplied deployment SHALL support startup recovery from an archive file and a separate key file. Recovery SHALL run before normal application initialization, SHALL require an unused target, and SHALL NOT overwrite an existing installation. It SHALL authenticate and validate the complete archive before publishing recovered state. A wrong key, truncated or modified archive, incompatible schema or failed import SHALL leave no apparently usable partial installation. A completed recovery SHALL not repeat merely because recovery inputs remain configured across a restart.
+The supplied Docker deployment SHALL support startup recovery from an archive file and a separate master-key file supplied through paths in a mounted volume, including the persistent data volume. Both paths SHALL be required together. A new startup recovery SHALL run before normal application initialization, SHALL require an unused target, and SHALL NOT overwrite an existing installation. It SHALL authenticate and validate the complete archive before publishing recovered state. A wrong key, truncated or modified archive, incompatible schema or failed import SHALL leave no apparently usable partial installation.
 
 #### Scenario: Recovery on a fresh target
 
@@ -50,10 +56,124 @@ The supplied deployment SHALL support startup recovery from an archive file and 
 - **WHEN** the archive is corrupted or the supplied key does not decrypt it
 - **THEN** recovery fails without activating partial recovered state or replacing an existing key
 
-#### Scenario: Restart after successful recovery
+### Requirement: Completed startup recovery is deduplicated by archive content
 
-- **WHEN** a successfully recovered instance restarts with the same recovery inputs still configured
-- **THEN** it starts from the recovered state without importing the archive again
+Startup recovery SHALL identify an archive by SHA-256 of the complete encrypted file. Successful consumption SHALL survive replacement of snapshot state and SHALL be recorded only after the database, exact source key and recovery pause are durably published. Restarting with the same successfully consumed archive SHALL start the current installation without importing it again, even when the file is renamed, an explicit UI import has since replaced the snapshot or the application is being upgraded normally. A different archive at the same configured path SHALL NOT be treated as consumed and SHALL be refused on a used target. A failed attempt SHALL NOT be marked successfully consumed. An interrupted accepted recovery SHALL resume or finish its recorded publication safely rather than begin another import. A deliberate new UI import of identical bytes SHALL remain possible; retries of one accepted operation SHALL NOT publish it twice.
+
+#### Scenario: Restart with unchanged startup inputs
+
+- **WHEN** a successfully recovered instance restarts with its archive and key files still present and their paths still configured
+- **THEN** it starts from its current state without importing the archive again
+
+#### Scenario: Consumed archive is renamed
+
+- **WHEN** the configured startup archive has the same bytes as a successfully consumed file but a different filename
+- **THEN** startup does not apply it again
+
+#### Scenario: Another file replaces a consumed archive
+
+- **WHEN** the archive at a configured startup path now has a different SHA-256 and the target contains an installation
+- **THEN** startup refuses a new recovery and preserves that installation and its key
+
+#### Scenario: Normal upgrade leaves startup inputs configured
+
+- **WHEN** the owner starts a newer release after successful recovery with the consumed archive and both paths still configured
+- **THEN** startup skips that archive and follows the ordinary migration path without refusing its older source release
+
+#### Scenario: UI import follows startup recovery
+
+- **WHEN** a UI import has replaced a previously startup-recovered installation and that installation restarts with the earlier consumed startup archive still configured
+- **THEN** the UI-imported state remains current and the earlier archive is not imported again
+
+#### Scenario: Recovery is interrupted during publication
+
+- **WHEN** the process stops after accepting recovery but before publication completes
+- **THEN** the next start resolves the recorded operation without serving a mismatched database and key or applying it twice
+
+### Requirement: UI recovery imports files independently of the current installation
+
+The Databasus backups section SHALL accept an encrypted archive file and a separate source master-key file uploaded from the owner's computer. Both files SHALL be required. Import SHALL NOT require a matching history entry, configured destination, connection to the original storage or use of the target's current master key. An owner recovering into a newly initialized installation SHALL first authenticate as that installation's root admin. To recover a backup from current history, the owner SHALL download it and then upload it through this same import flow; no direct history-restore action SHALL be required.
+
+Preparation SHALL authenticate the entire archive, validate release and schema compatibility and import into isolated staging before the active installation can be replaced. Preparation failure, cancellation or expiry SHALL preserve the active database and key and clean its private staged inputs. The owner SHALL be able to inspect preparation progress, authenticated snapshot time and source version, and a safe failure reason. Prepared imports SHALL expire after one hour without apply. There SHALL be at most one pending import preparation or application operation per instance. Applying SHALL be asynchronous and SHALL NOT depend on the initiating browser staying connected.
+
+#### Scenario: Import into a new installation with another master key
+
+- **WHEN** root admin uploads a valid archive and its source key to a newly initialized same-release installation with a different key, no backup history and no configured destinations
+- **THEN** preparation succeeds without contacting the original storage or changing the current key
+- **AND** confirmed application installs the snapshot and its supplied source key
+
+#### Scenario: Owner supplies the wrong key or damaged file
+
+- **WHEN** uploaded files contain the wrong key, a truncated or modified archive or an incompatible schema
+- **THEN** preparation fails with a safe diagnostic and leaves the active installation usable with its original key
+
+#### Scenario: Unconfirmed import expires
+
+- **WHEN** a prepared import has not been applied within one hour
+- **THEN** it can no longer replace the installation and its staged archive, key and imported staging state are released
+
+### Requirement: UI replacement requires current root authorization and explicit confirmation
+
+Upload, preparation status, cancellation and apply SHALL require the target installation's current root admin; other administrators and workspace members SHALL be refused. Applying SHALL require a recent single-use password or email identity proof bound to the current root account/session, that recovery operation and the immutable archive content. The owner SHALL explicitly confirm replacement after seeing the snapshot date, source version and warning that current users, settings and backup catalog will be replaced. Possession of the source key alone SHALL NOT authorize replacement. Invalid, expired, reused or wrong-purpose proofs SHALL NOT apply an import. If root cannot provide password or email proof, the interface SHALL explain the mounted-file startup path instead.
+
+#### Scenario: Another administrator imports an archive
+
+- **WHEN** an authenticated administrator other than root admin attempts upload, preparation inspection or application
+- **THEN** the request is refused with 403 and no recovery data or capability is exposed
+
+#### Scenario: Owner cancels replacement confirmation
+
+- **WHEN** root admin cancels confirmation of a prepared import
+- **THEN** the active installation and its key remain unchanged and no publication begins
+
+#### Scenario: An export proof is submitted for recovery
+
+- **WHEN** a caller supplies a master-key export proof or a proof for another prepared import
+- **THEN** recovery apply is refused without replacing the active installation
+
+### Requirement: Uploaded recovery material remains private and bounded
+
+Recovery uploads SHALL preserve the archive's encryption and the exact master-key bytes. The key and decrypted dump SHALL NOT appear in responses, URLs, logs, telemetry, browser persistent storage or cacheable content. Staging SHALL restrict file access to the runtime identity, keep memory use bounded and stage no plaintext dump. Archive uploads SHALL enforce a configurable finite byte limit; the default SHALL be 10 GiB. Uploaded key files SHALL be limited to 64 KiB. Oversized uploads, insufficient disk space and disconnected uploads SHALL fail without replacing the active database or key and SHALL release partial private files. Private staged key copies SHALL be removed after failed, cancelled or expired preparation or completed publication, while inputs needed for interrupted accepted publication SHALL survive a restart. Recovery SHALL NOT delete the operator's original mounted input files or the installed master key as part of staging cleanup.
+
+If the page or upload connection uses unencrypted HTTP, the interface SHALL warn and require explicit acknowledgment before transferring either file. Cancelling the warning SHALL send neither archive nor key bytes and SHALL offer guidance for a protected connection or mounted-file recovery. The server SHALL require the acknowledgment on an insecure upload as well.
+
+#### Scenario: Owner cancels HTTP import warning
+
+- **WHEN** root admin selects recovery files over HTTP and cancels the warning
+- **THEN** neither file is uploaded and the active installation is unchanged
+
+#### Scenario: Upload exceeds the configured limit without a declared length
+
+- **WHEN** an archive upload without a usable declared length exceeds the configured byte limit
+- **THEN** the server refuses it while streaming and releases its partial staging files without replacing active state
+
+### Requirement: UI publication stops live work and returns a paused application
+
+Before replacing active state, UI recovery SHALL prevent new mutations and background execution, stop and drain active requests and operations, and close active database connections. A timeout or failure to establish exclusive access SHALL refuse publication and preserve the current database/key pair. Applying SHALL publish a validated, normalized snapshot and its source key consistently; a crash SHALL NOT expose a partial or mismatched installation. The application SHALL become available again without requiring a browser request, operator restart or configured container restart policy to complete the operation.
+
+Successful application SHALL invalidate both the replaced installation's sessions and credentials copied from the snapshot. The interface SHALL tolerate the temporary interruption, require sign-in using accounts and credentials from the snapshot, and expose the durable paused recovery result after authentication. Lost connectivity alone SHALL NOT be shown as success. Root activation and recovered-runtime restrictions below SHALL apply to both startup and UI recovery, even when the UI import uses the same host or archive as an earlier recovery.
+
+#### Scenario: Work cannot stop before replacement
+
+- **WHEN** an accepted UI recovery cannot drain an operation or close a connection within its allowed stop period
+- **THEN** it reports failure without publishing the staged snapshot or source key
+- **AND** the previous installation can serve again with its original database and key
+
+#### Scenario: Recovery completes after the browser disconnects
+
+- **WHEN** root admin confirms a valid import and closes the browser after apply is accepted
+- **THEN** the application completes recovery and becomes available paused without an external restart
+- **AND** the owner can sign in with restored credentials and inspect the durable result
+
+#### Scenario: An apply response is lost and retried
+
+- **WHEN** root admin repeats apply for the same already accepted recovery operation
+- **THEN** it reports that operation's current state without scheduling or publishing another recovery
+
+#### Scenario: A completed archive is deliberately imported again
+
+- **WHEN** root admin uploads identical archive bytes as a new import and provides fresh replacement confirmation and identity proof
+- **THEN** that explicit operation can restore the snapshot again despite earlier consumption of the same archive
 
 ### Requirement: Recovery starts in a durable pause
 
