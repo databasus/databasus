@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -127,15 +128,24 @@ func TestWalTransactionTimeBoundary(t *testing.T) {
 				require.NoError(t, os.WriteFile(filepath.Join(staging, filename), body, 0o600))
 			}
 
+			firstSegmentEndLSN := (firstLSN/walmath.LSN(walmath.DefaultSegmentSizeBytes) + 1) * walmath.LSN(
+				walmath.DefaultSegmentSizeBytes,
+			)
 			firstTransactionAt, err := GetWalTransactionTime(t.Context(), WalTransactionTimeSpec{
 				ClientTools: clientTools,
 				Version:     server.version,
 				LocalPath:   filepath.Join(staging, firstFilename),
-				EndLSN: (firstLSN/walmath.LSN(walmath.DefaultSegmentSizeBytes) + 1) * walmath.LSN(
-					walmath.DefaultSegmentSizeBytes,
-				),
+				EndLSN:      firstSegmentEndLSN,
 			})
 
+			if err == nil {
+				t.Logf(
+					"first segment %s from %s to %s, last segment %s to %s, records:\n%s",
+					firstFilename, firstLSN, firstSegmentEndLSN, lastFilename, endLSN,
+					dumpWalRecords(t, clientTools.GetExecutable(server.version, pgshared.ExecutablePgWaldump),
+						filepath.Join(staging, firstFilename), firstSegmentEndLSN),
+				)
+			}
 			require.ErrorContains(t, err, "could not find a valid record")
 			require.Nil(t, firstTransactionAt)
 
@@ -278,4 +288,14 @@ func getWalTimeClientTools(t *testing.T) pgshared.ClientTools {
 	require.NoError(t, err)
 
 	return pgshared.ClientTools{Root: root}
+}
+
+func dumpWalRecords(t *testing.T, pgWaldump, path string, endLSN walmath.LSN) string {
+	t.Helper()
+
+	command := exec.CommandContext(t.Context(), pgWaldump, "--end="+endLSN.String(), filepath.Base(path))
+	command.Dir = filepath.Dir(path)
+	output, err := command.CombinedOutput()
+
+	return fmt.Sprintf("%s(pg_waldump: %v)", output, err)
 }

@@ -85,7 +85,9 @@ func RunPromotionReanchorsChain(t *testing.T, image string) {
 	insertMarker(t, standbyConn, markerRow{Phase: "after-replacement-full", Payload: "row-from-wal"})
 	replacementChain := []backupRow{team.listBackups(t, "FULL")[0]}
 	team.streamPostFullSegments(t, standbyConn, walArchiveSpec{Chain: replacementChain, Count: 2})
-	team.waitForReplayableThroughLSN(t, replacementChain, currentLSN(t, standbyConn))
+	throughLSN := currentLSN(t, standbyConn)
+	forceWalRotation(t, standbyConn)
+	team.waitForReplayableThroughLSN(t, replacementChain, throughLSN)
 	team.requireRestrictedPromotionRole(t)
 
 	team.App.RunJobPass(t, "backups_physical_cleaner")

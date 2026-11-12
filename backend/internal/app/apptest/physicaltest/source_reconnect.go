@@ -182,7 +182,9 @@ func RunStableEndpointPromotion(t *testing.T, image string) {
 	insertMarker(t, standbyConnection, markerRow{Phase: "after-replacement-full", Payload: "new timeline WAL"})
 	replacement := []backupRow{team.listBackups(t, "FULL")[0]}
 	team.streamPostFullSegments(t, standbyConnection, walArchiveSpec{Chain: replacement, Count: 2})
-	team.waitForReplayableThroughLSN(t, replacement, currentLSN(t, standbyConnection))
+	throughLSN := currentLSN(t, standbyConnection)
+	forceWalRotation(t, standbyConnection)
+	team.waitForReplayableThroughLSN(t, replacement, throughLSN)
 	bundle := team.downloadRestoreBundle(t, nil)
 	target := prepareRestoreTarget(t, image)
 	reconstructCluster(t, target, restoreSpec{App: team.App, Image: image, BundlePath: bundle, TargetTime: nil})
