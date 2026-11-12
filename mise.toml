@@ -105,7 +105,7 @@ hide = true
 description = "Build a Go development tool from its frozen module graph"
 dir = "tools/go"
 usage = 'arg "<tool>" help="gopls or govulncheck"'
-tools = { go = "1.27.3" }
+tools = { go = "1.27.4" }
 env = { GOFLAGS = "-mod=readonly", GOTOOLCHAIN = "local", GOENV = "off", GOWORK = "off", GOPROXY = "https://proxy.golang.org", GOSUMDB = "sum.golang.org", GONOSUMDB = "", GOPRIVATE = "", GOINSECURE = "" }
 run = '''
 case "$usage_tool" in
@@ -147,7 +147,7 @@ hide = true
 # Dependencies
 
 [tools]
-go = "1.27.3"
+go = "1.27.4"
 node = "24.21.0"
 pnpm = "12.17.0"
 hk = "2.8.1"

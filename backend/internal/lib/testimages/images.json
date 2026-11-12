@@ -112,12 +112,12 @@
       },
       "reference": "docker.io/dperson/samba:latest@sha256:66088b78a19810dd1457a8f39340e95e663c728083efa5fe7dc0d40b2478e869"
     },
-    "golang:1.27.3@sha256:e519d3b0a5b285e5aa53ab9eef02bc6bbb9cb04608389b743a136a9ce75f0d1e": {
+    "golang:1.27.4@sha256:5e8afd493a7124a8586e134d9b532731161d4b9becf9dee5a5956b107426f93d": {
       "platforms": {
-        "linux-arm64": "sha256:4f03804fe5085b5e565347663bc51a54177634097cc71e9f816af6c2672f7662",
-        "linux-x64": "sha256:a5406f41680f17b4aa0b49de641e00f116215f5c8829d548d29cb44c4f85aa4f"
+        "linux-arm64": "sha256:96335ac31f35abde9f40cbb1032e06d8571fc43c51230e9a90e14145debc6199",
+        "linux-x64": "sha256:2cd7e1ebf475c6208122d2b9cefc638d98fcc8dfd8554c8872c9dd0c21f4ac61"
       },
-      "reference": "docker.io/library/golang:1.27.3@sha256:e519d3b0a5b285e5aa53ab9eef02bc6bbb9cb04608389b743a136a9ce75f0d1e"
+      "reference": "docker.io/library/golang:1.27.4@sha256:5e8afd493a7124a8586e134d9b532731161d4b9becf9dee5a5956b107426f93d"
     },
     "mariadb:10.1": {
       "platforms": {
