@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"databasus-backend/internal/lib/crypto"
+	io_utils "databasus-backend/internal/lib/iox"
 	"databasus-backend/internal/modules/storages/internal/providers"
 )
 
@@ -23,6 +24,8 @@ type Provider struct {
 	// carries its SAS token, so a changed credential takes effect on the next request even over a
 	// connection opened before the change.
 	httpClient *http.Client
+	// The zero value takes the production budget; tests shrink the delays.
+	uploadRetry io_utils.TransferRetryPolicySpec
 }
 
 func New(deps Deps) *Provider {
@@ -39,6 +42,7 @@ func New(deps Deps) *Provider {
 			IdleConnTimeout:       azureIdleConnTimeout,
 			MaxIdleConnsPerHost:   azureMaxIdleConnsPerHost,
 		}},
+		uploadRetry: io_utils.TransferRetryPolicySpec{MaxAttemptsWithoutProgress: 0, BaseDelay: 0},
 	}
 }
 

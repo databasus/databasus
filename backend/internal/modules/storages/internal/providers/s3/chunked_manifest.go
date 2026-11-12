@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -68,6 +69,7 @@ func manifestObjectKey(baseKey string) string {
 
 func (b *bucket) writeManifest(
 	ctx context.Context,
+	logger *slog.Logger,
 	client *minio.Client,
 	baseKey string,
 	manifest chunkedManifest,
@@ -81,14 +83,16 @@ func (b *bucket) writeManifest(
 	opts.SendContentMd5 = true
 	opts.ContentType = "application/json"
 
-	_, err = client.PutObject(
-		ctx,
-		b.settings.Bucket,
-		manifestObjectKey(baseKey),
-		bytes.NewReader(body),
-		int64(len(body)),
-		opts,
-	)
+	manifestKey := manifestObjectKey(baseKey)
+
+	err = b.retryRequest(ctx, logger, s3Request{name: "put_manifest", objectKey: manifestKey, partNumber: 0},
+		func(attemptCtx context.Context) error {
+			_, err := client.PutObject(
+				attemptCtx, b.settings.Bucket, manifestKey, bytes.NewReader(body), int64(len(body)), opts,
+			)
+
+			return err
+		})
 	if err != nil {
 		return fmt.Errorf("failed to write chunk manifest: %w", err)
 	}

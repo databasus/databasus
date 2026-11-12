@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_ReadRetryPolicy_EveryFailedAttemptDeliveredBytes_NeverExhausts(t *testing.T) {
-	policy := NewReadRetryPolicy(ReadRetryPolicySpec{MaxAttemptsWithoutProgress: 3})
+func Test_TransferRetryPolicy_EveryFailedAttemptDeliveredBytes_NeverExhausts(t *testing.T) {
+	policy := NewTransferRetryPolicy(TransferRetryPolicySpec{MaxAttemptsWithoutProgress: 3})
 
 	for range 100 {
 		policy.RegisterFailedAttempt(true)
@@ -20,8 +20,8 @@ func Test_ReadRetryPolicy_EveryFailedAttemptDeliveredBytes_NeverExhausts(t *test
 	assert.Equal(t, 1, policy.GetAttemptsSinceProgress())
 }
 
-func Test_ReadRetryPolicy_FailedAttemptsWithoutProgress_ExhaustsAfterTheBudget(t *testing.T) {
-	policy := NewReadRetryPolicy(ReadRetryPolicySpec{MaxAttemptsWithoutProgress: 3})
+func Test_TransferRetryPolicy_FailedAttemptsWithoutProgress_ExhaustsAfterTheBudget(t *testing.T) {
+	policy := NewTransferRetryPolicy(TransferRetryPolicySpec{MaxAttemptsWithoutProgress: 3})
 
 	for range 3 {
 		policy.RegisterFailedAttempt(false)
@@ -33,8 +33,8 @@ func Test_ReadRetryPolicy_FailedAttemptsWithoutProgress_ExhaustsAfterTheBudget(t
 	assert.True(t, policy.IsExhausted())
 }
 
-func Test_ReadRetryPolicy_ProgressAfterFailures_ResetsTheSpentBudget(t *testing.T) {
-	policy := NewReadRetryPolicy(ReadRetryPolicySpec{MaxAttemptsWithoutProgress: 3})
+func Test_TransferRetryPolicy_ProgressAfterFailures_ResetsTheSpentBudget(t *testing.T) {
+	policy := NewTransferRetryPolicy(TransferRetryPolicySpec{MaxAttemptsWithoutProgress: 3})
 
 	policy.RegisterFailedAttempt(false)
 	policy.RegisterFailedAttempt(false)
@@ -43,17 +43,17 @@ func Test_ReadRetryPolicy_ProgressAfterFailures_ResetsTheSpentBudget(t *testing.
 	assert.Equal(t, 1, policy.GetAttemptsSinceProgress())
 }
 
-func Test_ReadRetryPolicy_CompletedRead_ResetsAttempts(t *testing.T) {
-	policy := NewReadRetryPolicy(ReadRetryPolicySpec{MaxAttemptsWithoutProgress: 3})
+func Test_TransferRetryPolicy_ResetAttempts_ClearsTheSpentBudget(t *testing.T) {
+	policy := NewTransferRetryPolicy(TransferRetryPolicySpec{MaxAttemptsWithoutProgress: 3})
 
 	policy.RegisterFailedAttempt(false)
-	policy.ResetAttemptsAfterCompletedRead()
+	policy.ResetAttempts()
 
 	assert.Equal(t, 0, policy.GetAttemptsSinceProgress())
 }
 
-func Test_ReadRetryPolicy_WaitBeforeRetryWithCancelledContext_ReturnsWithoutSleeping(t *testing.T) {
-	policy := NewReadRetryPolicy(ReadRetryPolicySpec{BaseDelay: time.Hour})
+func Test_TransferRetryPolicy_WaitBeforeRetryWithCancelledContext_ReturnsWithoutSleeping(t *testing.T) {
+	policy := NewTransferRetryPolicy(TransferRetryPolicySpec{BaseDelay: time.Hour})
 	policy.RegisterFailedAttempt(false)
 
 	cancelledCtx, cancel := context.WithCancel(t.Context())
@@ -66,8 +66,8 @@ func Test_ReadRetryPolicy_WaitBeforeRetryWithCancelledContext_ReturnsWithoutSlee
 	assert.Less(t, time.Since(waitStart), time.Second)
 }
 
-func Test_ReadRetryPolicy_ConsecutiveFailures_BackoffGrowsExponentially(t *testing.T) {
-	policy := NewReadRetryPolicy(ReadRetryPolicySpec{
+func Test_TransferRetryPolicy_ConsecutiveFailures_BackoffGrowsExponentially(t *testing.T) {
+	policy := NewTransferRetryPolicy(TransferRetryPolicySpec{
 		MaxAttemptsWithoutProgress: 10,
 		BaseDelay:                  20 * time.Millisecond,
 	})

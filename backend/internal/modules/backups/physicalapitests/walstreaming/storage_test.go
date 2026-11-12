@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"databasus-backend/internal/app/apptest"
 	apiclient "databasus-backend/internal/lib/apiclient"
 	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/lib/testwait"
@@ -27,7 +28,7 @@ func (team *walTeam) useUnavailableStorage(t *testing.T) {
 				Type:        apiclient.S3StorageSettingsTypeS3,
 				S3Bucket:    "backups",
 				S3Region:    new(containers.MinioRegion),
-				S3Endpoint:  new("http://127.0.0.1:1"),
+				S3Endpoint:  new(apptest.StartDenyingS3(t)),
 				S3AccessKey: new(containers.MinioRootUser),
 				S3SecretKey: new(containers.MinioRootPassword),
 			},

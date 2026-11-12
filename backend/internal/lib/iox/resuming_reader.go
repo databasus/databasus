@@ -32,7 +32,7 @@ type ResumingReaderSpec struct {
 	TotalBytes int64
 
 	StallTimeout    time.Duration
-	RetryPolicySpec ReadRetryPolicySpec
+	RetryPolicySpec TransferRetryPolicySpec
 
 	// Left nil, every failure is retried. Backends that can tell a missing file from a severed
 	// connection should say so here, otherwise a permanent failure costs the whole budget.
@@ -50,7 +50,7 @@ type ResumingReader struct {
 	openAtOffset     OpenFileAtOffsetFunc
 	totalBytes       int64
 	stallTimeout     time.Duration
-	retryPolicy      *ReadRetryPolicy
+	retryPolicy      *TransferRetryPolicy
 	isRetryableError func(error) bool
 
 	isClosed         bool
@@ -84,7 +84,7 @@ func NewResumingReader(spec ResumingReaderSpec) *ResumingReader {
 		openAtOffset:     spec.OpenAtOffset,
 		totalBytes:       spec.TotalBytes,
 		stallTimeout:     spec.StallTimeout,
-		retryPolicy:      NewReadRetryPolicy(spec.RetryPolicySpec),
+		retryPolicy:      NewTransferRetryPolicy(spec.RetryPolicySpec),
 		isRetryableError: spec.IsRetryableError,
 	}
 }
@@ -221,7 +221,7 @@ func (r *ResumingReader) resumeAfterFailure(cause error) error {
 	if r.retryPolicy.IsExhausted() {
 		return fmt.Errorf(
 			"%w: %s stuck at offset %d: %w",
-			ErrReadRetryBudgetExhausted, r.fileName, r.deliveredBytes, cause,
+			ErrRetryBudgetExhausted, r.fileName, r.deliveredBytes, cause,
 		)
 	}
 

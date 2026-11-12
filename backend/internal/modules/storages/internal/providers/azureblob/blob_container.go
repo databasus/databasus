@@ -103,11 +103,17 @@ func (c *blobContainer) saveFile(ctx context.Context, logger *slog.Logger, fileN
 
 		blockID := base64.StdEncoding.EncodeToString(fmt.Appendf(nil, "%06d", blockNumber))
 
-		_, err := blockBlobClient.StageBlock(
+		block := buf[:n]
+
+		err := c.retryRequest(
 			ctx,
-			blockID,
-			&readSeekCloser{bytes.NewReader(buf[:n])},
-			nil,
+			logger,
+			azureRequest{name: "stage_block", fileName: fileName, blockNumber: blockNumber},
+			func(attemptCtx context.Context) error {
+				_, err := blockBlobClient.StageBlock(attemptCtx, blockID, &readSeekCloser{bytes.NewReader(block)}, nil)
+
+				return err
+			},
 		)
 		if err != nil {
 			select {
@@ -127,13 +133,18 @@ func (c *blobContainer) saveFile(ctx context.Context, logger *slog.Logger, fileN
 	}
 
 	if len(blockIDs) == 0 {
-		_, err = client.UploadStream(
-			ctx,
-			c.settings.ContainerName,
-			blobName,
-			bytes.NewReader([]byte{}),
-			nil,
-		)
+		err = c.retryRequest(ctx, logger, azureRequest{name: "upload_empty_blob", fileName: fileName, blockNumber: -1},
+			func(attemptCtx context.Context) error {
+				_, err := client.UploadStream(
+					attemptCtx,
+					c.settings.ContainerName,
+					blobName,
+					bytes.NewReader([]byte{}),
+					nil,
+				)
+
+				return err
+			})
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to save empty file to azure blob storage",
 				slog.Any("file_name", fileName), slog.Any("error", err))
@@ -146,7 +157,14 @@ func (c *blobContainer) saveFile(ctx context.Context, logger *slog.Logger, fileN
 		return nil
 	}
 
-	_, err = blockBlobClient.CommitBlockList(ctx, blockIDs, &blockblob.CommitBlockListOptions{})
+	// Azure commits the "latest" version of each listed block, so a repeat after a lost success
+	// commits the same blocks again rather than failing.
+	err = c.retryRequest(ctx, logger, azureRequest{name: "commit_block_list", fileName: fileName, blockNumber: -1},
+		func(attemptCtx context.Context) error {
+			_, err := blockBlobClient.CommitBlockList(attemptCtx, blockIDs, &blockblob.CommitBlockListOptions{})
+
+			return err
+		})
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to save file to azure blob storage",
 			slog.Any("file_name", fileName), slog.Any("error", err))
@@ -160,6 +178,50 @@ func (c *blobContainer) saveFile(ctx context.Context, logger *slog.Logger, fileN
 		slog.Duration("duration", time.Since(startedAt)))
 
 	return nil
+}
+
+// azureRequest names one request of an upload in retry warnings and in the error once its budget is
+// spent. A negative block number marks a request that is not about one block.
+type azureRequest struct {
+	name        string
+	fileName    string
+	blockNumber int
+}
+
+func (r azureRequest) describe() string {
+	if r.blockNumber >= 0 {
+		return fmt.Sprintf("block %d of %s", r.blockNumber, r.fileName)
+	}
+
+	return fmt.Sprintf("%s of %s", r.name, r.fileName)
+}
+
+func (r azureRequest) getLogAttributes() []slog.Attr {
+	attributes := []slog.Attr{slog.String("request", r.name), slog.String("file_name", r.fileName)}
+
+	if r.blockNumber >= 0 {
+		attributes = append(attributes, slog.Int("block_number", r.blockNumber))
+	}
+
+	return attributes
+}
+
+// Every request of an upload is safe to send twice: a block staged again replaces the uncommitted
+// one, and an empty blob or a block list is written again with the same content.
+func (c *blobContainer) retryRequest(
+	ctx context.Context,
+	logger *slog.Logger,
+	request azureRequest,
+	send func(ctx context.Context) error,
+) error {
+	return io_utils.RetryRequest(ctx, io_utils.RequestRetrySpec{
+		Logger:             logger,
+		RetryPolicySpec:    c.provider.uploadRetry,
+		RequestDescription: request.describe(),
+		LogAttributes:      request.getLogAttributes(),
+		IsRetryableError:   isRetryableAzureError,
+		Send:               send,
+	})
 }
 
 func (c *blobContainer) openFile(ctx context.Context, logger *slog.Logger, fileName string) (io.ReadCloser, error) {

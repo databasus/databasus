@@ -38,7 +38,7 @@ func Test_ResumingReader_DropsFarExceedTheBudgetButEachDeliversBytes_CompletesSt
 
 	streamedBytes, err := io.ReadAll(newTestResumingReader(t, source, ResumingReaderSpec{
 		TotalBytes:      int64(len(fileBytes)),
-		RetryPolicySpec: ReadRetryPolicySpec{MaxAttemptsWithoutProgress: 10},
+		RetryPolicySpec: TransferRetryPolicySpec{MaxAttemptsWithoutProgress: 10},
 	}))
 
 	require.NoError(t, err)
@@ -60,10 +60,10 @@ func Test_ResumingReader_RepeatedFailuresWithoutProgress_ReturnsBudgetExhausted(
 
 	_, err := io.ReadAll(newTestResumingReader(t, source, ResumingReaderSpec{
 		TotalBytes:      int64(len(fileBytes)),
-		RetryPolicySpec: ReadRetryPolicySpec{MaxAttemptsWithoutProgress: 3, BaseDelay: time.Millisecond},
+		RetryPolicySpec: TransferRetryPolicySpec{MaxAttemptsWithoutProgress: 3, BaseDelay: time.Millisecond},
 	}))
 
-	require.ErrorIs(t, err, ErrReadRetryBudgetExhausted)
+	require.ErrorIs(t, err, ErrRetryBudgetExhausted)
 	assert.Len(t, source.observedOffsets, 4)
 }
 
@@ -77,7 +77,7 @@ func Test_ResumingReader_BodyGoesSilent_CancelsAttemptAndResumes(t *testing.T) {
 	streamedBytes, err := io.ReadAll(newTestResumingReader(t, source, ResumingReaderSpec{
 		TotalBytes:      int64(len(fileBytes)),
 		StallTimeout:    50 * time.Millisecond,
-		RetryPolicySpec: ReadRetryPolicySpec{BaseDelay: time.Millisecond},
+		RetryPolicySpec: TransferRetryPolicySpec{BaseDelay: time.Millisecond},
 	}))
 
 	require.NoError(t, err)
@@ -120,7 +120,7 @@ func Test_ResumingReader_BodyEndsBeforeTheDeclaredSize_ResumesInsteadOfReturning
 
 	streamedBytes, err := io.ReadAll(newTestResumingReader(t, source, ResumingReaderSpec{
 		TotalBytes:      int64(len(fileBytes)),
-		RetryPolicySpec: ReadRetryPolicySpec{BaseDelay: time.Millisecond},
+		RetryPolicySpec: TransferRetryPolicySpec{BaseDelay: time.Millisecond},
 	}))
 
 	require.NoError(t, err)
@@ -185,7 +185,7 @@ func Test_ResumingReader_StreamContextCancelled_ReturnsPromptlyWithoutRetrying(t
 		FileName:        "backup.dump",
 		OpenAtOffset:    source.OpenAtOffset,
 		TotalBytes:      4096,
-		RetryPolicySpec: ReadRetryPolicySpec{BaseDelay: time.Hour},
+		RetryPolicySpec: TransferRetryPolicySpec{BaseDelay: time.Hour},
 	})
 	t.Cleanup(func() { _ = reader.Close() })
 

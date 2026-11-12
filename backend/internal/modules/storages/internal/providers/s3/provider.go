@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"databasus-backend/internal/lib/crypto"
+	io_utils "databasus-backend/internal/lib/iox"
 	"databasus-backend/internal/modules/storages/internal/providers"
 )
 
@@ -19,6 +20,8 @@ type Provider struct {
 	transports     sharedTransports
 	bucketRegions  *bucketRegionCache
 	partLayout     partLayout
+	// The zero value takes the production budget; tests shrink the delays.
+	uploadRetry io_utils.TransferRetryPolicySpec
 }
 
 // partLayout is how a file is split into objects. Tests shrink it, because rolling at the production
@@ -35,6 +38,7 @@ func New(deps Deps) *Provider {
 		transports:     newSharedTransports(),
 		bucketRegions:  newBucketRegionCache(),
 		partLayout:     partLayout{innerPartSize: defaultInnerPartSize, maxPartsPerObject: defaultMaxPartsPerObject},
+		uploadRetry:    io_utils.TransferRetryPolicySpec{MaxAttemptsWithoutProgress: 0, BaseDelay: 0},
 	}
 }
 

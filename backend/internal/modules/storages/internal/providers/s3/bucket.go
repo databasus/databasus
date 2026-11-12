@@ -18,6 +18,8 @@ import (
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+
+	io_utils "databasus-backend/internal/lib/iox"
 )
 
 // bucket is one S3 storage while a call runs: the settings it was called with and the provider
@@ -101,7 +103,7 @@ func (b *bucket) saveFile(ctx context.Context, logger *slog.Logger, fileName str
 	}
 
 	if readErr == io.EOF || readErr == io.ErrUnexpectedEOF {
-		if err := b.uploadSingleObject(ctx, client, baseKey, firstPart[:firstPartLen]); err != nil {
+		if err := b.uploadSingleObject(ctx, logger, client, baseKey, firstPart[:firstPartLen]); err != nil {
 			logger.ErrorContext(ctx, "failed to save file to s3", slog.Any("file_name", fileName),
 				slog.Any("object_key", baseKey), slog.Any("error", err))
 
@@ -126,7 +128,7 @@ func (b *bucket) saveFile(ctx context.Context, logger *slog.Logger, fileName str
 	}
 
 	if peekLen == 0 {
-		if err := b.uploadSingleObject(ctx, client, baseKey, firstPart); err != nil {
+		if err := b.uploadSingleObject(ctx, logger, client, baseKey, firstPart); err != nil {
 			logger.ErrorContext(ctx, "failed to save file to s3", slog.Any("file_name", fileName),
 				slog.Any("object_key", baseKey), slog.Any("error", err))
 
@@ -149,7 +151,7 @@ func (b *bucket) saveFile(ctx context.Context, logger *slog.Logger, fileName str
 	logger.DebugContext(ctx, "stream exceeds one part, saving to s3 as a chunked object",
 		slog.Any("file_name", fileName), slog.Any("object_key", baseKey))
 
-	if err := b.uploadChunked(ctx, coreClient, client, baseKey, source); err != nil {
+	if err := b.uploadChunked(ctx, logger, coreClient, client, baseKey, source); err != nil {
 		logger.ErrorContext(ctx, "failed to save chunked file to s3", slog.Any("file_name", fileName),
 			slog.Any("object_key", baseKey), slog.Any("error", err))
 
@@ -472,6 +474,7 @@ func (b *bucket) deleteConnectionProbe(ctx context.Context, client *minio.Client
 
 func (b *bucket) uploadSingleObject(
 	ctx context.Context,
+	logger *slog.Logger,
 	client *minio.Client,
 	objectKey string,
 	data []byte,
@@ -479,7 +482,14 @@ func (b *bucket) uploadSingleObject(
 	opts := b.putObjectOptions()
 	opts.SendContentMd5 = true
 
-	_, err := client.PutObject(ctx, b.settings.Bucket, objectKey, bytes.NewReader(data), int64(len(data)), opts)
+	err := b.retryRequest(ctx, logger, s3Request{name: "put_object", objectKey: objectKey, partNumber: 0},
+		func(attemptCtx context.Context) error {
+			_, err := client.PutObject(
+				attemptCtx, b.settings.Bucket, objectKey, bytes.NewReader(data), int64(len(data)), opts,
+			)
+
+			return err
+		})
 	if err != nil {
 		return fmt.Errorf("failed to upload file to S3: %w", err)
 	}
@@ -489,6 +499,7 @@ func (b *bucket) uploadSingleObject(
 
 func (b *bucket) uploadChunked(
 	ctx context.Context,
+	logger *slog.Logger,
 	coreClient *minio.Core,
 	client *minio.Client,
 	baseKey string,
@@ -526,7 +537,7 @@ func (b *bucket) uploadChunked(
 	for !sourceEnded {
 		objectKey := partObjectKey(baseKey, objectIndex)
 
-		uploadID, err := coreClient.NewMultipartUpload(ctx, b.settings.Bucket, objectKey, b.putObjectOptions())
+		uploadID, err := b.startMultipartUpload(ctx, logger, coreClient, objectKey)
 		if err != nil {
 			abandon("", "")
 			return fmt.Errorf("failed to initiate multipart upload for %s: %w", objectKey, err)
@@ -557,6 +568,7 @@ func (b *bucket) uploadChunked(
 
 			if err := b.putInnerPart(
 				ctx,
+				logger,
 				coreClient,
 				objectKey,
 				uploadID,
@@ -611,7 +623,7 @@ func (b *bucket) uploadChunked(
 		Parts:     objectSpans,
 	}
 
-	if err := b.writeManifest(ctx, client, baseKey, manifest); err != nil {
+	if err := b.writeManifest(ctx, logger, client, baseKey, manifest); err != nil {
 		abandon("", "")
 		return err
 	}
@@ -619,8 +631,30 @@ func (b *bucket) uploadChunked(
 	return nil
 }
 
+func (b *bucket) startMultipartUpload(
+	ctx context.Context,
+	logger *slog.Logger,
+	coreClient *minio.Core,
+	objectKey string,
+) (string, error) {
+	var uploadID string
+
+	err := b.retryRequest(ctx, logger, s3Request{name: "new_multipart_upload", objectKey: objectKey, partNumber: 0},
+		func(attemptCtx context.Context) error {
+			startedUploadID, err := coreClient.NewMultipartUpload(
+				attemptCtx, b.settings.Bucket, objectKey, b.putObjectOptions(),
+			)
+			uploadID = startedUploadID
+
+			return err
+		})
+
+	return uploadID, err
+}
+
 func (b *bucket) putInnerPart(
 	ctx context.Context,
+	logger *slog.Logger,
 	coreClient *minio.Core,
 	objectKey string,
 	uploadID string,
@@ -634,16 +668,24 @@ func (b *bucket) putInnerPart(
 	partMd5 := md5.Sum(partData)
 	md5Base64 := base64.StdEncoding.EncodeToString(partMd5[:])
 
-	part, err := coreClient.PutObjectPart(
-		ctx,
-		b.settings.Bucket,
-		objectKey,
-		uploadID,
-		partNumber,
-		bytes.NewReader(partData),
-		int64(len(partData)),
-		minio.PutObjectPartOptions{Md5Base64: md5Base64},
-	)
+	var part minio.ObjectPart
+
+	err := b.retryRequest(ctx, logger, s3Request{name: "put_object_part", objectKey: objectKey, partNumber: partNumber},
+		func(attemptCtx context.Context) error {
+			uploadedPart, err := coreClient.PutObjectPart(
+				attemptCtx,
+				b.settings.Bucket,
+				objectKey,
+				uploadID,
+				partNumber,
+				bytes.NewReader(partData),
+				int64(len(partData)),
+				minio.PutObjectPartOptions{Md5Base64: md5Base64},
+			)
+			part = uploadedPart
+
+			return err
+		})
 	if err != nil {
 		if ctx.Err() != nil {
 			return fmt.Errorf("upload cancelled: %w", ctx.Err())
@@ -656,6 +698,49 @@ func (b *bucket) putInnerPart(
 	*parts = append(*parts, minio.CompletePart{PartNumber: partNumber, ETag: part.ETag})
 
 	return nil
+}
+
+// s3Request names one request of an upload in retry warnings and in the error once its budget is spent.
+type s3Request struct {
+	name       string
+	objectKey  string
+	partNumber int
+}
+
+func (r s3Request) describe() string {
+	if r.partNumber > 0 {
+		return fmt.Sprintf("part %d of %s", r.partNumber, r.objectKey)
+	}
+
+	return fmt.Sprintf("%s of %s", r.name, r.objectKey)
+}
+
+func (r s3Request) getLogAttributes() []slog.Attr {
+	attributes := []slog.Attr{slog.String("request", r.name), slog.String("object_key", r.objectKey)}
+
+	if r.partNumber > 0 {
+		attributes = append(attributes, slog.Int("part_number", r.partNumber))
+	}
+
+	return attributes
+}
+
+// Only a request that is safe to send twice goes through here; completing a multipart upload is
+// not, because a repeat after a lost success answers NoSuchUpload.
+func (b *bucket) retryRequest(
+	ctx context.Context,
+	logger *slog.Logger,
+	request s3Request,
+	send func(ctx context.Context) error,
+) error {
+	return io_utils.RetryRequest(ctx, io_utils.RequestRetrySpec{
+		Logger:             logger,
+		RetryPolicySpec:    b.provider.uploadRetry,
+		RequestDescription: request.describe(),
+		LogAttributes:      request.getLogAttributes(),
+		IsRetryableError:   isRetryableS3Error,
+		Send:               send,
+	})
 }
 
 func (b *bucket) putObjectOptions() minio.PutObjectOptions {
