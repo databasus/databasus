@@ -175,8 +175,9 @@ class DependencyVerificationTest(unittest.TestCase):
 
     def test_accepts_static_workflow_tools_with_exact_global_and_task_versions(self) -> None:
         workflow = self.root / ".github/workflows/tools.yaml"
+        go_version = tomllib.loads((self.root / "mise.toml").read_text())["tools"]["go"]
         for arguments in (
-            "'node pnpm go@1.27.3 lefthook@2.2.1 npm:semver'",
+            f"'node pnpm go@{go_version} lefthook@2.2.1 npm:semver'",
             '"node pnpm" # locked tools',
             "node pnpm # locked tools",
         ):
