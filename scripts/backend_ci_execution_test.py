@@ -87,8 +87,8 @@ class BackendCiExecutionTest(unittest.TestCase):
             [arg for arg in calls[0] if arg.startswith("databasus-")], [PROVIDER_PACKAGE]
         )
 
-    def test_runs_every_other_shard_once_with_bounded_parallelism(self) -> None:
-        for group in ("other-1-of-3", "other-2-of-3", "other-3-of-3", "logical"):
+    def test_runs_each_group_selection_once_with_bounded_parallelism(self) -> None:
+        for group in ("other-1-of-3", "other-2-of-3", "other-3-of-3", "patroni-1-of-5", "logical"):
             with self.subTest(group=group):
                 status, calls, diagnostic = self.run_backend_step(group, OTHER_PACKAGES)
 
@@ -104,7 +104,7 @@ class BackendCiExecutionTest(unittest.TestCase):
                     [arg for arg in calls[0] if arg.startswith("databasus-")], OTHER_PACKAGES
                 )
                 self.assertNotIn(PROVIDER_PACKAGE, calls[0])
-                if group.startswith("other-"):
+                if "-of-" in group:
                     self.assertIn("-run", calls[0])
                     self.assertIn("^(TestSelected)$", calls[0])
                 else:

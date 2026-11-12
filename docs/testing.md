@@ -10,7 +10,7 @@ This document describes the kinds of tests, what they share and how runs are org
 
 - A test checks what a caller observes: the backend's HTTP API, an engine's behavior against a real database server or a frontend screen.
 - Our own database, modules and services are never mocked. Fakes replace only systems we cannot run locally and failures that are unsafe to cause for real.
-- Independent tests run in parallel within and across packages, and alongside runs from other worktrees on the same machine. Tests that change process environment settings or share a bounded engine-version fixture stay sequential.
+- Independent tests run in parallel within and across packages, and alongside runs from other worktrees on the same machine. Tests that change process environment settings or share a bounded engine-version fixture stay sequential. Runs aim to saturate the machine, as [Resource usage and parallelism](#resource-usage-and-parallelism) describes.
 - A test never takes a shared resource under a fixed name.
 - Every check runs locally. CI repeats every suite except the review hook tests and the interruption test of the browser end-to-end suite on a clean machine; `mise run test-full` includes both locally.
 
@@ -72,6 +72,63 @@ Tests from every worktree on a machine share one Docker daemon, so nothing a tes
 - **Everything else.** Ports come from `127.0.0.1:0` or `httptest`, and files from `t.TempDir()`. Containers and processes get unique names and labels, and `t.Cleanup` removes them.
 - **Shared sources.** Local and CI preparation never reset shared source servers. Seed tests own their logical and physical source containers. Development compose sources stay available to `mise run run`, and test cleanup never removes their databases, roles or replication slots.
 
+## Resource usage and parallelism
+
+Tests should keep the machine busy. A run that waits while CPU, memory and disk sit idle has a defect to fix.
+
+### Reference machine
+
+Local runs assume a developer machine with:
+
+- about 64 GB of memory, of which 32 GB are free for tests, while the rest serve compilation, the editor and the desktop;
+- at least 10 performance cores;
+- free disk space that grows with concurrency, both on Docker's storage and in the temporary directory.
+
+Disk space needs a wide margin rather than an exact figure. Durable fixtures write data and WAL, and tests keep backups in temporary directories. When Docker keeps its data in an image file on the root filesystem, that file grows into the root filesystem's free space. If that space runs out, the run fails and the host can stall or restart.
+
+### What bounds a run
+
+- **CPU** does not. Load above the core count is acceptable: most tests wait on containers and the network, so the cores stay busy only when many tests run at once.
+- **Free memory and disk space** do.
+- **No test or package caps its own concurrency with a constant.** The runner's limits decide. When a resource requires a limit, the runner sets it from a measurement and states the reason beside it.
+
+### Time targets
+
+| On the reference machine | Time |
+|---|---|
+| Target for one package, or a few packages run together | about 5 minutes |
+| Limit | 10 minutes |
+| Runner timeout per package | 15 minutes, so an overrun fails instead of hiding |
+
+A test that exists to observe real time may take longer. It runs beside the others, so it does not stretch the critical path.
+
+### Parallelism in local runs
+
+Go runs tests marked with `t.Parallel()` concurrently inside one test binary, up to `-parallel` at once. By default that is the number of logical CPUs. Every test owns its internal database, containers, ports and files, as [Isolation](#isolation) describes, so tests need no coordination beyond the shared engine-version scopes.
+
+Each command adds its own layer on top:
+
+- **`mise run test`** runs three suites at once: the slow backend packages, the other backend packages and the frontend tests.
+  - Slow packages mostly wait on containers and get a lower package limit. Above it the run gets no faster, and Docker runs out of network address pools.
+  - Other packages mostly compute and get a higher limit.
+  - The [test runner](../scripts/test.sh) owns the numbers.
+- **`mise run test-full`** adds the end-to-end packages to the slow group. It then runs the image and browser suites one after another, because they disturb each other's timing.
+- **A direct package run** uses Go's defaults and gets the whole machine.
+
+### Parallelism in CI
+
+CI parallelizes jobs rather than tests:
+
+- Each group or shard runs on its own runner. The longest check decides the wait, not the sum of all checks, and a slow runner holds back only its own shard.
+- Runners are smaller than the reference machine, so each test binary runs only a couple of tests at once.
+- A long package is split into several top-level tests. Their [recorded weights](../backend/test-shard-weights.txt) let the shards balance it.
+
+[CI](#ci) describes groups and shards.
+
+### Storage speed
+
+Container creation and small synchronous writes also limit speed. [Preparing a machine](machine-setup.md) describes storage considerations without requiring a particular host setup.
+
 ## Waiting
 
 The [testing skill](../.agents/skills/testing/SKILL.md#waiting) defines condition-wait limits and their exceptions; fixed sleeps and `Eventually` are rejected by lint. Move the injected clock when time drives behavior. Go's timeout covers the whole package, so a call that hangs outside a bounded wait can still consume that timeout.
@@ -92,7 +149,7 @@ TESTCONTAINERS_RYUK_DISABLED=true go -C backend test -count=1 -run '^TestRestore
 
 ## Patroni physical backup tests
 
-The Patroni suite exercises physical backup and recovery through a real highly available PostgreSQL source. Unlike the reusable engine servers, these sources use disk-backed data and durable settings. Every scenario owns its resources and tests cleanup on failure and interruption.
+The Patroni suite exercises physical backup and recovery through a real highly available PostgreSQL source. Unlike the reusable engine servers, these sources use disk-backed data and durable settings. Every scenario owns its resources and tests cleanup on failure and interruption. Scenarios are grouped into top-level tests by family and PostgreSQL major, so CI can spread them across shards. The runner's parallel limit alone decides how many clusters run at once.
 
 Prepare Docker, the shared test PostgreSQL server, pinned tools and client bundles as described in [Commands](#commands). The initial fixture build needs network access; later runs can reuse its build cache. Missing tools and build failures fail the suite rather than skip scenarios. The [fixture README](../backend/internal/lib/testcontainers/testdata/patroni/README.md) owns dependency and build details.
 
@@ -101,7 +158,7 @@ Run the complete matrix from the repository root:
 ```sh
 source scripts/fedora.sh
 apply_libedit_shim
-TESTCONTAINERS_RYUK_DISABLED=true go -C backend test -count=1 -timeout 40m \
+TESTCONTAINERS_RYUK_DISABLED=true go -C backend test -count=1 -timeout 15m \
   ./internal/modules/backups/e2e/postgresqlphysical/patroni
 ```
 
@@ -243,10 +300,6 @@ Self-update needs write access to the directory holding the agent's executable. 
 
 Confirm accepted server contact and a completed backup verification. A successful local `version` or `status` command alone does not prove recovery, and no new token is needed.
 
-### Speed
-
-Container creation and temporary-file I/O can limit local test speed. [Preparing a machine](machine-setup.md) describes storage considerations without requiring a particular host setup.
-
 ## Commands
 
 To repeat one failing test, call its Go or frontend runner directly. This takes no lock and builds no image.
@@ -289,7 +342,7 @@ pattern=$(mise run --quiet backend:test-group-tests other-1-of-3)
 TESTCONTAINERS_RYUK_DISABLED=true go -C backend test -race -p=8 -parallel=2 -count=1 -timeout 40m -run "$pattern" $packages
 ```
 
-Use `other-2-of-3` and `other-3-of-3` for the remaining selections. The provider root runs separately, without overlapping test work:
+Use `other-2-of-3` and `other-3-of-3` for the remaining selections. The same commands repeat a shard of another sharded group by its name, such as `patroni-2-of-5`. The provider root runs separately, without overlapping test work:
 
 ```sh
 TESTCONTAINERS_RYUK_DISABLED=true go -C backend test -race -p=1 -parallel=1 -count=1 -timeout 40m ./internal/modules/storages/internal/providers

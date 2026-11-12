@@ -110,7 +110,7 @@ Write fakes as small hand-written structs. Do not use mock generators, `testify/
 - Call `testdb.Open(t)` once per test. A helper that opens one database for several subtests makes that database shared again.
 - On a shared engine server, give every object a unique name: database, role, schema and replication slot.
 - Take ports from `127.0.0.1:0` and files from `t.TempDir()`. Remove every container or process the test starts in `t.Cleanup`.
-- Mark independent tests and their subtests with `t.Parallel()`. A subtest stays sequential only with a stated reason, in `//nolint:tparallel // <reason>` on its test: a shared application, moving clock, source server, engine-version fixture or process environment setting, or a dependency on an earlier subtest.
+- Mark independent tests and their subtests with `t.Parallel()`. A subtest stays sequential only with a stated reason, in `//nolint:tparallel // <reason>` on its test: a shared application, moving clock, source server, engine-version fixture or process environment setting, or a dependency on an earlier subtest. Never cap concurrency with a constant below the [resource budget](../../../docs/testing.md#resource-usage-and-parallelism); a needed limit belongs to the runner and comes from a measured resource.
 
 ## Which tests to run
 

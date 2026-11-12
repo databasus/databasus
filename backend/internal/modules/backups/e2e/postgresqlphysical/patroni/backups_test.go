@@ -6,19 +6,87 @@ import (
 	"databasus-backend/internal/app/apptest/physicaltest"
 )
 
+const (
+	postgres17Image = "postgres:17"
+	postgres18Image = "postgres:18"
+)
+
 type patroniScenario struct {
 	name string
 	run  func(*testing.T, string)
 }
 
-func TestPatroniPhysicalBackups(t *testing.T) {
+func TestPatroniRecoveryPostgres17(t *testing.T) {
 	t.Parallel()
+	runPatroniScenarios(t, postgres17Image, getRecoveryScenarios())
+}
 
-	capacity := make(chan struct{}, 2)
-	scenarios := []patroniScenario{
+func TestPatroniRecoveryPostgres18(t *testing.T) {
+	t.Parallel()
+	runPatroniScenarios(t, postgres18Image, getRecoveryScenarios())
+}
+
+func TestPatroniIndependentRecoveryPostgres17(t *testing.T) {
+	t.Parallel()
+	runPatroniScenarios(t, postgres17Image, getIndependentRecoveryScenarios())
+}
+
+func TestPatroniIndependentRecoveryPostgres18(t *testing.T) {
+	t.Parallel()
+	runPatroniScenarios(t, postgres18Image, getIndependentRecoveryScenarios())
+}
+
+func TestPatroniSlotsPostgres17(t *testing.T) {
+	t.Parallel()
+	runPatroniScenarios(t, postgres17Image, getSlotScenarios())
+}
+
+func TestPatroniSlotsPostgres18(t *testing.T) {
+	t.Parallel()
+	runPatroniScenarios(t, postgres18Image, getSlotScenarios())
+}
+
+func TestPatroniInterruptedBackupsPostgres17(t *testing.T) {
+	t.Parallel()
+	runPatroniScenarios(t, postgres17Image, getInterruptedBackupScenarios())
+}
+
+func TestPatroniInterruptedBackupsPostgres18(t *testing.T) {
+	t.Parallel()
+	runPatroniScenarios(t, postgres18Image, getInterruptedBackupScenarios())
+}
+
+func TestPatroniRoutingOutagesPostgres17(t *testing.T) {
+	t.Parallel()
+	runPatroniScenarios(t, postgres17Image, getRoutingOutageScenarios())
+}
+
+func TestPatroniRoutingOutagesPostgres18(t *testing.T) {
+	t.Parallel()
+	runPatroniScenarios(t, postgres18Image, getRoutingOutageScenarios())
+}
+
+func runPatroniScenarios(t *testing.T, image string, scenarios []patroniScenario) {
+	t.Helper()
+
+	for _, scenario := range scenarios {
+		t.Run(scenario.name+image, func(t *testing.T) {
+			t.Parallel()
+			scenario.run(t, image)
+		})
+	}
+}
+
+func getRecoveryScenarios() []patroniScenario {
+	return []patroniScenario{
 		{name: "restores initial schema and sequences with ", run: physicaltest.RunPatroniInitialRecovery},
 		{name: "recovers after two switchovers with ", run: physicaltest.RunPatroniSwitchovers},
 		{name: "recovers after primary loss with ", run: physicaltest.RunPatroniPrimaryLoss},
+	}
+}
+
+func getIndependentRecoveryScenarios() []patroniScenario {
+	scenarios := []patroniScenario{
 		{
 			name: "uses referenced authentication when root defaults coexist with ",
 			run: func(t *testing.T, image string) {
@@ -60,6 +128,12 @@ func TestPatroniPhysicalBackups(t *testing.T) {
 		)
 	}
 
+	return scenarios
+}
+
+func getSlotScenarios() []patroniScenario {
+	var scenarios []patroniScenario
+
 	for _, slotMode := range []struct {
 		name string
 		mode string
@@ -75,18 +149,35 @@ func TestPatroniPhysicalBackups(t *testing.T) {
 		}})
 	}
 
-	for _, kind := range []string{"FULL", "INCREMENTAL"} {
-		name := "replaces an interrupted full with "
+	return scenarios
+}
 
-		if kind == "INCREMENTAL" {
-			name = "replaces an interrupted incremental with "
-		}
+func getInterruptedBackupScenarios() []patroniScenario {
+	var scenarios []patroniScenario
 
-		scenarios = append(scenarios, patroniScenario{name: name, run: func(t *testing.T, image string) {
+	for _, interruption := range []struct {
+		name string
+		kind string
+	}{
+		{name: "replaces an interrupted full with ", kind: "FULL"},
+		{name: "replaces an interrupted incremental with ", kind: "INCREMENTAL"},
+	} {
+		scenarios = append(scenarios, patroniScenario{name: interruption.name, run: func(t *testing.T, image string) {
 			t.Helper()
-			physicaltest.RunPatroniInterruptedBackup(t, physicaltest.PatroniInterruptionSpec{Image: image, Kind: kind})
+			physicaltest.RunPatroniInterruptedBackup(
+				t,
+				physicaltest.PatroniInterruptionSpec{Image: image, Kind: interruption.kind},
+			)
 		}})
+	}
 
+	return scenarios
+}
+
+func getRoutingOutageScenarios() []patroniScenario {
+	var scenarios []patroniScenario
+
+	for _, kind := range []string{"FULL", "INCREMENTAL"} {
 		scenarios = append(
 			scenarios,
 			patroniScenario{
@@ -102,19 +193,5 @@ func TestPatroniPhysicalBackups(t *testing.T) {
 		)
 	}
 
-	for _, image := range []string{"postgres:17", "postgres:18"} {
-		for _, scenario := range scenarios {
-			t.Run(scenario.name+image, func(t *testing.T) {
-				t.Parallel()
-
-				select {
-				case capacity <- struct{}{}:
-				case <-t.Context().Done():
-					t.Fatal("canceled waiting for Patroni fixture capacity")
-				}
-				t.Cleanup(func() { <-capacity })
-				scenario.run(t, image)
-			})
-		}
-	}
+	return scenarios
 }

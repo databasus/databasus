@@ -11,22 +11,10 @@ import (
 func TestPatroniFixtureLifecycle(t *testing.T) {
 	t.Parallel()
 
-	capacity := make(chan struct{}, 2)
-	acquire := func(t *testing.T) {
-		t.Helper()
-		select {
-		case capacity <- struct{}{}:
-			t.Cleanup(func() { <-capacity })
-		case <-t.Context().Done():
-			t.Fatal(t.Context().Err())
-		}
-	}
-
 	for _, mode := range []string{"success", "partial-startup", "cancellation", "transfer-failure", "parent-interruption"} {
 		t.Run("removes owned resources after "+mode, func(t *testing.T) {
 			t.Parallel()
 
-			acquire(t)
 			runPatroniCleanupScenario(t, mode)
 		})
 	}
@@ -35,7 +23,6 @@ func TestPatroniFixtureLifecycle(t *testing.T) {
 		t.Run("cleans up a backup with "+mode, func(t *testing.T) {
 			t.Parallel()
 
-			acquire(t)
 			fixture := containers.StartPatroni(t, containers.PatroniSpec{Image: "postgres:17"})
 			runPatroniTransferLifecycle(t, fixture, mode)
 		})
@@ -45,7 +32,6 @@ func TestPatroniFixtureLifecycle(t *testing.T) {
 		t.Run("elects the replica after primary loss with "+image, func(t *testing.T) {
 			t.Parallel()
 
-			acquire(t)
 			fixture := containers.StartPatroni(t, containers.PatroniSpec{Image: image})
 			fixture.RequireCycles(t, fixture.GetNode(fixture.GetIdentity(t).Node), 3)
 			fixture.KillPrimary(t)
@@ -53,8 +39,6 @@ func TestPatroniFixtureLifecycle(t *testing.T) {
 
 		t.Run("routes to both nodes after two switchovers with "+image, func(t *testing.T) {
 			t.Parallel()
-
-			acquire(t)
 
 			fixture := containers.StartPatroni(t, containers.PatroniSpec{Image: image})
 			initial := fixture.GetIdentity(t)

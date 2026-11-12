@@ -450,16 +450,16 @@ class TestScriptTestCase(unittest.TestCase):
         )
         self.assertLess(slow_limit, other_limit)
 
-    def test_slow_packages_have_40_minutes_and_other_packages_have_15(self) -> None:
+    def test_slow_and_other_packages_have_15_minutes(self) -> None:
         exit_status, _, stderr = self.finish_script(self.start_script())
         self.assertEqual(exit_status, 0, stderr)
 
         slow_selection = self.get_selection_of("databasus-backend/internal/lib/slow")
         other_selection = self.get_selection_of("databasus-backend/internal/lib/ordinary")
-        self.assertEqual(slow_selection[slow_selection.index("-timeout") + 1], "40m")
+        self.assertEqual(slow_selection[slow_selection.index("-timeout") + 1], "15m")
         self.assertEqual(other_selection[other_selection.index("-timeout") + 1], "15m")
 
-    def test_full_run_selects_patroni_once_with_the_slow_timeout(self) -> None:
+    def test_full_run_selects_patroni_once_with_the_common_timeout(self) -> None:
         exit_status, _, stderr = self.finish_script(self.start_full_script())
 
         self.assertEqual(exit_status, 0, stderr)
@@ -469,7 +469,7 @@ class TestScriptTestCase(unittest.TestCase):
 
         self.assertEqual(self.get_selected_packages().count(package), 1)
         self.assertIn("databasus-backend/internal/lib/slow", selection)
-        self.assertEqual(selection[selection.index("-timeout") + 1], "40m")
+        self.assertEqual(selection[selection.index("-timeout") + 1], "15m")
 
     def test_the_upgrade_test_has_a_timeout_of_15_minutes_and_30_in_ci(self) -> None:
         upgrade_task = (REPOSITORY_ROOT / "mise-tasks/backend/test-upgrade").read_text()

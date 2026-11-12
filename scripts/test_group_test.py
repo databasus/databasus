@@ -58,7 +58,15 @@ class PackageCoverageTest(unittest.TestCase):
         self.assertEqual(go_files_naming_playwright, [])
 
     def test_every_package_except_the_upgrade_test_belongs_to_exactly_one_group(self) -> None:
-        groups = ("physical", "logical", "physical-api", "agent-e2e", "storage-providers", "other")
+        groups = (
+            "physical",
+            "patroni",
+            "logical",
+            "physical-api",
+            "agent-e2e",
+            "storage-providers",
+            "other",
+        )
         selections = {}
         for group in groups:
             packages = subprocess.check_output(
@@ -86,6 +94,13 @@ class PackageCoverageTest(unittest.TestCase):
         self.assertIn(provider + "/nas", selections["other"])
         self.assertIn("databasus-backend/migrations", selections["other"])
         self.assertIn("databasus-backend/tools/archlint", selections["other"])
+        patroni = "databasus-backend/internal/modules/backups/e2e/postgresqlphysical/patroni"
+        self.assertEqual(selections["patroni"], {patroni})
+        self.assertNotIn(patroni, selections["physical"])
+        self.assertIn(
+            "databasus-backend/internal/modules/backups/e2e/postgresqlphysical/pg18",
+            selections["physical"],
+        )
 
     def test_upgrade_step_selects_the_upgrade_test_with_its_comparison_helper(self) -> None:
         upgrade_task = (ROOT / "mise-tasks/backend/test-upgrade").read_text()
@@ -234,6 +249,88 @@ else:
         )
         self.assertNotIn("databasus-backend/e2e/upgrade", selected_packages)
         self.assertNotIn("databasus-backend/e2e/upgrade/upgradecheck", selected_packages)
+
+
+class PatroniGroupSelectionTest(ShardFixture):
+    def test_patroni_takes_its_nested_packages_and_physical_takes_the_rest(self) -> None:
+        self.stub(
+            "go",
+            """import sys
+physical = "databasus-backend/internal/modules/backups/e2e/postgresqlphysical"
+packages = [physical + "/pg17", physical + "/fresh", physical + "/patroni", physical + "/patroni/nested"]
+if sys.argv[1:] == ["list", "./internal/modules/backups/e2e/postgresqlphysical/..."]:
+    print("\\n".join(packages))
+elif sys.argv[1:] == ["list", "./internal/modules/backups/e2e/postgresqlphysical/patroni/..."]:
+    print("\\n".join(package for package in packages if "/patroni" in package))
+else:
+    sys.exit("unexpected discovery: " + repr(sys.argv[1:]))
+""",
+        )
+
+        selected_by_group = {}
+        for group in ("physical", "patroni"):
+            selection = subprocess.run(
+                ["bash", str(self.workspace / "test-group-packages")],
+                cwd=self.backend,
+                env={**self.environment, "usage_group": group},
+                capture_output=True,
+                text=True,
+                timeout=TIMEOUT,
+            )
+            self.assertEqual(selection.returncode, 0, selection.stderr)
+            selected_by_group[group] = selection.stdout.splitlines()
+
+        physical = "databasus-backend/internal/modules/backups/e2e/postgresqlphysical"
+        self.assertEqual(selected_by_group["physical"], [physical + "/pg17", physical + "/fresh"])
+        self.assertEqual(
+            selected_by_group["patroni"], [physical + "/patroni", physical + "/patroni/nested"]
+        )
+
+
+class PatroniShardBalanceTest(ShardFixture):
+    def test_every_patroni_shard_runs_backup_scenarios_with_recorded_weights(self) -> None:
+        patroni_directory = ROOT / "backend/internal/modules/backups/e2e/postgresqlphysical/patroni"
+        scenario_tests = {
+            test
+            for source in patroni_directory.glob("*_test.go")
+            for test in re.findall(r"^func (Test\w+)\(", source.read_text(), re.MULTILINE)
+            if test != "TestPatroniFixtureChild"
+        }
+        backup_tests = {
+            test for test in scenario_tests if re.fullmatch(r"TestPatroni\w+Postgres1[78]", test)
+        }
+        weighted_tests = set(
+            re.findall(
+                r"^\d+ (\w+)$", (ROOT / "backend/test-shard-weights.txt").read_text(), re.MULTILINE
+            )
+        )
+        self.assertEqual(len(backup_tests), 10)
+        self.assertEqual(scenario_tests - weighted_tests, set())
+
+        self.environment["PACKAGE_SELECTOR"] = str(ROOT / "mise-tasks/backend/test-group-packages")
+        self.stub(
+            "mise",
+            """import os, subprocess, sys
+if sys.argv[1:4] != ["run", "--quiet", "backend:test-group-packages"]:
+    sys.exit("unexpected dispatch")
+sys.exit(subprocess.call(["bash", os.environ["PACKAGE_SELECTOR"]], env={**os.environ, "usage_group": sys.argv[4]}))
+""",
+        )
+        for shard in range(1, 6):
+            with self.subTest(shard=shard):
+                selection = subprocess.run(
+                    ["bash", str(ROOT / "mise-tasks/backend/test-group-tests")],
+                    cwd=ROOT / "backend",
+                    env={**self.environment, "usage_group": f"patroni-{shard}-of-5"},
+                    capture_output=True,
+                    text=True,
+                    timeout=TIMEOUT,
+                )
+                self.assertEqual(selection.returncode, 0, selection.stderr)
+                pattern = re.compile(selection.stdout.strip())
+                self.assertTrue(
+                    any(pattern.fullmatch(test) for test in backup_tests), pattern.pattern
+                )
 
 
 class RealShardSelectionTest(ShardFixture):
