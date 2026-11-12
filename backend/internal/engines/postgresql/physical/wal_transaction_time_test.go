@@ -148,7 +148,7 @@ func TestWalTransactionTimeBoundary(t *testing.T) {
 			require.NotNil(t, lastTransactionAt)
 			require.False(t, lastTransactionAt.Before(transactionBefore))
 		})
-	})
+	}, containers.WithoutAutovacuum())
 }
 
 //nolint:tparallel // Versions and WAL cases run sequentially on their shared source server.

@@ -5,6 +5,7 @@ from pathlib import Path
 
 from leftover_check import assert_nothing_of_the_project_remains
 from lifecycle.run_cleanup import RunCleanup
+from network_subnet import is_test_subnet
 from probe_run import INTERRUPT_READY, assert_failed_and_released, start_probe_run
 from supervisor_file import get_run_directory
 
@@ -27,11 +28,16 @@ class TestInterruption:
         assert_failed_and_released(run, "E2E run interrupted")
         assert not pytest_directory.exists(), f"child pytest directory remains: {pytest_directory}"
 
-    def test_publishes_a_port_only_for_the_browser_service(self, probes_image: str) -> None:
+    def test_publishes_only_the_browser_port_and_takes_networks_from_the_test_range(
+        self, probes_image: str
+    ) -> None:
         run = start_probe_run(probes_image, "interrupt")
         run.wait_for_output(INTERRUPT_READY)
 
         assert _list_services_publishing_ports(run.get_project_name()) == ["browser"]
+        network_subnets = _list_network_subnets(run.get_project_name())
+        assert network_subnets
+        assert all(is_test_subnet(subnet) for subnet in network_subnets), network_subnets
 
         run.terminate_supervisor()
 
@@ -75,3 +81,34 @@ def _list_services_publishing_ports(project_name: str) -> list[str]:
     )
 
     return [line.split()[0] for line in listing.stdout.splitlines() if "->" in line]
+
+
+def _list_network_subnets(project_name: str) -> list[str]:
+    listing = subprocess.run(
+        [
+            "docker",
+            "network",
+            "ls",
+            "--quiet",
+            "--filter",
+            f"label=com.docker.compose.project={project_name}",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    inspection = subprocess.run(
+        [
+            "docker",
+            "network",
+            "inspect",
+            "--format",
+            "{{range .IPAM.Config}}{{.Subnet}} {{end}}",
+            *listing.stdout.split(),
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    return inspection.stdout.split()

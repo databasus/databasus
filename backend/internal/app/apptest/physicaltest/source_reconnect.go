@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
@@ -218,6 +220,10 @@ func readQueuedSourceWal(t *testing.T, directory string) map[string][32]byte {
 	t.Helper()
 	segments := make(map[string][32]byte)
 	require.NoError(t, filepath.WalkDir(directory, func(path string, entry os.DirEntry, err error) error {
+		// The stream creates the queue directory only once it starts, which a loaded machine delays.
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
 		if err != nil {
 			return err
 		}

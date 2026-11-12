@@ -14,6 +14,8 @@ import (
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/api/types/network"
 	"github.com/moby/moby/client"
+
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 // scripts/test.sh exports a run ID, and its exit trap removes the containers, networks and volumes
@@ -54,10 +56,31 @@ func (d *dockerHost) close() {
 	_ = d.client.Close()
 }
 
+// createNetwork takes the network's subnet from the test network range, so the default address pools
+// stay free for the verification agents, which cannot choose theirs.
 func (d *dockerHost) createNetwork(ctx context.Context, networkName string) error {
-	_, err := d.client.NetworkCreate(ctx, networkName, client.NetworkCreateOptions{Labels: d.labels})
+	err := containers.WithFreeSubnet(func(ipam *network.IPAM) error {
+		_, createErr := d.client.NetworkCreate(
+			ctx,
+			networkName,
+			client.NetworkCreateOptions{Labels: d.labels, IPAM: ipam},
+		)
+
+		return createErr
+	})
 	if err != nil {
 		return fmt.Errorf("create network %s: %w", networkName, err)
+	}
+
+	inspected, err := d.client.NetworkInspect(ctx, networkName, client.NetworkInspectOptions{})
+	if err != nil {
+		return fmt.Errorf("inspect network %s: %w", networkName, err)
+	}
+
+	for _, config := range inspected.Network.IPAM.Config {
+		if !containers.IsTestNetworkSubnet(config.Subnet) {
+			return fmt.Errorf("network %s has subnet %s outside the test network range", networkName, config.Subnet)
+		}
 	}
 
 	return nil

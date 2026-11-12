@@ -16,16 +16,34 @@ from workflow_jobs import get_jobs
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 BROWSER_SUITE_CALL = "mise run e2e:browser"
-FULL_ONLY_CALLS = (
+UPGRADE_TEST_CALL = "mise run backend:test-upgrade"
+IMAGE_BUILD_CALL = "docker build --tag databasus-full-test:local"
+FULL_RUN_IMAGE = "databasus-full-test:local"
+LIFECYCLE_SHARD_COUNT = 7
+LIFECYCLE_SHARD_CALLS = tuple(
+    f"mise run e2e:lifecycle --without-crashed-run-probes --shard {shard}/{LIFECYCLE_SHARD_COUNT}"
+    for shard in range(1, LIFECYCLE_SHARD_COUNT + 1)
+)
+CRASHED_RUN_PROBES_CALL = "mise run e2e:lifecycle --only-crashed-run-probes"
+INTERRUPTION_CHECKS_CALL = (
+    "uv run --locked --project e2e/browser pytest e2e/browser/lifecycle_interruption"
+)
+TIME_ZERO_CALLS = (
     "python3 -m unittest discover -s scripts -p *_test.py",
     "python3 -m unittest discover -s .agent-hooks -p *_test.py",
     "mise run e2e:unit",
     "pnpm --dir frontend test:browser --project=ui",
-    "mise run backend:test-upgrade",
-    BROWSER_SUITE_CALL,
-    "mise run e2e:lifecycle",
-    "uv run --locked --project e2e/browser pytest e2e/browser/lifecycle_interruption",
+    CRASHED_RUN_PROBES_CALL,
+    IMAGE_BUILD_CALL,
 )
+FULL_ONLY_CALLS = (
+    *TIME_ZERO_CALLS,
+    UPGRADE_TEST_CALL,
+    INTERRUPTION_CHECKS_CALL,
+    BROWSER_SUITE_CALL,
+    *LIFECYCLE_SHARD_CALLS,
+)
+BROWSER_RUN_CALLS = (BROWSER_SUITE_CALL, *LIFECYCLE_SHARD_CALLS)
 FULL_RUN_LOCK_NAME = "databasus-full-test.lock"
 WAIT_TIMEOUT_SECONDS = 30
 RUN_LABEL_FILTER = "label=databasus.test-run="
@@ -34,12 +52,21 @@ RUN_LABEL_FILTER = "label=databasus.test-run="
 # DATABASUS_TEST_RUN_ID with its test call, sleeps for STUB_GO_TEST_SECONDS, so a test can
 # interrupt the run while its tests run, and exits with STUB_GO_TEST_EXIT_STATUS, or with
 # STUB_GO_SLOW_TEST_EXIT_STATUS when it runs the first slow package. The docker stub lists one
-# container, one network and one volume. The mise stub runs backend:test-upgrade for
-# STUB_UPGRADE_TEST_SECONDS and exits with STUB_UPGRADE_TEST_EXIT_STATUS. The pnpm stub takes
-# STUB_PNPM_SECONDS and exits with STUB_PNPM_EXIT_STATUS.
+# container, one network and one volume, and builds an image in STUB_DOCKER_BUILD_SECONDS with
+# STUB_DOCKER_BUILD_EXIT_STATUS. The mise stub records the image the upgrade test and the browser
+# suite receive, runs them for STUB_UPGRADE_TEST_SECONDS and STUB_BROWSER_SUITE_SECONDS, and the
+# lifecycle shards without crashed-run probes for STUB_LIFECYCLE_SECONDS and the crashed-run probes for
+# STUB_CRASHED_RUN_PROBES_SECONDS. The pnpm stub takes
+# STUB_PNPM_SECONDS and exits with STUB_PNPM_EXIT_STATUS. A long-running stub records
+# "<name> finished <arguments>" when it ends, and any stub fails for STUB_FAIL_COMMAND.
 STUB_SOURCES = {
     "docker": """
         echo "$(date +%s.%N) docker $*" >>"$STUB_CALLS"
+        if [[ "$1" == build ]]; then
+            sleep "${STUB_DOCKER_BUILD_SECONDS:-0}"
+            echo "$(date +%s.%N) docker finished $*" >>"$STUB_CALLS"
+            exit "${STUB_DOCKER_BUILD_EXIT_STATUS:-0}"
+        fi
         case "$1 $2" in
             "ps -aq") echo container-of-run ;;
             "network ls") echo network-of-run ;;
@@ -96,17 +123,33 @@ STUB_SOURCES = {
     "uv": """
         echo "$(date +%s.%N) uv $*" >>"$STUB_CALLS"
         if [[ "uv $*" == "${STUB_FAIL_COMMAND:-}" ]]; then exit 1; fi
+        echo "$(date +%s.%N) uv finished $*" >>"$STUB_CALLS"
     """,
     "mise": """
         echo "$(date +%s.%N) mise $*" >>"$STUB_CALLS"
         if [[ "mise $*" == "${STUB_FAIL_COMMAND:-}" ]]; then exit 1; fi
-        if [[ "${*: -1}" == backend:test-upgrade ]]; then
-            sleep "${STUB_UPGRADE_TEST_SECONDS:-0}"
-            exit "${STUB_UPGRADE_TEST_EXIT_STATUS:-0}"
-        fi
-        if [[ "${*: -1}" == e2e:browser ]]; then
-            exit "${STUB_BROWSER_SUITE_EXIT_STATUS:-0}"
-        fi
+        case "$*" in
+            "run backend:test-upgrade")
+                echo "$(date +%s.%N) image ${DATABASUS_IMAGE:-} for $*" >>"$STUB_CALLS"
+                sleep "${STUB_UPGRADE_TEST_SECONDS:-0}"
+                echo "$(date +%s.%N) mise finished $*" >>"$STUB_CALLS"
+                exit "${STUB_UPGRADE_TEST_EXIT_STATUS:-0}"
+                ;;
+            "run e2e:browser")
+                echo "$(date +%s.%N) image ${DATABASUS_IMAGE:-} for $*" >>"$STUB_CALLS"
+                sleep "${STUB_BROWSER_SUITE_SECONDS:-0}"
+                echo "$(date +%s.%N) mise finished $*" >>"$STUB_CALLS"
+                exit "${STUB_BROWSER_SUITE_EXIT_STATUS:-0}"
+                ;;
+            "run e2e:lifecycle --without-crashed-run-probes --shard "*)
+                sleep "${STUB_LIFECYCLE_SECONDS:-0}"
+                echo "$(date +%s.%N) mise finished $*" >>"$STUB_CALLS"
+                ;;
+            "run e2e:lifecycle --only-crashed-run-probes")
+                sleep "${STUB_CRASHED_RUN_PROBES_SECONDS:-0}"
+                echo "$(date +%s.%N) mise finished $*" >>"$STUB_CALLS"
+                ;;
+        esac
     """,
 }
 
@@ -161,16 +204,16 @@ class TestScriptTestCase(unittest.TestCase):
         self.calls_path = self.workspace / "calls"
         self.calls_path.touch()
 
-        stubs_directory = self.workspace / "stubs"
-        stubs_directory.mkdir()
+        self.stubs_directory = self.workspace / "stubs"
+        self.stubs_directory.mkdir()
         for name, source in STUB_SOURCES.items():
-            stub_path = stubs_directory / name
+            stub_path = self.stubs_directory / name
             stub_path.write_text("#!/usr/bin/env bash\n" + textwrap.dedent(source))
             stub_path.chmod(0o755)
 
         self.environment = {
             **os.environ,
-            "PATH": f"{stubs_directory}:{os.environ['PATH']}",
+            "PATH": f"{self.stubs_directory}:{os.environ['PATH']}",
             "STUB_CALLS": str(self.calls_path),
             "TMPDIR": str(self.lock_directory),
         }
@@ -216,9 +259,6 @@ class TestScriptTestCase(unittest.TestCase):
             recorded_calls.append((float(called_at), call))
 
         return recorded_calls
-
-    def get_upgrade_test_call(self) -> str:
-        return "mise run backend:test-upgrade"
 
     def find_call(self, prefix: str) -> tuple[float, str] | None:
         return next(
@@ -306,7 +346,7 @@ class TestScriptTestCase(unittest.TestCase):
         exit_status, _, stderr = self.finish_script(self.start_script())
         self.assertEqual(exit_status, 0, stderr)
 
-        self.assertIsNone(self.find_call(self.get_upgrade_test_call()))
+        self.assertIsNone(self.find_call(UPGRADE_TEST_CALL))
         self.assertIsNone(self.find_call(BROWSER_SUITE_CALL))
 
     def test_the_routine_run_starts_no_full_only_suite(self) -> None:
@@ -316,32 +356,182 @@ class TestScriptTestCase(unittest.TestCase):
         for command in FULL_ONLY_CALLS:
             self.assertIsNone(self.find_call(command), command)
 
-    def test_the_full_run_executes_each_extra_suite_once_in_order_after_the_packages(self) -> None:
+    def count_calls(self, prefix: str) -> int:
+        return sum(1 for _, call in self.read_calls() if call.startswith(prefix))
+
+    def get_required_call(self, prefix: str) -> tuple[float, str]:
+        recorded_call = self.find_call(prefix)
+        assert recorded_call is not None, f"no call starting with {prefix!r}: {self.read_calls()}"
+
+        return recorded_call
+
+    def test_the_full_run_executes_each_extra_suite_once(self) -> None:
         exit_status, _, stderr = self.finish_script(self.start_full_script())
 
         self.assertEqual(exit_status, 0, stderr)
-        calls = [command for _, command in self.read_calls()]
-        full_calls = [command for command in calls if command in FULL_ONLY_CALLS]
-        self.assertEqual(full_calls, list(FULL_ONLY_CALLS))
-        package_completions = [
-            index for index, command in enumerate(calls) if command.startswith("go finished")
-        ]
-        self.assertLess(max(package_completions), calls.index(FULL_ONLY_CALLS[0]))
+        for command in FULL_ONLY_CALLS:
+            self.assertEqual(self.count_calls(command), 1, command)
         self.assertIsNone(self.find_call("mise run test-filesystem"))
         self.assertIsNone(self.find_call("mise run agent:e2e-podman"))
 
-    def test_the_full_run_fails_and_skips_later_suites_when_an_extra_suite_fails(self) -> None:
-        for index, command in enumerate(FULL_ONLY_CALLS):
-            with self.subTest(command=command):
+    def test_the_full_run_starts_independent_suites_while_the_packages_run(self) -> None:
+        exit_status, _, stderr = self.finish_script(
+            self.start_full_script({"STUB_GO_TEST_SECONDS": "2"})
+        )
+
+        self.assertEqual(exit_status, 0, stderr)
+        first_package_finished_at = self.get_required_call("go finished")[0]
+        for command in TIME_ZERO_CALLS:
+            self.assertLess(self.get_required_call(command)[0], first_package_finished_at, command)
+
+    def test_the_image_suites_do_not_wait_for_the_crashed_run_probes(self) -> None:
+        exit_status, _, stderr = self.finish_script(
+            self.start_full_script({"STUB_CRASHED_RUN_PROBES_SECONDS": "2"})
+        )
+
+        self.assertEqual(exit_status, 0, stderr)
+        crashed_run_probes_finished_at = self.get_required_call(
+            f"mise finished {CRASHED_RUN_PROBES_CALL[5:]}"
+        )[0]
+        self.assertLess(
+            self.get_required_call(UPGRADE_TEST_CALL)[0], crashed_run_probes_finished_at
+        )
+
+    def test_no_other_browser_run_starts_until_the_interruption_checks_end(self) -> None:
+        exit_status, _, stderr = self.finish_script(
+            self.start_full_script({"STUB_CRASHED_RUN_PROBES_SECONDS": "1"})
+        )
+
+        self.assertEqual(exit_status, 0, stderr)
+        crashed_run_probes_finished_at = self.get_required_call(
+            f"mise finished {CRASHED_RUN_PROBES_CALL[5:]}"
+        )[0]
+        interruption_checks_started_at = self.get_required_call(INTERRUPTION_CHECKS_CALL)[0]
+        interruption_checks_finished_at = self.get_required_call(
+            f"uv finished {INTERRUPTION_CHECKS_CALL[3:]}"
+        )[0]
+        self.assertLess(crashed_run_probes_finished_at, interruption_checks_started_at)
+        for command in BROWSER_RUN_CALLS:
+            self.assertLess(interruption_checks_finished_at, self.get_required_call(command)[0])
+
+    def test_the_interruption_checks_run_after_failed_crashed_run_probes(self) -> None:
+        exit_status, _, stderr = self.finish_script(
+            self.start_full_script({"STUB_FAIL_COMMAND": CRASHED_RUN_PROBES_CALL})
+        )
+
+        self.assertNotEqual(exit_status, 0)
+        self.assertIn("failed: lifecycle-crashed-runs", stderr)
+        self.assertIsNotNone(self.find_call(f"uv finished {INTERRUPTION_CHECKS_CALL[3:]}"))
+
+    def test_a_failed_extra_suite_stops_no_other_suite(self) -> None:
+        for failed_command in FULL_ONLY_CALLS:
+            if failed_command == IMAGE_BUILD_CALL:
+                continue
+            with self.subTest(command=failed_command):
                 self.calls_path.write_text("")
-                exit_status, _, _ = self.finish_script(
-                    self.start_full_script({"STUB_FAIL_COMMAND": command})
+
+                exit_status, _, stderr = self.finish_script(
+                    self.start_full_script({"STUB_FAIL_COMMAND": failed_command})
                 )
 
                 self.assertNotEqual(exit_status, 0)
-                self.assertIsNotNone(self.find_call(command))
-                for later_command in FULL_ONLY_CALLS[index + 1 :]:
-                    self.assertIsNone(self.find_call(later_command), later_command)
+                self.assertIn("failed: ", stderr)
+                for command in FULL_ONLY_CALLS:
+                    self.assertEqual(self.count_calls(command), 1, command)
+
+    def test_a_package_failure_lets_the_upgrade_test_run_to_its_end(self) -> None:
+        exit_status, _, stderr = self.finish_script(
+            self.start_full_script({"STUB_GO_TEST_EXIT_STATUS": "1"})
+        )
+
+        self.assertNotEqual(exit_status, 0)
+        self.assertIn("backend-other", stderr)
+        self.assertIsNotNone(self.find_call(IMAGE_BUILD_CALL))
+        self.assertIsNotNone(self.find_call(f"mise finished {UPGRADE_TEST_CALL[5:]}"))
+
+    def test_a_frontend_failure_still_builds_the_image_and_runs_the_upgrade_test(self) -> None:
+        exit_status, _, stderr = self.finish_script(
+            self.start_full_script({"STUB_PNPM_EXIT_STATUS": "1"})
+        )
+
+        self.assertNotEqual(exit_status, 0)
+        self.assertIn("frontend", stderr)
+        self.assertIsNotNone(self.find_call(IMAGE_BUILD_CALL))
+        self.assertIsNotNone(self.find_call(f"mise finished {UPGRADE_TEST_CALL[5:]}"))
+
+    def test_a_failed_build_leaves_only_the_image_suites_not_started(self) -> None:
+        exit_status, _, stderr = self.finish_script(
+            self.start_full_script({"STUB_DOCKER_BUILD_EXIT_STATUS": "1"})
+        )
+
+        self.assertNotEqual(exit_status, 0)
+        self.assertIn("failed: image-build", stderr)
+        self.assertIn("not started: upgrade e2e-browser", stderr)
+        self.assertIsNone(self.find_call(UPGRADE_TEST_CALL))
+        self.assertIsNone(self.find_call(BROWSER_SUITE_CALL))
+        for command in (*LIFECYCLE_SHARD_CALLS, CRASHED_RUN_PROBES_CALL, INTERRUPTION_CHECKS_CALL):
+            self.assertIsNotNone(self.find_call(command), command)
+
+    def test_the_full_run_tests_and_removes_the_image_it_built(self) -> None:
+        for extra_environment in ({}, {"STUB_UPGRADE_TEST_EXIT_STATUS": "1"}):
+            with self.subTest(environment=extra_environment):
+                self.calls_path.write_text("")
+
+                self.finish_script(self.start_full_script(extra_environment))
+
+                build_call = self.get_required_call(IMAGE_BUILD_CALL)
+                self.assertEqual(build_call[1], f"{IMAGE_BUILD_CALL} {self.checkout}")
+                for command in (UPGRADE_TEST_CALL, BROWSER_SUITE_CALL):
+                    self.assertIsNotNone(
+                        self.find_call(f"image {FULL_RUN_IMAGE} for {command[5:]}"), command
+                    )
+                removal_call = self.get_required_call(f"docker image rm {FULL_RUN_IMAGE}")
+                self.assertLess(
+                    self.get_required_call(f"mise finished {UPGRADE_TEST_CALL[5:]}")[0],
+                    removal_call[0],
+                )
+
+    def test_a_named_image_is_tested_without_a_build_and_kept(self) -> None:
+        exit_status, stdout, stderr = self.finish_script(
+            self.start_full_script({"DATABASUS_IMAGE": "named:image"})
+        )
+
+        self.assertEqual(exit_status, 0, stderr)
+        self.assertIsNone(self.find_call("docker build"))
+        self.assertIsNone(self.find_call("docker image rm"))
+        for command in (UPGRADE_TEST_CALL, BROWSER_SUITE_CALL):
+            self.assertIsNotNone(self.find_call(f"image named:image for {command[5:]}"), command)
+        self.assertRegex(stdout, r"(?m)^  image-build +skipped *$")
+        for suite_name in ("backend-slow", "upgrade", "e2e-browser", "lifecycle-crashed-runs"):
+            self.assertRegex(stdout, rf"(?m)^  {suite_name} +passed +\d+s$", suite_name)
+        self.assertRegex(stdout, r"(?m)^total: \d+s$")
+
+    def test_the_summary_lists_each_suite_with_its_duration_and_the_total(self) -> None:
+        exit_status, stdout, stderr = self.finish_script(
+            self.start_full_script({"STUB_DOCKER_BUILD_SECONDS": "1"})
+        )
+
+        self.assertEqual(exit_status, 0, stderr)
+        for suite_name in (
+            "backend-slow",
+            "backend-other",
+            "frontend",
+            "scripts",
+            "review-hooks",
+            "e2e-unit",
+            "browser-ui",
+            *(
+                f"lifecycle-{shard}-of-{LIFECYCLE_SHARD_COUNT}"
+                for shard in range(1, LIFECYCLE_SHARD_COUNT + 1)
+            ),
+            "upgrade",
+            "e2e-browser",
+            "lifecycle-crashed-runs",
+            "lifecycle-interruption-checks",
+        ):
+            self.assertRegex(stdout, rf"(?m)^  {suite_name} +passed +\d+s$", suite_name)
+        self.assertRegex(stdout, r"(?m)^  image-build +passed +[1-9]\d*s$")
+        self.assertRegex(stdout, r"(?m)^total: \d+s$")
 
     def test_the_routine_run_selects_no_end_to_end_package(self) -> None:
         exit_status, _, stderr = self.finish_script(self.start_script())
@@ -359,24 +549,6 @@ class TestScriptTestCase(unittest.TestCase):
         self.assertIn("databasus-backend/internal/agent/e2e", selected_packages)
         self.assertIn("databasus-backend/internal/modules/backups/e2e/mysql", selected_packages)
         self.assertNotIn("databasus-backend/e2e/upgrade", selected_packages)
-
-    def test_the_full_run_starts_the_browser_suite_after_the_upgrade_test(self) -> None:
-        exit_status, _, stderr = self.finish_script(self.start_full_script())
-        self.assertEqual(exit_status, 0, stderr)
-
-        upgrade_call = self.find_call(self.get_upgrade_test_call())
-        browser_call = self.find_call(BROWSER_SUITE_CALL)
-        assert upgrade_call is not None
-        assert browser_call is not None
-        self.assertLess(upgrade_call[0], browser_call[0])
-
-    def test_the_full_run_skips_the_browser_suite_when_the_upgrade_test_fails(self) -> None:
-        exit_status, _, _ = self.finish_script(
-            self.start_full_script({"STUB_UPGRADE_TEST_EXIT_STATUS": "1"})
-        )
-
-        self.assertNotEqual(exit_status, 0)
-        self.assertIsNone(self.find_call(BROWSER_SUITE_CALL))
 
     def test_the_full_run_fails_when_the_browser_suite_fails(self) -> None:
         exit_status, _, _ = self.finish_script(
@@ -449,6 +621,15 @@ class TestScriptTestCase(unittest.TestCase):
             self.get_selection_of("databasus-backend/internal/lib/ordinary")
         )
         self.assertLess(slow_limit, other_limit)
+
+    def test_slow_packages_run_under_a_parallel_test_limit_from_the_runner(self) -> None:
+        exit_status, _, stderr = self.finish_script(self.start_script())
+        self.assertEqual(exit_status, 0, stderr)
+
+        slow_selection = self.get_selection_of("databasus-backend/internal/lib/slow")
+        other_selection = self.get_selection_of("databasus-backend/internal/lib/ordinary")
+        self.assertIn("-parallel=8", slow_selection)
+        self.assertFalse(any(argument.startswith("-parallel") for argument in other_selection))
 
     def test_slow_and_other_packages_have_15_minutes(self) -> None:
         exit_status, _, stderr = self.finish_script(self.start_script())
@@ -593,7 +774,7 @@ class TestScriptTestCase(unittest.TestCase):
 
         self.assertNotEqual(exit_status, 0)
         self.assertIn("frontend", stderr)
-        self.assertIsNone(self.find_call(self.get_upgrade_test_call()))
+        self.assertIsNone(self.find_call(UPGRADE_TEST_CALL))
 
     def test_a_backend_failure_fails_the_routine_run_and_names_the_suite(self) -> None:
         script = self.start_script({"STUB_GO_TEST_EXIT_STATUS": "1"})
@@ -602,18 +783,7 @@ class TestScriptTestCase(unittest.TestCase):
 
         self.assertNotEqual(exit_status, 0)
         self.assertIn("backend-other", stderr)
-        self.assertIsNone(self.find_call(self.get_upgrade_test_call()))
-
-    def test_a_frontend_failure_lets_the_backend_finish_and_skips_the_upgrade_test(self) -> None:
-        script = self.start_full_script({"STUB_PNPM_EXIT_STATUS": "1", "STUB_GO_TEST_SECONDS": "1"})
-
-        exit_status, _, stderr = self.finish_script(script)
-
-        self.assertNotEqual(exit_status, 0)
-        self.assertIn("frontend", stderr)
-        finished_calls = [call for _, call in self.read_calls() if call.startswith("go finished")]
-        self.assertEqual(len(finished_calls), 2)
-        self.assertIsNone(self.find_call(self.get_upgrade_test_call()))
+        self.assertIsNone(self.find_call(UPGRADE_TEST_CALL))
 
     def test_a_backend_failure_lets_the_frontend_finish_and_names_the_suite(self) -> None:
         script = self.start_full_script(
@@ -626,11 +796,20 @@ class TestScriptTestCase(unittest.TestCase):
         self.assertIn("backend-slow", stderr)
         self.assertNotIn("backend-other", stderr)
         self.assertIsNotNone(self.find_call("pnpm finished"))
-        self.assertIsNone(self.find_call(self.get_upgrade_test_call()))
 
-    def test_an_interrupt_stops_every_suite(self) -> None:
-        script = self.start_full_script({"STUB_GO_TEST_SECONDS": "60", "STUB_PNPM_SECONDS": "60"})
-        self.wait_for_call(f"pnpm --dir {self.checkout}/frontend test")
+    def test_an_interrupt_stops_every_suite_and_removes_what_the_run_started(self) -> None:
+        script = self.start_full_script(
+            {
+                "STUB_GO_TEST_SECONDS": "60",
+                "STUB_PNPM_SECONDS": "60",
+                "STUB_LIFECYCLE_SECONDS": "60",
+                "STUB_UPGRADE_TEST_SECONDS": "60",
+                "STUB_BROWSER_SUITE_SECONDS": "60",
+            }
+        )
+        run_id = self.wait_for_call("go test")[1].split("run_id=", 1)[1]
+        for command in (UPGRADE_TEST_CALL, *BROWSER_RUN_CALLS):
+            self.wait_for_call(command)
         while len(self.get_go_selections()) < 2:
             time.sleep(0.05)
 
@@ -638,38 +817,33 @@ class TestScriptTestCase(unittest.TestCase):
         exit_status, _, _ = self.finish_script(script)
 
         self.assertEqual(exit_status, 143)
-        self.assertIsNone(self.find_call("go finished"))
-        self.assertIsNone(self.find_call("pnpm finished"))
-        self.assertIsNone(self.find_call(self.get_upgrade_test_call()))
+        for finished_call in (
+            "go finished",
+            "pnpm finished",
+            *(
+                f"mise finished {command[5:]}"
+                for command in (UPGRADE_TEST_CALL, *BROWSER_RUN_CALLS)
+            ),
+        ):
+            self.assertIsNone(self.find_call(finished_call), finished_call)
+        remaining_stubs = subprocess.run(
+            ["pgrep", "-f", str(self.stubs_directory)], capture_output=True, text=True
+        ).stdout
+        self.assertEqual(remaining_stubs, "")
+        docker_calls = [call for _, call in self.read_calls() if call.startswith("docker")]
+        self.assertIn(f"docker ps -aq --filter {RUN_LABEL_FILTER}{run_id}", docker_calls)
+        self.assertIn("docker rm -f container-of-run", docker_calls)
+        self.assertIn("docker network rm network-of-run", docker_calls)
+        self.assertIn("docker volume rm -f volume-of-run", docker_calls)
+        self.assertIn(f"docker image rm {FULL_RUN_IMAGE}", docker_calls)
+        self.assertIsNone(self.find_call("docker compose down"))
 
     def test_discovery_stops_verification_when_go_list_fails_after_partial_output(self) -> None:
         script = self.start_full_script({"STUB_GO_LIST_EXIT_STATUS": "7"})
         exit_status, _, _ = self.finish_script(script)
         self.assertEqual(exit_status, 7)
         self.assertIsNone(self.find_call("go test"))
-        self.assertIsNone(self.find_call(self.get_upgrade_test_call()))
-
-    def test_the_upgrade_test_runs_after_the_packages_pass(self) -> None:
-        script = self.start_full_script()
-
-        exit_status, _, stderr = self.finish_script(script)
-
-        self.assertEqual(exit_status, 0, stderr)
-        test_call = self.find_call("go test")
-        upgrade_call = self.find_call(self.get_upgrade_test_call())
-        assert test_call is not None
-        assert upgrade_call is not None
-        self.assertLess(test_call[0], upgrade_call[0])
-
-    def test_the_upgrade_test_does_not_run_and_no_image_is_built_when_a_package_fails(self) -> None:
-        script = self.start_full_script({"STUB_GO_TEST_EXIT_STATUS": "1"})
-
-        exit_status, _, _ = self.finish_script(script)
-
-        self.assertNotEqual(exit_status, 0)
-        self.assertIsNotNone(self.find_call("go test"))
-        self.assertIsNone(self.find_call(self.get_upgrade_test_call()))
-        self.assertIsNone(self.find_call("docker build"))
+        self.assertIsNone(self.find_call(UPGRADE_TEST_CALL))
 
     def test_the_run_fails_when_the_upgrade_test_fails(self) -> None:
         script = self.start_full_script({"STUB_UPGRADE_TEST_EXIT_STATUS": "1"})
@@ -678,7 +852,7 @@ class TestScriptTestCase(unittest.TestCase):
 
         self.assertNotEqual(exit_status, 0)
         self.assertIsNotNone(self.find_call("go test"))
-        self.assertIsNotNone(self.find_call(self.get_upgrade_test_call()))
+        self.assertIsNotNone(self.find_call(UPGRADE_TEST_CALL))
 
     def test_an_interrupt_during_the_upgrade_test_removes_its_containers_networks_and_volumes(
         self,
@@ -686,7 +860,7 @@ class TestScriptTestCase(unittest.TestCase):
         script = self.start_full_script({"STUB_UPGRADE_TEST_SECONDS": "60"})
         test_call = self.wait_for_call("go test")
         run_id = test_call[1].split("run_id=", 1)[1]
-        self.wait_for_call(self.get_upgrade_test_call())
+        self.wait_for_call(UPGRADE_TEST_CALL)
 
         os.killpg(script.pid, signal.SIGINT)
         exit_status, _, _ = self.finish_script(script)
@@ -703,6 +877,7 @@ class TestScriptTestCase(unittest.TestCase):
         self.assertIn("docker rm -f container-of-run", docker_calls)
         self.assertIn("docker network rm network-of-run", docker_calls)
         self.assertIn("docker volume rm -f volume-of-run", docker_calls)
+        self.assertIn(f"docker image rm {FULL_RUN_IMAGE}", docker_calls)
         self.assertIsNone(self.find_call("docker compose down"))
 
     def test_an_interrupt_removes_only_the_containers_networks_and_volumes_of_its_run(self) -> None:

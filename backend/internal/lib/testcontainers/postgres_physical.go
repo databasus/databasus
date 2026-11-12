@@ -37,6 +37,7 @@ type physicalPostgresOptions struct {
 	shouldCreateTablespace        bool
 	shouldOmitReplicationHbaEntry bool
 	shouldSpreadCheckpoints       bool
+	shouldDisableAutovacuum       bool
 	maxConnections                int
 	maxPreparedTransactions       int
 	maxWalSenders                 int
@@ -92,6 +93,12 @@ func WithMaxWalSenders(walSenders int) PhysicalPostgresOption {
 // the pacing does not depend on the image's default.
 func WithCheckpointsSpreadOverAnHour() PhysicalPostgresOption {
 	return func(o *physicalPostgresOptions) { o.shouldSpreadCheckpoints = true }
+}
+
+// WithoutAutovacuum keeps autovacuum's transactions out of the WAL, so a test can rely on a segment
+// holding only the transactions it ran itself.
+func WithoutAutovacuum() PhysicalPostgresOption {
+	return func(o *physicalPostgresOptions) { o.shouldDisableAutovacuum = true }
 }
 
 // allowReplicationInitScript appends the pg_hba replication rule at first boot. "host all all" does
@@ -152,6 +159,10 @@ func physicalPostgresCmd(opts physicalPostgresOptions) []string {
 
 	if opts.shouldSpreadCheckpoints {
 		cmd = append(cmd, "-c", "checkpoint_timeout=1h", "-c", "checkpoint_completion_target=0.9")
+	}
+
+	if opts.shouldDisableAutovacuum {
+		cmd = append(cmd, "-c", "autovacuum=off")
 	}
 
 	return cmd

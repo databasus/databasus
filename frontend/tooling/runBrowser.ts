@@ -1,19 +1,31 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { cp, mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { availableParallelism, tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { runChild } from './runChild.ts';
 
+// The CI browser checks require two workers per shard.
+const CI_WORKER_COUNT = 2;
+
+// Locally each worker drives one Chromium page against a static preview. Half the logical processors,
+// rounded up, leaves the other half to the suites that a full test run starts beside this one.
+const getLocalWorkerCount = (processorCount: number) =>
+  Math.max(CI_WORKER_COUNT, Math.ceil(processorCount / 2));
+
 export const runBrowser = async ({
   frontendRoot,
   args,
   architecture = process.arch,
+  isCi = Boolean(process.env.CI),
+  processorCount = availableParallelism(),
 }: {
   frontendRoot: string;
   args: string[];
   architecture?: string;
+  isCi?: boolean;
+  processorCount?: number;
 }): Promise<number> => {
   if (!args.includes('--project=ui')) throw new Error('Select exactly --project=ui.');
   const isUpdatingReferences = args.includes('--update-references');
@@ -43,6 +55,7 @@ export const runBrowser = async ({
   if (architecture !== 'x64' && architecture !== 'arm64')
     throw new Error(`Unsupported browser architecture: ${architecture}`);
   const platform = `linux/${architecture === 'x64' ? 'amd64' : 'arm64'}`;
+  const workerCount = isCi ? CI_WORKER_COUNT : getLocalWorkerCount(processorCount);
 
   const environment = JSON.parse(
     await readFile(join(frontendRoot, 'browser/environment.json'), 'utf8'),
@@ -156,6 +169,8 @@ export const runBrowser = async ({
           `UPDATE_REFERENCES=${isUpdatingReferences ? '1' : '0'}`,
           '--env',
           `BROWSER_SHARD=${shard ?? ''}`,
+          '--env',
+          `BROWSER_WORKERS=${workerCount}`,
           image,
           'sh',
           '-c',

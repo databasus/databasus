@@ -21,6 +21,8 @@ class ComposeProject:
     image: str
     database_password: str
     recovery_image: str = "unused"
+    # Only `up` creates the network; other compose commands need the variable set to read the file.
+    network_subnet: str = "unused"
 
     def get_recovery_archive(self) -> Path:
         return get_run_directory(self.name.removeprefix(PROJECT_NAME_PREFIX)) / "postgres.tar"
@@ -44,6 +46,7 @@ class ComposeProject:
             "E2E_PLAYWRIGHT_DRIVER": str(PLAYWRIGHT_DRIVER_DIRECTORY),
             "E2E_POSTGRES_ARCHIVE": str(self.get_recovery_archive()),
             "E2E_POSTGRES_IMAGE": self.recovery_image,
+            "E2E_NETWORK_SUBNET": self.network_subnet,
         }
 
     def get_browser_port(self) -> str:

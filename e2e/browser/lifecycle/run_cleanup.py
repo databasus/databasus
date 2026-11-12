@@ -1,3 +1,4 @@
+import signal
 import subprocess
 from dataclasses import replace
 from typing import Protocol
@@ -9,19 +10,49 @@ from supervisor_file import SupervisorRecord, read_supervisor_records, remove_ru
 
 
 class RunCleanup(Protocol):
-    def __call__(self, run: PublicRun, built_image: str | None = None) -> None: ...
+    def __call__(
+        self,
+        run: PublicRun,
+        built_image: str | None = None,
+        *,
+        record: SupervisorRecord | None = None,
+        unrelated_container: str | None = None,
+        should_stop_whole_command: bool = False,
+    ) -> None: ...
 
 
 @pytest.fixture
 def register_run_cleanup(request: pytest.FixtureRequest) -> RunCleanup:
-    def register(run: PublicRun, built_image: str | None = None) -> None:
-        run_id = run.get_run_id()
-        record = next(record for record in read_supervisor_records() if record.run_id == run_id)
+    """The one way a probe registers the teardown of a run it kills or keeps from cleaning up.
+    Requesting it makes the probe a crashed-run probe, which the lifecycle command can run apart."""
+
+    def register(
+        run: PublicRun,
+        built_image: str | None = None,
+        *,
+        record: SupervisorRecord | None = None,
+        unrelated_container: str | None = None,
+        should_stop_whole_command: bool = False,
+    ) -> None:
+        if record is None:
+            # Reading the run ID waits until the supervisor has written its record.
+            run_id = run.get_run_id()
+            record = next(record for record in read_supervisor_records() if record.run_id == run_id)
+
+        run_record = record
 
         if built_image is not None:
-            record = replace(record, built_image=built_image)
+            run_record = replace(run_record, built_image=built_image)
 
-        request.addfinalizer(lambda: remove_run_resources(run, record))
+        def clean_up() -> None:
+            try:
+                if should_stop_whole_command:
+                    run.send_signal_to_the_whole_command(signal.SIGTERM)
+                    run.finish()
+            finally:
+                remove_run_resources(run, run_record, unrelated_container=unrelated_container)
+
+        request.addfinalizer(clean_up)
 
     return register
 

@@ -2,8 +2,10 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from typing import TypedDict
@@ -109,14 +111,21 @@ class PackageCoverageTest(unittest.TestCase):
 
 
 class UpgradeTaskImageTest(unittest.TestCase):
-    def run_upgrade_task(self, extra_environment: dict[str, str]) -> list[str]:
+    def start_upgrade_task(
+        self, extra_environment: dict[str, str]
+    ) -> tuple[subprocess.Popen[str], Path]:
         workspace = Path(tempfile.mkdtemp(prefix="test-upgrade-"))
         self.addCleanup(shutil.rmtree, workspace, ignore_errors=True)
         calls_path = workspace / "calls"
+        calls_path.touch()
         stubs = {
             "git": "echo v9.9.9\n",
             "docker": f'echo "docker $*" >>"{calls_path}"\n',
-            "go": f'echo "go image=$DATABASUS_IMAGE" >>"{calls_path}"\n',
+            "go": (
+                f'echo "go image=$DATABASUS_IMAGE" >>"{calls_path}"\n'
+                'sleep "${STUB_GO_SECONDS:-0}"\n'
+                'exit "${STUB_GO_EXIT_STATUS:-0}"\n'
+            ),
         }
 
         for name, body in stubs.items():
@@ -129,32 +138,94 @@ class UpgradeTaskImageTest(unittest.TestCase):
             "PATH": f"{workspace}:{os.environ['PATH']}",
             **extra_environment,
         }
-        subprocess.run(
+        environment.pop("DATABASUS_TEST_RUN_ID", None)
+        task = subprocess.Popen(
             ["bash", str(ROOT / "mise-tasks/backend/test-upgrade")],
             cwd=workspace,
             env=environment,
-            check=True,
-            capture_output=True,
-            timeout=TIMEOUT,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            start_new_session=True,
         )
+        self.addCleanup(self.stop_task, task)
 
-        return calls_path.read_text().splitlines()
+        return task, calls_path
 
-    def test_builds_the_image_and_tests_it_without_a_named_image(self) -> None:
-        calls = self.run_upgrade_task({"DATABASUS_IMAGE": ""})
+    def stop_task(self, task: subprocess.Popen[str]) -> None:
+        if task.poll() is None:
+            os.killpg(task.pid, signal.SIGKILL)
+        task.communicate()
 
+    def run_upgrade_task(self, extra_environment: dict[str, str]) -> tuple[int, list[str], str]:
+        task, calls_path = self.start_upgrade_task(extra_environment)
+        output, _ = task.communicate(timeout=TIMEOUT)
+
+        return task.returncode, calls_path.read_text().splitlines(), output
+
+    def get_built_image(self, calls: list[str]) -> str:
+        build_call = next(call for call in calls if call.startswith("docker build"))
+        built_image = build_call.removeprefix("docker build --tag ").removesuffix(" ..")
+        self.assertRegex(built_image, r"^databasus-upgrade-test:[0-9]+-[0-9]+-[0-9]+$")
+
+        return built_image
+
+    def test_builds_tests_and_removes_an_image_unique_to_the_run(self) -> None:
+        exit_status, calls, output = self.run_upgrade_task({"DATABASUS_IMAGE": ""})
+
+        self.assertEqual(exit_status, 0)
+        built_image = self.get_built_image(calls)
+        self.assertIn(built_image, output)
         self.assertEqual(
             calls,
             [
-                "docker build --tag databasus-candidate:local ..",
-                "go image=databasus-candidate:local",
+                f"docker build --tag {built_image} ..",
+                f"go image={built_image}",
+                f"docker image rm {built_image}",
             ],
         )
 
-    def test_tests_a_named_image_without_building(self) -> None:
-        calls = self.run_upgrade_task({"DATABASUS_IMAGE": "named:image"})
+    def test_overlapping_runs_build_different_images(self) -> None:
+        _, first_calls, first_output = self.run_upgrade_task({"DATABASUS_IMAGE": ""})
+        _, second_calls, second_output = self.run_upgrade_task({"DATABASUS_IMAGE": ""})
+        first_image = self.get_built_image(first_calls)
+        second_image = self.get_built_image(second_calls)
 
-        self.assertEqual(calls, ["go image=named:image"])
+        self.assertNotEqual(first_image, second_image)
+        self.assertIn(first_image, first_output)
+        self.assertNotIn(second_image, first_output)
+        self.assertIn(second_image, second_output)
+
+    def test_removes_the_built_image_when_the_test_fails(self) -> None:
+        exit_status, calls, _ = self.run_upgrade_task(
+            {"DATABASUS_IMAGE": "", "STUB_GO_EXIT_STATUS": "1"}
+        )
+
+        self.assertNotEqual(exit_status, 0)
+        self.assertEqual(calls[-1], f"docker image rm {self.get_built_image(calls)}")
+
+    def test_removes_the_built_image_when_the_test_is_interrupted(self) -> None:
+        task, calls_path = self.start_upgrade_task({"DATABASUS_IMAGE": "", "STUB_GO_SECONDS": "60"})
+        deadline = time.monotonic() + TIMEOUT
+        while "go image=" not in calls_path.read_text():
+            self.assertLess(time.monotonic(), deadline, "the upgrade test did not start")
+            time.sleep(0.05)
+
+        os.killpg(task.pid, signal.SIGINT)
+        task.communicate(timeout=TIMEOUT)
+
+        self.assertNotEqual(task.returncode, 0)
+        calls = calls_path.read_text().splitlines()
+        self.assertEqual(calls[-1], f"docker image rm {self.get_built_image(calls)}")
+
+    def test_tests_a_named_image_without_building_or_removing_it(self) -> None:
+        for extra_environment in ({}, {"STUB_GO_EXIT_STATUS": "1"}):
+            with self.subTest(environment=extra_environment):
+                _, calls, _ = self.run_upgrade_task(
+                    {"DATABASUS_IMAGE": "named:image", **extra_environment}
+                )
+
+                self.assertEqual(calls, ["go image=named:image"])
 
 
 class CommandRecord(TypedDict):

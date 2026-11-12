@@ -10,7 +10,8 @@ This document describes the kinds of tests, what they share and how runs are org
 
 - A test checks what a caller observes: the backend's HTTP API, an engine's behavior against a real database server or a frontend screen.
 - Our own database, modules and services are never mocked. Fakes replace only systems we cannot run locally and failures that are unsafe to cause for real.
-- Independent tests run in parallel within and across packages, and alongside runs from other worktrees on the same machine. Tests that change process environment settings or share a bounded engine-version fixture stay sequential. Runs aim to saturate the machine, as [Resource usage and parallelism](#resource-usage-and-parallelism) describes.
+- Independent tests run in parallel within and across packages, and alongside runs from other worktrees on the same machine. Tests that change process environment settings or share a bounded engine-version fixture stay sequential. Independent suites of one run start together. Runs aim to saturate the machine, as [Resource usage and parallelism](#resource-usage-and-parallelism) describes.
+- A test that passes alone but fails beside other suites has a defect in the test. It waits for the condition it depends on or gets a time limit that matches the operation; it is not moved out of the concurrent run or retried.
 - A test never takes a shared resource under a fixed name.
 - Every check runs locally. CI repeats every suite except the review hook tests and the interruption test of the browser end-to-end suite on a clean machine; `mise run test-full` includes both locally.
 
@@ -68,7 +69,8 @@ Tests from every worktree on a machine share one Docker daemon, so nothing a tes
   - The servers keep data in memory with durability off.
   - Tests sharing a server give a unique name to every database, role, schema and replication slot.
 - **Storages.** Each test uses its own bucket, container or directory.
-- **Docker networks.** Test-created networks use subnets outside Docker's default address pools, because the verification agent allocates its networks from those pools. The [container fixtures](../backend/internal/lib/testcontainers) own allocation.
+- **Docker networks.** Every network a test creates itself takes a random `/24` subnet from the test network range `10.160.0.0/11`, outside Docker's default address pools, and retries on an overlap. This holds for backend tests, the upgrade test and browser end-to-end runs. The verification agent cannot choose a range and allocates its restore networks from the default pools, so those pools stay free for it. The backend [container fixtures](../backend/internal/lib/testcontainers) and the browser suite's [supervisor](../e2e/browser) each follow the convention, because the browser suite imports no backend code.
+- **Images.** An image a run builds has a tag no concurrent run uses, and the run removes it when it ends. The full run builds `databasus-full-test:local`; full runs take turns through their lock, so the tag cannot collide, and the next full run replaces an image a killed run left. The direct upgrade command builds `databasus-upgrade-test:<run ID>`. An image named through `DATABASUS_IMAGE` is used as given and never removed.
 - **Everything else.** Ports come from `127.0.0.1:0` or `httptest`, and files from `t.TempDir()`. Containers and processes get unique names and labels, and `t.Cleanup` removes them.
 - **Shared sources.** Local and CI preparation never reset shared source servers. Seed tests own their logical and physical source containers. Development compose sources stay available to `mise run run`, and test cleanup never removes their databases, roles or replication slots.
 
@@ -99,6 +101,7 @@ Disk space needs a wide margin rather than an exact figure. Durable fixtures wri
 | Target for one package, or a few packages run together | about 5 minutes |
 | Limit | 10 minutes |
 | Runner timeout per package | 15 minutes, so an overrun fails instead of hiding |
+| `mise run test-full`, with test images present and a warm build cache | about 10 minutes; limit 20 minutes |
 
 A test that exists to observe real time may take longer. It runs beside the others, so it does not stretch the critical path.
 
@@ -109,10 +112,18 @@ Go runs tests marked with `t.Parallel()` concurrently inside one test binary, up
 Each command adds its own layer on top:
 
 - **`mise run test`** runs three suites at once: the slow backend packages, the other backend packages and the frontend tests.
-  - Slow packages mostly wait on containers and get a lower package limit. Above it the run gets no faster, and Docker runs out of network address pools.
+  - Slow packages mostly wait on containers and get a lower package limit. The group already lasts as long as its longest package, so a higher limit only adds memory.
+  - Slow packages also get a parallel test limit. Their tests start containers, and the Docker daemon they share is the bottleneck: with one test per logical processor, dozens of Patroni clusters start at once, container stops and network removals outlast their deadlines, and the group fails and leaks containers.
   - Other packages mostly compute and get a higher limit.
   - The [test runner](../scripts/test.sh) owns the numbers.
-- **`mise run test-full`** adds the end-to-end packages to the slow group. It then runs the image and browser suites one after another, because they disturb each other's timing.
+- **`mise run test-full`** adds the end-to-end packages to the slow group and starts every other suite beside them, each as soon as what it needs is ready:
+  - the [crashed-run probes](#browser-end-to-end-suite), script tests, review hook tests, the browser suite's unit tests and browser UI start at once;
+  - the application image builds once at the start, then the upgrade test runs against it;
+  - the crashed-run probes and then the lifecycle interruption checks run while no other browser run of the command is active. They run one probe after another and no other browser run may overlap them, so they go first, beside the backend packages and the suites that start no browser run;
+  - after them, the browser end-to-end scenarios and the other lifecycle probes run together, the probes split into parts that several processes run, because one process runs its probes one after another.
+
+  A failed suite stops no other suite; only a failed image build keeps the suites that run the image from starting. The run ends with a summary of each suite's outcome and duration, the build's duration and the total.
+- **Browser UI** takes its worker count from its runner: half the host's logical processors rounded up, and at least two, locally, and two per shard in CI.
 - **A direct package run** uses Go's defaults and gets the whole machine.
 
 ### Parallelism in CI
@@ -201,6 +212,7 @@ These tests exercise the application image through its screens, without importin
 - **Prerequisites.** Recovery setup needs network access for its packages and any missing pinned images; nested recovery uses a locally supplied image. It supports Host tools and Docker recovery without rewriting the displayed commands.
 - **Cleanup.** Success, failure, interruption and crashed-run recovery remove only the run's resources, including nested containers and any image it built. Removal failures fail the run. Failed runs print bounded diagnostics with credentials and tokens masked; diagnostic failure cannot prevent cleanup.
 - **Checks of the suite.** Separate commands exercise unit logic and lifecycle failures, interruptions and overlapping runs. [Checking work](#checking-work) selects these checks, including the standalone lifecycle-command interruption check.
+- **Crashed-run probes.** Every browser run first removes what crashed runs left behind, anywhere on the machine. A crashed-run probe kills a run or prevents its cleanup and then expects its own later run to remove the remains, so it gives a reliable result only while its caller starts no other run. Such a probe registers its teardown through the lifecycle suite's shared fixture, which marks it automatically. `mise run e2e:lifecycle` takes `--only-crashed-run-probes` or `--without-crashed-run-probes`, alone or with a group, so a caller can run the other probes concurrently and these alone; `--shard INDEX/COUNT` splits a selection into parts for several processes. A browser run started from another worktree meanwhile can still remove a crashed run first; the suite takes no machine-wide lock against that race.
 
 ## Checking work
 
@@ -227,7 +239,7 @@ A change to the browser end-to-end suite's own code owes its commands too:
 
 The routine command prepares locked frontend dependencies and runs backend tests outside the end-to-end packages plus frontend unit and screen tests. Independent groups finish even if another fails, and the summary identifies failures. Migration and architecture-linter tests are included.
 
-The full command adds the Docker end-to-end, browser, upgrade, script and review-hook suites described above. Image and browser checks run sequentially to avoid timing interference. Both commands share a machine-wide lock; a direct package test takes no such lock.
+The full command adds the Docker end-to-end, browser, upgrade, script and review-hook suites described above, scheduled as [Parallelism in local runs](#parallelism-in-local-runs) describes. Both commands share a machine-wide lock; a direct package test takes no such lock.
 
 The [test runner](../scripts/test.sh) owns process limits, package timeouts and full-run ordering. [Slow-package selection](../backend/test-slow-packages.txt) bounds container load: register a package there when it starts containers or networks or runs for over a minute. Unlisted packages still run in the fast group.
 
@@ -276,7 +288,7 @@ mise exec -- python3 -m unittest discover -s scripts -p '*_test.py'
 
 ### Upgrade test
 
-The upgrade test starts from the newest release tag by version and checks the image built from the checkout, unless `DATABASUS_IMAGE` names one. After the server assertions, it checks self-update and manual replacement using an actual older agent pinned by image digest. The `upgrade-test` spec defines that fixture and its acceptance criteria.
+The upgrade test starts from the newest release tag by version and checks the image built from the checkout, unless `DATABASUS_IMAGE` names one. It builds that image as `databasus-upgrade-test:<run ID>` and removes it when the test ends. After the server assertions, it checks self-update and manual replacement using an actual older agent pinned by image digest. The `upgrade-test` spec defines that fixture and its acceptance criteria.
 
 The agent scenarios require a local Unix Docker socket and Linux host networking. Cleanup removes their containers, labeled restore resources and anonymous volumes.
 

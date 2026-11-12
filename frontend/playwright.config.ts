@@ -6,7 +6,6 @@ export default defineConfig({
   projects: [{ name: 'ui', testDir: './browser/scenarios', use: { browserName: 'chromium' } }],
   forbidOnly: true,
   fullyParallel: true,
-  workers: 2,
   retries: 0,
   timeout: 30_000,
   expect: { timeout: 5_000, toHaveScreenshot: { animations: 'disabled', maxDiffPixels: 0 } },

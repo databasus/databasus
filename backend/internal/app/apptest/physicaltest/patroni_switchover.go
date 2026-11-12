@@ -2,6 +2,7 @@ package physicaltest
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"testing"
@@ -37,6 +38,7 @@ func RunPatroniSwitchovers(t *testing.T, image string) {
 		},
 	)
 	chain = []backupRow{source.waitForNewFull(t, obsoleteFull.ID)}
+	firstRetainedFull := chain[0]
 	oldPoint := source.captureRecoveryPoint(t, chain, "before-switches")
 	source.restoreRecoveryPoint(t, oldPoint)
 	var newPoint patroniRecoveryPoint
@@ -87,15 +89,24 @@ func RunPatroniSwitchovers(t *testing.T, image string) {
 
 	source.setRetainedChains(t, 3)
 	var orphanFile string
-	source.Team.App.QuerySQL(
-		t,
-		&orphanFile,
-		"SELECT file_name FROM backups_physical_wal_segments WHERE database_id=? AND timeline_id=? AND end_lsn <= ? AND file_name IS NOT NULL ORDER BY start_lsn LIMIT 1",
-		source.Team.Database.Id,
-		obsoleteFull.TimelineID,
-		obsoleteFull.StartLSN,
-	)
-	require.NotEmpty(t, orphanFile)
+	// Only the obsolete chain needs WAL that ends before the first retained full. The stream may
+	// connect after the obsolete full started, so WAL from before it is not guaranteed, while the
+	// incremental's activity always leaves WAL between the two fulls.
+	testwait.Until(t, "WAL that only the obsolete chain needs is archived", func(context.Context) error {
+		source.Team.App.QuerySQL(
+			t,
+			&orphanFile,
+			"SELECT file_name FROM backups_physical_wal_segments WHERE database_id=? AND timeline_id=? AND end_lsn <= ? AND file_name IS NOT NULL ORDER BY start_lsn LIMIT 1",
+			source.Team.Database.Id,
+			obsoleteFull.TimelineID,
+			firstRetainedFull.StartLSN,
+		)
+		if orphanFile == "" {
+			return errors.New("no archived WAL ends before the first retained full")
+		}
+
+		return nil
+	})
 	require.True(t, source.Team.App.IsLocalStorageFilePresent(t, orphanFile))
 
 	source.Team.App.RunJobPass(t, "backups_physical_cleaner")

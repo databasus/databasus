@@ -110,6 +110,7 @@ This is the project's common language. Shared concepts have one term in document
 | Critical path | The essential user journey whose failure prevents the main product outcome: configuring backups and recovering usable data. |
 | Supervisor | The process that owns one run of the browser end-to-end suite: it starts the run's compose project and `pytest`, masks the output and removes what the run started. |
 | Lifecycle probe | A whole run of the browser end-to-end suite through its public command that fails, gets interrupted or overlaps on purpose, to check its exit status, its output and that nothing of it remains. |
+| Crashed-run probe | A lifecycle probe that kills a run or prevents its cleanup, so that a later run must remove what remains. Unlike other lifecycle probes, it runs only while its caller starts no other run, because any run starting meanwhile would remove the remains first. |
 | Image check | The smoke checks of a built application image plus its Trivy scans. |
 | Smoke check | One start-and-probe check of a running image. |
 | CodeQL alert | A result of the static analysis, which can be dismissed on GitHub. |

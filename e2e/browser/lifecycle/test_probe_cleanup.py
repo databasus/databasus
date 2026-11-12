@@ -5,9 +5,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
 from leftover_check import assert_nothing_of_the_project_remains, is_image_present
-from lifecycle.run_cleanup import RunCleanup, remove_run_resources
+from lifecycle.run_cleanup import RunCleanup
 from public_command import PublicRun
 from supervisor_file import SupervisorRecord, get_run_directory
 
@@ -104,7 +103,7 @@ def test_deliberate_recovery_failure(register_run_cleanup):
             child_run.finish()
 
     def test_removes_lifecycle_resources_when_recovery_of_a_killed_command_fails(
-        self, probes_image: str, tmp_path: Path, request: pytest.FixtureRequest
+        self, probes_image: str, tmp_path: Path, register_run_cleanup: RunCleanup
     ) -> None:
         run_id = secrets.token_hex(6)
         owned_image = f"databasus-e2e-{run_id}:probes"
@@ -159,16 +158,12 @@ def test_deliberate_recovery_failure(lifecycle_run):
                 "FAILED_LIFECYCLE_SUPERVISOR": str(supervisor),
             },
         )
-        record = SupervisorRecord(run_id, 0, "unreadable", owned_image)
-
-        def cleanup_child_run() -> None:
-            try:
-                child_run.send_signal_to_the_whole_command(signal.SIGTERM)
-                child_run.finish()
-            finally:
-                remove_run_resources(child_run, record, unrelated_container=unrelated_container)
-
-        request.addfinalizer(cleanup_child_run)
+        register_run_cleanup(
+            child_run,
+            record=SupervisorRecord(run_id, 0, "unreadable", owned_image),
+            unrelated_container=unrelated_container,
+            should_stop_whole_command=True,
+        )
         subprocess.run(
             [
                 "docker",

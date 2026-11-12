@@ -2,6 +2,7 @@ package containers
 
 import (
 	"errors"
+	"net/netip"
 	"testing"
 
 	"github.com/moby/moby/api/types/network"
@@ -68,4 +69,28 @@ func TestWithFreeSubnet(t *testing.T) {
 
 		require.ErrorIs(t, err, errPoolOverlaps)
 	})
+}
+
+func TestIsTestNetworkSubnet(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name          string
+		subnet        string
+		isTestNetwork bool
+	}{
+		{name: "accepts a subnet at the start of the range", subnet: "10.160.0.0/24", isTestNetwork: true},
+		{name: "accepts a subnet at the end of the range", subnet: "10.191.255.0/24", isTestNetwork: true},
+		{name: "rejects a subnet of the default pools", subnet: "172.18.0.0/16", isTestNetwork: false},
+		{name: "rejects a subnet just past the range", subnet: "10.192.0.0/24", isTestNetwork: false},
+		{name: "rejects a subnet wider than the range", subnet: "10.128.0.0/9", isTestNetwork: false},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, testCase.isTestNetwork, IsTestNetworkSubnet(netip.MustParsePrefix(testCase.subnet)))
+		})
+	}
 }
