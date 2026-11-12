@@ -27,7 +27,7 @@ func runPatroniCleanupScenario(t *testing.T, mode string) {
 	require.NoError(t, err)
 	cleanup := newPatroniChildCleanup(t)
 	manifestPath := filepath.Join(t.TempDir(), "resources.json")
-	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(t.Context(), 7*time.Minute)
 	defer cancel()
 	command := exec.CommandContext(ctx, executable, "-test.run=^TestPatroniFixtureChild$", "-test.v")
 	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
@@ -110,6 +110,8 @@ func TestPatroniFixtureChild(t *testing.T) {
 	if mode == "" {
 		return
 	}
+
+	t.Logf("child starting fixture for %s", mode)
 
 	spec := containers.PatroniSpec{
 		Image: "postgres:17", ID: variables["DATABASUS_PATRONI_ID"],

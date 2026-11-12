@@ -20,7 +20,7 @@ RUN pnpm build
 
 # ========= BUILD BACKEND =========
 # Backend build stage
-FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.27.3@sha256:e519d3b0a5b285e5aa53ab9eef02bc6bbb9cb04608389b743a136a9ce75f0d1e AS backend-build
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.27.4@sha256:5e8afd493a7124a8586e134d9b532731161d4b9becf9dee5a5956b107426f93d AS backend-build
 
 # Set working directory
 WORKDIR /app
@@ -49,7 +49,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 
 
 # ========= BUILD VERIFICATION AGENT =========
-FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.27.3@sha256:e519d3b0a5b285e5aa53ab9eef02bc6bbb9cb04608389b743a136a9ce75f0d1e AS verification-agent-build
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.27.4@sha256:5e8afd493a7124a8586e134d9b532731161d4b9becf9dee5a5956b107426f93d AS verification-agent-build
 
 WORKDIR /app
 
@@ -100,6 +100,9 @@ ENV ENV_MODE=production
 #     the one the package creates at 17/main is never read. Dropped inside this RUN
 #     so its data files never reach a layer; the server binaries under
 #     /usr/lib/postgresql stay.
+#   - Standalone sysusers/tmpfiles: postgresql-common accepts them in place of full
+#     systemd, which would otherwise be pulled in and take GID 999 for systemd-journal
+#     before the databasus user below can claim it.
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
@@ -110,7 +113,8 @@ RUN set -eux; \
     echo "deb [signed-by=/usr/share/keyrings/pgdg.asc] http://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" \
       > /etc/apt/sources.list.d/pgdg.list; \
     apt-get update; \
-    apt-get install -y --no-install-recommends postgresql-17; \
+    apt-get install -y --no-install-recommends postgresql-17 \
+      systemd-standalone-sysusers systemd-standalone-tmpfiles; \
     pg_dropcluster --stop 17 main; \
     apt-get purge -y --auto-remove wget; \
     rm -rf /var/lib/apt/lists/*

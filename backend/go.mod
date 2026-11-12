@@ -1,6 +1,6 @@
 module databasus-backend
 
-go 1.27.3
+go 1.27.4
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.22.0

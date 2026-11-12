@@ -42,7 +42,7 @@ jobs:
           version: ${{ steps.mise-bootstrap.outputs.version }}
           sha256: ${{ steps.mise-bootstrap.outputs.sha256 }}
           cache: false
-          install_args: 'go go@1.27.3 golangci-lint vacuum'
+          install_args: 'go go@1.27.4 golangci-lint vacuum'
 
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
