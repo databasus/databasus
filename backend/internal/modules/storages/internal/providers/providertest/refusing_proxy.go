@@ -52,6 +52,8 @@ func StartRefusingProxy(t *testing.T, spec RefusingProxySpec) *RefusingProxy {
 
 		w.Header().Set("Content-Type", spec.ContentType)
 		w.WriteHeader(spec.Status)
+		// The body is a fixed storage-provider refusal from the test, never rendered as HTML.
+		// nosemgrep: go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter
 		_, _ = w.Write([]byte(spec.Body))
 	}))
 

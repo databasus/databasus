@@ -45,6 +45,8 @@ func (team Team) requirePublishedTimelineHistory(t *testing.T, source *pgx.Conn)
 	var sourceHistory []byte
 	require.NoError(
 		t,
+		// The SQL is constant and the history file path is a bound parameter.
+		// nosemgrep: go.lang.security.audit.sqli.pgx-sqli.pgx-sqli
 		source.QueryRow(t.Context(), "SELECT pg_read_binary_file($1)", "pg_wal/"+historyFilename).Scan(&sourceHistory),
 	)
 

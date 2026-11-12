@@ -32,6 +32,9 @@ func parseSourceIdentity(value string) (uint64, error) {
 	if err == nil {
 		return identifier, nil
 	}
+	// PostgreSQL exposes the unsigned system identifier as bigint, so identifiers above
+	// the int64 range arrive negative and the cast restores their original bits.
+	// nosemgrep: trailofbits.go.string-to-int-signedness-cast.string-to-int-signedness-cast
 	signedIdentifier, err := strconv.ParseInt(value, 10, 64)
 	return uint64(signedIdentifier), err
 }
