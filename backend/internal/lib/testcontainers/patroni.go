@@ -111,7 +111,7 @@ func StartPatroni(t *testing.T, spec PatroniSpec) *Patroni {
 		WaitingFor:     wait.ForLog("ready to serve client requests").WithStartupTimeout(2 * time.Minute),
 	}, labels)
 
-	baseImage := GetPinnedImage(t, spec.Image)
+	image := buildPatroniImage(t, spec.Image)
 	for index, name := range []string{"node-a", "node-b"} {
 		settings := patroniConfiguration(
 			patroniConfigurationSpec{
@@ -125,9 +125,7 @@ func StartPatroni(t *testing.T, spec PatroniSpec) *Patroni {
 		configurationPath := filepath.Join(fixture.TemporaryDirectory, name+".json")
 		require.NoError(t, os.WriteFile(configurationPath, configuration, 0o644))
 		node := fixture.start(t, testcontainers.ContainerRequest{
-			Context: getFixtureDirectory(t, "patroni"),
-			Repo:    "databasus-test-patroni", Tag: restoreTargetTag(spec.Image), KeepImage: true,
-			BuildArgs:    map[string]*string{"POSTGRES_IMAGE": &baseImage},
+			Image:        image,
 			ExposedPorts: []string{"5432/tcp", "8008/tcp"},
 			Entrypoint:   spec.NodeEntrypoint,
 			Files: []testcontainers.ContainerFile{
@@ -148,7 +146,7 @@ func StartPatroni(t *testing.T, spec PatroniSpec) *Patroni {
 	}
 
 	proxy := fixture.start(t, testcontainers.ContainerRequest{
-		Image:        "databasus-test-patroni:" + restoreTargetTag(spec.Image),
+		Image:        image,
 		Entrypoint:   []string{"haproxy", "-W", "-db", "-f", "/etc/haproxy.cfg"},
 		ExposedPorts: []string{"5432/tcp"},
 		Files: []testcontainers.ContainerFile{
