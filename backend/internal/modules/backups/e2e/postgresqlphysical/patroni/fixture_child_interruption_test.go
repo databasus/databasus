@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -32,16 +33,19 @@ func interruptPatroniChild(t *testing.T, spec patroniChildInterruption) ([]byte,
 		spec.Cancel()
 		if !hasWaited {
 			_ = spec.Command.Wait()
+			t.Logf("child output:\n%s", output.String())
 		}
 	})
 
-	testwait.Until(t, "the child finishes starting its owned fixture", func(context.Context) error {
-		if _, err := os.Stat(spec.ReadyPath); err != nil {
-			return fmt.Errorf("child readiness: %w", err)
-		}
+	// The child builds and starts a whole Patroni cluster, which takes longer on slower CI runners.
+	testwait.Within(4*time.Minute).
+		Until(t, "the child finishes starting its owned fixture", func(context.Context) error {
+			if _, err := os.Stat(spec.ReadyPath); err != nil {
+				return fmt.Errorf("child readiness: %w", err)
+			}
 
-		return nil
-	})
+			return nil
+		})
 
 	spec.Cancel()
 	err := spec.Command.Wait()

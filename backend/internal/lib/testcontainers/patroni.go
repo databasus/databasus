@@ -64,18 +64,21 @@ type PatroniResources struct {
 func StartPatroni(t *testing.T, spec PatroniSpec) *Patroni {
 	t.Helper()
 
+	startedAt := time.Now()
 	fixture := &Patroni{ID: spec.ID, TemporaryDirectory: t.TempDir(), observeResources: spec.ObserveResources}
 	if fixture.ID == "" {
 		fixture.ID = uuid.NewString()
 	}
 
 	labels := withTestRunLabel(t, map[string]string{LabelPatroniFixture: fixture.ID})
+	t.Logf("fixture %s creating network", fixture.ID)
 	var fixtureNetwork *testcontainers.DockerNetwork
 	err := WithFreeSubnet(func(ipam *dockernetwork.IPAM) error {
 		var networkErr error
 		fixtureNetwork, networkErr = network.New(t.Context(), network.WithLabels(labels), network.WithIPAM(ipam))
 		return networkErr
 	})
+	t.Logf("fixture %s created network after %s: %v", fixture.ID, time.Since(startedAt), err)
 	require.NoError(t, err)
 	fixture.NetworkName = fixtureNetwork.Name
 	t.Cleanup(func() {
@@ -180,6 +183,7 @@ func StartPatroni(t *testing.T, spec PatroniSpec) *Patroni {
 	connection := fixture.Connect(t, fixture.Endpoint)
 	_, err = connection.Exec(t.Context(), "CREATE DATABASE testdb")
 	require.NoError(t, err)
+	t.Logf("fixture %s waiting for cluster readiness after %s", fixture.ID, time.Since(startedAt))
 	fixture.RequireReady(t)
 
 	if spec.ShouldUseExternalConfig {
@@ -199,6 +203,8 @@ func StartPatroni(t *testing.T, spec PatroniSpec) *Patroni {
 			require.Zero(t, code)
 		}
 	}
+
+	t.Logf("fixture %s ready after %s", fixture.ID, time.Since(startedAt))
 
 	return fixture
 }
@@ -221,10 +227,14 @@ func (fixture *Patroni) start(
 		}
 	}
 
+	containerName := getPatroniContainerName(request, fixture.NetworkName)
+	startedAt := time.Now()
+	t.Logf("fixture %s starting %s", fixture.ID, containerName)
 	container, err := testcontainers.GenericContainer(
 		t.Context(),
 		testcontainers.GenericContainerRequest{ContainerRequest: request, Started: true},
 	)
+	t.Logf("fixture %s started %s after %s: %v", fixture.ID, containerName, time.Since(startedAt), err)
 	if container != nil {
 		fixture.containers = append(fixture.containers, container)
 	}
@@ -232,6 +242,18 @@ func (fixture *Patroni) start(
 	require.NoError(t, err, "start Patroni fixture %s", fixture.ID)
 
 	return container
+}
+
+func getPatroniContainerName(request testcontainers.ContainerRequest, networkName string) string {
+	if aliases := request.NetworkAliases[networkName]; len(aliases) > 0 {
+		return aliases[0]
+	}
+
+	if len(request.Entrypoint) > 0 {
+		return request.Entrypoint[0]
+	}
+
+	return request.Image
 }
 
 func (fixture *Patroni) observe(t *testing.T) {
