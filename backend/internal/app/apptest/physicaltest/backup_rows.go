@@ -11,16 +11,17 @@ import (
 )
 
 type backupRow struct {
-	ID               uuid.UUID `json:"id"`
-	Type             string    `json:"type"`
-	Status           string    `json:"status"`
-	TimelineID       int       `json:"timelineId"`
-	StartLSN         string    `json:"startLsn"`
-	StopLSN          string    `json:"stopLsn"`
-	WalSegmentsCount *int      `json:"walSegmentsCount"`
-	HasGapBefore     bool      `json:"hasGapBefore"`
-	FailMessage      *string   `json:"failMessage"`
-	CreatedAt        time.Time `json:"createdAt"`
+	ID               uuid.UUID  `json:"id"`
+	Type             string     `json:"type"`
+	Status           string     `json:"status"`
+	TimelineID       int        `json:"timelineId"`
+	StartLSN         string     `json:"startLsn"`
+	StopLSN          string     `json:"stopLsn"`
+	WalSegmentsCount *int       `json:"walSegmentsCount"`
+	HasGapBefore     bool       `json:"hasGapBefore"`
+	FailMessage      *string    `json:"failMessage"`
+	CreatedAt        time.Time  `json:"createdAt"`
+	CompletedAt      *time.Time `json:"completedAt"`
 }
 
 func (team Team) listBackups(t *testing.T, backupType string) []backupRow {

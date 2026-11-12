@@ -8,6 +8,7 @@ import { WalStreamReasonLevel } from '@/pages/databases/wal-monitoring/model/Wal
 // A broken chain is a hole in the backup history, not a problem of any stage the changes pass
 // through, so it colors none.
 const REASON_STAGES: Record<WalStreamReasonCode, PathStage | null> = {
+  [WalStreamReasonCode.SYSTEM_IDENTIFIER_MISMATCH]: PathStage.SOURCE,
   [WalStreamReasonCode.STREAMING_STOPPED]: PathStage.DATABASUS,
   [WalStreamReasonCode.SOURCE_UNREACHABLE]: PathStage.SOURCE,
   [WalStreamReasonCode.WAL_CHAIN_BROKEN]: null,

@@ -1786,6 +1786,13 @@ export const en = {
             'At this pace the database will drop changes Databasus has not received yet in about {{duration}}.',
         },
         reasons: {
+          systemIdentifierMismatch: {
+            title: 'The address leads to another cluster',
+            whatHappened:
+              'Databasus stopped receiving changes because the address leads to a different PostgreSQL cluster. Existing backups are preserved.',
+            whatToDo:
+              'Restore routing to the original cluster. Databasus retries automatically and clears this error after verified streaming resumes.',
+          },
           streamingStopped: {
             title: 'Saving has stopped',
             whatHappened: 'Databasus stopped receiving changes {{duration}} ago.',

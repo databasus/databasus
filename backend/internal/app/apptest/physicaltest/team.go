@@ -19,10 +19,10 @@ type Team struct {
 	Settings apiclient.PostgresqlPhysicalSettings
 }
 
-func newTeam(t *testing.T) Team {
+func newTeam(t *testing.T, options ...apptest.Option) Team {
 	t.Helper()
 
-	return Team{Team: enginetest.NewTeam(t, apptest.WithPhysicalBackupLoops())}
+	return Team{Team: enginetest.NewTeam(t, append([]apptest.Option{apptest.WithPhysicalBackupLoops()}, options...)...)}
 }
 
 type physicalDatabaseSpec struct {
@@ -110,8 +110,17 @@ func (team Team) enableBackups(t *testing.T, isWalStream bool) {
 		},
 		NotificationTriggers: []apiclient.NotificationTrigger{},
 	}
+
 	if isWalStream {
 		physicalSettings.WalLagThresholdBytes = 64 * 1024 * 1024
+	}
+
+	if team.Settings.BackupType == apiclient.PhysicalBackupTypeFULL {
+		physicalSettings.IncrementalBackupSchedule = nil
+		physicalSettings.Retention = apiclient.PhysicalRetention{
+			Policy:      apiclient.PhysicalRetentionPolicyFULLBACKUPS,
+			FullBackups: &apiclient.FullBackupsRetention{Policy: apiclient.FullBackupsRetentionPolicyLASTN, Count: 50},
+		}
 	}
 
 	var settings apiclient.BackupSettings

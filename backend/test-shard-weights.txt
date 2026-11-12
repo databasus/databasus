@@ -1,7 +1,8 @@
-# Seconds a test took in one local run, read by the backend:test-group-tests task in mise-tasks/. A sharded
-# group deals its slowest tests first so each lands on the least-loaded shard, and a test missing
-# here counts as one second. The values only balance the shards: a stale one makes a shard slower,
-# never skips a test.
+# Seconds a test took locally, read by the backend:test-group-tests task in mise-tasks/. For a test
+# whose scenarios are parallel subtests, the value is the sum of the subtest durations go test -v
+# reports, which leave out the wait for a -parallel slot. A sharded group deals its slowest tests first
+# so each lands on the least-loaded shard, and a test missing here counts as one second. The values
+# only balance the shards: a stale one makes a shard slower, never skips a test.
 199 TestIdlePhysicalWalSource
 164 TestPhysicalWalSamples
 145 TestPhysicalBackupOverSshTunnel
@@ -156,3 +157,15 @@
 2 TestReadReplicationSettings
 2 TestWaitForReady
 1 TestGetVersion
+# Patroni suite: local amd64, no race, default -parallel, mean of two package runs, 2026-11-11.
+558 TestPatroniIndependentRecoveryPostgres18
+368 TestPatroniRoutingOutagesPostgres18
+359 TestPatroniIndependentRecoveryPostgres17
+342 TestPatroniRecoveryPostgres18
+339 TestPatroniFixtureLifecycle
+337 TestPatroniSlotsPostgres18
+299 TestPatroniInterruptedBackupsPostgres18
+246 TestPatroniRoutingOutagesPostgres17
+234 TestPatroniSlotsPostgres17
+218 TestPatroniRecoveryPostgres17
+162 TestPatroniInterruptedBackupsPostgres17

@@ -94,9 +94,9 @@ Keep each package manager's own lock files. A separate list of resolved versions
 
 ### Go tools and API generation
 
-Go development tools use separate modules when their dependencies need isolation. The hidden `tools:go` task selects the pinned compiler and uses the modules without changing them. Run the installed wrapper from the project directory you want to analyze.
+Go development tools isolate their dependencies in separate modules and use the pinned compiler. Run their installed wrappers from the project directory you want to analyze.
 
-API generation uses the frontend's locked `openapi-typescript` package:
+API generation uses locked tools. Generator-specific upgrade instructions live beside the [server template](../backend/api/templates/README.md):
 
 ```sh
 mise run generate-api
@@ -109,7 +109,7 @@ mise run frontend:lint
 
 Keep package-manager installation locked too. Do not reintroduce `pnpm dlx` commands that resolve packages independently, global npm installs or package-manager setup without a lock.
 
-mise declares pnpm under the short name `pnpm` and maps it to `github:pnpm/pnpm` in `[tool_alias]`. The `pnpm` lockfile entry records that backend and the official native binaries for both Linux architectures, so `mise install --locked node pnpm` uses the same version locally and in CI. Container builds install the locked npm dependencies in `tools/pnpm` with lifecycle scripts disabled. They then run pnpm's reviewed installer explicitly to link the locked binary for that platform.
+Local development, CI and container builds must resolve the same locked pnpm version for both architectures. The [mise configuration](../mise.toml) owns the local/CI tool mapping, and [container installer manifests](../tools/pnpm/package.json) own the container selection. Keep lifecycle scripts disabled until their reviewed installation step.
 
 Dependency overrides and build-script permissions belong in each project's `pnpm-workspace.yaml`. Keep the frontend file among the Docker build inputs and the files used to calculate the browser-environment hash.
 
@@ -131,7 +131,7 @@ After extraction, check the resulting files and executable permissions. Preserve
 
 Update related tools and both supported architectures together. MySQL 5.7 remains intentionally absent on arm64.
 
-For MariaDB, update the exact package and source records before running `tools/refresh-mariadb-bundle.sh <bundle> <arch>`. The script uses Python, `ar` and the standard archive reader. It checks package and archive-member hashes before replacing files; it does not choose versions.
+For MariaDB, update the exact package and source records before running `tools/refresh-mariadb-bundle.sh <bundle> <arch>`. The refresh verifies recorded package and archive-member hashes; it does not choose versions.
 
 Run refreshed binaries in the runtime image. Follow the database engine's test requirements in the bundle procedure. **Never replace expected hashes automatically after a mismatch.**
 
@@ -149,18 +149,9 @@ Standalone VectorChord downloads check their recorded SHA256 before installation
 mise run verify-deps
 ```
 
-Run this from the root or a module directory with the normal Python runtime available. It checks:
+Run this from the root or a module directory with Python available. It checks known local pins and lock-file presence, agreement between related declarations, both client architectures, and committed-file integrity in the working tree and existing index. It reads without installing dependencies, querying registries or changing the checkout.
 
-- Exact tool versions, required lock files, matching backend aliases, and download URLs and checksums for both Linux architectures.
-- Static single-line workflow `install_args` lists against mise declarations and native locks, including explicitly requested task-tool versions. Dynamic or multiline lists require extending the checker before use.
-- Known GitHub Action and container image version declarations.
-- Matching Go, Node, pnpm and Playwright versions across related declarations.
-- Consistent client architectures and builds.
-- Local file hashes and executable permissions, both in the working copy and in the existing Git index, which holds files staged for commit.
-
-The command only reads known local files. It does not query registries, install dependencies or write to the checkout or Git index. Its source lists define what it checks. Review and extend those lists when adding a new kind of dependency.
-
-CI runs the same command in the required shared Python-quality job. It runs before release version selection and publication of release and development images.
+The [dependency checker](../tools/dependencies) owns its supported declarations and coverage. Review and extend that coverage when adding a dependency kind or declaration form; dynamic or multiline workflow tool selections need checker support before use. CI requires the same check before release and development publication.
 
 **A passing `verify-deps` check covers only those local checks.** Frozen installations, architecture tests, vulnerability scans and secret scans remain separate requirements. Choose functional checks using [docs/testing.md](testing.md#checking-work).
 

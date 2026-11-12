@@ -50,7 +50,7 @@ type reassemblingReader struct {
 
 	hasManifestChecksum bool
 	stallTimeout        time.Duration
-	retryPolicy         *io_utils.ReadRetryPolicy
+	retryPolicy         *io_utils.TransferRetryPolicy
 
 	isClosed         bool
 	partIndex        int
@@ -81,7 +81,7 @@ func newReassemblingReader(spec reassemblingReaderSpec) *reassemblingReader {
 		parts:               spec.parts,
 		hasManifestChecksum: spec.hasManifestChecksum,
 		stallTimeout:        spec.stallTimeout,
-		retryPolicy: io_utils.NewReadRetryPolicy(io_utils.ReadRetryPolicySpec{
+		retryPolicy: io_utils.NewTransferRetryPolicy(io_utils.TransferRetryPolicySpec{
 			MaxAttemptsWithoutProgress: spec.maxAttemptsWithoutProgress,
 			BaseDelay:                  spec.retryBaseDelay,
 		}),
@@ -284,7 +284,7 @@ func (r *reassemblingReader) finishCurrentPart() error {
 
 	r.partIndex++
 	r.partReadBytes = 0
-	r.retryPolicy.ResetAttemptsAfterCompletedRead()
+	r.retryPolicy.ResetAttempts()
 	r.partHasher = sha256.New()
 
 	return nil
@@ -309,7 +309,7 @@ func (r *reassemblingReader) resumeAfterFailure(cause error) error {
 	if r.retryPolicy.IsExhausted() {
 		return fmt.Errorf(
 			"%w: chunk %s stuck at offset %d: %w",
-			io_utils.ErrReadRetryBudgetExhausted, partKey, r.partReadBytes, cause,
+			io_utils.ErrRetryBudgetExhausted, partKey, r.partReadBytes, cause,
 		)
 	}
 
@@ -353,11 +353,5 @@ func isRetryableReadError(err error) bool {
 		return false
 	}
 
-	if errorResponse, isResponseError := errors.AsType[minio.ErrorResponse](err); isResponseError {
-		return errorResponse.StatusCode == http.StatusRequestTimeout ||
-			errorResponse.StatusCode == http.StatusTooManyRequests ||
-			errorResponse.StatusCode >= http.StatusInternalServerError
-	}
-
-	return true
+	return isRetryableS3Error(err)
 }

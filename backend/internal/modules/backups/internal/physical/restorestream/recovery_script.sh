@@ -192,9 +192,14 @@ image_server_major() {
 # config_file points outside data_directory; RPM, Arch, Alpine and the official image are unaffected.
 list_missing_cluster_config() {
     for config in postgresql.conf pg_hba.conf pg_ident.conf; do
-        if [ ! -f "$DATA_DIR/$config" ]; then
-            echo "$config"
-        fi
+        [ ! -f "$DATA_DIR/$config" ] || continue
+
+        case "$config" in
+            pg_hba.conf) [ "$HAS_COPIED_HBA" != yes ] || continue ;;
+            pg_ident.conf) [ "$HAS_COPIED_IDENT" != yes ] || continue ;;
+        esac
+
+        echo "$config"
     done
 }
 
@@ -511,6 +516,271 @@ else
     pg_combinebackup "$@" -o "$DATA_DIR"
 fi
 chmod 700 "$DATA_DIR"
+
+# Included configuration and postgresql.auto.conf can carry independent recovery targets;
+# PostgreSQL rejects competing target kinds before an appended target can take effect.
+configuration_paths() {
+    awk '
+        function get_path(value, path, position, character) {
+            sub(/^[[:space:]]*(=[[:space:]]*)?/, "", value)
+            if (substr(value, 1, 1) != "\047") {
+                sub(/[[:space:]#].*$/, "", value)
+                return value
+            }
+            path = ""
+            for (position = 2; position <= length(value); position++) {
+                character = substr(value, position, 1)
+                if (character == "\047") {
+                    if (substr(value, position + 1, 1) != "\047") return path
+                    position++
+                } else if (character == "\\") {
+                    character = substr(value, ++position, 1)
+                }
+                path = path character
+            }
+            return path
+        }
+        function normalize_path(path, parts, count, position, depth, normalized) {
+            if (substr(path, 1, 1) != "/") return path
+
+            count = split(path, parts, "/")
+            depth = 0
+            for (position = 1; position <= count; position++) {
+                if (parts[position] == "" || parts[position] == ".") continue
+                if (parts[position] == "..") {
+                    if (depth > 0) depth--
+                } else {
+                    parts[++depth] = parts[position]
+                }
+            }
+
+            normalized = ""
+            for (position = 1; position <= depth; position++) normalized = normalized "/" parts[position]
+
+            return normalized == "" ? "/" : normalized
+        }
+        {
+            line = $0
+            sub(/^[[:space:]]*/, "", line)
+            if (match(tolower(line), /^(include(_if_exists|_dir)?|data_directory|hba_file|ident_file)([[:space:]]*=|[[:space:]]+)/)) {
+                directive = substr(line, 1, RLENGTH)
+                sub(/[[:space:]=].*$/, "", directive)
+                print NR
+                print tolower(directive)
+                print normalize_path(get_path(substr(line, RLENGTH + 1)))
+            }
+        }
+    ' "$1"
+}
+
+discover_source_directory() (
+    config=$1
+    [ -f "$config" ] && [ ! -L "$config" ] || return 0
+
+    config_directory=$(cd "$(dirname "$config")" && pwd -P)
+    config="$config_directory/$(basename "$config")"
+    case "$config" in "$CONFIGURATION_ROOT"/*) ;; *) return 0 ;; esac
+
+    if printf '%s\n' "$CONFIGURATION_ANCESTORS" | grep -Fxq "$config"; then
+        return 0
+    fi
+
+    CONFIGURATION_ANCESTORS="$CONFIGURATION_ANCESTORS$config
+"
+
+    configuration_paths "$config" >"$config.databasus-source-includes"
+    while IFS= read -r line_number && IFS= read -r directive && IFS= read -r include_path; do
+        case "$directive" in hba_file|ident_file) continue ;; esac
+
+        if [ "$directive" = data_directory ]; then
+            case "$include_path" in
+                /*) printf '%s\n' "${include_path%/}" >"$CONFIGURATION_SOURCE_DIRECTORY" ;;
+            esac
+            continue
+        fi
+
+        source_directory=$(cat "$CONFIGURATION_SOURCE_DIRECTORY")
+        if [ -n "$source_directory" ]; then
+            case "$include_path" in
+                "$source_directory"/*) include_path="$CONFIGURATION_ROOT/${include_path#"$source_directory"/}" ;;
+            esac
+        fi
+        case "$include_path" in /*) ;; *) include_path="$config_directory/$include_path" ;; esac
+
+        if [ "$directive" = include_dir ]; then
+            if [ -d "$include_path" ]; then
+                find "$include_path" -maxdepth 1 -type f -name '*.conf' ! -name '.*' |
+                    LC_ALL=C sort | while IFS= read -r included_config; do
+                        discover_source_directory "$included_config"
+                    done
+            fi
+        else
+            discover_source_directory "$include_path"
+        fi
+    done <"$config.databasus-source-includes"
+    rm "$config.databasus-source-includes"
+)
+
+sanitize_configuration_file() (
+    config=$1
+    [ -f "$config" ] && [ ! -L "$config" ] || return 0
+
+    config_directory=$(cd "$(dirname "$config")" && pwd -P)
+    config="$config_directory/$(basename "$config")"
+    case "$config" in "$CONFIGURATION_ROOT"/*) ;; *) return 0 ;; esac
+
+    if grep -Fxq "$config" "$CONFIGURATION_VISITED"; then
+        return 0
+    fi
+
+    printf '%s\n' "$config" >>"$CONFIGURATION_VISITED"
+
+    relative_directory=${config_directory#"$CONFIGURATION_ROOT"}
+    root_prefix=""
+    while [ -n "$relative_directory" ]; do
+        root_prefix="../$root_prefix"
+        relative_directory=${relative_directory%/*}
+    done
+
+    configuration_paths "$config" >"$config.databasus-includes"
+    : >"$config.databasus-rewrites"
+
+    while IFS= read -r line_number && IFS= read -r directive && IFS= read -r include_path; do
+        [ "$directive" != data_directory ] || continue
+
+        case "$directive" in
+            hba_file|ident_file)
+                printf '%s no\n' "$directive" >>"$CONFIGURATION_AUTHENTICATION"
+                authentication_path=$include_path
+                if [ -n "$SOURCE_CONFIGURATION_ROOT" ]; then
+                    case "$authentication_path" in
+                        "$SOURCE_CONFIGURATION_ROOT"/*) authentication_path=${authentication_path#"$SOURCE_CONFIGURATION_ROOT"/} ;;
+                    esac
+                fi
+
+                case "$authentication_path" in /*) continue ;; esac
+
+                authentication_file="$CONFIGURATION_ROOT/$authentication_path"
+                if [ -f "$authentication_file" ] && [ ! -L "$authentication_file" ]; then
+                    authentication_directory=$(cd "$(dirname "$authentication_file")" && pwd -P)
+                    case "$authentication_directory/" in
+                        "$CONFIGURATION_ROOT/"*)
+                            authentication_path="${authentication_directory#"$CONFIGURATION_ROOT"}/$(basename "$authentication_file")"
+                            printf '%s\n%s\n%s\n' "$line_number" "$directive" "$RUNTIME_DATA_DIR/${authentication_path#/}" >>"$config.databasus-rewrites"
+                            printf '%s yes\n' "$directive" >>"$CONFIGURATION_AUTHENTICATION"
+                            ;;
+                    esac
+                fi
+
+                continue
+                ;;
+        esac
+
+        if [ -n "$SOURCE_CONFIGURATION_ROOT" ]; then
+            case "$include_path" in
+                "$SOURCE_CONFIGURATION_ROOT"/*)
+                    include_path="$root_prefix${include_path#"$SOURCE_CONFIGURATION_ROOT"/}"
+                    printf '%s\n%s\n%s\n' "$line_number" "$directive" "$include_path" >>"$config.databasus-rewrites"
+                    ;;
+            esac
+        fi
+
+        case "$include_path" in /*) ;; *) include_path="$config_directory/$include_path" ;; esac
+
+        if [ "$directive" = include_dir ]; then
+            if [ -d "$include_path" ]; then
+                find "$include_path" -maxdepth 1 -type f -name '*.conf' ! -name '.*' |
+                    LC_ALL=C sort | while IFS= read -r included_config; do
+                        sanitize_configuration_file "$included_config"
+                    done
+            fi
+        else
+            sanitize_configuration_file "$include_path"
+        fi
+    done <"$config.databasus-includes"
+    rm "$config.databasus-includes"
+
+    awk -v has_hba="$(test -f "$DATA_DIR/pg_hba.conf" && echo yes || echo no)" \
+        -v has_ident="$(test -f "$DATA_DIR/pg_ident.conf" && echo yes || echo no)" '
+        FILENAME == ARGV[1] {
+            line_number = $0
+            getline directive
+            getline path
+            quoted_path = ""
+            for (position = 1; position <= length(path); position++) {
+                character = substr(path, position, 1)
+                if (character == "\047" || character == "\\") quoted_path = quoted_path character
+                quoted_path = quoted_path character
+            }
+            rewrites[line_number] = directive " \047" quoted_path "\047"
+            next
+        }
+        {
+            if (FNR in rewrites) {
+                print rewrites[FNR]
+                next
+            }
+
+            setting = tolower($0)
+            sub(/^[[:space:]]*/, "", setting)
+            if (setting ~ /^(primary_conninfo|primary_slot_name|restore_command|archive_command|archive_library|archive_mode|data_directory|external_pid_file|recovery_target([_][a-z]+)?)([[:space:]]*=|[[:space:]]+)/) next
+            if (has_hba == "yes" && setting ~ /^hba_file([[:space:]]*=|[[:space:]]+)/) next
+            if (has_ident == "yes" && setting ~ /^ident_file([[:space:]]*=|[[:space:]]+)/) next
+
+            print
+        }
+    ' "$config.databasus-rewrites" "$config" >"$config.databasus-tmp"
+    rm "$config.databasus-rewrites"
+    chmod 600 "$config.databasus-tmp"
+    mv "$config.databasus-tmp" "$config"
+)
+
+CONFIGURATION_ROOT=$(cd "$DATA_DIR" && pwd -P)
+RUNTIME_DATA_DIR=$DATA_DIR
+if [ -n "$COMBINE_IMAGE" ]; then
+    RUNTIME_DATA_DIR=$(container_pgdata "$RESTORED_MAJOR")
+fi
+
+SOURCE_CONFIGURATION_ROOT=""
+CONFIGURATION_SOURCE_DIRECTORY="$DATA_DIR/.databasus-source-directory"
+CONFIGURATION_ANCESTORS=""
+SOURCE_CONFIGURATION_ROOTS=""
+
+# An absolute include can precede the setting that identifies its source directory.
+while :; do
+    printf '%s\n' "$SOURCE_CONFIGURATION_ROOT" >"$CONFIGURATION_SOURCE_DIRECTORY"
+    discover_source_directory "$DATA_DIR/postgresql.conf"
+    discover_source_directory "$DATA_DIR/postgresql.auto.conf"
+    discovered_root=$(cat "$CONFIGURATION_SOURCE_DIRECTORY")
+    [ "$discovered_root" != "$SOURCE_CONFIGURATION_ROOT" ] || break
+
+    if printf '%s\n' "$SOURCE_CONFIGURATION_ROOTS" | grep -Fxq "$discovered_root"; then
+        echo "error: copied configuration has inconsistent source data-directory paths" >&2
+        exit 1
+    fi
+
+    SOURCE_CONFIGURATION_ROOT=$discovered_root
+    SOURCE_CONFIGURATION_ROOTS="$SOURCE_CONFIGURATION_ROOTS$discovered_root
+"
+done
+
+rm "$CONFIGURATION_SOURCE_DIRECTORY"
+
+CONFIGURATION_VISITED="$DATA_DIR/.databasus-configuration-visited"
+CONFIGURATION_AUTHENTICATION="$DATA_DIR/.databasus-authentication-paths"
+: >"$CONFIGURATION_VISITED"
+: >"$CONFIGURATION_AUTHENTICATION"
+sanitize_configuration_file "$DATA_DIR/postgresql.conf"
+sanitize_configuration_file "$DATA_DIR/postgresql.auto.conf"
+HAS_COPIED_HBA=$(awk '$1 == "hba_file" { has_file = $2 } END { print has_file }' "$CONFIGURATION_AUTHENTICATION")
+HAS_COPIED_IDENT=$(awk '$1 == "ident_file" { has_file = $2 } END { print has_file }' "$CONFIGURATION_AUTHENTICATION")
+rm "$CONFIGURATION_VISITED" "$CONFIGURATION_AUTHENTICATION"
+rm -f "$DATA_DIR/standby.signal" "$DATA_DIR/recovery.signal"
+{
+    echo "archive_mode = off"
+    echo "archive_command = ''"
+    echo "archive_library = ''"
+} >>"$DATA_DIR/postgresql.auto.conf"
 
 # 5. Wire up WAL replay / PITR when the bundle ships WAL. A per-backup restore
 #    ships none - its combined directory is already consistent, so we stop here.

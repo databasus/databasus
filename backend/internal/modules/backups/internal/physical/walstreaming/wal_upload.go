@@ -19,6 +19,7 @@ import (
 
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	"databasus-backend/internal/engines/postgresql/physical/walmath"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	"databasus-backend/internal/lib/background"
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/crypto"
@@ -43,6 +44,8 @@ type WalUploadDeps struct {
 	MasterKey           *crypto.MasterKey
 	WalSegmentRepo      *catalog.WalSegmentRepository
 	WalSegmentSizeBytes int64
+	ClientTools         pgshared.ClientTools
+	Version             pgshared.Version
 	Logger              *slog.Logger
 
 	WatchDir string
@@ -78,17 +81,20 @@ func (u *WalUploader) ProcessSegment(ctx context.Context, localPath, walFilename
 
 	u.forgetIncompleteSegment(walFilename)
 
+	lastTransactionAt := u.getWalTransactionTime(ctx, localPath, endLSN)
+
 	claim := &catalog.WalSegment{
-		ID:          uuid.New(),
-		DatabaseID:  u.deps.DatabaseID,
-		StorageID:   u.deps.StorageID,
-		TimelineID:  timelineID,
-		WalFilename: walFilename,
-		StartLSN:    startLSN,
-		EndLSN:      endLSN,
-		Encryption:  u.deps.Encryption,
-		ReceivedAt:  u.deps.Clock.Now(),
-		ClaimedAt:   u.deps.Clock.Now(),
+		ID:                uuid.New(),
+		DatabaseID:        u.deps.DatabaseID,
+		StorageID:         u.deps.StorageID,
+		TimelineID:        timelineID,
+		WalFilename:       walFilename,
+		StartLSN:          startLSN,
+		EndLSN:            endLSN,
+		Encryption:        u.deps.Encryption,
+		ReceivedAt:        u.deps.Clock.Now(),
+		ClaimedAt:         u.deps.Clock.Now(),
+		LastTransactionAt: lastTransactionAt,
 	}
 
 	claimStartedAt := u.deps.Clock.Now()
@@ -119,17 +125,20 @@ func (u *WalUploader) RecoverSegment(ctx context.Context, localPath, walFilename
 
 	u.forgetIncompleteSegment(walFilename)
 
+	lastTransactionAt := u.getWalTransactionTime(ctx, localPath, endLSN)
+
 	claim := &catalog.WalSegment{
-		ID:          uuid.New(),
-		DatabaseID:  u.deps.DatabaseID,
-		StorageID:   u.deps.StorageID,
-		TimelineID:  timelineID,
-		WalFilename: walFilename,
-		StartLSN:    startLSN,
-		EndLSN:      endLSN,
-		Encryption:  u.deps.Encryption,
-		ReceivedAt:  u.deps.Clock.Now(),
-		ClaimedAt:   u.deps.Clock.Now(),
+		ID:                uuid.New(),
+		DatabaseID:        u.deps.DatabaseID,
+		StorageID:         u.deps.StorageID,
+		TimelineID:        timelineID,
+		WalFilename:       walFilename,
+		StartLSN:          startLSN,
+		EndLSN:            endLSN,
+		Encryption:        u.deps.Encryption,
+		ReceivedAt:        u.deps.Clock.Now(),
+		ClaimedAt:         u.deps.Clock.Now(),
+		LastTransactionAt: lastTransactionAt,
 	}
 
 	claimStartedAt := u.deps.Clock.Now()
@@ -414,6 +423,7 @@ func (u *WalUploader) uploadSidecar(
 		EncryptionSalt:      salt,
 		EncryptionIV:        iv,
 		ReceivedAt:          claim.ReceivedAt,
+		LastTransactionAt:   claim.LastTransactionAt,
 	}
 
 	body, err := json.Marshal(sidecar)

@@ -10,11 +10,15 @@ const runFixture = async ({
   isInterrupt = false,
   architecture = process.arch,
   args = ['--project=ui'],
+  isCi = false,
+  processorCount = 4,
 }: {
   mode: string;
   isInterrupt?: boolean;
   architecture?: string;
   args?: string[];
+  isCi?: boolean;
+  processorCount?: number;
 }) => {
   const directory = await mkdtemp(join(tmpdir(), 'databasus-browser-fixture-'));
   const root = join(directory, 'frontend');
@@ -64,7 +68,7 @@ http.createServer((request,response)=>response.end()).listen(0,'127.0.0.1');
     const entry = join(directory, 'fixture.mjs');
     await writeFile(
       entry,
-      `import { runBrowser } from ${JSON.stringify(pathToFileURL(resolve('tooling/runBrowser.ts')).href)}; process.exitCode = await runBrowser({ frontendRoot: ${JSON.stringify(root)}, args: ${JSON.stringify(args)}, architecture: ${JSON.stringify(architecture)} });`,
+      `import { runBrowser } from ${JSON.stringify(pathToFileURL(resolve('tooling/runBrowser.ts')).href)}; process.exitCode = await runBrowser({ frontendRoot: ${JSON.stringify(root)}, args: ${JSON.stringify(args)}, architecture: ${JSON.stringify(architecture)}, isCi: ${JSON.stringify(isCi)}, processorCount: ${JSON.stringify(processorCount)} });`,
     );
 
     const child = spawn(process.execPath, [entry], {
@@ -210,6 +214,36 @@ describe('Browser runner resource ownership', () => {
     await expect(
       runBrowser({ frontendRoot: resolve('.'), args: ['--project=unknown'] }),
     ).rejects.toThrow('Select exactly');
+  });
+});
+
+describe('Browser worker count', () => {
+  it('passes two workers to the owned browser container in CI', async () => {
+    const execution = await runFixture({ mode: 'success', isCi: true, processorCount: 32 });
+
+    expect(execution.exitCode).toBe(0);
+    expect(execution.output).toContain('BROWSER_WORKERS=2"');
+  });
+
+  it('passes half the host processors to the owned browser container locally', async () => {
+    const execution = await runFixture({ mode: 'success', processorCount: 32 });
+
+    expect(execution.exitCode).toBe(0);
+    expect(execution.output).toContain('BROWSER_WORKERS=16"');
+  });
+
+  it('passes more workers than CI on a host with more than four processors', async () => {
+    const execution = await runFixture({ mode: 'success', processorCount: 5 });
+
+    expect(execution.exitCode).toBe(0);
+    expect(execution.output).toContain('BROWSER_WORKERS=3"');
+  });
+
+  it('passes no fewer workers than CI on a small host', async () => {
+    const execution = await runFixture({ mode: 'success', processorCount: 2 });
+
+    expect(execution.exitCode).toBe(0);
+    expect(execution.output).toContain('BROWSER_WORKERS=2"');
   });
 });
 

@@ -12,6 +12,8 @@ Layout (one subtree per arch, identical shape):
 assets/tools/<arch>/
   postgresql/postgresql-{12,13,14,15,16,17,18}/bin/
     pg_dump, pg_restore, psql
+  postgresql/postgresql-{17,18}/bin/
+    pg_basebackup, pg_receivewal, pg_combinebackup, pg_waldump
   mysql/mysql-{5.7,8.0,8.4,9,26}/bin/
     mysql, mysqldump
   mysql/mysql-26/lib/private/
@@ -143,6 +145,9 @@ tools remain unmodified vendor binaries.
 To refresh a tool set, verify its recorded source archive, extract the selected
 programs and update the source records with the resulting file hashes.
 For PostgreSQL the source
-is `postgresql-client-<major>` from `apt.postgresql.org` for `bookworm`, both
+is `postgresql-client-<major>` from `apt.postgresql.org` for `bookworm`; the
+PostgreSQL 17 and 18 `pg_waldump` binaries come from the matching
+`postgresql-<major>` server package at the same pinned patch level. Both use
 `amd64` and `arm64`, matching the `debian:bookworm-slim` runtime base in the
-Dockerfile. Update the tables above in the same commit.
+Dockerfile. The exact package URLs, archive hashes and extracted-file hashes
+are in `tools/dependencies/clients.json`. Update the tables above in the same commit.

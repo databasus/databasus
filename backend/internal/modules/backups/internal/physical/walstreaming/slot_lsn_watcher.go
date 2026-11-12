@@ -93,7 +93,7 @@ func (s *Streamer) inspectSourceSlot(ctx context.Context, logger *slog.Logger) s
 	probeCtx, cancel := context.WithTimeout(ctx, slotProbeTimeout)
 	defer cancel()
 
-	conn, err := pgphysical.NewSource(s.spec.SourceDB.Engine).OpenInspection(probeCtx)
+	conn, err := s.openSourceInspection(probeCtx)
 	if err != nil {
 		logger.DebugContext(ctx, "source unreachable during the slot probe", slog.Any("error", err))
 

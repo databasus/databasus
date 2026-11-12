@@ -15,7 +15,6 @@ import (
 	"github.com/klauspost/compress/zstd"
 
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
-	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
@@ -27,7 +26,6 @@ import (
 
 type HistoryUploadSpec struct {
 	Publication config.PublicationFence
-	Inspection  *pgphysical.Inspection
 	TimelineID  int
 	FileStore   storages.Module
 	Clock       clock.Source
@@ -46,7 +44,6 @@ func UploadHistoryFile(
 	ctx context.Context,
 	spec HistoryUploadSpec,
 ) (*catalog.WalHistoryFile, error) {
-	conn := spec.Inspection
 	timelineID := spec.TimelineID
 	historyRepo := spec.HistoryRepo
 	encryption := spec.Encryption
@@ -56,7 +53,19 @@ func UploadHistoryFile(
 
 	databaseID := spec.SourceDB.DatabaseID
 
-	existing, _, err := historyRepo.FindByDatabaseTimeline(ctx, databaseID, timelineID)
+	expectedSystemIdentifier := ""
+	if spec.SourceDB.SystemIdentifier != nil {
+		expectedSystemIdentifier = *spec.SourceDB.SystemIdentifier
+	}
+	history, err := pgphysical.NewSource(spec.SourceDB.Engine).
+		GetTimelineHistory(ctx, pgphysical.TimelineHistoryRequest{
+			ExpectedSystemIdentifier: expectedSystemIdentifier, TimelineID: timelineID,
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	existing, err := findPublishedHistory(ctx, spec)
 	if err != nil {
 		return nil, fmt.Errorf("query existing history row: %w", err)
 	}
@@ -72,12 +81,8 @@ func UploadHistoryFile(
 		return existing, nil
 	}
 
-	historyFilename := walmath.FormatHistoryFilename(uint32(timelineID))
-
-	body, err := conn.GetTimelineHistory(ctx, historyFilename)
-	if err != nil {
-		return nil, err
-	}
+	historyFilename := history.Filename
+	body := history.Body
 
 	historyFileID := uuid.New()
 	// The row's own identity is the per-attempt component: a retry for the same
@@ -174,7 +179,11 @@ func UploadHistoryFile(
 				slog.Any("timeline_id", timelineID),
 			)
 
-			existing, _, lookupErr := historyRepo.FindByDatabaseTimeline(ctx, databaseID, timelineID)
+			existing, lookupErr := findPublishedHistory(ctx, spec)
+			if lookupErr == nil && existing == nil {
+				lookupErr = ErrHistoryPublicationMissing
+			}
+
 			return existing, lookupErr
 		}
 
@@ -251,4 +260,27 @@ func compressZstd(input []byte) ([]byte, error) {
 func isUniqueViolation(err error) bool {
 	var postgresError *pgconn.PgError
 	return errors.As(err, &postgresError) && postgresError.Code == "23505"
+}
+
+func findPublishedHistory(ctx context.Context, spec HistoryUploadSpec) (*catalog.WalHistoryFile, error) {
+	var history *catalog.WalHistoryFile
+	err := spec.Transactor.Transaction(ctx, func(ctx context.Context) error {
+		if err := spec.Publication.Validate(ctx); err != nil {
+			return err
+		}
+
+		var err error
+		history, _, err = spec.HistoryRepo.FindByDatabaseTimeline(ctx, spec.SourceDB.DatabaseID, spec.TimelineID)
+		if err != nil {
+			return err
+		}
+
+		if history != nil && history.StorageID != spec.StorageID {
+			return config.ErrStaleStoragePublication
+		}
+
+		return nil
+	})
+
+	return history, err
 }

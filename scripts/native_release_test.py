@@ -17,6 +17,7 @@ BACKEND_GROUPS = {
     "logical",
     "agent-e2e",
     *(f"physical-{shard}-of-3" for shard in range(1, 4)),
+    *(f"patroni-{shard}-of-5" for shard in range(1, 6)),
     *(f"physical-api-{shard}-of-3" for shard in range(1, 4)),
 }
 REQUIRED_TEST_JOBS = {

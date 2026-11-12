@@ -2,6 +2,7 @@ package chains
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -53,16 +54,11 @@ func (s *Service) ResolveRestoreSet(ctx context.Context, databaseID uuid.UUID,
 		return nil, WalGapBeforeTargetError{LatestRestorableLSN: reach.reachableLSN}
 	}
 
-	historyFiles, err := s.walHistoryRepository.FindAllByDatabase(ctx, databaseID)
-	if err != nil {
-		return nil, err
-	}
-
 	return &RestoreSet{
 		RootFull:            reach.chain.RootFull,
 		Incrementals:        reach.incrementals,
 		WalSegments:         reach.walRun,
-		HistoryFiles:        historyFiles,
+		HistoryFiles:        reach.historyFiles,
 		LastIncludedStopLSN: reach.lastStopLSN,
 		MaxReplayableLSN:    reach.reachableLSN,
 	}, nil
@@ -73,6 +69,7 @@ type restoreReach struct {
 	incrementals  []*catalog.Backup
 	lastStopLSN   walmath.LSN
 	walSegments   []*catalog.WalSegment
+	historyFiles  []*catalog.WalHistoryFile
 	walRun        []*catalog.WalSegment
 	reachableLSN  walmath.LSN
 	reachableTime time.Time
@@ -108,13 +105,45 @@ func (s *Service) resolveRestoreReach(ctx context.Context, databaseID uuid.UUID,
 		return nil, err
 	}
 
+	var historyFiles []*catalog.WalHistoryFile
+	if chain.RootFull.TimelineID > 1 {
+		history, isFound, historyErr := s.walHistoryRepository.FindByDatabaseTimeline(
+			ctx,
+			databaseID,
+			chain.RootFull.TimelineID,
+		)
+		if historyErr != nil {
+			return nil, historyErr
+		}
+
+		if isFound && history.StorageID == chain.RootFull.StorageID {
+			historyFiles = []*catalog.WalHistoryFile{history}
+		} else {
+			restoreWalSegments = nil
+		}
+	}
+
 	walRun, reachableLSN, reachableTime := contiguousWalRun(restoreWalSegments, lastStopLSN, lastBackupTime)
+	if targetTime != nil && targetTime.Equal(lastBackupTime) {
+		hasConfirmingTransaction := slices.ContainsFunc(walRun, func(segment *catalog.WalSegment) bool {
+			return segment.LastTransactionAt != nil && segment.LastTransactionAt.After(lastBackupTime)
+		})
+		if !hasConfirmingTransaction {
+			walRun = nil
+			reachableLSN = lastStopLSN
+		}
+	}
+
+	if len(walRun) == 0 {
+		historyFiles = nil
+	}
 
 	return &restoreReach{
 		chain:         chain,
 		incrementals:  incrementals,
 		lastStopLSN:   lastStopLSN,
 		walSegments:   restoreWalSegments,
+		historyFiles:  historyFiles,
 		walRun:        walRun,
 		reachableLSN:  reachableLSN,
 		reachableTime: reachableTime,
@@ -140,6 +169,7 @@ func (s *Service) ResolveRestoreSetForBackup(ctx context.Context, databaseID, ba
 	if backup.Kind == catalog.BackupKindFull {
 		return restoreSetForFull(backup)
 	}
+
 	return s.restoreSetForIncremental(ctx, backup)
 }
 
@@ -306,7 +336,13 @@ func contiguousWalRun(
 
 		run = append(run, segment)
 		cursor = segment.EndLSN
-		reachableTime = segment.ReceivedAt
+		if segment.LastTransactionAt != nil {
+			// Inclusive time recovery stops before a later transaction, not at the last timestamp.
+			transactionBound := segment.LastTransactionAt.Add(-time.Microsecond)
+			if transactionBound.After(reachableTime) {
+				reachableTime = transactionBound
+			}
+		}
 	}
 
 	return run, cursor, reachableTime

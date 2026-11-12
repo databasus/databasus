@@ -30,7 +30,7 @@ type replicationSettings struct {
 // summarize_wal=on gate and the custom-tablespace refusal are required by the spec
 // physical-backups/backup-method. A refusal is a *pgshared.ConnectionTestError with its code.
 func (s *Source) TestReplicationConnection(ctx context.Context, logger *slog.Logger, check ReplicationCheck) error {
-	replicationConn, err := s.connectReplication(ctx)
+	replicationConn, err := s.connectReplication(ctx, "")
 	if err != nil {
 		return classifyReplicationConnectError(err, s.settings.Username)
 	}

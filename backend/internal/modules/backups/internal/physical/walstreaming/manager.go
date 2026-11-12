@@ -2,6 +2,7 @@ package walstreaming
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -349,7 +350,17 @@ func (s *Manager) startStreamer(
 		defer s.removeWatchDirIfRequested(ctx, logger, streamer)
 
 		runErr := background.RunRecovering(ctx, supervisor.Run)
-		if err := runErr; err != nil && ctx.Err() == nil {
+		_, isIdentityMismatch := errors.AsType[*pgphysical.SourceIdentityError](runErr)
+		if isIdentityMismatch {
+			if err := s.walStreamerRepo.MarkIdentityMismatch(
+				context.WithoutCancel(ctx),
+				claimID,
+				s.clock.Now(),
+			); err != nil {
+				logger.ErrorContext(ctx, "failed to persist wal source identity mismatch", slog.Any("error", err))
+			}
+		}
+		if err := runErr; err != nil && (ctx.Err() == nil || isIdentityMismatch) {
 			logger.ErrorContext(ctx, "wal streamer exited with error", slog.Any("error", err))
 
 			s.notifyChainBroken(ctx, db, backupConfig, chainAlert{

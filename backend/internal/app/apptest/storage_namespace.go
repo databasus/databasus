@@ -64,7 +64,12 @@ func (namespace StorageNamespace) RequireFileAbsent(t *testing.T, fileName strin
 
 func (namespace StorageNamespace) MakeUnavailable(t *testing.T, owner Session) {
 	t.Helper()
-	namespace.setEndpoint(t, owner, "http://127.0.0.1:1")
+	namespace.setEndpoint(t, owner, StartDenyingS3(t))
+}
+
+func (namespace StorageNamespace) MakeAvailable(t *testing.T, owner Session) {
+	t.Helper()
+	namespace.setEndpoint(t, owner, namespace.Client.EndpointURL().String())
 }
 
 func (namespace StorageNamespace) setEndpoint(t *testing.T, owner Session, endpoint string) {

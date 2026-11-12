@@ -206,7 +206,7 @@ func (s Schedule) isCronDue(now, lastRun time.Time) bool {
 		return false
 	}
 
-	return !now.Before(cronSchedule.Next(lastRun))
+	return !now.Before(cronSchedule.Next(lastRun.UTC()))
 }
 
 // isCronWithoutRunDate looks from a fixed leap year, because whether a day exists in a month does not depend

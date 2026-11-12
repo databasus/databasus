@@ -34,7 +34,9 @@ func TestChangePhysicalWalConfiguration(t *testing.T) {
 			"SELECT count(*) FROM backups_physical_wal_streamers WHERE database_id=?",
 			team.Database.Id,
 		)
-		assert.Zero(t, streamers)
+		assert.Equal(t, 1, streamers)
+		assert.Equal(t, "NOT_RUNNING", team.statistics(t).Streamer.State)
+		assert.Equal(t, "NOT_STREAMING", team.statistics(t).Health.Level)
 	})
 	t.Run("archives new segments in the new storage after its configured storage changes", func(t *testing.T) {
 		t.Parallel()

@@ -8,7 +8,7 @@ func toWalStreamReason(reason streamhealth.Reason) (WalStreamReason, error) {
 	body := WalStreamReason{}
 
 	switch string(reason.Code) {
-	case "STREAMING_STOPPED",
+	case "SYSTEM_IDENTIFIER_MISMATCH", "STREAMING_STOPPED",
 		"SOURCE_UNREACHABLE",
 		"WAL_CHAIN_BROKEN",
 		"SLOT_MISSING",

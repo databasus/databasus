@@ -68,12 +68,16 @@ type testServer struct {
 
 // runOnEverySupportedVersion boots the versions one after another, so only one server of the
 // function is alive at a time (docs/testing.md, "Database servers for engines").
-func runOnEverySupportedVersion(t *testing.T, run func(t *testing.T, server testServer)) {
+func runOnEverySupportedVersion(
+	t *testing.T,
+	run func(t *testing.T, server testServer),
+	options ...containers.PhysicalPostgresOption,
+) {
 	t.Helper()
 
 	for _, image := range getSupportedVersionImages() {
 		t.Run(image, func(t *testing.T) {
-			run(t, startTestServer(t, image))
+			run(t, startTestServer(t, image, options...))
 		})
 	}
 }

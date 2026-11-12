@@ -1,11 +1,10 @@
 import re
 from pathlib import Path
 
-from compose_project import remove_dead_run_project
 from docker_wrapper import install_docker_wrapper_and_get_path
+from lifecycle.run_cleanup import RunCleanup
 from probe_run import assert_failed_and_released, start_probe_run
 from public_command import PublicRun
-from supervisor_file import remove_run_directory
 
 PROBE_PASSWORD = "synthetic-account-password"
 PROBE_DATABASE_PASSWORD = "synthetic-database-password"
@@ -103,7 +102,7 @@ class TestFailingRuns:
         assert "synthetic-restore-marker" not in output
 
     def test_fails_and_names_the_remains_when_a_resource_cannot_be_removed_after_every_scenario_passed(
-        self, probes_image: str, tmp_path: Path
+        self, probes_image: str, tmp_path: Path, register_run_cleanup: RunCleanup
     ) -> None:
         path_with_refusal = install_docker_wrapper_and_get_path(
             tmp_path, '*" down "*) echo "removal refused"; exit 1;;'
@@ -116,24 +115,18 @@ class TestFailingRuns:
             E2E_PROBE_PASSWORD=PROBE_PASSWORD,
             E2E_PROBE_DATABASE_PASSWORD=PROBE_DATABASE_PASSWORD,
         )
+        register_run_cleanup(run)
         project_name = run.get_project_name()
+        finished_run = run.finish()
 
-        try:
-            finished_run = run.finish()
-
-            assert finished_run.exit_code != 0
-            assert "1 passed" in finished_run.output, finished_run.output
-            assert (
-                f"E2E cleanup failed, remaining: container {project_name}-" in finished_run.output
-            )
-            assert "probe-cleanup-databases" in finished_run.output
-            assert "probe-cleanup-application" in finished_run.output
-            assert PROBE_PASSWORD not in finished_run.output
-            assert PROBE_DATABASE_PASSWORD not in finished_run.output
-            assert BEARER_TOKEN not in finished_run.output
-        finally:
-            remove_dead_run_project(project_name)
-            remove_run_directory(run.get_run_id())
+        assert finished_run.exit_code != 0
+        assert "1 passed" in finished_run.output, finished_run.output
+        assert f"E2E cleanup failed, remaining: container {project_name}-" in finished_run.output
+        assert "probe-cleanup-databases" in finished_run.output
+        assert "probe-cleanup-application" in finished_run.output
+        assert PROBE_PASSWORD not in finished_run.output
+        assert PROBE_DATABASE_PASSWORD not in finished_run.output
+        assert BEARER_TOKEN not in finished_run.output
 
     def test_removes_everything_when_the_run_fails_outside_a_scenario(
         self, probes_image: str, tmp_path: Path

@@ -133,3 +133,11 @@ func TestPhysicalBackupOverSshTunnel(t *testing.T) {
 		},
 	)
 }
+
+func TestPhysicalFullHistoryAfterPromotion(t *testing.T) {
+	t.Parallel()
+	t.Run("restores the promoted full when no continuous wal receiver runs", func(t *testing.T) {
+		t.Parallel()
+		physicaltest.RunFullHistoryAfterPromotion(t, "postgres:17")
+	})
+}

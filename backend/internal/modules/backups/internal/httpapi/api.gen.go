@@ -755,19 +755,20 @@ func (e WalStreamNoticeCode) Valid() bool {
 
 // Defines values for WalStreamReasonCode.
 const (
-	WalStreamReasonCodeARCHIVENOTADVANCING     WalStreamReasonCode = "ARCHIVE_NOT_ADVANCING"
-	WalStreamReasonCodeARCHIVESLOWERTHANSOURCE WalStreamReasonCode = "ARCHIVE_SLOWER_THAN_SOURCE"
-	WalStreamReasonCodeFORCEDROTATIONREFUSED   WalStreamReasonCode = "FORCED_ROTATION_REFUSED"
-	WalStreamReasonCodeFREQUENTRESTARTS        WalStreamReasonCode = "FREQUENT_RESTARTS"
-	WalStreamReasonCodeLOCALQUEUEFILLING       WalStreamReasonCode = "LOCAL_QUEUE_FILLING"
-	WalStreamReasonCodeNEARSLOTREBUILD         WalStreamReasonCode = "NEAR_SLOT_REBUILD"
-	WalStreamReasonCodeSLOTKEEPSEXTRAWAL       WalStreamReasonCode = "SLOT_KEEPS_EXTRA_WAL"
-	WalStreamReasonCodeSLOTLIMITAPPROACHING    WalStreamReasonCode = "SLOT_LIMIT_APPROACHING"
-	WalStreamReasonCodeSLOTLOST                WalStreamReasonCode = "SLOT_LOST"
-	WalStreamReasonCodeSLOTMISSING             WalStreamReasonCode = "SLOT_MISSING"
-	WalStreamReasonCodeSOURCEUNREACHABLE       WalStreamReasonCode = "SOURCE_UNREACHABLE"
-	WalStreamReasonCodeSTREAMINGSTOPPED        WalStreamReasonCode = "STREAMING_STOPPED"
-	WalStreamReasonCodeWALCHAINBROKEN          WalStreamReasonCode = "WAL_CHAIN_BROKEN"
+	WalStreamReasonCodeARCHIVENOTADVANCING      WalStreamReasonCode = "ARCHIVE_NOT_ADVANCING"
+	WalStreamReasonCodeARCHIVESLOWERTHANSOURCE  WalStreamReasonCode = "ARCHIVE_SLOWER_THAN_SOURCE"
+	WalStreamReasonCodeFORCEDROTATIONREFUSED    WalStreamReasonCode = "FORCED_ROTATION_REFUSED"
+	WalStreamReasonCodeFREQUENTRESTARTS         WalStreamReasonCode = "FREQUENT_RESTARTS"
+	WalStreamReasonCodeLOCALQUEUEFILLING        WalStreamReasonCode = "LOCAL_QUEUE_FILLING"
+	WalStreamReasonCodeNEARSLOTREBUILD          WalStreamReasonCode = "NEAR_SLOT_REBUILD"
+	WalStreamReasonCodeSLOTKEEPSEXTRAWAL        WalStreamReasonCode = "SLOT_KEEPS_EXTRA_WAL"
+	WalStreamReasonCodeSLOTLIMITAPPROACHING     WalStreamReasonCode = "SLOT_LIMIT_APPROACHING"
+	WalStreamReasonCodeSLOTLOST                 WalStreamReasonCode = "SLOT_LOST"
+	WalStreamReasonCodeSLOTMISSING              WalStreamReasonCode = "SLOT_MISSING"
+	WalStreamReasonCodeSOURCEUNREACHABLE        WalStreamReasonCode = "SOURCE_UNREACHABLE"
+	WalStreamReasonCodeSTREAMINGSTOPPED         WalStreamReasonCode = "STREAMING_STOPPED"
+	WalStreamReasonCodeSYSTEMIDENTIFIERMISMATCH WalStreamReasonCode = "SYSTEM_IDENTIFIER_MISMATCH"
+	WalStreamReasonCodeWALCHAINBROKEN           WalStreamReasonCode = "WAL_CHAIN_BROKEN"
 )
 
 // Valid indicates whether the value is a known member of the WalStreamReasonCode enum.
@@ -796,6 +797,8 @@ func (e WalStreamReasonCode) Valid() bool {
 	case WalStreamReasonCodeSOURCEUNREACHABLE:
 		return true
 	case WalStreamReasonCodeSTREAMINGSTOPPED:
+		return true
+	case WalStreamReasonCodeSYSTEMIDENTIFIERMISMATCH:
 		return true
 	case WalStreamReasonCodeWALCHAINBROKEN:
 		return true
@@ -1929,10 +1932,10 @@ type WalStreamStatistics struct {
 	// KeepingUp wal stream keeping up
 	KeepingUp WalStreamKeepingUp `json:"keepingUp"`
 
-	// LatestRestorableAt latest restorable at
+	// LatestRestorableAt The newest reachable time. Archive WAL replay above timeline 1 requires published history in the selected storage; without it, this is the newest included completed backup time.
 	LatestRestorableAt *time.Time `json:"latestRestorableAt"`
 
-	// RestorableRanges restorable ranges
+	// RestorableRanges Reachable intervals using the same prerequisites as restore downloads. Without required timeline history, ranges contain only completed backup points; missing history alone is not a WAL gap.
 	RestorableRanges []WalStreamTimeRange `json:"restorableRanges"`
 
 	// Series wal stream series

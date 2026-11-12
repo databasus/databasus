@@ -134,9 +134,10 @@ func TestReadLiveTimeline(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, 2, liveTimeline)
 				require.Equal(t, primaryServer.readSystemIdentifier(t), systemIdentifier)
-				history, err := inspection.GetTimelineHistory(t.Context(), "00000002.history")
+				history, err := standbyServer.newSource(getAdminRole()).
+					GetTimelineHistory(t.Context(), TimelineHistoryRequest{ExpectedSystemIdentifier: systemIdentifier, TimelineID: 2})
 				require.NoError(t, err)
-				require.Contains(t, string(history), "no recovery target specified")
+				require.Contains(t, string(history.Body), "no recovery target specified")
 			})
 		})
 	}

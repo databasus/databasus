@@ -102,6 +102,7 @@ func findRestorableRanges(
 	}
 
 	runEnds := findContiguousRunEnds(committedSegments)
+	transactionTimes := findWalRunTransactionTimes(committedSegments, runEnds)
 	ranges := make([]TimeRange, 0, len(anchors))
 
 	for _, anchor := range anchors {
@@ -113,7 +114,9 @@ func findRestorableRanges(
 
 		if firstAfterAnchor < len(committedSegments) &&
 			committedSegments[firstAfterAnchor].StartLSN <= anchor.stopLSN {
-			reachedAt = committedSegments[runEnds[firstAfterAnchor]].ReceivedAt
+			if transactionAt := transactionTimes[firstAfterAnchor]; transactionAt != nil {
+				reachedAt = transactionAt.Add(-time.Microsecond)
+			}
 		}
 
 		if reachedAt.Before(anchor.completedAt) {
@@ -124,6 +127,22 @@ func findRestorableRanges(
 	}
 
 	return mergeTimeRanges(ranges)
+}
+
+func findWalRunTransactionTimes(segments []*catalog.WalSegment, runEnds []int) []*time.Time {
+	transactionTimes := make([]*time.Time, len(segments))
+
+	for index := len(segments) - 1; index >= 0; index-- {
+		transactionTimes[index] = segments[index].LastTransactionAt
+		if index+1 < len(segments) && runEnds[index] == runEnds[index+1] {
+			later := transactionTimes[index+1]
+			if later != nil && (transactionTimes[index] == nil || later.After(*transactionTimes[index])) {
+				transactionTimes[index] = later
+			}
+		}
+	}
+
+	return transactionTimes
 }
 
 // findContiguousRunEnds maps each segment to the last segment of the unbroken

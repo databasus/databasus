@@ -100,8 +100,9 @@ func (b *Backuper) registerRun(spec backupRunSpec) (registeredBackupRun, bool) {
 			finish()
 			b.taskCancellationRegistry.Unregister(spec.BackupID)
 			b.liveRunsMutex.Lock()
-			defer b.liveRunsMutex.Unlock()
 			delete(b.liveDatabaseIDs, spec.DatabaseID)
+			b.liveRunsMutex.Unlock()
+			b.logger.DebugContext(runCtx, "physical backup run finished", slog.Any("database_id", spec.DatabaseID))
 		})
 	}}, true
 }

@@ -3,14 +3,18 @@ package s3
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -21,6 +25,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	test_utils "databasus-backend/internal/lib/httpclienttest"
+	io_utils "databasus-backend/internal/lib/iox"
 	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/modules/storages/internal/providers"
 	"databasus-backend/internal/modules/storages/internal/providers/providertest"
@@ -438,6 +443,224 @@ func TestSaveFile(t *testing.T) {
 		reassembledBytes := readWholeFile(t, testedBucket, fileName)
 		assert.Equal(t, persistedBytes, reassembledBytes)
 	})
+
+	// Pins issue #903: B2 answered one part with 503 for longer than minio-go retries, and the whole
+	// backup failed.
+	t.Run("saves the file when a piece is refused for longer than the client library retries", func(t *testing.T) {
+		rawClient, minioBucket := setupChunkedBucket(t)
+		refusalCount := minio.MaxRetry + 5
+		refusedBucket, proxy := newRefusedBucket(t, minioBucket, providertest.RefusingProxySpec{
+			IsRefusable:  isPartUpload,
+			RefusalCount: refusalCount,
+			Status:       http.StatusServiceUnavailable,
+			ContentType:  "application/xml",
+			Body:         s3ErrorBody("ServiceUnavailable"),
+		})
+
+		// 12 MiB with 5 MiB parts and 2 parts/object: three parts, all refusals land on the first one.
+		persistedBytes := generateBytes(12 * 1024 * 1024)
+		fileName := uuid.NewString()
+
+		require.NoError(
+			t,
+			refusedBucket.provider.SaveFile(
+				t.Context(),
+				refusedBucket.access(fileName),
+				bytes.NewReader(persistedBytes),
+			),
+		)
+
+		assert.Equal(t, refusalCount+3, proxy.GetRefusableCount())
+		assert.ElementsMatch(t, []string{
+			fileName + ".part000001",
+			fileName + ".part000002",
+			fileName + manifestSuffix,
+		}, listObjectKeys(t, rawClient, minioBucket.settings.Bucket, fileName))
+		assert.Equal(t, persistedBytes, readWholeFile(t, minioBucket, fileName))
+	})
+
+	t.Run("saves a file that fits one piece when its write is refused for a while", func(t *testing.T) {
+		rawClient, minioBucket := setupChunkedBucket(t)
+		fileName := uuid.NewString()
+		refusedBucket, proxy := newRefusedBucket(t, minioBucket, uncheckedRefusal(isObjectWrite(fileName), 3))
+
+		persistedBytes := generateBytes(1024)
+
+		require.NoError(
+			t,
+			refusedBucket.provider.SaveFile(
+				t.Context(),
+				refusedBucket.access(fileName),
+				bytes.NewReader(persistedBytes),
+			),
+		)
+
+		assert.Equal(t, 4, proxy.GetRefusableCount())
+		assert.Equal(t, []string{fileName}, listObjectKeys(t, rawClient, minioBucket.settings.Bucket, fileName))
+		assert.Equal(t, persistedBytes, readWholeFile(t, minioBucket, fileName))
+	})
+
+	t.Run(
+		"saves a chunked file when the start of its multipart objects and its manifest are refused",
+		func(t *testing.T) {
+			rawClient, minioBucket := setupChunkedBucket(t)
+			fileName := uuid.NewString()
+			isMultipartStartOrManifest := func(r *http.Request) bool {
+				isMultipartStart := r.Method == http.MethodPost && r.URL.Query().Has("uploads")
+
+				return isMultipartStart || isObjectWrite(fileName+manifestSuffix)(r)
+			}
+			refusedBucket, proxy := newRefusedBucket(t, minioBucket, uncheckedRefusal(isMultipartStartOrManifest, 5))
+
+			persistedBytes := generateBytes(12 * 1024 * 1024)
+
+			require.NoError(
+				t,
+				refusedBucket.provider.SaveFile(
+					t.Context(),
+					refusedBucket.access(fileName),
+					bytes.NewReader(persistedBytes),
+				),
+			)
+
+			// Two multipart starts and one manifest write, after five refusals among them.
+			assert.Equal(t, 5+3, proxy.GetRefusableCount())
+			assert.ElementsMatch(t, []string{
+				fileName + ".part000001",
+				fileName + ".part000002",
+				fileName + manifestSuffix,
+			}, listObjectKeys(t, rawClient, minioBucket.settings.Bucket, fileName))
+			assert.Equal(t, persistedBytes, readWholeFile(t, minioBucket, fileName))
+		},
+	)
+
+	t.Run("returns an error after one request when a piece upload is denied", func(t *testing.T) {
+		rawClient, minioBucket := setupChunkedBucket(t)
+		refusedBucket, proxy := newRefusedBucket(t, minioBucket, providertest.RefusingProxySpec{
+			IsRefusable:  isPartUpload,
+			RefusalCount: 100,
+			Status:       http.StatusForbidden,
+			ContentType:  "application/xml",
+			Body:         s3ErrorBody(s3ErrCodeAccessDenied),
+		})
+
+		fileName := uuid.NewString()
+		err := refusedBucket.provider.SaveFile(
+			t.Context(),
+			refusedBucket.access(fileName),
+			bytes.NewReader(generateBytes(12*1024*1024)),
+		)
+
+		require.Error(t, err)
+		accessError, isAccessError := errors.AsType[minio.ErrorResponse](err)
+		require.True(t, isAccessError)
+		assert.Equal(t, s3ErrCodeAccessDenied, accessError.Code)
+		assert.Equal(t, 1, proxy.GetRefusableCount())
+		assert.Empty(t, listObjectKeys(t, rawClient, minioBucket.settings.Bucket, fileName))
+	})
+
+	t.Run("returns an error naming the piece and the attempts when refusals outlast the budget", func(t *testing.T) {
+		rawClient, minioBucket := setupChunkedBucket(t)
+		refusedBucket, proxy := newRefusedBucket(t, minioBucket, uncheckedRefusal(isPartUpload, 1000))
+		refusedBucket.provider.uploadRetry.MaxAttemptsWithoutProgress = 3
+
+		fileName := uuid.NewString()
+		err := refusedBucket.provider.SaveFile(
+			t.Context(),
+			refusedBucket.access(fileName),
+			bytes.NewReader(generateBytes(12*1024*1024)),
+		)
+
+		require.ErrorIs(t, err, io_utils.ErrRetryBudgetExhausted)
+		assert.Contains(t, err.Error(), fmt.Sprintf("part 1 of %s.part000001 failed after 4 attempts", fileName))
+		assert.Equal(t, 4, proxy.GetRefusableCount())
+		assert.Empty(t, listObjectKeys(t, rawClient, minioBucket.settings.Bucket, fileName))
+		assert.False(t, hasIncompleteUpload(t, rawClient, minioBucket.settings.Bucket, fileName+".part000001"))
+	})
+
+	t.Run("saves the file when every piece is refused and the refusals together exceed the budget", func(t *testing.T) {
+		rawClient, minioBucket := setupChunkedBucket(t)
+		refusalsPerPiece := &refusalsPerPiece{refusalsLeftByPiece: map[string]int{}, refusalsPerPiece: 4}
+		refusedBucket, proxy := newRefusedBucket(t, minioBucket, uncheckedRefusal(refusalsPerPiece.isRefusable, 1000))
+
+		persistedBytes := generateBytes(12 * 1024 * 1024)
+		fileName := uuid.NewString()
+
+		require.NoError(
+			t,
+			refusedBucket.provider.SaveFile(
+				t.Context(),
+				refusedBucket.access(fileName),
+				bytes.NewReader(persistedBytes),
+			),
+		)
+
+		// Twelve refusals in total, more than one request may spend, spread four per piece.
+		assert.Equal(t, 12, proxy.GetRefusableCount())
+		assert.Len(t, listObjectKeys(t, rawClient, minioBucket.settings.Bucket, fileName), 3)
+		assert.Equal(t, persistedBytes, readWholeFile(t, minioBucket, fileName))
+	})
+
+	t.Run("logs every repeat of a refused piece without the storage credentials", func(t *testing.T) {
+		_, minioBucket := setupChunkedBucket(t)
+		refusedBucket, _ := newRefusedBucket(t, minioBucket, uncheckedRefusal(isPartUpload, 2))
+
+		var logOutput bytes.Buffer
+		fileName := uuid.NewString()
+		fileAccess := refusedBucket.access(fileName)
+		fileAccess.Logger = slog.New(slog.NewJSONHandler(&logOutput, nil))
+
+		require.NoError(
+			t,
+			refusedBucket.provider.SaveFile(t.Context(), fileAccess, bytes.NewReader(generateBytes(12*1024*1024))),
+		)
+
+		var warnings []map[string]any
+		for line := range strings.Lines(logOutput.String()) {
+			var record map[string]any
+			require.NoError(t, json.Unmarshal([]byte(line), &record))
+
+			if record["level"] == "WARN" {
+				warnings = append(warnings, record)
+			}
+		}
+
+		require.Len(t, warnings, 2)
+
+		for index, warning := range warnings {
+			assert.Equal(t, "storage request refused, retrying", warning["msg"])
+			assert.Equal(t, "put_object_part", warning["request"])
+			assert.Equal(t, fileName+".part000001", warning["object_key"])
+			assert.InDelta(t, 1, warning["part_number"], 0)
+			assert.InDelta(t, index+1, warning["attempt"], 0)
+			assert.InDelta(t, 10, warning["max_attempts"], 0)
+		}
+
+		assert.NotContains(t, logOutput.String(), containers.MinioRootUser)
+		assert.NotContains(t, logOutput.String(), containers.MinioRootPassword)
+		assert.NotContains(t, logOutput.String(), "AWS4-HMAC-SHA256")
+		assert.NotContains(t, logOutput.String(), "Signature=")
+	})
+
+	t.Run("returns without waiting out the delay when cancelled before a repeat", func(t *testing.T) {
+		rawClient, minioBucket := setupChunkedBucket(t)
+		refusedBucket, _ := newRefusedBucket(t, minioBucket, uncheckedRefusal(isPartUpload, 1000))
+		refusedBucket.provider.uploadRetry.BaseDelay = time.Hour
+
+		uploadCtx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+
+		fileName := uuid.NewString()
+		fileAccess := refusedBucket.access(fileName)
+		fileAccess.Logger = slog.New(&cancelOnWarningHandler{cancel: cancel})
+
+		uploadStart := time.Now()
+		err := refusedBucket.provider.SaveFile(uploadCtx, fileAccess, bytes.NewReader(generateBytes(12*1024*1024)))
+
+		require.ErrorIs(t, err, context.Canceled)
+		assert.Less(t, time.Since(uploadStart), time.Minute)
+		assert.Empty(t, listObjectKeys(t, rawClient, minioBucket.settings.Bucket, fileName))
+	})
 }
 
 func TestTestConnection(t *testing.T) {
@@ -513,6 +736,115 @@ func setupChunkedBucket(t *testing.T) (*minio.Client, *testBucket) {
 
 	return rawClient, testedBucket
 }
+
+// newRefusedBucket reaches minioBucket through a proxy that answers the requests refusal matches,
+// with retry delays shrunk so a test does not wait out the production backoff.
+func newRefusedBucket(
+	t *testing.T,
+	minioBucket *testBucket,
+	refusal providertest.RefusingProxySpec,
+) (*testBucket, *providertest.RefusingProxy) {
+	t.Helper()
+
+	refusal.TargetURL = minioBucket.settings.Endpoint
+	proxy := providertest.StartRefusingProxy(t, refusal)
+
+	refusedBucket := newTestBucket(t, Settings{
+		Bucket:   minioBucket.settings.Bucket,
+		Region:   minioBucket.settings.Region,
+		Endpoint: proxy.URL,
+	})
+	refusedBucket.provider.partLayout = minioBucket.provider.partLayout
+	refusedBucket.provider.uploadRetry = io_utils.TransferRetryPolicySpec{
+		MaxAttemptsWithoutProgress: 0,
+		BaseDelay:                  time.Millisecond,
+	}
+
+	return refusedBucket, proxy
+}
+
+// uncheckedRefusal answers 507, a server error minio-go does not retry itself, so every refusal
+// reaches the upload's own repeats at once and the test does not wait out the library's pauses.
+func uncheckedRefusal(isRefusable func(r *http.Request) bool, refusalCount int) providertest.RefusingProxySpec {
+	return providertest.RefusingProxySpec{
+		TargetURL:    "",
+		IsRefusable:  isRefusable,
+		RefusalCount: refusalCount,
+		Status:       http.StatusInsufficientStorage,
+		ContentType:  "application/xml",
+		Body:         s3ErrorBody("InsufficientStorage"),
+	}
+}
+
+func s3ErrorBody(code string) string {
+	return fmt.Sprintf(
+		`<?xml version="1.0" encoding="UTF-8"?><Error><Code>%s</Code><Message>%s</Message></Error>`,
+		code,
+		code,
+	)
+}
+
+func isPartUpload(r *http.Request) bool {
+	return r.Method == http.MethodPut && r.URL.Query().Has("partNumber")
+}
+
+func isObjectWrite(fileName string) func(r *http.Request) bool {
+	return func(r *http.Request) bool {
+		return r.Method == http.MethodPut && strings.HasSuffix(r.URL.Path, "/"+fileName)
+	}
+}
+
+// refusalsPerPiece refuses every piece of an upload a fixed number of times, so the refusals of a
+// whole upload exceed what any single request may spend.
+type refusalsPerPiece struct {
+	mutex               sync.Mutex
+	refusalsLeftByPiece map[string]int
+	refusalsPerPiece    int
+}
+
+func (p *refusalsPerPiece) isRefusable(r *http.Request) bool {
+	if !isPartUpload(r) {
+		return false
+	}
+
+	pieceKey := r.URL.Path + "#" + r.URL.Query().Get("partNumber")
+
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	refusalsLeft, isKnownPiece := p.refusalsLeftByPiece[pieceKey]
+	if !isKnownPiece {
+		refusalsLeft = p.refusalsPerPiece
+	}
+
+	if refusalsLeft == 0 {
+		return false
+	}
+
+	p.refusalsLeftByPiece[pieceKey] = refusalsLeft - 1
+
+	return true
+}
+
+// cancelOnWarningHandler cancels the upload as soon as it logs a refused request, which is the
+// moment right before it waits to repeat it.
+type cancelOnWarningHandler struct {
+	cancel context.CancelFunc
+}
+
+func (h *cancelOnWarningHandler) Enabled(context.Context, slog.Level) bool { return true }
+
+func (h *cancelOnWarningHandler) Handle(_ context.Context, record slog.Record) error {
+	if record.Level == slog.LevelWarn {
+		h.cancel()
+	}
+
+	return nil
+}
+
+func (h *cancelOnWarningHandler) WithAttrs([]slog.Attr) slog.Handler { return h }
+
+func (h *cancelOnWarningHandler) WithGroup(string) slog.Handler { return h }
 
 func newStubBucket(t *testing.T, server *httptest.Server) *testBucket {
 	t.Helper()

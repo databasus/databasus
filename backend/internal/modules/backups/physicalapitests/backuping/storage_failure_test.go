@@ -11,8 +11,9 @@ import (
 	apiclient "databasus-backend/internal/lib/apiclient"
 )
 
-func (team *backupTeam) useUnreachableStorage(t *testing.T) {
+func (team *backupTeam) useDenyingStorage(t *testing.T) {
 	t.Helper()
+
 	var settings apiclient.StorageSettings
 	require.NoError(
 		t,
@@ -21,7 +22,7 @@ func (team *backupTeam) useUnreachableStorage(t *testing.T) {
 				Type:        apiclient.S3StorageSettingsTypeS3,
 				S3Bucket:    "backups",
 				S3Region:    new("us-east-1"),
-				S3Endpoint:  new("http://127.0.0.1:1"),
+				S3Endpoint:  new(apptest.StartDenyingS3(t)),
 				S3AccessKey: new("test-access"),
 				S3SecretKey: new("test-secret"),
 			},
@@ -30,7 +31,7 @@ func (team *backupTeam) useUnreachableStorage(t *testing.T) {
 
 	response, err := team.Owner.Client.CreateStorageWithResponse(
 		t.Context(),
-		apiclient.StorageCreate{Name: "Unavailable S3", WorkspaceId: team.Database.WorkspaceId, Settings: settings},
+		apiclient.StorageCreate{Name: "Denying S3", WorkspaceId: team.Database.WorkspaceId, Settings: settings},
 	)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusCreated, response.StatusCode(), "%s", response.Body)
@@ -46,11 +47,11 @@ func (team *backupTeam) useUnreachableStorage(t *testing.T) {
 func TestPhysicalBackupStorageFailure(t *testing.T) {
 	t.Parallel()
 
-	t.Run("reports storage upload failure when the S3 endpoint cannot be reached", func(t *testing.T) {
+	t.Run("reports storage upload failure when the S3 storage denies the upload", func(t *testing.T) {
 		t.Parallel()
 
 		team := newBackupTeam(t, backupTeamSpec{})
-		team.useUnreachableStorage(t)
+		team.useDenyingStorage(t)
 
 		backup := team.runBackup(t, "full")
 		require.Equal(t, "ERROR", backup.Status)

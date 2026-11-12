@@ -30,6 +30,7 @@ type (
 		IsMtls    bool
 	}
 	backupTeamSpec struct {
+		SourceEndpoint              *containers.Endpoint
 		Image                       string
 		ClientToolsDir              string
 		BackupType                  apiclient.PhysicalBackupType
@@ -49,9 +50,12 @@ func newBackupTeam(t *testing.T, spec backupTeamSpec, options ...apptest.Option)
 	}
 
 	var source containers.Endpoint
-	if spec.IsMtls {
+	switch {
+	case spec.SourceEndpoint != nil:
+		source = *spec.SourceEndpoint
+	case spec.IsMtls:
 		source = containers.StartPhysicalPostgresMtls(t, mtlsDirectory(t))
-	} else if !spec.IsBastioned {
+	case !spec.IsBastioned:
 		source = containers.StartPhysicalPostgres(t, image)
 	}
 

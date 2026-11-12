@@ -2,7 +2,7 @@
 
 The interface ships in English, Russian, Spanish, Portuguese (Brazilian), Chinese (Simplified), French and Indonesian, through `i18next` and `react-i18next`. A language switch changes words and number grouping immediately, without remounting providers, screens or drafts. Clock and date conventions follow the browser region instead.
 
-Everything lives in `shared/i18n`. `LocaleProvider.tsx` owns the i18next instance, the selected locale and the dayjs language, and the document language and title follow the same selection. `ControlLocalization.tsx` applies translated Mantine control labels and calendar language without remounting controls; regional date order and the clock format still follow the browser.
+The [shared localization layer](../frontend/src/shared/i18n) owns the selected language, dictionaries, library integration and translated control labels. The document language and title follow the same selection. Updating language never remounts controls; date order and clock format still follow the browser region.
 
 ## User-facing copy
 
@@ -16,7 +16,7 @@ Everything lives in `shared/i18n`. `LocaleProvider.tsx` owns the i18next instanc
 - English (`locales/en.ts`) defines the keys. Every other dictionary is typed `typeof en`, so a missing or leftover key fails `pnpm build`, and a language cannot ship partly translated.
 - Each dictionary is one object literal in one file. TypeScript's check for leftover keys works only on a literal written in place, so a nested object passed through a variable or a spread escapes it.
 - Keys are grouped by domain (`backups`, `databases`, `storages`, `status`, `errors`, `common`, ...), so moving a component does not rename its keys.
-- `dictionaries.test.ts` checks that every translation uses the same `{{placeholders}}` and `Trans` tags as English.
+- Dictionary checks require every translation to use the same placeholders and markup tags as English.
 
 ## Rules for code
 
@@ -29,30 +29,27 @@ Everything lives in `shared/i18n`. `LocaleProvider.tsx` owns the i18next instanc
 
 ### Reading text
 
-- Components read text with `const { t } = useTranslation()` from `react-i18next`.
-- Code outside components holds keys. A constant or parser that called `t()` would freeze the language active when it ran. It stores a `TranslationKey`, or a `LocalizedText` (`{ key, params }`) when the message has parameters. The component translates while rendering (`t(key)`, `translateLocalizedText(text, t)`).
-- State follows the same rule: it holds an error or a key, and the text is translated while rendering.
-- Every enum shown to the user has a label table `<TYPE>_LABEL_KEYS: Record<Enum, TranslationKey>` next to its type, exported through the slice's `index.ts`. Never build a key from a value (``t(`status.${value}`)``), because adding an enum member must fail the build.
+- Translate during rendering through the active language context. Code outside rendering and persistent state hold typed keys, error data or keys with parameters; translating them early would freeze the language.
+- Displayed enums have exhaustive, typed label-key tables beside their domain type, exposed through the slice's public API. Never build a key dynamically from a value: adding an enum member must reveal a missing label at build time.
 
 ### Sentences
 
-- Sentences stay whole. A sentence with inline markup is one key with named tags in the dictionary (`Run <code>pg_dump</code> first`), rendered through `<Trans i18nKey="..." components={{ code: <InlineCodeComponent />, bold: <strong />, docsLink: <a href={...} /> }} />`.
-- Use `<TransByKey>` from `shared/i18n` when the key is held in a variable, because `Trans` cannot type-check the whole key union.
+- Sentences stay whole. A sentence with inline markup is one dictionary key with named tags, such as `Run <code>pg_dump</code> first`. Render it through typed shared localization primitives; variable keys need the same type safety as literal keys.
 - Values are interpolated into a whole sentence (`'Delete {{name}}?'`), never concatenated with translated fragments. When the inserted word would inflect in other languages, each value gets its own sentence key.
 - A user-entered value in a `Trans` sentence, such as a workspace name, is a self-closing tag, and the supplied element holds the value: dictionary `Delete <workspaceName/>?`, component `components={{ workspaceName: <strong>{name}</strong> }}`. Never pass it through `values`, because `Trans` would expand placeholder syntax inside it.
-- Inline code in prose goes through `InlineCodeComponent` from `shared/ui`. A monospace font alone does not set code apart from the text around it.
+- Inline code uses the shared presentation primitive. A monospace font alone does not set code apart from surrounding text.
 - Counts are phrased so one string fits every number: `Members: {{count}}`, not `{{count}} members`. The dictionaries have no plural forms, because Russian's `_few` would be a stray key under `typeof en`.
 - Translated text is never rendered as HTML. No `dangerouslySetInnerHTML`.
 
 ### Formatting, errors and links
 
-- Locale-dependent output comes from hooks, so a language switch re-renders it: `useTranslation` for text, and `useLocale()` for `formatNumber` (instead of `toLocaleString()`) and `formatRelativeTime` (instead of dayjs `fromNow()`).
-- API errors reach the user only through `translateApiError(error, t)`. It picks the text by the error's `code`. Every `code` the contract declares has a translation. Never show `error.message` or the backend's text directly.
-- Links to databasus.com pages go through `getWebsitePageUrl(pageId, locale)` with a page from `WEBSITE_PAGES`. The link opens the page in the selected language when the website publishes it.
+- Text, number and relative-time formatting use the active shared locale context, so a language switch re-renders them. Bare browser or date-library formatting can select the wrong language.
+- API errors use the shared translator and the error's machine-readable code. Every contract-declared code has a translation; raw backend messages never become interface copy.
+- Website links use the shared page registry and locale-aware URL builder, selecting the published translation when available.
 
 ## Clock format and date order
 
-`shared/time/getUserTimeFormat.ts` reads `navigator.language` on purpose. The 12- or 24-hour clock and the day and month order are regional conventions. The browser reports the user's region, and the language selection only sets the words. A bare `toLocaleString()` is not allowed, because digit grouping follows the selected language.
+The browser's regional locale determines the 12- or 24-hour clock and date order. The interface language determines words and number grouping. Keep those choices separate through the shared time and localization layers rather than using a bare `toLocaleString()`.
 
 ## Errors and notice lifetimes
 

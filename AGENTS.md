@@ -228,13 +228,23 @@ When an edit in one place affects others, update every affected place in the sam
 
 Agent instructions are the git-tracked `AGENTS.md` files and the repository's own skills under `.agents/skills`, that is every skill except the generated `openspec-*`. They hold principles and conventions that change how the agent behaves and outlive the next feature, not the implementation. An instruction changes when a rule changes, not when the code it points to changes. It may hold a table of documents with the topic of each, a table of commands with the purpose of each, the stack of a part, a link to a file as an example or a source of values, and one sentence saying that a linter enforces a rule.
 
-Everything else lives next to what it describes:
+Shared documents in `docs/` explain lasting concepts: system boundaries, ownership, cross-cutting invariants, architectural reasons, domain vocabulary and procedures readers need to perform. Update them when those concepts or procedures change. An internal rename or a new implementation mechanism alone is not a reason to add or revise a shared explanation.
+
+Do not duplicate helper catalogs, signatures, fixture algorithms, dependency selections or reports of individual verification runs in shared documents. Keep a concrete name, path, command or configuration example when it identifies an architectural boundary, prevents ambiguity, locates an authoritative source or makes a procedure actionable. A glossary defines concepts rather than indexing internal identifiers.
+
+Remove redundant prose rather than moving it wholesale. Necessary implementation-only instructions belong with the owning code or tool. Preserve architectural rules and reasons, security and access constraints, recovery limitations and the limits of claimed support or verification when shortening a document. Keep security exceptions traceable. Stability never excuses a stale command or a broken reference.
+
+Information lives with its authoritative owner:
 
 | What | Where |
 |---|---|
 | Inventories of what exists: features, endpoints, checks, tools | the code, the generated API description, the program's README |
-| The state of the code, "currently" and "for now" statements about it | the code and its comments, `docs/` |
-| How a process, module, command or deployment works; helper signatures and options | the code and its comments, `docs/`, `README.md` |
+| Internal code structure, helper signatures, algorithms and implementation usage | the owning source and, when necessary, its local README |
+| Lasting concepts, boundaries, invariants and domain vocabulary | `docs/` |
+| Procedures readers need to run, configure or maintain the system | the relevant guide in `docs/` or the owning program's README |
+| Dependency selections and version pins | manifests, lock files and the owning bundle's records |
+| Product behavior and acceptance criteria | OpenSpec specs |
+| Decisions and verification evidence for one change | that OpenSpec change's artifacts |
 | Why an architectural choice was made | `docs/architecture.md`, next to the rule it explains |
 | How the review hooks work | the docstring and comments of `.agent-hooks/review_gate.py`, the prompts `.agent-hooks/*-prompt.md`, the specs `openspec/specs/implementation-review` and `openspec/specs/proposal-review` |
 | The sections of a document | the document itself |

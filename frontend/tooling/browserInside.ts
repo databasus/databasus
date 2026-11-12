@@ -6,6 +6,15 @@ import { preview } from 'vite';
 import { runChild } from './runChild.ts';
 import { verifyBrowserProbes } from './verifyBrowserProbes.ts';
 
+const getRequiredWorkerCount = () => {
+  const workerCount = process.env.BROWSER_WORKERS;
+  if (!workerCount || !/^[1-9][0-9]*$/.test(workerCount))
+    throw new Error('The browser runner must pass a positive BROWSER_WORKERS count');
+
+  return workerCount;
+};
+
+const workerCount = getRequiredWorkerCount();
 const environment = JSON.parse(await readFile('browser/environment.json', 'utf8'));
 if (
   process.versions.node !== environment.nodeVersion ||
@@ -33,6 +42,7 @@ try {
     'playwright',
     'test',
     '--project=ui',
+    `--workers=${workerCount}`,
     ...(process.env.BROWSER_SHARD ? [`--shard=${process.env.BROWSER_SHARD}`] : []),
   ]);
 } finally {

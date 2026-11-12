@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
-	"databasus-backend/internal/app/apptest/enginetest"
 	apiclient "databasus-backend/internal/lib/apiclient"
 	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/lib/testwait"
@@ -20,14 +19,9 @@ func RunTimelineHistory(t *testing.T, image string) {
 
 	team := newTeam(t)
 	primary, standby := containers.StartPhysicalPrimaryWithStandby(t, image)
-	team.createDatabase(
-		t,
-		physicalDatabaseSpec{
-			Endpoint:   standby,
-			BackupType: apiclient.PhysicalBackupTypeFULLINCREMENTALWALSTREAM,
-			Tunnel:     enginetest.NewDisabledSSHTunnelSettings(),
-		},
-	)
+	team.createPromotionDatabase(t, promotionSourceSpec{
+		Primary: primary, Standby: standby, BackupType: apiclient.PhysicalBackupTypeFULLINCREMENTALWALSTREAM,
+	})
 	primaryConn := openConnAt(t, primary.Host, primary.Port)
 	standbyConn := openConnAt(t, standby.Host, standby.Port)
 	createMarkerTable(t, primaryConn)
@@ -41,6 +35,7 @@ func RunTimelineHistory(t *testing.T, image string) {
 	insertMarker(t, standbyConn, markerRow{Phase: "tl2-row", Payload: "row-on-tl2"})
 	generateWalActivity(t, standbyConn, 16*1024*1024)
 	team.waitForTimelineHistory(t, 2)
+	team.requirePublishedTimelineHistory(t, standbyConn)
 }
 
 func (team Team) waitForTimelineHistory(t *testing.T, timelineID int) {
@@ -67,14 +62,9 @@ func RunPromotionReanchorsChain(t *testing.T, image string) {
 
 	team := newTeam(t)
 	primary, standby := containers.StartPhysicalPrimaryWithStandby(t, image)
-	team.createDatabase(
-		t,
-		physicalDatabaseSpec{
-			Endpoint:   standby,
-			BackupType: apiclient.PhysicalBackupTypeFULLINCREMENTALWALSTREAM,
-			Tunnel:     enginetest.NewDisabledSSHTunnelSettings(),
-		},
-	)
+	team.createPromotionDatabase(t, promotionSourceSpec{
+		Primary: primary, Standby: standby, BackupType: apiclient.PhysicalBackupTypeFULLINCREMENTALWALSTREAM,
+	})
 	target := prepareRestoreTarget(t, image)
 	primaryConn := openConnAt(t, primary.Host, primary.Port)
 	standbyConn := openConnAt(t, standby.Host, standby.Port)
@@ -89,14 +79,24 @@ func RunPromotionReanchorsChain(t *testing.T, image string) {
 	insertMarker(t, standbyConn, markerRow{Phase: "after-promotion", Payload: "row-after-promotion"})
 	generateWalActivity(t, standbyConn, 16*1024*1024)
 	team.waitForTimelineHistory(t, 2)
+	team.requirePublishedTimelineHistory(t, standbyConn)
 	team.triggerIncremental(t)
 	team.waitForReanchoredFull(t, initialFullID, 2)
+	insertMarker(t, standbyConn, markerRow{Phase: "after-replacement-full", Payload: "row-from-wal"})
+	replacementChain := []backupRow{team.listBackups(t, "FULL")[0]}
+	team.streamPostFullSegments(t, standbyConn, walArchiveSpec{Chain: replacementChain, Count: 2})
+	team.waitForReplayableThroughLSN(t, replacementChain, currentLSN(t, standbyConn))
+	team.requireRestrictedPromotionRole(t)
 
 	team.App.RunJobPass(t, "backups_physical_cleaner")
 	bundle := team.downloadRestoreBundle(t, nil)
 	reconstructCluster(t, target, restoreSpec{App: team.App, Image: image, BundlePath: bundle, TargetTime: nil})
 	startRestoredCluster(t, target, image)
-	assert.ElementsMatch(t, []string{"before-promotion", "after-promotion"}, queryRestoredMarkerRows(t, target))
+	assert.ElementsMatch(
+		t,
+		[]string{"before-promotion", "after-promotion", "after-replacement-full"},
+		queryRestoredMarkerRows(t, target),
+	)
 }
 
 func (team Team) waitForReanchoredFull(t *testing.T, staleFullID uuid.UUID, timelineID int) {

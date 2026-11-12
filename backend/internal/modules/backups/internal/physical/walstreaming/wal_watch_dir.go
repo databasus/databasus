@@ -78,17 +78,8 @@ func (s *Streamer) archiveTimelineHistoryFile(ctx context.Context, logger *slog.
 		return
 	}
 
-	conn, err := pgphysical.NewSource(s.spec.SourceDB.Engine).OpenInspection(ctx)
-	if err != nil {
-		logger.WarnContext(ctx, "could not open connection to upload history file; will retry", slog.Any("error", err))
-
-		return
-	}
-	defer func() { _ = conn.Close(context.WithoutCancel(ctx)) }()
-
 	if _, err := timelines.UploadHistoryFile(ctx, timelines.HistoryUploadSpec{
 		Publication: s.spec.Publication, Clock: s.spec.Clock, Transactor: s.spec.Transactor,
-		Inspection:  conn,
 		TimelineID:  timelineID,
 		FileStore:   s.spec.FileStore,
 		SourceDB:    s.spec.SourceDB,

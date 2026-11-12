@@ -13,6 +13,7 @@ from pathlib import Path
 from compose_project import POSTGRES_IMAGE, ComposeProject, list_remaining_resources
 from container_logs import ContainerLogSource, get_container_log_output
 from leftover_sweep import sweep_dead_runs
+from network_subnet import start_with_free_subnet
 from output_masking import OutputMask
 from recovery_image import get_archived_image_id
 from supervisor_file import (
@@ -136,15 +137,23 @@ class Supervisor:
             self._report("E2E recovery image preparation failed")
             return EXIT_FAILED
 
-        up_exit_code = self._run_masked(
-            self.project.get_command("up", "--detach", "--wait", "--quiet-pull"),
-            environment=self.project.get_environment(),
-        )
+        up_exit_code = start_with_free_subnet(self._start_project)
         if up_exit_code != 0:
             self._report("E2E start-up failed")
             return EXIT_FAILED
 
         return self._run_scenarios()
+
+    def _start_project(self, network_subnet: str) -> tuple[int, list[str]]:
+        self.project = replace(self.project, network_subnet=network_subnet)
+        output_lines: list[str] = []
+        exit_code = self._run_masked(
+            self.project.get_command("up", "--detach", "--wait", "--quiet-pull"),
+            environment=self.project.get_environment(),
+            output_lines=output_lines,
+        )
+
+        return exit_code, output_lines
 
     def _prepare_recovery_image(self) -> bool:
         inspection = subprocess.run(
@@ -272,6 +281,7 @@ class Supervisor:
         command: list[str],
         environment: dict[str, str] | None = None,
         working_directory: Path | None = None,
+        output_lines: list[str] | None = None,
     ) -> int:
         # The suite requires Python 3.14 or newer, which supports the errors argument.
         # nosemgrep: python.lang.compatibility.python36.python36-compatibility-Popen1
@@ -291,6 +301,8 @@ class Supervisor:
         try:
             for line in child.stdout:
                 self._report(line.rstrip("\n"))
+                if output_lines is not None:
+                    output_lines.append(line)
 
             return child.wait()
         except RunInterrupted:

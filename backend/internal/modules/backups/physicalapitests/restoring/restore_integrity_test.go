@@ -34,12 +34,17 @@ func TestPhysicalRestoreIntegrity(t *testing.T) {
 			catalog.publish(t, *full.ManifestFileName, manifestBody)
 			catalog.App.ExecuteSQL(
 				t,
-				"UPDATE backups_physical SET backup_size_mb=? WHERE id=?",
+				"UPDATE backups_physical SET timeline_id=2,backup_size_mb=? WHERE id=?",
 				float64(len(fullArtifact))/(1024*1024),
 				full.ID,
 			)
 
 			wal := catalog.seedRestoreWal(t, restoreWalSpec{Segment: 3, ReceivedAt: timeline.at(5)})
+			catalog.App.ExecuteSQL(
+				t,
+				"UPDATE backups_physical_wal_segments SET timeline_id=2,wal_filename='000000020000000000000003' WHERE id=?",
+				wal.ID,
+			)
 			walCompressed := zstdBytes(t, []byte("WALSEGMENT-0003-"))
 			catalog.publish(t, *wal.FileName, walCompressed)
 
@@ -61,11 +66,11 @@ func TestPhysicalRestoreIntegrity(t *testing.T) {
 
 			assert.Equal(t, string(fullArtifact), entries["full/base.tar.zst"])
 			assert.Equal(t, string(manifestBody), entries["full/backup_manifest"])
-			assert.Equal(t, string(walCompressed), entries["wal/000000010000000000000003.zst"])
+			assert.Equal(t, string(walCompressed), entries["wal/000000020000000000000003.zst"])
 			assert.Equal(t, historyBody, entries["wal/00000002.history"])
 			manifestLines := entries["MANIFEST.sha256"]
 			require.Contains(t, manifestLines, sha256Hex(string(fullArtifact))+"  full/base.tar.zst")
-			require.Contains(t, manifestLines, sha256Hex(string(walCompressed))+"  wal/000000010000000000000003.zst")
+			require.Contains(t, manifestLines, sha256Hex(string(walCompressed))+"  wal/000000020000000000000003.zst")
 			require.NotContains(t, manifestLines, "MANIFEST.sha256")
 		},
 	)

@@ -82,7 +82,7 @@ func Test_DemoteFatalExitWhenBastionUnreachable_WhenTheBastionIsReachable_Leaves
 func Test_DemoteFatalExitWhenBastionUnreachable_WhenTheExitIsNotFatal_LeavesTheExitUnchanged(
 	t *testing.T,
 ) {
-	for _, exit := range []receiverExit{receiverCtxCancelled, receiverRetryable, receiverInternalRestart} {
+	for _, exit := range []receiverExit{receiverCtxCancelled, receiverRetryable, receiverInternalRestart, receiverResumeMismatch, receiverIdentityMismatch} {
 		judgedRun := demoteFatalExitWhenBastionUnreachable(
 			t.Context(),
 			slog.New(slog.DiscardHandler),

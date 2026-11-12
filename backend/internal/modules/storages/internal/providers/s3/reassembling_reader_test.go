@@ -311,7 +311,7 @@ func TestReadChunkedStream(t *testing.T) {
 
 		_, err := io.ReadAll(reader)
 
-		require.ErrorIs(t, err, io_utils.ErrReadRetryBudgetExhausted)
+		require.ErrorIs(t, err, io_utils.ErrRetryBudgetExhausted)
 		assert.Equal(t, 3, transport.attempts, "the first attempt plus the two retries the budget allows")
 	})
 
@@ -350,7 +350,7 @@ func TestReadChunkedStream(t *testing.T) {
 		require.ErrorIs(
 			t,
 			err,
-			io_utils.ErrReadRetryBudgetExhausted,
+			io_utils.ErrRetryBudgetExhausted,
 			"bytes delivered by an earlier attempt must not keep crediting later re-open failures with progress",
 		)
 	})

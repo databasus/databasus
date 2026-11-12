@@ -7,6 +7,7 @@ from collections.abc import Iterator
 
 import pytest
 from lifecycle.run_cleanup import register_run_cleanup as register_run_cleanup
+from lifecycle_suite import CRASHED_RUN_MARKER
 from public_command import REPOSITORY_ROOT, stop_live_runs
 from supervisor_file import (
     SupervisorRecord,
@@ -26,9 +27,22 @@ UNRELATED_READY_LIMIT_SECONDS = 60
 UNRELATED_POLL_SECONDS = 0.5
 
 
-def pytest_configure() -> None:
+def pytest_configure(config: pytest.Config) -> None:
+    config.addinivalue_line(
+        "markers",
+        f"{CRASHED_RUN_MARKER}: leaves a crashed run behind, so it runs while its caller starts no other run",
+    )
     if os.environ.get("CI") and not os.environ.get(IMAGE_VARIABLE):
         pytest.exit(f"E2E lifecycle refuses to run in CI without {IMAGE_VARIABLE}", returncode=1)
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    """Runs before marker selection, so a probe that requests the run teardown fixture is selected
+    as a crashed-run probe."""
+    for item in items:
+        if "register_run_cleanup" in getattr(item, "fixturenames", ()):
+            item.add_marker(CRASHED_RUN_MARKER)
 
 
 def _raise_interrupt(_signal_number: int, _frame: object) -> None:

@@ -21,5 +21,6 @@ type WalSegmentMetadata struct {
 	EncryptionSalt string           `json:"encryptionSalt,omitempty"`
 	EncryptionIV   string           `json:"encryptionIv,omitempty"`
 
-	ReceivedAt time.Time `json:"receivedAt"`
+	ReceivedAt        time.Time  `json:"receivedAt"`
+	LastTransactionAt *time.Time `json:"lastTransactionAt"`
 }

@@ -3,7 +3,7 @@ package iox
 import "errors"
 
 var (
-	ErrReadRetryBudgetExhausted = errors.New("read retries exhausted")
+	ErrRetryBudgetExhausted = errors.New("transfer retries exhausted")
 
 	ErrReaderClosed = errors.New("reader is closed")
 

@@ -13,7 +13,14 @@ if [[ -z "$previous_release" ]]; then
     exit 1
 fi
 if [[ -z "${DATABASUS_IMAGE:-}" ]]; then
-    export DATABASUS_IMAGE=databasus-candidate:local
+    # A tag unique to the run keeps overlapping upgrade tests from replacing each other's image, and the
+    # run removes it after success, failure or interruption. A named image is never removed.
+    built_image="databasus-upgrade-test:${DATABASUS_TEST_RUN_ID:-$(date +%s)-$$-$RANDOM}"
+    trap 'docker image rm "$built_image" >/dev/null 2>&1 || true' EXIT
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
+    export DATABASUS_IMAGE=$built_image
+    echo "building ${DATABASUS_IMAGE}"
     docker build --tag "$DATABASUS_IMAGE" ..
 fi
 export DATABASUS_PREVIOUS_IMAGE="databasus/databasus:${previous_release}"

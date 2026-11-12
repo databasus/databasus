@@ -182,7 +182,10 @@ type Streamer struct {
 	lowestQueuedSegmentMutex sync.Mutex
 	lowestQueuedSegment      *walPosition
 
-	latestProbe atomic.Pointer[timedSlotProbe]
+	latestProbe             atomic.Pointer[timedSlotProbe]
+	sourceIdentityMu        sync.Mutex
+	sourceIdentityErr       error
+	cancelForSourceIdentity context.CancelFunc
 }
 
 func NewStreamer(spec WalStreamSpec) *Streamer {
@@ -204,6 +207,8 @@ func NewStreamer(spec WalStreamSpec) *Streamer {
 		MasterKey:           spec.MasterKey,
 		WalSegmentRepo:      spec.WalSegmentRepo,
 		WalSegmentSizeBytes: walSegmentSizeBytes(spec.SourceDB),
+		ClientTools:         spec.ClientTools,
+		Version:             spec.SourceDB.Version,
 		Logger:              scopedLogger,
 		WatchDir:            watchDir,
 		OnGapDetected:       spec.OnGapDetected,
@@ -229,6 +234,9 @@ func NewStreamer(spec WalStreamSpec) *Streamer {
 
 func (s *Streamer) Run(ctx context.Context) error {
 	logger := s.logger
+	runCtx, cancelRun := context.WithCancel(ctx)
+	s.cancelForSourceIdentity = cancelRun
+	defer cancelRun()
 
 	if err := os.MkdirAll(filepath.Join(s.watchDir, "archive_status"), 0o700); err != nil {
 		return fmt.Errorf("create wal watch dir: %w", err)
@@ -251,9 +259,6 @@ func (s *Streamer) Run(ctx context.Context) error {
 	s.removePartials(ctx, logger)
 	s.recoverLocalSegmentsOnStartup(ctx, logger)
 
-	runCtx, cancelRun := context.WithCancel(ctx)
-	defer cancelRun()
-
 	runs := background.New(background.Deps{Logger: logger})
 
 	for _, loop := range []func(context.Context, *slog.Logger){
@@ -270,6 +275,11 @@ func (s *Streamer) Run(ctx context.Context) error {
 
 	cancelRun()
 	_ = runs.Wait(context.WithoutCancel(ctx))
+	s.sourceIdentityMu.Lock()
+	if s.sourceIdentityErr != nil {
+		fatalErr = s.sourceIdentityErr
+	}
+	s.sourceIdentityMu.Unlock()
 
 	if errors.Is(fatalErr, errStreamedDatabaseDeleted) {
 		logger.InfoContext(ctx, "wal streamer stopped because the database is deleted")
@@ -338,7 +348,7 @@ func (s *Streamer) runReceivewalSupervision(ctx context.Context, logger *slog.Lo
 			return nil
 
 		case receiverRetryable:
-		case receiverFatal:
+		case receiverFatal, receiverIdentityMismatch:
 			return receiverRun.FatalErr
 
 		case receiverInternalRestart:

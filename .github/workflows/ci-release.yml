@@ -667,6 +667,36 @@ jobs:
           - group: physical-3-of-3
             arch: arm64
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
+          - group: patroni-1-of-5
+            arch: amd64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
+          - group: patroni-1-of-5
+            arch: arm64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
+          - group: patroni-2-of-5
+            arch: amd64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
+          - group: patroni-2-of-5
+            arch: arm64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
+          - group: patroni-3-of-5
+            arch: amd64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
+          - group: patroni-3-of-5
+            arch: arm64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
+          - group: patroni-4-of-5
+            arch: amd64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
+          - group: patroni-4-of-5
+            arch: arm64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
+          - group: patroni-5-of-5
+            arch: amd64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
+          - group: patroni-5-of-5
+            arch: arm64
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
           - group: physical-api-1-of-3
             arch: amd64
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64

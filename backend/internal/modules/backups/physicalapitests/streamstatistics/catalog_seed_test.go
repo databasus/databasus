@@ -114,6 +114,11 @@ func (catalog *catalogFixture) insertWal(
 	seed *apptest.PhysicalWalSegmentSeed,
 ) *apptest.PhysicalWalSegmentSeed {
 	t.Helper()
+
+	if seed.LastTransactionAt == nil {
+		seed.LastTransactionAt = new(seed.ReceivedAt.Add(time.Microsecond))
+	}
+
 	*seed = catalog.App.InsertPhysicalWalSegment(t, *seed)
 	return seed
 }

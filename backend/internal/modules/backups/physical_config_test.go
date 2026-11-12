@@ -260,7 +260,7 @@ func TestSavePhysicalBackupConfig(t *testing.T) {
 			WHERE database_id = ? AND incremental_interval_type = ''`, physicalDatabase.Id))
 	})
 
-	t.Run("stops the WAL streamer when the database switches off WAL streaming", func(t *testing.T) {
+	t.Run("retains the streamer claim when the database switches off WAL streaming", func(t *testing.T) {
 		tm := newTeam(t)
 		physicalDatabase := tm.createPhysicalDatabase(t, physicalServer,
 			apiclient.PhysicalBackupTypeFULLINCREMENTALWALSTREAM)
@@ -269,7 +269,7 @@ func TestSavePhysicalBackupConfig(t *testing.T) {
 
 		switchPhysicalBackupType(t, tm, physicalDatabase, apiclient.PhysicalBackupTypeFULLINCREMENTAL)
 
-		assert.Zero(t, countRows(t, tm,
+		assert.Equal(t, 1, countRows(t, tm,
 			"SELECT COUNT(*) FROM backups_physical_wal_streamers WHERE database_id = ?", physicalDatabase.Id))
 	})
 
