@@ -22,5 +22,7 @@ RUN curl --fail --location --output /tmp/haproxy.tar.gz https://www.haproxy.org/
 COPY start.sh /usr/local/bin/start-patroni
 ENV PATH="/opt/patroni/bin:${PATH}"
 
-# The inherited volume needs ownership repair before Patroni can initialize PostgreSQL.
+# The inherited volume needs ownership repair before Patroni can initialize PostgreSQL;
+# start.sh then drops to the postgres user with gosu.
+# nosemgrep: dockerfile.security.missing-user-entrypoint.missing-user-entrypoint
 ENTRYPOINT ["sh", "/usr/local/bin/start-patroni"]
