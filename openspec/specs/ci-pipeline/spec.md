@@ -22,9 +22,9 @@ When CI runs the backend lint and the backend tests for a commit, the backend te
 
 ### Requirement: The backend suite runs as whole and sharded groups that cover every test once
 
-For each required processor architecture, CI SHALL run the backend suite as separate checks on separate runners without introducing dependencies between the groups. The `physical` group SHALL run physical backup end-to-end tests except the Patroni suite, and `logical` SHALL run logical backup end-to-end tests. The `patroni` group SHALL select only the Patroni physical backup suite and the packages nested under it, including newly added ones without a CI configuration change. The `physical-api` group SHALL select the physical-backup API test subtree, including newly added packages without a CI configuration change. The `agent-e2e` group SHALL select the verification agent's Docker end-to-end test subtree, including newly added packages without a CI configuration change. The `storage-providers` group SHALL select only the root storage-provider test package. The `other` group SHALL select from the whole backend module and run all remaining packages except that root package, the upgrade suite and its comparison helper. Every package other than the two upgrade packages SHALL belong to exactly one logical group on each architecture, with only the explicitly unavailable version scenarios excluded on arm64. New packages outside the named groups SHALL join `other` automatically, including nested storage-provider packages. A new package of physical backup end-to-end tests SHALL join `physical` automatically.
+For each required processor architecture, CI SHALL run the backend suite as separate checks on separate runners without introducing dependencies between the groups. The `physical` group SHALL run physical backup end-to-end tests except the Patroni and CloudNativePG suites, and `logical` SHALL run logical backup end-to-end tests. The `patroni` group SHALL select only the Patroni physical backup suite and the packages nested under it, including newly added ones without a CI configuration change. The `cnpg` group SHALL select only the CloudNativePG physical backup suite and the packages nested under it, including newly added ones without a CI configuration change. The `physical-api` group SHALL select the physical-backup API test subtree, including newly added packages without a CI configuration change. The `agent-e2e` group SHALL select the verification agent's Docker end-to-end test subtree, including newly added packages without a CI configuration change. The `storage-providers` group SHALL select only the root storage-provider test package. The `other` group SHALL select from the whole backend module and run all remaining packages except that root package, the upgrade suite and its comparison helper. Every package other than the two upgrade packages SHALL belong to exactly one logical group on each architecture, with only the explicitly unavailable version scenarios excluded on arm64. New packages outside the named groups SHALL join `other` automatically, including nested storage-provider packages. A new package of physical backup end-to-end tests SHALL join `physical` automatically.
 
-Every top-level test of a sharded group's packages SHALL be assigned to exactly one shard per architecture. New tests SHALL join a shard without a CI configuration change. The same sources and duration weights SHALL produce the same shard assignment regardless of runner locale. Missing or stale recorded durations SHALL affect assignment only, never inclusion. Every check SHALL have the tools its tests invoke at repository-pinned versions. `physical`, `physical-api` and `other` SHALL each have three shards, and `patroni` SHALL have five; `logical`, `agent-e2e` and `storage-providers` SHALL run whole on both architectures. The Patroni backup scenarios SHALL be divided into several top-level tests, each with a recorded duration weight, so that no single top-level test holds the whole scenario matrix and every `patroni` shard receives a part of it. The `storage-providers` check SHALL run its complete package alone on its runner with one package and one scenario at a time, retaining race detection and failure propagation.
+Every top-level test of a sharded group's packages SHALL be assigned to exactly one shard per architecture. New tests SHALL join a shard without a CI configuration change. The same sources and duration weights SHALL produce the same shard assignment regardless of runner locale. Missing or stale recorded durations SHALL affect assignment only, never inclusion. Every check SHALL have the tools its tests invoke at repository-pinned versions. `physical`, `physical-api` and `other` SHALL each have three shards, `patroni` SHALL have five and `cnpg` SHALL have five; `logical`, `agent-e2e` and `storage-providers` SHALL run whole on both architectures. The Patroni backup scenarios SHALL be divided into several top-level tests, each with a recorded duration weight, so that no single top-level test holds the whole scenario matrix and every `patroni` shard receives a part of it. The CloudNativePG backup scenarios SHALL be divided the same way, so that every `cnpg` shard receives a part of them. The `cnpg` runner size and scenario parallelism SHALL be chosen from measured duration and peak memory, using runners up to 16 vCPUs and 32 GB RAM without a fixed two-test limit. The `cnpg` check SHALL allow privileged containers and SHALL raise the inotify instance and watch limits before its tests, because its disposable Kubernetes clusters need both. It SHALL fail rather than skip scenarios when either is unavailable; a failure to raise the inotify limits SHALL fail the check before any test runs. The `storage-providers` check SHALL run its complete package alone on its runner with one package and one scenario at a time, retaining race detection and failure propagation.
 
 The upgrade suite and its comparison helper SHALL run only in `test-upgrade`, separately for each architecture against that architecture's candidate. Each upgrade check SHALL start after its candidate is available without depending on backend-group results.
 
@@ -45,7 +45,7 @@ The upgrade suite and its comparison helper SHALL run only in `test-upgrade`, se
 
 #### Scenario: A new package of physical backup end-to-end tests is added
 
-- **WHEN** a developer adds a package of physical backup end-to-end tests outside the Patroni suite
+- **WHEN** a developer adds a package of physical backup end-to-end tests outside the Patroni and CloudNativePG suites
 - **THEN** CI selects it only in `physical` on each architecture
 
 #### Scenario: The Patroni suite runs in its own group
@@ -59,6 +59,34 @@ The upgrade suite and its comparison helper SHALL run only in `test-upgrade`, se
 - **WHEN** the five `patroni` shard selections are computed from the recorded duration weights
 - **THEN** every shard contains at least one top-level test with Patroni backup scenarios
 - **AND** each top-level test with Patroni scenarios has a recorded duration weight
+
+#### Scenario: The CloudNativePG suite runs in its own group
+
+- **WHEN** CI selects backend packages for its groups
+- **THEN** the CloudNativePG suite and any package nested under it are selected only in `cnpg` on each architecture
+- **AND** no `physical` shard runs a CloudNativePG scenario
+
+#### Scenario: The CloudNativePG matrix spreads across its shards
+
+- **WHEN** the five `cnpg` shard selections are computed from the recorded duration weights
+- **THEN** every shard contains at least one top-level test with CloudNativePG backup scenarios
+- **AND** each top-level test with CloudNativePG scenarios has a recorded duration weight
+
+#### Scenario: The CloudNativePG check runs on a prepared runner
+
+- **WHEN** a `cnpg` shard runs on either architecture after its job raised the inotify limits
+- **THEN** it starts its Kubernetes cluster and runs every selected scenario, with none skipped
+
+#### Scenario: The CloudNativePG check cannot raise the inotify limits
+
+- **WHEN** the `cnpg` job's step that raises the inotify instance and watch limits fails on either architecture
+- **THEN** the shard fails at that step, before any test runs
+- **AND** no CloudNativePG scenario is reported as skipped or passed
+
+#### Scenario: The CloudNativePG check lacks its prerequisites
+
+- **WHEN** a `cnpg` shard cannot start its disposable Kubernetes cluster on either architecture
+- **THEN** that shard fails with the missing prerequisite named and reports no skipped scenario as passed
 
 #### Scenario: A new package of physical API tests is added
 
@@ -89,7 +117,7 @@ The upgrade suite and its comparison helper SHALL run only in `test-upgrade`, se
 #### Scenario: Checks are reported per group
 
 - **WHEN** CI reports backend checks
-- **THEN** each architecture has separate `storage-providers`, `logical`, `agent-e2e`, three `other` shard, three `physical` shard, five `patroni` shard and three `physical-api` shard results
+- **THEN** each architecture has separate `storage-providers`, `logical`, `agent-e2e`, three `other` shard, three `physical` shard, five `patroni` shard, five `cnpg` shard and three `physical-api` shard results
 
 #### Scenario: The upgrade test runs on its own
 

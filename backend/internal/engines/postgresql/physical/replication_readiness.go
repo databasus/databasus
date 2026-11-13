@@ -2,10 +2,12 @@ package physical
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
 )
@@ -183,6 +185,14 @@ func readReplicationSettings(ctx context.Context, conn *pgx.Conn) (replicationSe
 }
 
 func classifyReplicationConnectError(err error, username string) error {
+	// ParseConfigError embeds the connection string, whose masking does not cover every password escape.
+	if _, isConfigurationError := errors.AsType[*pgconn.ParseConfigError](err); isConfigurationError {
+		return &pgshared.ConnectionTestError{
+			Code:    pgshared.ConnErrConnectionFailed,
+			Message: "invalid PostgreSQL connection configuration",
+		}
+	}
+
 	switch classifyServerError(err) {
 	case serverErrorNoHbaEntry:
 		return &pgshared.ConnectionTestError{
@@ -198,8 +208,8 @@ func classifyReplicationConnectError(err error, username string) error {
 	case serverErrorNoReplicationPrivilege:
 		return &pgshared.ConnectionTestError{Code: pgshared.ConnErrNoReplicationPrivilege, Message: ""}
 	case serverErrorOther, serverErrorNameTaken, serverErrorObjectMissing, serverErrorPermissionDenied:
-		return &pgshared.ConnectionTestError{Code: pgshared.ConnErrConnectionFailed, Message: ""}
 	}
 
-	return &pgshared.ConnectionTestError{Code: pgshared.ConnErrConnectionFailed, Message: ""}
+	// Connection failures retain host and TLS diagnostics after configuration errors are handled.
+	return &pgshared.ConnectionTestError{Code: pgshared.ConnErrConnectionFailed, Message: err.Error()}
 }

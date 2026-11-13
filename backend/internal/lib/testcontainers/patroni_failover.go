@@ -12,7 +12,7 @@ import (
 	"databasus-backend/internal/lib/testwait"
 )
 
-func (fixture *Patroni) KillPrimary(t *testing.T) PatroniIdentity {
+func (fixture *Patroni) KillPrimary(t *testing.T) RouteIdentity {
 	t.Helper()
 
 	previous := fixture.GetIdentity(t)
@@ -21,7 +21,7 @@ func (fixture *Patroni) KillPrimary(t *testing.T) PatroniIdentity {
 
 	fixture.KillNode(t, previous.Node)
 
-	var current PatroniIdentity
+	var current RouteIdentity
 	testwait.Until(t, "Patroni elects a primary after abrupt whole-node loss", func(context.Context) error {
 		current = fixture.GetIdentity(t)
 		if current.Node == previous.Node || current.Timeline <= previous.Timeline {

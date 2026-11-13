@@ -70,6 +70,8 @@ This is the project's common language. Shared concepts have one term in document
 | Switchover | A planned transfer of the primary role to a standby. |
 | Failover | Electing and promoting a standby after the primary becomes unavailable. |
 | Distributed configuration store (DCS) | The shared store Patroni uses to coordinate configuration and primary ownership, such as etcd. |
+| CloudNativePG (CNPG) | The Kubernetes operator that runs a PostgreSQL cluster as pods and chooses its primary. Code abbreviates it as `cnpg`, as in the package and CI group `cnpg`. "CNPG operator" means this program; the word "operator" alone means the person who runs Databasus, as in a console command. CNPG calls a PostgreSQL node an instance, which in Databasus means a Databasus instance. |
+| Kubernetes Service | The Kubernetes object that routes connections to the pods its selector matches, such as CNPG's `-rw` Kubernetes Service, which follows the primary. It is always written in full, because "Service" alone means a module's service code. |
 | Point-in-time recovery (PITR) | Replaying archived WAL after a physical backup up to a selected recoverable time. |
 | Timeline | PostgreSQL's history branch number, which changes when a replica is promoted. |
 | Restore set | The files needed to restore a database to a moment: a full backup, its incrementals and the WAL up to the target. |

@@ -1,6 +1,6 @@
 ## Purpose
 
-Provides the root administrator with one place to configure Databasus backups, save the master key, import recovery files and resolve protection or mail-delivery problems without navigating between workspace screens.
+Provides the root administrator with one place to configure Databasus backups, save the master key, import an archive with a master key entered as text and resolve protection or mail-delivery problems without navigating between workspace screens.
 
 ## ADDED Requirements
 
@@ -13,24 +13,24 @@ The section SHALL show master-key acknowledgment, selected destinations, editabl
 - **WHEN** an administrator other than root admin opens global settings
 - **THEN** the existing settings remain available but the Databasus backup section and master-key actions do not appear
 
-### Requirement: Recovery starts with archive and master-key files from the computer
+### Requirement: Recovery starts with an archive file and a master key entered as text
 
-The section SHALL offer import through two separately labeled file inputs: an encrypted Databasus backup and its source master key. It SHALL explain that the owner can obtain the archive from S3, another storage or another server independently, and that the target's own key does not replace the source key. Import SHALL be available without destinations or backup history on the target. History SHALL retain archive download; using an archive from that history SHALL follow the same download-then-import flow without a direct restore action.
+The section SHALL offer import through a labeled file input for an encrypted Databasus backup and a masked text field where the owner pastes or types its source master key. Both inputs SHALL be required; the UI SHALL NOT ask for a key file. It SHALL explain that the owner can obtain the archive from S3, another storage or another server independently, and that the target's own key does not replace the source key. Import SHALL be available without destinations or backup history on the target. History SHALL retain archive download; using an archive from that history SHALL follow the same download-then-import flow without a direct restore action.
 
-The form SHALL show missing-file feedback, upload and preparation progress, cancellation before apply, and actionable validation errors beside the import. A failed validation SHALL keep the current installation usable and allow the owner to correct the files. Dismissing the flow or changing session SHALL clear selected file handles and root-only preparation details. Selected files and key material SHALL NOT be placed in browser persistent storage. All controls SHALL support keyboard use and narrow layouts.
+The form SHALL show feedback identifying a missing archive or empty master-key field, upload and preparation progress, cancellation before apply, and actionable validation errors beside the import. A failed validation SHALL keep the current installation usable and allow the owner to correct the selected archive or entered key. Dismissing the flow or changing session SHALL clear the selected archive handle, entered key and root-only preparation details. The selected archive and entered key SHALL NOT be placed in browser persistent storage. All controls SHALL support keyboard use and narrow layouts.
 
 #### Scenario: Owner imports an independently downloaded archive
 
 - **WHEN** root admin opens recovery on an initialized target without destinations or history
-- **THEN** the form accepts the archive and separate source-key files without requesting storage configuration
+- **THEN** the form accepts an archive file and a source master key pasted or typed as text without requesting storage configuration
 - **AND** successful preparation shows the authenticated snapshot date and source version before replacement is possible
 
-#### Scenario: One input file is missing
+#### Scenario: The archive or text key is missing
 
-- **WHEN** root admin selects only the archive or only the master key
-- **THEN** the form identifies the missing file and does not start the upload
+- **WHEN** root admin selects an archive without entering a master key, or enters a key without selecting an archive
+- **THEN** the form identifies the missing archive or empty key field and does not start the upload
 
-#### Scenario: Preparation rejects the selected files
+#### Scenario: Preparation rejects the selected archive or entered key
 
 - **WHEN** the server reports a wrong key, damaged archive, version mismatch or upload limit failure
 - **THEN** the form shows a safe actionable error and permits correction without claiming that recovery succeeded
@@ -56,7 +56,7 @@ Once apply is accepted, the interface SHALL show that Databasus is restoring and
 #### Scenario: Session changes while preparation is pending
 
 - **WHEN** a preparation response arrives after sign-out or a switch to another account
-- **THEN** it cannot expose the selected files, snapshot details or apply controls in the new session
+- **THEN** it cannot expose the selected archive, entered key, snapshot details or apply controls in the new session
 
 ### Requirement: Selection and creation stay in one configuration flow
 

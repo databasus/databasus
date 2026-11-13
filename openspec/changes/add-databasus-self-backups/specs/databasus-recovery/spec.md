@@ -87,6 +87,30 @@ Recovery SHALL authenticate and validate the complete archive before publishing 
 - **WHEN** the archive is corrupted or the supplied key does not decrypt it
 - **THEN** recovery fails without activating partial recovered state or replacing an existing database or key, including an automatically initialized target's key
 
+### Requirement: Startup recovery explains every skip or refusal in the log
+
+When configured startup recovery is skipped or refused, the application SHALL log a clear operator-facing message stating that recovery did not run, the specific reason, the effect on the current installation and the next step. It SHALL distinguish normal skipping of an already consumed archive from a recovery refusal. Refusals SHALL identify the applicable cause, including existing accounts or other user state, changed persisted settings, unknown target state, incomplete or unreadable inputs, incompatible release/schema, invalid archive/key or inability to obtain exclusive access. The message SHALL preserve the existing refusal behavior and SHALL NOT imply successful recovery. It SHALL NOT expose keys, credentials, request bodies or user records. An ordinary start without configured recovery inputs SHALL NOT be reported as a recovery failure.
+
+#### Scenario: Existing accounts prevent startup recovery
+
+- **WHEN** configured startup recovery is refused because an account exists, including a sole root account
+- **THEN** an error log explains that existing accounts prevent mounted-file recovery, that the current installation is unchanged and that the owner can use root-confirmed UI import or a separate fresh target
+
+#### Scenario: Changed settings or other user data prevent startup recovery
+
+- **WHEN** configured startup recovery is refused because persisted settings were changed or other user data exists
+- **THEN** an error log identifies that category of state, confirms that the current installation is unchanged and directs the owner to confirmed UI import or a separate fresh target
+
+#### Scenario: Configured inputs cannot be used
+
+- **WHEN** startup recovery cannot proceed because an input is missing or unreadable, the key or archive is invalid, compatibility fails or eligibility/exclusive access cannot be established
+- **THEN** an error log explains the specific cause and corrective action without exposing secret values or claiming recovery succeeded
+
+#### Scenario: An already consumed archive is skipped
+
+- **WHEN** startup skips an archive already applied successfully
+- **THEN** an informational log explains that it was already recovered, the current installation starts normally and no action is needed
+
 ### Requirement: Completed startup recovery is deduplicated by archive content
 
 Startup recovery SHALL identify an archive by SHA-256 of the complete encrypted file. Successful consumption SHALL survive replacement of snapshot state and SHALL be recorded only after the database, exact source key and recovery pause are durably published. Restarting with the same successfully consumed archive SHALL start the current installation without importing it again, even when the file is renamed, an explicit UI import has since replaced the snapshot or the application is being upgraded normally. A different archive at the same configured path SHALL NOT be treated as consumed and SHALL be refused on a target containing user accounts, user data or user-changed settings. A failed attempt SHALL NOT be marked successfully consumed. An interrupted accepted recovery SHALL resume or finish its recorded publication safely rather than begin another import. A deliberate new UI import of identical bytes SHALL remain possible; retries of one accepted operation SHALL NOT publish it twice.
@@ -121,9 +145,9 @@ Startup recovery SHALL identify an archive by SHA-256 of the complete encrypted 
 - **WHEN** the process stops after accepting recovery but before publication completes
 - **THEN** the next start resolves the recorded operation without serving a mismatched database and key or applying it twice
 
-### Requirement: UI recovery imports files independently of the current installation
+### Requirement: UI recovery imports an archive and text key independently of the current installation
 
-The Databasus backups section SHALL accept an encrypted archive file and a separate source master-key file uploaded from the owner's computer. Both files SHALL be required. Import SHALL NOT require a matching history entry, configured destination, connection to the original storage or use of the target's current master key. An owner recovering into a newly initialized installation SHALL first authenticate as that installation's root admin. To recover a backup from current history, the owner SHALL download it and then upload it through this same import flow; no direct history-restore action SHALL be required.
+The Databasus backups section SHALL accept an encrypted archive file selected from the owner's computer and the source master key pasted or typed as text. Both SHALL be required; UI import SHALL NOT require a master-key file. Import SHALL NOT require a matching history entry, configured destination, connection to the original storage or use of the target's current master key. An owner recovering into a newly initialized installation SHALL first authenticate as that installation's root admin. To recover a backup from current history, the owner SHALL download it and then upload it through this same import flow; no direct history-restore action SHALL be required.
 
 Preparation SHALL authenticate the entire archive, validate release and schema compatibility and import into isolated staging before the active installation can be replaced. Preparation failure, cancellation or expiry SHALL preserve the active database and key and clean its private staged inputs. The owner SHALL be able to inspect preparation progress, authenticated snapshot time and source version, and a safe failure reason. Prepared imports SHALL expire after one hour without apply. There SHALL be at most one pending import preparation or application operation per instance. Applying SHALL be asynchronous and SHALL NOT depend on the initiating browser staying connected.
 
@@ -135,7 +159,7 @@ Preparation SHALL authenticate the entire archive, validate release and schema c
 
 #### Scenario: Owner supplies the wrong key or damaged file
 
-- **WHEN** uploaded files contain the wrong key, a truncated or modified archive or an incompatible schema
+- **WHEN** the supplied text key is wrong or the uploaded archive is truncated, modified or has an incompatible schema
 - **THEN** preparation fails with a safe diagnostic and leaves the active installation usable with its original key
 
 #### Scenario: Unconfirmed import expires
@@ -164,14 +188,14 @@ Upload, preparation status, cancellation and apply SHALL require the target inst
 
 ### Requirement: Uploaded recovery material remains private and bounded
 
-Recovery uploads SHALL preserve the archive's encryption and the exact master-key bytes. The key and decrypted dump SHALL NOT appear in responses, URLs, logs, telemetry, browser persistent storage or cacheable content. Staging SHALL restrict file access to the runtime identity, keep memory use bounded and stage no plaintext dump. Archive uploads SHALL enforce a configurable finite byte limit; the default SHALL be 10 GiB. Uploaded key files SHALL be limited to 64 KiB. Oversized uploads, insufficient disk space and disconnected uploads SHALL fail without replacing the active database or key and SHALL release partial private files. Private staged key copies SHALL be removed after failed, cancelled or expired preparation or completed publication, while inputs needed for interrupted accepted publication SHALL survive a restart. Recovery SHALL NOT delete the operator's original mounted input files or the installed master key as part of staging cleanup.
+Recovery uploads SHALL preserve the archive's encryption and the exact UTF-8 bytes of the entered master key without trimming or normalizing whitespace or line endings. The key and decrypted dump SHALL NOT appear in responses, URLs, logs, telemetry, browser persistent storage or cacheable content. Staging SHALL restrict file access to the runtime identity, keep memory use bounded and stage no plaintext dump. Archive uploads SHALL enforce a configurable finite byte limit; the default SHALL be 10 GiB. The UTF-8 text-key field SHALL be limited to 64 KiB and SHALL be write-only. Oversized uploads, insufficient disk space and disconnected uploads SHALL fail without replacing the active database or key and SHALL release partial private files. Private staged key copies SHALL be removed after failed, cancelled or expired preparation or completed publication, while inputs needed for interrupted accepted publication SHALL survive a restart. Recovery SHALL NOT delete the operator's original mounted input files or the installed master key as part of staging cleanup.
 
-If the page or upload connection uses unencrypted HTTP, the interface SHALL warn and require explicit acknowledgment before transferring either file. Cancelling the warning SHALL send neither archive nor key bytes and SHALL offer guidance for a protected connection or mounted-file recovery. The server SHALL require the acknowledgment on an insecure upload as well.
+If the page or upload connection uses unencrypted HTTP, the interface SHALL warn and require explicit acknowledgment before transferring the archive or text key. Cancelling the warning SHALL send neither archive nor key bytes and SHALL offer guidance for a protected connection or mounted-file recovery. The server SHALL require the acknowledgment on an insecure upload as well.
 
 #### Scenario: Owner cancels HTTP import warning
 
-- **WHEN** root admin selects recovery files over HTTP and cancels the warning
-- **THEN** neither file is uploaded and the active installation is unchanged
+- **WHEN** root admin selects a recovery archive and enters the key over HTTP and cancels the warning
+- **THEN** neither archive nor key bytes are transferred and the active installation is unchanged
 
 #### Scenario: Upload exceeds the configured limit without a declared length
 

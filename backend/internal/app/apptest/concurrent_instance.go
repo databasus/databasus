@@ -28,6 +28,6 @@ func (a *App) StartConcurrentInstance(t *testing.T) *App {
 	instance.stopModules = startModules(t, createdApp)
 	instance.cancelPhysicalLoops = nil
 	instance.physicalRunner = nil
-	t.Cleanup(func() { instance.stop(t) })
+	t.Cleanup(func() { instance.Stop(t) })
 	return &instance
 }

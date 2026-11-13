@@ -220,7 +220,7 @@ func New(tb testing.TB, options ...Option) *App {
 	if applied.isPhysicalBackupLoopsEnabled {
 		testApp.startPhysicalLoops(tb)
 	}
-	tb.Cleanup(func() { testApp.stop(tb) })
+	tb.Cleanup(func() { testApp.Stop(tb) })
 
 	return testApp
 }
@@ -381,6 +381,29 @@ func (a *App) WaitForPhysicalBackups(tb testing.TB) {
 	})
 }
 
+func (a *App) Stop(tb testing.TB) {
+	tb.Helper()
+	if a.physicalRunner != nil {
+		stopCtx, cancelStop := context.WithTimeout(context.WithoutCancel(tb.Context()), a.physicalBackupStopTimeout)
+		err := a.stopPhysicalWork(stopCtx)
+		cancelStop()
+		if err != nil {
+			tb.Errorf("stop physical backup loops and runs: %v", err)
+		}
+	}
+
+	a.stopModules()
+	waitCtx, cancelWait := context.WithTimeout(context.WithoutCancel(tb.Context()), backupRunsWaitTimeout)
+	defer cancelWait()
+	if err := a.app.WaitForBackupRuns(waitCtx); err != nil {
+		tb.Errorf("wait for the backup runs of the test application: %v", err)
+	}
+
+	if err := a.app.WaitForNotificationDeliveries(waitCtx); err != nil {
+		tb.Errorf("wait for notification deliveries of the test application: %v", err)
+	}
+}
+
 func (a *App) startPhysicalLoops(tb testing.TB) {
 	tb.Helper()
 	loopsCtx, cancelLoops := context.WithCancel(context.WithoutCancel(tb.Context()))
@@ -435,28 +458,5 @@ func closeConnections(db *gorm.DB) {
 	sqlDB, err := db.DB()
 	if err == nil {
 		_ = sqlDB.Close()
-	}
-}
-
-func (a *App) stop(tb testing.TB) {
-	tb.Helper()
-	if a.physicalRunner != nil {
-		stopCtx, cancelStop := context.WithTimeout(context.WithoutCancel(tb.Context()), a.physicalBackupStopTimeout)
-		err := a.stopPhysicalWork(stopCtx)
-		cancelStop()
-		if err != nil {
-			tb.Errorf("stop physical backup loops and runs: %v", err)
-		}
-	}
-
-	a.stopModules()
-	waitCtx, cancelWait := context.WithTimeout(context.WithoutCancel(tb.Context()), backupRunsWaitTimeout)
-	defer cancelWait()
-	if err := a.app.WaitForBackupRuns(waitCtx); err != nil {
-		tb.Errorf("wait for the backup runs of the test application: %v", err)
-	}
-
-	if err := a.app.WaitForNotificationDeliveries(waitCtx); err != nil {
-		tb.Errorf("wait for notification deliveries of the test application: %v", err)
 	}
 }

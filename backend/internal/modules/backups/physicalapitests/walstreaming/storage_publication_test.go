@@ -63,6 +63,10 @@ func TestLateWalStoragePublication(t *testing.T) {
 
 		targetWorkspace := apptest.CreateWorkspace(t, otherOwner, "Late WAL files")
 		target := apptest.CreateStorageNamespace(t, otherOwner, targetWorkspace.Id)
+		t.Cleanup(func() {
+			team.App.Stop(t)
+			otherInstance.Stop(t)
+		})
 		apptest.TransferToStorage(
 			t,
 			otherOwner,
@@ -142,6 +146,10 @@ func TestLateWalStoragePublication(t *testing.T) {
 		// target's storage inside that window can outlast it on a busy machine.
 		targetWorkspace := apptest.CreateWorkspace(t, otherOwner, "Concurrent WAL switch")
 		target := apptest.CreateStorageNamespace(t, otherOwner, targetWorkspace.Id)
+		t.Cleanup(func() {
+			team.App.Stop(t)
+			otherInstance.Stop(t)
+		})
 
 		team.enable(t)
 		team.waitForReceiver(t)

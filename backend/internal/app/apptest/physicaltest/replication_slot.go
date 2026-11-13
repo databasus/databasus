@@ -86,3 +86,18 @@ func RunDeleteStreamingDatabase(t *testing.T, image string) {
 	team.deleteDatabase(t)
 	requireDatabaseSlotsGone(t, conn)
 }
+
+func (team Team) getSlotName(t *testing.T) string {
+	t.Helper()
+
+	var slotName string
+	team.App.QuerySQL(
+		t,
+		&slotName,
+		"SELECT replication_slot_name FROM databases_postgresql_physical WHERE database_id=?",
+		team.Database.Id,
+	)
+	require.NotEmpty(t, slotName)
+
+	return slotName
+}

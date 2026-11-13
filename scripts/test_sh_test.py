@@ -47,6 +47,7 @@ BROWSER_RUN_CALLS = (BROWSER_SUITE_CALL, *LIFECYCLE_SHARD_CALLS)
 FULL_RUN_LOCK_NAME = "databasus-full-test.lock"
 WAIT_TIMEOUT_SECONDS = 30
 RUN_LABEL_FILTER = "label=databasus.test-run="
+ROOT_RUN_LABEL_FILTER = "label=databasus.test-root-run="
 
 # Each stub appends "<epoch seconds> <name> <arguments>" to $STUB_CALLS. The go stub records
 # DATABASUS_TEST_RUN_ID with its test call, sleeps for STUB_GO_TEST_SECONDS, so a test can
@@ -67,15 +68,22 @@ STUB_SOURCES = {
             echo "$(date +%s.%N) docker finished $*" >>"$STUB_CALLS"
             exit "${STUB_DOCKER_BUILD_EXIT_STATUS:-0}"
         fi
+        resource_prefix=""
+        if [[ "$*" == *"label=databasus.test-root-run="* ]]; then
+            if [[ "${STUB_DOCKER_CHILD_RESOURCES:-0}" == 1 ]]; then
+                resource_prefix="child-"
+            fi
+        fi
         case "$1 $2" in
-            "ps -aq") echo container-of-run ;;
-            "network ls") echo network-of-run ;;
-            "volume ls") echo volume-of-run ;;
+            "ps -aq") echo "${resource_prefix}container-of-run" ;;
+            "network ls") echo "${resource_prefix}network-of-run" ;;
+            "volume ls") echo "${resource_prefix}volume-of-run" ;;
         esac
     """,
     "go": """
         if [[ "$1" == test ]]; then
             echo "$(date +%s.%N) go test run_id=${DATABASUS_TEST_RUN_ID:-}" >>"$STUB_CALLS"
+            echo "$(date +%s.%N) root-run ${DATABASUS_TEST_ROOT_RUN_ID:-}" >>"$STUB_CALLS"
             echo "$(date +%s.%N) go selection $*" >>"$STUB_CALLS"
             echo "output of go test"
             sleep "${STUB_GO_TEST_SECONDS:-0}"
@@ -99,6 +107,7 @@ STUB_SOURCES = {
                 echo "databasus-backend/internal/agent/e2e"
                 echo "databasus-backend/internal/modules/backups/e2e/mysql"
                 echo "databasus-backend/internal/modules/backups/e2e/postgresqlphysical/patroni"
+                echo "databasus-backend/internal/modules/backups/e2e/postgresqlphysical/cnpg"
             fi
             exit "${STUB_GO_LIST_EXIT_STATUS:-0}"
         else
@@ -154,6 +163,7 @@ STUB_SOURCES = {
 }
 
 SLOW_PACKAGE_LIST = """# A comment
+databasus-backend/internal/modules/backups/e2e/postgresqlphysical/cnpg
 databasus-backend/internal/modules/backups/e2e/postgresqlphysical/patroni
 databasus-backend/internal/lib/slower
 databasus-backend/internal/lib/slow
@@ -640,17 +650,21 @@ class TestScriptTestCase(unittest.TestCase):
         self.assertEqual(slow_selection[slow_selection.index("-timeout") + 1], "15m")
         self.assertEqual(other_selection[other_selection.index("-timeout") + 1], "15m")
 
-    def test_full_run_selects_patroni_once_with_the_common_timeout(self) -> None:
+    def test_full_run_selects_each_cluster_suite_once_with_the_common_timeout(self) -> None:
         exit_status, _, stderr = self.finish_script(self.start_full_script())
 
         self.assertEqual(exit_status, 0, stderr)
 
-        package = "databasus-backend/internal/modules/backups/e2e/postgresqlphysical/patroni"
-        selection = self.get_selection_of(package)
+        for suite in ("patroni", "cnpg"):
+            with self.subTest(suite=suite):
+                package = (
+                    f"databasus-backend/internal/modules/backups/e2e/postgresqlphysical/{suite}"
+                )
+                selection = self.get_selection_of(package)
 
-        self.assertEqual(self.get_selected_packages().count(package), 1)
-        self.assertIn("databasus-backend/internal/lib/slow", selection)
-        self.assertEqual(selection[selection.index("-timeout") + 1], "15m")
+                self.assertEqual(self.get_selected_packages().count(package), 1)
+                self.assertIn("databasus-backend/internal/lib/slow", selection)
+                self.assertEqual(selection[selection.index("-timeout") + 1], "15m")
 
     def test_the_upgrade_test_has_a_timeout_of_15_minutes_and_30_in_ci(self) -> None:
         upgrade_task = (REPOSITORY_ROOT / "mise-tasks/backend/test-upgrade").read_text()
@@ -905,10 +919,37 @@ class TestScriptTestCase(unittest.TestCase):
         self.assertIn(f"docker network ls -q --filter {RUN_LABEL_FILTER}{run_id}", listing_calls)
         self.assertIn(f"docker volume ls -q --filter {RUN_LABEL_FILTER}{run_id}", listing_calls)
         for listing_call in listing_calls:
-            self.assertIn(f"{RUN_LABEL_FILTER}{run_id}", listing_call)
+            self.assertTrue(
+                any(
+                    f"{label_filter}{run_id}" in listing_call
+                    for label_filter in (RUN_LABEL_FILTER, ROOT_RUN_LABEL_FILTER)
+                ),
+                listing_call,
+            )
         self.assertIn("docker rm -f container-of-run", docker_calls)
         self.assertIn("docker network rm network-of-run", docker_calls)
         self.assertIn("docker volume rm -f volume-of-run", docker_calls)
+
+    def test_an_interrupt_removes_descendant_resources_with_the_root_run_label(self) -> None:
+        script = self.start_script(
+            {"STUB_GO_TEST_SECONDS": "60", "STUB_DOCKER_CHILD_RESOURCES": "1"}
+        )
+        test_call = self.wait_for_call("go test")
+        run_id = test_call[1].split("run_id=", 1)[1]
+
+        os.killpg(script.pid, signal.SIGINT)
+        exit_status, _, _ = self.finish_script(script)
+
+        self.assertNotEqual(exit_status, 0)
+        docker_calls = [call for _, call in self.read_calls() if call.startswith("docker")]
+        self.assertIsNotNone(self.find_call(f"root-run {run_id}"))
+        for listing in ("ps -aq", "network ls -q", "volume ls -q"):
+            self.assertIn(
+                f"docker {listing} --filter {ROOT_RUN_LABEL_FILTER}{run_id}", docker_calls
+            )
+        self.assertIn("docker rm -f child-container-of-run container-of-run", docker_calls)
+        self.assertIn("docker network rm child-network-of-run network-of-run", docker_calls)
+        self.assertIn("docker volume rm -f child-volume-of-run volume-of-run", docker_calls)
 
     def test_preparation_does_not_reset_sources_beside_an_active_package_run(self) -> None:
         package_run = subprocess.Popen(

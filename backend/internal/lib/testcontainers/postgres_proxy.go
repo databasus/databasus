@@ -2,6 +2,7 @@ package containers
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -57,9 +58,36 @@ type PostgresProxy struct {
 	connections            map[int]net.Conn
 	nextConnectionID       int
 	runs                   *background.Group
+	tls                    *postgresProxyTLS
 }
 
-func StartPostgresProxy(t *testing.T, source Endpoint) *PostgresProxy {
+// postgresProxyTLS terminates TLS on both legs, so the proxy can read the protocol of a source that
+// requires TLS while each leg keeps verify-full against the run's test authority.
+type postgresProxyTLS struct {
+	authority *TestCertificateAuthority
+	server    *tls.Config
+}
+
+type PostgresProxyOption func(t *testing.T, proxy *PostgresProxy)
+
+// WithProxyTLS makes the proxy present the source's own server certificate, which must also name
+// the proxy's loopback address, and verify the source against the same authority. SCRAM channel
+// binding hashes the certificate the client sees into the authentication, so any other certificate
+// would make the source refuse every login through the proxy.
+func WithProxyTLS(authority *TestCertificateAuthority, certificate ServerCertificate) PostgresProxyOption {
+	return func(t *testing.T, proxy *PostgresProxy) {
+		t.Helper()
+
+		keyPair, err := tls.X509KeyPair([]byte(certificate.CertificatePEM), []byte(certificate.KeyPEM))
+		require.NoError(t, err)
+		proxy.tls = &postgresProxyTLS{
+			authority: authority,
+			server:    &tls.Config{Certificates: []tls.Certificate{keyPair}, MinVersion: tls.VersionTLS12},
+		}
+	}
+}
+
+func StartPostgresProxy(t *testing.T, source Endpoint, options ...PostgresProxyOption) *PostgresProxy {
 	t.Helper()
 	ctx, cancel := context.WithCancel(t.Context())
 	listener, err := (&net.ListenConfig{}).Listen(ctx, "tcp", "127.0.0.1:0")
@@ -74,6 +102,10 @@ func StartPostgresProxy(t *testing.T, source Endpoint) *PostgresProxy {
 		connections: make(map[int]net.Conn),
 		runs:        background.New(background.Deps{Logger: slog.New(slog.DiscardHandler)}),
 	}
+	for _, option := range options {
+		option(t, proxy)
+	}
+
 	t.Cleanup(func() {
 		cancel()
 		_ = listener.Close()
@@ -164,22 +196,14 @@ func (p *PostgresProxy) record(event PostgresProxyEvent) {
 	p.events = append(p.events, event)
 }
 
-func (p *PostgresProxy) forward(ctx context.Context, client net.Conn, connectionID int) error {
-	stopClosingClient := context.AfterFunc(ctx, func() { _ = client.Close() })
+func (p *PostgresProxy) forward(ctx context.Context, rawClient net.Conn, connectionID int) error {
+	stopClosingClient := context.AfterFunc(ctx, func() { _ = rawClient.Close() })
 	defer stopClosingClient()
-	startupPacket, err := readPostgresProxyPacket(client, true)
+	client, startupPacket, err := p.acceptStartup(ctx, rawClient)
 	if err != nil {
 		return err
 	}
-	if len(startupPacket) == 8 && binary.BigEndian.Uint32(startupPacket[4:]) == 80877103 {
-		if _, err := client.Write([]byte("N")); err != nil {
-			return err
-		}
-		startupPacket, err = readPostgresProxyPacket(client, true)
-		if err != nil {
-			return err
-		}
-	}
+
 	var startup pgproto3.StartupMessage
 	if err := startup.Decode(startupPacket[4:]); err != nil {
 		return err
@@ -190,6 +214,7 @@ func (p *PostgresProxy) forward(ctx context.Context, client net.Conn, connection
 	if isReplication {
 		destination = p.replicationDestination
 	}
+
 	if len(p.scriptedDestinations) > 0 {
 		destination = p.scriptedDestinations[0]
 		p.scriptedDestinations = p.scriptedDestinations[1:]
@@ -216,8 +241,17 @@ func (p *PostgresProxy) forward(ctx context.Context, client net.Conn, connection
 		return err
 	}
 	defer func() { _ = source.Close() }()
-	closeSource := context.AfterFunc(ctx, func() { _ = source.Close(); _ = client.Close() })
-	defer closeSource()
+	rawSource := source
+	stopClosingSource := context.AfterFunc(ctx, func() { _ = rawSource.Close() })
+	defer stopClosingSource()
+
+	source, err = p.secureUpstream(ctx, source, destination)
+	if err != nil {
+		event.Kind = "refused"
+		p.record(event)
+		return err
+	}
+
 	if _, err := source.Write(startupPacket); err != nil {
 		return err
 	}
@@ -348,6 +382,7 @@ func (p *PostgresProxy) forward(ctx context.Context, client net.Conn, connection
 			}
 			command = strings.TrimSpace(parsed.Query)
 		}
+
 		if command != "" {
 			queryMu.Lock()
 			lastQuery = command
@@ -373,6 +408,7 @@ func (p *PostgresProxy) forward(ctx context.Context, client net.Conn, connection
 				}
 			}
 		}
+
 		if _, err := source.Write(packet); err != nil {
 			break
 		}
@@ -403,4 +439,79 @@ func readPostgresProxyPacket(reader io.Reader, isStartup bool) ([]byte, error) {
 		return nil, err
 	}
 	return append(header, body...), nil
+}
+
+const (
+	postgresSSLRequestCode    = 80877103
+	postgresGSSENCRequestCode = 80877104
+)
+
+// acceptStartup answers the client's encryption requests and returns the connection the startup
+// message arrived on. Without TLS mode the proxy refuses encryption; with it, the client
+// must encrypt.
+func (p *PostgresProxy) acceptStartup(ctx context.Context, client net.Conn) (net.Conn, []byte, error) {
+	for {
+		packet, err := readPostgresProxyPacket(client, true)
+		if err != nil {
+			return client, nil, err
+		}
+
+		code := uint32(0)
+		if len(packet) == 8 {
+			code = binary.BigEndian.Uint32(packet[4:])
+		}
+
+		switch {
+		case code == postgresSSLRequestCode && p.tls != nil:
+			if _, err := client.Write([]byte("S")); err != nil {
+				return client, nil, err
+			}
+
+			secured := tls.Server(client, p.tls.server)
+			if err := secured.HandshakeContext(ctx); err != nil {
+				return client, nil, fmt.Errorf("client TLS handshake: %w", err)
+			}
+
+			client = secured
+		case code == postgresSSLRequestCode || code == postgresGSSENCRequestCode:
+			if _, err := client.Write([]byte("N")); err != nil {
+				return client, nil, err
+			}
+		default:
+			if _, isSecured := client.(*tls.Conn); p.tls != nil && !isSecured {
+				return client, nil, fmt.Errorf("client started without TLS")
+			}
+
+			return client, packet, nil
+		}
+	}
+}
+
+// secureUpstream negotiates TLS with the source and verifies its certificate for the destination
+// address, as libpq's verify-full does.
+func (p *PostgresProxy) secureUpstream(ctx context.Context, source net.Conn, destination Endpoint) (net.Conn, error) {
+	if p.tls == nil {
+		return source, nil
+	}
+
+	request := binary.BigEndian.AppendUint32(binary.BigEndian.AppendUint32(nil, 8), postgresSSLRequestCode)
+	if _, err := source.Write(request); err != nil {
+		return source, err
+	}
+
+	answer := make([]byte, 1)
+	if _, err := io.ReadFull(source, answer); err != nil {
+		return source, err
+	}
+
+	if answer[0] != 'S' {
+		return source, fmt.Errorf("source %s refused TLS", destination.Host)
+	}
+
+	secured := tls.Client(source, p.tls.authority.GetClientTLS(destination.Host))
+	if err := secured.HandshakeContext(ctx); err != nil {
+		return source, fmt.Errorf("source TLS handshake: %w", err)
+	}
+
+	return secured, nil
 }
