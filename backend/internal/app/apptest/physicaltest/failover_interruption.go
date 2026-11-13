@@ -107,6 +107,9 @@ func RunFailoverInterruptedBackup(t *testing.T, spec FailoverInterruptionSpec) {
 	previous := source.Cluster.GetIdentity(t)
 	if spec.ShouldHoldOutage {
 		source.Proxy.SetUnavailable(true)
+		// The rate-limited transfer stays active without triggering the backup's byte-stall timeout
+		// while the cluster manager prepares and completes its switchover.
+		gate.Release()
 	}
 
 	promoted := source.Cluster.Switchover(t)

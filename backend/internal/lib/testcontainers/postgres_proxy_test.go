@@ -144,6 +144,7 @@ func TestPostgresProxy(t *testing.T) {
 		require.Positive(t, transfer.TransferredBytes)
 		require.Positive(t, transfer.BackendPID)
 		require.Contains(t, transfer.Command, "BASE_BACKUP")
+		require.Contains(t, transfer.Command, "MAX_RATE 32")
 
 		require.NoError(t, connection.Conn().SetReadDeadline(time.Now().Add(testwait.DefaultLimit)))
 		for {

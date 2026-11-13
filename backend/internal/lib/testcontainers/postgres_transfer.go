@@ -44,5 +44,6 @@ func (p *PostgresProxy) limitBackupTransfer(command string) (string, error) {
 		return "", fmt.Errorf("backup transfer gate requires parenthesized BASE_BACKUP options")
 	}
 
-	return options + ", MAX_RATE 2048)", nil
+	// PostgreSQL's minimum rate keeps the large failover payload in flight after the gate opens.
+	return options + ", MAX_RATE 32)", nil
 }
