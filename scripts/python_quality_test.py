@@ -93,7 +93,7 @@ class PythonQualityTest(unittest.TestCase):
 
     def run_hk(self, *arguments: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
-            ["hk", "check", "--check", *arguments],
+            ["hk", "check", "--check", "--step", "python-lint", *arguments],
             cwd=self.root,
             env=self.environment,
             capture_output=True,
@@ -209,7 +209,7 @@ class PythonQualityTest(unittest.TestCase):
         stash = self.git("stash", "list")
 
         completed_check = subprocess.run(
-            ["hk", "pre-commit"],
+            ["hk", "run", "--step", "python-lint", "pre-commit"],
             cwd=self.root,
             env=self.environment,
             capture_output=True,
@@ -219,6 +219,7 @@ class PythonQualityTest(unittest.TestCase):
         )
 
         self.assertNotEqual(completed_check.returncode, 0)
+        self.assertIn("broken.py", completed_check.stdout + completed_check.stderr)
         self.assertEqual(source.read_text(), "def read_value() -> int:\n  return 43\n")
         self.assertEqual(other_source.read_text(), "VALUE = 1\n")
         self.assertEqual(self.git("show", ":broken.py"), staged_content)
