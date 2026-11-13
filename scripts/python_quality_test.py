@@ -209,7 +209,7 @@ class PythonQualityTest(unittest.TestCase):
         stash = self.git("stash", "list")
 
         completed_check = subprocess.run(
-            ["hk", "run", "--step", "python-lint", "pre-commit"],
+            ["hk", "run", "pre-commit", "--step", "python-lint"],
             cwd=self.root,
             env=self.environment,
             capture_output=True,
@@ -219,7 +219,9 @@ class PythonQualityTest(unittest.TestCase):
         )
 
         self.assertNotEqual(completed_check.returncode, 0)
-        self.assertIn("broken.py", completed_check.stdout + completed_check.stderr)
+        output = completed_check.stdout + completed_check.stderr
+        self.assertIn("broken.py", output)
+        self.assertNotIn("security:semgrep", output)
         self.assertEqual(source.read_text(), "def read_value() -> int:\n  return 43\n")
         self.assertEqual(other_source.read_text(), "VALUE = 1\n")
         self.assertEqual(self.git("show", ":broken.py"), staged_content)
