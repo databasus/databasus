@@ -82,8 +82,8 @@ Tests should keep the machine busy. A run that waits while CPU, memory and disk 
 
 Local runs assume a developer machine with:
 
-- about 64 GB of memory, of which 32 GB are free for tests, while the rest serve compilation, the editor and the desktop;
-- at least 10 performance cores;
+- 64 GB of memory, with up to 32 GB available exclusively for tests across the entire run, whether it runs selected packages, `mise run test` or `mise run test-full`; the rest serve compilation, the editor and the desktop;
+- 32 logical CPUs (vCPUs), which set Go's default parallel test limit;
 - free disk space that grows with concurrency, both on Docker's storage and in the temporary directory.
 
 Disk space needs a wide margin rather than an exact figure. Durable fixtures write data and WAL, and tests keep backups in temporary directories. When Docker keeps its data in an image file on the root filesystem, that file grows into the root filesystem's free space. If that space runs out, the run fails and the host can stall or restart.
@@ -128,10 +128,11 @@ Each command adds its own layer on top:
 
 ### Parallelism in CI
 
-CI parallelizes jobs rather than tests:
+CI combines parallel jobs with parallel tests:
 
 - Each group or shard runs on its own runner. The longest check decides the wait, not the sum of all checks, and a slow runner holds back only its own shard.
-- Runners are smaller than the reference machine, so each test binary runs only a couple of tests at once.
+- Runners are available up to 16 vCPUs and 32 GB RAM. There is substantial aggregate concurrency available; use a 16-vCPU runner when a suite benefits from it.
+- Small jobs use small runners so they consume less of the paid runners' shared vCPU concurrency quota. Larger runners and higher test parallelism are chosen from measured runtime and peak memory, within the runner's 32 GB budget. Two concurrent tests is not a general limit.
 - A long package is split into several top-level tests. Their [recorded weights](../backend/test-shard-weights.txt) let the shards balance it.
 
 [CI](#ci) describes groups and shards.
@@ -174,6 +175,42 @@ TESTCONTAINERS_RYUK_DISABLED=true go -C backend test -count=1 -timeout 15m \
 ```
 
 Use Go's `-run` filter to repeat an individual scenario. [PostgreSQL with Patroni](postgresql-patroni.md) explains endpoint routing, external slot ownership and recovery gaps.
+
+## CloudNativePG physical backup tests
+
+The CloudNativePG (CNPG) suite runs the Patroni scenario families on PostgreSQL 17 and 18 against sources that the CNPG operator manages in Kubernetes. A package run starts its own disposable single-node Kubernetes clusters, each a k3s server in a privileged Docker container, and its scenarios share them. Every scenario creates a namespace with a CNPG cluster of two PostgreSQL nodes. Databasus reaches the primary through a NodePort Kubernetes Service with the selector of CNPG's `-rw` Kubernetes Service, using a role declared in the cluster manifest over TLS verified with `verify-full`. Like the Patroni sources, these use disk-backed data and durable settings. Scenarios are grouped into top-level tests by family and PostgreSQL major, so CI can spread them across shards. The runner controls scenario parallelism; fixture-control scenarios may create several CNPG clusters within one test, so cluster count is measured separately.
+
+The suite drives Kubernetes only through `kubectl` inside its k3s containers. It publishes no Kubernetes API port, writes no kubeconfig on the host and never reads or changes the developer's Kubernetes configuration.
+
+The suite needs:
+
+- rootful Docker on Linux, because scenarios connect from the host to the k3s container's address, and only rootful Docker on Linux makes that address reachable;
+- a Docker daemon that allows privileged containers, which k3s requires;
+- raised inotify limits, because every k3s container's kubelet and containerd take inotify instances and watches from the same per-user limits; [Preparing a machine](machine-setup.md#inotify-limits-for-cloudnativepg-tests) gives the values;
+- Docker, the shared test PostgreSQL server, pinned tools and client bundles as described in [Commands](#commands).
+
+The k3s, operator and CNPG PostgreSQL images are pulled through Docker and imported into k3s, which pulls nothing from a registry. A missing prerequisite, such as an unreachable Docker daemon, a refused privileged container, an unreachable container address or an image that cannot be obtained, fails the suite with a message that names it; no scenario is skipped. The [fixture README](../backend/internal/lib/testcontainers/testdata/cnpg/README.md) owns the dependency records.
+
+Run the complete matrix from the repository root:
+
+```sh
+source scripts/fedora.sh
+apply_libedit_shim
+TESTCONTAINERS_RYUK_DISABLED=true go -C backend test -count=1 -timeout 15m \
+  ./internal/modules/backups/e2e/postgresqlphysical/cnpg
+```
+
+Use Go's `-run` filter to repeat an individual scenario. [PostgreSQL with CloudNativePG](postgresql-cloudnativepg.md) explains the source configuration, slot synchronization and recovery limits.
+
+A run removes its k3s containers, networks, volumes and temporary directories after success, a failure or cancellation. When the test process of `mise run test-full` is killed, the test runner still removes its labelled resources. Child runs can use distinct `databasus.test-run` values while retaining the enclosing run in `databasus.test-root-run`; the runner removes resources matched by either ownership label with its own run ID. A killed direct package run has no run label and leaves its resources behind. Every k3s container, network and volume carries the fixture label `databasus.k3s-fixture`, whose value is that k3s fixture's ID:
+
+```sh
+docker ps -a --filter label=databasus.k3s-fixture
+docker network ls --filter label=databasus.k3s-fixture
+docker volume ls --filter label=databasus.k3s-fixture
+```
+
+The fixture label also matches the k3s fixtures of CNPG runs still active in other worktrees. Before removing anything, make sure no other CNPG run is active, or filter by the IDs of the killed run with `label=databasus.k3s-fixture=<fixture ID>`.
 
 ## Verification agent end-to-end tests
 
@@ -354,7 +391,7 @@ pattern=$(mise run --quiet backend:test-group-tests other-1-of-3)
 TESTCONTAINERS_RYUK_DISABLED=true go -C backend test -race -p=8 -parallel=2 -count=1 -timeout 40m -run "$pattern" $packages
 ```
 
-Use `other-2-of-3` and `other-3-of-3` for the remaining selections. The same commands repeat a shard of another sharded group by its name, such as `patroni-2-of-5`. The provider root runs separately, without overlapping test work:
+Use `other-2-of-3` and `other-3-of-3` for the remaining selections. The same commands repeat a shard of another sharded group by its name, such as `patroni-2-of-5`. For a `cnpg` shard, omit `-parallel=2` to use Go's default parallelism, as its CI runner does. The provider root runs separately, without overlapping test work:
 
 ```sh
 TESTCONTAINERS_RYUK_DISABLED=true go -C backend test -race -p=1 -parallel=1 -count=1 -timeout 40m ./internal/modules/storages/internal/providers

@@ -6,4 +6,25 @@ Keep temporary test files and Docker's writable container data on fast local sto
 
 Keep valuable container data and persistent volumes on reliable storage. Disabling write-durability guarantees can cause data loss after a power failure or crash, and changing shared Docker storage affects every project on the machine.
 
-These optimizations are optional and depend on the host. No repository command requires a particular filesystem or mount configuration. Tool installation follows the root [development guide](../AGENTS.md#development-environment); [testing.md](testing.md#checking-work) explains which checks to run.
+These storage optimizations are optional and depend on the host. No repository command requires a particular filesystem or mount configuration. Tool installation follows the root [development guide](../AGENTS.md#development-environment); [testing.md](testing.md#checking-work) explains which checks to run.
+
+## inotify limits for CloudNativePG tests
+
+The [CloudNativePG suite](testing.md#cloudnativepg-physical-backup-tests) runs Kubernetes as k3s in Docker containers. The kubelet and containerd of every k3s container take inotify instances and watches from the per-user limits of the host, and the kernel default of 128 instances may not cover several k3s containers at once. CI raises both limits before the suite runs; set the same values on the host before running it locally:
+
+```sh
+sudo sysctl -w fs.inotify.max_user_instances=1024
+sudo sysctl -w fs.inotify.max_user_watches=1048576
+```
+
+The values above last until the next reboot. To keep them, write them to a file under `/etc/sysctl.d` and reload:
+
+```sh
+sudo tee /etc/sysctl.d/90-databasus-k3s.conf >/dev/null <<'EOF'
+fs.inotify.max_user_instances = 1024
+fs.inotify.max_user_watches = 1048576
+EOF
+sudo sysctl --system
+```
+
+Higher values already set on the host can stay.

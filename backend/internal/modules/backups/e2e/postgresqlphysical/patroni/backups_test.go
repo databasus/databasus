@@ -79,9 +79,18 @@ func runPatroniScenarios(t *testing.T, image string, scenarios []patroniScenario
 
 func getRecoveryScenarios() []patroniScenario {
 	return []patroniScenario{
-		{name: "restores initial schema and sequences with ", run: physicaltest.RunPatroniInitialRecovery},
-		{name: "recovers after two switchovers with ", run: physicaltest.RunPatroniSwitchovers},
-		{name: "recovers after primary loss with ", run: physicaltest.RunPatroniPrimaryLoss},
+		{name: "restores initial schema and sequences with ", run: func(t *testing.T, image string) {
+			t.Helper()
+			physicaltest.RunFailoverInitialRecovery(t, physicaltest.NewPatroniManager(image))
+		}},
+		{name: "recovers after two switchovers with ", run: func(t *testing.T, image string) {
+			t.Helper()
+			physicaltest.RunFailoverSwitchovers(t, physicaltest.NewPatroniManager(image))
+		}},
+		{name: "recovers after primary loss with ", run: func(t *testing.T, image string) {
+			t.Helper()
+			physicaltest.RunFailoverPrimaryLoss(t, physicaltest.NewPatroniManager(image))
+		}},
 	}
 }
 
@@ -164,9 +173,12 @@ func getInterruptedBackupScenarios() []patroniScenario {
 	} {
 		scenarios = append(scenarios, patroniScenario{name: interruption.name, run: func(t *testing.T, image string) {
 			t.Helper()
-			physicaltest.RunPatroniInterruptedBackup(
+			physicaltest.RunFailoverInterruptedBackup(
 				t,
-				physicaltest.PatroniInterruptionSpec{Image: image, Kind: interruption.kind},
+				physicaltest.FailoverInterruptionSpec{
+					Manager: physicaltest.NewPatroniManager(image),
+					Kind:    interruption.kind,
+				},
 			)
 		}})
 	}
@@ -184,9 +196,13 @@ func getRoutingOutageScenarios() []patroniScenario {
 				name: "preserves the failure during a routing outage for " + kind + " with ",
 				run: func(t *testing.T, image string) {
 					t.Helper()
-					physicaltest.RunPatroniInterruptedBackup(
+					physicaltest.RunFailoverInterruptedBackup(
 						t,
-						physicaltest.PatroniInterruptionSpec{Image: image, Kind: kind, ShouldHoldOutage: true},
+						physicaltest.FailoverInterruptionSpec{
+							Manager:          physicaltest.NewPatroniManager(image),
+							Kind:             kind,
+							ShouldHoldOutage: true,
+						},
 					)
 				},
 			},

@@ -697,6 +697,36 @@ jobs:
           - group: patroni-5-of-5
             arch: arm64
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-arm
+          - group: cnpg-1-of-5
+            arch: amd64
+            runner: namespace-profile-8vcpu-16ram-ubuntu-22-x64
+          - group: cnpg-1-of-5
+            arch: arm64
+            runner: namespace-profile-8vcpu-16ram-ubuntu-22-arm
+          - group: cnpg-2-of-5
+            arch: amd64
+            runner: namespace-profile-8vcpu-16ram-ubuntu-22-x64
+          - group: cnpg-2-of-5
+            arch: arm64
+            runner: namespace-profile-8vcpu-16ram-ubuntu-22-arm
+          - group: cnpg-3-of-5
+            arch: amd64
+            runner: namespace-profile-8vcpu-16ram-ubuntu-22-x64
+          - group: cnpg-3-of-5
+            arch: arm64
+            runner: namespace-profile-8vcpu-16ram-ubuntu-22-arm
+          - group: cnpg-4-of-5
+            arch: amd64
+            runner: namespace-profile-8vcpu-16ram-ubuntu-22-x64
+          - group: cnpg-4-of-5
+            arch: arm64
+            runner: namespace-profile-8vcpu-16ram-ubuntu-22-arm
+          - group: cnpg-5-of-5
+            arch: amd64
+            runner: namespace-profile-8vcpu-16ram-ubuntu-22-x64
+          - group: cnpg-5-of-5
+            arch: arm64
+            runner: namespace-profile-8vcpu-16ram-ubuntu-22-arm
           - group: physical-api-1-of-3
             arch: amd64
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
@@ -754,12 +784,21 @@ jobs:
       - name: Pull testcontainer images
         run: mise run backend:pull-testcontainers
 
+      - name: Raise inotify limits for k3s
+        if: startsWith(matrix.group, 'cnpg-')
+        # The kubelet and containerd of each k3s container take inotify instances, which the
+        # runner's default limit of 128 does not cover for several Kubernetes clusters.
+        run: |
+          sudo sysctl -w fs.inotify.max_user_instances=1024
+          sudo sysctl -w fs.inotify.max_user_watches=1048576
+
       - name: Run Go tests
         env:
           # Ryuk stays disabled to match scripts/test.sh, so CI and local runs share one code path.
           TESTCONTAINERS_RYUK_DISABLED: 'true'
           TEST_GROUP: ${{ matrix.group }}
-          # Container-heavy binaries share a runner; Go's per-binary default multiplies their load.
+          # Groups with several container-heavy binaries bound each binary's concurrency.
+          # The dedicated CNPG branch uses its runner's default instead.
           TEST_PARALLELISM: '2'
         run: |
           cd backend
@@ -782,6 +821,12 @@ jobs:
             isolated_package=databasus-backend/internal/modules/storages/internal/providers
             [[ "$packages" == "$isolated_package" && -z "$run_pattern" ]]
             go test -race -p=1 -parallel=1 -count=1 -failfast -timeout 40m "$isolated_package"
+            exit
+          fi
+          if [[ "$TEST_GROUP" == cnpg-* ]]; then
+            # CNPG shards use the runner's default parallelism on their measured 8-vCPU budget.
+            # shellcheck disable=SC2086 # one import path per word
+            go test -race -p=8 -count=1 -failfast -timeout 40m ${run_pattern:+-run "$run_pattern"} $packages
             exit
           fi
           # Each leg runs one group on its own runner and allows extra time for CI contention.

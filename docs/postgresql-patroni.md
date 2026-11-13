@@ -103,5 +103,7 @@ provides the command and prerequisites.
 
 Those results do not establish native arm64 scenario execution or the behavior
 of Kubernetes, operators, multiple data centers, network partitions or every
-Patroni configuration. Starting a client binary under emulation does not
-establish recovery behavior on that architecture.
+Patroni configuration. CloudNativePG is verified separately, as
+[PostgreSQL with CloudNativePG](postgresql-cloudnativepg.md) describes; other
+Kubernetes operators remain unverified. Starting a client binary under
+emulation does not establish recovery behavior on that architecture.

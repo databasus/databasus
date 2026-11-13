@@ -203,6 +203,26 @@ list_missing_cluster_config() {
     done
 }
 
+print_external_settings_instructions() {
+    echo
+    echo "================================================================================"
+    echo "ACTION REQUIRED: the restored configuration points outside the data directory"
+    echo "================================================================================"
+    echo "  A base backup copies only the data directory. These settings name files or"
+    echo "  directories outside it, which the backup does not contain:"
+    printf '%s\n' "$1" | while IFS= read -r setting; do
+        echo "    $setting"
+    done
+    echo
+    echo "  The server will not start until each one works on this host. Either copy those"
+    echo "  files to the same paths here, or give each setting a value for this host in"
+    echo "  '$DATA_DIR/postgresql.auto.conf', which overrides the copied files:"
+    echo "       ssl_cert_file, ssl_key_file, ssl_ca_file  -> this host's certificates, or ssl = off"
+    echo "       unix_socket_directories                    -> '/var/run/postgresql' or '/tmp'"
+    echo "       log_directory                              -> 'log', inside the data directory"
+    echo "  The source's own TLS and access rules stay as they are; only this copy changes."
+}
+
 is_cluster_dir_complete() {
     for marker in PG_VERSION base global pg_wal; do
         if [ ! -e "$DATA_DIR/$marker" ]; then
@@ -735,6 +755,44 @@ sanitize_configuration_file() (
     mv "$config.databasus-tmp" "$config"
 )
 
+# Operators such as CloudNativePG keep certificates, the socket directory and logs outside the data
+# directory, and a base backup copies none of them. A server started from the copy stops at the first
+# missing one, so every such setting is reported, even where a later file may override it. Paths under
+# the source's own data directory travel with the copy and are not reported.
+list_external_settings() {
+    while IFS= read -r config; do
+        awk -v source_root="$SOURCE_CONFIGURATION_ROOT" -v config_name="${config#"$CONFIGURATION_ROOT"/}" '
+            {
+                line = $0
+                sub(/^[[:space:]]*/, "", line)
+                if (!match(tolower(line), /^(ssl_cert_file|ssl_key_file|ssl_ca_file|ssl_crl_file|ssl_crl_dir|ssl_dh_params_file|krb_server_keyfile|log_directory|unix_socket_directories)([[:space:]]*=|[[:space:]]+)/)) next
+
+                setting = substr(line, 1, RLENGTH)
+                sub(/[[:space:]=].*$/, "", setting)
+                value = substr(line, RLENGTH + 1)
+                sub(/^[[:space:]]*(=[[:space:]]*)?/, "", value)
+                if (substr(value, 1, 1) == "\047") {
+                    value = substr(value, 2)
+                    sub(/\047.*$/, "", value)
+                } else {
+                    sub(/[[:space:]#].*$/, "", value)
+                }
+
+                count = split(value, paths, ",")
+                for (position = 1; position <= count; position++) {
+                    path = paths[position]
+                    gsub(/^[[:space:]]+|[[:space:]]+$/, "", path)
+                    if (substr(path, 1, 1) != "/") continue
+                    if (source_root != "" && (path == source_root || index(path, source_root "/") == 1)) continue
+
+                    printf "%s = \047%s\047    (%s)\n", tolower(setting), value, config_name
+                    break
+                }
+            }
+        ' "$config"
+    done
+}
+
 CONFIGURATION_ROOT=$(cd "$DATA_DIR" && pwd -P)
 RUNTIME_DATA_DIR=$DATA_DIR
 if [ -n "$COMBINE_IMAGE" ]; then
@@ -772,6 +830,7 @@ CONFIGURATION_AUTHENTICATION="$DATA_DIR/.databasus-authentication-paths"
 : >"$CONFIGURATION_AUTHENTICATION"
 sanitize_configuration_file "$DATA_DIR/postgresql.conf"
 sanitize_configuration_file "$DATA_DIR/postgresql.auto.conf"
+EXTERNAL_SETTINGS=$(list_external_settings <"$CONFIGURATION_VISITED")
 HAS_COPIED_HBA=$(awk '$1 == "hba_file" { has_file = $2 } END { print has_file }' "$CONFIGURATION_AUTHENTICATION")
 HAS_COPIED_IDENT=$(awk '$1 == "ident_file" { has_file = $2 } END { print has_file }' "$CONFIGURATION_AUTHENTICATION")
 rm "$CONFIGURATION_VISITED" "$CONFIGURATION_AUTHENTICATION"
@@ -888,9 +947,15 @@ fi
 
 MISSING_CLUSTER_CONFIG="$(list_missing_cluster_config)"
 
-if [ -n "$MISSING_CLUSTER_CONFIG" ]; then
+if [ -n "$MISSING_CLUSTER_CONFIG" ] || [ -n "$EXTERNAL_SETTINGS" ]; then
     echo
     echo "     It will not start yet - see ACTION REQUIRED below."
+fi
 
+if [ -n "$MISSING_CLUSTER_CONFIG" ]; then
     print_missing_config_instructions "$MISSING_CLUSTER_CONFIG"
+fi
+
+if [ -n "$EXTERNAL_SETTINGS" ]; then
+    print_external_settings_instructions "$EXTERNAL_SETTINGS"
 fi

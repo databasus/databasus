@@ -102,6 +102,18 @@ func (team Team) requireRestrictedPromotionRole(t *testing.T) {
 	)
 	require.False(t, canReadFiles)
 
+	for _, query := range []string{
+		"SELECT pg_read_file('postgresql.conf')",
+		"SELECT pg_read_file('pg_hba.conf')",
+		"SELECT pg_read_binary_file('postgresql.conf')",
+		"SELECT pg_read_binary_file('pg_hba.conf')",
+	} {
+		_, err = connection.Exec(t.Context(), query)
+		var filePermissionError *pgconn.PgError
+		require.ErrorAs(t, err, &filePermissionError, query)
+		require.Equal(t, "42501", filePermissionError.Code, query)
+	}
+
 	_, err = connection.Exec(t.Context(), "SELECT * FROM backup_permission_probe")
 	var permissionError *pgconn.PgError
 	require.ErrorAs(t, err, &permissionError)

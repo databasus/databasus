@@ -4,7 +4,6 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/app/apptest"
@@ -13,14 +12,24 @@ import (
 	containers "databasus-backend/internal/lib/testcontainers"
 )
 
+// NewPatroniManager starts sources whose primary Patroni selects behind a plaintext HAProxy address.
+func NewPatroniManager(image string) FailoverManager {
+	return FailoverManager{startSource: func(t *testing.T, spec failoverSourceSpec) failoverSource {
+		t.Helper()
+
+		return newPatroniSource(t, patroniSourceSpec{
+			Image:                    image,
+			ShouldIntercept:          spec.ShouldIntercept,
+			ShouldIgnoreSlot:         true,
+			ShouldKeepSlotOnAllNodes: spec.ShouldKeepSlotOnEveryNode,
+			LogSink:                  spec.LogSink,
+		}).failoverSource
+	}}
+}
+
 type patroniSource struct {
-	Team      Team
-	Fixture   *containers.Patroni
-	Image     string
-	Schema    SchemaRecovery
-	Sequences SequenceRecovery
-	Proxy     *containers.PostgresProxy
-	SlotName  string
+	failoverSource
+	Fixture *containers.Patroni
 }
 
 type patroniSourceSpec struct {
@@ -58,20 +67,13 @@ func newPatroniSource(t *testing.T, spec patroniSourceSpec) patroniSource {
 	})
 	team.useReplicationOnlyUser(t)
 
-	connection := openConnAt(t, fixture.Endpoint.Host, fixture.Endpoint.Port)
+	cluster := patroniCluster{fixture: fixture}
+	connection := cluster.Connect(t)
 	_, err := connection.Exec(t.Context(), "CREATE TABLE backup_permission_probe(id integer)")
 	require.NoError(t, err)
 	team.requireRestrictedPromotionRole(t)
 
-	var slotName string
-	team.App.QuerySQL(
-		t,
-		&slotName,
-		"SELECT replication_slot_name FROM databases_postgresql_physical WHERE database_id=?",
-		team.Database.Id,
-	)
-	require.NotEmpty(t, slotName)
-
+	slotName := team.getSlotName(t)
 	if spec.ShouldIgnoreSlot {
 		fixture.IgnoreSlot(t, slotName)
 	}
@@ -85,38 +87,12 @@ func newPatroniSource(t *testing.T, spec patroniSourceSpec) patroniSource {
 
 	return patroniSource{
 		Team:      team,
-		Fixture:   fixture,
+		Cluster:   cluster,
 		Image:     spec.Image,
 		Schema:    schema,
 		Sequences: sequences,
 		Proxy:     proxy,
 		SlotName:  slotName,
+		Fixture:   fixture,
 	}
-}
-
-func (source patroniSource) connect(t *testing.T) *pgx.Conn {
-	t.Helper()
-	return openConnAt(t, source.Fixture.Endpoint.Host, source.Fixture.Endpoint.Port)
-}
-
-func (source patroniSource) applySchemaChanges(t *testing.T, connection *pgx.Conn) {
-	t.Helper()
-
-	source.Schema.CreatePostFullObjects(t, connection)
-	source.Sequences.PrepareCalls(t, connection)
-	source.Schema.ApplyBetweenIncrementals(t, connection)
-	source.Schema.BeginWalChanges(t, connection)
-	source.Sequences.ApplyWalChanges(t, connection)
-	source.Schema.execute(t, connection, "COMMIT")
-	source.Schema.RequireStage(t, connection, SchemaAfterWal)
-	source.Sequences.RequireDefinitions(t, connection, SchemaAfterWal)
-}
-
-func (source patroniSource) requireRestoredSchema(t *testing.T, connection *pgx.Conn) {
-	t.Helper()
-
-	source.Schema.RequireStage(t, connection, SchemaAfterWal)
-	source.Sequences.RequireDefinitions(t, connection, SchemaAfterWal)
-	source.Sequences.RequireAllocations(t, connection, SchemaAfterWal)
-	source.Schema.RequireWrites(t, connection)
 }

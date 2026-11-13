@@ -7,6 +7,7 @@ import subprocess
 import tempfile
 import time
 import unittest
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TypedDict
 
@@ -63,6 +64,7 @@ class PackageCoverageTest(unittest.TestCase):
         groups = (
             "physical",
             "patroni",
+            "cnpg",
             "logical",
             "physical-api",
             "agent-e2e",
@@ -99,6 +101,9 @@ class PackageCoverageTest(unittest.TestCase):
         patroni = "databasus-backend/internal/modules/backups/e2e/postgresqlphysical/patroni"
         self.assertEqual(selections["patroni"], {patroni})
         self.assertNotIn(patroni, selections["physical"])
+        cnpg = "databasus-backend/internal/modules/backups/e2e/postgresqlphysical/cnpg"
+        self.assertEqual(selections["cnpg"], {cnpg})
+        self.assertNotIn(cnpg, selections["physical"])
         self.assertIn(
             "databasus-backend/internal/modules/backups/e2e/postgresqlphysical/pg18",
             selections["physical"],
@@ -322,62 +327,66 @@ else:
         self.assertNotIn("databasus-backend/e2e/upgrade/upgradecheck", selected_packages)
 
 
-class PatroniGroupSelectionTest(ShardFixture):
-    def test_patroni_takes_its_nested_packages_and_physical_takes_the_rest(self) -> None:
+@dataclass(frozen=True)
+class ClusterSuite:
+    name: str
+    test_prefix: str
+    scenario_test_count: int
+
+
+CLUSTER_SUITES = (
+    ClusterSuite(name="patroni", test_prefix="TestPatroni", scenario_test_count=10),
+    ClusterSuite(name="cnpg", test_prefix="TestCNPG", scenario_test_count=12),
+)
+
+
+class ClusterSuiteGroupSelectionTest(ShardFixture):
+    def test_each_cluster_suite_takes_its_nested_packages_and_physical_takes_the_rest(self) -> None:
         self.stub(
             "go",
             """import sys
 physical = "databasus-backend/internal/modules/backups/e2e/postgresqlphysical"
-packages = [physical + "/pg17", physical + "/fresh", physical + "/patroni", physical + "/patroni/nested"]
+suites = ["patroni", "cnpg"]
+packages = [physical + "/pg17", physical + "/fresh"]
+for suite in suites:
+    packages += [physical + "/" + suite, physical + "/" + suite + "/nested"]
 if sys.argv[1:] == ["list", "./internal/modules/backups/e2e/postgresqlphysical/..."]:
     print("\\n".join(packages))
-elif sys.argv[1:] == ["list", "./internal/modules/backups/e2e/postgresqlphysical/patroni/..."]:
-    print("\\n".join(package for package in packages if "/patroni" in package))
-else:
-    sys.exit("unexpected discovery: " + repr(sys.argv[1:]))
+    sys.exit()
+for suite in suites:
+    if sys.argv[1:] == ["list", "./internal/modules/backups/e2e/postgresqlphysical/" + suite + "/..."]:
+        print("\\n".join(package for package in packages if "/" + suite in package))
+        sys.exit()
+sys.exit("unexpected discovery: " + repr(sys.argv[1:]))
 """,
         )
 
-        selected_by_group = {}
-        for group in ("physical", "patroni"):
-            selection = subprocess.run(
-                ["bash", str(self.workspace / "test-group-packages")],
-                cwd=self.backend,
-                env={**self.environment, "usage_group": group},
-                capture_output=True,
-                text=True,
-                timeout=TIMEOUT,
-            )
-            self.assertEqual(selection.returncode, 0, selection.stderr)
-            selected_by_group[group] = selection.stdout.splitlines()
-
         physical = "databasus-backend/internal/modules/backups/e2e/postgresqlphysical"
-        self.assertEqual(selected_by_group["physical"], [physical + "/pg17", physical + "/fresh"])
         self.assertEqual(
-            selected_by_group["patroni"], [physical + "/patroni", physical + "/patroni/nested"]
+            self.select_packages("physical"), [physical + "/pg17", physical + "/fresh"]
         )
+        for suite in CLUSTER_SUITES:
+            with self.subTest(suite=suite.name):
+                self.assertEqual(
+                    self.select_packages(suite.name),
+                    [physical + "/" + suite.name, physical + "/" + suite.name + "/nested"],
+                )
 
-
-class PatroniShardBalanceTest(ShardFixture):
-    def test_every_patroni_shard_runs_backup_scenarios_with_recorded_weights(self) -> None:
-        patroni_directory = ROOT / "backend/internal/modules/backups/e2e/postgresqlphysical/patroni"
-        scenario_tests = {
-            test
-            for source in patroni_directory.glob("*_test.go")
-            for test in re.findall(r"^func (Test\w+)\(", source.read_text(), re.MULTILINE)
-            if test != "TestPatroniFixtureChild"
-        }
-        backup_tests = {
-            test for test in scenario_tests if re.fullmatch(r"TestPatroni\w+Postgres1[78]", test)
-        }
-        weighted_tests = set(
-            re.findall(
-                r"^\d+ (\w+)$", (ROOT / "backend/test-shard-weights.txt").read_text(), re.MULTILINE
-            )
+    def select_packages(self, group: str) -> list[str]:
+        selection = subprocess.run(
+            ["bash", str(self.workspace / "test-group-packages")],
+            cwd=self.backend,
+            env={**self.environment, "usage_group": group},
+            capture_output=True,
+            text=True,
+            timeout=TIMEOUT,
         )
-        self.assertEqual(len(backup_tests), 10)
-        self.assertEqual(scenario_tests - weighted_tests, set())
+        self.assertEqual(selection.returncode, 0, selection.stderr)
+        return selection.stdout.splitlines()
 
+
+class ClusterSuiteShardBalanceTest(ShardFixture):
+    def test_every_cluster_suite_shard_runs_backup_scenarios_with_recorded_weights(self) -> None:
         self.environment["PACKAGE_SELECTOR"] = str(ROOT / "mise-tasks/backend/test-group-packages")
         self.stub(
             "mise",
@@ -387,12 +396,39 @@ if sys.argv[1:4] != ["run", "--quiet", "backend:test-group-packages"]:
 sys.exit(subprocess.call(["bash", os.environ["PACKAGE_SELECTOR"]], env={**os.environ, "usage_group": sys.argv[4]}))
 """,
         )
+        weighted_tests = set(
+            re.findall(
+                r"^\d+ (\w+)$", (ROOT / "backend/test-shard-weights.txt").read_text(), re.MULTILINE
+            )
+        )
+        for suite in CLUSTER_SUITES:
+            with self.subTest(suite=suite.name):
+                self.check_suite_shards(suite, weighted_tests)
+
+    def check_suite_shards(self, suite: ClusterSuite, weighted_tests: set[str]) -> None:
+        suite_directory = (
+            ROOT / "backend/internal/modules/backups/e2e/postgresqlphysical" / suite.name
+        )
+        scenario_tests = {
+            test
+            for source in suite_directory.glob("*_test.go")
+            for test in re.findall(r"^func (Test\w+)\(", source.read_text(), re.MULTILINE)
+            if test not in {"TestMain", suite.test_prefix + "FixtureChild"}
+        }
+        backup_tests = {
+            test
+            for test in scenario_tests
+            if re.fullmatch(suite.test_prefix + r"\w+Postgres1[78]", test)
+        }
+        self.assertEqual(len(backup_tests), suite.scenario_test_count)
+        self.assertEqual(scenario_tests - weighted_tests, set())
+
         for shard in range(1, 6):
             with self.subTest(shard=shard):
                 selection = subprocess.run(
                     ["bash", str(ROOT / "mise-tasks/backend/test-group-tests")],
                     cwd=ROOT / "backend",
-                    env={**self.environment, "usage_group": f"patroni-{shard}-of-5"},
+                    env={**self.environment, "usage_group": f"{suite.name}-{shard}-of-5"},
                     capture_output=True,
                     text=True,
                     timeout=TIMEOUT,

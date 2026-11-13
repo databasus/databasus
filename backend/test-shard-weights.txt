@@ -3,6 +3,25 @@
 # reports, which leave out the wait for a -parallel slot. A sharded group deals its slowest tests first
 # so each lands on the least-loaded shard, and a test missing here counts as one second. The values
 # only balance the shards: a stale one makes a shard slower, never skips a test.
+1286 TestCNPGFixtureCleanup
+1069 TestCNPGIndependentRecoveryPostgres17
+790 TestCNPGSlotsPostgres17
+692 TestCNPGAccessPostgres17
+690 TestCNPGAccessPostgres18
+652 TestCNPGIndependentRecoveryPostgres18
+584 TestCNPGSlotsPostgres18
+570 TestCNPGRoutingOutagesPostgres18
+560 TestCNPGRoutingOutagesPostgres17
+419 TestCNPGRecoveryPostgres18
+393 TestCNPGFixtureFailover
+391 TestCNPGRecoveryPostgres17
+331 TestCNPGFixtureLifecycle
+325 TestCNPGFixtureSlots
+306 TestCNPGInterruptedBackupsPostgres17
+285 TestCNPGFixturePool
+277 TestCNPGFixtureSwitchover
+268 TestCNPGInterruptedBackupsPostgres18
+1 TestCNPGFixtureChild
 199 TestIdlePhysicalWalSource
 164 TestPhysicalWalSamples
 145 TestPhysicalBackupOverSshTunnel

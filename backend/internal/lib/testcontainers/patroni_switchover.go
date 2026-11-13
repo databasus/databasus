@@ -12,7 +12,7 @@ import (
 	"databasus-backend/internal/lib/testwait"
 )
 
-func (fixture *Patroni) Switchover(t *testing.T) PatroniIdentity {
+func (fixture *Patroni) Switchover(t *testing.T) RouteIdentity {
 	t.Helper()
 
 	previous := fixture.GetIdentity(t)
@@ -28,7 +28,7 @@ func (fixture *Patroni) Switchover(t *testing.T) PatroniIdentity {
 		patroniRequest{Endpoint: leader.API, Method: http.MethodPost, Path: "/switchover", Body: request},
 	)
 
-	var current PatroniIdentity
+	var current RouteIdentity
 	testwait.Until(t, "Patroni switches the stable endpoint", func(context.Context) error {
 		current = fixture.GetIdentity(t)
 		if current.Node != candidate.Name || current.Timeline <= previous.Timeline {

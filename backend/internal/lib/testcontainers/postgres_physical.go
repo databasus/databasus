@@ -42,6 +42,7 @@ type physicalPostgresOptions struct {
 	maxPreparedTransactions       int
 	maxWalSenders                 int
 	walKeepSizeMB                 int
+	serverCertificate             *ServerCertificate
 }
 
 // PhysicalPostgresOption tunes a physical source container away from its replication-ready default.
@@ -95,6 +96,12 @@ func WithCheckpointsSpreadOverAnHour() PhysicalPostgresOption {
 	return func(o *physicalPostgresOptions) { o.shouldSpreadCheckpoints = true }
 }
 
+// WithServerCertificate turns TLS on with a certificate from a test authority, for tests that verify
+// the server as libpq's verify-full does.
+func WithServerCertificate(certificate ServerCertificate) PhysicalPostgresOption {
+	return func(o *physicalPostgresOptions) { o.serverCertificate = &certificate }
+}
+
 // WithoutAutovacuum keeps autovacuum's transactions out of the WAL, so a test can rely on a segment
 // holding only the transactions it ran itself.
 func WithoutAutovacuum() PhysicalPostgresOption {
@@ -126,6 +133,33 @@ func createTablespaceInitScript() testcontainers.ContainerFile {
 		Reader:            strings.NewReader(body),
 		ContainerFilePath: "/docker-entrypoint-initdb.d/01_create_tablespace.sh",
 		FileMode:          0o755,
+	}
+}
+
+// getServerCertificateFiles moves the key into the data directory at first boot, because PostgreSQL
+// refuses a key that the postgres user does not own with mode 0600, which a copied file cannot have.
+func getServerCertificateFiles(certificate ServerCertificate) []testcontainers.ContainerFile {
+	body := "#!/bin/bash\nset -e\n" +
+		`cp /tmp/databasus-tls/server.crt /tmp/databasus-tls/server.key "$PGDATA/"` + "\n" +
+		`chmod 600 "$PGDATA/server.key"` + "\n" +
+		`echo "ssl = on" >> "$PGDATA/postgresql.conf"` + "\n"
+
+	return []testcontainers.ContainerFile{
+		{
+			Reader:            strings.NewReader(certificate.CertificatePEM),
+			ContainerFilePath: "/tmp/databasus-tls/server.crt",
+			FileMode:          0o644,
+		},
+		{
+			Reader:            strings.NewReader(certificate.KeyPEM),
+			ContainerFilePath: "/tmp/databasus-tls/server.key",
+			FileMode:          0o644,
+		},
+		{
+			Reader:            strings.NewReader(body),
+			ContainerFilePath: "/docker-entrypoint-initdb.d/03_enable_tls.sh",
+			FileMode:          0o755,
+		},
 	}
 }
 
@@ -220,6 +254,10 @@ func physicalPostgresRequest(image string, options physicalPostgresOptions) test
 	}
 	if options.shouldCreateTablespace {
 		files = append(files, createTablespaceInitScript())
+	}
+
+	if options.serverCertificate != nil {
+		files = append(files, getServerCertificateFiles(*options.serverCertificate)...)
 	}
 
 	return testcontainers.ContainerRequest{

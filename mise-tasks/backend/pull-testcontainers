@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #MISE hide=true
-#MISE description="Pull the database, object storage and agent restore images the backend tests use"
+#MISE description="Pull the database, object storage, agent restore and Kubernetes images the backend tests use"
 #MISE dir="backend"
 set -euo pipefail
 
@@ -18,7 +18,7 @@ if [[ "$architecture" == "arm64" ]]; then
 fi
 
 # shellcheck disable=SC2016 # The child shell expands its own $1 and $n.
-jq -r '.images | keys[] | select(test("^(mysql|mariadb|mongo|postgres):|^(pgsty/minio|databasus/verification-postgres|timescale/timescaledb):"))' "$catalog" |
+jq -r '.images | keys[] | select(test("^(mysql|mariadb|mongo|postgres):|^(pgsty/minio|databasus/verification-postgres|timescale/timescaledb|rancher/k3s|rancher/mirrored-pause|rancher/mirrored-coredns-coredns|rancher/local-path-provisioner|rancher/mirrored-library-busybox|ghcr.io/cloudnative-pg/cloudnative-pg|ghcr.io/cloudnative-pg/postgresql):"))' "$catalog" |
     while IFS= read -r image; do
         reason=$(jq -r --arg architecture "$architecture" --arg image "$image" '.[$architecture][$image] // empty' "$policy")
         if [[ -n "$reason" ]]; then

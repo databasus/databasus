@@ -6,6 +6,7 @@ package containers
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"maps"
 	"strconv"
@@ -33,11 +34,13 @@ const containerBootAttempts = 3
 
 const failedContainerOutputTailBytes = 8 * 1024
 
-// scripts/test.sh exports a run ID, and its exit trap removes only the containers and networks that
-// carry it, so an interrupted full run never removes another run's containers.
+// Child runs keep distinct run IDs; their root run label lets scripts/test.sh remove their resources
+// after interruption without touching another outer run.
 const (
-	testRunIDVariable = "DATABASUS_TEST_RUN_ID"
-	testRunLabel      = "databasus.test-run"
+	testRunIDVariable     = "DATABASUS_TEST_RUN_ID"
+	testRunLabel          = "databasus.test-run"
+	testRootRunIDVariable = "DATABASUS_TEST_ROOT_RUN_ID"
+	testRootRunLabel      = "databasus.test-root-run"
 )
 
 // Endpoint is the reachable address of a started container's primary port.
@@ -202,13 +205,24 @@ func newLabelledNetwork(t *testing.T) (*testcontainers.DockerNetwork, error) {
 
 func withTestRunLabel(t *testing.T, labels map[string]string) map[string]string {
 	t.Helper()
+
+	labelled, err := addTestRunLabel(labels)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return labelled
+}
+
+func addTestRunLabel(labels map[string]string) (map[string]string, error) {
 	variables, _, err := config.ReadVariables(config.LoadSpec{})
 	if err != nil {
-		t.Fatalf("read test run labels: %v", err)
+		return nil, fmt.Errorf("read test run labels: %w", err)
 	}
+
 	testRunID := variables[testRunIDVariable]
 	if testRunID == "" {
-		return labels
+		return labels, nil
 	}
 
 	labelled := maps.Clone(labels)
@@ -217,8 +231,11 @@ func withTestRunLabel(t *testing.T, labels map[string]string) map[string]string 
 	}
 
 	labelled[testRunLabel] = testRunID
+	if rootRunID := variables[testRootRunIDVariable]; rootRunID != "" {
+		labelled[testRootRunLabel] = rootRunID
+	}
 
-	return labelled
+	return labelled, nil
 }
 
 // A container that exits during boot surfaces only as "exited with code N"; the reason sits in its

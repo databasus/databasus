@@ -1,8 +1,9 @@
 #!/bin/sh
 set -eu
 
+# Calibrate password hashing for concurrent fixtures rather than pure-pw's default eight logins.
 printf '%s\n%s\n' "$FTP_USER_PASS" "$FTP_USER_PASS" |
-    pure-pw useradd testuser -u testuser -d /home/ftpusers/testuser
+    pure-pw useradd testuser -C 32 -u testuser -d /home/ftpusers/testuser
 pure-pw mkdb
 
 busybox syslogd -n -O /dev/stdout &

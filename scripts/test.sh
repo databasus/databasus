@@ -26,6 +26,13 @@ declare -A suite_process_ids=()
 declare -A suite_outcomes=()
 durations_directory=""
 
+get_run_resource_ids() {
+    local run_label
+    for run_label in databasus.test-run databasus.test-root-run; do
+        docker "$@" --filter "label=$run_label=$DATABASUS_TEST_RUN_ID" || return
+    done | LC_ALL=C sort -u
+}
+
 # Ryuk is disabled, so nothing else removes the containers an interrupted run leaves behind.
 # The shared compose fixtures stay up for the next run and for other worktrees.
 cleanup() {
@@ -40,19 +47,18 @@ cleanup() {
         kill -TERM -- "-$process_id" 2>/dev/null || true
         wait "$process_id" 2>/dev/null || true
     done
-    local run_filter="label=databasus.test-run=$DATABASUS_TEST_RUN_ID"
     local ids
-    ids=$(docker ps -aq --filter "$run_filter")
+    ids=$(get_run_resource_ids ps -aq)
     if [[ -n "$ids" ]]; then
         # shellcheck disable=SC2086 # one container ID per word
         docker rm -f $ids >/dev/null
     fi
-    ids=$(docker network ls -q --filter "$run_filter")
+    ids=$(get_run_resource_ids network ls -q)
     if [[ -n "$ids" ]]; then
         # shellcheck disable=SC2086 # one network ID per word
         docker network rm $ids >/dev/null
     fi
-    ids=$(docker volume ls -q --filter "$run_filter")
+    ids=$(get_run_resource_ids volume ls -q)
     if [[ -n "$ids" ]]; then
         # shellcheck disable=SC2086 # one volume name per word
         docker volume rm -f $ids >/dev/null
@@ -82,6 +88,9 @@ if [[ -f "$root/.env" ]]; then
     source "$root/.env"
     set +a
 fi
+
+DATABASUS_TEST_ROOT_RUN_ID=$DATABASUS_TEST_RUN_ID
+export DATABASUS_TEST_ROOT_RUN_ID
 
 apply_libedit_shim
 

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/require"
 
 	containers "databasus-backend/internal/lib/testcontainers"
@@ -53,8 +54,8 @@ func startRestoredCluster(t *testing.T, target containers.RestoreTarget, image s
 		}
 
 		t.Logf(
-			"=== restored pg.log ===\n%s",
-			target.ExecBestEffort(context.WithoutCancel(t.Context()), "", "cat", restoreWorkDir+"/pg.log"),
+			"=== restored server log ===\n%s",
+			readRestoredServerLogs(context.WithoutCancel(t.Context()), target, image),
 		)
 	})
 
@@ -69,23 +70,46 @@ func startRestoredCluster(t *testing.T, target containers.RestoreTarget, image s
 	waitForRecoveryToFinish(t, target)
 }
 
+func readRestoredServerLogs(ctx context.Context, target containers.RestoreTarget, image string) string {
+	return string(target.ExecBestEffort(
+		ctx,
+		"",
+		"sh",
+		"-c",
+		`cat "$1"; cat "$2"/log/* 2>/dev/null; true`,
+		"server-log",
+		restoreWorkDir+"/pg.log",
+		restoredClusterDir(image),
+	))
+}
+
+// TCP applies the copied authentication rules, without relying on a local socket rule the source never had.
 func waitForRecoveryToFinish(t *testing.T, target containers.RestoreTarget) {
 	t.Helper()
 
-	testwait.Until(t, "the restored cluster finishes replaying WAL", func(context.Context) error {
-		recoveryState := target.ExecBestEffort(context.WithoutCancel(t.Context()),
-			"postgres",
-			"psql",
-			"-U",
+	testwait.Until(t, "the restored cluster finishes replaying WAL", func(ctx context.Context) error {
+		connection, err := pgx.Connect(ctx, fmt.Sprintf(
+			"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable connect_timeout=5",
+			target.Host(),
+			target.MappedPort(),
 			restoredPgUser,
-			"-d",
+			restoredPgPassword,
 			restoredPgDatabase,
-			"-tAc",
-			"SELECT pg_is_in_recovery()",
-		)
-		if strings.TrimSpace(string(recoveryState)) != "f" {
-			return fmt.Errorf("recovery state: %s", recoveryState)
+		))
+		if err != nil {
+			return err
 		}
+		defer func() { _ = connection.Close(context.WithoutCancel(ctx)) }()
+
+		var isInRecovery bool
+		if err := connection.QueryRow(ctx, "SELECT pg_is_in_recovery()").Scan(&isInRecovery); err != nil {
+			return err
+		}
+
+		if isInRecovery {
+			return fmt.Errorf("the restored cluster is still in recovery")
+		}
+
 		return nil
 	})
 }

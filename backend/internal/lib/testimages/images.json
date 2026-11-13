@@ -112,6 +112,27 @@
       },
       "reference": "docker.io/dperson/samba:latest@sha256:66088b78a19810dd1457a8f39340e95e663c728083efa5fe7dc0d40b2478e869"
     },
+    "ghcr.io/cloudnative-pg/cloudnative-pg:1.30.1": {
+      "platforms": {
+        "linux-arm64": "sha256:9a10dd7d7466310d5d543f618478cb905093cfc7a5463b538f449da626660083",
+        "linux-x64": "sha256:b0f9805bd5f98592e7320b5ea624dd10a7a6ef8e477df5650655c94f0b242497"
+      },
+      "reference": "ghcr.io/cloudnative-pg/cloudnative-pg:1.30.1@sha256:923c267ec29636db3bee20f993d0ec4973fa22998e1adad37da79e4d32b5bc07"
+    },
+    "ghcr.io/cloudnative-pg/postgresql:17.11-202610260819-standard-trixie": {
+      "platforms": {
+        "linux-arm64": "sha256:e941e0f640f3b7688cf98ffbf7065f4de56a1331f2108b93cd67c0860383d7e1",
+        "linux-x64": "sha256:27eff6e0d9ffa2bdbc61c8a2bc512a50202de629ccb081364b821dd2720e0eea"
+      },
+      "reference": "ghcr.io/cloudnative-pg/postgresql:17.11-202610260819-standard-trixie@sha256:ed6923f9ba2399cf9070379a353c710c29ced8a294be73986a2c3dae7e599ce3"
+    },
+    "ghcr.io/cloudnative-pg/postgresql:18.6-202610260820-standard-trixie": {
+      "platforms": {
+        "linux-arm64": "sha256:fd150f7237ae15549a2e10f90c437b39f5473689cf938d824d9b1ff11ebe42a5",
+        "linux-x64": "sha256:9d1808e9b9c82fb1175ecc7aba615e88b16013e8f118c536a8b5a9aca017ec03"
+      },
+      "reference": "ghcr.io/cloudnative-pg/postgresql:18.6-202610260820-standard-trixie@sha256:39add80f5b1e573e2f6b641c66fd1a2f8dede67ca0330e870285bc1078551390"
+    },
     "golang:1.27.4@sha256:5e8afd493a7124a8586e134d9b532731161d4b9becf9dee5a5956b107426f93d": {
       "platforms": {
         "linux-arm64": "sha256:96335ac31f35abde9f40cbb1032e06d8571fc43c51230e9a90e14145debc6199",
@@ -347,6 +368,41 @@
         "linux-x64": "sha256:2524e87ee7a2b5ee35eda29c57d826d666783faa0fdcd9fc8dd435fccf3c46a3"
       },
       "reference": "quay.io/coreos/etcd:v3.6.16@sha256:a9c7cc12156f4b26ca41f0b57ba5b76c45037ff6c1e47ea3d68cb7908d48a965"
+    },
+    "rancher/k3s:v1.36.5-k3s1": {
+      "platforms": {
+        "linux-arm64": "sha256:4ceb591dd1e592b98b7c51ff3bdb7143914e1bee0677e7bf3c4f6addde2c93b3",
+        "linux-x64": "sha256:81fc7349ba265f842f9b67311fabd9e7d72698798ba513b7cdf41ffdf1e923e4"
+      },
+      "reference": "docker.io/rancher/k3s:v1.36.5-k3s1@sha256:057cfd5a9d51b89f1f0ee139c28d5d5fdd5aa7ddeac2742a0ba90c6dbc0329bb"
+    },
+    "rancher/local-path-provisioner:v0.0.37": {
+      "platforms": {
+        "linux-arm64": "sha256:6a6bade778f51df4e3f9710db6b62ff6eb366cac897e7eccc3528ebd6d22e86c",
+        "linux-x64": "sha256:c3f2c60ee2490eb83ac00101d7e239fd8c20a5b8b4038e2dfc36a7e66fe99c08"
+      },
+      "reference": "docker.io/rancher/local-path-provisioner:v0.0.37@sha256:e757967a5ec338f6a9b371c5a9688bedaa8c3578ea3dd4db329ea0084be0a86f"
+    },
+    "rancher/mirrored-coredns-coredns:1.14.7": {
+      "platforms": {
+        "linux-arm64": "sha256:9a631b1e34491f93a35334bc02d8ae190f16224be41689c7f42cc1711a95fe3a",
+        "linux-x64": "sha256:2329f5f0e7e79fbe56dcdf11ecc4337ee2476bb251095bc275fe9461cb88a55b"
+      },
+      "reference": "docker.io/rancher/mirrored-coredns-coredns:1.14.7@sha256:7efd3c635b03efd68c4e8398fc45f0d993d0e9ab016f72c1cefb0fd6d01aa286"
+    },
+    "rancher/mirrored-library-busybox:1.37.0": {
+      "platforms": {
+        "linux-arm64": "sha256:fa8dc70514f29471fe118446e3f84040b19791531ec197836a4f43baf13d744b",
+        "linux-x64": "sha256:ad9fa4d07136a83e69a54ef00102f579d04eba431932de3b0f098cc5d5948f9f"
+      },
+      "reference": "docker.io/rancher/mirrored-library-busybox:1.37.0@sha256:101b4afd76732482eff9b95cae5f94bcf295e521fbec4e01b69c5421f3f3f3e5"
+    },
+    "rancher/mirrored-pause:3.10.2": {
+      "platforms": {
+        "linux-arm64": "sha256:a433214620b407678934ebd69690a9ed6066247231eacfba181fab20dbc3dbf1",
+        "linux-x64": "sha256:412c4a7219cb8a299a37337f3d87810c5340095322e15594a1637785adad0f17"
+      },
+      "reference": "docker.io/rancher/mirrored-pause:3.10.2@sha256:f548e0e8e3dc1896ca956272154dde3314e8cc4fde0a57577ee9fa1c63f5baf4"
     },
     "timescale/timescaledb:2.17.0-pg17": {
       "platforms": {

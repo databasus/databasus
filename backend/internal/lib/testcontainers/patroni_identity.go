@@ -10,16 +10,10 @@ import (
 	"databasus-backend/internal/lib/testwait"
 )
 
-type PatroniIdentity struct {
-	Node             string
-	Timeline         int
-	SystemIdentifier string
-}
-
-func (fixture *Patroni) GetIdentity(t *testing.T) PatroniIdentity {
+func (fixture *Patroni) GetIdentity(t *testing.T) RouteIdentity {
 	t.Helper()
 
-	var identity PatroniIdentity
+	var identity RouteIdentity
 	testwait.Until(t, "stable Patroni endpoint serves the elected primary", func(ctx context.Context) error {
 		connection, err := pgx.Connect(
 			ctx,
