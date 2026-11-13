@@ -84,6 +84,34 @@ func TestTestReplicationConnection(t *testing.T) {
 			}
 		})
 
+		t.Run(
+			"names the certificate verification failure when another authority issued the server certificate",
+			func(t *testing.T) {
+				serverAuthority, err := containers.NewTestCertificateAuthority()
+				require.NoError(t, err)
+				certificate, err := serverAuthority.IssueServerCertificate(containers.ServerCertificateSpec{
+					DNSNames:    []string{"localhost"},
+					IPAddresses: []string{"127.0.0.1"},
+				})
+				require.NoError(t, err)
+				trustedAuthority, err := containers.NewTestCertificateAuthority()
+				require.NoError(t, err)
+				tlsServer := startTestServer(t, server.image, containers.WithServerCertificate(certificate))
+				settings := tlsServer.getSettings(getAdminRole())
+				settings.TLS = pgshared.TLS{
+					Mode:       pgshared.SslModeVerifyFull,
+					ClientCert: "",
+					ClientKey:  "",
+					RootCert:   trustedAuthority.CertificatePEM,
+				}
+
+				err = NewSource(settings).TestReplicationConnection(t.Context(), newTestLogger(t), getFullOnlyCheck())
+
+				assert.Equal(t, pgshared.ConnErrConnectionFailed, getConnectionTestErrorCode(t, err))
+				assert.ErrorContains(t, err, "certificate signed by unknown authority")
+			},
+		)
+
 		t.Run("returns bad credentials code with wrong password", func(t *testing.T) {
 			t.Parallel()
 
@@ -174,4 +202,50 @@ func TestReadReplicationSettings(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "off", settings.SummarizeWal)
 	})
+}
+
+func TestTestReplicationConnectionConfiguration(t *testing.T) {
+	t.Parallel()
+
+	for _, credentials := range []struct {
+		name     string
+		password string
+	}{
+		{
+			name:     "hides credentials when the root certificate is invalid and the password contains an apostrophe",
+			password: "prefix' PRIVATE_SUFFIX",
+		},
+		{
+			name:     "hides credentials when the root certificate is invalid and the password contains a backslash",
+			password: `prefix\ PRIVATE_SUFFIX`,
+		},
+		{
+			name:     "hides credentials when the root certificate is invalid and the password contains both escapes",
+			password: `prefix\' PRIVATE_SUFFIX`,
+		},
+	} {
+		t.Run(credentials.name, func(t *testing.T) {
+			t.Parallel()
+
+			source := NewSource(Settings{
+				Host:     "127.0.0.1",
+				Port:     1,
+				Username: "backup",
+				Password: credentials.password,
+				TLS: pgshared.TLS{
+					Mode:     pgshared.SslModeVerifyFull,
+					RootCert: "not a certificate",
+				},
+			})
+
+			err := source.TestReplicationConnection(t.Context(), newTestLogger(t), getFullOnlyCheck())
+
+			require.Error(t, err)
+			assert.Equal(t, pgshared.ConnErrConnectionFailed, getConnectionTestErrorCode(t, err))
+			assert.NotContains(t, err.Error(), credentials.password)
+			assert.NotContains(t, err.Error(), "PRIVATE_SUFFIX")
+			assert.NotContains(t, err.Error(), "password=")
+			assert.ErrorContains(t, err, "configuration")
+		})
+	}
 }

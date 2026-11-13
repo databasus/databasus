@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/app/apptest"
@@ -29,16 +30,41 @@ type physicalDatabaseSpec struct {
 	Endpoint   containers.Endpoint
 	BackupType apiclient.PhysicalBackupType
 	Tunnel     apiclient.SshTunnelSettings
+	Access     sourceAccess
+}
+
+// sourceAccess is how Databasus logs in to a source. The zero value is the administrator over plain
+// TCP, which then lets Databasus create its limited user; a source with a declared role and TLS
+// supplies both instead.
+type sourceAccess struct {
+	Username        string
+	Password        string
+	SslMode         apiclient.PostgresqlSslMode
+	RootCertificate *string
 }
 
 func (team *Team) createDatabase(t *testing.T, spec physicalDatabaseSpec) {
 	t.Helper()
 
-	password := restoredPgPassword
+	access := spec.Access
+	if access.Username == "" {
+		access = sourceAccess{
+			Username: restoredPgUser,
+			Password: restoredPgPassword,
+			SslMode:  apiclient.PostgresqlSslModeDisable,
+		}
+	}
+
 	team.Settings = apiclient.PostgresqlPhysicalSettings{
-		Type: apiclient.PostgresqlPhysicalSettingsTypePOSTGRESPHYSICAL,
-		Host: spec.Endpoint.Host, Port: spec.Endpoint.Port, Username: restoredPgUser, Password: &password,
-		SslMode: apiclient.PostgresqlSslModeDisable, SshTunnel: spec.Tunnel, BackupType: spec.BackupType,
+		Type:        apiclient.PostgresqlPhysicalSettingsTypePOSTGRESPHYSICAL,
+		Host:        spec.Endpoint.Host,
+		Port:        spec.Endpoint.Port,
+		Username:    access.Username,
+		Password:    &access.Password,
+		SslMode:     access.SslMode,
+		SslRootCert: access.RootCertificate,
+		SshTunnel:   spec.Tunnel,
+		BackupType:  spec.BackupType,
 	}
 	team.Database = team.CreateDatabase(t, team.Settings)
 }
@@ -76,11 +102,17 @@ func (team *Team) useReplicationOnlyUser(t *testing.T) {
 	team.Settings.Password = &limitedUser.Password
 	team.Database = team.UpdateDatabaseSettings(t, team.Database, team.Settings)
 
-	conn := openConnAt(t, team.Settings.Host, team.Settings.Port)
+	team.requireRestrictedRoleAttributes(t, openConnAt(t, team.Settings.Host, team.Settings.Port))
+}
+
+// requireRestrictedRoleAttributes checks the role Databasus uses, whoever created it.
+func (team *Team) requireRestrictedRoleAttributes(t *testing.T, conn *pgx.Conn) {
+	t.Helper()
+
 	var isReplication, isSuperuser, canCreateRole, canCreateDatabase, canBypassRLS bool
 	require.NoError(
 		t,
-		conn.QueryRow(t.Context(), `SELECT rolreplication, rolsuper, rolcreaterole, rolcreatedb, rolbypassrls FROM pg_roles WHERE rolname = $1`, limitedUser.Username).
+		conn.QueryRow(t.Context(), `SELECT rolreplication, rolsuper, rolcreaterole, rolcreatedb, rolbypassrls FROM pg_roles WHERE rolname = $1`, team.Settings.Username).
 			Scan(&isReplication, &isSuperuser, &canCreateRole, &canCreateDatabase, &canBypassRLS),
 	)
 

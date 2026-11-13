@@ -41,7 +41,8 @@ func TestTestStorageSettings(t *testing.T) {
 				}),
 			})
 
-			assert.True(t, testResult.IsConnected, "the test must sign in to the FTP server: %v", testResult.Error)
+			assert.Equal(t, apiclient.StorageTestResult{IsConnected: true}, testResult,
+				"the test must sign in to the FTP server")
 			assert.Empty(t, listStorages(t, tm.owner, tm.workspace.Id))
 		})
 

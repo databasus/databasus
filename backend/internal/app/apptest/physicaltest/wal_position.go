@@ -28,3 +28,11 @@ func currentLSN(t *testing.T, conn *pgx.Conn) uint64 {
 	require.NoError(t, conn.QueryRow(t.Context(), "SELECT pg_current_wal_lsn()::text").Scan(&position))
 	return parseLSN(t, position)
 }
+
+func getCurrentSegment(t *testing.T, conn *pgx.Conn) string {
+	t.Helper()
+
+	var segment string
+	require.NoError(t, conn.QueryRow(t.Context(), "SELECT pg_walfile_name(pg_current_wal_lsn())").Scan(&segment))
+	return segment
+}

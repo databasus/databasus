@@ -18,6 +18,7 @@ BACKEND_GROUPS = {
     "agent-e2e",
     *(f"physical-{shard}-of-3" for shard in range(1, 4)),
     *(f"patroni-{shard}-of-5" for shard in range(1, 6)),
+    *(f"cnpg-{shard}-of-5" for shard in range(1, 6)),
     *(f"physical-api-{shard}-of-3" for shard in range(1, 4)),
 }
 REQUIRED_TEST_JOBS = {
@@ -90,7 +91,7 @@ def check_release_coverage(workflow: str) -> None:
                 size = (
                     "8vcpu-16ram"
                     if (
-                        entry["group"].startswith("other-")
+                        entry["group"].startswith(("other-", "cnpg-"))
                         or entry["group"] in {"storage-providers", "logical"}
                     )
                     else "4vcpu-8ram"

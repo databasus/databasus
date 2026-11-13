@@ -27,6 +27,12 @@ func queryMarkerRowsAt(t *testing.T, host string, port int) []string {
 	conn := connectWithRetry(t, dsn)
 	defer func() { _ = conn.Close(t.Context()) }()
 
+	return queryMarkerRows(t, conn)
+}
+
+func queryMarkerRows(t *testing.T, conn *pgx.Conn) []string {
+	t.Helper()
+
 	rows, err := conn.Query(t.Context(), `SELECT phase FROM restore_marker ORDER BY phase`)
 	require.NoError(t, err)
 	defer rows.Close()
