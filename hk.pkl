@@ -4,6 +4,10 @@ amends "package://github.com/jdx/hk/releases/download/v2.8.1/hk@2.8.1#/Config.pk
 // rewrite or hide another agent's unstaged edits. mise run format is the only writer.
 
 steps {
+    ["semgrep"] {
+        glob = "**"
+        check = "mise run security:semgrep"
+    }
     ["python-lint"] {
         glob = List(
             "**/*.py", "**/pyproject.toml", "**/uv.lock", "**/requirements*.txt",

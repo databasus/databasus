@@ -116,6 +116,8 @@ func (fixture *K3s) importImage(ctx context.Context, image K3sImage) error {
 		},
 		{Command: []string{"ctr", "-n", "k8s.io", "images", "tag", "--force", repository + "@" + digest, image.Name}},
 	} {
+		// exec returns a value struct, so Stderr is safe to read even when it returns an error.
+		// nosemgrep: trailofbits.go.invalid-usage-of-modified-variable.invalid-usage-of-modified-variable
 		output, err := fixture.exec(ctx, command)
 		if err != nil {
 			return fmt.Errorf("import %s: %w: %s", image.Reference, err, getBoundedText(output.Stderr))
