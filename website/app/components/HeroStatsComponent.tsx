@@ -21,6 +21,13 @@ type CachedStats = {
   fetchedAt: number;
 };
 
+function getValidCount(count: unknown): string | null {
+  return typeof count === "string" &&
+    /^\d+(?:,\d{3})*(?:\.\d+)?[kMBGTPE]?$/i.test(count)
+    ? count
+    : null;
+}
+
 function readCache(): CachedStats | null {
   try {
     const rawCache = window.localStorage.getItem(CACHE_KEY);
@@ -29,18 +36,16 @@ function readCache(): CachedStats | null {
     const parsedCache: unknown = JSON.parse(rawCache);
     if (typeof parsedCache !== "object" || parsedCache === null) return null;
 
-    const { stars, pulls, fetchedAt } = parsedCache as CachedStats;
-    const isCachedCountValid = (count: unknown) =>
-      count === null || typeof count === "string";
-    if (
-      typeof fetchedAt !== "number" ||
-      !isCachedCountValid(stars) ||
-      !isCachedCountValid(pulls)
-    ) {
+    const { stars, pulls, fetchedAt } = parsedCache as Record<string, unknown>;
+    if (typeof fetchedAt !== "number" || !Number.isFinite(fetchedAt)) {
       return null;
     }
 
-    return { stars, pulls, fetchedAt };
+    return {
+      stars: getValidCount(stars),
+      pulls: getValidCount(pulls),
+      fetchedAt,
+    };
   } catch {
     return null;
   }
@@ -73,7 +78,7 @@ async function fetchPulls(): Promise<string | null> {
   const payload: unknown = await response.json();
   const value = (payload as { value?: unknown })?.value;
 
-  return typeof value === "string" && value.length > 0 ? value : null;
+  return getValidCount(value);
 }
 
 function toStat(text: string | null): Stat {
@@ -114,7 +119,6 @@ export default function HeroStatsComponent() {
       setStars(toStat(nextStars));
       setPulls(toStat(nextPulls));
 
-      // caching a total failure would hide both badges until the TTL expires
       if (nextStars !== null || nextPulls !== null) {
         writeCache({
           stars: nextStars,
@@ -160,8 +164,6 @@ function StatBadge({
   label: string;
   stat: Stat;
 }) {
-  if (stat.status === "failed") return null;
-
   return (
     <span
       // basis + grow: two per row while they fit the button width, stacked below that
@@ -177,8 +179,10 @@ function StatBadge({
       <span className="flex min-w-[3.5rem] items-center justify-center border-l border-[#ffffff1a] bg-[#ffffff08] px-2.5 py-2 font-medium tabular-nums text-white">
         {stat.status === "loading" ? (
           <span className="h-[8px] w-8 animate-pulse rounded-full bg-[#ffffff26]" />
-        ) : (
+        ) : stat.status === "ready" ? (
           stat.text
+        ) : (
+          "n/a"
         )}
       </span>
     </span>
