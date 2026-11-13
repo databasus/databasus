@@ -105,6 +105,10 @@ func RunFailoverInterruptedBackup(t *testing.T, spec FailoverInterruptionSpec) {
 	require.NotEqual(t, uuid.Nil, attempt.ID)
 
 	previous := source.Cluster.GetIdentity(t)
+	if spec.ShouldHoldOutage {
+		source.Proxy.SetUnavailable(true)
+	}
+
 	promoted := source.Cluster.Switchover(t)
 	require.NotEqual(t, previous.Node, promoted.Node)
 	t.Logf(
@@ -116,10 +120,6 @@ func RunFailoverInterruptedBackup(t *testing.T, spec FailoverInterruptionSpec) {
 		previous.Timeline,
 		promoted.Timeline,
 	)
-
-	if spec.ShouldHoldOutage {
-		source.Proxy.SetUnavailable(true)
-	}
 
 	gate.Release()
 	failure := source.waitForTerminalAttempt(t, attempt.ID)
