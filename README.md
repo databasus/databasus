@@ -52,6 +52,7 @@
   - **Full**: a complete, self-contained copy of the cluster
   - **Incremental**: stores only what changed since the previous full backup, so backups stay small and fast
   - **WAL streaming**: continuously captures the database write stream, enabling Point-in-time recovery (PITR). Designed for disaster recovery and near-zero data loss
+  - **High availability (HA)**: supports timeline changes after primary switches in Patroni and CloudNativePG (CNPG) clusters
 - **Logical**: native dump of the database in its engine-specific binary format (compressed, suitable for parallel restore)
 
 ### 🔄 **Scheduled backups**

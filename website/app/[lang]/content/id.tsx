@@ -210,7 +210,7 @@ export default function Index() {
                 name: "Jenis backup apa saja yang didukung Databasus?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus mendukung backup fisik, penuh, inkremental, WAL, dan logis. Backup fisik menyalin seluruh cluster database pada tingkat file, lebih cepat untuk backup dan restore dataset besar dibanding dump logis, serta dibangun di atas mekanisme backup native PostgreSQL 17. Dengan begitu, kami mengandalkan alat PostgreSQL yang telah teruji, bukan membuatnya ulang. Backup penuh adalah salinan cluster lengkap yang mandiri dan menjadi dasar setiap rantai backup. Backup inkremental hanya menyimpan perubahan sejak backup sebelumnya, sehingga ukurannya kecil dan prosesnya cepat. WAL streaming menangkap aliran penulisan database secara terus-menerus untuk Point-in-time recovery (PITR), pemulihan bencana, dan kehilangan data mendekati nol. Backup logis berupa dump native database dalam format biner khusus engine-nya, dikompresi dan dialirkan langsung ke penyimpanan tanpa file perantara. Semua jenis backup ini bisa berjalan melalui SSH tunnel jika koneksi harus tetap privat, sehingga database tidak perlu dibuka ke publik. SSH tunneling sudah tersedia secara bawaan.",
+                  text: "Databasus mendukung backup fisik, penuh, inkremental, WAL, dan logis. Backup fisik menyalin seluruh cluster database pada tingkat file, lebih cepat untuk backup dan restore dataset besar dibanding dump logis, serta dibangun di atas mekanisme backup native PostgreSQL 17. Dengan begitu, kami mengandalkan alat PostgreSQL yang telah teruji, bukan membuatnya ulang. Backup penuh adalah salinan cluster lengkap yang mandiri dan menjadi dasar setiap rantai backup. Backup inkremental hanya menyimpan perubahan sejak backup sebelumnya, sehingga ukurannya kecil dan prosesnya cepat. WAL streaming menangkap aliran penulisan database secara terus-menerus untuk Point-in-time recovery (PITR), pemulihan bencana, dan kehilangan data mendekati nol. Ketersediaan tinggi (HA): mendukung perubahan timeline setelah pergantian primary pada cluster Patroni dan CloudNativePG (CNPG). Backup logis berupa dump native database dalam format biner khusus engine-nya, dikompresi dan dialirkan langsung ke penyimpanan tanpa file perantara. Semua jenis backup ini bisa berjalan melalui SSH tunnel jika koneksi harus tetap privat, sehingga database tidak perlu dibuka ke publik. SSH tunneling sudah tersedia secara bawaan.",
                 },
               },
               {
@@ -1232,6 +1232,11 @@ export default function Index() {
                       <strong>WAL streaming</strong>: menangkap aliran penulisan database secara
                       terus-menerus untuk Point-in-time recovery (PITR). Dirancang untuk pemulihan
                       bencana dan kehilangan data mendekati nol
+                    </li>
+                    <li>
+                      <strong>Ketersediaan tinggi (HA)</strong>: mendukung
+                      perubahan timeline setelah pergantian primary pada cluster
+                      Patroni dan CloudNativePG (CNPG)
                     </li>
                     <li>
                       <strong>Logis</strong>: dump native database dalam format biner khusus

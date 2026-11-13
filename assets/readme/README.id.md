@@ -53,6 +53,7 @@
   - **Penuh**: salinan lengkap dan mandiri dari cluster
   - **Inkremental**: hanya menyimpan perubahan sejak backup penuh sebelumnya, jadi backup tetap kecil dan cepat
   - **WAL streaming**: menangkap aliran tulis database secara terus-menerus, sehingga Point-in-Time Recovery (PITR) bisa dilakukan. Dirancang untuk disaster recovery dan kehilangan data mendekati nol
+  - **Ketersediaan tinggi (HA)**: mendukung perubahan timeline setelah pergantian primary pada cluster Patroni dan CloudNativePG (CNPG)
 - **Logis**: dump native database dalam format biner khas engine-nya (terkompresi, cocok untuk restore paralel)
 
 ### 🔄 **Backup terjadwal**

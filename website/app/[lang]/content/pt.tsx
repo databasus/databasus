@@ -219,7 +219,7 @@ export default function Index() {
                 name: "Quais tipos de backup o Databasus suporta?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "O Databasus suporta backups físicos, completos, incrementais, de WAL e lógicos. Os backups físicos são uma cópia no nível de arquivos de todo o cluster da base de dados — mais rápidos de fazer e de restaurar para grandes volumes de dados do que dumps lógicos, e construídos sobre o mecanismo nativo de backup do PostgreSQL 17, então usamos as ferramentas testadas do próprio PostgreSQL em vez de reinventá-las. Os backups completos são uma cópia integral e autossuficiente do cluster, a base de onde parte toda cadeia de backups. Os backups incrementais guardam apenas o que mudou desde o backup anterior, mantendo os backups pequenos e rápidos. O streaming de WAL captura continuamente o fluxo de escrita da base, permitindo Point-in-Time Recovery (PITR) para recuperação de desastres e perda de dados próxima de zero. Os backups lógicos são um dump nativo da base no formato binário do próprio motor, comprimido e enviado diretamente ao armazenamento, sem arquivos intermediários. Todos esses backups podem passar por um túnel SSH se você precisar de conexões não públicas, então a base de dados nunca precisa ficar exposta publicamente. O túnel SSH já vem integrado.",
+                  text: "O Databasus suporta backups físicos, completos, incrementais, de WAL e lógicos. Os backups físicos são uma cópia no nível de arquivos de todo o cluster da base de dados — mais rápidos de fazer e de restaurar para grandes volumes de dados do que dumps lógicos, e construídos sobre o mecanismo nativo de backup do PostgreSQL 17, então usamos as ferramentas testadas do próprio PostgreSQL em vez de reinventá-las. Os backups completos são uma cópia integral e autossuficiente do cluster, a base de onde parte toda cadeia de backups. Os backups incrementais guardam apenas o que mudou desde o backup anterior, mantendo os backups pequenos e rápidos. O streaming de WAL captura continuamente o fluxo de escrita da base, permitindo Point-in-Time Recovery (PITR) para recuperação de desastres e perda de dados próxima de zero. Alta disponibilidade (HA): suporta mudanças de timeline após a troca do primário em clusters Patroni e CloudNativePG (CNPG). Os backups lógicos são um dump nativo da base no formato binário do próprio motor, comprimido e enviado diretamente ao armazenamento, sem arquivos intermediários. Todos esses backups podem passar por um túnel SSH se você precisar de conexões não públicas, então a base de dados nunca precisa ficar exposta publicamente. O túnel SSH já vem integrado.",
                 },
               },
               {
@@ -1493,6 +1493,11 @@ export default function Index() {
                       o fluxo de escrita da base, permitindo Point-in-Time
                       Recovery (PITR). Projetado para recuperação de desastres e
                       perda de dados próxima de zero
+                    </li>
+                    <li>
+                      <strong>Alta disponibilidade (HA)</strong>: suporta mudanças
+                      de timeline após a troca do primário em clusters Patroni e
+                      CloudNativePG (CNPG)
                     </li>
                     <li>
                       <strong>Lógico</strong> — dump nativo da base no formato
