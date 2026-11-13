@@ -44,6 +44,9 @@ Actions:
                  by blank lines, and its names and comments, against AGENTS.md and the module docs.
                  Includes test code. Runs when a .go, .ts or .tsx
                  file under backend/, frontend/src/ or website/ changed.
+  documentation Checks changed documentation for information ownership, duplication and clarity.
+                 Runs only for Markdown in docs/, repository-owned skills, hook prompts, READMEs
+                 and AGENTS.md; OpenSpec and generated directories are excluded.
   implementation Full review of an OpenSpec change whose tasks are all checked: parallel reviewers,
                  one per delta spec, and one each for architecture, documentation and tasks, and tests;
                  after a block a repeat over the previous findings only. The implementing agent runs
@@ -59,8 +62,8 @@ Actions:
                  Exits non-zero when a tool is missing or automatic hooks cannot run. A successful
                  manual review does not establish hook trust or prove automatic event dispatch.
   review [change]
-                 Manual fallback or repeat, `mise run review [change]`: quick reviewers for diff, architecture
-                 and code-shape over the whole working tree run in the same parallel pool as the full
+                 Manual fallback or repeat, `mise run review [change]`: quick reviewers for diff,
+                 architecture, code-shape and documentation over the whole working tree share a pool with the full
                  implementation reviewers of the named change, or of every active change whose tasks are
                  all checked. It runs no linting, tests or builds. The full review repeats stored findings,
                  otherwise it starts fresh even for a state the hook accepted. Reads no hook payload, prints
@@ -75,7 +78,8 @@ Review profiles and state:
   Claude uses opus with low effort for quick checks and medium for full and repeat reviews.
   Codex uses its configured default model with medium effort for quick checks and high for full
   and repeat reviews. It inherits local Codex configuration, not the main session's one-off model
-  override. Unsupported effort or unavailable models fail the review without lowering effort.
+  override. The documentation check uses gpt-6.1-sol with medium effort in Codex and Opus with low
+  effort in Claude. Unsupported effort or unavailable models fail the review without lowering effort.
   Request snapshots and per-request counters retain their session-ID paths in the worktree's
   Git directory. Full acceptance and findings use client/profile/gate/change namespaces and are
   reusable across sessions of that profile. Identity includes model, both effort levels, prompt
@@ -151,6 +155,7 @@ from pathlib import Path
 
 from codex_hooks import check_project_hooks
 from codex_reviewer import run_codex_reviewer
+from documentation import is_documentation_path
 from review_client import ReviewExecution, ReviewProfile, get_review_profile
 from review_profile import get_review_profile_identity
 from review_state import Finding, HookState, QuickReviewResult, is_finding, is_hook_state
@@ -171,7 +176,16 @@ CHECK_OUTPUT_LINES = 80
 OPENSPEC_TIMEOUT_SECONDS = 60
 REVIEWER_ACTIVE_ENV = "AGENT_REVIEW_HOOK_ACTIVE"
 HOOKS_DIR = Path(__file__).resolve().parent
-GATES = ("plan", "necessity", "diff", "architecture", "code-shape", "implementation", "proposal")
+GATES = (
+    "plan",
+    "necessity",
+    "diff",
+    "architecture",
+    "code-shape",
+    "documentation",
+    "implementation",
+    "proposal",
+)
 GATES_YIELDING_TO_PROPOSAL_REVIEW = ("necessity", "diff", "architecture", "code-shape")
 CODE_DIRS = ("backend/", "frontend/src/", "website/")
 CODE_SUFFIXES = (".go", ".ts", ".tsx")
@@ -189,6 +203,7 @@ class Reviewer:
     is_full: bool
     schema_path: Path
     timeout_seconds: int
+    model: str | None = None
 
 
 REVIEW_PROFILE: ReviewProfile
@@ -563,6 +578,14 @@ def build_review_prompt(
     session: Session, gate: str, subject: str, candidate: str, paths: Sequence[str]
 ) -> str:
     request = session.load_request()
+    if gate == "documentation":
+        current_files = get_file_hashes(session.root, paths)
+        paths = [
+            path
+            for path in get_paths_changed_since(request.get("baseline_files") or {}, current_files)
+            if is_documentation_path(path)
+        ]
+
     instructions = "\n\n".join(
         [
             (HOOKS_DIR / "common-prompt.md").read_text(),
@@ -675,7 +698,7 @@ def run_reviewer(root: Path, prompt: str, reviewer: Reviewer) -> dict[str, objec
         root=root,
         prompt=prompt,
         client=REVIEW_PROFILE.client,
-        model=REVIEW_PROFILE.model,
+        model=reviewer.model or REVIEW_PROFILE.model,
         effort=REVIEW_PROFILE.full_effort if reviewer.is_full else REVIEW_PROFILE.quick_effort,
         schema_path=reviewer.schema_path,
         timeout_seconds=reviewer.timeout_seconds,
@@ -714,9 +737,13 @@ def describe_reviewer_error(error: object) -> str:
     return f"The automatic reviewer ({REVIEW_PROFILE.client}) could not run: {message}"
 
 
-def review(root: Path, prompt: str) -> tuple[bool, str]:
+def review(root: Path, prompt: str, gate: str) -> tuple[bool, str]:
+    reviewer = QUICK_REVIEWER
+    if gate == "documentation" and REVIEW_PROFILE.client == "codex":
+        reviewer = replace(reviewer, model="gpt-6.1-sol")
+
     try:
-        result = parse_review_result(run_reviewer(root, prompt, QUICK_REVIEWER))
+        result = parse_review_result(run_reviewer(root, prompt, reviewer))
     except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired) as error:
         return False, describe_reviewer_error(error)
 
@@ -731,7 +758,7 @@ def gate_plan_tool(session: Session, gate: str) -> None:
     plan = read_plan(get_field(session.payload, "tool_input", "toolInput") or {})
     if plan:
         prompt = build_review_prompt(session, gate, "plan", plan, get_changed_paths(session.root))
-        is_accepted, reason = review(session.root, prompt)
+        is_accepted, reason = review(session.root, prompt, gate)
     else:
         is_accepted, reason = (
             False,
@@ -773,10 +800,10 @@ def get_stop_subject(
     is_openspec_turn: bool,
     is_workspace_changed: bool,
     blocks: int,
-    is_code_changed: bool = False,
+    is_content_changed: bool = False,
 ) -> str | None:
-    if gate == "code-shape":
-        return "finished change" if is_code_changed or blocks > 0 else None
+    if gate in ("code-shape", "documentation"):
+        return "finished change" if is_content_changed or blocks > 0 else None
 
     if gate == "necessity":
         return "OpenSpec proposal" if is_openspec_turn and is_workspace_changed else None
@@ -802,7 +829,8 @@ def gate_stop(session: Session, gate: str) -> None:
         is_openspec_planning(request, session.root),
         request.get("baseline") != fingerprint,
         blocks,
-        gate == "code-shape" and is_code_changed_since_request(session.root, request),
+        gate in ("code-shape", "documentation")
+        and is_gate_content_changed_since_request(session.root, request, gate),
     )
 
     if subject is None or (state.get("accepted") == fingerprint and blocks == 0):
@@ -814,7 +842,7 @@ def gate_stop(session: Session, gate: str) -> None:
         or "(not available)"
     )
     prompt = build_review_prompt(session, gate, subject, candidate, get_changed_paths(session.root))
-    is_accepted, reason = review(session.root, prompt)
+    is_accepted, reason = review(session.root, prompt, gate)
 
     if is_accepted:
         save_state(gate_path, {"blocks": 0, "accepted": fingerprint})
@@ -927,12 +955,12 @@ def is_code_path(path: str) -> bool:
     return path.startswith(CODE_DIRS) and path.endswith(CODE_SUFFIXES)
 
 
-# Changed code is found by file hashes, as in is_proposal_review_turn: someone else's changed
-# file that was already in the tree before the request does not start the code-shape reviewer.
-def is_code_changed_since_request(root: Path, request: HookState) -> bool:
+# A pre-existing edit starts no content review unless this request changes it again.
+def is_gate_content_changed_since_request(root: Path, request: HookState, gate: str) -> bool:
     current_files = get_file_hashes(root, get_changed_paths(root))
     changed_paths = get_paths_changed_since(request.get("baseline_files") or {}, current_files)
-    return any(is_code_path(path) for path in changed_paths)
+    predicate = is_documentation_path if gate == "documentation" else is_code_path
+    return any(predicate(path) for path in changed_paths)
 
 
 # The conditions go from cheap to expensive: openspec status runs last.
@@ -1458,7 +1486,7 @@ MANUAL_REVIEW_CANDIDATE = (
     "(none: the user started the review by hand, so there is no agent response to check)"
 )
 # The Stop gates that review a finished change; necessity reviews only proposals.
-MANUAL_REVIEW_QUICK_GATES = ("diff", "architecture", "code-shape")
+MANUAL_REVIEW_QUICK_GATES = ("diff", "architecture", "code-shape", "documentation")
 
 
 class ManualReviewError(Exception):
@@ -1510,10 +1538,12 @@ def run_manual_quick_gate(
 ) -> tuple[str, tuple[bool, str] | None]:
     if gate == "code-shape" and not any(is_code_path(path) for path in changed_paths):
         return gate, None
+    if gate == "documentation" and not any(is_documentation_path(path) for path in changed_paths):
+        return gate, None
     prompt = build_review_prompt(
         session, gate, "finished change", MANUAL_REVIEW_CANDIDATE, changed_paths
     )
-    return gate, review(session.root, prompt)
+    return gate, review(session.root, prompt, gate)
 
 
 def report_progress(message: str) -> None:
@@ -1549,7 +1579,7 @@ def run_manual_review(change_name: str | None, deadline: float) -> int:
     is_accepted = True
     for gate, result in quick_results:
         if result is None:
-            sections.append(f"Quick check `{gate}`: skipped, no code file changed.")
+            sections.append(f"Quick check `{gate}`: skipped, no relevant file changed.")
             continue
         is_gate_accepted, reason = result
         is_accepted = is_accepted and is_gate_accepted

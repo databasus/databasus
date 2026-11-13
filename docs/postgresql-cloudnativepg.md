@@ -123,9 +123,8 @@ certificate through `certificates.serverCASecret` and
 `certificates.serverTLSSecret`, and the certificate names both the in-cluster
 names and the address Databasus uses.
 
-Databasus refuses a certificate from another authority and a certificate that
-does not name the address. The connection test then reports the database as not
-connected, a full backup ends with `ERROR` and WAL reception archives nothing.
+Databasus refuses connections if the server certificate has an untrusted issuer
+or does not name the address. Backups and WAL reception then fail.
 
 ## Incremental backups and durability
 
@@ -176,41 +175,33 @@ even after a new slot or a later full backup.
 
 ## Backup chains and recovery
 
-A switchover or failover starts a new PostgreSQL timeline, and Databasus treats
-it as it does under Patroni. An incremental backup on the old timeline ends with
-`CHAIN_BROKEN` / `TIMELINE_SWITCH_DETECTED`, a full backup interrupted by the
-switch ends with `ERROR` / `FAILOVER_DURING_BACKUP`, and Databasus requests one
-replacement full backup. These results need the failure recheck to reach the new
-primary. When the address is still unavailable during the recheck, Databasus
-keeps the original failure and waits for the next scheduled backup. WAL
-reception reconnects through the same address and archives the new timeline's
-history.
+A switchover or failover starts a new PostgreSQL timeline. An incremental chain
+cannot continue across that change: Databasus requests a replacement full backup
+when it detects the new timeline. If the source address remains unavailable
+when an interrupted backup fails, the replacement waits for the next scheduled
+backup. WAL reception reconnects through the same address.
 
 A target between the promotion and the completion of the replacement full backup
-is unavailable: restore-token creation returns `409 target_time_unreachable`.
-Recovery does not replay across timelines. [Physical backup
+is unavailable. Recovery does not replay across timelines. [Physical backup
 operations](../openspec/specs/physical-backups/operations/spec.md) define the
-exact coverage and failure behavior.
+exact coverage and failure behavior, including the reported errors.
 
 ## Recovery outside Kubernetes
 
-The recovery script prepares an independent PostgreSQL server outside
-Kubernetes from the selected backup and downloaded WAL. The source cluster, its
-Kubernetes Service and the former archive need not be reachable. The script
-removes inherited primary connection settings, restore commands, competing
-recovery targets and standby or recovery signal files.
+The recovery script prepares an independent PostgreSQL server from the selected
+backup and downloaded WAL. Recovery needs no connection to Kubernetes, the source
+cluster or the former archive.
 
 Start the restored data directory with PostgreSQL of the same major version,
 for example the official `postgres:17` or `postgres:18` image. CNPG's images
-have no entrypoint that starts PostgreSQL without CNPG's instance manager. The verified setup uses
-CNPG's `standard-trixie` images and boots recovery with official images built on
-the same Debian release, so both use the same C library collations.
+have no entrypoint that starts PostgreSQL without CNPG's instance manager.
+Keep the source and recovery environments' C library collations compatible;
+the verified setup uses the same Debian release for both.
 
-CNPG keeps `postgresql.conf`, `pg_hba.conf` and `pg_ident.conf` inside the data
-directory. The recovery script prepares them for the target location, and the
-restored server uses the copied authentication rules.
+The recovery script prepares the copied configuration for the target location.
+The restored server uses the copied authentication rules.
 
-CNPG also keeps the server certificates, the Unix socket directory and the logs
+CNPG keeps the server certificates, the Unix socket directory and the logs
 outside the data directory, under `/controller`, so the backup does not contain
 them. The recovery script lists every such setting, for example:
 
@@ -222,7 +213,7 @@ unix_socket_directories = '/controller/run'
 log_directory = '/controller/log'
 ```
 
-The restored server does not start until each one works on the target host.
+Resolve the reported paths before starting the restored server.
 Give each a value for that host in `postgresql.auto.conf` inside the restored
 data directory, which overrides the copied files:
 
@@ -239,21 +230,11 @@ None of this changes the source's TLS or access rules.
 
 ## Verified environment
 
-The CloudNativePG suite runs each CNPG cluster in k3s, a single-node Kubernetes
-distribution, inside a privileged container on rootful Docker on Linux. It
-reaches the primary through a NodePort Kubernetes Service. These versions are
-pinned:
-
-| Component | Version |
-| --- | --- |
-| CloudNativePG | 1.30.1 |
-| k3s | v1.36.5+k3s1 |
-| CNPG PostgreSQL 17 image | 17.11, `standard-trixie` |
-| CNPG PostgreSQL 18 image | 18.6, `standard-trixie` |
-
-The [fixture README](../backend/internal/lib/testcontainers/testdata/cnpg/README.md)
-owns the dependency records, and [testing guidance](testing.md#cloudnativepg-physical-backup-tests)
-provides the command and prerequisites.
+Verification uses single-node k3s on rootful Docker on Linux, with the primary
+exposed through a NodePort Kubernetes Service. The [fixture
+README](../backend/internal/lib/testcontainers/testdata/cnpg/README.md) records
+the pinned versions; [testing guidance](testing.md#cloudnativepg-physical-backup-tests)
+gives the command and prerequisites.
 
 These results do not establish the behavior of other Kubernetes distributions,
 managed Kubernetes services, multi-node or multi-zone clusters, network
