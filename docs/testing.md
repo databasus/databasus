@@ -187,6 +187,7 @@ The suite needs:
 - rootful Docker on Linux, with k3s container addresses reachable from the host;
 - a Docker daemon that allows privileged containers, which k3s requires;
 - raised [inotify limits](machine-setup.md#inotify-limits-for-cloudnativepg-tests);
+- the [`br_netfilter` kernel module](machine-setup.md#bridge-netfilter-for-cloudnativepg-tests) loaded on the host;
 - Docker, the shared test PostgreSQL server, pinned tools and client bundles as described in [Commands](#commands).
 
 Missing prerequisites fail the suite rather than skip scenarios. The [fixture README](../backend/internal/lib/testcontainers/testdata/cnpg/README.md) owns dependency records and image preparation details.
