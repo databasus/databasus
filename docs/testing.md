@@ -178,18 +178,18 @@ Use Go's `-run` filter to repeat an individual scenario. [PostgreSQL with Patron
 
 ## CloudNativePG physical backup tests
 
-The CloudNativePG (CNPG) suite runs the Patroni scenario families on PostgreSQL 17 and 18 against sources that the CNPG operator manages in Kubernetes. A package run starts its own disposable single-node Kubernetes clusters, each a k3s server in a privileged Docker container, and its scenarios share them. Every scenario creates a namespace with a CNPG cluster of two PostgreSQL nodes. Databasus reaches the primary through a NodePort Kubernetes Service with the selector of CNPG's `-rw` Kubernetes Service, using a role declared in the cluster manifest over TLS verified with `verify-full`. Like the Patroni sources, these use disk-backed data and durable settings. Scenarios are grouped into top-level tests by family and PostgreSQL major, so CI can spread them across shards. The runner controls scenario parallelism; fixture-control scenarios may create several CNPG clusters within one test, so cluster count is measured separately.
+The CloudNativePG (CNPG) suite checks physical backup and recovery on PostgreSQL 17 and 18 while Kubernetes manages the source's primary. Sources use disk-backed data and durable settings, as in the Patroni suite.
 
-The suite drives Kubernetes only through `kubectl` inside its k3s containers. It publishes no Kubernetes API port, writes no kubeconfig on the host and never reads or changes the developer's Kubernetes configuration.
+Each package run owns disposable Kubernetes clusters running k3s, a lightweight Kubernetes distribution. Scenarios share k3s but own separate namespaces and PostgreSQL clusters. The suite never uses or changes the developer's Kubernetes configuration. Independent scenarios run in parallel up to the runner's limit; when a shared k3s reaches capacity, the suite starts another instead of limiting scenario concurrency. CI shards split scenarios by family and PostgreSQL major.
 
 The suite needs:
 
-- rootful Docker on Linux, because scenarios connect from the host to the k3s container's address, and only rootful Docker on Linux makes that address reachable;
+- rootful Docker on Linux, with k3s container addresses reachable from the host;
 - a Docker daemon that allows privileged containers, which k3s requires;
-- raised inotify limits, because every k3s container's kubelet and containerd take inotify instances and watches from the same per-user limits; [Preparing a machine](machine-setup.md#inotify-limits-for-cloudnativepg-tests) gives the values;
+- raised [inotify limits](machine-setup.md#inotify-limits-for-cloudnativepg-tests);
 - Docker, the shared test PostgreSQL server, pinned tools and client bundles as described in [Commands](#commands).
 
-The k3s, operator and CNPG PostgreSQL images are pulled through Docker and imported into k3s, which pulls nothing from a registry. A missing prerequisite, such as an unreachable Docker daemon, a refused privileged container, an unreachable container address or an image that cannot be obtained, fails the suite with a message that names it; no scenario is skipped. The [fixture README](../backend/internal/lib/testcontainers/testdata/cnpg/README.md) owns the dependency records.
+Missing prerequisites fail the suite rather than skip scenarios. The [fixture README](../backend/internal/lib/testcontainers/testdata/cnpg/README.md) owns dependency records and image preparation details.
 
 Run the complete matrix from the repository root:
 
@@ -202,7 +202,7 @@ TESTCONTAINERS_RYUK_DISABLED=true go -C backend test -count=1 -timeout 15m \
 
 Use Go's `-run` filter to repeat an individual scenario. [PostgreSQL with CloudNativePG](postgresql-cloudnativepg.md) explains the source configuration, slot synchronization and recovery limits.
 
-A run removes its k3s containers, networks, volumes and temporary directories after success, a failure or cancellation. When the test process of `mise run test-full` is killed, the test runner still removes its labelled resources. Child runs can use distinct `databasus.test-run` values while retaining the enclosing run in `databasus.test-root-run`; the runner removes resources matched by either ownership label with its own run ID. A killed direct package run has no run label and leaves its resources behind. Every k3s container, network and volume carries the fixture label `databasus.k3s-fixture`, whose value is that k3s fixture's ID:
+A run removes its resources after success, failure or cancellation. The `mise run test-full` runner also cleans up when its test process is killed. A killed direct package run can leave resources behind. List k3s containers, networks and volumes by fixture label:
 
 ```sh
 docker ps -a --filter label=databasus.k3s-fixture
@@ -210,7 +210,7 @@ docker network ls --filter label=databasus.k3s-fixture
 docker volume ls --filter label=databasus.k3s-fixture
 ```
 
-The fixture label also matches the k3s fixtures of CNPG runs still active in other worktrees. Before removing anything, make sure no other CNPG run is active, or filter by the IDs of the killed run with `label=databasus.k3s-fixture=<fixture ID>`.
+These commands also list fixtures active in other worktrees. Before removing anything, identify the killed run's fixture IDs and filter by `label=databasus.k3s-fixture=<fixture ID>`. Do not remove another run's resources.
 
 ## Verification agent end-to-end tests
 

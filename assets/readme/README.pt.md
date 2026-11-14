@@ -52,6 +52,7 @@
   - **Completo**: uma cópia integral e autossuficiente do cluster
   - **Incremental**: guarda apenas o que mudou desde o backup completo anterior, então os backups continuam pequenos e rápidos
   - **Streaming de WAL**: captura continuamente o fluxo de escrita da base, o que permite Point-in-time recovery (PITR). Feito para recuperação de desastres e perda de dados próxima de zero
+  - **Alta disponibilidade (HA)**: suporta mudanças de timeline após a troca do primário em clusters Patroni e CloudNativePG (CNPG)
 - **Lógico**: dump nativo da base no formato binário do próprio motor (comprimido, adequado para restauração em paralelo)
 
 ### 🔄 **Backups agendados**

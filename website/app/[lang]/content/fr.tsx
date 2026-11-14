@@ -219,7 +219,7 @@ export default function Index() {
                 name: "Quels types de sauvegarde Databasus prend-il en charge ?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus prend en charge les sauvegardes physiques, complètes, incrémentales, WAL et logiques. Les sauvegardes physiques sont une copie au niveau fichier de l'ensemble du cluster de base de données : plus rapides à sauvegarder et à restaurer pour les gros volumes que les dumps logiques, et construites sur le mécanisme de sauvegarde natif de PostgreSQL 17, nous nous appuyons donc sur l'outillage éprouvé de PostgreSQL au lieu de le réinventer. Les sauvegardes complètes sont une copie intégrale et autonome du cluster, la base de départ de chaque chaîne de sauvegardes. Les sauvegardes incrémentales ne stockent que ce qui a changé depuis la sauvegarde précédente, elles restent donc petites et rapides. Le streaming WAL capture en continu le flux d'écriture de la base, ce qui permet la récupération à un instant donné (PITR) pour la reprise après sinistre et une perte de données quasi nulle. Les sauvegardes logiques sont un dump natif de la base dans son format binaire propre au moteur, compressé et envoyé en flux directement vers le stockage sans fichiers intermédiaires. Toutes ces sauvegardes peuvent passer par un tunnel SSH si vous exigez des connexions non publiques, la base n'a donc jamais à être exposée publiquement. Le tunnel SSH est intégré.",
+                  text: "Databasus prend en charge les sauvegardes physiques, complètes, incrémentales, WAL et logiques. Les sauvegardes physiques sont une copie au niveau fichier de l'ensemble du cluster de base de données : plus rapides à sauvegarder et à restaurer pour les gros volumes que les dumps logiques, et construites sur le mécanisme de sauvegarde natif de PostgreSQL 17, nous nous appuyons donc sur l'outillage éprouvé de PostgreSQL au lieu de le réinventer. Les sauvegardes complètes sont une copie intégrale et autonome du cluster, la base de départ de chaque chaîne de sauvegardes. Les sauvegardes incrémentales ne stockent que ce qui a changé depuis la sauvegarde précédente, elles restent donc petites et rapides. Le streaming WAL capture en continu le flux d'écriture de la base, ce qui permet la récupération à un instant donné (PITR) pour la reprise après sinistre et une perte de données quasi nulle. Haute disponibilité (HA) : prend en charge les changements de timeline après un changement de primaire dans les clusters Patroni et CloudNativePG (CNPG). Les sauvegardes logiques sont un dump natif de la base dans son format binaire propre au moteur, compressé et envoyé en flux directement vers le stockage sans fichiers intermédiaires. Toutes ces sauvegardes peuvent passer par un tunnel SSH si vous exigez des connexions non publiques, la base n'a donc jamais à être exposée publiquement. Le tunnel SSH est intégré.",
                 },
               },
               {
@@ -1513,6 +1513,11 @@ export default function Index() {
                       flux d&apos;écriture de la base, ce qui permet la
                       récupération à un instant donné (PITR). Conçu pour la
                       reprise après sinistre et une perte de données quasi nulle
+                    </li>
+                    <li>
+                      <strong>Haute disponibilité (HA)</strong> : prend en charge
+                      les changements de timeline après un changement de primaire
+                      dans les clusters Patroni et CloudNativePG (CNPG)
                     </li>
                     <li>
                       <strong>Logique</strong> : dump natif de la base dans son

@@ -69,6 +69,7 @@ class CodexReviewerTest(unittest.TestCase):
                 [arguments[index : index + 2] for index in range(len(arguments) - 1)],
             )
         self.assertIn("--ephemeral", arguments)
+        self.assertNotIn("--model", arguments)
         self.assertEqual(arguments[-1], "-")
         self.assertEqual(call["hook_active"], "1")
         self.assertIsNone(call["session_env"])

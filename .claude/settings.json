@@ -71,6 +71,12 @@
             "type": "command"
           },
           {
+            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" documentation --client claude",
+            "statusMessage": "Checking documentation scope and clarity",
+            "timeout": 600,
+            "type": "command"
+          },
+          {
             "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" implementation --client claude",
             "statusMessage": "Full implementation review",
             "timeout": 7200,

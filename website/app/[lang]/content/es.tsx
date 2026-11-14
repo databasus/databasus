@@ -219,7 +219,7 @@ export default function Index() {
                 name: "¿Qué tipos de copia de seguridad admite Databasus?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus admite copias físicas, completas, incrementales, de WAL y lógicas. Las copias físicas son una copia a nivel de archivos de todo el clúster de la base de datos: más rápidas de crear y restaurar en conjuntos de datos grandes que los volcados lógicos, y construidas sobre el mecanismo nativo de respaldo de PostgreSQL 17, así que nos apoyamos en las herramientas probadas de PostgreSQL en lugar de reinventarlas. Las copias completas son una copia íntegra y autocontenida del clúster, la base de la que parte cada cadena de respaldos. Las copias incrementales guardan solo lo que cambió desde la copia anterior, así que los respaldos se mantienen pequeños y rápidos. El streaming de WAL captura de forma continua el flujo de escritura de la base de datos, lo que habilita la recuperación a un punto en el tiempo (PITR) para recuperación ante desastres y una pérdida de datos casi nula. Las copias lógicas son un volcado nativo de la base de datos en su formato binario específico del motor, comprimido y transmitido directamente al almacenamiento sin archivos intermedios. Todas estas copias pueden ejecutarse por un túnel SSH si necesita conexiones no públicas, de modo que la base de datos nunca tiene que exponerse públicamente. El túnel SSH viene integrado.",
+                  text: "Databasus admite copias físicas, completas, incrementales, de WAL y lógicas. Las copias físicas son una copia a nivel de archivos de todo el clúster de la base de datos: más rápidas de crear y restaurar en conjuntos de datos grandes que los volcados lógicos, y construidas sobre el mecanismo nativo de respaldo de PostgreSQL 17, así que nos apoyamos en las herramientas probadas de PostgreSQL en lugar de reinventarlas. Las copias completas son una copia íntegra y autocontenida del clúster, la base de la que parte cada cadena de respaldos. Las copias incrementales guardan solo lo que cambió desde la copia anterior, así que los respaldos se mantienen pequeños y rápidos. El streaming de WAL captura de forma continua el flujo de escritura de la base de datos, lo que habilita la recuperación a un punto en el tiempo (PITR) para recuperación ante desastres y una pérdida de datos casi nula. Alta disponibilidad (HA): admite cambios de timeline tras un cambio de primario en clústeres Patroni y CloudNativePG (CNPG). Las copias lógicas son un volcado nativo de la base de datos en su formato binario específico del motor, comprimido y transmitido directamente al almacenamiento sin archivos intermedios. Todas estas copias pueden ejecutarse por un túnel SSH si necesita conexiones no públicas, de modo que la base de datos nunca tiene que exponerse públicamente. El túnel SSH viene integrado.",
                 },
               },
               {
@@ -1505,6 +1505,11 @@ export default function Index() {
                       habilita la recuperación a un punto en el tiempo (PITR).
                       Pensado para recuperación ante desastres y una pérdida de
                       datos casi nula
+                    </li>
+                    <li>
+                      <strong>Alta disponibilidad (HA)</strong>: admite cambios de
+                      timeline tras un cambio de primario en clústeres Patroni y
+                      CloudNativePG (CNPG)
                     </li>
                     <li>
                       <strong>Lógica</strong>: volcado nativo de la base de

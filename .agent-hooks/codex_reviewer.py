@@ -111,6 +111,7 @@ def run_codex_reviewer(request: ReviewExecution) -> dict[str, object]:
             "--sandbox",
             "read-only",
             "--ephemeral",
+            *(["--model", request.model] if request.model != "configured-default" else []),
             "-c",
             f"model_reasoning_effort={json.dumps(request.effort)}",
             "--output-schema",

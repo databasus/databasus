@@ -112,6 +112,13 @@
       },
       "reference": "docker.io/dperson/samba:latest@sha256:66088b78a19810dd1457a8f39340e95e663c728083efa5fe7dc0d40b2478e869"
     },
+    "edoburu/pgbouncer:v1.26.1-p0": {
+      "reference": "docker.io/edoburu/pgbouncer:v1.26.1-p0@sha256:488422e38cff912895d0d65d8963fcd306e6ac589a724398b6eb8e294e94d624",
+      "platforms": {
+        "linux-arm64": "sha256:3e89f38939cf42bb3639563e758a0d6f8a06f674bae790bf50c6415bf54d14ed",
+        "linux-x64": "sha256:a26a00a576e248e73230eff35c8fbe77279bf0d8b6550d3007c56ee69287c664"
+      }
+    },
     "ghcr.io/cloudnative-pg/cloudnative-pg:1.30.1": {
       "platforms": {
         "linux-arm64": "sha256:9a10dd7d7466310d5d543f618478cb905093cfc7a5463b538f449da626660083",

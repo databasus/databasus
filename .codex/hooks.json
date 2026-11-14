@@ -51,6 +51,12 @@
             "type": "command"
           },
           {
+            "command": "\"$(git rev-parse --show-toplevel)/.agent-hooks/run.sh\" documentation --client codex",
+            "statusMessage": "Checking documentation scope and clarity",
+            "timeout": 600,
+            "type": "command"
+          },
+          {
             "command": "\"$(git rev-parse --show-toplevel)/.agent-hooks/run.sh\" implementation --client codex",
             "statusMessage": "Full implementation review",
             "timeout": 7200,
