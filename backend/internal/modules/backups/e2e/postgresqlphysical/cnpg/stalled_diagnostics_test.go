@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"strings"
 	"testing"
 	"time"
 
@@ -34,7 +35,13 @@ func stallK3sAPI(t *testing.T, containerID string) {
 	output, err = exec.CommandContext(t.Context(), "docker", "exec", containerID, "kubectl", "--request-timeout=2s", "get", "--raw=/version").
 		CombinedOutput()
 	require.Error(t, err, "the stopped Kubernetes API still answered: %s", output)
-	require.Contains(t, string(output), "deadline exceeded")
+	require.True(t, isKubectlTimeout(string(output)), "kubectl failed without a timeout: %s", output)
 
 	t.Log("stopped the owned k3s API process before startup cancellation")
+}
+
+// kubectl reports its timeout as "context deadline exceeded" once connected, and as
+// "Client.Timeout exceeded" when the stopped server never completes the connection.
+func isKubectlTimeout(output string) bool {
+	return strings.Contains(output, "deadline exceeded") || strings.Contains(output, "Client.Timeout exceeded")
 }
