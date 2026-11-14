@@ -28,3 +28,17 @@ sudo sysctl --system
 ```
 
 Higher values already set on the host can stay.
+
+## Bridge netfilter for CloudNativePG tests
+
+Kubernetes routes a pod's request to a service address through iptables rules. Traffic between pods of one k3s container crosses a Linux bridge, and the kernel applies those rules to bridged traffic only while the `br_netfilter` module is loaded. Without it, cluster DNS times out and CloudNativePG never adds the replica. k3s cannot load the module from inside its container, and a fixture fails at startup when the module is missing. Load it on the host:
+
+```sh
+sudo modprobe br_netfilter
+```
+
+The module stays loaded until the next reboot. To load it at every boot:
+
+```sh
+echo br_netfilter | sudo tee /etc/modules-load.d/br_netfilter.conf
+```

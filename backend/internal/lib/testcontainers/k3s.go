@@ -33,6 +33,7 @@ const (
 	k3sRegistriesFile      = "/etc/databasus-registries.yaml"
 	k3sEntrypointFile      = "/etc/databasus-k3s-entrypoint.sh"
 	k3sStartupLimit        = 3 * time.Minute
+	k3sTotalStartLimit     = 5 * time.Minute
 	k3sAddressDialLimit    = 5 * time.Second
 	k3sDiagnosticsLimit    = 8 * 1024
 	k3sPollInterval        = 500 * time.Millisecond
@@ -126,7 +127,16 @@ func StartK3s(ctx context.Context, spec K3sSpec) (*K3s, error) {
 	}
 
 	startedAt := time.Now()
-	err := fixture.start(ctx, spec)
+	// Every startup step has its own limit, so on a CPU-starved host the steps add up to a wait of
+	// many minutes before anything fails. One limit for the whole startup reports that host early.
+	startCtx, cancel := context.WithTimeoutCause(ctx, k3sTotalStartLimit, ErrK3sStartTimedOut)
+	defer cancel()
+
+	err := fixture.start(startCtx, spec)
+	if err != nil && errors.Is(context.Cause(startCtx), ErrK3sStartTimedOut) {
+		err = fmt.Errorf("%w within %s: %w", ErrK3sStartTimedOut, k3sTotalStartLimit, err)
+	}
+
 	if err != nil {
 		diagnostics := fixture.getDiagnostics(context.WithoutCancel(ctx))
 		terminateErr := fixture.Terminate(context.WithoutCancel(ctx))
@@ -220,6 +230,10 @@ func (fixture *K3s) start(ctx context.Context, spec K3sSpec) error {
 	fixture.observe(ctx, spec)
 
 	if err := fixture.waitForNode(ctx); err != nil {
+		return err
+	}
+
+	if err := fixture.requireBridgeNetfilter(ctx); err != nil {
 		return err
 	}
 
@@ -382,6 +396,24 @@ func (fixture *K3s) requireReachableAddress(ctx context.Context) error {
 	}
 
 	return connection.Close()
+}
+
+// Without br_netfilter on the host, a pod's request to a service address on the same node bypasses
+// the service rules, so cluster DNS times out and CloudNativePG never joins its replica. k3s cannot
+// load the module from inside its container.
+func (fixture *K3s) requireBridgeNetfilter(ctx context.Context) error {
+	output, err := fixture.exec(ctx, dockerExec{Command: []string{
+		"sh", "-c", "test -e /proc/sys/net/bridge/bridge-nf-call-iptables && echo present || echo absent",
+	}})
+	if err != nil {
+		return err
+	}
+
+	if strings.TrimSpace(string(output.Stdout)) != "present" {
+		return ErrBridgeNetfilterRequired
+	}
+
+	return nil
 }
 
 func (fixture *K3s) requireVersion(ctx context.Context) error {
