@@ -3,6 +3,7 @@ import { OG_LOCALES, getLanguageAlternates, getLocalizedHref, getLocalizedUrl } 
 import DocsNavbarComponent from "@/app/components/DocsNavbarComponent";
 import DocsSidebarComponent from "@/app/components/DocsSidebarComponent";
 import DocTableOfContentComponent from "@/app/components/DocTableOfContentComponent";
+import { CopyButton } from "@/app/components/CopyButton";
 
 export const metadata: Metadata = {
   title: "常见问题 FAQ | Databasus",
@@ -40,6 +41,15 @@ export const metadata: Metadata = {
 };
 
 export default function FAQPage() {
+  const startupRecoveryCommand = `docker run -d \\
+  --name databasus \\
+  -p 4005:4005 \\
+  -v ./databasus-data:/databasus-data \\
+  -e RECOVERY_DUMP_PATH=/databasus-data/recovery/backup.dbbackup \\
+  -e RECOVERY_MASTER_KEY_PATH=/databasus-data/recovery/master.key \\
+  --restart unless-stopped \\
+  databasus/databasus:<version>`;
+
   return (
     <>
       {/* JSON-LD Structured Data */}
@@ -87,7 +97,7 @@ export default function FAQPage() {
                 name: "如何备份 Databasus 自身？",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "要备份 Databasus，进入 /opt/databasus（或你安装它的目录），然后进入 databasus-data 目录。需要备份 secret.key 文件（凭据的加密密钥）和 /pgdata 文件夹（包含配置和备份元数据的内部数据库）。有两种恢复场景：1) 只用 secret.key 就能恢复数据库备份，不需要 Databasus 界面（见手动恢复指南）；2) 要恢复带有全部配置和历史记录的 Databasus 界面，需要 secret.key 和 /pgdata 文件夹两者。恢复时，在另一台服务器上重建这个文件夹结构即可。",
+                  text: "Databasus 的设计目标是：即使自身所在的服务器丢失或损坏，也能恢复。它可以备份自己的内部数据库：账号、设置、数据库、存储和通知渠道的加密凭据、备份计划以及备份清单。在 Databasus settings → Databasus backups 中选择一个或多个已有存储即可开启；默认每小时执行一次 Databasus 备份，保留 30 天。备份文件用主密钥加密，既不包含主密钥，也不包含你的数据库的备份文件，所以请单独保存主密钥：Databasus 会请你下载它，它也是主机上的 ./databasus-data/secret.key。恢复需要备份文件、对应的主密钥以及完全相同的 Databasus 版本，补丁版本也要一致。一种方式是把两个文件放进挂载的数据目录，在一台没有账号、也没改过设置的服务器上用 RECOVERY_DUMP_PATH 和 RECOVERY_MASTER_KEY_PATH 启动 Databasus；另一种方式是在 Databasus settings → Databasus backups 中上传文件并粘贴密钥，这会替换当前安装。",
                 },
               },
               {
@@ -471,65 +481,83 @@ export default function FAQPage() {
               <h2 id="backup-databasus">如何备份 Databasus 自身？</h2>
 
               <p>
-                如果你想备份自己的 Databasus
-                实例（包括所有配置、数据库和凭据），按以下步骤操作：
+                Databasus 的设计目标是：即使自身所在的服务器丢失或损坏，也能恢复。它可以备份自己的内部数据库：账号、设置、你的数据库、存储和通知渠道的加密凭据、备份计划以及备份清单。在{" "}
+                <strong>Databasus settings → Databasus backups</strong>{" "}
+                中选择一个或多个已有存储即可开启这项功能。默认每小时执行一次 Databasus
+                备份，保留 30 天。每个文件都用主密钥加密。
               </p>
 
-              <ol>
-                <li>
-                  进入 <code>/opt/databasus</code>（或你安装 Databasus 的目录）
-                </li>
-                <li>
-                  进入 <code>databasus-data</code> 目录
-                </li>
-              </ol>
-
               <p>
-                <strong>需要备份的内容：</strong>
+                Databasus 备份不包含主密钥，也不包含你的数据库的备份文件，后者留在各自的存储中。
+                <strong>请单独保存主密钥。</strong>Databasus 会在你第一次访问时请你下载主密钥，它也就是主机上的{" "}
+                <code>./databasus-data/secret.key</code>{" "}
+                文件。
               </p>
 
               <ul>
                 <li>
-                  <code>secret.key</code>：你的凭据的加密密钥
+                  <strong>选择远程存储。</strong>同一台服务器上的本地存储会随这台服务器一起丢失。
                 </li>
                 <li>
-                  <code>/pgdata</code>：Databasus 的内部 PostgreSQL
-                  数据库，包含你的全部配置和备份元数据
-                </li>
-              </ul>
-
-              <p>
-                如果你使用本地存储保存备份，也可以一并备份 <code>backups</code>{" "}
-                文件夹。
-              </p>
-
-              <p>
-                <strong>重要：</strong>恢复有两种不同的场景：
-              </p>
-
-              <ul>
-                <li>
-                  <strong>不通过 Databasus 界面恢复备份：</strong>只需要{" "}
-                  <code>secret.key</code> 文件就能恢复数据库备份，不需要
-                  Databasus 或它的内部数据。详细步骤见
-                  <a href="/zh/how-to-recover-without-databasus">
-                    手动恢复指南
+                  <strong>警报。</strong>当 Databasus 备份失败、只保存到部分存储、停止或逾期时，Databasus
+                  会显示提示。逾期是指计划运行后 15 分钟内没有任何副本保存成功。配置了
+                  <a href={`${getLocalizedHref("zh", "advanced-config")}#email-smtp`}>
+                  实例邮件服务器
                   </a>
-                  。
+                  时，同样的警报也会通过邮件发送。
+                </li>
+              </ul>
+
+              <h3 id="recover-databasus">
+                如何从 Databasus 备份恢复 Databasus？
+              </h3>
+
+              <p>
+                你需要两样东西：一个 Databasus 备份文件（<code>.dbbackup</code>
+                ），可以从历史记录中下载，也可以直接从存储中取；以及生成它的那个安装的主密钥。
+                <strong>
+                恢复只能在完全相同的 Databasus 版本上进行，补丁版本也要一致。
+                </strong>
+                版本不同时，Databasus 会拒绝恢复，并告诉你该启动哪个版本：先在那个版本上恢复，再照常升级。
+              </p>
+
+              <p>
+                <strong>方式 1：启动时提供文件。</strong>
+                适用于新服务器。把两个文件放进挂载的数据目录，例如{" "}
+                <code>./databasus-data/recovery/</code>
+                ，然后用生成该备份的那个版本的镜像启动，并加上两项额外设置。把{" "}
+                <code>&lt;version&gt;</code> 替换成那个版本：
+              </p>
+
+              <div className="relative my-6">
+                <pre className="overflow-x-auto rounded-lg bg-gray-900 p-4 text-sm text-gray-100">
+                  <code>{startupRecoveryCommand}</code>
+                </pre>
+                <div className="absolute right-2 top-2">
+                  <CopyButton lang="zh" text={startupRecoveryCommand} />
+                </div>
+              </div>
+
+              <ul>
+                <li>
+                  如果你已经在这台服务器上正常启动过
+                  Databasus，但没有创建账号，也没有改过设置，就不必删除它的数据。停止它，加上这两个文件和两项设置，再重新启动。
                 </li>
                 <li>
-                  <strong>恢复 Databasus 界面及全部配置：</strong>
-                  如果你想恢复带有全部配置、备份计划和备份历史的 Databasus
-                  界面，需要同时备份 <code>secret.key</code> 和{" "}
-                  <code>/pgdata</code> 文件夹（后者包含加密元数据和 Databasus
-                  的全部配置）。
+                  只要安装中有账号（哪怕只有一个）、有其他用户数据或改过设置，启动时恢复就绝不会替换它。这种情况下 Databasus
+                  不会启动。日志会说明恢复没有执行、原因、当前安装保持不变，以及下一步该怎么做。要启动当前安装，请去掉这两项设置，或者改用界面中的上传功能。
+                </li>
+                <li>
+                  恢复成功后，文件和设置可以留着。Databasus 会记住已应用文件的
+                  SHA-256，所以重启和之后的升级都会跳过它，并在日志中说明，即使文件改了名也一样。同一路径下换成另一个文件则不会被跳过。
                 </li>
               </ul>
 
               <p>
-                <strong>在另一台服务器上恢复 Databasus：</strong>
-                用备份好的文件重建 <code>databasus-data</code>{" "}
-                目录结构，然后启动 Databasus 即可。
+                <strong>方式 2：在界面中上传。</strong>
+                适用于已经在运行的安装。如果是新安装，先注册。打开{" "}
+                <strong>Databasus settings → Databasus backups</strong>
+                ，选择备份文件，然后粘贴或输入生成它的那个安装的主密钥。当前安装中的一切都会被替换：账号、设置和备份清单。之后请用备份中的账号登录。
               </p>
 
               <h2 id="oss-programs">

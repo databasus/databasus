@@ -24,6 +24,7 @@ Paths under `internal/` are inside `backend/`. The table distinguishes the test 
 | Module API tests          | the behavior of each module through its HTTP operations, and that every response matches the contract               | `internal/modules/<name>/*_test.go`, package `<name>_test` | the application, the internal database, HTTP; external systems are fakes                                 |
 | Engine tests              | connecting, privileges, dumping and restoring against every supported server version                                | `internal/engines/<engine>/*_test.go`                      | the database servers in containers                                                                       |
 | Backup and restore tests  | a full backup → restore cycle per engine and version, logical and physical, including SSH tunnels, TLS and failover | `internal/modules/backups/e2e/`                            | the application, source and target servers, storages in containers, the recovery script                  |
+| Databasus recovery-cycle tests | a Databasus backup recovered on a fresh server, then user-database restores from it | `internal/modules/instancebackups/e2e/` | the candidate image with its internal database, remote storage, source and target servers in containers |
 | Agent tests               | the verification agent's verification pipeline, and the agent against a real backend                                | `internal/agent/**`, `internal/agent/e2e/`                 | the backend from the test harness, Docker or Podman                                                      |
 | Migration tests           | a migration keeps and converts existing rows, on upgrade and on rollback                                            | `backend/migrations/*_test.go`                             | the internal database, empty or fully migrated as the test asks                                          |
 | Architecture linter tests | each rule of the linter fails on a violation and passes on clean code                                               | `backend/tools/archlint/*_test.go`                         | the linter on fixture modules; no database                                                               |
@@ -213,6 +214,10 @@ docker volume ls --filter label=databasus.k3s-fixture
 
 These commands also list fixtures active in other worktrees. Before removing anything, identify the killed run's fixture IDs and filter by `label=databasus.k3s-fixture=<fixture ID>`. Do not remove another run's resources.
 
+## Databasus recovery-cycle tests
+
+These tests prove that a Databasus backup brings back a working instance on a server that never saw the original one: the target receives only the archive and the master key, recovers at startup or through UI import, and then restores user databases from the recovered catalog. They run the candidate application image in containers, building it from the checkout when no image is supplied, and remove only their own containers and volumes. [Commands](#commands) lists the run, which needs the Fedora preparation.
+
 ## Verification agent end-to-end tests
 
 These tests run the real agent binary against a real backend, proving that they agree on the contract and can restore a backup. The separate agent unit-test command needs neither a container engine nor the test database. [Commands](#commands) lists both runs and the rootful Podman subset; source servers still use Docker in that subset.
@@ -263,6 +268,7 @@ Whether checking a change with targeted tests or with `mise run test`, an agent 
 - A change to scenarios in `e2e/browser/scenarios` or to the `Dockerfile` runs `mise run e2e:browser`, and the change verification names a scenario change's command.
 - A change to tests in `backend/internal/agent/e2e` or to the verification agent's code runs `mise run agent:e2e`, or the Go test command for the affected tests.
 - A change to tests in `backend/internal/modules/backups/e2e` runs the Go test command for the affected tests.
+- A change to tests in `backend/internal/modules/instancebackups/e2e`, or to how Databasus backups are produced or recovered, runs [the recovery-cycle command](#commands).
 - A change to `backend/e2e/upgrade` runs `mise run backend:test-upgrade`.
 
 A break in the backup pipeline can pass `mise run test`. When a change touches that pipeline, run the affected tests in `backend/internal/modules/backups/e2e` by hand.
@@ -367,6 +373,7 @@ To repeat one failing test, call its Go or frontend runner directly. This takes 
 | One frontend browser UI shard                         | `pnpm --dir frontend test:browser --project=ui --shard=1/3`                       |
 | Update browser visual references                       | `pnpm --dir frontend test:browser --project=ui --update-references`              |
 | Upgrade test                                           | `mise run backend:test-upgrade`                                                  |
+| Databasus recovery-cycle tests                         | `go -C backend test -count=1 -timeout 20m ./internal/modules/instancebackups/e2e/...`, with the Fedora preparation below |
 | Filesystem tests                                       | `mise run test-filesystem`                                                       |
 | Browser end-to-end suite alone                         | `mise run e2e:browser`                                                           |
 | Its parts that need no Docker daemon                   | `mise run e2e:unit`                                                              |

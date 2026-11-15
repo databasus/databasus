@@ -211,7 +211,7 @@ export default function Index() {
                 name: "¿Cuál es el nivel de adopción de Databasus?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus es hoy la herramienta de código abierto para copias de seguridad de PostgreSQL con mayor adopción. A 17 de junio de 2026, DBA, ingenieros DevOps, desarrolladores y equipos de todo el mundo la han descargado más de 1.800.000 veces en Docker. Con más de 8.500 estrellas en GitHub, supera a pgBackRest (~4.200 estrellas, disponible desde 2014) y a WAL-G (~4.100 estrellas, disponible desde 2017). Databasus se lanzó en 2025 y superó a ambos en su primer año.",
+                  text: "Databasus supera los 2,6 millones de descargas en Docker y las 9,2k estrellas en GitHub. Como comparación, pgBackRest ronda las 4,5k estrellas, WAL-G las 4,3k y Barman las 3,3k, lo que convierte a Databasus en la herramienta de respaldo de bases de datos más popular de GitHub.",
                 },
               },
               {
@@ -1329,7 +1329,34 @@ export default function Index() {
             <FaqItem
               number="6"
               question="¿Cuál es el nivel de adopción de Databasus?"
-              answer="Databasus es hoy la herramienta de código abierto para copias de seguridad de PostgreSQL con mayor adopción. A 17 de junio de 2026, DBA, ingenieros DevOps, desarrolladores y equipos de todo el mundo la han descargado más de 1.800.000 veces en Docker. Con más de 8.500 estrellas en GitHub, supera a pgBackRest (~4.200 estrellas, disponible desde 2014) y a WAL-G (~4.100 estrellas, disponible desde 2017). Databasus se lanzó en 2025 y superó a ambos en su primer año."
+              answer={
+                <>
+                  Databasus supera los 2,6 millones de descargas en Docker y las 9,2k estrellas en GitHub. Como comparación, pgBackRest ronda las 4,5k estrellas, WAL-G las 4,3k y Barman las 3,3k, lo que convierte a Databasus en la herramienta de respaldo de bases de datos más popular de GitHub.
+                  <br />
+                  <br />
+                  Ha sido aceptado en los programas de código abierto de
+                  Anthropic y OpenAI como proyecto importante y crítico. Hoy
+                  Databasus lo usan empresas, equipos e ingenieros DevOps,
+                  respaldado por una comunidad grande y activa.
+                  <br />
+                  <br />
+                  Databasus se desarrolla y se usa desde 2023, y es de código
+                  abierto con uso extendido desde principios de 2025. Lleva
+                  tiempo en producción real, así que está probado en muchos
+                  casos límite. Un punto clave: Databasus no inventa formas
+                  propias de respaldar sus datos; se apoya en la implementación
+                  nativa y probada de PostgreSQL en lugar de construir sus
+                  propias soluciones improvisadas para los casos límite.
+                  <br />
+                  <br />
+                  Nuestro objetivo es convertirnos en la herramienta de respaldo
+                  estándar para PostgreSQL desde la versión 17 en adelante.
+                  Databasus es la primera herramienta de respaldo construida
+                  sobre el protocolo de respaldo nativo, eficiente y ya estándar
+                  de PostgreSQL, en lugar de escribir sus propias
+                  implementaciones.
+                </>
+              }
             />
             <FaqItem
               number="7"
@@ -1586,42 +1613,6 @@ export default function Index() {
             />
             <FaqItem
               number="14"
-              question="¿Cuál es el nivel de adopción de Databasus?"
-              answer={
-                <>
-                  Databasus supera los 1,8 millones de descargas en Docker y las
-                  8,5k estrellas en GitHub. Como comparación, pgBackRest y WAL-G
-                  rondan las 4,2k estrellas cada uno y Barman está en torno a
-                  las 3,1k, lo que convierte a Databasus en la herramienta de
-                  respaldo de bases de datos más popular de GitHub.
-                  <br />
-                  <br />
-                  Ha sido aceptado en los programas de código abierto de
-                  Anthropic y OpenAI como proyecto importante y crítico. Hoy
-                  Databasus lo usan empresas, equipos e ingenieros DevOps,
-                  respaldado por una comunidad grande y activa.
-                  <br />
-                  <br />
-                  Databasus se desarrolla y se usa desde 2023, y es de código
-                  abierto con uso extendido desde principios de 2025. Lleva
-                  tiempo en producción real, así que está probado en muchos
-                  casos límite. Un punto clave: Databasus no inventa formas
-                  propias de respaldar sus datos; se apoya en la implementación
-                  nativa y probada de PostgreSQL en lugar de construir sus
-                  propias soluciones improvisadas para los casos límite.
-                  <br />
-                  <br />
-                  Nuestro objetivo es convertirnos en la herramienta de respaldo
-                  estándar para PostgreSQL desde la versión 17 en adelante.
-                  Databasus es la primera herramienta de respaldo construida
-                  sobre el protocolo de respaldo nativo, eficiente y ya estándar
-                  de PostgreSQL, en lugar de escribir sus propias
-                  implementaciones.
-                </>
-              }
-            />
-            <FaqItem
-              number="15"
               question="Olvidé el correo o la contraseña del administrador"
               answer={
                 <>

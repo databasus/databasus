@@ -208,10 +208,10 @@ export default function Index() {
               },
               {
                 "@type": "Question",
-                name: "Databasus 的采用程度如何？",
+                name: "Databasus 的普及程度如何？",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus 是当今使用最广泛的开源 PostgreSQL 备份工具。截至 2026 年 6 月 17 日，它在 Docker 上已被全球的 DBA、DevOps 工程师、开发者和团队拉取超过 180 万次。它拥有 8,500+ GitHub star，超过了 pgBackRest（约 4,200 star，2014 年发布）和 WAL-G（约 4,100 star，2017 年发布）。Databasus 于 2025 年发布，在第一年内就超越了两者。",
+                  text: "Databasus 拥有超过 260 万次 Docker 拉取和 9.2k GitHub star。作为对比，pgBackRest 约 4.5k star，WAL-G 约 4.3k star，Barman 约 3.3k star，这使 Databasus 成为 GitHub 上最受欢迎的数据库备份工具。",
                 },
               },
               {
@@ -1249,8 +1249,28 @@ export default function Index() {
             />
             <FaqItem
               number="6"
-              question="Databasus 的采用程度如何？"
-              answer="Databasus 是当今使用最广泛的开源 PostgreSQL 备份工具。截至 2026 年 6 月 17 日，它在 Docker 上已被全球的 DBA、DevOps 工程师、开发者和团队拉取超过 180 万次。它拥有 8,500+ GitHub star，超过了 pgBackRest（约 4,200 star，2014 年发布）和 WAL-G（约 4,100 star，2017 年发布）。Databasus 于 2025 年发布，在第一年内就超越了两者。"
+              question="Databasus 的普及程度如何？"
+              answer={
+                <>
+                  Databasus 拥有超过 260 万次 Docker 拉取和 9.2k GitHub star。作为对比，pgBackRest 约 4.5k star，WAL-G 约 4.3k star，Barman 约 3.3k star，这使 Databasus 成为 GitHub 上最受欢迎的数据库备份工具。
+                  <br />
+                  <br />
+                  它作为重要的关键项目入选了 Anthropic 和 OpenAI
+                  的开源计划。如今 Databasus 已被企业、团队和 DevOps
+                  工程师使用，并有庞大而活跃的社区支持。
+                  <br />
+                  <br />
+                  Databasus 自 2023 年起开发并投入使用，自 2025
+                  年初起开源并被广泛使用。它已经在真实生产环境中运行了相当长的时间，经受了大量边界情况的考验。关键在于，Databasus
+                  不会发明自定义的备份方式——它依赖 PostgreSQL
+                  原生的、经过验证的实现，而不是为边界情况构建自己的变通方案。
+                  <br />
+                  <br />
+                  我们的目标是成为 PostgreSQL 17
+                  及以上版本的标准备份工具。Databasus 是第一个构建在 PostgreSQL
+                  原生、高效且如今已成为标准的备份协议之上的备份工具，而不是编写自己的实现。
+                </>
+              }
             />
             <FaqItem
               number="7"
@@ -1470,34 +1490,6 @@ export default function Index() {
             />
             <FaqItem
               number="14"
-              question="Databasus 的普及程度如何？"
-              answer={
-                <>
-                  Databasus 拥有超过 180 万次 Docker 拉取和 8.5k GitHub
-                  star。作为对比，pgBackRest 和 WAL-G 各约 4.2k star，Barman 约
-                  3.1k star，这使 Databasus 成为 GitHub
-                  上最受欢迎的数据库备份工具。
-                  <br />
-                  <br />
-                  它作为重要的关键项目入选了 Anthropic 和 OpenAI
-                  的开源计划。如今 Databasus 已被企业、团队和 DevOps
-                  工程师使用，并有庞大而活跃的社区支持。
-                  <br />
-                  <br />
-                  Databasus 自 2023 年起开发并投入使用，自 2025
-                  年初起开源并被广泛使用。它已经在真实生产环境中运行了相当长的时间，经受了大量边界情况的考验。关键在于，Databasus
-                  不会发明自定义的备份方式——它依赖 PostgreSQL
-                  原生的、经过验证的实现，而不是为边界情况构建自己的变通方案。
-                  <br />
-                  <br />
-                  我们的目标是成为 PostgreSQL 17
-                  及以上版本的标准备份工具。Databasus 是第一个构建在 PostgreSQL
-                  原生、高效且如今已成为标准的备份协议之上的备份工具，而不是编写自己的实现。
-                </>
-              }
-            />
-            <FaqItem
-              number="15"
               question="我忘记了管理员邮箱或密码"
               answer={
                 <>

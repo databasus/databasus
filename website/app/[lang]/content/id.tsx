@@ -199,10 +199,10 @@ export default function Index() {
               },
               {
                 "@type": "Question",
-                name: "Seberapa luas Databasus digunakan?",
+                name: "Seberapa besar adopsi Databasus?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus saat ini merupakan alat backup PostgreSQL open source yang paling banyak digunakan. Per 17 Juni 2026, image Docker-nya telah ditarik lebih dari 1.800.000 kali oleh DBA, engineer DevOps, developer, dan tim di seluruh dunia. Dengan 8.500+ GitHub stars, Databasus melampaui pgBackRest (~4.200 stars, tersedia sejak 2014) dan WAL-G (~4.100 stars, tersedia sejak 2017). Databasus diluncurkan pada 2025 dan melampaui keduanya dalam tahun pertamanya. Tingkat adopsi ini mencerminkan kepercayaan dan pilihan komunitas profesional database.",
+                  text: "Databasus memiliki lebih dari 2,6 juta Docker pulls dan 9,2k GitHub stars. Sebagai perbandingan, pgBackRest memiliki sekitar 4,5k stars, WAL-G sekitar 4,3k dan Barman sekitar 3,3k. Ini menjadikan Databasus alat backup database terpopuler di GitHub.",
                 },
               },
               {
@@ -1074,8 +1074,31 @@ export default function Index() {
             />
             <FaqItem
               number="6"
-              question="Seberapa luas Databasus digunakan?"
-              answer="Databasus saat ini merupakan alat backup PostgreSQL open source yang paling banyak digunakan. Per 17 Juni 2026, image Docker-nya telah ditarik lebih dari 1.800.000 kali oleh DBA, engineer DevOps, developer, dan tim di seluruh dunia. Dengan 8.500+ GitHub stars, Databasus melampaui pgBackRest (~4.200 stars, tersedia sejak 2014) dan WAL-G (~4.100 stars, tersedia sejak 2017). Databasus diluncurkan pada 2025 dan melampaui keduanya dalam tahun pertamanya. Tingkat adopsi ini mencerminkan kepercayaan dan pilihan komunitas profesional database."
+              question="Seberapa besar adopsi Databasus?"
+              answer={
+                <>
+                  Databasus memiliki lebih dari 2,6 juta Docker pulls dan 9,2k GitHub stars. Sebagai perbandingan, pgBackRest memiliki sekitar 4,5k stars, WAL-G sekitar 4,3k dan Barman sekitar 3,3k. Ini menjadikan Databasus alat backup database terpopuler di GitHub.
+                  <br />
+                  <br />
+                  Databasus diterima dalam program open source Anthropic dan OpenAI sebagai proyek
+                  yang penting dan kritis. Kini Databasus digunakan oleh perusahaan, tim, dan
+                  engineer DevOps, dengan dukungan komunitas yang besar dan aktif.
+                  <br />
+                  <br />
+                  Databasus telah dikembangkan dan digunakan sejak 2023, serta digunakan luas
+                  sebagai open source sejak awal 2025. Databasus sudah cukup lama digunakan dalam
+                  production sungguhan, sehingga teruji dalam berbagai kasus khusus. Yang
+                  terpenting, Databasus tidak menciptakan cara sendiri untuk melakukan backup data.
+                  Databasus mengandalkan implementasi native PostgreSQL yang telah teruji, bukan
+                  membuat penanganan khusus sendiri untuk setiap kasus.
+                  <br />
+                  <br />
+                  Tujuan kami adalah menjadi alat backup standar untuk PostgreSQL mulai versi 17.
+                  Databasus adalah alat backup pertama yang dibangun di atas protokol backup native
+                  PostgreSQL yang efisien dan kini menjadi standar, bukan menulis implementasinya
+                  sendiri.
+                </>
+              }
             />
             <FaqItem
               number="7"
@@ -1306,37 +1329,6 @@ export default function Index() {
             />
             <FaqItem
               number="14"
-              question="Seberapa besar adopsi Databasus?"
-              answer={
-                <>
-                  Databasus memiliki lebih dari 1,8 juta Docker pulls dan 8,5k GitHub stars. Sebagai
-                  perbandingan, pgBackRest dan WAL-G masing-masing memiliki sekitar 4,2k stars,
-                  sedangkan Barman sekitar 3,1k. Ini menjadikan Databasus alat backup database
-                  terpopuler di GitHub.
-                  <br />
-                  <br />
-                  Databasus diterima dalam program open source Anthropic dan OpenAI sebagai proyek
-                  yang penting dan kritis. Kini Databasus digunakan oleh perusahaan, tim, dan
-                  engineer DevOps, dengan dukungan komunitas yang besar dan aktif.
-                  <br />
-                  <br />
-                  Databasus telah dikembangkan dan digunakan sejak 2023, serta digunakan luas
-                  sebagai open source sejak awal 2025. Databasus sudah cukup lama digunakan dalam
-                  production sungguhan, sehingga teruji dalam berbagai kasus khusus. Yang
-                  terpenting, Databasus tidak menciptakan cara sendiri untuk melakukan backup data.
-                  Databasus mengandalkan implementasi native PostgreSQL yang telah teruji, bukan
-                  membuat penanganan khusus sendiri untuk setiap kasus.
-                  <br />
-                  <br />
-                  Tujuan kami adalah menjadi alat backup standar untuk PostgreSQL mulai versi 17.
-                  Databasus adalah alat backup pertama yang dibangun di atas protokol backup native
-                  PostgreSQL yang efisien dan kini menjadi standar, bukan menulis implementasinya
-                  sendiri.
-                </>
-              }
-            />
-            <FaqItem
-              number="15"
               question="Saya lupa email atau password admin"
               answer={
                 <>

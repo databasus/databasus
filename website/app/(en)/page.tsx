@@ -208,10 +208,10 @@ export default function Index() {
               },
               {
                 "@type": "Question",
-                name: "What is Databasus adoption level?",
+                name: "What is the adoption level of Databasus?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus is the most widely adopted open-source PostgreSQL backup tool today. At the moment of 17 June 2026, it has been pulled over 1,800,000 times on Docker by DBAs, DevOps engineers, developers and teams worldwide. With 8,500+ GitHub stars, it surpasses pgBackRest (~4,200 stars, available since 2014) and WAL-G (~4,100 stars, available since 2017). Databasus launched in 2025 and outpaced both within its first year. This adoption level reflects strong community trust and preference among database professionals.",
+                  text: "Databasus has over 2.6 million Docker pulls and 9.2k GitHub stars. For comparison, pgBackRest has around 4.5k stars, WAL-G around 4.3k and Barman about 3.3k, which makes Databasus the most popular database backup tool on GitHub.",
                 },
               },
               {
@@ -1296,8 +1296,33 @@ export default function Index() {
             />
             <FaqItem
               number="6"
-              question="What is Databasus adoption level?"
-              answer="Databasus is the most widely adopted open-source PostgreSQL backup tool today. At the moment of 17 June 2026, it has been pulled over 1,800,000 times on Docker by DBAs, DevOps engineers, developers and teams worldwide. With 8,500+ GitHub stars, it surpasses pgBackRest (~4,200 stars, available since 2014) and WAL-G (~4,100 stars, available since 2017). Databasus launched in 2025 and outpaced both within its first year. This adoption level reflects strong community trust and preference among database professionals."
+              question="What is the adoption level of Databasus?"
+              answer={
+                <>
+                  Databasus has over 2.6 million Docker pulls and 9.2k GitHub stars. For comparison, pgBackRest has around 4.5k stars, WAL-G around 4.3k and Barman about 3.3k, which makes Databasus the most popular database backup tool on GitHub.
+                  <br />
+                  <br />
+                  It has been accepted into the open-source programs of
+                  Anthropic and OpenAI as an important, critical project. Today
+                  Databasus is used by enterprises, teams and DevOps engineers,
+                  backed by a large and active community.
+                  <br />
+                  <br />
+                  Databasus has been developed and used since 2023, and open
+                  source in widespread use since early 2025. It has been in real
+                  production use for a while, so it is battle-tested across many
+                  edge cases. Crucially, Databasus does not invent custom ways
+                  to back up your data — it relies on PostgreSQL&apos;s native,
+                  tested implementation instead of building its own workarounds
+                  for edge cases.
+                  <br />
+                  <br />
+                  Our goal is to become the standard backup tool for PostgreSQL
+                  from version 17 and above. Databasus is the first backup tool
+                  built on PostgreSQL&apos;s native, efficient and now standard
+                  backup protocol instead of writing its own implementations.
+                </>
+              }
             />
             <FaqItem
               number="7"
@@ -1541,39 +1566,6 @@ export default function Index() {
             />
             <FaqItem
               number="14"
-              question="What is the adoption level of Databasus?"
-              answer={
-                <>
-                  Databasus has over 1.8 million Docker pulls and 8.5k GitHub
-                  stars. For comparison, pgBackRest and WAL-G sit at around 4.2k
-                  stars each and Barman at about 3.1k, which makes Databasus the
-                  most popular database backup tool on GitHub.
-                  <br />
-                  <br />
-                  It has been accepted into the open-source programs of
-                  Anthropic and OpenAI as an important, critical project. Today
-                  Databasus is used by enterprises, teams and DevOps engineers,
-                  backed by a large and active community.
-                  <br />
-                  <br />
-                  Databasus has been developed and used since 2023, and open
-                  source in widespread use since early 2025. It has been in real
-                  production use for a while, so it is battle-tested across many
-                  edge cases. Crucially, Databasus does not invent custom ways
-                  to back up your data — it relies on PostgreSQL&apos;s native,
-                  tested implementation instead of building its own workarounds
-                  for edge cases.
-                  <br />
-                  <br />
-                  Our goal is to become the standard backup tool for PostgreSQL
-                  from version 17 and above. Databasus is the first backup tool
-                  built on PostgreSQL&apos;s native, efficient and now standard
-                  backup protocol instead of writing its own implementations.
-                </>
-              }
-            />
-            <FaqItem
-              number="15"
               question="I forgot my admin email or password"
               answer={
                 <>

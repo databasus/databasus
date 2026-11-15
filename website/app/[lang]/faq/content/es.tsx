@@ -3,6 +3,7 @@ import { OG_LOCALES, getLanguageAlternates, getLocalizedHref, getLocalizedUrl } 
 import DocsNavbarComponent from "@/app/components/DocsNavbarComponent";
 import DocsSidebarComponent from "@/app/components/DocsSidebarComponent";
 import DocTableOfContentComponent from "@/app/components/DocTableOfContentComponent";
+import { CopyButton } from "@/app/components/CopyButton";
 
 export const metadata: Metadata = {
   title: "FAQ - Preguntas frecuentes | Databasus",
@@ -40,6 +41,15 @@ export const metadata: Metadata = {
 };
 
 export default function FAQPage() {
+  const startupRecoveryCommand = `docker run -d \\
+  --name databasus \\
+  -p 4005:4005 \\
+  -v ./databasus-data:/databasus-data \\
+  -e RECOVERY_DUMP_PATH=/databasus-data/recovery/backup.dbbackup \\
+  -e RECOVERY_MASTER_KEY_PATH=/databasus-data/recovery/master.key \\
+  --restart unless-stopped \\
+  databasus/databasus:<version>`;
+
   return (
     <>
       {/* JSON-LD Structured Data */}
@@ -87,7 +97,7 @@ export default function FAQPage() {
                 name: "¿Cómo respaldar el propio Databasus?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Para respaldar Databasus, vaya a /opt/databasus (o la carpeta donde lo instaló) y entre en el directorio databasus-data. Necesita respaldar el archivo secret.key (clave de cifrado de las credenciales) y la carpeta /pgdata (base de datos interna con las configuraciones y los metadatos de las copias). Hay dos escenarios de recuperación: 1) puede recuperar las copias de las bases de datos usando solo secret.key sin la interfaz de Databasus (vea la guía de recuperación manual), 2) para restaurar la interfaz de Databasus con todas las configuraciones y el historial, necesita tanto secret.key como la carpeta /pgdata. Para restaurar, recree esa estructura de carpetas en otro servidor.",
+                  text: "Databasus está pensado para poder recuperarse aunque se pierda o se corrompa su propio servidor. Puede hacer copias de seguridad de su propia base de datos interna: cuentas, ajustes, las credenciales cifradas de bases de datos, almacenamientos y canales de notificación, programaciones y el catálogo de copias. Actívelo en Databasus settings → Databasus backups eligiendo uno o varios almacenamientos existentes; por defecto, la copia de seguridad de Databasus se ejecuta cada hora y se conserva 30 días. El archivo se cifra con la clave maestra y no contiene ni la clave ni los archivos de copia de sus bases de datos, así que guarde la clave maestra por separado: Databasus le pide que la descargue, y también está en . /databasus-data/secret. key en el host. La recuperación necesita el archivo de copia, su clave maestra y exactamente la misma versión de Databasus, incluido el parche. Puede poner ambos archivos en el directorio de datos montado y arrancar Databasus con RECOVERY_DUMP_PATH y RECOVERY_MASTER_KEY_PATH en un servidor sin cuentas ni ajustes cambiados, o bien subir el archivo y pegar la clave en Databasus settings → Databasus backups, lo que reemplaza la instalación actual.",
                 },
               },
               {
@@ -556,77 +566,120 @@ export default function FAQPage() {
               </h2>
 
               <p>
-                Si quiere respaldar su instancia de Databasus (incluidas todas
-                las configuraciones, bases de datos y credenciales), siga estos
-                pasos:
+                Databasus está pensado para poder recuperarse aunque se pierda o se corrompa su propio servidor.
+                Puede hacer copias de seguridad de su propia base de
+                datos interna: cuentas, ajustes, las credenciales cifradas de
+                sus bases de datos, almacenamientos y canales de notificación,
+                programaciones y el catálogo de copias. Actívelo en{" "}
+                <strong>Databasus settings → Databasus backups</strong>{" "}
+                eligiendo uno o varios almacenamientos existentes. Por defecto,
+                la copia de seguridad de Databasus se ejecuta cada hora y se
+                conserva 30 días. Cada archivo se cifra con la clave maestra.
               </p>
 
-              <ol>
-                <li>
-                  Vaya a <code>/opt/databasus</code> (o la carpeta donde instaló
-                  Databasus)
-                </li>
-                <li>
-                  Entre en el directorio <code>databasus-data</code>
-                </li>
-              </ol>
-
               <p>
-                <strong>Necesita respaldar:</strong>
+                Una copia de seguridad de Databasus no contiene la clave maestra
+                ni los archivos de copia de sus bases de datos, que siguen en
+                sus propios almacenamientos.{" "}
+                <strong>Guarde la clave maestra por separado.</strong> Databasus
+                le pide que la descargue en la primera visita, y la clave es
+                también el archivo <code>./databasus-data/secret.key</code> del
+                host.
               </p>
 
               <ul>
                 <li>
-                  <code>secret.key</code> — clave de cifrado de sus credenciales
+                  <strong>Elija un almacenamiento remoto.</strong> Un
+                  almacenamiento local en el mismo servidor se pierde junto con
+                  ese servidor.
                 </li>
                 <li>
-                  <code>/pgdata</code> — base de datos PostgreSQL interna de
-                  Databasus que contiene todas sus configuraciones y los
-                  metadatos de las copias
-                </li>
-              </ul>
-
-              <p>
-                Si usa almacenamiento local para las copias, también puede
-                respaldar la carpeta <code>backups</code>.
-              </p>
-
-              <p>
-                <strong>Importante:</strong> hay dos escenarios de recuperación
-                distintos:
-              </p>
-
-              <ul>
-                <li>
-                  <strong>
-                    Recuperar copias sin la interfaz de Databasus:
-                  </strong>{" "}
-                  puede recuperar las copias de sus bases de datos usando solo
-                  el archivo <code>secret.key</code>, sin necesitar Databasus ni
-                  sus datos internos. Vea la{" "}
-                  <a href="/es/how-to-recover-without-databasus">
-                    guía de recuperación manual
+                  <strong>Alertas.</strong> Databasus muestra un aviso cuando
+                  una copia de seguridad de Databasus falla, se guarda solo en
+                  algunos almacenamientos, se detiene o se retrasa, es decir,
+                  cuando ninguna copia se ha completado 15 minutos después de
+                  una ejecución programada. Las mismas alertas se envían por
+                  correo a través del{" "}
+                  <a href={`${getLocalizedHref("es", "advanced-config")}#email-smtp`}>
+                  servidor de correo de la instancia
                   </a>{" "}
-                  para instrucciones detalladas.
+                  si está configurado.
+                </li>
+              </ul>
+
+              <h3 id="recover-databasus">
+                ¿Cómo recuperar Databasus desde una copia de seguridad de
+                Databasus?
+              </h3>
+
+              <p>
+                Necesita dos cosas: un archivo de copia de seguridad de
+                Databasus (<code>.dbbackup</code>), descargado del historial o
+                tomado directamente del almacenamiento, y la clave maestra de la
+                instalación que lo creó.{" "}
+                <strong>
+                La recuperación solo funciona en exactamente la misma versión de
+                Databasus, incluido el parche.
+                </strong>{" "}
+                Con cualquier otra versión, Databasus se niega e indica qué
+                versión arrancar: recupere en esa versión y después actualice
+                como de costumbre.
+              </p>
+
+              <p>
+                <strong>Opción 1: archivos al arrancar.</strong> Úsela en un
+                servidor nuevo. Ponga ambos archivos en el directorio de datos
+                montado, por ejemplo <code>./databasus-data/recovery/</code>, y
+                arranque la imagen de la versión que creó la copia con dos
+                ajustes adicionales. Sustituya <code>&lt;version&gt;</code> por
+                esa versión:
+              </p>
+
+              <div className="relative my-6">
+                <pre className="overflow-x-auto rounded-lg bg-gray-900 p-4 text-sm text-gray-100">
+                  <code>{startupRecoveryCommand}</code>
+                </pre>
+                <div className="absolute right-2 top-2">
+                  <CopyButton lang="es" text={startupRecoveryCommand} />
+                </div>
+              </div>
+
+              <ul>
+                <li>
+                  Si ya arrancó Databasus normalmente en este servidor pero no
+                  creó ninguna cuenta ni cambió ningún ajuste, no hace falta
+                  borrar sus datos. Deténgalo, añada los dos archivos y los dos
+                  ajustes y vuelva a arrancarlo.
                 </li>
                 <li>
-                  <strong>
-                    Restaurar la interfaz de Databasus y todas las
-                    configuraciones:
-                  </strong>{" "}
-                  si quiere restaurar la interfaz de Databasus con todas sus
-                  configuraciones, copias programadas e historial, necesita
-                  respaldar tanto <code>secret.key</code> como la carpeta{" "}
-                  <code>/pgdata</code> (que contiene los metadatos de cifrado y
-                  todas las configuraciones de Databasus).
+                  La recuperación al arrancar nunca reemplaza una instalación
+                  que tenga una cuenta (aunque sea solo una), otros datos de
+                  usuario o ajustes cambiados. En ese caso Databasus no arranca.
+                  En los registros indica que la recuperación no se ejecutó, por
+                  qué, que la instalación actual no ha cambiado y qué hacer a
+                  continuación. Para arrancar la instalación actual, quite los
+                  dos ajustes o use en su lugar la subida desde la interfaz.
+                </li>
+                <li>
+                  Tras una recuperación correcta, los archivos y los ajustes
+                  pueden quedarse donde están. Databasus recuerda el SHA-256 del
+                  archivo aplicado, así que los reinicios y las actualizaciones
+                  posteriores lo omiten y lo indican en los registros, aunque el
+                  archivo se haya renombrado. Un archivo distinto en la misma
+                  ruta no se omite.
                 </li>
               </ul>
 
               <p>
-                <strong>Para restaurar Databasus en otro servidor:</strong>{" "}
-                simplemente recree la estructura de la carpeta{" "}
-                <code>databasus-data</code> con los archivos respaldados y
-                arranque Databasus.
+                <strong>Opción 2: subida desde la interfaz.</strong> Úsela en
+                una instalación que ya está en marcha. En una instalación nueva,
+                regístrese primero. Abra{" "}
+                <strong>Databasus settings → Databasus backups</strong>, elija
+                el archivo de copia y pegue o escriba la clave maestra de la
+                instalación que lo creó.
+                Se reemplaza todo lo que hay en la instalación actual:
+                cuentas, ajustes y el catálogo de copias. Después, inicie
+                sesión con una cuenta de la copia.
               </p>
 
               <h2 id="oss-programs">

@@ -3,6 +3,7 @@ import { OG_LOCALES, getLanguageAlternates, getLocalizedHref, getLocalizedUrl } 
 import DocsNavbarComponent from "@/app/components/DocsNavbarComponent";
 import DocsSidebarComponent from "@/app/components/DocsSidebarComponent";
 import DocTableOfContentComponent from "@/app/components/DocTableOfContentComponent";
+import { CopyButton } from "@/app/components/CopyButton";
 
 export const metadata: Metadata = {
   title: "FAQ - Questions fréquentes | Databasus",
@@ -40,6 +41,15 @@ export const metadata: Metadata = {
 };
 
 export default function FAQPage() {
+  const startupRecoveryCommand = `docker run -d \\
+  --name databasus \\
+  -p 4005:4005 \\
+  -v ./databasus-data:/databasus-data \\
+  -e RECOVERY_DUMP_PATH=/databasus-data/recovery/backup.dbbackup \\
+  -e RECOVERY_MASTER_KEY_PATH=/databasus-data/recovery/master.key \\
+  --restart unless-stopped \\
+  databasus/databasus:<version>`;
+
   return (
     <>
       {/* JSON-LD Structured Data */}
@@ -87,7 +97,7 @@ export default function FAQPage() {
                 name: "Comment sauvegarder Databasus lui-même ?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Pour sauvegarder Databasus, allez dans /opt/databasus (ou le dossier où vous l'avez installé), puis dans le répertoire databasus-data. Vous devez sauvegarder le fichier secret.key (clé de chiffrement des identifiants) et le dossier /pgdata (base interne contenant les configurations et les métadonnées des backups). Il y a deux scénarios de récupération : 1) vous pouvez récupérer les backups de bases avec le seul secret.key, sans l'interface Databasus (voir le guide de récupération manuelle) ; 2) pour restaurer l'interface Databasus avec toutes les configurations et l'historique, il faut à la fois secret.key et le dossier /pgdata. Pour restaurer, recréez cette structure de dossiers sur un autre serveur.",
+                  text: "Databasus est conçu pour rester récupérable même si son propre serveur est perdu ou corrompu. Il peut sauvegarder sa propre base interne : comptes, paramètres, identifiants chiffrés des bases de données, stockages et canaux de notification, planifications et catalogue des sauvegardes. Activez cette fonction dans Databasus settings → Databasus backups en sélectionnant un ou plusieurs stockages existants ; par défaut, une sauvegarde Databasus est créée toutes les heures et conservée 30 jours. Le fichier est chiffré avec la clé maîtresse et ne contient ni cette clé ni les fichiers de sauvegarde de vos bases : conservez donc la clé maîtresse séparément. Databasus vous demande de la télécharger, et elle correspond aussi au fichier . /databasus-data/secret. key sur l'hôte. La restauration exige le fichier de sauvegarde, sa clé maîtresse et exactement la même version de Databasus, patch compris. Soit vous placez les deux fichiers dans le répertoire de données monté et démarrez Databasus avec RECOVERY_DUMP_PATH et RECOVERY_MASTER_KEY_PATH sur un serveur sans comptes ni paramètres modifiés, soit vous importez le fichier et collez la clé dans Databasus settings → Databasus backups, ce qui remplace l'installation actuelle.",
                 },
               },
               {
@@ -566,78 +576,123 @@ export default function FAQPage() {
               </h2>
 
               <p>
-                Si vous voulez sauvegarder votre instance Databasus (avec toutes
-                les configurations, bases de données et identifiants), suivez
-                ces étapes :
+                Databasus est conçu pour rester récupérable même si son propre serveur est perdu ou corrompu.
+                Il peut sauvegarder sa propre base interne : comptes,
+                paramètres, identifiants chiffrés de vos bases de données,
+                stockages et canaux de notification, planifications et catalogue
+                des sauvegardes. Activez cette fonction dans{" "}
+                <strong>Databasus settings → Databasus backups</strong> en
+                sélectionnant un ou plusieurs stockages existants. Par défaut,
+                une sauvegarde Databasus est créée toutes les heures et
+                conservée 30 jours. Chaque fichier est chiffré avec la clé
+                maîtresse.
               </p>
 
-              <ol>
-                <li>
-                  Allez dans <code>/opt/databasus</code> (ou le dossier où vous
-                  avez installé Databasus)
-                </li>
-                <li>
-                  Rendez-vous dans le répertoire <code>databasus-data</code>
-                </li>
-              </ol>
-
               <p>
-                <strong>Vous devez sauvegarder :</strong>
+                Une sauvegarde Databasus ne contient ni la clé maîtresse ni les
+                fichiers de sauvegarde de vos bases, qui restent dans leurs
+                propres stockages. <strong>Conservez la clé maîtresse
+                séparément.</strong>{" "}
+                Databasus vous demande de la télécharger lors de la première
+                visite, et la clé correspond aussi au fichier{" "}
+                <code>./databasus-data/secret.key</code> sur l&apos;hôte.
               </p>
 
               <ul>
                 <li>
-                  <code>secret.key</code> : la clé de chiffrement de vos
-                  identifiants
+                  <strong>Choisissez un stockage distant.</strong> Un stockage
+                  local sur le même serveur disparaît avec ce serveur.
                 </li>
                 <li>
-                  <code>/pgdata</code> : la base PostgreSQL interne de Databasus
-                  qui contient toutes vos configurations et les métadonnées des
-                  backups
-                </li>
-              </ul>
-
-              <p>
-                Si vous utilisez le stockage local pour vos backups, vous pouvez
-                aussi sauvegarder le dossier <code>backups</code>.
-              </p>
-
-              <p>
-                <strong>Important :</strong> il existe deux scénarios de
-                récupération différents :
-              </p>
-
-              <ul>
-                <li>
-                  <strong>
-                    Récupérer les backups sans l&apos;interface Databasus :
-                  </strong>{" "}
-                  vous pouvez récupérer vos backups de bases avec le seul
-                  fichier <code>secret.key</code>, sans avoir besoin de
-                  Databasus ni de ses données internes. Consultez le{" "}
-                  <a href="/fr/how-to-recover-without-databasus">
-                    guide de récupération manuelle
+                  <strong>Alertes.</strong> Databasus affiche un avertissement
+                  lorsqu&apos;une sauvegarde Databasus échoue, n&apos;est
+                  enregistrée que dans une partie des stockages, s&apos;arrête
+                  ou prend du retard, c&apos;est-à-dire qu&apos;aucune copie
+                  n&apos;a réussi 15 minutes après une exécution planifiée. Les
+                  mêmes alertes partent par e-mail via le{" "}
+                  <a href={`${getLocalizedHref("fr", "advanced-config")}#email-smtp`}>
+                  serveur de messagerie de l&apos;instance
                   </a>{" "}
-                  pour des instructions détaillées.
+                  s&apos;il est configuré.
+                </li>
+              </ul>
+
+              <h3 id="recover-databasus">
+                Comment restaurer Databasus depuis une sauvegarde Databasus ?
+              </h3>
+
+              <p>
+                Il vous faut deux choses : un fichier de sauvegarde Databasus (
+                <code>.dbbackup</code>), téléchargé depuis l&apos;historique ou
+                récupéré directement dans le stockage, et la clé maîtresse de
+                l&apos;installation qui l&apos;a créé.{" "}
+                <strong>
+                La restauration ne fonctionne que sur exactement la même version
+                de Databasus, patch compris.
+                </strong>{" "}
+                Pour toute autre version, Databasus refuse et indique la version
+                à démarrer : restaurez sur cette version, puis mettez à niveau
+                comme d&apos;habitude.
+              </p>
+
+              <p>
+                <strong>Option 1 : fichiers au démarrage.</strong> Elle convient
+                à un nouveau serveur. Placez les deux fichiers dans le
+                répertoire de données monté, par exemple{" "}
+                <code>./databasus-data/recovery/</code>, et démarrez
+                l&apos;image de la version qui a créé la sauvegarde avec deux
+                paramètres supplémentaires.
+                Remplacez <code>&lt;version&gt;</code> par cette version :
+              </p>
+
+              <div className="relative my-6">
+                <pre className="overflow-x-auto rounded-lg bg-gray-900 p-4 text-sm text-gray-100">
+                  <code>{startupRecoveryCommand}</code>
+                </pre>
+                <div className="absolute right-2 top-2">
+                  <CopyButton lang="fr" text={startupRecoveryCommand} />
+                </div>
+              </div>
+
+              <ul>
+                <li>
+                  Si vous avez déjà démarré Databasus normalement sur ce serveur
+                  sans créer de compte ni modifier de paramètres, inutile de
+                  supprimer ses données. Arrêtez-le, ajoutez les deux fichiers
+                  et les deux paramètres, puis redémarrez-le.
                 </li>
                 <li>
-                  <strong>
-                    Restaurer l&apos;interface Databasus et toutes les
-                    configurations :
-                  </strong>{" "}
-                  pour restaurer l&apos;interface Databasus avec toutes vos
-                  configurations, sauvegardes planifiées et historique, vous
-                  devez sauvegarder à la fois <code>secret.key</code> et le
-                  dossier <code>/pgdata</code> (qui contient les métadonnées de
-                  chiffrement et toutes les configurations Databasus).
+                  La restauration au démarrage ne remplace jamais une
+                  installation qui a un compte, même un seul, d&apos;autres
+                  données utilisateur ou des paramètres modifiés. Dans ce cas,
+                  Databasus ne démarre pas. Son journal indique que la
+                  restauration n&apos;a pas eu lieu, pourquoi, que
+                  l&apos;installation actuelle est intacte et quoi faire
+                  ensuite. Pour démarrer l&apos;installation actuelle, retirez
+                  les deux paramètres, ou utilisez plutôt l&apos;import dans
+                  l&apos;interface.
+                </li>
+                <li>
+                  Après une restauration réussie, les fichiers et les paramètres
+                  peuvent rester en place. Databasus mémorise le SHA-256 du
+                  fichier appliqué : les redémarrages et les mises à niveau
+                  suivantes l&apos;ignorent et le signalent dans le journal,
+                  même si le fichier a été renommé. Un autre fichier au même
+                  chemin n&apos;est pas ignoré.
                 </li>
               </ul>
 
               <p>
-                <strong>Pour restaurer Databasus sur un autre serveur :</strong>{" "}
-                recréez simplement la structure du dossier{" "}
-                <code>databasus-data</code> avec les fichiers sauvegardés et
-                démarrez Databasus.
+                <strong>Option 2 : import dans l&apos;interface.</strong> Elle
+                convient à une installation déjà en service. Sur une nouvelle
+                installation, inscrivez-vous d&apos;abord. Ouvrez{" "}
+                <strong>Databasus settings → Databasus backups</strong>,
+                choisissez le fichier de sauvegarde, puis collez ou saisissez la
+                clé maîtresse de l&apos;installation qui l&apos;a créé.
+               
+                Tout le contenu de l&apos;installation actuelle est remplacé :
+                comptes, paramètres et catalogue des sauvegardes.
+                Connectez-vous ensuite avec un compte issu de la sauvegarde.
               </p>
 
               <h2 id="oss-programs">

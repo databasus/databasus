@@ -3,6 +3,7 @@ import { getLanguageAlternates, getLocalizedHref } from "@/app/i18n";
 import DocsNavbarComponent from "@/app/components/DocsNavbarComponent";
 import DocsSidebarComponent from "@/app/components/DocsSidebarComponent";
 import DocTableOfContentComponent from "@/app/components/DocTableOfContentComponent";
+import { CopyButton } from "@/app/components/CopyButton";
 
 export const metadata: Metadata = {
   title: "FAQ - Frequently Asked Questions | Databasus",
@@ -40,6 +41,15 @@ export const metadata: Metadata = {
 };
 
 export default function FAQPage() {
+  const startupRecoveryCommand = `docker run -d \\
+  --name databasus \\
+  -p 4005:4005 \\
+  -v ./databasus-data:/databasus-data \\
+  -e RECOVERY_DUMP_PATH=/databasus-data/recovery/backup.dbbackup \\
+  -e RECOVERY_MASTER_KEY_PATH=/databasus-data/recovery/master.key \\
+  --restart unless-stopped \\
+  databasus/databasus:<version>`;
+
   return (
     <>
       {/* JSON-LD Structured Data */}
@@ -87,7 +97,7 @@ export default function FAQPage() {
                 name: "How to backup Databasus itself?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "To backup Databasus, go to /opt/databasus (or the folder where you installed it), then navigate to the databasus-data directory. You need to backup the secret.key file (encryption key for credentials) and the /pgdata folder (internal database containing configurations and backup metadata). There are two recovery scenarios: 1) You can recover database backups using only secret.key without Databasus UI (see manual recovery guide), 2) To restore Databasus UI with all configurations and history, you need both secret.key and /pgdata folder. To restore, recreate this folder structure on another server.",
+                  text: "Databasus is built to stay recoverable even if its own server is lost or corrupted. It can back up its own internal database: accounts, settings, the encrypted credentials of databases, storages and notifiers, schedules and the backup catalog. Turn it on in Databasus settings → Databasus backups by selecting one or more existing storages; by default a Databasus backup runs every hour and is kept for 30 days. The file is encrypted with the master key and contains neither the key nor the backup files of your databases, so save the master key separately: Databasus asks you to download it, and it is also . /databasus-data/secret. key on the host. Recovery needs the backup file, its master key and exactly the same Databasus version, patch included. Either put both files into the mounted data directory and start Databasus with RECOVERY_DUMP_PATH and RECOVERY_MASTER_KEY_PATH on a server without accounts or changed settings, or upload the file and paste the key in Databasus settings → Databasus backups, which replaces the current installation.",
                 },
               },
               {
@@ -524,70 +534,112 @@ export default function FAQPage() {
               <h2 id="backup-databasus">How to backup Databasus itself?</h2>
 
               <p>
-                If you want to backup your Databasus instance (including all
-                configurations, databases and credentials), follow these steps:
+                Databasus is built to stay recoverable even if its own server is lost or corrupted.
+                It can back up its own internal database: accounts,
+                settings, the encrypted credentials of your databases, storages
+                and notifiers, schedules and the backup catalog. Turn it on in{" "}
+                <strong>Databasus settings → Databasus backups</strong> by
+                selecting one or more existing storages. By default a Databasus
+                backup runs every hour and is kept for 30 days. Each file is
+                encrypted with the master key.
               </p>
 
-              <ol>
-                <li>
-                  Go to <code>/opt/databasus</code> (or the folder where you
-                  installed Databasus)
-                </li>
-                <li>
-                  Navigate to the <code>databasus-data</code> directory
-                </li>
-              </ol>
-
               <p>
-                <strong>You need to backup:</strong>
+                A Databasus backup does not contain the master key or the
+                backup files of your databases, which stay in their own
+                storages. <strong>Save the master key separately.</strong>{" "}
+                Databasus asks you to download it on the first visit,
+                and the key is also
+                the <code>./databasus-data/secret.key</code>{" "}
+                file on the host.
               </p>
 
               <ul>
                 <li>
-                  <code>secret.key</code> — encryption key for your credentials
+                  <strong>Choose a remote storage.</strong> A local storage on
+                  the same server is lost together with that server.
                 </li>
                 <li>
-                  <code>/pgdata</code> — internal PostgreSQL database of
-                  Databasus that contains all your configurations and backup
-                  metadata
-                </li>
-              </ul>
-
-              <p>
-                If you use local storage for backups, you can also backup the{" "}
-                <code>backups</code> folder.
-              </p>
-
-              <p>
-                <strong>Important:</strong> There are two different scenarios
-                for recovery:
-              </p>
-
-              <ul>
-                <li>
-                  <strong>Recover backups without Databasus UI:</strong> You can
-                  recover your database backups using only the{" "}
-                  <code>secret.key</code> file, without needing Databasus or its
-                  internal data. See the{" "}
-                  <a href="/how-to-recover-without-databasus">
-                    manual recovery guide
+                  <strong>Alerts.</strong> Databasus shows a notice when a
+                  Databasus backup fails, saves to only some storages, stops or
+                  is overdue, meaning no copy succeeded 15 minutes after a
+                  scheduled run. The same alerts are emailed through the{" "}
+                  <a href={`${getLocalizedHref("en", "advanced-config")}#email-smtp`}>
+                  instance mail server
                   </a>{" "}
-                  for detailed instructions.
+                  when it is configured.
+                </li>
+              </ul>
+
+              <h3 id="recover-databasus">
+                How to recover Databasus from a Databasus backup?
+              </h3>
+
+              <p>
+                You need two things: a Databasus backup file with the{" "}
+                <code>.dbbackup</code> extension, downloaded from the history or
+                taken directly from the storage, and the master key of the
+                installation that made it.{" "}
+                <strong>
+                Recovery works only on exactly the same Databasus version, patch
+                included.
+                </strong>{" "}
+                For any other version Databasus refuses and names the version to
+                start: recover on that version, then upgrade as usual.
+              </p>
+
+              <p>
+                <strong>Option 1: files at startup.</strong> Use it for a new
+                server. Put both files into the mounted data directory, for
+                example <code>./databasus-data/recovery/</code>, and start the
+                image of the version that made the backup with two extra
+                settings. Replace <code>&lt;version&gt;</code> with that
+                version:
+              </p>
+
+              <div className="relative my-6">
+                <pre className="overflow-x-auto rounded-lg bg-gray-900 p-4 text-sm text-gray-100">
+                  <code>{startupRecoveryCommand}</code>
+                </pre>
+                <div className="absolute right-2 top-2">
+                  <CopyButton text={startupRecoveryCommand} />
+                </div>
+              </div>
+
+              <ul>
+                <li>
+                  If you already started Databasus normally on this server but
+                  created no account and changed no settings, you do not have to
+                  delete its data. Stop it, add the two files and the two
+                  settings, then start it again.
                 </li>
                 <li>
-                  <strong>Restore Databasus UI and all configurations:</strong>{" "}
-                  If you want to restore the Databasus interface with all your
-                  configurations, scheduled backups and backup history, you need
-                  to backup both <code>secret.key</code> and the{" "}
-                  <code>/pgdata</code> folder (which contains the encryption
-                  metadata and all Databasus configurations).
+                  Startup recovery never replaces an installation with an
+                  account, even a single one, with other user data or with
+                  changed settings. In that case Databasus does not start. Its
+                  log says that recovery did not run, why, that the current
+                  installation is unchanged and what to do next. To start the
+                  current installation, remove the two settings, or use the
+                  upload in the interface instead.
+                </li>
+                <li>
+                  After a successful recovery, the files and settings may stay.
+                  Databasus remembers the SHA-256 of the applied file, so
+                  restarts and later upgrades skip it and say so in the log,
+                  even if the file was renamed. A different file at the same
+                  path is not skipped.
                 </li>
               </ul>
 
               <p>
-                <strong>To restore Databasus on another server:</strong> simply
-                recreate the <code>databasus-data</code> folder structure with
-                the backed up files and start Databasus.
+                <strong>Option 2: upload in the interface.</strong> Use it on an
+                installation that is already running. On a new installation,
+                first sign up. Open <strong>Databasus settings → Databasus
+                backups</strong>, choose the backup file and paste or type the
+                master key of the installation that made it.
+                Everything in the current installation is replaced: accounts,
+                settings and the backup catalog. Afterwards, sign in with an
+                account from the backup.
               </p>
 
               <h2 id="oss-programs">

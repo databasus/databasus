@@ -288,7 +288,12 @@ docker exec -it databasus ./main --create-user --email="ops@example.com" --passw
 
 ### 💾 Sauvegarder Databasus lui-même
 
-Après l'installation, il est aussi recommandé de <a href="https://databasus.com/fr/faq/#backup-databasus">sauvegarder Databasus lui-même</a> ou, au minimum, de copier la clé secrète utilisée pour le chiffrement (30 secondes suffisent). Vous pourrez ainsi restaurer vos sauvegardes chiffrées si vous perdez l'accès au serveur qui héberge Databasus ou s'il est corrompu.
+Databasus est conçu pour rester récupérable même si son propre serveur est perdu ou corrompu. Il sait se sauvegarder lui-même et vous guide pour mettre la clé à l'abri :
+
+- **Activez les sauvegardes Databasus** dans **Databasus settings → Databasus backups**. Databasus enregistre alors toutes les heures une copie chiffrée de sa base interne (comptes, paramètres, identifiants et catalogue des sauvegardes) dans les stockages que vous sélectionnez. Préférez un stockage distant à un disque local sur le même serveur. Tant que vous ne les activez pas, Databasus affiche un rappel dès que la première base de données ou le premier stockage est ajouté.
+- **Conservez la clé maîtresse séparément.** Databasus vous demande de la télécharger lors de votre première visite, et elle correspond aussi au fichier `./databasus-data/secret.key`. Sans elle, ni les sauvegardes Databasus ni les sauvegardes de vos bases ne peuvent être déchiffrées.
+
+Voir [comment sauvegarder et restaurer Databasus](https://databasus.com/fr/faq/#backup-databasus).
 
 ---
 

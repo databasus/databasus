@@ -10,8 +10,18 @@ import {
 
 export const dynamic = "force-static";
 
+// The manual recovery guide is outdated: Databasus backups replace it. Its pages stay reachable for
+// existing links but are not offered to search engines.
+const PATHS_OUTSIDE_SITEMAP = ["how-to-recover-without-databasus"] as const;
+
+type SitemapPath = Exclude<TranslatedPath, (typeof PATHS_OUTSIDE_SITEMAP)[number]>;
+
+function isSitemapPath(path: TranslatedPath): path is SitemapPath {
+  return !(PATHS_OUTSIDE_SITEMAP as readonly string[]).includes(path);
+}
+
 const CORE_PAGE_SETTINGS: Record<
-  TranslatedPath,
+  SitemapPath,
   { priority: number; changeFrequency: "weekly" | "monthly" }
 > = {
   "": { priority: 1.0, changeFrequency: "weekly" },
@@ -35,10 +45,6 @@ const CORE_PAGE_SETTINGS: Record<
   "databasus-vs-wal-g": { priority: 0.8, changeFrequency: "monthly" },
   "mysql-backup": { priority: 0.9, changeFrequency: "weekly" },
   "mongodb-backup": { priority: 0.9, changeFrequency: "weekly" },
-  "how-to-recover-without-databasus": {
-    priority: 0.9,
-    changeFrequency: "monthly",
-  },
   "restore-verification": { priority: 0.9, changeFrequency: "monthly" },
 };
 
@@ -53,7 +59,7 @@ const UNTRANSLATED_PAGE_SETTINGS: Record<
 export default function sitemap(): MetadataRoute.Sitemap {
   const currentDate = new Date().toISOString();
 
-  const coreEntries = TRANSLATED_PATHS.flatMap((path) => {
+  const coreEntries = TRANSLATED_PATHS.filter(isSitemapPath).flatMap((path) => {
     const { priority, changeFrequency } = CORE_PAGE_SETTINGS[path];
     const languages = getLanguageAlternates(path);
     return (["en", ...LOCALES] as const).map((locale) => ({

@@ -288,7 +288,12 @@ docker exec -it databasus ./main --create-user --email="ops@example.com" --passw
 
 ### 💾 给 Databasus 自身做备份
 
-装好之后，建议再<a href="https://databasus.com/zh/faq/#backup-databasus">给 Databasus 自身做一次备份</a>，至少也要把用于加密的密钥复制一份（只要 30 秒）。这样即使装有 Databasus 的服务器丢失访问权限或者损坏，你依然能从加密备份中恢复。
+Databasus 的设计目标是：即使自身所在的服务器丢失或损坏，也能恢复。它可以给自己做备份，并引导你妥善保管密钥：
+
+- **开启 Databasus 备份**：在 **Databasus settings → Databasus backups** 中设置。之后 Databasus 每小时会把内部数据库（账号、设置、凭据和备份清单）的加密副本保存到你选择的存储中。与其用同一台服务器上的本地磁盘，不如选远程存储。在你开启之前，一旦添加了第一个数据库或存储，Databasus 就会显示提醒。
+- **单独保存主密钥。** Databasus 会在你第一次访问时请你下载它，它也就是 `./databasus-data/secret.key`。没有它，Databasus 备份和你的数据库备份都无法解密。
+
+参见[如何备份和恢复 Databasus](https://databasus.com/zh/faq/#backup-databasus)。
 
 ---
 

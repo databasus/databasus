@@ -288,7 +288,12 @@ docker exec -it databasus ./main --create-user --email="ops@example.com" --passw
 
 ### 💾 Backuping Databasus itself
 
-After installation, it is also recommended to <a href="https://databasus.com/faq#backup-databasus">backup your Databasus itself</a> or, at least, to copy secret key used for encryption (30 seconds is needed). So you are able to restore from your encrypted backups if you lose access to the server with Databasus or it is corrupted.
+Databasus is built to stay recoverable even if its own server is lost or corrupted. It can back itself up and guides you to keep the key safe:
+
+- **Turn on Databasus backups** in **Databasus settings → Databasus backups**. Databasus then saves an encrypted copy of its internal database (accounts, settings, credentials and the backup catalog) every hour to the storages you select. Prefer a remote storage over a local disk on the same server. Until you turn them on, Databasus shows a reminder once the first database or storage is added.
+- **Save the master key separately.** Databasus asks you to download it on your first visit, and it is also `./databasus-data/secret.key`. Without it, neither Databasus backups nor your database backups can be decrypted.
+
+See [how to back up and recover Databasus](https://databasus.com/faq/#backup-databasus).
 
 ---
 

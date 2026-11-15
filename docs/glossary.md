@@ -28,6 +28,7 @@ This is the project's common language. Shared concepts have one term in document
 | Workspace content | The databases, storages and notifiers of a workspace and everything attached to them: backup configs, backups, restores, healthchecks and verification configs. |
 | Workspace action | One thing a member can be allowed to do in a workspace, such as viewing it or editing its content. Each workspace role allows a fixed set of actions. |
 | Instance admin | A user with the global admin role, who manages users and instance settings. |
+| Root admin | The user persistently designated as the instance's bootstrap administrator. Only root admin manages Databasus backups, exports the master key and recovers or activates the instance. The global `ADMIN` role alone does not make an instance admin root admin; root admin is an active instance admin who also carries the designation. |
 | Global role | A user's role on the whole instance: `ADMIN` makes the user an instance admin, and `MEMBER` grants nothing beyond the user's workspace roles. The word "member" alone means a member of a workspace. |
 | User | A person with an account on the instance: email, name, global role and status (`INVITED`, `ACTIVE` or `INACTIVE`). |
 | Session | A signed-in user's right to call the API, carried as a token the sign-in returns once. A session carries the user's password version; every successful password replacement ends all earlier sessions, independently of time. |
@@ -76,7 +77,7 @@ This is the project's common language. Shared concepts have one term in document
 | Timeline | PostgreSQL's history branch number, which changes when a replica is promoted. |
 | Restore set | The files needed to restore a database to a moment: a full backup, its incrementals and the WAL up to the target. |
 | Recovery script | The script Databasus serves that rebuilds a cluster from a downloaded restore set. |
-| Restore | Putting a backup's data into a target database. |
+| Restore | Putting a backup's data into a target database. Recovering Databasus's own state from a Databasus backup is a Databasus recovery, not a restore. |
 | Retention | The rule that decides which backups are kept, including the grandfather-father-son (GFS) policy. |
 | GFS candidate | The newest successful eligible backup protected for the current week, month or year of an enabled GFS level, in addition to its completed-period slots. Only a newer success in that period replaces it. |
 | GFS representative | The newest successful eligible backup selected for a calendar period. A completed weekly, monthly or yearly representative occupies a completed-period slot; the protected selection for a current long period is a GFS candidate. |
@@ -92,7 +93,15 @@ This is the project's common language. Shared concepts have one term in document
 | Healthcheck | A scheduled check that a user's database answers. |
 | Healthcheck config | The settings of a database that decide whether and how often it is checked, how many failed checks make it unavailable, whether status changes notify and how long attempts are kept. |
 | Healthcheck attempt | The recorded result of one availability check of a database. |
-| Master key | The secret in the data volume that encrypts stored secrets and backup files. |
+| Master key | The secret in the data volume that encrypts stored secrets, backup files and Databasus backups. Root admin saves this same key outside the server, because a Databasus backup and the user-database backup files are useless without it. Exporting it hands out the existing key and creates no second recovery secret. |
+| Databasus backup | An encrypted snapshot of the internal database: accounts, settings, encrypted credentials and the backup catalog. It differs from a backup of a user's database. Its file contains neither the master key nor the backup files of user databases. |
+| Databasus backup destination | A current selection of one existing workspace storage for Databasus backups. It owns no provider settings or credentials, and a selected storage cannot be deleted. |
+| Databasus backup copy | One recorded delivery of one Databasus backup to one storage. A historical copy does not imply that the storage is still a destination. |
+| Databasus backup health | Whether the destinations have sufficiently fresh successful copies. It differs from instance health and from healthchecks of user databases. |
+| Databasus backup incident | One unresolved protection problem, such as a failed, partially saved, overdue or stopped Databasus backup, with the state of its system-mail delivery and reminders. It differs from notifications about user databases, which go through workspace notifiers. |
+| Databasus recovery | An operation that replaces the instance's internal state and master key with a Databasus backup and its separately saved key, then leaves the instance in a recovery pause. It starts either from mounted files at startup or from an archive file uploaded by root admin. It restores no user database and copies no backup files. |
+| Recovery pause | A durable restriction after a Databasus recovery: no background work, notification or remote write runs until root admin confirms that the old instance is stopped and activates the recovered one. |
+| Schema identity | The digest of a release's migration bundle together with the migration versions applied in a database. A Databasus backup records it, and recovery compares it with the running release. |
 | Download token | A single-use token that lets the browser download one logical backup. |
 | Restore target | The database a restore writes into, given with its connection settings and restore options. |
 | Connection draft | The connection settings being entered in the interface for a new database, a saved database or a restore target, before any of them is sent. |

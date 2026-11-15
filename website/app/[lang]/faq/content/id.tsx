@@ -3,6 +3,7 @@ import { OG_LOCALES, getLanguageAlternates, getLocalizedHref, getLocalizedUrl } 
 import DocsNavbarComponent from "@/app/components/DocsNavbarComponent";
 import DocsSidebarComponent from "@/app/components/DocsSidebarComponent";
 import DocTableOfContentComponent from "@/app/components/DocTableOfContentComponent";
+import { CopyButton } from "@/app/components/CopyButton";
 
 export const metadata: Metadata = {
   title: "FAQ - Pertanyaan umum | Databasus",
@@ -40,6 +41,15 @@ export const metadata: Metadata = {
 };
 
 export default function FAQPage() {
+  const startupRecoveryCommand = `docker run -d \\
+  --name databasus \\
+  -p 4005:4005 \\
+  -v ./databasus-data:/databasus-data \\
+  -e RECOVERY_DUMP_PATH=/databasus-data/recovery/backup.dbbackup \\
+  -e RECOVERY_MASTER_KEY_PATH=/databasus-data/recovery/master.key \\
+  --restart unless-stopped \\
+  databasus/databasus:<version>`;
+
   return (
     <>
       <script
@@ -86,7 +96,7 @@ export default function FAQPage() {
                 name: "Bagaimana cara membuat backup Databasus itu sendiri?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Untuk membuat backup Databasus, buka /opt/databasus (atau folder instalasinya), lalu masuk ke direktori databasus-data. Kamu perlu membuat backup file secret.key (kunci enkripsi kredensial) dan folder /pgdata (database internal yang berisi konfigurasi dan metadata backup). Ada dua skenario pemulihan: 1) Backup database bisa dipulihkan hanya dengan secret.key tanpa antarmuka Databasus (lihat panduan pemulihan manual), 2) Untuk restore antarmuka Databasus beserta seluruh konfigurasi dan riwayat, diperlukan secret.key dan folder /pgdata. Untuk restore, buat kembali struktur folder ini di server lain.",
+                  text: "Databasus dirancang agar tetap bisa dipulihkan meski server-nya sendiri hilang atau rusak. Databasus bisa membuat backup database internalnya sendiri: akun, pengaturan, kredensial terenkripsi untuk database, penyimpanan, dan kanal notifikasi, jadwal, serta katalog backup. Aktifkan fitur ini di Databasus settings → Databasus backups dengan memilih satu atau beberapa penyimpanan yang sudah ada. Secara default, backup Databasus berjalan setiap jam dan disimpan selama 30 hari. File dienkripsi dengan kunci utama dan tidak berisi kunci itu maupun file backup database kamu, jadi simpan kunci utama secara terpisah. Databasus meminta kamu mengunduhnya, dan kunci ini juga tersimpan sebagai . /databasus-data/secret. key di host. Pemulihan memerlukan file backup, kunci utamanya, dan versi Databasus yang persis sama, termasuk patch. Caranya ada dua. Pertama, taruh kedua file di direktori data yang di-mount, lalu jalankan Databasus dengan RECOVERY_DUMP_PATH dan RECOVERY_MASTER_KEY_PATH di server yang belum memiliki akun dan pengaturannya belum diubah. Kedua, unggah file dan tempel kunci di Databasus settings → Databasus backups; cara ini mengganti instalasi saat ini.",
                 },
               },
               {
@@ -466,60 +476,122 @@ export default function FAQPage() {
               </p>
 
               <h2 id="backup-databasus">Bagaimana cara membuat backup Databasus itu sendiri?</h2>
+
               <p>
-                Untuk membuat backup instance Databasus (termasuk semua konfigurasi, database, dan
-                kredensial), ikuti langkah berikut:
+                Databasus dirancang agar tetap bisa dipulihkan meski server-nya sendiri hilang atau rusak.
+                Databasus bisa membuat backup database internalnya sendiri:
+                akun, pengaturan,
+                kredensial terenkripsi untuk database, penyimpanan, dan kanal
+                notifikasi kamu,
+                jadwal, serta katalog backup. Aktifkan fitur ini di{" "}
+                <strong>Databasus settings → Databasus backups</strong> dengan
+                memilih satu atau
+                beberapa penyimpanan yang sudah ada. Secara default, backup
+                Databasus berjalan setiap
+                jam dan disimpan selama 30 hari. Setiap file dienkripsi dengan
+                kunci utama.
               </p>
-              <ol>
-                <li>
-                  Buka <code>/opt/databasus</code> (atau folder tempat Databasus diinstal)
-                </li>
-                <li>
-                  Masuk ke direktori <code>databasus-data</code>
-                </li>
-              </ol>
+
               <p>
-                <strong>Yang perlu di-backup:</strong>
+                Backup Databasus tidak berisi kunci utama maupun file backup
+                database kamu, karena
+                file tersebut tetap berada di penyimpanannya masing-masing.{" "}
+                <strong>Simpan kunci utama secara terpisah.</strong> Databasus
+                meminta kamu
+                mengunduhnya pada kunjungan pertama, dan kunci ini juga
+                tersimpan sebagai file{" "}
+                <code>./databasus-data/secret.key</code> di host.
               </p>
+
               <ul>
                 <li>
-                  <code>secret.key</code>: kunci enkripsi kredensial
+                  <strong>Pilih penyimpanan remote.</strong> Penyimpanan lokal
+                  di server yang sama akan hilang bersama server itu.
                 </li>
                 <li>
-                  <code>/pgdata</code>: database PostgreSQL internal Databasus yang berisi semua
-                  konfigurasi dan metadata backup
-                </li>
-              </ul>
-              <p>
-                Jika memakai penyimpanan lokal untuk backup, kamu juga bisa membuat backup folder{" "}
-                <code>backups</code>.
-              </p>
-              <p>
-                <strong>Penting:</strong> Ada dua skenario pemulihan yang berbeda:
-              </p>
-              <ul>
-                <li>
-                  <strong>Memulihkan backup tanpa antarmuka Databasus:</strong> Backup database bisa
-                  dipulihkan hanya dengan file <code>secret.key</code>, tanpa memerlukan Databasus
-                  atau data internalnya. Lihat{" "}
-                  <a href={getLocalizedHref("id", "how-to-recover-without-databasus")}>
-                    panduan pemulihan manual
+                  <strong>Peringatan.</strong> Databasus menampilkan
+                  pemberitahuan saat backup Databasus gagal, hanya tersimpan di
+                  sebagian penyimpanan, berhenti, atau terlambat. Terlambat
+                  berarti belum ada salinan yang berhasil 15 menit setelah
+                  jadwal berjalan. Peringatan yang sama juga dikirim lewat email
+                  melalui{" "}
+                  <a href={`${getLocalizedHref("id", "advanced-config")}#email-smtp`}>
+                  mail server instance
                   </a>{" "}
-                  untuk petunjuk lengkap.
-                </li>
-                <li>
-                  <strong>Restore antarmuka Databasus dan seluruh konfigurasi:</strong> Untuk
-                  restore antarmuka Databasus beserta seluruh konfigurasi, backup terjadwal, dan
-                  riwayat backup, kamu perlu membuat backup <code>secret.key</code> sekaligus folder{" "}
-                  <code>/pgdata</code> (yang berisi metadata enkripsi dan seluruh konfigurasi
-                  Databasus).
+                  jika sudah dikonfigurasi.
                 </li>
               </ul>
+
+              <h3 id="recover-databasus">Bagaimana cara memulihkan Databasus dari backup Databasus?</h3>
+
               <p>
-                <strong>Untuk restore Databasus di server lain:</strong> buat kembali struktur
-                folder <code>databasus-data</code> dengan file hasil backup, lalu jalankan
-                Databasus.
+                Diperlukan dua hal: file backup Databasus
+                (<code>.dbbackup</code>) yang diunduh dari riwayat atau diambil
+                langsung dari penyimpanan, dan kunci utama instalasi yang
+                membuatnya.{" "}
+                <strong>
+                Pemulihan hanya berjalan pada versi Databasus yang persis sama,
+                termasuk patch.
+                </strong>{" "}
+                Untuk versi lain, Databasus menolak dan menyebutkan versi yang
+                harus dijalankan: pulihkan di versi itu, lalu upgrade seperti
+                biasa.
               </p>
+
+              <p>
+                <strong>Cara 1: file saat startup.</strong> Cara ini untuk
+                server baru. Taruh kedua file di direktori data yang di-mount,
+                misalnya{" "}
+                <code>./databasus-data/recovery/</code>, lalu jalankan image
+                versi yang membuat backup dengan dua pengaturan tambahan.
+                Ganti <code>&lt;version&gt;</code> dengan versi tersebut:
+              </p>
+
+              <div className="relative my-6">
+                <pre className="overflow-x-auto rounded-lg bg-gray-900 p-4 text-sm text-gray-100">
+                  <code>{startupRecoveryCommand}</code>
+                </pre>
+                <div className="absolute right-2 top-2">
+                  <CopyButton text={startupRecoveryCommand} lang="id" />
+                </div>
+              </div>
+
+              <ul>
+                <li>
+                  Jika Databasus sudah pernah dijalankan secara normal di server
+                  ini, tetapi belum ada akun yang dibuat dan pengaturan belum
+                  diubah, datanya tidak perlu dihapus. Hentikan Databasus,
+                  tambahkan kedua file dan kedua pengaturan, lalu jalankan lagi.
+                </li>
+                <li>
+                  Pemulihan saat startup tidak pernah mengganti instalasi yang
+                  memiliki akun (bahkan hanya satu akun), data pengguna lain,
+                  atau pengaturan yang sudah diubah. Dalam kasus itu Databasus
+                  tidak berjalan. Log-nya menjelaskan bahwa pemulihan tidak
+                  dijalankan, alasannya, bahwa instalasi saat ini tidak berubah,
+                  dan langkah berikutnya. Untuk menjalankan instalasi saat ini,
+                  hapus kedua pengaturan tersebut, atau gunakan unggahan di
+                  antarmuka.
+                </li>
+                <li>
+                  Setelah pemulihan berhasil, file dan pengaturan boleh
+                  dibiarkan. Databasus mengingat SHA-256 file yang sudah
+                  diterapkan, sehingga saat restart dan upgrade berikutnya file
+                  itu dilewati dan log mencatatnya, meskipun nama file sudah
+                  diubah. File lain di path yang sama tidak dilewati.
+                </li>
+              </ul>
+
+              <p>
+                <strong>Cara 2: unggah di antarmuka.</strong> Cara ini untuk
+                instalasi yang sudah berjalan. Pada instalasi baru, daftar dulu.
+                Buka <strong>Databasus settings → Databasus backups</strong>,
+                pilih file backup, lalu tempel atau ketik kunci utama instalasi
+                yang membuatnya.
+                Seluruh isi instalasi saat ini diganti: akun, pengaturan dan
+                katalog backup. Setelahnya, masuk dengan akun dari backup.
+              </p>
+
               <h2 id="oss-programs">
                 Bagaimana program open-source Anthropic dan OpenAI mendukung Databasus?
               </h2>
