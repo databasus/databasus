@@ -66,6 +66,8 @@ export const id: typeof en = {
       docs: 'Dokumentasi',
       documentation: 'Dokumentasi',
       community: 'Komunitas',
+      discord: 'Discord',
+      telegram: 'Telegram',
       newVersionAvailable: 'Versi baru tersedia',
     },
     diskUsage: {

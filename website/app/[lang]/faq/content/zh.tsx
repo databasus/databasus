@@ -116,6 +116,14 @@ export default function FAQPage() {
                   text: "AI 帮助我们开发 Databasus，参与规划、实现、测试和文档工作。开发者确定方向并做出最终决定。 合并变更前，开发者会逐行阅读代码。 我们使用 OpenSpec 进行规格驱动开发（SDD），在实现前约定行为。 每个阶段都有独立审查 自动钩子启动独立的审查会话，对仓库的访问权限为只读。每个代理自行检查相关代码，给出自己的审查结果。执行实现的代理不能批准自己的工作。 审查在实现前就开始了。独立的规划审查代理寻找更简单的方案，检查拟定的名称并评估设计。它们还检查需求与验证任务是否一致。 代码审查代理：查找缺陷、遗漏的边界情况、错误处理问题、竞态条件、资源泄漏和安全问题。 需求审查代理：找到每项需求对应的实现和测试，检查测试是否真正证明了承诺的行为。 架构审查代理：检查模块边界、依赖方向、数据归属、迁移和 API 规则。 代码结构审查代理：检查命名、文件和函数的职责、注释以及可读性。 测试审查代理：评估测试能否发现行为缺失或回归问题，还检查条件等待、清理和验证证据。 文档和任务审查代理：检查文档是否与代码一致、任务是否完成，以及所声称的检查是否有证据支持。 完整的实现审查并行运行。每项修改后的规格说明都有自己的需求审查代理。架构、测试和文档也各有独立代理。因此，涉及两项规格说明的变更会有五个完整审查代理。 阻塞性问题会阻止工作被接受。 执行实现的代理修复问题，或解释某项审查意见为何有误。后续审查代理检查处理结果和之后的修改。未能运行的审查不算通过。 自动检查与真实恢复 独立审查还配有严格的自动检查。golangci-lint 和项目自有的架构检查工具检查后端依赖、模块边界和迁移规则。API 检查验证 OpenAPI 契约和生成代码。前端检查 TypeScript、React、分层导入、样式和本地化。 Ruff 和 ty 检查 Python 的格式、代码规则和类型。ShellCheck 检查 shell 脚本，actionlint 检查 GitHub Actions 工作流。提交前的钩子检查涉及的后端、前端和 Python 文件，不改写文件。CI 也会运行静态检查。 测试检查真实行为。后端测试通过应用的 API 操作，数据库引擎使用真实的数据库容器进行测试。端到端场景创建备份、执行恢复并检查恢复后的数据。其他测试覆盖升级、前端页面和浏览器操作流程，包括视觉对比。 检查范围取决于变更内容。发布前，在 amd64 和 arm64 上运行必需的测试套件。执行实现的代理在审查前运行所需的静态检查和测试。审查代理检查证据，不重复运行这些命令。 发布前，CodeQL 和 Semgrep 分析代码，Gitleaks 扫描密钥等敏感信息，依赖检查查找漏洞。Trivy 扫描容器镜像和 Dockerfile。 发布前必须通过所有必需的 CI 检查。",
                 },
               },
+              {
+                "@type": "Question",
+                name: "Databasus 有社区吗？",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "有。Databasus 社区在 Telegram（https://t.me/databasus_community）和 Discord（https://databasus.com/discord）群里交流。你可以在那里提问、分享你使用 Databasus 的方式、讨论功能，并第一时间了解新版本。选择你已经在用的应用即可。",
+                },
+              },
             ],
           }),
         }}
@@ -608,6 +616,30 @@ export default function FAQPage() {
                 className="my-6 rounded-lg border border-gray-700 max-w-full sm:max-w-[1000px]"
                 loading="lazy"
               />
+
+              <h2 id="community">Databasus 有社区吗？</h2>
+
+              <p>
+                有。Databasus 社区在{" "}
+                <a
+                  href="https://t.me/databasus_community"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Telegram
+                </a>{" "}
+                和{" "}
+                <a
+                  href="/discord"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Discord
+                </a>{" "}
+                群里交流。你可以在那里提问、分享你使用 Databasus 的方式、讨论功能，并第一时间了解新版本。
+              </p>
+
+              <p>选择你已经在用的应用即可。</p>
             </article>
           </div>
         </main>

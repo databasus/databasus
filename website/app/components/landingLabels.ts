@@ -24,6 +24,9 @@ export interface LandingLabels {
   logoAlt: string;
   docs: string;
   community: string;
+  socialMedia: string;
+  backups: string;
+  resources: string;
   starOnGithub: string;
   postgresqlBackup: string;
   mysqlBackup: string;
@@ -40,6 +43,9 @@ export const LANDING_LABELS: Record<Locale | "en", LandingLabels> = {
     logoAlt: "Logo Databasus",
     docs: "Dokumentasi",
     community: "Komunitas",
+    socialMedia: "Media sosial",
+    backups: "Backup",
+    resources: "Sumber daya",
     starOnGithub: "Beri bintang di GitHub, dukunganmu sangat berarti ❤️",
     postgresqlBackup: "Backup PostgreSQL",
     mysqlBackup: "Backup MySQL dan MariaDB",
@@ -54,6 +60,9 @@ export const LANDING_LABELS: Record<Locale | "en", LandingLabels> = {
     logoAlt: "Databasus logo",
     docs: "Docs",
     community: "Community",
+    socialMedia: "Social media",
+    backups: "Backups",
+    resources: "Resources",
     starOnGithub: "Star on GitHub, it's really important ❤️",
     postgresqlBackup: "PostgreSQL backup",
     mysqlBackup: "MySQL and MariaDB backup",
@@ -68,6 +77,9 @@ export const LANDING_LABELS: Record<Locale | "en", LandingLabels> = {
     logoAlt: "Логотип Databasus",
     docs: "Документация",
     community: "Сообщество",
+    socialMedia: "Соцсети",
+    backups: "Бекапы",
+    resources: "Ресурсы",
     starOnGithub: "Поддержать проект звездой  ❤️",
     postgresqlBackup: "Резервное копирование PostgreSQL",
     mysqlBackup: "Резервное копирование MySQL и MariaDB",
@@ -82,6 +94,9 @@ export const LANDING_LABELS: Record<Locale | "en", LandingLabels> = {
     logoAlt: "Logotipo de Databasus",
     docs: "Documentación",
     community: "Comunidad",
+    socialMedia: "Redes sociales",
+    backups: "Copias de seguridad",
+    resources: "Recursos",
     starOnGithub: "Deje una estrella en GitHub ❤️",
     postgresqlBackup: "Copia de seguridad de PostgreSQL",
     mysqlBackup: "Copia de seguridad de MySQL y MariaDB",
@@ -96,6 +111,9 @@ export const LANDING_LABELS: Record<Locale | "en", LandingLabels> = {
     logoAlt: "Logotipo do Databasus",
     docs: "Docs",
     community: "Comunidade",
+    socialMedia: "Redes sociais",
+    backups: "Backups",
+    resources: "Recursos",
     starOnGithub: "Dê uma estrela no GitHub ❤️",
     postgresqlBackup: "Backup PostgreSQL",
     mysqlBackup: "Backup MySQL e MariaDB",
@@ -110,6 +128,9 @@ export const LANDING_LABELS: Record<Locale | "en", LandingLabels> = {
     logoAlt: "Databasus logo",
     docs: "文档",
     community: "社区",
+    socialMedia: "社交媒体",
+    backups: "备份",
+    resources: "资源",
     starOnGithub: "在 GitHub 上点个 Star ❤️",
     postgresqlBackup: "PostgreSQL 备份",
     mysqlBackup: "MySQL 和 MariaDB 备份",
@@ -124,6 +145,9 @@ export const LANDING_LABELS: Record<Locale | "en", LandingLabels> = {
     logoAlt: "Logo Databasus",
     docs: "Docs",
     community: "Communauté",
+    socialMedia: "Réseaux sociaux",
+    backups: "Sauvegardes",
+    resources: "Ressources",
     starOnGithub: "Mettez une étoile sur GitHub ❤️",
     postgresqlBackup: "Sauvegarde PostgreSQL",
     mysqlBackup: "Sauvegarde MySQL et MariaDB",

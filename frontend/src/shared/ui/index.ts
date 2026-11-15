@@ -1,6 +1,7 @@
 export { AddressChangedSecretNoticeComponent } from '@/shared/ui/AddressChangedSecretNoticeComponent';
 export { AdvancedFieldRowComponent } from '@/shared/ui/AdvancedFieldRowComponent';
 export { AdvancedSettingsToggleComponent } from '@/shared/ui/AdvancedSettingsToggleComponent';
+export { CommunityMenuComponent } from '@/shared/ui/CommunityMenuComponent';
 export { ClipboardPasteModalComponent } from '@/shared/ui/ClipboardPasteModalComponent';
 export { ConfirmationComponent } from '@/shared/ui/ConfirmationComponent';
 export { InlineCodeComponent } from '@/shared/ui/InlineCodeComponent';

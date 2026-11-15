@@ -84,6 +84,8 @@ export const zh: typeof en = {
       docs: '文档',
       documentation: '文档',
       community: '社区',
+      discord: 'Discord',
+      telegram: 'Telegram',
       newVersionAvailable: '有新版本可用',
     },
     diskUsage: {

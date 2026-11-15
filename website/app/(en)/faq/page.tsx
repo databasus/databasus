@@ -116,6 +116,14 @@ export default function FAQPage() {
                   text: "AI helps us develop Databasus, from planning and implementation to tests and documentation. People set the direction and make the final decision. A human reads every line before a change is merged. We use spec-driven development (SDD) with OpenSpec to agree on behavior before implementation. Independent review at each stage Automatic hooks start separate reviewer sessions with read-only access to the repository. Each agent inspects the relevant code and returns its own findings. The implementing agent cannot approve its own work. Review starts before implementation. Separate planning agents look for simpler solutions, check proposed names and assess the design. They also check that requirements and verification tasks agree. Code reviewer: Looks for bugs, missed edge cases, broken error handling, races, resource leaks and security problems. Requirements reviewer: Traces each requirement to its implementation and tests. Checks that the tests actually prove the promised behavior. Architecture reviewer: Checks module boundaries, dependency direction, data ownership, migrations and API rules. Code structure reviewer: Checks names, file and function responsibilities, comments and readability. Test reviewer: Checks whether tests would catch missing behavior or a regression. Also checks condition waits, cleanup and verification evidence. Documentation and task reviewer: Checks that documentation matches the code, tasks are complete and verification claims have evidence. Full implementation reviews run in parallel. Each changed specification gets its own requirements reviewer, alongside separate architecture, test and documentation reviewers. A change covering two specifications therefore gets five full-review agents. Blocking findings stop acceptance. The implementing agent fixes them or explains why a finding is incorrect. A follow-up reviewer checks that resolution and the subsequent edits. A review that could not run does not count as passed. Automated checks and real restores Independent review works alongside strict automated checks. golangci-lint and our architecture linter check backend dependencies, module boundaries and migration rules. API checks validate OpenAPI contracts and generated code. Frontend checks cover TypeScript, React, layer imports, styles and localization. Ruff and ty check Python formatting, lint rules and types. ShellCheck checks shell scripts. actionlint checks GitHub Actions workflows. Pre-commit hooks check affected backend, frontend and Python files without rewriting them. CI also runs linting. Tests exercise real behavior. Backend tests use the application API and check engines against real database containers. End-to-end scenarios create backups, restore them and inspect the restored data. Other tests cover upgrades, frontend screens and browser workflows with visual comparisons. Checks are chosen for each change. Required release suites run on amd64 and arm64. The implementing agent runs the relevant linters and tests before review; review agents inspect the evidence without rerunning those commands. Before publication, CodeQL and Semgrep analyze code, Gitleaks scans for secrets and dependency checks look for vulnerabilities. Trivy scans container images and Dockerfiles. Required CI checks must pass before release.",
                 },
               },
+              {
+                "@type": "Question",
+                name: "Is there a Databasus community?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "Yes. The Databasus community talks in chats on Telegram (https://t.me/databasus_community) and Discord (https://databasus.com/discord). There you can ask questions, share how you run Databasus, discuss features and hear about new releases first. Pick the app you already use.",
+                },
+              },
             ],
           }),
         }}
@@ -697,6 +705,30 @@ export default function FAQPage() {
                 className="my-6 rounded-lg border border-gray-700 max-w-full sm:max-w-[1000px]"
                 loading="lazy"
               />
+
+              <h2 id="community">Is there a Databasus community?</h2>
+
+              <p>
+                Yes. The Databasus community talks in chats on{" "}
+                <a
+                  href="https://t.me/databasus_community"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Telegram
+                </a>{" "}
+                and{" "}
+                <a
+                  href="/discord"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Discord
+                </a>
+                . There you can ask questions, share how you run Databasus, discuss features and hear about new releases first.
+              </p>
+
+              <p>Pick the app you already use.</p>
             </article>
           </div>
         </main>

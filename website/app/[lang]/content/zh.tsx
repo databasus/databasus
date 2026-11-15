@@ -1481,7 +1481,16 @@ export default function Index() {
                     rel="noopener noreferrer"
                     className="text-blue-400 hover:text-blue-600"
                   >
-                    t.me/databasus_community
+                    Telegram
+                  </a>{" "}
+                  和{" "}
+                  <a
+                    href="/discord"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:text-blue-600"
+                  >
+                    Discord
                   </a>{" "}
                   加入我们由开发者、DBA 和 DevOps
                   工程师组成的大型社区。在社区里可以提问、交流经验、获得配置帮助，并及时了解最新功能和版本发布。

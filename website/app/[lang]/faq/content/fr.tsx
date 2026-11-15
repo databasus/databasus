@@ -116,6 +116,14 @@ export default function FAQPage() {
                   text: "L’IA nous aide à développer Databasus, de la planification et de l’implémentation aux tests et à la documentation. Les personnes définissent l’orientation et prennent les décisions finales. Une personne lit chaque ligne de code avant l’intégration d’un changement. Nous utilisons le développement guidé par les spécifications (SDD) avec OpenSpec pour convenir du comportement avant l’implémentation. Une revue indépendante à chaque étape Les hooks automatiques lancent des sessions de revue séparées avec un accès au dépôt en lecture seule. Chaque agent inspecte le code concerné et rend ses propres conclusions. L’agent chargé de l’implémentation ne peut pas approuver son propre travail. La revue commence avant l’implémentation. Des agents de planification séparés cherchent des solutions plus simples, vérifient les noms proposés et évaluent la conception. Ils vérifient aussi la cohérence entre les exigences et les tâches de vérification. Revue du code : Recherche de bugs, de cas limites oubliés, d’erreurs de gestion des échecs, de conditions de course, de fuites de ressources et de problèmes de sécurité. Revue des exigences : Recherche de l’implémentation et des tests de chaque exigence. Vérification que les tests démontrent le comportement promis. Revue d’architecture : Vérification des frontières entre modules, du sens des dépendances, de la propriété des données, des migrations et des règles d’API. Revue de la structure du code : Vérification des noms, des responsabilités des fichiers et fonctions, des commentaires et de la lisibilité. Revue des tests : Évaluation de leur capacité à détecter un comportement absent ou une régression. Vérification des attentes de conditions, du nettoyage et des preuves de vérification. Revue de la documentation et des tâches : Vérification de la cohérence avec le code, de l’achèvement des tâches et des preuves des contrôles déclarés. Les revues complètes d’implémentation s’exécutent en parallèle. Chaque spécification modifiée a son propre agent de revue des exigences. L’architecture, les tests et la documentation ont des agents séparés. Un changement portant sur deux spécifications reçoit donc cinq agents de revue complète. Les problèmes bloquants empêchent l’acceptation du travail. L’agent chargé de l’implémentation les corrige ou explique pourquoi un signalement est erroné. Un agent de suivi vérifie cette résolution et les modifications suivantes. Une revue qui n’a pas pu s’exécuter ne compte pas comme réussie. Contrôles automatiques et restaurations réelles La revue indépendante s’accompagne de contrôles automatiques stricts. golangci-lint et notre analyseur d’architecture vérifient les dépendances du backend, les frontières entre modules et les règles de migration. Les contrôles d’API valident les contrats OpenAPI et le code généré. Le frontend vérifie TypeScript, React, les imports entre couches, les styles et la localisation. Ruff et ty vérifient le formatage, les règles de code et les types Python. ShellCheck vérifie les scripts shell et actionlint, les workflows GitHub Actions. Les hooks de pré-commit vérifient les fichiers concernés du backend, du frontend et de Python sans les réécrire. L’analyse statique s’exécute aussi dans la CI. Les tests vérifient des comportements réels. Le backend est testé par l’API de l’application et les moteurs, avec de vraies bases de données en conteneurs. Les scénarios de bout en bout créent des sauvegardes, les restaurent et vérifient les données restaurées. D’autres tests couvrent les mises à niveau, les écrans du frontend et les parcours dans le navigateur avec des comparaisons visuelles. Les contrôles sont choisis selon le changement. Les suites obligatoires de publication s’exécutent sur amd64 et arm64. L’agent chargé de l’implémentation exécute les analyseurs et les tests requis avant la revue. Les agents de revue inspectent les preuves sans relancer ces commandes. Avant la publication, CodeQL et Semgrep analysent le code, Gitleaks recherche les secrets et les dépendances sont vérifiées pour détecter les vulnérabilités. Trivy analyse les images de conteneur et les Dockerfiles. Les contrôles CI obligatoires doivent réussir avant la publication.",
                 },
               },
+              {
+                "@type": "Question",
+                name: "Existe-t-il une communauté Databasus ?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "Oui. La communauté Databasus échange sur Telegram (https://t.me/databasus_community) et Discord (https://databasus.com/discord). Vous pouvez y poser vos questions, raconter comment vous utilisez Databasus, discuter des fonctionnalités et découvrir les nouvelles versions avant tout le monde. Choisissez l'application que vous utilisez déjà.",
+                },
+              },
             ],
           }),
         }}
@@ -752,6 +760,30 @@ export default function FAQPage() {
                 className="my-6 rounded-lg border border-gray-700 max-w-full sm:max-w-[1000px]"
                 loading="lazy"
               />
+
+              <h2 id="community">Existe-t-il une communauté Databasus ?</h2>
+
+              <p>
+                Oui. La communauté Databasus échange sur{" "}
+                <a
+                  href="https://t.me/databasus_community"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Telegram
+                </a>{" "}
+                et{" "}
+                <a
+                  href="/discord"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Discord
+                </a>
+                . Vous pouvez y poser vos questions, raconter comment vous utilisez Databasus, discuter des fonctionnalités et découvrir les nouvelles versions avant tout le monde.
+              </p>
+
+              <p>Choisissez l&apos;application que vous utilisez déjà.</p>
             </article>
           </div>
         </main>

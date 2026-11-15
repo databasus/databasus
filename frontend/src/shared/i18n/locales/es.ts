@@ -84,6 +84,8 @@ export const es: typeof en = {
       docs: 'Documentación',
       documentation: 'Documentación',
       community: 'Comunidad',
+      discord: 'Discord',
+      telegram: 'Telegram',
       newVersionAvailable: 'Nueva versión disponible',
     },
     diskUsage: {

@@ -1581,14 +1581,23 @@ export default function Index() {
               answer={
                 <>
                   Você pode entrar para a nossa grande comunidade de
-                  desenvolvedores, DBAs e engenheiros de DevOps em{" "}
+                  desenvolvedores, DBAs e engenheiros de DevOps nos chats do{" "}
                   <a
                     href="https://t.me/databasus_community"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-400 hover:text-blue-600"
                   >
-                    t.me/databasus_community
+                    Telegram
+                  </a>{" "}
+                  e do{" "}
+                  <a
+                    href="/discord"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:text-blue-600"
+                  >
+                    Discord
                   </a>
                   . A comunidade é um ótimo lugar para tirar dúvidas, trocar
                   experiências, receber ajuda com configuração e acompanhar os

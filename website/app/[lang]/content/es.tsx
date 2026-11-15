@@ -1596,14 +1596,23 @@ export default function Index() {
               answer={
                 <>
                   Puede unirse a nuestra gran comunidad de desarrolladores, DBA
-                  e ingenieros DevOps en{" "}
+                  e ingenieros DevOps en los chats de{" "}
                   <a
                     href="https://t.me/databasus_community"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-400 hover:text-blue-600"
                   >
-                    t.me/databasus_community
+                    Telegram
+                  </a>{" "}
+                  y{" "}
+                  <a
+                    href="/discord"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:text-blue-600"
+                  >
+                    Discord
                   </a>
                   . La comunidad es un gran lugar para hacer preguntas,
                   compartir experiencias, obtener ayuda con la configuración y

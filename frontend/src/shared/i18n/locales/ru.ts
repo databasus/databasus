@@ -84,6 +84,8 @@ export const ru: typeof en = {
       docs: 'Документация',
       documentation: 'Документация',
       community: 'Сообщество',
+      discord: 'Discord',
+      telegram: 'Telegram',
       newVersionAvailable: 'Доступна новая версия',
     },
     diskUsage: {

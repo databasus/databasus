@@ -116,6 +116,14 @@ export default function FAQPage() {
                   text: "A IA nos ajuda a desenvolver o Databasus, do planejamento e da implementação aos testes e à documentação. As pessoas definem o rumo e tomam as decisões finais. Uma pessoa lê cada linha de código antes de integrar uma mudança. Usamos desenvolvimento baseado em especificações (SDD) com OpenSpec para definir o comportamento antes da implementação. Revisão independente em cada etapa Os hooks automáticos iniciam sessões de revisão separadas com acesso somente para leitura ao repositório. Cada agente inspeciona o código pertinente e apresenta seus próprios apontamentos. O agente que implementa não pode aprovar o próprio trabalho. A revisão começa antes da implementação. Agentes de planejamento separados procuram soluções mais simples, verificam os nomes propostos e avaliam o projeto técnico. Também conferem se os requisitos e as tarefas de verificação estão de acordo. Revisor de código: Procura bugs, casos extremos esquecidos, falhas no tratamento de erros, condições de corrida, vazamentos de recursos e problemas de segurança. Revisor de requisitos: Localiza a implementação e os testes de cada requisito. Verifica se os testes demonstram o comportamento prometido. Revisor de arquitetura: Verifica os limites dos módulos, a direção das dependências, a responsabilidade pelos dados, as migrações e as regras de API. Revisor da estrutura do código: Verifica nomes, responsabilidades de arquivos e funções, comentários e legibilidade. Revisor de testes: Avalia se os testes detectariam um comportamento ausente ou uma regressão. Também verifica esperas por condições, limpeza e evidências de verificação. Revisor de documentação e tarefas: Confere se a documentação corresponde ao código, se as tarefas estão completas e se as verificações declaradas têm evidências. As revisões completas de implementação rodam em paralelo. Cada especificação alterada tem seu próprio revisor de requisitos. Arquitetura, testes e documentação têm revisores separados. Uma mudança em duas especificações recebe, portanto, cinco agentes de revisão completa. Apontamentos bloqueantes impedem a aceitação do trabalho. O agente que implementa corrige os problemas ou explica por que um apontamento está incorreto. Um revisor posterior confere essa resolução e as alterações seguintes. Uma revisão que não pôde rodar não é considerada aprovada. Verificações automáticas e restores reais A revisão independente é complementada por verificações automáticas rigorosas. golangci-lint e nosso analisador de arquitetura verificam as dependências do backend, os limites dos módulos e as regras de migração. As verificações de API validam os contratos OpenAPI e o código gerado. O frontend verifica TypeScript, React, importações entre camadas, estilos e localização. Ruff e ty verificam formatação, regras de código e tipos do Python. ShellCheck verifica scripts de shell, e actionlint verifica os fluxos do GitHub Actions. Os hooks de pré-commit verificam os arquivos afetados do backend, frontend e Python sem reescrevê-los. A análise estática também roda no CI. Os testes verificam comportamentos reais. O backend é testado pela API da aplicação, e os mecanismos de banco de dados são verificados com bancos reais em contêineres. Os cenários de ponta a ponta criam backups, fazem o restore e verificam os dados restaurados. Outros testes cobrem atualizações, telas do frontend e fluxos no navegador com comparações visuais. As verificações são escolhidas conforme a mudança. As suítes obrigatórias de publicação rodam em amd64 e arm64. O agente que implementa executa os analisadores e os testes pertinentes antes da revisão. Os revisores inspecionam as evidências sem executar esses comandos novamente. Antes da publicação, CodeQL e Semgrep analisam o código, Gitleaks procura segredos e as dependências são verificadas para detectar vulnerabilidades. Trivy analisa as imagens de contêiner e os Dockerfiles. As verificações obrigatórias de CI precisam passar antes da publicação.",
                 },
               },
+              {
+                "@type": "Question",
+                name: "O Databasus tem uma comunidade?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "Sim. A comunidade do Databasus conversa nos chats do Telegram (https://t.me/databasus_community) e Discord (https://databasus.com/discord). Lá você pode tirar dúvidas, contar como usa o Databasus, discutir funcionalidades e ficar sabendo das novas versões antes de todo mundo. Escolha o aplicativo que você já usa.",
+                },
+              },
             ],
           }),
         }}
@@ -720,6 +728,30 @@ export default function FAQPage() {
                 className="my-6 rounded-lg border border-gray-700 max-w-full sm:max-w-[1000px]"
                 loading="lazy"
               />
+
+              <h2 id="community">O Databasus tem uma comunidade?</h2>
+
+              <p>
+                Sim. A comunidade do Databasus conversa nos chats do{" "}
+                <a
+                  href="https://t.me/databasus_community"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Telegram
+                </a>{" "}
+                e{" "}
+                <a
+                  href="/discord"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Discord
+                </a>
+                . Lá você pode tirar dúvidas, contar como usa o Databasus, discutir funcionalidades e ficar sabendo das novas versões antes de todo mundo.
+              </p>
+
+              <p>Escolha o aplicativo que você já usa.</p>
             </article>
           </div>
         </main>

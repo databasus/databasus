@@ -84,6 +84,8 @@ export const en = {
       docs: 'Docs',
       documentation: 'Documentation',
       community: 'Community',
+      discord: 'Discord',
+      telegram: 'Telegram',
       newVersionAvailable: 'New version available',
     },
     diskUsage: {

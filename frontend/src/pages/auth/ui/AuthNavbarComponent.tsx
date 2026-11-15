@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 
 import { getWebsitePageUrl, useLocale } from '@/shared/i18n';
 import { LanguageThemeControlComponent } from '@/shared/ui';
+import { CommunityMenuComponent } from '@/shared/ui/CommunityMenuComponent';
 import { StarButtonComponent } from '@/shared/ui/StarButtonComponent';
 
 // eslint-disable-next-line i18next/no-literal-string -- product name
@@ -27,9 +28,9 @@ export function AuthNavbarComponent() {
         </div>
       </div>
 
-      <div className="mr-3 ml-auto flex max-w-full min-w-0 flex-wrap items-center gap-3">
+      <div className="mr-3 ml-auto flex max-w-full min-w-0 flex-wrap items-center justify-end gap-x-5 gap-y-2">
         <a
-          className="!text-content hover:opacity-80"
+          className="font-normal !text-content"
           href={getWebsitePageUrl('installation', locale)}
           target="_blank"
           rel="noreferrer"
@@ -37,14 +38,7 @@ export function AuthNavbarComponent() {
           {t('app.navigation.docs')}
         </a>
 
-        <a
-          className="!text-content hover:opacity-80"
-          href="https://t.me/databasus_community"
-          target="_blank"
-          rel="noreferrer"
-        >
-          {t('app.navigation.community')}
-        </a>
+        <CommunityMenuComponent targetClassName="font-normal !text-content" />
 
         <div className="flex max-w-full min-w-0 flex-wrap items-center gap-2">
           <StarButtonComponent />

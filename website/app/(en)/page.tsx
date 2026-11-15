@@ -1549,14 +1549,23 @@ export default function Index() {
               answer={
                 <>
                   You can join our large community of developers, DBAs and
-                  DevOps engineers at{" "}
+                  DevOps engineers in our chats on{" "}
                   <a
                     href="https://t.me/databasus_community"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-400 hover:text-blue-600"
                   >
-                    t.me/databasus_community
+                    Telegram
+                  </a>{" "}
+                  and{" "}
+                  <a
+                    href="/discord"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:text-blue-600"
+                  >
+                    Discord
                   </a>
                   . The community is a great place to ask questions, share
                   experiences, get help with configuration and stay updated with

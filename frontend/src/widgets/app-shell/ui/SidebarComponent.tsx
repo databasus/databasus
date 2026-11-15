@@ -11,6 +11,7 @@ import { getWebsitePageUrl, useLocale } from '@/shared/i18n';
 import { closeOverlayOnEscape } from '@/shared/ui';
 import { OverlayFocusReturn } from '@/shared/ui';
 import { LanguageThemeControlComponent } from '@/shared/ui';
+import { CommunityMenuComponent } from '@/shared/ui/CommunityMenuComponent';
 import { StarButtonComponent } from '@/shared/ui/StarButtonComponent';
 import { getDiskUsageValues } from '@/widgets/app-shell/ui/getDiskUsageValues';
 
@@ -243,14 +244,7 @@ export const SidebarComponent = ({
               {t('app.navigation.documentation')}
             </a>
 
-            <a
-              className="block rounded text-sm font-medium !text-content hover:bg-surface hover:!text-accent"
-              href="https://t.me/databasus_community"
-              target="_blank"
-              rel="noreferrer"
-            >
-              {t('app.navigation.community')}
-            </a>
+            <CommunityMenuComponent targetClassName="block rounded text-sm font-medium !text-content hover:bg-surface hover:!text-accent w-full text-left" />
 
             <div className="flex pt-2">
               <StarButtonComponent />

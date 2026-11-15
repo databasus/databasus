@@ -116,6 +116,14 @@ export default function FAQPage() {
                   text: "La IA nos ayuda a desarrollar Databasus, desde la planificación y la implementación hasta las pruebas y la documentación. Las personas definen el rumbo y toman las decisiones finales. Una persona lee cada línea de código antes de integrar un cambio. Utilizamos desarrollo basado en especificaciones (SDD) con OpenSpec para acordar el comportamiento antes de implementar. Revisión independiente en cada etapa Los hooks automáticos inician sesiones de revisión separadas con acceso de solo lectura al repositorio. Cada agente inspecciona el código pertinente y devuelve sus propios hallazgos. El agente que implementa no puede aprobar su propio trabajo. La revisión empieza antes de implementar. Agentes de planificación separados buscan soluciones más sencillas, comprueban los nombres propuestos y evalúan el diseño. También contrastan los requisitos con las tareas de verificación. Revisor de código: Busca errores, casos límite omitidos, fallos en el manejo de errores, condiciones de carrera, fugas de recursos y problemas de seguridad. Revisor de requisitos: Localiza la implementación y las pruebas de cada requisito. Comprueba que las pruebas demuestren el comportamiento prometido. Revisor de arquitectura: Comprueba los límites entre módulos, la dirección de las dependencias, la propiedad de los datos, las migraciones y las reglas de API. Revisor de estructura del código: Comprueba nombres, responsabilidades de archivos y funciones, comentarios y legibilidad. Revisor de pruebas: Evalúa si las pruebas detectarían un comportamiento ausente o una regresión. También comprueba las esperas por condiciones, la limpieza y las evidencias de verificación. Revisor de documentación y tareas: Contrasta la documentación con el código, comprueba que las tareas estén completas y verifica las evidencias de las comprobaciones declaradas. Las revisiones completas de implementación se ejecutan en paralelo. Cada especificación modificada tiene su propio revisor de requisitos. Arquitectura, pruebas y documentación tienen revisores separados. Un cambio que abarca dos especificaciones recibe, por tanto, cinco agentes de revisión completa. Los hallazgos bloqueantes impiden aceptar el trabajo. El agente que implementa los corrige o explica por qué un hallazgo es incorrecto. Un revisor posterior comprueba esa resolución y los cambios posteriores. Una revisión que no pudo ejecutarse no se considera aprobada. Comprobaciones automáticas y restauraciones reales La revisión independiente se complementa con comprobaciones automáticas estrictas. golangci-lint y nuestro analizador de arquitectura comprueban las dependencias del backend, los límites entre módulos y las reglas de migración. Las comprobaciones de API validan los contratos OpenAPI y el código generado. El frontend comprueba TypeScript, React, importaciones entre capas, estilos y localización. Ruff y ty comprueban el formato, las reglas de código y los tipos de Python. ShellCheck comprueba los scripts de shell y actionlint, los flujos de GitHub Actions. Los hooks previos al commit comprueban los archivos afectados del backend, frontend y Python sin reescribirlos. CI también ejecuta el análisis estático. Las pruebas comprueban comportamientos reales. El backend se prueba mediante la API de la aplicación y los motores, con bases de datos reales en contenedores. Los escenarios de extremo a extremo crean copias de seguridad, las restauran y comprueban los datos restaurados. Otras pruebas cubren actualizaciones, pantallas del frontend y flujos del navegador con comparaciones visuales. Las comprobaciones se eligen según el cambio. Las suites obligatorias de publicación se ejecutan en amd64 y arm64. El agente que implementa ejecuta los analizadores y las pruebas pertinentes antes de la revisión. Los revisores inspeccionan las evidencias sin volver a ejecutar esos comandos. Antes de publicar, CodeQL y Semgrep analizan el código, Gitleaks busca secretos y las dependencias se comprueban para detectar vulnerabilidades. Trivy analiza las imágenes de contenedor y los Dockerfile. Las comprobaciones obligatorias de CI deben superarse antes de publicar una versión.",
                 },
               },
+              {
+                "@type": "Question",
+                name: "¿Existe una comunidad de Databasus?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "Sí. La comunidad de Databasus conversa en los chats de Telegram (https://t.me/databasus_community) y Discord (https://databasus.com/discord). Allí puede hacer preguntas, contar cómo usa Databasus, debatir funciones y enterarse antes que nadie de las nuevas versiones. Elija la aplicación que ya usa.",
+                },
+              },
             ],
           }),
         }}
@@ -736,6 +744,30 @@ export default function FAQPage() {
                 className="my-6 rounded-lg border border-gray-700 max-w-full sm:max-w-[1000px]"
                 loading="lazy"
               />
+
+              <h2 id="community">¿Existe una comunidad de Databasus?</h2>
+
+              <p>
+                Sí. La comunidad de Databasus conversa en los chats de{" "}
+                <a
+                  href="https://t.me/databasus_community"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Telegram
+                </a>{" "}
+                y{" "}
+                <a
+                  href="/discord"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Discord
+                </a>
+                . Allí puede hacer preguntas, contar cómo usa Databasus, debatir funciones y enterarse antes que nadie de las nuevas versiones.
+              </p>
+
+              <p>Elija la aplicación que ya usa.</p>
             </article>
           </div>
         </main>

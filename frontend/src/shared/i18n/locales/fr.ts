@@ -84,6 +84,8 @@ export const fr: typeof en = {
       docs: 'Documentation',
       documentation: 'Documentation',
       community: 'Communauté',
+      discord: 'Discord',
+      telegram: 'Telegram',
       newVersionAvailable: 'Nouvelle version disponible',
     },
     diskUsage: {

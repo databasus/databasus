@@ -1313,14 +1313,23 @@ export default function Index() {
               answer={
                 <>
                   Kamu bisa bergabung dengan komunitas besar developer, DBA, dan engineer DevOps
-                  kami di{" "}
+                  kami di obrolan{" "}
                   <a
                     href="https://t.me/databasus_community"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-400 hover:text-blue-600"
                   >
-                    t.me/databasus_community
+                    Telegram
+                  </a>{" "}
+                  dan{" "}
+                  <a
+                    href="/discord"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:text-blue-600"
+                  >
+                    Discord
                   </a>
                   . Komunitas adalah tempat untuk bertanya, berbagi pengalaman, mendapatkan bantuan
                   konfigurasi, dan mengikuti fitur serta rilis terbaru.

@@ -115,6 +115,14 @@ export default function FAQPage() {
                   text: "AI membantu kami mengembangkan Databasus, dari perencanaan dan implementasi hingga pengujian dan dokumentasi. Manusia menentukan arah dan mengambil keputusan akhir. Pengembang membaca setiap baris kode sebelum perubahan digabungkan. Kami menggunakan pengembangan berbasis spesifikasi (SDD) dengan OpenSpec untuk menyepakati perilaku sebelum implementasi. Review independen pada setiap tahap Hook otomatis memulai sesi peninjau terpisah dengan akses hanya baca ke repositori. Setiap agen memeriksa kode terkait dan memberikan temuannya sendiri. Agen pelaksana tidak dapat menyetujui pekerjaannya sendiri. Review dimulai sebelum implementasi. Agen perencanaan terpisah mencari solusi yang lebih sederhana, memeriksa nama yang diusulkan, dan menilai desain. Mereka juga memeriksa kesesuaian persyaratan dengan tugas verifikasi. Peninjau kode: Mencari bug, kasus batas yang terlewat, penanganan error yang salah, kondisi balapan, kebocoran sumber daya, dan masalah keamanan. Peninjau persyaratan: Menelusuri implementasi dan pengujian untuk setiap persyaratan. Memeriksa apakah pengujian benar-benar membuktikan perilaku yang dijanjikan. Peninjau arsitektur: Memeriksa batas modul, arah dependensi, kepemilikan data, migrasi, dan aturan API. Peninjau struktur kode: Memeriksa nama, tanggung jawab file dan fungsi, komentar, serta keterbacaan. Peninjau pengujian: Menilai apakah pengujian dapat mendeteksi perilaku yang hilang atau regresi. Juga memeriksa penantian kondisi, pembersihan, dan bukti verifikasi. Peninjau dokumentasi dan tugas: Memeriksa kesesuaian dokumentasi dengan kode, penyelesaian tugas, dan bukti pemeriksaan yang dilaporkan. Review implementasi lengkap berjalan paralel. Setiap spesifikasi yang berubah memiliki peninjau persyaratannya sendiri. Arsitektur, pengujian, dan dokumentasi memiliki peninjau terpisah. Jadi, perubahan pada dua spesifikasi mendapat lima agen review lengkap. Temuan yang menghalangi penerimaan menghentikan persetujuan pekerjaan. Agen pelaksana memperbaikinya atau menjelaskan mengapa suatu temuan keliru. Peninjau lanjutan memeriksa penyelesaian itu dan perubahan berikutnya. Review yang tidak dapat berjalan tidak dianggap lulus. Pemeriksaan otomatis dan restore sungguhan Review independen didampingi pemeriksaan otomatis yang ketat. golangci-lint dan pemeriksa arsitektur kami memeriksa dependensi backend, batas modul, dan aturan migrasi. Pemeriksaan API memvalidasi kontrak OpenAPI dan kode hasil generasi. Frontend memeriksa TypeScript, React, impor antarlapisan, gaya, dan pelokalan. Ruff dan ty memeriksa format, aturan kode, dan tipe Python. ShellCheck memeriksa skrip shell, sedangkan actionlint memeriksa workflow GitHub Actions. Hook sebelum commit memeriksa file backend, frontend, dan Python yang terkait tanpa menulis ulang file. CI juga menjalankan pemeriksaan lint. Pengujian memeriksa perilaku nyata. Backend diuji melalui API aplikasi, sedangkan mesin database diperiksa dengan database sungguhan dalam container. Skenario menyeluruh membuat backup, melakukan restore, lalu memeriksa data hasil restore. Pengujian lain mencakup upgrade, layar frontend, dan alur browser dengan perbandingan visual. Pemeriksaan dipilih sesuai perubahan. Rangkaian pengujian wajib untuk rilis berjalan pada amd64 dan arm64. Agen pelaksana menjalankan pemeriksaan lint dan pengujian terkait sebelum review. Peninjau memeriksa buktinya tanpa menjalankan ulang perintah tersebut. Sebelum publikasi, CodeQL dan Semgrep menganalisis kode, Gitleaks mencari rahasia, dan dependensi diperiksa untuk menemukan kerentanan. Trivy memindai image container dan Dockerfile. Pemeriksaan CI wajib harus lulus sebelum rilis.",
                 },
               },
+              {
+                "@type": "Question",
+                name: "Apakah Databasus punya komunitas?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "Ya. Komunitas Databasus berdiskusi di obrolan Telegram (https://t.me/databasus_community) dan Discord (https://databasus.com/discord). Di sana bisa bertanya, berbagi cara memakai Databasus, membahas fitur, dan lebih dulu tahu tentang rilis baru. Cukup pilih aplikasi yang sudah dipakai.",
+                },
+              },
             ],
           }),
         }}
@@ -639,6 +647,30 @@ export default function FAQPage() {
                 className="my-6 rounded-lg border border-gray-700 max-w-full sm:max-w-[1000px]"
                 loading="lazy"
               />
+
+              <h2 id="community">Apakah Databasus punya komunitas?</h2>
+
+              <p>
+                Ya. Komunitas Databasus berdiskusi di obrolan{" "}
+                <a
+                  href="https://t.me/databasus_community"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Telegram
+                </a>{" "}
+                dan{" "}
+                <a
+                  href="/discord"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Discord
+                </a>
+                . Di sana bisa bertanya, berbagi cara memakai Databasus, membahas fitur, dan lebih dulu tahu tentang rilis baru.
+              </p>
+
+              <p>Cukup pilih aplikasi yang sudah dipakai.</p>
             </article>
           </div>
         </main>
