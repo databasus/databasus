@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"databasus-backend/e2e/upgrade/upgradecheck"
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/lib/testwait"
 )
 
@@ -47,7 +48,7 @@ func runUpgrade(t *testing.T, spec upgradeSpec) (resources upgradeResources, err
 	if err != nil {
 		return resources, err
 	}
-	defer docker.close()
+	defer docker.Close()
 
 	defer func() {
 		cleanupCtx, cancelCleanup := context.WithTimeout(context.WithoutCancel(t.Context()), cleanupTimeout)
@@ -66,12 +67,12 @@ func runUpgradeSteps(t *testing.T, docker *dockerHost, spec upgradeSpec, resourc
 
 	ctx := t.Context()
 
-	err := docker.createNetwork(ctx, resources.networkName)
+	err := docker.CreateNetwork(ctx, resources.networkName)
 	if err != nil {
 		return err
 	}
 
-	err = docker.createVolume(ctx, resources.volumeName)
+	err = docker.CreateVolume(ctx, resources.volumeName)
 	if err != nil {
 		return err
 	}
@@ -96,7 +97,7 @@ func runUpgradeSteps(t *testing.T, docker *dockerHost, spec upgradeSpec, resourc
 		return err
 	}
 
-	err = docker.stopContainer(ctx, resources.previousContainerName)
+	err = docker.StopContainer(ctx, resources.previousContainerName)
 	if err != nil {
 		return err
 	}
@@ -116,26 +117,26 @@ func prepareSourceServer(t *testing.T, docker *dockerHost, resources upgradeReso
 
 	err = testwait.Within(startupLimit).
 		Poll(t, "the source server to accept connections", func(ctx context.Context) error {
-			state, stateErr := docker.getContainerState(ctx, resources.sourceContainerName, sourcePublishedPort)
+			state, stateErr := docker.GetContainerState(ctx, resources.sourceContainerName, sourcePublishedPort)
 			if stateErr != nil {
 				return stateErr
 			}
 
-			if !state.isRunning {
+			if !state.IsRunning {
 				return fmt.Errorf("container %s is not running", resources.sourceContainerName)
 			}
 
-			connection, connectErr := connectToSourceDatabase(ctx, state.hostPort, sourceDatabaseName)
+			connection, connectErr := connectToSourceDatabase(ctx, state.HostPort, sourceDatabaseName)
 			if connectErr != nil {
 				return connectErr
 			}
 
-			sourceHostPort = state.hostPort
+			sourceHostPort = state.HostPort
 
 			return connection.Close(ctx)
 		})
 	if err != nil {
-		return 0, docker.withLogTail(t.Context(), resources.sourceContainerName, err)
+		return 0, docker.WithLogTail(t.Context(), resources.sourceContainerName, err)
 	}
 
 	err = fillSourceDatabase(t.Context(), sourceHostPort)
@@ -155,15 +156,15 @@ func writeThroughPreviousRelease(
 ) (writtenUpgradeData, error) {
 	t.Helper()
 
-	previousAPI, err := startInstance(t, docker, containerSpec{
-		name:          resources.previousContainerName,
-		image:         spec.previousImage,
-		entrypoint:    nil,
-		env:           nil,
-		volumeMount:   resources.volumeName + ":" + instanceDataPath,
-		networkName:   resources.networkName,
-		networkAlias:  resources.previousContainerName,
-		publishedPort: instancePublishedPort,
+	previousAPI, err := startInstance(t, docker, containers.RunSpec{
+		Name:          resources.previousContainerName,
+		Image:         spec.previousImage,
+		Entrypoint:    nil,
+		Env:           nil,
+		Mount:         resources.volumeName + ":" + instanceDataPath,
+		NetworkName:   resources.networkName,
+		NetworkAlias:  resources.previousContainerName,
+		PublishedPort: instancePublishedPort,
 	})
 	if err != nil {
 		return writtenUpgradeData{}, err
@@ -171,7 +172,7 @@ func writeThroughPreviousRelease(
 
 	writtenData, err := writeUpgradeData(t, previousAPI, sourceHostPort)
 	if err != nil {
-		return writtenUpgradeData{}, docker.withLogTail(t.Context(), resources.previousContainerName,
+		return writtenUpgradeData{}, docker.WithLogTail(t.Context(), resources.previousContainerName,
 			fmt.Errorf("write through the previous release: %w", err))
 	}
 
@@ -190,15 +191,15 @@ func checkThroughCurrentCode(
 
 	ctx := t.Context()
 
-	currentAPI, err := startInstance(t, docker, containerSpec{
-		name:          resources.currentContainerName,
-		image:         spec.currentImage,
-		entrypoint:    spec.currentEntrypoint,
-		env:           nil,
-		volumeMount:   resources.volumeName + ":" + instanceDataPath,
-		networkName:   resources.networkName,
-		networkAlias:  resources.currentContainerName,
-		publishedPort: instancePublishedPort,
+	currentAPI, err := startInstance(t, docker, containers.RunSpec{
+		Name:          resources.currentContainerName,
+		Image:         spec.currentImage,
+		Entrypoint:    spec.currentEntrypoint,
+		Env:           nil,
+		Mount:         resources.volumeName + ":" + instanceDataPath,
+		NetworkName:   resources.networkName,
+		NetworkAlias:  resources.currentContainerName,
+		PublishedPort: instancePublishedPort,
 	})
 	if err != nil {
 		return err
@@ -206,20 +207,20 @@ func checkThroughCurrentCode(
 
 	listedItems, err := readUpgradeData(ctx, currentAPI)
 	if err != nil {
-		return docker.withLogTail(ctx, resources.currentContainerName, err)
+		return docker.WithLogTail(ctx, resources.currentContainerName, err)
 	}
 
 	verificationItems, err := readVerificationItems(ctx, currentAPI, verificationReferences{
 		databaseID: writtenData.databaseIDs[databaseName], verificationID: writtenData.verificationID,
 	})
 	if err != nil {
-		return docker.withLogTail(ctx, resources.currentContainerName, err)
+		return docker.WithLogTail(ctx, resources.currentContainerName, err)
 	}
 	listedItems = append(listedItems, verificationItems...)
 
 	healthcheckItems, err := readHealthcheckItems(ctx, currentAPI, writtenData.databaseIDs[databaseName])
 	if err != nil {
-		return docker.withLogTail(ctx, resources.currentContainerName, err)
+		return docker.WithLogTail(ctx, resources.currentContainerName, err)
 	}
 	listedItems = append(listedItems, healthcheckItems...)
 
@@ -230,12 +231,17 @@ func checkThroughCurrentCode(
 
 	err = checkPhysicalBackup(ctx, currentAPI, writtenData)
 	if err != nil {
-		return docker.withLogTail(ctx, resources.currentContainerName, err)
+		return docker.WithLogTail(ctx, resources.currentContainerName, err)
 	}
 
 	err = checkStoredCredentials(ctx, currentAPI, writtenData.databaseIDs)
 	if err != nil {
-		return docker.withLogTail(ctx, resources.currentContainerName, err)
+		return docker.WithLogTail(ctx, resources.currentContainerName, err)
+	}
+
+	err = checkInstanceBackupDefaults(ctx, currentAPI)
+	if err != nil {
+		return docker.WithLogTail(ctx, resources.currentContainerName, err)
 	}
 
 	err = createRestoredDatabase(ctx, sourceHostPort)
@@ -245,7 +251,7 @@ func checkThroughCurrentCode(
 
 	err = restoreBackup(t, currentAPI, writtenData.backupID)
 	if err != nil {
-		return docker.withLogTail(ctx, resources.currentContainerName, err)
+		return docker.WithLogTail(ctx, resources.currentContainerName, err)
 	}
 
 	if err := checkRestoredRows(ctx, sourceHostPort); err != nil {
@@ -269,10 +275,10 @@ func checkThroughCurrentCode(
 
 // startInstance starts a Databasus container and waits until it answers its health check. When it
 // stops during start-up or never answers, the error carries the end of its log.
-func startInstance(t *testing.T, docker *dockerHost, spec containerSpec) (*apiClient, error) {
+func startInstance(t *testing.T, docker *dockerHost, spec containers.RunSpec) (*apiClient, error) {
 	t.Helper()
 
-	err := docker.startContainer(t.Context(), spec)
+	err := docker.StartContainer(t.Context(), spec)
 	if err != nil {
 		return nil, err
 	}
@@ -283,29 +289,29 @@ func startInstance(t *testing.T, docker *dockerHost, spec containerSpec) (*apiCl
 	)
 
 	err = testwait.Within(startupLimit).
-		Poll(t, "instance "+spec.name+" to answer its health check", func(ctx context.Context) error {
-			state, stateErr := docker.getContainerState(ctx, spec.name, instancePublishedPort)
+		Poll(t, "instance "+spec.Name+" to answer its health check", func(ctx context.Context) error {
+			state, stateErr := docker.GetContainerState(ctx, spec.Name, instancePublishedPort)
 			if stateErr != nil {
 				return stateErr
 			}
 
-			if !state.isRunning {
+			if !state.IsRunning {
 				hasExited = true
 
 				return nil
 			}
 
-			hostPort = state.hostPort
+			hostPort = state.HostPort
 
 			return newAPIClient(hostPort).get(ctx, "/system/health", nil)
 		})
 	if err != nil {
-		return nil, docker.withLogTail(t.Context(), spec.name, err)
+		return nil, docker.WithLogTail(t.Context(), spec.Name, err)
 	}
 
 	if hasExited {
-		return nil, docker.withLogTail(t.Context(), spec.name,
-			fmt.Errorf("%w: %s from %s", errInstanceExited, spec.name, spec.image))
+		return nil, docker.WithLogTail(t.Context(), spec.Name,
+			fmt.Errorf("%w: %s from %s", errInstanceExited, spec.Name, spec.Image))
 	}
 
 	return newAPIClient(hostPort), nil

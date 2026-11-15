@@ -395,6 +395,7 @@ describe('Database notifier creation composition', () => {
       const targetStorage = {
         id: 'target-storage',
         workspaceId: targetWorkspaceId,
+        recoveryValidationStatus: 'AVAILABLE' as const,
         name: 'Target disk',
         settings: { type: 'LOCAL' as const },
       };

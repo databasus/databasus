@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"databasus-backend/internal/app"
@@ -22,6 +23,7 @@ import (
 	"databasus-backend/internal/lib/config"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/logging"
+	"databasus-backend/internal/lib/mailer"
 	"databasus-backend/internal/lib/testdb"
 	"databasus-backend/internal/lib/testwait"
 )
@@ -48,6 +50,8 @@ type App struct {
 	cancelPhysicalLoops       context.CancelFunc
 	physicalRunner            *background.Runner
 	physicalBackupStopTimeout time.Duration
+	pausedRecoveryID          uuid.UUID
+	recoveryStateDirectory    string
 }
 
 // backupRunsWaitTimeout bounds the wait for the backup runs a test leaves behind; a run whose context
@@ -62,15 +66,18 @@ func New(tb testing.TB, options ...Option) *App {
 		isPhysicalBackupLoopsEnabled: false,
 		physicalBackupStopTimeout:    2 * time.Minute,
 		isMailServerMissing:          false,
+		instanceMailServer:           nil,
 		isTurnstileEnabled:           false,
 		isGitHubEnabled:              false,
 		isGoogleEnabled:              false,
+		isRecoveryPaused:             false,
 		publicURL:                    "",
 		clientToolsDir:               "",
 		agentBinariesDir:             "",
 		logSink:                      nil,
 		walStreamTimings:             nil,
 		storageFileTimings:           nil,
+		inspectDisk:                  nil,
 		notificationDeliveryTimeout:  0,
 		// A test never reaches the real Slack or Telegram: an unset address points at a host that
 		// does not resolve.
@@ -93,7 +100,15 @@ func New(tb testing.TB, options ...Option) *App {
 	}
 
 	appConfig := newConfig(tb, databaseDsn)
+
+	pausedRecoveryID := uuid.Nil
+	if applied.isRecoveryPaused {
+		pausedRecoveryID = pauseByCompletedRecovery(tb, databaseDsn, appConfig.RecoveryStateDirectory)
+	}
 	appConfig.DatabasusURL = applied.publicURL
+	if applied.recoveryMaxArchiveBytes > 0 {
+		appConfig.RecoveryMaxArchiveBytes = applied.recoveryMaxArchiveBytes
+	}
 	appConfig.IsDisableAnonymousTelemetry = !applied.isTelemetryEnabled
 	if applied.telemetryIdentityPath != "" {
 		appConfig.TelemetryInstancePath = applied.telemetryIdentityPath
@@ -175,12 +190,23 @@ func New(tb testing.TB, options ...Option) *App {
 		environment.StorageFileTimings = *applied.storageFileTimings
 	}
 
+	if applied.inspectDisk != nil {
+		environment.InspectDisk = applied.inspectDisk
+	}
+
 	if applied.walStreamTimings != nil {
 		environment.WalStreamTimings = *applied.walStreamTimings
 	}
 
 	mailRecorder := newMailRecorder(!applied.isMailServerMissing)
 	environment.Mailer = mailRecorder
+
+	if applied.instanceMailServer != nil {
+		environment.Mailer = mailer.NewInstanceSender(mailer.Deps{
+			Settings: *applied.instanceMailServer,
+			Logger:   environment.Logging.GetLogger(),
+		})
+	}
 
 	createdApp, err := app.New(tb.Context(), environment)
 	if err != nil {
@@ -216,6 +242,8 @@ func New(tb testing.TB, options ...Option) *App {
 		cancelPhysicalLoops:       nil,
 		physicalRunner:            nil,
 		physicalBackupStopTimeout: applied.physicalBackupStopTimeout,
+		pausedRecoveryID:          pausedRecoveryID,
+		recoveryStateDirectory:    appConfig.RecoveryStateDirectory,
 	}
 	if applied.isPhysicalBackupLoopsEnabled {
 		testApp.startPhysicalLoops(tb)
@@ -230,7 +258,13 @@ func New(tb testing.TB, options ...Option) *App {
 func (a *App) ExecuteSQL(tb testing.TB, statement string, values ...any) {
 	tb.Helper()
 
-	db, err := database.Open(tb.Context(), a.databaseDsn)
+	executeOnDatabase(tb, a.databaseDsn, statement, values...)
+}
+
+func executeOnDatabase(tb testing.TB, databaseDsn, statement string, values ...any) {
+	tb.Helper()
+
+	db, err := database.Open(tb.Context(), databaseDsn)
 	if err != nil {
 		tb.Fatalf("open the database of the test application: %v", err)
 	}

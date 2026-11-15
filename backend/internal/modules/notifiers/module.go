@@ -15,6 +15,7 @@ import (
 	"databasus-backend/internal/lib/audit"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/lib/recoverypause"
 	"databasus-backend/internal/modules/notifiers/internal/delivery"
 	notifiershttpapi "databasus-backend/internal/modules/notifiers/internal/httpapi"
 	"databasus-backend/internal/modules/notifiers/internal/module"
@@ -96,6 +97,8 @@ type Deps struct {
 	// PublicURL is the address of the instance, from which the default SMTP greeting takes its
 	// host; empty when the operator set none.
 	PublicURL string
+	// RecoveryPause drops notifications and refuses test sends while a recovered instance is paused.
+	RecoveryPause *recoverypause.Gate
 }
 
 func New(deps Deps) Module {
@@ -157,19 +160,21 @@ func New(deps Deps) Module {
 		Notifiers: notifierService,
 		Transfers: transferService,
 		Delivery: delivery.New(delivery.Deps{
-			Notifiers: notifierService,
-			Registry:  registry,
-			Logger:    deps.Logger,
-			Timeout:   deps.DeliveryTimeout,
+			Notifiers:     notifierService,
+			Registry:      registry,
+			Logger:        deps.Logger,
+			Timeout:       deps.DeliveryTimeout,
+			RecoveryPause: deps.RecoveryPause,
 		}),
 		Handler: notifiershttpapi.NewHandler(notifiershttpapi.Deps{
 			Notifiers: notifierService,
 			Transfers: transferService,
 			TestSends: notifier.NewTestSendService(notifier.TestSendServiceDeps{
-				Notifiers:  notifierService,
-				Registry:   registry,
-				Workspaces: deps.Workspaces,
-				Timeout:    deps.DeliveryTimeout,
+				Notifiers:     notifierService,
+				Registry:      registry,
+				Workspaces:    deps.Workspaces,
+				Timeout:       deps.DeliveryTimeout,
+				RecoveryPause: deps.RecoveryPause,
 			}),
 		}),
 	})

@@ -23,7 +23,7 @@ func (s *Service) ClaimVerification(
 		)
 	}
 
-	if !hasFreshAcceptedHeartbeat(agent, s.clock.Now()) {
+	if !hasFreshAcceptedHeartbeat(agent, s.clock.Now()) || s.recoveryPause.IsPaused() {
 		return nil, nil
 	}
 

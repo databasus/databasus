@@ -10,6 +10,8 @@ import (
 	"github.com/moby/moby/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 type retirementScenario struct {
@@ -26,15 +28,15 @@ func runRetirementScenario(t *testing.T, scenario retirementScenario) {
 	require.NoError(t, err)
 	docker, err := newDockerHost()
 	require.NoError(t, err)
-	t.Cleanup(docker.close)
+	t.Cleanup(docker.Close)
 	t.Cleanup(func() {
 		cleanupCtx, cancelCleanup := context.WithTimeout(context.WithoutCancel(t.Context()), cleanupTimeout)
 		defer cancelCleanup()
 		require.NoError(t, docker.removeResources(cleanupCtx, resources))
 	})
 
-	require.NoError(t, docker.createNetwork(t.Context(), resources.networkName))
-	require.NoError(t, docker.createVolume(t.Context(), resources.volumeName))
+	require.NoError(t, docker.CreateNetwork(t.Context(), resources.networkName))
+	require.NoError(t, docker.CreateVolume(t.Context(), resources.volumeName))
 
 	previousAPI := startRetirementInstance(t, docker, retirementInstanceSpec{
 		resources: resources, image: scenario.image, name: resources.previousContainerName,
@@ -94,7 +96,7 @@ func runRetirementScenario(t *testing.T, scenario retirementScenario) {
 
 	originalSupportedSecrets := getSupportedRetirementSecrets(t, docker, resources.previousContainerName)
 
-	require.NoError(t, docker.stopContainer(t.Context(), resources.previousContainerName))
+	require.NoError(t, docker.StopContainer(t.Context(), resources.previousContainerName))
 	removeRetirementContainer(t, docker, resources.previousContainerName)
 
 	originalSnapshot := getStoppedRetirementSnapshot(
@@ -109,11 +111,11 @@ func runRetirementScenario(t *testing.T, scenario retirementScenario) {
 		) || strings.Contains(originalSnapshot, retirementRcloneSecret)
 	assert.False(t, hasPlaintextCredentials)
 
-	_, err = startInstance(t, docker, containerSpec{
-		name: resources.currentContainerName, image: currentImage, entrypoint: nil, env: nil,
-		volumeMount: resources.volumeName + ":" + instanceDataPath,
-		networkName: resources.networkName, networkAlias: resources.currentContainerName,
-		publishedPort: instancePublishedPort,
+	_, err = startInstance(t, docker, containers.RunSpec{
+		Name: resources.currentContainerName, Image: currentImage, Entrypoint: nil, Env: nil,
+		Mount:       resources.volumeName + ":" + instanceDataPath,
+		NetworkName: resources.networkName, NetworkAlias: resources.currentContainerName,
+		PublishedPort: instancePublishedPort,
 	})
 
 	require.ErrorIs(t, err, errInstanceExited)
@@ -162,7 +164,7 @@ func runRetirementScenario(t *testing.T, scenario retirementScenario) {
 		require.NoError(t, previousAPI.send(t.Context(), http.MethodDelete, "/storages/"+storageID, nil, nil))
 	}
 
-	require.NoError(t, docker.stopContainer(t.Context(), resources.previousContainerName))
+	require.NoError(t, docker.StopContainer(t.Context(), resources.previousContainerName))
 	removeRetirementContainer(t, docker, resources.previousContainerName)
 
 	currentAPI := startRetirementInstance(t, docker, retirementInstanceSpec{
@@ -180,7 +182,7 @@ func runRetirementScenario(t *testing.T, scenario retirementScenario) {
 		}
 	}
 
-	schemaState, err := docker.executeRetirementCommand(
+	schemaState, err := docker.Execute(
 		t.Context(),
 		resources.currentContainerName,
 		[]string{
@@ -206,11 +208,11 @@ type retirementInstanceSpec struct {
 func startRetirementInstance(t *testing.T, docker *dockerHost, spec retirementInstanceSpec) *apiClient {
 	t.Helper()
 
-	api, err := startInstance(t, docker, containerSpec{
-		name: spec.name, image: spec.image, entrypoint: nil,
-		env:         []string{"IS_DISABLE_ANONYMOUS_TELEMETRY=true"},
-		volumeMount: spec.resources.volumeName + ":" + instanceDataPath,
-		networkName: spec.resources.networkName, networkAlias: spec.name, publishedPort: instancePublishedPort,
+	api, err := startInstance(t, docker, containers.RunSpec{
+		Name: spec.name, Image: spec.image, Entrypoint: nil,
+		Env:         []string{"IS_DISABLE_ANONYMOUS_TELEMETRY=true"},
+		Mount:       spec.resources.volumeName + ":" + instanceDataPath,
+		NetworkName: spec.resources.networkName, NetworkAlias: spec.name, PublishedPort: instancePublishedPort,
 	})
 	require.NoError(t, err)
 

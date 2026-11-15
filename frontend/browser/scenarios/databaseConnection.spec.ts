@@ -18,6 +18,7 @@ const TYPED_SSH_PASSWORD = 'typed-ssh-password-value';
 const storage: components['schemas']['Storage'] = {
   id: 'archive-id',
   workspaceId: workspace.id,
+  recoveryValidationStatus: 'AVAILABLE',
   name: 'Archive',
   settings: { type: 'LOCAL' },
 };

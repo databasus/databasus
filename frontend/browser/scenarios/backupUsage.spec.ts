@@ -13,6 +13,7 @@ for (const kind of ['logical', 'physical', 'storage'] as const) {
     const storage: components['schemas']['Storage'] = {
       id: 'archive-id',
       workspaceId: workspace.id,
+      recoveryValidationStatus: 'AVAILABLE',
       name: 'Backup archive',
       settings: { type: 'LOCAL' },
     };

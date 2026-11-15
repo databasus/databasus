@@ -4,6 +4,7 @@ package module
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -13,6 +14,7 @@ import (
 	"databasus-backend/internal/modules/users/internal/accounts"
 	usershttpapi "databasus-backend/internal/modules/users/internal/httpapi"
 	"databasus-backend/internal/modules/users/internal/identity"
+	"databasus-backend/internal/modules/users/internal/identityproof"
 	"databasus-backend/internal/modules/users/internal/passwordreset"
 	"databasus-backend/internal/modules/users/internal/settings"
 	"databasus-backend/internal/modules/users/internal/signin"
@@ -24,6 +26,7 @@ type Deps struct {
 	PasswordReset *passwordreset.Service
 	Settings      *settings.Service
 	SignIn        *signin.Service
+	IdentityProof *identityproof.Service
 	Access        *usershttpapi.Access
 	Handler       *usershttpapi.Handler
 	Logger        *slog.Logger
@@ -35,6 +38,7 @@ type Module struct {
 	passwordReset *passwordreset.Service
 	settings      *settings.Service
 	signIn        *signin.Service
+	identityProof *identityproof.Service
 	access        *usershttpapi.Access
 	handler       *usershttpapi.Handler
 	logger        *slog.Logger
@@ -47,6 +51,7 @@ func New(deps Deps) *Module {
 		passwordReset: deps.PasswordReset,
 		settings:      deps.Settings,
 		signIn:        deps.SignIn,
+		identityProof: deps.IdentityProof,
 		access:        deps.Access,
 		handler:       deps.Handler,
 		logger:        deps.Logger,
@@ -79,6 +84,35 @@ func (m *Module) GetUser(ctx context.Context, userID uuid.UUID) (identity.User, 
 
 func (m *Module) GetUsers(ctx context.Context, userIDs []uuid.UUID) ([]identity.User, error) {
 	return m.directory.GetUsers(ctx, userIDs)
+}
+
+func (m *Module) RequireRootAdmin(ctx context.Context, actor identity.Actor) (identity.User, error) {
+	return m.directory.RequireRootAdmin(ctx, actor)
+}
+
+func (m *Module) GetRootAdmin(ctx context.Context) (identity.User, bool, error) {
+	return m.directory.GetRootAdmin(ctx)
+}
+
+func (m *Module) GetIdentityProofMethods(ctx context.Context, actor identity.Actor) ([]identityproof.Method, error) {
+	return m.identityProof.GetMethods(ctx, actor)
+}
+
+func (m *Module) SendIdentityCode(
+	ctx context.Context,
+	actor identity.Actor,
+	binding identityproof.Binding,
+) (time.Time, error) {
+	return m.identityProof.SendCode(ctx, actor, binding)
+}
+
+func (m *Module) VerifyIdentityProof(
+	ctx context.Context,
+	actor identity.Actor,
+	binding identityproof.Binding,
+	proof identityproof.Proof,
+) error {
+	return m.identityProof.Verify(ctx, actor, binding, proof)
 }
 
 func (m *Module) GetUserByEmail(ctx context.Context, email string) (identity.User, bool, error) {

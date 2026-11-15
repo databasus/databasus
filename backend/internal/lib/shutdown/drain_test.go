@@ -21,8 +21,10 @@ func TestDrain(t *testing.T) {
 		var flushCount atomic.Int32
 
 		drainStartedAt := time.Now()
-		Drain(t.Context(), newTestDrainSpec(&flushCount, 6*time.Second, func(context.Context) error { return nil }))
+		isDrained := Drain(t.Context(), newTestDrainSpec(&flushCount, 6*time.Second,
+			func(context.Context) error { return nil }))
 
+		assert.True(t, isDrained)
 		assert.Less(t, time.Since(drainStartedAt), time.Second)
 		assert.Equal(t, int32(1), flushCount.Load())
 	})
@@ -35,13 +37,14 @@ func TestDrain(t *testing.T) {
 		t.Cleanup(func() { close(release) })
 
 		drainStartedAt := time.Now()
-		Drain(t.Context(), newTestDrainSpec(&flushCount, drainTimeout, func(context.Context) error {
+		isDrained := Drain(t.Context(), newTestDrainSpec(&flushCount, drainTimeout, func(context.Context) error {
 			<-release
 
 			return nil
 		}))
 
 		drainDuration := time.Since(drainStartedAt)
+		assert.False(t, isDrained)
 		assert.GreaterOrEqual(t, drainDuration, drainTimeout)
 		assert.Less(t, drainDuration, drainTimeout+time.Second)
 		assert.Equal(t, int32(1), flushCount.Load())
@@ -54,14 +57,29 @@ func TestDrain(t *testing.T) {
 		stoppedCtx, stop := context.WithCancel(t.Context())
 		stop()
 
-		Drain(stoppedCtx, newTestDrainSpec(&flushCount, time.Second, func(stepCtx context.Context) error {
+		isDrained := Drain(stoppedCtx, newTestDrainSpec(&flushCount, time.Second, func(stepCtx context.Context) error {
 			isStepContextAlive.Store(stepCtx.Err() == nil)
 
 			return errors.New("server forced to shut down")
 		}))
 
+		assert.False(t, isDrained)
 		assert.True(t, isStepContextAlive.Load())
 		assert.Equal(t, int32(1), flushCount.Load())
+	})
+}
+
+func TestDrainWithoutLogFlush(t *testing.T) {
+	t.Parallel()
+
+	t.Run("drains without flushing logs when the process goes on", func(t *testing.T) {
+		t.Parallel()
+		spec := newTestDrainSpec(new(atomic.Int32), time.Second, func(context.Context) error { return nil })
+		spec.FlushLogs = nil
+
+		isDrained := Drain(t.Context(), spec)
+
+		assert.True(t, isDrained)
 	})
 }
 

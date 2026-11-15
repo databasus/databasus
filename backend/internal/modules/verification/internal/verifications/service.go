@@ -10,6 +10,7 @@ import (
 	"databasus-backend/internal/lib/audit"
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/lib/recoverypause"
 	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
@@ -20,20 +21,24 @@ import (
 )
 
 type Deps struct {
-	Repositories Repositories
-	Agents       *agents.Service
-	Configs      *configs.Service
-	Transactor   *database.Transactor
-	Clock        clock.Source
-	AuditLog     *audit.Log
-	Users        users.Module
-	Workspaces   workspaces.Module
-	Databases    databases.Module
-	Backups      backups.Module
-	Notifiers    notifiers.Module
-	Logger       *slog.Logger
+	// RecoveryPause refuses starting verifications and hands agents no work while a recovered
+	// instance is paused.
+	RecoveryPause *recoverypause.Gate
+	Repositories  Repositories
+	Agents        *agents.Service
+	Configs       *configs.Service
+	Transactor    *database.Transactor
+	Clock         clock.Source
+	AuditLog      *audit.Log
+	Users         users.Module
+	Workspaces    workspaces.Module
+	Databases     databases.Module
+	Backups       backups.Module
+	Notifiers     notifiers.Module
+	Logger        *slog.Logger
 }
 type Service struct {
+	recoveryPause          *recoverypause.Gate
 	verificationRepository *verificationRepository
 	agents                 *agents.Service
 	configService          *configs.Service
@@ -50,6 +55,7 @@ type Service struct {
 
 func NewService(deps Deps) *Service {
 	return &Service{
+		recoveryPause:          deps.RecoveryPause,
 		verificationRepository: deps.Repositories.verifications,
 		agents:                 deps.Agents,
 		configService:          deps.Configs,
@@ -87,6 +93,10 @@ func (s *Service) StartVerification(ctx context.Context, actor users.Actor, back
 	database, err := s.authorizeDatabase(ctx, actor, backup.DatabaseID, workspaces.ActionEditContent)
 	if err != nil {
 		return nil, hideNotFound(err, ErrBackupNotFound)
+	}
+
+	if err := s.recoveryPause.Check(); err != nil {
+		return nil, err
 	}
 
 	if backup.Status != backups.LogicalBackupStatusCompleted {

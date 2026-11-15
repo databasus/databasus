@@ -1,6 +1,7 @@
 package apierror
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 
@@ -33,10 +34,21 @@ func (h *Hooks) HandleParameterError(ctx *gin.Context, err error, _ int) {
 	h.writeInvalidRequest(ctx, err)
 }
 
-// HandleHandlerError answers a Problem the service returned as it is, and anything else as 500.
+// statusClientClosedRequest is nginx's status for a request whose client left before the answer.
+// Nobody reads it; it keeps the access record below the 5xx failures that need attention.
+const statusClientClosedRequest = 499
+
+// HandleHandlerError answers a Problem the service returned as it is, a request its client
+// abandoned with 499, and anything else as 500.
 func (h *Hooks) HandleHandlerError(ctx *gin.Context, err error) {
 	if problem, isProblem := errors.AsType[*Problem](err); isProblem {
 		Write(ctx, problem)
+
+		return
+	}
+
+	if errors.Is(err, context.Canceled) && ctx.Request.Context().Err() != nil {
+		ctx.AbortWithStatus(statusClientClosedRequest)
 
 		return
 	}

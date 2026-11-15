@@ -50,6 +50,11 @@ func TestNew(t *testing.T) {
 		assert.Contains(t, err.Error(), strconv.Itoa(newerMigrationVersion))
 		assert.Contains(t, err.Error(), getNewestMigrationVersion(t))
 		assert.Contains(t, err.Error(), "after an upgrade is not supported")
+		assert.Contains(t, err.Error(), "it deletes every account, every setting, the master key")
+		assert.Contains(t, err.Error(), "sudo rm -rf -- ./databasus-data")
+		assert.Contains(t, err.Error(), "docker volume rm <data-volume>")
+		assert.Contains(t, err.Error(), "docker rm -f -v databasus")
+		assert.Contains(t, err.Error(), "If DATABASE_DSN points to an external database")
 	})
 
 	t.Run(

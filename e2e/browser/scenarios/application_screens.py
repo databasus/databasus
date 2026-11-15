@@ -3,16 +3,22 @@ import re
 from dataclasses import dataclass
 
 from api_response import get_api_object
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Locator, Page, expect
 
 GITHUB_REPOSITORY_ADDRESS = "https://api.github.com/repos/databasus/databasus"
 ADMINISTERS_NOTICE = "This is the first account on this instance, so it will administer it."
+
+
+MASTER_KEY_ONBOARDING_TITLE = "Save the master key"
+MASTER_KEY_REMINDER = "The master key is not saved yet"
+INSTANCE_BACKUP_STATUS_PATH = "/api/v1/instance-backup-statuses"
 
 
 @dataclass(frozen=True)
 class Account:
     email: str
     password: str
+    is_root_admin: bool = False
 
 
 def open_application(page: Page) -> None:
@@ -22,6 +28,12 @@ def open_application(page: Page) -> None:
         lambda route: route.fulfill(json={"tag_name": "dev"}),
     )
     page.goto("/")
+
+
+def application_banner(page: Page) -> Locator:
+    """A dialog header is a banner too, and dialogs are portalled to the end of the page, so the
+    application header is the first banner."""
+    return page.get_by_role("banner").first
 
 
 def register_first_account(page: Page, account: Account) -> None:
@@ -34,7 +46,8 @@ def register_first_account(page: Page, account: Account) -> None:
     page.get_by_label("Confirm password").fill(account.password)
     page.get_by_role("button", name="Sign up", exact=True).click()
 
-    expect(page.get_by_role("banner")).to_be_visible()
+    expect(application_banner(page)).to_be_visible()
+    defer_master_key_onboarding(page)
 
 
 def sign_in(page: Page, account: Account) -> None:
@@ -42,12 +55,56 @@ def sign_in(page: Page, account: Account) -> None:
     page.get_by_placeholder("********", exact=True).fill(account.password)
     page.get_by_role("button", name="Sign in", exact=True).click()
 
-    expect(page.get_by_role("banner")).to_be_visible()
+    expect(application_banner(page)).to_be_visible()
+    if account.is_root_admin:
+        defer_master_key_onboarding(page)
+
+
+def _is_master_key_acknowledged(page: Page) -> bool:
+    is_acknowledged = read_api(page, INSTANCE_BACKUP_STATUS_PATH).get("isMasterKeyAcknowledged")
+    assert isinstance(is_acknowledged, bool)
+    return is_acknowledged
+
+
+def defer_master_key_onboarding(page: Page) -> None:
+    """Root admin meets key onboarding on every sign-in until the key is acknowledged; deferring it
+    closes the dialog for this sign-in and leaves the smaller reminder."""
+    onboarding = page.get_by_role("dialog", name=MASTER_KEY_ONBOARDING_TITLE, exact=True)
+
+    if _is_master_key_acknowledged(page):
+        expect(onboarding).to_be_hidden()
+        return
+
+    expect(onboarding).to_be_visible()
+    expect(onboarding.get_by_text("This connection is not encrypted")).to_be_visible()
+    onboarding.get_by_role("button", name="Remind me later", exact=True).click()
+
+    expect(onboarding).to_be_hidden()
+    expect(page.get_by_text(MASTER_KEY_REMINDER, exact=True)).to_be_visible()
+
+
+def acknowledge_master_key(page: Page) -> None:
+    """Confirms through the rendered dialog that the key was saved from the host, so no browser,
+    including this one after a new sign-in, shows onboarding for that key again."""
+    reminder = page.get_by_text(MASTER_KEY_REMINDER, exact=True)
+
+    if _is_master_key_acknowledged(page):
+        expect(reminder).to_be_hidden()
+        return
+
+    page.get_by_role("button", name="Save master key", exact=True).click()
+    onboarding = page.get_by_role("dialog", name=MASTER_KEY_ONBOARDING_TITLE, exact=True)
+    expect(onboarding.get_by_text("Its location inside the container:")).to_be_visible()
+    onboarding.get_by_role("button", name="I saved the master key", exact=True).click()
+
+    expect(onboarding).to_be_hidden()
+    expect(reminder).to_be_hidden()
+    assert _is_master_key_acknowledged(page)
 
 
 def create_workspace(page: Page, name: str) -> None:
     workspace_selector = page.get_by_role("combobox", name="Selected workspace")
-    create_workspace_button = page.get_by_role("banner").get_by_role(
+    create_workspace_button = application_banner(page).get_by_role(
         "button", name="Create workspace", exact=True
     )
 

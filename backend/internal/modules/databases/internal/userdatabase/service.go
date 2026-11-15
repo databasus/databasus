@@ -14,6 +14,7 @@ import (
 	"databasus-backend/internal/lib/audit"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/logging"
+	"databasus-backend/internal/lib/recoverypause"
 	"databasus-backend/internal/modules/databases/internal/providers"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/users"
@@ -23,19 +24,23 @@ import (
 const maxDatabaseNameLength = 255
 
 type Deps struct {
-	Repositories Repositories
-	Registry     *providers.Registry
-	Transactor   *database.Transactor
-	Logger       *slog.Logger
-	AuditLog     *audit.Log
-	Users        users.Module
-	Workspaces   workspaces.Module
-	Notifiers    notifiers.Module
+	// RecoveryPause refuses deleting a database, whose replication slots the deletion drops on the
+	// source, while a recovered instance is paused.
+	RecoveryPause *recoverypause.Gate
+	Repositories  Repositories
+	Registry      *providers.Registry
+	Transactor    *database.Transactor
+	Logger        *slog.Logger
+	AuditLog      *audit.Log
+	Users         users.Module
+	Workspaces    workspaces.Module
+	Notifiers     notifiers.Module
 }
 
 // Service keeps databases with their provider settings and notifier attachments, and publishes the
 // events of their lifecycle in the transactions that change them.
 type Service struct {
+	recoveryPause            *recoverypause.Gate
 	repository               *databaseRepository
 	notifierAttachments      *notifierAttachmentRepository
 	registry                 *providers.Registry
@@ -52,6 +57,7 @@ type Service struct {
 
 func NewService(deps Deps) *Service {
 	return &Service{
+		recoveryPause:            deps.RecoveryPause,
 		repository:               deps.Repositories.databases,
 		notifierAttachments:      deps.Repositories.notifierAttachments,
 		registry:                 deps.Registry,

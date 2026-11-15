@@ -26,7 +26,9 @@ func NewSettingsReader(deps SettingsReaderDeps) *SettingsReader {
 	return &SettingsReader{repository: deps.Repositories.storages, registry: deps.Registry}
 }
 
-// GetSettings answers ErrStorageNotFound for a storage that does not exist.
+// GetSettings answers ErrStorageNotFound for a storage that does not exist and
+// ErrStorageUnavailable for a recovered storage not validated yet, so no file of it is written, read
+// or deleted.
 func (r *SettingsReader) GetSettings(ctx context.Context, storageID uuid.UUID) (providers.Settings, error) {
 	foundStorage, isFound, err := r.repository.get(ctx, storageID, noRowLock)
 	if err != nil {
@@ -35,6 +37,10 @@ func (r *SettingsReader) GetSettings(ctx context.Context, storageID uuid.UUID) (
 
 	if !isFound {
 		return nil, ErrStorageNotFound
+	}
+
+	if !foundStorage.IsAvailable() {
+		return nil, ErrStorageUnavailable
 	}
 
 	storageWithSettings, err := r.loadOne(ctx, foundStorage)

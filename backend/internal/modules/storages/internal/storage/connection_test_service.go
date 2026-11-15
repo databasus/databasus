@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"databasus-backend/internal/lib/recoverypause"
 	"databasus-backend/internal/modules/storages/internal/providers"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
@@ -14,6 +15,9 @@ type ConnectionTestServiceDeps struct {
 	Storages   *Service
 	Registry   *providers.Registry
 	Workspaces workspaces.Module
+	// RecoveryPause blocks every test while a recovered instance is paused, because the tests write
+	// probes to the storage.
+	RecoveryPause *recoverypause.Gate
 }
 
 // SettingsTest is a test of settings that are not saved. StorageID names the saved storage whose
@@ -25,17 +29,25 @@ type SettingsTest struct {
 }
 
 type ConnectionTestService struct {
-	storages   *Service
-	registry   *providers.Registry
-	workspaces workspaces.Module
+	storages      *Service
+	registry      *providers.Registry
+	workspaces    workspaces.Module
+	recoveryPause *recoverypause.Gate
 }
 
 func NewConnectionTestService(deps ConnectionTestServiceDeps) *ConnectionTestService {
-	return &ConnectionTestService{storages: deps.Storages, registry: deps.Registry, workspaces: deps.Workspaces}
+	return &ConnectionTestService{
+		storages:      deps.Storages,
+		registry:      deps.Registry,
+		workspaces:    deps.Workspaces,
+		recoveryPause: deps.RecoveryPause,
+	}
 }
 
 // TestStorage tests the stored settings. A viewer may test, as the settings never leave the backend
-// for anywhere but the storage itself.
+// for anywhere but the storage itself. A recovered local storage is also probed in its backup
+// folder, and an editor's successful test of unchanged settings makes it available; a viewer's
+// test of it stays diagnostic.
 func (s *ConnectionTestService) TestStorage(
 	ctx context.Context,
 	actor users.Actor,
@@ -46,12 +58,38 @@ func (s *ConnectionTestService) TestStorage(
 		return TestResult{}, err
 	}
 
+	if err := s.recoveryPause.Check(); err != nil {
+		return TestResult{}, err
+	}
+
 	testedStorageWithSettings, err := s.storages.settings.loadOne(ctx, testedStorage)
 	if err != nil {
 		return TestResult{}, err
 	}
 
-	return s.testConnection(ctx, providers.Location{StorageID: storageID, Settings: testedStorageWithSettings.Settings})
+	location := providers.Location{StorageID: storageID, Settings: testedStorageWithSettings.Settings}
+	status := testedStorage.RecoveryValidationStatus
+
+	provider, err := s.registry.GetProvider(location.Settings.GetType())
+	if err != nil {
+		return TestResult{}, err
+	}
+
+	if testedStorage.IsAvailable() {
+		return newTestResult(provider.TestConnection(ctx, location), &status), nil
+	}
+
+	testErr := testRecoveredConnection(ctx, provider, location)
+	isEditor := s.workspaces.Authorize(ctx, actor, testedStorage.WorkspaceID, workspaces.ActionEditContent) == nil
+
+	if testErr == nil && isEditor {
+		status, err = s.storages.markRecoveryValidated(ctx, actor, testedStorageWithSettings)
+		if err != nil {
+			return TestResult{}, err
+		}
+	}
+
+	return newTestResult(testErr, &status), nil
 }
 
 // TestSettings needs the right to change the workspace's content, because the test connects wherever
@@ -67,12 +105,21 @@ func (s *ConnectionTestService) TestSettings(
 		return TestResult{}, err
 	}
 
+	if err := s.recoveryPause.Check(); err != nil {
+		return TestResult{}, err
+	}
+
 	location, err := s.prepareLocation(ctx, settingsTest)
 	if err != nil {
 		return TestResult{}, err
 	}
 
-	return s.testConnection(ctx, location)
+	provider, err := s.registry.GetProvider(location.Settings.GetType())
+	if err != nil {
+		return TestResult{}, err
+	}
+
+	return newTestResult(provider.TestConnection(ctx, location), nil), nil
 }
 
 // prepareLocation refuses a named storage of another workspace as a missing one, and settings that a
@@ -112,13 +159,16 @@ func (s *ConnectionTestService) prepareLocation(
 	return providers.Location{StorageID: storedStorage.ID, Settings: mergedSettings}, nil
 }
 
-// testConnection answers the provider's refusal as the outcome of the test; each provider bounds its
-// own test with a deadline.
-func (s *ConnectionTestService) testConnection(ctx context.Context, location providers.Location) (TestResult, error) {
-	provider, err := s.registry.GetProvider(location.Settings.GetType())
-	if err != nil {
-		return TestResult{}, err
+// testRecoveredConnection adds the provider's recovery probe to its ordinary test. Both must pass.
+func testRecoveredConnection(ctx context.Context, provider providers.Provider, location providers.Location) error {
+	if err := provider.TestConnection(ctx, location); err != nil {
+		return err
 	}
 
-	return newTestResult(provider.TestConnection(ctx, location)), nil
+	validator, isValidator := provider.(providers.RecoveryValidator)
+	if !isValidator {
+		return nil
+	}
+
+	return validator.TestRecoveredConnection(ctx, location)
 }

@@ -4,8 +4,11 @@ import { useEffect, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { type InstanceSettings, type InstanceSettingsUpdate, settingsApi } from '@/entities/users';
+import type { Workspace } from '@/entities/workspaces';
+import { focusSettingsHeading } from '@/pages/instance-settings/lib/focusSettingsHeading';
+import { InstanceBackupsSection } from '@/pages/instance-settings/ui/instance-backups/InstanceBackupsSection';
 import { InstanceAuditLogs } from '@/pages/instance-settings/ui/InstanceAuditLogs';
-import { MailServer } from '@/pages/instance-settings/ui/MailServer';
+import { MAIL_SERVER_HEADING_ID, MailServer } from '@/pages/instance-settings/ui/MailServer';
 import { VerificationAgentsComponent } from '@/pages/instance-settings/ui/verification-agents/VerificationAgentsComponent';
 import { useSessionMutation } from '@/shared/api';
 import { useSessionQuery } from '@/shared/api';
@@ -17,6 +20,9 @@ import { useFeedback } from '@/shared/lib/feedback';
 import { LoadFailure } from '@/shared/ui';
 
 interface Props {
+  isRootAdmin: boolean;
+  workspaces?: Workspace[];
+  onWorkspaceCreated?: (workspace: Workspace) => void;
   onSettingsChanged?: (settings: InstanceSettings) => void;
 }
 
@@ -29,7 +35,12 @@ const toFormSettings = (settings: InstanceSettings): InstanceSettingsUpdate => (
   isTwoFactorAuthRequired: settings.isTwoFactorAuthRequired,
 });
 
-export function InstanceSettingsPage({ onSettingsChanged }: Props) {
+export function InstanceSettingsPage({
+  isRootAdmin,
+  workspaces = [],
+  onWorkspaceCreated,
+  onSettingsChanged,
+}: Props) {
   const updateSettingsMutation = useSessionMutation({
     mutationFn: (parameters: Parameters<typeof settingsApi.updateSettings>) =>
       settingsApi.updateSettings(...parameters),
@@ -340,6 +351,14 @@ export function InstanceSettingsPage({ onSettingsChanged }: Props) {
               <div className="mt-1 text-xs text-muted">{t('settings.healthcheck.description')}</div>
             </div>
           </div>
+
+          {isRootAdmin && (
+            <InstanceBackupsSection
+              workspaces={workspaces}
+              onWorkspaceCreated={(workspace) => onWorkspaceCreated?.(workspace)}
+              onConfigureSmtp={() => focusSettingsHeading(MAIL_SERVER_HEADING_ID)}
+            />
+          )}
 
           <VerificationAgentsComponent />
 

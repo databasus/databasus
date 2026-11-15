@@ -12,6 +12,7 @@ import (
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/lib/recoverypause"
 	"databasus-backend/internal/modules/backups/internal/auditing"
 	"databasus-backend/internal/modules/backups/internal/config"
 	"databasus-backend/internal/modules/backups/internal/physical/backuping"
@@ -29,6 +30,7 @@ import (
 )
 
 type Service struct {
+	recoveryPause        *recoverypause.Gate
 	usage                *usage.Service
 	backuping            *backuping.Service
 	cleaner              *retention.Cleaner

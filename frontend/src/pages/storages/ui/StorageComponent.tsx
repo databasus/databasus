@@ -20,9 +20,12 @@ import { ConfirmationComponent, LoadFailure } from '@/shared/ui';
 
 // eslint-disable-next-line i18next/no-literal-string -- API error code, not copy
 const STORAGE_IN_USE_CODE = 'in_use';
+// eslint-disable-next-line i18next/no-literal-string -- API error code, not copy
+const DATABASUS_BACKUP_IN_USE_CODE = 'databasus_backup_in_use';
 
 interface Props {
   onUnavailable?: () => void;
+  onOpenDatabasusBackups?: () => void;
   storageId: string;
   onStorageChanged: (storage: Storage) => void;
   onStorageDeleted: () => void;
@@ -32,6 +35,7 @@ interface Props {
 
 export const StorageComponent = ({
   onUnavailable,
+  onOpenDatabasusBackups,
   storageId,
   onStorageChanged,
   onStorageDeleted,
@@ -55,6 +59,9 @@ export const StorageComponent = ({
   const [actionError, setError] = useState<unknown>();
   const [connectionError, setConnectionError] = useState<string>();
   const [isDeleteBlocked, setIsDeleteBlocked] = useState(false);
+  const [validationOutcome, setValidationOutcome] = useState<
+    'validated' | 'not-validated' | 'viewer-not-validated'
+  >();
   const client = useQueryClient();
   const query = useSessionQuery({
     queryKey: ['storage', storageId],
@@ -65,6 +72,8 @@ export const StorageComponent = ({
     query.error instanceof ApiError && [403, 404].includes(query.error.status ?? 0);
   const storage = isAccessRefused || isUnavailable ? undefined : query.data;
   const error = actionError ?? query.error ?? undefined;
+  const isDatabasusBackupDestination =
+    error instanceof ApiError && error.code === DATABASUS_BACKUP_IN_USE_CODE;
   const setStorage = (resource: Storage) => {
     void client.cancelQueries({ queryKey: query.queryKey, exact: true });
     client.setQueryData(query.queryKey, resource);
@@ -96,13 +105,26 @@ export const StorageComponent = ({
 
     setError(undefined);
     setConnectionError(undefined);
+    setValidationOutcome(undefined);
     setIsDeleteBlocked(false);
 
     try {
+      const isValidationRequired = storage.recoveryValidationStatus === 'REQUIRES_VALIDATION';
       const testResult = await testStorageMutation.mutateAsync([storage.id]);
       if (!isActive()) return;
 
-      if (testResult.isConnected) {
+      if (testResult.isConnected && isValidationRequired) {
+        const refreshed = await query.refetch();
+        if (!isActive()) return;
+
+        setValidationOutcome(
+          refreshed.data?.recoveryValidationStatus === 'AVAILABLE'
+            ? 'validated'
+            : isCanManageStorages
+              ? 'not-validated'
+              : 'viewer-not-validated',
+        );
+      } else if (testResult.isConnected) {
         notify({
           kind: 'success',
           title: t('storages.connectionTestSucceeded.title'),
@@ -276,7 +298,13 @@ export const StorageComponent = ({
                 <CircleAlert aria-hidden size={16} className="inline-block shrink-0 align-middle" />
               }
               title={translateApiError(error, t)}
-            />
+            >
+              {isDatabasusBackupDestination && onOpenDatabasusBackups && (
+                <Button size="xs" variant="outline" onClick={onOpenDatabasusBackups}>
+                  {t('storages.config.openDatabasusBackups')}
+                </Button>
+              )}
+            </Alert>
           ) : (
             <LoadFailure error={error} onRetry={loadSettings} />
           ))}
@@ -285,6 +313,25 @@ export const StorageComponent = ({
             color="danger"
             title={t('storages.connectionTestFailed', { error: connectionError })}
           />
+        )}
+        {storage?.recoveryValidationStatus === 'REQUIRES_VALIDATION' && (
+          <Alert color="warning" title={t('storages.recoveryValidation.title')}>
+            <p>{t('storages.recoveryValidation.description')}</p>
+            <p className="mt-1">
+              {isCanManageStorages
+                ? t('storages.recoveryValidation.editorAction')
+                : t('storages.recoveryValidation.viewerAction')}
+            </p>
+          </Alert>
+        )}
+        {validationOutcome === 'validated' && (
+          <Alert color="success" title={t('storages.recoveryValidation.validated')} />
+        )}
+        {validationOutcome === 'not-validated' && (
+          <Alert color="warning" title={t('storages.recoveryValidation.notValidated')} />
+        )}
+        {validationOutcome === 'viewer-not-validated' && (
+          <Alert color="warning" title={t('storages.recoveryValidation.viewerConnected')} />
         )}
         {isDeleteBlocked && (
           <Alert color="danger" title={t('storages.config.removeBlockedByBackups')} />
@@ -478,7 +525,13 @@ export const StorageComponent = ({
                 <CircleAlert aria-hidden size={16} className="inline-block shrink-0 align-middle" />
               }
               title={translateApiError(error, t)}
-            />
+            >
+              {isDatabasusBackupDestination && onOpenDatabasusBackups && (
+                <Button size="xs" variant="outline" onClick={onOpenDatabasusBackups}>
+                  {t('storages.config.openDatabasusBackups')}
+                </Button>
+              )}
+            </Alert>
           )}
           {isDeleteBlocked && (
             <Alert

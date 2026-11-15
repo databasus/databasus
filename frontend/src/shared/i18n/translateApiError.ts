@@ -47,6 +47,14 @@ const CONTRACT_ERROR_CODE_KEYS = {
   not_running: 'errors.notRunning',
   instance_unhealthy: 'errors.instanceUnhealthy',
   insufficient_disk_space: 'errors.insufficientDiskSpace',
+  databasus_backup_in_use: 'errors.databasusBackupInUse',
+  recovery_paused: 'errors.recoveryPaused',
+  storage_unavailable: 'errors.storageUnavailable',
+  recovery_incompatible: 'errors.recoveryIncompatible',
+  recovery_not_ready: 'errors.recoveryNotReady',
+  identity_proof_invalid: 'errors.identityProofInvalid',
+  identity_proof_unavailable: 'errors.identityProofUnavailable',
+  archive_too_large: 'errors.archiveTooLarge',
   internal: 'errors.internal',
 } as const satisfies Record<ApiComponents['schemas']['ProblemCode'], TranslationKey>;
 

@@ -28,7 +28,9 @@ const openSettings = async (onSettingsChanged = vi.fn(), initialSettings = setti
     mockApi.get('/verification-agents', 200, { items: [] }),
     mockApi.get('/audit-events', 200, { items: [] }),
   );
-  const view = renderScreen(<InstanceSettingsPage onSettingsChanged={onSettingsChanged} />);
+  const view = renderScreen(
+    <InstanceSettingsPage isRootAdmin={false} onSettingsChanged={onSettingsChanged} />,
+  );
   await screen.findByRole('switch', { name: DICTIONARIES.en.settings.externalRegistrations.title });
   return view;
 };
@@ -230,7 +232,7 @@ it('recovers the settings form when the initial request is retried after a refus
     mockApi.get('/audit-events', 200, { items: [] }),
   );
 
-  const { user } = renderScreen(<InstanceSettingsPage />);
+  const { user } = renderScreen(<InstanceSettingsPage isRootAdmin={false} />);
   const retry = await screen.findByRole('button', { name: 'Retry' });
   server.use(mockApi.get('/instance-settings', 200, settings));
   await user.click(retry);
@@ -260,7 +262,7 @@ it('retains settings edits and translates the refusal when language changes duri
   const { user } = renderScreen(
     <>
       <LanguageThemeControlComponent />
-      <InstanceSettingsPage />
+      <InstanceSettingsPage isRootAdmin={false} />
     </>,
   );
 

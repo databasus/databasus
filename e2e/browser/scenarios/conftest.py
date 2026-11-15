@@ -18,9 +18,9 @@ def browser() -> Iterator[Browser]:
         connected_browser.close()
 
 
-def _new_page(browser: Browser) -> Page:
+def _new_page(browser: Browser, base_url: str | None = None) -> Page:
     context = browser.new_context(
-        base_url=os.environ["E2E_BASE_URL"],
+        base_url=base_url or os.environ["E2E_BASE_URL"],
         locale="en-US",
         timezone_id="UTC",
         viewport={"width": 1280, "height": 900},
@@ -33,7 +33,7 @@ def _new_page(browser: Browser) -> Page:
 @pytest.fixture(scope="session")
 def instance_admin(browser: Browser) -> Account:
     registering_page = _new_page(browser)
-    account = Account(os.environ["E2E_EMAIL"], os.environ["E2E_PASSWORD"])
+    account = Account(os.environ["E2E_EMAIL"], os.environ["E2E_PASSWORD"], is_root_admin=True)
 
     open_application(registering_page)
     register_first_account(registering_page, account)
@@ -49,3 +49,13 @@ def page(browser: Browser, instance_admin: Account) -> Iterator[Page]:
     yield scenario_page
 
     scenario_page.context.close()
+
+
+@pytest.fixture
+def recovery_target_page(browser: Browser) -> Iterator[Page]:
+    """A page of the separately initialized installation that a recovery replaces."""
+    target_page = _new_page(browser, os.environ["E2E_TARGET_BASE_URL"])
+
+    yield target_page
+
+    target_page.context.close()

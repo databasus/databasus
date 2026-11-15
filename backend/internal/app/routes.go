@@ -47,6 +47,7 @@ func (a *App) registerContractRoutes(router *gin.Engine) error {
 	a.backupsModule.RegisterRoutes(contractRoutes, errorHooks)
 	a.verificationModule.RegisterRoutes(contractRoutes, errorHooks)
 	a.healthcheckModule.RegisterRoutes(contractRoutes, errorHooks)
+	a.instanceBackups.RegisterRoutes(contractRoutes, errorHooks)
 
 	systemHandler := systemhttpapi.NewHandler(systemhttpapi.Deps{
 		Version:         a.environment.Config.AppVersion,

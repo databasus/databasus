@@ -8,6 +8,8 @@ import { type ApiComponents } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { getWebsitePageUrl, translateApiError, useLocale } from '@/shared/i18n';
 import { useFeedback } from '@/shared/lib/feedback';
+export const MAIL_SERVER_HEADING_ID = 'mail-server';
+
 interface Props {
   isEmailConfigured: boolean;
 }
@@ -53,8 +55,10 @@ export function MailServer({ isEmailConfigured }: Props) {
   const { locale } = useLocale();
   const notify = useFeedback();
   return (
-    <section className="my-8 max-w-2xl text-sm">
-      <h2 className="mb-3 text-xl font-bold">{t('settings.mailServer.title')}</h2>
+    <section className="my-8 max-w-2xl text-sm" aria-labelledby={MAIL_SERVER_HEADING_ID}>
+      <h2 id={MAIL_SERVER_HEADING_ID} tabIndex={-1} className="mb-3 text-xl font-bold">
+        {t('settings.mailServer.title')}
+      </h2>
 
       <div className="text-content">
         {isEmailConfigured ? (

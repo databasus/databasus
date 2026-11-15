@@ -20,12 +20,14 @@ import (
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/lib/recoverypause"
 	"databasus-backend/internal/lib/shutdown"
 	"databasus-backend/internal/modules/backups/internal/auditing"
 	"databasus-backend/internal/modules/backups/internal/config"
 	"databasus-backend/internal/modules/backups/internal/configsave"
 	"databasus-backend/internal/modules/backups/internal/download"
 	backupshttpapi "databasus-backend/internal/modules/backups/internal/httpapi"
+	"databasus-backend/internal/modules/backups/internal/instancerecovery"
 	"databasus-backend/internal/modules/backups/internal/logical"
 	"databasus-backend/internal/modules/backups/internal/module"
 	"databasus-backend/internal/modules/backups/internal/physical"
@@ -133,6 +135,15 @@ type Deps struct {
 	Notifiers  notifiers.Module
 	Storages   storages.Module
 	Databases  databases.Module
+	// RecoveryPause refuses manual backups, deletions and restores while a recovered instance is
+	// paused.
+	RecoveryPause *recoverypause.Gate
+}
+
+// NormalizeRecoveredState ends, in a database a recovery staged, the work the lost instance had
+// running and revokes the credentials it had issued.
+func NormalizeRecoveredState(ctx context.Context, db *gorm.DB, now time.Time) error {
+	return instancerecovery.NewService(instancerecovery.NewRepositories(db)).NormalizeRecoveredState(ctx, now)
 }
 
 func New(deps Deps) Module {
@@ -186,6 +197,7 @@ func New(deps Deps) Module {
 		Storages:      deps.Storages,
 		Notifiers:     deps.Notifiers,
 		Restores:      restoreRepositories,
+		RecoveryPause: deps.RecoveryPause,
 	})
 
 	userStreams := download.NewUserStreams(deps.Cache)
@@ -214,6 +226,7 @@ func New(deps Deps) Module {
 		Audit:          recorder,
 		Workspaces:     deps.Workspaces,
 		TempDir:        deps.TempDir,
+		RecoveryPause:  deps.RecoveryPause,
 	})
 
 	physicalService := physical.New(physical.Deps{
@@ -244,6 +257,7 @@ func New(deps Deps) Module {
 		ClientToolsDir:   deps.ClientToolsDir,
 		WalQueueDir:      deps.WalQueueDir,
 		WalStreamTimings: deps.WalStreamTimings,
+		RecoveryPause:    deps.RecoveryPause,
 	})
 
 	configSaveService := configsave.NewService(configsave.Deps{

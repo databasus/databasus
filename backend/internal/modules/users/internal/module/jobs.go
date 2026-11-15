@@ -30,9 +30,15 @@ func (m *Module) newExpiredCodesCleanupJob() background.Job {
 				return err
 			}
 
+			deletedIdentityCodeCount, err := m.identityProof.DeleteExpired(ctx, now)
+			if err != nil {
+				return err
+			}
+
 			m.logger.InfoContext(ctx, "expired codes deleted",
 				slog.Int64("deleted_pending_sign_in_count", deletedPendingSignInCount),
-				slog.Int64("deleted_reset_code_count", deletedResetCodeCount))
+				slog.Int64("deleted_reset_code_count", deletedResetCodeCount),
+				slog.Int64("deleted_identity_code_count", deletedIdentityCodeCount))
 
 			return nil
 		},

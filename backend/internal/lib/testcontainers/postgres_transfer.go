@@ -7,19 +7,34 @@ import (
 	"testing"
 )
 
+// PostgresTransferRate is the BASE_BACKUP MAX_RATE a held transfer runs at, in kilobytes per second.
+type PostgresTransferRate int
+
+const (
+	// PostgreSQL's minimum keeps a large failover payload in flight after the gate opens.
+	SlowestPostgresTransferRate PostgresTransferRate = 32
+	// A released backup of a fresh cluster still finishes within a test's wait limits.
+	SteadyPostgresTransferRate PostgresTransferRate = 2048
+)
+
 type PostgresTransferGate struct {
 	Reached      chan PostgresProxyEvent
 	release      chan struct{}
 	releaseOnce  sync.Once
+	rate         PostgresTransferRate
 	hasTriggered bool
 }
 
-func (p *PostgresProxy) HoldTransfer(t *testing.T) *PostgresTransferGate {
+func (p *PostgresProxy) HoldTransfer(t *testing.T, rate PostgresTransferRate) *PostgresTransferGate {
 	t.Helper()
 
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	gate := &PostgresTransferGate{Reached: make(chan PostgresProxyEvent, 1), release: make(chan struct{})}
+	gate := &PostgresTransferGate{
+		Reached: make(chan PostgresProxyEvent, 1),
+		release: make(chan struct{}),
+		rate:    rate,
+	}
 	p.transferGate = gate
 	t.Cleanup(gate.Release)
 
@@ -32,7 +47,8 @@ func (gate *PostgresTransferGate) Release() {
 
 func (p *PostgresProxy) limitBackupTransfer(command string) (string, error) {
 	p.mu.Lock()
-	hasPendingGate := p.transferGate != nil && !p.transferGate.hasTriggered
+	gate := p.transferGate
+	hasPendingGate := gate != nil && !gate.hasTriggered
 	p.mu.Unlock()
 
 	if !hasPendingGate || !strings.HasPrefix(command, "BASE_BACKUP") {
@@ -44,6 +60,5 @@ func (p *PostgresProxy) limitBackupTransfer(command string) (string, error) {
 		return "", fmt.Errorf("backup transfer gate requires parenthesized BASE_BACKUP options")
 	}
 
-	// PostgreSQL's minimum rate keeps the large failover payload in flight after the gate opens.
-	return options + ", MAX_RATE 32)", nil
+	return fmt.Sprintf("%s, MAX_RATE %d)", options, gate.rate), nil
 }

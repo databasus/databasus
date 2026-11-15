@@ -12,6 +12,14 @@ var (
 		Detail: "automatic file cleanup is still pending",
 		Errors: nil,
 	}
+	// ErrStorageUnavailable is a recovered local storage no editor validated on this host yet: its
+	// files may not be written, read or cleaned up.
+	ErrStorageUnavailable = &apierror.Problem{
+		Code: apierror.CodeStorageUnavailable,
+		Detail: "the storage was recovered from a Databasus backup and is unavailable until an editor's " +
+			"connection test validates it on this host",
+		Errors: nil,
+	}
 	ErrStorageNotFound = &apierror.Problem{
 		Code:   apierror.CodeNotFound,
 		Detail: "the storage does not exist",

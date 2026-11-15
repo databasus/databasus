@@ -133,6 +133,7 @@ describe('EditLogicalBackupConfigSection', () => {
           {
             id: 'target-storage',
             workspaceId: database.workspaceId,
+            recoveryValidationStatus: 'AVAILABLE',
             name: 'Archive',
             settings: { type: 'LOCAL' },
           },

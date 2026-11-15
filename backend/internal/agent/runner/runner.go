@@ -19,6 +19,7 @@ import (
 	"databasus-backend/internal/engines/postgresql/logical/pgrestore"
 	"databasus-backend/internal/lib/agentclient"
 	"databasus-backend/internal/lib/background"
+	"databasus-backend/internal/lib/backoff"
 )
 
 const (
@@ -362,16 +363,7 @@ func pgMajorFromDatabase(db agentclient.AssignedDatabase) (string, error) {
 }
 
 func backupDownloadBackoff(attempt int) time.Duration {
-	if attempt < 1 {
-		attempt = 1
-	}
-
-	d := time.Duration(1<<attempt) * time.Second
-	if d > maxBackupDownloadBackoff {
-		return maxBackupDownloadBackoff
-	}
-
-	return d
+	return backoff.Exponential{First: 2 * time.Second, Max: maxBackupDownloadBackoff}.GetDelay(attempt)
 }
 
 func sleepOrDone(ctx context.Context, d time.Duration) bool {

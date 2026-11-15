@@ -1,8 +1,10 @@
 package logging
 
 import (
+	"errors"
 	"log/slog"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -97,6 +99,26 @@ func Test_RedactAttr_WithHarmlessKey_LeavesValueAlone(t *testing.T) {
 	redactedAttr := redactAttr(slog.String("database_id", "db-42"))
 
 	assert.Equal(t, "db-42", redactedAttr.Value.String())
+}
+
+func TestRedactError(t *testing.T) {
+	t.Parallel()
+
+	t.Run("removes credentials", func(t *testing.T) {
+		t.Parallel()
+
+		redactedError := RedactError(errors.New("dial postgres://admin:hunter2@db:5432 failed"), 500)
+
+		assert.NotContains(t, redactedError, "hunter2")
+	})
+
+	t.Run("cuts the text to the limit in runes", func(t *testing.T) {
+		t.Parallel()
+
+		redactedError := RedactError(errors.New(strings.Repeat("ж", 20)), 10)
+
+		assert.Equal(t, strings.Repeat("ж", 10), redactedError)
+	})
 }
 
 func Test_RedactMessage_WithUrlCredentials_ReplacesUserAndPassword(t *testing.T) {

@@ -169,7 +169,7 @@ func (a *upgradeAgent) remove(ctx context.Context) error {
 }
 
 func (a *upgradeAgent) stop(ctx context.Context) error {
-	if err := a.docker.stopContainer(ctx, a.containerID); err != nil {
+	if err := a.docker.StopContainer(ctx, a.containerID); err != nil {
 		return err
 	}
 

@@ -3,6 +3,14 @@ import { ChevronDown, X } from 'lucide-react';
 import { useLayoutEffect, useRef, useState, type KeyboardEvent, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 
+// A long translated label wraps inside its pill instead of overflowing a narrow picker.
+/* eslint-disable i18next/no-literal-string -- Tailwind classes, not copy */
+const WRAPPING_PILL_CLASS_NAMES = {
+  root: '!h-auto max-w-full',
+  label: 'wrap-anywhere !whitespace-normal',
+};
+/* eslint-enable i18next/no-literal-string */
+
 interface Props {
   id?: string;
   label: string;
@@ -128,6 +136,7 @@ export const ResourcePicker = ({
                 {selectedOptions.map((option) => (
                   <Pill
                     key={option.value}
+                    classNames={WRAPPING_PILL_CLASS_NAMES}
                     withRemoveButton
                     removeButtonProps={{
                       'aria-label': `${t('common.actions.remove')} ${option.label}`,

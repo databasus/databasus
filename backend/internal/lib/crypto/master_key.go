@@ -22,6 +22,16 @@ type MasterKey struct {
 	secret string
 }
 
+// NewMasterKey checks key bytes supplied from outside the key file, such as a source key a
+// recovery receives, as strictly as a key file: they are kept exactly, without trimming.
+func NewMasterKey(content []byte) (*MasterKey, error) {
+	if len(content) < minMasterKeyBytes {
+		return nil, ErrMasterKeyTooShort
+	}
+
+	return &MasterKey{secret: string(content)}, nil
+}
+
 func (k *MasterKey) GetSecret() string {
 	return k.secret
 }

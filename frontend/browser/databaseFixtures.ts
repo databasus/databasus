@@ -69,6 +69,7 @@ export const databaseFixtures = () =>
         body: {
           id: 'storage-id',
           workspaceId: workspace.id,
+          recoveryValidationStatus: 'AVAILABLE',
           name: 'Archive storage with a long descriptive label',
           settings: { type: 'LOCAL' },
         },
@@ -96,6 +97,7 @@ export const databaseFixtures = () =>
             {
               id: 'storage-id',
               workspaceId: workspace.id,
+              recoveryValidationStatus: 'AVAILABLE',
               name: 'Archive storage with a long descriptive label',
               settings: { type: 'LOCAL' },
             },

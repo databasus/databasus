@@ -42,6 +42,7 @@ const transferredDatabase: Database = {
 const currentStorage: Storage = {
   id: 'current-storage-id',
   workspaceId: sourceWorkspace.id,
+  recoveryValidationStatus: 'AVAILABLE',
   name: 'Nightly disk',
   settings: { type: 'LOCAL' },
 };
@@ -196,6 +197,7 @@ describe('DatabaseTransferDialogComponent', () => {
           name: id,
           lastSendError: null,
           workspaceId: sourceWorkspace.id,
+          recoveryValidationStatus: 'AVAILABLE',
           settings: { type: 'DISCORD' as const },
         })),
       }),
@@ -259,6 +261,7 @@ describe('DatabaseTransferDialogComponent', () => {
                   {
                     id: 'source-alerts',
                     workspaceId: sourceWorkspace.id,
+                    recoveryValidationStatus: 'AVAILABLE',
                     name: 'Source alerts',
                     lastSendError: null,
                     settings: { type: 'DISCORD' },

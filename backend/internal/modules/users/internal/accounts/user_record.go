@@ -42,12 +42,13 @@ func (r UserRecord) HasPassword() bool {
 
 func (r UserRecord) ToUser() identity.User {
 	return identity.User{
-		ID:        r.ID,
-		Email:     r.Email,
-		Name:      r.Name,
-		Role:      r.Role,
-		Status:    r.Status,
-		CreatedAt: r.CreatedAt,
+		ID:          r.ID,
+		Email:       r.Email,
+		Name:        r.Name,
+		Role:        r.Role,
+		Status:      r.Status,
+		IsRootAdmin: r.IsBootstrapAdmin,
+		CreatedAt:   r.CreatedAt,
 	}
 }
 

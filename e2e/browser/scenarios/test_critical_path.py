@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from application_screens import (
     Account,
+    acknowledge_master_key,
     create_local_storage,
     create_workspace,
     open_application,
@@ -118,6 +119,7 @@ class TestCriticalPath:
         prepare_databases(SOURCE_ROWS)
         open_application(page)
         sign_in(page, instance_admin)
+        acknowledge_master_key(page)
         create_workspace(page, f"Critical path {uuid.uuid4()}")
         create_local_storage(page, storage_name)
         _add_database_through_the_wizard(

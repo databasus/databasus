@@ -24,6 +24,7 @@ const account = {
   email: 'owner@example.com',
   role: 'ADMIN' as const,
   status: 'ACTIVE' as const,
+  isRootAdmin: false,
   createdAt: '2026-10-01T00:00:00Z',
 };
 const workspace = {
@@ -42,6 +43,7 @@ const lists = [
       id: 'obsolete-database',
       name: 'Obsolete database',
       workspaceId: workspace.id,
+      recoveryValidationStatus: 'AVAILABLE',
       settings: createDefaultDatabaseSettings(DatabaseType.POSTGRES_LOGICAL),
       notifierIds: [],
       healthStatus: 'AVAILABLE',
@@ -56,6 +58,7 @@ const lists = [
       id: 'obsolete-storage',
       name: 'Obsolete storage',
       workspaceId: workspace.id,
+      recoveryValidationStatus: 'AVAILABLE',
       settings: { type: 'LOCAL' },
     },
   },
@@ -68,6 +71,7 @@ const lists = [
       id: 'obsolete-notifier',
       name: 'Obsolete notifier',
       workspaceId: workspace.id,
+      recoveryValidationStatus: 'AVAILABLE',
       lastSendError: null,
       settings: {
         type: 'EMAIL',
@@ -465,6 +469,7 @@ describe('Application logout', () => {
         id,
         name,
         workspaceId: workspace.id,
+        recoveryValidationStatus: 'AVAILABLE',
         settings: createDefaultDatabaseSettings(DatabaseType.POSTGRES_LOGICAL),
         notifierIds: [],
         healthStatus: 'AVAILABLE' as const,

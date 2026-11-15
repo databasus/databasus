@@ -23,11 +23,21 @@ const (
 
 const frontendDirectory = "./ui/build"
 
+// ServeOutcome tells the caller why Serve returned.
+type ServeOutcome struct {
+	// IsRebuildRequested is a stop for an accepted recovery rather than for the stop signal: the
+	// caller closes the application, publishes the recovery and serves a new application.
+	IsRebuildRequested bool
+	// IsDrained is whether every request, task, loop and job pass ended within the shutdown limit.
+	IsDrained bool
+}
+
 // Serve opens the port, starts the background loops, the background jobs and the HTTP server and
-// blocks until ctx ends. Then it stops accepting work and waits for requests, registered tasks,
-// loops and job passes within the shutdown limit. A busy port returns an error before any loop
-// starts.
-func (a *App) Serve(ctx context.Context, address string) error {
+// blocks until ctx ends or an accepted recovery requests a rebuild. Then it stops accepting work and
+// waits for requests, registered tasks, loops and job passes within the shutdown limit. A busy port
+// returns an error before any loop starts. A rebuild leaves the logs open, because the process goes
+// on.
+func (a *App) Serve(ctx context.Context, address string) (ServeOutcome, error) {
 	err := cleanFolder(a.environment.Config.TempFolder)
 	if err != nil {
 		a.logger.ErrorContext(ctx, "failed to clean temp folder", slog.Any("error", err))
@@ -35,7 +45,7 @@ func (a *App) Serve(ctx context.Context, address string) error {
 
 	handler, err := a.NewHandler()
 	if err != nil {
-		return err
+		return ServeOutcome{}, err
 	}
 
 	loopsCtx, cancelLoops := context.WithCancel(context.WithoutCancel(ctx))
@@ -46,12 +56,12 @@ func (a *App) Serve(ctx context.Context, address string) error {
 	// can start a new one.
 	err = a.StartModules(loopsCtx)
 	if err != nil {
-		return err
+		return ServeOutcome{}, err
 	}
 
 	server, err := httpserver.Listen(ctx, address, handler)
 	if err != nil {
-		return err
+		return ServeOutcome{}, err
 	}
 
 	a.logger.InfoContext(ctx, "http server listening", slog.String("address", server.GetAddress()))
@@ -64,14 +74,26 @@ func (a *App) Serve(ctx context.Context, address string) error {
 		return server.Serve()
 	})
 
-	<-ctx.Done()
+	isRebuildRequested := false
+
+	select {
+	case <-ctx.Done():
+		a.logger.InfoContext(ctx, "shutdown signal received")
+	case <-a.environment.RebuildRequest.GetSignal():
+		isRebuildRequested = true
+		a.logger.InfoContext(ctx, "stopping the application to publish an accepted recovery")
+	}
 
 	drainDeadline := a.shutdownBudget.Begin(ShutdownDrainTimeout)
-	a.logger.InfoContext(ctx, "shutdown signal received")
 
 	cancelLoops()
 
-	shutdown.Drain(ctx, shutdown.DrainSpec{
+	flushLogs := a.environment.Logging.Shutdown
+	if isRebuildRequested {
+		flushLogs = nil
+	}
+
+	isDrained := shutdown.Drain(ctx, shutdown.DrainSpec{
 		Steps: []shutdown.Step{
 			{Name: "http server", Run: server.Shutdown},
 			{Name: "background jobs", Run: a.runner.Wait},
@@ -80,12 +102,12 @@ func (a *App) Serve(ctx context.Context, address string) error {
 			{Name: "background loops", Run: a.backgroundGroup.Wait},
 		},
 		Deadline:     drainDeadline,
-		FlushLogs:    a.environment.Logging.Shutdown,
+		FlushLogs:    flushLogs,
 		FlushTimeout: shutdownLogFlushTimeout,
 		Logger:       a.logger,
 	})
 
-	return nil
+	return ServeOutcome{IsRebuildRequested: isRebuildRequested, IsDrained: isDrained}, nil
 }
 
 // NewHandler builds the router with every route and middleware of the server. Serve and the test
@@ -108,6 +130,7 @@ func (a *App) newRouter() *gin.Engine {
 	router.ContextWithFallback = true
 	router.Use(httpserver.AssignRequestID())
 	router.Use(httpserver.RememberClientIP())
+	router.Use(httpserver.RememberTransportSecurity(a.environment.Config.DatabasusURL))
 	router.Use(httpserver.LogAccess(a.logger))
 	router.Use(httpserver.Recover(a.logger))
 	router.Use(httpserver.NoStoreCacheControl())

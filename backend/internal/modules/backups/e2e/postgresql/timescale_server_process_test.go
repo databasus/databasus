@@ -55,7 +55,8 @@ func TestTimescaleShutdownServer(t *testing.T) {
 
 	stopCtx, stopListening := shutdown.ListenForStopSignal(t.Context())
 	defer stopListening()
-	require.NoError(t, application.Serve(stopCtx, serverConfig.Address))
+	_, err = application.Serve(stopCtx, serverConfig.Address)
+	require.NoError(t, err)
 }
 
 type timescaleServerProcess struct {

@@ -39,6 +39,7 @@ const declareStorages = () =>
         {
           id: 'archive-storage-id',
           workspaceId: 'workspace-id',
+          recoveryValidationStatus: 'AVAILABLE',
           name: 'Entered archive',
           settings: { type: 'LOCAL' },
         },

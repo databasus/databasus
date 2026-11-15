@@ -28,6 +28,10 @@ tags:
     description: Backup verifications, their agents and automatic verification settings
   - name: healthcheck
     description: Scheduled database availability checks, settings and attempt history
+  - name: instancebackups
+    description: >-
+      Databasus backups of the internal database, their destinations and alerts, master-key export
+      and recovery of the instance from a Databasus backup file
 paths:
   /users:
     get:
@@ -742,7 +746,9 @@ paths:
       summary: Delete a workspace with its notifiers, storages and members
       description: >-
         Needs the role `WORKSPACE_OWNER`. A workspace that still has databases gets 409
-        `workspace_not_empty`. Retained storage references take priority over cleanup and get 409 `in_use`.
+        `workspace_not_empty`. Next, a storage of the workspace selected as a Databasus backup
+        destination gets 409 `databasus_backup_in_use`. Retained storage references take priority
+        over cleanup and get 409 `in_use`.
         Otherwise outstanding file cleanup on any affected storage gets 409 `cleanup_pending`;
         wait for cleanup or explicitly delete those storages individually. No bulk abandonment is
         available. Outsiders get 404 `not_found`, insufficient roles get 403 `permission_denied`.
@@ -1158,6 +1164,7 @@ paths:
         Any member of the workspace may test, a viewer included. A message the channel refuses is
         still a 200 that reports the channel's error, and the outcome becomes the notifier's
         `lastSendError`.
+        While the instance is paused after a recovery the answer is 409 `recovery_paused`.
       responses:
         "200":
           description: Whether the test message was delivered
@@ -1170,6 +1177,8 @@ paths:
         "401":
           $ref: "#/components/responses/Problem"
         "404":
+          $ref: "#/components/responses/Problem"
+        "409":
           $ref: "#/components/responses/Problem"
         default:
           $ref: "#/components/responses/Problem"
@@ -1217,6 +1226,7 @@ paths:
         With another resource address than the notifier's, a secret the settings use must be sent
         again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the
         backend on a refusal. Nothing is saved, the notifier's `lastSendError` included.
+        While the instance is paused after a recovery the answer is 409 `recovery_paused`.
       requestBody:
         description: The settings to test.
         required: true
@@ -1238,6 +1248,8 @@ paths:
         "403":
           $ref: "#/components/responses/Problem"
         "404":
+          $ref: "#/components/responses/Problem"
+        "409":
           $ref: "#/components/responses/Problem"
         default:
           $ref: "#/components/responses/Problem"
@@ -1384,7 +1396,9 @@ paths:
       tags: [storages]
       summary: Delete a storage
       description: >-
-        Needs the role `WORKSPACE_MEMBER` or higher. A storage that a backup config uses or that
+        Needs the role `WORKSPACE_MEMBER` or higher. A storage selected as a Databasus backup
+        destination gets 409 `databasus_backup_in_use` until root admin deselects it, even when
+        database backups also use it. Otherwise a storage that a backup config uses or that
         still holds backups gets 409 `in_use`, even with explicit abandonment. Otherwise pending file
         cleanup returns 409 `cleanup_pending` unless shouldAbandonCleanup is true. Explicit
         abandonment atomically removes the storage and its queue, recording a bounded audit snapshot.
@@ -1455,6 +1469,12 @@ paths:
       description: >-
         Any member of the workspace may test, a viewer included. A connection the storage refuses
         is still a 200 that reports the storage's error. The test changes nothing in the storage.
+        For a local storage that is `REQUIRES_VALIDATION` after a recovery, the test also writes,
+        reads, verifies and removes a probe in the actual backup directory. Only when every step
+        succeeds, the tester may edit the storage and its saved settings did not change during the
+        test, the storage becomes `AVAILABLE`; a viewer's success stays diagnostic. That status is the
+        only saved value a test may change. While the instance is paused after a recovery the test
+        gets 409 `recovery_paused`.
       responses:
         "200":
           description: Whether the storage could be reached and written
@@ -1467,6 +1487,8 @@ paths:
         "401":
           $ref: "#/components/responses/Problem"
         "404":
+          $ref: "#/components/responses/Problem"
+        "409":
           $ref: "#/components/responses/Problem"
         default:
           $ref: "#/components/responses/Problem"
@@ -1516,7 +1538,8 @@ paths:
         that storage's get 400 `invalid_request`. With another resource address than the storage's, a
         secret the settings use must be sent again or the answer is 400 `invalid_request`, as in
         `updateStorage`. Nothing leaves the backend on a
-        refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the
+        refusal, and nothing is saved. While the instance is paused after a recovery the test gets 409
+        `recovery_paused`. SFTP uses only credentials selected by `authMethods`, with the
         same retained-secret fallback and validation as saving.
       requestBody:
         description: The settings to test.
@@ -1539,6 +1562,8 @@ paths:
         "403":
           $ref: "#/components/responses/Problem"
         "404":
+          $ref: "#/components/responses/Problem"
+        "409":
           $ref: "#/components/responses/Problem"
         default:
           $ref: "#/components/responses/Problem"
@@ -1805,6 +1830,7 @@ paths:
         database is in progress, the answer is 409 `in_use`, and nothing is deleted. A running
         physical backup is cancelled, the WAL stream stopped and the replication slots dropped only
         after the deletion has succeeded.
+        While the instance is paused after a recovery the answer is 409 `recovery_paused`.
       responses:
         "204":
           description: The database is deleted
@@ -1959,6 +1985,7 @@ paths:
         another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for
         physical PostgreSQL a replication-only user, with a generated name and password. The password
         is returned only in this answer; the database itself is not changed.
+        While the instance is paused after a recovery the answer is 409 `recovery_paused`.
       requestBody:
         description: The settings to connect with.
         required: true
@@ -1980,6 +2007,8 @@ paths:
         "403":
           $ref: "#/components/responses/Problem"
         "404":
+          $ref: "#/components/responses/Problem"
+        "409":
           $ref: "#/components/responses/Problem"
         default:
           $ref: "#/components/responses/Problem"
@@ -2169,7 +2198,7 @@ paths:
       tags:
         - "backups"
       summary: "Request a physical backup"
-      description: "Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded."
+      description: "Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded. While the instance is paused after a recovery the answer is 409 recovery_paused."
       requestBody:
         description: "The request to apply"
         required: true
@@ -2200,7 +2229,7 @@ paths:
       tags:
         - "backups"
       summary: "Delete a physical backup and its descendants"
-      description: "Needs WORKSPACE_MEMBER. Stops a running backup before deleting it. A full backup removes its incremental chain; an incremental removes its descendants. A WAL segment ID gets 404 not_found and deletes nothing."
+      description: "Needs WORKSPACE_MEMBER. Stops a running backup before deleting it. A full backup removes its incremental chain; an incremental removes its descendants. A WAL segment ID gets 404 not_found and deletes nothing. While the instance is paused after a recovery the answer is 409 recovery_paused."
       responses:
         "204":
           description: "Delete a physical backup and its descendants"
@@ -2211,6 +2240,8 @@ paths:
         "403":
           $ref: "#/components/responses/Problem"
         "404":
+          $ref: "#/components/responses/Problem"
+        "409":
           $ref: "#/components/responses/Problem"
         default:
           $ref: "#/components/responses/Problem"
@@ -2450,6 +2481,7 @@ paths:
         `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already
         running gets 409 `already_running`. A database whose config names no storage, or a physical
         PostgreSQL database, gets 400 `invalid_request`.
+        While the instance is paused after a recovery the answer is 409 `recovery_paused`.
       requestBody:
         description: The database to back up.
         required: true
@@ -2507,6 +2539,7 @@ paths:
         Needs the role `WORKSPACE_MEMBER` or higher. Removes the backup and requests the deletion of
         its file and its metadata file in one step. A running backup gets 409 `already_running`, and
         a backup a running restore reads gets 409 `in_use`; neither changes anything.
+        While the instance is paused after a recovery the answer is 409 `recovery_paused`.
       responses:
         "204":
           description: The backup is deleted
@@ -2567,7 +2600,9 @@ paths:
         stream of the token's user runs, the request gets 409 `already_running` and the token stays
         usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes
         Content-Length equal to the decrypted file's exact byte count in its existing compression
-        format. Encryption overhead in storage is not included in that length.
+        format. Encryption overhead in storage is not included in that length. A recovered local
+        storage not yet validated on this host gets 409 `storage_unavailable`, and a file its
+        storage no longer holds gets 404 `not_found`.
       parameters:
         - name: token
           in: query
@@ -2591,6 +2626,8 @@ paths:
         "400":
           $ref: "#/components/responses/Problem"
         "401":
+          $ref: "#/components/responses/Problem"
+        "404":
           $ref: "#/components/responses/Problem"
         "409":
           $ref: "#/components/responses/Problem"
@@ -2687,6 +2724,7 @@ paths:
         needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose
         `detail` names the bytes needed and free. The target's secrets are used only by the running
         restore and are never stored.
+        While the instance is paused after a recovery the answer is 409 `recovery_paused`.
       requestBody:
         description: The backup and the target to restore it into.
         required: true
@@ -2983,8 +3021,11 @@ paths:
       operationId: startVerification
       tags: [verification]
       summary: Start a manual backup verification
+      description: >-
+        While the instance is paused after a recovery the answer is 409 `recovery_paused`.
       requestBody:
-        description: The editable fields for this operation
+        description: >-
+          The editable fields for this operation
         required: true
         content:
           application/json:
@@ -3234,6 +3275,698 @@ paths:
           $ref: "#/components/responses/Problem"
         default:
           $ref: "#/components/responses/Problem"
+  /instance-backup-settings:
+    get:
+      operationId: getInstanceBackupSettings
+      tags: [instancebackups]
+      summary: Get the Databasus backup settings
+      description: >-
+        Only root admin reads them; another instance admin gets 403 `permission_denied`. A new
+        installation has no destinations, an hourly schedule and 30-day retention.
+      x-access: admin
+      responses:
+        "200":
+          description: The Databasus backup settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstanceBackupSettings"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    put:
+      operationId: updateInstanceBackupSettings
+      tags: [instancebackups]
+      summary: Replace the Databasus backup settings
+      description: >-
+        Only root admin may change them. `storageIds` are live references to existing storages of
+        any workspace; their provider settings are not copied, and workspace editors keep editing
+        them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request`
+        and nothing changes. Adding the first destination requests a backup at once. Removing the
+        last destination reports stopped protection at once. While the instance is paused after a
+        recovery the answer is 409 `recovery_paused`.
+      x-access: admin
+      requestBody:
+        description: Every Databasus backup setting.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InstanceBackupSettings"
+      responses:
+        "200":
+          description: The settings after the change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstanceBackupSettings"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /instance-backup-statuses:
+    get:
+      operationId: getInstanceBackupStatus
+      tags: [instancebackups]
+      summary: Get the protection state of the instance
+      description: >-
+        Only root admin reads it. It combines Databasus backup health per destination, the open
+        incident and its mail delivery, whether the system mail server and root admin's address can
+        carry incident mail, whether the current master key was acknowledged as saved, the setup
+        reminder and the latest recovery with its pause.
+      x-access: admin
+      responses:
+        "200":
+          description: The protection state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstanceBackupStatus"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /instance-backup-destinations:
+    get:
+      operationId: listInstanceBackupDestinations
+      tags: [instancebackups]
+      summary: List the storages root admin can select as destinations
+      description: >-
+        Only root admin lists them. Every storage of every workspace is a choice, ordered by
+        workspace name, then storage name, then storage ID. `query` keeps the storages whose name or
+        workspace name contains it, ignoring case. No provider settings or secrets are returned.
+      x-access: admin
+      parameters:
+        - name: limit
+          in: query
+          description: The largest number of choices on the page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: after
+          in: query
+          description: The `nextCursor` of the previous page
+          schema:
+            type: string
+        - name: query
+          in: query
+          description: The text the storage name or the workspace name contains
+          schema:
+            type: string
+      responses:
+        "200":
+          description: One page of choices
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstanceBackupDestinationPage"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /instance-backups:
+    get:
+      operationId: listInstanceBackups
+      tags: [instancebackups]
+      summary: List the Databasus backups
+      description: >-
+        Only root admin lists them. The newest snapshot comes first, then the higher ID; a backup
+        whose dump has not finished sorts by its start time.
+      x-access: admin
+      parameters:
+        - name: limit
+          in: query
+          description: The largest number of backups on the page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: after
+          in: query
+          description: The `nextCursor` of the previous page
+          schema:
+            type: string
+      responses:
+        "200":
+          description: One page of Databasus backups
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstanceBackupPage"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    post:
+      operationId: startInstanceBackup
+      tags: [instancebackups]
+      summary: Start a Databasus backup now
+      description: >-
+        Only root admin starts one. Answers at once with the backup in progress. Without a selected
+        destination the answer is 400 `invalid_request`; while another Databasus backup is being
+        produced it is 409 `already_running`; while the instance is paused after a recovery it is
+        409 `recovery_paused`.
+      x-access: admin
+      responses:
+        "202":
+          description: The backup in progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstanceBackup"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /instance-backups/{instanceBackupId}:
+    parameters:
+      - $ref: "#/components/parameters/InstanceBackupId"
+    get:
+      operationId: getInstanceBackup
+      tags: [instancebackups]
+      summary: Get a Databasus backup with the outcome of each copy
+      description: Only root admin reads it.
+      x-access: admin
+      responses:
+        "200":
+          description: The Databasus backup
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstanceBackup"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /instance-backups/{instanceBackupId}/download-tokens:
+    parameters:
+      - $ref: "#/components/parameters/InstanceBackupId"
+    post:
+      operationId: createInstanceBackupDownloadToken
+      tags: [instancebackups]
+      summary: Issue a single-use token to download a stored copy
+      description: >-
+        Only root admin gets one. The copy must have been stored successfully and its storage must
+        still exist; otherwise the answer is 409 `storage_unavailable` or 404 `not_found` for an
+        unknown copy. The token downloads the encrypted file once and expires after five minutes.
+      x-access: admin
+      requestBody:
+        description: The copy to download.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InstanceBackupDownloadTokenCreate"
+      responses:
+        "201":
+          description: The issued token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstanceBackupDownloadToken"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /instance-backup-downloads:
+    get:
+      operationId: downloadInstanceBackup
+      tags: [instancebackups]
+      x-access: public
+      summary: Download the encrypted file of a Databasus backup copy
+      description: >-
+        Public, because a browser link cannot carry the session: the single-use `token` from
+        `createInstanceBackupDownloadToken` is the credential. The file stays encrypted with the
+        master key and needs no separate metadata to be recovered. An expired, used, unknown or
+        wrong-purpose token gets 401 `unauthenticated`.
+      parameters:
+        - name: token
+          in: query
+          required: true
+          description: The download token issued for the copy
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The encrypted Databasus backup file
+          headers:
+            Content-Disposition:
+              description: The file name of the Databasus backup
+              schema:
+                type: string
+            Cache-Control:
+              description: Always `no-store`
+              schema:
+                type: string
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /instance-backup-reminders:
+    put:
+      operationId: updateInstanceBackupReminder
+      tags: [instancebackups]
+      summary: Defer or restore the setup reminder
+      description: >-
+        Only root admin changes it. Deferring hides the initial setup reminder for 24 hours. It
+        never hides an incident, including stopped protection.
+      x-access: admin
+      requestBody:
+        description: Whether the setup reminder is deferred.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InstanceBackupReminderUpdate"
+      responses:
+        "200":
+          description: The reminder after the change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstanceBackupReminder"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /master-key-confirmations:
+    post:
+      operationId: requestMasterKeyConfirmation
+      tags: [instancebackups]
+      summary: Email root admin a code that confirms a master-key export
+      description: >-
+        Only root admin requests one. It serves an account without a password. Without a system
+        mail server or a usable address on root admin's account the answer is 409
+        `identity_proof_unavailable`, and the interface explains how to save the key from the host.
+        The code expires after five minutes and confirms only a master-key export. One code a minute.
+      x-access: admin
+      responses:
+        "201":
+          description: The code was sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentityConfirmation"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        "429":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /master-key-exports:
+    post:
+      operationId: createMasterKeyExport
+      tags: [instancebackups]
+      summary: Confirm identity and get a single-use token that downloads the master key
+      description: >-
+        Only root admin exports the key. The request carries root admin's current password or the
+        emailed code from `requestMasterKeyConfirmation`; a wrong, expired, used or wrong-purpose
+        proof gets 400 `identity_proof_invalid`. Over unencrypted HTTP the request must also set
+        `isInsecureTransferAcknowledged`, or it gets 400 `invalid_request`. The token is returned only
+        here, downloads the key once and expires after 60 seconds. This is the one operation chain
+        that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing
+        master key as an attachment, and no JSON response ever carries it. The audit log records the
+        export without the proof, the token or the key.
+      x-access: admin
+      requestBody:
+        description: The identity proof and, over HTTP, the acknowledged risk.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MasterKeyExportCreate"
+      responses:
+        "201":
+          description: The single-use download token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MasterKeyExport"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "429":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /master-key-downloads:
+    get:
+      operationId: downloadMasterKey
+      tags: [instancebackups]
+      x-access: public
+      summary: Download the master key once
+      description: >-
+        Public, because a browser link cannot carry the session: the single-use `token` from
+        `createMasterKeyExport` is the credential. Returns exactly the bytes of the existing master
+        key as an attachment with `Cache-Control: no-store`. An expired, used, unknown or
+        wrong-purpose token gets 401 `unauthenticated`. Downloading does not mark the key as saved.
+      parameters:
+        - name: token
+          in: query
+          required: true
+          description: The token issued by `createMasterKeyExport`
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The master key file
+          headers:
+            Content-Disposition:
+              description: The file name of the master key
+              schema:
+                type: string
+            Cache-Control:
+              description: Always `no-store`
+              schema:
+                type: string
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /master-key-acknowledgments:
+    put:
+      operationId: acknowledgeMasterKey
+      tags: [instancebackups]
+      summary: Record that root admin saved the current master key
+      description: >-
+        Only root admin acknowledges. The acknowledgment belongs to the current key, so every
+        browser and session stops showing key onboarding for it. A download alone never counts as
+        an acknowledgment.
+      x-access: admin
+      requestBody:
+        description: The acknowledgment.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MasterKeyAcknowledgment"
+      responses:
+        "200":
+          description: The acknowledgment as stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MasterKeyAcknowledgment"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /instance-recoveries:
+    post:
+      operationId: createInstanceRecovery
+      tags: [instancebackups]
+      summary: Upload a Databasus backup file and its master key to prepare a replacement
+      description: >-
+        Only root admin of this installation uploads; another administrator gets 403
+        `permission_denied` before any byte is staged. The multipart body carries the encrypted
+        `archive` file and the source installation's master key as the text field `masterKey`, whose
+        exact UTF-8 bytes are kept without trimming. Neither a matching history entry, a destination
+        nor this installation's own key is needed. The archive is streamed into private staging and
+        refused with 413 `archive_too_large` beyond the configured limit, 10 GiB by default, even
+        without a declared length; the key is limited to 64 KiB. Missing disk space gets 409
+        `insufficient_disk_space`, another pending recovery gets 409 `already_running`. Over
+        unencrypted HTTP `isInsecureTransferAcknowledged` must be `true` and come before the
+        `archive` part, or the answer is 400 `invalid_request` before any archive byte is staged. The
+        answer is 202 with the recovery validating; the active installation stays usable until an
+        explicit apply. A prepared recovery expires after one hour.
+      x-access: admin
+      requestBody:
+        description: The archive file, the source master key and, over HTTP, the acknowledged risk.
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/InstanceRecoveryUpload"
+      responses:
+        "202":
+          description: The recovery being validated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstanceRecovery"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        "413":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /instance-recoveries/{instanceRecoveryId}:
+    parameters:
+      - $ref: "#/components/parameters/InstanceRecoveryId"
+    get:
+      operationId: getInstanceRecovery
+      tags: [instancebackups]
+      summary: Get a recovery from the local recovery journal
+      description: >-
+        Only the current root admin reads it, including root admin restored by this recovery. It
+        exposes the authenticated snapshot time and source release, the archive fingerprint and a
+        safe failure reason, never the key or the decrypted dump.
+      x-access: admin
+      responses:
+        "200":
+          description: The recovery
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstanceRecovery"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /instance-recoveries/{instanceRecoveryId}/confirmations:
+    parameters:
+      - $ref: "#/components/parameters/InstanceRecoveryId"
+    post:
+      operationId: requestInstanceRecoveryConfirmation
+      tags: [instancebackups]
+      summary: Email root admin a code that confirms applying this recovery
+      description: >-
+        Only root admin requests one. The code expires after five minutes and confirms only this
+        recovery with its archive fingerprint, for the current session. Without a system mail server
+        or a usable address the answer is 409 `identity_proof_unavailable`; a recovery that is not
+        ready gets 409 `recovery_not_ready`. One code a minute.
+      x-access: admin
+      responses:
+        "201":
+          description: The code was sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentityConfirmation"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        "429":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /instance-recoveries/{instanceRecoveryId}/apply:
+    parameters:
+      - $ref: "#/components/parameters/InstanceRecoveryId"
+    post:
+      operationId: applyInstanceRecovery
+      tags: [instancebackups]
+      summary: Replace this installation with the prepared recovery
+      description: >-
+        Only root admin applies, with `isReplacementConfirmed` and a fresh password or emailed-code
+        proof bound to this recovery; a master-key export proof or a proof for another recovery gets
+        400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`.
+        The answer is 202 once the apply is recorded durably, before the service stops. Publication
+        then drains all work, replaces the database and the master key, and serves the recovered
+        installation paused in the same process; every session ends, and sign-in uses the accounts
+        of the snapshot. Repeating apply for an accepted recovery returns its current state without
+        a second publication.
+      x-access: admin
+      requestBody:
+        description: The replacement confirmation and the identity proof.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InstanceRecoveryApply"
+      responses:
+        "202":
+          description: The recovery being applied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstanceRecovery"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        "429":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /instance-recoveries/{instanceRecoveryId}/cancel:
+    parameters:
+      - $ref: "#/components/parameters/InstanceRecoveryId"
+    post:
+      operationId: cancelInstanceRecovery
+      tags: [instancebackups]
+      summary: Cancel a recovery that was not applied
+      description: >-
+        Only root admin cancels. The answer comes after the staged archive, key and staging database
+        are released, with the recovery `CANCELLED`; cancelling it again returns the same answer. Once
+        apply was accepted, or for a recovery that already failed or completed, the answer is 409
+        `recovery_not_ready`.
+      x-access: admin
+      responses:
+        "200":
+          description: The cancelled recovery
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstanceRecovery"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /instance-recoveries/{instanceRecoveryId}/activate:
+    parameters:
+      - $ref: "#/components/parameters/InstanceRecoveryId"
+    post:
+      operationId: activateInstanceRecovery
+      tags: [instancebackups]
+      summary: Confirm the old instance is stopped and end the recovery pause
+      description: >-
+        Only root admin activates, with `isOldInstanceStopped`. A recovery that is not paused gets
+        409 `recovery_not_ready`. Activation resumes schedules and outbound work; recovered local
+        storages stay unavailable until an editor validates them.
+      x-access: admin
+      requestBody:
+        description: The confirmation that the old instance is stopped.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InstanceRecoveryActivation"
+      responses:
+        "200":
+          description: The activated recovery
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstanceRecovery"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
 components:
   parameters:
     UserId:
@@ -3307,6 +4040,22 @@ components:
       in: path
       required: true
       description: The ID of a full or incremental physical backup
+      schema:
+        type: string
+        format: uuid
+    InstanceBackupId:
+      name: instanceBackupId
+      in: path
+      required: true
+      description: The ID of the Databasus backup
+      schema:
+        type: string
+        format: uuid
+    InstanceRecoveryId:
+      name: instanceRecoveryId
+      in: path
+      required: true
+      description: The ID of the recovery
       schema:
         type: string
         format: uuid
@@ -3795,12 +4544,17 @@ components:
     User:
       type: object
       description: A user of the instance
-      required: [id, email, name, role, status, createdAt]
+      required: [id, email, name, role, status, isRootAdmin, createdAt]
       properties:
         id:
           type: string
           format: uuid
           description: The ID of the user
+        isRootAdmin:
+          type: boolean
+          description: >-
+            Whether the user is root admin, the instance's bootstrap administrator who alone manages
+            Databasus backups, master-key export and recovery; the role `ADMIN` alone does not grant it
         email:
           type: string
           description: The address the user signs in with
@@ -4515,12 +5269,14 @@ components:
     Storage:
       type: object
       description: A place backups of a workspace are kept, without its secrets
-      required: [id, workspaceId, name, settings]
+      required: [id, workspaceId, name, settings, recoveryValidationStatus]
       properties:
         id:
           type: string
           format: uuid
           description: The ID of the storage
+        recoveryValidationStatus:
+          $ref: "#/components/schemas/StorageRecoveryValidationStatus"
         workspaceId:
           type: string
           format: uuid
@@ -4615,6 +5371,8 @@ components:
         error:
           type: string
           description: The error the storage gave, absent when it is connected
+        recoveryValidationStatus:
+          $ref: "#/components/schemas/StorageRecoveryValidationStatus"
     StorageSettings:
       description: The settings of the storage's provider; `type` tells the providers apart
       oneOf:
@@ -5495,6 +6253,533 @@ components:
               description: Every registered job in name order
               items:
                 $ref: "#/components/schemas/JobHealth"
+    InstanceBackupSettings:
+      type: object
+      description: How and where Databasus backs up its own internal database
+      required: [schedule, retentionDays, storageIds]
+      properties:
+        schedule:
+          $ref: "#/components/schemas/Schedule"
+        retentionDays:
+          type: integer
+          minimum: 1
+          maximum: 3650
+          description: How many days a stored copy is kept; the newest successful copy of a destination is always kept
+        storageIds:
+          type: array
+          uniqueItems: true
+          maxItems: 50
+          items:
+            type: string
+            format: uuid
+          description: The selected destinations, as IDs of existing storages of any workspace
+    InstanceBackupHealth:
+      type: string
+      description: >-
+        How well the instance is protected. `NOT_CONFIGURED` before any destination was selected,
+        `INITIALIZING` until the first copy succeeds, `RESUMING` after destinations return following
+        `STOPPED`, `PARTIAL` when some current destinations lack a fresh copy, `FAILED` when none has
+        one, `OVERDUE` when a scheduled copy is more than 15 minutes late
+      enum: [NOT_CONFIGURED, INITIALIZING, HEALTHY, PARTIAL, FAILED, OVERDUE, STOPPED, RESUMING]
+    InstanceBackupDestinationHealth:
+      type: object
+      description: The protection state of one selected destination
+      required: [storageId, storageName, workspaceId, workspaceName, health]
+      properties:
+        storageId:
+          type: string
+          format: uuid
+          description: The selected storage
+        storageName:
+          type: string
+          description: The current name of the storage
+        storageType:
+          $ref: "#/components/schemas/StorageType"
+        workspaceId:
+          type: string
+          format: uuid
+          description: The workspace the storage belongs to now
+        workspaceName:
+          type: string
+          description: The current name of that workspace
+        health:
+          $ref: "#/components/schemas/InstanceBackupHealth"
+        lastSuccessfulSnapshotAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: The snapshot time of the newest successful copy in this destination
+        overdueAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the earliest uncovered scheduled occurrence becomes overdue
+        lastError:
+          type: string
+          nullable: true
+          description: The sanitized error of the latest failed delivery
+    InstanceBackupIncidentKind:
+      type: string
+      description: The protection problem an incident reports
+      enum: [FAILED, PARTIAL, OVERDUE, STOPPED]
+    InstanceBackupMailStatus:
+      type: string
+      description: >-
+        Mail delivery of an incident. `NOT_ELIGIBLE` without a system mail server or a usable root
+        admin address
+      enum: [NOT_ELIGIBLE, PENDING, SENT, RETRYING]
+    InstanceBackupIncident:
+      type: object
+      description: An unresolved protection problem
+      required: [id, kind, startedAt, mailStatus]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The ID of the incident
+        kind:
+          $ref: "#/components/schemas/InstanceBackupIncidentKind"
+        startedAt:
+          type: string
+          format: date-time
+          description: When the problem began
+        mailStatus:
+          $ref: "#/components/schemas/InstanceBackupMailStatus"
+        lastMailedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the mail server last accepted an email about it
+        lastMailError:
+          type: string
+          nullable: true
+          description: The sanitized error of the latest failed mail attempt
+    InstanceBackupReminder:
+      type: object
+      description: The initial setup reminder
+      required: [isEligible]
+      properties:
+        isEligible:
+          type: boolean
+          description: Whether the instance has a user database or storage, so setup should be suggested
+        deferredUntil:
+          type: string
+          format: date-time
+          nullable: true
+          description: Until when root admin deferred the reminder
+    InstanceBackupReminderUpdate:
+      type: object
+      description: Whether to defer the setup reminder for 24 hours
+      required: [isDeferred]
+      properties:
+        isDeferred:
+          type: boolean
+          description: "`true` defers the reminder for 24 hours, `false` shows it again"
+    IdentityProofMethod:
+      type: string
+      description: A way root admin can confirm identity
+      enum: [PASSWORD, EMAIL_CODE]
+    InstanceBackupStatus:
+      type: object
+      description: The protection state of the instance for root admin
+      required:
+        - health
+        - destinations
+        - isEmailConfigured
+        - isRootEmailUsable
+        - isMasterKeyAcknowledged
+        - identityProofMethods
+        - masterKeyPath
+        - reminder
+        - isRecoveryPaused
+      properties:
+        health:
+          $ref: "#/components/schemas/InstanceBackupHealth"
+        destinations:
+          type: array
+          items:
+            $ref: "#/components/schemas/InstanceBackupDestinationHealth"
+          description: Every selected destination
+        incident:
+          allOf:
+            - $ref: "#/components/schemas/InstanceBackupIncident"
+          nullable: true
+          description: The open incident, null when protection has no problem
+        isEmailConfigured:
+          type: boolean
+          description: Whether the operator configured the system mail server
+        isRootEmailUsable:
+          type: boolean
+          description: Whether root admin's address can receive mail
+        isMasterKeyAcknowledged:
+          type: boolean
+          description: Whether root admin confirmed saving the current master key
+        identityProofMethods:
+          type: array
+          items:
+            $ref: "#/components/schemas/IdentityProofMethod"
+          description: The identity confirmations root admin can give now; empty means only the host file remains
+        masterKeyPath:
+          type: string
+          description: Where the master key file lives inside the container, for saving it from the host
+        reminder:
+          $ref: "#/components/schemas/InstanceBackupReminder"
+        isRecoveryPaused:
+          type: boolean
+          description: Whether the instance is paused after a recovery until root admin activates it
+        recovery:
+          allOf:
+            - $ref: "#/components/schemas/InstanceRecovery"
+          nullable: true
+          description: The latest recovery of the local journal, null when there was none
+    InstanceBackupDestinationChoice:
+      type: object
+      description: A storage root admin can select as a destination, without its settings
+      required: [storageId, storageName, storageType, workspaceId, workspaceName, isSelected]
+      properties:
+        storageId:
+          type: string
+          format: uuid
+          description: The ID of the storage
+        storageName:
+          type: string
+          description: The name of the storage
+        storageType:
+          $ref: "#/components/schemas/StorageType"
+        workspaceId:
+          type: string
+          format: uuid
+          description: The workspace the storage belongs to
+        workspaceName:
+          type: string
+          description: The name of that workspace
+        isSelected:
+          type: boolean
+          description: Whether the storage is a current destination
+    InstanceBackupDestinationPage:
+      type: object
+      description: One page of destination choices, ordered by workspace name, storage name and ID
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/InstanceBackupDestinationChoice"
+          description: The choices on the page
+        nextCursor:
+          type: string
+          description: The `after` of the next page, absent on the last page
+    InstanceBackupStatusValue:
+      type: string
+      description: >-
+        Where a Databasus backup is in its life. `PARTIAL` when some copies succeeded and others
+        failed, `INTERRUPTED` when Databasus stopped before it ended
+      enum: [IN_PROGRESS, COMPLETED, PARTIAL, FAILED, INTERRUPTED]
+    InstanceBackupTrigger:
+      type: string
+      description: What started a Databasus backup
+      enum: [SCHEDULE, MANUAL, DESTINATION_ADDED]
+    InstanceBackupCopyStatus:
+      type: string
+      description: Where the delivery of one copy is
+      enum: [PENDING, UPLOADING, RETRYING, STORED, FAILED, INTERRUPTED, DELETED]
+    InstanceBackupCopy:
+      type: object
+      description: The delivery of one Databasus backup to one storage
+      required: [id, storageName, workspaceName, status, attemptCount, isDownloadable]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The ID of the copy
+        storageId:
+          type: string
+          format: uuid
+          nullable: true
+          description: The storage, null after the storage was deleted
+        storageName:
+          type: string
+          description: The storage's name when the copy was made
+        workspaceName:
+          type: string
+          description: The workspace's name when the copy was made
+        status:
+          $ref: "#/components/schemas/InstanceBackupCopyStatus"
+        attemptCount:
+          type: integer
+          description: How many delivery attempts were made
+        storedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the copy was stored
+        lastError:
+          type: string
+          nullable: true
+          description: The sanitized error of the latest failed attempt
+        isDownloadable:
+          type: boolean
+          description: Whether a download token can be issued for the copy now
+    InstanceBackup:
+      type: object
+      description: One encrypted snapshot of the internal database and its copies
+      required: [id, status, trigger, sourceRelease, startedAt, copies]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The ID of the Databasus backup, also the ID inside its file
+        status:
+          $ref: "#/components/schemas/InstanceBackupStatusValue"
+        trigger:
+          $ref: "#/components/schemas/InstanceBackupTrigger"
+        sourceRelease:
+          type: string
+          description: The Databasus release that made the backup; recovery needs exactly this release
+        startedAt:
+          type: string
+          format: date-time
+          description: When the backup started
+        snapshotAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: The moment the snapshot represents, null until the dump finished
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the last copy reached its final state
+        sizeBytes:
+          type: integer
+          format: int64
+          nullable: true
+          description: The size of the encrypted file
+        failureReason:
+          type: string
+          nullable: true
+          description: The sanitized reason the dump failed
+        copies:
+          type: array
+          items:
+            $ref: "#/components/schemas/InstanceBackupCopy"
+          description: One entry per destination of the run
+    InstanceBackupPage:
+      type: object
+      description: One page of Databasus backups, the newest snapshot first
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/InstanceBackup"
+          description: The backups on the page
+        nextCursor:
+          type: string
+          description: The `after` of the next page, absent on the last page
+    InstanceBackupDownloadTokenCreate:
+      type: object
+      description: The stored copy to download
+      required: [copyId]
+      properties:
+        copyId:
+          type: string
+          format: uuid
+          description: The copy of this backup to download
+    InstanceBackupDownloadToken:
+      type: object
+      description: A single-use token that downloads one encrypted copy within five minutes
+      required: [token, fileName, expiresAt]
+      properties:
+        token:
+          type: string
+          description: The token, returned only in this response
+        fileName:
+          type: string
+          description: The name the downloaded file gets
+        expiresAt:
+          type: string
+          format: date-time
+          description: When the token stops working
+    IdentityConfirmation:
+      type: object
+      description: An emailed identity code that was sent
+      required: [expiresAt]
+      properties:
+        expiresAt:
+          type: string
+          format: date-time
+          description: When the code stops working
+    IdentityProof:
+      type: object
+      description: Root admin's current password or an emailed code; exactly one is sent
+      properties:
+        password:
+          type: string
+          writeOnly: true
+          description: Root admin's current password
+        code:
+          type: string
+          writeOnly: true
+          description: The emailed confirmation code
+    MasterKeyExportCreate:
+      type: object
+      description: The identity proof for a master-key export
+      required: [proof]
+      properties:
+        proof:
+          $ref: "#/components/schemas/IdentityProof"
+        isInsecureTransferAcknowledged:
+          type: boolean
+          default: false
+          description: Root admin accepted that the key travels over unencrypted HTTP
+    MasterKeyExport:
+      type: object
+      description: A single-use token that downloads the master key within 60 seconds
+      required: [token, fileName, expiresAt]
+      properties:
+        token:
+          type: string
+          description: The token, returned only in this response
+        fileName:
+          type: string
+          description: The name the downloaded file gets
+        expiresAt:
+          type: string
+          format: date-time
+          description: When the token stops working
+    MasterKeyAcknowledgment:
+      type: object
+      description: Whether root admin saved the current master key
+      required: [isSaved]
+      properties:
+        isSaved:
+          type: boolean
+          description: "`true` records that the current key is saved outside the server"
+    InstanceRecoveryStatus:
+      type: string
+      description: >-
+        Where a recovery is. `VALIDATING` while the upload is checked and staged, `READY` when it can
+        be applied, `APPLYING` once apply was accepted, `PAUSED` after publication until activation,
+        `ACTIVE` after activation
+      enum: [VALIDATING, READY, APPLYING, PAUSED, ACTIVE, FAILED, CANCELLED]
+    InstanceRecoveryOrigin:
+      type: string
+      description: How the recovery inputs arrived
+      enum: [STARTUP, UPLOAD]
+    InstanceRecoveryFailure:
+      type: string
+      description: The safe reason a recovery failed
+      enum:
+        - ARCHIVE_INVALID
+        - ARCHIVE_INCOMPLETE
+        - MASTER_KEY_INVALID
+        - RELEASE_MISMATCH
+        - SCHEMA_INCOMPATIBLE
+        - INSUFFICIENT_DISK_SPACE
+        - IMPORT_FAILED
+        - EXPIRED
+        - QUIESCENCE_FAILED
+        - INTERRUPTED
+    InstanceRecovery:
+      type: object
+      description: A recovery of the instance's internal state from a Databasus backup file
+      required: [id, status, origin, archiveSha256, runningRelease, createdAt, discardedCleanupCount]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The ID of the recovery
+        status:
+          $ref: "#/components/schemas/InstanceRecoveryStatus"
+        origin:
+          $ref: "#/components/schemas/InstanceRecoveryOrigin"
+        archiveSha256:
+          type: string
+          description: Lowercase hexadecimal SHA-256 of the whole encrypted file
+        runningRelease:
+          type: string
+          description: The release of this installation
+        sourceRelease:
+          type: string
+          nullable: true
+          description: The authenticated release of the archive, null until validated
+        snapshotAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: The authenticated snapshot time, null until validated
+        createdAt:
+          type: string
+          format: date-time
+          description: When the recovery started
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When an unapplied recovery stops being applicable
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When publication completed
+        failure:
+          allOf:
+            - $ref: "#/components/schemas/InstanceRecoveryFailure"
+          nullable: true
+          description: Why the recovery failed, null otherwise
+        discardedCleanupCount:
+          type: integer
+          description: >-
+            Unfinished file writes and deletions of the source instance that were discarded instead
+            of replayed; their files may need manual cleanup
+    InstanceRecoveryUpload:
+      type: object
+      description: The recovery inputs
+      required: [archive, masterKey]
+      properties:
+        archive:
+          type: string
+          format: binary
+          description: The encrypted Databasus backup file
+        masterKey:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 65536
+          description: The source installation's master key as text; its exact UTF-8 bytes are used
+        isInsecureTransferAcknowledged:
+          type: boolean
+          default: false
+          description: Root admin accepted that the file and the key travel over unencrypted HTTP
+    InstanceRecoveryApply:
+      type: object
+      description: The replacement confirmation and identity proof
+      required: [isReplacementConfirmed, proof]
+      properties:
+        isReplacementConfirmed:
+          type: boolean
+          description: Root admin accepted that current users, settings and backup catalog are replaced
+        proof:
+          $ref: "#/components/schemas/IdentityProof"
+    InstanceRecoveryActivation:
+      type: object
+      description: The confirmation that ends the recovery pause
+      required: [isOldInstanceStopped]
+      properties:
+        isOldInstanceStopped:
+          type: boolean
+          description: Root admin confirms the old instance is stopped
+    StorageRecoveryValidationStatus:
+      type: string
+      description: >-
+        `REQUIRES_VALIDATION` for a local storage recovered from a Databasus backup until an editor's
+        saved connection test succeeds on this host; every other storage is `AVAILABLE`
+      enum: [AVAILABLE, REQUIRES_VALIDATION]
+    StorageType:
+      type: string
+      description: The provider of a storage
+      enum: [LOCAL, S3, NAS, AZURE_BLOB, FTP, SFTP]
     Problem:
       type: object
       description: An error in the RFC 9457 format. The client chooses its text by `code`
@@ -5564,6 +6849,14 @@ components:
         - target_time_unreachable
         - insufficient_disk_space
         - instance_unhealthy
+        - databasus_backup_in_use
+        - recovery_paused
+        - storage_unavailable
+        - recovery_incompatible
+        - recovery_not_ready
+        - identity_proof_invalid
+        - identity_proof_unavailable
+        - archive_too_large
         - internal
     FieldError:
       type: object

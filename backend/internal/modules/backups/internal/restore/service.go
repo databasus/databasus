@@ -16,6 +16,7 @@ import (
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/diskusage"
 	"databasus-backend/internal/lib/logging"
+	"databasus-backend/internal/lib/recoverypause"
 	"databasus-backend/internal/lib/shutdown"
 	"databasus-backend/internal/modules/backups/internal/auditing"
 	"databasus-backend/internal/modules/backups/internal/logical"
@@ -40,6 +41,8 @@ const (
 )
 
 type Deps struct {
+	// RecoveryPause refuses restores while a recovered instance is paused.
+	RecoveryPause  *recoverypause.Gate
 	ShutdownBudget *shutdown.Budget
 	Repositories   Repositories
 	Transactor     *database.Transactor
@@ -57,6 +60,7 @@ type Deps struct {
 
 // Service starts, follows and cancels the restores of logical backups.
 type Service struct {
+	recoveryPause  *recoverypause.Gate
 	shutdownBudget *shutdown.Budget
 	repository     *restoreRepository
 	transactor     *database.Transactor
@@ -75,6 +79,7 @@ type Service struct {
 
 func NewService(deps Deps) *Service {
 	return &Service{
+		recoveryPause:  deps.RecoveryPause,
 		shutdownBudget: deps.ShutdownBudget,
 		repository:     deps.Repositories.restores,
 		transactor:     deps.Transactor,
@@ -120,6 +125,10 @@ func (s *Service) StartRestore(
 ) (Restore, error) {
 	backup, backupDatabase, err := s.logicalBackups.GetAuthorizedBackup(ctx, actor, backupID, workspaces.ActionView)
 	if err != nil {
+		return Restore{}, err
+	}
+
+	if err := s.recoveryPause.Check(); err != nil {
 		return Restore{}, err
 	}
 

@@ -24,6 +24,7 @@ const workspace = {
 const storage: Storage = {
   id: 'archive',
   workspaceId: workspace.id,
+  recoveryValidationStatus: 'AVAILABLE',
   name: 'Archive',
   settings: { type: 'LOCAL' },
 };

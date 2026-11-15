@@ -111,6 +111,18 @@ func Redact(message string) string {
 	return redactMessage(message)
 }
 
+// RedactError is an error's text to persist outside a log record, such as the last error a screen
+// shows later: redacted as Redact does and cut to maxRunes runes, so it fits its column. It counts
+// runes, because a multi-byte character cut in half makes PostgreSQL reject the whole update.
+func RedactError(err error, maxRunes int) string {
+	message := []rune(redactMessage(err.Error()))
+	if len(message) > maxRunes {
+		message = message[:maxRunes]
+	}
+
+	return string(message)
+}
+
 // Credentials and addresses reach the message through fmt.Sprintf at call sites - audit messages
 // in particular embed raw user emails, and those messages are now exported off-box.
 // The strings.Contains guards keep regex scans off the hot path: this runs on every record,

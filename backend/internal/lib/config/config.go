@@ -45,6 +45,14 @@ type Config struct {
 	OpenTelemetryHeaders string `env:"OPEN_TELEMETRY_HEADERS"`
 	AppVersion           string `env:"APP_VERSION"            envDefault:"dev"`
 
+	// RecoveryDumpPath and RecoveryMasterKeyPath name a Databasus backup file and the source
+	// installation's master key file for startup recovery. They hold paths, never key material,
+	// and are set together or not at all.
+	RecoveryDumpPath      string `env:"RECOVERY_DUMP_PATH"`
+	RecoveryMasterKeyPath string `env:"RECOVERY_MASTER_KEY_PATH"`
+	// RecoveryMaxArchiveBytes bounds a Databasus backup file uploaded for recovery.
+	RecoveryMaxArchiveBytes int64 `env:"RECOVERY_MAX_ARCHIVE_BYTES" envDefault:"10737418240"`
+
 	// The paths below all live in DataDirectory, the one data volume.
 	DataDirectory         string `env:"-"`
 	DataFolder            string `env:"-"`
@@ -52,6 +60,18 @@ type Config struct {
 	SecretKeyPath         string `env:"-"`
 	TelemetryInstancePath string `env:"-"`
 	LogFilePath           string `env:"-"`
+	// RecoveryStateDirectory holds the lifecycle lock, the recovery journal and the staged inputs
+	// of a recovery, apart from TempFolder, whose cleanup must never reach them.
+	RecoveryStateDirectory string `env:"-"`
+	// InstanceBackupSpoolFolder holds each encrypted Databasus backup file until every copy is
+	// delivered, apart from TempFolder, so retries survive a restart.
+	InstanceBackupSpoolFolder string `env:"-"`
+}
+
+// IsStartupRecoveryConfigured is true when both recovery paths are set; validation refuses one
+// without the other.
+func (c Config) IsStartupRecoveryConfigured() bool {
+	return c.RecoveryDumpPath != "" && c.RecoveryMasterKeyPath != ""
 }
 
 // IsLogFileEnabled turns the file off only on an explicit false: the file is the forensic copy an

@@ -19,7 +19,30 @@ func validate(loadedConfig Config, spec LoadSpec) error {
 		)
 	}
 
+	err := validateRecoverySettings(loadedConfig)
+	if err != nil {
+		return err
+	}
+
 	return validateSMTPSettings(loadedConfig)
+}
+
+func validateRecoverySettings(loadedConfig Config) error {
+	if (loadedConfig.RecoveryDumpPath == "") != (loadedConfig.RecoveryMasterKeyPath == "") {
+		return fmt.Errorf(
+			"%w: RECOVERY_DUMP_PATH and RECOVERY_MASTER_KEY_PATH must be set together",
+			ErrInvalidVariable,
+		)
+	}
+
+	if loadedConfig.RecoveryMaxArchiveBytes <= 0 {
+		return fmt.Errorf(
+			"%w: RECOVERY_MAX_ARCHIVE_BYTES must be a positive number of bytes, got %d",
+			ErrInvalidVariable, loadedConfig.RecoveryMaxArchiveBytes,
+		)
+	}
+
+	return nil
 }
 
 func validateSMTPSettings(loadedConfig Config) error {

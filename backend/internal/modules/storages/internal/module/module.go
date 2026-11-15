@@ -91,6 +91,14 @@ func (m *Module) GetStorageBlockingTransfer(ctx context.Context, storageID uuid.
 	return m.storages.GetStorageBlockingTransfer(ctx, storageID)
 }
 
+func (m *Module) GetStoragesBlockingChanges(ctx context.Context, storageIDs []uuid.UUID) ([]storage.Storage, error) {
+	return m.storages.GetStoragesBlockingChanges(ctx, storageIDs)
+}
+
+func (m *Module) GetAllStorages(ctx context.Context) ([]storage.Storage, error) {
+	return m.storages.GetAllStorages(ctx)
+}
+
 func (m *Module) GetStorageTypes(ctx context.Context) ([]storage.Type, error) {
 	return m.storages.GetStorageTypes(ctx)
 }
@@ -105,6 +113,10 @@ func (m *Module) OnWorkspaceDeleting(ctx context.Context, event workspaces.Works
 
 func (m *Module) SubscribeToStorageTransferring(handler storage.TransferringHandler) {
 	m.transfers.SubscribeToTransferring(handler)
+}
+
+func (m *Module) SubscribeToStorageDeleting(handler storage.DeletingHandler) {
+	m.storages.SubscribeToDeleting(handler)
 }
 
 func (m *Module) GetJobs() []background.Job {

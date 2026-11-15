@@ -70,6 +70,7 @@ const openApplication = (
       email: 'owner@example.com',
       role: 'ADMIN',
       status: 'ACTIVE',
+      isRootAdmin: false,
       createdAt: firstWorkspace.createdAt,
     }),
     mockApi.get('/instance-settings', 200, {
@@ -927,6 +928,7 @@ describe('Application workspace switch', () => {
       buildResource: (workspace: Workspace, name: string) => ({
         id: `${workspace.id}-${name.replace(/ /g, '-')}`,
         workspaceId: workspace.id,
+        recoveryValidationStatus: 'AVAILABLE',
         name,
         settings: { type: 'LOCAL' },
       }),
@@ -939,6 +941,7 @@ describe('Application workspace switch', () => {
       buildResource: (workspace: Workspace, name: string) => ({
         id: `${workspace.id}-${name.replace(/ /g, '-')}`,
         workspaceId: workspace.id,
+        recoveryValidationStatus: 'AVAILABLE',
         name,
         settings: { type: 'DISCORD' },
         lastSendError: null,
@@ -1176,4 +1179,146 @@ describe('Application workspace switch', () => {
       ).toBeNull();
     },
   );
+});
+
+const inlineStorage = {
+  id: 'inline-storage',
+  workspaceId: thirdWorkspace.id,
+  recoveryValidationStatus: 'AVAILABLE' as const,
+  name: 'Databasus archive',
+  settings: { type: 'LOCAL' as const },
+};
+const openApplicationAsRootAdmin = (
+  path: string,
+  workspaces: Workspace[],
+  rememberedWorkspaceId?: string,
+) => {
+  window.history.replaceState(null, '', path);
+  openApplication(workspaces, rememberedWorkspaceId);
+  server.use(
+    mockApi.get('/users/{userId}', 200, {
+      id: 'owner-id',
+      name: 'Owner',
+      email: 'owner@example.com',
+      role: 'ADMIN',
+      status: 'ACTIVE',
+      isRootAdmin: true,
+      createdAt: firstWorkspace.createdAt,
+    }),
+    mockApi.get('/verification-agents', 200, { items: [] }),
+    mockApi.get('/instance-backup-settings', 200, {
+      schedule: { type: 'HOURLY' },
+      retentionDays: 30,
+      storageIds: [],
+    }),
+    mockApi.get('/instance-backup-statuses', 200, {
+      health: 'NOT_CONFIGURED',
+      destinations: [],
+      incident: null,
+      isEmailConfigured: true,
+      isRootEmailUsable: true,
+      isMasterKeyAcknowledged: true,
+      identityProofMethods: ['PASSWORD'],
+      masterKeyPath: '/databasus-data/secret.key',
+      reminder: { isEligible: false, deferredUntil: null },
+      isRecoveryPaused: false,
+      recovery: null,
+    }),
+    mockApi.get('/instance-backup-destinations', 200, { items: [] }),
+    mockApi.get('/instance-backups', 200, { items: [] }),
+    mockApi.post('/workspaces', 201, thirdWorkspace),
+    mockApi.post('/storage-tests', 200, { isConnected: true }),
+    mockApi.post('/storages', 201, inlineStorage),
+  );
+
+  return userEvent.setup();
+};
+
+describe('Inline workspace creation in Databasus backup settings', () => {
+  const editRetention = async (user: ReturnType<typeof userEvent.setup>) => {
+    const retention = await screen.findByRole('textbox', { name: 'Keep copies, days' });
+    await user.clear(retention);
+    await user.type(retention, '45');
+  };
+  const createWorkspaceAndStorage = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.click(await screen.findByRole('combobox', { name: 'Destination storages' }));
+    await user.click(await screen.findByRole('button', { name: 'Create a storage' }));
+    const dialog = within(
+      await screen.findByRole('dialog', { name: 'Create a destination storage' }),
+    );
+    await user.click(dialog.getByRole('radio', { name: 'Create a new workspace' }));
+    await user.clear(dialog.getByRole('textbox', { name: 'Workspace name' }));
+    await user.type(dialog.getByRole('textbox', { name: 'Workspace name' }), thirdWorkspace.name);
+    await user.click(dialog.getByRole('button', { name: 'Create workspace' }));
+    await user.type(await dialog.findByRole('textbox', { name: 'Name' }), inlineStorage.name);
+    await user.click(dialog.getByRole('button', { name: 'Test connection' }));
+    await user.click(await dialog.findByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  };
+  const getRetentionValue = () =>
+    (screen.getByRole('textbox', { name: 'Keep copies, days' }) as HTMLInputElement).value;
+
+  it('keeps the settings address, the selected workspace and the draft after creating a workspace and storage', async () => {
+    const user = openApplicationAsRootAdmin(
+      '/databasus-settings',
+      [firstWorkspace, secondWorkspace],
+      secondWorkspace.id,
+    );
+
+    await editRetention(user);
+    await createWorkspaceAndStorage(user);
+
+    expect(screen.getByText(inlineStorage.name)).toBeTruthy();
+    expect(getRetentionValue()).toBe('45');
+    expect(window.location.pathname).toBe('/databasus-settings');
+    expect(localStorage.getItem('selected_workspace_id')).toBe(secondWorkspace.id);
+    expect(getWorkspaceSelection().getByText(secondWorkspace.name)).toBeTruthy();
+  });
+
+  it('keeps no workspace selected and the draft after creating a workspace and storage without workspaces', async () => {
+    const user = openApplicationAsRootAdmin('/databasus-settings', []);
+
+    await editRetention(user);
+    await createWorkspaceAndStorage(user);
+
+    expect(screen.getByText(inlineStorage.name)).toBeTruthy();
+    expect(getRetentionValue()).toBe('45');
+    expect(window.location.pathname).toBe('/databasus-settings');
+    expect(localStorage.getItem('selected_workspace_id')).toBeNull();
+    expect(getWorkspaceSelection().queryByText(thirdWorkspace.name)).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Storages' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Settings' })).toBeNull();
+  });
+});
+
+describe('Databasus backup destination deletion refusal', () => {
+  it('opens the Databasus backups section when root admin follows the refusal action', async () => {
+    const user = openApplicationAsRootAdmin(
+      `/workspaces/${firstWorkspace.id}/storages`,
+      [firstWorkspace],
+      firstWorkspace.id,
+    );
+    const destination = { ...inlineStorage, workspaceId: firstWorkspace.id };
+    server.use(
+      mockApi.get('/storages', 200, { items: [destination] }),
+      mockApi.get('/storages/{storageId}', 200, destination),
+      mockApi.delete('/storages/{storageId}', 409, buildProblem('databasus_backup_in_use', 409)),
+    );
+    const scrollIntoView = vi
+      .spyOn(HTMLElement.prototype, 'scrollIntoView')
+      .mockImplementation(() => {});
+
+    await user.click(await screen.findByText(destination.name));
+    await user.click(await screen.findByRole('button', { name: 'Remove' }));
+    await user.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove' }),
+    );
+    await user.click(await screen.findByRole('button', { name: 'Open Databasus backups' }));
+
+    const backupsHeading = await screen.findByRole('heading', { name: 'Databasus backups' });
+    await waitFor(() => expect(document.activeElement).toBe(backupsHeading));
+    expect(window.location.pathname).toBe('/databasus-settings');
+    expect(scrollIntoView).toHaveBeenCalled();
+  });
 });

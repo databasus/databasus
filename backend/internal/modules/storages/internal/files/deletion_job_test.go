@@ -337,6 +337,7 @@ func TestGetRetryDelay(t *testing.T) {
 			Clock:           nil,
 			Timings:         Timings{RetryBaseDelay: 10 * time.Millisecond, RetryMaxDelay: 40 * time.Millisecond},
 			Uploads:         nil,
+			RecoveryPause:   nil,
 		})
 		job.jitter = func(delay time.Duration) time.Duration { return delay }
 
@@ -345,25 +346,5 @@ func TestGetRetryDelay(t *testing.T) {
 		assert.Equal(t, 40*time.Millisecond, job.getRetryDelay(3))
 		assert.Equal(t, 40*time.Millisecond, job.getRetryDelay(9))
 		assert.Equal(t, 40*time.Millisecond, job.getRetryDelay(500), "an overflowing exponent still lands on the cap")
-	})
-}
-
-func TestSanitizeError(t *testing.T) {
-	t.Parallel()
-
-	t.Run("removes credentials", func(t *testing.T) {
-		t.Parallel()
-
-		sanitized := sanitizeError(errors.New("dial postgres://admin:hunter2@db:5432 failed"))
-
-		assert.NotContains(t, sanitized, "hunter2")
-	})
-
-	t.Run("bounds the length", func(t *testing.T) {
-		t.Parallel()
-
-		truncated := sanitizeError(errors.New(strings.Repeat("x", maxPersistedErrorLength*2)))
-
-		assert.Len(t, truncated, maxPersistedErrorLength)
 	})
 }

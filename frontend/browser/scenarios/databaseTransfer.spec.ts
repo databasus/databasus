@@ -15,6 +15,7 @@ const targetWorkspace = { ...workspace, id: 'target-workspace', name: 'Target ar
 const targetStorage: components['schemas']['Storage'] = {
   id: 'target-storage',
   workspaceId: targetWorkspace.id,
+  recoveryValidationStatus: 'AVAILABLE',
   name: 'Target archive',
   settings: { type: 'LOCAL' },
 };

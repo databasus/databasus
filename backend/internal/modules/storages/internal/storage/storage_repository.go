@@ -41,7 +41,7 @@ const (
 	forUpdateRowLock rowLock = " FOR UPDATE"
 )
 
-const storageColumns = "id, workspace_id, name, type"
+const storageColumns = "id, workspace_id, name, type, recovery_validation_status"
 
 // providerSettings pairs the settings of a storage with the repository of their provider.
 type providerSettings struct {
@@ -92,6 +92,34 @@ func (r *storageRepository) listByIDs(ctx context.Context, storageIDs []uuid.UUI
 		Scan(&storages).Error
 	if err != nil {
 		return nil, fmt.Errorf("list the storages by id: %w", err)
+	}
+
+	return storages, nil
+}
+
+// listByIDsBlockingChanges locks the rows in ID order, so concurrent selections and deletions of
+// several storages cannot deadlock.
+func (r *storageRepository) listByIDsBlockingChanges(ctx context.Context, storageIDs []uuid.UUID) ([]Storage, error) {
+	var storages []Storage
+
+	err := database.Conn(ctx, r.db).
+		Raw("SELECT "+storageColumns+" FROM storages WHERE id IN ? ORDER BY id"+string(forShareRowLock), storageIDs).
+		Scan(&storages).Error
+	if err != nil {
+		return nil, fmt.Errorf("lock the storages by id: %w", err)
+	}
+
+	return storages, nil
+}
+
+func (r *storageRepository) listAll(ctx context.Context) ([]Storage, error) {
+	var storages []Storage
+
+	err := database.Conn(ctx, r.db).
+		Raw("SELECT " + storageColumns + " FROM storages ORDER BY name, id").
+		Scan(&storages).Error
+	if err != nil {
+		return nil, fmt.Errorf("list every storage: %w", err)
 	}
 
 	return storages, nil
@@ -175,6 +203,20 @@ func (r *storageRepository) delete(ctx context.Context, storageID uuid.UUID) err
 	err := database.Conn(ctx, r.db).Exec("DELETE FROM storages WHERE id = ?", storageID).Error
 	if err != nil {
 		return fmt.Errorf("delete the storage: %w", err)
+	}
+
+	return nil
+}
+
+func (r *storageRepository) updateRecoveryValidationStatus(
+	ctx context.Context,
+	storageID uuid.UUID,
+	status RecoveryValidationStatus,
+) error {
+	err := database.Conn(ctx, r.db).
+		Exec("UPDATE storages SET recovery_validation_status = ? WHERE id = ?", status, storageID).Error
+	if err != nil {
+		return fmt.Errorf("update the storage recovery validation status: %w", err)
 	}
 
 	return nil

@@ -238,6 +238,10 @@ func TestBinary(t *testing.T) {
 
 		accountsBeforeRollback := listAccountRows(t, databaseDsn)
 		versionsBeforeRollback := listMigrationVersions(t, databaseDsn)
+		keyBeforeRollback := readHostFile(t, filepath.Join(host.dataDirectory, "secret.key"))
+		localBackupPath := filepath.Join(host.dataDirectory, "backups", "kept-backup.dump")
+		require.NoError(t, os.MkdirAll(filepath.Dir(localBackupPath), 0o700))
+		require.NoError(t, os.WriteFile(localBackupPath, []byte("local backup"), 0o600))
 
 		binaryRuns := map[string]binaryRun{
 			"server":         runBinary(t, host, environment),
@@ -248,12 +252,17 @@ func TestBinary(t *testing.T) {
 			assert.NotEqual(t, 0, binaryRun.exitCode, "%s: %s", runName, binaryRun.output)
 			assert.Contains(t, binaryRun.output, strconv.Itoa(newerMigrationVersion), runName)
 			assert.Contains(t, binaryRun.output, "after an upgrade is not supported", runName)
+			assert.Contains(t, binaryRun.output, "start a fresh installation", runName)
+			assert.Contains(t, binaryRun.output, "docker volume rm <data-volume>", runName)
+			assert.Contains(t, binaryRun.output, "docker rm -f -v databasus", runName)
 			assert.NotContains(t, binaryRun.output, "http server listening", runName)
 			assert.NotContains(t, binaryRun.output, "password reset successfully", runName)
 		}
 
 		assert.Equal(t, accountsBeforeRollback, listAccountRows(t, databaseDsn))
 		assert.Equal(t, versionsBeforeRollback, listMigrationVersions(t, databaseDsn))
+		assert.Equal(t, keyBeforeRollback, readHostFile(t, filepath.Join(host.dataDirectory, "secret.key")))
+		assert.Equal(t, []byte("local backup"), readHostFile(t, localBackupPath))
 	})
 
 	t.Run("stops on a failed migration without opening the port and applies it after the fix", func(t *testing.T) {
@@ -480,7 +489,8 @@ func startInProcessServer(t *testing.T, databaseDsn string) string {
 	go func() {
 		defer close(isServeFinished)
 
-		assert.NoError(t, application.Serve(serveCtx, address))
+		_, err := application.Serve(serveCtx, address)
+		assert.NoError(t, err)
 	}()
 
 	t.Cleanup(func() {
@@ -560,4 +570,13 @@ func listMigrationVersions(t *testing.T, databaseDsn string) []int64 {
 		Scan(&migrationVersions).Error)
 
 	return migrationVersions
+}
+
+func readHostFile(t *testing.T, path string) []byte {
+	t.Helper()
+
+	content, err := os.ReadFile(path)
+	require.NoError(t, err)
+
+	return content
 }

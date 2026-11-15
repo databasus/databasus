@@ -11,6 +11,7 @@ const mockServer = setUpMockApi();
 const archiveStorage = {
   id: 'archive-id',
   workspaceId: 'workspace-id',
+  recoveryValidationStatus: 'AVAILABLE' as const,
   name: 'Archive',
   settings: { type: 'LOCAL' as const },
 };

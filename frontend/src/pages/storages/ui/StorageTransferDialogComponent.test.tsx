@@ -34,6 +34,7 @@ const targetWorkspace: Workspace = {
 const transferredStorage: Storage = {
   id: 'storage-id',
   workspaceId: sourceWorkspace.id,
+  recoveryValidationStatus: 'AVAILABLE',
   name: 'Nightly disk',
   settings: { type: 'LOCAL' },
 };

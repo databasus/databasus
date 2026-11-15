@@ -15,6 +15,8 @@ import (
 	"databasus-backend/internal/engines/clienttools"
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/config"
+	"databasus-backend/internal/lib/diskusage"
+	"databasus-backend/internal/lib/lifecycle"
 	"databasus-backend/internal/lib/logging"
 	"databasus-backend/internal/lib/mailer"
 	"databasus-backend/internal/modules/backups"
@@ -45,6 +47,12 @@ type Environment struct {
 	// shortens them.
 	StorageFileTimings storages.FileTimings
 	WalStreamTimings   backups.WalStreamTimings
+	// RebuildRequest is how an accepted recovery asks Serve to stop the application, so the
+	// process publishes the recovery and builds the application again.
+	RebuildRequest *lifecycle.RebuildRequest
+	// InspectDisk reads the free space of a path before a Databasus backup is staged. A test
+	// application reports a full disk through it.
+	InspectDisk func(path string) (diskusage.Usage, error)
 }
 
 const notificationDeliveryTimeout = 30 * time.Second
@@ -139,6 +147,8 @@ func NewEnvironment(ctx context.Context, loadedConfig config.Config, clockSource
 		NotificationDeliveryTimeout: notificationDeliveryTimeout,
 		StorageFileTimings:          storages.ProductionFileTimings(),
 		WalStreamTimings:            backups.ProductionWalStreamTimings(),
+		RebuildRequest:              lifecycle.NewRebuildRequest(),
+		InspectDisk:                 diskusage.Get,
 	}, nil
 }
 

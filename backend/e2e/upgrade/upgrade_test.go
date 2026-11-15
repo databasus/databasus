@@ -52,7 +52,7 @@ func TestUpgrade(t *testing.T) {
 
 			docker, err := newDockerHost()
 			require.NoError(t, err)
-			defer docker.close()
+			defer docker.Close()
 
 			remainingNames, err := docker.getRemainingResources(t.Context(), resources)
 			require.NoError(t, err)

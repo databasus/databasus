@@ -13,6 +13,7 @@ import (
 	"databasus-backend/internal/lib/background"
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/lib/recoverypause"
 )
 
 // Deps is what both the store and the deletion job need, so the two constructors cannot drift apart.
@@ -26,6 +27,8 @@ type Deps struct {
 	Timings         Timings
 	// Uploads runs the upload of each background write.
 	Uploads *background.Group
+	// RecoveryPause refuses every write while a recovered instance is paused.
+	RecoveryPause *recoverypause.Gate
 }
 
 // Store is the only way backup code writes a file to a storage and the only way it hands that file
@@ -40,6 +43,7 @@ type Store struct {
 	clock           clock.Source
 	timings         Timings
 	uploads         *background.Group
+	recoveryPause   *recoverypause.Gate
 
 	liveWritesMutex  sync.Mutex
 	liveWrites       map[uuid.UUID]struct{}
@@ -56,6 +60,7 @@ func NewStore(deps Deps) *Store {
 		clock:            deps.Clock,
 		timings:          deps.Timings,
 		uploads:          deps.Uploads,
+		recoveryPause:    deps.RecoveryPause,
 		liveWritesMutex:  sync.Mutex{},
 		liveWrites:       make(map[uuid.UUID]struct{}),
 		deletionRequests: make(chan struct{}, 1),
@@ -69,6 +74,10 @@ func (s *Store) WriteFile(
 	reference StoredFileReference,
 	file io.Reader,
 ) (receipt WriteReceipt, writeErr error) {
+	if err := s.recoveryPause.Check(); err != nil {
+		return WriteReceipt{}, err
+	}
+
 	pendingID := uuid.New()
 	ctx, cancelWrite := context.WithCancelCause(ctx)
 	defer cancelWrite(nil)

@@ -173,9 +173,10 @@ func toStorageBody(storageWithSettings storage.WithSettings) (Storage, error) {
 	}
 
 	return Storage{
-		Id:          storageWithSettings.ID,
-		WorkspaceId: storageWithSettings.WorkspaceID,
-		Name:        storageWithSettings.Name,
-		Settings:    settings,
+		Id:                       storageWithSettings.ID,
+		WorkspaceId:              storageWithSettings.WorkspaceID,
+		Name:                     storageWithSettings.Name,
+		Settings:                 settings,
+		RecoveryValidationStatus: StorageRecoveryValidationStatus(storageWithSettings.RecoveryValidationStatus),
 	}, nil
 }

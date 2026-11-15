@@ -1,6 +1,7 @@
 package apptest
 
 import (
+	"os"
 	"testing"
 
 	"databasus-backend/internal/lib/crypto"
@@ -40,4 +41,17 @@ func (a *App) DecryptSecret(tb testing.TB, encryptedValue string) string {
 	}
 
 	return plaintext
+}
+
+// ReadMasterKeyFile returns the exact bytes of the installed master key file, so a test can compare
+// an exported key with it.
+func (a *App) ReadMasterKeyFile(tb testing.TB) []byte {
+	tb.Helper()
+
+	content, err := os.ReadFile(a.secretKeyPath)
+	if err != nil {
+		tb.Fatalf("read the master key file of the test application: %v", err)
+	}
+
+	return content
 }

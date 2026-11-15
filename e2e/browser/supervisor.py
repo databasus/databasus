@@ -47,6 +47,7 @@ PROBE_SCENARIOS = {
 }
 DEFAULT_PROBE_SCENARIOS = "scenarios/test_probes.py"
 APPLICATION_ADDRESS = "http://databasus:4005"
+RECOVERY_TARGET_ADDRESS = "http://databasus-target:4005"
 
 
 class RunInterrupted(BaseException):
@@ -202,6 +203,7 @@ class Supervisor:
         environment = {
             **self.project.get_environment(),
             "E2E_BASE_URL": APPLICATION_ADDRESS,
+            "E2E_TARGET_BASE_URL": RECOVERY_TARGET_ADDRESS,
             "E2E_BROWSER_ENDPOINT": f"ws://127.0.0.1:{browser_port}/",
             "E2E_COMPOSE_PROJECT": self.project.name,
             "E2E_EMAIL": email,

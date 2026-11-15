@@ -115,11 +115,17 @@ export function useApplicationStartup(requestedWorkspaceId?: string) {
   const acceptSettings = (changedSettings: InstanceSettings) => {
     if (isSessionCurrent()) setSettings(changedSettings);
   };
-  const acceptWorkspace = (workspace: Workspace) => {
+  // A workspace created inside another flow joins the list without changing the selection.
+  const addWorkspace = (workspace: Workspace) => {
     if (!isSessionCurrent()) return;
 
     discardWorkspaceRead();
     setWorkspaces((current) => [...current.filter((item) => item.id !== workspace.id), workspace]);
+  };
+  const acceptWorkspace = (workspace: Workspace) => {
+    if (!isSessionCurrent()) return;
+
+    addWorkspace(workspace);
     setSelectedWorkspaceId(workspace.id);
   };
   const updateWorkspace = (workspace: Workspace) => {
@@ -204,10 +210,11 @@ export function useApplicationStartup(requestedWorkspaceId?: string) {
     } catch {}
   }, [selectedWorkspaceId, isLoading, error]);
 
-  const selectedWorkspace =
-    workspaces.find(
-      (workspace) => workspace.id === (requestedWorkspaceId ?? selectedWorkspaceId),
-    ) ?? workspaces[0];
+  const effectiveWorkspaceId = requestedWorkspaceId ?? selectedWorkspaceId;
+  // Without any selection a workspace added by an inline flow must not become the selected one.
+  const selectedWorkspace = effectiveWorkspaceId
+    ? (workspaces.find((workspace) => workspace.id === effectiveWorkspaceId) ?? workspaces[0])
+    : undefined;
   const isReady = !isLoading && error === undefined && !!user && !!settings;
   const isAdmin = isReady && user.role === UserRole.ADMIN;
   const canCreateWorkspace = isReady && (isAdmin || settings.isMemberAllowedToCreateWorkspaces);
@@ -234,6 +241,7 @@ export function useApplicationStartup(requestedWorkspaceId?: string) {
     retry: load,
     acceptUser,
     acceptSettings,
+    addWorkspace,
     acceptWorkspace,
     updateWorkspace,
     removeWorkspace,

@@ -41,6 +41,7 @@ const renderDiskUsage = async ({
       name: 'User',
       role: 'MEMBER',
       status: 'ACTIVE',
+      isRootAdmin: false,
       createdAt: '2026-10-01T10:00:00Z',
     }),
     mockApi.get('/workspaces', 200, { items: [] }),

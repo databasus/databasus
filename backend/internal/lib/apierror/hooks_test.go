@@ -94,6 +94,39 @@ func TestHooks(t *testing.T) {
 		},
 	)
 
+	t.Run("answers 499 without logging a failure when the client abandons the request", func(t *testing.T) {
+		t.Parallel()
+		capturedRecords := &recordCapturer{records: nil, mutex: sync.Mutex{}}
+		hooks := apierror.NewHooks(apierror.Deps{Logger: logging.NewWithSinks(capturedRecords).GetLogger()})
+		router := gin.New()
+		router.GET("/api/v1/items", func(ctx *gin.Context) {
+			abandonedContext, abandon := context.WithCancel(ctx.Request.Context())
+			abandon()
+			ctx.Request = ctx.Request.WithContext(abandonedContext)
+
+			hooks.HandleHandlerError(ctx, fmt.Errorf("list items: %w", abandonedContext.Err()))
+		})
+
+		response := serve(t, router, "/api/v1/items")
+
+		assert.Equal(t, 499, response.Code)
+		assert.Empty(t, response.Body.String())
+		assert.Empty(t, capturedRecords.records)
+	})
+
+	t.Run("answers 500 when an operation is canceled while its client still waits", func(t *testing.T) {
+		t.Parallel()
+		hooks := apierror.NewHooks(apierror.Deps{Logger: slog.New(slog.DiscardHandler)})
+		router := gin.New()
+		router.GET("/api/v1/items", func(ctx *gin.Context) {
+			hooks.HandleHandlerError(ctx, fmt.Errorf("stop a background read: %w", context.Canceled))
+		})
+
+		response := serve(t, router, "/api/v1/items")
+
+		requireProblem(t, response, http.StatusInternalServerError, "internal")
+	})
+
 	t.Run("answers 500 with the fixed detail when the response cannot be encoded", func(t *testing.T) {
 		t.Parallel()
 		hooks := apierror.NewHooks(apierror.Deps{Logger: slog.New(slog.DiscardHandler)})

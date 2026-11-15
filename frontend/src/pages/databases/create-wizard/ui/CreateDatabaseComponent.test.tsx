@@ -31,6 +31,7 @@ const mockServer = setUpMockApi();
 const archiveStorage: Storage = {
   id: 'archive-storage-id',
   workspaceId: 'workspace-id',
+  recoveryValidationStatus: 'AVAILABLE',
   name: 'Archive',
   settings: { type: 'LOCAL' },
 };
@@ -434,6 +435,7 @@ describe('CreateDatabaseComponent', () => {
       body: {
         id: 'created-id',
         workspaceId: 'workspace-id',
+        recoveryValidationStatus: 'AVAILABLE',
         name: 'Shop',
         settings: { type: 'MYSQL' },
         notifierIds: [],
@@ -1001,6 +1003,7 @@ describe('completing the wizard', () => {
   const buildNotifier = (name: string) => ({
     id: `${name.toLowerCase()}-id`,
     workspaceId: 'workspace-id',
+    recoveryValidationStatus: 'AVAILABLE',
     name,
     lastSendError: null,
     settings: { type: 'DISCORD' as const },

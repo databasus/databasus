@@ -21,7 +21,7 @@ func runPatroniTransferLifecycle(t *testing.T, fixture *containers.Patroni, mode
 	t.Helper()
 
 	proxy := containers.StartPostgresProxy(t, fixture.Endpoint)
-	gate := proxy.HoldTransfer(t)
+	gate := proxy.HoldTransfer(t, containers.SteadyPostgresTransferRate)
 	workingDirectory, err := os.Getwd()
 	require.NoError(t, err)
 	bundleRoot, err := clienttools.FindBundleRoot(workingDirectory)

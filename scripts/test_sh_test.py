@@ -108,6 +108,7 @@ STUB_SOURCES = {
                 echo "databasus-backend/internal/modules/backups/e2e/mysql"
                 echo "databasus-backend/internal/modules/backups/e2e/postgresqlphysical/patroni"
                 echo "databasus-backend/internal/modules/backups/e2e/postgresqlphysical/cnpg"
+                echo "databasus-backend/internal/modules/instancebackups/e2e"
             fi
             exit "${STUB_GO_LIST_EXIT_STATUS:-0}"
         else
@@ -550,6 +551,9 @@ class TestScriptTestCase(unittest.TestCase):
         selected_packages = self.get_selected_packages()
         self.assertNotIn("databasus-backend/internal/agent/e2e", selected_packages)
         self.assertNotIn("databasus-backend/internal/modules/backups/e2e/mysql", selected_packages)
+        self.assertNotIn(
+            "databasus-backend/internal/modules/instancebackups/e2e", selected_packages
+        )
 
     def test_the_full_run_selects_the_end_to_end_packages_but_not_the_upgrade_test(self) -> None:
         exit_status, _, stderr = self.finish_script(self.start_full_script())
@@ -558,6 +562,7 @@ class TestScriptTestCase(unittest.TestCase):
         selected_packages = self.get_selected_packages()
         self.assertIn("databasus-backend/internal/agent/e2e", selected_packages)
         self.assertIn("databasus-backend/internal/modules/backups/e2e/mysql", selected_packages)
+        self.assertIn("databasus-backend/internal/modules/instancebackups/e2e", selected_packages)
         self.assertNotIn("databasus-backend/e2e/upgrade", selected_packages)
 
     def test_the_full_run_fails_when_the_browser_suite_fails(self) -> None:

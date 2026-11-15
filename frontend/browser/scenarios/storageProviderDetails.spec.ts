@@ -27,6 +27,7 @@ for (const context of visualContexts) {
       const storage = {
         id: 'archive-id',
         workspaceId: 'workspace-id',
+        recoveryValidationStatus: 'AVAILABLE' as const,
         name: 'Saved archive',
         settings: provider.settings,
       };

@@ -126,7 +126,7 @@ func TestPostgresProxy(t *testing.T) {
 		t.Parallel()
 
 		proxy := StartPostgresProxy(t, source, WithProxyTLS(authority, certificate))
-		gate := proxy.HoldTransfer(t)
+		gate := proxy.HoldTransfer(t, SlowestPostgresTransferRate)
 		connection := connectThroughProxy(t, proxyConnection{Proxy: proxy, Authority: authority, IsReplication: true})
 		connection.Frontend().SendQuery(&pgproto3.Query{String: "BASE_BACKUP (CHECKPOINT 'fast')"})
 		require.NoError(t, connection.Frontend().Flush())

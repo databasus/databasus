@@ -14,6 +14,7 @@ import (
 
 	"databasus-backend/internal/lib/background"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/lib/recoverypause"
 	"databasus-backend/internal/modules/notifiers/internal/notification"
 	"databasus-backend/internal/modules/notifiers/internal/notifier"
 	"databasus-backend/internal/modules/notifiers/internal/providers"
@@ -28,6 +29,9 @@ type Deps struct {
 	Logger    *slog.Logger
 	// Timeout ends a delivery the channel does not answer, which then counts as failed.
 	Timeout time.Duration
+	// RecoveryPause drops every notification while a recovered instance is paused, so the copy
+	// never alerts the owner's channels about work of the lost instance.
+	RecoveryPause *recoverypause.Gate
 }
 
 type Delivery struct {
@@ -36,6 +40,7 @@ type Delivery struct {
 	logger    *slog.Logger
 	timeout   time.Duration
 	group     *background.Group
+	pause     *recoverypause.Gate
 }
 
 func New(deps Deps) *Delivery {
@@ -45,6 +50,7 @@ func New(deps Deps) *Delivery {
 		logger:    deps.Logger,
 		timeout:   deps.Timeout,
 		group:     background.New(background.Deps{Logger: deps.Logger}),
+		pause:     deps.RecoveryPause,
 	}
 }
 
@@ -53,6 +59,13 @@ func New(deps Deps) *Delivery {
 func (d *Delivery) Notify(ctx context.Context, notifierIDs []uuid.UUID, message notification.Notification) {
 	uniqueNotifierIDs := slices.Compact(slices.SortedFunc(slices.Values(notifierIDs), compareIDs))
 	if len(uniqueNotifierIDs) == 0 {
+		return
+	}
+
+	if d.pause.IsPaused() {
+		d.logger.InfoContext(ctx, "notification dropped while the recovered instance is paused",
+			slog.Int("notifier_count", len(uniqueNotifierIDs)))
+
 		return
 	}
 

@@ -21,10 +21,10 @@ type team struct {
 	workspace apiclient.Workspace
 }
 
-func newTeam(t *testing.T) team {
+func newTeam(t *testing.T, options ...apptest.Option) team {
 	t.Helper()
 
-	app := apptest.New(t)
+	app := apptest.New(t, options...)
 	admin := app.CreateAdmin(t)
 	owner := app.CreateNonAdminUser(t, admin)
 

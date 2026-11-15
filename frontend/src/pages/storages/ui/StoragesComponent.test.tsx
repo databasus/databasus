@@ -18,6 +18,7 @@ beforeEach(() => {
 const storage: Storage = {
   id: 'sftp-id',
   workspaceId: 'workspace-id',
+  recoveryValidationStatus: 'AVAILABLE',
   name: 'SFTP archive',
   settings: {
     type: 'SFTP',

@@ -102,7 +102,7 @@ mise run backend:pull-testcontainers
 
 cd "$root/backend"
 discovered_packages=$(go list ./...)
-excluded_packages='^databasus-backend/(e2e/upgrade|internal/agent/e2e|internal/modules/backups/e2e)(/|$)'
+excluded_packages='^databasus-backend/(e2e/upgrade|internal/agent/e2e|internal/modules/(backups|instancebackups)/e2e)(/|$)'
 if [[ "$is_full_run" == true ]]; then
     excluded_packages='^databasus-backend/e2e/upgrade(/|$)'
 fi

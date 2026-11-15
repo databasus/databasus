@@ -1,0 +1,13 @@
+package: httpapi
+output: api.gen.go
+generate:
+  embedded-spec: true
+  models: true
+  gin-server: true
+  strict-server: true
+output-options:
+  user-templates:
+    strict/strict-gin.tmpl: ../../../../../api/templates/strict-gin.tmpl
+  include-tags: [instancebackups]
+compatibility:
+  always-prefix-enum-values: true

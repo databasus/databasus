@@ -87,6 +87,7 @@ export const registerResourceScrollScenarios = (resource: 'storages' | 'notifier
                   status: 200,
                   body: {
                     ...identity,
+                    recoveryValidationStatus: 'AVAILABLE',
                     settings: {
                       type: 'SFTP',
                       host: 'regional-archive-backup.'.repeat(6) + 'example.com',

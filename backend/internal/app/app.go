@@ -20,10 +20,12 @@ import (
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/diskusage"
 	"databasus-backend/internal/lib/ratelimit"
+	"databasus-backend/internal/lib/recoverypause"
 	"databasus-backend/internal/lib/shutdown"
 	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/healthcheck"
+	"databasus-backend/internal/modules/instancebackups"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/telemetry"
@@ -32,9 +34,6 @@ import (
 	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/migrations"
 )
-
-const olderVersionRefusal = "Returning to an older Databasus version after an upgrade is not supported. " +
-	"Start the image of the newer version instead"
 
 type App struct {
 	usersModule        users.Module
@@ -45,6 +44,7 @@ type App struct {
 	backupsModule      backups.Module
 	verificationModule verification.Module
 	healthcheckModule  healthcheck.Module
+	instanceBackups    instancebackups.Module
 	environment        *Environment
 	db                 *gorm.DB
 	transactor         *database.Transactor
@@ -59,6 +59,7 @@ type App struct {
 	inspectDisk        func(string) (diskusage.Usage, error)
 	clientToolsChecker *clienttools.Checker
 	shutdownBudget     *shutdown.Budget
+	recoveryPause      *recoverypause.Gate
 }
 
 // New prepares everything the server and the console commands share: the schema of the current
@@ -109,6 +110,22 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	}
 
 	transactor := database.NewTransactor(db)
+
+	isRecoveryPaused, err := instancebackups.IsRecoveryPaused(ctx, db)
+	if err != nil {
+		closeDatabase(db)
+
+		return nil, fmt.Errorf("read the recovery pause: %w", err)
+	}
+
+	recoveryPause := recoverypause.NewGate(isRecoveryPaused)
+
+	lifecycle, err := newStartupDeps(environment)
+	if err != nil {
+		closeDatabase(db)
+
+		return nil, err
+	}
 
 	masterKey, err := moveLegacyAndOpenMasterKey(ctx, crypto.Deps{
 		Transactor:          transactor,
@@ -191,7 +208,8 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 			SlackPostMessageURL: environment.ExternalEndpoints.SlackPostMessageURL,
 			TelegramBotAPIURL:   environment.ExternalEndpoints.TelegramBotAPIURL,
 		},
-		PublicURL: environment.Config.DatabasusURL,
+		PublicURL:     environment.Config.DatabasusURL,
+		RecoveryPause: recoveryPause,
 	})
 
 	storagesModule := storages.New(storages.Deps{
@@ -207,7 +225,8 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 			TempFolder: environment.Config.TempFolder,
 			DataFolder: environment.Config.DataFolder,
 		},
-		FileTimings: environment.StorageFileTimings,
+		FileTimings:   environment.StorageFileTimings,
+		RecoveryPause: recoveryPause,
 	})
 
 	databasesModule := databases.New(databases.Deps{
@@ -220,6 +239,7 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		Users:          usersModule,
 		Workspaces:     workspacesModule,
 		Notifiers:      notifiersModule,
+		RecoveryPause:  recoveryPause,
 	})
 
 	shutdownBudget := shutdown.New(shutdown.Deps{Clock: clock.NewSystem()})
@@ -242,6 +262,7 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		Notifiers:              notifiersModule,
 		Storages:               storagesModule,
 		Databases:              databasesModule,
+		RecoveryPause:          recoveryPause,
 	})
 	verificationModule := verification.New(
 		verification.Deps{
@@ -256,6 +277,8 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 			Backups:     backupsModule,
 			Notifiers:   notifiersModule,
 			RateLimiter: rateLimiter,
+
+			RecoveryPause: recoveryPause,
 		},
 	)
 
@@ -270,6 +293,30 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		Databases:  databasesModule,
 		Notifiers:  notifiersModule,
 	})
+
+	instanceBackupsModule, err := instancebackups.New(instancebackups.Deps{
+		DB:                      db,
+		Transactor:              transactor,
+		Clock:                   environment.Clock,
+		AuditLog:                auditLog,
+		MasterKey:               masterKey,
+		MasterKeyPath:           environment.Config.SecretKeyPath,
+		Mailer:                  environment.Mailer,
+		Lifecycle:               lifecycle,
+		RecoveryPause:           recoveryPause,
+		RebuildRequest:          environment.RebuildRequest,
+		MaxRecoveryArchiveBytes: environment.Config.RecoveryMaxArchiveBytes,
+		SpoolFolder:             environment.Config.InstanceBackupSpoolFolder,
+		Users:                   usersModule,
+		Workspaces:              workspacesModule,
+		Storages:                storagesModule,
+		Databases:               databasesModule,
+	})
+	if err != nil {
+		closeDatabase(db)
+
+		return nil, err
+	}
 
 	telemetryModule := telemetry.New(telemetry.Deps{
 		Users:        usersModule,
@@ -289,6 +336,7 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	subscribeToWorkspaceDeleting(workspacesModule, databasesModule, notifiersModule, storagesModule)
 	subscribeToNotifierTransferring(notifiersModule, databasesModule)
 	subscribeToStorageTransferring(storagesModule, backupsModule)
+	subscribeToStorageDeleting(storagesModule, instanceBackupsModule)
 	subscribeToDatabaseEvents(databaseSubscriptions{
 		Databases:    databasesModule,
 		Backups:      backupsModule,
@@ -303,6 +351,8 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	jobs = append(jobs, verificationModule.GetJobs()...)
 	jobs = append(jobs, healthcheckModule.GetJobs()...)
 	jobs = append(jobs, telemetryModule.GetJobs()...)
+	jobs = append(jobs, instanceBackupsModule.GetJobs()...)
+	jobs = gateJobsOnRecoveryPause(jobs, recoveryPause)
 	runner := background.NewRunner(background.RunnerDeps{Logger: appLogger, Clock: environment.Clock}, jobs...)
 
 	return &App{
@@ -314,6 +364,7 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		backupsModule:      backupsModule,
 		verificationModule: verificationModule,
 		healthcheckModule:  healthcheckModule,
+		instanceBackups:    instanceBackupsModule,
 		environment:        environment,
 		db:                 db,
 		transactor:         transactor,
@@ -324,6 +375,7 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		inspectDisk:        diskusage.Get,
 		clientToolsChecker: environment.getClientToolsChecker(),
 		shutdownBudget:     shutdownBudget,
+		recoveryPause:      recoveryPause,
 	}, nil
 }
 
@@ -333,7 +385,8 @@ func (a *App) StartModules(ctx context.Context) error {
 	if err := a.backupsModule.Start(ctx); err != nil {
 		return err
 	}
-	return nil
+
+	return a.instanceBackups.Start(ctx)
 }
 
 // WaitForBackupRuns returns once every backup run has written its outcome, or with ctx's error.

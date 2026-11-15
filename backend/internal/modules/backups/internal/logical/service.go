@@ -15,6 +15,7 @@ import (
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/logging"
+	"databasus-backend/internal/lib/recoverypause"
 	"databasus-backend/internal/modules/backups/internal/auditing"
 	"databasus-backend/internal/modules/backups/internal/config"
 	"databasus-backend/internal/modules/backups/internal/pipeline"
@@ -33,6 +34,8 @@ const (
 )
 
 type Deps struct {
+	// RecoveryPause refuses manual backups and deletions while a recovered instance is paused.
+	RecoveryPause *recoverypause.Gate
 	Usage         *usage.Service
 	Repositories  Repositories
 	Transactor    *database.Transactor
@@ -52,6 +55,7 @@ type Deps struct {
 
 // Service starts, runs, lists, cancels and deletes the logical backups of databases.
 type Service struct {
+	recoveryPause *recoverypause.Gate
 	usage         *usage.Service
 	repository    *backupRepository
 	transactor    *database.Transactor
@@ -91,6 +95,7 @@ type BackupCompletedHandler func(ctx context.Context, event BackupCompleted) err
 
 func NewService(deps Deps) *Service {
 	return &Service{
+		recoveryPause:           deps.RecoveryPause,
 		usage:                   deps.Usage,
 		repository:              deps.Repositories.backups,
 		transactor:              deps.Transactor,
@@ -135,6 +140,10 @@ func (s *Service) StartBackup(ctx context.Context, actor users.Actor, databaseID
 		return LogicalBackup{}, err
 	}
 
+	if err := s.recoveryPause.Check(); err != nil {
+		return LogicalBackup{}, err
+	}
+
 	if !s.pipeline.IsLogical(backupDatabase.Type) {
 		return LogicalBackup{}, ErrPhysicalDatabase
 	}
@@ -176,6 +185,10 @@ func (s *Service) CancelBackup(ctx context.Context, actor users.Actor, backupID 
 func (s *Service) DeleteBackup(ctx context.Context, actor users.Actor, backupID uuid.UUID) error {
 	_, backupDatabase, err := s.GetAuthorizedBackup(ctx, actor, backupID, workspaces.ActionEditContent)
 	if err != nil {
+		return err
+	}
+
+	if err := s.recoveryPause.Check(); err != nil {
 		return err
 	}
 

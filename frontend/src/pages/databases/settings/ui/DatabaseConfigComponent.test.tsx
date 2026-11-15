@@ -90,6 +90,7 @@ const buildSavedDatabase = (type: DatabaseType, change: Partial<DatabaseSettings
   ({
     id: 'database-id',
     workspaceId: 'workspace-id',
+    recoveryValidationStatus: 'AVAILABLE' as const,
     name: 'Shop',
     settings: {
       ...createDefaultDatabaseSettings(type),
@@ -1522,6 +1523,7 @@ describe('DatabaseConfigComponent backup configuration', () => {
             : HttpResponse.json({
                 id: 'archive-storage-id',
                 workspaceId: database.workspaceId,
+                recoveryValidationStatus: 'AVAILABLE' as const,
                 name: 'Archive',
                 settings: { type: 'LOCAL' },
               }),
@@ -1732,6 +1734,7 @@ describe('DatabaseConfigComponent backup configuration', () => {
         const buildStorage = ({ id, name }: { id: string; name: string }) => ({
           id,
           workspaceId: database.workspaceId,
+          recoveryValidationStatus: 'AVAILABLE' as const,
           name,
           settings: { type: 'LOCAL' as const },
         });
@@ -1921,6 +1924,7 @@ describe('DatabaseConfigComponent backup configuration', () => {
       id: `archive-${archive}`,
       workspaceId: logicalDatabase.workspaceId,
       name: `Archive ${archive.toUpperCase()}`,
+      recoveryValidationStatus: 'AVAILABLE' as const,
       settings: { type: 'LOCAL' as const },
     }));
     const savedSelections: string[] = [];
@@ -2112,6 +2116,7 @@ describe('DatabaseConfigComponent backup configuration', () => {
       const archive = {
         id: 'draft-archive',
         workspaceId: database.workspaceId,
+        recoveryValidationStatus: 'AVAILABLE' as const,
         name: 'Draft archive',
         settings: { type: 'LOCAL' as const },
       };

@@ -3,6 +3,7 @@ package verification
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -13,6 +14,7 @@ import (
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/ratelimit"
+	"databasus-backend/internal/lib/recoverypause"
 	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
@@ -21,6 +23,7 @@ import (
 	"databasus-backend/internal/modules/verification/internal/agents"
 	"databasus-backend/internal/modules/verification/internal/configs"
 	verificationhttpapi "databasus-backend/internal/modules/verification/internal/httpapi"
+	"databasus-backend/internal/modules/verification/internal/instancerecovery"
 	"databasus-backend/internal/modules/verification/internal/module"
 	"databasus-backend/internal/modules/verification/internal/verifications"
 	"databasus-backend/internal/modules/workspaces"
@@ -60,6 +63,14 @@ type Deps struct {
 	Backups     backups.Module
 	Notifiers   notifiers.Module
 	RateLimiter ratelimit.Counter
+	// RecoveryPause refuses verifications while a recovered instance is paused.
+	RecoveryPause *recoverypause.Gate
+}
+
+// NormalizeRecoveredState ends, in a database a recovery staged, the work the lost instance had
+// running and revokes the credentials it had issued.
+func NormalizeRecoveredState(ctx context.Context, db *gorm.DB, now time.Time) error {
+	return instancerecovery.NewService(instancerecovery.NewRepositories(db)).NormalizeRecoveredState(ctx, now)
 }
 
 func New(deps Deps) Module {
@@ -87,18 +98,19 @@ func New(deps Deps) Module {
 	)
 	verificationService := verifications.NewService(
 		verifications.Deps{
-			Repositories: verifications.NewRepositories(deps.DB),
-			Agents:       agentService,
-			Configs:      configService,
-			Transactor:   deps.Transactor,
-			Clock:        deps.Clock,
-			AuditLog:     deps.AuditLog,
-			Users:        deps.Users,
-			Workspaces:   deps.Workspaces,
-			Databases:    deps.Databases,
-			Backups:      deps.Backups,
-			Notifiers:    deps.Notifiers,
-			Logger:       deps.Logger,
+			RecoveryPause: deps.RecoveryPause,
+			Repositories:  verifications.NewRepositories(deps.DB),
+			Agents:        agentService,
+			Configs:       configService,
+			Transactor:    deps.Transactor,
+			Clock:         deps.Clock,
+			AuditLog:      deps.AuditLog,
+			Users:         deps.Users,
+			Workspaces:    deps.Workspaces,
+			Databases:     deps.Databases,
+			Backups:       deps.Backups,
+			Notifiers:     deps.Notifiers,
+			Logger:        deps.Logger,
 		},
 	)
 	return module.New(

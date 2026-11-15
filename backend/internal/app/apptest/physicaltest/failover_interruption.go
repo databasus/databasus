@@ -54,7 +54,7 @@ func RunFailoverInterruptedBackup(t *testing.T, spec FailoverInterruptionSpec) {
 		waitForWalSummaries(t, connection, chainTipStopLSN(t, chain))
 	}
 
-	gate := source.Proxy.HoldTransfer(t)
+	gate := source.Proxy.HoldTransfer(t, containers.SlowestPostgresTransferRate)
 	source.Team.call(
 		t,
 		physicalResponseSpec{

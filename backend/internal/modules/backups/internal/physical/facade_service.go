@@ -11,6 +11,7 @@ import (
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/lib/recoverypause"
 	"databasus-backend/internal/modules/backups/internal/auditing"
 	"databasus-backend/internal/modules/backups/internal/config"
 	"databasus-backend/internal/modules/backups/internal/download"
@@ -54,6 +55,9 @@ type Deps struct {
 	ClientToolsDir   string
 	WalQueueDir      string
 	WalStreamTimings walstreaming.Timings
+	// RecoveryPause refuses manual backups and deletions and skips dropping orphan slots on the
+	// source databases while a recovered instance is paused.
+	RecoveryPause *recoverypause.Gate
 }
 
 func New(deps Deps) *Service {
@@ -135,6 +139,7 @@ func New(deps Deps) *Service {
 		},
 	)
 	return &Service{
+		recoveryPause:        deps.RecoveryPause,
 		usage:                deps.Usage,
 		databases:            deps.Databases,
 		storages:             deps.Storages,
@@ -175,6 +180,10 @@ func (s *Service) Start(ctx context.Context) error {
 	}
 	if err := s.streams.FailStaleStreamers(ctx); err != nil {
 		return err
+	}
+	// The lost instance a recovered one was restored from may still stream from those slots.
+	if s.recoveryPause.IsPaused() {
+		return nil
 	}
 	return backuping.DropOrphanBackupSlots(ctx, backuping.SlotCleanupSpec{Databases: s.databases, Logger: s.logger})
 }

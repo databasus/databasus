@@ -38,6 +38,13 @@ type Provider interface {
 	GetRepository() SettingsRepository
 }
 
+// RecoveryValidator is a provider whose storages a recovery leaves unavailable until validated on
+// the new host. TestRecoveredConnection checks access beyond the ordinary test, without touching
+// existing files.
+type RecoveryValidator interface {
+	TestRecoveredConnection(ctx context.Context, location Location) error
+}
+
 // SettingsMerge names both sides, so a swapped call cannot keep the stored settings over the edit.
 type SettingsMerge struct {
 	Incoming Settings

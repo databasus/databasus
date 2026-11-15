@@ -18,6 +18,7 @@ import (
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/logging"
+	"databasus-backend/internal/lib/recoverypause"
 	"databasus-backend/internal/lib/testdb"
 	"databasus-backend/internal/modules/storages/internal/providers"
 )
@@ -86,6 +87,7 @@ func newTestFilesWithTimings(t *testing.T, timings Timings) *testFiles {
 		Clock:           manualClock,
 		Timings:         timings,
 		Uploads:         uploads,
+		RecoveryPause:   recoverypause.NewGate(false),
 	}
 	store := NewStore(deps)
 	job := NewDeletionJob(store, deps)
