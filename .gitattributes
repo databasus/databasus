@@ -16,3 +16,8 @@
 # Windows-only scripts must keep CRLF.
 *.bat text eol=crlf
 *.cmd text eol=crlf
+
+# Generated from backend/api/*.yaml by `mise run generate-api`. GitHub collapses them in pull requests
+# and `git diff` shows only that they changed; `git diff --text` shows their content.
+*.gen.go linguist-generated=true -diff
+*.gen.ts linguist-generated=true -diff

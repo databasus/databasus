@@ -39,6 +39,10 @@ Actions:
   plan           Reviews a plan before the user sees it.
   necessity      Checks a plan or an OpenSpec proposal: is the task needed, is there a much simpler option.
   diff           Reviews a finished change.
+                 No AI review receives or reads generated files (`*.gen.*`) or the user API
+                 contract `backend/api/openapi.yaml`, in the hooks and in `mise run review`: the
+                 path lists leave them out, and every prompt tells the reviewer to exclude them from
+                 `git diff`. Code-shape does not start for a turn that changed only them.
   architecture   Checks a plan or a change against docs/architecture.md and the architecture rules of the module docs.
   code-shape     Checks how code the request changed is split into files, functions and steps separated
                  by blank lines, and its names and comments, against AGENTS.md and the module docs.
@@ -137,6 +141,7 @@ A review that could not run never accepts the result, and a missing openspec sto
 """
 
 import argparse
+import fnmatch
 import hashlib
 import json
 import os
@@ -147,7 +152,7 @@ import signal
 import subprocess
 import sys
 import time
-from collections.abc import Callable, Mapping, Sequence, Set
+from collections.abc import Callable, Iterable, Mapping, Sequence, Set
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import nullcontext
 from dataclasses import dataclass, replace
@@ -187,6 +192,10 @@ GATES = (
     "proposal",
 )
 GATES_YIELDING_TO_PROPOSAL_REVIEW = ("necessity", "diff", "architecture", "code-shape")
+# Generators and the contract linter own these files, and their diffs would fill a reviewer's
+# context without anything for it to judge, so no AI review receives or reads them.
+UNREVIEWED_FILE_PATTERNS = ("*.gen.*",)
+UNREVIEWED_PATHS = ("backend/api/openapi.yaml",)
 CODE_DIRS = ("backend/", "frontend/src/", "website/")
 CODE_SUFFIXES = (".go", ".ts", ".tsx")
 TASK_PATTERN = re.compile(r"^\s*[-*] \[([ xX])\]", re.MULTILINE)
@@ -592,10 +601,8 @@ def build_review_prompt(
             (HOOKS_DIR / f"{gate}-prompt.md").read_text(),
         ]
     )
-    baseline_paths = (
-        "\n".join(f"- {path}" for path in request.get("baseline_paths") or []) or "- none"
-    )
-    changed_paths = "\n".join(f"- {path}" for path in paths) or "- none"
+    baseline_paths = format_paths(get_reviewed_paths(request.get("baseline_paths") or []))
+    changed_paths = format_paths(get_reviewed_paths(paths))
     # This builds a reviewer prompt, not an HTTP response.
     # nosemgrep: python.flask.security.audit.directly-returned-format-string.directly-returned-format-string
     return f"""{instructions}
@@ -612,6 +619,8 @@ Candidate:
 <candidate>
 {candidate}
 </candidate>
+
+{get_unreviewed_files_note()}
 
 Paths changed before this request:
 {baseline_paths}
@@ -952,7 +961,30 @@ def get_openspec_file_hashes(root: Path) -> dict[str, str]:
 
 
 def is_code_path(path: str) -> bool:
-    return path.startswith(CODE_DIRS) and path.endswith(CODE_SUFFIXES)
+    return is_reviewed_path(path) and path.startswith(CODE_DIRS) and path.endswith(CODE_SUFFIXES)
+
+
+def is_reviewed_path(path: str) -> bool:
+    file_name = Path(path).name
+    return path not in UNREVIEWED_PATHS and not any(
+        fnmatch.fnmatch(file_name, pattern) for pattern in UNREVIEWED_FILE_PATTERNS
+    )
+
+
+def get_reviewed_paths(paths: Iterable[str]) -> list[str]:
+    return [path for path in paths if is_reviewed_path(path)]
+
+
+def get_unreviewed_files_note() -> str:
+    excluded = [f"`{pattern}`" for pattern in UNREVIEWED_FILE_PATTERNS]
+    excluded += [f"`{path}`" for path in UNREVIEWED_PATHS]
+    pathspecs = [f"':(exclude,glob)**/{pattern}'" for pattern in UNREVIEWED_FILE_PATTERNS]
+    pathspecs += [f"':(exclude){path}'" for path in UNREVIEWED_PATHS]
+    return (
+        f"Files outside this review: {', '.join(excluded)}. Do not read their diffs or report "
+        "findings in them; the path lists below leave them out. Run `git diff` with "
+        f"`-- . {' '.join(pathspecs)}`. Judge the code that uses them as usual."
+    )
 
 
 # A pre-existing edit starts no content review unless this request changes it again.
@@ -1121,6 +1153,8 @@ OpenSpec change: {change_dir.relative_to(session.root)}
 Role: {role}
 Repository root: {session.root}
 
+{get_unreviewed_files_note()}
+
 Latest user request:
 <user_request>
 {request.get("prompt") or "(not captured)"}
@@ -1146,14 +1180,17 @@ def build_review_jobs(
         )
         details = (
             f"Previous review findings:\n{format_findings(full_review, findings)}\n\n"
-            f"Paths changed after the previous review:\n{format_paths(changed_since_review)}"
+            f"Paths changed after the previous review:\n"
+            f"{format_paths(get_reviewed_paths(changed_since_review))}"
         )
         prompt = build_full_review_prompt(
             session, full_review, change_dir, "repeat review", details
         )
         return [ReviewJob(change_dir.name, prompt)]
 
-    details = f"{full_review.files_title}:\n{format_paths(sorted(target.files))}"
+    details = (
+        f"{full_review.files_title}:\n{format_paths(get_reviewed_paths(sorted(target.files)))}"
+    )
     spec_paths = sorted(change_dir.glob("specs/**/spec.md"))
     roles = [f"delta spec `{path.relative_to(session.root)}`" for path in spec_paths]
     roles.extend(full_review.first_roles)

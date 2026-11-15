@@ -1380,6 +1380,24 @@ class DiffGateTest(unittest.TestCase):
         [call] = repository.reviewer_calls()
         self.assertIn("Check edits to agent instructions per the same section.", call["prompt"])
 
+    def test_reviewer_prompt_leaves_out_generated_files_and_user_api_contract(self) -> None:
+        repository = HookRepository(self)
+        repository.submit_prompt("Add a widget operation")
+        repository.write("backend/api/openapi.yaml", "openapi: 3.0.3\n")
+        repository.write("backend/internal/lib/apiclient/client.gen.go", "package apiclient\n")
+        repository.write("backend/internal/modules/widgets/service.go", "package widgets\n")
+
+        repository.stop("diff")
+
+        [call] = repository.reviewer_calls()
+        self.assertIn("- backend/internal/modules/widgets/service.go", call["prompt"])
+        self.assertNotIn("- backend/api/openapi.yaml", call["prompt"])
+        self.assertNotIn("- backend/internal/lib/apiclient/client.gen.go", call["prompt"])
+        self.assertIn(
+            "Run `git diff` with `-- . ':(exclude,glob)**/*.gen.*' ':(exclude)backend/api/openapi.yaml'`.",
+            call["prompt"],
+        )
+
     def test_reviewer_prompt_maps_paths_to_module_docs(self) -> None:
         repository = HookRepository(self)
         repository.submit_prompt("Add a widget")
@@ -1441,7 +1459,7 @@ class ArchitectureGateTest(unittest.TestCase):
 
         [call] = repository.reviewer_calls()
         self.assertIn(
-            "When a plan adds or changes an HTTP operation, or a finished change edits a file under `backend/api/`, "
+            "When a plan adds or changes an HTTP operation, or a finished change edits `backend/api/agent.yaml`, "
             "also read `.agents/skills/api-design/SKILL.md` and check the operation or the edit against it.",
             call["prompt"],
         )
@@ -1482,6 +1500,19 @@ class CodeShapeGateTest(unittest.TestCase):
         self.assertEqual(response, {})
         [call] = repository.reviewer_calls()
         self.assertIn("## Code shape review", call["prompt"])
+
+    def test_skips_reviewer_when_turn_changes_only_generated_code(self) -> None:
+        repository = HookRepository(self)
+        repository.submit_prompt("Regenerate the API")
+        repository.write(
+            "backend/internal/modules/widgets/internal/httpapi/api.gen.go", "package httpapi\n"
+        )
+        repository.write("frontend/src/shared/api/schema.gen.ts", "export {};\n")
+
+        response = repository.stop("code-shape")
+
+        self.assertEqual(response, {})
+        self.assertEqual(repository.reviewer_calls(), [])
 
     def test_runs_reviewer_when_turn_changes_agent_go_file(self) -> None:
         repository = HookRepository(self)
@@ -1843,6 +1874,26 @@ class ImplementationGateReviewTest(ShortReplyAssertions, SummaryAssertions, unit
             ],
         )
 
+    def test_implementation_reviewer_prompts_leave_out_generated_files_and_user_api_contract(
+        self,
+    ) -> None:
+        repository = HookRepository(self)
+        repository.submit_prompt("Continue")
+        repository.complete_tasks()
+        repository.write("backend/api/openapi.yaml", "openapi: 3.0.3\n")
+        repository.write("frontend/src/shared/api/schema.gen.ts", "export {};\n")
+
+        repository.stop("implementation")
+
+        calls = repository.reviewer_calls()
+        self.assertTrue(calls)
+        for call in calls:
+            self.assertNotIn("- backend/api/openapi.yaml", call["prompt"])
+            self.assertNotIn("- frontend/src/shared/api/schema.gen.ts", call["prompt"])
+            self.assertIn(
+                "Files outside this review: `*.gen.*`, `backend/api/openapi.yaml`.", call["prompt"]
+            )
+
     def test_implementation_architecture_reviewer_prompt_checks_all_backend_files_and_contract(
         self,
     ) -> None:
@@ -1867,7 +1918,7 @@ class ImplementationGateReviewTest(ShortReplyAssertions, SummaryAssertions, unit
         self.assertIn("Read `docs/architecture.md` completely", architecture_role)
         self.assertIn("including parts committed or written in earlier requests", architecture_role)
         self.assertIn(
-            "When the change edits an HTTP contract file under `backend/api/`, read `.agents/skills/api-design/SKILL.md`",
+            "When the change edits `backend/api/agent.yaml`, read `.agents/skills/api-design/SKILL.md`",
             architecture_role,
         )
         self.assertIn("Check all backend files belonging to the change", architecture_role)

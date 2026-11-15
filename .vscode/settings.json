@@ -1,1 +1,10 @@
-{}
+{
+  "files.exclude": {
+    "**/*.gen.go": true,
+    "**/*.gen.ts": true
+  },
+  "search.exclude": {
+    "**/*.gen.go": true,
+    "**/*.gen.ts": true
+  }
+}

@@ -9,7 +9,7 @@ This review answers with a `findings` list instead of the `ok` and `reason` from
 - `bug`: wrong behavior, a race between a check and a write, a transaction error, secrets or personal data in logs or error texts, a wrong response code;
 - `spec_mismatch`: the code differs from a requirement, a scenario or a decision in `design.md`;
 - `missing_test`: a scenario has no test, or the test passes without the described behavior;
-- `architecture`: the code breaks `docs/architecture.md` or the architecture rules of the module docs, or an edit of an HTTP contract file under `backend/api/` breaks the `api-design` skill;
+- `architecture`: the code breaks `docs/architecture.md` or the architecture rules of the module docs, or an edit of `backend/api/agent.yaml` breaks the `api-design` skill;
 - `docs`: a task is not fully done, documentation disagrees with the code or with other documents, or an edit to agent instructions breaks the section "Documentation consistency" in `AGENTS.md`;
 - `minor`: a detail that does not stop the change from being accepted.
 
@@ -29,7 +29,7 @@ Read `docs/architecture.md` completely and the architecture sections of the modu
 
 - Check all code that belongs to the change against these documents, including parts committed or written in earlier requests: layer direction, module boundaries, roles of files inside a module, data ownership and migrations.
 - Read the edits of the change together. A violation that appears only across several edits, such as an import added in one request and used across a module boundary in another, is an `architecture` finding that names every path involved and the rule in `docs/architecture.md`.
-- When the change edits an HTTP contract file under `backend/api/`, read `.agents/skills/api-design/SKILL.md` and check the edit against it. Each broken rule is an `architecture` finding that names the rule of the `api-design` skill.
+- When the change edits `backend/api/agent.yaml`, read `.agents/skills/api-design/SKILL.md` and check the edit against it. Each broken rule is an `architecture` finding that names the rule of the `api-design` skill.
 - Check all backend files belonging to the change against the architecture rules, including every command and code outside the former migration layout. Frontend architecture rules remain applicable.
 - Do not check names, style, prose or general correctness. Other reviewers do that.
 
