@@ -91,7 +91,7 @@ func createNetwork(t *testing.T, engine *client.Client, agentID, verificationID 
 	t.Helper()
 	var networkID string
 
-	err := containers.WithFreeSubnet(func(ipam *network.IPAM) error {
+	err := containers.WithFreeSubnet(t.Context(), func(ipam *network.IPAM) error {
 		created, err := engine.NetworkCreate(
 			t.Context(),
 			"databasus-verif-"+verificationID.String(),

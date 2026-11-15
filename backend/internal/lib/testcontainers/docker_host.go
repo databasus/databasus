@@ -65,7 +65,7 @@ func (d *DockerHost) GetLabels() map[string]string {
 // CreateNetwork takes the network's subnet from the test network range, so the default address pools
 // stay free for the verification agents, which cannot choose theirs.
 func (d *DockerHost) CreateNetwork(ctx context.Context, networkName string) error {
-	err := WithFreeSubnet(func(ipam *network.IPAM) error {
+	err := WithFreeSubnet(ctx, func(ipam *network.IPAM) error {
 		_, createErr := d.client.NetworkCreate(
 			ctx,
 			networkName,

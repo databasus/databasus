@@ -73,7 +73,7 @@ func StartPatroni(t *testing.T, spec PatroniSpec) *Patroni {
 	labels := withTestRunLabel(t, map[string]string{LabelPatroniFixture: fixture.ID})
 	t.Logf("fixture %s creating network", fixture.ID)
 	var fixtureNetwork *testcontainers.DockerNetwork
-	err := WithFreeSubnet(func(ipam *dockernetwork.IPAM) error {
+	err := WithFreeSubnet(t.Context(), func(ipam *dockernetwork.IPAM) error {
 		var networkErr error
 		fixtureNetwork, networkErr = network.New(t.Context(), network.WithLabels(labels), network.WithIPAM(ipam))
 		return networkErr

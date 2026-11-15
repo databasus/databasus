@@ -18,7 +18,7 @@ func TestWithFreeSubnet(t *testing.T) {
 	t.Run("takes the subnet from the range outside the default pools", func(t *testing.T) {
 		t.Parallel()
 
-		err := WithFreeSubnet(func(ipam *network.IPAM) error {
+		err := WithFreeSubnet(t.Context(), func(ipam *network.IPAM) error {
 			require.Len(t, ipam.Config, 1)
 			assert.Equal(t, 24, ipam.Config[0].Subnet.Bits())
 			assert.GreaterOrEqual(t, ipam.Config[0].Subnet.Addr().As4()[1], byte(160))
@@ -34,7 +34,7 @@ func TestWithFreeSubnet(t *testing.T) {
 		t.Parallel()
 		attempts := 0
 
-		err := WithFreeSubnet(func(*network.IPAM) error {
+		err := WithFreeSubnet(t.Context(), func(*network.IPAM) error {
 			attempts++
 			if attempts < 3 {
 				return errPoolOverlaps
@@ -52,7 +52,7 @@ func TestWithFreeSubnet(t *testing.T) {
 		attempts := 0
 		errDaemon := errors.New("daemon is gone")
 
-		err := WithFreeSubnet(func(*network.IPAM) error {
+		err := WithFreeSubnet(t.Context(), func(*network.IPAM) error {
 			attempts++
 
 			return errDaemon
@@ -65,7 +65,7 @@ func TestWithFreeSubnet(t *testing.T) {
 	t.Run("returns the overlap when every attempt overlaps", func(t *testing.T) {
 		t.Parallel()
 
-		err := WithFreeSubnet(func(*network.IPAM) error { return errPoolOverlaps })
+		err := WithFreeSubnet(t.Context(), func(*network.IPAM) error { return errPoolOverlaps })
 
 		require.ErrorIs(t, err, errPoolOverlaps)
 	})
