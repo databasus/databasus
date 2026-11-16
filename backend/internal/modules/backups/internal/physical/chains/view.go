@@ -10,10 +10,16 @@ type ChainView struct {
 	RootFull     *catalog.Backup
 	Incrementals []*catalog.Backup
 
-	// Span is the LSN range owned by this chain: from RootFull.StartLSN up to
-	// the next FULL's StartLSN (or catalog.LSNMax if no next FULL exists yet). Only
-	// FULLs bound a chain — INCRs sit inside Span, not at its edge.
+	// Span is the LSN range owned by this chain along Line: from RootFull.StartLSN up to the start
+	// of the next completed FULL on the line (or catalog.LSNMax if none exists yet). Only FULLs
+	// bound a chain — INCRs sit inside Span, not at its edge.
 	Span catalog.LSNRange
+	Line TimelineLine
+}
+
+// GetOwnedSpans returns the part of each timeline the chain owns: its line cut to its span.
+func (view *ChainView) GetOwnedSpans() []catalog.TimelineSpan {
+	return view.Line.getSpans(view.Span)
 }
 
 // WalOrphanRef points at a WAL segment the cleaner orphan pass should sweep.

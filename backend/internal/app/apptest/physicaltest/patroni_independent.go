@@ -44,7 +44,7 @@ func RunPatroniIndependentRecovery(t *testing.T, spec PatroniIndependentSpec) {
 		connection.QueryRow(t.Context(), "SELECT md5(pg_read_file(current_setting('hba_file'))), md5(pg_read_file(current_setting('ident_file')))").
 			Scan(&sourceAuthenticationHash, &sourceIdentHash),
 	)
-	insertMarker(t, connection, markerRow{Phase: "after-switch", Payload: "in the replacement full"})
+	insertMarker(t, connection, markerRow{Phase: "after-switch", Payload: "in the full taken on the promoted node"})
 	for _, statement := range []string{
 		fmt.Sprintf("ALTER SYSTEM SET primary_conninfo = 'host=%s port=5432 user=replicator password=testpassword'", previous.Node),
 		"ALTER SYSTEM SET restore_command = 'false'",
@@ -69,9 +69,11 @@ func RunPatroniIndependentRecovery(t *testing.T, spec PatroniIndependentSpec) {
 		source.prepareCopiedAuthentication(t, spec.ShouldHaveDefaultAuthentication)
 	}
 
-	source.Team.triggerIncremental(t)
-	source.Team.waitForReanchoredFull(t, chain[0].ID, promoted.Timeline)
+	// The recovery set must carry a FULL taken on the promoted node, whose data directory holds the
+	// planted recovery inputs; the chain would otherwise continue across the switch.
+	source.Team.triggerFull(t)
 	replacement := source.waitForNewFull(t, chain[0].ID)
+	require.Equal(t, promoted.Timeline, replacement.TimelineID)
 	fullPhases := queryMarkerRowsAt(t, source.Fixture.Endpoint.Host, source.Fixture.Endpoint.Port)
 	point := source.captureRecoveryPoint(t, []backupRow{replacement}, "after-replacement-full")
 	source.Fixture.KillNode(t, previous.Node)

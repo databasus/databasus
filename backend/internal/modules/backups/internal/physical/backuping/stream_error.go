@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	"databasus-backend/internal/modules/backups/internal/physical/catalog"
 )
 
@@ -17,21 +18,26 @@ func classifyFullStreamError(streamErr error, stderr []byte) streamOutcome {
 	}
 }
 
-// Verbatim messages from PostgreSQL's basebackup_incremental.c and
-// walsummarizer.c, matched by substring because the timeline and LSN arguments
-// are interpolated per call.
-const (
-	summariesMissingForRangeStderr = "WAL summaries are required on timeline"
-	summarizerStalledStderr        = "WAL summarization is not progressing"
-)
-
-func classifyIncrStreamError(streamErr error, stderr []byte) streamOutcome {
+// classifyIncrStreamError maps a failed INCREMENTAL. Across a promotion, a refusal tied to the
+// parent manifest's timeline or to WAL summaries is recorded as a timeline switch, so the immediate
+// replacement FULL anchors a new chain.
+func classifyIncrStreamError(streamErr error, stderr []byte, isAcrossPromotion bool) streamOutcome {
 	message := fmt.Sprintf("%v; stderr: %s", streamErr, truncateStderr(stderr))
 	if strings.Contains(string(stderr), "could not parse backup manifest") {
 		return outcomeManifestCorrupted(fmt.Errorf("%s", message), stderr)
 	}
 
-	if isSummariesExpiredError(stderr) {
+	if isAcrossPromotion && isPromotionRefusal(stderr) {
+		reason := catalog.BackupErrorTimelineSwitchDetected
+
+		return streamOutcome{
+			Status:       catalog.BackupStatusChainBroken,
+			ErrorReason:  &reason,
+			ErrorMessage: message,
+		}
+	}
+
+	if pgphysical.IsWalSummariesMissingError(stderr) {
 		reason := catalog.BackupErrorSummariesExpired
 
 		return streamOutcome{
@@ -41,7 +47,7 @@ func classifyIncrStreamError(streamErr error, stderr []byte) streamOutcome {
 		}
 	}
 
-	if isSummarizerStalledError(stderr) {
+	if pgphysical.IsWalSummarizationStalledError(stderr) {
 		reason := catalog.BackupErrorSummarizerFallingBehind
 
 		return streamOutcome{
@@ -60,18 +66,8 @@ func classifyIncrStreamError(streamErr error, stderr []byte) streamOutcome {
 	}
 }
 
-// isSummariesExpiredError detects the post-readiness-check race where the source cluster
-// pruned WAL summaries between CheckSummarizerReadiness returning OK and pg_basebackup
-// --incremental opening the actual range. The same message covers a range that was never
-// summarized at all and one summarized with a hole in the middle.
-func isSummariesExpiredError(stderr []byte) bool {
-	return strings.Contains(string(stderr), summariesMissingForRangeStderr)
-}
-
-// isSummarizerStalledError detects a summarizer that stopped absorbing WAL.
-// PostgreSQL waits for summarization through the backup start LSN and gives up
-// only after a minute without a single absorbed record, so this is a real stall
-// rather than a slow cluster.
-func isSummarizerStalledError(stderr []byte) bool {
-	return strings.Contains(string(stderr), summarizerStalledStderr)
+func isPromotionRefusal(stderr []byte) bool {
+	return pgphysical.IsWalSummariesMissingError(stderr) ||
+		pgphysical.IsWalSummarizationDisabledError(stderr) ||
+		pgphysical.IsManifestTimelineRefusal(stderr)
 }

@@ -202,6 +202,19 @@ func (team Team) triggerIncremental(t *testing.T) {
 	)
 }
 
+func (team Team) triggerFull(t *testing.T) {
+	t.Helper()
+
+	team.call(
+		t,
+		physicalResponseSpec{
+			Call:        apptest.PhysicalStartRequest(team.Database.Id, "FULL"),
+			Status:      http.StatusAccepted,
+			Destination: nil,
+		},
+	)
+}
+
 func (team Team) deleteDatabase(t *testing.T) {
 	t.Helper()
 

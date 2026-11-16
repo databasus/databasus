@@ -66,6 +66,13 @@ func (r *WalHistoryRepository) FindAllByDatabase(ctx context.Context, databaseID
 	return files, nil
 }
 
+func (r *WalHistoryRepository) MarkConflicting(ctx context.Context, id uuid.UUID) error {
+	return database.Conn(ctx, r.db).
+		Model(&WalHistoryFile{}).
+		Where("id = ?", id).
+		Update("is_conflicting", true).Error
+}
+
 func (r *WalHistoryRepository) DeleteByID(ctx context.Context, id uuid.UUID) error {
 	return database.Conn(ctx, r.db).Delete(&WalHistoryFile{}, "id = ?", id).Error
 }

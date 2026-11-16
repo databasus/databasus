@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"databasus-backend/internal/modules/backups/internal/physical/catalog"
 )
 
 func Test_WaitWindowForCadence_WhenCronIntervalHasNoPeriod_FallsBackToCap(t *testing.T) {
@@ -18,4 +20,17 @@ func Test_WaitWindowForCadence_WhenHourlyCadence_UsesQuarterOfCadence(t *testing
 
 func Test_WaitWindowForCadence_WhenDailyCadence_ClampsToCap(t *testing.T) {
 	require.Equal(t, summarizerWaitCap, waitWindowForCadence(24*time.Hour))
+}
+
+func Test_GetSummarizerChainBreakReason_WhenAcrossPromotion_RecordsTimelineSwitch(t *testing.T) {
+	require.Equal(
+		t,
+		catalog.BackupErrorTimelineSwitchDetected,
+		getSummarizerChainBreakReason(catalog.BackupErrorSummarizerOff, true),
+	)
+	require.Equal(
+		t,
+		catalog.BackupErrorSummariesExpired,
+		getSummarizerChainBreakReason(catalog.BackupErrorSummariesExpired, false),
+	)
 }

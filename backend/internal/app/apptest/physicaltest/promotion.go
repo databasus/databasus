@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	apiclient "databasus-backend/internal/lib/apiclient"
 	containers "databasus-backend/internal/lib/testcontainers"
@@ -57,48 +57,77 @@ func (team Team) waitForTimelineHistory(t *testing.T, timelineID int) {
 	})
 }
 
-func RunPromotionReanchorsChain(t *testing.T, image string) {
+// RunPromotionContinuesChain promotes the standby Databasus backs up from. The chain taken on
+// timeline 1 continues on timeline 2 without a replacement FULL, and targets on both sides of the
+// promotion restore before and after the cleanup stages.
+func RunPromotionContinuesChain(t *testing.T, image string) {
 	t.Helper()
 
 	team := newTeam(t)
-	primary, standby := containers.StartPhysicalPrimaryWithStandby(t, image)
+	pair := containers.StartPhysicalReplicationPair(t, image)
 	team.createPromotionDatabase(t, promotionSourceSpec{
-		Primary: primary, Standby: standby, BackupType: apiclient.PhysicalBackupTypeFULLINCREMENTALWALSTREAM,
+		Primary: pair.Primary.Endpoint, Standby: pair.Standby.Endpoint,
+		BackupType: apiclient.PhysicalBackupTypeFULLINCREMENTALWALSTREAM,
 	})
-	target := prepareRestoreTarget(t, image)
-	primaryConn := openConnAt(t, primary.Host, primary.Port)
-	standbyConn := openConnAt(t, standby.Host, standby.Port)
+	primaryConn := openConnAt(t, pair.Primary.Host, pair.Primary.Port)
+	standbyConn := openConnAt(t, pair.Standby.Host, pair.Standby.Port)
+	schema := NewSchemaRecovery(t, primaryConn)
+	source := restorableSource{
+		Team: team, Image: image, Schema: schema, Sequences: NewSequenceRecovery(t, primaryConn, schema),
+	}
 	createMarkerTable(t, primaryConn)
+	insertMarker(t, primaryConn, markerRow{Phase: "before-full", Payload: "row-in-base-backup"})
+	waitForMarkerOnStandby(t, standbyConn, "before-full")
+	team.enableBackups(t, true)
+	chain := team.waitForChain(t, 0)
+	source.applySchemaChanges(t, primaryConn)
+	chain = team.buildIncrementalOn(t, primaryConn, standbyConn, incrementalSpec{
+		ParentStopLSN: chainTipStopLSN(t, chain), Count: 1,
+	})
 	insertMarker(t, primaryConn, markerRow{Phase: "before-promotion", Payload: "row-before-promotion"})
 	waitForMarkerOnStandby(t, standbyConn, "before-promotion")
-	team.enableBackups(t, true)
-	initialChain := team.waitForChain(t, 0)
-	initialFullID := initialChain[0].ID
 
 	promoteStandby(t, standbyConn)
-	insertMarker(t, standbyConn, markerRow{Phase: "after-promotion", Payload: "row-after-promotion"})
-	generateWalActivity(t, standbyConn, 16*1024*1024)
+	afterPromotion := source.markRecoveryPoint(t, standbyConn, "after-promotion")
+	require.Equal(t, 2, afterPromotion.Timeline)
+	generateWalActivity(t, standbyConn, 32*1024*1024)
+	forceWalRotation(t, standbyConn)
 	team.waitForTimelineHistory(t, 2)
 	team.requirePublishedTimelineHistory(t, standbyConn)
-	team.triggerIncremental(t)
-	team.waitForReanchoredFull(t, initialFullID, 2)
-	insertMarker(t, standbyConn, markerRow{Phase: "after-replacement-full", Payload: "row-from-wal"})
-	replacementChain := []backupRow{team.listBackups(t, "FULL")[0]}
-	team.streamPostFullSegments(t, standbyConn, walArchiveSpec{Chain: replacementChain, Count: 2})
-	throughLSN := currentLSN(t, standbyConn)
-	forceWalRotation(t, standbyConn)
-	team.waitForReplayableThroughLSN(t, replacementChain, throughLSN)
-	team.requireRestrictedPromotionRole(t)
+	team.waitForTargetTimeReplayable(t, afterPromotion.Target)
+	source.restoreRecoveryPoint(t, afterPromotion)
+	team.requireLatestRestoreOnTimeline(t, latestRestoreSpec{
+		Image: image, TimelineID: 2, Phases: queryMarkerRows(t, standbyConn),
+	})
+
+	team.runCleanupStages(t)
+	source.restoreRecoveryPoint(t, afterPromotion)
+
+	chain = team.buildIncrementalOn(t, standbyConn, standbyConn, incrementalSpec{
+		ParentStopLSN: chainTipStopLSN(t, chain), Count: 2,
+	})
+	require.Len(
+		t,
+		team.listBackups(t, "FULL"),
+		1,
+		"the chain continues across the promotion without a replacement FULL",
+	)
+	require.Equal(t, 2, chain[len(chain)-1].TimelineID)
+	afterIncremental := source.captureRecoveryPointOn(t, standbyConn, chain, "after-promoted-incremental")
+	source.restoreRecoveryPoint(t, afterIncremental)
+
+	team.runCleanupStages(t)
+	pair.Primary.StopContainer(t)
+	pair.Standby.StopContainer(t)
+	source.restoreRecoveryPoint(t, afterPromotion)
+	source.restoreRecoveryPoint(t, afterIncremental)
+}
+
+func (team Team) runCleanupStages(t *testing.T) {
+	t.Helper()
 
 	team.App.RunJobPass(t, "backups_physical_cleaner")
-	bundle := team.downloadRestoreBundle(t, nil)
-	reconstructCluster(t, target, restoreSpec{App: team.App, Image: image, BundlePath: bundle, TargetTime: nil})
-	startRestoredCluster(t, target, image)
-	assert.ElementsMatch(
-		t,
-		[]string{"before-promotion", "after-promotion", "after-replacement-full"},
-		queryRestoredMarkerRows(t, target),
-	)
+	team.App.RunJobPass(t, "storage_file_deletion")
 }
 
 func (team Team) waitForReanchoredFull(t *testing.T, staleFullID uuid.UUID, timelineID int) {
@@ -145,4 +174,23 @@ func (team Team) waitForReanchoredFull(t *testing.T, staleFullID uuid.UUID, time
 			hasTimelineRefusal,
 		)
 	})
+}
+
+type latestRestoreSpec struct {
+	Image      string
+	TimelineID int
+	Phases     []string
+}
+
+// requireLatestRestoreOnTimeline restores the latest archived state, which the recovery script
+// replays on the given timeline, and checks it holds every committed marker.
+func (team Team) requireLatestRestoreOnTimeline(t *testing.T, spec latestRestoreSpec) {
+	t.Helper()
+
+	bundle := team.downloadRestoreBundle(t, nil)
+	target := prepareRestoreTarget(t, spec.Image)
+	reconstructCluster(t, target, restoreSpec{App: team.App, Image: spec.Image, BundlePath: bundle, TargetTime: nil})
+	require.Equal(t, spec.TimelineID, readRecoveryTargetTimeline(t, target, spec.Image))
+	startRestoredCluster(t, target, spec.Image)
+	require.ElementsMatch(t, spec.Phases, queryRestoredMarkerRows(t, target))
 }

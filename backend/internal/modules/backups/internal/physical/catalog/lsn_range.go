@@ -15,3 +15,10 @@ type LSNRange struct {
 func (r LSNRange) Contains(lsn walmath.LSN) bool {
 	return lsn >= r.Start && lsn < r.End
 }
+
+// TimelineSpan is the part of one timeline a lookup along a timeline line reads: the segments of
+// TimelineID that overlap Span.
+type TimelineSpan struct {
+	TimelineID int
+	Span       LSNRange
+}

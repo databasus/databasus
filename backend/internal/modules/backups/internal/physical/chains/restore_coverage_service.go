@@ -87,7 +87,7 @@ func getRestoreAnchors(reach *restoreReach) []restoreAnchor {
 }
 
 // findRestorableRanges opens a range at each anchor's completion and ends it
-// where contiguousWalRun from that anchor would stop. The run ends are found
+// where walkTimelineLine from that anchor would stop. The run ends are found
 // once for all anchors, so the cost does not grow with anchors × segments.
 func findRestorableRanges(
 	anchors []restoreAnchor,
@@ -146,7 +146,7 @@ func findWalRunTransactionTimes(segments []*catalog.WalSegment, runEnds []int) [
 }
 
 // findContiguousRunEnds maps each segment to the last segment of the unbroken
-// run it starts, by the continuity rule of contiguousWalRun.
+// run it starts, by the continuity rule of walkTimelineLine.
 func findContiguousRunEnds(segments []*catalog.WalSegment) []int {
 	runEnds := make([]int, len(segments))
 

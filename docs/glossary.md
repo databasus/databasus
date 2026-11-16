@@ -75,6 +75,8 @@ This is the project's common language. Shared concepts have one term in document
 | Kubernetes Service | The Kubernetes object that routes connections to the pods its selector matches, such as CNPG's `-rw` Kubernetes Service, which follows the primary. It is always written in full, because "Service" alone means a module's service code. |
 | Point-in-time recovery (PITR) | Replaying archived WAL after a physical backup up to a selected recoverable time. |
 | Timeline | PostgreSQL's history branch number, which changes when a replica is promoted. |
+| Fork point | The WAL position at which a promoted timeline leaves its parent timeline, recorded in the promoted timeline's history file. |
+| Timeline line | The WAL a chain can replay: its full backup's timeline up to the fork point, then each later timeline whose history is published, each up to the next fork point. |
 | Restore set | The files needed to restore a database to a moment: a full backup, its incrementals and the WAL up to the target. |
 | Recovery script | The script Databasus serves that rebuilds a cluster from a downloaded restore set. |
 | Restore | Putting a backup's data into a target database. Recovering Databasus's own state from a Databasus backup is a Databasus recovery, not a restore. |

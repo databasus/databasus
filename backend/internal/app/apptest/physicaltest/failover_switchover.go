@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -42,35 +41,25 @@ func RunFailoverSwitchovers(t *testing.T, manager FailoverManager) {
 	oldPoint := source.captureRecoveryPoint(t, chain, "before-switches")
 	source.restoreRecoveryPoint(t, oldPoint)
 	var newPoint recoveryPoint
-	var gaps []time.Time
+	var switchPoints []recoveryPoint
+	fullCount := len(source.Team.listBackups(t, "FULL"))
 
 	for switchNumber := 1; switchNumber <= 2; switchNumber++ {
 		previous := source.Cluster.GetIdentity(t)
-		delayedWal := source.delayWalPublication(t, previous.Timeline)
-
 		promoted := source.Cluster.Switchover(t)
 		require.NotEqual(t, previous.Node, promoted.Node)
 		require.Greater(t, promoted.Timeline, previous.Timeline)
 		connection = source.connect(t)
-		insertMarker(
-			t,
-			connection,
-			markerRow{Phase: fmt.Sprintf("after-switch-%d", switchNumber), Payload: "committed on promoted node"},
-		)
-		gap := sourceTime(t, connection)
-		gaps = append(gaps, gap)
-		source.publishDelayedWal(t, delayedWal, gap.Add(time.Second))
-
-		source.requireUnreachableTarget(t, gap)
-		source.Team.triggerIncremental(t)
-		source.Team.waitForReanchoredFull(t, chain[0].ID, promoted.Timeline)
-		replacement := source.waitForNewFull(t, chain[0].ID)
-		require.Equal(t, promoted.Timeline, replacement.TimelineID)
-		source.requireSingleReplacement(t, fullReplacement{Preceding: chain[0].ID, Replacement: replacement.ID})
-		chain = []backupRow{replacement}
 		source.Team.waitForTimelineHistory(t, promoted.Timeline)
 		source.Team.requirePublishedTimelineHistory(t, connection)
 		source.Team.requireRestrictedPromotionRole(t)
+
+		// A target right after the switch restores from the chain across the fork point before any
+		// backup runs on the promoted timeline.
+		switchPoint := source.markReplayablePoint(t, connection, fmt.Sprintf("after-switch-%d", switchNumber))
+		source.restoreRecoveryPoint(t, switchPoint)
+		switchPoints = append(switchPoints, switchPoint)
+
 		source.Schema.execute(
 			t,
 			connection,
@@ -80,11 +69,20 @@ func RunFailoverSwitchovers(t *testing.T, manager FailoverManager) {
 				switchNumber,
 			),
 		)
-		newPoint = source.captureRecoveryPoint(t, chain, fmt.Sprintf("after-full-%d", switchNumber))
+		chain = source.Team.buildIncremental(
+			t,
+			connection,
+			incrementalSpec{ParentStopLSN: chainTipStopLSN(t, chain), Count: 1 + switchNumber},
+		)
+		require.Len(
+			t,
+			source.Team.listBackups(t, "FULL"),
+			fullCount,
+			"the INCREMENTAL extends the chain across the switch",
+		)
+		require.Equal(t, promoted.Timeline, chain[len(chain)-1].TimelineID)
+		newPoint = source.captureRecoveryPoint(t, chain, fmt.Sprintf("after-incremental-%d", switchNumber))
 		source.restoreRecoveryPoint(t, newPoint)
-		for _, target := range gaps {
-			source.requireUnreachableTarget(t, target)
-		}
 	}
 
 	source.setRetainedChains(t, 3)
@@ -132,8 +130,8 @@ func RunFailoverSwitchovers(t *testing.T, manager FailoverManager) {
 
 	source.restoreRecoveryPoint(t, oldPoint)
 	source.restoreRecoveryPoint(t, newPoint)
-	for _, target := range gaps {
-		source.requireUnreachableTarget(t, target)
+	for _, switchPoint := range switchPoints {
+		source.restoreRecoveryPoint(t, switchPoint)
 	}
 }
 

@@ -157,6 +157,9 @@ func RunStableEndpointPromotion(t *testing.T, image string) {
 	team.enableBackups(t, true)
 	chain := team.waitForChain(t, 0)
 	team.streamPostFullSegments(t, primaryConnection, walArchiveSpec{Chain: chain, Count: 1})
+	insertMarker(t, primaryConnection, markerRow{Phase: "before-switch", Payload: "replayed by the standby"})
+	waitForMarkerOnStandby(t, standbyConnection, "before-switch")
+	createStandbySlot(t, standbyConnection, team.getSlotName(t))
 	promoteStandby(t, standbyConnection)
 	require.Equal(t, identity, sourceSystemIdentifier(t, standbyConnection))
 	proxy.Route(containers.PostgresProxyRoute{SQLDestination: standby, ReplicationDestination: standby})
@@ -164,9 +167,6 @@ func RunStableEndpointPromotion(t *testing.T, image string) {
 	team.App.RestartModules(t)
 	team.App.RunJobPass(t, "backups_physical_wal_stream_manager")
 	insertMarker(t, standbyConnection, markerRow{Phase: "after-promotion", Payload: "promoted source"})
-	generateWalActivity(t, standbyConnection, 32*1024*1024)
-	team.triggerIncremental(t)
-	team.waitForReanchoredFull(t, chain[0].ID, 2)
 	team.waitForTimelineHistory(t, 2)
 	team.requireRestrictedPromotionRole(t)
 	require.Equal(t, proxy.Endpoint.Host, team.Settings.Host)
@@ -179,19 +179,24 @@ func RunStableEndpointPromotion(t *testing.T, image string) {
 		}
 		return fmt.Errorf("no streaming session on the promoted source")
 	})
-	insertMarker(t, standbyConnection, markerRow{Phase: "after-replacement-full", Payload: "new timeline WAL"})
-	replacement := []backupRow{team.listBackups(t, "FULL")[0]}
-	team.streamPostFullSegments(t, standbyConnection, walArchiveSpec{Chain: replacement, Count: 2})
-	throughLSN := currentLSN(t, standbyConnection)
+	chain = team.buildIncrementalOn(t, standbyConnection, standbyConnection, incrementalSpec{
+		ParentStopLSN: chainTipStopLSN(t, chain), Count: 1,
+	})
+	require.Len(t, team.listBackups(t, "FULL"), 1, "the chain continues across the switch without a replacement FULL")
+	require.Equal(t, 2, chain[len(chain)-1].TimelineID)
+	insertMarker(t, standbyConnection, markerRow{Phase: "after-promoted-incremental", Payload: "new timeline WAL"})
+	targetTime := targetTimeWithMargin(t, standbyConnection)
+	insertMarker(t, standbyConnection, markerRow{Phase: "after-target", Payload: "excluded by the target"})
+	generateWalActivity(t, standbyConnection, 32*1024*1024)
 	forceWalRotation(t, standbyConnection)
-	team.waitForReplayableThroughLSN(t, replacement, throughLSN)
-	bundle := team.downloadRestoreBundle(t, nil)
+	team.waitForTargetTimeReplayable(t, targetTime)
+	bundle := team.downloadRestoreBundle(t, &targetTime)
 	target := prepareRestoreTarget(t, image)
-	reconstructCluster(t, target, restoreSpec{App: team.App, Image: image, BundlePath: bundle, TargetTime: nil})
+	reconstructCluster(t, target, restoreSpec{App: team.App, Image: image, BundlePath: bundle, TargetTime: &targetTime})
 	startRestoredCluster(t, target, image)
 	require.ElementsMatch(
 		t,
-		[]string{"before-promotion", "after-promotion", "after-replacement-full"},
+		[]string{"before-promotion", "before-switch", "after-promotion", "after-promoted-incremental"},
 		queryRestoredMarkerRows(t, target),
 	)
 	var live struct {

@@ -62,13 +62,15 @@ func prepareCNPGIndependentRecovery(t *testing.T, spec CNPGIndependentSpec) *cnp
 	previous := source.Cluster.GetIdentity(t)
 	promoted := source.Cluster.Switchover(t)
 	connection = source.connect(t)
-	insertMarker(t, connection, markerRow{Phase: "after-switch", Payload: "in the replacement full"})
+	insertMarker(t, connection, markerRow{Phase: "after-switch", Payload: "in the full taken on the promoted node"})
 
 	source.plantInheritedRecoveryInputs(t, previous.Node)
 
-	source.Team.triggerIncremental(t)
-	source.Team.waitForReanchoredFull(t, chain[0].ID, promoted.Timeline)
+	// The recovery set must carry a FULL taken on the promoted node, whose data directory holds the
+	// planted recovery inputs; the chain would otherwise continue across the switch.
+	source.Team.triggerFull(t)
 	replacement := source.waitForNewFull(t, chain[0].ID)
+	require.Equal(t, promoted.Timeline, replacement.TimelineID)
 
 	fullPhases := queryMarkerRows(t, connection)
 	point := source.captureRecoveryPoint(t, []backupRow{replacement}, "after-replacement-full")

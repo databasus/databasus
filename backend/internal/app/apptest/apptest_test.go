@@ -238,11 +238,11 @@ func TestPhysicalBackupLoops(t *testing.T) {
 			PhysicalWalSegmentSeed{
 				DatabaseID:  backupDatabase.Id,
 				StorageID:   *backupConfig.StorageId,
-				TimelineID:  999,
+				TimelineID:  1,
 				FileName:    new("orphan-live-wal"),
-				WalFilename: "000003E70000000000000001",
-				StartLSN:    "0/1000000",
-				EndLSN:      "0/2000000",
+				WalFilename: "000000010000000000000000",
+				StartLSN:    "0/0",
+				EndLSN:      "0/1000000",
 				ReceivedAt:  time.Now().Add(-2 * time.Hour),
 			},
 		)

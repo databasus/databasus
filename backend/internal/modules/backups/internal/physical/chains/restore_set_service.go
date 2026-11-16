@@ -31,6 +31,10 @@ type RestoreSet struct {
 	// MaxReplayableLSN is the furthest LSN the shipped WAL can replay to (the end
 	// of the contiguous committed run, capped by the first gap).
 	MaxReplayableLSN walmath.LSN
+
+	// TargetTimelineID is the newest timeline the shipped WAL reaches, which recovery must follow.
+	// It is nil when the set ships no WAL.
+	TargetTimelineID *int
 }
 
 // ResolveRestoreSet selects the artifacts to restore databaseID to targetTime
@@ -61,6 +65,7 @@ func (s *Service) ResolveRestoreSet(ctx context.Context, databaseID uuid.UUID,
 		HistoryFiles:        reach.historyFiles,
 		LastIncludedStopLSN: reach.lastStopLSN,
 		MaxReplayableLSN:    reach.reachableLSN,
+		TargetTimelineID:    reach.targetTimelineID,
 	}, nil
 }
 
@@ -73,10 +78,13 @@ type restoreReach struct {
 	walRun        []*catalog.WalSegment
 	reachableLSN  walmath.LSN
 	reachableTime time.Time
+
+	targetTimelineID *int
 }
 
 // resolveRestoreReach picks the chain and backups for targetTime (nil ⇒ latest)
-// and walks the WAL after the last of them up to the first gap.
+// and walks the WAL after the last of them along the chain's timeline line up
+// to the first gap.
 func (s *Service) resolveRestoreReach(ctx context.Context, databaseID uuid.UUID,
 	targetTime *time.Time,
 ) (*restoreReach, error) {
@@ -94,60 +102,112 @@ func (s *Service) resolveRestoreReach(ctx context.Context, databaseID uuid.UUID,
 		return nil, ErrNoChainForRestore
 	}
 
-	incrementals, lastStopLSN, lastBackupTime := includedIncrementals(chain, targetTime)
+	incrementals, lastBackup := includedIncrementals(chain, targetTime)
 
-	restoreWalSegments, err := s.walSegmentRepository.FindByChainSpan(ctx, databaseID,
-		chain.RootFull.TimelineID,
-		chain.Span.Start,
-		catalog.LSNMax,
-	)
+	histories, err := s.walHistoryRepository.FindAllByDatabase(ctx, databaseID)
 	if err != nil {
 		return nil, err
 	}
 
-	var historyFiles []*catalog.WalHistoryFile
-	if chain.RootFull.TimelineID > 1 {
-		history, isFound, historyErr := s.walHistoryRepository.FindByDatabaseTimeline(
+	restoreWalSegments := make([]*catalog.WalSegment, 0)
+	if hasFirstTimelineHistory(chain, histories) {
+		lineSegments, err := s.walSegmentRepository.FindByTimelineLine(
 			ctx,
 			databaseID,
-			chain.RootFull.TimelineID,
+			chain.Line.getSpans(catalog.LSNRange{Start: chain.Span.Start, End: catalog.LSNMax}),
 		)
-		if historyErr != nil {
-			return nil, historyErr
+		if err != nil {
+			return nil, err
 		}
 
-		if isFound && history.StorageID == chain.RootFull.StorageID {
-			historyFiles = []*catalog.WalHistoryFile{history}
-		} else {
-			restoreWalSegments = nil
-		}
+		restoreWalSegments = withoutForkSegmentEvidence(chain.Line, lineSegments)
 	}
 
-	walRun, reachableLSN, reachableTime := contiguousWalRun(restoreWalSegments, lastStopLSN, lastBackupTime)
-	if targetTime != nil && targetTime.Equal(lastBackupTime) {
+	walk := walkTimelineLine(timelineLineWalkSpec{
+		Line:                 chain.Line,
+		StorageID:            chain.RootFull.StorageID,
+		Segments:             restoreWalSegments,
+		LastStopLSN:          lastBackup.StopLSN,
+		LastBackupTime:       lastBackup.CompletedAt,
+		LastBackupTimelineID: lastBackup.TimelineID,
+	})
+	walRun, reachableLSN := walk.Run, walk.ReachableLSN
+	if targetTime != nil && targetTime.Equal(lastBackup.CompletedAt) {
 		hasConfirmingTransaction := slices.ContainsFunc(walRun, func(segment *catalog.WalSegment) bool {
-			return segment.LastTransactionAt != nil && segment.LastTransactionAt.After(lastBackupTime)
+			return segment.LastTransactionAt != nil && segment.LastTransactionAt.After(lastBackup.CompletedAt)
 		})
 		if !hasConfirmingTransaction {
 			walRun = nil
-			reachableLSN = lastStopLSN
+			reachableLSN = lastBackup.StopLSN
 		}
 	}
 
-	if len(walRun) == 0 {
-		historyFiles = nil
+	var historyFiles []*catalog.WalHistoryFile
+	var targetTimelineID *int
+	if len(walRun) > 0 {
+		reachedTimelineID := walRun[len(walRun)-1].TimelineID
+		targetTimelineID = &reachedTimelineID
+		historyFiles = getLineHistoryFiles(chain, histories, walk.ReachedRangeIndex)
 	}
 
 	return &restoreReach{
-		chain:         chain,
-		incrementals:  incrementals,
-		lastStopLSN:   lastStopLSN,
-		walSegments:   restoreWalSegments,
-		historyFiles:  historyFiles,
-		walRun:        walRun,
-		reachableLSN:  reachableLSN,
-		reachableTime: reachableTime,
+		chain:            chain,
+		incrementals:     incrementals,
+		lastStopLSN:      lastBackup.StopLSN,
+		walSegments:      restoreWalSegments,
+		historyFiles:     historyFiles,
+		walRun:           walRun,
+		reachableLSN:     reachableLSN,
+		reachableTime:    walk.ReachableTime,
+		targetTimelineID: targetTimelineID,
 	}, nil
+}
+
+// hasFirstTimelineHistory reports whether WAL of the chain's own timeline may ship: timeline 1 needs
+// no history, and a later timeline needs its published history in the FULL's storage.
+func hasFirstTimelineHistory(chain *ChainView, histories []*catalog.WalHistoryFile) bool {
+	firstTimelineID := chain.Line.Ranges[0].TimelineID
+	if firstTimelineID == 1 {
+		return true
+	}
+
+	return findHistoryInStorage(histories, firstTimelineID, chain.RootFull.StorageID) != nil
+}
+
+// getLineHistoryFiles returns the history of every timeline above 1 on the line up to the reached
+// range, in the FULL's storage. Recovery that targets the newest of them reads its ancestry from them.
+func getLineHistoryFiles(
+	chain *ChainView,
+	histories []*catalog.WalHistoryFile,
+	reachedRangeIndex int,
+) []*catalog.WalHistoryFile {
+	historyFiles := make([]*catalog.WalHistoryFile, 0, reachedRangeIndex+1)
+
+	for _, lineRange := range chain.Line.Ranges[:reachedRangeIndex+1] {
+		if lineRange.TimelineID == 1 {
+			continue
+		}
+
+		if history := findHistoryInStorage(histories, lineRange.TimelineID, chain.RootFull.StorageID); history != nil {
+			historyFiles = append(historyFiles, history)
+		}
+	}
+
+	return historyFiles
+}
+
+func findHistoryInStorage(
+	histories []*catalog.WalHistoryFile,
+	timelineID int,
+	storageID uuid.UUID,
+) *catalog.WalHistoryFile {
+	for _, history := range histories {
+		if history.TimelineID == timelineID && history.StorageID == storageID {
+			return history
+		}
+	}
+
+	return nil
 }
 
 // ResolveRestoreSetForBackup selects the artifacts to restore to a SPECIFIC
@@ -258,8 +318,12 @@ func (s *Service) orderedRestoreCandidates(ctx context.Context, databaseID uuid.
 
 // selectRestoreChain picks the chain to restore from: the newest one for a
 // latest restore, or the newest chain whose FULL was completed at or before the
-// target for a PITR restore.
+// target for a PITR restore. A FULL off the newest timeline line stays
+// restorable by its identifier only.
 func selectRestoreChain(candidates []*ChainView, targetTime *time.Time) (*ChainView, error) {
+	candidates = slices.DeleteFunc(slices.Clone(candidates), func(candidate *ChainView) bool {
+		return candidate.Line.IsOffLine
+	})
 	if len(candidates) == 0 {
 		return nil, ErrNoChainForRestore
 	}
@@ -278,17 +342,27 @@ func selectRestoreChain(candidates []*ChainView, targetTime *time.Time) (*ChainV
 	return nil, ErrTargetBeforeEarliest
 }
 
+// includedBackup is the newest backup a restore includes, where WAL replay starts.
+type includedBackup struct {
+	StopLSN     walmath.LSN
+	CompletedAt time.Time
+	TimelineID  int
+}
+
 // includedIncrementals keeps the COMPLETED INCRs (ordered oldest→newest) up to
-// the target, and reports the stop_lsn / completion time of the last one kept
-// (the FULL's when none are kept). Incrementals arrive ordered by start_lsn ASC.
+// the target, and reports the newest backup kept (the FULL when none are kept).
+// Incrementals arrive ordered by start_lsn ASC.
 func includedIncrementals(
 	chain *ChainView,
 	targetTime *time.Time,
-) ([]*catalog.Backup, walmath.LSN, time.Time) {
+) ([]*catalog.Backup, includedBackup) {
 	included := make([]*catalog.Backup, 0, len(chain.Incrementals))
 
-	lastStopLSN := *chain.RootFull.StopLSN
-	lastBackupTime := derefTime(chain.RootFull.CompletedAt)
+	lastBackup := includedBackup{
+		StopLSN:     *chain.RootFull.StopLSN,
+		CompletedAt: derefTime(chain.RootFull.CompletedAt),
+		TimelineID:  chain.RootFull.TimelineID,
+	}
 
 	for _, incremental := range chain.Incrementals {
 		if incremental.Status != catalog.BackupStatusCompleted ||
@@ -301,51 +375,14 @@ func includedIncrementals(
 		}
 
 		included = append(included, incremental)
-		lastStopLSN = *incremental.StopLSN
-		lastBackupTime = *incremental.CompletedAt
-	}
-
-	return included, lastStopLSN, lastBackupTime
-}
-
-// contiguousWalRun walks the chain's committed WAL segments forward from
-// lastStopLSN, collecting an unbroken run until the first gap. Segments still
-// uploading (file_name NULL) and segments already folded into the backups
-// (end_lsn ≤ lastStopLSN) are skipped. Returns the run, the furthest LSN it
-// reaches, and the timestamp of that furthest point.
-func contiguousWalRun(
-	segments []*catalog.WalSegment,
-	lastStopLSN walmath.LSN,
-	lastBackupTime time.Time,
-) ([]*catalog.WalSegment, walmath.LSN, time.Time) {
-	run := make([]*catalog.WalSegment, 0)
-
-	cursor := lastStopLSN
-	reachableTime := lastBackupTime
-
-	for _, segment := range segments {
-		if segment.FileName == nil || segment.EndLSN <= lastStopLSN {
-			continue
-		}
-
-		// A segment that starts past the cursor leaves a hole the replay can't
-		// cross — stop here, cursor is the furthest reachable LSN.
-		if segment.StartLSN > cursor {
-			break
-		}
-
-		run = append(run, segment)
-		cursor = segment.EndLSN
-		if segment.LastTransactionAt != nil {
-			// Inclusive time recovery stops before a later transaction, not at the last timestamp.
-			transactionBound := segment.LastTransactionAt.Add(-time.Microsecond)
-			if transactionBound.After(reachableTime) {
-				reachableTime = transactionBound
-			}
+		lastBackup = includedBackup{
+			StopLSN:     *incremental.StopLSN,
+			CompletedAt: *incremental.CompletedAt,
+			TimelineID:  incremental.TimelineID,
 		}
 	}
 
-	return run, cursor, reachableTime
+	return included, lastBackup
 }
 
 func derefTime(t *time.Time) time.Time {

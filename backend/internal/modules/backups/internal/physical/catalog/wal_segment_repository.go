@@ -51,48 +51,56 @@ func (r *WalSegmentRepository) FindByID(ctx context.Context, id uuid.UUID) (*Wal
 	return &segment, true, nil
 }
 
-// FindByChainSpan returns the timeline's WAL segments overlapping [startLSN,
-// endLSN), ordered by start_lsn. Overlap (end_lsn > startLSN) — not start_lsn >=
-// startLSN — is deliberate: a FULL's start_lsn is usually mid-segment, so the
-// segment that physically holds the bytes from the chain's start onward has a
-// file-boundary start_lsn BELOW startLSN. Excluding it would drop the very
-// segment that bridges the FULL's stop_lsn into the next segment, manufacturing
-// a false WAL gap at the start of every restore replay window.
-func (r *WalSegmentRepository) FindByChainSpan(ctx context.Context, databaseID uuid.UUID,
-	timelineID int,
-	startLSN, endLSN walmath.LSN,
+// FindByTimelineLine returns the segments overlapping each span, span by span in the given order
+// and by start_lsn within a span. Overlap (end_lsn > start) - not start_lsn >= start - is
+// deliberate: a FULL's start_lsn is usually mid-segment, so the segment that physically holds the
+// bytes from the chain's start onward has a file-boundary start_lsn below it. Excluding it would
+// drop the very segment that bridges the FULL's stop_lsn into the next segment, manufacturing a
+// false WAL gap at the start of every restore replay window. On a timeline the line enters at a
+// fork point, the same rule selects the segment holding the fork point's LSN.
+func (r *WalSegmentRepository) FindByTimelineLine(ctx context.Context, databaseID uuid.UUID,
+	spans []TimelineSpan,
 ) ([]*WalSegment, error) {
 	var segments []*WalSegment
 
-	if err := whereInChainSpan(database.Conn(ctx, r.db), databaseID, timelineID, startLSN, endLSN).
-		Order("start_lsn ASC").
-		Find(&segments).Error; err != nil {
-		return nil, err
+	for _, span := range spans {
+		var spanSegments []*WalSegment
+
+		if err := whereInChainSpan(database.Conn(ctx, r.db), databaseID, span).
+			Order("start_lsn ASC").
+			Find(&spanSegments).Error; err != nil {
+			return nil, err
+		}
+
+		segments = append(segments, spanSegments...)
 	}
 
 	return segments, nil
 }
 
-// GetLatestReceivedAtInChainSpan returns nil when no segment overlaps the span.
-func (r *WalSegmentRepository) GetLatestReceivedAtInChainSpan(ctx context.Context, databaseID uuid.UUID,
-	timelineID int,
-	startLSN, endLSN walmath.LSN,
+// GetLatestReceivedAtOnTimelineLine returns nil when no segment overlaps any span.
+func (r *WalSegmentRepository) GetLatestReceivedAtOnTimelineLine(ctx context.Context, databaseID uuid.UUID,
+	spans []TimelineSpan,
 ) (*time.Time, bool, error) {
-	var latestReceivedAt sql.NullTime
+	var latestReceivedAt *time.Time
 
-	if err := whereInChainSpan(database.Conn(ctx, r.db), databaseID, timelineID, startLSN, endLSN).
-		Model(&WalSegment{}).
-		Select("MAX(received_at)").
-		Row().
-		Scan(&latestReceivedAt); err != nil {
-		return nil, false, err
+	for _, span := range spans {
+		var spanReceivedAt sql.NullTime
+
+		if err := whereInChainSpan(database.Conn(ctx, r.db), databaseID, span).
+			Model(&WalSegment{}).
+			Select("MAX(received_at)").
+			Row().
+			Scan(&spanReceivedAt); err != nil {
+			return nil, false, err
+		}
+
+		if spanReceivedAt.Valid && (latestReceivedAt == nil || spanReceivedAt.Time.After(*latestReceivedAt)) {
+			latestReceivedAt = &spanReceivedAt.Time
+		}
 	}
 
-	if !latestReceivedAt.Valid {
-		return nil, false, nil
-	}
-
-	return &latestReceivedAt.Time, true, nil
+	return latestReceivedAt, latestReceivedAt != nil, nil
 }
 
 // whereInChainSpan selects the segments overlapping [startLSN, endLSN). The
@@ -101,12 +109,9 @@ func (r *WalSegmentRepository) GetLatestReceivedAtInChainSpan(ctx context.Contex
 // one timeline never overlap, so any segment ending after startLSN starts at or
 // after the segment holding startLSN, and that segment's start_lsn is a lower
 // index bound that keeps the boundary segment in.
-func whereInChainSpan(
-	db *gorm.DB,
-	databaseID uuid.UUID,
-	timelineID int,
-	startLSN, endLSN walmath.LSN,
-) *gorm.DB {
+func whereInChainSpan(db *gorm.DB, databaseID uuid.UUID, span TimelineSpan) *gorm.DB {
+	timelineID, startLSN, endLSN := span.TimelineID, span.Span.Start, span.Span.End
+
 	return db.Where(`
 		database_id = ? AND timeline_id = ?
 		AND start_lsn >= COALESCE(
@@ -125,39 +130,50 @@ func whereInChainSpan(
 	)
 }
 
-// Anti-join not covered by idx_backups_physical_wal_segments_database_received_at;
-// expect a seq scan on backups_physical when invoked in bulk.
+// FindOrphanCandidates returns the segments the orphan sweep checks against the timeline lines of
+// the completed FULLs: those no completed FULL on their own timeline anchors, and those that start
+// at or after a recorded fork point of their timeline, which the former primary may have written
+// after the promotion. Every other segment is anchored by a FULL whose line holds it.
 //
-// The comparison anchors on the segment's end_lsn because a FULL's start_lsn is
-// a real recovery position a short way inside the segment that holds it, while a
-// segment's own bounds are derived from its filename and are file-aligned.
-// Comparing against start_lsn would classify that boundary segment as an orphan
-// and delete the WAL the FULL itself starts and stops in.
-func (r *WalSegmentRepository) FindOrphans(ctx context.Context, databaseID uuid.UUID,
+// The anchor comparison uses the segment's end_lsn because a FULL's start_lsn is a real recovery
+// position a short way inside the segment that holds it, while a segment's own bounds are derived
+// from its filename and are file-aligned. Comparing against start_lsn would classify that boundary
+// segment as an orphan and delete the WAL the FULL itself starts and stops in.
+func (r *WalSegmentRepository) FindOrphanCandidates(ctx context.Context, databaseID uuid.UUID,
 ) ([]*WalSegment, error) {
-	var orphans []*WalSegment
+	var candidates []*WalSegment
 
 	if err := database.Conn(ctx, r.db).
 		Raw(`
 			SELECT *
 			FROM backups_physical_wal_segments w
 			WHERE w.database_id = ?
-			  AND NOT EXISTS (
-			    SELECT 1
-			    FROM backups_physical f
-			    WHERE f.kind = 'FULL' AND f.database_id = w.database_id
-			      AND f.timeline_id = w.timeline_id
-			      AND f.start_lsn IS NOT NULL
-			      AND f.start_lsn < w.end_lsn
-			      AND f.status = ?
+			  AND (
+			    NOT EXISTS (
+			      SELECT 1
+			      FROM backups_physical f
+			      WHERE f.kind = 'FULL' AND f.database_id = w.database_id
+			        AND f.timeline_id = w.timeline_id
+			        AND f.start_lsn IS NOT NULL
+			        AND f.start_lsn < w.end_lsn
+			        AND f.status = ?
+			    )
+			    OR EXISTS (
+			      SELECT 1
+			      FROM backups_physical_wal_history_files h
+			      WHERE h.database_id = w.database_id
+			        AND h.parent_timeline_id = w.timeline_id
+			        AND h.fork_lsn <= w.start_lsn
+			        AND NOT h.is_conflicting
+			    )
 			  )
 			ORDER BY w.start_lsn ASC
 		`, databaseID, BackupStatusCompleted).
-		Scan(&orphans).Error; err != nil {
+		Scan(&candidates).Error; err != nil {
 		return nil, err
 	}
 
-	return orphans, nil
+	return candidates, nil
 }
 
 func (r *WalSegmentRepository) DeleteByID(ctx context.Context, id uuid.UUID) error {

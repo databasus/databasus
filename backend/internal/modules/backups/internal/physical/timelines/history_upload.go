@@ -71,14 +71,7 @@ func UploadHistoryFile(
 	}
 
 	if existing != nil {
-		logger.DebugContext(
-			ctx,
-			"history file already in catalog",
-			slog.Any("database_id", databaseID),
-			slog.Any("timeline_id", timelineID),
-		)
-
-		return existing, nil
+		return reconcilePublishedHistory(ctx, spec, existing, history.Fork)
 	}
 
 	historyFilename := history.Filename
@@ -153,6 +146,9 @@ func UploadHistoryFile(
 		TimelineID:       timelineID,
 		FileName:         storageObjectName,
 		HistoryFilename:  historyFilename,
+		ParentTimelineID: &history.Fork.ParentTimelineID,
+		ForkLSN:          &history.Fork.ForkLSN,
+		IsConflicting:    false,
 		CompressedSizeMb: float64(compressedSizeBytes) / (1024 * 1024),
 		CreatedAt:        sidecar.CreatedAt,
 	}
@@ -180,11 +176,15 @@ func UploadHistoryFile(
 			)
 
 			existing, lookupErr := findPublishedHistory(ctx, spec)
-			if lookupErr == nil && existing == nil {
-				lookupErr = ErrHistoryPublicationMissing
+			if lookupErr != nil {
+				return nil, lookupErr
 			}
 
-			return existing, lookupErr
+			if existing == nil {
+				return nil, ErrHistoryPublicationMissing
+			}
+
+			return reconcilePublishedHistory(ctx, spec, existing, history.Fork)
 		}
 
 		return nil, fmt.Errorf("insert history row: %w", err)
@@ -193,6 +193,45 @@ func UploadHistoryFile(
 	hasPublishedHistory = true
 
 	return row, nil
+}
+
+// reconcilePublishedHistory compares a fresh verified history with the row already published for
+// its timeline. A row without a fork point predates fork points and is reused as it is. A row whose
+// fork point differs, as when a cluster restored from a backup reuses the timeline number on another
+// branch, is marked conflicting for good, so no line crosses it.
+func reconcilePublishedHistory(
+	ctx context.Context,
+	spec HistoryUploadSpec,
+	published *catalog.WalHistoryFile,
+	fork pgphysical.TimelineFork,
+) (*catalog.WalHistoryFile, error) {
+	isLegacy := published.ParentTimelineID == nil || published.ForkLSN == nil
+	isMatching := !isLegacy && *published.ParentTimelineID == fork.ParentTimelineID &&
+		*published.ForkLSN == fork.ForkLSN
+	if isLegacy || isMatching || published.IsConflicting {
+		spec.Logger.DebugContext(
+			ctx,
+			"history file already in catalog",
+			slog.Any("database_id", spec.SourceDB.DatabaseID),
+			slog.Any("timeline_id", spec.TimelineID),
+		)
+
+		return published, nil
+	}
+
+	if err := spec.HistoryRepo.MarkConflicting(ctx, published.ID); err != nil {
+		return nil, fmt.Errorf("mark conflicting history: %w", err)
+	}
+	published.IsConflicting = true
+
+	spec.Logger.WarnContext(
+		ctx,
+		"timeline history conflicts with the published history; its fork point will not be crossed",
+		slog.Any("database_id", spec.SourceDB.DatabaseID),
+		slog.Any("timeline_id", spec.TimelineID),
+	)
+
+	return published, nil
 }
 
 type historyArtifactSpec struct {

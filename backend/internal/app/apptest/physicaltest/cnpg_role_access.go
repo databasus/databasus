@@ -3,6 +3,8 @@ package physicaltest
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	containers "databasus-backend/internal/lib/testcontainers"
 )
 
@@ -16,12 +18,15 @@ func RunCNPGRestrictedAccessAcrossSwitch(t *testing.T, spec CNPGManagerSpec) {
 	chain := source.Team.waitForChain(t, 0)
 
 	promoted := source.Cluster.Switchover(t)
-	source.Team.triggerIncremental(t)
-	source.Team.waitForReanchoredFull(t, chain[0].ID, promoted.Timeline)
-	source.waitForNewFull(t, chain[0].ID)
 	connection := source.connect(t)
 	source.Team.waitForTimelineHistory(t, promoted.Timeline)
 	source.Team.requirePublishedTimelineHistory(t, connection)
+	chain = source.Team.buildIncremental(
+		t,
+		connection,
+		incrementalSpec{ParentStopLSN: chainTipStopLSN(t, chain), Count: 1},
+	)
+	require.Equal(t, promoted.Timeline, chain[len(chain)-1].TimelineID)
 
 	source.Team.requireRestrictedRoleAttributes(t, connection)
 	source.Team.requireRestrictedPromotionRole(t)

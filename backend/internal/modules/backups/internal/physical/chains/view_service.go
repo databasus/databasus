@@ -12,16 +12,16 @@ import (
 )
 
 func (s *Service) FindLastExtendableChainByDatabase(ctx context.Context, databaseID uuid.UUID) (*ChainView, error) {
-	fulls, err := s.backupRepository.FindCompletedFullNewestFirstByDatabase(ctx, databaseID)
+	chainCatalog, err := s.loadChainCatalog(ctx, databaseID)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(fulls) == 0 {
+	if len(chainCatalog.Fulls) == 0 {
 		return nil, nil
 	}
 
-	newestView, err := s.buildChainView(ctx, fulls[0])
+	newestView, err := s.buildChainView(ctx, chainCatalog, chainCatalog.Fulls[0])
 	if err != nil {
 		return nil, err
 	}
@@ -34,15 +34,15 @@ func (s *Service) FindLastExtendableChainByDatabase(ctx context.Context, databas
 }
 
 func (s *Service) FindNonExtendableChainsByDatabase(ctx context.Context, databaseID uuid.UUID) ([]*ChainView, error) {
-	fulls, err := s.backupRepository.FindCompletedFullNewestFirstByDatabase(ctx, databaseID)
+	chainCatalog, err := s.loadChainCatalog(ctx, databaseID)
 	if err != nil {
 		return nil, err
 	}
 
-	views := make([]*ChainView, 0, len(fulls))
+	views := make([]*ChainView, 0, len(chainCatalog.Fulls))
 
-	for i, full := range fulls {
-		view, err := s.buildChainView(ctx, full)
+	for i, full := range chainCatalog.Fulls {
+		view, err := s.buildChainView(ctx, chainCatalog, full)
 		if err != nil {
 			return nil, err
 		}
@@ -69,12 +69,10 @@ func (s *Service) GetChainEndTimestamp(ctx context.Context, view *ChainView) (ti
 		}
 	}
 
-	latestWalReceivedAt, _, err := s.walSegmentRepository.GetLatestReceivedAtInChainSpan(
+	latestWalReceivedAt, _, err := s.walSegmentRepository.GetLatestReceivedAtOnTimelineLine(
 		ctx,
 		view.RootFull.DatabaseID,
-		view.RootFull.TimelineID,
-		view.Span.Start,
-		view.Span.End,
+		view.GetOwnedSpans(),
 	)
 	if err != nil {
 		return time.Time{}, err
@@ -88,40 +86,75 @@ func (s *Service) GetChainEndTimestamp(ctx context.Context, view *ChainView) (ti
 }
 
 func (s *Service) FindWalOrphansByDatabase(ctx context.Context, databaseID uuid.UUID) ([]WalOrphanRef, error) {
-	walOrphans, err := s.walSegmentRepository.FindOrphans(ctx, databaseID)
+	candidates, err := s.walSegmentRepository.FindOrphanCandidates(ctx, databaseID)
 	if err != nil {
 		return nil, err
 	}
 
-	refs := make([]WalOrphanRef, 0, len(walOrphans))
-	for _, walOrphan := range walOrphans {
-		refs = append(refs, WalOrphanRef{WalSegment: walOrphan})
+	if len(candidates) == 0 {
+		return []WalOrphanRef{}, nil
+	}
+
+	chainCatalog, err := s.loadChainCatalog(ctx, databaseID)
+	if err != nil {
+		return nil, err
+	}
+
+	ownership := newWalOwnership(chainCatalog, uuid.Nil)
+	refs := make([]WalOrphanRef, 0, len(candidates))
+	for _, candidate := range candidates {
+		if ownership.isUnreferenced(
+			candidate.TimelineID,
+			catalog.LSNRange{Start: candidate.StartLSN, End: candidate.EndLSN},
+		) {
+			refs = append(refs, WalOrphanRef{WalSegment: candidate})
+		}
 	}
 
 	return refs, nil
 }
 
-func (s *Service) getChainSpanForFull(ctx context.Context, full *catalog.Backup) (catalog.LSNRange, error) {
+// chainCatalog holds what every chain view of a database is built from, read once per lookup: the
+// completed FULLs newest first and the timeline history rows that give their lines.
+type chainCatalog struct {
+	Fulls     []*catalog.Backup
+	Histories []*catalog.WalHistoryFile
+}
+
+func (s *Service) loadChainCatalog(ctx context.Context, databaseID uuid.UUID) (chainCatalog, error) {
+	fulls, err := s.backupRepository.FindCompletedFullNewestFirstByDatabase(ctx, databaseID)
+	if err != nil {
+		return chainCatalog{}, err
+	}
+
+	histories, err := s.walHistoryRepository.FindAllByDatabase(ctx, databaseID)
+	if err != nil {
+		return chainCatalog{}, err
+	}
+
+	return chainCatalog{Fulls: fulls, Histories: histories}, nil
+}
+
+// getChainSpan bounds a chain by the next completed FULL on its line, which may lie on a later
+// timeline of the line. LSNs grow along a line, so the nearest such FULL is the one with the
+// lowest start above the chain's own.
+func getChainSpan(chainCatalog chainCatalog, full *catalog.Backup, line TimelineLine) (catalog.LSNRange, error) {
 	if full.StartLSN == nil {
 		return catalog.LSNRange{}, errors.New("chain_view: cannot compute span — root FULL has no start_lsn")
 	}
 
-	start := *full.StartLSN
+	span := catalog.LSNRange{Start: *full.StartLSN, End: catalog.LSNMax}
+	for _, successor := range chainCatalog.Fulls {
+		if successor.ID == full.ID || successor.StartLSN == nil || *successor.StartLSN <= span.Start {
+			continue
+		}
 
-	successor, isFound, err := s.backupRepository.FindNextCompletedFull(ctx, full)
-	if err != nil {
-		return catalog.LSNRange{}, err
-	}
-	if !isFound {
-		return catalog.LSNRange{Start: start, End: catalog.LSNMax}, nil
-	}
-
-	end := catalog.LSNMax
-	if successor.StartLSN != nil {
-		end = *successor.StartLSN
+		if line.getRangeIndexContaining(successor.TimelineID, *successor.StartLSN) >= 0 {
+			span.End = min(span.End, *successor.StartLSN)
+		}
 	}
 
-	return catalog.LSNRange{Start: start, End: end}, nil
+	return span, nil
 }
 
 // Any newer COMPLETED FULL closes a chain, so only the newest one can still be
@@ -136,9 +169,11 @@ func isExtendable(newestView *ChainView) bool {
 	)
 }
 
-func (s *Service) buildChainView(ctx context.Context, full *catalog.Backup,
+func (s *Service) buildChainView(ctx context.Context, chainCatalog chainCatalog, full *catalog.Backup,
 ) (*ChainView, error) {
-	span, err := s.getChainSpanForFull(ctx, full)
+	line := BuildTimelineLine(chainCatalog.Histories, full)
+
+	span, err := getChainSpan(chainCatalog, full, line)
 	if err != nil {
 		return nil, err
 	}
@@ -152,5 +187,6 @@ func (s *Service) buildChainView(ctx context.Context, full *catalog.Backup,
 		RootFull:     full,
 		Incrementals: incrementalBackups,
 		Span:         span,
+		Line:         line,
 	}, nil
 }

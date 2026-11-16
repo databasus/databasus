@@ -38,6 +38,7 @@ func (catalog *catalogFixture) publish(t *testing.T, name string, body []byte) {
 }
 
 type restoreFullSpec struct {
+	TimelineID  int
 	StartLSN    fixtureLSN
 	StopLSN     fixtureLSN
 	CompletedAt time.Time
@@ -49,7 +50,7 @@ func (catalog *catalogFixture) seedRestoreFull(t *testing.T, spec restoreFullSpe
 		fullSeedSpec{
 			DatabaseID: catalog.DatabaseID,
 			StorageID:  catalog.StorageID,
-			TimelineID: 1,
+			TimelineID: max(1, spec.TimelineID),
 			StartLSN:   spec.StartLSN,
 			StopLSN:    spec.StopLSN,
 		},
@@ -68,6 +69,7 @@ func (catalog *catalogFixture) seedRestoreFull(t *testing.T, spec restoreFullSpe
 }
 
 type restoreIncrementalSpec struct {
+	TimelineID  int
 	FullID      uuid.UUID
 	ParentID    *uuid.UUID
 	Segment     int
@@ -83,7 +85,7 @@ func (catalog *catalogFixture) seedRestoreIncremental(
 		incrementalSeedSpec{
 			DatabaseID:                catalog.DatabaseID,
 			StorageID:                 catalog.StorageID,
-			TimelineID:                1,
+			TimelineID:                max(1, spec.TimelineID),
 			RootFullBackupID:          spec.FullID,
 			ParentIncrementalBackupID: spec.ParentID,
 			StartLSN:                  lsnAt(spec.Segment),
@@ -104,25 +106,38 @@ func (catalog *catalogFixture) seedRestoreIncremental(
 }
 
 type restoreWalSpec struct {
+	TimelineID int
 	Segment    int
 	ReceivedAt time.Time
+	// StorageID defaults to the catalog's storage. A segment elsewhere is cataloged but not published.
+	StorageID uuid.UUID
 }
 
 func (catalog *catalogFixture) seedRestoreWal(t *testing.T, spec restoreWalSpec) *apptest.PhysicalWalSegmentSeed {
 	t.Helper()
+	storageID := spec.StorageID
+	if storageID == uuid.Nil {
+		storageID = catalog.StorageID
+	}
 	segment := newWalSeed(
 		walSeedSpec{
 			DatabaseID:  catalog.DatabaseID,
-			StorageID:   catalog.StorageID,
-			TimelineID:  1,
-			WalFilename: fmt.Sprintf("0000000100000000%08X", spec.Segment),
+			StorageID:   storageID,
+			TimelineID:  max(1, spec.TimelineID),
+			WalFilename: walFilename(max(1, spec.TimelineID), spec.Segment),
 			StartLSN:    lsnAt(spec.Segment),
 			EndLSN:      lsnAt(spec.Segment + 1),
 		},
 	)
 	segment.ReceivedAt = spec.ReceivedAt
-	catalog.publish(t, *segment.FileName, []byte("stored WAL "+segment.WalFilename))
+	if storageID == catalog.StorageID {
+		catalog.publish(t, *segment.FileName, []byte("stored WAL "+segment.WalFilename))
+	}
 	return catalog.insertWal(t, segment)
+}
+
+func walFilename(timelineID, segment int) string {
+	return fmt.Sprintf("%08X00000000%08X", timelineID, segment)
 }
 
 func seedFullTwoIncrementals(

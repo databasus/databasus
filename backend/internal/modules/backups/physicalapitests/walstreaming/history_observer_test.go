@@ -11,12 +11,28 @@ import (
 	"databasus-backend/internal/lib/testwait"
 )
 
+const conflictingHistoryMessage = "timeline history conflicts with the published history; its fork point will not be crossed"
+
 type historyObserver struct {
 	slog.Handler
-	events chan string
+	events           chan string
+	conflictWarnings chan []string
 }
 
 func (observer historyObserver) Handle(_ context.Context, record slog.Record) error {
+	if record.Message == conflictingHistoryMessage && observer.conflictWarnings != nil {
+		var attributeKeys []string
+		record.Attrs(func(attribute slog.Attr) bool {
+			attributeKeys = append(attributeKeys, attribute.Key)
+			return true
+		})
+
+		select {
+		case observer.conflictWarnings <- attributeKeys:
+		default:
+		}
+	}
+
 	if record.Message == "history upload failed; will retry next tick" ||
 		record.Message == "history upload failed; full stays completed" ||
 		record.Message == "timeline switch observed via .history" {
@@ -53,6 +69,22 @@ func (observer historyObserver) Wait(t *testing.T, message string) {
 			}
 		}
 	})
+}
+
+func (observer historyObserver) WaitForConflictWarning(t *testing.T) []string {
+	t.Helper()
+
+	var attributeKeys []string
+	testwait.Until(t, "the conflicting history is logged", func(context.Context) error {
+		select {
+		case attributeKeys = <-observer.conflictWarnings:
+			return nil
+		default:
+			return fmt.Errorf("no conflict warning yet")
+		}
+	})
+
+	return attributeKeys
 }
 
 func (observer historyObserver) RequireNoFailures(t *testing.T) {

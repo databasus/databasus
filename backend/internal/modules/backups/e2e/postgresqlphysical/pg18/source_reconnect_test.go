@@ -12,7 +12,7 @@ func TestWalSourceReconnect(t *testing.T) {
 		t.Parallel()
 		physicaltest.RunForeignSourceQueuedRecovery(t, "postgres:18")
 	})
-	t.Run("restores a new full backup after the stable address switches to a promoted replica", func(t *testing.T) {
+	t.Run("continues the chain after the stable address switches to a promoted replica", func(t *testing.T) {
 		t.Parallel()
 		physicaltest.RunStableEndpointPromotion(t, "postgres:18")
 	})

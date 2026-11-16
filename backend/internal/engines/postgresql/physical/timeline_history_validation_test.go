@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 )
 
 func TestValidateTimelineHistory(t *testing.T) {
@@ -47,13 +49,56 @@ func TestValidateTimelineHistory(t *testing.T) {
 				filename = "00000003.history"
 			}
 
-			err := validateTimelineHistory(3, TimelineHistory{Filename: filename, Body: []byte(scenario.body)})
+			_, err := validateTimelineHistory(
+				3,
+				TimelineHistory{Filename: filename, Body: []byte(scenario.body), Fork: TimelineFork{}},
+			)
 
 			if scenario.isValid {
 				require.NoError(t, err)
 			} else {
 				require.ErrorIs(t, err, ErrInvalidTimelineHistory)
 			}
+		})
+	}
+}
+
+func TestValidateTimelineHistoryFork(t *testing.T) {
+	t.Parallel()
+
+	scenarios := []struct {
+		name         string
+		body         string
+		expectedFork TimelineFork
+	}{
+		{
+			name:         "returns the only entry as the fork",
+			body:         "1\t0/3000148\tno recovery target specified\n",
+			expectedFork: TimelineFork{ParentTimelineID: 1, ForkLSN: walmath.LSN(0x3000148)},
+		},
+		{
+			name:         "returns the last entry when the history has two promotions",
+			body:         "1\t0/3000148\tfirst\n2\t1/A0000000\tsecond\n",
+			expectedFork: TimelineFork{ParentTimelineID: 2, ForkLSN: walmath.LSN(0x1A0000000)},
+		},
+		{
+			name:         "returns a fork on a segment boundary",
+			body:         "# note\n1\t0/5000000\n",
+			expectedFork: TimelineFork{ParentTimelineID: 1, ForkLSN: walmath.LSN(0x5000000)},
+		},
+	}
+
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			t.Parallel()
+
+			fork, err := validateTimelineHistory(
+				3,
+				TimelineHistory{Filename: "00000003.history", Body: []byte(scenario.body), Fork: TimelineFork{}},
+			)
+
+			require.NoError(t, err)
+			require.Equal(t, scenario.expectedFork, fork)
 		})
 	}
 }

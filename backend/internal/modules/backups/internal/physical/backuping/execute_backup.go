@@ -69,7 +69,7 @@ func executeBackup(ctx context.Context, spec backupExecutionSpec) (executionResu
 			Common: spec.CommonBackupSpec, BackupID: spec.Backup.ID, Creds: creds,
 			Label: label, SystemID: spec.SourceDB.GetSystemIdentifierUint64(),
 			IncrementalManifestPath: preparation.ManifestPath,
-			Classify:                strategy.classify, MintAndSaveAttemptName: mintAndSaveAttemptName,
+			Classify:                strategy.classify(preparation), MintAndSaveAttemptName: mintAndSaveAttemptName,
 		})
 		if err != nil {
 			result = errorResult(catalog.BackupErrorPgBasebackupFailed, strategy.streamOperation, err)
@@ -77,7 +77,7 @@ func executeBackup(ctx context.Context, spec backupExecutionSpec) (executionResu
 		}
 
 		if streamResult.Status != catalog.BackupStatusCompleted {
-			result = strategy.recheckFailure(ctx, preparation.TimelineID, streamResult)
+			result = strategy.recheckFailure(ctx, preparation, streamResult)
 			return nil
 		}
 

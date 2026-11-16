@@ -1,6 +1,10 @@
 package physicaltest
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
 
 func RunFailoverPrimaryLoss(t *testing.T, manager FailoverManager) {
 	t.Helper()
@@ -15,16 +19,17 @@ func RunFailoverPrimaryLoss(t *testing.T, manager FailoverManager) {
 	previous := source.Cluster.GetIdentity(t)
 
 	promoted := source.Cluster.KillPrimary(t)
-	source.Team.triggerIncremental(t)
-	source.Team.waitForReanchoredFull(t, chain[0].ID, promoted.Timeline)
-	replacement := source.waitForNewFull(t, chain[0].ID)
-
-	source.requireSingleReplacement(t, fullReplacement{Preceding: chain[0].ID, Replacement: replacement.ID})
 	connection = source.connect(t)
 	source.Team.waitForTimelineHistory(t, promoted.Timeline)
 	source.Team.requirePublishedTimelineHistory(t, connection)
 	source.Team.requireRestrictedPromotionRole(t)
-	point := source.captureRecoveryPoint(t, []backupRow{replacement}, "after-crash-replacement-full")
+	point := source.markReplayablePoint(t, connection, "after-primary-loss")
+	require.Equal(
+		t,
+		[]backupRow{chain[0]},
+		source.Team.listBackups(t, "FULL"),
+		"the chain crosses the failover without a replacement FULL",
+	)
 	if source.stopSource != nil {
 		source.stopSource(t)
 	}

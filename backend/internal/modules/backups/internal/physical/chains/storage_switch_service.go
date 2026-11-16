@@ -69,7 +69,7 @@ func (s *Service) RemoveBackupsForStorageChange(
 		if err := s.repository.DeleteDatabaseRows(ctx, removal.DatabaseID); err != nil {
 			return config.RemovedBackupHistory{}, err
 		}
-	} else if err := s.removeUnneededRecoveryArtifacts(ctx, removal.DatabaseID, remainingFulls); err != nil {
+	} else if err := s.removeUnneededRecoveryArtifacts(ctx, removal.DatabaseID); err != nil {
 		return config.RemovedBackupHistory{}, err
 	}
 
@@ -79,44 +79,35 @@ func (s *Service) RemoveBackupsForStorageChange(
 	}, nil
 }
 
-func (s *Service) removeUnneededRecoveryArtifacts(
-	ctx context.Context,
-	databaseID uuid.UUID,
-	survivingFulls []*catalog.Backup,
-) error {
-	orphanSegments, err := s.walSegmentRepository.FindOrphans(ctx, databaseID)
+// removeUnneededRecoveryArtifacts drops the WAL and timeline histories that no line of a surviving
+// completed FULL holds. WAL of a promoted timeline whose history is still pending goes too: the new
+// storage receives its history, and a line never crosses into another storage.
+func (s *Service) removeUnneededRecoveryArtifacts(ctx context.Context, databaseID uuid.UUID) error {
+	chainCatalog, err := s.loadChainCatalog(ctx, databaseID)
 	if err != nil {
 		return err
 	}
 
-	for _, segment := range orphanSegments {
-		if segment.FileName != nil {
-			if err := s.requestFileDeletions(
-				ctx,
-				segment.StorageID,
-				*segment.FileName,
-				*segment.FileName+metadataSuffix,
-			); err != nil {
-				return err
-			}
+	ownership := newWalOwnership(chainCatalog, uuid.Nil)
+
+	candidates, err := s.walSegmentRepository.FindOrphanCandidates(ctx, databaseID)
+	if err != nil {
+		return err
+	}
+
+	for _, segment := range candidates {
+		segmentSpan := catalog.LSNRange{Start: segment.StartLSN, End: segment.EndLSN}
+		if ownership.isTimelineOnAnyLine(segment.TimelineID, segmentSpan) {
+			continue
 		}
-		if err := s.walSegmentRepository.DeleteByID(ctx, segment.ID); err != nil {
+
+		if err := s.deleteWalSegment(ctx, segment); err != nil {
 			return err
 		}
 	}
 
-	historyFiles, err := s.walHistoryRepository.FindAllByDatabase(ctx, databaseID)
-	if err != nil {
-		return err
-	}
-
-	survivingTimelines := make(map[int]struct{}, len(survivingFulls))
-	for _, full := range survivingFulls {
-		survivingTimelines[full.TimelineID] = struct{}{}
-	}
-
-	for _, historyFile := range historyFiles {
-		if _, hasSurvivingTimeline := survivingTimelines[historyFile.TimelineID]; hasSurvivingTimeline {
+	for _, historyFile := range chainCatalog.Histories {
+		if ownership.hasTimelineOnAnyLine(historyFile.TimelineID) {
 			continue
 		}
 

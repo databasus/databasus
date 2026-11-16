@@ -15,6 +15,9 @@ type TimelineDecisionKind int
 
 const (
 	TimelineContinue TimelineDecisionKind = iota
+	// TimelineContinueAcrossPromotion: the live timeline is newer than the chain's newest backup,
+	// and the chain's timeline line reaches it, so an INCREMENTAL continues the chain.
+	TimelineContinueAcrossPromotion
 	TimelineFailoverDetected
 	TimelineRegression
 	TimelineDifferentCluster

@@ -175,14 +175,22 @@ even after a new slot or a later full backup.
 
 ## Backup chains and recovery
 
-A switchover or failover starts a new PostgreSQL timeline. An incremental chain
-cannot continue across that change: Databasus requests a replacement full backup
-when it detects the new timeline. If the source address remains unavailable
-when an interrupted backup fails, the replacement waits for the next scheduled
-backup. WAL reception reconnects through the same address.
+A switchover or failover starts a new PostgreSQL timeline. WAL reception
+reconnects through the same address and archives the new timeline's history.
+The next incremental backup continues the existing chain on the new timeline,
+which matters for CNPG because a rolling update switches the primary. That
+needs `summarize_wal = on` on every PostgreSQL node; without WAL summaries on
+the promoted node, Databasus records the incremental as `CHAIN_BROKEN` /
+`TIMELINE_SWITCH_DETECTED` and requests one replacement full backup.
 
-A target between the promotion and the completion of the replacement full backup
-is unavailable. Recovery does not replay across timelines. [Physical backup
+An incremental interrupted by a switch ends with `ERROR` /
+`FAILOVER_DURING_BACKUP` and gets no immediate replacement; an interrupted full
+backup gets one. If the source address remains unavailable when an interrupted
+backup fails, the next backup waits for its schedule.
+
+A target after the promotion restores from the chain across the fork point once
+the new timeline's history is published, also before any backup completes on
+the new timeline. [Physical backup
 operations](../openspec/specs/physical-backups/operations/spec.md) define the
 exact coverage and failure behavior, including the reported errors.
 

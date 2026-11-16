@@ -15,12 +15,7 @@ import (
 func (team Team) requirePublishedTimelineHistory(t *testing.T, source *pgx.Conn) {
 	t.Helper()
 
-	var timelineID int
-	require.NoError(
-		t,
-		source.QueryRow(t.Context(), "SELECT ('x'||substr(pg_walfile_name(pg_current_wal_lsn()),1,8))::bit(32)::int").
-			Scan(&timelineID),
-	)
+	timelineID := getLiveTimeline(t, source)
 	historyFilename := fmt.Sprintf("%08X.history", timelineID)
 
 	var histories []struct {

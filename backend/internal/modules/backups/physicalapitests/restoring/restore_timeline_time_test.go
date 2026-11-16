@@ -34,7 +34,7 @@ func TestPhysicalRestoreTimelineTime(t *testing.T) {
 		},
 	)
 
-	t.Run("refuses the promotion gap when older timeline WAL publishes late", func(t *testing.T) {
+	t.Run("refuses a target after the promotion when only former timeline WAL publishes late", func(t *testing.T) {
 		t.Parallel()
 
 		catalog := newCatalog(t)
@@ -49,6 +49,13 @@ func TestPhysicalRestoreTimelineTime(t *testing.T) {
 		segment.LastTransactionAt = new(timeline.at(5))
 		catalog.publish(t, *segment.FileName, []byte("old timeline WAL"))
 		catalog.insertWal(t, segment)
+		history := catalog.App.InsertPhysicalWalHistoryFile(t, apptest.PhysicalWalHistoryFileSeed{
+			DatabaseID: catalog.DatabaseID, StorageID: catalog.StorageID, TimelineID: 2,
+			FileName: "promoted.history.zst", HistoryFilename: "00000002.history",
+			ParentTimelineID: new(1), ForkLSN: new(lsnAt(2).String()),
+		})
+		catalog.publish(t, history.FileName, zstdBytes(t, []byte("1\t0/2000000\tno recovery target specified\n")))
+		catalog.publish(t, history.FileName+".metadata", []byte(`{"encryption":"NONE"}`))
 
 		for _, shouldCompleteReplacement := range []bool{false, true} {
 			if shouldCompleteReplacement {

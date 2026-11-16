@@ -169,7 +169,7 @@ func getInterruptedBackupScenarios() []patroniScenario {
 		kind string
 	}{
 		{name: "replaces an interrupted full with ", kind: "FULL"},
-		{name: "replaces an interrupted incremental with ", kind: "INCREMENTAL"},
+		{name: "continues the chain after an interrupted incremental with ", kind: "INCREMENTAL"},
 	} {
 		scenarios = append(scenarios, patroniScenario{name: interruption.name, run: func(t *testing.T, image string) {
 			t.Helper()

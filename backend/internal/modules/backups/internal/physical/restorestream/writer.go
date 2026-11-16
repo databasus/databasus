@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strconv"
 
 	"github.com/google/uuid"
 
@@ -18,7 +19,8 @@ import (
 // later, restore verification) consumes. Every artifact ships as stored — decrypted
 // but still compressed: each backup as full/base.tar<ext> and incr-N/base.tar<ext>
 // (with its reconstructed backup_manifest beside it), each WAL segment as
-// wal/<segment>.zst, history files plaintext as wal/<name>.history. A trailing
+// wal/<segment>.zst, history files plaintext as wal/<name>.history. A set that ships
+// WAL also names the timeline recovery must follow in RECOVERY_TARGET_TIMELINE. A trailing
 // MANIFEST.sha256 lets the recipient verify the transfer. The recovery script that
 // decompresses the blobs, folds the chain with pg_combinebackup and arms PITR (it
 // takes the target as a CLI argument) is served separately, not shipped in the tar.
@@ -27,6 +29,8 @@ import (
 type Writer struct {
 	storages storages.Module
 }
+
+const recoveryTargetTimelineEntry = "RECOVERY_TARGET_TIMELINE"
 
 // Write fails on an encrypted artifact when masterKey is empty, rather than streaming a corrupt
 // download.
@@ -94,6 +98,13 @@ func (rw *Writer) Write(
 	for _, history := range set.HistoryFiles {
 		if err := rw.writeHistoryFile(ctx, tarWriter, history, masterKey, storageCache, checksums); err != nil {
 			return fmt.Errorf("stream history file %s: %w", history.HistoryFilename, err)
+		}
+	}
+
+	if set.TargetTimelineID != nil {
+		targetTimeline := []byte(strconv.Itoa(*set.TargetTimelineID) + "\n")
+		if err := writeTarBytes(tarWriter, recoveryTargetTimelineEntry, 0o644, targetTimeline, checksums); err != nil {
+			return err
 		}
 	}
 
