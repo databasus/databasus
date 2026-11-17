@@ -2,13 +2,18 @@ package mariadb
 
 import (
 	"bytes"
+	"errors"
+	"io"
 	"log/slog"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"databasus-backend/internal/engines/mysqlfamily"
+	"databasus-backend/internal/engines/mysqlfamily/mysqlfamilytest"
 	"databasus-backend/internal/lib/toolstub"
 )
 
@@ -43,7 +48,7 @@ func TestDump(t *testing.T) {
 				"--triggers", "--events",
 				"--ignore-table=orders.audit_log",
 				"--max-allowed-packet=1G", "--ssl", "--skip-ssl-verify-server-cert",
-				"orders",
+				"--", "orders",
 			}, stubs.mariadbDump.GetLastArgs(t)[1:])
 		},
 	)
@@ -57,7 +62,12 @@ func TestDump(t *testing.T) {
 		require.NoError(t, err)
 		probeArgs := stubs.mariadbDump.GetInvocations(t)[0]
 		assert.Equal(t, []string{
-			"--compress", "--skip-ssl-verify-server-cert", "--no-data", "orders", "__databasus_compression_probe__",
+			"--compress",
+			"--skip-ssl-verify-server-cert",
+			"--no-data",
+			"--",
+			"orders",
+			"__databasus_compression_probe__",
 		}, probeArgs[1:])
 	})
 
@@ -86,6 +96,65 @@ func TestDump(t *testing.T) {
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "MariaDB access denied. Check username and password.")
+	})
+
+	t.Run("refuses a value the tools could read as an option before any tool starts", func(t *testing.T) {
+		t.Parallel()
+
+		for _, testCase := range []struct {
+			name            string
+			withValue       func(source *Source, resultPath string)
+			expectedSetting string
+		}{
+			{
+				name:            "dash-led database name",
+				withValue:       func(source *Source, resultPath string) { source.settings.Database = "--result-file=" + resultPath },
+				expectedSetting: "database",
+			},
+			{
+				name:            "line break in the user name",
+				withValue:       func(source *Source, resultPath string) { source.settings.Username = "x\nresult-file=" + resultPath },
+				expectedSetting: "username",
+			},
+		} {
+			t.Run(testCase.name, func(t *testing.T) {
+				t.Parallel()
+				resultPath := filepath.Join(t.TempDir(), "result.sql")
+				source := newClosedPortSource(t, getClientTools(t), "orders")
+				testCase.withValue(source, resultPath)
+
+				err := source.Dump(t.Context(), newStubDumpSpec(), io.Discard)
+
+				invalidSettingError, isInvalidSetting := errors.AsType[*mysqlfamily.InvalidSettingError](err)
+				require.True(t, isInvalidSetting, err)
+				assert.Equal(t, testCase.expectedSetting, invalidSettingError.Setting)
+				assert.NoFileExists(t, resultPath)
+			})
+		}
+	})
+
+	t.Run("keeps a dash-led database name out of the options with every shipped mariadb-dump", func(t *testing.T) {
+		t.Parallel()
+
+		for _, serverVersion := range getServerVersionPerShippedClient(t) {
+			t.Run("client "+string(GetClientVersionForServer(serverVersion)), func(t *testing.T) {
+				t.Parallel()
+				clientTools := getClientTools(t)
+				resultPath := filepath.Join(t.TempDir(), "result.sql")
+				source := newClosedPortSource(t, clientTools, "--result-file="+resultPath)
+				mariadbDump, err := clientTools.GetExecutable(serverVersion, ExecutableMariadbDump)
+				require.NoError(t, err)
+				dumpSpec := newStubDumpSpec()
+				dumpSpec.Version = serverVersion
+
+				toolOutput := mysqlfamilytest.RunClientTool(
+					t, mariadbDump, append([]string{"--no-defaults"}, source.buildDumpArgs(dumpSpec)...),
+				)
+
+				assert.NoFileExists(t, resultPath)
+				assert.True(t, mysqlfamilytest.IsConnectionFailure(toolOutput), toolOutput)
+			})
+		}
 	})
 }
 
@@ -128,4 +197,36 @@ func newStubDumpSpec() DumpSpec {
 		IsExcludeEvents: false,
 		Logger:          slog.New(slog.DiscardHandler),
 	}
+}
+
+// newClosedPortSource points at a local port where nothing listens, so a real client tool fails at
+// the connection after it has read every argument.
+func newClosedPortSource(t *testing.T, clientTools ClientTools, databaseName string) *Source {
+	t.Helper()
+
+	return NewSource(Settings{
+		Host:      "127.0.0.1",
+		Port:      mysqlfamilytest.GetClosedPort(t),
+		Username:  "backup_user",
+		Password:  "stub-secret-password",
+		Database:  databaseName,
+		IsHTTPS:   false,
+		SSHTunnel: nil,
+	}, clientTools)
+}
+
+// getServerVersionPerShippedClient picks one server version for each shipped client, and fails when
+// a client is added without a server version here, so every shipped client stays covered.
+func getServerVersionPerShippedClient(t *testing.T) []Version {
+	t.Helper()
+
+	serverVersions := []Version{Version101, Version1011, Version130}
+	coveredClientVersions := make([]ClientVersion, 0, len(serverVersions))
+	for _, serverVersion := range serverVersions {
+		coveredClientVersions = append(coveredClientVersions, GetClientVersionForServer(serverVersion))
+	}
+
+	require.True(t, slices.Equal(getShippedClientVersions(), coveredClientVersions), coveredClientVersions)
+
+	return serverVersions
 }

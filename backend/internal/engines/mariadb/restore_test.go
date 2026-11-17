@@ -3,11 +3,13 @@ package mariadb
 import (
 	"bytes"
 	"log/slog"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"databasus-backend/internal/engines/mysqlfamily/mysqlfamilytest"
 	"databasus-backend/internal/lib/toolstub"
 )
 
@@ -28,7 +30,7 @@ func TestRestore(t *testing.T) {
 			"--host=db.example.com", "--port=3306", "--user=backup_user",
 			"--verbose", "--init-command=SET SESSION wsrep_on=OFF",
 			"--max-allowed-packet=1G", "--skip-ssl",
-			"orders",
+			"--database=orders",
 		}, stubs.mariadbClient.GetLastArgs(t)[1:])
 	})
 
@@ -55,6 +57,30 @@ func TestRestore(t *testing.T) {
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "MariaDB Galera Cluster writeset size limit exceeded.")
+	})
+
+	t.Run("keeps a dash-led database name out of the options with every shipped mariadb client", func(t *testing.T) {
+		t.Parallel()
+
+		for _, serverVersion := range getServerVersionPerShippedClient(t) {
+			t.Run("client "+string(GetClientVersionForServer(serverVersion)), func(t *testing.T) {
+				t.Parallel()
+				clientTools := getClientTools(t)
+				teePath := filepath.Join(t.TempDir(), "restore.log")
+				source := newClosedPortSource(t, clientTools, "--tee="+teePath)
+				mariadbClient, err := clientTools.GetExecutable(serverVersion, ExecutableMariadb)
+				require.NoError(t, err)
+				restoreSpec := newStubRestoreSpec()
+				restoreSpec.Version = serverVersion
+
+				toolOutput := mysqlfamilytest.RunClientTool(
+					t, mariadbClient, append([]string{"--no-defaults"}, source.buildRestoreArgs(restoreSpec)...),
+				)
+
+				assert.NoFileExists(t, teePath)
+				assert.True(t, mysqlfamilytest.IsConnectionFailure(toolOutput), toolOutput)
+			})
+		}
 	})
 }
 

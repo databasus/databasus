@@ -3231,15 +3231,15 @@ export interface components {
              */
             type: "MYSQL";
             version?: components["schemas"]["MysqlVersion"];
-            /** @description The host of the server */
+            /** @description The host of the server. Must not contain a line break or another control character. */
             host: string;
             /** @description The port of the server */
             port: number;
-            /** @description The user name */
+            /** @description The user name. Must not contain a line break or another control character. */
             username: string;
-            /** @description The password */
+            /** @description The password. Must not contain a line break or another control character. */
             password?: string;
-            /** @description The database the dump reads, absent until one is picked */
+            /** @description The database the dump reads, absent until one is picked. Must not start with `-` or contain a line break or another control character. */
             database?: string;
             /** @description Whether the connection is encrypted, without verifying the server certificate */
             isHttps: boolean;
@@ -3262,15 +3262,15 @@ export interface components {
              */
             type: "MARIADB";
             version?: components["schemas"]["MariadbVersion"];
-            /** @description The host of the server */
+            /** @description The host of the server. Must not contain a line break or another control character. */
             host: string;
             /** @description The port of the server */
             port: number;
-            /** @description The user name */
+            /** @description The user name. Must not contain a line break or another control character. */
             username: string;
-            /** @description The password */
+            /** @description The password. Must not contain a line break or another control character. */
             password?: string;
-            /** @description The database the dump reads, absent until one is picked */
+            /** @description The database the dump reads, absent until one is picked. Must not start with `-` or contain a line break or another control character. */
             database?: string;
             /** @description Whether the connection is encrypted, without verifying the server certificate */
             isHttps: boolean;
@@ -4780,15 +4780,15 @@ export interface components {
              * @enum {string}
              */
             type: "MYSQL";
-            /** @description The host of the server */
+            /** @description The host of the server. Must not contain a line break or another control character. */
             host: string;
             /** @description The port of the server */
             port: number;
-            /** @description The user name */
+            /** @description The user name. Must not contain a line break or another control character. */
             username: string;
-            /** @description The password */
+            /** @description The password. Must not contain a line break or another control character. */
             password: string;
-            /** @description The database the restore writes into */
+            /** @description The database the restore writes into. Must not start with `-` or contain a line break or another control character. */
             database: string;
             /** @description Whether the connection is encrypted, without verifying the server certificate */
             isHttps: boolean;
@@ -4801,15 +4801,15 @@ export interface components {
              * @enum {string}
              */
             type: "MARIADB";
-            /** @description The host of the server */
+            /** @description The host of the server. Must not contain a line break or another control character. */
             host: string;
             /** @description The port of the server */
             port: number;
-            /** @description The user name */
+            /** @description The user name. Must not contain a line break or another control character. */
             username: string;
-            /** @description The password */
+            /** @description The password. Must not contain a line break or another control character. */
             password: string;
-            /** @description The database the restore writes into */
+            /** @description The database the restore writes into. Must not start with `-` or contain a line break or another control character. */
             database: string;
             /** @description Whether the connection is encrypted, without verifying the server certificate */
             isHttps: boolean;

@@ -31,6 +31,10 @@ func (s *Source) Dump(ctx context.Context, spec DumpSpec, output io.Writer) erro
 		return ErrDumpDatabaseNameRequired
 	}
 
+	if err := s.settings.Validate(); err != nil {
+		return err
+	}
+
 	mariadbDump, err := s.clientTools.GetExecutable(spec.Version, ExecutableMariadbDump)
 	if err != nil {
 		return err
@@ -82,7 +86,7 @@ func (s *Source) buildDumpArgs(spec DumpSpec) []string {
 	args = append(args, "--max-allowed-packet=1G")
 	args = append(args, s.getSSLArgs()...)
 
-	return append(args, s.settings.Database)
+	return append(args, "--", s.settings.Database)
 }
 
 // getNetworkCompressionCandidates has the one algorithm MariaDB's protocol offers, zlib. The

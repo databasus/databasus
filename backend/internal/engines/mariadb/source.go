@@ -2,21 +2,13 @@ package mariadb
 
 import (
 	"context"
-	"crypto/tls"
 	"database/sql"
 	"fmt"
 	"log/slog"
-	"time"
 
-	mysqldriver "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 
 	"databasus-backend/internal/engines/mysqlfamily"
-)
-
-const (
-	connectionTimeout   = 15 * time.Second
-	skipVerifyTLSConfig = "mariadb-skip-verify"
 )
 
 // Source is the engine's handle on one MariaDB database.
@@ -134,44 +126,20 @@ func (s *Source) inspect(
 	return Inspection{Version: version, Privileges: backupPrivileges}, nil
 }
 
-// openDB opens a pool of one connection, so every query runs in the same session.
 func (s *Source) openDB() (*sql.DB, error) {
-	db, err := sql.Open("mysql", s.buildDSN())
-	if err != nil {
+	if err := s.settings.Validate(); err != nil {
 		return nil, err
 	}
 
-	db.SetConnMaxLifetime(connectionTimeout)
-	db.SetMaxOpenConns(1)
-	db.SetMaxIdleConns(1)
-
-	return db, nil
-}
-
-func (s *Source) buildDSN() string {
-	tlsConfig := "false"
-
-	if s.settings.IsHTTPS {
-		// The HTTPS option encrypts the connection without verifying the server certificate. A
-		// second registration under the same name replaces the first, so the error is ignored.
-		// nosemgrep: problem-based-packs.insecure-transport.go-stdlib.bypass-tls-verification.bypass-tls-verification
-		_ = mysqldriver.RegisterTLSConfig(skipVerifyTLSConfig, &tls.Config{
-			MinVersion:         tls.VersionTLS12,
-			InsecureSkipVerify: true,
-		})
-
-		tlsConfig = skipVerifyTLSConfig
-	}
-
-	return fmt.Sprintf(
-		"%s:%s@tcp(%s:%d)/%s?parseTime=true&timeout=15s&tls=%s&charset=utf8mb4",
-		s.settings.Username,
-		s.settings.Password,
-		s.settings.Host,
-		s.settings.Port,
-		s.settings.Database,
-		tlsConfig,
-	)
+	return mysqlfamily.OpenSingleSessionDB(mysqlfamily.DriverConnection{
+		Host:                       s.settings.Host,
+		Port:                       s.settings.Port,
+		Username:                   s.settings.Username,
+		Password:                   s.settings.Password,
+		Database:                   s.settings.Database,
+		IsEncrypted:                s.settings.IsHTTPS,
+		IsCleartextPasswordAllowed: false,
+	})
 }
 
 func closeDB(ctx context.Context, db *sql.DB, logger *slog.Logger) {

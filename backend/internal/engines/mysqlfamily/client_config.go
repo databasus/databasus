@@ -24,9 +24,16 @@ type clientConfigFile struct {
 	path string
 }
 
-// writeClientConfigFile writes into the OS temp directory, because some filesystems, such as ZFS on
-// TrueNAS, ignore chmod and the tools then refuse a file with group or world access.
+// writeClientConfigFile refuses a control character in a value, because a line break would add an
+// option of the caller's choosing to the file. It writes into the OS temp directory, because some
+// filesystems, such as ZFS on TrueNAS, ignore chmod and the tools then refuse a file with group or
+// world access.
 func writeClientConfigFile(connection ClientConnection) (*clientConfigFile, error) {
+	if hasControlCharacter(connection.Host) || hasControlCharacter(connection.Username) ||
+		hasControlCharacter(connection.Password) {
+		return nil, ErrControlCharacterInClientConfig
+	}
+
 	dir, err := os.MkdirTemp(os.TempDir(), "mycnf_*")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp directory: %w", err)

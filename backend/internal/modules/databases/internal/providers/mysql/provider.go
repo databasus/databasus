@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	mysqlengine "databasus-backend/internal/engines/mysql"
+	"databasus-backend/internal/engines/mysqlfamily"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/modules/databases/internal/providers"
 )
@@ -63,6 +64,16 @@ func (p *Provider) Validate(settings providers.Settings) error {
 		return providers.NewInvalidSettingError("username", "is required")
 	case mysqlSettings.Password == "":
 		return providers.NewInvalidSettingError("password", "is required")
+	}
+
+	err = providers.ValidateMysqlFamilyConnectionValues(mysqlfamily.ConnectionValues{
+		Host:     mysqlSettings.Host,
+		Username: mysqlSettings.Username,
+		Password: mysqlSettings.Password,
+		Database: mysqlSettings.Database,
+	})
+	if err != nil {
+		return err
 	}
 
 	return providers.ValidateSSHTunnel(mysqlSettings.SSHTunnel)

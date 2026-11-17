@@ -54,7 +54,7 @@ func (e *postgresqlEngine) OpenRestoreTarget(
 
 	err := target.Settings.TLS.Validate()
 	if err != nil {
-		return nil, &InvalidTargetTLSError{Err: err}
+		return nil, &InvalidTargetSettingError{Setting: "sslMode", Err: err}
 	}
 
 	sourceSettings, err := e.databases.GetPostgresqlLogicalConnectionSettings(ctx, spec.sourceDatabaseID)

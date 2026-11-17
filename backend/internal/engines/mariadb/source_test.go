@@ -197,6 +197,7 @@ func TestSource(t *testing.T) {
 			testTestConnection(t, server)
 			testInspect(t, server, serverVersion.version)
 			testShouldSuggestReadOnlyUser(t, server)
+			testConnectionValues(t, server)
 			testGetRawSizeMb(t, server)
 
 			if serverVersion.hasRoles {
@@ -564,5 +565,59 @@ func TestQuoteRoleName(t *testing.T) {
 
 		assert.Equal(t, "`plain_role`", quoteRoleName("plain_role"))
 		assert.Equal(t, "`odd``role`", quoteRoleName("odd`role"))
+	})
+}
+
+func testConnectionValues(t *testing.T, server testServer) {
+	t.Helper()
+
+	t.Run(
+		"test connection names the whole database name as unknown when it holds driver parameters",
+		func(t *testing.T) {
+			t.Parallel()
+
+			_, err := server.newRootSource(t, "app?allowAllFiles=true&x").
+				TestConnection(t.Context(), newTestLogger(), nil)
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "Unknown database 'app?allowAllFiles=true&x'")
+		},
+	)
+
+	t.Run("test connection succeeds with URL separators in the password", func(t *testing.T) {
+		t.Parallel()
+		databaseName := server.createDatabase(t, "db_")
+		username := "user_" + uuid.New().String()[:8]
+		password := "p@ss/w?rd:1"
+		server.exec(t, fmt.Sprintf("CREATE USER '%s'@'%%' IDENTIFIED BY '%s'", username, password))
+		server.dropUserOnCleanup(t, username)
+		server.exec(t, fmt.Sprintf("GRANT SELECT, SHOW VIEW ON `%s`.* TO '%s'@'%%'", databaseName, username))
+
+		_, err := server.newSource(t, username, password, databaseName).
+			TestConnection(t.Context(), newTestLogger(), nil)
+
+		require.NoError(t, err)
+	})
+}
+
+func TestSourceOverTLS(t *testing.T) {
+	t.Parallel()
+
+	t.Run("test connection succeeds with encryption on when the server refuses plain connections", func(t *testing.T) {
+		t.Parallel()
+		endpoint := containers.StartMariadbSSL(t, "mariadb:11.8")
+		source := NewSource(Settings{
+			Host:      endpoint.Host,
+			Port:      endpoint.Port,
+			Username:  "root",
+			Password:  containers.MariadbRootPassword,
+			Database:  "mysql",
+			IsHTTPS:   true,
+			SSHTunnel: nil,
+		}, getClientTools(t))
+
+		_, err := source.TestConnection(t.Context(), newTestLogger(), nil)
+
+		require.NoError(t, err)
 	})
 }

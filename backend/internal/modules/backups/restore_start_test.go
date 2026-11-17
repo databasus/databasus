@@ -111,6 +111,23 @@ func TestStartRestore(t *testing.T) {
 		assert.Zero(t, countRestoresOfBackup(t, tm, database.backup.Id))
 	})
 
+	t.Run("returns 400 invalid_request naming the SSL mode when the target's SSL settings do not fit together",
+		func(t *testing.T) {
+			tm := newTeam(t)
+			database := newBackedUpDatabase(t, tm, server)
+			postgresqlTarget, err := server.newRestoreTarget(t, server.newTargetSpec(t)).AsPostgresqlRestoreTarget()
+			require.NoError(t, err)
+			postgresqlTarget.SslRootCert = new("-----BEGIN CERTIFICATE-----")
+
+			var mismatchedTarget apiclient.RestoreTarget
+			require.NoError(t, mismatchedTarget.FromPostgresqlRestoreTarget(postgresqlTarget))
+
+			response := startRestore(t, tm.owner, database.backup.Id, mismatchedTarget)
+
+			requireInvalidField(t, response.StatusCode(), response.Body, "target.sslMode")
+			assert.Zero(t, countRestoresOfBackup(t, tm, database.backup.Id))
+		})
+
 	t.Run("returns 400 invalid_request when the target runs an older major version", func(t *testing.T) {
 		olderServer := startRestoreServer(t, "postgres:15")
 		tm := newTeam(t)
