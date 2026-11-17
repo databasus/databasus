@@ -5979,7 +5979,7 @@ components:
           $ref: "#/components/schemas/MysqlVersion"
         host:
           type: string
-          description: The host of the server
+          description: The host of the server. Must not contain a line break or another control character.
         port:
           type: integer
           minimum: 1
@@ -5987,14 +5987,14 @@ components:
           description: The port of the server
         username:
           type: string
-          description: The user name
+          description: The user name. Must not contain a line break or another control character.
         password:
           type: string
           writeOnly: true
-          description: The password
+          description: The password. Must not contain a line break or another control character.
         database:
           type: string
-          description: The database the dump reads, absent until one is picked
+          description: The database the dump reads, absent until one is picked. Must not start with `-` or contain a line break or another control character.
         isHttps:
           type: boolean
           description: Whether the connection is encrypted, without verifying the server certificate
@@ -6030,7 +6030,7 @@ components:
           $ref: "#/components/schemas/MariadbVersion"
         host:
           type: string
-          description: The host of the server
+          description: The host of the server. Must not contain a line break or another control character.
         port:
           type: integer
           minimum: 1
@@ -6038,14 +6038,14 @@ components:
           description: The port of the server
         username:
           type: string
-          description: The user name
+          description: The user name. Must not contain a line break or another control character.
         password:
           type: string
           writeOnly: true
-          description: The password
+          description: The password. Must not contain a line break or another control character.
         database:
           type: string
-          description: The database the dump reads, absent until one is picked
+          description: The database the dump reads, absent until one is picked. Must not start with `-` or contain a line break or another control character.
         isHttps:
           type: boolean
           description: Whether the connection is encrypted, without verifying the server certificate
@@ -8279,7 +8279,7 @@ components:
           description: Always `MYSQL`
         host:
           type: string
-          description: The host of the server
+          description: The host of the server. Must not contain a line break or another control character.
         port:
           type: integer
           minimum: 1
@@ -8287,15 +8287,15 @@ components:
           description: The port of the server
         username:
           type: string
-          description: The user name
+          description: The user name. Must not contain a line break or another control character.
         password:
           type: string
           writeOnly: true
-          description: The password
+          description: The password. Must not contain a line break or another control character.
         database:
           type: string
           minLength: 1
-          description: The database the restore writes into
+          description: The database the restore writes into. Must not start with `-` or contain a line break or another control character.
         isHttps:
           type: boolean
           description: Whether the connection is encrypted, without verifying the server certificate
@@ -8312,7 +8312,7 @@ components:
           description: Always `MARIADB`
         host:
           type: string
-          description: The host of the server
+          description: The host of the server. Must not contain a line break or another control character.
         port:
           type: integer
           minimum: 1
@@ -8320,15 +8320,15 @@ components:
           description: The port of the server
         username:
           type: string
-          description: The user name
+          description: The user name. Must not contain a line break or another control character.
         password:
           type: string
           writeOnly: true
-          description: The password
+          description: The password. Must not contain a line break or another control character.
         database:
           type: string
           minLength: 1
-          description: The database the restore writes into
+          description: The database the restore writes into. Must not start with `-` or contain a line break or another control character.
         isHttps:
           type: boolean
           description: Whether the connection is encrypted, without verifying the server certificate

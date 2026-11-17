@@ -63,15 +63,11 @@ func isNetworkCompressionAccepted(ctx context.Context, probe compressionProbe, c
 	probeCtx, cancel := context.WithTimeout(ctx, compressionProbeTimeout)
 	defer cancel()
 
-	args := append([]string{probe.configFile.getDefaultsFileArg()}, candidate...)
-	args = append(args, probe.candidates.ProbeArgs...)
-	args = append(args, "--no-data", probe.databaseName, compressionProbeTable)
-
 	var probeStderr bytes.Buffer
 
 	err := runClientTool(probeCtx, clientToolRun{
 		path:   probe.dumpToolPath,
-		args:   args,
+		args:   buildCompressionProbeArgs(probe, candidate),
 		stdin:  nil,
 		stdout: io.Discard,
 		stderr: &probeStderr,
@@ -95,4 +91,11 @@ func getNetworkCompressionLabel(candidate []string) string {
 	}
 
 	return strings.Join(candidate, " ")
+}
+
+func buildCompressionProbeArgs(probe compressionProbe, candidate []string) []string {
+	args := append([]string{probe.configFile.getDefaultsFileArg()}, candidate...)
+	args = append(args, probe.candidates.ProbeArgs...)
+
+	return append(args, "--no-data", "--", probe.databaseName, compressionProbeTable)
 }

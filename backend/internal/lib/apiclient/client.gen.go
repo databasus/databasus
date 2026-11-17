@@ -3338,10 +3338,10 @@ type LogicalRetentionPolicy string
 
 // MariadbRestoreTarget A MariaDB database the dump is replayed into
 type MariadbRestoreTarget struct {
-	// Database The database the restore writes into
+	// Database The database the restore writes into. Must not start with `-` or contain a line break or another control character.
 	Database string `json:"database"`
 
-	// Host The host of the server
+	// Host The host of the server. Must not contain a line break or another control character.
 	Host string `json:"host"`
 
 	// IsHttps Whether the connection is encrypted, without verifying the server certificate
@@ -3350,7 +3350,7 @@ type MariadbRestoreTarget struct {
 	// IsSkipGaleraDisable Whether the restore keeps Galera replication on for its session
 	IsSkipGaleraDisable bool `json:"isSkipGaleraDisable"`
 
-	// Password The password
+	// Password The password. Must not contain a line break or another control character.
 	Password *string `json:"password,omitempty"`
 
 	// Port The port of the server
@@ -3362,7 +3362,7 @@ type MariadbRestoreTarget struct {
 	// Type Always `MARIADB`
 	Type MariadbRestoreTargetType `json:"type"`
 
-	// Username The user name
+	// Username The user name. Must not contain a line break or another control character.
 	Username string `json:"username"`
 }
 
@@ -3371,13 +3371,13 @@ type MariadbRestoreTargetType string
 
 // MariadbSettings One MariaDB database backed up with mariadb-dump
 type MariadbSettings struct {
-	// Database The database the dump reads, absent until one is picked
+	// Database The database the dump reads, absent until one is picked. Must not start with `-` or contain a line break or another control character.
 	Database *string `json:"database,omitempty"`
 
 	// ExcludeTables The tables the dump leaves out
 	ExcludeTables []string `json:"excludeTables"`
 
-	// Host The host of the server
+	// Host The host of the server. Must not contain a line break or another control character.
 	Host string `json:"host"`
 
 	// IsExcludeEvents Whether the dump leaves out the scheduled events
@@ -3389,7 +3389,7 @@ type MariadbSettings struct {
 	// IsSkipGaleraDisable Whether the dump keeps Galera replication on for its session
 	IsSkipGaleraDisable bool `json:"isSkipGaleraDisable"`
 
-	// Password The password
+	// Password The password. Must not contain a line break or another control character.
 	Password *string `json:"password,omitempty"`
 
 	// Port The port of the server
@@ -3404,7 +3404,7 @@ type MariadbSettings struct {
 	// Type Always `MARIADB`
 	Type MariadbSettingsType `json:"type"`
 
-	// Username The user name
+	// Username The user name. Must not contain a line break or another control character.
 	Username string `json:"username"`
 
 	// Version The version the server reported at the last save
@@ -3578,16 +3578,16 @@ type MongodbVersion string
 
 // MysqlRestoreTarget A MySQL database the dump is replayed into
 type MysqlRestoreTarget struct {
-	// Database The database the restore writes into
+	// Database The database the restore writes into. Must not start with `-` or contain a line break or another control character.
 	Database string `json:"database"`
 
-	// Host The host of the server
+	// Host The host of the server. Must not contain a line break or another control character.
 	Host string `json:"host"`
 
 	// IsHttps Whether the connection is encrypted, without verifying the server certificate
 	IsHttps bool `json:"isHttps"`
 
-	// Password The password
+	// Password The password. Must not contain a line break or another control character.
 	Password *string `json:"password,omitempty"`
 
 	// Port The port of the server
@@ -3599,7 +3599,7 @@ type MysqlRestoreTarget struct {
 	// Type Always `MYSQL`
 	Type MysqlRestoreTargetType `json:"type"`
 
-	// Username The user name
+	// Username The user name. Must not contain a line break or another control character.
 	Username string `json:"username"`
 }
 
@@ -3608,19 +3608,19 @@ type MysqlRestoreTargetType string
 
 // MysqlSettings One MySQL database backed up with mysqldump
 type MysqlSettings struct {
-	// Database The database the dump reads, absent until one is picked
+	// Database The database the dump reads, absent until one is picked. Must not start with `-` or contain a line break or another control character.
 	Database *string `json:"database,omitempty"`
 
 	// ExcludeTables The tables the dump leaves out
 	ExcludeTables []string `json:"excludeTables"`
 
-	// Host The host of the server
+	// Host The host of the server. Must not contain a line break or another control character.
 	Host string `json:"host"`
 
 	// IsHttps Whether the connection is encrypted, without verifying the server certificate
 	IsHttps bool `json:"isHttps"`
 
-	// Password The password
+	// Password The password. Must not contain a line break or another control character.
 	Password *string `json:"password,omitempty"`
 
 	// Port The port of the server
@@ -3635,7 +3635,7 @@ type MysqlSettings struct {
 	// Type Always `MYSQL`
 	Type MysqlSettingsType `json:"type"`
 
-	// Username The user name
+	// Username The user name. Must not contain a line break or another control character.
 	Username string `json:"username"`
 
 	// Version The version the server reported at the last save

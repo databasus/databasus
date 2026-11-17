@@ -34,6 +34,10 @@ func (s *Source) Dump(ctx context.Context, spec DumpSpec, output io.Writer) erro
 		return ErrDumpDatabaseNameRequired
 	}
 
+	if err := s.settings.Validate(); err != nil {
+		return err
+	}
+
 	mysqldump, err := s.clientTools.GetExecutable(spec.Version, ExecutableMysqldump)
 	if err != nil {
 		return err
@@ -85,7 +89,7 @@ func (s *Source) buildDumpArgs(spec DumpSpec) []string {
 
 	args = append(args, "--max-allowed-packet=1G", s.getSSLModeArg())
 
-	return append(args, s.settings.Database)
+	return append(args, "--", s.settings.Database)
 }
 
 // getNetworkCompressionCandidates ends with the uncompressed fallback. The deprecated --compress

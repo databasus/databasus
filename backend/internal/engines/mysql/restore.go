@@ -21,26 +21,34 @@ func (s *Source) Restore(ctx context.Context, spec RestoreSpec, input io.Reader)
 		return ErrRestoreDatabaseNameRequired
 	}
 
+	if err := s.settings.Validate(); err != nil {
+		return err
+	}
+
 	mysqlClient, err := s.clientTools.GetExecutable(spec.Version, ExecutableMysql)
 	if err != nil {
 		return err
 	}
 
 	return mysqlfamily.Restore(ctx, mysqlfamily.RestoreRun{
-		Product:        "MySQL",
-		ClientToolPath: mysqlClient,
-		Connection:     s.getClientConnection(),
-		Args: []string{
-			"--host=" + s.settings.Host,
-			"--port=" + strconv.Itoa(s.settings.Port),
-			"--user=" + s.settings.Username,
-			"--verbose",
-			"--max-allowed-packet=1G",
-			s.getSSLModeArg(),
-			s.settings.Database,
-		},
+		Product:               "MySQL",
+		ClientToolPath:        mysqlClient,
+		Connection:            s.getClientConnection(),
+		Args:                  s.buildRestoreArgs(),
 		SourceDatabaseName:    spec.SourceDatabaseName,
 		ClassifyEngineFailure: nil,
 		Logger:                spec.Logger,
 	}, input)
+}
+
+func (s *Source) buildRestoreArgs() []string {
+	return []string{
+		"--host=" + s.settings.Host,
+		"--port=" + strconv.Itoa(s.settings.Port),
+		"--user=" + s.settings.Username,
+		"--verbose",
+		"--max-allowed-packet=1G",
+		s.getSSLModeArg(),
+		"--database=" + s.settings.Database,
+	}
 }

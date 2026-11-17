@@ -26,6 +26,10 @@ func (s *Source) Restore(ctx context.Context, spec RestoreSpec, input io.Reader)
 		return ErrRestoreDatabaseNameRequired
 	}
 
+	if err := s.settings.Validate(); err != nil {
+		return err
+	}
+
 	mariadbClient, err := s.clientTools.GetExecutable(spec.Version, ExecutableMariadb)
 	if err != nil {
 		return err
@@ -60,7 +64,7 @@ func (s *Source) buildRestoreArgs(spec RestoreSpec) []string {
 	args = append(args, "--max-allowed-packet=1G")
 	args = append(args, s.getSSLArgs()...)
 
-	return append(args, s.settings.Database)
+	return append(args, "--database="+s.settings.Database)
 }
 
 func classifyGaleraFailure(stderr string) error {
