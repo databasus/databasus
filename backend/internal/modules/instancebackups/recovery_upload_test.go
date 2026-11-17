@@ -76,39 +76,12 @@ func TestCreateInstanceRecovery(t *testing.T) {
 		owner := newInstanceOwner(t)
 
 		response := uploadRecovery(t, owner.RootAdmin, newRecoveryUploadWith([]recoveryUploadField{
-			{name: "isInsecureTransferAcknowledged", content: []byte("true")},
 			{name: "archive", fileName: "databasus.dbbackup", content: []byte("archive")},
 		}))
 
 		requireProblemCode(t, response.StatusCode(), response.Body,
 			http.StatusBadRequest, apiclient.ProblemCodeInvalidRequest)
 		assert.Contains(t, string(response.Body), `"field":"masterKey"`)
-	})
-
-	t.Run("returns 400 invalid_request over HTTP without the acknowledgment", func(t *testing.T) {
-		t.Parallel()
-		owner := newInstanceOwner(t)
-
-		response := uploadRecovery(t, owner.RootAdmin, newRecoveryUploadWith([]recoveryUploadField{
-			{name: "masterKey", content: []byte(uploadedKey)},
-			{name: "archive", fileName: "databasus.dbbackup", content: []byte("archive")},
-		}))
-
-		requireProblemCode(t, response.StatusCode(), response.Body,
-			http.StatusBadRequest, apiclient.ProblemCodeInvalidRequest)
-		assert.Contains(t, string(response.Body), `"field":"isInsecureTransferAcknowledged"`)
-	})
-
-	t.Run("accepts an upload without the acknowledgment over an HTTPS public address", func(t *testing.T) {
-		t.Parallel()
-		owner := newInstanceOwner(t, apptest.WithPublicURL("https://databasus.example.com"))
-
-		response := uploadRecovery(t, owner.RootAdmin, newRecoveryUploadWith([]recoveryUploadField{
-			{name: "masterKey", content: []byte(uploadedKey)},
-			{name: "archive", fileName: "databasus.dbbackup", content: []byte("archive")},
-		}))
-
-		assert.Equal(t, http.StatusAccepted, response.StatusCode(), string(response.Body))
 	})
 
 	t.Run("returns 413 archive_too_large for an archive beyond the configured limit", func(t *testing.T) {
@@ -232,11 +205,9 @@ type recoveryUpload struct {
 	body        io.Reader
 }
 
-// newRecoveryUpload is what the import form sends over HTTP: the acknowledgment, the key, then the
-// archive.
+// newRecoveryUpload is what the import form sends: the key, then the archive.
 func newRecoveryUpload(archiveContent []byte) recoveryUpload {
 	return newRecoveryUploadWith([]recoveryUploadField{
-		{name: "isInsecureTransferAcknowledged", content: []byte("true")},
 		{name: "masterKey", content: []byte(uploadedKey)},
 		{name: "archive", fileName: "databasus.dbbackup", content: archiveContent},
 	})

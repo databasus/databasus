@@ -119,42 +119,106 @@ test.describe('Databasus backups section', () => {
   }
 });
 
-test.describe('Master key onboarding over HTTP', () => {
+test.describe('Master key onboarding', () => {
+  const installedKey = 'k3Jd-installed-master-key-9fQa';
+  const unsavedStatus = buildInstanceBackupStatus({ isMasterKeyAcknowledged: false });
+
   test.use({
     httpFixtures: [
       instanceBackupFixtures({
-        status: buildInstanceBackupStatus({ isMasterKeyAcknowledged: false }),
+        status: unsavedStatus,
+        extra: [
+          apiResponse({
+            method: 'post',
+            path: '/master-key-exports',
+            status: 201,
+            body: {
+              token: 'key-token',
+              fileName: 'databasus-master-key.txt',
+              expiresAt: '2999-01-01T00:00:00Z',
+            },
+          }),
+          apiResponse({
+            method: 'put',
+            path: '/master-key-acknowledgments',
+            status: 200,
+            body: { isSaved: true },
+          }),
+        ],
       }),
       { scope: 'test' },
     ],
   });
 
   for (const context of contexts) {
-    test(`defers onboarding without requesting key material in ${context.locale} ${context.theme} ${context.width}`, async ({
+    test(`replaces the application until the key is copied and confirmed in ${context.locale} ${context.theme} ${context.width}`, async ({
       page,
       boundary,
     }) => {
       const dictionary = DICTIONARIES[context.locale];
+      // The key file is plain text, which the JSON boundary fixtures cannot serve.
+      await page.route('**/api/v1/master-key-downloads?*', (route) =>
+        route.fulfill({ status: 200, contentType: 'application/octet-stream', body: installedKey }),
+      );
+      // Over plain HTTP the Clipboard API is missing, and the copy must still work there.
+      await page.addInitScript(() => {
+        Object.defineProperty(navigator, 'clipboard', { configurable: true, value: undefined });
+        const copiedTexts: string[] = [];
+        Object.defineProperty(window, 'copiedTexts', { value: copiedTexts });
+        document.addEventListener(
+          'copy',
+          () => {
+            const field = document.activeElement;
+            copiedTexts.push(
+              field instanceof HTMLTextAreaElement
+                ? field.value.slice(field.selectionStart, field.selectionEnd)
+                : (document.getSelection()?.toString() ?? ''),
+            );
+          },
+          true,
+        );
+      });
       await page.setViewportSize({ width: context.width, height: 900 });
       await openAccount({ page, ...context });
 
-      const dialog = page.getByRole('dialog', {
+      const onboarding = page.getByRole('heading', {
         name: dictionary.masterKey.onboarding.title,
         exact: true,
+        level: 1,
       });
-      await expect(
-        dialog.getByText(dictionary.masterKey.insecure.title, { exact: true }),
-      ).toBeVisible();
+      const closeButton = page.getByRole('button', {
+        name: dictionary.masterKey.onboarding.close,
+        exact: true,
+      });
+      await expect(page.getByText('k3Jd••••••••••••9fQa', { exact: true })).toBeVisible();
+      await expect(onboarding).toBeVisible();
+      await expect(closeButton).toBeDisabled();
+      await expect(page.getByRole('navigation')).toHaveCount(0);
       await assertEnlargedTextReflow(page);
-      await page.keyboard.press('Escape');
 
-      await expect(dialog).toHaveCount(0);
+      await page.getByRole('button', { name: dictionary.masterKey.copy, exact: true }).click();
+
       await expect(
-        page.getByText(dictionary.instanceBackupNotices.masterKey, { exact: true }),
+        page.getByRole('button', { name: dictionary.masterKey.copied, exact: true }),
       ).toBeVisible();
-      expect(boundary.requests.some((request) => request.path.startsWith('/master-key'))).toBe(
-        false,
+      await expect(closeButton).toBeEnabled();
+      expect(
+        await page.evaluate(() => (window as unknown as { copiedTexts: string[] }).copiedTexts),
+      ).toEqual([installedKey]);
+
+      await page.route('**/api/v1/instance-backup-statuses', (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ ...unsavedStatus, isMasterKeyAcknowledged: true }),
+        }),
       );
+      await closeButton.click();
+
+      await expect(onboarding).toBeHidden();
+      expect(
+        boundary.requests.filter((request) => request.path === '/master-key-acknowledgments'),
+      ).toEqual([{ method: 'PUT', path: '/master-key-acknowledgments', body: { isSaved: true } }]);
     });
   }
 });
@@ -294,12 +358,10 @@ test.describe('Recovery import form', () => {
       await page
         .getByRole('button', { name: text.form.upload, exact: true })
         .scrollIntoViewIfNeeded();
-      await page.getByRole('checkbox', { name: text.form.insecureAccept, exact: true }).check();
       await page.getByRole('button', { name: text.form.upload, exact: true }).click();
       await expect(page.getByText(text.form.archiveMissing, { exact: true })).toBeVisible();
       await expect(page.getByText(text.form.masterKeyMissing, { exact: true })).toBeVisible();
 
-      await page.getByRole('checkbox', { name: text.form.insecureAccept, exact: true }).uncheck();
       await page.locator('input[type="file"]').setInputFiles({
         name: 'databasus.dbsbackup',
         mimeType: 'application/octet-stream',
@@ -308,14 +370,7 @@ test.describe('Recovery import form', () => {
       const keyField = page.getByRole('textbox', { name: new RegExp(text.form.masterKey) });
       await keyField.focus();
       await page.keyboard.type('typed-source-key');
-      await expect(
-        page.getByRole('button', { name: text.form.upload, exact: true }),
-      ).toBeDisabled();
-      expect(boundary.requests.some((request) => request.path === '/instance-recoveries')).toBe(
-        false,
-      );
 
-      await page.getByRole('checkbox', { name: text.form.insecureAccept, exact: true }).check();
       await page.getByRole('button', { name: text.form.upload, exact: true }).click();
 
       await expect(page.getByText(text.form.ready, { exact: true })).toBeVisible();
@@ -398,7 +453,6 @@ test.describe('Recovery key paste and restored sign-in', () => {
         new ClipboardEvent('paste', { clipboardData, bubbles: true, cancelable: true }),
       );
     });
-    await page.getByRole('checkbox', { name: text.form.insecureAccept, exact: true }).check();
     await page.getByRole('button', { name: text.form.upload, exact: true }).click();
     await expect(page.getByText(text.form.ready, { exact: true })).toBeVisible();
 

@@ -67,7 +67,7 @@ func TestUploadPreparation(t *testing.T) {
 			changeUpload: func(t *testing.T, source sourceArchive) []uploadPart {
 				t.Helper()
 				parts := newUploadParts(t, source.path, source.keyContent)
-				parts[2].content = parts[2].content[:len(parts[2].content)-1]
+				parts[1].content = parts[1].content[:len(parts[1].content)-1]
 
 				return parts
 			},
@@ -79,7 +79,7 @@ func TestUploadPreparation(t *testing.T) {
 			changeUpload: func(t *testing.T, source sourceArchive) []uploadPart {
 				t.Helper()
 				parts := newUploadParts(t, source.path, source.keyContent)
-				parts[2].content = []byte("not a Databasus backup")
+				parts[1].content = []byte("not a Databasus backup")
 
 				return parts
 			},
@@ -250,18 +250,18 @@ func TestUploadReceiving(t *testing.T) {
 	}{
 		{
 			name:          "refuses an upload without an archive",
-			changeParts:   func(parts []uploadPart) []uploadPart { return parts[:2] },
+			changeParts:   func(parts []uploadPart) []uploadPart { return parts[:1] },
 			expectedField: archiveField,
 		},
 		{
 			name:          "refuses an upload without a master key",
-			changeParts:   func(parts []uploadPart) []uploadPart { return []uploadPart{parts[0], parts[2]} },
+			changeParts:   func(parts []uploadPart) []uploadPart { return parts[1:] },
 			expectedField: masterKeyField,
 		},
 		{
 			name: "refuses an upload with an empty master key",
 			changeParts: func(parts []uploadPart) []uploadPart {
-				parts[1].content = []byte{}
+				parts[0].content = []byte{}
 
 				return parts
 			},
@@ -270,7 +270,7 @@ func TestUploadReceiving(t *testing.T) {
 		{
 			name: "refuses a master key longer than 64 KiB",
 			changeParts: func(parts []uploadPart) []uploadPart {
-				parts[1].content = bytes.Repeat([]byte("k"), maxMasterKeyBytes+1)
+				parts[0].content = bytes.Repeat([]byte("k"), maxMasterKeyBytes+1)
 
 				return parts
 			},
@@ -279,25 +279,11 @@ func TestUploadReceiving(t *testing.T) {
 		{
 			name: "refuses a master key shorter than a Databasus key",
 			changeParts: func(parts []uploadPart) []uploadPart {
-				parts[1].content = []byte("short")
+				parts[0].content = []byte("short")
 
 				return parts
 			},
 			expectedField: masterKeyField,
-		},
-		{
-			name: "refuses an archive over unencrypted HTTP without the acknowledgment",
-			changeParts: func(parts []uploadPart) []uploadPart {
-				return parts[1:]
-			},
-			expectedField: acknowledgmentField,
-		},
-		{
-			name: "refuses an acknowledgment sent after the archive over unencrypted HTTP",
-			changeParts: func(parts []uploadPart) []uploadPart {
-				return []uploadPart{parts[1], parts[2], parts[0]}
-			},
-			expectedField: acknowledgmentField,
 		},
 	} {
 		t.Run(refusal.name, func(t *testing.T) {

@@ -20,25 +20,22 @@ import (
 
 const (
 	maxMasterKeyBytes = 64 << 10
-	maxFlagBytes      = 16
 	// diskCheckIntervalBytes is how much of the archive is written between two free-space checks.
 	diskCheckIntervalBytes = 64 << 20
 	uploadBufferBytes      = 1 << 20
 )
 
 const (
-	archiveField        = "archive"
-	masterKeyField      = "masterKey"
-	acknowledgmentField = "isInsecureTransferAcknowledged"
+	archiveField   = "archive"
+	masterKeyField = "masterKey"
 )
 
 type uploadReceiverSpec struct {
-	body              *multipart.Reader
-	archivePath       string
-	maxArchiveBytes   int64
-	isSecureTransport bool
-	inspectDisk       func(string) (diskusage.Usage, error)
-	diskPath          string
+	body            *multipart.Reader
+	archivePath     string
+	maxArchiveBytes int64
+	inspectDisk     func(string) (diskusage.Usage, error)
+	diskPath        string
 }
 
 // receivedUpload is what an upload staged: the fingerprint of the archive copy and the exact bytes
@@ -49,11 +46,9 @@ type receivedUpload struct {
 }
 
 // uploadReceiver reads the multipart body of a recovery upload. It streams the archive into a
-// private file with bounded memory and keeps the key, at most 64 KiB, in memory. Over unencrypted
-// HTTP it refuses the archive before writing any of it unless the acknowledgment came first.
+// private file with bounded memory and keeps the key, at most 64 KiB, in memory.
 type uploadReceiver struct {
 	spec                uploadReceiverSpec
-	isAcknowledged      bool
 	isArchiveReceived   bool
 	isMasterKeyReceived bool
 	archiveSha256       string
@@ -63,7 +58,6 @@ type uploadReceiver struct {
 func newUploadReceiver(spec uploadReceiverSpec) *uploadReceiver {
 	return &uploadReceiver{
 		spec:                spec,
-		isAcknowledged:      false,
 		isArchiveReceived:   false,
 		isMasterKeyReceived: false,
 		archiveSha256:       "",
@@ -101,8 +95,6 @@ func (r *uploadReceiver) receive() (receivedUpload, error) {
 
 func (r *uploadReceiver) receivePart(part *multipart.Part) error {
 	switch part.FormName() {
-	case acknowledgmentField:
-		return r.receiveAcknowledgment(part)
 	case masterKeyField:
 		return r.receiveMasterKey(part)
 	case archiveField:
@@ -110,24 +102,6 @@ func (r *uploadReceiver) receivePart(part *multipart.Part) error {
 	default:
 		return nil
 	}
-}
-
-func (r *uploadReceiver) receiveAcknowledgment(part io.Reader) error {
-	value, isWithinLimit, err := readLimited(part, maxFlagBytes)
-	if err != nil {
-		return newUploadIncompleteError(err)
-	}
-
-	switch {
-	case isWithinLimit && string(value) == "true":
-		r.isAcknowledged = true
-	case isWithinLimit && string(value) == "false":
-		r.isAcknowledged = false
-	default:
-		return newFieldError(acknowledgmentField, "must be true or false")
-	}
-
-	return nil
 }
 
 func (r *uploadReceiver) receiveMasterKey(part io.Reader) error {
@@ -149,11 +123,6 @@ func (r *uploadReceiver) receiveMasterKey(part io.Reader) error {
 func (r *uploadReceiver) receiveArchive(part io.Reader) error {
 	if r.isArchiveReceived {
 		return newFieldError(archiveField, "must be sent once")
-	}
-
-	if !r.spec.isSecureTransport && !r.isAcknowledged {
-		return newFieldError(acknowledgmentField,
-			"must be true and sent before the archive when the connection is not encrypted")
 	}
 
 	r.isArchiveReceived = true

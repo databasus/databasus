@@ -17,7 +17,6 @@ import (
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/diskusage"
-	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/instancebackups/internal/archive"
 	"databasus-backend/internal/modules/users"
 )
@@ -144,12 +143,11 @@ func (s *UploadService) receive(ctx context.Context, body *multipart.Reader) (Re
 	}
 
 	received, err := newUploadReceiver(uploadReceiverSpec{
-		body:              body,
-		archivePath:       s.directory.getStagedArchivePath(operationID),
-		maxArchiveBytes:   s.maxArchiveBytes,
-		isSecureTransport: httpserver.IsSecureTransport(ctx),
-		inspectDisk:       s.inspectDisk,
-		diskPath:          s.directory.root,
+		body:            body,
+		archivePath:     s.directory.getStagedArchivePath(operationID),
+		maxArchiveBytes: s.maxArchiveBytes,
+		inspectDisk:     s.inspectDisk,
+		diskPath:        s.directory.root,
 	}).receive()
 	if err == nil {
 		err = writeFileDurably(s.directory.getStagedKeyPath(operationID), received.keyContent)

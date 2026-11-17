@@ -130,7 +130,6 @@ func (a *App) newRouter() *gin.Engine {
 	router.ContextWithFallback = true
 	router.Use(httpserver.AssignRequestID())
 	router.Use(httpserver.RememberClientIP())
-	router.Use(httpserver.RememberTransportSecurity(a.environment.Config.DatabasusURL))
 	router.Use(httpserver.LogAccess(a.logger))
 	router.Use(httpserver.Recover(a.logger))
 	router.Use(httpserver.NoStoreCacheControl())

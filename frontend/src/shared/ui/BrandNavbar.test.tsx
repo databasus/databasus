@@ -2,13 +2,13 @@
 import { screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { AuthNavbarComponent } from '@/pages/auth/ui/AuthNavbarComponent';
 import { DICTIONARIES } from '@/shared/i18n/dictionaries';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
+import { BrandNavbar } from '@/shared/ui/BrandNavbar';
 
-describe('AuthNavbarComponent', () => {
+describe('BrandNavbar', () => {
   it('names the logo link in the selected language', () => {
-    renderScreen(<AuthNavbarComponent />, { locale: 'fr' });
+    renderScreen(<BrandNavbar />, { locale: 'fr' });
 
     expect(screen.getByRole('link', { name: DICTIONARIES.fr.common.websiteLink })).toBeTruthy();
   });

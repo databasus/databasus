@@ -11,7 +11,7 @@ interface Props {
 export function MasterKeyHostInstructions({ masterKeyPath }: Props) {
   const { t } = useTranslation();
   // eslint-disable-next-line i18next/no-literal-string -- shell command
-  const copyCommand = `docker cp databasus:${masterKeyPath} ./databasus-master.key`;
+  const copyCommand = `docker cp databasus:${masterKeyPath} ./databasus-master-key.txt`;
 
   return (
     <div className="text-sm">

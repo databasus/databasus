@@ -131,6 +131,10 @@ func (m *Module) CanCreateWorkspaces(ctx context.Context, actor identity.Actor) 
 	return m.settings.CanCreateWorkspaces(ctx, actor)
 }
 
+func (m *Module) IsTwoFactorAuthRequired(ctx context.Context) (bool, error) {
+	return m.settings.IsTwoFactorAuthRequired(ctx)
+}
+
 func (m *Module) GetUserCount(ctx context.Context) (int64, error) {
 	return m.directory.GetUserCount(ctx)
 }

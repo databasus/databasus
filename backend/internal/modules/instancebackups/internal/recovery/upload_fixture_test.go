@@ -95,8 +95,7 @@ type uploadPart struct {
 	content  []byte
 }
 
-// newUploadParts is what the import form sends over HTTP: the acknowledgment, the key, then the
-// archive.
+// newUploadParts is what the import form sends: the key, then the archive.
 func newUploadParts(t *testing.T, archivePath string, keyContent []byte) []uploadPart {
 	t.Helper()
 
@@ -104,7 +103,6 @@ func newUploadParts(t *testing.T, archivePath string, keyContent []byte) []uploa
 	require.NoError(t, err)
 
 	return []uploadPart{
-		{name: acknowledgmentField, fileName: "", content: []byte("true")},
 		{name: masterKeyField, fileName: "", content: keyContent},
 		{name: archiveField, fileName: "databasus.dbbackup", content: archiveContent},
 	}

@@ -80,26 +80,6 @@ func (h *Handler) ListInstanceBackupDestinations(
 	return ListInstanceBackupDestinations200JSONResponse{Items: items, NextCursor: page.NextCursor}, nil
 }
 
-func (h *Handler) UpdateInstanceBackupReminder(
-	ctx context.Context,
-	request UpdateInstanceBackupReminderRequestObject,
-) (UpdateInstanceBackupReminderResponseObject, error) {
-	actor, err := users.RequireActor(ctx)
-	if err != nil {
-		return nil, errNoActor
-	}
-
-	reminder, err := h.configs.UpdateSetupReminder(ctx, actor, request.Body.IsDeferred)
-	if err != nil {
-		return nil, err
-	}
-
-	return UpdateInstanceBackupReminder200JSONResponse{
-		IsEligible:    reminder.IsEligible,
-		DeferredUntil: reminder.DeferredUntil,
-	}, nil
-}
-
 func fromSettings(settings configs.Settings) InstanceBackupSettings {
 	return InstanceBackupSettings{
 		Schedule: Schedule{

@@ -281,3 +281,11 @@ func requireRecoveryCode(t *testing.T, owner instanceOwner, recoveryID uuid.UUID
 
 	return readMailedCode(t, owner.App, owner.RootAdmin.Email)
 }
+
+func passwordProof(password string) apiclient.IdentityProof {
+	return apiclient.IdentityProof{Password: &password, Code: nil}
+}
+
+func codeProof(code string) apiclient.IdentityProof {
+	return apiclient.IdentityProof{Password: nil, Code: &code}
+}

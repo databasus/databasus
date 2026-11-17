@@ -1,18 +1,19 @@
 import { Button } from '@mantine/core';
+import { KeyRound } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { InstanceBackupStatus } from '@/entities/instance-backups';
-import { MasterKeyExport } from '@/features/export-master-key';
+import { MasterKeyExport, MasterKeyHostInstructions } from '@/features/export-master-key';
 
 interface Props {
   status: InstanceBackupStatus;
-  onAcknowledged: () => void;
 }
 
-export function MasterKeyPanel({ status, onAcknowledged }: Props) {
+// The key is read only after root admin asks for it, so opening the settings creates no export.
+export function MasterKeyPanel({ status }: Props) {
   const { t } = useTranslation();
-  const [isExportOpen, setIsExportOpen] = useState(false);
+  const [isKeyRequested, setIsKeyRequested] = useState(false);
 
   return (
     <div className="mt-4">
@@ -22,26 +23,29 @@ export function MasterKeyPanel({ status, onAcknowledged }: Props) {
           ? t('masterKey.statusSaved')
           : t('masterKey.statusNotSaved')}
       </p>
-      {isExportOpen ? (
-        <div className="mt-2 rounded border border-border p-3">
-          <MasterKeyExport
-            identityProofMethods={status.identityProofMethods}
-            masterKeyPath={status.masterKeyPath}
-            isAcknowledged={status.isMasterKeyAcknowledged}
-            onAcknowledged={onAcknowledged}
-          />
+      <div className="mt-2 rounded border border-border p-3">
+        <p className="text-sm">{t('masterKey.description')}</p>
+        <div className="mt-3">
+          {isKeyRequested ? (
+            <MasterKeyExport
+              isCodeRequired={status.isMasterKeyExportCodeRequired}
+              masterKeyPath={status.masterKeyPath}
+            />
+          ) : (
+            <Button
+              size="xs"
+              variant="default"
+              leftSection={<KeyRound aria-hidden size={14} />}
+              onClick={() => setIsKeyRequested(true)}
+            >
+              {t('masterKey.saveAgain')}
+            </Button>
+          )}
         </div>
-      ) : (
-        <Button
-          className="mt-2"
-          size="xs"
-          variant="outline"
-          aria-expanded={false}
-          onClick={() => setIsExportOpen(true)}
-        >
-          {t('masterKey.onboarding.title')}
-        </Button>
-      )}
+        <div className="mt-4">
+          <MasterKeyHostInstructions masterKeyPath={status.masterKeyPath} />
+        </div>
+      </div>
     </div>
   );
 }

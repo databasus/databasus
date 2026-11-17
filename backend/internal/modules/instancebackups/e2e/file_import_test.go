@@ -21,15 +21,13 @@ import (
 // databases and starting the recovered application again.
 const publicationLimit = 5 * time.Minute
 
-// uploadArchive imports the archive file with the source master key typed into the text field. The
-// test talks plain HTTP, so it acknowledges the unencrypted transfer before the archive part.
+// uploadArchive imports the archive file with the source master key typed into the text field.
 func uploadArchive(t *testing.T, root accountSession, archive, masterKey []byte) apiclient.InstanceRecovery {
 	t.Helper()
 
 	var body bytes.Buffer
 
 	writer := multipart.NewWriter(&body)
-	require.NoError(t, writer.WriteField("isInsecureTransferAcknowledged", "true"))
 	require.NoError(t, writer.WriteField("masterKey", string(masterKey)))
 	archivePart, err := writer.CreateFormFile("archive", "databasus.dbbackup")
 	require.NoError(t, err)

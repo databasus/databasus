@@ -72,9 +72,6 @@ const pasteKey = (key: string) => {
   fireEvent(field, pasteEvent);
 };
 
-const acceptHttp = async (user: ReturnType<typeof renderImport>['user']) =>
-  user.click(screen.getByRole('checkbox', { name: text.form.insecureAccept }));
-
 afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
@@ -85,23 +82,10 @@ describe('InstanceRecoveryImport', () => {
   it('names the missing archive and the empty key without uploading', async () => {
     const { user } = renderImport();
 
-    await acceptHttp(user);
     await user.click(screen.getByRole('button', { name: text.form.upload }));
 
     expect(screen.getByText(text.form.archiveMissing)).toBeTruthy();
     expect(screen.getByText(text.form.masterKeyMissing)).toBeTruthy();
-    expect(uploads()).toHaveLength(0);
-  });
-
-  it('uploads nothing over HTTP until the risk is accepted', async () => {
-    const { user } = renderImport();
-
-    await chooseArchive(user);
-    pasteKey('source-key');
-
-    expect(screen.getByRole('button', { name: text.form.upload }).hasAttribute('disabled')).toBe(
-      true,
-    );
     expect(uploads()).toHaveLength(0);
   });
 
@@ -120,7 +104,6 @@ describe('InstanceRecoveryImport', () => {
 
     await chooseArchive(user);
     pasteKey('  source-key\r\nsecond line\n');
-    await acceptHttp(user);
     await user.click(screen.getByRole('button', { name: text.form.upload }));
 
     expect(await screen.findByText(text.form.ready)).toBeTruthy();
@@ -138,7 +121,6 @@ describe('InstanceRecoveryImport', () => {
 
     await chooseArchive(user);
     pasteKey('source-key');
-    await acceptHttp(user);
     await user.click(screen.getByRole('button', { name: text.form.upload }));
     expect(await screen.findByText(text.form.preparing)).toBeTruthy();
 
@@ -160,7 +142,6 @@ describe('InstanceRecoveryImport', () => {
 
     await chooseArchive(user);
     pasteKey('wrong-key');
-    await acceptHttp(user);
     await user.click(screen.getByRole('button', { name: text.form.upload }));
 
     expect(await screen.findByText(text.failures.masterKeyInvalid)).toBeTruthy();
@@ -180,7 +161,6 @@ describe('InstanceRecoveryImport', () => {
 
     await chooseArchive(user);
     pasteKey('source-key');
-    await acceptHttp(user);
     await user.click(screen.getByRole('button', { name: text.form.upload }));
 
     expect(await screen.findByText(/Recover it with Databasus 3\.0\.4/)).toBeTruthy();
@@ -192,7 +172,6 @@ describe('InstanceRecoveryImport', () => {
 
     await chooseArchive(user);
     pasteKey('source-key');
-    await acceptHttp(user);
     await user.click(screen.getByRole('button', { name: text.form.upload }));
 
     expect(await screen.findByText(DICTIONARIES.en.errors.archiveTooLarge)).toBeTruthy();
@@ -210,7 +189,6 @@ describe('InstanceRecoveryImport', () => {
 
     await chooseArchive(user);
     pasteKey('source-key');
-    await acceptHttp(user);
     await user.click(screen.getByRole('button', { name: text.form.upload }));
     await user.click(
       await screen.findByRole('button', { name: DICTIONARIES.en.common.actions.cancel }),
@@ -232,7 +210,6 @@ describe('InstanceRecoveryImport', () => {
 
     await chooseArchive(user);
     pasteKey('source-key');
-    await acceptHttp(user);
     await user.click(screen.getByRole('button', { name: text.form.upload }));
     await user.click(await screen.findByRole('button', { name: text.form.replace }));
     const dialog = within(await screen.findByRole('dialog', { name: text.apply.title }));
@@ -259,7 +236,6 @@ describe('InstanceRecoveryImport', () => {
 
     await chooseArchive(user);
     pasteKey('source-key');
-    await acceptHttp(user);
     await user.click(screen.getByRole('button', { name: text.form.upload }));
     await user.click(await screen.findByRole('button', { name: text.form.replace }));
     const dialog = within(await screen.findByRole('dialog', { name: text.apply.title }));
@@ -292,7 +268,6 @@ describe('InstanceRecoveryImport', () => {
 
     await chooseArchive(user);
     pasteKey('source-key');
-    await acceptHttp(user);
     await user.click(screen.getByRole('button', { name: text.form.upload }));
     await waitFor(() => expect(uploads()).toHaveLength(1));
     activateSession({ token: 'other-session', userId: 'other' });

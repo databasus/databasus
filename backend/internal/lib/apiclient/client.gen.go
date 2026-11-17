@@ -2981,17 +2981,8 @@ type InstanceBackupPage struct {
 
 // InstanceBackupReminder The initial setup reminder
 type InstanceBackupReminder struct {
-	// DeferredUntil Until when root admin deferred the reminder
-	DeferredUntil *time.Time `json:"deferredUntil,omitempty"`
-
-	// IsEligible Whether the instance has a user database or storage, so setup should be suggested
+	// IsEligible Whether the instance has a user database or storage, so setup should be suggested. The reminder cannot be deferred: it shows while no destination is selected.
 	IsEligible bool `json:"isEligible"`
-}
-
-// InstanceBackupReminderUpdate Whether to defer the setup reminder for 24 hours
-type InstanceBackupReminderUpdate struct {
-	// IsDeferred `true` defers the reminder for 24 hours, `false` shows it again
-	IsDeferred bool `json:"isDeferred"`
 }
 
 // InstanceBackupSettings How and where Databasus backs up its own internal database
@@ -3025,6 +3016,9 @@ type InstanceBackupStatus struct {
 
 	// IsMasterKeyAcknowledged Whether root admin confirmed saving the current master key
 	IsMasterKeyAcknowledged bool `json:"isMasterKeyAcknowledged"`
+
+	// IsMasterKeyExportCodeRequired Whether a master-key export needs an emailed code, because the instance requires two-factor sign-in
+	IsMasterKeyExportCodeRequired bool `json:"isMasterKeyExportCodeRequired"`
 
 	// IsRecoveryPaused Whether the instance is paused after a recovery until root admin activates it
 	IsRecoveryPaused bool `json:"isRecoveryPaused"`
@@ -3115,9 +3109,6 @@ type InstanceRecoveryStatus string
 type InstanceRecoveryUpload struct {
 	// Archive The encrypted Databasus backup file
 	Archive openapi_types.File `json:"archive"`
-
-	// IsInsecureTransferAcknowledged Root admin accepted that the file and the key travel over unencrypted HTTP
-	IsInsecureTransferAcknowledged *bool `json:"isInsecureTransferAcknowledged,omitempty"`
 
 	// MasterKey The source installation's master key as text; its exact UTF-8 bytes are used
 	MasterKey *string `json:"masterKey,omitempty"`
@@ -3435,13 +3426,10 @@ type MasterKeyExport struct {
 	Token string `json:"token"`
 }
 
-// MasterKeyExportCreate The identity proof for a master-key export
+// MasterKeyExportCreate The confirmation for a master-key export
 type MasterKeyExportCreate struct {
-	// IsInsecureTransferAcknowledged Root admin accepted that the key travels over unencrypted HTTP
-	IsInsecureTransferAcknowledged *bool `json:"isInsecureTransferAcknowledged,omitempty"`
-
-	// Proof Root admin's current password or an emailed code; exactly one is sent
-	Proof IdentityProof `json:"proof"`
+	// Code The emailed confirmation code; required when the instance requires two-factor sign-in
+	Code *string `json:"code,omitempty"`
 }
 
 // MattermostNotifierSettings Posts to Mattermost through an incoming webhook or a bot account
@@ -5641,9 +5629,6 @@ type SignInWithGoogleJSONRequestBody = OAuthSignInRequest
 // UpdateHealthcheckConfigJSONRequestBody defines body for UpdateHealthcheckConfig for application/json ContentType.
 type UpdateHealthcheckConfigJSONRequestBody = HealthcheckConfigInput
 
-// UpdateInstanceBackupReminderJSONRequestBody defines body for UpdateInstanceBackupReminder for application/json ContentType.
-type UpdateInstanceBackupReminderJSONRequestBody = InstanceBackupReminderUpdate
-
 // UpdateInstanceBackupSettingsJSONRequestBody defines body for UpdateInstanceBackupSettings for application/json ContentType.
 type UpdateInstanceBackupSettingsJSONRequestBody = InstanceBackupSettings
 
@@ -7387,24 +7372,6 @@ type ClientInterface interface {
 	// Corresponds with GET /instance-backup-downloads (the `DownloadInstanceBackup` operationId).
 	DownloadInstanceBackup(ctx context.Context, params *DownloadInstanceBackupParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// UpdateInstanceBackupReminderWithBody Defer or restore the setup reminder
-	//
-	// Only root admin changes it. Deferring hides the initial setup reminder for 24 hours. It never hides an incident, including stopped protection.
-	//
-	// Takes any type of body and a specified content type.
-	//
-	// Corresponds with PUT /instance-backup-reminders (the `UpdateInstanceBackupReminder` operationId).
-	UpdateInstanceBackupReminderWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// UpdateInstanceBackupReminder Defer or restore the setup reminder
-	//
-	// Only root admin changes it. Deferring hides the initial setup reminder for 24 hours. It never hides an incident, including stopped protection.
-	//
-	// Takes a body of the `application/json` content type.
-	//
-	// Corresponds with PUT /instance-backup-reminders (the `UpdateInstanceBackupReminder` operationId).
-	UpdateInstanceBackupReminder(ctx context.Context, body UpdateInstanceBackupReminderJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// GetInstanceBackupSettings Get the Databasus backup settings
 	//
 	// Only root admin reads them; another instance admin gets 403 `permission_denied`. A new installation has no destinations, an hourly schedule and 30-day retention.
@@ -7478,7 +7445,7 @@ type ClientInterface interface {
 
 	// CreateInstanceRecoveryWithBody Upload a Databasus backup file and its master key to prepare a replacement
 	//
-	// Only root admin of this installation uploads; another administrator gets 403 `permission_denied` before any byte is staged. The multipart body carries the encrypted `archive` file and the source installation's master key as the text field `masterKey`, whose exact UTF-8 bytes are kept without trimming. Neither a matching history entry, a destination nor this installation's own key is needed. The archive is streamed into private staging and refused with 413 `archive_too_large` beyond the configured limit, 10 GiB by default, even without a declared length; the key is limited to 64 KiB. Missing disk space gets 409 `insufficient_disk_space`, another pending recovery gets 409 `already_running`. Over unencrypted HTTP `isInsecureTransferAcknowledged` must be `true` and come before the `archive` part, or the answer is 400 `invalid_request` before any archive byte is staged. The answer is 202 with the recovery validating; the active installation stays usable until an explicit apply. A prepared recovery expires after one hour.
+	// Only root admin of this installation uploads; another administrator gets 403 `permission_denied` before any byte is staged. The multipart body carries the encrypted `archive` file and the source installation's master key as the text field `masterKey`, whose exact UTF-8 bytes are kept without trimming. Neither a matching history entry, a destination nor this installation's own key is needed. The archive is streamed into private staging and refused with 413 `archive_too_large` beyond the configured limit, 10 GiB by default, even without a declared length; the key is limited to 64 KiB. Missing disk space gets 409 `insufficient_disk_space`, another pending recovery gets 409 `already_running`. The answer is 202 with the recovery validating; the active installation stays usable until an explicit apply. A prepared recovery expires after one hour.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -7658,7 +7625,7 @@ type ClientInterface interface {
 
 	// AcknowledgeMasterKeyWithBody Record that root admin saved the current master key
 	//
-	// Only root admin acknowledges. The acknowledgment belongs to the current key, so every browser and session stops showing key onboarding for it. A download alone never counts as an acknowledgment.
+	// Only root admin acknowledges. The acknowledgment belongs to the current key, so every browser and session stops showing key onboarding for it. Exporting or downloading the key alone never counts as an acknowledgment.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -7667,7 +7634,7 @@ type ClientInterface interface {
 
 	// AcknowledgeMasterKey Record that root admin saved the current master key
 	//
-	// Only root admin acknowledges. The acknowledgment belongs to the current key, so every browser and session stops showing key onboarding for it. A download alone never counts as an acknowledgment.
+	// Only root admin acknowledges. The acknowledgment belongs to the current key, so every browser and session stops showing key onboarding for it. Exporting or downloading the key alone never counts as an acknowledgment.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -7676,30 +7643,30 @@ type ClientInterface interface {
 
 	// RequestMasterKeyConfirmation Email root admin a code that confirms a master-key export
 	//
-	// Only root admin requests one. It serves an account without a password. Without a system mail server or a usable address on root admin's account the answer is 409 `identity_proof_unavailable`, and the interface explains how to save the key from the host. The code expires after five minutes and confirms only a master-key export. One code a minute.
+	// Only root admin requests one, and only an instance that requires two-factor sign-in needs it. Without a system mail server or a usable address on root admin's account the answer is 409 `identity_proof_unavailable`, and the interface explains how to copy the key from the host. The code is bound to the requesting session, expires after five minutes and confirms only a master-key export. One code a minute.
 	//
 	// Corresponds with POST /master-key-confirmations (the `RequestMasterKeyConfirmation` operationId).
 	RequestMasterKeyConfirmation(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DownloadMasterKey Download the master key once
 	//
-	// Public, because a browser link cannot carry the session: the single-use `token` from `createMasterKeyExport` is the credential. Returns exactly the bytes of the existing master key as an attachment with `Cache-Control: no-store`. An expired, used, unknown or wrong-purpose token gets 401 `unauthenticated`. Downloading does not mark the key as saved.
+	// Public, because a browser link cannot carry the session: the single-use `token` from `createMasterKeyExport` is the credential. Returns exactly the bytes of the existing master key as an attachment with `Cache-Control: no-store`. An expired, used, unknown or wrong-purpose token gets 401 `unauthenticated`. The download records no acknowledgment; `acknowledgeMasterKey` does.
 	//
 	// Corresponds with GET /master-key-downloads (the `DownloadMasterKey` operationId).
 	DownloadMasterKey(ctx context.Context, params *DownloadMasterKeyParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// CreateMasterKeyExportWithBody Confirm identity and get a single-use token that downloads the master key
+	// CreateMasterKeyExportWithBody Get a single-use token that downloads the master key
 	//
-	// Only root admin exports the key. The request carries root admin's current password or the emailed code from `requestMasterKeyConfirmation`; a wrong, expired, used or wrong-purpose proof gets 400 `identity_proof_invalid`. Over unencrypted HTTP the request must also set `isInsecureTransferAcknowledged`, or it gets 400 `invalid_request`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the proof, the token or the key.
+	// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
 	//
 	// Takes any type of body and a specified content type.
 	//
 	// Corresponds with POST /master-key-exports (the `CreateMasterKeyExport` operationId).
 	CreateMasterKeyExportWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// CreateMasterKeyExport Confirm identity and get a single-use token that downloads the master key
+	// CreateMasterKeyExport Get a single-use token that downloads the master key
 	//
-	// Only root admin exports the key. The request carries root admin's current password or the emailed code from `requestMasterKeyConfirmation`; a wrong, expired, used or wrong-purpose proof gets 400 `identity_proof_invalid`. Over unencrypted HTTP the request must also set `isInsecureTransferAcknowledged`, or it gets 400 `invalid_request`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the proof, the token or the key.
+	// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -9035,44 +9002,6 @@ func (c *Client) DownloadInstanceBackup(ctx context.Context, params *DownloadIns
 	return c.Client.Do(req)
 }
 
-// UpdateInstanceBackupReminderWithBody Defer or restore the setup reminder
-//
-// Only root admin changes it. Deferring hides the initial setup reminder for 24 hours. It never hides an incident, including stopped protection.
-//
-// Takes any type of body and a specified content type.
-//
-// Corresponds with PUT /instance-backup-reminders (the `UpdateInstanceBackupReminder` operationId).
-func (c *Client) UpdateInstanceBackupReminderWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateInstanceBackupReminderRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// UpdateInstanceBackupReminder Defer or restore the setup reminder
-//
-// Only root admin changes it. Deferring hides the initial setup reminder for 24 hours. It never hides an incident, including stopped protection.
-//
-// Takes a body of the `application/json` content type.
-//
-// Corresponds with PUT /instance-backup-reminders (the `UpdateInstanceBackupReminder` operationId).
-func (c *Client) UpdateInstanceBackupReminder(ctx context.Context, body UpdateInstanceBackupReminderJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateInstanceBackupReminderRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
 // GetInstanceBackupSettings Get the Databasus backup settings
 //
 // Only root admin reads them; another instance admin gets 403 `permission_denied`. A new installation has no destinations, an hourly schedule and 30-day retention.
@@ -9236,7 +9165,7 @@ func (c *Client) CreateInstanceBackupDownloadToken(ctx context.Context, instance
 
 // CreateInstanceRecoveryWithBody Upload a Databasus backup file and its master key to prepare a replacement
 //
-// Only root admin of this installation uploads; another administrator gets 403 `permission_denied` before any byte is staged. The multipart body carries the encrypted `archive` file and the source installation's master key as the text field `masterKey`, whose exact UTF-8 bytes are kept without trimming. Neither a matching history entry, a destination nor this installation's own key is needed. The archive is streamed into private staging and refused with 413 `archive_too_large` beyond the configured limit, 10 GiB by default, even without a declared length; the key is limited to 64 KiB. Missing disk space gets 409 `insufficient_disk_space`, another pending recovery gets 409 `already_running`. Over unencrypted HTTP `isInsecureTransferAcknowledged` must be `true` and come before the `archive` part, or the answer is 400 `invalid_request` before any archive byte is staged. The answer is 202 with the recovery validating; the active installation stays usable until an explicit apply. A prepared recovery expires after one hour.
+// Only root admin of this installation uploads; another administrator gets 403 `permission_denied` before any byte is staged. The multipart body carries the encrypted `archive` file and the source installation's master key as the text field `masterKey`, whose exact UTF-8 bytes are kept without trimming. Neither a matching history entry, a destination nor this installation's own key is needed. The archive is streamed into private staging and refused with 413 `archive_too_large` beyond the configured limit, 10 GiB by default, even without a declared length; the key is limited to 64 KiB. Missing disk space gets 409 `insufficient_disk_space`, another pending recovery gets 409 `already_running`. The answer is 202 with the recovery validating; the active installation stays usable until an explicit apply. A prepared recovery expires after one hour.
 //
 // Takes any type of body and a specified content type.
 //
@@ -9636,7 +9565,7 @@ func (c *Client) DownloadLogicalBackup(ctx context.Context, backupId BackupId, p
 
 // AcknowledgeMasterKeyWithBody Record that root admin saved the current master key
 //
-// Only root admin acknowledges. The acknowledgment belongs to the current key, so every browser and session stops showing key onboarding for it. A download alone never counts as an acknowledgment.
+// Only root admin acknowledges. The acknowledgment belongs to the current key, so every browser and session stops showing key onboarding for it. Exporting or downloading the key alone never counts as an acknowledgment.
 //
 // Takes any type of body and a specified content type.
 //
@@ -9655,7 +9584,7 @@ func (c *Client) AcknowledgeMasterKeyWithBody(ctx context.Context, contentType s
 
 // AcknowledgeMasterKey Record that root admin saved the current master key
 //
-// Only root admin acknowledges. The acknowledgment belongs to the current key, so every browser and session stops showing key onboarding for it. A download alone never counts as an acknowledgment.
+// Only root admin acknowledges. The acknowledgment belongs to the current key, so every browser and session stops showing key onboarding for it. Exporting or downloading the key alone never counts as an acknowledgment.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -9674,7 +9603,7 @@ func (c *Client) AcknowledgeMasterKey(ctx context.Context, body AcknowledgeMaste
 
 // RequestMasterKeyConfirmation Email root admin a code that confirms a master-key export
 //
-// Only root admin requests one. It serves an account without a password. Without a system mail server or a usable address on root admin's account the answer is 409 `identity_proof_unavailable`, and the interface explains how to save the key from the host. The code expires after five minutes and confirms only a master-key export. One code a minute.
+// Only root admin requests one, and only an instance that requires two-factor sign-in needs it. Without a system mail server or a usable address on root admin's account the answer is 409 `identity_proof_unavailable`, and the interface explains how to copy the key from the host. The code is bound to the requesting session, expires after five minutes and confirms only a master-key export. One code a minute.
 //
 // Corresponds with POST /master-key-confirmations (the `RequestMasterKeyConfirmation` operationId).
 func (c *Client) RequestMasterKeyConfirmation(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -9691,7 +9620,7 @@ func (c *Client) RequestMasterKeyConfirmation(ctx context.Context, reqEditors ..
 
 // DownloadMasterKey Download the master key once
 //
-// Public, because a browser link cannot carry the session: the single-use `token` from `createMasterKeyExport` is the credential. Returns exactly the bytes of the existing master key as an attachment with `Cache-Control: no-store`. An expired, used, unknown or wrong-purpose token gets 401 `unauthenticated`. Downloading does not mark the key as saved.
+// Public, because a browser link cannot carry the session: the single-use `token` from `createMasterKeyExport` is the credential. Returns exactly the bytes of the existing master key as an attachment with `Cache-Control: no-store`. An expired, used, unknown or wrong-purpose token gets 401 `unauthenticated`. The download records no acknowledgment; `acknowledgeMasterKey` does.
 //
 // Corresponds with GET /master-key-downloads (the `DownloadMasterKey` operationId).
 func (c *Client) DownloadMasterKey(ctx context.Context, params *DownloadMasterKeyParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -9706,9 +9635,9 @@ func (c *Client) DownloadMasterKey(ctx context.Context, params *DownloadMasterKe
 	return c.Client.Do(req)
 }
 
-// CreateMasterKeyExportWithBody Confirm identity and get a single-use token that downloads the master key
+// CreateMasterKeyExportWithBody Get a single-use token that downloads the master key
 //
-// Only root admin exports the key. The request carries root admin's current password or the emailed code from `requestMasterKeyConfirmation`; a wrong, expired, used or wrong-purpose proof gets 400 `identity_proof_invalid`. Over unencrypted HTTP the request must also set `isInsecureTransferAcknowledged`, or it gets 400 `invalid_request`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the proof, the token or the key.
+// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
 //
 // Takes any type of body and a specified content type.
 //
@@ -9725,9 +9654,9 @@ func (c *Client) CreateMasterKeyExportWithBody(ctx context.Context, contentType 
 	return c.Client.Do(req)
 }
 
-// CreateMasterKeyExport Confirm identity and get a single-use token that downloads the master key
+// CreateMasterKeyExport Get a single-use token that downloads the master key
 //
-// Only root admin exports the key. The request carries root admin's current password or the emailed code from `requestMasterKeyConfirmation`; a wrong, expired, used or wrong-purpose proof gets 400 `identity_proof_invalid`. Over unencrypted HTTP the request must also set `isInsecureTransferAcknowledged`, or it gets 400 `invalid_request`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the proof, the token or the key.
+// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -12576,46 +12505,6 @@ func NewDownloadInstanceBackupRequest(server string, params *DownloadInstanceBac
 	if err != nil {
 		return nil, err
 	}
-
-	return req, nil
-}
-
-// NewUpdateInstanceBackupReminderRequest calls the generic UpdateInstanceBackupReminder builder with application/json body
-func NewUpdateInstanceBackupReminderRequest(server string, body UpdateInstanceBackupReminderJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewUpdateInstanceBackupReminderRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewUpdateInstanceBackupReminderRequestWithBody constructs an http.Request for the UpdateInstanceBackupReminder method, with any body, and a specified content type
-func NewUpdateInstanceBackupReminderRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/instance-backup-reminders")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -17078,24 +16967,6 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /instance-backup-downloads (the `DownloadInstanceBackup` operationId).
 	DownloadInstanceBackupWithResponse(ctx context.Context, params *DownloadInstanceBackupParams, reqEditors ...RequestEditorFn) (*DownloadInstanceBackupResponse, error)
 
-	// UpdateInstanceBackupReminderWithBodyWithResponse Defer or restore the setup reminder
-	//
-	// Only root admin changes it. Deferring hides the initial setup reminder for 24 hours. It never hides an incident, including stopped protection.
-	//
-	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with PUT /instance-backup-reminders (the `UpdateInstanceBackupReminder` operationId).
-	UpdateInstanceBackupReminderWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateInstanceBackupReminderResponse, error)
-
-	// UpdateInstanceBackupReminderWithResponse Defer or restore the setup reminder
-	//
-	// Only root admin changes it. Deferring hides the initial setup reminder for 24 hours. It never hides an incident, including stopped protection.
-	//
-	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with PUT /instance-backup-reminders (the `UpdateInstanceBackupReminder` operationId).
-	UpdateInstanceBackupReminderWithResponse(ctx context.Context, body UpdateInstanceBackupReminderJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateInstanceBackupReminderResponse, error)
-
 	// GetInstanceBackupSettingsWithResponse Get the Databasus backup settings
 	//
 	// Only root admin reads them; another instance admin gets 403 `permission_denied`. A new installation has no destinations, an hourly schedule and 30-day retention.
@@ -17179,7 +17050,7 @@ type ClientWithResponsesInterface interface {
 
 	// CreateInstanceRecoveryWithBodyWithResponse Upload a Databasus backup file and its master key to prepare a replacement
 	//
-	// Only root admin of this installation uploads; another administrator gets 403 `permission_denied` before any byte is staged. The multipart body carries the encrypted `archive` file and the source installation's master key as the text field `masterKey`, whose exact UTF-8 bytes are kept without trimming. Neither a matching history entry, a destination nor this installation's own key is needed. The archive is streamed into private staging and refused with 413 `archive_too_large` beyond the configured limit, 10 GiB by default, even without a declared length; the key is limited to 64 KiB. Missing disk space gets 409 `insufficient_disk_space`, another pending recovery gets 409 `already_running`. Over unencrypted HTTP `isInsecureTransferAcknowledged` must be `true` and come before the `archive` part, or the answer is 400 `invalid_request` before any archive byte is staged. The answer is 202 with the recovery validating; the active installation stays usable until an explicit apply. A prepared recovery expires after one hour.
+	// Only root admin of this installation uploads; another administrator gets 403 `permission_denied` before any byte is staged. The multipart body carries the encrypted `archive` file and the source installation's master key as the text field `masterKey`, whose exact UTF-8 bytes are kept without trimming. Neither a matching history entry, a destination nor this installation's own key is needed. The archive is streamed into private staging and refused with 413 `archive_too_large` beyond the configured limit, 10 GiB by default, even without a declared length; the key is limited to 64 KiB. Missing disk space gets 409 `insufficient_disk_space`, another pending recovery gets 409 `already_running`. The answer is 202 with the recovery validating; the active installation stays usable until an explicit apply. A prepared recovery expires after one hour.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -17377,7 +17248,7 @@ type ClientWithResponsesInterface interface {
 
 	// AcknowledgeMasterKeyWithBodyWithResponse Record that root admin saved the current master key
 	//
-	// Only root admin acknowledges. The acknowledgment belongs to the current key, so every browser and session stops showing key onboarding for it. A download alone never counts as an acknowledgment.
+	// Only root admin acknowledges. The acknowledgment belongs to the current key, so every browser and session stops showing key onboarding for it. Exporting or downloading the key alone never counts as an acknowledgment.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -17386,7 +17257,7 @@ type ClientWithResponsesInterface interface {
 
 	// AcknowledgeMasterKeyWithResponse Record that root admin saved the current master key
 	//
-	// Only root admin acknowledges. The acknowledgment belongs to the current key, so every browser and session stops showing key onboarding for it. A download alone never counts as an acknowledgment.
+	// Only root admin acknowledges. The acknowledgment belongs to the current key, so every browser and session stops showing key onboarding for it. Exporting or downloading the key alone never counts as an acknowledgment.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -17395,7 +17266,7 @@ type ClientWithResponsesInterface interface {
 
 	// RequestMasterKeyConfirmationWithResponse Email root admin a code that confirms a master-key export
 	//
-	// Only root admin requests one. It serves an account without a password. Without a system mail server or a usable address on root admin's account the answer is 409 `identity_proof_unavailable`, and the interface explains how to save the key from the host. The code expires after five minutes and confirms only a master-key export. One code a minute.
+	// Only root admin requests one, and only an instance that requires two-factor sign-in needs it. Without a system mail server or a usable address on root admin's account the answer is 409 `identity_proof_unavailable`, and the interface explains how to copy the key from the host. The code is bound to the requesting session, expires after five minutes and confirms only a master-key export. One code a minute.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -17404,25 +17275,25 @@ type ClientWithResponsesInterface interface {
 
 	// DownloadMasterKeyWithResponse Download the master key once
 	//
-	// Public, because a browser link cannot carry the session: the single-use `token` from `createMasterKeyExport` is the credential. Returns exactly the bytes of the existing master key as an attachment with `Cache-Control: no-store`. An expired, used, unknown or wrong-purpose token gets 401 `unauthenticated`. Downloading does not mark the key as saved.
+	// Public, because a browser link cannot carry the session: the single-use `token` from `createMasterKeyExport` is the credential. Returns exactly the bytes of the existing master key as an attachment with `Cache-Control: no-store`. An expired, used, unknown or wrong-purpose token gets 401 `unauthenticated`. The download records no acknowledgment; `acknowledgeMasterKey` does.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with GET /master-key-downloads (the `DownloadMasterKey` operationId).
 	DownloadMasterKeyWithResponse(ctx context.Context, params *DownloadMasterKeyParams, reqEditors ...RequestEditorFn) (*DownloadMasterKeyResponse, error)
 
-	// CreateMasterKeyExportWithBodyWithResponse Confirm identity and get a single-use token that downloads the master key
+	// CreateMasterKeyExportWithBodyWithResponse Get a single-use token that downloads the master key
 	//
-	// Only root admin exports the key. The request carries root admin's current password or the emailed code from `requestMasterKeyConfirmation`; a wrong, expired, used or wrong-purpose proof gets 400 `identity_proof_invalid`. Over unencrypted HTTP the request must also set `isInsecureTransferAcknowledged`, or it gets 400 `invalid_request`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the proof, the token or the key.
+	// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with POST /master-key-exports (the `CreateMasterKeyExport` operationId).
 	CreateMasterKeyExportWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateMasterKeyExportResponse, error)
 
-	// CreateMasterKeyExportWithResponse Confirm identity and get a single-use token that downloads the master key
+	// CreateMasterKeyExportWithResponse Get a single-use token that downloads the master key
 	//
-	// Only root admin exports the key. The request carries root admin's current password or the emailed code from `requestMasterKeyConfirmation`; a wrong, expired, used or wrong-purpose proof gets 400 `identity_proof_invalid`. Over unencrypted HTTP the request must also set `isInsecureTransferAcknowledged`, or it gets 400 `invalid_request`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the proof, the token or the key.
+	// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -19837,75 +19708,6 @@ func (r DownloadInstanceBackupResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r DownloadInstanceBackupResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-type UpdateInstanceBackupReminderResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *InstanceBackupReminder
-	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
-	ApplicationproblemJSON400 *Problem
-	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
-	ApplicationproblemJSON401 *Problem
-	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
-	ApplicationproblemJSON403 *Problem
-	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
-	ApplicationproblemJSONDefault *Problem
-}
-
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r UpdateInstanceBackupReminderResponse) GetJSON200() *InstanceBackupReminder {
-	return r.JSON200
-}
-
-// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
-func (r UpdateInstanceBackupReminderResponse) GetApplicationproblemJSON400() *Problem {
-	return r.ApplicationproblemJSON400
-}
-
-// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
-func (r UpdateInstanceBackupReminderResponse) GetApplicationproblemJSON401() *Problem {
-	return r.ApplicationproblemJSON401
-}
-
-// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
-func (r UpdateInstanceBackupReminderResponse) GetApplicationproblemJSON403() *Problem {
-	return r.ApplicationproblemJSON403
-}
-
-// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
-func (r UpdateInstanceBackupReminderResponse) GetApplicationproblemJSONDefault() *Problem {
-	return r.ApplicationproblemJSONDefault
-}
-
-// GetBody returns the raw response body bytes
-func (r UpdateInstanceBackupReminderResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r UpdateInstanceBackupReminderResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r UpdateInstanceBackupReminderResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r UpdateInstanceBackupReminderResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -27408,36 +27210,6 @@ func (c *ClientWithResponses) DownloadInstanceBackupWithResponse(ctx context.Con
 	return ParseDownloadInstanceBackupResponse(rsp)
 }
 
-// UpdateInstanceBackupReminderWithBodyWithResponse Defer or restore the setup reminder
-//
-// Only root admin changes it. Deferring hides the initial setup reminder for 24 hours. It never hides an incident, including stopped protection.
-//
-// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
-//
-// Corresponds with PUT /instance-backup-reminders (the `UpdateInstanceBackupReminder` operationId).
-func (c *ClientWithResponses) UpdateInstanceBackupReminderWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateInstanceBackupReminderResponse, error) {
-	rsp, err := c.UpdateInstanceBackupReminderWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseUpdateInstanceBackupReminderResponse(rsp)
-}
-
-// UpdateInstanceBackupReminderWithResponse Defer or restore the setup reminder
-//
-// Only root admin changes it. Deferring hides the initial setup reminder for 24 hours. It never hides an incident, including stopped protection.
-//
-// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
-//
-// Corresponds with PUT /instance-backup-reminders (the `UpdateInstanceBackupReminder` operationId).
-func (c *ClientWithResponses) UpdateInstanceBackupReminderWithResponse(ctx context.Context, body UpdateInstanceBackupReminderJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateInstanceBackupReminderResponse, error) {
-	rsp, err := c.UpdateInstanceBackupReminder(ctx, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseUpdateInstanceBackupReminderResponse(rsp)
-}
-
 // GetInstanceBackupSettingsWithResponse Get the Databasus backup settings
 //
 // Only root admin reads them; another instance admin gets 403 `permission_denied`. A new installation has no destinations, an hourly schedule and 30-day retention.
@@ -27575,7 +27347,7 @@ func (c *ClientWithResponses) CreateInstanceBackupDownloadTokenWithResponse(ctx 
 
 // CreateInstanceRecoveryWithBodyWithResponse Upload a Databasus backup file and its master key to prepare a replacement
 //
-// Only root admin of this installation uploads; another administrator gets 403 `permission_denied` before any byte is staged. The multipart body carries the encrypted `archive` file and the source installation's master key as the text field `masterKey`, whose exact UTF-8 bytes are kept without trimming. Neither a matching history entry, a destination nor this installation's own key is needed. The archive is streamed into private staging and refused with 413 `archive_too_large` beyond the configured limit, 10 GiB by default, even without a declared length; the key is limited to 64 KiB. Missing disk space gets 409 `insufficient_disk_space`, another pending recovery gets 409 `already_running`. Over unencrypted HTTP `isInsecureTransferAcknowledged` must be `true` and come before the `archive` part, or the answer is 400 `invalid_request` before any archive byte is staged. The answer is 202 with the recovery validating; the active installation stays usable until an explicit apply. A prepared recovery expires after one hour.
+// Only root admin of this installation uploads; another administrator gets 403 `permission_denied` before any byte is staged. The multipart body carries the encrypted `archive` file and the source installation's master key as the text field `masterKey`, whose exact UTF-8 bytes are kept without trimming. Neither a matching history entry, a destination nor this installation's own key is needed. The archive is streamed into private staging and refused with 413 `archive_too_large` beyond the configured limit, 10 GiB by default, even without a declared length; the key is limited to 64 KiB. Missing disk space gets 409 `insufficient_disk_space`, another pending recovery gets 409 `already_running`. The answer is 202 with the recovery validating; the active installation stays usable until an explicit apply. A prepared recovery expires after one hour.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -27905,7 +27677,7 @@ func (c *ClientWithResponses) DownloadLogicalBackupWithResponse(ctx context.Cont
 
 // AcknowledgeMasterKeyWithBodyWithResponse Record that root admin saved the current master key
 //
-// Only root admin acknowledges. The acknowledgment belongs to the current key, so every browser and session stops showing key onboarding for it. A download alone never counts as an acknowledgment.
+// Only root admin acknowledges. The acknowledgment belongs to the current key, so every browser and session stops showing key onboarding for it. Exporting or downloading the key alone never counts as an acknowledgment.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -27920,7 +27692,7 @@ func (c *ClientWithResponses) AcknowledgeMasterKeyWithBodyWithResponse(ctx conte
 
 // AcknowledgeMasterKeyWithResponse Record that root admin saved the current master key
 //
-// Only root admin acknowledges. The acknowledgment belongs to the current key, so every browser and session stops showing key onboarding for it. A download alone never counts as an acknowledgment.
+// Only root admin acknowledges. The acknowledgment belongs to the current key, so every browser and session stops showing key onboarding for it. Exporting or downloading the key alone never counts as an acknowledgment.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -27935,7 +27707,7 @@ func (c *ClientWithResponses) AcknowledgeMasterKeyWithResponse(ctx context.Conte
 
 // RequestMasterKeyConfirmationWithResponse Email root admin a code that confirms a master-key export
 //
-// Only root admin requests one. It serves an account without a password. Without a system mail server or a usable address on root admin's account the answer is 409 `identity_proof_unavailable`, and the interface explains how to save the key from the host. The code expires after five minutes and confirms only a master-key export. One code a minute.
+// Only root admin requests one, and only an instance that requires two-factor sign-in needs it. Without a system mail server or a usable address on root admin's account the answer is 409 `identity_proof_unavailable`, and the interface explains how to copy the key from the host. The code is bound to the requesting session, expires after five minutes and confirms only a master-key export. One code a minute.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -27950,7 +27722,7 @@ func (c *ClientWithResponses) RequestMasterKeyConfirmationWithResponse(ctx conte
 
 // DownloadMasterKeyWithResponse Download the master key once
 //
-// Public, because a browser link cannot carry the session: the single-use `token` from `createMasterKeyExport` is the credential. Returns exactly the bytes of the existing master key as an attachment with `Cache-Control: no-store`. An expired, used, unknown or wrong-purpose token gets 401 `unauthenticated`. Downloading does not mark the key as saved.
+// Public, because a browser link cannot carry the session: the single-use `token` from `createMasterKeyExport` is the credential. Returns exactly the bytes of the existing master key as an attachment with `Cache-Control: no-store`. An expired, used, unknown or wrong-purpose token gets 401 `unauthenticated`. The download records no acknowledgment; `acknowledgeMasterKey` does.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -27963,9 +27735,9 @@ func (c *ClientWithResponses) DownloadMasterKeyWithResponse(ctx context.Context,
 	return ParseDownloadMasterKeyResponse(rsp)
 }
 
-// CreateMasterKeyExportWithBodyWithResponse Confirm identity and get a single-use token that downloads the master key
+// CreateMasterKeyExportWithBodyWithResponse Get a single-use token that downloads the master key
 //
-// Only root admin exports the key. The request carries root admin's current password or the emailed code from `requestMasterKeyConfirmation`; a wrong, expired, used or wrong-purpose proof gets 400 `identity_proof_invalid`. Over unencrypted HTTP the request must also set `isInsecureTransferAcknowledged`, or it gets 400 `invalid_request`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the proof, the token or the key.
+// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -27978,9 +27750,9 @@ func (c *ClientWithResponses) CreateMasterKeyExportWithBodyWithResponse(ctx cont
 	return ParseCreateMasterKeyExportResponse(rsp)
 }
 
-// CreateMasterKeyExportWithResponse Confirm identity and get a single-use token that downloads the master key
+// CreateMasterKeyExportWithResponse Get a single-use token that downloads the master key
 //
-// Only root admin exports the key. The request carries root admin's current password or the emailed code from `requestMasterKeyConfirmation`; a wrong, expired, used or wrong-purpose proof gets 400 `identity_proof_invalid`. Over unencrypted HTTP the request must also set `isInsecureTransferAcknowledged`, or it gets 400 `invalid_request`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the proof, the token or the key.
+// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -30692,60 +30464,6 @@ func ParseDownloadInstanceBackupResponse(rsp *http.Response) (*DownloadInstanceB
 			headers.ContentDisposition = &value
 		}
 		response.Headers200 = &headers
-	}
-
-	return response, nil
-}
-
-// ParseUpdateInstanceBackupReminderResponse parses an HTTP response from a UpdateInstanceBackupReminderWithResponse call
-func ParseUpdateInstanceBackupReminderResponse(rsp *http.Response) (*UpdateInstanceBackupReminderResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &UpdateInstanceBackupReminderResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest InstanceBackupReminder
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest Problem
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest Problem
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest Problem
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest Problem
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
 	}
 
 	return response, nil

@@ -2211,10 +2211,6 @@ export const es: typeof en = {
       masterKeyMissing: 'Introduzca la clave maestra.',
       showKey: 'Mostrar clave',
       hideKey: 'Ocultar clave',
-      insecureTitle: 'Esta conexión no está cifrada',
-      insecureDescription:
-        'La página usa HTTP, así que el archivo y la clave maestra viajarían por la red sin cifrar y podrían ser interceptados.',
-      insecureAccept: 'Enviarlos por HTTP de todos modos',
       upload: 'Subir y comprobar',
       uploading: 'Subiendo el archivo...',
       preparing: 'Comprobando y preparando la copia de seguridad de Databasus...',
@@ -2274,52 +2270,45 @@ export const es: typeof en = {
   masterKey: {
     title: 'Clave maestra',
     description:
-      'La clave maestra descifra cada copia de seguridad de Databasus y las credenciales que contiene. Sin ella no se puede recuperar ninguna copia de seguridad de Databasus. Guarde una copia fuera de este servidor, por ejemplo en un gestor de contraseñas.',
-    statusSaved: 'Ha confirmado que la clave maestra actual está guardada.',
-    statusNotSaved: 'No ha confirmado que la clave maestra actual esté guardada.',
-    download: 'Descargar la clave maestra',
-    downloaded:
-      'Se ha descargado el archivo de la clave. Muévalo a un lugar seguro y confirme que lo ha guardado.',
-    acknowledge: 'He guardado la clave maestra',
-    acknowledged: 'Se ha confirmado que la clave maestra está guardada',
-    insecure: {
-      title: 'Esta conexión no está cifrada',
-      description:
-        'La página usa HTTP, así que la clave viajaría por la red sin cifrar y podría ser interceptada. Es preferible copiar el archivo de la clave desde el servidor por una conexión protegida, como se describe más abajo.',
-      continue: 'Descargar por HTTP de todos modos',
-    },
+      'Databasus cifra las copias de seguridad con esta clave. Si pierde este servidor, necesitará la clave para descifrar sus copias de seguridad, incluida la copia de seguridad del propio Databasus.',
+    statusSaved: 'La clave maestra actual está guardada.',
+    statusNotSaved: 'La clave maestra actual aún no se ha guardado.',
+    loading: 'Obteniendo la clave…',
+    copy: 'Copiar',
+    copied: 'Copiada',
+    copyFailed: 'El navegador no permitió copiar. Descargue la clave en su lugar.',
+    download: 'Descargar',
+    downloaded: 'Descargada',
+    saveAgain: 'Copiar o descargar la clave',
+    codeRequired:
+      'Esta instalación exige el inicio de sesión en dos pasos, así que confirme el acceso a la clave con un código enviado a su correo.',
+    codeFailed: 'Si el código sigue sin llegar, copie la clave del servidor manualmente.',
     proof: {
       password: 'Su contraseña actual',
       sendCode: 'Enviarme un código de confirmación por correo',
       resendCode: 'Enviar un código nuevo',
       code: 'Código de confirmación',
+      confirm: 'Continuar',
     },
     host: {
       description: 'También puede copiar el archivo de la clave directamente desde el servidor.',
       path: 'Su ubicación dentro del contenedor:',
       containerName: 'Sustituya databasus por el nombre de su contenedor.',
-      onlyOption:
-        'Su cuenta no tiene contraseña y no se puede enviar un código por correo, así que copie la clave desde el servidor.',
     },
     onboarding: {
       title: 'Guarde la clave maestra',
-      description:
-        'Antes de confiar en las copias de seguridad de Databasus, guarde la clave maestra fuera de este servidor. La necesitará para recuperar Databasus en un servidor nuevo.',
-      later: 'Recordármelo más tarde',
+      close: 'La guardé en un lugar seguro',
     },
   },
   instanceBackupNotices: {
     label: 'Aviso sobre las copias de seguridad de Databasus',
     resuming:
       'Las copias de seguridad de Databasus se están reanudando. No hay protección hasta que una nueva copia se complete correctamente.',
-    masterKey: 'La clave maestra aún no está guardada',
-    saveMasterKey: 'Guardar la clave maestra',
     setup: 'No se hacen copias de seguridad del propio Databasus',
     setupDescription:
-      'Elija un almacenamiento para las copias de seguridad cifradas de Databasus, para poder recuperar la instancia si pierde este servidor.',
+      'Elija un almacenamiento para las copias de seguridad de Databasus, para poder recuperar la instancia si pierde este servidor',
     configure: 'Configurar',
     open: 'Abrir las copias de seguridad de Databasus',
-    remindTomorrow: 'Recordármelo mañana',
     stale: 'No se pudo actualizar el estado.',
   },
   storages: {

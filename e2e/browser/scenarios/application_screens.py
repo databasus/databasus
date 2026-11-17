@@ -10,7 +10,6 @@ ADMINISTERS_NOTICE = "This is the first account on this instance, so it will adm
 
 
 MASTER_KEY_ONBOARDING_TITLE = "Save the master key"
-MASTER_KEY_REMINDER = "The master key is not saved yet"
 INSTANCE_BACKUP_STATUS_PATH = "/api/v1/instance-backup-statuses"
 
 
@@ -46,8 +45,8 @@ def register_first_account(page: Page, account: Account) -> None:
     page.get_by_label("Confirm password").fill(account.password)
     page.get_by_role("button", name="Sign up", exact=True).click()
 
-    expect(application_banner(page)).to_be_visible()
-    defer_master_key_onboarding(page)
+    expect(application_banner(page).or_(_master_key_onboarding(page))).to_be_visible()
+    download_master_key(page)
 
 
 def sign_in(page: Page, account: Account) -> None:
@@ -55,9 +54,16 @@ def sign_in(page: Page, account: Account) -> None:
     page.get_by_placeholder("********", exact=True).fill(account.password)
     page.get_by_role("button", name="Sign in", exact=True).click()
 
-    expect(application_banner(page)).to_be_visible()
-    if account.is_root_admin:
-        defer_master_key_onboarding(page)
+    if not account.is_root_admin:
+        expect(application_banner(page)).to_be_visible()
+        return
+
+    expect(application_banner(page).or_(_master_key_onboarding(page))).to_be_visible()
+    download_master_key(page)
+
+
+def _master_key_onboarding(page: Page) -> Locator:
+    return page.get_by_role("heading", name=MASTER_KEY_ONBOARDING_TITLE, exact=True, level=1)
 
 
 def _is_master_key_acknowledged(page: Page) -> bool:
@@ -66,39 +72,28 @@ def _is_master_key_acknowledged(page: Page) -> bool:
     return is_acknowledged
 
 
-def defer_master_key_onboarding(page: Page) -> None:
-    """Root admin meets key onboarding on every sign-in until the key is acknowledged; deferring it
-    closes the dialog for this sign-in and leaves the smaller reminder."""
-    onboarding = page.get_by_role("dialog", name=MASTER_KEY_ONBOARDING_TITLE, exact=True)
+def download_master_key(page: Page) -> None:
+    """Root admin sees the onboarding screen instead of the application until they copy or
+    download the current key and confirm saving it; the confirmation records the key as saved,
+    so no browser shows onboarding for that key again."""
+    onboarding = _master_key_onboarding(page)
 
     if _is_master_key_acknowledged(page):
         expect(onboarding).to_be_hidden()
         return
 
     expect(onboarding).to_be_visible()
-    expect(onboarding.get_by_text("This connection is not encrypted")).to_be_visible()
-    onboarding.get_by_role("button", name="Remind me later", exact=True).click()
+    confirmation = page.get_by_role("button", name="I've saved it in a safe place", exact=True)
+    expect(confirmation).to_be_disabled()
+    with page.expect_download() as download_info:
+        page.get_by_role("button", name="Download", exact=True).click()
+    assert download_info.value.failure() is None
+    assert download_info.value.suggested_filename == "databasus-master-key.txt"
+
+    confirmation.click()
 
     expect(onboarding).to_be_hidden()
-    expect(page.get_by_text(MASTER_KEY_REMINDER, exact=True)).to_be_visible()
-
-
-def acknowledge_master_key(page: Page) -> None:
-    """Confirms through the rendered dialog that the key was saved from the host, so no browser,
-    including this one after a new sign-in, shows onboarding for that key again."""
-    reminder = page.get_by_text(MASTER_KEY_REMINDER, exact=True)
-
-    if _is_master_key_acknowledged(page):
-        expect(reminder).to_be_hidden()
-        return
-
-    page.get_by_role("button", name="Save master key", exact=True).click()
-    onboarding = page.get_by_role("dialog", name=MASTER_KEY_ONBOARDING_TITLE, exact=True)
-    expect(onboarding.get_by_text("Its location inside the container:")).to_be_visible()
-    onboarding.get_by_role("button", name="I saved the master key", exact=True).click()
-
-    expect(onboarding).to_be_hidden()
-    expect(reminder).to_be_hidden()
+    expect(application_banner(page)).to_be_visible()
     assert _is_master_key_acknowledged(page)
 
 

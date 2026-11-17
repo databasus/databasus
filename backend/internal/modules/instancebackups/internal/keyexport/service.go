@@ -1,5 +1,6 @@
-// Package keyexport lets root admin deliberately take the existing master key off the server and
-// records that they saved it. The key leaves only as the attachment of a single-use download.
+// Package keyexport lets root admin take the existing master key off the server. The key leaves only
+// as the attachment of a single-use download, and only root admin's explicit acknowledgment records
+// it as saved.
 package keyexport
 
 import (
@@ -11,7 +12,6 @@ import (
 	"databasus-backend/internal/lib/audit"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
-	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/instancebackups/internal/configs"
 	"databasus-backend/internal/modules/instancebackups/internal/tokens"
 	"databasus-backend/internal/modules/users"
@@ -19,7 +19,7 @@ import (
 
 const (
 	downloadLifetime = 60 * time.Second
-	keyFileName      = "databasus-master.key"
+	keyFileName      = "databasus-master-key.txt"
 )
 
 type Deps struct {
@@ -51,10 +51,9 @@ func NewService(deps Deps) *Service {
 	}
 }
 
-// ExportRequest is root admin's identity proof and, over HTTP, the acknowledged risk.
+// ExportRequest carries the emailed code; only an instance that requires two-factor sign-in needs it.
 type ExportRequest struct {
-	Proof                          users.IdentityProof
-	IsInsecureTransferAcknowledged bool
+	Code *string
 }
 
 type IssuedExport struct {
@@ -77,19 +76,16 @@ func (s *Service) RequestConfirmation(ctx context.Context, actor users.Actor) (t
 	return s.users.SendIdentityCode(ctx, actor, exportBinding())
 }
 
-// CreateExport checks the proof and issues a 60-second single-use download token. The audit event
-// names the export but never the proof, the token or the key.
+// CreateExport issues a 60-second single-use download token. Root admin's session is enough unless
+// the instance requires two-factor sign-in; then the emailed code is checked too. The audit event
+// names the export but never the code, the token or the key.
 func (s *Service) CreateExport(ctx context.Context, actor users.Actor, request ExportRequest) (IssuedExport, error) {
 	rootAdmin, err := s.users.RequireRootAdmin(ctx, actor)
 	if err != nil {
 		return IssuedExport{}, err
 	}
 
-	if !httpserver.IsSecureTransport(ctx) && !request.IsInsecureTransferAcknowledged {
-		return IssuedExport{}, ErrInsecureTransferNotAcknowledged
-	}
-
-	if err := s.users.VerifyIdentityProof(ctx, actor, exportBinding(), request.Proof); err != nil {
+	if err := s.verifyCodeWhenRequired(ctx, actor, request.Code); err != nil {
 		return IssuedExport{}, err
 	}
 
@@ -109,7 +105,7 @@ func (s *Service) CreateExport(ctx context.Context, actor users.Actor, request E
 		return s.auditLog.Record(txCtx, audit.Event{
 			Author:      rootAdmin.GetAuditAuthor(),
 			WorkspaceID: nil,
-			Message:     "Root admin confirmed identity to export the master key",
+			Message:     "Root admin requested a master key export",
 		})
 	})
 	if err != nil {
@@ -169,6 +165,10 @@ func (s *Service) Acknowledge(ctx context.Context, actor users.Actor, isSaved bo
 	return s.configs.AcknowledgeMasterKey(ctx, actor, s.GetMasterKeySha256())
 }
 
+func (s *Service) IsExportCodeRequired(ctx context.Context) (bool, error) {
+	return s.users.IsTwoFactorAuthRequired(ctx)
+}
+
 // IsAcknowledged compares the acknowledgment with the installed key, so a replaced key, such as one
 // a recovery installed, asks root admin again.
 func (s *Service) IsAcknowledged(ctx context.Context) (bool, error) {
@@ -185,4 +185,13 @@ func (s *Service) GetMasterKeySha256() string {
 	digest := sha256.Sum256([]byte(s.masterKey.GetSecret()))
 
 	return hex.EncodeToString(digest[:])
+}
+
+func (s *Service) verifyCodeWhenRequired(ctx context.Context, actor users.Actor, code *string) error {
+	isCodeRequired, err := s.IsExportCodeRequired(ctx)
+	if err != nil || !isCodeRequired {
+		return err
+	}
+
+	return s.users.VerifyIdentityProof(ctx, actor, exportBinding(), users.IdentityProof{Password: nil, Code: code})
 }

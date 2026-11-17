@@ -143,7 +143,6 @@ func TestTrackInstanceBackupHealth(t *testing.T) {
 		storageID := owner.createLocalStorage(t, "Archive")
 		owner.selectDestinations(t, storageID)
 		owner.backUp(t)
-		owner.deferReminder(t)
 
 		owner.selectDestinations(t)
 		stoppedStatus := getStatus(t, owner.RootAdmin)
@@ -228,13 +227,4 @@ func (o instanceOwner) selectScheduledDestinations(
 	response, err := o.RootAdmin.Client.UpdateInstanceBackupSettingsWithResponse(t.Context(), settings)
 	require.NoError(t, err)
 	require.NotNil(t, response.JSON200, string(response.Body))
-}
-
-func (o instanceOwner) deferReminder(t *testing.T) {
-	t.Helper()
-
-	response, err := o.RootAdmin.Client.UpdateInstanceBackupReminderWithResponse(t.Context(),
-		apiclient.InstanceBackupReminderUpdate{IsDeferred: true})
-	require.NoError(t, err)
-	require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
 }

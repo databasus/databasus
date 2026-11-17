@@ -1794,26 +1794,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/instance-backup-reminders": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Defer or restore the setup reminder
-         * @description Only root admin changes it. Deferring hides the initial setup reminder for 24 hours. It never hides an incident, including stopped protection.
-         */
-        put: operations["updateInstanceBackupReminder"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/master-key-confirmations": {
         parameters: {
             query?: never;
@@ -1825,7 +1805,7 @@ export interface paths {
         put?: never;
         /**
          * Email root admin a code that confirms a master-key export
-         * @description Only root admin requests one. It serves an account without a password. Without a system mail server or a usable address on root admin's account the answer is 409 `identity_proof_unavailable`, and the interface explains how to save the key from the host. The code expires after five minutes and confirms only a master-key export. One code a minute.
+         * @description Only root admin requests one, and only an instance that requires two-factor sign-in needs it. Without a system mail server or a usable address on root admin's account the answer is 409 `identity_proof_unavailable`, and the interface explains how to copy the key from the host. The code is bound to the requesting session, expires after five minutes and confirms only a master-key export. One code a minute.
          */
         post: operations["requestMasterKeyConfirmation"];
         delete?: never;
@@ -1844,8 +1824,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Confirm identity and get a single-use token that downloads the master key
-         * @description Only root admin exports the key. The request carries root admin's current password or the emailed code from `requestMasterKeyConfirmation`; a wrong, expired, used or wrong-purpose proof gets 400 `identity_proof_invalid`. Over unencrypted HTTP the request must also set `isInsecureTransferAcknowledged`, or it gets 400 `invalid_request`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the proof, the token or the key.
+         * Get a single-use token that downloads the master key
+         * @description Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
          */
         post: operations["createMasterKeyExport"];
         delete?: never;
@@ -1863,7 +1843,7 @@ export interface paths {
         };
         /**
          * Download the master key once
-         * @description Public, because a browser link cannot carry the session: the single-use `token` from `createMasterKeyExport` is the credential. Returns exactly the bytes of the existing master key as an attachment with `Cache-Control: no-store`. An expired, used, unknown or wrong-purpose token gets 401 `unauthenticated`. Downloading does not mark the key as saved.
+         * @description Public, because a browser link cannot carry the session: the single-use `token` from `createMasterKeyExport` is the credential. Returns exactly the bytes of the existing master key as an attachment with `Cache-Control: no-store`. An expired, used, unknown or wrong-purpose token gets 401 `unauthenticated`. The download records no acknowledgment; `acknowledgeMasterKey` does.
          */
         get: operations["downloadMasterKey"];
         put?: never;
@@ -1884,7 +1864,7 @@ export interface paths {
         get?: never;
         /**
          * Record that root admin saved the current master key
-         * @description Only root admin acknowledges. The acknowledgment belongs to the current key, so every browser and session stops showing key onboarding for it. A download alone never counts as an acknowledgment.
+         * @description Only root admin acknowledges. The acknowledgment belongs to the current key, so every browser and session stops showing key onboarding for it. Exporting or downloading the key alone never counts as an acknowledgment.
          */
         put: operations["acknowledgeMasterKey"];
         post?: never;
@@ -1905,7 +1885,7 @@ export interface paths {
         put?: never;
         /**
          * Upload a Databasus backup file and its master key to prepare a replacement
-         * @description Only root admin of this installation uploads; another administrator gets 403 `permission_denied` before any byte is staged. The multipart body carries the encrypted `archive` file and the source installation's master key as the text field `masterKey`, whose exact UTF-8 bytes are kept without trimming. Neither a matching history entry, a destination nor this installation's own key is needed. The archive is streamed into private staging and refused with 413 `archive_too_large` beyond the configured limit, 10 GiB by default, even without a declared length; the key is limited to 64 KiB. Missing disk space gets 409 `insufficient_disk_space`, another pending recovery gets 409 `already_running`. Over unencrypted HTTP `isInsecureTransferAcknowledged` must be `true` and come before the `archive` part, or the answer is 400 `invalid_request` before any archive byte is staged. The answer is 202 with the recovery validating; the active installation stays usable until an explicit apply. A prepared recovery expires after one hour.
+         * @description Only root admin of this installation uploads; another administrator gets 403 `permission_denied` before any byte is staged. The multipart body carries the encrypted `archive` file and the source installation's master key as the text field `masterKey`, whose exact UTF-8 bytes are kept without trimming. Neither a matching history entry, a destination nor this installation's own key is needed. The archive is streamed into private staging and refused with 413 `archive_too_large` beyond the configured limit, 10 GiB by default, even without a declared length; the key is limited to 64 KiB. Missing disk space gets 409 `insufficient_disk_space`, another pending recovery gets 409 `already_running`. The answer is 202 with the recovery validating; the active installation stays usable until an explicit apply. A prepared recovery expires after one hour.
          */
         post: operations["createInstanceRecovery"];
         delete?: never;
@@ -3520,18 +3500,8 @@ export interface components {
         };
         /** @description The initial setup reminder */
         InstanceBackupReminder: {
-            /** @description Whether the instance has a user database or storage, so setup should be suggested */
+            /** @description Whether the instance has a user database or storage, so setup should be suggested. The reminder cannot be deferred: it shows while no destination is selected. */
             isEligible: boolean;
-            /**
-             * Format: date-time
-             * @description Until when root admin deferred the reminder
-             */
-            deferredUntil?: string | null;
-        };
-        /** @description Whether to defer the setup reminder for 24 hours */
-        InstanceBackupReminderUpdate: {
-            /** @description `true` defers the reminder for 24 hours, `false` shows it again */
-            isDeferred: boolean;
         };
         /**
          * @description A way root admin can confirm identity
@@ -3551,6 +3521,8 @@ export interface components {
             isRootEmailUsable: boolean;
             /** @description Whether root admin confirmed saving the current master key */
             isMasterKeyAcknowledged: boolean;
+            /** @description Whether a master-key export needs an emailed code, because the instance requires two-factor sign-in */
+            isMasterKeyExportCodeRequired: boolean;
             /** @description The identity confirmations root admin can give now; empty means only the host file remains */
             identityProofMethods: components["schemas"]["IdentityProofMethod"][];
             /** @description Where the master key file lives inside the container, for saving it from the host */
@@ -3710,14 +3682,10 @@ export interface components {
             /** @description The emailed confirmation code */
             code?: string;
         };
-        /** @description The identity proof for a master-key export */
+        /** @description The confirmation for a master-key export */
         MasterKeyExportCreate: {
-            proof: components["schemas"]["IdentityProof"];
-            /**
-             * @description Root admin accepted that the key travels over unencrypted HTTP
-             * @default false
-             */
-            isInsecureTransferAcknowledged: boolean;
+            /** @description The emailed confirmation code; required when the instance requires two-factor sign-in */
+            code?: string;
         };
         /** @description A single-use token that downloads the master key within 60 seconds */
         MasterKeyExport: {
@@ -3800,11 +3768,6 @@ export interface components {
             archive: string;
             /** @description The source installation's master key as text; its exact UTF-8 bytes are used */
             masterKey: string;
-            /**
-             * @description Root admin accepted that the file and the key travel over unencrypted HTTP
-             * @default false
-             */
-            isInsecureTransferAcknowledged: boolean;
         };
         /** @description The replacement confirmation and identity proof */
         InstanceRecoveryApply: {
@@ -8093,35 +8056,6 @@ export interface operations {
             default: components["responses"]["Problem"];
         };
     };
-    updateInstanceBackupReminder: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Whether the setup reminder is deferred. */
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["InstanceBackupReminderUpdate"];
-            };
-        };
-        responses: {
-            /** @description The reminder after the change */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InstanceBackupReminder"];
-                };
-            };
-            400: components["responses"]["Problem"];
-            401: components["responses"]["Problem"];
-            403: components["responses"]["Problem"];
-            default: components["responses"]["Problem"];
-        };
-    };
     requestMasterKeyConfirmation: {
         parameters: {
             query?: never;
@@ -8154,7 +8088,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        /** @description The identity proof and, over HTTP, the acknowledged risk. */
+        /** @description The emailed code, when the instance requires two-factor sign-in. */
         requestBody: {
             content: {
                 "application/json": components["schemas"]["MasterKeyExportCreate"];
@@ -8243,7 +8177,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        /** @description The archive file, the source master key and, over HTTP, the acknowledged risk. */
+        /** @description The archive file and the source master key. */
         requestBody: {
             content: {
                 "multipart/form-data": components["schemas"]["InstanceRecoveryUpload"];

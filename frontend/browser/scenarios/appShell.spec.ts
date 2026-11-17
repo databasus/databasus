@@ -128,7 +128,7 @@ test('keeps desktop header actions reachable when the entire shell uses 200% tex
   const header = page.getByRole('banner');
   for (const action of [
     header.getByRole('link', { name: dictionary.app.navigation.docs, exact: true }),
-    header.getByRole('link', { name: dictionary.app.navigation.community, exact: true }),
+    header.getByRole('button', { name: dictionary.app.navigation.community, exact: true }),
     header.getByRole('link', { name: dictionary.app.starButton.ariaLabel, exact: true }),
     header.getByRole('button', {
       name: dictionary.app.languageControl.title.replace(

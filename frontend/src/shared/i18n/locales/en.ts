@@ -2148,10 +2148,6 @@ export const en = {
       masterKeyMissing: 'Enter the master key.',
       showKey: 'Show key',
       hideKey: 'Hide key',
-      insecureTitle: 'This connection is not encrypted',
-      insecureDescription:
-        'The page uses HTTP, so the file and the master key would travel over the network unencrypted and could be intercepted.',
-      insecureAccept: 'Send them over HTTP anyway',
       upload: 'Upload and check',
       uploading: 'Uploading the file...',
       preparing: 'Checking and preparing the Databasus backup...',
@@ -2210,51 +2206,44 @@ export const en = {
   masterKey: {
     title: 'Master key',
     description:
-      'The master key decrypts every Databasus backup and the credentials inside it. Without it, no Databasus backup can be recovered. Keep a copy outside this server, for example in a password manager.',
-    statusSaved: 'You confirmed that the current master key is saved.',
-    statusNotSaved: 'You have not confirmed that the current master key is saved.',
-    download: 'Download master key',
-    downloaded:
-      'The key file was downloaded. Move it to a safe place, then confirm that you saved it.',
-    acknowledge: 'I saved the master key',
-    acknowledged: 'Saving the master key is confirmed',
-    insecure: {
-      title: 'This connection is not encrypted',
-      description:
-        'The page uses HTTP, so the key would travel over the network unencrypted and could be intercepted. Prefer copying the key file from the server over a protected connection, as described below.',
-      continue: 'Download over HTTP anyway',
-    },
+      'Databasus encrypts backups with this key. If you lose this server, you will need the key to decrypt your backups, including the backup of Databasus itself.',
+    statusSaved: 'The current master key is saved.',
+    statusNotSaved: 'The current master key has not been saved yet.',
+    loading: 'Getting the key…',
+    copy: 'Copy',
+    copied: 'Copied',
+    copyFailed: 'The browser did not allow copying. Download the key instead.',
+    download: 'Download',
+    downloaded: 'Downloaded',
+    saveAgain: 'Copy or download the key',
+    codeRequired:
+      'This instance requires two-factor sign-in, so confirm access to the key with a code sent to your email.',
+    codeFailed: 'If the code keeps failing to arrive, copy the key from the server by hand.',
     proof: {
       password: 'Your current password',
       sendCode: 'Email me a confirmation code',
       resendCode: 'Send a new code',
       code: 'Confirmation code',
+      confirm: 'Continue',
     },
     host: {
       description: 'You can also copy the key file directly from the server.',
       path: 'Its location inside the container:',
       containerName: 'Replace databasus with the name of your container.',
-      onlyOption:
-        'Your account has no password, and no email code can be sent, so copy the key from the server.',
     },
     onboarding: {
       title: 'Save the master key',
-      description:
-        'Before you rely on Databasus backups, save the master key outside this server. You will need it to recover Databasus on a new server.',
-      later: 'Remind me later',
+      close: "I've saved it in a safe place",
     },
   },
   instanceBackupNotices: {
     label: 'Databasus backup notice',
     resuming: 'Databasus backups are resuming. They are not protected until a new copy succeeds.',
-    masterKey: 'The master key is not saved yet',
-    saveMasterKey: 'Save master key',
     setup: 'Databasus itself is not backed up',
     setupDescription:
-      'Choose a storage for encrypted Databasus backups, so the instance can be recovered after losing this server.',
+      'Choose a storage for Databasus backups, so the instance can be recovered after losing this server',
     configure: 'Configure',
     open: 'Open Databasus backups',
-    remindTomorrow: 'Remind me tomorrow',
     stale: 'The status could not be refreshed.',
   },
   storages: {

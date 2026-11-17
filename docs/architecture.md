@@ -305,7 +305,7 @@ A Databasus backup protects the instance itself: accounts, settings, encrypted c
 - **Destinations reference storages.** A destination selects an existing workspace storage instead of copying its settings, so workspace editors keep their ordinary rights over it. A selected storage cannot be deleted.
 - **Self-contained file.** The encrypted file authenticates its source release, its schema identity and its own end, so a cut or extended file is refused and no sidecar is needed. It never contains the master key.
 - **Alerts outside workspace notifiers.** An incident goes to root admin through the instance mail server, independently of any workspace. An overdue deadline is fixed at the first missed occurrence, so a frequent schedule cannot postpone the report.
-- **Master-key export.** The master key decrypts every stored secret and backup file, so it leaves the server only through a root-only export behind a fresh identity proof and a short-lived download token. Neither the key nor the proof is logged. The `api-design` skill holds the contract exception.
+- **Master-key export.** The master key decrypts every stored secret and backup file, so it leaves the server only through a root-only export and a short-lived single-use download token. When the instance requires two-factor sign-in, the export also needs an emailed code; otherwise root admin's session is enough. The key counts as saved only after root admin confirms it in a separate step, because the server cannot see whether a copy or a download was kept. Neither the key nor the code is logged. The `api-design` skill holds the contract exception.
 
 ### Recovery
 

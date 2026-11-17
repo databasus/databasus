@@ -6,6 +6,10 @@ import { useLocation, useNavigate } from 'react-router';
 
 import { useApplicationStartup } from '@/app/model/useApplicationStartup';
 import { useIsNewGitHubVersionAvailable } from '@/app/model/useIsNewGitHubVersionAvailable';
+import {
+  useInstanceBackupStatus,
+  useRefreshInstanceBackupStatus,
+} from '@/entities/instance-backups';
 import { CreateWorkspaceDialog } from '@/features/create-workspace';
 import { DatabasesPage } from '@/pages/databases';
 import {
@@ -13,6 +17,7 @@ import {
   InstanceSettingsPage,
   focusSettingsHeading,
 } from '@/pages/instance-settings';
+import { MasterKeyOnboardingPage } from '@/pages/master-key-onboarding';
 import { NotifiersComponent } from '@/pages/notifiers';
 import { ProfilePage } from '@/pages/profile';
 import { StoragesComponent } from '@/pages/storages';
@@ -78,6 +83,11 @@ export const ApplicationScreen = () => {
     canCreateWorkspace,
     canManageWorkspace,
   } = startup;
+
+  const isRootAdmin = !!user?.isRootAdmin;
+  const backupStatusQuery = useInstanceBackupStatus({ isEnabled: isRootAdmin });
+  const refreshBackupStatus = useRefreshInstanceBackupStatus();
+  const isBackupStatusPending = isRootAdmin && backupStatusQuery.isPending;
 
   const isNewGitHubVersionAvailable = useIsNewGitHubVersionAvailable();
   const getTabPath = (section: MainTab) =>
@@ -185,6 +195,14 @@ export const ApplicationScreen = () => {
     },
   ].map((tab) => ({ ...tab, href: getTabPath(tab.name as MainTab) })) as SidebarTab[];
 
+  if (isRootAdmin && backupStatusQuery.data && !backupStatusQuery.data.isMasterKeyAcknowledged)
+    return (
+      <MasterKeyOnboardingPage
+        status={backupStatusQuery.data}
+        onAcknowledged={refreshBackupStatus}
+      />
+    );
+
   return (
     <>
       <AppShell
@@ -231,7 +249,10 @@ export const ApplicationScreen = () => {
         isSidebarOpen={isSidebarOpen}
         onOpenSidebar={() => setIsSidebarOpen(true)}
       >
-        {isLoading || isReconcilingWorkspace || (isReady && !isNavigationReady) ? (
+        {isLoading ||
+        isReconcilingWorkspace ||
+        isBackupStatusPending ||
+        (isReady && !isNavigationReady) ? (
           <div className="flex flex-1 items-center justify-center">
             <Loader role="status" />
           </div>
@@ -241,7 +262,7 @@ export const ApplicationScreen = () => {
           isNavigationReady && (
             <>
               <InstanceBackupStatusWidget
-                isRootAdmin={!!user?.isRootAdmin}
+                isRootAdmin={isRootAdmin}
                 isBackupSectionOpen={selectedTab === 'databasus-settings'}
                 onOpenBackupSection={openBackupSection}
               />

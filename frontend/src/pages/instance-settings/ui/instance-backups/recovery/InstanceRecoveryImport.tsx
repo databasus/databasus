@@ -1,5 +1,5 @@
-import { Alert, Button, Checkbox, FileInput, Loader } from '@mantine/core';
-import { CircleAlert, ShieldAlert } from 'lucide-react';
+import { Alert, Button, FileInput, Loader } from '@mantine/core';
+import { CircleAlert } from 'lucide-react';
 import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -10,7 +10,6 @@ import {
   InstanceRecoveryStatus,
   expectRestoredSignIn,
   instanceRecoveryApi,
-  isInsecureTransfer,
 } from '@/entities/instance-backups';
 import { ApplyRecoveryDialog } from '@/pages/instance-settings/ui/instance-backups/recovery/ApplyRecoveryDialog';
 import { MasterKeyTextField } from '@/pages/instance-settings/ui/instance-backups/recovery/MasterKeyTextField';
@@ -31,10 +30,8 @@ export function InstanceRecoveryImport({ identityProofMethods }: Props) {
   const isCurrent = useSessionGuard();
   const archiveId = useId();
   const keyId = useId();
-  const isInsecure = isInsecureTransfer();
   const [archive, setArchive] = useState<File | null>(null);
   const [masterKey, setMasterKey] = useState('');
-  const [isInsecureTransferAccepted, setIsInsecureTransferAccepted] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [recovery, setRecovery] = useState<InstanceRecovery>();
@@ -52,13 +49,11 @@ export function InstanceRecoveryImport({ identityProofMethods }: Props) {
     setArchive(null);
     setMasterKey('');
     setIsSubmitted(false);
-    setIsInsecureTransferAccepted(false);
   };
 
   const upload = async () => {
     setIsSubmitted(true);
     if (!archive || masterKey.length === 0 || isUploading) return;
-    if (isInsecure && !isInsecureTransferAccepted) return;
 
     const controller = new AbortController();
     uploadController.current = controller;
@@ -68,7 +63,7 @@ export function InstanceRecoveryImport({ identityProofMethods }: Props) {
 
     try {
       const createdRecovery = await instanceRecoveryApi.createRecovery(
-        { archive, masterKey, isInsecureTransferAcknowledged: isInsecure },
+        { archive, masterKey },
         { signal: controller.signal },
       );
       if (!isCurrent() || controller.signal.aborted) return;
@@ -223,23 +218,6 @@ export function InstanceRecoveryImport({ identityProofMethods }: Props) {
             onChange={setMasterKey}
           />
 
-          {isInsecure && (
-            <Alert
-              color="warning"
-              icon={<ShieldAlert aria-hidden size={16} />}
-              title={t('instanceRecovery.form.insecureTitle')}
-            >
-              <p>{t('instanceRecovery.form.insecureDescription')}</p>
-              <Checkbox
-                className="mt-2"
-                label={t('instanceRecovery.form.insecureAccept')}
-                checked={isInsecureTransferAccepted}
-                disabled={isUploading || isPreparing}
-                onChange={(event) => setIsInsecureTransferAccepted(event.currentTarget.checked)}
-              />
-            </Alert>
-          )}
-
           {isUploading || isPreparing ? (
             <div className="flex flex-wrap items-center gap-2" role="status">
               <Loader size="xs" />
@@ -258,12 +236,7 @@ export function InstanceRecoveryImport({ identityProofMethods }: Props) {
               </Button>
             </div>
           ) : (
-            <Button
-              size="xs"
-              variant="filled"
-              disabled={isInsecure && !isInsecureTransferAccepted}
-              onClick={() => void upload()}
-            >
+            <Button size="xs" variant="filled" onClick={() => void upload()}>
               {t('instanceRecovery.form.upload')}
             </Button>
           )}

@@ -109,7 +109,7 @@ export function InstanceBackupsSection({ workspaces, onWorkspaceCreated, onConfi
             )
           )}
 
-          <MasterKeyPanel status={status} onAcknowledged={() => void refreshStatus()} />
+          <MasterKeyPanel status={status} />
 
           <InstanceBackupSettingsForm
             destinationHealth={status.destinations}

@@ -1,6 +1,6 @@
 export { instanceBackupApi } from '@/entities/instance-backups/api/instanceBackupApi';
 export { instanceRecoveryApi } from '@/entities/instance-backups/api/instanceRecoveryApi';
-export { masterKeyApi } from '@/entities/instance-backups/api/masterKeyApi';
+export { type MasterKeyFile, masterKeyApi } from '@/entities/instance-backups/api/masterKeyApi';
 
 export type {
   IdentityProof,
@@ -28,7 +28,6 @@ export {
 export type { InstanceRecovery } from '@/entities/instance-backups/model/InstanceRecovery';
 export { INSTANCE_RECOVERY_FAILURE_LABEL_KEYS } from '@/entities/instance-backups/model/InstanceRecoveryFailureLabelKeys';
 export { InstanceRecoveryStatus } from '@/entities/instance-backups/model/InstanceRecoveryStatus';
-export { isInsecureTransfer } from '@/entities/instance-backups/model/isInsecureTransfer';
 export {
   useInstanceBackupStatus,
   useRefreshInstanceBackupStatus,

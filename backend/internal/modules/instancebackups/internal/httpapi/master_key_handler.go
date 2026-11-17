@@ -37,10 +37,7 @@ func (h *Handler) CreateMasterKeyExport(
 		return nil, errNoActor
 	}
 
-	issuedExport, err := h.keyExport.CreateExport(ctx, actor, keyexport.ExportRequest{
-		Proof:                          toIdentityProof(request.Body.Proof),
-		IsInsecureTransferAcknowledged: isTrue(request.Body.IsInsecureTransferAcknowledged),
-	})
+	issuedExport, err := h.keyExport.CreateExport(ctx, actor, keyexport.ExportRequest{Code: request.Body.Code})
 	if err != nil {
 		return nil, err
 	}
@@ -88,12 +85,4 @@ func (h *Handler) AcknowledgeMasterKey(
 	}
 
 	return AcknowledgeMasterKey200JSONResponse{IsSaved: true}, nil
-}
-
-func toIdentityProof(proof IdentityProof) users.IdentityProof {
-	return users.IdentityProof{Password: proof.Password, Code: proof.Code}
-}
-
-func isTrue(value *bool) bool {
-	return value != nil && *value
 }

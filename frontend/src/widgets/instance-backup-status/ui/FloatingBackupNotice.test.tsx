@@ -1,10 +1,8 @@
 // @vitest-environment happy-dom
-import { fireEvent, screen, waitFor } from '@testing-library/react';
-import { HttpResponse, http } from 'msw';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { InstanceBackupStatus } from '@/entities/instance-backups';
-import { API_BASE_PATH } from '@/shared/api';
 import { activateSession } from '@/shared/auth';
 import { DICTIONARIES } from '@/shared/i18n';
 import { advanceFakeClock } from '@/shared/lib/test/advanceFakeClock';
@@ -23,9 +21,10 @@ const buildStatus = (status: Partial<InstanceBackupStatus> = {}): InstanceBackup
   isEmailConfigured: true,
   isRootEmailUsable: true,
   isMasterKeyAcknowledged: true,
+  isMasterKeyExportCodeRequired: false,
   identityProofMethods: ['PASSWORD'],
   masterKeyPath: '/databasus-data/secret.key',
-  reminder: { isEligible: false, deferredUntil: null },
+  reminder: { isEligible: false },
   isRecoveryPaused: false,
   recovery: null,
   ...status,
@@ -89,16 +88,17 @@ describe('FloatingBackupNotice', () => {
     expect(screen.queryByText(incidents.failed)).toBeNull();
   });
 
-  it('shows the stopped incident although setup was deferred', async () => {
+  it('shows the stopped incident instead of the setup reminder', async () => {
     renderWidget(
       buildStatus({
         health: 'STOPPED',
         incident: stoppedIncident,
-        reminder: { isEligible: true, deferredUntil: '2999-01-01T00:00:00Z' },
+        reminder: { isEligible: true },
       }),
     );
 
     expect(await screen.findByText(incidents.stopped)).toBeTruthy();
+    expect(screen.queryByText(text.setup)).toBeNull();
   });
 
   it('reports resumption until a new copy succeeds', async () => {
@@ -108,42 +108,28 @@ describe('FloatingBackupNotice', () => {
   });
 
   it('suggests setup only when the instance holds a database or storage', async () => {
-    const view = renderWidget(
-      buildStatus({ reminder: { isEligible: false, deferredUntil: null } }),
-    );
+    const view = renderWidget(buildStatus({ reminder: { isEligible: false } }));
     await waitForStatusRead();
 
     expect(screen.queryByText(text.setup)).toBeNull();
 
     view.unmount();
-    renderWidget(buildStatus({ reminder: { isEligible: true, deferredUntil: null } }));
+    renderWidget(buildStatus({ reminder: { isEligible: true } }));
 
     expect(await screen.findByText(text.setup)).toBeTruthy();
   });
 
-  it('defers the setup reminder until the next day', async () => {
-    let reminderUpdate: unknown;
-    server.use(
-      http.put(`*${API_BASE_PATH}/instance-backup-reminders`, async ({ request }) => {
-        reminderUpdate = await request.json();
-        server.use(
-          mockApi.get(
-            '/instance-backup-statuses',
-            200,
-            buildStatus({ reminder: { isEligible: true, deferredUntil: '2999-01-01T00:00:00Z' } }),
-          ),
-        );
-        return HttpResponse.json({ isEligible: true, deferredUntil: '2999-01-01T00:00:00Z' });
-      }),
-    );
-    const { user } = renderWidget(
-      buildStatus({ reminder: { isEligible: true, deferredUntil: null } }),
-    );
+  it('offers no way to put the setup reminder off', async () => {
+    renderWidget(buildStatus({ reminder: { isEligible: true } }));
 
-    await user.click((await screen.findAllByRole('button', { name: text.remindTomorrow }))[0]);
+    const notice = await screen.findByRole('status', { name: text.label });
 
-    await waitFor(() => expect(screen.queryByText(text.setup)).toBeNull());
-    expect(reminderUpdate).toEqual({ isDeferred: true });
+    expect(within(notice).getByText(text.setup)).toBeTruthy();
+    expect(
+      within(notice)
+        .getAllByRole('button')
+        .map((button) => button.textContent),
+    ).toEqual([text.configure]);
   });
 
   it('keeps the last known incident and offers a retry when a status read fails', async () => {
@@ -167,15 +153,15 @@ describe('FloatingBackupNotice', () => {
     }
   });
 
-  it('lets setup wait while master-key onboarding is shown', async () => {
+  it('lets setup wait while the master key is unsaved', async () => {
     renderWidget(
       buildStatus({
         isMasterKeyAcknowledged: false,
-        reminder: { isEligible: true, deferredUntil: null },
+        reminder: { isEligible: true },
       }),
     );
+    await waitForStatusRead();
 
-    expect(await screen.findByRole('dialog')).toBeTruthy();
     expect(screen.queryByText(text.setup)).toBeNull();
   });
 });

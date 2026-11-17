@@ -2193,10 +2193,6 @@ export const pt: typeof en = {
       masterKeyMissing: 'Informe a chave mestra.',
       showKey: 'Mostrar chave',
       hideKey: 'Ocultar chave',
-      insecureTitle: 'Esta conexão não é criptografada',
-      insecureDescription:
-        'A página usa HTTP, então o arquivo e a chave mestra trafegariam pela rede sem criptografia e poderiam ser interceptados.',
-      insecureAccept: 'Enviar por HTTP mesmo assim',
       upload: 'Enviar e verificar',
       uploading: 'Enviando o arquivo...',
       preparing: 'Verificando e preparando o backup do Databasus...',
@@ -2255,52 +2251,45 @@ export const pt: typeof en = {
   masterKey: {
     title: 'Chave mestra',
     description:
-      'A chave mestra descriptografa todos os backups do Databasus e as credenciais dentro deles. Sem ela, nenhum backup do Databasus pode ser recuperado. Guarde uma cópia fora deste servidor, por exemplo em um gerenciador de senhas.',
-    statusSaved: 'Você confirmou que a chave mestra atual está salva.',
-    statusNotSaved: 'Você ainda não confirmou que a chave mestra atual está salva.',
-    download: 'Baixar a chave mestra',
-    downloaded:
-      'O arquivo da chave foi baixado. Mova-o para um lugar seguro e depois confirme que o salvou.',
-    acknowledge: 'Salvei a chave mestra',
-    acknowledged: 'Salvamento da chave mestra confirmado',
-    insecure: {
-      title: 'Esta conexão não é criptografada',
-      description:
-        'A página usa HTTP, então a chave trafegaria pela rede sem criptografia e poderia ser interceptada. Prefira copiar o arquivo da chave do servidor por uma conexão protegida, como descrito abaixo.',
-      continue: 'Baixar por HTTP mesmo assim',
-    },
+      'O Databasus criptografa os backups com esta chave. Se você perder este servidor, vai precisar da chave para descriptografar seus backups, inclusive o backup do próprio Databasus.',
+    statusSaved: 'A chave mestra atual está salva.',
+    statusNotSaved: 'A chave mestra atual ainda não foi salva.',
+    loading: 'Obtendo a chave…',
+    copy: 'Copiar',
+    copied: 'Copiada',
+    copyFailed: 'O navegador não permitiu copiar. Baixe a chave em vez disso.',
+    download: 'Baixar',
+    downloaded: 'Baixada',
+    saveAgain: 'Copiar ou baixar a chave',
+    codeRequired:
+      'Esta instalação exige o login em duas etapas, então confirme o acesso à chave com um código enviado ao seu e-mail.',
+    codeFailed: 'Se o código continuar sem chegar, copie a chave do servidor manualmente.',
     proof: {
       password: 'Sua senha atual',
       sendCode: 'Enviar um código de confirmação por e-mail',
       resendCode: 'Enviar um novo código',
       code: 'Código de confirmação',
+      confirm: 'Continuar',
     },
     host: {
       description: 'Você também pode copiar o arquivo da chave direto do servidor.',
       path: 'A localização dele dentro do contêiner:',
       containerName: 'Substitua databasus pelo nome do seu contêiner.',
-      onlyOption:
-        'Sua conta não tem senha e não é possível enviar um código por e-mail, então copie a chave do servidor.',
     },
     onboarding: {
       title: 'Salve a chave mestra',
-      description:
-        'Antes de contar com os backups do Databasus, salve a chave mestra fora deste servidor. Você vai precisar dela para recuperar o Databasus em um novo servidor.',
-      later: 'Lembrar mais tarde',
+      close: 'Salvei em um lugar seguro',
     },
   },
   instanceBackupNotices: {
     label: 'Aviso sobre os backups do Databasus',
     resuming:
       'Os backups do Databasus estão sendo retomados. Não há proteção até que uma nova cópia seja bem-sucedida.',
-    masterKey: 'A chave mestra ainda não foi salva',
-    saveMasterKey: 'Salvar a chave mestra',
     setup: 'O próprio Databasus está sem backup',
     setupDescription:
-      'Escolha um armazenamento para os backups criptografados do Databasus, para que a instância possa ser recuperada se este servidor for perdido.',
+      'Escolha um armazenamento para os backups do Databasus, para que a instância possa ser recuperada se este servidor for perdido',
     configure: 'Configurar',
     open: 'Abrir os backups do Databasus',
-    remindTomorrow: 'Lembrar amanhã',
     stale: 'Não foi possível atualizar o status.',
   },
   storages: {

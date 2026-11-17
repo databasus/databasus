@@ -65,6 +65,11 @@ body {
   --color-success-fill: var(--app-success-fill);
   --color-on-success-fill: var(--app-on-success-fill);
   --color-warning: var(--app-warning);
+  --color-warning-soft: var(--app-warning-soft);
+  --color-warning-border: var(--app-warning-border);
+  --color-warning-fill: var(--app-warning-fill);
+  --color-danger-soft: var(--app-danger-soft);
+  --color-danger-border: var(--app-danger-border);
   --color-code: var(--app-code);
 }
 

@@ -6,7 +6,6 @@ import { getApiClient, requireData } from '@/shared/api';
 interface RecoveryUpload {
   archive: File;
   masterKey: string;
-  isInsecureTransferAcknowledged: boolean;
 }
 
 const toPath = (instanceRecoveryId: string) => ({ params: { path: { instanceRecoveryId } } });
@@ -25,10 +24,6 @@ export const instanceRecoveryApi = {
         bodySerializer: () => {
           const form = new FormData();
           form.append('masterKey', new Blob([upload.masterKey], { type: 'text/plain' }));
-          form.append(
-            'isInsecureTransferAcknowledged',
-            String(upload.isInsecureTransferAcknowledged),
-          );
           form.append('archive', upload.archive, upload.archive.name);
 
           return form;

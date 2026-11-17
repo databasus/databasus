@@ -1,14 +1,14 @@
 import { useTranslation } from 'react-i18next';
 
 import { getWebsitePageUrl, useLocale } from '@/shared/i18n';
-import { LanguageThemeControlComponent } from '@/shared/ui';
 import { CommunityMenuComponent } from '@/shared/ui/CommunityMenuComponent';
+import { LanguageThemeControlComponent } from '@/shared/ui/LanguageThemeControlComponent';
 import { StarButtonComponent } from '@/shared/ui/StarButtonComponent';
 
 // eslint-disable-next-line i18next/no-literal-string -- product name
 const PRODUCT_NAME = 'Databasus';
 
-export function AuthNavbarComponent() {
+export function BrandNavbar() {
   const { t } = useTranslation();
   const { locale } = useLocale();
 

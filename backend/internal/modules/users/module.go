@@ -120,6 +120,8 @@ type Module interface {
 	// instance admin always may.
 	CanCreateWorkspaces(ctx context.Context, actor Actor) (bool, error)
 	GetUserCount(ctx context.Context) (int64, error)
+	// IsTwoFactorAuthRequired answers whether the instance requires two-factor sign-in.
+	IsTwoFactorAuthRequired(ctx context.Context) (bool, error)
 
 	// The console methods serve the commands an operator runs inside the instance. They take no
 	// actor: whoever runs them can already run anything there.

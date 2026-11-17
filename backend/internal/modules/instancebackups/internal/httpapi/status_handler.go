@@ -65,17 +65,17 @@ func fromStatus(status health.Status) InstanceBackupStatus {
 	}
 
 	return InstanceBackupStatus{
-		Health:                  InstanceBackupHealth(status.Health),
-		Destinations:            destinations,
-		Incident:                incident,
-		IsEmailConfigured:       status.IsEmailConfigured,
-		IsRootEmailUsable:       status.IsRootEmailUsable,
-		IsMasterKeyAcknowledged: status.IsMasterKeyAcknowledged,
-		IdentityProofMethods:    methods,
-		MasterKeyPath:           status.MasterKeyPath,
+		Health:                        InstanceBackupHealth(status.Health),
+		Destinations:                  destinations,
+		Incident:                      incident,
+		IsEmailConfigured:             status.IsEmailConfigured,
+		IsRootEmailUsable:             status.IsRootEmailUsable,
+		IsMasterKeyAcknowledged:       status.IsMasterKeyAcknowledged,
+		IsMasterKeyExportCodeRequired: status.IsMasterKeyExportCodeRequired,
+		IdentityProofMethods:          methods,
+		MasterKeyPath:                 status.MasterKeyPath,
 		Reminder: InstanceBackupReminder{
-			IsEligible:    status.Reminder.IsEligible,
-			DeferredUntil: status.Reminder.DeferredUntil,
+			IsEligible: status.Reminder.IsEligible,
 		},
 		IsRecoveryPaused: status.IsRecoveryPaused,
 		Recovery:         latestRecovery,

@@ -71,10 +71,4 @@ export const instanceBackupApi = {
 
     return `${getApplicationServer()}${API_BASE_PATH}/instance-backup-downloads?${query.toString()}`;
   },
-
-  async updateReminder(isDeferred: boolean): Promise<Schemas['InstanceBackupReminder']> {
-    return requireData(
-      await getApiClient().PUT('/instance-backup-reminders', { body: { isDeferred } }),
-    );
-  },
 };

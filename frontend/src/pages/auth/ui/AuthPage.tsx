@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 
 import { isRestoredSignInExpected } from '@/entities/instance-backups';
 import { type PendingSignIn, userApi } from '@/entities/users';
-import { AuthNavbarComponent } from '@/pages/auth/ui/AuthNavbarComponent';
 import { RequestResetPasswordComponent } from '@/pages/auth/ui/RequestResetPasswordComponent';
 import { ResetPasswordComponent } from '@/pages/auth/ui/ResetPasswordComponent';
 import { SignInCodeComponent } from '@/pages/auth/ui/SignInCodeComponent';
@@ -13,7 +12,7 @@ import { SignUpComponent } from '@/pages/auth/ui/SignUpComponent';
 import { useSessionQuery } from '@/shared/api';
 import { beginAuthIntent, abandonAuthIntent } from '@/shared/auth';
 import { useScreenHeight } from '@/shared/hooks';
-import { LoadFailure } from '@/shared/ui';
+import { BrandNavbar, LoadFailure } from '@/shared/ui';
 
 export function AuthPage() {
   useEffect(() => {
@@ -60,7 +59,7 @@ export function AuthPage() {
       ) : (
         <div>
           <div>
-            <AuthNavbarComponent />
+            <BrandNavbar />
 
             {isRestoredSignIn && (
               <div className="mx-auto mt-6 max-w-md px-4">

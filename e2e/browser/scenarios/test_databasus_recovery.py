@@ -31,7 +31,7 @@ def _get_string(value: dict[str, object], key: str) -> str:
     return field
 
 
-def _make_source_backup(page: Page, account: Account) -> SourceRecoveryMaterial:
+def _make_source_backup(page: Page) -> SourceRecoveryMaterial:
     """Seeds the source through the API, stores one Databasus backup and keeps the archive and the
     exported master key outside both installations, as an owner who saved them would."""
     workspace_name = f"Recovered workspace {uuid.uuid4()}"
@@ -79,7 +79,7 @@ def _make_source_backup(page: Page, account: Account) -> SourceRecoveryMaterial:
         page,
         "POST",
         "/api/v1/master-key-exports",
-        {"proof": {"password": account.password}, "isInsecureTransferAcknowledged": True},
+        {},
     )
     master_key = download_bytes(
         page, f"/api/v1/master-key-downloads?token={_get_string(key_export, 'token')}"
@@ -118,9 +118,6 @@ def _upload(page: Page, archive: bytes, master_key: str) -> None:
         ]
     )
     _paste_master_key(page, master_key)
-    insecure_transfer = page.get_by_role("checkbox", name="Send them over HTTP anyway")
-    if not insecure_transfer.is_checked():
-        insecure_transfer.check()
     page.get_by_role("button", name="Upload and check", exact=True).click()
 
 
@@ -135,7 +132,7 @@ class TestDatabasusRecovery:
     ) -> None:
         open_application(page)
         sign_in(page, instance_admin)
-        source = _make_source_backup(page, instance_admin)
+        source = _make_source_backup(page)
 
         target = recovery_target_page
         temporary_root = Account(f"target-{uuid.uuid4()}@example.com", uuid.uuid4().hex, True)

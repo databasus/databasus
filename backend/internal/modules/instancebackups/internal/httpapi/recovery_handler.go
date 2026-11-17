@@ -136,3 +136,7 @@ func fromRecovery(instanceRecovery recovery.Recovery) InstanceRecovery {
 		DiscardedCleanupCount: instanceRecovery.DiscardedCleanupCount,
 	}
 }
+
+func toIdentityProof(proof IdentityProof) users.IdentityProof {
+	return users.IdentityProof{Password: proof.Password, Code: proof.Code}
+}

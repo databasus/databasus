@@ -283,7 +283,6 @@ func newRecoveryUploadBody(t *testing.T, source recoverySource) (string, *bytes.
 	var body bytes.Buffer
 
 	writer := multipart.NewWriter(&body)
-	require.NoError(t, writer.WriteField("isInsecureTransferAcknowledged", "true"))
 	require.NoError(t, writer.WriteField("masterKey", string(source.masterKey)))
 	archiveWriter, err := writer.CreateFormFile("archive", "databasus.dbbackup")
 	require.NoError(t, err)

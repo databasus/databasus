@@ -13,7 +13,7 @@ import (
 
 const configColumns = "schedule_type, schedule_time_of_day, schedule_weekday, schedule_day_of_month, " +
 	"schedule_cron_expression, retention_days, protection_state, next_selection_generation, is_run_requested, " +
-	"setup_deferred_until, acknowledged_master_key_sha256, master_key_acknowledged_at, " +
+	"acknowledged_master_key_sha256, master_key_acknowledged_at, " +
 	"recovery_paused_operation_id, recovery_paused_at, archive_namespace"
 
 // Repositories are the repositories of the package. module.go builds them from the pool, so the
@@ -97,16 +97,6 @@ func (r *configRepository) updateIsRunRequested(ctx context.Context, isRunReques
 		Exec("UPDATE instancebackups_configs SET is_run_requested = ? WHERE id", isRunRequested).Error
 	if err != nil {
 		return fmt.Errorf("update the Databasus backup run request: %w", err)
-	}
-
-	return nil
-}
-
-func (r *configRepository) updateSetupDeferredUntil(ctx context.Context, deferredUntil *time.Time) error {
-	err := database.Conn(ctx, r.db).
-		Exec("UPDATE instancebackups_configs SET setup_deferred_until = ? WHERE id", deferredUntil).Error
-	if err != nil {
-		return fmt.Errorf("update the Databasus backup setup reminder: %w", err)
 	}
 
 	return nil

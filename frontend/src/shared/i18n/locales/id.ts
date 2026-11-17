@@ -2050,10 +2050,6 @@ export const id: typeof en = {
       masterKeyMissing: 'Masukkan kunci master.',
       showKey: 'Tampilkan kunci',
       hideKey: 'Sembunyikan kunci',
-      insecureTitle: 'Koneksi ini tidak terenkripsi',
-      insecureDescription:
-        'Halaman ini menggunakan HTTP, sehingga file dan kunci master akan dikirim melalui jaringan tanpa enkripsi dan bisa disadap.',
-      insecureAccept: 'Tetap kirim melalui HTTP',
       upload: 'Unggah dan periksa',
       uploading: 'Mengunggah file...',
       preparing: 'Memeriksa dan menyiapkan backup Databasus...',
@@ -2111,52 +2107,45 @@ export const id: typeof en = {
   masterKey: {
     title: 'Kunci master',
     description:
-      'Kunci master mendekripsi setiap backup Databasus beserta kredensial di dalamnya. Tanpa kunci ini, tidak ada backup Databasus yang bisa dipulihkan. Simpan salinannya di luar server ini, misalnya di pengelola kata sandi.',
-    statusSaved: 'Sudah dikonfirmasi bahwa kunci master saat ini tersimpan.',
-    statusNotSaved: 'Belum ada konfirmasi bahwa kunci master saat ini sudah disimpan.',
-    download: 'Unduh kunci master',
-    downloaded:
-      'File kunci sudah diunduh. Pindahkan ke tempat yang aman, lalu konfirmasi bahwa file sudah disimpan.',
-    acknowledge: 'Saya sudah menyimpan kunci master',
-    acknowledged: 'Penyimpanan kunci master sudah dikonfirmasi',
-    insecure: {
-      title: 'Koneksi ini tidak terenkripsi',
-      description:
-        'Halaman ini menggunakan HTTP, sehingga kunci akan dikirim melalui jaringan tanpa enkripsi dan bisa disadap. Sebaiknya salin file kunci dari server melalui koneksi yang terlindungi, seperti dijelaskan di bawah.',
-      continue: 'Tetap unduh melalui HTTP',
-    },
+      'Databasus mengenkripsi backup dengan kunci ini. Jika server ini hilang, Anda memerlukan kunci ini untuk mendekripsi backup, termasuk backup Databasus sendiri.',
+    statusSaved: 'Kunci master saat ini sudah disimpan.',
+    statusNotSaved: 'Kunci master saat ini belum disimpan.',
+    loading: 'Mengambil kunci…',
+    copy: 'Salin',
+    copied: 'Tersalin',
+    copyFailed: 'Browser tidak mengizinkan penyalinan. Unduh kuncinya saja.',
+    download: 'Unduh',
+    downloaded: 'Terunduh',
+    saveAgain: 'Salin atau unduh kunci',
+    codeRequired:
+      'Instalasi ini mewajibkan autentikasi dua faktor saat masuk, jadi konfirmasi akses ke kunci dengan kode yang dikirim ke email Anda.',
+    codeFailed: 'Jika kode tetap tidak masuk, salin kunci dari server secara manual.',
     proof: {
       password: 'Kata sandi saat ini',
       sendCode: 'Kirim kode konfirmasi ke email saya',
       resendCode: 'Kirim kode baru',
       code: 'Kode konfirmasi',
+      confirm: 'Lanjutkan',
     },
     host: {
       description: 'File kunci juga bisa disalin langsung dari server.',
       path: 'Lokasinya di dalam container:',
       containerName: 'Ganti databasus dengan nama container yang digunakan.',
-      onlyOption:
-        'Akun ini tidak memiliki kata sandi dan kode email tidak bisa dikirim, jadi salin kunci dari server.',
     },
     onboarding: {
       title: 'Simpan kunci master',
-      description:
-        'Sebelum mengandalkan backup Databasus, simpan kunci master di luar server ini. Kunci ini diperlukan untuk memulihkan Databasus di server baru.',
-      later: 'Ingatkan nanti',
+      close: 'Sudah saya simpan di tempat aman',
     },
   },
   instanceBackupNotices: {
     label: 'Pemberitahuan backup Databasus',
     resuming:
       'Backup Databasus sedang dilanjutkan. Databasus belum terlindungi sampai salinan baru berhasil dibuat.',
-    masterKey: 'Kunci master belum disimpan',
-    saveMasterKey: 'Simpan kunci master',
     setup: 'Databasus sendiri belum di-backup',
     setupDescription:
-      'Pilih penyimpanan untuk backup Databasus terenkripsi agar instance ini bisa dipulihkan jika server ini hilang.',
+      'Pilih penyimpanan untuk backup Databasus agar instance ini bisa dipulihkan jika server ini hilang',
     configure: 'Konfigurasikan',
     open: 'Buka backup Databasus',
-    remindTomorrow: 'Ingatkan besok',
     stale: 'Status tidak dapat diperbarui.',
   },
   storages: {

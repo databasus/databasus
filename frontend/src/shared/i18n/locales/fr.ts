@@ -2225,10 +2225,6 @@ export const fr: typeof en = {
       masterKeyMissing: 'Saisissez la clé maîtresse.',
       showKey: 'Afficher la clé',
       hideKey: 'Masquer la clé',
-      insecureTitle: "Cette connexion n'est pas chiffrée",
-      insecureDescription:
-        'La page utilise HTTP : le fichier et la clé maîtresse circuleraient sur le réseau sans chiffrement et pourraient être interceptés.',
-      insecureAccept: 'Les envoyer quand même en HTTP',
       upload: 'Envoyer et vérifier',
       uploading: 'Envoi du fichier...',
       preparing: 'Vérification et préparation de la sauvegarde Databasus...',
@@ -2288,52 +2284,45 @@ export const fr: typeof en = {
   masterKey: {
     title: 'Clé maîtresse',
     description:
-      "La clé maîtresse déchiffre chaque sauvegarde Databasus et les identifiants qu'elle contient. Sans elle, aucune sauvegarde Databasus ne peut être restaurée. Conservez-en une copie en dehors de ce serveur, par exemple dans un gestionnaire de mots de passe.",
-    statusSaved: 'Vous avez confirmé que la clé maîtresse actuelle est enregistrée.',
-    statusNotSaved: "Vous n'avez pas confirmé que la clé maîtresse actuelle est enregistrée.",
-    download: 'Télécharger la clé maîtresse',
-    downloaded:
-      "Le fichier de la clé a été téléchargé. Placez-le en lieu sûr, puis confirmez que vous l'avez enregistré.",
-    acknowledge: "J'ai enregistré la clé maîtresse",
-    acknowledged: 'Enregistrement de la clé maîtresse confirmé',
-    insecure: {
-      title: "Cette connexion n'est pas chiffrée",
-      description:
-        'La page utilise HTTP : la clé circulerait sur le réseau sans chiffrement et pourrait être interceptée. Copiez plutôt le fichier de la clé depuis le serveur par une connexion protégée, comme décrit ci-dessous.',
-      continue: 'Télécharger quand même en HTTP',
-    },
+      'Databasus chiffre les sauvegardes avec cette clé. Si vous perdez ce serveur, il vous faudra la clé pour déchiffrer vos sauvegardes, y compris la sauvegarde de Databasus lui-même.',
+    statusSaved: 'La clé maîtresse actuelle est enregistrée.',
+    statusNotSaved: "La clé maîtresse actuelle n'a pas encore été enregistrée.",
+    loading: 'Récupération de la clé…',
+    copy: 'Copier',
+    copied: 'Copiée',
+    copyFailed: "Le navigateur n'a pas autorisé la copie. Téléchargez plutôt la clé.",
+    download: 'Télécharger',
+    downloaded: 'Téléchargée',
+    saveAgain: 'Copier ou télécharger la clé',
+    codeRequired:
+      "Cette instance exige la connexion en deux étapes : confirmez l'accès à la clé avec un code envoyé par e-mail.",
+    codeFailed: "Si le code n'arrive toujours pas, copiez la clé depuis le serveur à la main.",
     proof: {
       password: 'Votre mot de passe actuel',
       sendCode: "M'envoyer un code de confirmation par e-mail",
       resendCode: 'Envoyer un nouveau code',
       code: 'Code de confirmation',
+      confirm: 'Continuer',
     },
     host: {
       description: 'Vous pouvez aussi copier le fichier de la clé directement depuis le serveur.',
       path: 'Son emplacement dans le conteneur :',
       containerName: 'Remplacez databasus par le nom de votre conteneur.',
-      onlyOption:
-        "Votre compte n'a pas de mot de passe et aucun code ne peut être envoyé par e-mail : copiez donc la clé depuis le serveur.",
     },
     onboarding: {
       title: 'Enregistrez la clé maîtresse',
-      description:
-        'Avant de compter sur les sauvegardes Databasus, enregistrez la clé maîtresse en dehors de ce serveur. Elle vous servira à restaurer Databasus sur un nouveau serveur.',
-      later: 'Me le rappeler plus tard',
+      close: "Je l'ai mise en lieu sûr",
     },
   },
   instanceBackupNotices: {
     label: 'Avis sur les sauvegardes Databasus',
     resuming:
       "Les sauvegardes Databasus reprennent. Databasus n'est pas protégé tant qu'une nouvelle copie n'a pas réussi.",
-    masterKey: "La clé maîtresse n'est pas encore enregistrée",
-    saveMasterKey: 'Enregistrer la clé maîtresse',
     setup: "Databasus lui-même n'est pas sauvegardé",
     setupDescription:
-      "Choisissez un stockage pour les sauvegardes chiffrées de Databasus, afin de pouvoir restaurer l'instance après la perte de ce serveur.",
+      "Choisissez un stockage pour les sauvegardes de Databasus, afin de pouvoir restaurer l'instance après la perte de ce serveur",
     configure: 'Configurer',
     open: 'Ouvrir les sauvegardes Databasus',
-    remindTomorrow: 'Me le rappeler demain',
     stale: "Impossible d'actualiser le statut.",
   },
   storages: {

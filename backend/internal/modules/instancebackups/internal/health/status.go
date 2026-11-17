@@ -45,14 +45,15 @@ type Status struct {
 	Health       Health
 	Destinations []DestinationHealth
 	// Incident is the open incident, nil when protection has no problem.
-	Incident                *IncidentView
-	IsEmailConfigured       bool
-	IsRootEmailUsable       bool
-	IsMasterKeyAcknowledged bool
-	IdentityProofMethods    []users.IdentityProofMethod
-	MasterKeyPath           string
-	Reminder                configs.Reminder
-	IsRecoveryPaused        bool
+	Incident                      *IncidentView
+	IsEmailConfigured             bool
+	IsRootEmailUsable             bool
+	IsMasterKeyAcknowledged       bool
+	IsMasterKeyExportCodeRequired bool
+	IdentityProofMethods          []users.IdentityProofMethod
+	MasterKeyPath                 string
+	Reminder                      configs.Reminder
+	IsRecoveryPaused              bool
 	// Recovery is the latest recovery of the local journal, nil when there was none.
 	Recovery *recovery.Recovery
 }

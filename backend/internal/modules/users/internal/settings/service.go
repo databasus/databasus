@@ -66,6 +66,15 @@ func (s *Service) GetInstanceSettings(ctx context.Context) (InstanceSettings, er
 	return s.toInstanceSettings(settings), nil
 }
 
+func (s *Service) IsTwoFactorAuthRequired(ctx context.Context) (bool, error) {
+	settings, err := s.repository.getOrCreate(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	return settings.IsTwoFactorAuthRequired, nil
+}
+
 func (s *Service) CanInviteUsers(ctx context.Context, actor identity.Actor) (bool, error) {
 	if actor.IsAdmin() {
 		return true, nil

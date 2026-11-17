@@ -22,39 +22,45 @@ var mailedCodePattern = regexp.MustCompile(`>(\d{6})<`)
 func TestCreateMasterKeyExport(t *testing.T) {
 	t.Parallel()
 
-	t.Run("downloads exactly the installed key once after root admin confirms the password", func(t *testing.T) {
+	t.Run("downloads exactly the installed key once without a code when two-factor sign-in is off", func(t *testing.T) {
 		t.Parallel()
 		owner := newInstanceOwner(t)
+		installedKey := owner.App.ReadMasterKeyFile(t)
 
-		issuedExport := requireMasterKeyExport(t, owner.RootAdmin, passwordProof(apptest.TestPassword))
-		firstDownload, err := owner.App.NewClient(t).DownloadMasterKeyWithResponse(
-			t.Context(), &apiclient.DownloadMasterKeyParams{Token: issuedExport.Token},
-		)
-		require.NoError(t, err)
-		secondDownload, err := owner.App.NewClient(t).DownloadMasterKeyWithResponse(
-			t.Context(), &apiclient.DownloadMasterKeyParams{Token: issuedExport.Token},
-		)
-		require.NoError(t, err)
+		issuedExport := requireMasterKeyExport(t, owner.RootAdmin, nil)
+		firstDownload := downloadMasterKey(t, owner.App, issuedExport.Token)
+		secondDownload := downloadMasterKey(t, owner.App, issuedExport.Token)
 
 		require.Equal(t, http.StatusOK, firstDownload.StatusCode(), string(firstDownload.Body))
-		assert.Equal(t, owner.App.ReadMasterKeyFile(t), firstDownload.Body)
+		assert.Equal(t, installedKey, firstDownload.Body)
+		assert.Equal(t, installedKey, owner.App.ReadMasterKeyFile(t))
 		assert.Equal(t, "no-store", firstDownload.HTTPResponse.Header.Get("Cache-Control"))
-		assert.Contains(t, firstDownload.HTTPResponse.Header.Get("Content-Disposition"), "attachment")
+		assert.Equal(t, `attachment; filename=databasus-master-key.txt`,
+			firstDownload.HTTPResponse.Header.Get("Content-Disposition"))
 		requireProblemCode(t, secondDownload.StatusCode(), secondDownload.Body,
 			http.StatusUnauthorized, apiclient.ProblemCodeUnauthenticated)
+	})
+
+	t.Run("ignores a code when two-factor sign-in is off", func(t *testing.T) {
+		t.Parallel()
+		owner := newInstanceOwner(t)
+		unusedCode := "000000"
+
+		issuedExport := requireMasterKeyExport(t, owner.RootAdmin, &unusedCode)
+		download := downloadMasterKey(t, owner.App, issuedExport.Token)
+
+		require.Equal(t, http.StatusOK, download.StatusCode(), string(download.Body))
+		assert.Equal(t, owner.App.ReadMasterKeyFile(t), download.Body)
 	})
 
 	t.Run("returns 401 for a download token after its 60 seconds passed", func(t *testing.T) {
 		t.Parallel()
 		owner := newInstanceOwner(t)
-		issuedExport := requireMasterKeyExport(t, owner.RootAdmin, passwordProof(apptest.TestPassword))
+		issuedExport := requireMasterKeyExport(t, owner.RootAdmin, nil)
 
 		owner.App.Clock.Advance(61 * time.Second)
-		download, err := owner.App.NewClient(t).DownloadMasterKeyWithResponse(
-			t.Context(), &apiclient.DownloadMasterKeyParams{Token: issuedExport.Token},
-		)
+		download := downloadMasterKey(t, owner.App, issuedExport.Token)
 
-		require.NoError(t, err)
 		requireProblemCode(t, download.StatusCode(), download.Body,
 			http.StatusUnauthorized, apiclient.ProblemCodeUnauthenticated)
 	})
@@ -65,11 +71,8 @@ func TestCreateMasterKeyExport(t *testing.T) {
 		owner := newInstanceOwner(t, apptest.WithLogSink(slog.NewTextHandler(logs, nil)))
 		masterKey := strings.TrimSpace(string(owner.App.ReadMasterKeyFile(t)))
 
-		issuedExport := requireMasterKeyExport(t, owner.RootAdmin, passwordProof(apptest.TestPassword))
-		download, err := owner.App.NewClient(t).DownloadMasterKeyWithResponse(
-			t.Context(), &apiclient.DownloadMasterKeyParams{Token: issuedExport.Token},
-		)
-		require.NoError(t, err)
+		issuedExport := requireMasterKeyExport(t, owner.RootAdmin, nil)
+		download := downloadMasterKey(t, owner.App, issuedExport.Token)
 		require.Equal(t, http.StatusOK, download.StatusCode())
 		statusResponse, err := owner.RootAdmin.Client.GetInstanceBackupStatusWithResponse(t.Context())
 		require.NoError(t, err)
@@ -92,87 +95,93 @@ func TestCreateMasterKeyExport(t *testing.T) {
 		assert.NotContains(t, strings.Join(auditMessages, "\n"), masterKey)
 	})
 
-	t.Run("refuses a wrong password without issuing a token", func(t *testing.T) {
-		t.Parallel()
-		owner := newInstanceOwner(t)
-
-		response := createMasterKeyExport(t, owner.RootAdmin, passwordProof("wrong-password-123"))
-
-		requireProblemCode(t, response.StatusCode(), response.Body,
-			http.StatusBadRequest, apiclient.ProblemCodeIdentityProofInvalid)
-	})
-
 	t.Run("returns 403 when an instance admin who is not root admin exports", func(t *testing.T) {
 		t.Parallel()
 		owner := newInstanceOwner(t)
 
-		response := createMasterKeyExport(t, owner.OtherAdmin, passwordProof(apptest.TestPassword))
+		response := createMasterKeyExport(t, owner.OtherAdmin, nil)
 
 		requireProblemCode(t, response.StatusCode(), response.Body,
 			http.StatusForbidden, apiclient.ProblemCodePermissionDenied)
 	})
 
-	t.Run("refuses an export over HTTP until the risk is acknowledged", func(t *testing.T) {
+	t.Run("exports over HTTP without any acknowledgment of the risk", func(t *testing.T) {
 		t.Parallel()
 		owner := newInstanceOwner(t)
 
 		response, err := owner.RootAdmin.Client.CreateMasterKeyExportWithResponse(
-			t.Context(),
-			apiclient.MasterKeyExportCreate{Proof: passwordProof(apptest.TestPassword)},
-		)
-
-		require.NoError(t, err)
-		requireProblemCode(t, response.StatusCode(), response.Body,
-			http.StatusBadRequest, apiclient.ProblemCodeInvalidRequest)
-	})
-
-	t.Run("needs no acknowledgment when the public address uses HTTPS", func(t *testing.T) {
-		t.Parallel()
-		app := apptest.New(t, apptest.WithPublicURL("https://backup.example.com"))
-		rootAdmin := app.CreateAdmin(t)
-
-		response, err := rootAdmin.Client.CreateMasterKeyExportWithResponse(
-			t.Context(),
-			apiclient.MasterKeyExportCreate{Proof: passwordProof(apptest.TestPassword)},
+			t.Context(), apiclient.MasterKeyExportCreate{Code: nil},
 		)
 
 		require.NoError(t, err)
 		require.Equal(t, http.StatusCreated, response.StatusCode(), string(response.Body))
 	})
 
-	t.Run("accepts an emailed code once and refuses it again", func(t *testing.T) {
+	t.Run("accepts an emailed code once and refuses it again when two-factor sign-in is on", func(t *testing.T) {
 		t.Parallel()
-		owner := newInstanceOwner(t)
+		owner := newTwoFactorInstanceOwner(t)
 		code := requireMasterKeyCode(t, owner)
 
-		firstExport := createMasterKeyExport(t, owner.RootAdmin, codeProof(code))
-		secondExport := createMasterKeyExport(t, owner.RootAdmin, codeProof(code))
+		firstExport := createMasterKeyExport(t, owner.RootAdmin, &code)
+		secondExport := createMasterKeyExport(t, owner.RootAdmin, &code)
 
 		require.Equal(t, http.StatusCreated, firstExport.StatusCode(), string(firstExport.Body))
 		requireProblemCode(t, secondExport.StatusCode(), secondExport.Body,
 			http.StatusBadRequest, apiclient.ProblemCodeIdentityProofInvalid)
 	})
 
-	t.Run("refuses a code after its five minutes passed", func(t *testing.T) {
+	t.Run("refuses an export without a code when two-factor sign-in is on", func(t *testing.T) {
 		t.Parallel()
-		owner := newInstanceOwner(t)
-		code := requireMasterKeyCode(t, owner)
+		owner := newTwoFactorInstanceOwner(t)
 
-		owner.App.Clock.Advance(5*time.Minute + time.Second)
-		response := createMasterKeyExport(t, owner.RootAdmin, codeProof(code))
+		response := createMasterKeyExport(t, owner.RootAdmin, nil)
 
 		requireProblemCode(t, response.StatusCode(), response.Body,
 			http.StatusBadRequest, apiclient.ProblemCodeIdentityProofInvalid)
 	})
 
-	t.Run("refuses a code from another session of root admin", func(t *testing.T) {
+	t.Run("refuses a wrong code when two-factor sign-in is on", func(t *testing.T) {
 		t.Parallel()
-		owner := newInstanceOwner(t)
-		code := requireMasterKeyCode(t, owner)
-		owner.App.Clock.Advance(time.Second)
-		otherSession := signInAgain(t, owner.App, owner.RootAdmin.Email)
+		owner := newTwoFactorInstanceOwner(t)
+		requireMasterKeyCode(t, owner)
+		wrongCode := "000000"
 
-		response := createMasterKeyExport(t, otherSession, codeProof(code))
+		response := createMasterKeyExport(t, owner.RootAdmin, &wrongCode)
+
+		requireProblemCode(t, response.StatusCode(), response.Body,
+			http.StatusBadRequest, apiclient.ProblemCodeIdentityProofInvalid)
+	})
+
+	t.Run("refuses the account password sent as a code when two-factor sign-in is on", func(t *testing.T) {
+		t.Parallel()
+		owner := newTwoFactorInstanceOwner(t)
+		password := apptest.TestPassword
+
+		response := createMasterKeyExport(t, owner.RootAdmin, &password)
+
+		requireProblemCode(t, response.StatusCode(), response.Body,
+			http.StatusBadRequest, apiclient.ProblemCodeIdentityProofInvalid)
+	})
+
+	t.Run("refuses a code after its five minutes passed when two-factor sign-in is on", func(t *testing.T) {
+		t.Parallel()
+		owner := newTwoFactorInstanceOwner(t)
+		code := requireMasterKeyCode(t, owner)
+
+		owner.App.Clock.Advance(5*time.Minute + time.Second)
+		response := createMasterKeyExport(t, owner.RootAdmin, &code)
+
+		requireProblemCode(t, response.StatusCode(), response.Body,
+			http.StatusBadRequest, apiclient.ProblemCodeIdentityProofInvalid)
+	})
+
+	t.Run("refuses a code issued for a recovery when two-factor sign-in is on", func(t *testing.T) {
+		t.Parallel()
+		owner := newTwoFactorInstanceOwner(t)
+		prepared := owner.App.PrepareRecovery(t)
+		recoveryCode := requireRecoveryCode(t, owner, prepared.ID)
+
+		response := createMasterKeyExport(t, owner.RootAdmin, &recoveryCode)
 
 		requireProblemCode(t, response.StatusCode(), response.Body,
 			http.StatusBadRequest, apiclient.ProblemCodeIdentityProofInvalid)
@@ -180,14 +189,14 @@ func TestCreateMasterKeyExport(t *testing.T) {
 
 	t.Run("refuses a code after root admin changed the email address", func(t *testing.T) {
 		t.Parallel()
-		owner := newInstanceOwner(t)
+		owner := newTwoFactorInstanceOwner(t)
 		code := requireMasterKeyCode(t, owner)
 
 		renamed, err := owner.RootAdmin.Client.UpdateUserWithResponse(t.Context(), owner.RootAdmin.UserID,
 			apiclient.UserUpdate{Name: "Owner", Email: apptest.NewTestEmail("renamed")})
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, renamed.StatusCode(), string(renamed.Body))
-		response := createMasterKeyExport(t, owner.RootAdmin, codeProof(code))
+		response := createMasterKeyExport(t, owner.RootAdmin, &code)
 
 		requireProblemCode(t, response.StatusCode(), response.Body,
 			http.StatusBadRequest, apiclient.ProblemCodeIdentityProofInvalid)
@@ -220,45 +229,16 @@ func TestRequestMasterKeyConfirmation(t *testing.T) {
 		requireProblemCode(t, response.StatusCode(), response.Body,
 			http.StatusTooManyRequests, apiclient.ProblemCodeRateLimited)
 	})
-
-	t.Run("lets an account without a password confirm through an emailed code", func(t *testing.T) {
-		t.Parallel()
-		app := apptest.New(t, apptest.WithGitHub())
-		email := apptest.NewTestEmail("owner")
-		signIn, err := app.NewClient(t).SignInWithGitHubWithResponse(t.Context(), apiclient.OAuthSignInRequest{
-			Code:        app.GitHub.Authorize(apptest.NewGitHubAccount(email)),
-			RedirectUri: "http://localhost/auth/callback",
-		})
-		require.NoError(t, err)
-		require.NotNil(t, signIn.JSON200, string(signIn.Body))
-		rootAdmin := apptest.Session{
-			Client: app.NewSessionClient(t, signIn.JSON200.Token),
-			UserID: signIn.JSON200.UserId,
-			Email:  email,
-			Token:  signIn.JSON200.Token,
-		}
-
-		passwordExport := createMasterKeyExport(t, rootAdmin, passwordProof(apptest.TestPassword))
-		code := requireMailedCode(t, app, rootAdmin)
-		codeExport := createMasterKeyExport(t, rootAdmin, codeProof(code))
-
-		requireProblemCode(t, passwordExport.StatusCode(), passwordExport.Body,
-			http.StatusBadRequest, apiclient.ProblemCodeIdentityProofInvalid)
-		require.Equal(t, http.StatusCreated, codeExport.StatusCode(), string(codeExport.Body))
-	})
 }
 
-func TestAcknowledgeMasterKey(t *testing.T) {
+func TestMasterKeyAcknowledgment(t *testing.T) {
 	t.Parallel()
 
 	t.Run("marks the current key saved for every session, while a download alone does not", func(t *testing.T) {
 		t.Parallel()
 		owner := newInstanceOwner(t)
-		issuedExport := requireMasterKeyExport(t, owner.RootAdmin, passwordProof(apptest.TestPassword))
-		download, err := owner.App.NewClient(t).DownloadMasterKeyWithResponse(
-			t.Context(), &apiclient.DownloadMasterKeyParams{Token: issuedExport.Token},
-		)
-		require.NoError(t, err)
+		issuedExport := requireMasterKeyExport(t, owner.RootAdmin, nil)
+		download := downloadMasterKey(t, owner.App, issuedExport.Token)
 		require.Equal(t, http.StatusOK, download.StatusCode())
 
 		isAcknowledgedAfterDownload := getStatus(t, owner.RootAdmin).IsMasterKeyAcknowledged
@@ -284,44 +264,100 @@ func TestAcknowledgeMasterKey(t *testing.T) {
 		require.NoError(t, err)
 		requireProblemCode(t, response.StatusCode(), response.Body,
 			http.StatusForbidden, apiclient.ProblemCodePermissionDenied)
+		assert.False(t, getStatus(t, owner.RootAdmin).IsMasterKeyAcknowledged)
+	})
+
+	t.Run("asks again when the installed key differs from the saved one", func(t *testing.T) {
+		t.Parallel()
+		owner := newInstanceOwner(t)
+		acknowledgment, err := owner.RootAdmin.Client.AcknowledgeMasterKeyWithResponse(
+			t.Context(), apiclient.MasterKeyAcknowledgment{IsSaved: true},
+		)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, acknowledgment.StatusCode(), string(acknowledgment.Body))
+
+		// A recovery installs another key; the API cannot do that, so the stored digest is replaced.
+		owner.App.ExecuteSQL(t, "UPDATE instancebackups_configs SET acknowledged_master_key_sha256 = ?",
+			strings.Repeat("cd", 32))
+
+		assert.False(t, getStatus(t, owner.RootAdmin).IsMasterKeyAcknowledged)
 	})
 }
 
-func passwordProof(password string) apiclient.IdentityProof {
-	return apiclient.IdentityProof{Password: &password, Code: nil}
+func TestMasterKeyExportCodeRequirement(t *testing.T) {
+	t.Parallel()
+
+	t.Run("reports a code required only after the instance requires two-factor sign-in", func(t *testing.T) {
+		t.Parallel()
+		owner := newInstanceOwner(t)
+		isRequiredBefore := getStatus(t, owner.RootAdmin).IsMasterKeyExportCodeRequired
+
+		requireTwoFactorSignIn(t, owner.RootAdmin)
+
+		assert.False(t, isRequiredBefore)
+		assert.True(t, getStatus(t, owner.RootAdmin).IsMasterKeyExportCodeRequired)
+	})
 }
 
-func codeProof(code string) apiclient.IdentityProof {
-	return apiclient.IdentityProof{Password: nil, Code: &code}
+func newTwoFactorInstanceOwner(t *testing.T) instanceOwner {
+	t.Helper()
+
+	owner := newInstanceOwner(t)
+	requireTwoFactorSignIn(t, owner.RootAdmin)
+
+	return owner
+}
+
+func requireTwoFactorSignIn(t *testing.T, rootAdmin apptest.Session) {
+	t.Helper()
+
+	currentSettings, err := rootAdmin.Client.GetInstanceSettingsWithResponse(t.Context())
+	require.NoError(t, err)
+	require.NotNil(t, currentSettings.JSON200, string(currentSettings.Body))
+
+	response, err := rootAdmin.Client.UpdateInstanceSettingsWithResponse(t.Context(), apiclient.InstanceSettingsUpdate{
+		IsAllowExternalRegistrations:      currentSettings.JSON200.IsAllowExternalRegistrations,
+		IsAllowMemberInvitations:          currentSettings.JSON200.IsAllowMemberInvitations,
+		IsMemberAllowedToCreateWorkspaces: currentSettings.JSON200.IsMemberAllowedToCreateWorkspaces,
+		IsTwoFactorAuthRequired:           true,
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
 }
 
 func createMasterKeyExport(
 	t *testing.T,
 	session apptest.Session,
-	proof apiclient.IdentityProof,
+	code *string,
 ) *apiclient.CreateMasterKeyExportResponse {
 	t.Helper()
 
 	response, err := session.Client.CreateMasterKeyExportWithResponse(t.Context(), apiclient.MasterKeyExportCreate{
-		Proof:                          proof,
-		IsInsecureTransferAcknowledged: new(true),
+		Code: code,
 	})
 	require.NoError(t, err)
 
 	return response
 }
 
-func requireMasterKeyExport(
-	t *testing.T,
-	session apptest.Session,
-	proof apiclient.IdentityProof,
-) apiclient.MasterKeyExport {
+func requireMasterKeyExport(t *testing.T, session apptest.Session, code *string) apiclient.MasterKeyExport {
 	t.Helper()
 
-	response := createMasterKeyExport(t, session, proof)
+	response := createMasterKeyExport(t, session, code)
 	require.Equal(t, http.StatusCreated, response.StatusCode(), string(response.Body))
 
 	return *response.JSON201
+}
+
+func downloadMasterKey(t *testing.T, app *apptest.App, token string) *apiclient.DownloadMasterKeyResponse {
+	t.Helper()
+
+	response, err := app.NewClient(t).DownloadMasterKeyWithResponse(
+		t.Context(), &apiclient.DownloadMasterKeyParams{Token: token},
+	)
+	require.NoError(t, err)
+
+	return response
 }
 
 func requireMasterKeyCode(t *testing.T, owner instanceOwner) string {

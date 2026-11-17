@@ -304,10 +304,10 @@ func getPartialCopy(
 func exportMasterKey(t *testing.T, instance runningInstance, root accountSession) []byte {
 	t.Helper()
 
-	exportResponse, err := root.Client.CreateMasterKeyExportWithResponse(t.Context(), apiclient.MasterKeyExportCreate{
-		IsInsecureTransferAcknowledged: new(true),
-		Proof:                          apiclient.IdentityProof{Password: new(accountPassword)},
-	})
+	exportResponse, err := root.Client.CreateMasterKeyExportWithResponse(
+		t.Context(),
+		apiclient.MasterKeyExportCreate{Code: nil},
+	)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusCreated, exportResponse.StatusCode(), string(exportResponse.Body))
 

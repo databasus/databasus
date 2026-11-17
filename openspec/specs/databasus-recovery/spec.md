@@ -187,22 +187,6 @@ Upload, preparation status, cancellation and apply SHALL require the target inst
 - **WHEN** a caller supplies a master-key export proof or a proof for another prepared import
 - **THEN** recovery apply is refused without replacing the active installation
 
-### Requirement: Uploaded recovery material remains private and bounded
-
-Recovery uploads SHALL preserve the archive's encryption and the exact UTF-8 bytes of the entered master key without trimming or normalizing whitespace or line endings. The key and decrypted dump SHALL NOT appear in responses, URLs, logs, telemetry, browser persistent storage or cacheable content. Staging SHALL restrict file access to the runtime identity, keep memory use bounded and stage no plaintext dump. Archive uploads SHALL enforce a configurable finite byte limit; the default SHALL be 10 GiB. The UTF-8 text-key field SHALL be limited to 64 KiB and SHALL be write-only. Oversized uploads, insufficient disk space and disconnected uploads SHALL fail without replacing the active database or key and SHALL release partial private files. Private staged key copies SHALL be removed after failed, cancelled or expired preparation or completed publication, while inputs needed for interrupted accepted publication SHALL survive a restart. Recovery SHALL NOT delete the operator's original mounted input files or the installed master key as part of staging cleanup.
-
-If the page or upload connection uses unencrypted HTTP, the interface SHALL warn and require explicit acknowledgment before transferring the archive or text key. Cancelling the warning SHALL send neither archive nor key bytes and SHALL offer guidance for a protected connection or mounted-file recovery. The server SHALL require the acknowledgment on an insecure upload as well.
-
-#### Scenario: Owner cancels HTTP import warning
-
-- **WHEN** root admin selects a recovery archive and enters the key over HTTP and cancels the warning
-- **THEN** neither archive nor key bytes are transferred and the active installation is unchanged
-
-#### Scenario: Upload exceeds the configured limit without a declared length
-
-- **WHEN** an archive upload without a usable declared length exceeds the configured byte limit
-- **THEN** the server refuses it while streaming and releases its partial staging files without replacing active state
-
 ### Requirement: UI publication stops live work and returns a paused application
 
 Before replacing active state, UI recovery SHALL prevent new mutations and background execution, stop and drain active requests and operations, and close active database connections. A timeout or failure to establish exclusive access SHALL refuse publication and preserve the current database/key pair. Applying SHALL publish a validated, normalized snapshot and its source key consistently; a crash SHALL NOT expose a partial or mismatched installation. The application SHALL become available again without requiring a browser request, operator restart or configured container restart policy to complete the operation.
@@ -307,3 +291,19 @@ After activation, the existing saved connection-test action SHALL be the only fi
 
 - **WHEN** a viewer successfully tests a recovered local storage after activation
 - **THEN** the test reports connected but the storage remains unavailable pending an authorized editor's validation
+
+### Requirement: Recovery uploads remain private and bounded over any connection
+
+Recovery uploads SHALL preserve the archive's encryption and the exact UTF-8 bytes of the entered master key without trimming or normalizing whitespace or line endings. The key and decrypted dump SHALL NOT appear in responses, URLs, logs, telemetry, browser persistent storage or cacheable content. Staging SHALL restrict file access to the runtime identity, keep memory use bounded and stage no plaintext dump. Archive uploads SHALL enforce a configurable finite byte limit; the default SHALL be 10 GiB. The UTF-8 text-key field SHALL be limited to 64 KiB and SHALL be write-only. Oversized uploads, insufficient disk space and disconnected uploads SHALL fail without replacing the active database or key and SHALL release partial private files. Private staged key copies SHALL be removed after failed, cancelled or expired preparation or completed publication, while inputs needed for interrupted accepted publication SHALL survive a restart. Recovery SHALL NOT delete the operator's original mounted input files or the installed master key as part of staging cleanup.
+
+The interface SHALL upload the archive and the text key over the connection the page uses, HTTP included, without a separate warning or acknowledgment, and the server SHALL accept such an upload.
+
+#### Scenario: Upload exceeds the configured limit without a declared length
+
+- **WHEN** an archive upload without a usable declared length exceeds the configured byte limit
+- **THEN** the server refuses it while streaming and releases its partial staging files without replacing active state
+
+#### Scenario: Owner imports over plain HTTP
+
+- **WHEN** root admin selects a recovery archive and enters the key on a page served over HTTP
+- **THEN** the upload starts without a warning or an acknowledgment and the server accepts it

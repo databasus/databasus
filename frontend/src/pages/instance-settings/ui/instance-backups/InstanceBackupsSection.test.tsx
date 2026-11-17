@@ -95,6 +95,51 @@ describe('InstanceBackupsSection', () => {
     expect(await screen.findByRole('heading', { name: text.title })).toBeTruthy();
   });
 
+  it('shows the master-key status and copy instructions, and reads the key only when asked', async () => {
+    useSectionResponses({ status: buildStatus({ isMasterKeyAcknowledged: true }) });
+    server.use(
+      mockApi.post('/master-key-exports', 201, {
+        token: 'key-token',
+        fileName: 'databasus-master-key.txt',
+        expiresAt: '2999-01-01T00:00:00Z',
+      }),
+      http.get(`*${API_BASE_PATH}/master-key-downloads`, () =>
+        HttpResponse.text('panel-master-key-0123456789'),
+      ),
+    );
+    const { user } = openSection();
+    const masterKey = DICTIONARIES.en.masterKey;
+
+    expect(await screen.findByText(masterKey.statusSaved)).toBeTruthy();
+    expect(screen.getByText(masterKey.host.description)).toBeTruthy();
+    expect(screen.getByText('/databasus-data/secret.key')).toBeTruthy();
+    expect(server.getRequests().some((request) => request.url.includes('/master-key-'))).toBe(
+      false,
+    );
+
+    await user.click(screen.getByRole('button', { name: masterKey.saveAgain }));
+
+    expect(await screen.findByText('pane••••••••••••6789')).toBeTruthy();
+    expect(screen.getByRole('button', { name: masterKey.copy })).toBeTruthy();
+    expect(screen.getByRole('button', { name: masterKey.download })).toBeTruthy();
+  });
+
+  it('asks for an emailed code in the master-key panel when two-factor sign-in is on', async () => {
+    useSectionResponses({
+      status: buildStatus({ isMasterKeyAcknowledged: false, isMasterKeyExportCodeRequired: true }),
+    });
+    const { user } = openSection();
+    const masterKey = DICTIONARIES.en.masterKey;
+
+    expect(await screen.findByText(masterKey.statusNotSaved)).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: masterKey.saveAgain }));
+
+    expect(screen.getByRole('button', { name: masterKey.proof.sendCode })).toBeTruthy();
+    expect(server.getRequests().some((request) => request.url.includes('/master-key-'))).toBe(
+      false,
+    );
+  });
+
   it('retries the status after it failed to load', async () => {
     server.use(mockApi.get('/instance-backup-statuses', 500, buildProblem('internal', 500)));
     const { user } = openSection();

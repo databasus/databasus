@@ -22,6 +22,7 @@ import {
 } from '@/entities/workspaces';
 import { API_BASE_PATH } from '@/shared/api';
 import { activateSession } from '@/shared/auth';
+import { BrowserClipboard } from '@/shared/lib/BrowserClipboard';
 import { finishApiResponse } from '@/shared/lib/test/finishApiResponse';
 import { finishCancelledApiResponse } from '@/shared/lib/test/finishCancelledApiResponse';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
@@ -1218,9 +1219,10 @@ const openApplicationAsRootAdmin = (
       isEmailConfigured: true,
       isRootEmailUsable: true,
       isMasterKeyAcknowledged: true,
+      isMasterKeyExportCodeRequired: false,
       identityProofMethods: ['PASSWORD'],
       masterKeyPath: '/databasus-data/secret.key',
-      reminder: { isEligible: false, deferredUntil: null },
+      reminder: { isEligible: false },
       isRecoveryPaused: false,
       recovery: null,
     }),
@@ -1320,5 +1322,57 @@ describe('Databasus backup destination deletion refusal', () => {
     await waitFor(() => expect(document.activeElement).toBe(backupsHeading));
     expect(window.location.pathname).toBe('/databasus-settings');
     expect(scrollIntoView).toHaveBeenCalled();
+  });
+});
+
+describe('Master key onboarding before the application', () => {
+  it('shows the onboarding screen instead of the application until root admin confirms saving the key', async () => {
+    const user = openApplicationAsRootAdmin('/databasus-settings', [firstWorkspace]);
+    const unsavedStatus = {
+      health: 'NOT_CONFIGURED' as const,
+      destinations: [],
+      incident: null,
+      isEmailConfigured: true,
+      isRootEmailUsable: true,
+      isMasterKeyAcknowledged: false,
+      isMasterKeyExportCodeRequired: false,
+      identityProofMethods: ['PASSWORD' as const],
+      masterKeyPath: '/databasus-data/secret.key',
+      reminder: { isEligible: false },
+      isRecoveryPaused: false,
+      recovery: null,
+    };
+    server.use(
+      mockApi.get('/instance-backup-statuses', 200, unsavedStatus),
+      mockApi.post('/master-key-exports', 201, {
+        token: 'key-token',
+        fileName: 'databasus-master-key.txt',
+        expiresAt: '2999-01-01T00:00:00Z',
+      }),
+      http.get(`*${API_BASE_PATH}/master-key-downloads`, () =>
+        HttpResponse.text('k3Jd-installed-master-key-9fQa'),
+      ),
+      http.put(`*${API_BASE_PATH}/master-key-acknowledgments`, () => {
+        server.use(
+          mockApi.get('/instance-backup-statuses', 200, {
+            ...unsavedStatus,
+            isMasterKeyAcknowledged: true,
+          }),
+        );
+        return HttpResponse.json({ isSaved: true });
+      }),
+    );
+    vi.spyOn(BrowserClipboard, 'copyToClipboard').mockResolvedValue();
+
+    expect(
+      await screen.findByRole('heading', { name: 'Save the master key', level: 1 }),
+    ).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Databasus backups' })).toBeNull();
+
+    await user.click(await screen.findByRole('button', { name: 'Copy' }));
+    await user.click(screen.getByRole('button', { name: "I've saved it in a safe place" }));
+
+    expect(await screen.findByRole('heading', { name: 'Databasus backups' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Save the master key', level: 1 })).toBeNull();
   });
 });

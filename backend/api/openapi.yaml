@@ -3573,47 +3573,17 @@ paths:
           $ref: "#/components/responses/Problem"
         default:
           $ref: "#/components/responses/Problem"
-  /instance-backup-reminders:
-    put:
-      operationId: updateInstanceBackupReminder
-      tags: [instancebackups]
-      summary: Defer or restore the setup reminder
-      description: >-
-        Only root admin changes it. Deferring hides the initial setup reminder for 24 hours. It
-        never hides an incident, including stopped protection.
-      x-access: admin
-      requestBody:
-        description: Whether the setup reminder is deferred.
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/InstanceBackupReminderUpdate"
-      responses:
-        "200":
-          description: The reminder after the change
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/InstanceBackupReminder"
-        "400":
-          $ref: "#/components/responses/Problem"
-        "401":
-          $ref: "#/components/responses/Problem"
-        "403":
-          $ref: "#/components/responses/Problem"
-        default:
-          $ref: "#/components/responses/Problem"
   /master-key-confirmations:
     post:
       operationId: requestMasterKeyConfirmation
       tags: [instancebackups]
       summary: Email root admin a code that confirms a master-key export
       description: >-
-        Only root admin requests one. It serves an account without a password. Without a system
-        mail server or a usable address on root admin's account the answer is 409
-        `identity_proof_unavailable`, and the interface explains how to save the key from the host.
-        The code expires after five minutes and confirms only a master-key export. One code a minute.
+        Only root admin requests one, and only an instance that requires two-factor sign-in needs it.
+        Without a system mail server or a usable address on root admin's account the answer is 409
+        `identity_proof_unavailable`, and the interface explains how to copy the key from the host.
+        The code is bound to the requesting session, expires after five minutes and confirms only a
+        master-key export. One code a minute.
       x-access: admin
       responses:
         "201":
@@ -3636,19 +3606,19 @@ paths:
     post:
       operationId: createMasterKeyExport
       tags: [instancebackups]
-      summary: Confirm identity and get a single-use token that downloads the master key
+      summary: Get a single-use token that downloads the master key
       description: >-
-        Only root admin exports the key. The request carries root admin's current password or the
-        emailed code from `requestMasterKeyConfirmation`; a wrong, expired, used or wrong-purpose
-        proof gets 400 `identity_proof_invalid`. Over unencrypted HTTP the request must also set
-        `isInsecureTransferAcknowledged`, or it gets 400 `invalid_request`. The token is returned only
-        here, downloads the key once and expires after 60 seconds. This is the one operation chain
-        that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing
+        Only root admin exports the key. When the instance does not require two-factor sign-in, root
+        admin's session is enough and `code` is ignored. When it does, the request carries the
+        emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or
+        wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here,
+        downloads the key once and expires after 60 seconds. This is the one operation chain that
+        lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing
         master key as an attachment, and no JSON response ever carries it. The audit log records the
-        export without the proof, the token or the key.
+        export without the code, the token or the key.
       x-access: admin
       requestBody:
-        description: The identity proof and, over HTTP, the acknowledged risk.
+        description: The emailed code, when the instance requires two-factor sign-in.
         required: true
         content:
           application/json:
@@ -3681,7 +3651,8 @@ paths:
         Public, because a browser link cannot carry the session: the single-use `token` from
         `createMasterKeyExport` is the credential. Returns exactly the bytes of the existing master
         key as an attachment with `Cache-Control: no-store`. An expired, used, unknown or
-        wrong-purpose token gets 401 `unauthenticated`. Downloading does not mark the key as saved.
+        wrong-purpose token gets 401 `unauthenticated`. The download records no acknowledgment;
+        `acknowledgeMasterKey` does.
       parameters:
         - name: token
           in: query
@@ -3719,8 +3690,8 @@ paths:
       summary: Record that root admin saved the current master key
       description: >-
         Only root admin acknowledges. The acknowledgment belongs to the current key, so every
-        browser and session stops showing key onboarding for it. A download alone never counts as
-        an acknowledgment.
+        browser and session stops showing key onboarding for it. Exporting or downloading the key
+        alone never counts as an acknowledgment.
       x-access: admin
       requestBody:
         description: The acknowledgment.
@@ -3757,14 +3728,12 @@ paths:
         nor this installation's own key is needed. The archive is streamed into private staging and
         refused with 413 `archive_too_large` beyond the configured limit, 10 GiB by default, even
         without a declared length; the key is limited to 64 KiB. Missing disk space gets 409
-        `insufficient_disk_space`, another pending recovery gets 409 `already_running`. Over
-        unencrypted HTTP `isInsecureTransferAcknowledged` must be `true` and come before the
-        `archive` part, or the answer is 400 `invalid_request` before any archive byte is staged. The
+        `insufficient_disk_space`, another pending recovery gets 409 `already_running`. The
         answer is 202 with the recovery validating; the active installation stays usable until an
         explicit apply. A prepared recovery expires after one hour.
       x-access: admin
       requestBody:
-        description: The archive file, the source master key and, over HTTP, the acknowledged risk.
+        description: The archive file and the source master key.
         required: true
         content:
           multipart/form-data:
@@ -6361,20 +6330,9 @@ components:
       properties:
         isEligible:
           type: boolean
-          description: Whether the instance has a user database or storage, so setup should be suggested
-        deferredUntil:
-          type: string
-          format: date-time
-          nullable: true
-          description: Until when root admin deferred the reminder
-    InstanceBackupReminderUpdate:
-      type: object
-      description: Whether to defer the setup reminder for 24 hours
-      required: [isDeferred]
-      properties:
-        isDeferred:
-          type: boolean
-          description: "`true` defers the reminder for 24 hours, `false` shows it again"
+          description: >-
+            Whether the instance has a user database or storage, so setup should be suggested. The
+            reminder cannot be deferred: it shows while no destination is selected.
     IdentityProofMethod:
       type: string
       description: A way root admin can confirm identity
@@ -6388,6 +6346,7 @@ components:
         - isEmailConfigured
         - isRootEmailUsable
         - isMasterKeyAcknowledged
+        - isMasterKeyExportCodeRequired
         - identityProofMethods
         - masterKeyPath
         - reminder
@@ -6414,6 +6373,9 @@ components:
         isMasterKeyAcknowledged:
           type: boolean
           description: Whether root admin confirmed saving the current master key
+        isMasterKeyExportCodeRequired:
+          type: boolean
+          description: Whether a master-key export needs an emailed code, because the instance requires two-factor sign-in
         identityProofMethods:
           type: array
           items:
@@ -6624,15 +6586,12 @@ components:
           description: The emailed confirmation code
     MasterKeyExportCreate:
       type: object
-      description: The identity proof for a master-key export
-      required: [proof]
+      description: The confirmation for a master-key export
       properties:
-        proof:
-          $ref: "#/components/schemas/IdentityProof"
-        isInsecureTransferAcknowledged:
-          type: boolean
-          default: false
-          description: Root admin accepted that the key travels over unencrypted HTTP
+        code:
+          type: string
+          writeOnly: true
+          description: The emailed confirmation code; required when the instance requires two-factor sign-in
     MasterKeyExport:
       type: object
       description: A single-use token that downloads the master key within 60 seconds
@@ -6748,10 +6707,6 @@ components:
           minLength: 1
           maxLength: 65536
           description: The source installation's master key as text; its exact UTF-8 bytes are used
-        isInsecureTransferAcknowledged:
-          type: boolean
-          default: false
-          description: Root admin accepted that the file and the key travel over unencrypted HTTP
     InstanceRecoveryApply:
       type: object
       description: The replacement confirmation and identity proof

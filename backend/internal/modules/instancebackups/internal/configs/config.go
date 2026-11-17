@@ -30,7 +30,6 @@ const (
 
 const (
 	DefaultRetentionDays = 30
-	setupDeferral        = 24 * time.Hour
 )
 
 // Config is the singleton row of the settings.
@@ -44,7 +43,6 @@ type Config struct {
 	ProtectionState             ProtectionState `gorm:"column:protection_state"`
 	NextSelectionGeneration     int64           `gorm:"column:next_selection_generation"`
 	IsRunRequested              bool            `gorm:"column:is_run_requested"`
-	SetupDeferredUntil          *time.Time      `gorm:"column:setup_deferred_until"`
 	AcknowledgedMasterKeySha256 *string         `gorm:"column:acknowledged_master_key_sha256"`
 	MasterKeyAcknowledgedAt     *time.Time      `gorm:"column:master_key_acknowledged_at"`
 	// RecoveryPausedOperationID is the recovery that published this installation and keeps it
@@ -79,7 +77,6 @@ func (c Config) IsDefault() bool {
 		c.ProtectionState == ProtectionStateNotConfigured &&
 		c.NextSelectionGeneration == 1 &&
 		!c.IsRunRequested &&
-		c.SetupDeferredUntil == nil &&
 		c.AcknowledgedMasterKeySha256 == nil &&
 		c.MasterKeyAcknowledgedAt == nil &&
 		c.RecoveryPausedOperationID == nil &&

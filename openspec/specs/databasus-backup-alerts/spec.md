@@ -33,7 +33,7 @@ Databasus SHALL track completed outcomes and the age of the last successful snap
 
 ### Requirement: Removing the last destination immediately reports stopped protection
 
-A committed configuration change from at least one selected destination to none SHALL immediately create a stopped-protection incident. It SHALL bypass initial onboarding eligibility, setup deferral and the normal overdue grace period. A failed or rolled-back configuration save SHALL create no such incident. An initially unconfigured installation SHALL not send stopped-protection email. Re-adding a destination SHALL request an immediate backup and keep a resuming incident until at least one new copy succeeds; failures of remaining selected destinations SHALL continue to be reported independently.
+A committed configuration change from at least one selected destination to none SHALL immediately create a stopped-protection incident. It SHALL bypass initial onboarding eligibility and the normal overdue grace period. A failed or rolled-back configuration save SHALL create no such incident. An initially unconfigured installation SHALL not send stopped-protection email. Re-adding a destination SHALL request an immediate backup and keep a resuming incident until at least one new copy succeeds; failures of remaining selected destinations SHALL continue to be reported independently.
 
 #### Scenario: Final selected destination is removed
 
