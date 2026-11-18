@@ -55,7 +55,7 @@
   - **Full**: a complete, self-contained copy of the cluster
   - **Incremental**: stores only what changed since the previous full backup, so backups stay small and fast
   - **WAL streaming**: continuously captures the database write stream, enabling Point-in-time recovery (PITR). Designed for disaster recovery and near-zero data loss
-  - **High availability (HA)**: supports timeline changes after primary switches in Patroni and CloudNativePG (CNPG) clusters
+  - **High availability (HA)**: supports timeline changes after primary switches in Patroni and CloudNativePG (CNPG) clusters without gaps: WAL and incremental chains continue on the new timeline
 - **Logical**: native dump of the database in its engine-specific binary format (compressed, suitable for parallel restore)
 
 ### 🔄 **Scheduled backups**
@@ -310,7 +310,7 @@ Before each release, Databasus runs automated checks to reduce the risk of vulne
 - **Restore tests** run full backup-and-restore cycles against real database containers for every supported engine and major version.
 - **Release gates** require tests, builds and security checks to pass. Open critical CodeQL findings in the release analysis block publication.
 
-Regular Codex Security audits from OpenAI complement these release checks. Report vulnerabilities privately using [SECURITY.md](https://github.com/databasus/databasus?tab=security-ov-file#readme); security reports take priority.
+Regular Codex Security audits from OpenAI complement these release checks. Report vulnerabilities privately using [SECURITY.md](https://github.com/databasus/databasus?tab=security-ov-file#readme); security reports take priority. Fixed vulnerabilities are published as advisories, with CVEs where assigned, on the [repository's Security page](https://github.com/databasus/databasus/security).
 
 ---
 

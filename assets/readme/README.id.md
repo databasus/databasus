@@ -56,7 +56,7 @@
   - **Penuh**: salinan lengkap dan mandiri dari cluster
   - **Inkremental**: hanya menyimpan perubahan sejak backup penuh sebelumnya, jadi backup tetap kecil dan cepat
   - **WAL streaming**: menangkap aliran tulis database secara terus-menerus, sehingga Point-in-Time Recovery (PITR) bisa dilakukan. Dirancang untuk disaster recovery dan kehilangan data mendekati nol
-  - **Ketersediaan tinggi (HA)**: mendukung perubahan timeline setelah pergantian primary pada cluster Patroni dan CloudNativePG (CNPG)
+  - **Ketersediaan tinggi (HA)**: mendukung perubahan timeline setelah pergantian primary pada cluster Patroni dan CloudNativePG (CNPG) tanpa celah: WAL dan rantai backup inkremental berlanjut di timeline baru
 - **Logis**: dump native database dalam format biner khas engine-nya (terkompresi, cocok untuk restore paralel)
 
 ### 🔄 **Backup terjadwal**
@@ -311,7 +311,7 @@ Sebelum setiap rilis, Databasus menjalankan pemeriksaan otomatis untuk mengurang
 - **Pengujian restore** menjalankan siklus backup dan restore lengkap pada container database sungguhan untuk setiap engine dan versi mayor yang didukung.
 - **Syarat rilis** mewajibkan pengujian, build, dan pemeriksaan keamanan lolos. Temuan CodeQL kritis yang masih terbuka pada analisis rilis memblokir publikasi.
 
-Audit berkala Codex Security dari OpenAI melengkapi pemeriksaan ini. Laporkan kerentanan secara privat melalui [SECURITY.md](https://github.com/databasus/databasus?tab=security-ov-file#readme); laporan keamanan ditangani lebih dahulu.
+Audit berkala Codex Security dari OpenAI melengkapi pemeriksaan ini. Laporkan kerentanan secara privat melalui [SECURITY.md](https://github.com/databasus/databasus?tab=security-ov-file#readme); laporan keamanan ditangani lebih dahulu. Kerentanan yang sudah diperbaiki dipublikasikan sebagai advisory, beserta CVE bila sudah ditetapkan, di [halaman Security repositori](https://github.com/databasus/databasus/security).
 
 ---
 

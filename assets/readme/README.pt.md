@@ -55,7 +55,7 @@
   - **Completo**: uma cópia integral e autossuficiente do cluster
   - **Incremental**: guarda apenas o que mudou desde o backup completo anterior, então os backups continuam pequenos e rápidos
   - **Streaming de WAL**: captura continuamente o fluxo de escrita da base, o que permite Point-in-time recovery (PITR). Feito para recuperação de desastres e perda de dados próxima de zero
-  - **Alta disponibilidade (HA)**: suporta mudanças de timeline após a troca do primário em clusters Patroni e CloudNativePG (CNPG)
+  - **Alta disponibilidade (HA)**: suporta mudanças de timeline após a troca do primário em clusters Patroni e CloudNativePG (CNPG) sem lacunas: o WAL e as cadeias incrementais continuam na nova timeline
 - **Lógico**: dump nativo da base no formato binário do próprio motor (comprimido, adequado para restauração em paralelo)
 
 ### 🔄 **Backups agendados**
@@ -310,7 +310,7 @@ Antes de cada versão, o Databasus executa verificações automáticas para redu
 - **Testes de restauração** executam ciclos completos de backup e restauração em contêineres reais para cada mecanismo e versão principal compatíveis.
 - **Requisitos de publicação** exigem que testes, builds e verificações de segurança passem. Alertas críticos do CodeQL abertos na análise da versão bloqueiam a publicação.
 
-Auditorias periódicas do Codex Security da OpenAI complementam essas verificações. Relate vulnerabilidades de forma privada seguindo [SECURITY.md](https://github.com/databasus/databasus?tab=security-ov-file#readme); esses relatos têm prioridade.
+Auditorias periódicas do Codex Security da OpenAI complementam essas verificações. Relate vulnerabilidades de forma privada seguindo [SECURITY.md](https://github.com/databasus/databasus?tab=security-ov-file#readme); esses relatos têm prioridade. As vulnerabilidades corrigidas são publicadas como advisories, com CVE quando atribuído, na [página Security do repositório](https://github.com/databasus/databasus/security).
 
 ---
 

@@ -55,7 +55,7 @@
   - **全量**：集群的完整、自包含副本
   - **增量**：只存储自上次全量备份以来的变化，备份因此又小又快
   - **WAL 流式复制**：持续捕获数据库的写入流，支持时间点恢复（PITR）。为灾难恢复而设计，数据丢失接近于零
-  - **高可用性（HA）**：支持 Patroni 和 CloudNativePG（CNPG）集群切换主节点后的时间线变化
+  - **高可用性（HA）**：支持 Patroni 和 CloudNativePG（CNPG）集群切换主节点后的时间线变化，且不留缺口：WAL 和增量备份链在新时间线上继续
 - **逻辑备份**：数据库引擎专用二进制格式的原生转储（已压缩，可用于并行恢复）
 
 ### 🔄 **定时备份**
@@ -310,7 +310,7 @@ Databasus 的设计目标是：即使自身所在的服务器丢失或损坏，�
 - **恢复测试**针对每个受支持的数据库引擎和主要版本，在真实数据库容器中运行完整的备份与恢复流程。
 - **发布条件**要求测试、构建和安全检查全部通过。发布分析中尚未处理的 CodeQL 严重漏洞会阻止发布。
 
-OpenAI 的 Codex Security 还会定期开展审计，补充这些发布检查。如需报告漏洞，请按照 [SECURITY.md](https://github.com/databasus/databasus?tab=security-ov-file#readme) 私下联系；安全报告会优先处理。
+OpenAI 的 Codex Security 还会定期开展审计，补充这些发布检查。如需报告漏洞，请按照 [SECURITY.md](https://github.com/databasus/databasus?tab=security-ov-file#readme) 私下联系；安全报告会优先处理。已修复的漏洞会以安全公告的形式发布在[仓库的 Security 页面](https://github.com/databasus/databasus/security)，已分配 CVE 的会附上编号。
 
 ---
 

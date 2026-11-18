@@ -55,7 +55,7 @@
   - **Complète** : une copie intégrale et autonome du cluster
   - **Incrémentale** : ne stocke que ce qui a changé depuis la sauvegarde complète précédente, les fichiers restent donc petits et rapides à produire
   - **Streaming WAL** : capture en continu le flux d'écriture de la base et rend possible la récupération à un instant donné (PITR). Conçu pour la reprise après sinistre et une perte de données quasi nulle
-  - **Haute disponibilité (HA)** : prend en charge les changements de timeline après un changement de primaire dans les clusters Patroni et CloudNativePG (CNPG)
+  - **Haute disponibilité (HA)** : prend en charge les changements de timeline après un changement de primaire dans les clusters Patroni et CloudNativePG (CNPG) sans interruption : le WAL et les chaînes incrémentales continuent sur la nouvelle timeline
 - **Logique** : dump natif de la base dans le format binaire propre à son moteur (compressé, adapté à une restauration parallèle)
 
 ### 🔄 **Sauvegardes planifiées**
@@ -310,7 +310,7 @@ Avant chaque version, Databasus lance des contrôles automatiques pour réduire 
 - **Tests de restauration :** cycles complets de sauvegarde et de restauration dans de vrais conteneurs de bases de données, pour chaque moteur et version majeure pris en charge.
 - **Conditions de publication :** les tests, les compilations et les contrôles de sécurité doivent réussir. Les alertes critiques CodeQL ouvertes dans l’analyse de la version bloquent sa publication.
 
-Des audits réguliers de Codex Security d’OpenAI complètent ces contrôles. Signalez les vulnérabilités en privé en suivant [SECURITY.md](https://github.com/databasus/databasus?tab=security-ov-file#readme) ; ces signalements sont prioritaires.
+Des audits réguliers de Codex Security d’OpenAI complètent ces contrôles. Signalez les vulnérabilités en privé en suivant [SECURITY.md](https://github.com/databasus/databasus?tab=security-ov-file#readme) ; ces signalements sont prioritaires. Les vulnérabilités corrigées sont publiées sous forme d’avis, avec un CVE lorsqu’il est attribué, sur la [page Security du dépôt](https://github.com/databasus/databasus/security).
 
 ---
 
