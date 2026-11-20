@@ -9,6 +9,45 @@ if [[ "${1:-}" == --full ]]; then
     is_full_run=true
 fi
 
+# The run restarts itself with its output copied to temp/, so a long run can be read after the
+# terminal scrolled past it. The copying tee processes stay outside the run, whose cleanup kills every
+# child it has, and they ignore Ctrl+C, so the cleanup output of an interrupted run reaches the file.
+if [[ ! -v DATABASUS_TEST_LOG_PATH ]]; then
+    log_name="test"
+    if [[ "$is_full_run" == true ]]; then
+        log_name=test-full
+    fi
+    mkdir -p "$root/temp"
+    DATABASUS_TEST_LOG_PATH="$root/temp/$log_name-$(date +%Y%m%d-%H%M%S).txt"
+    export DATABASUS_TEST_LOG_PATH
+    echo "writing the output to $DATABASUS_TEST_LOG_PATH"
+    : >"$DATABASUS_TEST_LOG_PATH"
+
+    # Each stream gets its own tee, so the console keeps stdout and stderr apart.
+    exec {stdout_copy_fd}> >(tee -i -a --output-error=warn "$DATABASUS_TEST_LOG_PATH")
+    stdout_copy_process_id=$!
+    exec {stderr_copy_fd}> >(tee -i -a --output-error=warn "$DATABASUS_TEST_LOG_PATH" >&2)
+    stderr_copy_process_id=$!
+
+    # A background command ignores SIGINT, so Ctrl+C reaches the run as SIGTERM; either signal
+    # then runs its cleanup.
+    bash "${BASH_SOURCE[0]}" "$@" >&"$stdout_copy_fd" 2>&"$stderr_copy_fd" \
+        {stdout_copy_fd}>&- {stderr_copy_fd}>&- &
+    run_process_id=$!
+    trap 'kill -TERM "$run_process_id" 2>/dev/null || true' INT TERM
+
+    run_status=0
+    wait "$run_process_id" || run_status=$?
+    while kill -0 "$run_process_id" 2>/dev/null; do
+        run_status=0
+        wait "$run_process_id" || run_status=$?
+    done
+
+    exec {stdout_copy_fd}>&- {stderr_copy_fd}>&-
+    wait "$stdout_copy_process_id" "$stderr_copy_process_id" || true
+    exit "$run_status"
+fi
+
 lock_directory=${TMPDIR:-/tmp}
 # `mise run test` and `mise run test-full` take turns; a single package run never takes this lock.
 full_run_lock="$lock_directory/databasus-full-test.lock"

@@ -123,7 +123,7 @@ Each command adds its own layer on top:
   - the crashed-run probes and then the lifecycle interruption checks run while no other browser run of the command is active. They run one probe after another and no other browser run may overlap them, so they go first, beside the backend packages and the suites that start no browser run;
   - after them, the browser end-to-end scenarios and the other lifecycle probes run together, the probes split into parts that several processes run, because one process runs its probes one after another.
 
-  A failed suite stops no other suite; only a failed image build keeps the suites that run the image from starting. The run ends with a summary of each suite's outcome and duration, the build's duration and the total.
+  A failed suite stops no other suite; only a failed image build keeps the suites that run the image from starting. The run ends with a summary of each suite's outcome and duration, the build's duration and the total. Both commands also copy their output to a new `temp/test-<time>.txt` or `temp/test-full-<time>.txt` file in the checkout.
 - **Browser UI** takes its worker count from its runner: half the host's logical processors rounded up, and at least two, locally, and two per shard in CI.
 - **A direct package run** uses Go's defaults and gets the whole machine.
 
