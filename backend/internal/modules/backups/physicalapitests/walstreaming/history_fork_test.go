@@ -3,7 +3,6 @@ package walstreaming_test
 import (
 	"log/slog"
 	"os"
-	"slices"
 	"strings"
 	"testing"
 
@@ -68,8 +67,10 @@ func TestTimelineHistoryForkPublication(t *testing.T) {
 		team.reportHistoryAgain(t, observer)
 
 		warningKeys := observer.WaitForConflictWarning(t)
-		slices.Sort(warningKeys)
-		require.Equal(t, []string{"database_id", "timeline_id"}, slices.Compact(warningKeys))
+		require.Subset(t, warningKeys, []string{"database_id", "timeline_id"})
+		// The receiver or a running full backup may publish the history first; the backup's
+		// context adds its own ID, and neither adds the history contents.
+		require.Subset(t, []string{"database_id", "timeline_id", "backup_id", "job_name", "job_id"}, warningKeys)
 		conflicting := team.getPublishedFork(t)
 		require.Equal(t, published.ID, conflicting.ID)
 		require.Equal(t, "0/1", *conflicting.ForkLSN)
